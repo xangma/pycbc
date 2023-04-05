@@ -1066,6 +1066,22 @@ with ctx:
             # Collect together the single detector triggers
             if evnt.size > 1:
                 results, valid_end = evnt.gather_results()
+            
+            hdf_filename = "all_triggers.hdf"
+            with h5py.File(hdf_filename, 'a') as hdf_file:
+                    # Create a group for the current analysis loop's start time
+                    group_name = f"analysis_loop_{t1}_start_time"
+                    trigger_group = hdf_file.create_group(group_name)
+                    
+                    # Store the single detector trigger data in the group
+                    for ifo in results:
+                        ifo_trigger_group = trigger_group.create_group(ifo)
+                        for key in results[ifo]:
+                            # Encode Unicode string arrays as bytes
+                            data = results[ifo][key]
+                            if data.dtype.kind == 'U':
+                                data = numpy.array([s.encode('utf-8') for s in data])
+                            ifo_trigger_group.create_dataset(key, data=data)
 
             # veto detectors with different state between the root
             # and worker nodes (e.g. late frame files on one node only)
