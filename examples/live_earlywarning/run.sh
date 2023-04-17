@@ -120,9 +120,9 @@ rm -rf ./all_triggers.hdf
 
 echo -e "\\n\\n>> [`date`] Running PyCBC Live"
 
-# -host localhost,localhost \
 mpirun \
--n 6 \
+-H localhost:2 \
+-n 2 \
 --bind-to none \
  -x PYTHONPATH -x LD_LIBRARY_PATH -x OMP_NUM_THREADS -x VIRTUAL_ENV -x PATH -x HDF5_USE_FILE_LOCKING \
 \
@@ -166,9 +166,7 @@ python -m mpi4py `which pycbc_live` \
     L1:SIMULATED_STRAIN \
     V1:SIMULATED_STRAIN \
 --processing-scheme cpu:4 \
---fftw-measure-level 0 \
---fftw-threads-backend openmp \
---increment 8 \
+--increment 64 \
 --max-batch-size 16777216 \
 --output-path output \
 --day-hour-output-prefix \
@@ -182,22 +180,25 @@ python -m mpi4py `which pycbc_live` \
 --ifar-double-followup-threshold 0.0001 \
 --ifar-upload-threshold 0.0002 \
 --round-start-time 1 \
---fftw-measure-level 0 \
---fftw-threads-backend openmp  \
---start-time $gps_start_time \
---end-time $gps_end_time \
+--start-time ${gps_start_time} \
+--end-time ${gps_end_time} \
 --src-class-mchirp-to-delta 0.01 \
 --src-class-eff-to-lum-distance 0.74899 \
 --src-class-lum-distance-to-delta -0.51557 -0.32195 \
 --run-snr-optimization \
---enable-single-detector-background \
---single-newsnr-threshold 9 \
---single-duration-threshold 7 \
---single-reduced-chisq-threshold 2 \
---single-fit-file single_trigger_fits.hdf \
---sngl-ifar-est-dist conservative \
---verbose # > log.txt 2>&1
+--fftw-measure-level 0 \
+--fftw-threads-backend openmp \
+--verbose
+# --enable-single-detector-background \
+# --single-newsnr-threshold 9 \
+# --single-duration-threshold 7 \
+# --single-reduced-chisq-threshold 2 \
+# --single-fit-file single_trigger_fits.hdf \
+# --sngl-ifar-est-dist conservative \
+ # > log.txt 2>&1
 
+# --fftw-measure-level 0 \
+# --fftw-threads-backend openmp  \
 # --fftw-input-float-wisdom-file /Users/xangma/Library/CloudStorage/OneDrive-Personal/repos/pycbc/examples/live_earlywarning/cit_pycbc_live_4_threads_measure.wisdom \
 
 # note that, at this point, some SNR optimization processes may still be
