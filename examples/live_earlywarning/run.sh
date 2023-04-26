@@ -7,8 +7,8 @@ set -e
 export OMP_NUM_THREADS=4
 export HDF5_USE_FILE_LOCKING="FALSE"
 
-gps_start_time=1272790000
-gps_end_time=1272790512
+gps_start_time=1365890000
+gps_end_time=1365890512
 f_min=18
 
 

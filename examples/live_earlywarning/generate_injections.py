@@ -24,8 +24,8 @@ samples = FieldArray(3, dtype=dtype)
 # masses and spins are intended to match the highest
 # and lowest mass templates in the template bank
 # Last injection is designed to be found as an EM-bright single
-samples['mass1'] = [1.35, 1.2, 1.6]
-samples['mass2'] = [1.35, 1.2, 1.6]
+samples['mass1'] = [1.35, 10., 15.]
+samples['mass2'] = [1.35, 10., 15.]
 samples['spin1z'] = [0., 0., 0.]
 samples['spin2z'] = [0., 0., 0.]
 
