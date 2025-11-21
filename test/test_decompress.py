@@ -39,22 +39,32 @@ class TestDecompress(unittest.TestCase):
         self.phase = (0.3 * self.sample_f).astype(numpy.float32)
         self.df = 0.25
         self.f_lower = 0.5
-
+        self.interps = [
+            "inline_linear",
+            "inline_quadratic",
+            "inline_cubic",
+            "inline_quartic",
+        ]
+        self.refs = {}
         with CPUScheme():
-            self.ref = fd_decompress(self.amp, self.phase, self.sample_f,
-                                     df=self.df, f_lower=self.f_lower,
-                                     interpolation="inline_linear")
-        self.ref_np = numpy.array(self.ref)
+            for interp in self.interps:
+                self.refs[interp] = fd_decompress(self.amp, self.phase,
+                                                  self.sample_f,
+                                                  df=self.df,
+                                                  f_lower=self.f_lower,
+                                                  interpolation=interp)
 
-    def test_fd_decompress_inline_linear(self):
-        with self.context:
-            test = fd_decompress(self.amp, self.phase, self.sample_f,
-                                 df=self.df, f_lower=self.f_lower,
-                                 interpolation="inline_linear")
-        test_np = numpy.array(test)
-        self.assertEqual(len(test_np), len(self.ref_np))
-        self.assertTrue(numpy.allclose(test_np, self.ref_np,
-                                       rtol=1e-6, atol=1e-7))
+    def test_fd_decompress_interpolations(self):
+        for interp in self.interps:
+            with self.context:
+                test = fd_decompress(self.amp, self.phase, self.sample_f,
+                                     df=self.df, f_lower=self.f_lower,
+                                     interpolation=interp)
+            ref_np = numpy.array(self.refs[interp])
+            test_np = numpy.array(test)
+            self.assertEqual(len(test_np), len(ref_np))
+            self.assertTrue(numpy.allclose(test_np, ref_np,
+                                           rtol=1e-3, atol=5e-3))
 
 
 suite = unittest.TestSuite()

@@ -20,6 +20,16 @@ import numpy
 from pycbc.types import Array, FrequencySeries, TimeSeries, zeros
 from pycbc.types import real_same_precision_as, complex_same_precision_as
 from pycbc.fft import fft, ifft
+import pycbc
+
+try:
+    import torch
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+    from pycbc.types.array_torch import TorchArrayData
+except Exception:  # pragma: no cover - torch optional
+    torch = None
+    _HAVE_TORCH = False
+    TorchArrayData = None
 
 # Change to True in front-end if you want this function to use caching
 # This is a mostly-hidden optimization option that most users will not want
@@ -62,6 +72,10 @@ def median_bias(n):
     for i in range(1, (n - 1) // 2 + 1):
         ans += 1.0 / (2*i + 1) - 1.0 / (2*i)
     return ans
+
+
+def _is_torch_series(obj):
+    return _HAVE_TORCH and hasattr(obj, "_data") and hasattr(obj._data, "tensor")
 
 def welch(timeseries, seg_len=4096, seg_stride=2048, window='hann',
           avg_method='median', num_segments=None, require_exact_data_fit=False):
@@ -150,6 +164,7 @@ def welch(timeseries, seg_len=4096, seg_stride=2048, window='hann',
 
     if not isinstance(window, numpy.ndarray):
         window = window_map[window](seg_len)
+    # Window lives in current scheme; Array will place on torch if active.
     w = Array(window.astype(timeseries.dtype))
 
     # calculate psd of each segment
@@ -162,6 +177,7 @@ def welch(timeseries, seg_len=4096, seg_stride=2048, window='hann',
         )
 
     segment_psds = []
+    use_torch = _is_torch_series(timeseries)
     for i in range(num_segments):
         segment_start = i * seg_stride
         segment_end = segment_start + seg_len
@@ -172,13 +188,37 @@ def welch(timeseries, seg_len=4096, seg_stride=2048, window='hann',
         else:
             segment_tilde = execute_cached_fft(segment * w,
                                                uid=WELCH_UNIQUE_ID)
-        seg_psd = abs(segment_tilde * segment_tilde.conj()).numpy()
+        seg_psd = segment_tilde * segment_tilde.conj()
+        if use_torch:
+            seg_psd = torch.abs(seg_psd._data.tensor)
+            # halve DC and Nyquist
+            seg_psd[0] /= 2
+            seg_psd[-1] /= 2
+            segment_psds.append(seg_psd)
+        else:
+            seg_psd = abs(seg_psd).numpy()
+            seg_psd[0] /= 2
+            seg_psd[-1] /= 2
+            segment_psds.append(seg_psd)
 
-        #halve the DC and Nyquist components to be consistent with TO10095
-        seg_psd[0] /= 2
-        seg_psd[-1] /= 2
-
-        segment_psds.append(seg_psd)
+    if use_torch:
+        stack = torch.stack(segment_psds, dim=0)
+        if avg_method == 'mean':
+            psd = torch.mean(stack, dim=0)
+        elif avg_method == 'median':
+            psd = torch.median(stack, dim=0).values / median_bias(num_segments)
+        elif avg_method == 'median-mean':
+            odd_psds = stack[::2]
+            even_psds = stack[1::2]
+            odd_median = torch.median(odd_psds, dim=0).values / \
+                median_bias(len(odd_psds))
+            even_median = torch.median(even_psds, dim=0).values / \
+                median_bias(len(even_psds))
+            psd = (odd_median + even_median) / 2
+        psd = psd * (2 * delta_f * seg_len) / (w._data.tensor * w._data.tensor).sum()
+        psd = psd.to(dtype=segment_tilde._data.tensor.dtype)
+        return FrequencySeries(TorchArrayData(psd), delta_f=delta_f,
+                               epoch=timeseries.start_time, copy=False)
 
     segment_psds = numpy.array(segment_psds)
 
@@ -251,12 +291,13 @@ def inverse_spectrum_truncation(psd, max_filter_len, low_frequency_cutoff=None, 
     if low_frequency_cutoff:
         kmin = int(low_frequency_cutoff / psd.delta_f)
 
+    use_torch = _is_torch_series(psd)
+
     inv_asd[kmin:N//2] = (1.0 / psd[kmin:N//2]) ** 0.5
     if not USE_CACHING_FOR_INV_SPEC_TRUNC:
         q = TimeSeries(
-            numpy.zeros(N),
-            delta_t=(N / psd.delta_f),
-            dtype=real_same_precision_as(psd)
+            zeros(N, dtype=real_same_precision_as(psd)),
+            delta_t=(N / psd.delta_f)
         )
         ifft(inv_asd, q)
     else:
@@ -269,23 +310,34 @@ def inverse_spectrum_truncation(psd, max_filter_len, low_frequency_cutoff=None, 
         raise ValueError('Invalid value in inverse_spectrum_truncation')
 
     if trunc_method == 'hann':
-        trunc_window = Array(numpy.hanning(max_filter_len), dtype=q.dtype)
-        q[0:trunc_start] *= trunc_window[-trunc_start:]
-        q[trunc_end:N] *= trunc_window[0:max_filter_len//2]
+        if use_torch:
+            tw = torch.hann_window(max_filter_len, device=q._data.tensor.device,
+                                   dtype=q._data.tensor.dtype)
+            q._data.tensor[0:trunc_start] *= tw[-trunc_start:]
+            q._data.tensor[trunc_end:N] *= tw[0:max_filter_len//2]
+        else:
+            trunc_window = Array(numpy.hanning(max_filter_len), dtype=q.dtype)
+            q[0:trunc_start] *= trunc_window[-trunc_start:]
+            q[trunc_end:N] *= trunc_window[0:max_filter_len//2]
 
     if trunc_start < trunc_end:
         q[trunc_start:trunc_end] = 0
     if not USE_CACHING_FOR_INV_SPEC_TRUNC:
         psd_trunc = FrequencySeries(
-            numpy.zeros(len(psd)),
-            delta_f=psd.delta_f,
-            dtype=complex_same_precision_as(psd)
+            zeros(len(psd), dtype=complex_same_precision_as(psd)),
+            delta_f=psd.delta_f
         )
         fft(q, psd_trunc)
     else:
         psd_trunc = execute_cached_fft(q, copy_output=False,
                                        uid=INVSPECTRUNC_UNIQUE_ID)
     psd_trunc *= psd_trunc.conj()
+
+    if use_torch:
+        psd_out = 1. / torch.abs(psd_trunc._data.tensor)
+        return FrequencySeries(TorchArrayData(psd_out), delta_f=psd.delta_f,
+                               epoch=psd.epoch, copy=False)
+
     psd_out = 1. / abs(psd_trunc)
 
     return psd_out
@@ -314,6 +366,19 @@ def interpolate(series, delta_f, length=None):
         new_n = (len(series)-1) * series.delta_f / delta_f + 1
     else:
         new_n = length
+
+    use_torch = _is_torch_series(series)
+    if use_torch:
+        samples = torch.arange(0, int(torch.rint(torch.tensor(new_n))),
+                               device=series._data.tensor.device,
+                               dtype=series._data.tensor.real.dtype) * delta_f
+        interpolated_series = torch.interp(samples,
+                                           series.sample_frequencies._data.tensor,
+                                           series._data.tensor)
+        return FrequencySeries(TorchArrayData(interpolated_series),
+                               epoch=series.epoch,
+                               delta_f=delta_f, copy=False)
+
     samples = numpy.arange(0, numpy.rint(new_n)) * delta_f
     interpolated_series = numpy.interp(samples, series.sample_frequencies.numpy(), series.numpy())
     return FrequencySeries(interpolated_series, epoch=series.epoch,
@@ -353,4 +418,3 @@ def bandlimited_interpolate(series, delta_f):
     fft(padded_series_in_time, interpolated_series)
 
     return interpolated_series
-
