@@ -30,8 +30,17 @@ noise spectrum.
 from pycbc import libutils
 from pycbc.types import TimeSeries, zeros
 from pycbc.types import complex_same_precision_as, FrequencySeries
+import pycbc
 import lal
 import numpy.random
+try:
+    import torch
+    from pycbc.types.array_torch import TorchArrayData
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover - torch optional
+    torch = None
+    TorchArrayData = None
+    _HAVE_TORCH = False
 
 lalsimulation = libutils.import_optional('lalsimulation')
 
@@ -56,19 +65,38 @@ def frequency_noise_from_psd(psd, seed=None):
         A FrequencySeries containing gaussian noise colored by the given psd.
     """
     sigma = 0.5 * (psd / psd.delta_f) ** (0.5)
+    if _HAVE_TORCH and isinstance(getattr(psd, "_data", None), TorchArrayData):
+        if seed is not None:
+            torch.manual_seed(seed)
+        sigma_t = sigma._data.tensor
+        dtype = sigma_t.dtype
+        device = sigma_t.device
+        noise_re = torch.zeros_like(sigma_t)
+        noise_im = torch.zeros_like(sigma_t)
+        mask = sigma_t != 0
+        sigma_red = sigma_t[mask]
+        # torch.randn_like requires shape; use randn with sigma_red
+        noise_re_red = torch.randn_like(sigma_red) * sigma_red
+        noise_im_red = torch.randn_like(sigma_red) * sigma_red
+        noise_re[mask] = noise_re_red
+        noise_im[mask] = noise_im_red
+        noise = torch.complex(noise_re, noise_im)
+        return FrequencySeries(TorchArrayData(noise), delta_f=psd.delta_f,
+                               copy=False)
+
     if seed is not None:
         numpy.random.seed(seed)
-    sigma = sigma.numpy()
+    sigma_np = sigma.numpy()
     dtype = complex_same_precision_as(psd)
 
-    not_zero = (sigma != 0)
+    not_zero = (sigma_np != 0)
 
-    sigma_red = sigma[not_zero]
+    sigma_red = sigma_np[not_zero]
     noise_re = numpy.random.normal(0, sigma_red)
     noise_co = numpy.random.normal(0, sigma_red)
     noise_red = noise_re + 1j * noise_co
 
-    noise = numpy.zeros(len(sigma), dtype=dtype)
+    noise = numpy.zeros(len(sigma_np), dtype=dtype)
     noise[not_zero] = noise_red
 
     return FrequencySeries(noise,
