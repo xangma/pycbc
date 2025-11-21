@@ -26,7 +26,7 @@ domain waveforms.
 import lal, numpy, logging, h5py, time
 from pycbc import filter
 from scipy import interpolate
-from pycbc.types import FrequencySeries, real_same_precision_as
+from pycbc.types import FrequencySeries, real_same_precision_as, zeros
 from pycbc.waveform import utils
 from pycbc.scheme import schemed
 from pycbc.io.hdf import HFile
@@ -594,10 +594,9 @@ def fd_decompress(amp, phase, sample_frequencies, out=None, df=None,
     if out is None:
         if df is None:
             raise ValueError("Either provide output memory or a df")
-        hlen = int(numpy.ceil(sample_frequencies.max()/df+1))
-        out = FrequencySeries(numpy.zeros(hlen,
-            dtype=_complex_dtypes[precision]), copy=False,
-            delta_f=df)
+        hlen = int(numpy.ceil(sample_frequencies.max()/df + 1))
+        arr = zeros(hlen, dtype=_complex_dtypes[precision])
+        out = FrequencySeries(arr, copy=False, delta_f=df)
     else:
         # check for precision compatibility
         if out.precision == 'double' and precision == 'single':
