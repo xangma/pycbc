@@ -163,6 +163,30 @@ class CUPYScheme(Scheme):
         super().__exit__(*args)
         self.cuda_device.__exit__(*args)
 
+class TorchScheme(Scheme):
+    """Context that sets PyCBC objects to use a Torch processing scheme."""
+    def __init__(self, device=None):
+        Scheme.__init__(self)
+        if not pycbc.HAVE_TORCH:
+            raise RuntimeError("Install PyTorch to use the Torch processing scheme.")
+
+        import torch
+
+        self.device_spec = "cpu" if device in (None, "") else device
+        self.torch_device = torch.device(self.device_spec)
+
+        if self.torch_device.type == "cuda":
+            if not torch.cuda.is_available():
+                raise RuntimeError("Torch CUDA device requested but CUDA is unavailable.")
+        elif self.torch_device.type == "mps":
+            if not torch.backends.mps.is_available():
+                raise RuntimeError("Torch MPS device requested but MPS is unavailable.")
+        elif self.torch_device.type != "cpu":
+            raise RuntimeError(f"Unsupported Torch device {self.device_spec}")
+
+        # Alias used by backends to locate the target device
+        self.device = self.torch_device
+
 
 class CPUScheme(Scheme):
     def __init__(self, num_threads=1):
@@ -212,10 +236,12 @@ scheme_prefix = {
     CUPYScheme: "cupy",
     MKLScheme: "mkl",
     NumpyScheme: "numpy",
+    TorchScheme: "torch",
 }
 _scheme_map = {v: k for (k, v) in scheme_prefix.items()}
 
-_default_scheme_prefix = os.getenv("PYCBC_SCHEME", "cpu")
+_default_scheme_raw = os.getenv("PYCBC_SCHEME", "cpu")
+_default_scheme_prefix, _, _default_scheme_extra = _default_scheme_raw.partition(":")
 try:
     _default_scheme_class = _scheme_map[_default_scheme_prefix]
 except KeyError as exc:
@@ -227,7 +253,25 @@ except KeyError as exc:
     )
 
 class DefaultScheme(_default_scheme_class):
-    pass
+    def __init__(self):
+        extra = _default_scheme_extra if _default_scheme_extra else None
+
+        if _default_scheme_prefix == "torch":
+            super().__init__(device=extra)
+        elif _default_scheme_prefix == "cuda":
+            dev = int(extra) if extra and extra.isdigit() else 0
+            super().__init__(device_num=dev)
+        elif _default_scheme_prefix in ("cpu", "mkl"):
+            if extra is None:
+                super().__init__()
+            else:
+                numt = extra if not extra.isdigit() else int(extra)
+                super().__init__(num_threads=numt)
+        elif _default_scheme_prefix == "cupy":
+            dev = int(extra) if extra and extra.isdigit() else None
+            super().__init__(device_num=dev)
+        else:
+            super().__init__()
 
 default_context = DefaultScheme()
 mgr.state = default_context
@@ -327,15 +371,19 @@ def from_cli(opt):
     ctx: Scheme
         Returns the requested processing scheme.
     """
-    scheme_str = opt.processing_scheme.split(':')
+    scheme_str = opt.processing_scheme.split(':', 1)
     name = scheme_str[0]
+    extra = scheme_str[1] if len(scheme_str) > 1 else None
 
     if name == "cuda":
         logger.info("Running with CUDA support")
         ctx = CUDAScheme(opt.processing_device_id)
+    elif name == "torch":
+        ctx = TorchScheme(device=extra)
+        logger.info("Running with Torch support on device %s", ctx.torch_device)
     elif name == "mkl":
-        if len(scheme_str) > 1:
-            numt = scheme_str[1]
+        if extra:
+            numt = extra
             if numt.isdigit():
                 numt = int(numt)
             ctx = MKLScheme(num_threads=numt)
@@ -346,8 +394,8 @@ def from_cli(opt):
         logger.info("Running with CUPY support")
         ctx = CUPYScheme()
     else:
-        if len(scheme_str) > 1:
-            numt = scheme_str[1]
+        if extra:
+            numt = extra
             if numt.isdigit():
                 numt = int(numt)
             ctx = CPUScheme(num_threads=numt)
@@ -385,4 +433,3 @@ class ChooseBySchemeDict(dict):
                 break
             except:
                 pass
-

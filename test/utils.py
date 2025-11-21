@@ -67,24 +67,26 @@ import pycbc
 import optparse
 from sys import exit as _exit
 from optparse import OptionParser
-from pycbc.scheme import CPUScheme, CUDAScheme
+from pycbc.scheme import CPUScheme, CUDAScheme, TorchScheme
 from numpy import float32, float64, complex64, complex128
 from pycbc.types import Array
 
 
 def _check_scheme_all(option, opt_str, scheme, parser):
-    if scheme=='cuda' and not pycbc.HAVE_CUDA:
+    name, _, _ = scheme.partition(':')
+    if name == 'cuda' and not pycbc.HAVE_CUDA:
         raise optparse.OptionValueError("CUDA not found")
+    if name == 'torch' and not pycbc.HAVE_TORCH:
+        raise optparse.OptionValueError("Torch not found")
 
-    setattr (parser.values, option.dest, scheme)
+    setattr(parser.values, option.dest, scheme)
 
 
 def parse_args_all_schemes(feature_str):
     _parser = OptionParser()
-    _parser.add_option('--scheme','-s', action='callback', type = 'choice',
-                       choices = ('cpu','cuda'),
-                       default = 'cpu', dest = 'scheme', callback = _check_scheme_all,
-                       help = 'specifies processing scheme, can be cpu [default], cuda')
+    _parser.add_option('--scheme','-s', action='store', type='string',
+                       default='cpu', dest='scheme',
+                       help='specifies processing scheme: cpu [default], cuda, or torch[:device]')
     _parser.add_option('--device-num','-d', action='store', type = 'int',
                        dest = 'devicenum', default=0,
                        help = 'specifies a GPU device to use for CUDA, 0 by default')
@@ -93,17 +95,30 @@ def parse_args_all_schemes(feature_str):
     # Changing the optvalues to a dict makes them easier to read
     _options = vars(_opt_list)
 
-    _scheme = _options['scheme']
+    scheme_spec = _options['scheme']
+    scheme_name, _, device_spec = scheme_spec.partition(':')
 
-    if _scheme == 'cpu':
-        _context = CPUScheme()
-    if _scheme == 'cuda':
+    if scheme_name == 'cuda':
+        if not pycbc.HAVE_CUDA:
+            _parser.error("CUDA not found")
         _context = CUDAScheme(device_num=_options['devicenum'])
+    elif scheme_name == 'torch':
+        if not pycbc.HAVE_TORCH:
+            _parser.error("Torch not found")
+        _context = TorchScheme(device=device_spec or None)
+    elif scheme_name == 'cpu':
+        _context = CPUScheme()
+    else:
+        _parser.error(f"({scheme_name}) is not a valid scheme type.")
 
-    _scheme_dict = { 'cpu': 'CPU', 'cuda': 'CUDA'}
+    _scheme = scheme_name
+    _scheme_dict = { 'cpu': 'CPU', 'cuda': 'CUDA', 'torch': 'TORCH'}
 
     print(72*'=')
-    print("Running {0} unit tests for {1}:".format(_scheme_dict[_scheme],feature_str))
+    name_for_print = _scheme_dict[_scheme]
+    if device_spec:
+        name_for_print += f" ({device_spec})"
+    print("Running {0} unit tests for {1}:".format(name_for_print,feature_str))
 
     return [_scheme,_context]
 
