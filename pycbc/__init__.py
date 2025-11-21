@@ -196,19 +196,19 @@ try:
 except ImportError:
     HAVE_CUDA=False
 
-# Check for MKL capability
-try:
-    import pycbc.fft.mkl
-    HAVE_MKL=True
-except (ImportError, OSError):
-    HAVE_MKL=False
-
 # Check for PyTorch capability
 try:
     import torch  # noqa: F401
     HAVE_TORCH = True
 except ImportError:
     HAVE_TORCH = False
+
+# Check for MKL capability
+try:
+    import pycbc.fft.mkl
+    HAVE_MKL=True
+except (ImportError, OSError):
+    HAVE_MKL=False
 
 # Check for openmp suppport, currently we pressume it exists, unless on
 # platforms (mac) that are silly and don't use the standard gcc.

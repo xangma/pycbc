@@ -93,7 +93,7 @@ def _tensor_from_any(other, device):
 
 
 def _promote_tensors(tensor_a, dtype_a, tensor_b, dtype_b):
-    target_np_dtype = common_kind(np.dtype(dtype_a), np.dtype(dtype_b))
+    target_np_dtype = np.result_type(np.dtype(dtype_a), np.dtype(dtype_b))
     target_torch = _torch_dtype(target_np_dtype)
     return (
         tensor_a.to(dtype=target_torch),
@@ -179,8 +179,10 @@ class TorchArrayData:
         return self._wrap(a + b)
 
     def __iadd__(self, other):
-        a, b, _ = self._promote_with(other)
-        return self._set_tensor(a + b)
+        other_t, _ = _tensor_from_any(other, self.tensor.device)
+        other_t = other_t.to(dtype=self.tensor.dtype)
+        self.tensor += other_t
+        return self
 
     def __sub__(self, other):
         a, b, _ = self._promote_with(other)
@@ -191,8 +193,10 @@ class TorchArrayData:
         return self._wrap(b - a)
 
     def __isub__(self, other):
-        a, b, _ = self._promote_with(other)
-        return self._set_tensor(a - b)
+        other_t, _ = _tensor_from_any(other, self.tensor.device)
+        other_t = other_t.to(dtype=self.tensor.dtype)
+        self.tensor -= other_t
+        return self
 
     def __mul__(self, other):
         a, b, _ = self._promote_with(other)
@@ -203,8 +207,10 @@ class TorchArrayData:
         return self._wrap(a * b)
 
     def __imul__(self, other):
-        a, b, _ = self._promote_with(other)
-        return self._set_tensor(a * b)
+        other_t, _ = _tensor_from_any(other, self.tensor.device)
+        other_t = other_t.to(dtype=self.tensor.dtype)
+        self.tensor *= other_t
+        return self
 
     def __truediv__(self, other):
         a, b, _ = self._promote_with(other)
@@ -215,8 +221,10 @@ class TorchArrayData:
         return self._wrap(b / a)
 
     def __itruediv__(self, other):
-        a, b, _ = self._promote_with(other)
-        return self._set_tensor(a / b)
+        other_t, _ = _tensor_from_any(other, self.tensor.device)
+        other_t = other_t.to(dtype=self.tensor.dtype)
+        self.tensor /= other_t
+        return self
 
     def __pow__(self, other):
         a, b, _ = self._promote_with(other)
