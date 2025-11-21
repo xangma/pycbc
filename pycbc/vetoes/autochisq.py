@@ -123,10 +123,12 @@ def autochisq_from_precomputed(sn, corr_sn, hautocorr, indices,
             dz = z - hauto_corr_vec.imag*snr_ind
             curr_achisq_list += dz*dz/chisq_norm
 
-        if maxvalued:
-            achisq[ip] = curr_achisq_list.max()
+        if hasattr(curr_achisq_list, 'tensor'):
+            t = curr_achisq_list.tensor
+            val = t.max().item() if maxvalued else t.sum().item()
         else:
-            achisq[ip] = curr_achisq_list.sum()
+            val = curr_achisq_list.max() if maxvalued else curr_achisq_list.sum()
+        achisq[ip] = val
 
     dof = num_points
     if oneside is None:

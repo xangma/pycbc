@@ -438,8 +438,11 @@ def _copy(self, self_ref, other_ref):
 
 
 def _getvalue(self, index):
-    tensor = _resolve_for_numpy(self._data.tensor)
-    return tensor[index].item()
+    tensor = self._data.tensor
+    res = tensor[index]
+    if res.ndim == 0:
+        return _resolve_for_numpy(res).item()
+    return TorchArrayData(res)
 
 
 def sum(self):
