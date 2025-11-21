@@ -28,6 +28,16 @@ import scipy.signal
 from pycbc.types import TimeSeries, Array, zeros, FrequencySeries, real_same_precision_as
 from pycbc.types import complex_same_precision_as
 from pycbc.fft import ifft, fft
+import pycbc
+
+try:
+    import torch
+    from pycbc.types.array_torch import TorchArrayData
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover - torch optional
+    torch = None
+    TorchArrayData = None
+    _HAVE_TORCH = False
 
 _resample_func = {numpy.dtype('float32'): lal.ResampleREAL4TimeSeries,
                  numpy.dtype('float64'): lal.ResampleREAL8TimeSeries}
@@ -68,6 +78,16 @@ def lfilter(coefficients, timeseries):
     """
     from pycbc.filter import correlate
     fillen = len(coefficients)
+    torch_input = _HAVE_TORCH and isinstance(getattr(timeseries, "_data", None), TorchArrayData)
+    if torch_input:
+        # move to CPU numpy for scipy-based path
+        timeseries_cpu = TimeSeries(timeseries.numpy(), delta_t=timeseries.delta_t,
+                                    epoch=timeseries.start_time, copy=True)
+        out_cpu = lfilter(coefficients, timeseries_cpu)
+        tensor = torch.tensor(out_cpu.numpy(), device=timeseries._data.tensor.device,
+                              dtype=timeseries._data.tensor.dtype)
+        return TimeSeries(TorchArrayData(tensor), delta_t=timeseries.delta_t,
+                          epoch=timeseries.start_time, copy=False)
 
     # If there aren't many points just use the default scipy method
     if len(timeseries) < 2**7:
@@ -201,13 +221,25 @@ def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
     if timeseries.kind != 'real':
         raise TypeError("Time series must be real")
 
+    torch_input = _HAVE_TORCH and isinstance(getattr(timeseries, "_data", None), TorchArrayData)
     if timeseries.sample_rate_close(1.0 / delta_t):
         return timeseries * 1
 
     if method == 'butterworth':
-        lal_data = timeseries.lal()
-        _resample_func[timeseries.dtype](lal_data, delta_t)
+        ts_cpu = timeseries
+        if torch_input:
+            ts_cpu = TimeSeries(timeseries.numpy(), delta_t=timeseries.delta_t,
+                                epoch=timeseries.start_time, copy=True)
+        lal_data = ts_cpu.lal()
+        _resample_func[ts_cpu.dtype](lal_data, delta_t)
         data = lal_data.data.data
+        out = TimeSeries(data, delta_t=delta_t, epoch=timeseries.start_time, copy=True)
+        if torch_input:
+            tensor = torch.tensor(out.numpy(), device=timeseries._data.tensor.device,
+                                  dtype=timeseries._data.tensor.dtype)
+            return TimeSeries(TorchArrayData(tensor), delta_t=delta_t,
+                              epoch=timeseries.start_time, copy=False)
+        return out
 
     elif method == 'ldas':
         factor = int(round(delta_t / timeseries.delta_t))
@@ -227,6 +259,12 @@ def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
     ts = TimeSeries(data, delta_t = delta_t,
                       dtype=timeseries.dtype,
                       epoch=timeseries._epoch)
+
+    if torch_input:
+        tensor = torch.tensor(ts.numpy(), device=timeseries._data.tensor.device,
+                              dtype=timeseries._data.tensor.dtype)
+        ts = TimeSeries(TorchArrayData(tensor), delta_t=delta_t,
+                        epoch=timeseries._epoch, copy=False)
 
     # From the construction of the LDAS FIR filter there will be 10 corrupted samples
     # explanation here https://lscsoft.docs.ligo.org/lalsuite/lal/group___resample_time_series__c.html
@@ -441,4 +479,3 @@ def interpolate_complex_frequency(series, delta_f, zeros_offset=0, side='right')
 __all__ = ['resample_to_delta_t', 'highpass', 'lowpass',
            'interpolate_complex_frequency', 'highpass_fir',
            'lowpass_fir', 'notch_fir', 'fir_zero_filter']
-

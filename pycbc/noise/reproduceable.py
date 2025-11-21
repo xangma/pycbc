@@ -22,8 +22,18 @@
 # =============================================================================
 #
 import numpy, pycbc.psd
-from pycbc.types import TimeSeries, complex_same_precision_as
+from pycbc.types import TimeSeries, complex_same_precision_as, zeros
 from numpy.random import RandomState
+
+import pycbc
+try:
+    import torch
+    from pycbc.types.array_torch import TorchArrayData
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover - torch optional
+    torch = None
+    TorchArrayData = None
+    _HAVE_TORCH = False
 
 # This constant need to be constant to be able to recover identical results.
 BLOCK_SAMPLES = 1638400
@@ -116,6 +126,7 @@ def colored_noise(psd, start_time, end_time,
     noise : TimeSeries
         A TimeSeries containing gaussian noise colored by the given psd.
     """
+    use_torch = _HAVE_TORCH and isinstance(getattr(psd, "_data", None), TorchArrayData)
     psd = psd.copy()
 
     flen = int(sample_rate / psd.delta_f) // 2 + 1
@@ -171,6 +182,12 @@ def colored_noise(psd, start_time, end_time,
                          end_time + filter_duration,
                          seed=seed,
                          sample_rate=sample_rate)
+    if use_torch:
+        # move white noise to PSD device/dtype before coloring
+        tensor = torch.tensor(white_noise.numpy(), device=asd._data.tensor.device,
+                              dtype=asd._data.tensor.real.dtype)
+        white_noise = TimeSeries(TorchArrayData(tensor), delta_t=white_noise.delta_t,
+                                 copy=False)
     white_noise = white_noise.to_frequencyseries()
     # Here we color. Do not want to duplicate memory here though so use '*='
     white_noise *= asd*scale
