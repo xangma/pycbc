@@ -125,7 +125,9 @@ def noise_from_psd(length, delta_t, psd, seed=None):
     noise : TimeSeries
         A TimeSeries containing gaussian noise colored by the given psd.
     """
-    noise_ts = TimeSeries(zeros(length), delta_t=delta_t)
+    use_torch = _HAVE_TORCH and isinstance(getattr(psd, "_data", None), TorchArrayData)
+    noise_ts = TimeSeries(zeros(length, dtype=psd.dtype if not use_torch else None),
+                          delta_t=delta_t)
 
     if seed is None:
         seed = numpy.random.randint(2**32)
@@ -139,14 +141,20 @@ def noise_from_psd(length, delta_t, psd, seed=None):
     if n > len(psd):
         raise ValueError("PSD not compatible with requested delta_t")
 
-    psd = (psd[0:n]).lal()
-    psd.data.data[n-1] = 0
-    psd.data.data[0] = 0
+    psd_cpu = psd
+    if use_torch:
+        # LAL SimNoise requires CPU numpy arrays; convert torch PSD to numpy copy.
+        psd_cpu = FrequencySeries(psd.numpy(), delta_f=psd.delta_f,
+                                  dtype=psd.dtype, copy=True)
+
+    psd_lal = (psd_cpu[0:n]).lal()
+    psd_lal.data.data[n-1] = 0
+    psd_lal.data.data[0] = 0
 
     segment = TimeSeries(zeros(N), delta_t=delta_t).lal()
     length_generated = 0
 
-    lalsimulation.SimNoise(segment, 0, psd, randomness)
+    lalsimulation.SimNoise(segment, 0, psd_lal, randomness)
     while (length_generated < length):
         if (length_generated + stride) < length:
             noise_ts.data[length_generated:length_generated+stride] = segment.data.data[0:stride]
@@ -154,7 +162,13 @@ def noise_from_psd(length, delta_t, psd, seed=None):
             noise_ts.data[length_generated:length] = segment.data.data[0:length-length_generated]
 
         length_generated += stride
-        lalsimulation.SimNoise(segment, stride, psd, randomness)
+        lalsimulation.SimNoise(segment, stride, psd_lal, randomness)
+
+    if use_torch:
+        # Move generated noise to the original PSD device/dtype
+        tensor = torch.tensor(noise_ts.numpy(), device=psd._data.tensor.device,
+                              dtype=psd._data.tensor.dtype)
+        return TimeSeries(TorchArrayData(tensor), delta_t=delta_t, copy=False)
 
     return noise_ts
 
