@@ -19,6 +19,7 @@ Notes:
   - `test/test_torch_pipeline.py` (PSD/whiten/resample/matched-filter)
   - `test/test_torch_ops.py` (FFT/FIR/noise)
   - `test/test_qtransform.py` (q-transform parity)
+  - `test/test_spatmplt_torch.py` (SPA template parity)
 
-For CI, add a torch job that sets `PYCBC_SCHEME=torch` (or `torch:cuda` when
-GPU is available) and reuses the existing test entrypoints.
+For CI, add a torch job that sets `PYCBC_SCHEME=torch[:device]` and runs the
+existing scheme-aware test entrypoints.
