@@ -341,9 +341,17 @@ def apply_fd_time_shift(htilde, shifttime, kmin=0, fseries=None, copy=True):
         htilde = apply_fseries_time_shift(htilde, dt, kmin=kmin, copy=copy)
     else:
         if fseries is None:
-            fseries = htilde.sample_frequencies.numpy()
-        shift = Array(numpy.exp(-2j*numpy.pi*dt*fseries),
-                    dtype=complex_same_precision_as(htilde))
+            fseries = htilde.sample_frequencies
+        # Support torch-backed non-uniform frequency arrays
+        if hasattr(fseries, "_data") and hasattr(fseries._data, "tensor"):
+            phase = -2j * numpy.pi * dt
+            shift = torch.exp(phase * fseries._data.tensor)
+            shift = Array(shift, dtype=complex_same_precision_as(htilde))
+        else:
+            if not isinstance(fseries, numpy.ndarray):
+                fseries = fseries.numpy()
+            shift = Array(numpy.exp(-2j*numpy.pi*dt*fseries),
+                          dtype=complex_same_precision_as(htilde))
         if copy:
             htilde = 1. * htilde
         htilde *= shift
