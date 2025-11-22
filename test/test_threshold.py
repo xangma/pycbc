@@ -26,6 +26,12 @@ from utils import parse_args_all_schemes, simple_exit
 
 _scheme, _context = parse_args_all_schemes("Threshold")
 
+if _scheme == "torch":
+    try:
+        import torch  # noqa: F401
+    except Exception as exc:  # pragma: no cover
+        simple_exit(f"torch not available: {exc}")
+
 from pycbc.events.threshold_cpu import threshold_numpy as trusted_threshold
 
 

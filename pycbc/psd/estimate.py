@@ -369,12 +369,23 @@ def interpolate(series, delta_f, length=None):
 
     use_torch = _is_torch_series(series)
     if use_torch:
-        samples = torch.arange(0, int(torch.rint(torch.tensor(new_n))),
-                               device=series._data.tensor.device,
-                               dtype=series._data.tensor.real.dtype) * delta_f
-        interpolated_series = torch.interp(samples,
-                                           series.sample_frequencies._data.tensor,
-                                           series._data.tensor)
+        # torch.rint was removed in newer torch; use python round for length
+        nsamp = int(round(float(new_n)))
+        device = series._data.tensor.device
+        dtype = series._data.tensor.real.dtype
+        samples = torch.arange(0, nsamp, device=device, dtype=dtype) * delta_f
+        old_freqs = series.sample_frequencies._data.tensor
+        old_vals = series._data.tensor
+
+        # Manual 1D linear interpolation (like numpy.interp) since torch.interp
+        # is deprecated/absent on some versions.
+        idx_hi = torch.searchsorted(old_freqs, samples, right=False)
+        idx_hi = torch.clamp(idx_hi, 1, old_freqs.numel() - 1)
+        idx_lo = idx_hi - 1
+        x0 = old_freqs[idx_lo]
+        x1 = old_freqs[idx_hi]
+        w = (samples - x0) / (x1 - x0 + 1e-30)
+        interpolated_series = old_vals[idx_lo] + (old_vals[idx_hi] - old_vals[idx_lo]) * w
         return FrequencySeries(TorchArrayData(interpolated_series),
                                epoch=series.epoch,
                                delta_f=delta_f, copy=False)

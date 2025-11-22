@@ -14,7 +14,7 @@ jobs:
       matrix:
         os: [ubuntu-24.04]
         python-version: ['3.11', '3.12', '3.13']
-        test-type: [unittest, search, docs]
+        test-type: [unittest, search, docs, torch]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -26,6 +26,9 @@ jobs:
         sudo apt-get -o Acquire::Retries=3 update
         sudo apt-get -o Acquire::Retries=3 install *fftw3* mpi intel-mkl* graphviz
         pip install tox pip setuptools --upgrade
+        if [ "${{ matrix.test-type }}" = "torch" ]; then
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu torch
+        fi
     - name: Cache LAL auxiliary data files
       id: cache-lal-aux-data
       uses: actions/cache@v4
@@ -44,7 +47,12 @@ jobs:
     - name: run pycbc test suite
       run: |
         export LAL_DATA_PATH=$HOME/lal_aux_data
-        tox -e py-${{matrix.test-type}}
+        if [ "${{ matrix.test-type }}" = "torch" ]; then
+          export PYCBC_SCHEME=torch
+          tox -e py-unittest
+        else
+          tox -e py-${{matrix.test-type}}
+        fi
     - name: check help messages work
       if: matrix.test-type == 'unittest'
       run: |

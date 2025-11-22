@@ -63,6 +63,7 @@ of running all of the unit tests somewhat easier to parse when they are all run 
 once.
 """
 
+import os
 import pycbc
 import optparse
 from sys import exit as _exit
@@ -96,6 +97,11 @@ def parse_args_all_schemes(feature_str):
     _options = vars(_opt_list)
 
     scheme_spec = _options['scheme']
+    # Allow environment override when running under generic test runners
+    if scheme_spec == 'cpu':
+        env_scheme = os.getenv("PYCBC_SCHEME")
+        if env_scheme:
+            scheme_spec = env_scheme
     scheme_name, _, device_spec = scheme_spec.partition(':')
 
     if scheme_name == 'cuda':
@@ -123,7 +129,7 @@ def parse_args_all_schemes(feature_str):
     return [_scheme,_context]
 
 def _check_scheme_cpu(option, opt_str, scheme, parser):
-    if scheme=='cuda':
+    if scheme in ('cuda', 'torch'):
         exit(0)
 
     setattr (parser.values, option.dest, scheme)
@@ -132,9 +138,9 @@ def _check_scheme_cpu(option, opt_str, scheme, parser):
 def parse_args_cpu_only(feature_str):
     _parser = OptionParser()
     _parser.add_option('--scheme','-s', action='callback', type = 'choice',
-                       choices = ('cpu','cuda'),
+                       choices = ('cpu','cuda','torch'),
                        default = 'cpu', dest = 'scheme', callback = _check_scheme_cpu,
-                       help = 'specifies processing scheme, can be cpu [default], cuda')
+                       help = 'specifies processing scheme, can be cpu [default], cuda, torch')
     _parser.add_option('--device-num','-d', action='store', type = 'int',
                        dest = 'devicenum', default=0,
                        help = 'specifies a GPU device to use for CUDA, 0 by default')
