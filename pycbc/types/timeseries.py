@@ -891,6 +891,13 @@ class TimeSeries(Array):
                 q_plane *= interp_amp(freqs, times)
             else:
                 q_plane = interp(freqs, times)
+            # If the input was torch-backed, return on torch device to avoid
+            # unexpected CPU hops in downstream torch pipelines.
+            if hasattr(self._data, "tensor"):
+                import torch
+                q_plane = torch.as_tensor(q_plane, device=self._data.tensor.device,
+                                          dtype=self._data.tensor.dtype if return_complex
+                                          else self._data.tensor.real.dtype)
 
         return times, freqs, q_plane
 
