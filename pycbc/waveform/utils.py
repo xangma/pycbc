@@ -28,6 +28,13 @@ from pycbc.types import TimeSeries, FrequencySeries, Array, complex_same_precisi
 import lal
 from math import frexp
 import numpy
+import pycbc
+try:
+    import torch
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover
+    torch = None
+    _HAVE_TORCH = False
 from pycbc.scheme import schemed
 from scipy import signal
 
@@ -343,7 +350,7 @@ def apply_fd_time_shift(htilde, shifttime, kmin=0, fseries=None, copy=True):
         if fseries is None:
             fseries = htilde.sample_frequencies
         # Support torch-backed non-uniform frequency arrays
-        if hasattr(fseries, "_data") and hasattr(fseries._data, "tensor"):
+        if _HAVE_TORCH and hasattr(fseries, "_data") and hasattr(fseries._data, "tensor"):
             phase = -2j * numpy.pi * dt
             shift = torch.exp(phase * fseries._data.tensor)
             shift = Array(shift, dtype=complex_same_precision_as(htilde))

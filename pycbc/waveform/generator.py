@@ -49,11 +49,31 @@ try:
     _HAVE_TORCH = pycbc.HAVE_TORCH
 except Exception:  # pragma: no cover
     torch = None
-    _HAVE_TORCH = False
+_HAVE_TORCH = False
 
 
 # utility functions/class
 failed_counter = 0
+
+def _scheme_cast_series(series):
+    """If running under torch scheme, move Time/FrequencySeries data to torch device."""
+    if not (_HAVE_TORCH and hasattr(series, "_data")):
+        return series
+    from pycbc.scheme import mgr
+    if mgr.state.prefix != 'torch':
+        return series
+    if isinstance(series._data, TorchArrayData):
+        return series
+    device = mgr.state.device
+    tensor = torch.as_tensor(series.numpy(), device=device)
+    if isinstance(series, TimeSeries):
+        return TimeSeries(TorchArrayData(tensor), delta_t=series.delta_t,
+                          epoch=series.start_time, copy=False)
+    else:
+        from pycbc.types import FrequencySeries
+        return FrequencySeries(TorchArrayData(tensor),
+                               delta_f=series.delta_f,
+                               epoch=series.epoch, copy=False)
 
 class BaseGenerator(object):
     r"""A wrapper class to call a waveform generator with a set of frozen
@@ -734,6 +754,8 @@ class FDomainDetFrameGenerator(BaseFDomainDetFrameGenerator):
             for d in h.values():
                 d.resize(ceilpow2(len(d)-1) + 1)
             h = strain.apply_gates_to_fd(h, self.gates)
+        # Ensure outputs live on torch device when torch scheme is active
+        h = {det: _scheme_cast_series(series) for det, series in h.items()}
         return h
 
     @staticmethod

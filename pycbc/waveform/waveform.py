@@ -30,6 +30,7 @@ import os
 import lal, numpy, copy
 from pycbc.types import TimeSeries, FrequencySeries, zeros, Array
 from pycbc.types import real_same_precision_as, complex_same_precision_as
+from pycbc.types.array_torch import TorchArrayData
 import pycbc.scheme as _scheme
 import inspect
 from pycbc.fft import fft
@@ -38,6 +39,13 @@ from pycbc.waveform import utils as wfutils
 from pycbc.waveform import parameters
 from pycbc.conversions import get_final_from_initial, tau_from_final_mass_spin
 from pycbc.filter import interpolate_complex_frequency, resample_to_delta_t
+import pycbc
+try:
+    import torch
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover
+    torch = None
+    _HAVE_TORCH = False
 import pycbc
 from .spa_tmplt import spa_tmplt, spa_tmplt_norm, spa_tmplt_end, \
                       spa_tmplt_precondition, spa_amplitude_factor, \
@@ -67,6 +75,22 @@ default_args = \
 
 default_sgburst_args = {'eccentricity':0, 'polarization':0}
 sgburst_required_args = ['q','frequency','hrss']
+
+# Cast waveform outputs to the active scheme device when running under torch.
+def _scheme_cast_series(series):
+    if not (_HAVE_TORCH and hasattr(series, "_data")):
+        return series
+    if isinstance(series._data, TorchArrayData):
+        return series
+    if _scheme.mgr.state.prefix != 'torch':
+        return series
+    device = _scheme.mgr.state.device
+    tensor = torch.as_tensor(series.numpy(), device=device)
+    if isinstance(series, TimeSeries):
+        return TimeSeries(TorchArrayData(tensor), delta_t=series.delta_t,
+                          epoch=series.start_time, copy=False)
+    return FrequencySeries(TorchArrayData(tensor), delta_f=series.delta_f,
+                           epoch=series.epoch, copy=False)
 
 # td, fd, filter waveforms generated on the CPU
 _lalsim_td_approximants = {}
@@ -599,7 +623,10 @@ def get_td_waveform(template=None, **kwargs):
     else:
         required = parameters.td_required
     check_args(input_params, required)
-    return wav_gen(**input_params)
+    hp, hc = wav_gen(**input_params)
+    hp = _scheme_cast_series(hp)
+    hc = _scheme_cast_series(hc)
+    return hp, hc
 
 get_td_waveform.__doc__ = get_td_waveform.__doc__.format(
     params=parameters.td_waveform_params.docstr(prefix="    ",
@@ -648,7 +675,10 @@ def get_fd_waveform(template=None, **kwargs):
     else:
         required = parameters.fd_required
     check_args(input_params, required)
-    return wav_gen(**input_params)
+    hp, hc = wav_gen(**input_params)
+    hp = _scheme_cast_series(hp)
+    hc = _scheme_cast_series(hc)
+    return hp, hc
 
 
 get_fd_waveform.__doc__ = get_fd_waveform.__doc__.format(
@@ -1175,8 +1205,12 @@ for apx in copy.copy(_filter_time_lengths):
 
 td_wav = _scheme.ChooseBySchemeDict()
 fd_wav = _scheme.ChooseBySchemeDict()
-td_wav.update({_scheme.CPUScheme:cpu_td,_scheme.CUDAScheme:cuda_td})
-fd_wav.update({_scheme.CPUScheme:cpu_fd,_scheme.CUDAScheme:cuda_fd})
+td_wav.update({_scheme.CPUScheme:cpu_td,
+               _scheme.CUDAScheme:cuda_td,
+               getattr(_scheme, 'TorchScheme', object()): cpu_td})
+fd_wav.update({_scheme.CPUScheme:cpu_fd,
+               _scheme.CUDAScheme:cuda_fd,
+               getattr(_scheme, 'TorchScheme', object()): cpu_fd})
 sgburst_wav = {_scheme.CPUScheme:cpu_sgburst}
 
 def get_waveform_filter(out, template=None, **kwargs):
