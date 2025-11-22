@@ -271,14 +271,8 @@ def spintaylorf2(**kwds):
     """
     # Torch scheme: use LAL waveform and move result to torch device (no PyCUDA).
     if isinstance(_scheme.mgr.state, _scheme.TorchScheme):
-        from pycbc.waveform import get_fd_waveform
-        hp, hc = get_fd_waveform(approximant="SpinTaylorF2", **kwds)
-        device = _scheme.mgr.state.device
-        hp_t = FrequencySeries(torch.as_tensor(hp.numpy(), device=device, dtype=torch.complex128),
-                               delta_f=hp.delta_f, copy=False)
-        hc_t = FrequencySeries(torch.as_tensor(hc.numpy(), device=device, dtype=torch.complex128),
-                               delta_f=hc.delta_f, copy=False)
-        return hp_t, hc_t
+        from .spintaylorf2_torch import spintaylorf2_torch
+        return spintaylorf2_torch(**kwds)
 
     if not _HAVE_PYCUDA:
         raise RuntimeError("PyCUDA not available; use torch scheme or install PyCUDA for CUDA path.")
