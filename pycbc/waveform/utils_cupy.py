@@ -22,8 +22,10 @@
 #
 # =============================================================================
 #
-"""This module contains the CuPy-specific code for
-   convenience utilities for manipulating waveforms
+"""CuPy-specific waveform utilities (legacy).
+
+Torch users should prefer the torch scheme/backends (see `waveform/utils_torch.py`).
+This module is only used when the CuPy scheme is explicitly selected.
 """
 from pycbc.types import FrequencySeries
 import cupy as xp
@@ -51,4 +53,3 @@ def fstimeshift(freqseries, phi, kmin, kmax):
     idx = xp.arange(len(freqseries))
     phase_shift = xp.exp(phi * idx)
     freqseries[:] = freqseries[:] * phase_shift 
-
