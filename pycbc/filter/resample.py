@@ -172,8 +172,25 @@ def fir_zero_filter(coeff, timeseries):
         Return the filtered timeseries, which has been properly shifted to account
     for the FIR filter delay and the corrupted regions zeroed out.
     """
-    # apply the filter
-    series = lfilter(coeff, timeseries)
+    # Torch path: do FFT-based convolution on device to avoid CPU hop
+    torch_input = _HAVE_TORCH and hasattr(timeseries, "_data") and hasattr(timeseries._data, "tensor")
+    if torch_input:
+        ts_tensor = timeseries._data.tensor
+        device = ts_tensor.device
+        dtype = ts_tensor.dtype
+        coeff_t = torch.as_tensor(coeff, device=device, dtype=dtype)
+        # Pad coefficients to signal length
+        pad_len = ts_tensor.numel() - coeff_t.numel()
+        if pad_len < 0:
+            raise ValueError("Filter longer than timeseries")
+        coeff_t = torch.nn.functional.pad(coeff_t, (0, pad_len))
+        # FFT-based convolution
+        conv = torch.fft.irfft(torch.fft.rfft(ts_tensor) * torch.fft.rfft(coeff_t), n=ts_tensor.numel())
+        series = TimeSeries(TorchArrayData(conv), delta_t=timeseries.delta_t,
+                            epoch=timeseries.start_time, copy=False)
+    else:
+        # apply the filter via scipy/lal
+        series = lfilter(coeff, timeseries)
 
     # reverse the time shift caused by the filter,
     # corruption regions contain zeros

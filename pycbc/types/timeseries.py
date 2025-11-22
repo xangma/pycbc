@@ -801,6 +801,8 @@ class TimeSeries(Array):
             The whitened time series
         """
         from pycbc.psd import inverse_spectrum_truncation, interpolate
+        # If in torch scheme, compute whitening in torch to avoid device hops
+        use_torch = hasattr(self._data, "tensor")
         # Estimate the noise spectrum
         psd = self.psd(segment_duration, **kwds)
         psd = interpolate(psd, self.delta_f)
@@ -813,7 +815,8 @@ class TimeSeries(Array):
                    trunc_method=trunc_method)
 
         # Whiten the data by the asd
-        white = (self.to_frequencyseries() / psd**0.5).to_timeseries()
+        freq = self.to_frequencyseries()
+        white = (freq / psd**0.5).to_timeseries()
 
         if remove_corrupted:
             white = white[int(max_filter_len/2):int(len(self)-max_filter_len/2)]
@@ -855,18 +858,60 @@ class TimeSeries(Array):
             The two dimensional interpolated qtransform of this time series.
         """
         from pycbc.filter.qtransform import qtiling, qplane
-        from scipy.interpolate import RectBivariateSpline as interp2d
+
+        if logfsteps and delta_f:
+            raise ValueError("Provide only one (or none) of delta_f and logfsteps")
 
         if frange is None:
             frange = (30, int(self.sample_rate / 2 * 8))
 
-        q_base = qtiling(self, qrange, frange, mismatch)
-        _, times, freqs, q_plane = qplane(q_base, self.to_frequencyseries(),
-                                          return_complex=return_complex)
-        if logfsteps and delta_f:
-            raise ValueError("Provide only one (or none) of delta_f and logfsteps")
+        use_torch = hasattr(self._data, "tensor")
+        # Torch path stays on-device and avoids SciPy interpolation.
+        if use_torch:
+            import torch
+            from pycbc.filter import qtransform_torch as _qtorch
 
-        # Interpolate if requested
+            q_base = qtiling(self, qrange, frange, mismatch)
+            _, times, freqs, q_plane = _qtorch.qplane(
+                q_base, self.to_frequencyseries(), return_complex=return_complex
+            )
+
+            target_times = times
+            target_freqs = freqs
+            device = self._data.tensor.device
+
+            if delta_t:
+                target_times = torch.arange(float(self.start_time),
+                                            float(self.end_time), delta_t,
+                                            device=device, dtype=torch.float64)
+            if delta_f:
+                target_freqs = torch.arange(int(frange[0]), int(frange[1]),
+                                            delta_f, device=device,
+                                            dtype=torch.float64)
+            if logfsteps:
+                target_freqs = torch.logspace(torch.log10(
+                    torch.tensor(float(frange[0]), device=device, dtype=torch.float64)),
+                    torch.log10(torch.tensor(float(frange[1]), device=device,
+                                             dtype=torch.float64)),
+                    steps=logfsteps, device=device, dtype=torch.float64)
+
+            if delta_f or delta_t or logfsteps:
+                q_plane = _qtorch.interpolate_qplane(
+                    q_plane, times, freqs, target_times, target_freqs,
+                    return_complex=return_complex
+                )
+                times, freqs = target_times, target_freqs
+
+            return times, freqs, q_plane
+
+        # CPU path (unchanged)
+        from scipy.interpolate import RectBivariateSpline as interp2d
+
+        q_base = qtiling(self, qrange, frange, mismatch)
+        _, times, freqs, q_plane = qplane(
+            q_base, self.to_frequencyseries(), return_complex=return_complex
+        )
+
         if delta_f or delta_t or logfsteps:
             if return_complex:
                 interp_amp = interp2d(freqs, times, abs(q_plane), kx=1, ky=1)
@@ -877,13 +922,13 @@ class TimeSeries(Array):
 
         if delta_t:
             times = _numpy.arange(float(self.start_time),
-                                    float(self.end_time), delta_t)
+                                  float(self.end_time), delta_t)
         if delta_f:
             freqs = _numpy.arange(int(frange[0]), int(frange[1]), delta_f)
         if logfsteps:
             freqs = _numpy.logspace(_numpy.log10(frange[0]),
                                     _numpy.log10(frange[1]),
-                                     logfsteps)
+                                    logfsteps)
 
         if delta_f or delta_t or logfsteps:
             if return_complex:
@@ -891,13 +936,6 @@ class TimeSeries(Array):
                 q_plane *= interp_amp(freqs, times)
             else:
                 q_plane = interp(freqs, times)
-            # If the input was torch-backed, return on torch device to avoid
-            # unexpected CPU hops in downstream torch pipelines.
-            if hasattr(self._data, "tensor"):
-                import torch
-                q_plane = torch.as_tensor(q_plane, device=self._data.tensor.device,
-                                          dtype=self._data.tensor.dtype if return_complex
-                                          else self._data.tensor.real.dtype)
 
         return times, freqs, q_plane
 

@@ -18,6 +18,13 @@
 
 from scipy import linalg
 from . import strain
+import pycbc
+try:
+    import torch
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover
+    torch = None
+    _HAVE_TORCH = False
 
 
 def _gates_from_cli(opts, gate_opt):
@@ -170,11 +177,22 @@ def gate_and_paint(data, lindex, rindex, invpsd, copy=True):
         data = data.copy()
     data[lindex:rindex] = 0
     # get the over-whitened gated data
+    # If torch-backed, stay on device for intermediate steps
+    use_torch = _HAVE_TORCH and hasattr(invpsd, "_data") and hasattr(invpsd._data, "tensor")
     tdfilter = invpsd.astype('complex').to_timeseries() * invpsd.delta_t
     owhgated_data = (data.to_frequencyseries() * invpsd).to_timeseries()
 
     # remove the projection into the null space
-    proj = linalg.solve_toeplitz(tdfilter[:(rindex - lindex)],
-                                 owhgated_data[lindex:rindex])
+    if use_torch:
+        # Torch lacks solve_toeplitz; fall back to CPU for the small linear solve
+        tf_cpu = tdfilter.numpy()
+        ow_cpu = owhgated_data.numpy()
+        proj_cpu = linalg.solve_toeplitz(tf_cpu[:(rindex - lindex)],
+                                         ow_cpu[lindex:rindex])
+        proj = torch.as_tensor(proj_cpu, device=data._data.tensor.device,
+                               dtype=data._data.tensor.dtype)
+    else:
+        proj = linalg.solve_toeplitz(tdfilter[:(rindex - lindex)],
+                                     owhgated_data[lindex:rindex])
     data[lindex:rindex] -= proj
     return data
