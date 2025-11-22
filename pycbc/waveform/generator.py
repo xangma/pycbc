@@ -35,6 +35,7 @@ from . import ringdown
 from . import supernovae
 from . import waveform_modes
 from pycbc.types import TimeSeries
+from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform import parameters
 from pycbc.waveform.utils import apply_fseries_time_shift, \
                                  ceilpow2, apply_fd_time_shift
@@ -42,6 +43,13 @@ from pycbc.detector import Detector
 from pycbc.pool import use_mpi
 import lal as _lal
 from pycbc import strain
+import pycbc
+try:
+    import torch
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover
+    torch = None
+    _HAVE_TORCH = False
 
 
 # utility functions/class
@@ -667,6 +675,24 @@ class FDomainDetFrameGenerator(BaseFDomainDetFrameGenerator):
         rfparams = {param: self.current_params[param]
             for param in kwargs if param not in self.location_args}
         hp, hc = self.rframe_generator.generate(**rfparams)
+        # If running under torch scheme, move outputs to torch device/dtype
+        from pycbc.scheme import mgr
+        if _HAVE_TORCH and mgr.state.prefix == 'torch':
+            device = mgr.state.device
+            hp = hp if isinstance(hp._data, TorchArrayData) else \
+                 hp.__class__(TorchArrayData(torch.tensor(hp.numpy(), device=device,
+                                                         dtype=torch.float32 if hp.kind=='real'
+                                                         else torch.complex64)),
+                              delta_t=getattr(hp, 'delta_t', None),
+                              delta_f=getattr(hp, 'delta_f', None),
+                              epoch=hp.start_time, copy=False)
+            hc = hc if isinstance(hc._data, TorchArrayData) else \
+                 hc.__class__(TorchArrayData(torch.tensor(hc.numpy(), device=device,
+                                                         dtype=torch.float32 if hc.kind=='real'
+                                                         else torch.complex64)),
+                              delta_t=getattr(hc, 'delta_t', None),
+                              delta_f=getattr(hc, 'delta_f', None),
+                              epoch=hc.start_time, copy=False)
         if isinstance(hp, TimeSeries):
             df = self.current_params['delta_f']
             hp = hp.to_frequencyseries(delta_f=df)
