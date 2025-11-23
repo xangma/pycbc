@@ -82,14 +82,16 @@ or if you include it in a python package, :ref:`PyCBC can directly detect it! <w
 =====================================
 Torch-native waveform ports (torch scheme)
 =====================================
-PyCBC has torch-native ports for the SPA TaylorF2 and SpinTaylorF2
-approximants. When running with the ``TorchScheme`` the default still calls the
-trusted LAL/CPU implementations. Enable the torch kernels with environment
-flags:
+PyCBC includes torch-native implementations for several frequency-domain
+approximants. The default remains the LAL/CPU path; enable torch ports with
+environment flags:
 
-- ``PYCBC_TORCH_NATIVE_PORTS=1`` turns on all torch-native ports.
-- Per-approximant switches: ``PYCBC_SPATPLT_NATIVE``, ``PYCBC_TAYLORF2_NATIVE``,
-  ``PYCBC_SPINTAYLORF2_NATIVE`` (set to ``1`` to enable, ``0`` to force LAL/CPU).
+- Global: ``PYCBC_TORCH_NATIVE_PORTS=1`` (used when a per-approximant flag is unset).
+- SPA/TaylorF2: ``PYCBC_SPATPLT_NATIVE``, ``PYCBC_TAYLORF2_NATIVE``.
+- SpinTaylorF2: ``PYCBC_SPINTAYLORF2_NATIVE``.
+- IMRPhenomD (FD): ``PYCBC_IMRPHENOMD_NATIVE``.
+- SEOBNRv4_ROM (BBH + NRTidalv2): ``PYCBC_SEOBNRV4_NATIVE``; tidal corrections are
+  applied automatically when using ``SEOBNRv4_ROM_NRTidalv2``.
 
-Leave these unset (or set to ``0``) to continue using the LAL-backed paths while
-still operating in the torch scheme.
+Set a per-approximant flag to ``1`` to force the torch implementation or ``0`` to
+force LAL/CPU. If a per-flag is unset, the global flag decides.
