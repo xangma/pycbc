@@ -646,14 +646,9 @@ def spintaylorf2_torch(**kwds):
     else:
         ref_phasing = torch.tensor(0.0, device=device, dtype=dtype)
 
-    # Carrier phase: time shift + reference subtraction + SPA constant.
-    # LAL applies a -pi/4 SPA factor in XLALSimInspiralSpinTaylorF2
-    # (LALSimInspiralSpinTaylorF2.c:532-534). The PyCBC CPU reference waveform
-    # returned by get_fd_waveform(SpinTaylorF2) arrives without that offset in
-    # the complex strain. To stay numerically parity with that reference while
-    # keeping the LAL expression explicit, we add +pi/4 here to cancel the
-    # local -pi/4 when forming exp(-i*phasing).
-    phasing = phasing + shft * freqs - 2.0 * phi0 - ref_phasing - _np.pi / 4.0 + _np.pi / 4.0
+    # Carrier phase: time shift + reference subtraction + SPA constant
+    # (LALSimInspiralSpinTaylorF2.c:532-534).
+    phasing = phasing + shft * freqs - 2.0 * phi0 - ref_phasing - _np.pi / 4.0
 
     # Precession pieces
     alpha = _alpha(v, coeffs) - alpha_ref if enable_prec else torch.zeros_like(v)
