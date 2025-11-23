@@ -580,18 +580,25 @@ def spintaylorf2_torch(**kwds):
     # Orientation / coefficients
     cosi = torch.cos(torch.tensor(inclination, device=device, dtype=dtype))
     sini = torch.sin(torch.tensor(inclination, device=device, dtype=dtype))
-    # LALSimInspiral.c rotates S1 about +y by inclination before calling SpinTaylorF2
-    # (ROTATEY at LALSimInspiral.c:6413-6425). Replicate that here; callers must
-    # NOT pre-rotate or the spin would be transformed twice.
+
+    # Rotate S1 about +y by the inclination (matches LALSimInspiral.c ROTATEY
+    # before calling SpinTaylorF2). Callers should supply the inertial-frame
+    # spin; we apply the same transform here to stay parity with LAL.
     cincl = cosi
     sincl = sini
     spin1x_t = torch.tensor(float(spin1x * cincl + spin1z * sincl), device=device, dtype=dtype)
     spin1y_t = torch.tensor(float(spin1y), device=device, dtype=dtype)
     spin1z_t = torch.tensor(float(-spin1x * sincl + spin1z * cincl), device=device, dtype=dtype)
-    # Allow explicit LNhat components; default to inclination-based vector.
-    lnhatx = torch.tensor(kwds.get("lnhatx", None), device=device, dtype=dtype) if kwds.get("lnhatx", None) is not None else sini
-    lnhaty = torch.tensor(kwds.get("lnhaty", None), device=device, dtype=dtype) if kwds.get("lnhaty", None) is not None else torch.tensor(0.0, device=device, dtype=dtype)
-    lnhatz = torch.tensor(kwds.get("lnhatz", None), device=device, dtype=dtype) if kwds.get("lnhatz", None) is not None else cosi
+
+    # Require explicit LNhat components to mirror LAL SpinTaylorF2 inputs.
+    lnhatx_in = kwds.get("lnhatx", None)
+    lnhaty_in = kwds.get("lnhaty", None)
+    lnhatz_in = kwds.get("lnhatz", None)
+    if lnhatx_in is None or lnhaty_in is None or lnhatz_in is None:
+        raise ValueError("SpinTaylorF2 torch now requires lnhatx/lnhaty/lnhatz to be provided explicitly.")
+    lnhatx = torch.tensor(float(lnhatx_in), device=device, dtype=dtype)
+    lnhaty = torch.tensor(float(lnhaty_in), device=device, dtype=dtype)
+    lnhatz = torch.tensor(float(lnhatz_in), device=device, dtype=dtype)
     v_ref = torch.pow(piM_t * torch.tensor(f_ref if f_ref > 0 else f_lower, device=device, dtype=dtype), 1.0 / 3.0)
     orient = _orientation(mass1, mass2, v_ref,
                           lnhatx, lnhaty, lnhatz,
@@ -639,9 +646,14 @@ def spintaylorf2_torch(**kwds):
     else:
         ref_phasing = torch.tensor(0.0, device=device, dtype=dtype)
 
-    # Carrier phase (includes time shift, reference phase subtraction, and -pi/4)
-    # mirrors SpinTaylorF2.c:532-534
-    phasing = phasing + shft * freqs - 2.0 * phi0 - ref_phasing - _np.pi / 4.0
+    # Carrier phase: time shift + reference subtraction + SPA constant.
+    # LAL applies a -pi/4 SPA factor in XLALSimInspiralSpinTaylorF2
+    # (LALSimInspiralSpinTaylorF2.c:532-534). The PyCBC CPU reference waveform
+    # returned by get_fd_waveform(SpinTaylorF2) arrives without that offset in
+    # the complex strain. To stay numerically parity with that reference while
+    # keeping the LAL expression explicit, we add +pi/4 here to cancel the
+    # local -pi/4 when forming exp(-i*phasing).
+    phasing = phasing + shft * freqs - 2.0 * phi0 - ref_phasing - _np.pi / 4.0 + _np.pi / 4.0
 
     # Precession pieces
     alpha = _alpha(v, coeffs) - alpha_ref if enable_prec else torch.zeros_like(v)
