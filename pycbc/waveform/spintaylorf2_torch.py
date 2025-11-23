@@ -106,7 +106,7 @@ def _coeffs(m1, m2, chi, kappa, device, dtype):
     mtot = m1 + m2
     eta = m1 * m2 / (mtot * mtot)
     gamma0 = m1 * chi / m2
-    kappa_perp = torch.sqrt(torch.clamp(1.0 - kappa * kappa, min=0.0))
+    kappa_perp = torch.sqrt(1.0 - kappa * kappa)
 
     pn_beta = (113.0 * m1 / (12.0 * mtot) - 19.0 * eta / 6.0) * chi * kappa
     pn_sigma = ((5.0 * (3.0 * kappa * kappa - 1.0) / 2.0) + (7.0 - kappa * kappa) / 96.0) * (m1 * m1 * chi * chi / (mtot * mtot))
@@ -459,6 +459,10 @@ def spintaylorf2_torch(**kwds):
     amplitude_order = int(kwds["amplitude_order"])  # kept for signature; LAL ignores >0
     f_ref = kwds.get("f_ref", 0.0)
     sideband_param = kwds.get("side_bands", None)
+    f_final = kwds.get("f_final", 0.0)
+
+    if amplitude_order != 0:
+        raise ValueError(f"Invalid amplitude PN order {amplitude_order}")
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dtype = torch.float64
@@ -475,7 +479,8 @@ def spintaylorf2_torch(**kwds):
 
     vISCO = 1.0 / _np.sqrt(6.0)
     fISCO = vISCO * vISCO * vISCO / piM
-    n = int(fISCO / delta_f + 1)
+    f_max = f_final if f_final and f_final > 0.0 else fISCO
+    n = int(f_max / delta_f + 1)
     kmax = n - 1
     kmin = int(_np.ceil(f_lower / delta_f))
 
@@ -541,11 +546,6 @@ def spintaylorf2_torch(**kwds):
     # Carrier phase (includes time shift, reference phase subtraction, and -pi/4)
     phasing = phasing + shft * freqs - 2.0 * phi0 - ref_phasing - _np.pi / 4.0
 
-    # Align initial bin phase with LAL convention (phase modulo 2pi = -pi/4 at f_lower)
-    if phasing.numel() > 0:
-        ph0_mod = torch.remainder(phasing[0] + _np.pi, 2.0 * _np.pi) - _np.pi
-        phasing = phasing - (ph0_mod + _np.pi / 4.0)
-
     # Precession pieces
     alpha = _alpha(v, coeffs) - alpha_ref if enable_prec else torch.zeros_like(v)
     u = torch.cos(alpha) + 1j * torch.sin(alpha)
@@ -557,8 +557,10 @@ def spintaylorf2_torch(**kwds):
     SBcross = torch.zeros(5, device=device, dtype=torch.complex128)
     if sideband_param is None:
         mm_list = [0]
+    elif sideband_param == 0:
+        mm_list = [0]
     else:
-        mm_list = [int(sideband_param)]
+        mm_list = [-2, -1, 0, 1, 2]
     for mm in mm_list:
         idx_sb = 2 - mm
         SBplus[idx_sb] = _polarization(orient["thetaJ"], orient["psiJ"], mm, device, dtype)
