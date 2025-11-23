@@ -273,6 +273,20 @@ def _lalsim_fd_waveform(**p):
         return imrphenomd_fd_torch(**p)
 
     if (
+        p.get("approximant") in ("IMRPhenomE", "IMRPhenomHM")
+        and isinstance(_scheme.mgr.state, getattr(_scheme, "TorchScheme", object()))
+        and torch_native_enabled("PYCBC_IMRPHENOME_NATIVE", default=False)
+    ):
+        from .imrphenome_torch import (
+            imrphenome_fd_torch,
+            imrphenomhm_fd_torch,
+        )
+
+        if p["approximant"] == "IMRPhenomE":
+            return imrphenome_fd_torch(**p)
+        return imrphenomhm_fd_torch(**p)
+
+    if (
         p.get("approximant") == "SEOBNRv4"
         and isinstance(_scheme.mgr.state, getattr(_scheme, "TorchScheme", object()))
         and torch_native_enabled("PYCBC_SEOBNRV4_NATIVE", default=False)
@@ -280,6 +294,15 @@ def _lalsim_fd_waveform(**p):
         from .seobnrv4_torch import seobnrv4_fd_torch
 
         return seobnrv4_fd_torch(**p)
+
+    if (
+        p.get("approximant") == "SEOBNRv4HM_ROM"
+        and isinstance(_scheme.mgr.state, getattr(_scheme, "TorchScheme", object()))
+        and torch_native_enabled("PYCBC_SEOBNRV4HM_NATIVE", default=False)
+    ):
+        from .seobnrv4hm_torch import seobnrv4hm_fd_torch
+
+        return seobnrv4hm_fd_torch(**p)
 
     lal_pars = _check_lal_pars(p)
     hp1, hc1 = lalsimulation.SimInspiralChooseFDWaveform(
