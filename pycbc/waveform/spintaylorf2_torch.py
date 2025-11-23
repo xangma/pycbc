@@ -82,6 +82,12 @@ def _pn_and_flux_coeffs(eta, pn_beta, pn_sigma, pn_gamma):
 
 # ---- Helper routines mirroring the LAL SpinTaylorF2 implementation (single-spin) ----
 
+def _safe_atan2(y, x, device, dtype):
+    """Match LAL safe_atan2: return 0 if both args are 0."""
+    zero = torch.tensor(0.0, device=device, dtype=dtype)
+    return torch.where((y == 0.0) & (x == 0.0), zero, torch.atan2(y, x))
+
+
 def _orientation(m1, m2, v_ref, lnhatx, lnhaty, lnhatz, s1x, s1y, s1z, device, dtype):
     """Replicate XLALSimInspiralSF2CalculateOrientation."""
     chi = torch.sqrt(s1x * s1x + s1y * s1y + s1z * s1z)
@@ -92,11 +98,11 @@ def _orientation(m1, m2, v_ref, lnhatx, lnhaty, lnhatz, s1x, s1y, s1z, device, d
     Jnorm = torch.sqrt(Jx0 * Jx0 + Jy0 * Jy0 + Jz0 * Jz0)
     thetaJ = torch.acos(Jz0 / Jnorm)
     # LAL sign convention for polarization phase
-    psiJ = torch.atan2(Jy0, -Jx0)
+    psiJ = _safe_atan2(Jy0, -Jx0, device, dtype)
 
     rotLx = lnhatx * torch.cos(thetaJ) * torch.cos(psiJ) - lnhaty * torch.cos(thetaJ) * torch.sin(psiJ) + lnhatz * torch.sin(thetaJ)
     rotLy = lnhatx * torch.sin(psiJ) + lnhaty * torch.cos(psiJ)
-    alpha0 = torch.atan2(rotLy, rotLx)
+    alpha0 = _safe_atan2(rotLy, rotLx, device, dtype)
 
     return dict(chi=chi, kappa=kappa, thetaJ=thetaJ, psiJ=psiJ, alpha0=alpha0)
 
@@ -280,7 +286,19 @@ def _polarization(thetaJ, psiJ, mm, device, dtype):
     return plus_fac * torch.cos(2.0 * psiJ) + cross_fac * torch.sin(2.0 * psiJ)
 
 
-def _pfa_coeffs(m1, m2, eta, chi1L, chi1sq, coeffs, phase_order, enable_prec=True):
+def _pfa_coeffs(
+    m1,
+    m2,
+    eta,
+    chi1L,
+    chi1sq,
+    coeffs,
+    phase_order,
+    enable_prec=True,
+    pn_spin_order=-1,
+    qm_def1=0.0,
+    non_gr=None,
+):
     """Compute PN phasing series up to 3.5PN matching XLALSimInspiralSpinTaylorF2.
 
     The coefficients follow the LAL PNPhasingSeries: base (non-spin) terms are
@@ -292,11 +310,24 @@ def _pfa_coeffs(m1, m2, eta, chi1L, chi1sq, coeffs, phase_order, enable_prec=Tru
     mtot = m1 + m2
     m1M = m1 / mtot
     chi1L2 = chi1L * chi1L
-    qm_def1 = 1.0
+    qm_def1 = 1.0 + qm_def1
 
     # Non-spinning TaylorF2 phasing terms (use pn_beta/sigma/gamma = 0 to avoid
     # double-counting spin contributions that are added explicitly below).
     base = _pn_and_flux_coeffs(eta, 0.0, 0.0, 0.0)
+
+    # Apply non-GR scaling to the non-spin pieces (matches PNPhasingSeries)
+    if non_gr is None:
+        non_gr = {}
+    base["pfaN"] *= 1.0 + non_gr.get("dchi0", 0.0)
+    base["pfa2"] *= 1.0 + non_gr.get("dchi2", 0.0)
+    base["pfa3"] *= 1.0 + non_gr.get("dchi3", 0.0)
+    base["pfa4"] *= 1.0 + non_gr.get("dchi4", 0.0)
+    base["pfa5"] *= 1.0 + non_gr.get("dchi5", 0.0)
+    base["pfl5"] *= 1.0 + non_gr.get("dchi5L", 0.0)
+    base["pfa6"] *= 1.0 + non_gr.get("dchi6", 0.0)
+    base["pfl6"] *= 1.0 + non_gr.get("dchi6L", 0.0)
+    base["pfa7"] *= 1.0 + non_gr.get("dchi7", 0.0)
 
     # Spin-orbit and spin-squared pieces (single-spin, chi2 = 0)
     def so3(mbym):
@@ -342,13 +373,26 @@ def _pfa_coeffs(m1, m2, eta, chi1L, chi1sq, coeffs, phase_order, enable_prec=Tru
     pfaN_base = base["pfaN"]
     pfa1_base = 0.0
     pfa2_base = base["pfa2"]
-    pfa3_base = base["pfa3"] + so3(m1M) * chi1L
-    pfa4_base = base["pfa4"] + (qm2so4(m1M) * qm_def1 + self2so4(m1M)) * chi1L2 + (qm2s4(m1M) * qm_def1 + self2s4(m1M)) * chi1sq
-    pfa5_base = base["pfa5"] + so5(m1M) * chi1L
-    pfl5_base = base["pfl5"] + 3.0 * so5(m1M) * chi1L
-    pfa6_base = base["pfa6"] + so6(m1M) * chi1L + (qm2s6(m1M) * qm_def1 + self2s6(m1M)) * chi1sq
+    include_so7 = pn_spin_order in (-1, 7)
+    include_so6 = pn_spin_order in (-1, 7, 6)
+    include_so5 = pn_spin_order in (-1, 7, 6, 5)
+    include_ss2pn = pn_spin_order in (-1, 7, 6, 5, 4)
+    include_so3 = pn_spin_order in (-1, 7, 6, 5, 4, 3)
+
+    so3_term = so3(m1M) * chi1L if include_so3 else 0.0
+    so5_term = so5(m1M) * chi1L if include_so5 else 0.0
+    so6_term = so6(m1M) * chi1L if include_so6 else 0.0
+    so7_term = so7(m1M) * chi1L if include_so7 else 0.0
+    ss2pn_term = ((qm2so4(m1M) * qm_def1 + self2so4(m1M)) * chi1L2 + (qm2s4(m1M) * qm_def1 + self2s4(m1M)) * chi1sq) if include_ss2pn else 0.0
+    ss3pn_term = ((qm2s6(m1M) * qm_def1 + self2s6(m1M)) * chi1sq) if include_so6 else 0.0
+
+    pfa3_base = base["pfa3"] + so3_term
+    pfa4_base = base["pfa4"] + ss2pn_term
+    pfa5_base = base["pfa5"] + so5_term
+    pfl5_base = base["pfl5"] + (3.0 * so5_term if include_so5 else 0.0)
+    pfa6_base = base["pfa6"] + so6_term + ss3pn_term
     pfl6_base = base["pfl6"]
-    pfa7_base = base["pfa7"] + so7(m1M) * chi1L
+    pfa7_base = base["pfa7"] + so7_term
     pfa8_base = 0.0
 
     # Scale by pfaN (as in PNPhasingSeries)
@@ -466,6 +510,20 @@ def spintaylorf2_torch(**kwds):
     spin1y = kwds.get("spin1y", 0.0)
     spin1z = kwds.get("spin1z", 0.0)
     inclination = kwds.get("inclination", 0.0)
+    pn_spin_order = int(kwds.get("pn_spin_order", -1))
+    dquadmon1 = kwds.get("dquadmon1", 0.0)
+    non_gr = dict(
+        dchi0=kwds.get("non_gr_dchi0", 0.0),
+        dchi1=kwds.get("non_gr_dchi1", 0.0),
+        dchi2=kwds.get("non_gr_dchi2", 0.0),
+        dchi3=kwds.get("non_gr_dchi3", 0.0),
+        dchi4=kwds.get("non_gr_dchi4", 0.0),
+        dchi5=kwds.get("non_gr_dchi5", 0.0),
+        dchi5L=kwds.get("non_gr_dchi5L", 0.0),
+        dchi6=kwds.get("non_gr_dchi6", 0.0),
+        dchi6L=kwds.get("non_gr_dchi6L", 0.0),
+        dchi7=kwds.get("non_gr_dchi7", 0.0),
+    )
     phi0 = kwds["coa_phase"]
     phase_order = int(kwds["phase_order"])
     amplitude_order = int(kwds["amplitude_order"])  # kept for signature; LAL ignores >0
@@ -508,12 +566,17 @@ def spintaylorf2_torch(**kwds):
     # Orientation / coefficients
     cosi = torch.cos(torch.tensor(inclination, device=device, dtype=dtype))
     sini = torch.sin(torch.tensor(inclination, device=device, dtype=dtype))
-    spin1x_t = torch.tensor(spin1x, device=device, dtype=dtype)
-    spin1y_t = torch.tensor(spin1y, device=device, dtype=dtype)
-    spin1z_t = torch.tensor(spin1z, device=device, dtype=dtype)
-    lnhatx = sini
-    lnhaty = torch.tensor(0.0, device=device, dtype=dtype)
-    lnhatz = cosi
+    # LALSimInspiral.c rotates S1 about +y by inclination before calling SpinTaylorF2
+    # (see ROTATEY in LALSimInspiral.c). Replicate that here.
+    cincl = cosi
+    sincl = sini
+    spin1x_t = torch.tensor(float(spin1x * cincl + spin1z * sincl), device=device, dtype=dtype)
+    spin1y_t = torch.tensor(float(spin1y), device=device, dtype=dtype)
+    spin1z_t = torch.tensor(float(-spin1x * sincl + spin1z * cincl), device=device, dtype=dtype)
+    # Allow explicit LNhat components; default to inclination-based vector.
+    lnhatx = torch.tensor(kwds.get("lnhatx", None), device=device, dtype=dtype) if kwds.get("lnhatx", None) is not None else sini
+    lnhaty = torch.tensor(kwds.get("lnhaty", None), device=device, dtype=dtype) if kwds.get("lnhaty", None) is not None else torch.tensor(0.0, device=device, dtype=dtype)
+    lnhatz = torch.tensor(kwds.get("lnhatz", None), device=device, dtype=dtype) if kwds.get("lnhatz", None) is not None else cosi
     v_ref = torch.pow(piM_t * torch.tensor(f_ref if f_ref > 0 else f_lower, device=device, dtype=dtype), 1.0 / 3.0)
     orient = _orientation(mass1, mass2, v_ref,
                           lnhatx, lnhaty, lnhatz,
@@ -529,7 +592,19 @@ def spintaylorf2_torch(**kwds):
 
     chi1L = orient["chi"] * orient["kappa"]
     chi1sq = orient["chi"] * orient["chi"]
-    pfa = _pfa_coeffs(mass1, mass2, eta, chi1L, chi1sq, coeffs, phase_order, enable_prec=enable_prec)
+    pfa = _pfa_coeffs(
+        mass1,
+        mass2,
+        eta,
+        chi1L,
+        chi1sq,
+        coeffs,
+        phase_order,
+        enable_prec=enable_prec,
+        pn_spin_order=pn_spin_order,
+        qm_def1=dquadmon1,
+        non_gr=non_gr,
+    )
 
     # Phasing series (matches LAL SpinTaylorF2 C loop)
     phasing_num = (
