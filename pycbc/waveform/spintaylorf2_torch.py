@@ -438,8 +438,20 @@ def spintaylorf2_torch(**kwds):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         hP_t = torch.tensor(hP_cpu.numpy(), device=device, dtype=torch.complex128)
         hC_t = torch.tensor(hC_cpu.numpy(), device=device, dtype=torch.complex128)
-        fsP = FrequencySeries(TorchArrayData(hP_t), delta_f=kwds["delta_f"], copy=False)
-        fsC = FrequencySeries(TorchArrayData(hC_t), delta_f=kwds["delta_f"], copy=False)
+        need_scheme = not isinstance(_scheme.mgr.state, _scheme.TorchScheme) or getattr(_scheme.mgr.state, "torch_device", None) != device
+        old_scheme = _scheme.mgr.state
+        old_single = _scheme.Scheme._single
+        if need_scheme:
+            _scheme.Scheme._single = None
+            _scheme.mgr.state = _scheme.TorchScheme(device=str(device))
+            _scheme.mgr.state.prefix = "torch"
+        try:
+            fsP = FrequencySeries(TorchArrayData(hP_t), delta_f=kwds["delta_f"], copy=False)
+            fsC = FrequencySeries(TorchArrayData(hC_t), delta_f=kwds["delta_f"], copy=False)
+        finally:
+            if need_scheme:
+                _scheme.mgr.state = old_scheme
+                _scheme.Scheme._single = old_single
         if os.environ.get("PYCBC_SPINTAYLORF2_LOG", "0").lower() in ("1", "true", "yes"):
             _log = logging.getLogger(__name__)
             _log.warning("SpinTaylorF2 CPU fallback used (torch path disabled); no diagnostics run.")
@@ -493,18 +505,12 @@ def spintaylorf2_torch(**kwds):
     v5 = v3 * v2
     logv = torch.log(v)
 
-    # Rotate spin vector about y by inclination to match LALSimInspiral interface
-    # (see rotation_macros.h ROTATEY).
+    # Orientation / coefficients
     cosi = torch.cos(torch.tensor(inclination, device=device, dtype=dtype))
     sini = torch.sin(torch.tensor(inclination, device=device, dtype=dtype))
     spin1x_t = torch.tensor(spin1x, device=device, dtype=dtype)
     spin1y_t = torch.tensor(spin1y, device=device, dtype=dtype)
     spin1z_t = torch.tensor(spin1z, device=device, dtype=dtype)
-    tmp1 = spin1x_t * cosi + spin1z_t * sini
-    tmp2 = -spin1x_t * sini + spin1z_t * cosi
-    spin1x_t, spin1z_t = tmp1, tmp2
-
-    # Orientation / coefficients
     lnhatx = sini
     lnhaty = torch.tensor(0.0, device=device, dtype=dtype)
     lnhatz = cosi
@@ -598,83 +604,97 @@ def spintaylorf2_torch(**kwds):
     hP_full[kmin : kmin + hP.numel()] = hP
     hC_full[kmin : kmin + hC.numel()] = hC
 
-    fsP = FrequencySeries(TorchArrayData(hP_full.to(torch.complex128)), delta_f=delta_f, copy=False)
-    fsC = FrequencySeries(TorchArrayData(hC_full.to(torch.complex128)), delta_f=delta_f, copy=False)
+    # Ensure the scheme matches the torch backend so FrequencySeries can wrap TorchArrayData without copying.
+    from pycbc import scheme as _scheme
+    old_scheme = _scheme.mgr.state
+    old_single = _scheme.Scheme._single
+    need_scheme = not isinstance(old_scheme, _scheme.TorchScheme) or getattr(old_scheme, "torch_device", None) != device
+    if need_scheme:
+        _scheme.Scheme._single = None
+        _scheme.mgr.state = _scheme.TorchScheme(device=str(device))
+        _scheme.mgr.state.prefix = "torch"
 
-    # Optional diagnostic: compare against CPU/LAL output to locate divergence.
-    if os.environ.get("PYCBC_SPINTAYLORF2_LOG", "0").lower() in ("1", "true", "yes"):
-        try:
-            from pycbc import scheme as _scheme
-            from pycbc.waveform import get_fd_waveform
+    try:
+        fsP = FrequencySeries(TorchArrayData(hP_full.to(torch.complex128)), delta_f=delta_f, copy=False)
+        fsC = FrequencySeries(TorchArrayData(hC_full.to(torch.complex128)), delta_f=delta_f, copy=False)
 
-            old = _scheme.mgr.state
-            _scheme.Scheme._single = None
-            _scheme.mgr.state = _scheme.CPUScheme()
-            _scheme.mgr.state.prefix = "cpu"
-            cpuP, _ = get_fd_waveform(approximant="SpinTaylorF2", **kwds)
-            _scheme.mgr.state = old
-            cpu_arr = cpuP.numpy()
-            tor_arr = hP_full.cpu().numpy()
-            mask = _np.abs(cpu_arr) > 0
-            rel = _np.linalg.norm(tor_arr[mask] - cpu_arr[mask]) / _np.linalg.norm(cpu_arr[mask])
-            mag_ratio = _np.mean(_np.abs(tor_arr[mask]) / _np.abs(cpu_arr[mask]))
-            phase_diff = _np.angle(tor_arr[mask] * _np.conj(cpu_arr[mask]))
-            log = logging.getLogger(__name__)
-            log.warning("SpinTaylorF2 diag: rel=%.3e mag_ratio=%.3e phase_mean=%.3e rad phase_std=%.3e rad",
-                        rel, mag_ratio, phase_diff.mean(), phase_diff.std())
+        # Optional diagnostic: compare against CPU/LAL output to locate divergence.
+        if os.environ.get("PYCBC_SPINTAYLORF2_LOG", "0").lower() in ("1", "true", "yes"):
+            try:
+                from pycbc.waveform import get_fd_waveform
 
-            # More detailed diagnostics if requested
-            if os.environ.get("PYCBC_SPINTAYLORF2_LOG_VERBOSE", "0").lower() in ("1", "true", "yes"):
-                freqs_full = _np.arange(hP_full.numel(), dtype=float) * delta_f
-                freqs_masked = freqs_full[mask]
-                # first non-zero bin
-                first_idx = _np.argmax(mask)
-                v_first = _np.power(piM * freqs_full[first_idx], 1.0 / 3.0)
-                amp_fac = amp0 / (v_first * v_first * v_first * _np.sqrt(v_first))
-                phasing_np = phasing.detach().cpu().numpy()
-                prec_cpu = cpu_arr[first_idx] * _np.exp(1j * phasing_np[first_idx]) / amp_fac
-                prec_torch = prec_plus.detach().cpu().numpy()[first_idx]
-                ratio_prec = prec_cpu / prec_torch if prec_torch != 0 else _np.nan
+                old = _scheme.mgr.state
+                _scheme.Scheme._single = None
+                _scheme.mgr.state = _scheme.CPUScheme()
+                _scheme.mgr.state.prefix = "cpu"
+                cpuP, _ = get_fd_waveform(approximant="SpinTaylorF2", **kwds)
+                _scheme.mgr.state = old
+                cpu_arr = cpuP.numpy()
+                tor_arr = hP_full.cpu().numpy()
+                mask = _np.abs(cpu_arr) > 0
+                rel = _np.linalg.norm(tor_arr[mask] - cpu_arr[mask]) / _np.linalg.norm(cpu_arr[mask])
+                mag_ratio = _np.mean(_np.abs(tor_arr[mask]) / _np.abs(cpu_arr[mask]))
+                phase_diff = _np.angle(tor_arr[mask] * _np.conj(cpu_arr[mask]))
+                log = logging.getLogger(__name__)
+                log.warning("SpinTaylorF2 diag: rel=%.3e mag_ratio=%.3e phase_mean=%.3e rad phase_std=%.3e rad",
+                            rel, mag_ratio, phase_diff.mean(), phase_diff.std())
 
-                log.warning(
-                    "  first bin f=%.3f Hz: |torch|=%.3e |cpu|=%.3e ratio=%.6f phase_diff=%.6f rad",
-                    freqs_full[first_idx], _np.abs(tor_arr[first_idx]), _np.abs(cpu_arr[first_idx]),
-                    _np.abs(tor_arr[first_idx]) / _np.abs(cpu_arr[first_idx]),
-                    _np.angle(tor_arr[first_idx] * _np.conj(cpu_arr[first_idx])),
-                )
-                # last non-zero bin
-                last_idx = _np.where(mask)[0][-1]
-                log.warning(
-                    "  last bin f=%.3f Hz: |torch|=%.3e |cpu|=%.3e ratio=%.6f phase_diff=%.6f rad",
-                    freqs_full[last_idx], _np.abs(tor_arr[last_idx]), _np.abs(cpu_arr[last_idx]),
-                    _np.abs(tor_arr[last_idx]) / _np.abs(cpu_arr[last_idx]),
-                    _np.angle(tor_arr[last_idx] * _np.conj(cpu_arr[last_idx])),
-                )
-                # phase slope
-                slope, intercept = _np.polyfit(freqs_masked, phase_diff, 1)
-                log.warning("  phase trend: slope=%.3e rad/Hz intercept=%.3e rad", slope, intercept)
-                log.warning(
-                    "  amp ratio stats: min=%.3e max=%.3e std=%.3e",
-                    _np.min(_np.abs(tor_arr[mask]) / _np.abs(cpu_arr[mask])),
-                    _np.max(_np.abs(tor_arr[mask]) / _np.abs(cpu_arr[mask])),
-                    _np.std(_np.abs(tor_arr[mask]) / _np.abs(cpu_arr[mask])),
-                )
-                log.warning(
-                    "  first-bin prec: |cpu|=%.3e |torch|=%.3e ratio=%.3f ∠=%.3f rad",
-                    _np.abs(prec_cpu), _np.abs(prec_torch),
-                    _np.abs(ratio_prec), _np.angle(ratio_prec),
-                )
-                if last_idx < prec_plus.numel():
-                    v_last = _np.power(piM * freqs_full[last_idx], 1.0 / 3.0)
-                    prec_cpu_last = cpu_arr[last_idx] * _np.exp(1j * phasing_np[last_idx]) / (amp0 / (v_last**3 * _np.sqrt(v_last)))
-                    prec_torch_last = prec_plus.detach().cpu().numpy()[last_idx]
-                    ratio_prec_last = prec_cpu_last / prec_torch_last if prec_torch_last != 0 else _np.nan
+                # More detailed diagnostics if requested
+                if os.environ.get("PYCBC_SPINTAYLORF2_LOG_VERBOSE", "0").lower() in ("1", "true", "yes"):
+                    freqs_full = _np.arange(hP_full.numel(), dtype=float) * delta_f
+                    freqs_masked = freqs_full[mask]
+                    # first non-zero bin
+                    first_idx = _np.argmax(mask)
+                    v_first = _np.power(piM * freqs_full[first_idx], 1.0 / 3.0)
+                    amp_fac = amp0 / (v_first * v_first * v_first * _np.sqrt(v_first))
+                    phasing_np = phasing.detach().cpu().numpy()
+                    prec_cpu = cpu_arr[first_idx] * _np.exp(1j * phasing_np[first_idx]) / amp_fac
+                    prec_torch = prec_plus.detach().cpu().numpy()[first_idx]
+                    ratio_prec = prec_cpu / prec_torch if prec_torch != 0 else _np.nan
+
                     log.warning(
-                        "  last-bin prec:  |cpu|=%.3e |torch|=%.3e ratio=%.3f ∠=%.3f rad",
-                        _np.abs(prec_cpu_last), _np.abs(prec_torch_last),
-                        _np.abs(ratio_prec_last), _np.angle(ratio_prec_last),
+                        "  first bin f=%.3f Hz: |torch|=%.3e |cpu|=%.3e ratio=%.6f phase_diff=%.6f rad",
+                        freqs_full[first_idx], _np.abs(tor_arr[first_idx]), _np.abs(cpu_arr[first_idx]),
+                        _np.abs(tor_arr[first_idx]) / _np.abs(cpu_arr[first_idx]),
+                        _np.angle(tor_arr[first_idx] * _np.conj(cpu_arr[first_idx])),
                     )
-        except Exception as exc:  # diagnostics must never fail waveform generation
-            logging.getLogger(__name__).warning("SpinTaylorF2 diag failed: %s", exc)
+                    # last non-zero bin
+                    last_idx = _np.where(mask)[0][-1]
+                    log.warning(
+                        "  last bin f=%.3f Hz: |torch|=%.3e |cpu|=%.3e ratio=%.6f phase_diff=%.6f rad",
+                        freqs_full[last_idx], _np.abs(tor_arr[last_idx]), _np.abs(cpu_arr[last_idx]),
+                        _np.abs(tor_arr[last_idx]) / _np.abs(cpu_arr[last_idx]),
+                        _np.angle(tor_arr[last_idx] * _np.conj(cpu_arr[last_idx])),
+                    )
+                    # phase slope
+                    slope, intercept = _np.polyfit(freqs_masked, phase_diff, 1)
+                    log.warning("  phase trend: slope=%.3e rad/Hz intercept=%.3e rad", slope, intercept)
+                    log.warning(
+                        "  amp ratio stats: min=%.3e max=%.3e std=%.3e",
+                        _np.min(_np.abs(tor_arr[mask]) / _np.abs(cpu_arr[mask])),
+                        _np.max(_np.abs(tor_arr[mask]) / _np.abs(cpu_arr[mask])),
+                        _np.std(_np.abs(tor_arr[mask]) / _np.abs(cpu_arr[mask])),
+                    )
+                    log.warning(
+                        "  first-bin prec: |cpu|=%.3e |torch|=%.3e ratio=%.3f ∠=%.3f rad",
+                        _np.abs(prec_cpu), _np.abs(prec_torch),
+                        _np.abs(ratio_prec), _np.angle(ratio_prec),
+                    )
+                    if last_idx < prec_plus.numel():
+                        v_last = _np.power(piM * freqs_full[last_idx], 1.0 / 3.0)
+                        prec_cpu_last = cpu_arr[last_idx] * _np.exp(1j * phasing_np[last_idx]) / (amp0 / (v_last**3 * _np.sqrt(v_last)))
+                        prec_torch_last = prec_plus.detach().cpu().numpy()[last_idx]
+                        ratio_prec_last = prec_cpu_last / prec_torch_last if prec_torch_last != 0 else _np.nan
+                        log.warning(
+                            "  last-bin prec:  |cpu|=%.3e |torch|=%.3e ratio=%.3f ∠=%.3f rad",
+                            _np.abs(prec_cpu_last), _np.abs(prec_torch_last),
+                            _np.abs(ratio_prec_last), _np.angle(ratio_prec_last),
+                        )
+            except Exception as exc:  # diagnostics must never fail waveform generation
+                logging.getLogger(__name__).warning("SpinTaylorF2 diag failed: %s", exc)
 
-    return fsP, fsC
+        return fsP, fsC
+    finally:
+        if need_scheme:
+            _scheme.mgr.state = old_scheme
+            _scheme.Scheme._single = old_single
