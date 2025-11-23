@@ -92,6 +92,7 @@ environment flags:
 - IMRPhenomD (FD): ``PYCBC_IMRPHENOMD_NATIVE``.
 - SEOBNRv4_ROM (BBH + NRTidalv2): ``PYCBC_SEOBNRV4_NATIVE``; tidal corrections are
   applied automatically when using ``SEOBNRv4_ROM_NRTidalv2``.
+- IMRPhenomE/HM (FD): ``PYCBC_IMRPHENOME_NATIVE`` (covers both E and HM).
 
 Set a per-approximant flag to ``1`` to force the torch implementation or ``0`` to
 force LAL/CPU. If a per-flag is unset, the global flag decides.
