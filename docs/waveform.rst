@@ -78,3 +78,18 @@ or if you include it in a python package, :ref:`PyCBC can directly detect it! <w
 .. plot:: ../examples/waveform/add_waveform.py
    :include-source:
    
+
+=====================================
+Torch-native waveform ports (torch scheme)
+=====================================
+PyCBC has torch-native ports for the SPA TaylorF2 and SpinTaylorF2
+approximants. When running with the ``TorchScheme`` the default still calls the
+trusted LAL/CPU implementations. Enable the torch kernels with environment
+flags:
+
+- ``PYCBC_TORCH_NATIVE_PORTS=1`` turns on all torch-native ports.
+- Per-approximant switches: ``PYCBC_SPATPLT_NATIVE``, ``PYCBC_TAYLORF2_NATIVE``,
+  ``PYCBC_SPINTAYLORF2_NATIVE`` (set to ``1`` to enable, ``0`` to force LAL/CPU).
+
+Leave these unset (or set to ``0``) to continue using the LAL-backed paths while
+still operating in the torch scheme.
