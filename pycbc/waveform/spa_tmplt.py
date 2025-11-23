@@ -22,8 +22,10 @@
    vectors.
 """
 from math import sqrt, log
+import os
 import warnings
 import numpy, lal, pycbc.pnutils
+import pycbc.scheme as _scheme
 from pycbc.scheme import schemed
 from pycbc.types import FrequencySeries, Array, complex64, float32, zeros
 from pycbc.waveform.utils import ceilpow2
@@ -197,11 +199,31 @@ def spa_tmplt(**kwds):
         lalsimulation.SimInspiralWaveformParamsInsertPNSpinOrder(
             lal_pars, spin_order)
 
-    # Calculate the PN terms
-    phasing = lalsimulation.SimInspiralTaylorF2AlignedPhasing(
-                                    float(mass1), float(mass2),
-                                    float(s1z), float(s2z),
-                                    lal_pars)
+    # Calculate the PN terms. If requested, use the native torch port to avoid
+    # lalsimulation (matches XLALSimInspiralPNPhasing_F2; LAL reference:
+    # lalsimulation/lib/LALSimInspiralPNCoefficients.c lines 955-1109).
+    use_native = os.environ.get("PYCBC_TAYLORF2_NATIVE", "0").lower() in (
+        "1", "true", "yes", "on"
+    )
+
+    if use_native and isinstance(_scheme.mgr.state, getattr(_scheme, "TorchScheme", object())):
+        from .taylorf2_torch import taylorf2_aligned_phasing
+
+        phasing = taylorf2_aligned_phasing(
+            float(mass1), float(mass2), float(s1z), float(s2z),
+            spin_order=spin_order,
+            tidal_order=int(kwds.get("tidal_order", -1)),
+            dchi={},
+            qm_def1=0.0,
+            qm_def2=0.0,
+            lambda1=0.0,
+            lambda2=0.0,
+        )
+    else:
+        phasing = lalsimulation.SimInspiralTaylorF2AlignedPhasing(
+                                        float(mass1), float(mass2),
+                                        float(s1z), float(s2z),
+                                        lal_pars)
 
     pfaN = phasing.v[0]
     pfa2 = phasing.v[2] / pfaN
