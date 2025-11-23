@@ -272,6 +272,15 @@ def _lalsim_fd_waveform(**p):
 
         return imrphenomd_fd_torch(**p)
 
+    if (
+        p.get("approximant") == "SEOBNRv4"
+        and isinstance(_scheme.mgr.state, getattr(_scheme, "TorchScheme", object()))
+        and torch_native_enabled("PYCBC_SEOBNRV4_NATIVE", default=False)
+    ):
+        from .seobnrv4_torch import seobnrv4_fd_torch
+
+        return seobnrv4_fd_torch(**p)
+
     lal_pars = _check_lal_pars(p)
     hp1, hc1 = lalsimulation.SimInspiralChooseFDWaveform(
                float(pnutils.solar_mass_to_kg(p['mass1'])),
@@ -1222,6 +1231,22 @@ td_wav.update({_scheme.CPUScheme:cpu_td,
 fd_wav.update({_scheme.CPUScheme:cpu_fd,
                _scheme.CUDAScheme:cuda_fd,
                getattr(_scheme, 'TorchScheme', object()): cpu_fd})
+# Allow torch-specific overrides without mutating the shared cpu_fd dict
+if hasattr(_scheme, "TorchScheme"):
+    def _seobnrv4_dispatch(**p):
+        if torch_native_enabled("PYCBC_SEOBNRV4_NATIVE", default=False):
+            from .seobnrv4_torch import seobnrv4_fd_torch
+            return seobnrv4_fd_torch(**p)
+        return get_fd_waveform_from_td(**p)
+
+    fd_wav[_scheme.TorchScheme] = dict(fd_wav[_scheme.CPUScheme])
+    try:
+        fd_wav[_scheme.TorchScheme]["SEOBNRv4"] = _seobnrv4_dispatch
+        fd_wav[_scheme.TorchScheme]["SEOBNRv4_ROM"] = _seobnrv4_dispatch
+    except Exception:
+        pass
+    # keep CPU mapping using TD->FD fallback (SEOBNRv4 is TD native in LAL)
+    fd_wav[_scheme.CPUScheme]["SEOBNRv4"] = get_fd_waveform_from_td
 sgburst_wav = {_scheme.CPUScheme:cpu_sgburst}
 
 def get_waveform_filter(out, template=None, **kwargs):
