@@ -29,6 +29,7 @@ import pycbc.scheme as _scheme
 from pycbc.scheme import schemed
 from pycbc.types import FrequencySeries, Array, complex64, float32, zeros
 from pycbc.waveform.utils import ceilpow2
+from pycbc.waveform.torch_switches import torch_native_enabled
 
 lalsimulation = pycbc.libutils.import_optional('lalsimulation')
 
@@ -202,9 +203,7 @@ def spa_tmplt(**kwds):
     # Calculate the PN terms. If requested, use the native torch port to avoid
     # lalsimulation (matches XLALSimInspiralPNPhasing_F2; LAL reference:
     # lalsimulation/lib/LALSimInspiralPNCoefficients.c lines 955-1109).
-    use_native = os.environ.get("PYCBC_TAYLORF2_NATIVE", "0").lower() in (
-        "1", "true", "yes", "on"
-    )
+    use_native = torch_native_enabled("PYCBC_TAYLORF2_NATIVE", default=False)
 
     if use_native and isinstance(_scheme.mgr.state, getattr(_scheme, "TorchScheme", object())):
         from .taylorf2_torch import taylorf2_aligned_phasing

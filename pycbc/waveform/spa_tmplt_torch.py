@@ -27,6 +27,7 @@ import numpy as _np
 import pycbc.scheme as _scheme
 from pycbc.waveform import spa_tmplt_cpu as _spa_cpu
 from pycbc.types import FrequencySeries, zeros
+from pycbc.waveform.torch_switches import torch_native_enabled
 import os
 
 
@@ -207,10 +208,34 @@ def spa_tmplt_engine(htilde, kmin, phase_order, delta_f, piM, pfaN,
     device = tensor.device
     dtype = tensor.dtype
 
-    # Always use native torch kernel; optional CPU reference for debugging only.
     n = tensor.numel()
     delta_f = float(delta_f)
     kmin_int = int(kmin)
+
+    # Default behaviour: mirror LAL/CPU path unless explicitly enabled. Global
+    # PYCBC_TORCH_NATIVE_PORTS=1 (or PYCBC_SPATPLT_NATIVE=1) switches to the
+    # torch-native kernel.
+    if not torch_native_enabled("PYCBC_SPATPLT_NATIVE", default=False):
+        cpu_np = _cpu_reference(
+            n,
+            kmin_int,
+            delta_f,
+            piM,
+            pfaN,
+            pfa2,
+            pfa3,
+            pfa4,
+            pfa5,
+            pfl5,
+            pfa6,
+            pfl6,
+            pfa7,
+            amp_factor,
+        )
+        tensor.copy_(torch.tensor(cpu_np, device=device, dtype=dtype))
+        return None
+
+    # Native torch kernel (default); optional CPU reference for debugging only.
     dbg = _torch_native_spa(n, kmin_int, delta_f, piM, pfaN, pfa2, pfa3, pfa4,
                             pfa5, pfl5, pfa6, pfl6, pfa7, amp_factor,
                             device=device, dtype_out=dtype)

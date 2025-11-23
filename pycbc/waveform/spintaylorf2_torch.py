@@ -11,12 +11,13 @@ parity with the existing CPU/LAL implementation (up to expected tolerance)."""
 
 import os
 import numpy as _np
-import torch
 import logging
+import torch
 import lal
 
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
+from pycbc.waveform.torch_switches import torch_native_enabled
 
 
 # PN phasing/flux coefficients (from CUDA kernel / LAL)
@@ -550,12 +551,10 @@ def spintaylorf2_torch(**kwds):
     # Temporary parity guard: until the native torch precessing path is fully
     # tuned against LAL, optionally fall back to the trusted CPU/LAL generator
     # and simply cast to torch.  Enable the native path with
-    # PYCBC_SPINTAYLORF2_NATIVE=1 once the PN flux/parity work is complete; leave unset when comparing against LAL to avoid hiding differences.
-    if os.environ.get("PYCBC_SPINTAYLORF2_NATIVE", "0").lower() not in (
-        "1",
-        "true",
-        "yes",
-    ):
+    # PYCBC_SPINTAYLORF2_NATIVE=1 (or the global PYCBC_TORCH_NATIVE_PORTS=1)
+    # once the PN flux/parity work is complete; leave unset when comparing
+    # against LAL to avoid hiding differences.
+    if not torch_native_enabled("PYCBC_SPINTAYLORF2_NATIVE", default=False):
         from pycbc import scheme as _scheme
         from pycbc.waveform import get_fd_waveform
 

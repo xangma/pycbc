@@ -30,6 +30,7 @@ def _run_case(params):
     _scheme.mgr.state = _scheme.TorchScheme()
     _scheme.mgr.state.prefix = "torch"
     os.environ["PYCBC_TAYLORF2_NATIVE"] = "0"
+    os.environ["PYCBC_SPATPLT_NATIVE"] = "1"  # explicit: test torch kernel parity
     try:
         h_torch = spa_tmplt(**params)
     finally:
@@ -106,3 +107,47 @@ def test_taylorf2_torch_parity(params):
     assert phase_std < tol["phase_std"]
     # basic sanity on bin coverage
     assert kmax > kmin
+
+
+def test_taylorf2_torch_global_switch_falls_back():
+    """Global switch should force torch scheme to reuse the CPU/LAL path."""
+    params = dict(
+        mass1=20.0,
+        mass2=15.0,
+        spin1z=0.1,
+        spin2z=-0.05,
+        delta_f=0.2,
+        f_lower=20.0,
+        distance=300.0,
+        phase_order=-1,
+        spin_order=-1,
+    )
+
+    env_backup = {
+        k: os.environ.get(k)
+        for k in ("PYCBC_TORCH_NATIVE_PORTS", "PYCBC_SPATPLT_NATIVE", "PYCBC_TAYLORF2_NATIVE")
+    }
+    old_scheme = _scheme.mgr.state
+    old_single = _scheme.Scheme._single
+    try:
+        os.environ["PYCBC_TORCH_NATIVE_PORTS"] = "0"
+        os.environ["PYCBC_TAYLORF2_NATIVE"] = "0"
+        os.environ.pop("PYCBC_SPATPLT_NATIVE", None)
+
+        _scheme.Scheme._single = None
+        _scheme.mgr.state = _scheme.CPUScheme()
+        h_cpu = spa_tmplt(**params)
+
+        _scheme.Scheme._single = None
+        _scheme.mgr.state = _scheme.TorchScheme()
+        h_torch = spa_tmplt(**params)
+
+        np.testing.assert_allclose(h_torch.numpy(), h_cpu.numpy(), rtol=1e-12, atol=1e-18)
+    finally:
+        for k, v in env_backup.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        _scheme.mgr.state = old_scheme
+        _scheme.Scheme._single = old_single
