@@ -37,26 +37,47 @@ def _torch_native_spa(n, kmin, delta_f, piM, pfaN, pfa2, pfa3, pfa4, pfa5,
     Parity note: validated 2025-11-23 vs spa_tmplt_cpu for the TaylorF2
     test grid in pycbc/waveform/tests/test_taylorf2_torch.py (max abs diff = 0).
     """
-    f_dtype = torch.float32 if dtype_out == torch.complex64 else torch.float64
-    # Build frequency tables with numpy to mirror CPU rounding
-    idx_np = _np.arange(n, dtype=_np.float32)
-    f_phase_np = (idx_np + kmin) * _np.float32(delta_f)
-    f_amp_np = (idx_np + kmin + 1.0) * _np.float32(delta_f)
+    force_f64 = os.environ.get("PYCBC_SPATPLT_TORCH_FLOAT64", "0").lower() in (
+        "1", "true", "yes", "on"
+    )
+    # use float64 intermediates when requested (or when output is complex128)
+    f_dtype = torch.float64 if force_f64 or dtype_out == torch.complex128 else torch.float32
 
-    piM13_np = _np.cbrt(_np.float32(piM))
+    # Build frequency tables with float64 pow/log then cast, matching CPU C code
+    idx_np = _np.arange(n, dtype=_np.float64)
+    delta_f_np = _np.float64(delta_f)
+    f_phase_np = (idx_np + _np.float64(kmin)) * delta_f_np
+
+    piM13_np = _np.cbrt(_np.float64(piM))
     logpiM13_np = _np.log(piM13_np)
-    log4_np = _np.log(_np.float32(4.0))
+    log4_np = _np.log(_np.float64(4.0))
 
-    v = torch.tensor(piM13_np * _np.power(f_phase_np, _np.float32(1.0 / 3.0)),
-                     device=device, dtype=f_dtype)
-    logv = torch.tensor(_np.log(f_phase_np) * _np.float32(1.0 / 3.0) + logpiM13_np,
-                        device=device, dtype=f_dtype)
+    v_np = piM13_np * _np.power(f_phase_np, _np.float64(1.0 / 3.0))
+    logv_np = _np.log(f_phase_np) * _np.float64(1.0 / 3.0) + logpiM13_np
+    # Match CPU lookup behavior at f=0 (logv_vec[0] == 0 -> logpiM13)
+    logv_np = _np.where(f_phase_np == 0.0, logpiM13_np, logv_np)
+    if f_dtype == torch.float32:
+        v_np = v_np.astype(_np.float32)
+        logv_np = logv_np.astype(_np.float32)
 
-    # Preconditioner: float64 pow then cast to float32, as spa_tmplt_precondition
-    v_amp = _np.arange(0, (kmin + n * 2), 1.0, dtype=_np.float64) * delta_f
-    v_amp = _np.power(v_amp[1:], -7.0 / 6.0).astype(_np.float32)
-    kfac = torch.tensor(v_amp[kmin:kmin + n], device=device, dtype=f_dtype)
-    amp = torch.tensor(_np.float32(amp_factor), device=device, dtype=f_dtype) * kfac
+    v = torch.tensor(v_np, device=device, dtype=f_dtype)
+    logv = torch.tensor(logv_np, device=device, dtype=f_dtype)
+
+    # Preconditioner: float64 pow then cast to float32, mirroring spa_tmplt_precondition.
+    # Default now builds on the active torch device to avoid host copies; set
+    # PYCBC_SPATPLT_KFAC_DEVICE=0 to force the legacy numpy path.
+    if os.environ.get("PYCBC_SPATPLT_KFAC_DEVICE", "1").lower() in ("1", "true", "yes", "on"):
+        k_idx = torch.arange(kmin + 1, kmin + n + 1, device=device, dtype=torch.float64)
+        kfac_t = torch.pow(k_idx * delta_f_np, -7.0 / 6.0)
+        kfac = kfac_t.to(f_dtype) if f_dtype == torch.float32 else kfac_t
+    else:
+        v_amp = _np.arange(0, (kmin + n * 2), 1.0, dtype=_np.float64) * delta_f_np
+        v_amp = _np.power(v_amp[1:], -7.0 / 6.0)
+        if f_dtype == torch.float32:
+            v_amp = v_amp.astype(_np.float32)
+        kfac = torch.tensor(v_amp[kmin:kmin + n], device=device, dtype=f_dtype)
+
+    amp = torch.tensor(amp_factor, device=device, dtype=f_dtype) * kfac
 
     two_pi = torch.tensor(2.0 * _np.pi, dtype=f_dtype, device=device)
     log4 = torch.tensor(log4_np, dtype=f_dtype, device=device)

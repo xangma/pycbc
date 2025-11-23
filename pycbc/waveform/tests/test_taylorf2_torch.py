@@ -6,6 +6,13 @@ from pycbc.waveform.spa_tmplt import spa_tmplt
 from pycbc import scheme as _scheme
 
 
+def _tol(dtype):
+    """Return tolerance tuple keyed by output dtype."""
+    if dtype == np.complex64:
+        return dict(rel=1e-7, mag=1e-6, phase_mean=1e-3, phase_std=5e-2)
+    return dict(rel=1e-11, mag=1e-10, phase_mean=1e-6, phase_std=1e-3)
+
+
 def _run_case(params):
     old = _scheme.mgr.state
     # CPU reference (uses lalsimulation phasing)
@@ -33,7 +40,7 @@ def _run_case(params):
     # Ignore only exact/near-zero bins; keep tiny but non-zero tails.
     mask = np.abs(cpu) > 1e-26
     if not mask.any():
-        return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan
+        return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, tor.dtype
     rel = np.linalg.norm(tor[mask] - cpu[mask]) / np.linalg.norm(cpu[mask])
     mag_ratio = np.mean(np.abs(tor[mask]) / np.abs(cpu[mask]))
     phase_diff = np.angle(tor[mask] * np.conj(cpu[mask]))
@@ -44,6 +51,7 @@ def _run_case(params):
         phase_diff.std(),
         np.nonzero(mask)[0][0],
         np.nonzero(mask)[0][-1],
+        tor.dtype,
     )
 
 
@@ -88,12 +96,13 @@ def _run_case(params):
     ],
 )
 def test_taylorf2_torch_parity(params):
-    rel, mag_ratio, phase_mean, phase_std, kmin, kmax = _run_case(params)
+    rel, mag_ratio, phase_mean, phase_std, kmin, kmax, dtype = _run_case(params)
     if np.isnan(rel):
         pytest.skip("no non-zero bins for this configuration")
-    assert rel < 1e-7
-    assert abs(mag_ratio - 1.0) < 1e-6
-    assert abs(phase_mean) < 1e-3
-    assert phase_std < 5e-2
+    tol = _tol(dtype)
+    assert rel < tol["rel"]
+    assert abs(mag_ratio - 1.0) < tol["mag"]
+    assert abs(phase_mean) < tol["phase_mean"]
+    assert phase_std < tol["phase_std"]
     # basic sanity on bin coverage
     assert kmax > kmin
