@@ -32,6 +32,7 @@ from pycbc.types import TimeSeries, FrequencySeries, zeros, Array
 from pycbc.types import real_same_precision_as, complex_same_precision_as
 from pycbc.types.array_torch import TorchArrayData
 import pycbc.scheme as _scheme
+from pycbc.waveform.torch_switches import torch_native_enabled
 import inspect
 from pycbc.fft import fft
 from pycbc import pnutils, libutils
@@ -261,6 +262,16 @@ def _spintaylor_aligned_prec_swapper(**p):
     return hp, hc
 
 def _lalsim_fd_waveform(**p):
+    # Torch native path (kept opt-in and Torch-scheme only).
+    if (
+        p.get("approximant") == "IMRPhenomD"
+        and isinstance(_scheme.mgr.state, getattr(_scheme, "TorchScheme", object()))
+        and torch_native_enabled("PYCBC_IMRPHENOMD_NATIVE", default=False)
+    ):
+        from .imrphenomd_torch import imrphenomd_fd_torch
+
+        return imrphenomd_fd_torch(**p)
+
     lal_pars = _check_lal_pars(p)
     hp1, hc1 = lalsimulation.SimInspiralChooseFDWaveform(
                float(pnutils.solar_mass_to_kg(p['mass1'])),
