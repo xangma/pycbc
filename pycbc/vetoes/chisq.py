@@ -133,6 +133,17 @@ def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
     chisq: Array
         An array containing only the chisq at the selected points.
     """
+    # Torch scheme keeps computation on device to avoid numpy conversions.
+    if hasattr(pycbc, "scheme") and hasattr(pycbc.scheme, "TorchScheme"):
+        try:
+            from pycbc import scheme as _scheme
+            if isinstance(_scheme.mgr.state, _scheme.TorchScheme):
+                from .chisq_torch import power_chisq_at_points_from_precomputed as _torch_impl
+                return _torch_impl(corr, snr, snr_norm, bins, indices)
+        except Exception:
+            # Fall back to CPU path on any import/dispatch error.
+            pass
+
     num_bins = len(bins) - 1
     chisq = shift_sum(corr, indices, bins) # pylint:disable=assignment-from-no-return
     return (chisq * num_bins - (snr.conj() * snr).real) * (snr_norm ** 2.0)

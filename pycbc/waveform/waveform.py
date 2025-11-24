@@ -273,17 +273,12 @@ def _lalsim_fd_waveform(**p):
         return imrphenomd_fd_torch(**p)
 
     if (
-        p.get("approximant") in ("IMRPhenomE", "IMRPhenomHM")
+        p.get("approximant") == "IMRPhenomHM"
         and isinstance(_scheme.mgr.state, getattr(_scheme, "TorchScheme", object()))
         and torch_native_enabled("PYCBC_IMRPHENOME_NATIVE", default=False)
     ):
-        from .imrphenome_torch import (
-            imrphenome_fd_torch,
-            imrphenomhm_fd_torch,
-        )
+        from .imrphenomhm_torch import imrphenomhm_fd_torch
 
-        if p["approximant"] == "IMRPhenomE":
-            return imrphenome_fd_torch(**p)
         return imrphenomhm_fd_torch(**p)
 
     if (
@@ -1076,6 +1071,11 @@ filter_wav = _scheme.ChooseBySchemeDict()
 filter_wav.update( {_scheme.CPUScheme:_inspiral_fd_filters,
                     _scheme.CUDAScheme:_cuda_fd_filters,
                     _scheme.CUPYScheme:_cupy_fd_filters,
+                    # Torch scheme currently reuses the CPU/LAL inspiral filter
+                    # implementations unless a native torch port is selected
+                    # via environment flag. Mapping here avoids a missing
+                    # backend error when running under TorchScheme.
+                    getattr(_scheme, "TorchScheme", object()): _inspiral_fd_filters,
                    } )
 
 # Organize functions for function conditioning/precalculated values

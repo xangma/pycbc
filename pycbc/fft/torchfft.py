@@ -39,6 +39,11 @@ def _copy_result(outvec, result):
 def fft(invec, outvec, _, itype, otype):
     _ensure_match(invec, outvec)
     fin = invec._data.tensor
+    # NOTE: PyTorch FFT kernels are not bitwise-identical to numpy/FFTW
+    # in float32. In parity testing we observe rfft diffs up to ~2e-5
+    # (and downstream SNR/chi^2 diffs at 1e-6 / 1e-4). If exact parity
+    # is required, run the torch scheme in float64 or route through the
+    # CPU FFT backend.
     if itype == 'complex' and otype == 'complex':
         res = torch.fft.fft(fin, n=fin.shape[-1])
     elif itype == 'real' and otype == 'complex':
