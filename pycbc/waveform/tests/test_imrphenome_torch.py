@@ -41,22 +41,6 @@ def _run_case(approximant, params, use_native=True):
     "approximant,params",
     [
         (
-            "IMRPhenomE",
-            dict(
-                mass1=30.0,
-                mass2=25.0,
-                spin1z=0.1,
-                spin2z=-0.05,
-                delta_f=0.25,
-                f_lower=20.0,
-                f_final=0.0,
-                f_ref=20.0,
-                distance=400.0,
-                inclination=0.5,
-                coa_phase=0.1,
-            ),
-        ),
-        (
             "IMRPhenomHM",
             dict(
                 mass1=50.0,
@@ -99,6 +83,6 @@ def test_imrphenome_torch_global_fallback():
         inclination=0.4,
         coa_phase=0.2,
     )
-    cpu, tor = _run_case("IMRPhenomE", params, use_native=False)
+    cpu, tor = _run_case("IMRPhenomHM", params, use_native=False)
     n = min(len(cpu), len(tor))
     np.testing.assert_allclose(tor[:n], cpu[:n], rtol=1e-12, atol=1e-18)

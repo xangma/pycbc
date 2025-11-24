@@ -95,7 +95,7 @@ environment flags:
 - SEOBNRv4HM_ROM (FD higher modes): ``PYCBC_SEOBNRV4HM_NATIVE`` (torch-native ROM
   evaluation using ``SEOBNRv4HMROM.hdf5``); requires the ROM file in
   ``$LAL_DATA_PATH`` or ``pycbc/waveform``.
-- IMRPhenomE/HM (FD): ``PYCBC_IMRPHENOME_NATIVE`` (covers both E and HM).
+- IMRPhenomHM (FD): ``PYCBC_IMRPHENOME_NATIVE``.
 
 Set a per-approximant flag to ``1`` to force the torch implementation or ``0`` to
 force LAL/CPU. If a per-flag is unset, the global flag decides.
