@@ -26,28 +26,29 @@ import lalsimulation
 from pycbc import pnutils
 from pycbc.types import FrequencySeries
 
+from .waveform import _check_lal_pars
 
 def _call_lalsim_fd(apx: str, **p):
     hp1, hc1 = lalsimulation.SimInspiralChooseFDWaveform(
         float(pnutils.solar_mass_to_kg(p["mass1"])),
         float(pnutils.solar_mass_to_kg(p["mass2"])),
-        float(p["spin1x"]),
-        float(p["spin1y"]),
-        float(p["spin1z"]),
-        float(p["spin2x"]),
-        float(p["spin2y"]),
-        float(p["spin2z"]),
+        float(p.get("spin1x", 0.0)),
+        float(p.get("spin1y", 0.0)),
+        float(p.get("spin1z", 0.0)),
+        float(p.get("spin2x", 0.0)),
+        float(p.get("spin2y", 0.0)),
+        float(p.get("spin2z", 0.0)),
         pnutils.megaparsecs_to_meters(float(p["distance"])),
-        float(p["inclination"]),
-        float(p["coa_phase"]),
-        float(p["long_asc_nodes"]),
-        float(p["eccentricity"]),
-        float(p["mean_per_ano"]),
+        float(p.get("inclination", 0.0)),
+        float(p.get("coa_phase", 0.0)),
+        float(p.get("long_asc_nodes", 0.0)),
+        float(p.get("eccentricity", 0.0)),
+        float(p.get("mean_per_ano", 0.0)),
         p["delta_f"],
         float(p["f_lower"]),
-        float(p["f_final"]),
-        float(p["f_ref"]),
-        pnutils.lal_pars_from_dict(p),
+        float(p.get("f_final", 0.0)),
+        float(p.get("f_ref", p["f_lower"])),
+        _check_lal_pars(p),
         apx,
     )
     hp = FrequencySeries(hp1.data.data[:], delta_f=hp1.deltaF, epoch=hp1.epoch)
@@ -61,4 +62,3 @@ def imrphenome_fd_torch(**p):
 
 def imrphenomhm_fd_torch(**p):
     return _call_lalsim_fd(lalsimulation.IMRPhenomHM, **p)
-

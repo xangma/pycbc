@@ -1,3 +1,6 @@
+import sys
+import types
+
 import numpy as np
 import pytest
 import torch
@@ -12,6 +15,24 @@ from pycbc.types import FrequencySeries, TimeSeries
 pytest.importorskip("torch")
 if not pycbc.HAVE_TORCH:
     pytest.skip("PyCBC built without torch support", allow_module_level=True)
+
+
+@pytest.fixture(autouse=True)
+def stub_execute_cached_fft_import(monkeypatch):
+    """Avoid importing the full strain stack in Welch tests."""
+    fake_pkg = types.ModuleType("pycbc.strain")
+    fake_mod = types.ModuleType("pycbc.strain.strain")
+
+    def _execute_cached_fft(*args, **kwargs):
+        raise AssertionError("Welch cache path should not be used in this test")
+
+    def _execute_cached_ifft(*args, **kwargs):
+        raise AssertionError("PSD cache path should not be used in this test")
+
+    fake_mod.execute_cached_fft = _execute_cached_fft
+    fake_mod.execute_cached_ifft = _execute_cached_ifft
+    monkeypatch.setitem(sys.modules, "pycbc.strain", fake_pkg)
+    monkeypatch.setitem(sys.modules, "pycbc.strain.strain", fake_mod)
 
 
 @pytest.fixture
@@ -43,6 +64,7 @@ def test_psd_welch_torch_matches_cpu(torch_ctx):
 
     assert isinstance(psd_t._data.tensor, torch.Tensor)
     assert psd_t._data.tensor.device.type == "cpu"
+    assert psd_t.kind == psd_cpu.kind == "real"
     assert _relative_l2(psd_t.numpy(), psd_cpu.numpy()) < 0.05
 
 

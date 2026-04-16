@@ -83,7 +83,8 @@ def _scheme_cast_series(series):
         return series
     if isinstance(series._data, TorchArrayData):
         return series
-    if _scheme.mgr.state.prefix != 'torch':
+    torch_scheme = getattr(_scheme, "TorchScheme", None)
+    if torch_scheme is None or not isinstance(_scheme.mgr.state, torch_scheme):
         return series
     device = _scheme.mgr.state.device
     tensor = torch.as_tensor(series.numpy(), device=device)
@@ -277,7 +278,7 @@ def _lalsim_fd_waveform(**p):
         and isinstance(_scheme.mgr.state, getattr(_scheme, "TorchScheme", object()))
         and torch_native_enabled("PYCBC_IMRPHENOME_NATIVE", default=False)
     ):
-        from .imrphenomhm_torch import imrphenomhm_fd_torch
+        from .imrphenome_torch import imrphenomhm_fd_torch
 
         return imrphenomhm_fd_torch(**p)
 

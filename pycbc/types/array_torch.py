@@ -286,10 +286,12 @@ class TorchArrayData:
         tensor = _resolve_for_numpy(self.tensor)
         return tensor.detach().cpu().numpy()
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         arr = self.numpy()
         if dtype is not None:
-            return arr.astype(dtype)
+            arr = arr.astype(dtype, copy=False)
+        if copy:
+            arr = arr.copy()
         return arr
 
     def __repr__(self):

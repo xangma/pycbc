@@ -186,6 +186,7 @@ class TorchScheme(Scheme):
 
         # Alias used by backends to locate the target device
         self.device = self.torch_device
+        self.prefix = "torch"
 
 
 class CPUScheme(Scheme):

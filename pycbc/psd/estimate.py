@@ -216,7 +216,7 @@ def welch(timeseries, seg_len=4096, seg_stride=2048, window='hann',
                 median_bias(len(even_psds))
             psd = (odd_median + even_median) / 2
         psd = psd * (2 * delta_f * seg_len) / (w._data.tensor * w._data.tensor).sum()
-        psd = psd.to(dtype=segment_tilde._data.tensor.dtype)
+        psd = psd.to(dtype=segment_tilde._data.tensor.real.dtype)
         return FrequencySeries(TorchArrayData(psd), delta_f=delta_f,
                                epoch=timeseries.start_time, copy=False)
 

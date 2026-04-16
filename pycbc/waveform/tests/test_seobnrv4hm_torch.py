@@ -1,4 +1,5 @@
 import os
+import warnings
 import numpy as np
 import pytest
 
@@ -156,3 +157,48 @@ def test_seobnrv4hm_dtype_cast(dtype):
     assert h_torch.numpy().dtype == dtype
 
 
+def test_seobnrv4hm_native_emits_no_user_warning():
+    params = dict(
+        mass1=30.0,
+        mass2=20.0,
+        spin1z=0.3,
+        spin2z=0.2,
+        delta_f=0.25,
+        f_lower=25.0,
+        f_final=0.0,
+        f_ref=25.0,
+        distance=400.0,
+        inclination=0.5,
+        coa_phase=0.2,
+    )
+    env_backup = {k: os.environ.get(k) for k in ("PYCBC_TORCH_NATIVE_PORTS", "PYCBC_SEOBNRV4HM_NATIVE", "LAL_DATA_PATH")}
+    old_scheme = _scheme.mgr.state
+    old_single = _scheme.Scheme._single
+
+    try:
+        os.environ["PYCBC_TORCH_NATIVE_PORTS"] = "1"
+        os.environ["PYCBC_SEOBNRV4HM_NATIVE"] = "1"
+        os.environ["LAL_DATA_PATH"] = ":".join([
+            "/Users/xangma/miniconda3/envs/pycbc313/opt/lalsuite-extra/share/lalsimulation",
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
+        ])
+        _scheme.Scheme._single = None
+        _scheme.mgr.state = _scheme.TorchScheme()
+        _scheme.mgr.state.prefix = "torch"
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            get_fd_waveform(approximant="SEOBNRv4HM_ROM", **params)
+    except RuntimeError as exc:
+        pytest.skip(f"SEOBNRv4HM unavailable (likely missing ROM data for LAL fallback): {exc}")
+    finally:
+        for k, v in env_backup.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        _scheme.mgr.state = old_scheme
+        _scheme.Scheme._single = old_single
+
+    user = [w for w in caught if issubclass(w.category, UserWarning)]
+    assert user == []

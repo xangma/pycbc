@@ -43,13 +43,13 @@ from pycbc.detector import Detector
 from pycbc.pool import use_mpi
 import lal as _lal
 from pycbc import strain
+import pycbc.scheme as _scheme
 import pycbc
 try:
     import torch
     _HAVE_TORCH = pycbc.HAVE_TORCH
 except Exception:  # pragma: no cover
     torch = None
-_HAVE_TORCH = False
 
 
 # utility functions/class
@@ -59,12 +59,12 @@ def _scheme_cast_series(series):
     """If running under torch scheme, move Time/FrequencySeries data to torch device."""
     if not (_HAVE_TORCH and hasattr(series, "_data")):
         return series
-    from pycbc.scheme import mgr
-    if mgr.state.prefix != 'torch':
-        return series
     if isinstance(series._data, TorchArrayData):
         return series
-    device = mgr.state.device
+    torch_scheme = getattr(_scheme, "TorchScheme", None)
+    if torch_scheme is None or not isinstance(_scheme.mgr.state, torch_scheme):
+        return series
+    device = _scheme.mgr.state.device
     tensor = torch.as_tensor(series.numpy(), device=device)
     if isinstance(series, TimeSeries):
         return TimeSeries(TorchArrayData(tensor), delta_t=series.delta_t,
@@ -695,24 +695,8 @@ class FDomainDetFrameGenerator(BaseFDomainDetFrameGenerator):
         rfparams = {param: self.current_params[param]
             for param in kwargs if param not in self.location_args}
         hp, hc = self.rframe_generator.generate(**rfparams)
-        # If running under torch scheme, move outputs to torch device/dtype
-        from pycbc.scheme import mgr
-        if _HAVE_TORCH and mgr.state.prefix == 'torch':
-            device = mgr.state.device
-            hp = hp if isinstance(hp._data, TorchArrayData) else \
-                 hp.__class__(TorchArrayData(torch.tensor(hp.numpy(), device=device,
-                                                         dtype=torch.float32 if hp.kind=='real'
-                                                         else torch.complex64)),
-                              delta_t=getattr(hp, 'delta_t', None),
-                              delta_f=getattr(hp, 'delta_f', None),
-                              epoch=hp.start_time, copy=False)
-            hc = hc if isinstance(hc._data, TorchArrayData) else \
-                 hc.__class__(TorchArrayData(torch.tensor(hc.numpy(), device=device,
-                                                         dtype=torch.float32 if hc.kind=='real'
-                                                         else torch.complex64)),
-                              delta_t=getattr(hc, 'delta_t', None),
-                              delta_f=getattr(hc, 'delta_f', None),
-                              epoch=hc.start_time, copy=False)
+        hp = _scheme_cast_series(hp)
+        hc = _scheme_cast_series(hc)
         if isinstance(hp, TimeSeries):
             df = self.current_params['delta_f']
             hp = hp.to_frequencyseries(delta_f=df)

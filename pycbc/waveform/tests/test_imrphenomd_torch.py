@@ -1,4 +1,5 @@
 import os
+import warnings
 import numpy as np
 import pytest
 
@@ -107,3 +108,24 @@ def test_imrphenomd_torch_global_switch_fallback():
     )
     cpu, tor = _run_case(params, use_native=False)
     np.testing.assert_allclose(tor, cpu, rtol=1e-12, atol=1e-18)
+
+
+def test_imrphenomd_torch_native_emits_no_runtime_warnings():
+    params = dict(
+        mass1=30.0,
+        mass2=20.0,
+        spin1z=0.1,
+        spin2z=0.05,
+        delta_f=0.5,
+        f_lower=20.0,
+        f_final=0.0,
+        f_ref=20.0,
+        distance=100.0,
+        inclination=0.3,
+        coa_phase=0.2,
+    )
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        _run_case(params, use_native=True)
+    runtime = [w for w in caught if issubclass(w.category, RuntimeWarning)]
+    assert runtime == []

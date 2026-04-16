@@ -99,18 +99,22 @@ class _Powers:
 
 def _powers(x: _np.ndarray) -> _Powers:
     """Return useful powers of x; vectorised."""
-    third = _np.cbrt(x)
+    # Keep the inactive zero-frequency bin numerically harmless without letting
+    # fractional powers underflow or inverse powers overflow.
+    safe_floor = _np.finfo(float).eps
+    x_safe = _np.where(x == 0.0, safe_floor, x)
+    third = _np.cbrt(x_safe)
     two_thirds = third * third
     four_thirds = two_thirds * two_thirds
-    five_thirds = x * two_thirds
-    seven_thirds = x * x * third
-    eight_thirds = x * x * two_thirds
+    five_thirds = x_safe * two_thirds
+    seven_thirds = x_safe * x_safe * third
+    eight_thirds = x_safe * x_safe * two_thirds
     m_third = 1.0 / third
     m_two_thirds = 1.0 / two_thirds
     m_four_thirds = 1.0 / four_thirds
     m_five_thirds = 1.0 / five_thirds
-    m_seven_sixths = _np.power(x, -7.0 / 6.0)
-    inv = 1.0 / x
+    m_seven_sixths = _np.power(x_safe, -7.0 / 6.0)
+    inv = 1.0 / x_safe
     one = x
     two = x * x
     four = two * two
@@ -1138,8 +1142,7 @@ def imrphenomd_fd_torch(**p):
     )
 
     Mf = M_sec * freqs
-    Mf_safe = _np.where(Mf == 0.0, _np.finfo(float).tiny, Mf)
-    powers = _powers(Mf_safe)
+    powers = _powers(Mf)
 
     # Amplitude
     amp = _IMRPhenDAmplitude(Mf, amp_coeffs, powers)

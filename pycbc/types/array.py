@@ -219,10 +219,12 @@ class Array(object):
             ret = self._return(ret)
         return ret
 
-    def __array__(self, dtype=None):
+    def __array__(self, dtype=None, copy=None):
         arr = self.numpy()
         if dtype is not None:
-            arr = arr.astype(dtype)
+            arr = arr.astype(dtype, copy=False)
+        if copy:
+            arr = arr.copy()
         return arr
 
     @property

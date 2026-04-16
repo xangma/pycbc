@@ -515,7 +515,7 @@ def seobnrv4hm_fd_torch(**p):
         der_max = b_car[-1]  # derivative at upper boundary for natural spline
         for i, fh in enumerate(f_hyb):
             if fh / m < f_carrier[-1]:
-                phase_approx[i] = m * spline_eval(torch.tensor(fh / m, device=f_carrier.device, dtype=f_carrier.dtype), f_carrier, phase_carrier, b_car, c_car, d_car) + const_phase_shift
+                phase_approx[i] = m * spline_eval(fh / m, f_carrier, phase_carrier, b_car, c_car, d_car) + const_phase_shift
             else:
                 phase_approx[i] = m * (ph_max + der_max * (fh / m - f_carrier[-1])) + const_phase_shift
 
