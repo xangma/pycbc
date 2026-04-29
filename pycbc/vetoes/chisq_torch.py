@@ -84,7 +84,7 @@ def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
     snr_term = (torch.conj(snr_t) * snr_t).real
     chisq_t = chisq_t * num_bins - snr_term
 
-    snr_norm_t = torch.as_tensor(snr_norm, device=device, dtype=dtype)
+    snr_norm_t = torch.as_tensor(snr_norm, device=device, dtype=chisq_t.dtype)
     chisq_t = chisq_t * (snr_norm_t ** 2)
 
     return Array(TorchArrayData(chisq_t), copy=False)

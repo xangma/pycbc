@@ -111,8 +111,6 @@ def welch(timeseries, seg_len=4096, seg_stride=2048, window='hann',
     -----
     See arXiv:gr-qc/0509116 for details.
     """
-    from pycbc.strain.strain import execute_cached_fft
-
     window_map = {
         'hann': numpy.hanning
     }
@@ -186,6 +184,7 @@ def welch(timeseries, seg_len=4096, seg_stride=2048, window='hann',
         if not USE_CACHING_FOR_WELCH_FFTS:
             fft(segment * w, segment_tilde)
         else:
+            from pycbc.strain.strain import execute_cached_fft
             segment_tilde = execute_cached_fft(segment * w,
                                                uid=WELCH_UNIQUE_ID)
         seg_psd = segment_tilde * segment_tilde.conj()
@@ -272,8 +271,6 @@ def inverse_spectrum_truncation(psd, max_filter_len, low_frequency_cutoff=None, 
     -----
     See arXiv:gr-qc/0509116 for details.
     """
-    from pycbc.strain.strain import execute_cached_fft, execute_cached_ifft
-
     # sanity checks
     if type(max_filter_len) is not int or max_filter_len <= 0:
         raise ValueError('max_filter_len must be a positive integer')
@@ -301,6 +298,7 @@ def inverse_spectrum_truncation(psd, max_filter_len, low_frequency_cutoff=None, 
         )
         ifft(inv_asd, q)
     else:
+        from pycbc.strain.strain import execute_cached_ifft
         q = execute_cached_ifft(inv_asd, copy_output=False,
                                 uid=INVSPECTRUNC_UNIQUE_ID)
 
@@ -329,6 +327,7 @@ def inverse_spectrum_truncation(psd, max_filter_len, low_frequency_cutoff=None, 
         )
         fft(q, psd_trunc)
     else:
+        from pycbc.strain.strain import execute_cached_fft
         psd_trunc = execute_cached_fft(q, copy_output=False,
                                        uid=INVSPECTRUNC_UNIQUE_ID)
     psd_trunc *= psd_trunc.conj()
