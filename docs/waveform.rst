@@ -92,8 +92,12 @@ environment flags:
   phase/spin/tidal orders, testing-GR ``dchi`` terms, tidal quadrupoles, and
   polarization rotation. Precession, higher-PN amplitude corrections, and
   dynamic-tide extras fall back to lalsimulation.
-- SpinTaylorF2: ``PYCBC_SPINTAYLORF2_NATIVE``. This port remains experimental;
-  the default path is the lalsimulation implementation.
+- SpinTaylorF2: ``PYCBC_SPINTAYLORF2_NATIVE``. The native port covers the
+  model's single-spin public interface, including precession, reference-phase
+  conventions, phase/spin orders, sidebands, testing-GR ``dchi`` terms,
+  primary-object quadrupole deformation, and polarization rotation. Tidal,
+  eccentric, second-spin, custom-mode, and non-``dchi`` testing-GR options fall
+  back to lalsimulation.
 - IMRPhenomD (FD): ``PYCBC_IMRPHENOMD_NATIVE``. Frequency-grid construction,
   amplitude/phase evaluation, masking, and polarization assembly run on the
   active Torch device; small coefficient and QNM-table setup remains on CPU.

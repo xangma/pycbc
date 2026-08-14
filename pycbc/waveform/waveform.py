@@ -254,6 +254,19 @@ def _lalsim_fd_waveform(**p):
             return taylorf2_fd_torch(**p)
 
     if (
+        p.get("approximant") == "SpinTaylorF2"
+        and using_torch
+        and torch_native_enabled("PYCBC_SPINTAYLORF2_NATIVE", default=False)
+    ):
+        from .spintaylorf2_torch import (
+            spintaylorf2_native_supported,
+            spintaylorf2_torch,
+        )
+
+        if spintaylorf2_native_supported(p):
+            return spintaylorf2_torch(**p)
+
+    if (
         p.get("approximant") == "IMRPhenomD"
         and using_torch
         and torch_native_enabled("PYCBC_IMRPHENOMD_NATIVE", default=False)

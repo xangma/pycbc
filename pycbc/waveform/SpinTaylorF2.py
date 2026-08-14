@@ -268,7 +268,8 @@ if _HAVE_PYCUDA:
 def spintaylorf2(**kwds):
     """ Return a SpinTaylorF2 waveform using CUDA to generate the phase and amplitude
     """
-    # Torch scheme: use LAL waveform and move result to torch device (no PyCUDA).
+    # Direct Torch calls use the native evaluator. Public dispatch applies the
+    # feature flag and sends unsupported parameter combinations to LAL first.
     if isinstance(_scheme.mgr.state, _scheme.TorchScheme):
         from .spintaylorf2_torch import spintaylorf2_torch
         return spintaylorf2_torch(**kwds)

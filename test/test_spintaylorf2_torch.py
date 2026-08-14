@@ -22,6 +22,7 @@ def params():
         phase_order=7,
         amplitude_order=7,
         inclination=0.7,
+        side_bands=1,
     )
 
 
@@ -30,20 +31,28 @@ def _run(ctx, params):
     with ctx:
         hP, hC = spintaylorf2(**params)
     scheme.Scheme._single = None
-    return hP.numpy()
+    return hP.numpy(), hC.numpy()
 
 
 def test_spintaylorf2_torch_matches_cpu(params):
-    # Compare torch vs CPU/LAL reference for a precessing configuration
+    """The direct Torch wrapper matches both LAL polarizations."""
     from pycbc.waveform import get_fd_waveform
 
-    # Force CPU reference without torch casting
     old = scheme.mgr.state
-    scheme.Scheme._single = None
-    scheme.mgr.state = scheme.CPUScheme()
-    scheme.mgr.state.prefix = 'cpu'
-    cpu_ref, _ = get_fd_waveform(approximant="SpinTaylorF2", **params)
-    scheme.mgr.state = old
-    torch_out = _run(scheme.TorchScheme("cpu"), params)
-    rel = np.linalg.norm(torch_out - cpu_ref.numpy()) / np.linalg.norm(cpu_ref.numpy())
-    assert rel < 0.3  # loose tolerance pending full parity tuning
+    old_single = scheme.Scheme._single
+    try:
+        scheme.Scheme._single = None
+        scheme.mgr.state = scheme.CPUScheme()
+        cpu_ref = get_fd_waveform(approximant="SpinTaylorF2", **params)
+        cpu_arrays = tuple(series.numpy().copy() for series in cpu_ref)
+        torch_out = _run(scheme.TorchScheme("cpu"), params)
+    finally:
+        scheme.mgr.state = old
+        scheme.Scheme._single = old_single
+
+    for reference, actual in zip(cpu_arrays, torch_out):
+        nonzero = np.abs(reference) > 0.0
+        relative_error = np.linalg.norm(
+            actual[nonzero] - reference[nonzero]
+        ) / np.linalg.norm(reference[nonzero])
+        assert relative_error < 1.0e-11

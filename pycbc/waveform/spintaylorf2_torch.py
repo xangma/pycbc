@@ -1,84 +1,46 @@
-"""Torch-native SpinTaylorF2 generator mirroring the historical CUDA kernel.
+"""Torch-native implementation of LAL's single-spin ``SpinTaylorF2`` model.
 
-Validated against LALSuite 7.26.1 (LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c and
-LAL reference: lalsimulation/lib/LALSimInspiralPNCoefficients.c) so readers can cross-check line references
-below when auditing parity.
+The equations are a vectorized translation of
+``LALSimInspiralSpinTaylorF2.c`` and the associated PN-coefficient routines.
+Public PyCBC parameter conventions are applied here; unsupported options are
+left to the waveform dispatcher to generate with lalsimulation.
+"""
 
-This keeps the torch implementation scheme-specific while leaving the
-scheme-agnostic API untouched.  Expressions below are a direct vectorised
-translation of the PyCUDA kernel in ``SpinTaylorF2.py`` so we maintain numerical
-parity with the existing CPU/LAL implementation (up to expected tolerance)."""
+import math
 
-import os
-import numpy as _np
-import logging
-import torch
 import lal
+import torch
 
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
-from pycbc.waveform.torch_switches import torch_native_enabled
-from pycbc.waveform.utils import scheme_cast_series
 
 
-# PN phasing/flux coefficients (from CUDA kernel / LAL)
-# LAL reference: lalsimulation/lib/LALSimInspiralPNCoefficients.c lines 692-750 (phasing),
-# 346-379 (flux), 49-74 (energy) in the SpinTaylorF2 context.
-def _pn_and_flux_coeffs(eta, pn_beta, pn_sigma, pn_gamma):
+_EULER_GAMMA = 0.5772156649015329
+
+
+# Non-spinning PN phasing coefficients used as the base of SpinTaylorF2.
+def _nonspin_phasing_coeffs(eta):
     pfaN = 3.0 / (128.0 * eta)
     pfa2 = 5.0 * (743.0 / 84.0 + 11.0 * eta) / 9.0
-    pfa3 = -16.0 * _np.pi + 4.0 * pn_beta
-    pfa4 = (
-        5.0 * (3058.673 / 7.056 + 5429.0 / 7.0 * eta + 617.0 * eta * eta) / 72.0
-        - 10.0 * pn_sigma
-    )
-    pfa5 = 5.0 / 9.0 * (7729.0 / 84.0 - 13.0 * eta) * _np.pi - pn_gamma
-    pfl5 = 5.0 / 3.0 * (7729.0 / 84.0 - 13.0 * eta) * _np.pi - 3.0 * pn_gamma
+    pfa3 = -16.0 * math.pi
+    pfa4 = 5.0 * (3058.673 / 7.056 + 5429.0 / 7.0 * eta + 617.0 * eta * eta) / 72.0
+    pfa5 = 5.0 / 9.0 * (7729.0 / 84.0 - 13.0 * eta) * math.pi
+    pfl5 = 5.0 / 3.0 * (7729.0 / 84.0 - 13.0 * eta) * math.pi
     pfa6 = (
         11583.231236531 / 4.694215680
-        - 640.0 / 3.0 * _np.pi * _np.pi
-        - 6848.0 / 21.0 * _np.euler_gamma
-        + eta * (-15737.765635 / 3.048192 + 2255.0 / 12.0 * _np.pi * _np.pi)
+        - 640.0 / 3.0 * math.pi * math.pi
+        - 6848.0 / 21.0 * _EULER_GAMMA
+        + eta * (-15737.765635 / 3.048192 + 2255.0 / 12.0 * math.pi * math.pi)
         + eta * eta * 76055.0 / 1728.0
         - eta * eta * eta * 127825.0 / 1296.0
-        + (-6848.0 / 21.0) * _np.log(4.0)
+        + (-6848.0 / 21.0) * math.log(4.0)
     )
     pfl6 = -6848.0 / 21.0
     pfa7 = (
-        _np.pi
+        math.pi
         * 5.0
         / 756.0
         * (15419335.0 / 336.0 + 75703.0 / 2.0 * eta - 14809.0 * eta * eta)
-    )
-
-    FTaN = 32.0 * eta * eta / 5.0
-    FTa2 = -(12.47 / 3.36 + 3.5 / 1.2 * eta)
-    FTa3 = 4.0 * _np.pi
-    FTa4 = -(44.711 / 9.072 - 92.71 / 5.04 * eta - 6.5 / 1.8 * eta * eta)
-    FTa5 = -(81.91 / 6.72 + 58.3 / 2.4 * eta) * _np.pi
-    FTa6 = (
-        664.3739519 / 6.9854400
-        + 16.0 / 3.0 * _np.pi * _np.pi
-        - 17.12 / 1.05 * _np.euler_gamma
-        + (4.1 / 4.8 * _np.pi * _np.pi - 134.543 / 7.776) * eta
-        - 94.403 / 3.024 * eta * eta
-        - 7.75 / 3.24 * eta * eta * eta
-    )
-    FTl6 = -8.56 / 1.05
-    FTa7 = (
-        -(162.85 / 5.04 - 214.745 / 1.728 * eta - 193.385 / 3.024 * eta * eta) * _np.pi
-    )
-
-    dETaN = -eta
-    dETa1 = 2.0 * (-(3.0 / 4.0 + eta / 12.0))
-    dETa2 = 3.0 * (-(27.0 / 8.0 - 19.0 / 8.0 * eta + eta * eta / 24.0))
-    dETa3 = 4.0 * (
-        -(
-            67.5 / 6.4
-            - (344.45 / 5.76 - 20.5 / 9.6 * _np.pi * _np.pi) * eta
-            + 15.5 / 9.6 * eta * eta
-            + 3.5 / 518.4 * eta * eta * eta
-        )
     )
 
     return dict(
@@ -91,45 +53,37 @@ def _pn_and_flux_coeffs(eta, pn_beta, pn_sigma, pn_gamma):
         pfa6=pfa6,
         pfl6=pfl6,
         pfa7=pfa7,
-        FTaN=FTaN,
-        FTa2=FTa2,
-        FTa3=FTa3,
-        FTa4=FTa4,
-        FTa5=FTa5,
-        FTa6=FTa6,
-        FTl6=FTl6,
-        FTa7=FTa7,
-        dETaN=dETaN,
-        dETa1=dETa1,
-        dETa2=dETa2,
-        dETa3=dETa3,
     )
 
 
 # ---- Helper routines mirroring the LAL SpinTaylorF2 implementation (single-spin) ----
 
 
-def _safe_atan2(y, x, device, dtype):
-    """Match LAL safe_atan2: return 0 if both args are 0 (LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:83-89)."""
-    zero = torch.tensor(0.0, device=device, dtype=dtype)
-    return torch.where((y == 0.0) & (x == 0.0), zero, torch.atan2(y, x))
+def _safe_atan2(y, x):
+    """Match LAL's safe_atan2 helper, including its zero/zero convention."""
+    return torch.where(
+        (y == 0.0) & (x == 0.0),
+        torch.zeros_like(x),
+        torch.atan2(y, x),
+    )
 
 
-def _orientation(m1, m2, v_ref, lnhatx, lnhaty, lnhatz, s1x, s1y, s1z, device, dtype):
-    """Replicate XLALSimInspiralSF2CalculateOrientation (LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:92-113)."""
+def _orientation(m1, m2, v_ref, lnhatx, lnhaty, lnhatz, s1x, s1y, s1z):
+    """Replicate XLALSimInspiralSF2CalculateOrientation."""
     chi = torch.sqrt(s1x * s1x + s1y * s1y + s1z * s1z)
     kappa = (
         (lnhatx * s1x + lnhaty * s1y + lnhatz * s1z) / chi
         if chi.item() != 0.0
-        else torch.tensor(1.0, device=device, dtype=dtype)
+        else torch.ones_like(chi)
     )
+    kappa = torch.clamp(kappa, -1.0, 1.0)
     Jx0 = m1 * m2 * lnhatx / v_ref + m1 * m1 * s1x
     Jy0 = m1 * m2 * lnhaty / v_ref + m1 * m1 * s1y
     Jz0 = m1 * m2 * lnhatz / v_ref + m1 * m1 * s1z
     Jnorm = torch.sqrt(Jx0 * Jx0 + Jy0 * Jy0 + Jz0 * Jz0)
-    thetaJ = torch.acos(Jz0 / Jnorm)
+    thetaJ = torch.acos(torch.clamp(Jz0 / Jnorm, -1.0, 1.0))
     # LAL sign convention for polarization phase
-    psiJ = _safe_atan2(Jy0, -Jx0, device, dtype)
+    psiJ = _safe_atan2(Jy0, -Jx0)
 
     rotLx = (
         lnhatx * torch.cos(thetaJ) * torch.cos(psiJ)
@@ -137,17 +91,17 @@ def _orientation(m1, m2, v_ref, lnhatx, lnhaty, lnhatz, s1x, s1y, s1z, device, d
         + lnhatz * torch.sin(thetaJ)
     )
     rotLy = lnhatx * torch.sin(psiJ) + lnhaty * torch.cos(psiJ)
-    alpha0 = _safe_atan2(rotLy, rotLx, device, dtype)
+    alpha0 = _safe_atan2(rotLy, rotLx)
 
     return dict(chi=chi, kappa=kappa, thetaJ=thetaJ, psiJ=psiJ, alpha0=alpha0)
 
 
-def _coeffs(m1, m2, chi, kappa, device, dtype):
-    """Replicate XLALSimInspiralSF2CalculateCoeffs (LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:115-160)."""
+def _coeffs(m1, m2, chi, kappa):
+    """Replicate XLALSimInspiralSF2CalculateCoeffs."""
     mtot = m1 + m2
     eta = m1 * m2 / (mtot * mtot)
     gamma0 = m1 * chi / m2
-    kappa_perp = torch.sqrt(1.0 - kappa * kappa)
+    kappa_perp = torch.sqrt(torch.clamp(1.0 - kappa * kappa, min=0.0))
 
     pn_beta = (113.0 * m1 / (12.0 * mtot) - 19.0 * eta / 6.0) * chi * kappa
     pn_sigma = (
@@ -164,14 +118,14 @@ def _coeffs(m1, m2, chi, kappa, device, dtype):
 
     prec_fac = 5.0 * (4.0 + 3.0 * m2 / m1) / 64.0
     dtdv2 = 743.0 / 336.0 + 11.0 * eta / 4.0
-    dtdv3 = -4.0 * _np.pi + pn_beta
+    dtdv3 = -4.0 * math.pi + pn_beta
     dtdv4 = (
         3058673.0 / 1016064.0
         + 5429.0 * eta / 1008.0
         + 617.0 * eta * eta / 144.0
         - pn_sigma
     )
-    dtdv5 = (-7729.0 / 672.0 + 13.0 * eta / 8.0) * _np.pi + 9.0 * pn_gamma / 40.0
+    dtdv5 = (-7729.0 / 672.0 + 13.0 * eta / 8.0) * math.pi + 9.0 * pn_gamma / 40.0
 
     aclog1 = (
         kappa * (1.0 - kappa * kappa) * gamma0 * gamma0 * gamma0 / 2.0
@@ -203,15 +157,10 @@ def _coeffs(m1, m2, chi, kappa, device, dtype):
     zc6 = dtdv5 * gamma0 * kappa / 3.0
 
     return dict(
-        eta=eta,
         gamma0=gamma0,
         kappa=kappa,
         kappa_perp=kappa_perp,
         prec_fac=prec_fac,
-        dtdv2=dtdv2,
-        dtdv3=dtdv3,
-        dtdv4=dtdv4,
-        dtdv5=dtdv5,
         aclog1=aclog1,
         aclog2=aclog2,
         ac=(ac0, ac1, ac2, ac3, ac4, ac5),
@@ -220,7 +169,7 @@ def _coeffs(m1, m2, chi, kappa, device, dtype):
 
 
 def _alpha(v, coeffs):
-    """XLALSimInspiralSF2Alpha (vectorised torch; LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:162-179)."""
+    """Evaluate XLALSimInspiralSF2Alpha with vectorized Torch operations."""
     gam = coeffs["gamma0"] * v
     kappa = coeffs["kappa"]
     sqrtfac = torch.sqrt(1.0 + 2.0 * kappa * gam + gam * gam)
@@ -236,80 +185,8 @@ def _alpha(v, coeffs):
     return prec_fac * (aclog1 * logfac1 + aclog2 * logfac2 + poly)
 
 
-def _zeta(v, coeffs):
-    """XLALSimInspiralSF2Zeta (matches CUDA kernel expression; LAL keeps this #if0 at 182-189 in lalsimulation/lib/LALSimInspiralSpinTaylorF2.c)."""
-    gamma0 = coeffs["gamma0"]
-    kappa = coeffs["kappa"]
-    prec_fac = coeffs["prec_fac"]
-    dtdv2 = coeffs["dtdv2"]
-    dtdv3 = coeffs["dtdv3"]
-    dtdv4 = coeffs["dtdv4"]
-    dtdv5 = coeffs["dtdv5"]
-
-    gam = gamma0 * v
-    gamma02 = gamma0 * gamma0
-    gamma03 = gamma02 * gamma0
-    kappa2 = kappa * kappa
-    kappa3 = kappa2 * kappa
-
-    v2 = v * v
-    v3 = v2 * v
-
-    sqrtfac = torch.sqrt(1.0 + 2.0 * kappa * gam + gam * gam)
-    logv = torch.log(v)
-    logfac1 = torch.log(1.0 + kappa * gam + sqrtfac)
-    logfac2 = torch.log(kappa + gam + sqrtfac)
-
-    term_logfac2 = (
-        -dtdv2 * gamma0
-        - dtdv3 * kappa
-        + dtdv5 * kappa / (2.0 * gamma02)
-        - dtdv4 / (2.0 * gamma0)
-        + dtdv4 * kappa2 / (2.0 * gamma0)
-        - dtdv5 * kappa3 / (2.0 * gamma02)
-    )
-    term_logv = kappa * gamma03 / 2.0 - gamma03 * kappa3 / 2.0
-    term_logfac1 = (
-        dtdv2 * gamma0 * kappa + dtdv3 - kappa * gamma03 / 2.0 + gamma03 * kappa3 / 2.0
-    )
-
-    term_poly = (
-        -1.0 / (3.0 * v3)
-        - gamma0 * kappa / (2.0 * v2)
-        - dtdv2 / v
-        + dtdv4 * gamma0 * kappa * v2 / 2.0
-        + dtdv5 * v2 / 2.0
-    )
-
-    term_sqrt = (
-        -dtdv3
-        - dtdv4 * v / 2.0
-        - dtdv5 / (3.0 * gamma02)
-        - dtdv4 * kappa / (2.0 * gamma0)
-        - dtdv5 * kappa * v / (6.0 * gamma0)
-        + dtdv5 * kappa2 / (2.0 * gamma02)
-        + 1.0 / (3.0 * v3)
-        + gamma0 * kappa / (6.0 * v2)
-        + dtdv2 / v
-        + gamma02 / (3.0 * v)
-        - gamma02 * kappa2 / (2.0 * v)
-        - dtdv5 * v2 / 3.0
-    )
-
-    return prec_fac * (
-        dtdv3 * gamma0 * kappa * v
-        + dtdv4 * v
-        + logfac2 * term_logfac2
-        + logv * term_logv
-        + logfac1 * term_logfac1
-        + term_poly
-        + sqrtfac * term_sqrt
-        + dtdv5 * gamma0 * kappa * v3 / 3.0
-    )
-
-
 def _emission(v, coeffs):
-    """XLALSimInspiralSF2Emission; returns (em0..em4) per-frequency tensors (LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:238-254)."""
+    """Return the five XLALSimInspiralSF2Emission tensors."""
     gam = coeffs["gamma0"] * v
     kappa = coeffs["kappa"]
     kappa_perp = coeffs["kappa_perp"]
@@ -325,8 +202,8 @@ def _emission(v, coeffs):
     return em0, em1, em2, em3, em4
 
 
-def _polarization(thetaJ, psiJ, mm, device, dtype):
-    """XLALSimInspiralSF2Polarization (complex) (LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:204-236)."""
+def _polarization(thetaJ, psiJ, mm):
+    """Evaluate the complex XLALSimInspiralSF2Polarization factor."""
     ct = torch.cos(thetaJ)
     st = torch.sin(thetaJ)
     if mm == 2:
@@ -345,8 +222,7 @@ def _polarization(thetaJ, psiJ, mm, device, dtype):
         plus_fac = (1.0 + ct * ct) / 2.0
         cross_fac = 1j * ct
     else:
-        plus_fac = torch.tensor(0.0, device=device, dtype=dtype)
-        cross_fac = 0.0j
+        raise ValueError(f"Invalid SpinTaylorF2 sideband mode {mm}")
     return plus_fac * torch.cos(2.0 * psiJ) + cross_fac * torch.sin(2.0 * psiJ)
 
 
@@ -363,9 +239,7 @@ def _pfa_coeffs(
     qm_def1=0.0,
     non_gr=None,
 ):
-    """Compute PN phasing series up to 3.5PN matching XLALSimInspiralSpinTaylorF2
-    (LAL reference: lalsimulation/lib/LALSimInspiralPNCoefficients.c:955-1102 for PNPhasingSeries build;
-    selection and zeta additions as in lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:370-435).
+    """Compute the 3.5PN phasing series used by SpinTaylorF2.
 
     The coefficients follow the LAL PNPhasingSeries: base (non-spin) terms are
     scaled by pfaN = 3/(128*eta), single-spin contributions are added via the
@@ -380,23 +254,21 @@ def _pfa_coeffs(
 
     # Non-spinning TaylorF2 phasing terms (use pn_beta/sigma/gamma = 0 to avoid
     # double-counting spin contributions that are added explicitly below).
-    base = _pn_and_flux_coeffs(eta, 0.0, 0.0, 0.0)
-
-    # pfa1 carries the non-GR 1PN phase term (PNPhasingSeries v[1]); LAL sets
-    # it before the global pfaN scaling (LAL reference: lalsimulation/lib/LALSimInspiralPNCoefficients.c:987-999).
-    base_dchi1 = non_gr.get("dchi1", 0.0)
+    base = _nonspin_phasing_coeffs(eta)
 
     # Apply non-GR scaling to the non-spin pieces (matches PNPhasingSeries)
     if non_gr is None:
         non_gr = {}
-    base["pfaN"] *= 1.0 + non_gr.get("dchi0", 0.0)
+    # pfa1 carries the non-GR 0.5PN phase term (PNPhasingSeries v[1]); LAL
+    # sets it before the global pfaN scaling.
+    base_dchi1 = non_gr.get("dchi1", 0.0)
     base["pfa2"] *= 1.0 + non_gr.get("dchi2", 0.0)
     base["pfa3"] *= 1.0 + non_gr.get("dchi3", 0.0)
     base["pfa4"] *= 1.0 + non_gr.get("dchi4", 0.0)
     base["pfa5"] *= 1.0 + non_gr.get("dchi5", 0.0)
-    base["pfl5"] *= 1.0 + non_gr.get("dchi5L", 0.0)
+    base["pfl5"] *= 1.0 + non_gr.get("dchi5l", 0.0)
     base["pfa6"] *= 1.0 + non_gr.get("dchi6", 0.0)
-    base["pfl6"] *= 1.0 + non_gr.get("dchi6L", 0.0)
+    base["pfl6"] *= 1.0 + non_gr.get("dchi6l", 0.0)
     base["pfa7"] *= 1.0 + non_gr.get("dchi7", 0.0)
 
     # Spin-orbit and spin-squared pieces (single-spin, chi2 = 0)
@@ -411,7 +283,7 @@ def _pfa_coeffs(
         )
 
     def so6(mbym):
-        return _np.pi * mbym * (1490.0 / 3.0 + mbym * 260.0)
+        return math.pi * mbym * (1490.0 / 3.0 + mbym * 260.0)
 
     def so7(mbym):
         eta_loc = mbym * (1.0 - mbym)
@@ -481,10 +353,8 @@ def _pfa_coeffs(
     pfa6_base = base["pfa6"] + so6_term + ss3pn_term
     pfl6_base = base["pfl6"]
     pfa7_base = base["pfa7"] + so7_term
-    pfa8_base = 0.0
-
     # Scale by pfaN (as in PNPhasingSeries)
-    pfaN_full = pfaN_base * 1.0
+    pfaN_full = pfaN_base * (1.0 + non_gr.get("dchi0", 0.0))
     pfa1_full = pfaN_base * pfa1_base
     pfa2_full = pfaN_base * pfa2_base
     pfa3_full = pfaN_base * pfa3_base
@@ -494,8 +364,6 @@ def _pfa_coeffs(
     pfa6_full = pfaN_base * pfa6_base
     pfl6_full = pfaN_base * pfl6_base
     pfa7_full = pfaN_base * pfa7_base
-    pfa8_full = pfaN_base * pfa8_base
-
     # Apply phase_order selection (mirrors LAL fall-through)
     if phase_order not in (-1, 7, 6, 5, 4, 3, 2, 1, 0):
         raise ValueError(f"Invalid phase_order {phase_order}")
@@ -548,431 +416,367 @@ def _pfa_coeffs(
     return pfa_sel
 
 
-def spintaylorf2_torch(**kwds):
+_PHASE_ORDERS = frozenset((-1, 0, 1, 2, 3, 4, 5, 6, 7))
+_SPIN_ORDERS = frozenset((-1, 0, 1, 2, 3, 4, 5, 6, 7))
+_DCHI_KEYS = (
+    "dchi0",
+    "dchi1",
+    "dchi2",
+    "dchi3",
+    "dchi4",
+    "dchi5",
+    "dchi5l",
+    "dchi6",
+    "dchi6l",
+    "dchi7",
+)
+_UNSUPPORTED_TIDAL_KEYS = (
+    "lambda_octu1",
+    "lambda_octu2",
+    "quadfmode1",
+    "quadfmode2",
+    "octufmode1",
+    "octufmode2",
+)
+_UNSUPPORTED_NON_GR_KEYS = (
+    "dalpha1",
+    "dalpha2",
+    "dalpha3",
+    "dalpha4",
+    "dalpha5",
+    "dbeta1",
+    "dbeta2",
+    "dbeta3",
+)
+
+
+def _as_order(value):
+    """Normalize an integer-valued LAL order flag without raising."""
+    try:
+        return int(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def _is_nonzero(value):
+    """Return whether an optional scalar is set to a non-zero value."""
+    if value is None:
+        return False
+    try:
+        return float(value) != 0.0
+    except (TypeError, ValueError, OverflowError):
+        return True
+
+
+def spintaylorf2_native_supported(params):
+    """Return whether params are covered by the native Torch generator.
+
+    SpinTaylorF2 itself is a single-spin model. The native path implements its
+    public LAL parameter contract, including spin-frame and polarization
+    rotations, PN phase/spin orders, testing-GR dchi terms, the primary's
+    quadrupole deformation, and sideband selection. Options outside that
+    contract deliberately remain on the lalsimulation path.
+    """
+    if _as_order(params.get("phase_order", -1)) not in _PHASE_ORDERS:
+        return False
+    if _as_order(params.get("spin_order", -1)) not in _SPIN_ORDERS:
+        return False
+    if _as_order(params.get("amplitude_order", -1)) is None:
+        return False
+    if _as_order(params.get("tidal_order", -1)) != -1:
+        return False
+    if _as_order(params.get("eccentricity_order", -1)) != -1:
+        return False
+    if _as_order(params.get("side_bands", 0)) is None:
+        return False
+
+    if any(
+        _is_nonzero(params.get(key, 0.0))
+        for key in (
+            "spin2x",
+            "spin2y",
+            "spin2z",
+            "eccentricity",
+            "mean_per_ano",
+            "frame_axis",
+            "modes_choice",
+            "lambda1",
+            "lambda2",
+            "dquad_mon2",
+        )
+    ):
+        return False
+    if params.get("mode_array") is not None or params.get("numrel_data", ""):
+        return False
+    if any(params.get(key) is not None for key in _UNSUPPORTED_TIDAL_KEYS):
+        return False
+    if any(_is_nonzero(params.get(key, 0.0)) for key in _UNSUPPORTED_NON_GR_KEYS):
+        return False
+    return True
+
+
+def _evaluate_phasing(velocity, pfa):
+    """Evaluate the SpinTaylorF2 PN phasing series."""
+    velocity2 = velocity * velocity
+    velocity3 = velocity2 * velocity
+    velocity4 = velocity2 * velocity2
+    velocity5 = velocity3 * velocity2
+    log_velocity = torch.log(velocity)
+    numerator = (
+        pfa["pfaN"]
+        + pfa["pfa1"] * velocity
+        + pfa["pfa2"] * velocity2
+        + pfa["pfa3"] * velocity3
+        + pfa["pfa4"] * velocity4
+    )
+    return (
+        numerator / velocity5
+        + pfa["pfa5"]
+        + pfa["pfl5"] * log_velocity
+        + (pfa["pfa6"] + pfa["pfl6"] * log_velocity) * velocity
+        + pfa["pfa7"] * velocity2
+        + pfa["pfa8"] * velocity3
+    )
+
+
+def spintaylorf2_torch(**params):
+    """Generate SpinTaylorF2 polarizations on the active Torch device.
+
+    Callers should first use spintaylorf2_native_supported; the public waveform
+    dispatcher does so and routes unsupported options to LAL.
+    """
     from pycbc import scheme as _scheme
 
-    active_scheme = _scheme.mgr.state
-    if isinstance(active_scheme, _scheme.TorchScheme):
-        device = active_scheme.torch_device
-    else:
-        device = torch.device("cpu")
-
-    # Temporary parity guard: until the native torch precessing path is fully
-    # tuned against LAL, optionally fall back to the trusted CPU/LAL generator
-    # and simply cast to torch.  Enable the native path with
-    # PYCBC_SPINTAYLORF2_NATIVE=1 (or the global PYCBC_TORCH_NATIVE_PORTS=1)
-    # once the PN flux/parity work is complete; leave unset when comparing
-    # against LAL to avoid hiding differences.
-    if not torch_native_enabled("PYCBC_SPINTAYLORF2_NATIVE", default=False):
-        from pycbc.waveform import get_fd_waveform
-
-        old_scheme = _scheme.mgr.state
-        _scheme.mgr.state = _scheme.CPUScheme()
-        try:
-            hP_cpu, hC_cpu = get_fd_waveform(approximant="SpinTaylorF2", **kwds)
-        finally:  # always restore scheme
-            _scheme.mgr.state = old_scheme
-        if os.environ.get("PYCBC_SPINTAYLORF2_LOG", "0").lower() in (
-            "1",
-            "true",
-            "yes",
-        ):
-            _log = logging.getLogger(__name__)
-            _log.warning(
-                "SpinTaylorF2 CPU fallback used (torch path disabled); no diagnostics run."
-            )
-        return scheme_cast_series(hP_cpu), scheme_cast_series(hC_cpu)
-
-    f_lower = kwds["f_lower"]
-    delta_f = kwds["delta_f"]
-    distance = kwds["distance"]
-    distance_in_mpc = bool(
-        kwds.get("distance_in_mpc", True)
-    )  # True keeps historical PyCBC/LAL API (distance in Mpc)
-    mass1 = kwds["mass1"]
-    mass2 = kwds["mass2"]
-    spin1x = kwds.get("spin1x", 0.0)
-    spin1y = kwds.get("spin1y", 0.0)
-    spin1z = kwds.get("spin1z", 0.0)
-    rotate_spin = bool(
-        kwds.get("rotate_spin", True)
-    )  # default: mimic LALSimInspiral.c wrapper ROTATEY; False means spins are already in the L-frame (will break LAL parity if not).
-    inclination = kwds.get("inclination", 0.0)
-    pn_spin_order = int(kwds.get("pn_spin_order", -1))
-    dquadmon1 = kwds.get("dquadmon1", 0.0)
-    non_gr = dict(
-        dchi0=kwds.get("non_gr_dchi0", 0.0),
-        dchi1=kwds.get("non_gr_dchi1", 0.0),
-        dchi2=kwds.get("non_gr_dchi2", 0.0),
-        dchi3=kwds.get("non_gr_dchi3", 0.0),
-        dchi4=kwds.get("non_gr_dchi4", 0.0),
-        dchi5=kwds.get("non_gr_dchi5", 0.0),
-        dchi5L=kwds.get("non_gr_dchi5L", 0.0),
-        dchi6=kwds.get("non_gr_dchi6", 0.0),
-        dchi6L=kwds.get("non_gr_dchi6L", 0.0),
-        dchi7=kwds.get("non_gr_dchi7", 0.0),
-    )
-    phi0 = kwds["coa_phase"]
-    phase_order = int(kwds["phase_order"])
-    amplitude_order = int(kwds["amplitude_order"])  # kept for signature; LAL ignores >0
-    f_ref = kwds.get("f_ref", 0.0)
-    sideband_param = kwds.get("side_bands", None)
-    f_final = kwds.get("f_final", 0.0)
-
-    if amplitude_order != 0:
-        raise ValueError(f"Invalid amplitude PN order {amplitude_order}")
-
-    dtype = torch.float64
-
-    # LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:532-534 (shft = 2π t_c term with t_c set by epoch).
-    shft = -2.0 * _np.pi / delta_f
-    M = mass1 + mass2
-    eta = mass1 * mass2 / (M * M)
-    m_sec = M * lal.MTSUN_SI
-    piM = _np.pi * m_sec
-    piM_t = torch.tensor(piM, device=device, dtype=dtype)
-
-    # LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:318-321 and 468-493 (Schwarzschild ISCO cutoff and padding/zeroing)
-    vISCO = 1.0 / _np.sqrt(6.0)
-    fISCO = vISCO * vISCO * vISCO / piM
-    f_max = f_final if f_final and f_final > 0.0 else fISCO
-    n = int(f_max / delta_f + 1)
-    kmax = n - 1
-    kmin = int(_np.ceil(f_lower / delta_f))
-
-    idx = torch.arange(kmin, n, device=device, dtype=dtype)
-    freqs = idx * delta_f
-    v = torch.pow(piM_t * freqs, 1.0 / 3.0)
-    v2 = v * v
-    v3 = v2 * v
-    v4 = v2 * v2
-    v5 = v3 * v2
-    logv = torch.log(v)
-
-    # Orientation / coefficients
-    cosi = torch.cos(torch.tensor(inclination, device=device, dtype=dtype))
-    sini = torch.sin(torch.tensor(inclination, device=device, dtype=dtype))
-
-    # Rotate S1 about +y by the inclination (matches LALSimInspiral.c ROTATEY
-    # before calling SpinTaylorF2). Disable with rotate_spin=False if spins are
-    # already supplied in the L-frame.
-    cincl = cosi
-    sincl = sini
-    if rotate_spin:
-        spin1x_t = torch.tensor(
-            float(spin1x * cincl + spin1z * sincl), device=device, dtype=dtype
-        )
-        spin1y_t = torch.tensor(float(spin1y), device=device, dtype=dtype)
-        spin1z_t = torch.tensor(
-            float(-spin1x * sincl + spin1z * cincl), device=device, dtype=dtype
-        )
-    else:
-        spin1x_t = torch.tensor(float(spin1x), device=device, dtype=dtype)
-        spin1y_t = torch.tensor(float(spin1y), device=device, dtype=dtype)
-        spin1z_t = torch.tensor(float(spin1z), device=device, dtype=dtype)
-
-    # Require explicit LNhat components to mirror LAL SpinTaylorF2 inputs.
-    lnhatx_in = kwds.get("lnhatx", None)
-    lnhaty_in = kwds.get("lnhaty", None)
-    lnhatz_in = kwds.get("lnhatz", None)
-    if lnhatx_in is None or lnhaty_in is None or lnhatz_in is None:
+    if not spintaylorf2_native_supported(params):
         raise ValueError(
-            "SpinTaylorF2 torch now requires lnhatx/lnhaty/lnhatz to be provided explicitly."
+            "SpinTaylorF2 parameters are not supported by the native Torch path"
         )
-    lnhatx = torch.tensor(float(lnhatx_in), device=device, dtype=dtype)
-    lnhaty = torch.tensor(float(lnhaty_in), device=device, dtype=dtype)
-    lnhatz = torch.tensor(float(lnhatz_in), device=device, dtype=dtype)
-    v_ref = torch.pow(
-        piM_t
-        * torch.tensor(f_ref if f_ref > 0 else f_lower, device=device, dtype=dtype),
+
+    mass1 = float(params["mass1"])
+    mass2 = float(params["mass2"])
+    spin1x = float(params.get("spin1x", 0.0))
+    spin1y = float(params.get("spin1y", 0.0))
+    spin1z = float(params.get("spin1z", 0.0))
+    distance = float(params.get("distance", 1.0))
+    inclination = float(params.get("inclination", 0.0))
+    coa_phase = float(params.get("coa_phase", 0.0))
+    long_asc_nodes = float(params.get("long_asc_nodes", 0.0))
+    delta_f = float(params["delta_f"])
+    f_lower = float(params["f_lower"])
+    f_final = float(params.get("f_final", 0.0))
+    f_ref = float(params.get("f_ref", 0.0))
+    phase_order = _as_order(params.get("phase_order", -1))
+    spin_order = _as_order(params.get("spin_order", -1))
+    sideband = _as_order(params.get("side_bands", 0))
+    dquad_mon1 = float(params.get("dquad_mon1") or 0.0)
+    non_gr = {key: float(params.get(key) or 0.0) for key in _DCHI_KEYS}
+
+    if not math.isfinite(mass1) or not math.isfinite(mass2):
+        raise ValueError("SpinTaylorF2 component masses must be finite")
+    if mass1 <= 0.0 or mass2 <= 0.0:
+        raise ValueError("SpinTaylorF2 component masses must be positive")
+    if not all(
+        math.isfinite(value)
+        for value in (
+            spin1x,
+            spin1y,
+            spin1z,
+            inclination,
+            coa_phase,
+            long_asc_nodes,
+            dquad_mon1,
+            *non_gr.values(),
+        )
+    ):
+        raise ValueError("SpinTaylorF2 spins, angles, and PN terms must be finite")
+    if not math.isfinite(distance) or distance <= 0.0:
+        raise ValueError("SpinTaylorF2 distance must be finite and positive")
+    if not all(math.isfinite(value) for value in (delta_f, f_lower, f_final, f_ref)):
+        raise ValueError("SpinTaylorF2 frequencies must be finite")
+    if delta_f <= 0.0 or f_lower <= 0.0:
+        raise ValueError("SpinTaylorF2 delta_f and f_lower must be positive")
+    if f_final < 0.0 or f_ref < 0.0:
+        raise ValueError("SpinTaylorF2 f_final and f_ref must be non-negative")
+
+    total_mass = mass1 + mass2
+    eta = mass1 * mass2 / total_mass**2
+    pi_mass = math.pi * total_mass * lal.MTSUN_SI
+    f_isco = 1.0 / (6.0**1.5 * pi_mass)
+    f_max = f_final if f_final > 0.0 else f_isco
+    if f_max <= f_lower:
+        raise ValueError("SpinTaylorF2 ending frequency must exceed f_lower")
+
+    length = int(f_max / delta_f + 1.0)
+    first_bin = int(math.ceil(f_lower / delta_f))
+    if first_bin >= length:
+        raise ValueError("SpinTaylorF2 frequency range contains no sampled bins")
+
+    state = _scheme.mgr.state
+    device = getattr(state, "torch_device", torch.device("cpu"))
+    real_dtype = torch.float32 if device.type == "mps" else torch.float64
+    complex_dtype = torch.complex64 if real_dtype == torch.float32 else torch.complex128
+
+    frequencies = (
+        torch.arange(first_bin, length, dtype=real_dtype, device=device) * delta_f
+    )
+    pi_mass_tensor = torch.as_tensor(pi_mass, dtype=real_dtype, device=device)
+    velocity = torch.pow(pi_mass_tensor * frequencies, 1.0 / 3.0)
+    velocity2 = velocity * velocity
+    velocity3 = velocity2 * velocity
+
+    # The public LAL wrapper rotates the source-frame spin around +y before
+    # invoking the core generator, then supplies LNhat from the inclination.
+    sin_inclination = math.sin(inclination)
+    cos_inclination = math.cos(inclination)
+    rotated_spin1x = spin1x * cos_inclination + spin1z * sin_inclination
+    rotated_spin1y = spin1y
+    rotated_spin1z = -spin1x * sin_inclination + spin1z * cos_inclination
+    spin1x_tensor = torch.as_tensor(rotated_spin1x, dtype=real_dtype, device=device)
+    spin1y_tensor = torch.as_tensor(rotated_spin1y, dtype=real_dtype, device=device)
+    spin1z_tensor = torch.as_tensor(rotated_spin1z, dtype=real_dtype, device=device)
+    lnhatx = torch.as_tensor(sin_inclination, dtype=real_dtype, device=device)
+    lnhaty = torch.zeros((), dtype=real_dtype, device=device)
+    lnhatz = torch.as_tensor(cos_inclination, dtype=real_dtype, device=device)
+
+    # FIX_REFERENCE_FREQUENCY maps f_ref=0 to f_lower for SpinTaylorF2 before
+    # the legacy LAL generator is called.
+    effective_f_ref = f_ref if f_ref > 0.0 else f_lower
+    reference_velocity = torch.pow(
+        pi_mass_tensor
+        * torch.as_tensor(effective_f_ref, dtype=real_dtype, device=device),
         1.0 / 3.0,
     )
-    orient = _orientation(
+    orientation = _orientation(
         mass1,
         mass2,
-        v_ref,
+        reference_velocity,
         lnhatx,
         lnhaty,
         lnhatz,
-        spin1x_t,
-        spin1y_t,
-        spin1z_t,
-        device,
-        dtype,
+        spin1x_tensor,
+        spin1y_tensor,
+        spin1z_tensor,
     )
-    coeffs = _coeffs(mass1, mass2, orient["chi"], orient["kappa"], device, dtype)
-    enable_prec = orient["chi"].item() != 0.0 and abs(orient["kappa"].item()) != 1.0
-
-    # LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:341-342 (alpha_ref = Alpha(v_ref) - alpha0)
-    alpha_ref = (
-        _alpha(v_ref, coeffs) - orient["alpha0"]
-        if enable_prec
-        else torch.tensor(0.0, device=device, dtype=dtype)
+    coeffs = _coeffs(
+        mass1,
+        mass2,
+        orientation["chi"],
+        orientation["kappa"],
+    )
+    enable_precession = (
+        orientation["chi"].item() != 0.0 and abs(orientation["kappa"].item()) < 1.0
+    )
+    alpha_reference = (
+        _alpha(reference_velocity, coeffs) - orientation["alpha0"]
+        if enable_precession
+        else torch.zeros((), dtype=real_dtype, device=device)
     )
 
-    chi1L = orient["chi"] * orient["kappa"]
-    chi1sq = orient["chi"] * orient["chi"]
     pfa = _pfa_coeffs(
         mass1,
         mass2,
         eta,
-        chi1L,
-        chi1sq,
+        orientation["chi"] * orientation["kappa"],
+        orientation["chi"] ** 2,
         coeffs,
         phase_order,
-        enable_prec=enable_prec,
-        pn_spin_order=pn_spin_order,
-        qm_def1=dquadmon1,
+        enable_prec=enable_precession,
+        pn_spin_order=spin_order,
+        qm_def1=dquad_mon1,
         non_gr=non_gr,
     )
-
-    # LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:495-516 (phasing series loop)
-    phasing_num = (
-        pfa["pfaN"]
-        + pfa["pfa1"] * v
-        + pfa["pfa2"] * v2
-        + pfa["pfa3"] * v3
-        + pfa["pfa4"] * v4
-    )
+    phasing = _evaluate_phasing(velocity, pfa)
+    reference_phasing = _evaluate_phasing(reference_velocity, pfa)
+    epoch = -1.0 / delta_f
     phasing = (
-        phasing_num / v5
-        + (pfa["pfa5"] + pfa["pfl5"] * logv)
-        + (pfa["pfa6"] + pfa["pfl6"] * logv) * v
-        + pfa["pfa7"] * v2
-        + pfa["pfa8"] * v3
+        phasing
+        + 2.0 * math.pi * epoch * frequencies
+        - 2.0 * coa_phase
+        - reference_phasing
+        - math.pi / 4.0
     )
 
-    # LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:495-504 (reference phasing subtraction when f_ref>0)
-    if f_ref > 0.0:
-        vref_num = (
-            pfa["pfaN"]
-            + pfa["pfa1"] * v_ref
-            + pfa["pfa2"] * v_ref * v_ref
-            + pfa["pfa3"] * v_ref * v_ref * v_ref
-            + pfa["pfa4"] * v_ref * v_ref * v_ref * v_ref
-        )
-        logvref = torch.log(v_ref)
-        ref_phasing = (
-            vref_num / (v_ref * v_ref * v_ref * v_ref * v_ref)
-            + (pfa["pfa5"] + pfa["pfl5"] * logvref)
-            + (pfa["pfa6"] + pfa["pfl6"] * logvref) * v_ref
-            + pfa["pfa7"] * v_ref * v_ref
-            + pfa["pfa8"] * v_ref * v_ref * v_ref
-        )
-    else:
-        ref_phasing = torch.tensor(0.0, device=device, dtype=dtype)
-
-    # Carrier phase: time shift + reference subtraction + SPA constant
-    # LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:532-534 (carrier phase shift)
-    phasing = phasing + shft * freqs - 2.0 * phi0 - ref_phasing - _np.pi / 4.0
-
-    # Precession pieces
-    alpha = _alpha(v, coeffs) - alpha_ref if enable_prec else torch.zeros_like(v)
-    u = torch.cos(alpha) + 1j * torch.sin(alpha)
-    u_inv = 1.0 / u
-
-    # LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:520-531 (precession factors emission/u sideband sum)
-    em0, em1, em2, em3, em4 = _emission(v, coeffs)
-    SBplus = torch.zeros(5, device=device, dtype=torch.complex128)
-    SBcross = torch.zeros(5, device=device, dtype=torch.complex128)
-    if sideband_param is None:
-        # Default: single m=0 sideband (matches LAL default parameter state).
-        mm_list = [0]
-    else:
-        # Any explicit sideband selection loads all five (matches LAL reference lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:343-361; header comment at ~306 says “set sideband m to get a single sideband” but code loads all).
-        mm_list = [-2, -1, 0, 1, 2]
-    for mm in mm_list:
-        idx_sb = 2 - mm
-        SBplus[idx_sb] = _polarization(
-            orient["thetaJ"], orient["psiJ"], mm, device, dtype
-        )
-        SBcross[idx_sb] = _polarization(
-            orient["thetaJ"],
-            orient["psiJ"] + torch.tensor(_np.pi / 4.0, device=device, dtype=dtype),
-            mm,
-            device,
-            dtype,
-        )
-
-    prec_plus = (
-        SBplus[0] * em0 * (u * u)
-        + SBplus[1] * em1 * u
-        + SBplus[2] * em2
-        + SBplus[3] * em3 * u_inv
-        + SBplus[4] * em4 * (u_inv * u_inv)
+    alpha = (
+        _alpha(velocity, coeffs) - alpha_reference
+        if enable_precession
+        else torch.zeros_like(velocity)
     )
-    prec_cross = (
-        SBcross[0] * em0 * (u * u)
-        + SBcross[1] * em1 * u
-        + SBcross[2] * em2
-        + SBcross[3] * em3 * u_inv
-        + SBcross[4] * em4 * (u_inv * u_inv)
+    precession_phase = torch.complex(torch.cos(alpha), torch.sin(alpha))
+    inverse_precession_phase = 1.0 / precession_phase
+    em0, em1, em2, em3, em4 = _emission(velocity, coeffs)
+
+    sideband_plus = torch.zeros(5, dtype=complex_dtype, device=device)
+    sideband_cross = torch.zeros(5, dtype=complex_dtype, device=device)
+    # PyCBC only inserts a non-zero side_bands value into the LAL dictionary.
+    # LAL's default selects m=0; any inserted value activates all five terms.
+    sideband_modes = (0,) if sideband == 0 else (-2, -1, 0, 1, 2)
+    quarter_turn = torch.as_tensor(math.pi / 4.0, dtype=real_dtype, device=device)
+    for mode in sideband_modes:
+        index = 2 - mode
+        sideband_plus[index] = _polarization(
+            orientation["thetaJ"],
+            orientation["psiJ"],
+            mode,
+        )
+        sideband_cross[index] = _polarization(
+            orientation["thetaJ"],
+            orientation["psiJ"] + quarter_turn,
+            mode,
+        )
+
+    precession_plus = (
+        sideband_plus[0] * em0 * precession_phase**2
+        + sideband_plus[1] * em1 * precession_phase
+        + sideband_plus[2] * em2
+        + sideband_plus[3] * em3 * inverse_precession_phase
+        + sideband_plus[4] * em4 * inverse_precession_phase**2
+    )
+    precession_cross = (
+        sideband_cross[0] * em0 * precession_phase**2
+        + sideband_cross[1] * em1 * precession_phase
+        + sideband_cross[2] * em2
+        + sideband_cross[3] * em3 * inverse_precession_phase
+        + sideband_cross[4] * em4 * inverse_precession_phase**2
     )
 
-    # No additional empirical correction; match LAL/CUDA directly.
-
-    # LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:485-487 (Newtonian SPA amplitude)
-    # distance_in_mpc=True keeps PyCBC/LAL convention (distance in Mpc); False expects SI meters (raw LAL kernel contract). Mismatching this rescales amplitude by 1e6*PC_SI.
-    # The sqrt(5/(32*eta)) comes from sqrt(-2*E0/F0) with E0=-eta/2 and F0=32*eta^2/5
-    # (PNCoefficients.c:49-53, 346-350).
-    dist_si = distance * 1.0e6 * lal.PC_SI if distance_in_mpc else distance
-    amp0 = (
+    distance_metres = distance * 1.0e6 * lal.PC_SI
+    amplitude0 = (
         -4.0
         * mass1
         * mass2
-        / dist_si
+        / distance_metres
         * lal.MRSUN_SI
         * lal.MTSUN_SI
-        * _np.sqrt(_np.pi / 12.0)
+        * math.sqrt(math.pi / 12.0)
+        * math.sqrt(5.0 / (32.0 * eta))
     )
-    amp0 = amp0 * _np.sqrt(5.0 / (32.0 * eta))
-    amp = amp0 / (v3 * torch.sqrt(v))
+    amplitude = amplitude0 / (velocity3 * torch.sqrt(velocity))
+    carrier = torch.exp(-1j * phasing)
+    plus = precession_plus * carrier * amplitude
+    cross = precession_cross * carrier * amplitude
 
-    phasor = torch.exp(-1j * phasing)
-    hP = prec_plus * phasor * amp
-    hC = prec_cross * phasor * amp
+    # The legacy public wrapper applies the longitude-of-ascending-nodes
+    # polarization rotation after waveform generation.
+    cos_nodes = math.cos(2.0 * long_asc_nodes)
+    sin_nodes = math.sin(2.0 * long_asc_nodes)
+    rotated_plus = cos_nodes * plus + sin_nodes * cross
+    rotated_cross = cos_nodes * cross - sin_nodes * plus
 
-    # Pad back to the full [0, f_max] band so the length matches CPU/LAL output
-    # LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:468-493 (allocation/zeroing)
-    hP_full = torch.zeros(kmax + 1, device=device, dtype=hP.dtype)
-    hC_full = torch.zeros(kmax + 1, device=device, dtype=hC.dtype)
-    hP_full[kmin : kmin + hP.numel()] = hP
-    hC_full[kmin : kmin + hC.numel()] = hC
-
-    # Ensure the scheme matches the torch backend so FrequencySeries can wrap TorchArrayData without copying.
-    old_scheme = _scheme.mgr.state
-    need_scheme = (
-        not isinstance(old_scheme, _scheme.TorchScheme)
-        or getattr(old_scheme, "torch_device", None) != device
+    plus_full = torch.zeros(length, dtype=complex_dtype, device=device)
+    cross_full = torch.zeros(length, dtype=complex_dtype, device=device)
+    plus_full[first_bin:] = rotated_plus
+    cross_full[first_bin:] = rotated_cross
+    return (
+        FrequencySeries(
+            TorchArrayData(plus_full),
+            delta_f=delta_f,
+            epoch=epoch,
+            copy=False,
+        ),
+        FrequencySeries(
+            TorchArrayData(cross_full),
+            delta_f=delta_f,
+            epoch=epoch,
+            copy=False,
+        ),
     )
-    if need_scheme:
-        _scheme.mgr.state = _scheme.TorchScheme(device=str(device))
-
-    try:
-        fsP = FrequencySeries(
-            TorchArrayData(hP_full.to(torch.complex128)), delta_f=delta_f, copy=False
-        )
-        fsC = FrequencySeries(
-            TorchArrayData(hC_full.to(torch.complex128)), delta_f=delta_f, copy=False
-        )
-
-        # Optional diagnostic: compare against CPU/LAL output to locate divergence.
-        if os.environ.get("PYCBC_SPINTAYLORF2_LOG", "0").lower() in (
-            "1",
-            "true",
-            "yes",
-        ):
-            try:
-                from pycbc.waveform import get_fd_waveform
-
-                diagnostic_scheme = _scheme.mgr.state
-                try:
-                    _scheme.mgr.state = _scheme.CPUScheme()
-                    cpuP, _ = get_fd_waveform(
-                        approximant="SpinTaylorF2", **kwds
-                    )
-                finally:
-                    _scheme.mgr.state = diagnostic_scheme
-                cpu_arr = cpuP.numpy()
-                tor_arr = hP_full.cpu().numpy()
-                mask = _np.abs(cpu_arr) > 0
-                rel = _np.linalg.norm(tor_arr[mask] - cpu_arr[mask]) / _np.linalg.norm(
-                    cpu_arr[mask]
-                )
-                mag_ratio = _np.mean(_np.abs(tor_arr[mask]) / _np.abs(cpu_arr[mask]))
-                phase_diff = _np.angle(tor_arr[mask] * _np.conj(cpu_arr[mask]))
-                log = logging.getLogger(__name__)
-                log.warning(
-                    "SpinTaylorF2 diag: rel=%.3e mag_ratio=%.3e phase_mean=%.3e rad phase_std=%.3e rad",
-                    rel,
-                    mag_ratio,
-                    phase_diff.mean(),
-                    phase_diff.std(),
-                )
-
-                # More detailed diagnostics if requested
-                if os.environ.get("PYCBC_SPINTAYLORF2_LOG_VERBOSE", "0").lower() in (
-                    "1",
-                    "true",
-                    "yes",
-                ):
-                    freqs_full = _np.arange(hP_full.numel(), dtype=float) * delta_f
-                    freqs_masked = freqs_full[mask]
-                    # first non-zero bin
-                    first_idx = _np.argmax(mask)
-                    v_first = _np.power(piM * freqs_full[first_idx], 1.0 / 3.0)
-                    amp_fac = amp0 / (v_first * v_first * v_first * _np.sqrt(v_first))
-                    phasing_np = phasing.detach().cpu().numpy()
-                    prec_cpu = (
-                        cpu_arr[first_idx]
-                        * _np.exp(1j * phasing_np[first_idx])
-                        / amp_fac
-                    )
-                    prec_torch = prec_plus.detach().cpu().numpy()[first_idx]
-                    ratio_prec = prec_cpu / prec_torch if prec_torch != 0 else _np.nan
-
-                    log.warning(
-                        "  first bin f=%.3f Hz: |torch|=%.3e |cpu|=%.3e ratio=%.6f phase_diff=%.6f rad",
-                        freqs_full[first_idx],
-                        _np.abs(tor_arr[first_idx]),
-                        _np.abs(cpu_arr[first_idx]),
-                        _np.abs(tor_arr[first_idx]) / _np.abs(cpu_arr[first_idx]),
-                        _np.angle(tor_arr[first_idx] * _np.conj(cpu_arr[first_idx])),
-                    )
-                    # last non-zero bin
-                    last_idx = _np.where(mask)[0][-1]
-                    log.warning(
-                        "  last bin f=%.3f Hz: |torch|=%.3e |cpu|=%.3e ratio=%.6f phase_diff=%.6f rad",
-                        freqs_full[last_idx],
-                        _np.abs(tor_arr[last_idx]),
-                        _np.abs(cpu_arr[last_idx]),
-                        _np.abs(tor_arr[last_idx]) / _np.abs(cpu_arr[last_idx]),
-                        _np.angle(tor_arr[last_idx] * _np.conj(cpu_arr[last_idx])),
-                    )
-                    # phase slope
-                    slope, intercept = _np.polyfit(freqs_masked, phase_diff, 1)
-                    log.warning(
-                        "  phase trend: slope=%.3e rad/Hz intercept=%.3e rad",
-                        slope,
-                        intercept,
-                    )
-                    log.warning(
-                        "  amp ratio stats: min=%.3e max=%.3e std=%.3e",
-                        _np.min(_np.abs(tor_arr[mask]) / _np.abs(cpu_arr[mask])),
-                        _np.max(_np.abs(tor_arr[mask]) / _np.abs(cpu_arr[mask])),
-                        _np.std(_np.abs(tor_arr[mask]) / _np.abs(cpu_arr[mask])),
-                    )
-                    log.warning(
-                        "  first-bin prec: |cpu|=%.3e |torch|=%.3e ratio=%.3f ∠=%.3f rad",
-                        _np.abs(prec_cpu),
-                        _np.abs(prec_torch),
-                        _np.abs(ratio_prec),
-                        _np.angle(ratio_prec),
-                    )
-                    if last_idx < prec_plus.numel():
-                        v_last = _np.power(piM * freqs_full[last_idx], 1.0 / 3.0)
-                        prec_cpu_last = (
-                            cpu_arr[last_idx]
-                            * _np.exp(1j * phasing_np[last_idx])
-                            / (amp0 / (v_last**3 * _np.sqrt(v_last)))
-                        )
-                        prec_torch_last = prec_plus.detach().cpu().numpy()[last_idx]
-                        ratio_prec_last = (
-                            prec_cpu_last / prec_torch_last
-                            if prec_torch_last != 0
-                            else _np.nan
-                        )
-                        log.warning(
-                            "  last-bin prec:  |cpu|=%.3e |torch|=%.3e ratio=%.3f ∠=%.3f rad",
-                            _np.abs(prec_cpu_last),
-                            _np.abs(prec_torch_last),
-                            _np.abs(ratio_prec_last),
-                            _np.angle(ratio_prec_last),
-                        )
-            except Exception as exc:  # diagnostics must never fail waveform generation
-                logging.getLogger(__name__).warning("SpinTaylorF2 diag failed: %s", exc)
-
-        return fsP, fsC
-    finally:
-        if need_scheme:
-            _scheme.mgr.state = old_scheme
