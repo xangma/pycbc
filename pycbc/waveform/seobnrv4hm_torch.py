@@ -17,7 +17,7 @@
 """Torch-native (lalsimulation-free) evaluator for SEOBNRv4HM_ROM.
 
 This module reconstructs the higher-mode ROM directly from the public ROM
-data file ``SEOBNRv4HMROM.hdf5`` using NumPy/SciPy, without calling
+data file ``SEOBNRv4HMROM_v1.0.hdf5`` using NumPy/SciPy, without calling
 ``lalsimulation``. It mirrors the structure of ``LALSimIMRSEOBNRv4HMROM.c``:
 
 - tensor-product cubic B-splines over (q, chi1, chi2) to interpolate the
@@ -31,8 +31,9 @@ Activation (default is CPU/LAL path):
 - Global: ``PYCBC_TORCH_NATIVE_PORTS=1`` (or ``PYCBC_TORCH_NATIVE=1``)
 - Per-model: ``PYCBC_SEOBNRV4HM_NATIVE=1``
 
-The ROM data file must be available as ``pycbc/waveform/SEOBNRv4HMROM.hdf5``
-or on ``$LAL_DATA_PATH``.
+The ROM data file must be available next to this module or on
+``$LAL_DATA_PATH``. Both its canonical name, ``SEOBNRv4HMROM_v1.0.hdf5``,
+and the legacy installed name, ``SEOBNRv4HMROM.hdf5``, are recognized.
 """
 
 from __future__ import annotations
@@ -50,23 +51,30 @@ import torch
 
 import lal
 from pycbc import pnutils
-from pycbc.conversions import get_final_from_initial
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
+from pycbc.waveform._seobnrv4_qnm import fundamental_qnm_omega
 
-try:  # optional dependency used for QNM frequencies
-    import pykerr
-except Exception:  # pragma: no cover
-    pykerr = None
-
-
-_ROM_FILENAME = "SEOBNRv4HMROM.hdf5"
+_ROM_FILENAME = "SEOBNRv4HMROM_v1.0.hdf5"
+_ROM_FILENAMES = (_ROM_FILENAME, "SEOBNRv4HMROM.hdf5")
 _F_HYB_INI = 0.003
 _F_HYB_END = 0.004
 _LM_MODES = [(2, 2), (3, 3), (2, 1), (4, 4), (5, 5)]  # ordering used in ROM
+_MODE_NAMES = ("22", "33", "21", "44", "55")
+_PATCH_NAMES = ("lowf", "hqls", "hqhs", "lqls", "lqhs")
 _CONST_PHASESHIFT = [0.0, -math.pi / 2.0, math.pi / 2.0, math.pi, math.pi / 2.0]
 _CONST_FMAX = [1.7, 1.55, 1.7, 1.35, 1.25]
 _MF_LOW_22 = 0.0004925491025543576
+
+# Coefficients of the SEOBNRv4 final-spin fit from Table I of
+# Barausse et al., ApJ 825 L19 (2016). These values and the implementation
+# below follow XLALSimIMREOBFinalMassSpin's aligned-spin SEOBNRv4 branch.
+_FINAL_SPIN_COEFFS = (
+    (-5.977230835551017, 3.39221, 4.48865, -5.77101, -13.0459),
+    (35.1278, -72.9336, -86.0036, 93.7371, 200.975),
+    (-146.822, 387.184, 447.009, -467.383, -884.339),
+    (223.911, -648.502, -697.177, 753.738, 1166.89),
+)
 
 
 # ---------------------------------------------------------------------------
@@ -75,16 +83,100 @@ _MF_LOW_22 = 0.0004925491025543576
 
 
 def _find_rom_file() -> Path:
-    local = Path(__file__).resolve().parent / _ROM_FILENAME
-    if local.exists():
-        return local
-    for base in os.environ.get("LAL_DATA_PATH", "").split(":"):
-        if not base:
-            continue
-        cand = Path(base) / _ROM_FILENAME
-        if cand.exists():
-            return cand
-    raise FileNotFoundError(f"{_ROM_FILENAME} not found; place it next to this module or on $LAL_DATA_PATH")
+    search_dirs = [Path(__file__).resolve().parent]
+    search_dirs.extend(
+        Path(base)
+        for base in os.environ.get("LAL_DATA_PATH", "").split(os.pathsep)
+        if base
+    )
+    for directory in search_dirs:
+        for filename in _ROM_FILENAMES:
+            candidate = directory / filename
+            if candidate.is_file():
+                return candidate
+    names = " or ".join(_ROM_FILENAMES)
+    raise FileNotFoundError(
+        f"{names} not found; place the ROM next to this module or on " "$LAL_DATA_PATH"
+    )
+
+
+def _kerr_isco_radius(spin: float) -> float:
+    """Return the equatorial Kerr ISCO radius in units of the BH mass."""
+
+    if abs(spin) > 1.0:
+        raise ValueError("dimensionless spin must lie in [-1, 1]")
+    z1 = 1.0 + (1.0 - spin * spin) ** (1.0 / 3.0) * (
+        (1.0 + spin) ** (1.0 / 3.0) + (1.0 - spin) ** (1.0 / 3.0)
+    )
+    z2 = math.sqrt(3.0 * spin * spin + z1 * z1)
+    root = math.sqrt((3.0 - z1) * (3.0 + z1 + 2.0 * z2))
+    return 3.0 + z2 - math.copysign(root, spin if spin else 1.0)
+
+
+def _kerr_isco_energy(radius: float) -> float:
+    return math.sqrt(1.0 - 2.0 / (3.0 * radius))
+
+
+def _kerr_isco_angular_momentum(radius: float) -> float:
+    return 2.0 / (3.0 * math.sqrt(3.0)) * (1.0 + 2.0 * math.sqrt(3.0 * radius - 2.0))
+
+
+def _seobnrv4_final_mass_spin(
+    mass1: float, mass2: float, spin1z: float, spin2z: float
+) -> Tuple[float, float]:
+    """Return the SEOBNRv4 remnant mass (solar masses) and spin.
+
+    This is a direct scalar port of the aligned-spin SEOBNRv4 branch of
+    ``XLALSimIMREOBFinalMassSpin``. Keeping it local prevents the native ROM
+    evaluator from calling back into ``lalsimulation``.
+    """
+
+    if mass1 <= 0.0 or mass2 <= 0.0:
+        raise ValueError("component masses must be positive")
+    if abs(spin1z) > 1.0 or abs(spin2z) > 1.0:
+        raise ValueError("dimensionless component spins must lie in [-1, 1]")
+    if mass1 < mass2:
+        mass1, mass2 = mass2, mass1
+        spin1z, spin2z = spin2z, spin1z
+
+    total_mass = mass1 + mass2
+    eta = mass1 * mass2 / total_mass**2
+    inverse_q = mass2 / mass1
+    inverse_q2 = inverse_q * inverse_q
+    one_plus_inverse_q = 1.0 + inverse_q
+
+    aligned_total = (spin1z + spin2z * inverse_q2) / (one_plus_inverse_q**2)
+    effective_spin = (spin1z + spin2z * inverse_q2) / (1.0 + inverse_q2)
+    isco_radius = _kerr_isco_radius(aligned_total)
+    isco_energy = _kerr_isco_energy(isco_radius)
+    final_mass_fraction = 1.0 - (
+        (1.0 - isco_energy) * eta
+        + 16.0
+        * eta**2
+        * (0.00258 - 0.0773 / (effective_spin - 1.6939) - 0.25 * (1.0 - isco_energy))
+    )
+
+    spin1 = mass1**2 * spin1z
+    spin2 = mass2**2 * spin2z
+    spin_effective = (
+        (1.0 + 0.474046 * inverse_q) * spin1 + (1.0 + 0.474046 / inverse_q) * spin2
+    ) / total_mass**2
+    spin_total = (spin1 + spin2) / total_mass**2
+    isco_radius = _kerr_isco_radius(spin_effective)
+    isco_energy = _kerr_isco_energy(isco_radius)
+    isco_angular_momentum = _kerr_isco_angular_momentum(isco_radius)
+    physical_spin = spin_total + eta * (
+        isco_angular_momentum - 2.0 * spin_total * (isco_energy - 1.0)
+    )
+    fitted_spin = sum(
+        eta ** (row + 2)
+        * sum(
+            coefficient * spin_effective**power
+            for power, coefficient in enumerate(coefficients)
+        )
+        for row, coefficients in enumerate(_FINAL_SPIN_COEFFS)
+    )
+    return final_mass_fraction * total_mass, physical_spin + fitted_spin
 
 
 def _knot_vector(grid: torch.Tensor, k: int = 3) -> torch.Tensor:
@@ -127,10 +219,18 @@ def _bspline_basis(grid: torch.Tensor, x: torch.Tensor, k: int = 3) -> torch.Ten
     return torch.stack(basis)
 
 
-def _cosine_blend(x: torch.Tensor, x0: float, x1: float) -> torch.Tensor:
-    w = (x - x0) / (x1 - x0)
-    w = torch.clamp(w, 0.0, 1.0)
-    return 0.5 * (1 - torch.cos(math.pi * w))
+def _blend_weight(x: torch.Tensor, x0: float, x1: float) -> torch.Tensor:
+    """Return the smooth step used by the LAL ROM hybridization."""
+
+    if x1 <= x0:
+        raise ValueError("blend interval must have positive width")
+    weight = torch.zeros_like(x)
+    weight[x >= x1] = 1.0
+    interior = (x > x0) & (x < x1)
+    width = x1 - x0
+    xi = x[interior]
+    weight[interior] = torch.sigmoid(-width / (xi - x0) - width / (xi - x1))
+    return weight
 
 
 def _unwrap_phase(ph: torch.Tensor) -> torch.Tensor:
@@ -141,18 +241,80 @@ def _unwrap_phase(ph: torch.Tensor) -> torch.Tensor:
     return ph_unwrapped
 
 
-def _qnm_omega(m1: float, m2: float, chi1: float, chi2: float, l: int, m: int) -> float:
-    """Return omega_QNM (rad/s) for given remnant. Falls back to a fit if pykerr
-    is unavailable."""
+def _natural_cubic_coeff(
+    x: torch.Tensor, y: torch.Tensor
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Build coefficients for a natural cubic spline."""
 
-    Mf, af = get_final_from_initial(m1, m2, chi1, chi2)
-    if pykerr is not None:
-        f0 = pykerr.qnmfreq(Mf, af, l, m, 0)  # Hz
-        return 2 * math.pi * f0
-    # crude fallback: ringdown freq ~ (1 - 0.63*(1-af)**0.3)/(2π M)
-    M_sec = (m1 + m2) * lal.MTSUN_SI
-    omega = (1 - 0.63 * (1 - af) ** 0.3) / M_sec
-    return omega
+    n = x.numel()
+    h = x[1:] - x[:-1]
+    alpha = (3.0 / h[1:]) * (y[2:] - y[1:-1]) - (3.0 / h[:-1]) * (y[1:-1] - y[:-2])
+    diagonal = torch.ones(n, device=x.device, dtype=x.dtype)
+    upper = torch.zeros(n, device=x.device, dtype=x.dtype)
+    rhs = torch.zeros(n, device=x.device, dtype=x.dtype)
+    for i in range(1, n - 1):
+        diagonal[i] = 2.0 * (x[i + 1] - x[i - 1]) - h[i - 1] * upper[i - 1]
+        upper[i] = h[i] / diagonal[i]
+        rhs[i] = (alpha[i - 1] - h[i - 1] * rhs[i - 1]) / diagonal[i]
+
+    quadratic = torch.zeros(n, device=x.device, dtype=x.dtype)
+    linear = torch.zeros(n - 1, device=x.device, dtype=x.dtype)
+    cubic = torch.zeros(n - 1, device=x.device, dtype=x.dtype)
+    for j in range(n - 2, -1, -1):
+        quadratic[j] = rhs[j] - upper[j] * quadratic[j + 1]
+        linear[j] = (y[j + 1] - y[j]) / h[j] - h[j] * (
+            quadratic[j + 1] + 2.0 * quadratic[j]
+        ) / 3.0
+        cubic[j] = (quadratic[j + 1] - quadratic[j]) / (3.0 * h[j])
+    return linear, quadratic, cubic
+
+
+def _spline_eval(
+    x: torch.Tensor,
+    knots: torch.Tensor,
+    values: torch.Tensor,
+    linear: torch.Tensor,
+    quadratic: torch.Tensor,
+    cubic: torch.Tensor,
+) -> torch.Tensor:
+    index = torch.searchsorted(knots, x.clamp(knots[0], knots[-1])) - 1
+    index = index.clamp(0, knots.numel() - 2)
+    offset = x - knots[index]
+    return (
+        values[index]
+        + linear[index] * offset
+        + quadratic[index] * offset**2
+        + cubic[index] * offset**3
+    )
+
+
+def _spline_derivative_at_end(
+    knots: torch.Tensor,
+    linear: torch.Tensor,
+    quadratic: torch.Tensor,
+    cubic: torch.Tensor,
+) -> torch.Tensor:
+    width = knots[-1] - knots[-2]
+    return linear[-1] + 2.0 * quadratic[-2] * width + 3.0 * cubic[-1] * width**2
+
+
+def _qnm_omega(
+    mass1: float,
+    mass2: float,
+    spin1z: float,
+    spin2z: float,
+    ell: int,
+    emm: int,
+) -> float:
+    """Return the fundamental QNM angular frequency in geometric units.
+
+    The result is dimensionless ``M_total * omega_QNM``, matching
+    ``Get_omegaQNM_SEOBNRv4`` in LAL rather than a physical angular frequency.
+    """
+
+    final_mass, final_spin = _seobnrv4_final_mass_spin(mass1, mass2, spin1z, spin2z)
+    final_mass_omega = fundamental_qnm_omega(final_spin, ell, emm)
+    return final_mass_omega * (mass1 + mass2) / final_mass
 
 
 def _select_hf_patch(q: float, chi1: float) -> int:
@@ -165,10 +327,14 @@ def _select_hf_patch(q: float, chi1: float) -> int:
     return 3  # lqhs
 
 
-def _compute_i_max_LF_i_min_HF(freq_lo: np.ndarray, freq_hi: np.ndarray, f_hyb_ini: float) -> Tuple[int, int]:
-    i_max = np.max(np.nonzero(freq_lo <= f_hyb_ini))
-    i_min = np.min(np.nonzero(freq_hi >= f_hyb_ini))
-    return int(i_max), int(i_min)
+def _compute_i_max_LF_i_min_HF(
+    freq_lo: np.ndarray, freq_hi: np.ndarray, f_hyb_ini: float
+) -> Tuple[int, int]:
+    low = np.flatnonzero(freq_lo < f_hyb_ini)
+    high = np.flatnonzero(freq_hi >= f_hyb_ini)
+    if not low.size or not high.size:
+        raise ValueError("ROM patches do not overlap the hybridization window")
+    return int(low[-1]), int(high[0])
 
 
 # ---------------------------------------------------------------------------
@@ -192,15 +358,15 @@ class _SubModel:
 
     @property
     def nbx(self):
-        return self.qvec.size + 2
+        return self.qvec.numel() + 2
 
     @property
     def nby(self):
-        return self.chi1vec.size + 2
+        return self.chi1vec.numel() + 2
 
     @property
     def nbz(self):
-        return self.chi2vec.size + 2
+        return self.chi2vec.numel() + 2
 
 
 @dataclass
@@ -212,56 +378,98 @@ class _ModeROM:
     lqhs: _SubModel
 
 
+def _to_rom_tensor(array, target_dtype, device):
+    return torch.as_tensor(array, dtype=target_dtype, device=device)
+
+
 @lru_cache(None)
-def _load_rom(target_dtype: torch.dtype = None, device: str | torch.device | None = None) -> Dict[str, _ModeROM]:
+def _load_shared_rom_data(target_dtype, device):
+    """Load parameter grids and carrier phase shared by every mode."""
+
     path = _find_rom_file()
-    data = {}
-    # choose dtype/device from scheme if available
-    # target dtype/device come from function arguments
-    def to_torch(arr):
-        t = torch.as_tensor(arr)
-        if target_dtype is not None:
-            t = t.to(dtype=target_dtype)
-        if device is not None:
-            t = t.to(device=device)
-        return t
-
+    shared = {}
     with h5py.File(path, "r") as f:
-        for mode_name, lm in zip(["22", "33", "21", "44", "55"], _LM_MODES):
-            submodels = {}
-            for grp_name in ["lowf", "hqls", "hqhs", "lqls", "lqhs"]:
-                g = f[grp_name]
-                cgroup = g["CF_modes"][mode_name]
-                phase_grp = g["phase_carrier"]
-                qvec = to_torch(g["qvec"][:])
-                chi1vec = to_torch(g["chi1vec"][:])
-                chi2vec = to_torch(g["chi2vec"][:])
-                Breal = to_torch(cgroup["basis_re"][:])
-                Bimag = to_torch(cgroup["basis_im"][:])
-                Bphase = to_torch(phase_grp["basis"][:])
-                gCMode = to_torch(cgroup["MF_grid"][:])
-                gPhase = to_torch(phase_grp["MF_grid"][:])
+        for grp_name in _PATCH_NAMES:
+            g = f[grp_name]
+            phase_grp = g["phase_carrier"]
+            shared[grp_name] = (
+                _to_rom_tensor(g["qvec"][:], target_dtype, device),
+                _to_rom_tensor(g["chi1vec"][:], target_dtype, device),
+                _to_rom_tensor(g["chi2vec"][:], target_dtype, device),
+                _to_rom_tensor(phase_grp["basis"][:], target_dtype, device),
+                _to_rom_tensor(phase_grp["MF_grid"][:], target_dtype, device),
+                _to_rom_tensor(
+                    phase_grp["coeff"][:].transpose(1, 2, 3, 0),
+                    target_dtype,
+                    device,
+                ),
+            )
+    return shared
 
-                # coeff_re shape (nk, nbx, nby, nbz) after transpose
-                coeff_re = to_torch(cgroup["coeff_re"][:].transpose(1, 2, 3, 0))
-                coeff_im = to_torch(cgroup["coeff_im"][:].transpose(1, 2, 3, 0))
-                coeff_phase = to_torch(phase_grp["coeff"][:].transpose(1, 2, 3, 0))
 
-                submodels[grp_name] = _SubModel(
-                    qvec=qvec,
-                    chi1vec=chi1vec,
-                    chi2vec=chi2vec,
-                    gCMode=gCMode,
-                    gPhase=gPhase,
-                    Breal=Breal,
-                    Bimag=Bimag,
-                    Bphase=Bphase,
-                    cvec_real=coeff_re,
-                    cvec_imag=coeff_im,
-                    cvec_phase=coeff_phase,
-                )
-            data[mode_name] = _ModeROM(**submodels)
-    return data
+@lru_cache(None)
+def _load_mode_rom(mode_name, target_dtype, device):
+    """Load one mode while reusing its patch-level carrier-phase tensors."""
+
+    if mode_name not in _MODE_NAMES:
+        raise ValueError(f"unknown SEOBNRv4HM ROM mode {mode_name}")
+
+    path = _find_rom_file()
+    shared = _load_shared_rom_data(target_dtype, device)
+    submodels = {}
+    with h5py.File(path, "r") as f:
+        for grp_name in _PATCH_NAMES:
+            g = f[grp_name]
+            cgroup = g["CF_modes"][mode_name]
+            (
+                qvec,
+                chi1vec,
+                chi2vec,
+                Bphase,
+                gPhase,
+                coeff_phase,
+            ) = shared[grp_name]
+            Breal = _to_rom_tensor(cgroup["basis_re"][:], target_dtype, device)
+            Bimag = _to_rom_tensor(cgroup["basis_im"][:], target_dtype, device)
+            gCMode = _to_rom_tensor(cgroup["MF_grid"][:], target_dtype, device)
+
+            # coeff_re shape (nk, nbx, nby, nbz) after transpose
+            coeff_re = _to_rom_tensor(
+                cgroup["coeff_re"][:].transpose(1, 2, 3, 0),
+                target_dtype,
+                device,
+            )
+            coeff_im = _to_rom_tensor(
+                cgroup["coeff_im"][:].transpose(1, 2, 3, 0),
+                target_dtype,
+                device,
+            )
+
+            submodels[grp_name] = _SubModel(
+                qvec=qvec,
+                chi1vec=chi1vec,
+                chi2vec=chi2vec,
+                gCMode=gCMode,
+                gPhase=gPhase,
+                Breal=Breal,
+                Bimag=Bimag,
+                Bphase=Bphase,
+                cvec_real=coeff_re,
+                cvec_imag=coeff_im,
+                cvec_phase=coeff_phase,
+            )
+    return _ModeROM(**submodels)
+
+
+def _load_rom(target_dtype, device, active_mode_indices):
+    """Load only requested modes, plus mode 22 for the carrier phase."""
+
+    requested = [_MODE_NAMES[index] for index in active_mode_indices]
+    mode_names = tuple(dict.fromkeys(("22", *requested)))
+    return {
+        mode_name: _load_mode_rom(mode_name, target_dtype, device)
+        for mode_name in mode_names
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -269,33 +477,56 @@ def _load_rom(target_dtype: torch.dtype = None, device: str | torch.device | Non
 # ---------------------------------------------------------------------------
 
 
-def _interp_coeffs(sub: _SubModel, q: float, chi1: float, chi2: float) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def _parameter_basis(
+    sub: _SubModel, q: float, chi1: float, chi2: float
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     device = sub.qvec.device
     dtype = sub.qvec.dtype
     bx = _bspline_basis(sub.qvec, torch.tensor(q, device=device, dtype=dtype))
     by = _bspline_basis(sub.chi1vec, torch.tensor(chi1, device=device, dtype=dtype))
     bz = _bspline_basis(sub.chi2vec, torch.tensor(chi2, device=device, dtype=dtype))
-    c_real = torch.einsum("i,j,k,ijkn->n", bx, by, bz, sub.cvec_real)
-    c_imag = torch.einsum("i,j,k,ijkn->n", bx, by, bz, sub.cvec_imag)
-    c_phase = torch.einsum("i,j,k,ijkn->n", bx, by, bz, sub.cvec_phase)
-    return c_real, c_imag, c_phase
+    return bx, by, bz
 
 
-def _eval_cmode(sub: _SubModel, q: float, chi1: float, chi2: float, kind: str) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    c_real, c_imag, _ = _interp_coeffs(sub, q, chi1, chi2)
+def _interpolate_coefficients(
+    coefficients: torch.Tensor,
+    basis: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+) -> torch.Tensor:
+    return torch.einsum("i,j,k,ijkn->n", *basis, coefficients)
+
+
+def _eval_cmode(
+    sub: _SubModel, q: float, chi1: float, chi2: float
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    basis = _parameter_basis(sub, q, chi1, chi2)
+    c_real = _interpolate_coefficients(sub.cvec_real, basis)
+    c_imag = _interpolate_coefficients(sub.cvec_imag, basis)
     real = sub.Breal.T @ c_real
     imag = sub.Bimag.T @ c_imag
     return sub.gCMode.clone(), real, imag
 
 
-def _eval_phase(sub: _SubModel, q: float, chi1: float, chi2: float, inv_scaling: float = 1.0) -> Tuple[torch.Tensor, torch.Tensor]:
-    _, _, c_phase = _interp_coeffs(sub, q, chi1, chi2)
+def _eval_phase(
+    sub: _SubModel,
+    q: float,
+    chi1: float,
+    chi2: float,
+    inv_scaling: float = 1.0,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    basis = _parameter_basis(sub, q, chi1, chi2)
+    c_phase = _interpolate_coefficients(sub.cvec_phase, basis)
     phase = sub.Bphase.T @ c_phase
     freq = sub.gPhase * inv_scaling
     return freq, phase
 
 
-def _hybridize_phase(m1: float, m2: float, chi1: float, chi2: float, roms: Dict[str, _ModeROM]) -> Tuple[torch.Tensor, torch.Tensor]:
+def _hybridize_phase(
+    m1: float,
+    m2: float,
+    chi1: float,
+    chi2: float,
+    roms: Dict[str, _ModeROM],
+) -> Tuple[torch.Tensor, torch.Tensor]:
     rom = roms["22"]
     omega_qnm = _qnm_omega(m1, m2, chi1, chi2, 2, 2)
     inv_scaling = omega_qnm / (2 * math.pi)
@@ -306,106 +537,77 @@ def _hybridize_phase(m1: float, m2: float, chi1: float, chi2: float, roms: Dict[
     sub_hi = [rom.hqls, rom.hqhs, rom.lqls, rom.lqhs][patch]
     f_hi, ph_hi = _eval_phase(sub_hi, q, chi1, chi2, inv_scaling=inv_scaling)
 
-    i_max, i_min = _compute_i_max_LF_i_min_HF(f_lo.cpu().numpy(), f_hi.cpu().numpy(), _F_HYB_INI)
+    i_max, i_min = _compute_i_max_LF_i_min_HF(
+        f_lo.cpu().numpy(), f_hi.cpu().numpy(), _F_HYB_INI
+    )
     f_hyb = torch.cat([f_lo[: i_max + 1], f_hi[i_min:]])
 
-    # align phase: fit delta = ph_lo - ph_hi over window
-    f_common = torch.linspace(_F_HYB_INI, _F_HYB_END, 50, device=f_lo.device, dtype=f_lo.dtype)
-
-    def _natural_cubic_coeff(x: torch.Tensor, y: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        n = x.numel()
-        h = x[1:] - x[:-1]
-        al = (3 / h[1:]) * (y[2:] - y[1:-1]) - (3 / h[:-1]) * (y[1:-1] - y[:-2])
-        l = torch.ones(n, device=x.device, dtype=x.dtype)
-        mu = torch.zeros(n, device=x.device, dtype=x.dtype)
-        z = torch.zeros(n, device=x.device, dtype=x.dtype)
-        for i in range(1, n - 1):
-            l[i] = 2 * (x[i + 1] - x[i - 1]) - h[i - 1] * mu[i - 1]
-            mu[i] = h[i] / l[i]
-            z[i] = (al[i - 1] - h[i - 1] * z[i - 1]) / l[i]
-        c = torch.zeros(n, device=x.device, dtype=x.dtype)
-        b = torch.zeros(n - 1, device=x.device, dtype=x.dtype)
-        d = torch.zeros(n - 1, device=x.device, dtype=x.dtype)
-        for j in range(n - 2, -1, -1):
-            c[j] = z[j] - mu[j] * c[j + 1]
-            b[j] = (y[j + 1] - y[j]) / h[j] - h[j] * (c[j + 1] + 2 * c[j]) / 3
-            d[j] = (c[j + 1] - c[j]) / (3 * h[j])
-        return b, c, d
-
-    def _spline_eval(x: torch.Tensor, xs: torch.Tensor, ys: torch.Tensor, b: torch.Tensor, c: torch.Tensor, d: torch.Tensor) -> torch.Tensor:
-        # xs increasing
-        idx = torch.searchsorted(xs, x.clamp(xs[0], xs[-1])) - 1
-        idx = idx.clamp(0, xs.numel() - 2)
-        dx = x - xs[idx]
-        return ys[idx] + b[idx] * dx + c[idx] * dx * dx + d[idx] * dx * dx * dx
-
+    # LAL aligns the low-frequency phase to the high-frequency phase by
+    # fitting phase_hi - phase_lo at ten equally spaced frequencies.
+    f_common = torch.linspace(
+        _F_HYB_INI,
+        _F_HYB_END,
+        10,
+        device=f_lo.device,
+        dtype=f_lo.dtype,
+    )
     b_lo, c_lo, d_lo = _natural_cubic_coeff(f_lo, ph_lo)
     b_hi, c_hi, d_hi = _natural_cubic_coeff(f_hi, ph_hi)
-
-    diff = _spline_eval(f_common, f_lo, ph_lo, b_lo, c_lo, d_lo) - _spline_eval(f_common, f_hi, ph_hi, b_hi, c_hi, d_hi)
+    diff = _spline_eval(f_common, f_hi, ph_hi, b_hi, c_hi, d_hi) - _spline_eval(
+        f_common, f_lo, ph_lo, b_lo, c_lo, d_lo
+    )
     A = torch.stack([torch.ones_like(f_common), f_common], dim=1)
     sol = torch.linalg.lstsq(A, diff.unsqueeze(1)).solution[:2]
-    shift = sol[0].item()
-    slope = sol[1].item()
-    ph_hi_aligned = ph_hi + shift + slope * f_hi
+    ph_lo_aligned = ph_lo + sol[0, 0] + sol[1, 0] * f_lo
+    b_lo, c_lo, d_lo = _natural_cubic_coeff(f_lo, ph_lo_aligned)
 
-    # blend
-    w = _cosine_blend(f_hyb, _F_HYB_INI, _F_HYB_END)
-    b_lo_a, c_lo_a, d_lo_a = b_lo, c_lo, d_lo
-    b_hi_a, c_hi_a, d_hi_a = _natural_cubic_coeff(f_hi, ph_hi_aligned)
-    ph_hyb = (1 - w) * _spline_eval(f_hyb, f_lo, ph_lo, b_lo_a, c_lo_a, d_lo_a) + w * _spline_eval(f_hyb, f_hi, ph_hi_aligned, b_hi_a, c_hi_a, d_hi_a)
-    return f_hyb, ph_hyb
+    weight = _blend_weight(f_hyb, _F_HYB_INI, _F_HYB_END)
+    ph_hyb = (1.0 - weight) * _spline_eval(
+        f_hyb, f_lo, ph_lo_aligned, b_lo, c_lo, d_lo
+    ) + weight * _spline_eval(f_hyb, f_hi, ph_hi, b_hi, c_hi, d_hi)
+    # The ROM stores the opposite carrier-phase convention to the assembled
+    # modes. LAL flips it immediately after hybridization.
+    return f_hyb, -ph_hyb
 
 
-def _hybridize_cmode(mode_idx: int, q: float, chi1: float, chi2: float, omega_qnm: float, roms: Dict[str, _ModeROM]) -> Tuple[torch.Tensor, torch.Tensor]:
-    mode_name = ["22", "33", "21", "44", "55"][mode_idx]
+def _hybridize_cmode(
+    mode_idx: int,
+    q: float,
+    chi1: float,
+    chi2: float,
+    omega_qnm: float,
+    roms: Dict[str, _ModeROM],
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    mode_name = _MODE_NAMES[mode_idx]
     rom = roms[mode_name]
     sub_hi_sel = _select_hf_patch(q, chi1)
     sub_hi = [rom.hqls, rom.hqhs, rom.lqls, rom.lqhs][sub_hi_sel]
     inv_scaling = omega_qnm / (2 * math.pi)
 
-    f_lo, re_lo, im_lo = _eval_cmode(rom.lowf, q, chi1, chi2, "LF")
-    f_hi, re_hi, im_hi = _eval_cmode(sub_hi, q, chi1, chi2, "HF")
+    f_lo, re_lo, im_lo = _eval_cmode(rom.lowf, q, chi1, chi2)
+    f_hi, re_hi, im_hi = _eval_cmode(sub_hi, q, chi1, chi2)
     f_hi = f_hi * inv_scaling
 
-    i_max, i_min = _compute_i_max_LF_i_min_HF(f_lo.cpu().numpy(), f_hi.cpu().numpy(), _F_HYB_INI * _LM_MODES[mode_idx][1])
+    mode_m = _LM_MODES[mode_idx][1]
+    blend_start = _F_HYB_INI * mode_m
+    blend_end = _F_HYB_END * mode_m
+    i_max, i_min = _compute_i_max_LF_i_min_HF(
+        f_lo.cpu().numpy(), f_hi.cpu().numpy(), blend_start
+    )
     f_hyb = torch.cat([f_lo[: i_max + 1], f_hi[i_min:]])
 
-    w = _cosine_blend(f_hyb, _F_HYB_INI * _LM_MODES[mode_idx][1], _F_HYB_END * _LM_MODES[mode_idx][1])
+    weight = _blend_weight(f_hyb, blend_start, blend_end)
+    b_re_lo, c_re_lo, d_re_lo = _natural_cubic_coeff(f_lo, re_lo)
+    b_re_hi, c_re_hi, d_re_hi = _natural_cubic_coeff(f_hi, re_hi)
+    b_im_lo, c_im_lo, d_im_lo = _natural_cubic_coeff(f_lo, im_lo)
+    b_im_hi, c_im_hi, d_im_hi = _natural_cubic_coeff(f_hi, im_hi)
 
-    def spline_coeff(x: torch.Tensor, y: torch.Tensor):
-        n = x.numel()
-        h = x[1:] - x[:-1]
-        al = (3 / h[1:]) * (y[2:] - y[1:-1]) - (3 / h[:-1]) * (y[1:-1] - y[:-2])
-        l = torch.ones(n, device=x.device, dtype=x.dtype)
-        mu = torch.zeros(n, device=x.device, dtype=x.dtype)
-        z = torch.zeros(n, device=x.device, dtype=x.dtype)
-        for i in range(1, n - 1):
-            l[i] = 2 * (x[i + 1] - x[i - 1]) - h[i - 1] * mu[i - 1]
-            mu[i] = h[i] / l[i]
-            z[i] = (al[i - 1] - h[i - 1] * z[i - 1]) / l[i]
-        c = torch.zeros(n, device=x.device, dtype=x.dtype)
-        b = torch.zeros(n - 1, device=x.device, dtype=x.dtype)
-        d = torch.zeros(n - 1, device=x.device, dtype=x.dtype)
-        for j in range(n - 2, -1, -1):
-            c[j] = z[j] - mu[j] * c[j + 1]
-            b[j] = (y[j + 1] - y[j]) / h[j] - h[j] * (c[j + 1] + 2 * c[j]) / 3
-            d[j] = (c[j + 1] - c[j]) / (3 * h[j])
-        return b, c, d
-
-    def spline_eval(x: torch.Tensor, xs: torch.Tensor, ys: torch.Tensor, b: torch.Tensor, c: torch.Tensor, d: torch.Tensor):
-        idx = torch.searchsorted(xs, x.clamp(xs[0], xs[-1])) - 1
-        idx = idx.clamp(0, xs.numel() - 2)
-        dx = x - xs[idx]
-        return ys[idx] + b[idx] * dx + c[idx] * dx * dx + d[idx] * dx * dx * dx
-
-    b_re_lo, c_re_lo, d_re_lo = spline_coeff(f_lo, re_lo)
-    b_re_hi, c_re_hi, d_re_hi = spline_coeff(f_hi, re_hi)
-    b_im_lo, c_im_lo, d_im_lo = spline_coeff(f_lo, im_lo)
-    b_im_hi, c_im_hi, d_im_hi = spline_coeff(f_hi, im_hi)
-
-    re = (1 - w) * spline_eval(f_hyb, f_lo, re_lo, b_re_lo, c_re_lo, d_re_lo) + w * spline_eval(f_hyb, f_hi, re_hi, b_re_hi, c_re_hi, d_re_hi)
-    im = (1 - w) * spline_eval(f_hyb, f_lo, im_lo, b_im_lo, c_im_lo, d_im_lo) + w * spline_eval(f_hyb, f_hi, im_hi, b_im_hi, c_im_hi, d_im_hi)
+    re = (1.0 - weight) * _spline_eval(
+        f_hyb, f_lo, re_lo, b_re_lo, c_re_lo, d_re_lo
+    ) + weight * _spline_eval(f_hyb, f_hi, re_hi, b_re_hi, c_re_hi, d_re_hi)
+    im = (1.0 - weight) * _spline_eval(
+        f_hyb, f_lo, im_lo, b_im_lo, c_im_lo, d_im_lo
+    ) + weight * _spline_eval(f_hyb, f_hi, im_hi, b_im_hi, c_im_hi, d_im_hi)
     return f_hyb, re + 1j * im
 
 
@@ -414,8 +616,36 @@ def _hybridize_cmode(mode_idx: int, q: float, chi1: float, chi2: float, omega_qn
 # ---------------------------------------------------------------------------
 
 
+def _next_power_of_two(value: int) -> int:
+    if value <= 1:
+        return 1
+    return 1 << (value - 1).bit_length()
+
+
+def _active_mode_indices(mode_array) -> Tuple[int, ...]:
+    if mode_array is None:
+        return tuple(range(len(_LM_MODES)))
+
+    requested = set()
+    for mode in mode_array:
+        try:
+            raw_ell, raw_emm = mode
+        except (TypeError, ValueError):
+            raise ValueError("mode_array entries must be (l, m) pairs")
+        ell, emm = int(raw_ell), int(raw_emm)
+        if emm >= 0:
+            raise ValueError(
+                "SEOBNRv4HM_ROM mode_array accepts only directly modeled "
+                "(l, -|m|) modes; positive-m partners are added by symmetry"
+            )
+        modeled_mode = (ell, -emm)
+        if modeled_mode not in _LM_MODES:
+            raise ValueError(f"mode ({ell}, {emm}) is not available in SEOBNRv4HM_ROM")
+        requested.add(modeled_mode)
+    return tuple(index for index, mode in enumerate(_LM_MODES) if mode in requested)
+
+
 def seobnrv4hm_fd_torch(**p):
-    # masses and spins
     m1 = float(p["mass1"])
     m2 = float(p["mass2"])
     spin1z = float(p.get("spin1z", 0.0))
@@ -423,28 +653,62 @@ def seobnrv4hm_fd_torch(**p):
     delta_f = float(p["delta_f"])
     f_lower = float(p["f_lower"])
     f_final = float(p.get("f_final", 0.0))
-    f_ref = float(p.get("f_ref", f_lower))
-    distance = pnutils.megaparsecs_to_meters(float(p["distance"]))
+    distance_mpc = float(p["distance"])
     inclination = float(p.get("inclination", 0.0))
     coa_phase = float(p.get("coa_phase", 0.0))
+    active_mode_indices = _active_mode_indices(p.get("mode_array"))
 
-    # choose dtype/device from active torch scheme if present
-    target_dtype = None
-    device = None
-    try:
-        import pycbc.scheme as _scheme  # pylint: disable=import-outside-toplevel
+    scalar_parameters = {
+        "mass1": m1,
+        "mass2": m2,
+        "spin1z": spin1z,
+        "spin2z": spin2z,
+        "delta_f": delta_f,
+        "f_lower": f_lower,
+        "f_final": f_final,
+        "distance": distance_mpc,
+        "inclination": inclination,
+        "coa_phase": coa_phase,
+    }
+    for name, value in scalar_parameters.items():
+        if not math.isfinite(value):
+            raise ValueError(f"{name} must be finite")
+    if m1 <= 0.0 or m2 <= 0.0:
+        raise ValueError("component masses must be positive")
+    if abs(spin1z) > 1.0 or abs(spin2z) > 1.0:
+        raise ValueError("dimensionless component spins must lie in [-1, 1]")
+    if delta_f <= 0.0:
+        raise ValueError("delta_f must be positive")
+    if distance_mpc <= 0.0:
+        raise ValueError("distance must be positive")
+    if f_final < 0.0:
+        raise ValueError("f_final must be non-negative")
+    distance = pnutils.megaparsecs_to_meters(distance_mpc)
 
-        target_dtype = getattr(getattr(_scheme, "mgr", None).state, "dtype", None)
-        device = getattr(getattr(_scheme, "mgr", None).state, "device", None)
-        if target_dtype in (torch.complex64, np.complex64):
-            target_dtype = torch.float32
-        elif target_dtype in (torch.complex128, np.complex128):
-            target_dtype = torch.float64
-    except Exception:  # pragma: no cover
-        target_dtype = None
-        device = None
+    import pycbc.scheme as _scheme  # pylint: disable=import-outside-toplevel
 
-    # ensure mass1 >= mass2 for q
+    active_scheme = _scheme.mgr.state
+    target_dtype = getattr(active_scheme, "dtype", None)
+    device = getattr(active_scheme, "device", None)
+    if target_dtype in (
+        torch.float32,
+        torch.complex64,
+        np.float32,
+        np.complex64,
+    ):
+        target_dtype = torch.float32
+    elif target_dtype in (
+        None,
+        torch.float64,
+        torch.complex128,
+        np.float64,
+        np.complex128,
+    ):
+        target_dtype = torch.float64
+    else:
+        raise TypeError(f"unsupported SEOBNRv4HM dtype {target_dtype}")
+    device = torch.device("cpu" if device is None else device)
+
     sign_odd = 1.0
     if m1 < m2:
         m1, m2 = m2, m1
@@ -452,109 +716,127 @@ def seobnrv4hm_fd_torch(**p):
         sign_odd = -1.0
 
     q = m1 / m2
-    eta = m1 * m2 / (m1 + m2) ** 2
-    M = m1 + m2
-    M_sec = M * lal.MTSUN_SI
+    if q > 50.0:
+        raise ValueError("SEOBNRv4HM_ROM requires a mass ratio no greater than 50")
+    total_mass = m1 + m2
+    total_mass_seconds = total_mass * lal.MTSUN_SI
+    f_lower_geom = f_lower * total_mass_seconds
+    if f_lower_geom < _MF_LOW_22:
+        raise ValueError(
+            f"starting frequency M*f_lower={f_lower_geom:g} is below the "
+            f"ROM minimum {_MF_LOW_22:g}"
+        )
 
-    omega_qnm_22 = _qnm_omega(m1, m2, spin1z, spin2z, 2, 2)
+    qnm_omega = {mode: _qnm_omega(m1, m2, spin1z, spin2z, *mode) for mode in _LM_MODES}
+    mf_rom_max = _CONST_FMAX[-1] * qnm_omega[_LM_MODES[-1]] / (2.0 * math.pi)
+    fmax_target = f_final if f_final > 0.0 else mf_rom_max / total_mass_seconds
+    fmax_target_geom = fmax_target * total_mass_seconds
+    if fmax_target_geom < _MF_LOW_22:
+        raise ValueError("f_final is below the ROM minimum frequency")
+    if fmax_target <= f_lower:
+        raise ValueError("f_final must be greater than f_lower")
 
-    # carrier phase hybrid (22)
-    roms = _load_rom(target_dtype, device)
+    roms = _load_rom(target_dtype, device, active_mode_indices)
     f_carrier, phase_carrier = _hybridize_phase(m1, m2, spin1z, spin2z, roms)
-
-    # build modes
-    fmax_modes = []
-    for (l, m), c in zip(_LM_MODES, _CONST_FMAX):
-        omega = _qnm_omega(m1, m2, spin1z, spin2z, l, m)
-        fmax_modes.append(c * omega / (2 * math.pi))
-    fmax_target = f_final if f_final > 0 else max(fmax_modes)
-    npts = int(np.ceil(fmax_target / delta_f)) + 1
-    rom22 = _load_rom()["22"]
+    rom22 = roms["22"]
     device = rom22.lowf.qvec.device
     dtype = rom22.lowf.qvec.dtype
-    freqs = torch.arange(npts, device=device, dtype=dtype) * delta_f
-    hp = torch.zeros_like(freqs, dtype=torch.complex128 if dtype == torch.float64 else torch.complex64)
-    hc = torch.zeros_like(freqs, dtype=hp.dtype)
+    complex_dtype = torch.complex128 if dtype == torch.float64 else torch.complex64
+    npts = _next_power_of_two(int(fmax_target / delta_f)) + 1
+    hp = torch.zeros(npts, device=device, dtype=complex_dtype)
+    hc = torch.zeros_like(hp)
 
-    for idx, (l, m) in enumerate(_LM_MODES):
-        omega_qnm = _qnm_omega(m1, m2, spin1z, spin2z, l, m)
+    i_start = math.ceil(f_lower / delta_f)
+    i_stop = min(math.ceil(fmax_target / delta_f), npts)
+    bin_indices = torch.arange(i_start, i_stop, device=device)
+    eval_mf = bin_indices.to(dtype=dtype) * (delta_f * total_mass_seconds)
+
+    b_car, c_car, d_car = _natural_cubic_coeff(f_carrier, phase_carrier)
+    carrier_max_frequency = f_carrier[-1]
+    carrier_max_phase = phase_carrier[-1]
+    carrier_end_derivative = _spline_derivative_at_end(f_carrier, b_car, c_car, d_car)
+    observer_phi = math.pi / 2.0 - coa_phase
+
+    for idx in active_mode_indices:
+        ell, emm = _LM_MODES[idx]
+        omega_qnm = qnm_omega[(ell, emm)]
         f_hyb, cmode = _hybridize_cmode(idx, q, spin1z, spin2z, omega_qnm, roms)
 
-        # approx phase from carrier
-        const_phase_shift = _CONST_PHASESHIFT[idx] + (1 - m) * math.pi / 4.0
-        # natural cubic spline for carrier
-        def spline_coeff(x: torch.Tensor, y: torch.Tensor):
-            n = x.numel()
-            h = x[1:] - x[:-1]
-            al = (3 / h[1:]) * (y[2:] - y[1:-1]) - (3 / h[:-1]) * (y[1:-1] - y[:-2])
-            l = torch.ones(n, device=x.device, dtype=x.dtype)
-            mu = torch.zeros(n, device=x.device, dtype=x.dtype)
-            z = torch.zeros(n, device=x.device, dtype=x.dtype)
-            for i in range(1, n - 1):
-                l[i] = 2 * (x[i + 1] - x[i - 1]) - h[i - 1] * mu[i - 1]
-                mu[i] = h[i] / l[i]
-                z[i] = (al[i - 1] - h[i - 1] * z[i - 1]) / l[i]
-            c = torch.zeros(n, device=x.device, dtype=x.dtype)
-            b = torch.zeros(n - 1, device=x.device, dtype=x.dtype)
-            d = torch.zeros(n - 1, device=x.device, dtype=x.dtype)
-            for j in range(n - 2, -1, -1):
-                c[j] = z[j] - mu[j] * c[j + 1]
-                b[j] = (y[j + 1] - y[j]) / h[j] - h[j] * (c[j + 1] + 2 * c[j]) / 3
-                d[j] = (c[j + 1] - c[j]) / (3 * h[j])
-            return b, c, d
-
-        def spline_eval(x: torch.Tensor, xs: torch.Tensor, ys: torch.Tensor, b: torch.Tensor, c: torch.Tensor, d: torch.Tensor):
-            idx = torch.searchsorted(xs, x.clamp(xs[0], xs[-1])) - 1
-            idx = idx.clamp(0, xs.numel() - 2)
-            dx = x - xs[idx]
-            return ys[idx] + b[idx] * dx + c[idx] * dx * dx + d[idx] * dx * dx * dx
-
-        b_car, c_car, d_car = spline_coeff(f_carrier, phase_carrier)
-        phase_approx = torch.empty_like(f_hyb)
-        ph_max = phase_carrier[-1]
-        der_max = b_car[-1]  # derivative at upper boundary for natural spline
-        for i, fh in enumerate(f_hyb):
-            if fh / m < f_carrier[-1]:
-                phase_approx[i] = m * spline_eval(fh / m, f_carrier, phase_carrier, b_car, c_car, d_car) + const_phase_shift
-            else:
-                phase_approx[i] = m * (ph_max + der_max * (fh / m - f_carrier[-1])) + const_phase_shift
+        carrier_frequency = f_hyb / emm
+        carrier_phase = _spline_eval(
+            carrier_frequency,
+            f_carrier,
+            phase_carrier,
+            b_car,
+            c_car,
+            d_car,
+        )
+        carrier_extrapolation = carrier_max_phase + carrier_end_derivative * (
+            carrier_frequency - carrier_max_frequency
+        )
+        carrier_phase = torch.where(
+            carrier_frequency < carrier_max_frequency,
+            carrier_phase,
+            carrier_extrapolation,
+        )
+        const_phase_shift = _CONST_PHASESHIFT[idx] + (1.0 - emm) * math.pi / 4.0
+        phase_approx = emm * carrier_phase + const_phase_shift
 
         phase_cmode = _unwrap_phase(torch.angle(cmode))
         amp = torch.abs(cmode)
         recon_phase = phase_cmode - phase_approx
 
-        b_amp, c_amp, d_amp = spline_coeff(f_hyb, amp)
-        b_ph, c_ph, d_ph = spline_coeff(f_hyb, recon_phase)
+        b_amp, c_amp, d_amp = _natural_cubic_coeff(f_hyb, amp)
+        b_ph, c_ph, d_ph = _natural_cubic_coeff(f_hyb, recon_phase)
 
-        Mf_max = _CONST_FMAX[idx] * omega_qnm / (2 * math.pi)
-        for i, f in enumerate(freqs):
-            fval = float(f.item())
-            if fval < f_lower or fval > Mf_max:
-                continue
-            if fval <= _MF_LOW_22 * m / 2.0:
-                continue
-            f_t = torch.tensor(fval, device=freqs.device, dtype=freqs.dtype)
-            A = spline_eval(f_t, f_hyb, amp, b_amp, c_amp, d_amp)
-            ph = spline_eval(f_t, f_hyb, recon_phase, b_ph, c_ph, d_ph)
-            hlm = torch.polar(A.to(hp.real.dtype), ph.to(hp.real.dtype)).to(hp.dtype)
-            phase_factor = torch.exp(torch.tensor(-2j * math.pi * fval * 1000.0, device=freqs.device, dtype=hp.dtype))
-            hlm *= phase_factor
-            hlm *= ((-1) ** l)
-            if m % 2 != 0:
-                hlm *= sign_odd
-            ylm = lal.SpinWeightedSphericalHarmonic(inclination, coa_phase, -2, l, -m)
-            hp[i] += hlm * ylm
-            hc[i] -= 1j * hlm * ylm
+        mf_max = _CONST_FMAX[idx] * omega_qnm / (2.0 * math.pi)
+        valid = (eval_mf <= mf_max) & (eval_mf > _MF_LOW_22 * emm / 2.0)
+        if not torch.any(valid):
+            continue
+        mode_bins = bin_indices[valid]
+        mode_frequencies = eval_mf[valid]
+        mode_amplitude = _spline_eval(mode_frequencies, f_hyb, amp, b_amp, c_amp, d_amp)
+        mode_phase = _spline_eval(
+            mode_frequencies, f_hyb, recon_phase, b_ph, c_ph, d_ph
+        )
+        hlm = torch.polar(mode_amplitude, mode_phase).to(complex_dtype)
+        time_shift = torch.exp((-2j * math.pi * 1000.0) * mode_frequencies).to(
+            complex_dtype
+        )
+        # Store the directly modeled (l,-m) positive-frequency mode in LAL's
+        # convention, including the mass-swap sign for odd-m modes.
+        hlm = ((-1) ** ell) * torch.conj(hlm * time_shift)
+        if emm % 2:
+            hlm = hlm * sign_odd
 
-    amp0 = M * M_sec * lal.MRSUN_SI / distance
+        y_negative = complex(
+            lal.SpinWeightedSphericalHarmonic(inclination, observer_phi, -2, ell, -emm)
+        )
+        y_positive_conjugate = complex(
+            lal.SpinWeightedSphericalHarmonic(inclination, observer_phi, -2, ell, emm)
+        ).conjugate()
+        parity = (-1) ** ell
+        factor_plus = 0.5 * (y_negative + parity * y_positive_conjugate)
+        factor_cross = 0.5j * (y_negative - parity * y_positive_conjugate)
+        hp[mode_bins] += factor_plus * hlm
+        hc[mode_bins] += factor_cross * hlm
+
+    amp0 = total_mass * total_mass_seconds * lal.MRSUN_SI / distance
     hp *= amp0
     hc *= amp0
-    target_complex = torch.complex64 if target_dtype == torch.float32 else torch.complex128
+    target_complex = (
+        torch.complex64 if target_dtype == torch.float32 else torch.complex128
+    )
     hp = hp.to(dtype=target_complex)
     hc = hc.to(dtype=target_complex)
 
-    hp_fs = FrequencySeries(TorchArrayData(hp), delta_f=delta_f, epoch=0, copy=False)
-    hc_fs = FrequencySeries(TorchArrayData(hc), delta_f=delta_f, epoch=0, copy=False)
+    epoch = -1.0 / delta_f
+    hp_fs = FrequencySeries(
+        TorchArrayData(hp), delta_f=delta_f, epoch=epoch, copy=False
+    )
+    hc_fs = FrequencySeries(
+        TorchArrayData(hc), delta_f=delta_f, epoch=epoch, copy=False
+    )
 
     return hp_fs, hc_fs
 

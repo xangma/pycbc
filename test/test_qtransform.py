@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
-import torch
+
+torch = pytest.importorskip("torch")
 
 from pycbc import scheme
 from pycbc.types import TimeSeries
@@ -28,8 +29,9 @@ def test_qtransform_torch_matches_cpu(torch_ctx):
     data, dt = _make_signal()
 
     # CPU reference
-    ts_cpu = TimeSeries(data, delta_t=dt)
-    t_cpu, f_cpu, plane_cpu = ts_cpu.qtransform(frange=(20, 120))
+    with scheme.CPUScheme():
+        ts_cpu = TimeSeries(data, delta_t=dt)
+        t_cpu, f_cpu, plane_cpu = ts_cpu.qtransform(frange=(20, 120))
 
     # Torch path on CPU device
     with torch_ctx:

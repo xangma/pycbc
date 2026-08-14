@@ -36,7 +36,40 @@ except Exception:  # pragma: no cover
     torch = None
     _HAVE_TORCH = False
 from pycbc.scheme import schemed
+import pycbc.scheme as _scheme
 from scipy import signal
+
+
+def scheme_cast_series(series):
+    """Move a waveform series to the active Torch device when necessary.
+
+    CPU/LAL waveform generators may be used as fallbacks by the Torch scheme.
+    This helper keeps that conversion in one place and avoids an intermediate
+    ``series.numpy()`` copy. Native Torch outputs already on the requested
+    device are returned unchanged.
+    """
+    if not (_HAVE_TORCH and hasattr(series, "_data")):
+        return series
+    if not isinstance(_scheme.mgr.state, _scheme.TorchScheme):
+        return series
+
+    data = series
+    copy = True
+    if hasattr(series._data, "tensor"):
+        tensor = series._data.tensor
+        if tensor.device == _scheme.mgr.state.device:
+            return series
+        from pycbc.types.array_torch import TorchArrayData
+        data = TorchArrayData(tensor.to(_scheme.mgr.state.device))
+        copy = False
+
+    if isinstance(series, TimeSeries):
+        return TimeSeries(data, delta_t=series.delta_t,
+                          epoch=series.start_time, copy=copy)
+    if isinstance(series, FrequencySeries):
+        return FrequencySeries(data, delta_f=series.delta_f,
+                               epoch=series.epoch, copy=copy)
+    raise TypeError("Expected a TimeSeries or FrequencySeries")
 
 def ceilpow2(n):
     """convenience function to determine a power-of-2 upper frequency limit"""

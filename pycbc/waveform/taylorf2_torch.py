@@ -17,10 +17,9 @@
 """
 Torch-friendly reimplementation of the LAL TaylorF2 aligned-spin PN phasing
 coefficients.  This mirrors ``XLALSimInspiralPNPhasing_F2`` from
-``lalsimulation/lib/LALSimInspiralPNCoefficients.c`` (lines 955-1109 in the
-LALSuite checkout at /Users/xangma/repos/lalsuite), including spin, tidal,
-and non-GR modifiers, but returns simple numpy arrays that can be consumed by
-the torch SPA kernel without calling into lalsimulation.
+``lalsimulation/lib/LALSimInspiralPNCoefficients.c``, including spin, tidal,
+and non-GR modifiers, but returns simple NumPy arrays that can be consumed by
+the Torch SPA kernel without calling into lalsimulation.
 """
 
 import math
@@ -326,4 +325,3 @@ def taylorf2_aligned_phasing(mass1, mass2, chi1, chi2, *, spin_order=-1,
     pfa.vlogv *= pfaN
     pfa.vlogvsq *= pfaN
     return pfa
-

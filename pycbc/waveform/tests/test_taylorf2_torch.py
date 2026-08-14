@@ -2,6 +2,8 @@ import os
 import numpy as np
 import pytest
 
+pytest.importorskip("torch")
+
 from pycbc.waveform.spa_tmplt import spa_tmplt
 from pycbc import scheme as _scheme
 
@@ -40,8 +42,7 @@ def _run_case(params):
     tor = h_torch.numpy()
     # Ignore only exact/near-zero bins; keep tiny but non-zero tails.
     mask = np.abs(cpu) > 1e-26
-    if not mask.any():
-        return np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, tor.dtype
+    assert mask.any(), "waveform contains no non-zero bins"
     rel = np.linalg.norm(tor[mask] - cpu[mask]) / np.linalg.norm(cpu[mask])
     mag_ratio = np.mean(np.abs(tor[mask]) / np.abs(cpu[mask]))
     phase_diff = np.angle(tor[mask] * np.conj(cpu[mask]))
@@ -98,8 +99,6 @@ def _run_case(params):
 )
 def test_taylorf2_torch_parity(params):
     rel, mag_ratio, phase_mean, phase_std, kmin, kmax, dtype = _run_case(params)
-    if np.isnan(rel):
-        pytest.skip("no non-zero bins for this configuration")
     tol = _tol(dtype)
     assert rel < tol["rel"]
     assert abs(mag_ratio - 1.0) < tol["mag"]

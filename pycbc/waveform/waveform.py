@@ -30,7 +30,6 @@ import os
 import lal, numpy, copy
 from pycbc.types import TimeSeries, FrequencySeries, zeros, Array
 from pycbc.types import real_same_precision_as, complex_same_precision_as
-from pycbc.types.array_torch import TorchArrayData
 import pycbc.scheme as _scheme
 from pycbc.waveform.torch_switches import torch_native_enabled
 import inspect
@@ -40,13 +39,6 @@ from pycbc.waveform import utils as wfutils
 from pycbc.waveform import parameters
 from pycbc.conversions import get_final_from_initial, tau_from_final_mass_spin
 from pycbc.filter import interpolate_complex_frequency, resample_to_delta_t
-import pycbc
-try:
-    import torch
-    _HAVE_TORCH = pycbc.HAVE_TORCH
-except Exception:  # pragma: no cover
-    torch = None
-    _HAVE_TORCH = False
 import pycbc
 from .spa_tmplt import spa_tmplt, spa_tmplt_norm, spa_tmplt_end, \
                       spa_tmplt_precondition, spa_amplitude_factor, \
@@ -76,23 +68,6 @@ default_args = \
 
 default_sgburst_args = {'eccentricity':0, 'polarization':0}
 sgburst_required_args = ['q','frequency','hrss']
-
-# Cast waveform outputs to the active scheme device when running under torch.
-def _scheme_cast_series(series):
-    if not (_HAVE_TORCH and hasattr(series, "_data")):
-        return series
-    if isinstance(series._data, TorchArrayData):
-        return series
-    torch_scheme = getattr(_scheme, "TorchScheme", None)
-    if torch_scheme is None or not isinstance(_scheme.mgr.state, torch_scheme):
-        return series
-    device = _scheme.mgr.state.device
-    tensor = torch.as_tensor(series.numpy(), device=device)
-    if isinstance(series, TimeSeries):
-        return TimeSeries(TorchArrayData(tensor), delta_t=series.delta_t,
-                          epoch=series.start_time, copy=False)
-    return FrequencySeries(TorchArrayData(tensor), delta_f=series.delta_f,
-                           epoch=series.epoch, copy=False)
 
 # td, fd, filter waveforms generated on the CPU
 _lalsim_td_approximants = {}
@@ -264,9 +239,10 @@ def _spintaylor_aligned_prec_swapper(**p):
 
 def _lalsim_fd_waveform(**p):
     # Torch native path (kept opt-in and Torch-scheme only).
+    using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
     if (
         p.get("approximant") == "IMRPhenomD"
-        and isinstance(_scheme.mgr.state, getattr(_scheme, "TorchScheme", object()))
+        and using_torch
         and torch_native_enabled("PYCBC_IMRPHENOMD_NATIVE", default=False)
     ):
         from .imrphenomd_torch import imrphenomd_fd_torch
@@ -274,17 +250,8 @@ def _lalsim_fd_waveform(**p):
         return imrphenomd_fd_torch(**p)
 
     if (
-        p.get("approximant") == "IMRPhenomHM"
-        and isinstance(_scheme.mgr.state, getattr(_scheme, "TorchScheme", object()))
-        and torch_native_enabled("PYCBC_IMRPHENOME_NATIVE", default=False)
-    ):
-        from .imrphenome_torch import imrphenomhm_fd_torch
-
-        return imrphenomhm_fd_torch(**p)
-
-    if (
         p.get("approximant") == "SEOBNRv4"
-        and isinstance(_scheme.mgr.state, getattr(_scheme, "TorchScheme", object()))
+        and using_torch
         and torch_native_enabled("PYCBC_SEOBNRV4_NATIVE", default=False)
     ):
         from .seobnrv4_torch import seobnrv4_fd_torch
@@ -293,7 +260,7 @@ def _lalsim_fd_waveform(**p):
 
     if (
         p.get("approximant") == "SEOBNRv4HM_ROM"
-        and isinstance(_scheme.mgr.state, getattr(_scheme, "TorchScheme", object()))
+        and using_torch
         and torch_native_enabled("PYCBC_SEOBNRV4HM_NATIVE", default=False)
     ):
         from .seobnrv4hm_torch import seobnrv4hm_fd_torch
@@ -663,8 +630,8 @@ def get_td_waveform(template=None, **kwargs):
         required = parameters.td_required
     check_args(input_params, required)
     hp, hc = wav_gen(**input_params)
-    hp = _scheme_cast_series(hp)
-    hc = _scheme_cast_series(hc)
+    hp = wfutils.scheme_cast_series(hp)
+    hc = wfutils.scheme_cast_series(hc)
     return hp, hc
 
 get_td_waveform.__doc__ = get_td_waveform.__doc__.format(
@@ -715,8 +682,8 @@ def get_fd_waveform(template=None, **kwargs):
         required = parameters.fd_required
     check_args(input_params, required)
     hp, hc = wav_gen(**input_params)
-    hp = _scheme_cast_series(hp)
-    hc = _scheme_cast_series(hc)
+    hp = wfutils.scheme_cast_series(hp)
+    hc = wfutils.scheme_cast_series(hc)
     return hp, hc
 
 
@@ -1261,14 +1228,23 @@ if hasattr(_scheme, "TorchScheme"):
         if torch_native_enabled("PYCBC_SEOBNRV4_NATIVE", default=False):
             from .seobnrv4_torch import seobnrv4_fd_torch
             return seobnrv4_fd_torch(**p)
-        return get_fd_waveform_from_td(**p)
+
+        # Calling the normal waveform entry point under the Torch scheme would
+        # route straight back through this dispatcher. Select the corresponding
+        # CPU generator explicitly and let get_fd_waveform cast its result back
+        # to Torch afterwards.
+        old_scheme = _scheme.mgr.state
+        try:
+            _scheme.mgr.state = _scheme.CPUScheme()
+            cpu_generator = fd_wav[_scheme.CPUScheme][p["approximant"]]
+            return cpu_generator(**p)
+        finally:
+            _scheme.mgr.state = old_scheme
 
     fd_wav[_scheme.TorchScheme] = dict(fd_wav[_scheme.CPUScheme])
-    try:
-        fd_wav[_scheme.TorchScheme]["SEOBNRv4"] = _seobnrv4_dispatch
-        fd_wav[_scheme.TorchScheme]["SEOBNRv4_ROM"] = _seobnrv4_dispatch
-    except Exception:
-        pass
+    for approximant in ("SEOBNRv4", "SEOBNRv4_ROM"):
+        if approximant in fd_wav[_scheme.TorchScheme]:
+            fd_wav[_scheme.TorchScheme][approximant] = _seobnrv4_dispatch
     # keep CPU mapping using TD->FD fallback (SEOBNRv4 is TD native in LAL)
     fd_wav[_scheme.CPUScheme]["SEOBNRv4"] = get_fd_waveform_from_td
 sgburst_wav = {_scheme.CPUScheme:cpu_sgburst}

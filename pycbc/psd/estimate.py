@@ -77,6 +77,21 @@ def median_bias(n):
 def _is_torch_series(obj):
     return _HAVE_TORCH and hasattr(obj, "_data") and hasattr(obj._data, "tensor")
 
+
+def _torch_median(values, dim=0):
+    """Return a NumPy-compatible median along ``dim``.
+
+    ``torch.median`` selects the lower of the two middle values for an even
+    number of samples, while ``numpy.median`` averages them.  Welch PSDs use
+    the NumPy definition in every other processing scheme, so keep that
+    behavior for Torch as well.
+    """
+    ordered = torch.sort(values, dim=dim).values
+    count = ordered.shape[dim]
+    lower = ordered.select(dim, (count - 1) // 2)
+    upper = ordered.select(dim, count // 2)
+    return (lower + upper) / 2
+
 def welch(timeseries, seg_len=4096, seg_stride=2048, window='hann',
           avg_method='median', num_segments=None, require_exact_data_fit=False):
     """PSD estimator based on Welch's method.
@@ -205,13 +220,13 @@ def welch(timeseries, seg_len=4096, seg_stride=2048, window='hann',
         if avg_method == 'mean':
             psd = torch.mean(stack, dim=0)
         elif avg_method == 'median':
-            psd = torch.median(stack, dim=0).values / median_bias(num_segments)
+            psd = _torch_median(stack, dim=0) / median_bias(num_segments)
         elif avg_method == 'median-mean':
             odd_psds = stack[::2]
             even_psds = stack[1::2]
-            odd_median = torch.median(odd_psds, dim=0).values / \
+            odd_median = _torch_median(odd_psds, dim=0) / \
                 median_bias(len(odd_psds))
-            even_median = torch.median(even_psds, dim=0).values / \
+            even_median = _torch_median(even_psds, dim=0) / \
                 median_bias(len(even_psds))
             psd = (odd_median + even_median) / 2
         psd = psd * (2 * delta_f * seg_len) / (w._data.tensor * w._data.tensor).sum()
@@ -310,7 +325,7 @@ def inverse_spectrum_truncation(psd, max_filter_len, low_frequency_cutoff=None, 
     if trunc_method == 'hann':
         if use_torch:
             tw = torch.hann_window(max_filter_len, device=q._data.tensor.device,
-                                   dtype=q._data.tensor.dtype)
+                                   dtype=q._data.tensor.dtype, periodic=False)
             q._data.tensor[0:trunc_start] *= tw[-trunc_start:]
             q._data.tensor[trunc_end:N] *= tw[0:max_filter_len//2]
         else:

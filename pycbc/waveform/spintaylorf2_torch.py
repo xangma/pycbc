@@ -18,6 +18,7 @@ import lal
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform.torch_switches import torch_native_enabled
+from pycbc.waveform.utils import scheme_cast_series
 
 
 # PN phasing/flux coefficients (from CUDA kernel / LAL)
@@ -548,6 +549,14 @@ def _pfa_coeffs(
 
 
 def spintaylorf2_torch(**kwds):
+    from pycbc import scheme as _scheme
+
+    active_scheme = _scheme.mgr.state
+    if isinstance(active_scheme, _scheme.TorchScheme):
+        device = active_scheme.torch_device
+    else:
+        device = torch.device("cpu")
+
     # Temporary parity guard: until the native torch precessing path is fully
     # tuned against LAL, optionally fall back to the trusted CPU/LAL generator
     # and simply cast to torch.  Enable the native path with
@@ -555,43 +564,14 @@ def spintaylorf2_torch(**kwds):
     # once the PN flux/parity work is complete; leave unset when comparing
     # against LAL to avoid hiding differences.
     if not torch_native_enabled("PYCBC_SPINTAYLORF2_NATIVE", default=False):
-        from pycbc import scheme as _scheme
         from pycbc.waveform import get_fd_waveform
 
-        old = _scheme.mgr.state
-        _scheme.Scheme._single = None
+        old_scheme = _scheme.mgr.state
         _scheme.mgr.state = _scheme.CPUScheme()
-        _scheme.mgr.state.prefix = "cpu"
         try:
             hP_cpu, hC_cpu = get_fd_waveform(approximant="SpinTaylorF2", **kwds)
         finally:  # always restore scheme
-            _scheme.mgr.state = old
-            _scheme.Scheme._single = None
-
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        hP_t = torch.tensor(hP_cpu.numpy(), device=device, dtype=torch.complex128)
-        hC_t = torch.tensor(hC_cpu.numpy(), device=device, dtype=torch.complex128)
-        need_scheme = (
-            not isinstance(_scheme.mgr.state, _scheme.TorchScheme)
-            or getattr(_scheme.mgr.state, "torch_device", None) != device
-        )
-        old_scheme = _scheme.mgr.state
-        old_single = _scheme.Scheme._single
-        if need_scheme:
-            _scheme.Scheme._single = None
-            _scheme.mgr.state = _scheme.TorchScheme(device=str(device))
-            _scheme.mgr.state.prefix = "torch"
-        try:
-            fsP = FrequencySeries(
-                TorchArrayData(hP_t), delta_f=kwds["delta_f"], copy=False
-            )
-            fsC = FrequencySeries(
-                TorchArrayData(hC_t), delta_f=kwds["delta_f"], copy=False
-            )
-        finally:
-            if need_scheme:
-                _scheme.mgr.state = old_scheme
-                _scheme.Scheme._single = old_single
+            _scheme.mgr.state = old_scheme
         if os.environ.get("PYCBC_SPINTAYLORF2_LOG", "0").lower() in (
             "1",
             "true",
@@ -601,7 +581,7 @@ def spintaylorf2_torch(**kwds):
             _log.warning(
                 "SpinTaylorF2 CPU fallback used (torch path disabled); no diagnostics run."
             )
-        return fsP, fsC
+        return scheme_cast_series(hP_cpu), scheme_cast_series(hC_cpu)
 
     f_lower = kwds["f_lower"]
     delta_f = kwds["delta_f"]
@@ -642,7 +622,6 @@ def spintaylorf2_torch(**kwds):
     if amplitude_order != 0:
         raise ValueError(f"Invalid amplitude PN order {amplitude_order}")
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dtype = torch.float64
 
     # LAL reference: lalsimulation/lib/LALSimInspiralSpinTaylorF2.c:532-534 (shft = 2π t_c term with t_c set by epoch).
@@ -861,18 +840,13 @@ def spintaylorf2_torch(**kwds):
     hC_full[kmin : kmin + hC.numel()] = hC
 
     # Ensure the scheme matches the torch backend so FrequencySeries can wrap TorchArrayData without copying.
-    from pycbc import scheme as _scheme
-
     old_scheme = _scheme.mgr.state
-    old_single = _scheme.Scheme._single
     need_scheme = (
         not isinstance(old_scheme, _scheme.TorchScheme)
         or getattr(old_scheme, "torch_device", None) != device
     )
     if need_scheme:
-        _scheme.Scheme._single = None
         _scheme.mgr.state = _scheme.TorchScheme(device=str(device))
-        _scheme.mgr.state.prefix = "torch"
 
     try:
         fsP = FrequencySeries(
@@ -891,12 +865,14 @@ def spintaylorf2_torch(**kwds):
             try:
                 from pycbc.waveform import get_fd_waveform
 
-                old = _scheme.mgr.state
-                _scheme.Scheme._single = None
-                _scheme.mgr.state = _scheme.CPUScheme()
-                _scheme.mgr.state.prefix = "cpu"
-                cpuP, _ = get_fd_waveform(approximant="SpinTaylorF2", **kwds)
-                _scheme.mgr.state = old
+                diagnostic_scheme = _scheme.mgr.state
+                try:
+                    _scheme.mgr.state = _scheme.CPUScheme()
+                    cpuP, _ = get_fd_waveform(
+                        approximant="SpinTaylorF2", **kwds
+                    )
+                finally:
+                    _scheme.mgr.state = diagnostic_scheme
                 cpu_arr = cpuP.numpy()
                 tor_arr = hP_full.cpu().numpy()
                 mask = _np.abs(cpu_arr) > 0
@@ -1000,4 +976,3 @@ def spintaylorf2_torch(**kwds):
     finally:
         if need_scheme:
             _scheme.mgr.state = old_scheme
-            _scheme.Scheme._single = old_single

@@ -10,6 +10,7 @@ flag is used; otherwise the provided default is returned.
 import os
 
 _TRUE = {"1", "true", "yes", "on"}
+_FALSE = {"0", "false", "no", "off"}
 
 
 def torch_native_enabled(component_flag: str, *, default: bool = False) -> bool:
@@ -33,14 +34,20 @@ def torch_native_enabled(component_flag: str, *, default: bool = False) -> bool:
     when the component flag is unset.
     """
 
-    def _parse(val):
-        return str(val).lower() in _TRUE
+    def _parse(name, val):
+        normalized = str(val).strip().lower()
+        if normalized in _TRUE:
+            return True
+        if normalized in _FALSE:
+            return False
+        choices = ", ".join(sorted(_TRUE | _FALSE))
+        raise ValueError(f"{name} must be one of: {choices}; got {val!r}")
 
     if component_flag in os.environ:
-        return _parse(os.environ[component_flag])
+        return _parse(component_flag, os.environ[component_flag])
 
     for env in ("PYCBC_TORCH_NATIVE_PORTS", "PYCBC_TORCH_NATIVE"):
         if env in os.environ:
-            return _parse(os.environ[env])
+            return _parse(env, os.environ[env])
 
     return default

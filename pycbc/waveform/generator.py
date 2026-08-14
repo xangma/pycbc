@@ -35,45 +35,17 @@ from . import ringdown
 from . import supernovae
 from . import waveform_modes
 from pycbc.types import TimeSeries
-from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform import parameters
 from pycbc.waveform.utils import apply_fseries_time_shift, \
-                                 ceilpow2, apply_fd_time_shift
+                                 ceilpow2, apply_fd_time_shift, \
+                                 scheme_cast_series as _scheme_cast_series
 from pycbc.detector import Detector
 from pycbc.pool import use_mpi
 import lal as _lal
 from pycbc import strain
-import pycbc.scheme as _scheme
-import pycbc
-try:
-    import torch
-    _HAVE_TORCH = pycbc.HAVE_TORCH
-except Exception:  # pragma: no cover
-    torch = None
-
 
 # utility functions/class
 failed_counter = 0
-
-def _scheme_cast_series(series):
-    """If running under torch scheme, move Time/FrequencySeries data to torch device."""
-    if not (_HAVE_TORCH and hasattr(series, "_data")):
-        return series
-    if isinstance(series._data, TorchArrayData):
-        return series
-    torch_scheme = getattr(_scheme, "TorchScheme", None)
-    if torch_scheme is None or not isinstance(_scheme.mgr.state, torch_scheme):
-        return series
-    device = _scheme.mgr.state.device
-    tensor = torch.as_tensor(series.numpy(), device=device)
-    if isinstance(series, TimeSeries):
-        return TimeSeries(TorchArrayData(tensor), delta_t=series.delta_t,
-                          epoch=series.start_time, copy=False)
-    else:
-        from pycbc.types import FrequencySeries
-        return FrequencySeries(TorchArrayData(tensor),
-                               delta_f=series.delta_f,
-                               epoch=series.epoch, copy=False)
 
 class BaseGenerator(object):
     r"""A wrapper class to call a waveform generator with a set of frozen

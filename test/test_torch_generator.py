@@ -4,13 +4,13 @@ import types
 
 import numpy as np
 import pytest
-import torch
+
+torch = pytest.importorskip("torch")
 
 import pycbc
 from pycbc import scheme
 from pycbc.types import FrequencySeries
 
-pytest.importorskip("torch")
 if not pycbc.HAVE_TORCH:
     pytest.skip("PyCBC built without torch support", allow_module_level=True)
 

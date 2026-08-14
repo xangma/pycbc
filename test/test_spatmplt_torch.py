@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+pytest.importorskip("torch")
+
 from pycbc import scheme
 from pycbc.types import zeros
 from pycbc.waveform.spa_tmplt import spa_tmplt_engine

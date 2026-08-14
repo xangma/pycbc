@@ -3,16 +3,16 @@ import types
 
 import numpy as np
 import pytest
-import torch
+
+torch = pytest.importorskip("torch")
 
 import pycbc
 from pycbc import scheme
 from pycbc.filter import matchedfilter, resample
-from pycbc.psd import welch
+from pycbc.psd import inverse_spectrum_truncation, welch
+from pycbc.strain.strain import StrainBuffer
 from pycbc.types import FrequencySeries, TimeSeries
 
-# Skip the entire module if torch support is unavailable
-pytest.importorskip("torch")
 if not pycbc.HAVE_TORCH:
     pytest.skip("PyCBC built without torch support", allow_module_level=True)
 
@@ -51,21 +51,74 @@ def _relative_l2(a, b):
     return np.linalg.norm(diff) / np.linalg.norm(b)
 
 
-def test_psd_welch_torch_matches_cpu(torch_ctx):
+def _make_strain_buffer(data, sample_rate, reduced_pad):
+    """Build only the state needed by ``overwhitened_data``."""
+    delta_f = 1.0
+    initial_len = sample_rate + 2 * reduced_pad
+    assert len(data) == initial_len
+
+    psdt = FrequencySeries(
+        np.ones(initial_len // 2 + 1),
+        delta_f=sample_rate / initial_len,
+    )
+    psd = FrequencySeries(
+        np.ones(sample_rate // 2 + 1),
+        delta_f=delta_f,
+    )
+    psd.psdt = psdt
+
+    buffer = object.__new__(StrainBuffer)
+    buffer.strain = TimeSeries(data, delta_t=1 / sample_rate, epoch=100)
+    buffer.sample_rate = sample_rate
+    buffer.reduced_pad = reduced_pad
+    buffer.trim_padding = 0
+    buffer.segments = {}
+    buffer.psds = {delta_f: psd}
+    return buffer
+
+
+@pytest.mark.parametrize("avg_method", ["mean", "median", "median-mean"])
+@pytest.mark.parametrize("num_segments", [7, 8])
+def test_psd_welch_torch_matches_cpu(torch_ctx, avg_method, num_segments):
     # Short deterministic signal
     rng = np.random.default_rng(1234)
-    data = rng.standard_normal(2048)
+    seg_len = 256
+    data = rng.standard_normal(num_segments * seg_len)
     ts_cpu = TimeSeries(data, delta_t=1 / 1024.0)
-    psd_cpu = welch(ts_cpu, 256)
+    psd_cpu = welch(ts_cpu, seg_len, seg_stride=seg_len,
+                    avg_method=avg_method)
 
     with torch_ctx:
         ts_t = TimeSeries(data, delta_t=1 / 1024.0)
-        psd_t = welch(ts_t, 256)
+        psd_t = welch(ts_t, seg_len, seg_stride=seg_len,
+                      avg_method=avg_method)
 
     assert isinstance(psd_t._data.tensor, torch.Tensor)
     assert psd_t._data.tensor.device.type == "cpu"
     assert psd_t.kind == psd_cpu.kind == "real"
-    assert _relative_l2(psd_t.numpy(), psd_cpu.numpy()) < 0.05
+    np.testing.assert_allclose(psd_t.numpy(), psd_cpu.numpy(), rtol=1e-12,
+                               atol=1e-14)
+
+
+@pytest.mark.parametrize("trunc_method", [None, "hann"])
+def test_inverse_spectrum_truncation_torch_matches_cpu(torch_ctx,
+                                                       trunc_method):
+    values = np.linspace(1.0, 4.0, 257)
+    psd_cpu = FrequencySeries(values, delta_f=1.0)
+    expected = inverse_spectrum_truncation(
+        psd_cpu, 64, low_frequency_cutoff=1.0,
+        trunc_method=trunc_method,
+    )
+
+    with torch_ctx:
+        psd_t = FrequencySeries(values, delta_f=1.0)
+        actual = inverse_spectrum_truncation(
+            psd_t, 64, low_frequency_cutoff=1.0,
+            trunc_method=trunc_method,
+        )
+
+    np.testing.assert_allclose(actual.numpy(), expected.numpy(), rtol=1e-12,
+                               atol=1e-12)
 
 
 def test_whiten_stays_on_device(torch_ctx):
@@ -82,6 +135,26 @@ def test_whiten_stays_on_device(torch_ctx):
     assert white_t._data.tensor.device.type == "cpu"
     assert len(white_t) == len(white_cpu)
     assert _relative_l2(white_t.numpy(), white_cpu.numpy()) < 0.1
+
+
+def test_strain_buffer_trimmed_fft_matches_cpu(torch_ctx):
+    sample_rate = 256
+    reduced_pad = 16
+    rng = np.random.default_rng(2468)
+    data = rng.standard_normal(sample_rate + 2 * reduced_pad)
+
+    cpu_buffer = _make_strain_buffer(data, sample_rate, reduced_pad)
+    expected = cpu_buffer.overwhitened_data(1.0)
+
+    with torch_ctx:
+        torch_buffer = _make_strain_buffer(data, sample_rate, reduced_pad)
+        actual = torch_buffer.overwhitened_data(1.0)
+
+    assert isinstance(actual._data.tensor, torch.Tensor)
+    assert actual.delta_f == expected.delta_f == 1.0
+    assert actual.start_time == expected.start_time
+    np.testing.assert_allclose(actual.numpy(), expected.numpy(), rtol=1e-11,
+                               atol=1e-11)
 
 
 def test_resample_to_delta_t_torch(torch_ctx):

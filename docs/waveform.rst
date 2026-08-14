@@ -79,9 +79,9 @@ or if you include it in a python package, :ref:`PyCBC can directly detect it! <w
    :include-source:
    
 
-=====================================
+===========================================
 Torch-native waveform ports (torch scheme)
-=====================================
+===========================================
 PyCBC includes torch-native implementations for several frequency-domain
 approximants. The default remains the LAL/CPU path; enable torch ports with
 environment flags:
@@ -90,12 +90,17 @@ environment flags:
 - SPA/TaylorF2: ``PYCBC_SPATPLT_NATIVE``, ``PYCBC_TAYLORF2_NATIVE``.
 - SpinTaylorF2: ``PYCBC_SPINTAYLORF2_NATIVE``.
 - IMRPhenomD (FD): ``PYCBC_IMRPHENOMD_NATIVE``.
-- SEOBNRv4_ROM (BBH + NRTidalv2): ``PYCBC_SEOBNRV4_NATIVE``; tidal corrections are
-  applied automatically when using ``SEOBNRv4_ROM_NRTidalv2``.
+- SEOBNRv4 / SEOBNRv4_ROM (BBH only): ``PYCBC_SEOBNRV4_NATIVE``. NRTidal
+  approximants continue to use the lalsimulation implementation.
 - SEOBNRv4HM_ROM (FD higher modes): ``PYCBC_SEOBNRV4HM_NATIVE`` (torch-native ROM
-  evaluation using ``SEOBNRv4HMROM.hdf5``); requires the ROM file in
+  evaluation using ``SEOBNRv4HMROM_v1.0.hdf5``); requires the ROM file in
   ``$LAL_DATA_PATH`` or ``pycbc/waveform``.
-- IMRPhenomHM (FD): ``PYCBC_IMRPHENOME_NATIVE``.
+
+These ports provide Torch-device-compatible PyCBC series, but several waveform
+implementations reconstruct their models with NumPy/SciPy before transferring
+the result. Torch-scheme support therefore does not, by itself, imply an
+end-to-end differentiable waveform.
 
 Set a per-approximant flag to ``1`` to force the torch implementation or ``0`` to
-force LAL/CPU. If a per-flag is unset, the global flag decides.
+force the lalsimulation implementation. If a per-flag is unset, the global flag
+decides.

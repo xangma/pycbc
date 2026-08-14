@@ -20,15 +20,16 @@ import copy
 import logging
 import functools
 import numpy
-from pycbc.types.array_torch import TorchArrayData
 
 from scipy.signal import kaiserord
 import pycbc
 try:
     import torch
+    from pycbc.types.array_torch import TorchArrayData
     _HAVE_TORCH = pycbc.HAVE_TORCH
 except Exception:  # pragma: no cover
     torch = None
+    TorchArrayData = None
     _HAVE_TORCH = False
 
 import pycbc.types
@@ -1859,9 +1860,10 @@ class StrainBuffer(pycbc.frame.DataBuffer):
             use_torch = pycbc.HAVE_TORCH and hasattr(self.strain._data, "tensor")
 
             if use_torch:
-                import torch
                 tensor = self.strain._data.tensor[s:e]
-                fseries_tensor = torch.fft.rfft(tensor)
+                # Match PyCBC's FFT convention: forward transforms include
+                # delta_t, while inverse transforms include 1 / delta_t.
+                fseries_tensor = torch.fft.rfft(tensor) * self.strain.delta_t
                 fseries = FrequencySeries(TorchArrayData(fseries_tensor),
                                           delta_f=delta_f,
                                           epoch=self.strain._epoch + s*self.strain.delta_t,
@@ -1885,7 +1887,10 @@ class StrainBuffer(pycbc.frame.DataBuffer):
                 psd = self.psds[delta_f]
                 fseries_tensor = fseries_tensor / psd.psdt._data.tensor
                 if self.reduced_pad != 0:
-                    overwhite = torch.fft.irfft(fseries_tensor)
+                    overwhite = (
+                        torch.fft.irfft(fseries_tensor)
+                        / self.strain.delta_t
+                    )
                     overwhite_ts = TimeSeries(TorchArrayData(overwhite),
                                               delta_t=self.strain.delta_t,
                                               epoch=self.strain._epoch + s*self.strain.delta_t,
@@ -1895,9 +1900,12 @@ class StrainBuffer(pycbc.frame.DataBuffer):
                     gate_params = [(overwhite2.start_time, 0., taper_window),
                                    (overwhite2.end_time, 0., taper_window)]
                     gate_data(overwhite2, gate_params)
-                    fseries_tensor = torch.fft.rfft(overwhite_ts._data.tensor)
+                    fseries_tensor = (
+                        torch.fft.rfft(overwhite2._data.tensor)
+                        * overwhite2.delta_t
+                    )
                     fseries_trimmed = FrequencySeries(TorchArrayData(fseries_tensor),
-                                                      delta_f=delta_f,
+                                                      delta_f=overwhite2.delta_f,
                                                       epoch=overwhite2.start_time,
                                                       copy=False)
                 else:

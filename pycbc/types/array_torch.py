@@ -159,6 +159,10 @@ class TorchArrayData:
     def __setitem__(self, idx, value):
         if isinstance(value, TorchArrayData):
             value = value.tensor
+        if isinstance(value, torch.Tensor):
+            value = value.to(device=self.tensor.device)
+        elif isinstance(value, (np.ndarray, list, tuple)):
+            value = torch.as_tensor(value, device=self.tensor.device)
         self.tensor.__setitem__(idx, value)
 
     def fill(self, value):
@@ -180,7 +184,6 @@ class TorchArrayData:
 
     def __iadd__(self, other):
         other_t, _ = _tensor_from_any(other, self.tensor.device)
-        other_t = other_t.to(dtype=self.tensor.dtype)
         self.tensor += other_t
         return self
 
@@ -194,7 +197,6 @@ class TorchArrayData:
 
     def __isub__(self, other):
         other_t, _ = _tensor_from_any(other, self.tensor.device)
-        other_t = other_t.to(dtype=self.tensor.dtype)
         self.tensor -= other_t
         return self
 
@@ -208,7 +210,6 @@ class TorchArrayData:
 
     def __imul__(self, other):
         other_t, _ = _tensor_from_any(other, self.tensor.device)
-        other_t = other_t.to(dtype=self.tensor.dtype)
         self.tensor *= other_t
         return self
 
@@ -222,7 +223,6 @@ class TorchArrayData:
 
     def __itruediv__(self, other):
         other_t, _ = _tensor_from_any(other, self.tensor.device)
-        other_t = other_t.to(dtype=self.tensor.dtype)
         self.tensor /= other_t
         return self
 
@@ -252,29 +252,19 @@ class TorchArrayData:
 
     def view(self, dtype):
         target_np = np.dtype(dtype)
-
-        # Complex -> real view should share storage
-        if self.tensor.dtype == torch.complex64:
-            if target_np != np.dtype(np.float32):
-                raise TypeError("Incompatible dtype for complex64 view")
-            real_view = torch.view_as_real(self.tensor).reshape(-1)
-            return self._wrap(real_view)
-        if self.tensor.dtype == torch.complex128:
-            if target_np != np.dtype(np.float64):
-                raise TypeError("Incompatible dtype for complex128 view")
-            real_view = torch.view_as_real(self.tensor).reshape(-1)
-            return self._wrap(real_view)
-
-        # Fallback: attempt a numpy-style reinterpret cast on CPU tensors.
         target_torch = _torch_dtype(target_np)
-        # If dtype unchanged, return self
         if target_torch == self.tensor.dtype:
             return self
 
-        base_array = _resolve_for_numpy(self.tensor).detach().cpu().numpy().view(target_np)
-        flat = base_array.reshape(-1)
-        tensor = torch.as_tensor(flat, device=self.tensor.device)
-        return self._wrap(tensor)
+        # ``Tensor.view(dtype)`` reinterprets the same storage on every Torch
+        # device. A NumPy round-trip here would silently turn a view into a
+        # copy and move CUDA/MPS data through host memory.
+        try:
+            return self._wrap(self.tensor.view(target_torch))
+        except RuntimeError as exc:
+            raise TypeError(
+                f"Cannot view {self.dtype} data as {target_np}"
+            ) from exc
 
     def copy(self):
         return self._wrap(self.tensor.clone())

@@ -22,7 +22,6 @@ from numpy import sqrt, double, complex128
 from math import pow, log, cos, sin, acos, atan2
 
 import pycbc.scheme as _scheme
-import torch
 
 try:
     from pycuda.elementwise import ElementwiseKernel

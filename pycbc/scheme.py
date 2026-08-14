@@ -70,11 +70,13 @@ class Scheme(object):
     """Context that sets PyCBC objects to use CPU processing. """
     _single = None
     def __init__(self):
+        self._owns_singleton = False
         if DefaultScheme is type(self):
             return
         if Scheme._single is not None:
             raise RuntimeError("Only one processing scheme can be used")
         Scheme._single = True
+        self._owns_singleton = True
     def __enter__(self):
         mgr.shift_to(self)
         mgr.lock()
@@ -82,7 +84,7 @@ class Scheme(object):
         mgr.unlock()
         mgr.shift_to(default_context)
     def __del__(self):
-        if Scheme is not None:
+        if Scheme is not None and getattr(self, "_owns_singleton", False):
             Scheme._single = None
 
 _cuda_cleanup_list=[]
@@ -166,7 +168,9 @@ class CUPYScheme(Scheme):
 class TorchScheme(Scheme):
     """Context that sets PyCBC objects to use a Torch processing scheme."""
     def __init__(self, device=None):
-        Scheme.__init__(self)
+        # A Torch scheme does not create a process-global driver context.
+        # Scheme.__enter__ still prevents simultaneous active schemes, but
+        # lightweight Torch scheme objects may safely coexist.
         if not pycbc.HAVE_TORCH:
             raise RuntimeError("Install PyTorch to use the Torch processing scheme.")
 
@@ -187,7 +191,6 @@ class TorchScheme(Scheme):
         # Alias used by backends to locate the target device
         self.device = self.torch_device
         self.prefix = "torch"
-
 
 class CPUScheme(Scheme):
     def __init__(self, num_threads=1):

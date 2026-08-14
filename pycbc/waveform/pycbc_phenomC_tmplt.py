@@ -21,8 +21,6 @@ import numpy
 from numpy import sqrt, log, float128
 
 from pycuda.elementwise import ElementwiseKernel
-import pycbc.scheme as _scheme
-import torch
 
 from pycbc.libutils import pkg_config_header_strings
 from pycbc.types import FrequencySeries, zeros, Array, complex64
@@ -161,20 +159,6 @@ def imrphenomc_tmplt(**kwds):
     """ Return an IMRPhenomC waveform using CUDA to generate the phase and amplitude
       Main Paper: arXiv:1005.3306
     """
-    # Torch scheme: run CPU path and move output to torch device
-    if isinstance(_scheme.mgr.state, _scheme.TorchScheme):
-        old_state = _scheme.mgr.state
-        _scheme.Scheme._single = None
-        _scheme.mgr.state = _scheme.CPUScheme()
-        try:
-            fs = imrphenomc_tmplt(**kwds)
-        finally:
-            _scheme.mgr.state = old_state
-            _scheme.Scheme._single = None
-        dev = old_state.device
-        fs_t = FrequencySeries(torch.as_tensor(fs.numpy(), device=dev, dtype=torch.complex64),
-                               delta_f=fs.delta_f, copy=False)
-        return fs_t
     # Pull out the input arguments
     f_min = float128(kwds['f_lower'])
     f_max = float128(kwds['f_final'])

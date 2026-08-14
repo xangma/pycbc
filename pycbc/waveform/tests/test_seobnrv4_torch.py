@@ -1,22 +1,40 @@
 import os
+from pathlib import Path
+
 import numpy as np
 import pytest
+
+pytest.importorskip("torch")
 
 from pycbc import scheme as _scheme
 from pycbc.waveform import get_fd_waveform
 
 
+_ROM_FILENAME = "SEOBNRv4ROM_v3.0.hdf5"
+_WAVEFORM_DIR = Path(__file__).resolve().parent.parent
+
+
+def _require_rom_data():
+    search_paths = [_WAVEFORM_DIR]
+    search_paths.extend(
+        Path(path)
+        for path in os.environ.get("LAL_DATA_PATH", "").split(os.pathsep)
+        if path
+    )
+    if not any((path / _ROM_FILENAME).is_file() for path in search_paths):
+        pytest.skip(f"{_ROM_FILENAME} is not available on LAL_DATA_PATH")
+
+
 def _run_case(params, use_native=True):
-    env_backup = {k: os.environ.get(k) for k in ("PYCBC_TORCH_NATIVE_PORTS", "PYCBC_SEOBNRV4_NATIVE", "LAL_DATA_PATH", "PYCBC_SEOBNRV4_NRTIDAL_NATIVE")}
+    _require_rom_data()
+    env_backup = {
+        key: os.environ.get(key)
+        for key in ("PYCBC_TORCH_NATIVE_PORTS", "PYCBC_SEOBNRV4_NATIVE")
+    }
     old_scheme = _scheme.mgr.state
     old_single = _scheme.Scheme._single
 
     try:
-        lal_paths = [
-            "/Users/xangma/miniconda3/envs/pycbc313/opt/lalsuite-extra/share/lalsimulation",
-            os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),  # pycbc/waveform
-        ]
-        os.environ["LAL_DATA_PATH"] = ":".join(lal_paths)
         # CPU reference
         _scheme.Scheme._single = None
         _scheme.mgr.state = _scheme.CPUScheme()
@@ -25,7 +43,10 @@ def _run_case(params, use_native=True):
         os.environ["PYCBC_SEOBNRV4_NATIVE"] = "0"
         params_no_apx = dict(params)
         params_no_apx.pop("approximant", None)
-        h_cpu, _ = get_fd_waveform(approximant=params.get("approximant", "SEOBNRv4_ROM"), **params_no_apx)
+        h_cpu, _ = get_fd_waveform(
+            approximant=params.get("approximant", "SEOBNRv4_ROM"),
+            **params_no_apx,
+        )
 
         # Torch path (native ROM)
         _scheme.Scheme._single = None
@@ -35,11 +56,7 @@ def _run_case(params, use_native=True):
         os.environ["PYCBC_SEOBNRV4_NATIVE"] = "1" if use_native else "0"
         params_no_apx = dict(params_no_apx)
         apx = params.get("approximant", "SEOBNRv4_ROM")
-        if apx.endswith("NRTidalv2"):
-            os.environ["PYCBC_SEOBNRV4_NRTIDAL_NATIVE"] = "1" if use_native else "0"
         h_torch, _ = get_fd_waveform(approximant=apx, **params_no_apx)
-    except RuntimeError as exc:
-        pytest.skip(f"SEOBNRv4 unavailable (likely missing ROM data for LAL fallback): {exc}")
     finally:
         for k, v in env_backup.items():
             if v is None:
@@ -89,8 +106,7 @@ def test_seobnrv4_torch_parity(params):
     cpu = cpu[:n]
     tor = tor[:n]
     mask = (np.abs(cpu) > 1e-26) | (np.abs(tor) > 1e-26)
-    if not mask.any():
-        pytest.skip("no non-zero bins")
+    assert mask.any(), "waveform contains no non-zero bins"
     np.testing.assert_allclose(tor[mask], cpu[mask], rtol=5e-5, atol=1e-10)
 
 
@@ -148,12 +164,20 @@ def test_seobnrv4_torch_global_switch_fallback():
         ),
     ],
 )
-def test_seobnrv4_nrtidalv2_parity(params):
-    cpu, tor = _run_case({**params, "approximant": "SEOBNRv4_ROM_NRTidalv2"}, use_native=True)
+def test_seobnrv4_nrtidalv2_uses_lalsim_fallback(params, monkeypatch):
+    import pycbc.waveform.seobnrv4_torch as native_module
+
+    def unexpected_native_call(**_):
+        raise AssertionError("NRTidal waveform was routed to the BBH-only port")
+
+    monkeypatch.setattr(native_module, "seobnrv4_fd_torch", unexpected_native_call)
+    cpu, tor = _run_case(
+        {**params, "approximant": "SEOBNRv4_ROM_NRTidalv2"},
+        use_native=True,
+    )
     n = min(len(cpu), len(tor))
     cpu = cpu[:n]
     tor = tor[:n]
     mask = (np.abs(cpu) > 1e-26) | (np.abs(tor) > 1e-26)
-    if not mask.any():
-        pytest.skip("no non-zero bins")
-    np.testing.assert_allclose(tor[mask], cpu[mask], rtol=1e-4, atol=1e-9)
+    assert mask.any(), "waveform contains no non-zero bins"
+    np.testing.assert_allclose(tor[mask], cpu[mask], rtol=1e-12, atol=1e-18)

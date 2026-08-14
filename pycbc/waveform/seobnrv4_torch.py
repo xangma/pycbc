@@ -29,7 +29,7 @@ Activation (default is CPU/LAL path):
 - Per-model: ``PYCBC_SEOBNRV4_NATIVE=1``
 
 Limitations:
-- Tidal corrections and NRTidal variants are not yet implemented (BBH only).
+- Tidal corrections and NRTidal variants are not implemented (BBH only).
 - Uses NumPy/SciPy; output is a PyCBC FrequencySeries on the current Torch
   device via the usual scheme casting.
 """
@@ -48,8 +48,7 @@ import numpy as np
 from scipy.interpolate import CubicSpline
 
 import lal
-import lalsimulation
-from pycbc import pnutils, scheme as _scheme
+from pycbc import pnutils
 from pycbc.types import FrequencySeries
 
 _ROM_FILENAME = "SEOBNRv4ROM_v3.0.hdf5"
@@ -247,10 +246,13 @@ def seobnrv4_fd_torch(**p):
     distance = pnutils.megaparsecs_to_meters(float(p["distance"]))
     inclination = float(p.get("inclination", 0.0))
     coa_phase = float(p.get("coa_phase", 0.0))
-    lambda1 = float(p.get("lambda1", 0.0) or 0.0)
-    lambda2 = float(p.get("lambda2", 0.0) or 0.0)
     approximant = p.get("approximant", "SEOBNRv4")
     use_tides = "NRTIDAL" in approximant.upper()
+    if use_tides:
+        raise NotImplementedError(
+            "The native SEOBNRv4 Torch port supports BBH waveforms only; "
+            "use the lalsimulation fallback for NRTidal approximants."
+        )
 
     M = mass1 + mass2
     eta = mass1 * mass2 / (M * M)
@@ -291,19 +293,6 @@ def seobnrv4_fd_torch(**p):
 
     amp = amp_spline(freqs_geom)
     phase = phi_spline(freqs_geom)
-
-    if use_tides:
-        # compute tidal amplitude correction using lalsimulation helper
-        seq = lal.CreateREAL8Sequence(len(freqs_geom))
-        seq.data[:] = freqs_geom
-        amp_tidal_seq = lalsimulation.SimNRTunedTidesFDTidalAmplitudeFrequencySeries(
-            seq,
-            mass1,
-            mass2,
-            lambda1,
-            lambda2,
-        )
-        amp += np.array(amp_tidal_seq.data, copy=False)
 
     h22 = amp * np.exp(-1j * (phase - phase[0] + 2 * coa_phase))
     cosi = math.cos(inclination)

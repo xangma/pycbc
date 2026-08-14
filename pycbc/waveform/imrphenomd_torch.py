@@ -196,14 +196,12 @@ def _final_spin0815(eta: float, chi1: float, chi2: float) -> float:
 @lru_cache(None)
 def _load_qnm_tables() -> Tuple[_np.ndarray, _np.ndarray, _np.ndarray]:
     """Parse QNM data arrays from the bundled LAL header."""
-    # Prefer the reference checkout if available; fallback to installed header.
-    candidates = [
-        Path("/Users/xangma/repos/lalsuite/lalsimulation/lib/LALSimIMRPhenomD.h"),
-        Path(__file__).resolve().parent / "data" / "LALSimIMRPhenomD.h",
-    ]
-    header = next((p for p in candidates if p.exists()), None)
-    if header is None:
-        raise FileNotFoundError("LALSimIMRPhenomD.h not found; cannot load QNM tables")
+    header = Path(__file__).resolve().parent / "data" / "LALSimIMRPhenomD.h"
+    if not header.is_file():
+        raise FileNotFoundError(
+            "Bundled IMRPhenomD QNM data are missing from the PyCBC "
+            f"installation: {header}"
+        )
 
     def _extract_array(name: str):
         text = header.read_text()

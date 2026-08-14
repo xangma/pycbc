@@ -3,6 +3,8 @@ import warnings
 import numpy as np
 import pytest
 
+pytest.importorskip("torch")
+
 from pycbc import scheme as _scheme
 from pycbc.waveform import get_fd_waveform
 
@@ -80,8 +82,7 @@ def _run_case(params, use_native=True):
 def test_imrphenomd_torch_parity(params):
     cpu, tor = _run_case(params, use_native=True)
     mask = np.abs(cpu) > 1e-26
-    if not mask.any():
-        pytest.skip("no non-zero bins")
+    assert mask.any(), "waveform contains no non-zero bins"
     rel = np.linalg.norm(tor[mask] - cpu[mask]) / np.linalg.norm(cpu[mask])
     mag_ratio = np.mean(np.abs(tor[mask]) / np.abs(cpu[mask]))
     phase_diff = np.angle(tor[mask] * np.conj(cpu[mask]))

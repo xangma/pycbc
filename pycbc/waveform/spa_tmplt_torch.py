@@ -138,7 +138,7 @@ def _torch_native_spa(n, kmin, delta_f, piM, pfaN, pfa2, pfa3, pfa4, pfa5,
 
 def _cpu_reference(n, kmin, delta_f, piM, pfaN, pfa2, pfa3, pfa4, pfa5,
                    pfl5, pfa6, pfl6, pfa7, amp_factor):
-    """CPU float32 reference via inline sequence; returns numpy complex64."""
+    """CPU float32 reference matching ``spa_tmplt_engine`` exactly."""
     fvals = (_np.arange(kmin, kmin + n, dtype=_np.float32)) * float(delta_f)
     out_np = _np.empty(n, dtype=_np.complex64)
     _spa_cpu.spa_tmplt_inline_sequence(
@@ -146,6 +146,17 @@ def _cpu_reference(n, kmin, delta_f, piM, pfaN, pfa2, pfa3, pfa4, pfa5,
         float(pfa5), float(pfl5), float(pfa6), float(pfl6), float(pfa7),
         _np.float32(amp_factor), fvals, out_np
     )
+
+    # The production CPU engine evaluates phase at ``kmin + i`` but its
+    # historical preconditioner evaluates amplitude at ``kmin + i + 1``.
+    # ``spa_tmplt_inline_sequence`` uses one frequency for both, so correct
+    # only its amplitude here.
+    amp_freqs = (
+        _np.arange(kmin + 1, kmin + n + 1, dtype=_np.float64) * delta_f
+    )
+    phase_amp = _np.power(fvals.astype(_np.float64), -7.0 / 6.0)
+    engine_amp = _np.power(amp_freqs, -7.0 / 6.0)
+    out_np *= (engine_amp / phase_amp).astype(_np.float32)
     return out_np
 
 
@@ -235,7 +246,7 @@ def spa_tmplt_engine(htilde, kmin, phase_order, delta_f, piM, pfaN,
         tensor.copy_(torch.tensor(cpu_np, device=device, dtype=dtype))
         return None
 
-    # Native torch kernel (default); optional CPU reference for debugging only.
+    # Native torch kernel; optional CPU reference for debugging only.
     dbg = _torch_native_spa(n, kmin_int, delta_f, piM, pfaN, pfa2, pfa3, pfa4,
                             pfa5, pfl5, pfa6, pfl6, pfa7, amp_factor,
                             device=device, dtype_out=dtype)
