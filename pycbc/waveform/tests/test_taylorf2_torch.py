@@ -2,9 +2,18 @@ import os
 import numpy as np
 import pytest
 
-pytest.importorskip("torch")
+torch = pytest.importorskip("torch")
 
+import lal
+import lalsimulation
+
+from pycbc.waveform import get_fd_waveform
 from pycbc.waveform.spa_tmplt import spa_tmplt
+from pycbc.waveform.taylorf2_torch import (
+    _eos_q_from_lambda,
+    taylorf2_aligned_phasing,
+    taylorf2_native_supported,
+)
 from pycbc import scheme as _scheme
 
 
@@ -16,27 +25,37 @@ def _tol(dtype):
 
 
 def _run_case(params):
+    env_names = (
+        "PYCBC_TORCH_NATIVE_PORTS",
+        "PYCBC_SPATPLT_NATIVE",
+        "PYCBC_TAYLORF2_NATIVE",
+    )
+    env_backup = {name: os.environ.get(name) for name in env_names}
     old = _scheme.mgr.state
-    # CPU reference (uses lalsimulation phasing)
-    _scheme.Scheme._single = None
-    _scheme.mgr.state = _scheme.CPUScheme()
-    _scheme.mgr.state.prefix = "cpu"
-    os.environ["PYCBC_TAYLORF2_NATIVE"] = "0"
+    old_single = _scheme.Scheme._single
     try:
+        # CPU reference (uses lalsimulation phasing)
+        _scheme.Scheme._single = None
+        _scheme.mgr.state = _scheme.CPUScheme()
+        _scheme.mgr.state.prefix = "cpu"
+        os.environ["PYCBC_TAYLORF2_NATIVE"] = "0"
         h_cpu = spa_tmplt(**params)
-    finally:
-        _scheme.mgr.state = old
 
-    # Torch path (native phasing)
-    _scheme.Scheme._single = None
-    _scheme.mgr.state = _scheme.TorchScheme()
-    _scheme.mgr.state.prefix = "torch"
-    os.environ["PYCBC_TAYLORF2_NATIVE"] = "0"
-    os.environ["PYCBC_SPATPLT_NATIVE"] = "1"  # explicit: test torch kernel parity
-    try:
+        # Torch path (native phasing)
+        _scheme.Scheme._single = None
+        _scheme.mgr.state = _scheme.TorchScheme()
+        _scheme.mgr.state.prefix = "torch"
+        os.environ["PYCBC_TAYLORF2_NATIVE"] = "0"
+        os.environ["PYCBC_SPATPLT_NATIVE"] = "1"
         h_torch = spa_tmplt(**params)
     finally:
+        for name, value in env_backup.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
         _scheme.mgr.state = old
+        _scheme.Scheme._single = old_single
 
     cpu = h_cpu.numpy()
     tor = h_torch.numpy()
@@ -124,7 +143,11 @@ def test_taylorf2_torch_global_switch_falls_back():
 
     env_backup = {
         k: os.environ.get(k)
-        for k in ("PYCBC_TORCH_NATIVE_PORTS", "PYCBC_SPATPLT_NATIVE", "PYCBC_TAYLORF2_NATIVE")
+        for k in (
+            "PYCBC_TORCH_NATIVE_PORTS",
+            "PYCBC_SPATPLT_NATIVE",
+            "PYCBC_TAYLORF2_NATIVE",
+        )
     }
     old_scheme = _scheme.mgr.state
     old_single = _scheme.Scheme._single
@@ -141,7 +164,9 @@ def test_taylorf2_torch_global_switch_falls_back():
         _scheme.mgr.state = _scheme.TorchScheme()
         h_torch = spa_tmplt(**params)
 
-        np.testing.assert_allclose(h_torch.numpy(), h_cpu.numpy(), rtol=1e-12, atol=1e-18)
+        np.testing.assert_allclose(
+            h_torch.numpy(), h_cpu.numpy(), rtol=1e-12, atol=1e-18
+        )
     finally:
         for k, v in env_backup.items():
             if v is None:
@@ -150,3 +175,272 @@ def test_taylorf2_torch_global_switch_falls_back():
                 os.environ[k] = v
         _scheme.mgr.state = old_scheme
         _scheme.Scheme._single = old_single
+
+
+@pytest.fixture
+def preserve_scheme():
+    """Restore the process-wide PyCBC scheme singleton after a test."""
+    old_scheme = _scheme.mgr.state
+    old_single = _scheme.Scheme._single
+    try:
+        yield
+    finally:
+        _scheme.mgr.state = old_scheme
+        _scheme.Scheme._single = old_single
+
+
+def _activate_scheme(scheme_type):
+    _scheme.Scheme._single = None
+    _scheme.mgr.state = scheme_type()
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        dict(
+            mass1=30.0,
+            mass2=20.0,
+            spin1z=0.3,
+            spin2z=-0.1,
+            delta_f=0.25,
+            f_lower=20.0,
+            distance=500.0,
+            inclination=0.4,
+            coa_phase=1.1,
+            f_ref=30.0,
+        ),
+        dict(
+            mass1=10.0,
+            mass2=8.0,
+            spin2z=0.4,
+            delta_f=0.25,
+            f_lower=15.0,
+            f_final=400.0,
+            f_ref=25.0,
+            distance=400.0,
+            phase_order=4,
+            spin_order=3,
+            inclination=1.2,
+            coa_phase=0.3,
+            long_asc_nodes=0.37,
+        ),
+        dict(
+            mass1=1.4,
+            mass2=1.3,
+            spin1z=0.02,
+            spin2z=-0.01,
+            delta_f=0.5,
+            f_lower=20.0,
+            distance=100.0,
+            lambda1=800.0,
+            lambda2=700.0,
+            dquad_mon1=0.0,
+            dquad_mon2=0.0,
+            inclination=0.8,
+            coa_phase=0.2,
+            f_ref=30.0,
+        ),
+        dict(
+            mass1=2.0,
+            mass2=1.6,
+            spin1z=0.1,
+            spin2z=-0.04,
+            delta_f=0.5,
+            f_lower=20.0,
+            f_final=300.0,
+            distance=150.0,
+            lambda1=300.0,
+            lambda2=100.0,
+            dquad_mon1=2.2,
+            dquad_mon2=1.5,
+            tidal_order=15,
+            dchi3=0.02,
+            dchi6l=-0.01,
+            f_ref=25.0,
+        ),
+        dict(
+            mass1=3.2,
+            mass2=1.7,
+            spin1z=0.23,
+            spin2z=-0.17,
+            delta_f=1.0,
+            f_lower=20.0,
+            f_final=160.0,
+            f_ref=31.7,
+            distance=230.0,
+            lambda1=450.0,
+            lambda2=120.0,
+            dquad_mon1=0.0,
+            dquad_mon2=0.0,
+            spin_order=0,
+        ),
+    ],
+)
+def test_taylorf2_public_torch_parity_and_dispatch(
+    params, monkeypatch, preserve_scheme
+):
+    """The public API must select native Torch and retain LAL parity."""
+    monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
+    monkeypatch.setenv("PYCBC_TAYLORF2_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme)
+    cpu = get_fd_waveform(approximant="TaylorF2", **params)
+    cpu_arrays = tuple(series.numpy().copy() for series in cpu)
+
+    import pycbc.waveform.taylorf2_torch as taylorf2_mod
+
+    native = taylorf2_mod.taylorf2_fd_torch
+    calls = 0
+
+    def recording_native(**native_params):
+        nonlocal calls
+        calls += 1
+        return native(**native_params)
+
+    monkeypatch.setattr(taylorf2_mod, "taylorf2_fd_torch", recording_native)
+    monkeypatch.setenv("PYCBC_TAYLORF2_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme)
+    torch_waveform = get_fd_waveform(approximant="TaylorF2", **params)
+
+    assert calls == 1
+    for reference, reference_array, actual in zip(cpu, cpu_arrays, torch_waveform):
+        assert len(actual) == len(reference)
+        assert actual.delta_f == reference.delta_f
+        assert float(actual.epoch) == float(reference.epoch)
+        assert actual._data.tensor.device.type == "cpu"
+        assert actual._data.tensor.dtype.is_complex
+
+        actual_array = actual.numpy()
+        np.testing.assert_array_equal(
+            actual_array == 0.0,
+            reference_array == 0.0,
+        )
+        nonzero = np.abs(reference_array) > 0.0
+        relative_error = np.linalg.norm(
+            actual_array[nonzero] - reference_array[nonzero]
+        ) / np.linalg.norm(reference_array[nonzero])
+        assert relative_error < 1.0e-11
+
+
+@pytest.mark.skipif(
+    not torch.backends.mps.is_available(),
+    reason="Torch MPS device is unavailable",
+)
+def test_taylorf2_public_torch_uses_mps(monkeypatch, preserve_scheme):
+    params = dict(
+        mass1=30.0,
+        mass2=20.0,
+        spin1z=0.2,
+        spin2z=-0.1,
+        delta_f=0.5,
+        f_lower=20.0,
+        f_ref=30.0,
+        distance=400.0,
+        inclination=0.7,
+    )
+    monkeypatch.setenv("PYCBC_TAYLORF2_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme)
+    reference, _ = get_fd_waveform(approximant="TaylorF2", **params)
+    reference_array = reference.numpy().copy()
+
+    monkeypatch.setenv("PYCBC_TAYLORF2_NATIVE", "1")
+    _scheme.Scheme._single = None
+    _scheme.mgr.state = _scheme.TorchScheme("mps")
+    actual, _ = get_fd_waveform(approximant="TaylorF2", **params)
+
+    assert actual._data.tensor.device.type == "mps"
+    assert actual._data.tensor.dtype == torch.complex64
+    actual_array = actual.numpy()
+    nonzero = np.abs(reference_array) > 0.0
+    relative_error = np.linalg.norm(
+        actual_array[nonzero] - reference_array[nonzero]
+    ) / np.linalg.norm(reference_array[nonzero])
+    assert relative_error < 5.0e-5
+
+
+def test_taylorf2_unsupported_amplitude_uses_lal_fallback(monkeypatch, preserve_scheme):
+    params = dict(
+        mass1=20.0,
+        mass2=15.0,
+        spin1z=0.1,
+        spin2z=-0.05,
+        delta_f=0.5,
+        f_lower=20.0,
+        f_final=200.0,
+        amplitude_order=2,
+    )
+    monkeypatch.setenv("PYCBC_TAYLORF2_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme)
+    reference = get_fd_waveform(approximant="TaylorF2", **params)
+    reference_arrays = tuple(series.numpy().copy() for series in reference)
+
+    import pycbc.waveform.taylorf2_torch as taylorf2_mod
+    import pycbc.waveform.waveform as waveform_mod
+
+    def unexpected_native(**_params):
+        raise AssertionError("unsupported TaylorF2 parameters reached Torch")
+
+    lal_generator = waveform_mod.lalsimulation.SimInspiralChooseFDWaveform
+    lal_calls = 0
+
+    def recording_lal(*args, **kwargs):
+        nonlocal lal_calls
+        lal_calls += 1
+        return lal_generator(*args, **kwargs)
+
+    monkeypatch.setattr(taylorf2_mod, "taylorf2_fd_torch", unexpected_native)
+    monkeypatch.setattr(
+        waveform_mod.lalsimulation,
+        "SimInspiralChooseFDWaveform",
+        recording_lal,
+    )
+    monkeypatch.setenv("PYCBC_TAYLORF2_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme)
+    fallback = get_fd_waveform(approximant="TaylorF2", **params)
+
+    assert lal_calls == 1
+    for expected, actual in zip(reference_arrays, fallback):
+        assert actual._data.tensor.device.type == "cpu"
+        np.testing.assert_allclose(actual.numpy(), expected, rtol=1.0e-14, atol=0.0)
+
+
+@pytest.mark.parametrize(
+    ("params", "expected"),
+    [
+        ({}, True),
+        ({"spin_order": 1}, True),
+        ({"lambda1": 800.0, "dchi3": 0.1}, True),
+        ({"amplitude_order": 2}, False),
+        ({"spin1x": 0.1}, False),
+        ({"lambda_octu1": 10.0}, False),
+        ({"mode_array": [(2, 2)]}, False),
+        ({"dalpha1": 0.1}, False),
+        ({"lambda1": -1.0}, False),
+    ],
+)
+def test_taylorf2_native_support_boundary(params, expected):
+    assert taylorf2_native_supported(params) is expected
+
+
+@pytest.mark.parametrize("lambda_tidal", [0.25, 0.5, 1.0, 100.0, 800.0])
+def test_taylorf2_eos_quadrupole_fit_matches_lal(lambda_tidal):
+    lal_params = lal.CreateDict()
+    lalsimulation.SimInspiralWaveformParamsInsertTidalLambda1(lal_params, lambda_tidal)
+    lalsimulation.SimInspiralWaveformParamsInsertdQuadMon1(lal_params, 0.0)
+    lalsimulation.SimInspiralSetQuadMonParamsFromLambdas(lal_params)
+    expected = lalsimulation.SimInspiralWaveformParamsLookupdQuadMon1(lal_params) + 1.0
+    assert _eos_q_from_lambda(lambda_tidal) == pytest.approx(expected, rel=1.0e-14)
+
+
+def test_taylorf2_default_tides_stop_at_7pn():
+    default = taylorf2_aligned_phasing(1.4, 1.3, 0.0, 0.0, lambda1=800.0, lambda2=700.0)
+    explicit_75pn = taylorf2_aligned_phasing(
+        1.4,
+        1.3,
+        0.0,
+        0.0,
+        lambda1=800.0,
+        lambda2=700.0,
+        tidal_order=15,
+    )
+    assert default.v[15] == 0.0
+    assert explicit_75pn.v[15] != 0.0

@@ -87,8 +87,13 @@ approximants. The default remains the LAL/CPU path; enable torch ports with
 environment flags:
 
 - Global: ``PYCBC_TORCH_NATIVE_PORTS=1`` (used when a per-approximant flag is unset).
-- SPA/TaylorF2: ``PYCBC_SPATPLT_NATIVE``, ``PYCBC_TAYLORF2_NATIVE``.
-- SpinTaylorF2: ``PYCBC_SPINTAYLORF2_NATIVE``.
+- SPA/TaylorF2: ``PYCBC_SPATPLT_NATIVE``, ``PYCBC_TAYLORF2_NATIVE``. The
+  public TaylorF2 port covers aligned spins, Newtonian amplitude, all supported
+  phase/spin/tidal orders, testing-GR ``dchi`` terms, tidal quadrupoles, and
+  polarization rotation. Precession, higher-PN amplitude corrections, and
+  dynamic-tide extras fall back to lalsimulation.
+- SpinTaylorF2: ``PYCBC_SPINTAYLORF2_NATIVE``. This port remains experimental;
+  the default path is the lalsimulation implementation.
 - IMRPhenomD (FD): ``PYCBC_IMRPHENOMD_NATIVE``.
 - SEOBNRv4 / SEOBNRv4_ROM (BBH only): ``PYCBC_SEOBNRV4_NATIVE``. NRTidal
   approximants continue to use the lalsimulation implementation.
@@ -101,6 +106,6 @@ implementations reconstruct their models with NumPy/SciPy before transferring
 the result. Torch-scheme support therefore does not, by itself, imply an
 end-to-end differentiable waveform.
 
-Set a per-approximant flag to ``1`` to force the torch implementation or ``0`` to
-force the lalsimulation implementation. If a per-flag is unset, the global flag
-decides.
+Set a per-approximant flag to ``1`` to request the torch implementation or ``0``
+to force the lalsimulation implementation. Unsupported options retain the
+lalsimulation fallback. If a per-flag is unset, the global flag decides.

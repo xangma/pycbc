@@ -241,6 +241,19 @@ def _lalsim_fd_waveform(**p):
     # Torch native path (kept opt-in and Torch-scheme only).
     using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
     if (
+        p.get("approximant") == "TaylorF2"
+        and using_torch
+        and torch_native_enabled("PYCBC_TAYLORF2_NATIVE", default=False)
+    ):
+        from .taylorf2_torch import (
+            taylorf2_fd_torch,
+            taylorf2_native_supported,
+        )
+
+        if taylorf2_native_supported(p):
+            return taylorf2_fd_torch(**p)
+
+    if (
         p.get("approximant") == "IMRPhenomD"
         and using_torch
         and torch_native_enabled("PYCBC_IMRPHENOMD_NATIVE", default=False)
