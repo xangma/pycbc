@@ -9,11 +9,11 @@ pytest.importorskip("torch")
 
 from pycbc import scheme as _scheme
 from pycbc.waveform import get_fd_waveform
-from pycbc.waveform.seobnrv4hm_torch import (
-    _active_mode_indices,
-    _qnm_omega,
-    _seobnrv4_final_mass_spin,
+from pycbc.waveform._seobnrv4_qnm import (
+    seobnrv4_final_mass_spin,
+    seobnrv4_qnm_omega,
 )
+from pycbc.waveform.seobnrv4hm_torch import _active_mode_indices
 
 _ROM_FILENAMES = ("SEOBNRv4HMROM_v1.0.hdf5", "SEOBNRv4HMROM.hdf5")
 _WAVEFORM_DIR = Path(__file__).resolve().parent.parent
@@ -180,7 +180,7 @@ def test_seobnrv4hm_torch_global_switch_fallback():
     ],
 )
 def test_seobnrv4_remnant_fit(parameters, expected):
-    final_mass, final_spin = _seobnrv4_final_mass_spin(*parameters)
+    final_mass, final_spin = seobnrv4_final_mass_spin(*parameters)
     assert final_mass == pytest.approx(expected[0], rel=2e-15)
     assert final_spin == pytest.approx(expected[1], rel=2e-15)
 
@@ -196,8 +196,8 @@ def test_seobnrv4_remnant_fit(parameters, expected):
     ],
 )
 def test_qnm_frequency_matches_seobnrv4_table(mode, expected):
-    omega = _qnm_omega(35.0, 25.0, 0.2, -0.1, *mode)
-    scaled_omega = _qnm_omega(70.0, 50.0, 0.2, -0.1, *mode)
+    omega = seobnrv4_qnm_omega(35.0, 25.0, 0.2, -0.1, *mode)
+    scaled_omega = seobnrv4_qnm_omega(70.0, 50.0, 0.2, -0.1, *mode)
     assert omega == pytest.approx(expected, rel=2e-14)
     assert scaled_omega == pytest.approx(omega, rel=2e-14)
 

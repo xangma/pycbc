@@ -9,13 +9,26 @@
 
 The tabulated data and natural-cubic interpolation mirror the fundamental
 (n = 0) real-frequency path in XLALSimIMREOBGenerateQNMFreqV2fromFinal.
-Keeping the small subset needed by SEOBNRv4HM local avoids an indirect
-lalsimulation call and preserves the rounding of the original tables.
+Keeping the subset needed by the native SEOBNRv4 ROM evaluators local avoids
+an indirect lalsimulation call and preserves the rounding of the original
+tables.
 """
 
+import math
 from functools import lru_cache
 
 import numpy as np
+
+
+# Coefficients of the SEOBNRv4 final-spin fit from Table I of
+# Barausse et al., ApJ 825 L19 (2016). These values and the implementation
+# below follow XLALSimIMREOBFinalMassSpin's aligned-spin SEOBNRv4 branch.
+_FINAL_SPIN_COEFFS = (
+    (-5.977230835551017, 3.39221, 4.48865, -5.77101, -13.0459),
+    (35.1278, -72.9336, -86.0036, 93.7371, 200.975),
+    (-146.822, 387.184, 447.009, -467.383, -884.339),
+    (223.911, -648.502, -697.177, 753.738, 1166.89),
+)
 
 # fmt: off
 _SPIN_GRID = np.array(
@@ -230,3 +243,105 @@ def fundamental_qnm_omega(final_spin, ell, emm):
         + cubic[index] * offset**3
     )
     return sign * float(omega)
+
+
+def _kerr_isco_radius(spin):
+    """Return the equatorial Kerr ISCO radius in units of the BH mass."""
+
+    if abs(spin) > 1.0:
+        raise ValueError("dimensionless spin must lie in [-1, 1]")
+    z1 = 1.0 + (1.0 - spin * spin) ** (1.0 / 3.0) * (
+        (1.0 + spin) ** (1.0 / 3.0) + (1.0 - spin) ** (1.0 / 3.0)
+    )
+    z2 = math.sqrt(3.0 * spin * spin + z1 * z1)
+    root = math.sqrt((3.0 - z1) * (3.0 + z1 + 2.0 * z2))
+    return 3.0 + z2 - math.copysign(root, spin if spin else 1.0)
+
+
+def _kerr_isco_energy(radius):
+    return math.sqrt(1.0 - 2.0 / (3.0 * radius))
+
+
+def _kerr_isco_angular_momentum(radius):
+    return 2.0 / (3.0 * math.sqrt(3.0)) * (
+        1.0 + 2.0 * math.sqrt(3.0 * radius - 2.0)
+    )
+
+
+def seobnrv4_final_mass_spin(mass1, mass2, spin1z, spin2z):
+    """Return the SEOBNRv4 remnant mass (solar masses) and spin.
+
+    This is a direct scalar port of the aligned-spin SEOBNRv4 branch of
+    ``XLALSimIMREOBFinalMassSpin``.
+    """
+
+    if mass1 <= 0.0 or mass2 <= 0.0:
+        raise ValueError("component masses must be positive")
+    if abs(spin1z) > 1.0 or abs(spin2z) > 1.0:
+        raise ValueError("dimensionless component spins must lie in [-1, 1]")
+    if mass1 < mass2:
+        mass1, mass2 = mass2, mass1
+        spin1z, spin2z = spin2z, spin1z
+
+    total_mass = mass1 + mass2
+    eta = mass1 * mass2 / total_mass**2
+    inverse_q = mass2 / mass1
+    inverse_q2 = inverse_q * inverse_q
+    one_plus_inverse_q = 1.0 + inverse_q
+
+    aligned_total = (spin1z + spin2z * inverse_q2) / (
+        one_plus_inverse_q**2
+    )
+    effective_spin = (spin1z + spin2z * inverse_q2) / (1.0 + inverse_q2)
+    isco_radius = _kerr_isco_radius(aligned_total)
+    isco_energy = _kerr_isco_energy(isco_radius)
+    final_mass_fraction = 1.0 - (
+        (1.0 - isco_energy) * eta
+        + 16.0
+        * eta**2
+        * (
+            0.00258
+            - 0.0773 / (effective_spin - 1.6939)
+            - 0.25 * (1.0 - isco_energy)
+        )
+    )
+
+    spin1 = mass1**2 * spin1z
+    spin2 = mass2**2 * spin2z
+    spin_effective = (
+        (1.0 + 0.474046 * inverse_q) * spin1
+        + (1.0 + 0.474046 / inverse_q) * spin2
+    ) / total_mass**2
+    spin_total = (spin1 + spin2) / total_mass**2
+    isco_radius = _kerr_isco_radius(spin_effective)
+    isco_energy = _kerr_isco_energy(isco_radius)
+    isco_angular_momentum = _kerr_isco_angular_momentum(isco_radius)
+    physical_spin = spin_total + eta * (
+        isco_angular_momentum - 2.0 * spin_total * (isco_energy - 1.0)
+    )
+    fitted_spin = sum(
+        eta ** (row + 2)
+        * sum(
+            coefficient * spin_effective**power
+            for power, coefficient in enumerate(coefficients)
+        )
+        for row, coefficients in enumerate(_FINAL_SPIN_COEFFS)
+    )
+    return final_mass_fraction * total_mass, physical_spin + fitted_spin
+
+
+def seobnrv4_qnm_omega(mass1, mass2, spin1z, spin2z, ell, emm):
+    """Return ``M_total * omega_QNM`` for an SEOBNRv4 remnant."""
+
+    final_mass, final_spin = seobnrv4_final_mass_spin(
+        mass1, mass2, spin1z, spin2z
+    )
+    final_mass_omega = fundamental_qnm_omega(final_spin, ell, emm)
+    return final_mass_omega * (mass1 + mass2) / final_mass
+
+
+__all__ = [
+    "fundamental_qnm_omega",
+    "seobnrv4_final_mass_spin",
+    "seobnrv4_qnm_omega",
+]

@@ -99,8 +99,11 @@ environment flags:
   active Torch device; small coefficient and QNM-table setup remains on CPU.
   Tidal, transverse-spin, testing-GR, and non-default mode options fall back to
   lalsimulation.
-- SEOBNRv4 / SEOBNRv4_ROM (BBH only): ``PYCBC_SEOBNRV4_NATIVE``. NRTidal
-  approximants continue to use the lalsimulation implementation.
+- SEOBNRv4_ROM (FD aligned-spin BBH): ``PYCBC_SEOBNRV4_NATIVE``. ROM
+  interpolation, frequency interpolation, and waveform assembly run on the
+  active Torch device using ``SEOBNRv4ROM_v3.0.hdf5``. The time-domain
+  ``SEOBNRv4`` model, transverse-spin/tidal extensions, and NRTidal
+  approximants continue to use lalsimulation.
 - SEOBNRv4HM_ROM (FD higher modes): ``PYCBC_SEOBNRV4HM_NATIVE`` (torch-native ROM
   evaluation using ``SEOBNRv4HMROM_v1.0.hdf5``); requires the ROM file in
   ``$LAL_DATA_PATH`` or ``pycbc/waveform``.

@@ -14,226 +14,461 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-"""
-Torch-native (lalsimulation-free) SEOBNRv4_ROM frequency-domain waveform.
+"""Device-native, lalsimulation-free evaluator for ``SEOBNRv4_ROM``.
 
-This directly evaluates the public ROM data file ``SEOBNRv4ROM_v3.0.hdf5``
-with pure NumPy/SciPy, avoiding lalsimulation. It mirrors the structure of
-``LALSimIMRSEOBNRv4ROM.c``: interpolate projection coefficients over
-`(eta, chi1, chi2)` using tensor-product cubic B-splines, reconstruct
-amplitude/phase on sparse frequency grids, glue the low/high submodels at
-``Mfm=0.01``, then spline-evaluate onto the requested frequency grid.
+The public ROM data are loaded from ``SEOBNRv4ROM_v3.0.hdf5``. Parameter-
+space interpolation, sparse-grid reconstruction, frequency interpolation,
+and waveform assembly all run with Torch on the active ``TorchScheme``
+device. HDF5 input and scalar parameter validation remain host-side.
 
-Activation (default is CPU/LAL path):
-- Global: ``PYCBC_TORCH_NATIVE_PORTS=1`` or ``PYCBC_TORCH_NATIVE=1``
-- Per-model: ``PYCBC_SEOBNRV4_NATIVE=1``
-
-Limitations:
-- Tidal corrections and NRTidal variants are not implemented (BBH only).
-- Uses NumPy/SciPy; output is a PyCBC FrequencySeries on the current Torch
-  device via the usual scheme casting.
+The implementation follows ``LALSimIMRSEOBNRv4ROM.c`` from LALSuite 7.26.1,
+including its frequency-series layout, polarization normalization, reference
+phase, and coalescence-time correction. Only the aligned-spin BBH ROM is
+implemented; the public dispatcher retains the LAL path for unsupported
+options and for the distinct time-domain ``SEOBNRv4`` approximant.
 """
 
 from __future__ import annotations
 
+import bisect
 import math
 import os
+import warnings
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Tuple
+from typing import Dict, Tuple
 
 import h5py
-import numpy as np
-from scipy.interpolate import CubicSpline
+import torch
 
 import lal
+import pycbc.scheme as _scheme
 from pycbc import pnutils
 from pycbc.types import FrequencySeries
+from pycbc.types.array_torch import TorchArrayData
+from pycbc.waveform._seobnrv4_qnm import seobnrv4_qnm_omega
 
 _ROM_FILENAME = "SEOBNRv4ROM_v3.0.hdf5"
-_MFM = 0.01  # gluing frequency (geometric Mf)
+_MFM = 0.01
+_SPLINE_DEGREE = 3
 
 
 # ---------------------------------------------------------------------------
-# Utilities
+# Public native-path boundary
+# ---------------------------------------------------------------------------
+
+
+_DEFAULT_ONLY_ORDER_KEYS = (
+    "phase_order",
+    "spin_order",
+    "tidal_order",
+    "amplitude_order",
+    "eccentricity_order",
+)
+_TRANSVERSE_SPIN_KEYS = ("spin1x", "spin1y", "spin2x", "spin2y")
+_TIDAL_KEYS = (
+    "lambda1",
+    "lambda2",
+    "dquad_mon1",
+    "dquad_mon2",
+    "lambda_octu1",
+    "lambda_octu2",
+    "quadfmode1",
+    "quadfmode2",
+    "octufmode1",
+    "octufmode2",
+)
+_NON_GR_KEYS = (
+    "dchi0",
+    "dchi1",
+    "dchi2",
+    "dchi3",
+    "dchi4",
+    "dchi5",
+    "dchi5l",
+    "dchi6",
+    "dchi6l",
+    "dchi7",
+    "dalpha1",
+    "dalpha2",
+    "dalpha3",
+    "dalpha4",
+    "dalpha5",
+    "dbeta1",
+    "dbeta2",
+    "dbeta3",
+)
+
+
+def _is_nonzero(value) -> bool:
+    if value is None:
+        return False
+    try:
+        return float(value) != 0.0
+    except (TypeError, ValueError, OverflowError):
+        return True
+
+
+def _is_default_order(value) -> bool:
+    try:
+        return float(value) == -1.0 and int(value) == -1
+    except (TypeError, ValueError, OverflowError):
+        return False
+
+
+def seobnrv4_rom_native_supported(params) -> bool:
+    """Return whether ``params`` are covered by the native ROM evaluator."""
+
+    if params.get("approximant", "SEOBNRv4_ROM") != "SEOBNRv4_ROM":
+        return False
+    if any(
+        not _is_default_order(params.get(key, -1))
+        for key in _DEFAULT_ONLY_ORDER_KEYS
+    ):
+        return False
+    if any(
+        _is_nonzero(params.get(key, 0.0))
+        for key in _TRANSVERSE_SPIN_KEYS
+        + _TIDAL_KEYS
+        + _NON_GR_KEYS
+        + ("eccentricity", "mean_per_ano")
+    ):
+        return False
+    if any(
+        _is_nonzero(params.get(key, 0.0))
+        for key in ("frame_axis", "modes_choice", "side_bands")
+    ):
+        return False
+    if params.get("mode_array") is not None or params.get("numrel_data", ""):
+        return False
+    return True
+
+
+# ---------------------------------------------------------------------------
+# ROM data
 # ---------------------------------------------------------------------------
 
 
 def _find_rom_file() -> Path:
-    """Locate the ROM HDF5 file (local checkout first, else LAL_DATA_PATH)."""
-    local = Path(__file__).resolve().parent / _ROM_FILENAME
-    if local.exists():
-        return local
-    for base in os.environ.get("LAL_DATA_PATH", "").split(":"):
-        candidate = Path(base) / _ROM_FILENAME
-        if candidate.exists():
+    search_dirs = [Path(__file__).resolve().parent]
+    search_dirs.extend(
+        Path(base)
+        for base in os.environ.get("LAL_DATA_PATH", "").split(os.pathsep)
+        if base
+    )
+    for directory in search_dirs:
+        candidate = directory / _ROM_FILENAME
+        if candidate.is_file():
             return candidate
-    raise FileNotFoundError(f"{_ROM_FILENAME} not found (put it next to this module or in $LAL_DATA_PATH)")
+    raise FileNotFoundError(
+        f"{_ROM_FILENAME} not found; place it next to this module or on "
+        "$LAL_DATA_PATH"
+    )
 
 
-def _bspline_basis(breaks: np.ndarray, x: float, k: int = 3) -> np.ndarray:
-    """Return all basis function values at x for an open, clamped B-spline."""
-    # For clamped splines: knot vector length = nbreak + 2k
-    t = np.concatenate([np.repeat(breaks[0], k), breaks, np.repeat(breaks[-1], k)])
-    n_coeff = len(breaks) + k - 1
-    basis = np.empty(n_coeff)
-    for i in range(n_coeff):
-        c = np.zeros(n_coeff)
-        c[i] = 1.0
-        basis[i] = _de_boor(t, c, k, x)
-    return basis
-
-
-def _de_boor(t: np.ndarray, c: np.ndarray, k: int, x: float) -> float:
-    """Evaluate one B-spline basis (coeff vector c) at x."""
-    # Based on scipy BSpline evaluation but compact; k is degree.
-    # Find span
-    n = len(c)
-    if x <= t[k]:
-        i = k
-    elif x >= t[n]:
-        i = n - 1
-    else:
-        i = np.searchsorted(t, x) - 1
-    d = c[i - k : i + 1].astype(float)
-    for r in range(1, k + 1):
-        for j in range(k, r - 1, -1):
-            left = t[i + j - k]
-            right = t[i + j - r + 1]
-            denom = right - left
-            alpha = 0.0 if denom == 0 else (x - left) / denom
-            d[j] = (1.0 - alpha) * d[j - 1] + alpha * d[j]
-    return d[k]
+@dataclass(frozen=True)
+class _SubModelMetadata:
+    eta_bounds: Tuple[float, float]
+    chi1_bounds: Tuple[float, float]
+    chi2_bounds: Tuple[float, float]
+    amp_bounds: Tuple[float, float]
+    phase_bounds: Tuple[float, float]
 
 
 @dataclass
 class _SubModel:
-    etavec: np.ndarray  # breakpoints (eta grid)
-    chi1vec: np.ndarray
-    chi2vec: np.ndarray
-    cvec_amp: np.ndarray  # shape (nbx, nby, nbz, nk_amp)
-    cvec_phi: np.ndarray  # shape (nbx, nby, nbz, nk_phi)
-    Bamp: np.ndarray      # (nk_amp, nfreq_amp)
-    Bphi: np.ndarray      # (nk_phi, nfreq_phi)
-    gA: np.ndarray        # frequency grid for amplitude (Mf)
-    gPhi: np.ndarray      # frequency grid for phase (Mf)
+    eta_breaks: Tuple[float, ...]
+    chi1_breaks: Tuple[float, ...]
+    chi2_breaks: Tuple[float, ...]
+    etavec: torch.Tensor
+    chi1vec: torch.Tensor
+    chi2vec: torch.Tensor
+    cvec_amp: torch.Tensor  # (nk_amp, nbx, nby, nbz)
+    cvec_phi: torch.Tensor  # (nk_phi, nbx, nby, nbz)
+    Bamp: torch.Tensor
+    Bphi: torch.Tensor
+    gA: torch.Tensor
+    gPhi: torch.Tensor
 
-    @property
-    def nk_amp(self):
-        return self.Bamp.shape[0]
 
-    @property
-    def nk_phi(self):
-        return self.Bphi.shape[0]
-
-    @property
-    def nbx(self):
-        return self.etavec.size + 2  # number of basis funcs
-
-    @property
-    def nby(self):
-        return self.chi1vec.size + 2
-
-    @property
-    def nbz(self):
-        return self.chi2vec.size + 2
-
-    @property
-    def eta_bounds(self):
-        return (self.etavec[0], self.etavec[-1])
-
-    @property
-    def chi1_bounds(self):
-        return (self.chi1vec[0], self.chi1vec[-1])
+def _to_rom_tensor(array, dtype, device):
+    return torch.as_tensor(array, dtype=dtype, device=device)
 
 
 @lru_cache(None)
-def _load_rom():
-    path = _find_rom_file()
-    with h5py.File(path, "r") as f:
-        subs = {}
+def _rom_metadata() -> Dict[str, _SubModelMetadata]:
+    metadata = {}
+    with h5py.File(_find_rom_file(), "r") as rom:
         for name in ("sub1", "sub2", "sub3"):
-            g = f[name]
-            etavec = g["etavec"][:]
-            chi1vec = g["chi1vec"][:]
-            chi2vec = g["chi2vec"][:]
-            # reshape coefficient vectors -> (nbx, nby, nbz, nk)
-            nbx = etavec.size + 2
-            nby = chi1vec.size + 2
-            nbz = chi2vec.size + 2
-            nk_amp = g["Bamp"].shape[0]
-            nk_phi = g["Bphase"].shape[0]
-            c_amp = g["Amp_ciall"][:].reshape(nk_amp, nbx, nby, nbz).transpose(1, 2, 3, 0)
-            c_phi = g["Phase_ciall"][:].reshape(nk_phi, nbx, nby, nbz).transpose(1, 2, 3, 0)
-            subs[name] = _SubModel(
-                etavec=etavec,
-                chi1vec=chi1vec,
-                chi2vec=chi2vec,
-                cvec_amp=c_amp,
-                cvec_phi=c_phi,
-                Bamp=g["Bamp"][:],
-                Bphi=g["Bphase"][:],
-                gA=g["Mf_grid_Amp"][:],
-                gPhi=g["Mf_grid_Phi"][:],
+            group = rom[name]
+            eta = group["etavec"]
+            chi1 = group["chi1vec"]
+            chi2 = group["chi2vec"]
+            amp = group["Mf_grid_Amp"]
+            phase = group["Mf_grid_Phi"]
+            metadata[name] = _SubModelMetadata(
+                eta_bounds=(float(eta[0]), float(eta[-1])),
+                chi1_bounds=(float(chi1[0]), float(chi1[-1])),
+                chi2_bounds=(float(chi2[0]), float(chi2[-1])),
+                amp_bounds=(float(amp[0]), float(amp[-1])),
+                phase_bounds=(float(phase[0]), float(phase[-1])),
             )
-    return subs
+    return metadata
+
+
+@lru_cache(None)
+def _load_submodel(name: str, dtype: torch.dtype, device: torch.device) -> _SubModel:
+    if name not in ("sub1", "sub2", "sub3"):
+        raise ValueError(f"unknown SEOBNRv4 ROM submodel {name}")
+
+    with h5py.File(_find_rom_file(), "r") as rom:
+        group = rom[name]
+        eta = group["etavec"][:]
+        chi1 = group["chi1vec"][:]
+        chi2 = group["chi2vec"][:]
+        nbx = eta.size + 2
+        nby = chi1.size + 2
+        nbz = chi2.size + 2
+        nk_amp = group["Bamp"].shape[0]
+        nk_phi = group["Bphase"].shape[0]
+
+        cvec_amp = group["Amp_ciall"][:].reshape(nk_amp, nbx, nby, nbz)
+        cvec_phi = group["Phase_ciall"][:].reshape(nk_phi, nbx, nby, nbz)
+        return _SubModel(
+            eta_breaks=tuple(float(value) for value in eta),
+            chi1_breaks=tuple(float(value) for value in chi1),
+            chi2_breaks=tuple(float(value) for value in chi2),
+            etavec=_to_rom_tensor(eta, dtype, device),
+            chi1vec=_to_rom_tensor(chi1, dtype, device),
+            chi2vec=_to_rom_tensor(chi2, dtype, device),
+            cvec_amp=_to_rom_tensor(cvec_amp, dtype, device),
+            cvec_phi=_to_rom_tensor(cvec_phi, dtype, device),
+            Bamp=_to_rom_tensor(group["Bamp"][:], dtype, device),
+            Bphi=_to_rom_tensor(group["Bphase"][:], dtype, device),
+            gA=_to_rom_tensor(group["Mf_grid_Amp"][:], dtype, device),
+            gPhi=_to_rom_tensor(group["Mf_grid_Phi"][:], dtype, device),
+        )
+
+
+def _clear_rom_cache() -> None:
+    """Release cached ROM tensors, primarily for device-level tests."""
+
+    _load_submodel.cache_clear()
+    _rom_metadata.cache_clear()
 
 
 # ---------------------------------------------------------------------------
-# Core interpolation and waveform build
+# Torch interpolation
 # ---------------------------------------------------------------------------
 
 
-def _interp_coeffs(sub: _SubModel, eta: float, chi1: float, chi2: float) -> Tuple[np.ndarray, np.ndarray]:
-    bx = _bspline_basis(sub.etavec, eta)
-    by = _bspline_basis(sub.chi1vec, chi1)
-    bz = _bspline_basis(sub.chi2vec, chi2)
-    # Tensor contraction: (nbx,nby,nbz,nk) with basis
-    c_amp = np.einsum("i,j,k,ijkn->n", bx, by, bz, sub.cvec_amp, optimize=True)
-    c_phi = np.einsum("i,j,k,ijkn->n", bx, by, bz, sub.cvec_phi, optimize=True)
-    return c_amp, c_phi
+def _bspline_window(
+    breaks: Tuple[float, ...], grid: torch.Tensor, value: float
+) -> Tuple[int, torch.Tensor]:
+    """Return the first index and four nonzero cubic B-spline values."""
+
+    degree = _SPLINE_DEGREE
+    ncoeff = len(breaks) + degree - 1
+    if value <= breaks[0]:
+        span = degree
+    elif value >= breaks[-1]:
+        span = ncoeff - 1
+    else:
+        # The clamped knot vector contains ``degree`` extra copies of the
+        # first endpoint before the breakpoint sequence.
+        span = bisect.bisect_right(breaks, value) - 1 + degree
+
+    knots = torch.cat((grid[0].repeat(degree), grid, grid[-1].repeat(degree)))
+    x = torch.as_tensor(value, dtype=grid.dtype, device=grid.device)
+    basis = torch.zeros(degree + 1, dtype=grid.dtype, device=grid.device)
+    left = torch.zeros_like(basis)
+    right = torch.zeros_like(basis)
+    basis[0] = 1.0
+    for column in range(1, degree + 1):
+        left[column] = x - knots[span + 1 - column]
+        right[column] = knots[span + column] - x
+        saved = torch.zeros((), dtype=grid.dtype, device=grid.device)
+        for row in range(column):
+            denominator = right[row + 1] + left[column - row]
+            term = basis[row] / denominator
+            basis[row] = saved + right[row + 1] * term
+            saved = left[column - row] * term
+        basis[column] = saved
+    return span - degree, basis
 
 
-def _glue_amp(sub_lo: _SubModel, sub_hi: _SubModel, amp_lo: np.ndarray, amp_hi: np.ndarray):
-    j_lo = np.max(np.nonzero(sub_lo.gA <= _MFM))
-    j_hi = np.min(np.nonzero(sub_hi.gA > _MFM))
-    gA = np.concatenate([sub_lo.gA[: j_lo + 1], sub_hi.gA[j_hi:]])
-    amp = np.concatenate([amp_lo[: j_lo + 1], amp_hi[j_hi:]])
-    return CubicSpline(gA, amp, bc_type="natural")
+def _parameter_basis(sub: _SubModel, eta: float, chi1: float, chi2: float):
+    ix, bx = _bspline_window(sub.eta_breaks, sub.etavec, eta)
+    iy, by = _bspline_window(sub.chi1_breaks, sub.chi1vec, chi1)
+    iz, bz = _bspline_window(sub.chi2_breaks, sub.chi2vec, chi2)
+    return ix, iy, iz, bx, by, bz
 
 
-def _glue_phase(sub_lo: _SubModel, sub_hi: _SubModel, phi_lo: np.ndarray, phi_hi: np.ndarray):
-    j_lo = np.max(np.nonzero(sub_lo.gPhi <= _MFM))
-    j_hi = np.min(np.nonzero(sub_hi.gPhi > _MFM))
-    gP = np.concatenate([sub_lo.gPhi[: j_lo + 1], sub_hi.gPhi[j_hi:]])
+def _interpolate_coefficients(
+    coefficients: torch.Tensor, basis
+) -> torch.Tensor:
+    ix, iy, iz, bx, by, bz = basis
+    local = coefficients[:, ix : ix + 4, iy : iy + 4, iz : iz + 4]
+    return torch.einsum("nijk,i,j,k->n", local, bx, by, bz)
 
-    # Adjust high-frequency phase to ensure C1 match at Mfm
-    nn = 15
-    lo_spline = CubicSpline(sub_lo.gPhi, phi_lo, bc_type="natural")
-    g_hi_win = sub_hi.gPhi[j_hi - nn : j_hi + nn + 1]
-    phi_lo_win = lo_spline(g_hi_win)
-    phi_hi_win = phi_hi[j_hi - nn : j_hi + nn + 1]
-    c_lo = np.polyfit(g_hi_win, phi_lo_win, 3)
-    c_hi = np.polyfit(g_hi_win, phi_hi_win, 3)
-    # derivatives and value at Mfm
-    d_lo = np.polyder(c_lo)
-    d_hi = np.polyder(c_hi)
-    omega_lo = np.polyval(d_lo, _MFM)
-    omega_hi = np.polyval(d_hi, _MFM)
-    delta_omega = omega_hi - omega_lo
-    phi_lo_at = np.polyval(c_lo, _MFM)
-    phi_hi_at = np.polyval(c_hi, _MFM)
-    delta_phi = phi_hi_at - phi_lo_at - delta_omega * _MFM
-    phi_hi_adj = phi_hi - delta_omega * sub_hi.gPhi - delta_phi
 
-    phi = np.concatenate([phi_lo[: j_lo + 1], phi_hi_adj[j_hi:]])
-    return CubicSpline(gP, phi, bc_type="natural")
+def _evaluate_submodel(sub: _SubModel, eta: float, chi1: float, chi2: float):
+    basis = _parameter_basis(sub, eta, chi1, chi2)
+    amp_coeff = _interpolate_coefficients(sub.cvec_amp, basis)
+    phase_coeff = _interpolate_coefficients(sub.cvec_phi, basis)
+    return sub.Bamp.T @ amp_coeff, sub.Bphi.T @ phase_coeff
+
+
+def _natural_cubic_coeff(x: torch.Tensor, y: torch.Tensor):
+    """Return local coefficients for the GSL-compatible natural spline."""
+
+    count = x.numel()
+    width = x[1:] - x[:-1]
+    alpha = 3.0 * (
+        (y[2:] - y[1:-1]) / width[1:]
+        - (y[1:-1] - y[:-2]) / width[:-1]
+    )
+    diagonal = torch.ones(count, dtype=x.dtype, device=x.device)
+    upper = torch.zeros(count, dtype=x.dtype, device=x.device)
+    rhs = torch.zeros(count, dtype=x.dtype, device=x.device)
+    for index in range(1, count - 1):
+        diagonal[index] = (
+            2.0 * (x[index + 1] - x[index - 1])
+            - width[index - 1] * upper[index - 1]
+        )
+        upper[index] = width[index] / diagonal[index]
+        rhs[index] = (
+            alpha[index - 1] - width[index - 1] * rhs[index - 1]
+        ) / diagonal[index]
+
+    quadratic = torch.zeros(count, dtype=x.dtype, device=x.device)
+    linear = torch.zeros(count - 1, dtype=x.dtype, device=x.device)
+    cubic = torch.zeros(count - 1, dtype=x.dtype, device=x.device)
+    for index in range(count - 2, -1, -1):
+        quadratic[index] = rhs[index] - upper[index] * quadratic[index + 1]
+        linear[index] = (y[index + 1] - y[index]) / width[index] - (
+            width[index]
+            * (quadratic[index + 1] + 2.0 * quadratic[index])
+            / 3.0
+        )
+        cubic[index] = (
+            quadratic[index + 1] - quadratic[index]
+        ) / (3.0 * width[index])
+    return linear, quadratic, cubic
+
+
+def _spline_interval(points: torch.Tensor, knots: torch.Tensor) -> torch.Tensor:
+    indices = torch.searchsorted(knots, points.clamp(knots[0], knots[-1])) - 1
+    return indices.clamp(0, knots.numel() - 2)
+
+
+def _spline_eval(points, knots, values, linear, quadratic, cubic):
+    indices = _spline_interval(points, knots)
+    offset = points - knots[indices]
+    return (
+        values[indices]
+        + linear[indices] * offset
+        + quadratic[indices] * offset**2
+        + cubic[indices] * offset**3
+    )
+
+
+def _spline_derivative(points, knots, linear, quadratic, cubic):
+    indices = _spline_interval(points, knots)
+    offset = points - knots[indices]
+    return (
+        linear[indices]
+        + 2.0 * quadratic[indices] * offset
+        + 3.0 * cubic[indices] * offset**2
+    )
+
+
+def _fit_cubic_at_match(x: torch.Tensor, y: torch.Tensor):
+    """Return cubic-fit value and derivative at the gluing frequency."""
+
+    centered = x - _MFM
+    design = torch.stack(
+        (
+            torch.ones_like(centered),
+            centered,
+            centered**2,
+            centered**3,
+        ),
+        dim=1,
+    )
+    # Removing the large phase offset before the fit is important in float32:
+    # only the value and slope mismatch matter, while the ROM phases themselves
+    # are O(1e4).
+    phase_center = y.mean()
+    normal = design.T @ design
+    coefficients = torch.linalg.solve(normal, design.T @ (y - phase_center))
+    return coefficients[0] + phase_center, coefficients[1]
+
+
+def _glue_amplitude(sub_lo, sub_hi, amp_lo, amp_hi):
+    j_lo = int(torch.searchsorted(sub_lo.gA, _MFM, right=True)) - 1
+    j_hi = int(torch.searchsorted(sub_hi.gA, _MFM, right=True))
+    grid = torch.cat((sub_lo.gA[: j_lo + 1], sub_hi.gA[j_hi:]))
+    values = torch.cat((amp_lo[: j_lo + 1], amp_hi[j_hi:]))
+    return grid, values, _natural_cubic_coeff(grid, values)
+
+
+def _glue_phase(sub_lo, sub_hi, phase_lo, phase_hi):
+    j_lo = int(torch.searchsorted(sub_lo.gPhi, _MFM, right=True)) - 1
+    j_hi = int(torch.searchsorted(sub_hi.gPhi, _MFM, right=True))
+
+    low_coeff = _natural_cubic_coeff(sub_lo.gPhi, phase_lo)
+    high_window = sub_hi.gPhi[j_hi - 15 : j_hi + 16]
+    low_window = _spline_eval(
+        high_window, sub_lo.gPhi, phase_lo, *low_coeff
+    )
+    high_values = phase_hi[j_hi - 15 : j_hi + 16]
+    low_value, low_derivative = _fit_cubic_at_match(high_window, low_window)
+    high_value, high_derivative = _fit_cubic_at_match(
+        high_window, high_values
+    )
+    delta_value = high_value - low_value
+    delta_derivative = high_derivative - low_derivative
+    adjusted_high = (
+        phase_hi
+        - delta_derivative * (sub_hi.gPhi - _MFM)
+        - delta_value
+    )
+
+    grid = torch.cat((sub_lo.gPhi[: j_lo + 1], sub_hi.gPhi[j_hi:]))
+    values = torch.cat((phase_lo[: j_lo + 1], adjusted_high[j_hi:]))
+    return grid, values, _natural_cubic_coeff(grid, values)
+
+
+# ---------------------------------------------------------------------------
+# Waveform assembly
+# ---------------------------------------------------------------------------
+
+
+def _next_power_of_two(value: int) -> int:
+    if value <= 1:
+        return 1
+    return 1 << (value - 1).bit_length()
+
+
+def _nudge_eta(eta: float) -> float:
+    for boundary in (0.01, 0.25):
+        if math.isclose(eta, boundary, rel_tol=1e-6, abs_tol=0.0):
+            return boundary
+    return eta
 
 
 def seobnrv4_fd_torch(**p):
-    """Return (hp, hc) FrequencySeries for SEOBNRv4 using pure NumPy/SciPy."""
-    subs = _load_rom()
+    """Generate native Torch ``SEOBNRv4_ROM`` plus/cross polarizations."""
+
+    if not seobnrv4_rom_native_supported(p):
+        raise ValueError(
+            "SEOBNRv4_ROM parameters are not supported by the native Torch path"
+        )
+    state = _scheme.mgr.state
+    if not isinstance(state, _scheme.TorchScheme):
+        raise RuntimeError("native Torch SEOBNRv4_ROM requires TorchScheme")
 
     mass1 = float(p["mass1"])
     mass2 = float(p["mass2"])
@@ -242,61 +477,186 @@ def seobnrv4_fd_torch(**p):
     delta_f = float(p["delta_f"])
     f_lower = float(p["f_lower"])
     f_final = float(p.get("f_final", 0.0))
-    f_ref = float(p.get("f_ref", f_lower))
-    distance = pnutils.megaparsecs_to_meters(float(p["distance"]))
+    f_ref = float(p.get("f_ref", 0.0))
+    distance_mpc = float(p["distance"])
     inclination = float(p.get("inclination", 0.0))
     coa_phase = float(p.get("coa_phase", 0.0))
-    approximant = p.get("approximant", "SEOBNRv4")
-    use_tides = "NRTIDAL" in approximant.upper()
-    if use_tides:
-        raise NotImplementedError(
-            "The native SEOBNRv4 Torch port supports BBH waveforms only; "
-            "use the lalsimulation fallback for NRTidal approximants."
+    long_asc_nodes = float(p.get("long_asc_nodes", 0.0))
+
+    scalars = {
+        "mass1": mass1,
+        "mass2": mass2,
+        "spin1z": spin1z,
+        "spin2z": spin2z,
+        "delta_f": delta_f,
+        "f_lower": f_lower,
+        "f_final": f_final,
+        "f_ref": f_ref,
+        "distance": distance_mpc,
+        "inclination": inclination,
+        "coa_phase": coa_phase,
+        "long_asc_nodes": long_asc_nodes,
+    }
+    for name, value in scalars.items():
+        if not math.isfinite(value):
+            raise ValueError(f"{name} must be finite")
+    if mass1 <= 0.0 or mass2 <= 0.0:
+        raise ValueError("component masses must be positive")
+    if abs(spin1z) > 1.0 or abs(spin2z) > 1.0:
+        raise ValueError("dimensionless component spins must lie in [-1, 1]")
+    if delta_f <= 0.0 or f_lower <= 0.0:
+        raise ValueError("delta_f and f_lower must be positive")
+    if f_final < 0.0 or f_ref < 0.0:
+        raise ValueError("f_final and f_ref must be non-negative")
+    if distance_mpc <= 0.0:
+        raise ValueError("distance must be positive")
+
+    if mass1 < mass2:
+        mass1, mass2 = mass2, mass1
+        spin1z, spin2z = spin2z, spin1z
+
+    total_mass = mass1 + mass2
+    eta = _nudge_eta(mass1 * mass2 / total_mass**2)
+    if not 0.01 <= eta <= 0.25:
+        raise ValueError("SEOBNRv4_ROM requires 0.01 <= eta <= 0.25")
+    total_mass_seconds = total_mass * lal.MTSUN_SI
+    if total_mass > 500.0:
+        warnings.warn(
+            "SEOBNRv4_ROM can disagree with SEOBNRv4 above 500 solar masses",
+            RuntimeWarning,
+            stacklevel=2,
         )
 
-    M = mass1 + mass2
-    eta = mass1 * mass2 / (M * M)
-    M_sec = M * lal.MTSUN_SI
+    metadata = _rom_metadata()
+    high_name = (
+        "sub2"
+        if spin1z < metadata["sub3"].chi1_bounds[0]
+        or eta > metadata["sub3"].eta_bounds[1]
+        else "sub3"
+    )
+    minimum_mf = max(
+        metadata["sub1"].amp_bounds[0], metadata["sub1"].phase_bounds[0]
+    )
+    maximum_mf = min(
+        metadata[high_name].amp_bounds[1],
+        metadata[high_name].phase_bounds[1],
+    )
+    lower_mf = f_lower * total_mass_seconds
+    requested_final_mf = f_final * total_mass_seconds
+    if lower_mf < minimum_mf:
+        raise ValueError(
+            f"starting frequency M*f_lower={lower_mf:g} is below the "
+            f"ROM minimum {minimum_mf:g}"
+        )
+    if requested_final_mf == 0.0 or requested_final_mf > maximum_mf:
+        final_mf = maximum_mf
+    elif requested_final_mf < minimum_mf:
+        raise ValueError("f_final is below the ROM minimum frequency")
+    else:
+        final_mf = requested_final_mf
+    if final_mf <= lower_mf:
+        raise ValueError("f_final (or the ROM cutoff) must exceed f_lower")
 
-    # Select submodel_hi
-    sub_lo = subs["sub1"]
-    sub_hi = subs["sub2"] if (spin1z < subs["sub3"].chi1_bounds[0] or eta > subs["sub3"].eta_bounds[1]) else subs["sub3"]
+    reference_mf = (f_ref if f_ref > 0.0 else f_lower) * total_mass_seconds
+    reference_mf = min(max(reference_mf, minimum_mf), maximum_mf)
+    device = state.torch_device
+    real_dtype = torch.float32 if device.type == "mps" else torch.float64
+    sub_lo = _load_submodel("sub1", real_dtype, device)
+    sub_hi = _load_submodel(high_name, real_dtype, device)
 
-    # Frequency bounds in geometric units
-    fmax_geom = f_final * M_sec if f_final > 0 else min(sub_hi.gA[-1], sub_hi.gPhi[-1])
-    fmin_geom = f_lower * M_sec
-    if fmin_geom < max(sub_lo.gA[0], sub_lo.gPhi[0]):
-        raise ValueError("f_lower below ROM support")
-    if fmax_geom > min(sub_hi.gA[-1], sub_hi.gPhi[-1]):
-        fmax_geom = min(sub_hi.gA[-1], sub_hi.gPhi[-1])
+    amp_lo, phase_lo = _evaluate_submodel(
+        sub_lo, eta, spin1z, spin2z
+    )
+    amp_hi, phase_hi = _evaluate_submodel(
+        sub_hi, eta, spin1z, spin2z
+    )
+    amp_grid, amp_values, amp_coeff = _glue_amplitude(
+        sub_lo, sub_hi, amp_lo, amp_hi
+    )
+    phase_grid, phase_values, phase_coeff = _glue_phase(
+        sub_lo, sub_hi, phase_lo, phase_hi
+    )
 
-    # Interpolate coefficients
-    c_amp_lo, c_phi_lo = _interp_coeffs(sub_lo, eta, spin1z, spin2z)
-    c_amp_hi, c_phi_hi = _interp_coeffs(sub_hi, eta, spin1z, spin2z)
+    final_hz = final_mf / total_mass_seconds
+    npts = _next_power_of_two(int(final_hz / delta_f)) + 1
+    if f_final > final_hz:
+        npts = _next_power_of_two(int(f_final / delta_f)) + 1
+    complex_dtype = (
+        torch.complex64 if real_dtype == torch.float32 else torch.complex128
+    )
+    hp = torch.zeros(npts, dtype=complex_dtype, device=device)
+    hc = torch.zeros_like(hp)
 
-    # Evaluate amplitude/phase on sparse ROM grids
-    amp_lo = sub_lo.Bamp.T @ c_amp_lo
-    amp_hi = sub_hi.Bamp.T @ c_amp_hi
-    phi_lo = sub_lo.Bphi.T @ c_phi_lo
-    phi_hi = sub_hi.Bphi.T @ c_phi_hi
+    first_bin = math.ceil(f_lower / delta_f)
+    stop_bin = math.ceil(final_hz / delta_f)
+    bin_indices = torch.arange(first_bin, stop_bin, device=device)
+    frequencies_mf = bin_indices.to(real_dtype) * (
+        delta_f * total_mass_seconds
+    )
+    amplitude = _spline_eval(
+        frequencies_mf, amp_grid, amp_values, *amp_coeff
+    )
+    phase = _spline_eval(
+        frequencies_mf, phase_grid, phase_values, *phase_coeff
+    )
+    reference = torch.as_tensor(
+        reference_mf, dtype=real_dtype, device=device
+    )
+    phase_reference = _spline_eval(
+        reference, phase_grid, phase_values, *phase_coeff
+    ) - 2.0 * coa_phase
 
-    # Glue and build splines
-    amp_spline = _glue_amp(sub_lo, sub_hi, amp_lo, amp_hi)
-    phi_spline = _glue_phase(sub_lo, sub_hi, phi_lo, phi_hi)
+    ringdown_mf = seobnrv4_qnm_omega(
+        mass1, mass2, spin1z, spin2z, 2, 2
+    ) / (2.0 * math.pi)
+    ringdown_mf = min(ringdown_mf, maximum_mf)
+    if ringdown_mf < minimum_mf:
+        raise ValueError("SEOBNRv4 ringdown frequency is below the ROM minimum")
+    ringdown = torch.as_tensor(
+        ringdown_mf, dtype=real_dtype, device=device
+    )
+    time_correction = _spline_derivative(
+        ringdown, phase_grid, *phase_coeff
+    ) / (2.0 * math.pi)
+    phase = (
+        phase
+        - phase_reference
+        - 2.0
+        * math.pi
+        * (frequencies_mf - reference)
+        * time_correction
+    )
 
-    # Build uniform frequency grid
-    npts = int(np.ceil(fmax_geom / (delta_f * M_sec)))
-    freqs_geom = (np.arange(npts) * delta_f) * M_sec
-    mask = freqs_geom >= fmin_geom
-    freqs_geom = freqs_geom[mask]
-    freqs_hz = freqs_geom / M_sec
+    distance = pnutils.megaparsecs_to_meters(distance_mpc)
+    amplitude_scale = (
+        0.5
+        * total_mass
+        * total_mass_seconds
+        * lal.MRSUN_SI
+        / distance
+    )
+    htilde = torch.polar(amplitude_scale * amplitude, phase).to(complex_dtype)
+    cos_inclination = math.cos(inclination)
+    plus = 0.5 * (1.0 + cos_inclination**2) * htilde
+    cross = complex(0.0, -cos_inclination) * htilde
 
-    amp = amp_spline(freqs_geom)
-    phase = phi_spline(freqs_geom)
+    cos_nodes = math.cos(2.0 * long_asc_nodes)
+    sin_nodes = math.sin(2.0 * long_asc_nodes)
+    hp[first_bin:stop_bin] = cos_nodes * plus + sin_nodes * cross
+    hc[first_bin:stop_bin] = cos_nodes * cross - sin_nodes * plus
 
-    h22 = amp * np.exp(-1j * (phase - phase[0] + 2 * coa_phase))
-    cosi = math.cos(inclination)
-    hp = 0.5 * (1 + cosi * cosi) * h22 * (2 * np.sqrt(5.0 / (64.0 * math.pi)) * M * lal.MRSUN_SI * M_sec / distance)
-    hc = -1j * cosi * h22 * (2 * np.sqrt(5.0 / (64.0 * math.pi)) * M * lal.MRSUN_SI * M_sec / distance)
+    epoch = -1.0 / delta_f
+    return (
+        FrequencySeries(
+            TorchArrayData(hp), delta_f=delta_f, epoch=epoch, copy=False
+        ),
+        FrequencySeries(
+            TorchArrayData(hc), delta_f=delta_f, epoch=epoch, copy=False
+        ),
+    )
 
-    return FrequencySeries(hp, delta_f=delta_f, epoch=0), FrequencySeries(hc, delta_f=delta_f, epoch=0)
+
+__all__ = [
+    "seobnrv4_fd_torch",
+    "seobnrv4_rom_native_supported",
+]

@@ -267,13 +267,17 @@ def _lalsim_fd_waveform(**p):
             return imrphenomd_fd_torch(**p)
 
     if (
-        p.get("approximant") == "SEOBNRv4"
+        p.get("approximant") == "SEOBNRv4_ROM"
         and using_torch
         and torch_native_enabled("PYCBC_SEOBNRV4_NATIVE", default=False)
     ):
-        from .seobnrv4_torch import seobnrv4_fd_torch
+        from .seobnrv4_torch import (
+            seobnrv4_fd_torch,
+            seobnrv4_rom_native_supported,
+        )
 
-        return seobnrv4_fd_torch(**p)
+        if seobnrv4_rom_native_supported(p):
+            return seobnrv4_fd_torch(**p)
 
     if (
         p.get("approximant") == "SEOBNRv4HM_ROM"
@@ -1241,29 +1245,26 @@ fd_wav.update({_scheme.CPUScheme:cpu_fd,
                getattr(_scheme, 'TorchScheme', object()): cpu_fd})
 # Allow torch-specific overrides without mutating the shared cpu_fd dict
 if hasattr(_scheme, "TorchScheme"):
-    def _seobnrv4_dispatch(**p):
-        if torch_native_enabled("PYCBC_SEOBNRV4_NATIVE", default=False):
-            from .seobnrv4_torch import seobnrv4_fd_torch
-            return seobnrv4_fd_torch(**p)
-
-        # Calling the normal waveform entry point under the Torch scheme would
-        # route straight back through this dispatcher. Select the corresponding
-        # CPU generator explicitly and let get_fd_waveform cast its result back
-        # to Torch afterwards.
+    def _seobnrv4_td_to_fd_torch_dispatch(**p):
+        # SEOBNRv4 is a time-domain LAL model. Run its established TD-to-FD
+        # conversion under CPUScheme; get_fd_waveform casts the result back to
+        # the requested Torch device after this function returns.
         old_scheme = _scheme.mgr.state
         try:
             _scheme.mgr.state = _scheme.CPUScheme()
-            cpu_generator = fd_wav[_scheme.CPUScheme][p["approximant"]]
-            return cpu_generator(**p)
+            return get_fd_waveform_from_td(**p)
         finally:
             _scheme.mgr.state = old_scheme
 
-    fd_wav[_scheme.TorchScheme] = dict(fd_wav[_scheme.CPUScheme])
-    for approximant in ("SEOBNRv4", "SEOBNRv4_ROM"):
-        if approximant in fd_wav[_scheme.TorchScheme]:
-            fd_wav[_scheme.TorchScheme][approximant] = _seobnrv4_dispatch
-    # keep CPU mapping using TD->FD fallback (SEOBNRv4 is TD native in LAL)
+    # Set the CPU correction before cloning the mapping. SEOBNRv4_ROM remains
+    # on _lalsim_fd_waveform, whose normal native-port boundary above selects
+    # the Torch evaluator only for its supported aligned-spin BBH inputs.
     fd_wav[_scheme.CPUScheme]["SEOBNRv4"] = get_fd_waveform_from_td
+    fd_wav[_scheme.TorchScheme] = dict(fd_wav[_scheme.CPUScheme])
+    if "SEOBNRv4" in fd_wav[_scheme.TorchScheme]:
+        fd_wav[_scheme.TorchScheme][
+            "SEOBNRv4"
+        ] = _seobnrv4_td_to_fd_torch_dispatch
 sgburst_wav = {_scheme.CPUScheme:cpu_sgburst}
 
 def get_waveform_filter(out, template=None, **kwargs):
