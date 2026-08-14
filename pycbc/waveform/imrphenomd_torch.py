@@ -20,8 +20,9 @@ Torch-native IMRPhenomD FD waveform (aligned-spin, dominant (2,2) mode).
 This is a direct port of the reviewed LAL implementation
 (``lalsimulation/lib/LALSimIMRPhenomD.c`` plus
 ``LALSimIMRPhenomD_internals.c``) with the physics kept intact but
-implemented in pure Python/NumPy so it can run entirely inside the Torch
-scheme without calling lalsimulation.
+implemented without lalsimulation. Model coefficients and QNM interpolation
+are assembled as small CPU values; all frequency-dependent work is performed
+on the active Torch device.
 
 Activation
 ----------
@@ -46,13 +47,16 @@ import math
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Tuple
+from typing import Any, Tuple
 
 import numpy as _np
 import lal
+import torch
+from scipy.interpolate import CubicSpline
 
 from pycbc import pnutils, scheme as _scheme
 from pycbc.types import FrequencySeries
+from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform.taylorf2_torch import taylorf2_aligned_phasing
 
 _PI = lal.PI
@@ -80,30 +84,37 @@ def _nudge_eta(eta: float) -> float:
 class _Powers:
     """Common powers of an argument (pi or Mf)."""
 
-    third: _np.ndarray
-    two_thirds: _np.ndarray
-    four_thirds: _np.ndarray
-    five_thirds: _np.ndarray
-    seven_thirds: _np.ndarray
-    eight_thirds: _np.ndarray
-    m_third: _np.ndarray
-    m_two_thirds: _np.ndarray
-    m_four_thirds: _np.ndarray
-    m_five_thirds: _np.ndarray
-    m_seven_sixths: _np.ndarray
-    inv: _np.ndarray
-    one: _np.ndarray
-    two: _np.ndarray
-    four: _np.ndarray
+    third: Any
+    two_thirds: Any
+    four_thirds: Any
+    five_thirds: Any
+    seven_thirds: Any
+    eight_thirds: Any
+    m_third: Any
+    m_two_thirds: Any
+    m_four_thirds: Any
+    m_five_thirds: Any
+    m_seven_sixths: Any
+    inv: Any
+    one: Any
+    two: Any
+    four: Any
 
 
-def _powers(x: _np.ndarray) -> _Powers:
-    """Return useful powers of x; vectorised."""
+def _powers(x) -> _Powers:
+    """Return useful powers of a NumPy value or Torch tensor."""
     # Keep the inactive zero-frequency bin numerically harmless without letting
     # fractional powers underflow or inverse powers overflow.
-    safe_floor = _np.finfo(float).eps
-    x_safe = _np.where(x == 0.0, safe_floor, x)
-    third = _np.cbrt(x_safe)
+    if isinstance(x, torch.Tensor):
+        safe_floor = torch.finfo(x.dtype).eps
+        x_safe = torch.where(x == 0.0, safe_floor, x)
+        third = torch.pow(x_safe, 1.0 / 3.0)
+        pow_fn = torch.pow
+    else:
+        safe_floor = _np.finfo(float).eps
+        x_safe = _np.where(x == 0.0, safe_floor, x)
+        third = _np.cbrt(x_safe)
+        pow_fn = _np.power
     two_thirds = third * third
     four_thirds = two_thirds * two_thirds
     five_thirds = x_safe * two_thirds
@@ -113,7 +124,7 @@ def _powers(x: _np.ndarray) -> _Powers:
     m_two_thirds = 1.0 / two_thirds
     m_four_thirds = 1.0 / four_thirds
     m_five_thirds = 1.0 / five_thirds
-    m_seven_sixths = _np.power(x_safe, -7.0 / 6.0)
+    m_seven_sixths = pow_fn(x_safe, -7.0 / 6.0)
     inv = 1.0 / x_safe
     one = x
     two = x * x
@@ -202,12 +213,16 @@ def _load_qnm_tables() -> Tuple[_np.ndarray, _np.ndarray, _np.ndarray]:
             "Bundled IMRPhenomD QNM data are missing from the PyCBC "
             f"installation: {header}"
         )
+    text = header.read_text()
 
     def _extract_array(name: str):
-        text = header.read_text()
         start = text.index(f"static const double {name}[]")
         chunk = text[start:].split("{", 1)[1].split("}", 1)[0]
-        vals = [float(v.replace("L", "")) for v in chunk.replace("\\\n", "").replace("\n", " ").split(",") if v.strip()]
+        vals = [
+            float(value.replace("L", ""))
+            for value in chunk.replace("\\\n", "").replace("\n", " ").split(",")
+            if value.strip()
+        ]
         return _np.array(vals, dtype=_np.float64)
 
     a = _extract_array("QNMData_a")
@@ -216,11 +231,24 @@ def _load_qnm_tables() -> Tuple[_np.ndarray, _np.ndarray, _np.ndarray]:
     return a, fring, fdamp
 
 
-def _interp_qnm(a: float) -> Tuple[float, float]:
-    """Spline-free (linear) interpolation of fring, fdamp vs final spin."""
+@lru_cache(None)
+def _qnm_splines() -> Tuple[CubicSpline, CubicSpline]:
+    """Build the natural cubic QNM splines used by lalsimulation."""
     xs, ys_f, ys_d = _load_qnm_tables()
-    fring = _np.interp(a, xs, ys_f)
-    fdamp = _np.interp(a, xs, ys_d)
+    return (
+        CubicSpline(xs, ys_f, bc_type="natural", extrapolate=False),
+        CubicSpline(xs, ys_d, bc_type="natural", extrapolate=False),
+    )
+
+
+def _interp_qnm(a: float) -> Tuple[float, float]:
+    """Interpolate ringdown frequency and damping rate vs final spin."""
+    xs, _, _ = _load_qnm_tables()
+    if not xs[0] <= a <= xs[-1]:
+        raise ValueError(f"IMRPhenomD final spin {a} is outside the QNM table")
+    fring_spline, fdamp_spline = _qnm_splines()
+    fring = fring_spline(a)
+    fdamp = fdamp_spline(a)
     return float(fring), float(fdamp)
 
 
@@ -398,7 +426,6 @@ def _compute_amp_coeffs(eta: float, chi1: float, chi2: float, finspin: float) ->
     seta_plus1 = 1.0 + seta
     chi12 = chi1 * chi1
     chi22 = chi2 * chi2
-    q = 0.5 * (1.0 + seta - 2.0 * eta) / eta
     chi = 0.5 * ((chi1 + chi2) * (1.0 - 76.0 * eta / 113.0) + seta * (chi1 - chi2))
     xi = -1.0 + chi
 
@@ -603,7 +630,8 @@ def _d_amp_ins_ansatz(Mf, pref: _AmpPrefactors):
 def _amp_mrd_ansatz(f, fRD, fDM, gamma1, gamma2, gamma3):
     fDMgamma3 = fDM * gamma3
     fminfRD = f - fRD
-    return _np.exp(-(fminfRD) * gamma2 / (fDMgamma3)) * (fDMgamma3 * gamma1) / (
+    exp_fn = torch.exp if isinstance(f, torch.Tensor) else _np.exp
+    return exp_fn(-(fminfRD) * gamma2 / (fDMgamma3)) * (fDMgamma3 * gamma1) / (
         fminfRD * fminfRD + fDMgamma3 * fDMgamma3
     )
 
@@ -612,7 +640,8 @@ def _d_amp_mrd_ansatz(f, fRD, fDM, gamma1, gamma2, gamma3):
     fDMgamma3 = fDM * gamma3
     pow2 = fDMgamma3 * fDMgamma3
     fminfRD = f - fRD
-    expfac = _np.exp(((fminfRD) * gamma2) / (fDMgamma3))
+    exp_fn = torch.exp if isinstance(f, torch.Tensor) else _np.exp
+    expfac = exp_fn(((fminfRD) * gamma2) / (fDMgamma3))
     denom = fminfRD * fminfRD + pow2
     return ((-2 * fDM * fminfRD * gamma3 * gamma1) / denom - (gamma2 * gamma1)) / (expfac * denom)
 
@@ -972,7 +1001,8 @@ def _init_phi_prefactors(sigma1, sigma2, sigma3, sigma4, pn, pow_pi: _Powers) ->
 
 def _phi_ins(Mf, powers: _Powers, pref: _PhiPref, sigma1, sigma2, sigma3, sigma4, pn, pow_pi: _Powers, eta_inv: float):
     v = powers.third * pow_pi.third
-    logv = _np.log(v)
+    log_fn = torch.log if isinstance(v, torch.Tensor) else _np.log
+    logv = log_fn(v)
     phasing = pref.initial_phasing
     phasing += pref.two_thirds * powers.two_thirds
     phasing += pref.third * powers.third
@@ -1016,7 +1046,8 @@ def _d_phi_ins(Mf, sigma1, sigma2, sigma3, sigma4, pn, pow_pi: _Powers, eta_inv:
 
 
 def _phi_int(Mf, beta1, beta2, beta3):
-    return beta1 * Mf - beta3 / (3.0 * (Mf ** 3)) + beta2 * _np.log(Mf)
+    log_fn = torch.log if isinstance(Mf, torch.Tensor) else _np.log
+    return beta1 * Mf - beta3 / (3.0 * (Mf ** 3)) + beta2 * log_fn(Mf)
 
 
 def _d_phi_int(Mf, beta1, beta2, beta3, eta_inv):
@@ -1024,10 +1055,11 @@ def _d_phi_int(Mf, beta1, beta2, beta3, eta_inv):
 
 
 def _phi_mrd(f, alpha1, alpha2, alpha3, alpha4, alpha5, fRD, fDM):
-    sqrootf = _np.sqrt(f)
+    xp = torch if isinstance(f, torch.Tensor) else _np
+    sqrootf = xp.sqrt(f)
     fpow1_5 = f * sqrootf
-    fpow0_75 = _np.sqrt(fpow1_5)
-    return -(alpha2 / f) + (4.0 / 3.0) * (alpha3 * fpow0_75) + alpha1 * f + alpha4 * _np.arctan((f - alpha5 * fRD) / (fDM))
+    fpow0_75 = xp.sqrt(fpow1_5)
+    return -(alpha2 / f) + (4.0 / 3.0) * (alpha3 * fpow0_75) + alpha1 * f + alpha4 * xp.arctan((f - alpha5 * fRD) / (fDM))
 
 
 def _d_phi_mrd(f, alpha1, alpha2, alpha3, alpha4, alpha5, fRD, fDM, eta_inv):
@@ -1046,11 +1078,108 @@ def _subtract_3pn_ss(m1, m2, M, eta, chi1, chi2):
     return pn_ss3
 
 
+# ---------- Public native-path boundary ---------------------------------------------
+
+
+_DEFAULT_ONLY_ORDER_KEYS = (
+    "spin_order",
+    "tidal_order",
+    "eccentricity_order",
+)
+_TRANSVERSE_SPIN_KEYS = ("spin1x", "spin1y", "spin2x", "spin2y")
+_TIDAL_KEYS = (
+    "lambda1",
+    "lambda2",
+    "dquad_mon1",
+    "dquad_mon2",
+    "lambda_octu1",
+    "lambda_octu2",
+    "quadfmode1",
+    "quadfmode2",
+    "octufmode1",
+    "octufmode2",
+)
+_NON_GR_KEYS = (
+    "dchi0",
+    "dchi1",
+    "dchi2",
+    "dchi3",
+    "dchi4",
+    "dchi5",
+    "dchi5l",
+    "dchi6",
+    "dchi6l",
+    "dchi7",
+    "dalpha1",
+    "dalpha2",
+    "dalpha3",
+    "dalpha4",
+    "dalpha5",
+    "dbeta1",
+    "dbeta2",
+    "dbeta3",
+)
+
+
+def _is_nonzero(value):
+    """Return whether an optional scalar is set to a non-zero value."""
+    if value is None:
+        return False
+    try:
+        return float(value) != 0.0
+    except (TypeError, ValueError, OverflowError):
+        return True
+
+
+def _is_default_order(value):
+    """Return whether an integer-valued LAL order flag has its default."""
+    try:
+        return float(value) == -1.0 and int(value) == -1
+    except (TypeError, ValueError, OverflowError):
+        return False
+
+
+def imrphenomd_native_supported(params):
+    """Return whether ``params`` are covered by the native Torch generator.
+
+    The public dispatcher sends unsupported configurations to lalsimulation,
+    preserving its errors and its testing-GR modifications instead of silently
+    ignoring inputs. The native path covers aligned-spin, quasi-circular BBH
+    IMRPhenomD with the standard (2,2) mode and polarization rotation.
+    """
+    if any(
+        not _is_default_order(params.get(key, -1))
+        for key in _DEFAULT_ONLY_ORDER_KEYS
+    ):
+        return False
+    if any(
+        _is_nonzero(params.get(key, 0.0))
+        for key in _TRANSVERSE_SPIN_KEYS + _TIDAL_KEYS + _NON_GR_KEYS
+    ):
+        return False
+    if any(
+        _is_nonzero(params.get(key, 0.0))
+        for key in ("frame_axis", "modes_choice", "side_bands")
+    ):
+        return False
+    if params.get("mode_array") is not None or params.get("numrel_data", ""):
+        return False
+    return True
+
+
 # ---------- Main waveform -----------------------------------------------------------
 
 
 def imrphenomd_fd_torch(**p):
-    """Torch-native IMRPhenomD FD waveform (hp, hc)."""
+    """Generate IMRPhenomD polarizations on the active Torch device."""
+    if not imrphenomd_native_supported(p):
+        raise ValueError(
+            "IMRPhenomD parameters are not supported by the native Torch path"
+        )
+    state = _scheme.mgr.state
+    if not isinstance(state, _scheme.TorchScheme):
+        raise RuntimeError("native Torch IMRPhenomD requires TorchScheme")
+
     # ensure m1 >= m2 per LAL convention
     mass1 = float(p["mass1"])
     mass2 = float(p["mass2"])
@@ -1067,6 +1196,29 @@ def imrphenomd_fd_torch(**p):
     distance = pnutils.megaparsecs_to_meters(float(p["distance"]))
     inclination = float(p.get("inclination", 0.0))
     coa_phase = float(p.get("coa_phase", 0.0))
+    long_asc_nodes = float(p.get("long_asc_nodes", 0.0))
+
+    if not math.isfinite(mass1) or not math.isfinite(mass2):
+        raise ValueError("IMRPhenomD component masses must be finite")
+    if mass1 <= 0.0 or mass2 <= 0.0:
+        raise ValueError("IMRPhenomD component masses must be positive")
+    if not all(
+        math.isfinite(value)
+        for value in (spin1z, spin2z, inclination, coa_phase, long_asc_nodes)
+    ):
+        raise ValueError("IMRPhenomD spins and angles must be finite")
+    if abs(spin1z) > 1.0 or abs(spin2z) > 1.0:
+        raise ValueError("IMRPhenomD aligned spins must be between -1 and 1")
+    if not math.isfinite(distance) or distance <= 0.0:
+        raise ValueError("IMRPhenomD distance must be finite and positive")
+    if not all(
+        math.isfinite(value) for value in (delta_f, f_lower, f_final, f_ref)
+    ):
+        raise ValueError("IMRPhenomD frequencies must be finite")
+    if delta_f <= 0.0 or f_lower <= 0.0:
+        raise ValueError("IMRPhenomD delta_f and f_lower must be positive")
+    if f_final < 0.0 or f_ref < 0.0:
+        raise ValueError("IMRPhenomD f_final and f_ref must be non-negative")
 
     M = mass1 + mass2
     eta = mass1 * mass2 / (M * M)
@@ -1080,12 +1232,20 @@ def imrphenomd_fd_torch(**p):
     if f_max_prime <= f_lower:
         raise ValueError("f_final (or default f_cut) is <= f_lower")
 
-    # Frequency grid (power-of-two length like LAL)
-    npts = int(_np.ceil(2 ** _np.ceil(_np.log2(f_max_prime / delta_f)))) + 1
-    freqs = _np.arange(npts, dtype=_np.float64) * delta_f
-    kmin = int(_np.ceil(f_lower / delta_f))
-    kmax = int(_np.floor(f_max_prime / delta_f))
-    active = (freqs >= f_lower) & (freqs <= f_max_prime)
+    # Frequency grid (power-of-two length like LAL), resident on the active
+    # device from allocation through final series construction.
+    npts = int(
+        math.ceil(2.0 ** math.ceil(math.log2(f_max_prime / delta_f)))
+    ) + 1
+    device = state.torch_device
+    real_dtype = torch.float32 if device.type == "mps" else torch.float64
+    freqs = torch.arange(npts, dtype=real_dtype, device=device) * delta_f
+    # LAL truncates the frequency bounds to integer bins and uses an exclusive
+    # upper bin in its evaluation loop.
+    first_bin = int(math.floor(f_lower / delta_f))
+    stop_bin = int(math.floor(f_max_prime / delta_f))
+    active = torch.zeros(npts, dtype=torch.bool, device=device)
+    active[first_bin:stop_bin] = True
 
     finspin = _final_spin0815(eta, spin1z, spin2z)
     amp_coeffs = _compute_amp_coeffs(eta, spin1z, spin2z, finspin)
@@ -1150,19 +1310,32 @@ def imrphenomd_fd_torch(**p):
     phase -= t0 * (Mf - MfRef) + phi_precalc
 
     # Zero outside active band
-    amp = _np.where(active, amp, 0.0)
-    phase = _np.where(active, phase, 0.0)
+    amp = torch.where(active, amp, 0.0)
+    phase = torch.where(active, phase, 0.0)
 
     # Overall scaling (amp0 uses masses in SI)
     amp_scale = 2.0 * math.sqrt(5.0 / (64.0 * _PI)) * M * _MRSUN_SI * M_sec / distance
-    h22 = amp_scale * amp * _np.exp(-1j * phase)
+    scaled_amp = amp_scale * amp
+    h22 = torch.complex(
+        scaled_amp * torch.cos(phase),
+        -scaled_amp * torch.sin(phase),
+    )
 
     cosi = math.cos(inclination)
-    hp = h22 * 0.5 * (1.0 + cosi * cosi)
-    hc = -1j * h22 * cosi
+    plus0 = h22 * 0.5 * (1.0 + cosi * cosi)
+    cross0 = h22 * complex(0.0, -cosi)
+    cos_nodes = math.cos(2.0 * long_asc_nodes)
+    sin_nodes = math.sin(2.0 * long_asc_nodes)
+    hp = cos_nodes * plus0 + sin_nodes * cross0
+    hc = cos_nodes * cross0 - sin_nodes * plus0
 
-    hp_fs = FrequencySeries(hp, delta_f=delta_f)
-    hc_fs = FrequencySeries(hc, delta_f=delta_f)
+    epoch = -1.0 / delta_f
+    hp_fs = FrequencySeries(
+        TorchArrayData(hp), delta_f=delta_f, epoch=epoch, copy=False
+    )
+    hc_fs = FrequencySeries(
+        TorchArrayData(hc), delta_f=delta_f, epoch=epoch, copy=False
+    )
     return hp_fs, hc_fs
 
 
@@ -1185,48 +1358,74 @@ def _IMRPhenDAmplitude(Mf, a: _AmpCoeffs, powers: _Powers):
         a.rho2,
         a.rho3,
     )
-    res = _np.empty_like(Mf)
+    using_torch = isinstance(Mf, torch.Tensor)
+    res = torch.empty_like(Mf) if using_torch else _np.empty_like(Mf)
     mask_ins = Mf < AMP_fJoin_INS
     mask_mrd = Mf >= a.fmaxCalc
     mask_int = (~mask_ins) & (~mask_mrd)
 
-    if mask_ins.any():
-        psel = _select_powers(powers, mask_ins)
-        res[mask_ins] = amp_pref.amp0 * psel.m_seven_sixths * _amp_ins_ansatz(Mf[mask_ins], psel, amp_pref)
-    if mask_mrd.any():
-        res[mask_mrd] = amp_pref.amp0 * powers.m_seven_sixths[mask_mrd] * _amp_mrd_ansatz(
+    psel = _select_powers(powers, mask_ins)
+    res[mask_ins] = (
+        amp_pref.amp0
+        * psel.m_seven_sixths
+        * _amp_ins_ansatz(Mf[mask_ins], psel, amp_pref)
+    )
+    res[mask_mrd] = (
+        amp_pref.amp0
+        * powers.m_seven_sixths[mask_mrd]
+        * _amp_mrd_ansatz(
             Mf[mask_mrd], a.fRD, a.fDM, a.gamma1, a.gamma2, a.gamma3
         )
-    if mask_int.any():
-        res[mask_int] = amp_pref.amp0 * powers.m_seven_sixths[mask_int] * _amp_int_ansatz(Mf[mask_int], a.deltas)
+    )
+    deltas = (
+        torch.as_tensor(a.deltas, dtype=Mf.dtype, device=Mf.device)
+        if using_torch
+        else a.deltas
+    )
+    res[mask_int] = (
+        amp_pref.amp0
+        * powers.m_seven_sixths[mask_int]
+        * _amp_int_ansatz(Mf[mask_int], deltas)
+    )
     return res
 
 
 def _IMRPhenDPhase(Mf, p: _PhaseCoeffs, pn, phi_pref: _PhiPref, pow_pi: _Powers):
-    res = _np.empty_like(Mf)
+    res = torch.empty_like(Mf) if isinstance(Mf, torch.Tensor) else _np.empty_like(Mf)
     mask_ins = Mf < p.fInsJoin
     mask_mrd = Mf >= p.fMRDJoin
     mask_int = (~mask_ins) & (~mask_mrd)
 
-    if mask_ins.any():
-        res[mask_ins] = _phi_ins(
-            Mf[mask_ins],
-            _powers(Mf[mask_ins]),
-            phi_pref,
-            p.sigma1,
-            p.sigma2,
-            p.sigma3,
-            p.sigma4,
-            pn,
-            pow_pi,
-            p.eta_inv,
+    res[mask_ins] = _phi_ins(
+        Mf[mask_ins],
+        _powers(Mf[mask_ins]),
+        phi_pref,
+        p.sigma1,
+        p.sigma2,
+        p.sigma3,
+        p.sigma4,
+        pn,
+        pow_pi,
+        p.eta_inv,
+    )
+    res[mask_mrd] = (
+        p.eta_inv
+        * _phi_mrd(
+            Mf[mask_mrd],
+            p.alpha1,
+            p.alpha2,
+            p.alpha3,
+            p.alpha4,
+            p.alpha5,
+            p.fRD,
+            p.fDM,
         )
-    if mask_mrd.any():
-        res[mask_mrd] = p.eta_inv * _phi_mrd(
-            Mf[mask_mrd], p.alpha1, p.alpha2, p.alpha3, p.alpha4, p.alpha5, p.fRD, p.fDM
-        ) + p.C1MRD + p.C2MRD * Mf[mask_mrd]
-    if mask_int.any():
-        res[mask_int] = p.eta_inv * _phi_int(Mf[mask_int], p.beta1, p.beta2, p.beta3) + p.C1Int + p.C2Int * Mf[
-            mask_int
-        ]
+        + p.C1MRD
+        + p.C2MRD * Mf[mask_mrd]
+    )
+    res[mask_int] = (
+        p.eta_inv * _phi_int(Mf[mask_int], p.beta1, p.beta2, p.beta3)
+        + p.C1Int
+        + p.C2Int * Mf[mask_int]
+    )
     return res

@@ -94,7 +94,11 @@ environment flags:
   dynamic-tide extras fall back to lalsimulation.
 - SpinTaylorF2: ``PYCBC_SPINTAYLORF2_NATIVE``. This port remains experimental;
   the default path is the lalsimulation implementation.
-- IMRPhenomD (FD): ``PYCBC_IMRPHENOMD_NATIVE``.
+- IMRPhenomD (FD): ``PYCBC_IMRPHENOMD_NATIVE``. Frequency-grid construction,
+  amplitude/phase evaluation, masking, and polarization assembly run on the
+  active Torch device; small coefficient and QNM-table setup remains on CPU.
+  Tidal, transverse-spin, testing-GR, and non-default mode options fall back to
+  lalsimulation.
 - SEOBNRv4 / SEOBNRv4_ROM (BBH only): ``PYCBC_SEOBNRV4_NATIVE``. NRTidal
   approximants continue to use the lalsimulation implementation.
 - SEOBNRv4HM_ROM (FD higher modes): ``PYCBC_SEOBNRV4HM_NATIVE`` (torch-native ROM
@@ -102,9 +106,10 @@ environment flags:
   ``$LAL_DATA_PATH`` or ``pycbc/waveform``.
 
 These ports provide Torch-device-compatible PyCBC series, but several waveform
-implementations reconstruct their models with NumPy/SciPy before transferring
-the result. Torch-scheme support therefore does not, by itself, imply an
-end-to-end differentiable waveform.
+implementations still reconstruct their models with NumPy/SciPy before
+transferring the result. Even the device-native ports assemble scalar
+coefficients from Python/NumPy values, so Torch-scheme support does not, by
+itself, imply an end-to-end differentiable waveform.
 
 Set a per-approximant flag to ``1`` to request the torch implementation or ``0``
 to force the lalsimulation implementation. Unsupported options retain the
