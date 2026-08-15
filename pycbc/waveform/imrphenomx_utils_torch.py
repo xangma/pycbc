@@ -32,7 +32,7 @@ tables and equations match that tagged source.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, NamedTuple
 
 import lal
 
@@ -50,13 +50,24 @@ PI = lal.PI
 fM_CUT = 0.3
 
 
-def get_cutoff_fMs(
+class IMRPhenomXRemnant(NamedTuple):
+    """Dimensionless remnant quantities shared by the PhenomX models."""
+
+    final_spin: FloatLike
+    radiated_energy: FloatLike
+    ringdown_frequency: FloatLike
+    damping_frequency: FloatLike
+    meco_frequency: FloatLike
+    isco_frequency: FloatLike
+
+
+def get_remnant_fMs(
     m1: FloatLike,
     m2: FloatLike,
     chi1: FloatLike,
     chi2: FloatLike,
     chip: float | FloatLike = 0.0,
-) -> tuple[FloatLike, FloatLike, FloatLike, FloatLike]:
+) -> IMRPhenomXRemnant:
     # This function returns a variety of frequencies needed for computing IMRPhenomXAS
     # In particular, we have fRD, fdamp, fMECO, FISCO
     # chip: effective precession spin parameter. When non-zero, fRD/fdamp are computed
@@ -339,7 +350,30 @@ def get_cutoff_fMs(
     )
 
     # NOTE: These are dimensionless frequencies (i.e. M in seconds * f in Hz)
-    return fRD, fdamp, fMECO, fISCO
+    return IMRPhenomXRemnant(a_prec, Erad, fRD, fdamp, fMECO, fISCO)
+
+
+def get_cutoff_fMs(
+    m1: FloatLike,
+    m2: FloatLike,
+    chi1: FloatLike,
+    chi2: FloatLike,
+    chip: float | FloatLike = 0.0,
+) -> tuple[FloatLike, FloatLike, FloatLike, FloatLike]:
+    """Return the legacy PhenomX frequency tuple.
+
+    New code that also needs remnant properties should use
+    :func:`get_remnant_fMs` so the shared final-spin and radiated-energy fits
+    are evaluated only once.
+    """
+
+    remnant = get_remnant_fMs(m1, m2, chi1, chi2, chip)
+    return (
+        remnant.ringdown_frequency,
+        remnant.damping_frequency,
+        remnant.meco_frequency,
+        remnant.isco_frequency,
+    )
 
 
 def calc_phaseatpeak(

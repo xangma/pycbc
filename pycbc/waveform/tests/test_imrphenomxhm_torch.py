@@ -49,6 +49,71 @@ CASES = [
         coa_phase=1.1,
         mode_array=[(2, -2)],
     ),
+    dict(
+        mass1=46.0,
+        mass2=19.0,
+        spin1z=0.35,
+        spin2z=-0.2,
+        delta_f=1.0,
+        f_lower=20.0,
+        f_final=300.0,
+        f_ref=25.0,
+        distance=350.0,
+        coa_phase=0.4,
+        mode_array=[(2, -2), (2, -1), (2, 1)],
+    ),
+    dict(
+        mass1=17.0,
+        mass2=43.0,
+        spin1z=-0.45,
+        spin2z=0.65,
+        delta_f=0.5,
+        f_lower=18.0,
+        f_final=220.0,
+        f_ref=0.0,
+        distance=800.0,
+        coa_phase=0.2,
+        mode_array=[(2, -1)],
+    ),
+    dict(
+        mass1=54.0,
+        mass2=9.0,
+        spin1z=0.92,
+        spin2z=0.7,
+        delta_f=0.5,
+        f_lower=15.0,
+        f_final=250.0,
+        f_ref=30.0,
+        distance=600.0,
+        coa_phase=0.8,
+        mode_array=[(2, -1)],
+    ),
+    dict(
+        mass1=80.0,
+        mass2=3.0,
+        spin1z=0.6,
+        spin2z=-0.4,
+        delta_f=0.25,
+        f_lower=10.0,
+        f_final=150.0,
+        f_ref=20.0,
+        distance=900.0,
+        coa_phase=0.3,
+        mode_array=[(2, 1)],
+    ),
+    dict(
+        mass1=30.0,
+        mass2=30.0,
+        spin1z=0.3,
+        spin2z=0.3,
+        delta_f=1.0,
+        f_lower=20.0,
+        f_final=250.0,
+        f_ref=20.0,
+        distance=500.0,
+        coa_phase=0.0,
+        mode_array=[(2, -1), (2, 1)],
+    ),
 ]
 
 
@@ -69,7 +134,7 @@ def _activate_scheme(scheme):
 
 
 @pytest.mark.parametrize("params", CASES)
-def test_imrphenomxhm_quadrupole_modes_match_lal(params, monkeypatch, preserve_scheme):
+def test_imrphenomxhm_native_modes_match_lal(params, monkeypatch, preserve_scheme):
     monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
     monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "0")
     _activate_scheme(_scheme.CPUScheme())
@@ -98,6 +163,8 @@ def test_imrphenomxhm_quadrupole_modes_match_lal(params, monkeypatch, preserve_s
                 expected_array == 0.0,
             )
             nonzero = np.abs(expected_array) > 0.0
+            if not np.any(nonzero):
+                continue
             relative_error = np.linalg.norm(
                 result.numpy()[nonzero] - expected_array[nonzero]
             ) / np.linalg.norm(expected_array[nonzero])
@@ -107,6 +174,9 @@ def test_imrphenomxhm_quadrupole_modes_match_lal(params, monkeypatch, preserve_s
 def test_imrphenomxhm_native_support_is_deliberately_narrow():
     params = {"approximant": "IMRPhenomXHM", **CASES[0]}
     assert imrphenomxhm_modes_native_supported(params)
+    assert imrphenomxhm_modes_native_supported(
+        {**params, "mode_array": [(2, -2), (2, -1), (2, 1)]}
+    )
     assert not imrphenomxhm_modes_native_supported({**params, "mode_array": None})
     assert not imrphenomxhm_modes_native_supported({**params, "mode_array": [(3, 3)]})
     assert not imrphenomxhm_modes_native_supported({**params, "spin1x": 0.1})
@@ -152,7 +222,7 @@ def test_imrphenomxhm_native_avoids_lal_and_host_transfer(monkeypatch, preserve_
     from pycbc.types.array_torch import TorchArrayData
 
     def reject_lal(*_args, **_kwargs):
-        raise AssertionError("native IMRPhenomXHM quadrupole called LAL")
+        raise AssertionError("native IMRPhenomXHM mode called LAL")
 
     def reject_host_transfer(_self):
         raise AssertionError("native IMRPhenomXHM transferred data to NumPy")
@@ -165,33 +235,35 @@ def test_imrphenomxhm_native_avoids_lal_and_host_transfer(monkeypatch, preserve_
     monkeypatch.setattr(TorchArrayData, "numpy", reject_host_transfer)
     monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "1")
     _activate_scheme(_scheme.TorchScheme("cpu"))
+    params = {**CASES[0], "mode_array": [(2, -2), (2, -1)]}
     with torch.no_grad():
-        modes = get_fd_waveform_modes(approximant="IMRPhenomXHM", **CASES[0])
+        modes = get_fd_waveform_modes(approximant="IMRPhenomXHM", **params)
 
     for polarizations in modes.values():
         for series in polarizations:
             assert isinstance(series._data.tensor, torch.Tensor)
 
 
+@pytest.mark.parametrize("mode", [(2, -2), (2, -1)])
 @pytest.mark.parametrize("device_name", ["cpu", "mps", "cuda"])
 def test_imrphenomxhm_modes_stay_on_requested_device(
-    device_name, monkeypatch, preserve_scheme
+    device_name, mode, monkeypatch, preserve_scheme
 ):
     if device_name == "mps" and not torch.backends.mps.is_available():
         pytest.skip("Torch MPS device is unavailable")
     if device_name == "cuda" and not torch.cuda.is_available():
         pytest.skip("Torch CUDA device is unavailable")
 
-    params = CASES[0]
+    params = {**CASES[0], "mode_array": [mode]}
     monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "0")
     _activate_scheme(_scheme.CPUScheme())
     reference = get_fd_waveform_modes(approximant="IMRPhenomXHM", **params)
-    reference_array = reference[(2, -2)][0].numpy().copy()
+    reference_array = reference[mode][0].numpy().copy()
 
     monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "1")
     _activate_scheme(_scheme.TorchScheme(device_name))
     actual = get_fd_waveform_modes(approximant="IMRPhenomXHM", **params)
-    series = actual[(2, -2)][0]
+    series = actual[mode][0]
 
     expected_dtype = torch.complex64 if device_name == "mps" else torch.complex128
     assert series._data.tensor.device.type == device_name
