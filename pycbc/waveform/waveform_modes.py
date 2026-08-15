@@ -20,9 +20,11 @@ from string import Formatter
 import lal
 
 from pycbc import libutils, pnutils
+from pycbc import scheme as _scheme
 from pycbc.types import (TimeSeries, FrequencySeries)
 from .waveform import (props, _check_lal_pars, check_args)
 from . import parameters
+from .torch_switches import torch_native_enabled
 
 lalsimulation = libutils.import_optional('lalsimulation')
 
@@ -318,6 +320,18 @@ def get_lalsimulation_modes(**params):
 
 def get_imrphenomxh_modes(**params):
     """Generates ``IMRPhenomXHM`` waveforms mode-by-mode. """
+    if (
+        isinstance(_scheme.mgr.state, _scheme.TorchScheme)
+        and torch_native_enabled("PYCBC_IMRPHENOMXHM_NATIVE", default=False)
+    ):
+        from .imrphenomxhm_torch import (
+            imrphenomxhm_modes_native_supported,
+            imrphenomxhm_modes_torch,
+        )
+
+        if imrphenomxhm_modes_native_supported(params):
+            return imrphenomxhm_modes_torch(**params)
+
     approx = params['approximant']
     if not approx.startswith('IMRPhenomX'):
         raise ValueError("unsupported approximant")

@@ -92,6 +92,20 @@ class _NRTidalParams(NamedTuple):
     version: int
 
 
+class _IMRPhenomXASCore(NamedTuple):
+    """Active XAS samples and the metadata for their full frequency series."""
+
+    polarization: torch.Tensor
+    npts: int
+    first_bin: int
+    stop_bin: int
+    delta_f: float
+    epoch: float
+
+
+_XAS_MODE_POLARIZATION_FACTOR = math.sqrt(5.0 / (16.0 * PI))
+
+
 def get_inspiral_phase(
     fM_s: Float[Array, " n_freq"] | FloatLike,
     theta: Float[Array, "4"],
@@ -1811,8 +1825,8 @@ def _next_power_of_two(value):
     return 1 << (value - 1).bit_length()
 
 
-def imrphenomxas_fd_torch(**p):
-    """Generate aligned-spin IMRPhenomXAS polarizations with Torch."""
+def _imrphenomxas_core_torch(p):
+    """Generate the active, inclination-independent XAS samples."""
 
     if not imrphenomxas_native_supported(p):
         raise ValueError(
@@ -1974,23 +1988,69 @@ def imrphenomxas_fd_torch(**p):
             nrtidal,
         )
 
+    epoch = -1.0 / delta_f
+    return _IMRPhenomXASCore(
+        polarization=h22.to(complex_dtype),
+        npts=npts,
+        first_bin=first_bin,
+        stop_bin=stop_bin,
+        delta_f=delta_f,
+        epoch=epoch,
+    )
+
+
+def _series_from_active_samples(core, samples):
+    data = torch.zeros(
+        core.npts,
+        device=core.polarization.device,
+        dtype=core.polarization.dtype,
+    )
+    data[core.first_bin : core.stop_bin] = samples
+    return FrequencySeries(
+        TorchArrayData(data),
+        delta_f=core.delta_f,
+        epoch=core.epoch,
+        copy=False,
+    )
+
+
+def imrphenomxas_h2m2_torch(**p):
+    r"""Generate LAL's positive-frequency :math:`h_{2,-2}` mode with Torch.
+
+    The internal XAS kernel includes the inclination-independent polarization
+    normalization used by ``SimInspiralChooseFDWaveform``. The mode-by-mode
+    XHM interface instead returns the unnormalized spherical-harmonic mode;
+    remove that factor here so both public interfaces can share one waveform
+    evaluation.
+    """
+
+    core = _imrphenomxas_core_torch(p)
+    return _series_from_active_samples(
+        core,
+        core.polarization / _XAS_MODE_POLARIZATION_FACTOR,
+    )
+
+
+def imrphenomxas_fd_torch(**p):
+    """Generate aligned-spin IMRPhenomXAS polarizations with Torch."""
+
+    core = _imrphenomxas_core_torch(p)
+    inclination = float(p.get("inclination", 0.0))
+    long_asc_nodes = float(p.get("long_asc_nodes", 0.0))
+
     cosi = math.cos(inclination)
-    plus0 = -0.5 * (1.0 + cosi * cosi) * h22
-    cross0 = complex(0.0, 1.0) * cosi * h22
+    plus0 = -0.5 * (1.0 + cosi * cosi) * core.polarization
+    cross0 = complex(0.0, 1.0) * cosi * core.polarization
     cos_nodes = math.cos(2.0 * long_asc_nodes)
     sin_nodes = math.sin(2.0 * long_asc_nodes)
 
-    hp = torch.zeros(npts, device=device, dtype=complex_dtype)
-    hc = torch.zeros(npts, device=device, dtype=complex_dtype)
-    hp[first_bin:stop_bin] = cos_nodes * plus0 + sin_nodes * cross0
-    hc[first_bin:stop_bin] = cos_nodes * cross0 - sin_nodes * plus0
-
-    epoch = -1.0 / delta_f
     return (
-        FrequencySeries(
-            TorchArrayData(hp), delta_f=delta_f, epoch=epoch, copy=False
+        _series_from_active_samples(
+            core,
+            cos_nodes * plus0 + sin_nodes * cross0,
         ),
-        FrequencySeries(
-            TorchArrayData(hc), delta_f=delta_f, epoch=epoch, copy=False
+        _series_from_active_samples(
+            core,
+            cos_nodes * cross0 - sin_nodes * plus0,
         ),
     )
