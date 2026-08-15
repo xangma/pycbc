@@ -3,6 +3,7 @@ import types
 
 import numpy as np
 import pytest
+import scipy.interpolate
 import scipy.signal
 
 torch = pytest.importorskip("torch")
@@ -13,6 +14,7 @@ from pycbc.filter import autocorrelation, matchedfilter, resample
 from pycbc.noise import gaussian, reproduceable
 from pycbc.psd import inverse_spectrum_truncation, variation, welch
 from pycbc.strain import gate as strain_gate
+from pycbc.strain import calibration, recalibrate
 from pycbc.strain.strain import StrainBuffer, detect_loud_glitches
 from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
@@ -822,3 +824,145 @@ def test_timeseries_detrend_rejects_unknown_type(torch_device_ctx):
         )
         with pytest.raises(ValueError, match="Trend type must be"):
             series.detrend(type="quadratic")
+
+
+@pytest.mark.parametrize("dtype", (np.float32, np.float64))
+def test_calibration_spline_evaluation_stays_on_device(
+        torch_device_ctx, monkeypatch, dtype):
+    ctx, device = torch_device_ctx
+    if device == "mps" and dtype == np.float64:
+        pytest.skip("Torch MPS does not support float64")
+
+    spline_points = np.linspace(10, 100, 10)
+    parameters = np.array((0, 5, -4, 6, -5, 4, -3, 2, -1, 0))
+    spline = scipy.interpolate.UnivariateSpline(spline_points, parameters)
+    assert len(spline.get_knots()) > 2
+    samples = np.linspace(0, 120, 257).astype(dtype)
+    expected = spline(samples)
+
+    with ctx:
+        frequencies = Array(samples)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("spline evaluation copied grid to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = calibration._evaluate_spline(spline, frequencies)
+
+    assert actual.device.type == device
+    rtol, atol = ((2e-4, 2e-4) if dtype == np.float32
+                  else (1e-12, 1e-12))
+    np.testing.assert_allclose(
+        actual.detach().cpu().numpy(), expected, rtol=rtol, atol=atol
+    )
+
+
+def _cubic_calibration_model(model_class):
+    model = model_class(
+        ifo_name="h1", minimum_frequency=10,
+        maximum_frequency=1024, n_points=8,
+    )
+    amplitude = (0, 4, -3, 5, -4, 3, -2, 0)
+    phase = (0, -2, 3, -4, 3, -2, 1, 0)
+    for index, (amp, pha) in enumerate(zip(amplitude, phase)):
+        model.params[f"amplitude_h1_{index}"] = amp
+        model.params[f"phase_h1_{index}"] = pha
+    return model
+
+
+@pytest.mark.parametrize(
+    "model_class", (calibration.CubicSpline, recalibrate.CubicSpline)
+)
+@pytest.mark.parametrize("dtype", (np.complex64, np.complex128))
+def test_cubic_calibration_stays_on_device(
+        torch_device_ctx, monkeypatch, model_class, dtype):
+    ctx, device = torch_device_ctx
+    if device == "mps":
+        pytest.skip("Torch MPS does not support complex PyCBC arrays")
+
+    data = (
+        np.linspace(1, 2, 129) + 1j * np.linspace(-0.5, 0.5, 129)
+    ).astype(dtype)
+    expected = _cubic_calibration_model(model_class).apply_calibration(
+        FrequencySeries(data, delta_f=8, epoch=123)
+    )
+
+    with ctx:
+        torch_strain = FrequencySeries(data, delta_f=8, epoch=123)
+        original = torch_strain._data.tensor.clone()
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("calibration copied Torch data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = _cubic_calibration_model(
+                model_class
+            ).apply_calibration(torch_strain)
+
+    assert actual._data.tensor.device.type == device
+    assert actual.dtype == expected.dtype
+    assert actual.delta_f == expected.delta_f
+    assert actual.epoch == expected.epoch
+    assert torch.equal(torch_strain._data.tensor, original)
+    np.testing.assert_allclose(
+        actual._data.tensor.detach().cpu().numpy(), expected.numpy(),
+        rtol=2e-11, atol=2e-11,
+    )
+
+
+def _physical_calibration_model():
+    frequencies = np.linspace(10, 1024, 33)
+    return recalibrate.PhysicalModel(
+        freq=frequencies,
+        fc0=350,
+        c0=(1 + 0.1j) * np.ones(33),
+        d0=(0.6 - 0.03j) * np.ones(33),
+        a_tst0=(0.4 + 0.02j) * np.ones(33),
+        a_pu0=(0.3 - 0.01j) * np.ones(33),
+        fs0=8,
+        qinv0=0.2,
+    )
+
+
+def test_physical_calibration_stays_on_device(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    if device == "mps":
+        pytest.skip("Torch MPS does not support complex PyCBC arrays")
+
+    data = np.linspace(1, 2, 129).astype(np.complex128)
+    adjustments = {
+        "delta_fs": 0.4,
+        "delta_qinv": 0.01,
+        "delta_fc": 5,
+        "kappa_c": 0.98,
+        "kappa_tst_re": 1.02,
+        "kappa_tst_im": 0.01,
+        "kappa_pu_re": 0.99,
+        "kappa_pu_im": -0.02,
+    }
+    expected = _physical_calibration_model().adjust_strain(
+        FrequencySeries(data, delta_f=8, epoch=123), **adjustments
+    )
+
+    with ctx:
+        torch_strain = FrequencySeries(data, delta_f=8, epoch=123)
+        original = torch_strain._data.tensor.clone()
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("calibration copied Torch data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = _physical_calibration_model().adjust_strain(
+                torch_strain, **adjustments
+            )
+
+    assert actual._data.tensor.device.type == device
+    assert actual.dtype == expected.dtype
+    assert actual.delta_f == expected.delta_f
+    assert actual.epoch == expected.epoch
+    assert torch.equal(torch_strain._data.tensor, original)
+    np.testing.assert_allclose(
+        actual._data.tensor.detach().cpu().numpy(), expected.numpy(),
+        rtol=1e-12, atol=1e-12,
+    )

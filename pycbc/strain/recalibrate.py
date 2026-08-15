@@ -20,11 +20,16 @@
 from abc import (ABCMeta, abstractmethod)
 
 import numpy as np
-import glob, os
+import glob
+import os
 from scipy.interpolate import UnivariateSpline
-from pycbc.types import FrequencySeries
 from pycbc.frame.gwosc import get_run
 from scipy.interpolate import InterpolatedUnivariateSpline
+from pycbc.strain.calibration import (
+    _apply_spline_calibration,
+    _evaluate_spline,
+    _multiply_frequency_series,
+)
 
 
 class Recalibrate(metaclass=ABCMeta):
@@ -162,20 +167,13 @@ class CubicSpline(Recalibrate):
         amplitude_parameters =\
             [self.params['amplitude_{}_{}'.format(self.ifo_name, ii)]
              for ii in range(self.n_points)]
-        amplitude_spline = UnivariateSpline(self.spline_points,
-                                            amplitude_parameters)
-        delta_amplitude = amplitude_spline(strain.sample_frequencies.numpy())
-
         phase_parameters =\
             [self.params['phase_{}_{}'.format(self.ifo_name, ii)]
              for ii in range(self.n_points)]
-        phase_spline = UnivariateSpline(self.spline_points, phase_parameters)
-        delta_phase = phase_spline(strain.sample_frequencies.numpy())
-
-        strain_adjusted = strain * (1.0 + delta_amplitude)\
-            * (2.0 + 1j * delta_phase) / (2.0 - 1j * delta_phase)
-
-        return strain_adjusted
+        return _apply_spline_calibration(
+            strain, self.spline_points,
+            amplitude_parameters, phase_parameters
+        )
 
 
 class PhysicalModel(object):
@@ -395,14 +393,16 @@ class PhysicalModel(object):
         order = 1
         k_amp_off = UnivariateSpline(self.freq, k_amp, k=order, s=0)
         k_phase_off = UnivariateSpline(self.freq, k_phase, k=order, s=0)
-        freq_even = strain.sample_frequencies.numpy()
-        k_even_sample = k_amp_off(freq_even) * \
-                        np.exp(1.0j * k_phase_off(freq_even))
-        strain_adjusted = FrequencySeries(strain.numpy() * \
-                                          k_even_sample,
-                                          delta_f=strain.delta_f)
+        frequencies = strain.sample_frequencies
+        k_amp_even = _evaluate_spline(k_amp_off, frequencies)
+        k_phase_even = _evaluate_spline(k_phase_off, frequencies)
+        if hasattr(frequencies._data, 'tensor'):
+            import torch
+            correction = k_amp_even * torch.exp(1.0j * k_phase_even)
+        else:
+            correction = k_amp_even * np.exp(1.0j * k_phase_even)
 
-        return strain_adjusted
+        return _multiply_frequency_series(strain, correction)
 
     @classmethod
     def tf_from_file(cls, path, delimiter=" "):

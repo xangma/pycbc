@@ -21,6 +21,82 @@ from scipy.interpolate import UnivariateSpline
 from abc import (ABCMeta, abstractmethod)
 
 
+def _evaluate_spline(spline, sample_frequencies):
+    """Evaluate a SciPy spline without copying a Torch grid to the host."""
+    tensor = getattr(
+        getattr(sample_frequencies, '_data', None), 'tensor', None
+    )
+    if tensor is None:
+        return spline(sample_frequencies.numpy())
+
+    import torch
+
+    base_knots = np.asarray(spline.get_knots())
+    coefficients = np.asarray(spline.get_coeffs())
+    degree = len(coefficients) - len(base_knots) + 1
+    knots = np.concatenate((
+        np.repeat(base_knots[0], degree),
+        base_knots,
+        np.repeat(base_knots[-1], degree),
+    ))
+
+    samples = tensor.reshape(-1)
+    knots = torch.as_tensor(
+        knots, dtype=samples.dtype, device=samples.device
+    )
+    coefficients = torch.as_tensor(
+        coefficients, dtype=samples.dtype, device=samples.device
+    )
+    spans = torch.searchsorted(knots, samples, right=True) - 1
+    spans = spans.clamp(min=degree, max=len(coefficients) - 1)
+    offsets = torch.arange(degree + 1, device=samples.device)
+    values = coefficients[
+        spans.unsqueeze(-1) - degree + offsets
+    ].clone()
+
+    # Vectorized de Boor evaluation of the fitted B-spline.
+    for level in range(1, degree + 1):
+        for index in range(degree, level - 1, -1):
+            left = knots[spans - degree + index]
+            right = knots[spans + 1 + index - level]
+            weight = (samples - left) / (right - left)
+            values[:, index] = (
+                (1 - weight) * values[:, index - 1]
+                + weight * values[:, index]
+            )
+
+    return values[:, degree].reshape(tensor.shape)
+
+
+def _multiply_frequency_series(strain, correction):
+    """Apply a correction while preserving the strain storage scheme."""
+    tensor = getattr(getattr(strain, '_data', None), 'tensor', None)
+    if tensor is None:
+        return strain * correction
+
+    from pycbc.types.array_torch import TorchArrayData
+    return strain._return(TorchArrayData(tensor * correction))
+
+
+def _apply_spline_calibration(strain, spline_points,
+                              amplitude_parameters, phase_parameters):
+    """Fit and apply the standard amplitude and phase calibration splines."""
+    frequencies = strain.sample_frequencies
+    amplitude_spline = UnivariateSpline(
+        spline_points, amplitude_parameters
+    )
+    delta_amplitude = _evaluate_spline(amplitude_spline, frequencies)
+    phase_spline = UnivariateSpline(spline_points, phase_parameters)
+    delta_phase = _evaluate_spline(phase_spline, frequencies)
+
+    correction = (
+        (1.0 + delta_amplitude)
+        * (2.0 + 1j * delta_phase)
+        / (2.0 - 1j * delta_phase)
+    )
+    return _multiply_frequency_series(strain, correction)
+
+
 class Recalibrate(metaclass=ABCMeta):
     name = None
 
@@ -155,20 +231,13 @@ class CubicSpline(Recalibrate):
         amplitude_parameters =\
             [self.params['amplitude_{}_{}'.format(self.ifo_name, ii)]
              for ii in range(self.n_points)]
-        amplitude_spline = UnivariateSpline(self.spline_points,
-                                            amplitude_parameters)
-        delta_amplitude = amplitude_spline(strain.sample_frequencies.numpy())
-
         phase_parameters =\
             [self.params['phase_{}_{}'.format(self.ifo_name, ii)]
              for ii in range(self.n_points)]
-        phase_spline = UnivariateSpline(self.spline_points, phase_parameters)
-        delta_phase = phase_spline(strain.sample_frequencies.numpy())
-
-        strain_adjusted = strain * (1.0 + delta_amplitude)\
-            * (2.0 + 1j * delta_phase) / (2.0 - 1j * delta_phase)
-
-        return strain_adjusted
+        return _apply_spline_calibration(
+            strain, self.spline_points,
+            amplitude_parameters, phase_parameters
+        )
 
 
 all_models = {
