@@ -3,6 +3,7 @@ import types
 
 import numpy as np
 import pytest
+import scipy.signal
 
 torch = pytest.importorskip("torch")
 
@@ -11,7 +12,7 @@ from pycbc import scheme
 from pycbc.filter import matchedfilter, resample
 from pycbc.psd import inverse_spectrum_truncation, welch
 from pycbc.strain.strain import StrainBuffer
-from pycbc.types import FrequencySeries, TimeSeries
+from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
 
 if not pycbc.HAVE_TORCH:
@@ -229,6 +230,61 @@ def test_resample_to_delta_t_torch_matches_cpu_without_host_transfer(
         rtol=rtol,
         atol=atol,
     )
+
+
+@pytest.mark.parametrize(
+    "length,num_taps,block_size,coefficient_type",
+    ((63, 7, 2**18, "numpy"), (4096, 129, 512, "array")),
+    ids=("single-block", "overlap-add"),
+)
+@pytest.mark.parametrize(
+    "dtype", (np.float32, np.float64, np.complex64, np.complex128)
+)
+def test_lfilter_torch_matches_scipy_without_host_transfer(
+        torch_device_ctx, monkeypatch, dtype, length, num_taps, block_size,
+        coefficient_type):
+    ctx, device = torch_device_ctx
+    if device == "mps" and dtype != np.float32:
+        pytest.skip("Torch MPS only supports float32 PyCBC arrays")
+
+    rng = np.random.default_rng(9182)
+    single_precision = dtype in (np.float32, np.complex64)
+    real_dtype = np.float32 if single_precision else np.float64
+    coefficients = rng.normal(size=num_taps).astype(real_dtype)
+    data = rng.normal(size=length)
+    if np.issubdtype(dtype, np.complexfloating):
+        data = data + 1j * rng.normal(size=length)
+    data = data.astype(dtype)
+    expected = scipy.signal.lfilter(coefficients, 1.0, data).astype(dtype)
+
+    with ctx:
+        filter_coefficients = (
+            Array(coefficients) if coefficient_type == "array"
+            else coefficients
+        )
+        input_series = TimeSeries(data, delta_t=1 / 2048, epoch=456)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("lfilter copied Torch data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(
+                resample, "_TORCH_LFILTER_TARGET_BLOCK_SIZE", block_size
+            )
+            actual = resample.lfilter(filter_coefficients, input_series)
+
+    assert isinstance(actual._data.tensor, torch.Tensor)
+    assert actual._data.tensor.device.type == device
+    assert actual.dtype == np.dtype(dtype)
+    assert actual.delta_t == input_series.delta_t
+    assert actual.start_time == input_series.start_time
+
+    actual_data = actual._data.tensor.detach().cpu().numpy()
+    input_data = input_series._data.tensor.detach().cpu().numpy()
+    rtol, atol = ((5e-5, 5e-5) if single_precision
+                  else (1e-11, 1e-11))
+    np.testing.assert_allclose(actual_data, expected, rtol=rtol, atol=atol)
+    np.testing.assert_array_equal(input_data, data)
 
 
 def test_matched_filter_torch_vs_cpu(torch_ctx):

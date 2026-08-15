@@ -61,33 +61,84 @@ LFILTER_UNIQUE_ID_1 = 651273657
 LFILTER_UNIQUE_ID_2 = 154687641
 LFILTER_UNIQUE_ID_3 = 548946442
 
+# Bound temporary Torch FFT allocations while keeping the number of device
+# launches modest for long time series.
+_TORCH_LFILTER_TARGET_BLOCK_SIZE = 2**18
+
+
+def _torch_lfilter(coefficients, timeseries):
+    """Apply a causal FIR filter to a Torch-backed time series on device."""
+    signal = timeseries._data.tensor
+    coefficient_data = getattr(coefficients, "_data", coefficients)
+    if isinstance(coefficient_data, TorchArrayData):
+        coefficient_data = coefficient_data.tensor
+    elif isinstance(coefficient_data, numpy.ndarray):
+        coefficient_data = numpy.ascontiguousarray(coefficient_data)
+
+    coefficient_tensor = torch.as_tensor(
+        coefficient_data, device=signal.device, dtype=signal.dtype
+    )
+    if coefficient_tensor.ndim != 1:
+        raise ValueError("Filter coefficients must be one-dimensional")
+    if coefficient_tensor.numel() == 0:
+        raise ValueError("Filter coefficients cannot be empty")
+
+    signal_length = signal.numel()
+    coefficient_length = coefficient_tensor.numel()
+    target_block_length = min(
+        signal_length, _TORCH_LFILTER_TARGET_BLOCK_SIZE
+    )
+    convolution_length = target_block_length + coefficient_length - 1
+    fft_length = 1 << (convolution_length - 1).bit_length()
+    block_length = fft_length - coefficient_length + 1
+
+    output = torch.zeros_like(signal)
+    if signal.is_complex():
+        response = torch.fft.fft(coefficient_tensor, n=fft_length)
+        transform = torch.fft.fft
+        inverse_transform = torch.fft.ifft
+    else:
+        response = torch.fft.rfft(coefficient_tensor, n=fft_length)
+        transform = torch.fft.rfft
+        inverse_transform = torch.fft.irfft
+
+    for start in range(0, signal_length, block_length):
+        block = signal[start:start + block_length]
+        filtered = inverse_transform(
+            transform(block, n=fft_length) * response, n=fft_length
+        )
+        output_length = min(fft_length, signal_length - start)
+        output[start:start + output_length] += filtered[:output_length]
+
+    return TimeSeries(
+        TorchArrayData(output), delta_t=timeseries.delta_t,
+        epoch=timeseries.start_time, copy=False
+    )
+
+
 def lfilter(coefficients, timeseries):
     """ Apply filter coefficients to a time series
 
     Parameters
     ----------
-    coefficients: numpy.ndarray
+    coefficients : numpy.ndarray
         Filter coefficients to apply
-    timeseries: numpy.ndarray
+    timeseries : pycbc.types.TimeSeries
         Time series to be filtered.
 
     Returns
     -------
-    tseries: numpy.ndarray
+    tseries : pycbc.types.TimeSeries
         filtered array
     """
-    from pycbc.filter import correlate
-    fillen = len(coefficients)
-    torch_input = _HAVE_TORCH and isinstance(getattr(timeseries, "_data", None), TorchArrayData)
+    torch_input = _HAVE_TORCH and isinstance(
+        getattr(timeseries, "_data", None), TorchArrayData
+    )
     if torch_input:
-        # move to CPU numpy for scipy-based path
-        timeseries_cpu = TimeSeries(timeseries.numpy(), delta_t=timeseries.delta_t,
-                                    epoch=timeseries.start_time, copy=True)
-        out_cpu = lfilter(coefficients, timeseries_cpu)
-        tensor = torch.tensor(out_cpu.numpy(), device=timeseries._data.tensor.device,
-                              dtype=timeseries._data.tensor.dtype)
-        return TimeSeries(TorchArrayData(tensor), delta_t=timeseries.delta_t,
-                          epoch=timeseries.start_time, copy=False)
+        return _torch_lfilter(coefficients, timeseries)
+
+    fillen = len(coefficients)
+    from pycbc.filter import correlate
 
     # If there aren't many points just use the default scipy method
     if len(timeseries) < 2**7:
