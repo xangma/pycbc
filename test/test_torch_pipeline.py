@@ -573,6 +573,64 @@ def test_resample_to_delta_t_torch_matches_cpu_without_host_transfer(
     )
 
 
+@pytest.mark.parametrize("dtype", (np.float32, np.float64))
+@pytest.mark.parametrize("factor", (2, 4, 8))
+def test_butterworth_resample_torch_matches_lal_without_host_transfer(
+        torch_device_ctx, monkeypatch, dtype, factor):
+    ctx, device = torch_device_ctx
+    if device == "mps" and dtype == np.float64:
+        pytest.skip("Torch MPS does not support float64")
+
+    sample_rate = 2048
+    delta_t = 1 / sample_rate
+    target_delta_t = factor * delta_t
+    samples = np.arange(4099) * delta_t
+    data = (
+        np.sin(2 * np.pi * 31 * samples)
+        + 0.2 * np.cos(2 * np.pi * 173 * samples)
+    ).astype(dtype)
+    expected = resample.resample_to_delta_t(
+        TimeSeries(data, delta_t=delta_t, epoch=321), target_delta_t
+    )
+
+    with ctx:
+        input_series = TimeSeries(data, delta_t=delta_t, epoch=321)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError(
+                    "Butterworth resampling copied Torch samples to host"
+                )
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(zpk, "_TORCH_SOS_TARGET_BLOCK_SIZE", 128)
+            actual = resample.resample_to_delta_t(
+                input_series, target_delta_t
+            )
+
+    assert actual._data.tensor.device.type == device
+    assert actual.dtype == np.dtype(dtype)
+    assert actual.delta_t == target_delta_t
+    assert actual.start_time == expected.start_time
+    assert len(actual) == len(data) // factor
+
+    if device == "mps":
+        rtol = 2e-4
+        atol = np.max(np.abs(expected.numpy())) * 2e-5
+    elif dtype == np.float32:
+        rtol, atol = 5e-6, 5e-7
+    else:
+        rtol, atol = 5e-10, 5e-11
+    np.testing.assert_allclose(
+        actual._data.tensor.detach().cpu().numpy(),
+        expected.numpy(),
+        rtol=rtol,
+        atol=atol,
+    )
+    np.testing.assert_array_equal(
+        input_series._data.tensor.detach().cpu().numpy(), data
+    )
+
+
 @pytest.mark.parametrize(
     "length,num_taps,block_size,coefficient_type",
     ((63, 7, 2**18, "numpy"), (4096, 129, 512, "array")),

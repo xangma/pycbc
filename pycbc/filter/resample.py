@@ -33,10 +33,12 @@ import pycbc
 try:
     import torch
     from pycbc.types.array_torch import TorchArrayData
+    from .zpk import _torch_sosfilt
     _HAVE_TORCH = pycbc.HAVE_TORCH
 except Exception:  # pragma: no cover - torch optional
     torch = None
     TorchArrayData = None
+    _torch_sosfilt = None
     _HAVE_TORCH = False
 
 _resample_func = {numpy.dtype('float32'): lal.ResampleREAL4TimeSeries,
@@ -48,6 +50,85 @@ def cached_firwin(*args, **kwargs):
     This is mostly done for PyCBC Live, which rapidly and repeatedly resamples data.
     """
     return scipy.signal.firwin(*args, **kwargs)
+
+
+@functools.lru_cache(maxsize=20)
+def _butterworth_resample_sos(resample_factor):
+    """Construct the second-order sections used by LAL's resampler."""
+
+    filter_order = 20
+    nyquist_amplitude = 0.1
+    cutoff = numpy.tan(numpy.pi * 0.5 / resample_factor)
+    cutoff *= (1 / numpy.sqrt(nyquist_amplitude) - 1) ** (
+        -0.5 / filter_order
+    )
+
+    sections = []
+    for index in range(filter_order // 2):
+        theta = numpy.pi * (index + 0.5) / filter_order
+        pole_real = cutoff * numpy.cos(theta)
+        pole_imag = cutoff * numpy.sin(theta)
+        pole = ((1 - pole_imag) + 1j * pole_real) / (
+            (1 + pole_imag) - 1j * pole_real
+        )
+        gain = cutoff**2 / (
+            pole_real**2 + (1 + pole_imag) ** 2
+        )
+        sections.append(
+            [
+                gain,
+                2 * gain,
+                gain,
+                1,
+                -2 * pole.real,
+                abs(pole) ** 2,
+            ]
+        )
+    return numpy.asarray(sections)
+
+
+def _torch_butterworth_resample(timeseries, delta_t):
+    """Reproduce LAL's Butterworth resampler on the active Torch device."""
+
+    ratio = delta_t / timeseries.delta_t
+    factor = int(numpy.floor(ratio + 0.5))
+    if (
+        factor < 1
+        or abs(delta_t - factor * timeseries.delta_t)
+        > 1e-3 * timeseries.delta_t
+        or factor & (factor - 1)
+    ):
+        raise RuntimeError("Invalid argument")
+
+    data = timeseries._data.tensor
+    if factor == 1:
+        return TimeSeries(
+            TorchArrayData(data.clone()),
+            delta_t=delta_t,
+            epoch=timeseries._epoch,
+            copy=False,
+        )
+
+    # LAL constructs each pole pair in the transformed-frequency plane,
+    # maps it bilinearly to one digital section, then filters forward and
+    # backward before advancing to the next pair. Calling the device scan one
+    # section at a time preserves both that boundary behavior and REAL4's
+    # per-pass rounding.
+    for section in _butterworth_resample_sos(factor):
+        section = section[numpy.newaxis, :]
+        data = _torch_sosfilt(section, data)
+        data = _torch_sosfilt(section, data.flip(0)).flip(0)
+
+    # LAL truncates the input length before decimation. Cloning releases the
+    # full filtered allocation instead of retaining it through a strided view.
+    output_length = data.numel() // factor
+    data = data[: output_length * factor : factor].clone()
+    return TimeSeries(
+        TorchArrayData(data),
+        delta_t=delta_t,
+        epoch=timeseries._epoch,
+        copy=False,
+    )
 
 
 # Change to True in front-end if you want this function to use caching
@@ -252,7 +333,7 @@ def fir_zero_filter(coeff, timeseries):
     return series
 
 def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
-    """Resmple the time_series to delta_t
+    """Resample the time series to ``delta_t``.
 
     Resamples the TimeSeries instance time_series to the given time step,
     delta_t. Only powers of two and real valued time series are supported
@@ -265,6 +346,8 @@ def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
         The time series to be resampled
     delta_t: float
         The desired time step
+    method: {"butterworth", "ldas"}
+        Low-pass filter to apply before decimation.
 
     Returns
     -------
@@ -283,33 +366,31 @@ def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
 
     >>> h_plus_sampled = resample_to_delta_t(h_plus, 1.0/2048)
     """
-    if not isinstance(timeseries,TimeSeries):
+    if not isinstance(timeseries, TimeSeries):
         raise TypeError("Can only resample time series")
 
     if timeseries.kind != 'real':
         raise TypeError("Time series must be real")
 
-    torch_input = _HAVE_TORCH and isinstance(getattr(timeseries, "_data", None), TorchArrayData)
+    torch_input = _HAVE_TORCH and isinstance(
+        getattr(timeseries, "_data", None), TorchArrayData
+    )
     if timeseries.sample_rate_close(1.0 / delta_t):
         return timeseries * 1
 
     if method == 'butterworth':
-        # LAL's Butterworth resampler is CPU-only. Keep this as an explicit
-        # host fallback; the LDAS path below remains on the Torch device.
-        ts_cpu = timeseries
         if torch_input:
-            ts_cpu = TimeSeries(timeseries.numpy(), delta_t=timeseries.delta_t,
-                                epoch=timeseries.start_time, copy=True)
-        lal_data = ts_cpu.lal()
-        _resample_func[ts_cpu.dtype](lal_data, delta_t)
+            return _torch_butterworth_resample(timeseries, delta_t)
+
+        lal_data = timeseries.lal()
+        _resample_func[timeseries.dtype](lal_data, delta_t)
         data = lal_data.data.data
-        out = TimeSeries(data, delta_t=delta_t, epoch=timeseries.start_time, copy=True)
-        if torch_input:
-            tensor = torch.tensor(out.numpy(), device=timeseries._data.tensor.device,
-                                  dtype=timeseries._data.tensor.dtype)
-            return TimeSeries(TorchArrayData(tensor), delta_t=delta_t,
-                              epoch=timeseries.start_time, copy=False)
-        return out
+        return TimeSeries(
+            data,
+            delta_t=delta_t,
+            epoch=timeseries.start_time,
+            copy=True,
+        )
 
     elif method == 'ldas':
         factor = int(round(delta_t / timeseries.delta_t))
