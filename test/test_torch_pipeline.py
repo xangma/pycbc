@@ -23,7 +23,7 @@ from pycbc.strain import calibration, lines as strain_lines, recalibrate
 from pycbc.strain.strain import StrainBuffer, detect_loud_glitches, gate_data
 from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
-from pycbc.waveform import ringdown, sinegauss
+from pycbc.waveform import ringdown, sinegauss, utils as waveform_utils
 from pycbc.waveform import waveform as waveform_module
 
 if not pycbc.HAVE_TORCH:
@@ -85,6 +85,127 @@ def torch_device_ctx(request):
 def _relative_l2(a, b):
     diff = a - b
     return np.linalg.norm(diff) / np.linalg.norm(b)
+
+
+@pytest.mark.parametrize("dtype", (np.complex64, np.complex128))
+@pytest.mark.parametrize("custom_frequencies", (False, True))
+def test_waveform_evolution_helpers_stay_on_device(
+        torch_device_ctx, monkeypatch, dtype, custom_frequencies):
+    ctx, device = torch_device_ctx
+    if device == "mps" and dtype == np.complex128:
+        pytest.skip("Torch MPS does not support complex128")
+
+    size = 128
+    delta_f = 0.25
+    indices = np.arange(size)
+    phase = -0.002 * indices ** 2
+    phase[82:] += 0.995 * np.pi + 0.002 * (2 * 82 - 1)
+    amplitude = np.zeros(size)
+    amplitude[4:120] = np.linspace(0.2, 1.0, 116)
+    waveform = (amplitude * np.exp(1j * phase)).astype(dtype)
+    frequencies = None
+    if custom_frequencies:
+        frequencies = np.cumsum(
+            np.linspace(0.2, 0.3, size)
+        ).astype(np.float64)
+
+    cpu_series = FrequencySeries(waveform, delta_f=delta_f, epoch=1234)
+    expected_phase = waveform_utils.phase_from_frequencyseries(cpu_series)
+    expected_amp = waveform_utils.amplitude_from_frequencyseries(cpu_series)
+    expected_time = waveform_utils.time_from_frequencyseries(
+        cpu_series, sample_frequencies=frequencies
+    )
+
+    with ctx:
+        torch_series = FrequencySeries(
+            waveform, delta_f=delta_f, epoch=1234
+        )
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("Waveform helper copied Torch data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual_phase = waveform_utils.phase_from_frequencyseries(
+                torch_series
+            )
+            actual_amp = waveform_utils.amplitude_from_frequencyseries(
+                torch_series
+            )
+            actual_time = waveform_utils.time_from_frequencyseries(
+                torch_series, sample_frequencies=frequencies
+            )
+
+    tolerance = 2e-5 if dtype == np.complex64 else 1e-12
+    for actual, expected in (
+        (actual_phase, expected_phase),
+        (actual_amp, expected_amp),
+        (actual_time, expected_time),
+    ):
+        assert actual._data.tensor.device.type == device
+        assert actual.dtype == expected.dtype
+        np.testing.assert_allclose(
+            actual._data.tensor.detach().cpu().numpy(), expected.numpy(),
+            rtol=tolerance, atol=tolerance,
+        )
+
+
+@pytest.mark.parametrize("dtype", (np.float32, np.float64))
+def test_polarization_evolution_helpers_stay_on_device(
+        torch_device_ctx, monkeypatch, dtype):
+    ctx, device = torch_device_ctx
+    if device == "mps" and dtype == np.float64:
+        pytest.skip("Torch MPS does not support float64")
+
+    size = 257
+    delta_t = 1 / 4096
+    indices = np.arange(size)
+    phase = 0.01 * indices + 0.0002 * indices ** 2
+    amplitude = 1 + 0.1 * np.sin(indices / 17)
+    plus = (amplitude * np.cos(phase)).astype(dtype)
+    cross = (amplitude * np.sin(phase)).astype(dtype)
+
+    cpu_plus = TimeSeries(plus, delta_t=delta_t, epoch=1234)
+    cpu_cross = TimeSeries(cross, delta_t=delta_t, epoch=1234)
+    expected_phase = waveform_utils.phase_from_polarizations(
+        cpu_plus, cpu_cross
+    )
+    expected_amp = waveform_utils.amplitude_from_polarizations(
+        cpu_plus, cpu_cross
+    )
+    expected_freq = waveform_utils.frequency_from_polarizations(
+        cpu_plus, cpu_cross
+    )
+
+    with ctx:
+        torch_plus = TimeSeries(plus, delta_t=delta_t, epoch=1234)
+        torch_cross = TimeSeries(cross, delta_t=delta_t, epoch=1234)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("Polarization helper copied data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual_phase = waveform_utils.phase_from_polarizations(
+                torch_plus, torch_cross
+            )
+            actual_amp = waveform_utils.amplitude_from_polarizations(
+                torch_plus, torch_cross
+            )
+            actual_freq = waveform_utils.frequency_from_polarizations(
+                torch_plus, torch_cross
+            )
+
+    tolerance = 2e-5 if dtype == np.float32 else 1e-12
+    for actual, expected in (
+        (actual_phase, expected_phase),
+        (actual_amp, expected_amp),
+        (actual_freq, expected_freq),
+    ):
+        assert actual._data.tensor.device.type == device
+        assert actual.dtype == expected.dtype
+        np.testing.assert_allclose(
+            actual._data.tensor.detach().cpu().numpy(), expected.numpy(),
+            rtol=tolerance, atol=tolerance,
+        )
 
 
 def test_lal_detector_projection_returns_to_torch_device(torch_device_ctx):
