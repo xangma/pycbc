@@ -10,7 +10,7 @@ torch = pytest.importorskip("torch")
 
 import pycbc
 from pycbc import scheme
-from pycbc.filter import autocorrelation, matchedfilter, resample
+from pycbc.filter import autocorrelation, matchedfilter, resample, zpk
 from pycbc.noise import gaussian, reproduceable
 from pycbc.psd import inverse_spectrum_truncation, variation, welch
 from pycbc.strain import gate as strain_gate
@@ -625,6 +625,62 @@ def test_lfilter_torch_matches_scipy_without_host_transfer(
     rtol, atol = ((5e-5, 5e-5) if single_precision
                   else (1e-11, 1e-11))
     np.testing.assert_allclose(actual_data, expected, rtol=rtol, atol=atol)
+    np.testing.assert_array_equal(input_data, data)
+
+
+@pytest.mark.parametrize(
+    "dtype", (np.float32, np.float64, np.complex64, np.complex128)
+)
+@pytest.mark.parametrize(
+    "parameters",
+    (
+        ([20, 30], [1, 2, 100, 120], 5e4),
+        ([40], [2, 80, 160], 1e3),
+    ),
+    ids=("two-second-order-sections", "first-and-second-order-sections"),
+)
+def test_filter_zpk_torch_matches_scipy_without_host_transfer(
+        torch_device_ctx, monkeypatch, dtype, parameters):
+    ctx, device = torch_device_ctx
+    if device == "mps" and dtype != np.float32:
+        pytest.skip("Torch MPS only supports float32 PyCBC arrays")
+
+    rng = np.random.default_rng(1845)
+    data = rng.normal(size=4097)
+    if np.issubdtype(dtype, np.complexfloating):
+        data = data + 1j * rng.normal(size=data.size)
+    data = data.astype(dtype)
+    expected = zpk.filter_zpk(
+        TimeSeries(data, delta_t=1 / 2048, epoch=789), *parameters
+    )
+
+    with ctx:
+        input_series = TimeSeries(data, delta_t=1 / 2048, epoch=789)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("filter_zpk copied Torch samples to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(zpk, "_TORCH_SOS_TARGET_BLOCK_SIZE", 128)
+            actual = zpk.filter_zpk(input_series, *parameters)
+
+    assert actual._data.tensor.device.type == device
+    assert actual.dtype == np.dtype(dtype)
+    assert actual.delta_t == input_series.delta_t
+    assert actual.start_time == input_series.start_time
+
+    actual_data = actual._data.tensor.detach().cpu().numpy()
+    input_data = input_series._data.tensor.detach().cpu().numpy()
+    if device == "mps":
+        rtol = 2e-3
+        atol = np.max(np.abs(expected.numpy())) * 1e-3
+    elif dtype in (np.float32, np.complex64):
+        rtol, atol = 5e-5, 5e-6
+    else:
+        rtol, atol = 5e-10, 5e-11
+    np.testing.assert_allclose(
+        actual_data, expected.numpy(), rtol=rtol, atol=atol
+    )
     np.testing.assert_array_equal(input_data, data)
 
 
