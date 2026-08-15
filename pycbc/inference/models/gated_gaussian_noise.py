@@ -35,6 +35,7 @@ from .gaussian_noise import (BaseGaussianNoise, create_waveform_generator,
                              catch_waveform_error)
 from .base_data import BaseDataModel
 from .data_utils import fd_data_from_strain_dict
+from .tools import _last_index_at_or_below
 
 
 class BaseGatedGaussian(BaseGaussianNoise):
@@ -466,8 +467,8 @@ class BaseGatedGaussian(BaseGaussianNoise):
             h.resize(len(invpsd))
             ht = h.to_timeseries()
             f_low = int((self._f_lower[det]+1)/h.delta_f)
-            sample_freqs = h.sample_frequencies[f_low:].numpy()
-            f_idx = numpy.where(sample_freqs <= meco_f)[0][-1]
+            sample_freqs = h.sample_frequencies[f_low:]
+            f_idx = _last_index_at_or_below(sample_freqs, meco_f)
             # find time corresponding to meco frequency
             t_from_freq = time_from_frequencyseries(
                 h[f_low:], sample_frequencies=sample_freqs)
@@ -833,8 +834,8 @@ class GatedGaussianMargPol(BaseGatedGaussian):
             hp.resize(len(invpsd))
             ht = hp.to_timeseries()
             f_low = int((self._f_lower[det]+1)/hp.delta_f)
-            sample_freqs = hp.sample_frequencies[f_low:].numpy()
-            f_idx = numpy.where(sample_freqs <= meco_f)[0][-1]
+            sample_freqs = hp.sample_frequencies[f_low:]
+            f_idx = _last_index_at_or_below(sample_freqs, meco_f)
             # find time corresponding to meco frequency
             t_from_freq = time_from_frequencyseries(
                 hp[f_low:], sample_frequencies=sample_freqs)

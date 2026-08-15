@@ -49,6 +49,25 @@ def _selected_values(values, indices):
     return tensor[indices].detach().cpu().numpy()
 
 
+def _last_index_at_or_below(values, upper):
+    """Return the last sorted-value index at or below ``upper``."""
+    tensor = _torch_tensor(values)
+    if tensor is not None:
+        import torch
+
+        insertion = torch.searchsorted(
+            tensor, tensor.new_tensor(upper), right=True
+        ).item()
+    else:
+        if hasattr(values, "numpy"):
+            values = values.numpy()
+        insertion = numpy.searchsorted(values, upper, side="right")
+
+    if insertion == 0:
+        raise IndexError(f"no values are at or below {upper}")
+    return int(insertion - 1)
+
+
 def str_to_tuple(sval, ftype):
     """ Convenience parsing to convert str to tuple"""
     if sval is None:

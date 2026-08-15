@@ -412,6 +412,27 @@ def test_inference_nan_check_stays_on_device(
     assert contains_nan._data.tensor.device.type == device
 
 
+def test_inference_frequency_lookup_stays_on_device(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    dtype = np.float32 if device == "mps" else np.float64
+    frequencies = np.arange(256, dtype=dtype) * dtype(0.125)
+
+    with ctx:
+        values = Array(frequencies)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("Frequency lookup copied its grid")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            index = _INFERENCE_TOOLS._last_index_at_or_below(values, 17.31)
+            with pytest.raises(IndexError, match="no values"):
+                _INFERENCE_TOOLS._last_index_at_or_below(values, -0.1)
+
+    assert index == np.searchsorted(frequencies, 17.31, side="right") - 1
+    assert values._data.tensor.device.type == device
+
+
 @pytest.mark.parametrize("dtype", (np.float32, np.float64))
 @pytest.mark.parametrize(
     "sample_offset",
