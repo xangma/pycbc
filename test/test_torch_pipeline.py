@@ -1,4 +1,5 @@
 import importlib.util
+import operator
 import sys
 import types
 from pathlib import Path
@@ -108,6 +109,95 @@ def _load_inference_model_module(name):
 _INFERENCE_DATA_UTILS = _load_inference_model_module("data_utils")
 _INFERENCE_RELBIN_TORCH = _load_inference_model_module("relbin_torch")
 _INFERENCE_TOOLS = _load_inference_model_module("tools")
+
+
+@pytest.mark.parametrize(
+    "dtype, values, other_values, scalar",
+    (
+        (
+            np.float32,
+            (-2.0, 0.5, 3.0),
+            (0.5, 0.0, 4.0),
+            0.5,
+        ),
+        (
+            np.float64,
+            (-2.0, 0.5, 3.0),
+            (0.5, 0.0, 4.0),
+            0.5,
+        ),
+        (
+            np.complex64,
+            (1 + 2j, 1 + 1j, 2 + 0j),
+            (1 + 1.5j, 1 + 1j, 3 + 0j),
+            1 + 1.5j,
+        ),
+        (
+            np.complex128,
+            (1 + 2j, 1 + 1j, 2 + 0j),
+            (1 + 1.5j, 1 + 1j, 3 + 0j),
+            1 + 1.5j,
+        ),
+        (
+            np.int32,
+            (-2**31, 0, 2**31 - 1),
+            (-1, 0, 1),
+            2**40,
+        ),
+        (
+            np.uint32,
+            (0, 1, 2**32 - 1),
+            (1, 1, 2**32 - 2),
+            -1,
+        ),
+    ),
+)
+def test_array_comparisons_stay_on_device(
+        torch_device_ctx, monkeypatch, dtype, values, other_values, scalar):
+    ctx, device = torch_device_ctx
+    if device == "mps" and (
+        dtype in (np.float64, np.complex128)
+        or np.dtype(dtype).kind in "iu"
+    ):
+        pytest.skip("Torch MPS does not support this dtype")
+
+    values = np.asarray(values, dtype=dtype)
+    other_values = np.asarray(other_values, dtype=dtype)
+    operations = (
+        operator.lt,
+        operator.le,
+        operator.ne,
+        operator.gt,
+        operator.ge,
+    )
+    expected_scalar = [operation(values, scalar) for operation in operations]
+    expected_array = [
+        operation(values, other_values) for operation in operations
+    ]
+
+    with ctx:
+        array = Array(values)
+        other = Array(other_values)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("Comparison copied numeric data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual_scalar = [
+                operation(array, scalar) for operation in operations
+            ]
+            actual_array = [
+                operation(array, other) for operation in operations
+            ]
+
+    assert array._data.tensor.device.type == device
+    for actual, expected in zip(
+            actual_scalar + actual_array,
+            expected_scalar + expected_array,
+    ):
+        assert isinstance(actual, np.ndarray)
+        assert actual.dtype == np.bool_
+        np.testing.assert_array_equal(actual, expected)
 
 
 @pytest.mark.parametrize("dtype", (np.complex64, np.complex128))

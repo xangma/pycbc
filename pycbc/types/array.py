@@ -1065,22 +1065,43 @@ class Array(object):
     def copy(self):
         """ Return copy of this array """
         return self._return(self.data.copy())
-        
+
+    @_convert
+    def _elementwise_compare(self, other, operation):
+        """Compare values while preserving the NumPy boolean-array API."""
+        comparison = getattr(self._data, "comparison", None)
+        if comparison is None:
+            if isinstance(other, Array):
+                other = other.numpy()
+            return getattr(self.numpy(), f"__{operation}__")(other)
+
+        if isinstance(other, Array):
+            _convert_to_scheme(other)
+            other = other._data
+
+        try:
+            result = comparison(other, operation)
+        except (TypeError, ValueError, NotImplementedError):
+            if hasattr(other, "numpy"):
+                other = other.numpy()
+            return getattr(self.numpy(), f"__{operation}__")(other)
+        return result.detach().cpu().numpy()
+
     def __lt__(self, other):
-        return self.numpy().__lt__(other)
-        
+        return self._elementwise_compare(other, "lt")
+
     def __le__(self, other):
-        return self.numpy().__le__(other)
-        
+        return self._elementwise_compare(other, "le")
+
     def __ne__(self, other):
-        return self.numpy().__ne__(other)
-        
+        return self._elementwise_compare(other, "ne")
+
     def __gt__(self, other):
-        return self.numpy().__gt__(other)
-        
+        return self._elementwise_compare(other, "gt")
+
     def __ge__(self, other):
-        return self.numpy().__ge__(other)
-            
+        return self._elementwise_compare(other, "ge")
+
 # Convenience functions for determining dtypes
 def real_same_precision_as(data):
     if data.precision == 'single':

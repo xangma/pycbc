@@ -104,6 +104,93 @@ def _promote_tensors(tensor_a, dtype_a, tensor_b, dtype_b):
     )
 
 
+def _comparison_dtype(dtype_a, target_np, device, other_values=None):
+    """Return a Torch dtype that preserves NumPy comparison semantics."""
+    target_np = np.dtype(target_np)
+
+    # Torch does not implement ordering for uint32. Promoting both operands
+    # to int64 is lossless and preserves NumPy's result for uint32 values.
+    if target_np == np.dtype(np.uint32):
+        target_np = np.dtype(np.int64)
+
+    try:
+        return _ensure_supported(device, _torch_dtype(target_np))
+    except TypeError:
+        # MPS cannot represent NumPy's usual float64 scalar promotion. If
+        # the host operand is exactly representable at the array's precision,
+        # comparing at that precision has the same result and stays on-device.
+        if device.type != "mps" or other_values is None:
+            raise
+        values = np.asarray(other_values)
+        with np.errstate(all="ignore"):
+            cast_values = values.astype(dtype_a)
+            restored_values = cast_values.astype(values.dtype)
+        if not np.array_equal(values, restored_values, equal_nan=True):
+            raise
+        return _ensure_supported(device, _torch_dtype(dtype_a))
+
+
+def _comparison_tensors(tensor_a, dtype_a, other):
+    """Prepare operands for a NumPy-compatible Torch comparison."""
+    other = _unwrap(other)
+    other_values = None
+    outside_range = None
+
+    if isinstance(other, torch.Tensor):
+        tensor_b = other
+        if other.dtype == torch.bool:
+            dtype_b = np.dtype(np.bool_)
+        elif other.dtype == torch.float16:
+            dtype_b = np.dtype(np.float16)
+        else:
+            dtype_b = _numpy_dtype(other.dtype)
+        target_np = np.result_type(np.dtype(dtype_a), dtype_b)
+    else:
+        other_values = np.asarray(other)
+        if other_values.dtype.kind not in "biufc":
+            raise TypeError("Torch comparisons require numeric operands")
+        if other_values.ndim and not other_values.flags.c_contiguous:
+            other_values = np.ascontiguousarray(other_values)
+
+        # NumPy uses weak promotion for Python scalars, while arrays and
+        # explicit NumPy scalars carry their own dtype into the comparison.
+        if np.isscalar(other):
+            target_np = np.result_type(np.dtype(dtype_a), other)
+        else:
+            target_np = np.result_type(
+                np.dtype(dtype_a), other_values.dtype
+            )
+
+        # Python integers outside an integer array's range are compared by
+        # value in NumPy instead of first being wrapped to the array dtype.
+        if (
+            isinstance(other, int)
+            and not isinstance(other, bool)
+            and np.dtype(dtype_a).kind in "iu"
+        ):
+            limits = np.iinfo(dtype_a)
+            if other < limits.min:
+                outside_range = -1
+            elif other > limits.max:
+                outside_range = 1
+
+    target = _comparison_dtype(
+        dtype_a,
+        target_np,
+        tensor_a.device,
+        other_values=other_values,
+    )
+    if outside_range is not None:
+        return tensor_a, None, outside_range
+    if not isinstance(other, torch.Tensor):
+        tensor_b = torch.as_tensor(other_values, dtype=target)
+    return (
+        tensor_a.to(dtype=target),
+        tensor_b.to(device=tensor_a.device, dtype=target),
+        None,
+    )
+
+
 def _resolve_for_numpy(tensor):
     """Ensure tensors with a conjugate bit are materialized before numpy conversion."""
     if tensor.is_conj():
@@ -146,6 +233,49 @@ class TorchArrayData:
     def _promote_with(self, other):
         other_t, other_np = _tensor_from_any(other, self.tensor.device)
         return _promote_tensors(self.tensor, self.dtype, other_t, other_np)
+
+    def comparison(self, other, operation):
+        """Return an elementwise boolean comparison as a Torch tensor."""
+        functions = {
+            "lt": torch.lt,
+            "le": torch.le,
+            "ne": torch.ne,
+            "gt": torch.gt,
+            "ge": torch.ge,
+        }
+        try:
+            function = functions[operation]
+        except KeyError as exc:
+            raise ValueError(f"Unknown comparison operation {operation}") from exc
+
+        left, right, outside_range = _comparison_tensors(
+            self.tensor, self.dtype, other
+        )
+        if outside_range is not None:
+            if operation == "ne":
+                value = True
+            elif outside_range > 0:
+                value = operation in ("lt", "le")
+            else:
+                value = operation in ("gt", "ge")
+            return torch.full(
+                self.tensor.shape,
+                value,
+                dtype=torch.bool,
+                device=self.tensor.device,
+            )
+        if operation == "ne":
+            return function(left, right)
+        if not left.is_complex():
+            return function(left, right)
+
+        # NumPy orders complex values lexicographically: compare the real
+        # components first, then the imaginary components when they match.
+        strict = torch.lt if operation in ("lt", "le") else torch.gt
+        return strict(left.real, right.real) | (
+            torch.eq(left.real, right.real)
+            & function(left.imag, right.imag)
+        )
 
     def __len__(self):
         return len(self.tensor)
