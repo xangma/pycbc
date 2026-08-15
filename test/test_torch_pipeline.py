@@ -80,6 +80,51 @@ def _relative_l2(a, b):
     return np.linalg.norm(diff) / np.linalg.norm(b)
 
 
+@pytest.mark.parametrize(
+    ("values", "expected"),
+    (
+        (
+            np.array([0, 0, 1, -2, 3, 0], dtype=np.float32),
+            np.array([1, -2, 3], dtype=np.float32),
+        ),
+        (
+            np.array([0, 1 + 2j, -3j, 0], dtype=np.complex64),
+            np.array([1 + 2j, -3j], dtype=np.complex64),
+        ),
+        (
+            np.zeros(5, dtype=np.float32),
+            np.empty(0, dtype=np.float32),
+        ),
+        (
+            np.array([1, 2, 3], dtype=np.float32),
+            np.array([1, 2, 3], dtype=np.float32),
+        ),
+    ),
+)
+def test_trim_zeros_stays_on_torch_device(
+        torch_device_ctx, monkeypatch, values, expected):
+    ctx, device = torch_device_ctx
+    if device == "mps" and np.iscomplexobj(values):
+        pytest.skip("Torch MPS PyCBC arrays do not support complex dtypes")
+
+    with ctx:
+        array = Array(values)
+
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("trim_zeros copied Torch data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            trimmed = array.trim_zeros()
+
+    assert isinstance(trimmed, Array)
+    assert trimmed._data.tensor.device.type == device
+    torch.testing.assert_close(
+        trimmed._data.tensor.detach().cpu(),
+        torch.as_tensor(expected),
+    )
+
+
 def _make_strain_buffer(data, sample_rate, reduced_pad):
     """Build only the state needed by ``overwhitened_data``."""
     delta_f = 1.0

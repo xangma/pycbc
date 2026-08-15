@@ -1028,7 +1028,20 @@ class Array(object):
     @_convert 
     def trim_zeros(self):
         """Remove the leading and trailing zeros.
-        """      
+        """
+        if isinstance(self._scheme, _scheme.TorchScheme):
+            import torch
+
+            nonzero = torch.nonzero(
+                self._data.tensor != 0,
+                as_tuple=False,
+            ).flatten()
+            if nonzero.numel() == 0:
+                return self[len(self):0]
+            first = int(nonzero[0].item())
+            last = int(nonzero[-1].item()) + 1
+            return self[first:last]
+
         tmp = self.numpy()
         f = len(self)-len(_numpy.trim_zeros(tmp, trim='f'))
         b = len(self)-len(_numpy.trim_zeros(tmp, trim='b'))
