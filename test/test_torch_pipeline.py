@@ -14,7 +14,7 @@ from pycbc.filter import autocorrelation, matchedfilter, resample, zpk
 from pycbc.noise import gaussian, reproduceable
 from pycbc.psd import inverse_spectrum_truncation, variation, welch
 from pycbc.strain import gate as strain_gate
-from pycbc.strain import calibration, recalibrate
+from pycbc.strain import calibration, lines as strain_lines, recalibrate
 from pycbc.strain.strain import StrainBuffer, detect_loud_glitches
 from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
@@ -1067,6 +1067,107 @@ def test_timeseries_detrend_rejects_unknown_type(torch_device_ctx):
         )
         with pytest.raises(ValueError, match="Trend type must be"):
             series.detrend(type="quadratic")
+
+
+@pytest.mark.parametrize("dtype", (np.float32, np.float64))
+def test_line_removal_stays_on_device(
+        torch_device_ctx, monkeypatch, dtype):
+    ctx, device = torch_device_ctx
+    if device == "mps" and dtype == np.float64:
+        pytest.skip("Torch MPS does not support float64")
+
+    sample_rate = 128
+    delta_t = 1 / sample_rate
+    epoch = 100
+    samples = np.arange(sample_rate * 4) * delta_t
+    data = (
+        0.7 * np.sin(2 * np.pi * 13 * samples + 0.3)
+        + 0.2 * np.cos(2 * np.pi * 5 * samples)
+    ).astype(dtype)
+
+    cpu_series = TimeSeries(data, delta_t=delta_t, epoch=epoch)
+    expected_model = strain_lines.line_model(
+        13, cpu_series, epoch, amp=0.7, phi=0.3
+    )
+    expected_inner = strain_lines.avg_inner_product(
+        cpu_series, expected_model, bin_size=0.5
+    )
+    expected_calibrated = strain_lines.calibration_lines(
+        [13], cpu_series
+    )
+    expected_cleaned = strain_lines.clean_data(
+        [13], cpu_series.copy(), chunk=2, avg_bin=0.5
+    )
+
+    with ctx:
+        torch_series = TimeSeries(data, delta_t=delta_t, epoch=epoch)
+        clean_input = torch_series.copy()
+        original = torch_series._data.tensor.clone()
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("line removal copied Torch data to host")
+
+            def _reject_numpy(*_args, **_kwargs):
+                raise AssertionError("line removal called a NumPy kernel")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(strain_lines.numpy, "conjugate", _reject_numpy)
+            patch.setattr(strain_lines.numpy, "exp", _reject_numpy)
+            patch.setattr(strain_lines.numpy, "hanning", _reject_numpy)
+            patch.setattr(strain_lines.numpy, "median", _reject_numpy)
+            actual_model = strain_lines.line_model(
+                13, torch_series, epoch, amp=0.7, phi=0.3
+            )
+            actual_inner = strain_lines.avg_inner_product(
+                torch_series, actual_model, bin_size=0.5
+            )
+            actual_calibrated = strain_lines.calibration_lines(
+                [13], torch_series
+            )
+            actual_cleaned = strain_lines.clean_data(
+                [13], clean_input, chunk=2, avg_bin=0.5
+            )
+
+    assert actual_model._data.tensor.device.type == device
+    assert actual_calibrated._data.tensor.device.type == device
+    assert actual_cleaned._data.tensor.device.type == device
+    assert actual_model.delta_t == delta_t
+    assert actual_model.start_time == expected_model.start_time
+    assert actual_calibrated.start_time == expected_calibrated.start_time
+    assert actual_cleaned is clean_input
+    assert torch.equal(torch_series._data.tensor, original)
+
+    if device == "mps":
+        rtol, atol = 3e-4, 3e-5
+        assert actual_model.dtype == np.dtype(np.complex64)
+        assert actual_calibrated.dtype == np.dtype(np.float32)
+    elif dtype == np.float32:
+        rtol, atol = 3e-6, 3e-7
+        assert actual_model.dtype == expected_model.dtype
+        assert actual_calibrated.dtype == expected_calibrated.dtype
+    else:
+        rtol, atol = 2e-12, 2e-13
+        assert actual_model.dtype == expected_model.dtype
+        assert actual_calibrated.dtype == expected_calibrated.dtype
+
+    np.testing.assert_allclose(
+        actual_model._data.tensor.detach().cpu().numpy(),
+        expected_model.numpy(), rtol=rtol, atol=atol,
+    )
+    np.testing.assert_allclose(
+        actual_inner[0], expected_inner[0], rtol=rtol, atol=atol,
+    )
+    np.testing.assert_allclose(
+        actual_inner[1:], expected_inner[1:], rtol=rtol, atol=atol,
+    )
+    np.testing.assert_allclose(
+        actual_calibrated._data.tensor.detach().cpu().numpy(),
+        expected_calibrated.numpy(), rtol=rtol, atol=atol,
+    )
+    np.testing.assert_allclose(
+        actual_cleaned._data.tensor.detach().cpu().numpy(),
+        expected_cleaned.numpy(), rtol=rtol, atol=atol,
+    )
 
 
 @pytest.mark.parametrize("dtype", (np.float32, np.float64))

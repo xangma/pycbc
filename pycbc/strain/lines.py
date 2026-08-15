@@ -17,7 +17,69 @@
 """
 
 import numpy
+
 from pycbc.types import TimeSeries, zeros
+
+try:
+    import torch
+    from pycbc.types.array_torch import TorchArrayData
+except ImportError:  # pragma: no cover - Torch is optional
+    torch = None
+    TorchArrayData = None
+
+
+def _is_torch_series(data):
+    """Return whether ``data`` uses Torch-backed storage."""
+    return TorchArrayData is not None and isinstance(
+        getattr(data, "_data", None), TorchArrayData
+    )
+
+
+def _torch_phase_dtype(data):
+    """Choose the phase-accumulation dtype supported by the device."""
+    tensor = data._data.tensor
+    if tensor.device.type == "mps":
+        return torch.float32
+    return torch.float64
+
+
+def _torch_median(values):
+    """Match NumPy's average-of-middle-values median convention."""
+    values = torch.sort(values).values
+    midpoint = values.numel() // 2
+    if values.numel() % 2:
+        return values[midpoint]
+    return 0.5 * (values[midpoint - 1] + values[midpoint])
+
+
+def _torch_avg_inner_product(data1, data2, bin_size):
+    """Calculate binned line inner products on the active Torch device."""
+    tensor1 = data1._data.tensor
+    tensor2 = data2._data.tensor.to(device=tensor1.device)
+    seglen = int(bin_size * data1.sample_rate)
+    num_segments = int(data1.duration / bin_size)
+
+    values = (
+        tensor1[:num_segments * seglen].real.reshape(num_segments, seglen)
+        * torch.conj(
+            tensor2[:num_segments * seglen].reshape(num_segments, seglen)
+        )
+    )
+    inner_prod = 2 * values.sum(dim=1) / seglen
+    inner_median = torch.complex(
+        _torch_median(inner_prod.real),
+        _torch_median(inner_prod.imag),
+    )
+
+    # ``inner_prod`` is documented as a Python list, so only this compact
+    # result crosses the device boundary; the input time series never does.
+    inner_prod_list = inner_prod.detach().cpu().tolist()
+    return (
+        inner_prod_list,
+        torch.abs(inner_median).item(),
+        torch.angle(inner_median).item(),
+    )
+
 
 def complex_median(complex_list):
     """ Get the median value of a list of complex numbers.
@@ -37,6 +99,7 @@ def complex_median(complex_list):
     median_imag = numpy.median([complex_number.imag
                      for complex_number in complex_list])
     return median_real + 1.j*median_imag
+
 
 def avg_inner_product(data1, data2, bin_size):
     """ Calculate the time-domain inner product averaged over bins.
@@ -62,6 +125,9 @@ def avg_inner_product(data1, data2, bin_size):
     """
     assert data1.duration == data2.duration
     assert data1.sample_rate == data2.sample_rate
+    if _is_torch_series(data1) and _is_torch_series(data2):
+        return _torch_avg_inner_product(data1, data2, bin_size)
+
     seglen = int(bin_size * data1.sample_rate)
     inner_prod = []
     for idx in range(int(data1.duration / bin_size)):
@@ -75,6 +141,7 @@ def avg_inner_product(data1, data2, bin_size):
     # of a signal in a particular bin.
     inner_median = complex_median(inner_prod)
     return inner_prod, numpy.abs(inner_median), numpy.angle(inner_median)
+
 
 def line_model(freq, data, tref, amp=1, phi=0):
     """ Simple time-domain model for a frequency line.
@@ -100,6 +167,22 @@ def line_model(freq, data, tref, amp=1, phi=0):
         corresponding frequency line in the strain data. For extraction, use
         only the real part of the data.
     """
+    if _is_torch_series(data):
+        dtype = _torch_phase_dtype(data)
+        device = data._data.tensor.device
+        times = torch.arange(len(data), dtype=dtype, device=device)
+        times = times * data.delta_t + float(data.start_time) - float(tref)
+        alpha = 2 * torch.pi * float(freq) * times + float(phi)
+        values = torch.polar(
+            torch.full_like(alpha, float(amp)), alpha
+        )
+        return TimeSeries(
+            TorchArrayData(values),
+            delta_t=data.delta_t,
+            epoch=data.start_time,
+            copy=False,
+        )
+
     freq_line = TimeSeries(zeros(len(data)), delta_t=data.delta_t,
                            epoch=data.start_time)
 
@@ -108,6 +191,7 @@ def line_model(freq, data, tref, amp=1, phi=0):
     freq_line.data = amp * numpy.exp(1.j * alpha)
 
     return freq_line
+
 
 def matching_line(freq, data, tref, bin_size=1):
     """ Find the parameter of the line with frequency 'freq' in the data.
@@ -135,6 +219,7 @@ def matching_line(freq, data, tref, bin_size=1):
                                     bin_size=bin_size)
     return line_model(freq, data, tref=tref, amp=amp, phi=phi)
 
+
 def calibration_lines(freqs, data, tref=None):
     """ Extract the calibration lines from strain data.
 
@@ -154,12 +239,33 @@ def calibration_lines(freqs, data, tref=None):
     """
     if tref is None:
         tref = float(data.start_time)
+    if _is_torch_series(data):
+        result = data
+        for freq in freqs:
+            measured_line = matching_line(
+                freq, result, tref, bin_size=result.duration
+            )
+            tensor = (
+                result._data.tensor
+                - measured_line._data.tensor.real.to(
+                    device=result._data.tensor.device
+                )
+            )
+            result = TimeSeries(
+                TorchArrayData(tensor),
+                delta_t=result.delta_t,
+                epoch=result.start_time,
+                copy=False,
+            )
+        return result
+
     for freq in freqs:
         measured_line = matching_line(freq, data, tref,
                                       bin_size=data.duration)
         data -= measured_line.data.real
 
     return data
+
 
 def clean_data(freqs, data, chunk, avg_bin):
     """ Extract time-varying (wandering) lines from strain data.
@@ -194,6 +300,32 @@ def clean_data(freqs, data, chunk, avg_bin):
     seglen = chunk * data.sample_rate
 
     tref = float(data.start_time)
+    if _is_torch_series(data):
+        tensor = data._data.tensor
+        window_dtype = _torch_phase_dtype(data)
+        for freq in freqs:
+            for step in steps:
+                start, end = int(step * seglen), int((step + 1) * seglen)
+                chunk_line = matching_line(
+                    freq, data[start:end], tref, bin_size=avg_bin
+                )
+                hann_window = torch.hann_window(
+                    len(chunk_line),
+                    periodic=False,
+                    dtype=window_dtype,
+                    device=tensor.device,
+                )
+                midpoint = len(chunk_line) // 2
+                if step == 0:
+                    hann_window[:midpoint] = 1
+                elif step == steps[-1]:
+                    hann_window[midpoint:] = 1
+                tensor[start:end].sub_(
+                    chunk_line._data.tensor.real.to(dtype=tensor.dtype)
+                    * hann_window.to(dtype=tensor.dtype)
+                )
+        return data
+
     for freq in freqs:
         for step in steps:
             start, end = int(step*seglen), int((step+1)*seglen)
@@ -206,12 +338,11 @@ def clean_data(freqs, data, chunk, avg_bin):
             apply_hann = TimeSeries(numpy.ones(len(chunk_line)),
                                     delta_t=chunk_line.delta_t,
                                     epoch=chunk_line.start_time)
+            midpoint = len(hann_window) // 2
             if step == 0:
-                apply_hann.data[len(hann_window)/2:] *= \
-                                hann_window[len(hann_window)/2:]
+                apply_hann.data[midpoint:] *= hann_window[midpoint:]
             elif step == steps[-1]:
-                apply_hann.data[:len(hann_window)/2] *= \
-                                hann_window[:len(hann_window)/2]
+                apply_hann.data[:midpoint] *= hann_window[:midpoint]
             else:
                 apply_hann.data *= hann_window
             chunk_line.data *= apply_hann.data
