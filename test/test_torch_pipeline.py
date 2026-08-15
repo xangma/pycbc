@@ -13,7 +13,7 @@ from pycbc.filter import autocorrelation, matchedfilter, resample
 from pycbc.noise import gaussian, reproduceable
 from pycbc.psd import inverse_spectrum_truncation, variation, welch
 from pycbc.strain import gate as strain_gate
-from pycbc.strain.strain import StrainBuffer
+from pycbc.strain.strain import StrainBuffer, detect_loud_glitches
 from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
 
@@ -478,6 +478,46 @@ def test_autocorrelation_stays_on_device(
     )
     if not unbiased:
         assert actual_acl == expected_acl
+
+
+def test_detect_loud_glitches_thresholds_on_device(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    if device == "mps":
+        pytest.skip("Glitch detection requires complex PyCBC arrays on MPS")
+
+    sample_rate = 128
+    rng = np.random.default_rng(1234)
+    data = rng.normal(size=sample_rate * 16)
+    data[sample_rate * 6] += 80
+    data[sample_rate * 11] -= 100
+    parameters = dict(
+        psd_duration=2,
+        psd_stride=1,
+        low_freq_cutoff=10,
+        threshold=6,
+        cluster_window=0.5,
+        corrupt_time=1,
+    )
+    expected = detect_loud_glitches(
+        TimeSeries(data, delta_t=1 / sample_rate, epoch=1000),
+        **parameters,
+    )
+
+    with ctx:
+        torch_data = TimeSeries(
+            data, delta_t=1 / sample_rate, epoch=1000
+        )
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError(
+                    "Glitch detection copied the full series to host"
+                )
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = detect_loud_glitches(torch_data, **parameters)
+
+    assert actual == expected
 
 
 @pytest.mark.parametrize("dtype", (np.float32, np.float64))

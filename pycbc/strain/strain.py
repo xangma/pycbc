@@ -170,16 +170,20 @@ def detect_loud_glitches(strain, psd_duration=4., psd_stride=2.,
     if output_intermediates:
         mag.save('strain_whitened_mag.npy')
 
-    mag = mag.numpy()
-
     # remove strain corrupted by filters at the ends
-    mag[0:corrupt_length] = 0
-    mag[-1:-corrupt_length-1:-1] = 0
+    if corrupt_length:
+        mag[0:corrupt_length] = 0
+        mag[len(mag)-corrupt_length:] = 0
 
     # find peaks and their times
-    indices = numpy.where(mag > threshold)[0]
+    if _HAVE_TORCH and isinstance(mag._data, TorchArrayData):
+        indices, values = pycbc.events.threshold_only(mag, threshold)
+    else:
+        mag = mag.numpy()
+        indices = numpy.where(mag > threshold)[0]
+        values = numpy.array(mag[indices])
     cluster_idx = pycbc.events.findchirp_cluster_over_window(
-            indices, numpy.array(mag[indices]),
+            indices, values,
             int(cluster_window*strain.sample_rate))
     times = [idx * strain.delta_t + strain.start_time \
              for idx in indices[cluster_idx]]
