@@ -747,7 +747,7 @@ class StatusBuffer(DataBuffer):
         ----------
         values: pycbc.types.Array
             Array of status information
-        flag: str, optional
+        flag: int, optional
             Override the default valid mask with a user defined mask.
 
         Returns
@@ -756,12 +756,19 @@ class StatusBuffer(DataBuffer):
             Returns True if all of the status information if valid,
              False if any is not.
         """
+        tensor = getattr(getattr(values, "_data", None), "tensor", None)
         if self.valid_on_zero:
-            valid = values.numpy() == 0
+            valid = tensor == 0 if tensor is not None else values.numpy() == 0
         else:
             if flag is None:
                 flag = self.valid_mask
-            valid = numpy.bitwise_and(values.numpy(), flag) == flag
+            if tensor is not None:
+                valid = tensor.bitwise_and(flag) == flag
+            else:
+                valid = numpy.bitwise_and(values.numpy(), flag) == flag
+
+        if tensor is not None:
+            return bool(valid.all().item())
         return bool(numpy.all(valid))
 
     def is_extent_valid(self, start_time, duration, flag=None):

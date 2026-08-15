@@ -18,6 +18,7 @@ import pycbc
 from pycbc import scheme
 from pycbc.detector import Detector
 from pycbc.filter import autocorrelation, matchedfilter, resample, zpk
+from pycbc.frame.frame import StatusBuffer
 from pycbc.inject.inject import SGBurstInjectionSet, _InjectionAdder
 from pycbc.inject.injfilterrejector import InjFilterRejector
 from pycbc.noise import gaussian, reproduceable
@@ -198,6 +199,42 @@ def test_array_comparisons_stay_on_device(
         assert isinstance(actual, np.ndarray)
         assert actual.dtype == np.bool_
         np.testing.assert_array_equal(actual, expected)
+
+
+def test_status_buffer_validation_stays_on_device(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    if device == "mps":
+        pytest.skip("Torch MPS does not support integer status arrays")
+
+    cases = (
+        (True, (0, 0), None, True),
+        (True, (0, 1), None, False),
+        (False, (3, 7), None, True),
+        (False, (3, 1), None, False),
+        (False, (4, 5), 4, True),
+        (False, (), None, True),
+    )
+    status = StatusBuffer.__new__(StatusBuffer)
+    status.valid_mask = 3
+
+    with ctx:
+        arrays = [
+            Array(np.asarray(values, dtype=np.int32))
+            for _, values, _, _ in cases
+        ]
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("Status validation copied data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = []
+            for (valid_on_zero, _, flag, _), values in zip(cases, arrays):
+                status.valid_on_zero = valid_on_zero
+                actual.append(status.check_valid(values, flag=flag))
+
+    assert actual == [expected for _, _, _, expected in cases]
+    assert all(array._data.tensor.device.type == device for array in arrays)
 
 
 @pytest.mark.parametrize("dtype", (np.complex64, np.complex128))
