@@ -1,15 +1,36 @@
-""" Tools and functions to calculate interpolate waveforms using multi-banding
-"""
+"""Tools for interpolating waveforms with multiple frequency bands."""
+
 import numpy
 
-from pycbc.types import TimeSeries, zeros
+from pycbc.types import Array, TimeSeries, zeros
+
+
+def _hann_window(length, reference):
+    """Return a Hann window on the same backend as ``reference``."""
+    tensor = getattr(reference._data, "tensor", None)
+    if tensor is None:
+        return numpy.hanning(length)
+
+    import torch
+    from pycbc.types.array_torch import TorchArrayData
+
+    if length <= 1:
+        window = tensor.real.new_ones(length)
+    else:
+        window = torch.hann_window(
+            length,
+            periodic=False,
+            dtype=tensor.real.dtype,
+            device=tensor.device,
+        )
+    return Array(TorchArrayData(window), copy=False)
 
 
 def multiband_fd_waveform(bands=None, lengths=None, overlap=0, **p):
-    """ Generate a fourier domain waveform using multibanding
+    """Generate a Fourier-domain waveform using multibanding.
 
-    Speed up generation of a fouerier domain waveform using multibanding. This
-    allows for multi-rate sampling of the frequeny space. Each band is
+    Speed up generation of a Fourier-domain waveform using multibanding. This
+    allows for multi-rate sampling of frequency space. Each band is
     smoothed and stitched together to produce the final waveform. The base
     approximant must support 'f_ref' and 'f_final'. The other parameters
     must be chosen carefully by the user.
@@ -27,14 +48,14 @@ def multiband_fd_waveform(bands=None, lengths=None, overlap=0, **p):
     overlap: float
         The frequency width to apply tapering between bands.
     params: dict
-        The remaining keyworkd arguments passed to the base approximant
+        The remaining keyword arguments passed to the base approximant
         waveform generation.
 
     Returns
     -------
     hp: pycbc.types.FrequencySeries
         Plus polarization
-    hc: pycbc.type.FrequencySeries
+    hc: pycbc.types.FrequencySeries
         Cross polarization
     """
     from pycbc.waveform import get_fd_waveform
@@ -51,11 +72,10 @@ def multiband_fd_waveform(bands=None, lengths=None, overlap=0, **p):
     flow = p['f_lower']
 
     bands = [flow] + bands + [fmax]
-    dfs = [df] + [1.0 / l for l in lengths]
+    dfs = [df] + [1.0 / duration for duration in lengths]
 
     dt = 1.0 / (2.0 * fmax)
     tlen = int(1.0 / dt / df)
-    flen = tlen / 2 + 1
     wf_plus = TimeSeries(zeros(tlen, dtype=numpy.float32),
                          copy=False, delta_t=dt, epoch=-1.0/df)
     wf_cross = TimeSeries(zeros(tlen, dtype=numpy.float32),
@@ -84,24 +104,24 @@ def multiband_fd_waveform(bands=None, lengths=None, overlap=0, **p):
             p2['f_final'] += overlap / 2.0
 
         tlen = int(1.0 / dt / dfs[i])
-        flen = tlen / 2 + 1
+        flen = tlen // 2 + 1
 
         hp, hc = get_fd_waveform(**p2)
 
         # apply window function to smooth over transition regions
         kmin = int(p2['f_lower'] / dfs[i])
         kmax = int(p2['f_final'] / dfs[i])
-        taper = numpy.hanning(int(overlap * 2 / dfs[i]))
+        waves = (hp.astype(numpy.complex64), hc.astype(numpy.complex64))
+        taper = _hann_window(int(overlap * 2 / dfs[i]), waves[0])
 
-        for wf, h in zip([wf_plus, wf_cross], [hp, hc]):
-            h = h.astype(numpy.complex64)
+        for wf, h in zip((wf_plus, wf_cross), waves):
 
             if taper_start:
                 h[kmin:kmin + len(taper) // 2] *= taper[:len(taper)//2]
 
             if taper_end:
-                l, r = kmax - (len(taper) - len(taper) // 2), kmax
-                h[l:r] *= taper[len(taper)//2:]
+                left = kmax - (len(taper) - len(taper) // 2)
+                h[left:kmax] *= taper[len(taper)//2:]
 
             # add frequency band to total and use fft to interpolate
             h.resize(flen)

@@ -134,6 +134,10 @@ transferring the result. Even the device-native ports assemble scalar
 coefficients from Python/NumPy values, so Torch-scheme support does not, by
 itself, imply an end-to-end differentiable waveform.
 
+The ``multiband`` wrapper keeps its overlap windows, FFT interpolation, and
+band accumulation on the active Torch device when its base approximant returns
+Torch-backed series.
+
 Set a per-approximant flag to ``1`` to request the torch implementation or ``0``
 to force the lalsimulation implementation. Unsupported options retain the
 lalsimulation fallback. If a per-flag is unset, the global flag decides.
