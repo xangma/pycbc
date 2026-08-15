@@ -761,6 +761,67 @@ def test_followup_background_reduction_stays_on_device(
     assert background._data.tensor.device.type == device
 
 
+@pytest.mark.parametrize("use_psd", (False, True))
+@pytest.mark.parametrize("dtype", (np.complex64, np.complex128))
+def test_optimized_match_stays_on_device(
+        torch_device_ctx, monkeypatch, use_psd, dtype):
+    ctx, device = torch_device_ctx
+    if device == "mps":
+        pytest.skip("Torch MPS does not support complex PyCBC arrays")
+
+    sample_count = 2048
+    frequency_count = sample_count // 2 + 1
+    delta_f = 1.0
+    delta_t = 1.0 / (sample_count * delta_f)
+    frequencies = np.arange(frequency_count) * delta_f
+    amplitude = np.exp(-0.5 * ((frequencies - 200) / 75) ** 2)
+    data = (
+        amplitude
+        * np.exp(1j * (0.013 * frequencies + 3e-5 * frequencies**2))
+    ).astype(dtype)
+    real_dtype = np.empty((), dtype=dtype).real.dtype
+    psd_data = (1.0 + (frequencies / 300) ** 2).astype(real_dtype)
+    shift = 5.5 * delta_t
+
+    cpu_waveform = FrequencySeries(data, delta_f=delta_f)
+    cpu_shifted = cpu_waveform.cyclic_time_shift(shift)
+    cpu_psd = FrequencySeries(psd_data, delta_f=delta_f) if use_psd else None
+    expected = matchedfilter.optimized_match(
+        cpu_waveform, cpu_shifted, psd=cpu_psd,
+        low_frequency_cutoff=20, high_frequency_cutoff=800,
+        return_phase=True,
+    )
+
+    with ctx:
+        waveform = FrequencySeries(data, delta_f=delta_f)
+        shifted = waveform.cyclic_time_shift(shift)
+        psd = FrequencySeries(
+            psd_data, delta_f=delta_f
+        ) if use_psd else None
+        waveform_data = waveform._data.tensor.clone()
+        shifted_data = shifted._data.tensor.clone()
+
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("optimized match copied Torch data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = matchedfilter.optimized_match(
+                waveform, shifted, psd=psd,
+                low_frequency_cutoff=20, high_frequency_cutoff=800,
+                return_phase=True,
+            )
+
+    assert waveform._data.tensor.device.type == device
+    assert shifted._data.tensor.device.type == device
+    assert torch.equal(waveform._data.tensor, waveform_data)
+    assert torch.equal(shifted._data.tensor, shifted_data)
+    tolerance = 2e-4 if dtype == np.complex64 else 1e-6
+    np.testing.assert_allclose(
+        actual, expected, rtol=tolerance, atol=tolerance
+    )
+
+
 @pytest.mark.parametrize("detrend_type", ("constant", "linear", "c", "l"))
 @pytest.mark.parametrize(
     "dtype", (np.float32, np.float64, np.complex64, np.complex128)

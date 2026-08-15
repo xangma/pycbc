@@ -2108,9 +2108,8 @@ def optimized_match(
     v2_norm=None,
     return_phase=False,
 ):
-    """Given two waveforms (as numpy arrays),
-    compute the optimized match between them, making use
-    of scipy.minimize_scalar.
+    """Given two waveforms, compute their optimized match using
+    ``scipy.optimize.minimize_scalar``.
 
     This function computes the same quantities as "match";
     it is more accurate and slower.
@@ -2158,7 +2157,7 @@ def optimized_match(
 
     # a first time shift to get in the nearby region;
     # then the optimization is only used to move to the
-    # correct subsample-timeshift witin (-delta_t, delta_t)
+    # correct subsample-timeshift within (-delta_t, delta_t)
     # of this
     _, max_id, _ = match(
         htilde,
@@ -2171,32 +2170,64 @@ def optimized_match(
 
     stilde = stilde.cyclic_time_shift(-max_id * delta_t)
 
-    frequencies = stilde.sample_frequencies.numpy()
-    waveform_1 = htilde.numpy()
-    waveform_2 = stilde.numpy()
-
     N = (len(stilde) - 1) * 2
     kmin, kmax = get_cutoff_indices(
         low_frequency_cutoff, high_frequency_cutoff, delta_f, N
     )
     mask = slice(kmin, kmax)
 
-    waveform_1 = waveform_1[mask]
-    waveform_2 = waveform_2[mask]
-    frequencies = frequencies[mask]
+    htilde_tensor = getattr(getattr(htilde, '_data', None), 'tensor', None)
+    stilde_tensor = getattr(getattr(stilde, '_data', None), 'tensor', None)
+    if htilde_tensor is not None and stilde_tensor is not None:
+        import torch
 
-    if psd is not None:
-        psd_arr = psd.numpy()[mask]
+        # SciPy controls the scalar search, but each waveform-sized objective
+        # evaluation and reduction remains on the Torch device.
+        waveform_1 = htilde_tensor[mask]
+        waveform_2 = stilde_tensor[mask]
+        frequencies = stilde.sample_frequencies._data.tensor[mask]
+        if psd is None:
+            psd_arr = torch.ones_like(waveform_1)
+        else:
+            psd_tensor = getattr(getattr(psd, '_data', None), 'tensor', None)
+            if psd_tensor is None:
+                psd_tensor = torch.as_tensor(
+                    psd.numpy(), device=waveform_1.device
+                )
+            else:
+                psd_tensor = psd_tensor.to(device=waveform_1.device)
+            psd_arr = psd_tensor[mask]
+
+        weighted_product = (
+            torch.conj(waveform_1) * waveform_2 / psd_arr
+        )
+
+        def product_offset(dt):
+            offset = torch.exp(
+                2j * torch.pi * frequencies * dt
+            )
+            integral = torch.sum(weighted_product * offset) * delta_f
+            return (
+                4 * torch.abs(integral).item(),
+                torch.angle(integral).item(),
+            )
     else:
-        psd_arr = numpy.ones_like(waveform_1)
+        frequencies = stilde.sample_frequencies.numpy()[mask]
+        waveform_1 = htilde.numpy()[mask]
+        waveform_2 = stilde.numpy()[mask]
 
-    def product(a, b):
-        integral = numpy.sum(numpy.conj(a) * b / psd_arr) * delta_f
-        return 4 * abs(integral), numpy.angle(integral)
+        if psd is not None:
+            psd_arr = psd.numpy()[mask]
+        else:
+            psd_arr = numpy.ones_like(waveform_1)
 
-    def product_offset(dt):
-        offset = numpy.exp(2j * numpy.pi * frequencies * dt)
-        return product(waveform_1, waveform_2 * offset)
+        def product(a, b):
+            integral = numpy.sum(numpy.conj(a) * b / psd_arr) * delta_f
+            return 4 * abs(integral), numpy.angle(integral)
+
+        def product_offset(dt):
+            offset = numpy.exp(2j * numpy.pi * frequencies * dt)
+            return product(waveform_1, waveform_2 * offset)
 
     def to_minimize(dt):
         return -product_offset(dt)[0]
