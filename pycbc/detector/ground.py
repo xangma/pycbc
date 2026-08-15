@@ -582,7 +582,11 @@ class Detector(object):
 
             fp, fc = self.antenna_pattern(ra, dec, polarization, time)
             dt = self.time_delay_from_earth_center(ra, dec, rtime)
-            ts = fp * hp + fc * hc
+            # Keep PyCBC arrays on the left so their active backend handles
+            # the scalar operations.  NumPy scalars on the left invoke
+            # NumPy's ufunc machinery, which cannot wrap Torch storage
+            # without a copy.
+            ts = hp * fp + hc * fc
             ts.start_time = float(ts.start_time) + dt
 
         # add in only the correction for the time variance in the polarization

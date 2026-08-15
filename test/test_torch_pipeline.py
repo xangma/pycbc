@@ -1,17 +1,21 @@
 import sys
 import types
 
+import lal
 import numpy as np
 import pytest
 import scipy.interpolate
 import scipy.signal
 import lalsimulation
+from igwn_ligolw import lsctables
 
 torch = pytest.importorskip("torch")
 
 import pycbc
 from pycbc import scheme
+from pycbc.detector import Detector
 from pycbc.filter import autocorrelation, matchedfilter, resample, zpk
+from pycbc.inject.inject import SGBurstInjectionSet
 from pycbc.noise import gaussian, reproduceable
 from pycbc.psd import inverse_spectrum_truncation, variation, welch
 from pycbc.strain import gate as strain_gate
@@ -344,6 +348,198 @@ def test_sgburst_requires_delta_t_and_has_a_real_registry_entry():
             hrss=1e-21,
             delta_t=1 / 4096,
         )
+
+
+def _sgburst_injection_row(central_time=1_000_000_002.123456789):
+    injection = lsctables.SimBurst()
+    injection.time_geocent = lal.LIGOTimeGPS(central_time)
+    injection.q = 9.0
+    injection.frequency = 150.0
+    injection.hrss = 1e-21
+    injection.pol_ellipse_e = 0.6
+    injection.pol_ellipse_angle = -0.7
+    injection.ra = 1.1
+    injection.dec = -0.4
+    injection.psi = 0.3
+    return injection
+
+
+def _sgburst_injection_set(injection):
+    injection_set = object.__new__(SGBurstInjectionSet)
+    injection_set.table = [injection]
+    injection_set.extra_args = {}
+    return injection_set
+
+
+def _lalsim_sgburst_injection_reference(
+        injection, delta_t, length, epoch, dtype, distance_scale):
+    plus_lal, cross_lal = lalsimulation.SimBurstSineGaussian(
+        float(injection.q),
+        float(injection.frequency),
+        float(injection.hrss),
+        float(injection.pol_ellipse_e),
+        float(injection.pol_ellipse_angle),
+        delta_t,
+    )
+    plus = TimeSeries(
+        plus_lal.data.data.copy(),
+        delta_t=plus_lal.deltaT,
+        epoch=plus_lal.epoch,
+    )
+    cross = TimeSeries(
+        cross_lal.data.data.copy(),
+        delta_t=cross_lal.deltaT,
+        epoch=cross_lal.epoch,
+    )
+    plus /= distance_scale
+    cross /= distance_scale
+
+    central_time = float(injection.time_geocent)
+    plus.start_time += central_time
+    cross.start_time += central_time
+    detector = Detector("H1")
+    fp, fc = detector.antenna_pattern(
+        injection.ra,
+        injection.dec,
+        injection.psi,
+        central_time,
+    )
+    delay = detector.time_delay_from_earth_center(
+        injection.ra,
+        injection.dec,
+        central_time,
+    )
+    signal = plus * float(fp) + cross * float(fc)
+    signal.start_time = float(signal.start_time) + delay
+
+    strain = TimeSeries(
+        np.zeros(length, dtype=dtype),
+        delta_t=delta_t,
+        epoch=epoch,
+    )
+    strain.inject(signal.astype(dtype), copy=False)
+    return strain.numpy().copy()
+
+
+def test_sgburst_injection_matches_lalsimulation_and_detector_response():
+    delta_t = 1 / 2048
+    length = 4 * 2048
+    epoch = 1_000_000_000
+    distance_scale = 2.5
+    injection = _sgburst_injection_row()
+    expected = _lalsim_sgburst_injection_reference(
+        injection,
+        delta_t,
+        length,
+        epoch,
+        np.float64,
+        distance_scale,
+    )
+    strain = TimeSeries(
+        np.zeros(length, dtype=np.float64),
+        delta_t=delta_t,
+        epoch=epoch,
+    )
+
+    _sgburst_injection_set(injection).apply(
+        strain,
+        "H1",
+        distance_scale=distance_scale,
+    )
+
+    np.testing.assert_allclose(strain.numpy(), expected, rtol=2e-12, atol=1e-34)
+
+
+def test_sgburst_injection_stays_on_torch_device(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    delta_t = 1 / 2048
+    length = 4 * 2048
+    epoch = 1_000_000_000
+    distance_scale = 2.5
+    injection = _sgburst_injection_row()
+    expected = _lalsim_sgburst_injection_reference(
+        injection,
+        delta_t,
+        length,
+        epoch,
+        np.float32,
+        distance_scale,
+    )
+    sinegauss._cached_torch_time_grid.cache_clear()
+
+    with ctx:
+        strain = TimeSeries(
+            np.zeros(length, dtype=np.float32),
+            delta_t=delta_t,
+            epoch=epoch,
+        )
+        with monkeypatch.context() as patch:
+            def _reject_lalsimulation(*_args, **_kwargs):
+                raise AssertionError("burst injection used lalsimulation")
+
+            def _reject_lal_conversion(*_args, **_kwargs):
+                raise AssertionError("burst injection converted through LAL")
+
+            def _reject_host_transfer(_self):
+                raise AssertionError("burst injection copied data to host")
+
+            patch.setattr(
+                lalsimulation,
+                "SimBurstSineGaussian",
+                _reject_lalsimulation,
+            )
+            patch.setattr(
+                lalsimulation,
+                "SimAddInjectionREAL4TimeSeries",
+                _reject_lalsimulation,
+            )
+            patch.setattr(
+                lalsimulation,
+                "SimDetectorStrainREAL8TimeSeries",
+                _reject_lalsimulation,
+            )
+            patch.setattr(TimeSeries, "lal", _reject_lal_conversion)
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+
+            _sgburst_injection_set(injection).apply(
+                strain,
+                "H1",
+                distance_scale=distance_scale,
+            )
+
+    assert strain._data.tensor.device.type == device
+    assert strain._data.tensor.dtype == torch.float32
+    tolerances = (
+        {"rtol": 3e-4, "atol": 1e-26}
+        if device == "mps"
+        else {"rtol": 2e-5, "atol": 3e-28}
+    )
+    torch.testing.assert_close(
+        strain._data.tensor.detach().cpu(),
+        torch.as_tensor(expected),
+        **tolerances,
+    )
+
+
+def test_sgburst_injection_skips_disjoint_waveforms(monkeypatch):
+    injection = _sgburst_injection_row(central_time=1_000_000_100)
+    strain = TimeSeries(
+        np.zeros(2048, dtype=np.float64),
+        delta_t=1 / 2048,
+        epoch=1_000_000_000,
+    )
+
+    def _reject_generation(*_args, **_kwargs):
+        raise AssertionError("disjoint burst waveform was generated")
+
+    monkeypatch.setattr(
+        waveform_module,
+        "get_sgburst_waveform",
+        _reject_generation,
+    )
+    _sgburst_injection_set(injection).apply(strain, "H1")
+    np.testing.assert_array_equal(strain.numpy(), 0)
 
 
 def _ringdown_parameters():

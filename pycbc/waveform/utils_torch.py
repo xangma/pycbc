@@ -28,7 +28,12 @@ def apply_fseries_time_shift(htilde, dt, kmin=0, copy=True):
         data = data.clone()
 
     phi = -2j * torch.pi * dt * htilde.delta_f
-    idx = torch.arange(kmin, data.shape[-1], device=data.device, dtype=torch.float64)
+    idx = torch.arange(
+        kmin,
+        data.shape[-1],
+        device=data.device,
+        dtype=data.real.dtype,
+    )
     phase = torch.exp(phi * idx)
     data[kmin:] = data[kmin:] * phase
 

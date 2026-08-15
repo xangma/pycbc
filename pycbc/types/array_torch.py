@@ -24,7 +24,6 @@ import numpy as np
 import torch
 
 import pycbc.scheme as _scheme
-from pycbc.types.array import common_kind, complex128, float64
 
 
 _NUMPY_TO_TORCH = {
@@ -68,8 +67,11 @@ def _numpy_dtype(torch_dtype):
 def _ensure_supported(device, torch_dtype):
     """Validate requested device / dtype combinations."""
     if device.type == "mps":
-        if torch_dtype not in (torch.float32, torch.float16):
-            raise TypeError("MPS backend only supports float16/float32 tensors")
+        if torch_dtype not in (
+                torch.float32, torch.float16, torch.complex64):
+            raise TypeError(
+                "MPS backend only supports float16/float32/complex64 tensors"
+            )
     if device.type == "cuda" and not torch.cuda.is_available():
         raise RuntimeError("Torch CUDA device requested but unavailable")
     return torch_dtype

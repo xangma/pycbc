@@ -40,7 +40,7 @@ from pycbc.waveform import (get_td_waveform, fd_det,
                             get_td_det_waveform_from_fd_det)
 from pycbc.waveform import utils as wfutils
 from pycbc.waveform import ringdown_td_approximants
-from pycbc.types import float64, float32, TimeSeries, load_timeseries
+from pycbc.types import float64, float32, load_timeseries
 from pycbc.detector import Detector
 from pycbc.conversions import tau0_from_mass1_mass2
 from pycbc.filter import resample_to_delta_t
@@ -1317,9 +1317,9 @@ class SGBurstInjectionSet(object):
         detector_name : string
             Name of the detector used for projecting injections.
         f_lower : {None, float}, optional
-            Low-frequency cutoff for injected signals. If None, use value
-            provided by each injection.
-        distance_scale: {1, foat}, optional
+            Accepted for compatibility with other injection sets. It is not
+            used by sine-Gaussian bursts.
+        distance_scale: {1, float}, optional
             Factor to scale the distance of an injection with. The default is
             no scaling.
 
@@ -1336,43 +1336,70 @@ class SGBurstInjectionSet(object):
             raise TypeError("Strain dtype must be float32 or float64, not " \
                     + str(strain.dtype))
 
-        lalstrain = strain.lal()
-        #detector = Detector(detector_name)
         earth_travel_time = lal.REARTH_SI / lal.C_SI
         t0 = float(strain.start_time) - earth_travel_time
         t1 = float(strain.end_time) + earth_travel_time
 
-        # pick lalsimulation injection function
-        add_injection = injection_func_map[strain.dtype]
-
         for inj in self.table:
-            # roughly estimate if the injection may overlap with the segment
-            end_time = inj.time_geocent
-            #CHECK: This is a hack (10.0s); replace with an accurate estimate
-            inj_length = 10.0
-            eccentricity = 0.0
-            polarization = 0.0
-            start_time = end_time - 2 * inj_length
-            if end_time < t0 or start_time > t1:
+            # SimBurstSineGaussian uses a symmetric 21-sigma window. Avoid
+            # constructing signals that cannot overlap this detector segment,
+            # while allowing for the geocentre-to-detector travel time.
+            central_time = float(inj.time_geocent)
+            sigma = float(inj.q) / (2 * np.pi * float(inj.frequency))
+            half_duration = 10.5 * sigma + strain.delta_t
+            if (central_time + half_duration < t0 or
+                    central_time - half_duration > t1):
                 continue
 
-            # compute the waveform time series
-            hp, hc = sim.SimBurstSineGaussian(float(inj.q),
-                float(inj.frequency),float(inj.hrss),float(eccentricity),
-                float(polarization),float(strain.delta_t))
-            hp = TimeSeries(hp.data.data[:], delta_t=hp.deltaT, epoch=hp.epoch)
-            hc = TimeSeries(hc.data.data[:], delta_t=hc.deltaT, epoch=hc.epoch)
-            hp._epoch += float(end_time)
-            hc._epoch += float(end_time)
-            if float(hp.start_time) > t1:
+            signal = self.make_strain_from_inj_object(
+                inj,
+                strain.delta_t,
+                detector_name,
+                distance_scale=distance_scale,
+            )
+            if (float(signal.start_time) >= float(strain.end_time) or
+                    float(signal.end_time) <= float(strain.start_time)):
                 continue
 
-            # compute the detector response, taper it if requested
-            # and add it to the strain
-            strain = strain.taper_timeseries(location=inj.taper, 
-                                             tapermethod=inj.get('taper_method', 'lal'), 
-                                             taper_window=inj.get('taper_window'))
-            signal_lal = hp.astype(strain.dtype).lal()
-            add_injection(lalstrain, signal_lal, None)
+            strain.inject(signal.astype(strain.dtype), copy=False)
 
-        strain.data[:] = lalstrain.data.data[:]
+    def make_strain_from_inj_object(self, inj, delta_t, detector_name,
+                                    distance_scale=1):
+        """Generate and project one sine-Gaussian burst injection."""
+        eccentricity = getattr(inj, 'pol_ellipse_e', 0)
+        if eccentricity is None:
+            eccentricity = 0
+        phase = getattr(inj, 'pol_ellipse_angle', 0)
+        if phase is None:
+            phase = 0
+
+        hp, hc = waveform.get_sgburst_waveform(
+            q=float(inj.q),
+            frequency=float(inj.frequency),
+            hrss=float(inj.hrss),
+            delta_t=delta_t,
+            eccentricity=float(eccentricity),
+            polarization=float(phase),
+        )
+        hp /= distance_scale
+        hc /= distance_scale
+
+        central_time = float(inj.time_geocent)
+        hp.start_time += central_time
+        hc.start_time += central_time
+
+        sky_polarization = getattr(inj, 'psi', 0)
+        if sky_polarization is None:
+            sky_polarization = 0
+        projection_method = self.extra_args.get(
+            'detector_projection_method', 'constant'
+        )
+        return Detector(detector_name).project_wave(
+            hp,
+            hc,
+            float(inj.ra),
+            float(inj.dec),
+            float(sky_polarization),
+            method=projection_method,
+            reference_time=central_time,
+        )
