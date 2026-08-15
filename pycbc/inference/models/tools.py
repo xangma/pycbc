@@ -932,6 +932,99 @@ def setup_distance_marg_interpolant(dist_marg,
     return interp_wrapper
 
 
+def _numpy_from_torch(value):
+    """Return a detached CPU value for a NumPy-only calculation."""
+    tensor = _torch_tensor(value)
+    if tensor is None:
+        return value
+
+    tensor = tensor.detach()
+    if tensor.is_conj():
+        tensor = tensor.resolve_conj()
+    if tensor.ndim == 0:
+        return tensor.item()
+    return tensor.cpu().numpy()
+
+
+def _marginalize_likelihood_torch(sh, hh, logw, phase, distance,
+                                  skip_vector, return_peak,
+                                  return_complex):
+    """Torch implementation of explicit likelihood marginalizations."""
+    import torch
+
+    sh_tensor = _torch_tensor(sh)
+    hh_tensor = _torch_tensor(hh)
+    like = sh_tensor if sh_tensor is not None else hh_tensor
+    if sh_tensor is None:
+        real_dtype = hh_tensor.real.dtype
+        if numpy.iscomplexobj(sh):
+            sh_dtype = (
+                torch.complex128
+                if real_dtype == torch.float64 else torch.complex64
+            )
+        else:
+            sh_dtype = real_dtype
+        sh = torch.as_tensor(sh, device=like.device, dtype=sh_dtype)
+    else:
+        sh = sh_tensor
+    hh = torch.as_tensor(
+        hh_tensor if hh_tensor is not None else hh,
+        device=like.device, dtype=sh.real.dtype)
+
+    if distance and sh.ndim:
+        raise ValueError("Cannot do vector marginalization "
+                         "and distance at the same time")
+
+    if return_complex:
+        pass
+    elif phase:
+        sh = torch.abs(sh)
+    else:
+        sh = sh.real
+
+    if distance:
+        dist_rescale, dist_weights = distance
+        dist_rescale = torch.as_tensor(
+            dist_rescale, device=like.device, dtype=hh.dtype)
+        dist_weights = torch.as_tensor(
+            dist_weights, device=like.device, dtype=hh.dtype)
+        sh = sh * dist_rescale
+        hh = hh * dist_rescale.square()
+        logw = torch.log(dist_weights)
+
+    if return_complex:
+        return sh, -0.5 * hh
+
+    if phase:
+        sh = torch.log(torch.special.i0e(sh)) + sh
+
+    vloglr = sh - 0.5 * hh
+    if return_peak:
+        if vloglr.ndim:
+            maxv = int(vloglr.argmax().item())
+            maxl = vloglr[maxv].item()
+        else:
+            maxv = 0
+            maxl = vloglr.item()
+
+    if not skip_vector:
+        if vloglr.ndim:
+            if logw is None:
+                logw = -torch.log(vloglr.new_tensor(vloglr.shape[0]))
+            else:
+                logw_tensor = _torch_tensor(logw)
+                if logw_tensor is not None:
+                    logw = logw_tensor
+                logw = torch.as_tensor(
+                    logw, device=vloglr.device, dtype=vloglr.dtype)
+            vloglr = torch.logsumexp(vloglr + logw, dim=0)
+        vloglr = vloglr.item()
+
+    if return_peak:
+        return vloglr, maxv, maxl
+    return vloglr
+
+
 def marginalize_likelihood(sh, hh,
                            logw=None,
                            phase=False,
@@ -981,6 +1074,16 @@ def marginalize_likelihood(sh, hh,
     loglr: float
         The marginalized loglikehood ratio
     """
+    sh_tensor = _torch_tensor(sh)
+    hh_tensor = _torch_tensor(hh)
+    if sh_tensor is not None or hh_tensor is not None:
+        if interpolator is None:
+            return _marginalize_likelihood_torch(
+                sh, hh, logw, phase, distance, skip_vector,
+                return_peak, return_complex)
+        sh = _numpy_from_torch(sh)
+        hh = _numpy_from_torch(hh)
+
     if distance and not interpolator and not numpy.isscalar(sh):
         raise ValueError("Cannot do vector marginalization "
                          "and distance at the same time")

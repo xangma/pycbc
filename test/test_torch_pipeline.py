@@ -511,6 +511,198 @@ def test_relative_binning_likelihood_stays_on_device(
         rtol=tolerance, atol=tolerance)
 
 
+@pytest.mark.parametrize(
+    "response_kind",
+    ("vector", "time", "polarization",
+     "earth_pol", "earth_time", "earth_pol_time"),
+)
+def test_relative_binning_vector_likelihood_stays_on_device(
+        torch_device_ctx, monkeypatch, response_kind):
+    ctx, device = torch_device_ctx
+    complex_dtype = np.complex64 if device == "mps" else np.complex128
+    real_dtype = np.float32 if device == "mps" else np.float64
+    rng = np.random.default_rng(81173)
+    size, sample_count = 83, 19
+
+    freqs = np.linspace(20.0, 512.0, size, dtype=real_dtype)
+    hp = (rng.normal(size=size) + 1j * rng.normal(size=size)).astype(
+        complex_dtype)
+    hc = (rng.normal(size=size) + 1j * rng.normal(size=size)).astype(
+        complex_dtype)
+    h00 = (1.5 + rng.random(size) + 1j * rng.normal(size=size)).astype(
+        complex_dtype)
+    a0 = (rng.normal(size=size - 1) +
+          1j * rng.normal(size=size - 1)).astype(complex_dtype)
+    a1 = (rng.normal(size=size - 1) +
+          1j * rng.normal(size=size - 1)).astype(complex_dtype)
+    b0 = rng.random(size - 1).astype(real_dtype)
+    b1 = rng.normal(size=size - 1).astype(real_dtype)
+
+    fp_samples = rng.uniform(-0.8, 0.8, sample_count).astype(real_dtype)
+    fc_samples = rng.uniform(-0.8, 0.8, sample_count).astype(real_dtype)
+    dt_samples = rng.uniform(-0.004, 0.004, sample_count).astype(real_dtype)
+    pol_phase = np.exp(
+        -2.0j * rng.uniform(0, np.pi, sample_count)
+    ).astype(complex_dtype)
+    fp_freq = np.linspace(-0.3, 0.7, size, dtype=real_dtype)
+    fc_freq = np.linspace(0.5, -0.2, size, dtype=real_dtype)
+    times = np.linspace(-0.003, 0.002, size, dtype=real_dtype)
+
+    if response_kind in ("vector", "time", "polarization"):
+        fp = fp_samples if response_kind != "time" else real_dtype(0.43)
+        fc = fc_samples if response_kind != "time" else real_dtype(-0.21)
+        dtc = dt_samples if response_kind != "polarization" \
+            else real_dtype(0.0013)
+        fp_grid = np.asarray(fp)[..., None]
+        fc_grid = np.asarray(fc)[..., None]
+        dt_grid = np.asarray(dtc)[..., None]
+        ratio = np.exp(
+            -2.0j * 3.141592653 * dt_grid * freqs
+        ) * (fp_grid * hp + fc_grid * hc) / h00
+    else:
+        response = fp_freq + 1.0j * fc_freq
+        if response_kind in ("earth_pol", "earth_pol_time"):
+            response = pol_phase[:, None] * response
+        total_time = times
+        if response_kind in ("earth_time", "earth_pol_time"):
+            total_time = times + dt_samples[:, None]
+        ratio = np.exp(
+            -2.0j * 3.141592653 * total_time * freqs
+        ) * (response.real * hp + response.imag * hc) / h00
+
+    ratio_lo = ratio[..., :-1]
+    ratio_delta = ratio[..., 1:] - ratio_lo
+    expected_filt = np.conjugate(
+        np.sum(a0 * ratio_lo + a1 * ratio_delta, axis=-1))
+    power = np.abs(ratio) ** 2
+    expected_norm = np.sum(
+        b0 * power[..., :-1] +
+        b1 * (power[..., 1:] - power[..., :-1]), axis=-1)
+
+    with ctx:
+        hp_array = Array(hp)
+        hc_array = Array(hc)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("Relative binning copied its waveform")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            prepared = _INFERENCE_RELBIN_TORCH.prepare_likelihood_data(
+                hp_array, freqs, h00, a0, a1, b0, b1)
+            if response_kind in ("vector", "time", "polarization"):
+                actual_filt, actual_norm = (
+                    _INFERENCE_RELBIN_TORCH.likelihood_parts_vector(
+                        prepared[0], fp, fc, dtc, hp_array, hc_array,
+                        *prepared[1:]))
+            elif response_kind == "earth_pol":
+                actual_filt, actual_norm = (
+                    _INFERENCE_RELBIN_TORCH.likelihood_parts_v_pol(
+                        prepared[0], fp_freq, fc_freq, times, pol_phase,
+                        hp_array, hc_array, *prepared[1:]))
+            elif response_kind == "earth_time":
+                actual_filt, actual_norm = (
+                    _INFERENCE_RELBIN_TORCH.likelihood_parts_v_time(
+                        prepared[0], fp_freq, fc_freq, times, dt_samples,
+                        hp_array, hc_array, *prepared[1:]))
+            else:
+                actual_filt, actual_norm = (
+                    _INFERENCE_RELBIN_TORCH.likelihood_parts_v_pol_time(
+                        prepared[0], fp_freq, fc_freq, times, dt_samples,
+                        pol_phase, hp_array, hc_array, *prepared[1:]))
+
+    tolerance = 5e-4 if device == "mps" else 2e-12
+    assert actual_filt.device.type == device
+    assert actual_norm.device.type == device
+    np.testing.assert_allclose(
+        actual_filt.resolve_conj().cpu().numpy(), expected_filt,
+        rtol=tolerance, atol=tolerance)
+    np.testing.assert_allclose(
+        actual_norm.cpu().numpy(), expected_norm,
+        rtol=tolerance, atol=tolerance)
+
+
+@pytest.mark.parametrize("phase", (False, True))
+def test_likelihood_marginalization_stays_on_device(
+        torch_device_ctx, monkeypatch, phase):
+    ctx, device = torch_device_ctx
+    complex_dtype = np.complex64 if device == "mps" else np.complex128
+    real_dtype = np.float32 if device == "mps" else np.float64
+    rng = np.random.default_rng(7734)
+    sample_count = 127
+    sh = (rng.normal(size=sample_count) +
+          1j * rng.normal(size=sample_count)).astype(complex_dtype)
+    hh = rng.uniform(0.2, 8.0, sample_count).astype(real_dtype)
+    logw = rng.normal(size=sample_count).astype(real_dtype)
+    logw -= np.log(np.exp(logw).sum())
+    expected = _INFERENCE_TOOLS.marginalize_likelihood(
+        sh, hh, logw=logw, phase=phase)
+    expected_vector = _INFERENCE_TOOLS.marginalize_likelihood(
+        sh, hh, logw=logw, phase=phase, skip_vector=True)
+    expected_peak = _INFERENCE_TOOLS.marginalize_likelihood(
+        sh, hh, logw=logw, phase=phase, return_peak=True)
+
+    with ctx:
+        sh_array = Array(sh)
+        hh_array = Array(hh)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("Marginalization copied samples to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = _INFERENCE_TOOLS.marginalize_likelihood(
+                sh_array, hh_array, logw=logw, phase=phase)
+            actual_vector = _INFERENCE_TOOLS.marginalize_likelihood(
+                sh_array, hh_array, logw=logw, phase=phase,
+                skip_vector=True)
+            actual_peak = _INFERENCE_TOOLS.marginalize_likelihood(
+                sh_array, hh_array, logw=logw, phase=phase,
+                return_peak=True)
+
+    tolerance = 2e-5 if device == "mps" else 2e-12
+    assert isinstance(actual, float)
+    assert actual_vector.device.type == device
+    np.testing.assert_allclose(
+        actual, expected, rtol=tolerance, atol=tolerance)
+    np.testing.assert_allclose(
+        actual_vector.cpu().numpy(), expected_vector,
+        rtol=tolerance, atol=tolerance)
+    assert actual_peak[1] == expected_peak[1]
+    np.testing.assert_allclose(
+        (actual_peak[0], actual_peak[2]),
+        (expected_peak[0], expected_peak[2]),
+        rtol=tolerance, atol=tolerance)
+
+
+@pytest.mark.parametrize("phase", (False, True))
+def test_scalar_distance_marginalization_uses_torch_precision(
+        torch_device_ctx, phase):
+    ctx, device = torch_device_ctx
+    torch_dtype = torch.float32 if device == "mps" else torch.float64
+    complex_dtype = torch.complex64 if device == "mps" else torch.complex128
+    sh = complex(2.75, -0.625)
+    hh = 1.875
+    dist_rescale = np.linspace(0.4, 1.6, 31)
+    dist_weights = np.linspace(0.75, 1.25, 31)
+    distance = dist_rescale, dist_weights
+    expected = _INFERENCE_TOOLS.marginalize_likelihood(
+        sh, hh, phase=phase, distance=distance)
+
+    with ctx:
+        hh_tensor = torch.tensor(hh, dtype=torch_dtype, device=device)
+        actual = _INFERENCE_TOOLS.marginalize_likelihood(
+            sh, hh_tensor, phase=phase, distance=distance)
+        complex_parts = _INFERENCE_TOOLS.marginalize_likelihood(
+            sh, hh_tensor, distance=distance, return_complex=True)
+
+    tolerance = 2e-5 if device == "mps" else 2e-12
+    assert isinstance(actual, float)
+    assert complex_parts[0].device.type == device
+    assert complex_parts[0].dtype == complex_dtype
+    assert complex_parts[1].dtype == torch_dtype
+    np.testing.assert_allclose(
+        actual, expected, rtol=tolerance, atol=tolerance)
+
+
 @pytest.mark.parametrize("dtype", (np.float32, np.float64))
 @pytest.mark.parametrize(
     "sample_offset",
