@@ -44,6 +44,23 @@ def prepare_likelihood_data(like, freqs, h00, a0, a1, b0, b1):
     )
 
 
+def prepare_multi_likelihood_data(like, freqs, h00, h002, a0, a1):
+    """Prepare static multi-signal summary data beside a waveform."""
+    like = _torch_tensor(like)
+    if like is None:
+        raise TypeError("a Torch-backed waveform is required")
+
+    real_dtype = like.real.dtype
+    complex_dtype = like.dtype
+    return (
+        _as_tensor(freqs, like, real_dtype),
+        _as_tensor(h00, like, complex_dtype),
+        _as_tensor(h002, like, complex_dtype),
+        _as_tensor(a0, like, complex_dtype),
+        _as_tensor(a1, like, complex_dtype),
+    )
+
+
 def _linearized_filter(ratio, a0, a1):
     """Calculate the linearized data-waveform inner product."""
     ratio_lo = ratio[..., :-1]
@@ -57,6 +74,14 @@ def _linearized_norm(ratio, b0, b1):
     power_lo = power[..., :-1]
     power_delta = power[..., 1:] - power_lo
     return (b0 * power_lo + b1 * power_delta).sum(dim=-1).real
+
+
+def _linearized_cross(ratio, ratio2, a0, a1):
+    """Calculate a linearized cross term between two waveform ratios."""
+    cross = ratio * ratio2.conj()
+    cross_lo = cross[..., :-1]
+    cross_delta = cross[..., 1:] - cross_lo
+    return (a0 * cross_lo + a1 * cross_delta).sum(dim=-1)
 
 
 def _summaries(ratio, a0, a1, b0, b1):
@@ -196,6 +221,73 @@ def likelihood_parts_det(freqs, dtc, channel, h00, a0, a1, b0, b1):
     shift = torch.polar(torch.ones_like(phase), phase)
     ratio = shift * channel / h00
     return _summaries(ratio, a0, a1, b0, b1)
+
+
+def likelihood_parts_multi(freqs, fp, fc, dtc, hp, hc, h00,
+                           fp2, fc2, dtc2, hp2, hc2, h002, a0, a1):
+    """Calculate a cross term between two polarization waveforms."""
+    hp = _torch_tensor(hp)
+    if hp is None:
+        raise TypeError("a Torch-backed waveform is required")
+
+    real_dtype = hp.real.dtype
+    hc = _as_tensor(hc, hp, hp.dtype)
+    hp2 = _as_tensor(hp2, hp, hp.dtype)
+    hc2 = _as_tensor(hc2, hp, hp.dtype)
+    freqs = _as_tensor(freqs, hp, real_dtype)
+    h00 = _as_tensor(h00, hp, hp.dtype)
+    h002 = _as_tensor(h002, hp, hp.dtype)
+    fp = _as_tensor(fp, hp, real_dtype)
+    fc = _as_tensor(fc, hp, real_dtype)
+    dtc = _as_tensor(dtc, hp, real_dtype)
+    fp2 = _as_tensor(fp2, hp, real_dtype)
+    fc2 = _as_tensor(fc2, hp, real_dtype)
+    dtc2 = _as_tensor(dtc2, hp, real_dtype)
+    a0 = _as_tensor(a0, hp, hp.dtype)
+    a1 = _as_tensor(a1, hp, hp.dtype)
+
+    phase = -2.0 * _RELBIN_PI * dtc * freqs
+    phase2 = -2.0 * _RELBIN_PI * dtc2 * freqs
+    shift = torch.polar(torch.ones_like(phase), phase)
+    shift2 = torch.polar(torch.ones_like(phase2), phase2)
+    ratio = shift * (fp * hp + fc * hc) / h00
+    ratio2 = shift2 * (fp2 * hp2 + fc2 * hc2) / h002
+    return _linearized_cross(ratio, ratio2, a0, a1)
+
+
+def likelihood_parts_multi_v(freqs, fp, fc, dtc, hp, hc, h00,
+                             fp2, fc2, dtc2, hp2, hc2, h002, a0, a1):
+    """Calculate a cross term with frequency-varying responses."""
+    return likelihood_parts_multi(
+        freqs, fp, fc, dtc, hp, hc, h00,
+        fp2, fc2, dtc2, hp2, hc2, h002, a0, a1)
+
+
+def likelihood_parts_det_multi(freqs, dtc, channel, h00,
+                               dtc2, channel2, h002, a0, a1):
+    """Calculate a detector-frame cross term between two waveforms."""
+    channel = _torch_tensor(channel)
+    if channel is None:
+        raise TypeError("a Torch-backed waveform is required")
+
+    real_dtype = channel.real.dtype
+    channel2 = _as_tensor(channel2, channel, channel.dtype)
+    freqs = _as_tensor(freqs, channel, real_dtype)
+    h00 = _as_tensor(h00, channel, channel.dtype)
+    h002 = _as_tensor(h002, channel, channel.dtype)
+    dtc = _as_tensor(dtc, channel, real_dtype)
+    dtc2 = _as_tensor(dtc2, channel, real_dtype)
+    a0 = _as_tensor(a0, channel, channel.dtype)
+    a1 = _as_tensor(a1, channel, channel.dtype)
+
+    phase = -2.0 * _RELBIN_PI * dtc * freqs
+    phase2 = -2.0 * _RELBIN_PI * dtc2 * freqs
+    shift = torch.polar(torch.ones_like(phase), phase)
+    shift2 = torch.polar(torch.ones_like(phase2), phase2)
+    ratio = shift * channel / h00
+    ratio2 = shift2 * channel2 / h002
+    # Preserve the established detector-frame kernel's argument order.
+    return _linearized_cross(ratio2, ratio, a0, a1)
 
 
 def _time_shifted_filters(freqs, tstart, delta_t, num_samples,

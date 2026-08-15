@@ -511,6 +511,87 @@ def test_relative_binning_likelihood_stays_on_device(
         rtol=tolerance, atol=tolerance)
 
 
+@pytest.mark.parametrize("response_kind", ("polarization", "earth", "detector"))
+def test_relative_binning_multi_likelihood_stays_on_device(
+        torch_device_ctx, monkeypatch, response_kind):
+    ctx, device = torch_device_ctx
+    complex_dtype = np.complex64 if device == "mps" else np.complex128
+    real_dtype = np.float32 if device == "mps" else np.float64
+    rng = np.random.default_rng(48319)
+    size = 101
+
+    freqs = np.linspace(18.0, 512.0, size, dtype=real_dtype)
+
+    def complex_values():
+        return (rng.normal(size=size) + 1j * rng.normal(size=size)).astype(
+            complex_dtype)
+
+    hp, hc = complex_values(), complex_values()
+    hp2, hc2 = complex_values(), complex_values()
+    h00 = (2.0 + complex_values()).astype(complex_dtype)
+    h002 = (2.0 + complex_values()).astype(complex_dtype)
+    a0 = (rng.normal(size=size - 1) +
+          1j * rng.normal(size=size - 1)).astype(complex_dtype)
+    a1 = (rng.normal(size=size - 1) +
+          1j * rng.normal(size=size - 1)).astype(complex_dtype)
+
+    if response_kind == "earth":
+        fp = np.linspace(-0.4, 0.7, size, dtype=real_dtype)
+        fc = np.linspace(0.6, -0.2, size, dtype=real_dtype)
+        dtc = np.linspace(-0.002, 0.003, size, dtype=real_dtype)
+        fp2 = np.linspace(0.5, -0.6, size, dtype=real_dtype)
+        fc2 = np.linspace(-0.1, 0.8, size, dtype=real_dtype)
+        dtc2 = np.linspace(0.001, -0.004, size, dtype=real_dtype)
+    else:
+        fp, fc, dtc = 0.43, -0.28, 0.0013
+        fp2, fc2, dtc2 = -0.37, 0.62, -0.0021
+
+    shift = np.exp(-2.0j * 3.141592653 * dtc * freqs)
+    shift2 = np.exp(-2.0j * 3.141592653 * dtc2 * freqs)
+    if response_kind == "detector":
+        ratio = shift * hp / h00
+        ratio2 = shift2 * hp2 / h002
+        cross = np.conjugate(ratio) * ratio2
+    else:
+        ratio = shift * (fp * hp + fc * hc) / h00
+        ratio2 = shift2 * (fp2 * hp2 + fc2 * hc2) / h002
+        cross = ratio * np.conjugate(ratio2)
+    expected = np.sum(
+        a0 * cross[:-1] + a1 * (cross[1:] - cross[:-1]))
+
+    with ctx:
+        hp_array, hc_array = Array(hp), Array(hc)
+        hp2_array, hc2_array = Array(hp2), Array(hc2)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError(
+                    "Multi-signal relative binning copied its waveform")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            prepared = (
+                _INFERENCE_RELBIN_TORCH.prepare_multi_likelihood_data(
+                    hp_array, freqs, h00, h002, a0, a1))
+            if response_kind == "detector":
+                actual = _INFERENCE_RELBIN_TORCH.likelihood_parts_det_multi(
+                    prepared[0], dtc, hp_array, prepared[1],
+                    dtc2, hp2_array, prepared[2], *prepared[3:])
+            else:
+                kernel = _INFERENCE_RELBIN_TORCH.likelihood_parts_multi
+                if response_kind == "earth":
+                    kernel = _INFERENCE_RELBIN_TORCH.likelihood_parts_multi_v
+                actual = kernel(
+                    prepared[0], fp, fc, dtc,
+                    hp_array, hc_array, prepared[1],
+                    fp2, fc2, dtc2, hp2_array, hc2_array, prepared[2],
+                    *prepared[3:])
+
+    tolerance = 8e-4 if device == "mps" else 2e-12
+    assert actual.device.type == device
+    assert all(value.device.type == device for value in prepared)
+    np.testing.assert_allclose(
+        actual.item(), expected, rtol=tolerance, atol=tolerance)
+
+
 @pytest.mark.parametrize(
     "response_kind",
     ("vector", "time", "polarization",

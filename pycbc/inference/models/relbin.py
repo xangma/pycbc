@@ -246,6 +246,7 @@ class Relative(DistMarg, BaseGaussianNoise):
         # filtered summary data for linear approximation
         self.sdat = {}
         self._torch_likelihood_cache = {}
+        self._torch_multi_likelihood_cache = {}
 
         # store fiducial waveform params
         self.fid_params = self.static_params.copy()
@@ -478,6 +479,24 @@ class Relative(DistMarg, BaseGaussianNoise):
                 sdat['a0'], sdat['a1'], sdat['b0'], sdat['b1'])
         return cache[cache_key]
 
+    def _get_torch_multi_likelihood_data(
+            self, m1, m2, ifo, waveform, waveform2,
+            freqs, h00, h002, a0, a1):
+        """Cache static multi-signal inputs beside Torch waveforms."""
+        tensor = _torch_tensor(waveform)
+        if tensor is None or _torch_tensor(waveform2) is None:
+            return None
+
+        pair_cache = self._torch_multi_likelihood_cache.setdefault(
+            (m1, m2, ifo), {})
+        cache_key = (tensor.device.type, tensor.device.index, tensor.dtype)
+        if cache_key not in pair_cache:
+            from .relbin_torch import prepare_multi_likelihood_data
+
+            pair_cache[cache_key] = prepare_multi_likelihood_data(
+                tensor, freqs, h00, h002, a0, a1)
+        return pair_cache[cache_key]
+
     def get_waveforms(self, params, keep_torch=False):
         """ Get the waveform polarizations for each ifo
         """
@@ -603,6 +622,7 @@ class Relative(DistMarg, BaseGaussianNoise):
         """ Pre-calculate the hihj inner products on a grid
         """
         self.hihj = {}
+        self._torch_multi_likelihood_cache = {}
         for m1, m2 in itertools.combinations(models, 2):
             self.hihj[(m1, m2)] = {}
             for ifo in self.data:
@@ -624,6 +644,54 @@ class Relative(DistMarg, BaseGaussianNoise):
                 a0, a1 = self.summary_product(h1, h2, bins, ifo)
                 self.hihj[(m1, m2)][ifo] = a0, a1, fedge
 
+    def _multi_likelihood_parts(self, m1, m2, det):
+        """Evaluate one pairwise multi-signal cross term."""
+        a0, a1, fedge = self.hihj[(m1, m2)][det]
+
+        if self.still_needs_det_response:
+            dtc, channel, h00 = m1._current_wf_parts[det]
+            dtc2, channel2, h002 = m2._current_wf_parts[det]
+            torch_data = self._get_torch_multi_likelihood_data(
+                m1, m2, det, channel, channel2,
+                fedge, h00, h002, a0, a1)
+            if torch_data is not None:
+                from .relbin_torch import (
+                    likelihood_parts_det_multi as torch_mlik,
+                )
+
+                freqs_t, h00_t, h002_t, a0_t, a1_t = torch_data
+                return torch_mlik(
+                    freqs_t, dtc, channel, h00_t,
+                    dtc2, channel2, h002_t, a0_t, a1_t)
+
+            channel = _numpy_value(channel)
+            channel2 = _numpy_value(channel2)
+            return self.mlik(
+                fedge, dtc, channel, h00,
+                dtc2, channel2, h002, a0, a1)
+
+        fp, fc, dtc, hp, hc, h00 = m1._current_wf_parts[det]
+        fp2, fc2, dtc2, hp2, hc2, h002 = m2._current_wf_parts[det]
+        torch_data = self._get_torch_multi_likelihood_data(
+            m1, m2, det, hp, hp2, fedge, h00, h002, a0, a1)
+        if torch_data is not None:
+            from . import relbin_torch
+
+            freqs_t, h00_t, h002_t, a0_t, a1_t = torch_data
+            if self.mlik is likelihood_parts_multi_v:
+                torch_mlik = relbin_torch.likelihood_parts_multi_v
+            else:
+                torch_mlik = relbin_torch.likelihood_parts_multi
+            return torch_mlik(
+                freqs_t, fp, fc, dtc, hp, hc, h00_t,
+                fp2, fc2, dtc2, hp2, hc2, h002_t, a0_t, a1_t)
+
+        hp, hc = _numpy_value(hp), _numpy_value(hc)
+        hp2, hc2 = _numpy_value(hp2), _numpy_value(hc2)
+        return self.mlik(
+            fedge, fp, fc, dtc, hp, hc, h00,
+            fp2, fc2, dtc2, hp2, hc2, h002, a0, a1)
+
     def multi_loglikelihood(self, models):
         """ Calculate a multi-model (signal) likelihood
         """
@@ -636,39 +704,11 @@ class Relative(DistMarg, BaseGaussianNoise):
         if not hasattr(self, 'hihj'):
             self.calculate_hihjs(models)
 
-        if self.still_needs_det_response:
-            for m1, m2 in itertools.combinations(models, 2):
-                for det in self.data:
-                    a0, a1, fedge = self.hihj[(m1, m2)][det]
-
-                    dtc, channel, h00 = m1._current_wf_parts[det]
-                    dtc2, channel2, h002 = m2._current_wf_parts[det]
-
-                    channel = _numpy_value(channel)
-                    channel2 = _numpy_value(channel2)
-
-                    c1c2 = self.mlik(fedge,
-                                     dtc, channel, h00,
-                                     dtc2, channel2, h002,
-                                     a0, a1)
-                    loglr += - c1c2.real # This is -0.5 * re(<h1|h2> + <h2|h1>)
-        else:
-            # finally add in the lognl term from this model
-            for m1, m2 in itertools.combinations(models, 2):
-                for det in self.data:
-                    a0, a1, fedge = self.hihj[(m1, m2)][det]
-
-                    fp, fc, dtc, hp, hc, h00 = m1._current_wf_parts[det]
-                    fp2, fc2, dtc2, hp2, hc2, h002 = m2._current_wf_parts[det]
-
-                    hp, hc = _numpy_value(hp), _numpy_value(hc)
-                    hp2, hc2 = _numpy_value(hp2), _numpy_value(hc2)
-
-                    h1h2 = self.mlik(fedge,
-                                     fp, fc, dtc, hp, hc, h00,
-                                     fp2, fc2, dtc2, hp2, hc2, h002,
-                                     a0, a1)
-                    loglr += - h1h2.real # This is -0.5 * re(<h1|h2> + <h2|h1>)
+        # Cross terms contribute
+        # -0.5 * re(<h1|h2> + <h2|h1>) = -re(<h1|h2>).
+        for m1, m2 in itertools.combinations(models, 2):
+            for det in self.data:
+                loglr -= self._multi_likelihood_parts(m1, m2, det).real
         return loglr + self.lognl
 
     @catch_waveform_error
