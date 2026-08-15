@@ -1,5 +1,7 @@
+import importlib.util
 import sys
 import types
+from pathlib import Path
 
 import lal
 import numpy as np
@@ -87,6 +89,19 @@ def torch_device_ctx(request):
 def _relative_l2(a, b):
     diff = a - b
     return np.linalg.norm(diff) / np.linalg.norm(b)
+
+
+def _load_inference_tools():
+    """Load the tools module without inference's optional dependencies."""
+    module_path = (
+        Path(pycbc.__file__).parent / "inference" / "models" / "tools.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "_pycbc_inference_tools_torch_test", module_path
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 @pytest.mark.parametrize("dtype", (np.complex64, np.complex128))
@@ -299,6 +314,74 @@ def test_varying_detector_projection_stays_on_device(
         torch.as_tensor(expected, dtype=expected_dtype),
         rtol=2e-6 if device == "mps" else 2e-9,
         atol=2e-6 if device == "mps" else 2e-9,
+    )
+
+
+def test_time_marginalization_weights_stay_on_device(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    inference_tools = _load_inference_tools()
+    sample_count = 64
+    epoch = 1_126_259_461
+    delta_t = 1 / 1024
+    times = np.arange(4096) * delta_t
+    dtype = np.complex64 if device == "mps" else np.complex128
+    snr_data = {
+        "H1": (
+            np.exp(0.2j * times)
+            * (1 + 2 * np.exp(-((times - 2.0) / 0.1) ** 2))
+        ).astype(dtype),
+        "L1": (
+            np.exp(0.3j * times)
+            * (1 + 1.5 * np.exp(-((times - 2.01) / 0.12) ** 2))
+        ).astype(dtype),
+    }
+
+    def make_marginalizer():
+        marginalizer = inference_tools.DistMarg()
+        marginalizer.marginalized_vector_priors = {
+            "tc": types.SimpleNamespace(
+                bounds={"tc": (epoch + 1.5, epoch + 2.0)}
+            )
+        }
+        marginalizer._current_params = {"ra": 1.2, "dec": -0.4}
+        marginalizer.vsamples = sample_count
+        marginalizer.marginalize_vector_params = {}
+        marginalizer.marginalize_vector_weights = np.zeros(sample_count)
+        return marginalizer
+
+    def make_snrs():
+        return {
+            ifo: TimeSeries(data, delta_t=delta_t, epoch=epoch)
+            for ifo, data in snr_data.items()
+        }
+
+    np.random.seed(1234)
+    expected = make_marginalizer().draw_times(make_snrs())
+    expected = {
+        key: np.array(value, copy=True) for key, value in expected.items()
+    }
+
+    with ctx:
+        snrs = make_snrs()
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError(
+                    "Marginalization copied the complete SNR series to host"
+                )
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            np.random.seed(1234)
+            actual = make_marginalizer().draw_times(snrs)
+
+    for snr in snrs.values():
+        assert snr._data.tensor.device.type == device
+    np.testing.assert_allclose(actual["tc"], expected["tc"], rtol=0, atol=0)
+    np.testing.assert_allclose(
+        actual["logw_partial"],
+        expected["logw_partial"],
+        rtol=2e-6 if device == "mps" else 1e-13,
+        atol=2e-6 if device == "mps" else 1e-13,
     )
 
 

@@ -20,6 +20,35 @@ from pycbc.detector import Detector
 EARTH_RADIUS = 0.031
 
 
+def _torch_tensor(value):
+    """Return the tensor backing a Torch/PyCBC value, if present."""
+    if type(value).__module__.split('.', 1)[0] == 'torch':
+        return value
+    tensor = getattr(value, 'tensor', None)
+    if tensor is None:
+        tensor = getattr(getattr(value, '_data', None), 'tensor', None)
+    return tensor
+
+
+def _squared_norm_values(snr):
+    """Return SNR-squared values without moving Torch series to the host."""
+    values = snr.squared_norm()
+    tensor = _torch_tensor(values)
+    return tensor if tensor is not None else values.numpy()
+
+
+def _selected_values(values, indices):
+    """Return only selected proposal values in the CPU representation."""
+    tensor = _torch_tensor(values)
+    if tensor is None:
+        return values[indices]
+
+    import torch
+
+    indices = torch.as_tensor(indices, device=tensor.device, dtype=torch.int64)
+    return tensor[indices].detach().cpu().numpy()
+
+
 def str_to_tuple(sval, ftype):
     """ Convenience parsing to convert str to tuple"""
     if sval is None:
@@ -41,6 +70,19 @@ def draw_sample(loglr, size=None):
         x = numpy.random.uniform(size=size)
     else:
         x = numpy.random.uniform()
+
+    tensor = _torch_tensor(loglr)
+    if tensor is not None:
+        import torch
+
+        cdf = torch.exp(tensor - tensor.max()).cumsum(dim=0)
+        cdf = cdf / cdf[-1]
+        x = torch.as_tensor(x, device=tensor.device, dtype=tensor.dtype)
+        xl = torch.searchsorted(cdf, x)
+        if xl.ndim == 0:
+            return int(xl.item())
+        return xl.detach().cpu().numpy()
+
     loglr = loglr - loglr.max()
     cdf = numpy.exp(loglr).cumsum()
     cdf /= cdf[-1]
@@ -399,15 +441,20 @@ class DistMarg():
 
         # get the weights
         snr = snrs[iref].time_slice(start, end, mode='nearest')
-        logweight = snr.squared_norm().numpy()
+        logweight = _squared_norm_values(snr)
         for ifo in ifos[1:]:
             idel = idels[ifo]
             snrv = snrs[ifo].time_slice(snr.start_time + idel,
                                         snr.end_time + idel,
                                         mode='nearest')
-            logweight += snrv.squared_norm().numpy()
+            logweight += _squared_norm_values(snrv)
         logweight /= 2.0
-        logweight -= logsumexp(logweight)  # Normalize to PDF
+        tensor = _torch_tensor(logweight)
+        if tensor is not None:
+            import torch
+            logweight = logweight - torch.logsumexp(logweight, dim=0)
+        else:
+            logweight -= logsumexp(logweight)
 
         # Draw proportional to the incoherent likelihood
         # Draw first which time sample
@@ -420,7 +467,10 @@ class DistMarg():
 
         # Update the current proposed times and the marginalization values
         # assumes uniform prior!
-        logw = - logweight[tci] + numpy.log(1.0 / len(logweight))
+        logw = (
+            -_selected_values(logweight, tci)
+            + numpy.log(1.0 / len(logweight))
+        )
         self.marginalize_vector_params['tc'] = tc
         self.marginalize_vector_params['logw_partial'] = logw
 
@@ -514,18 +564,19 @@ class DistMarg():
             end = min(tmax, snr.end_time - snr.delta_t * 2)
             snr = snr.time_slice(start, end, mode='nearest')
 
-            w = snr.squared_norm().numpy() / 2.0
+            w = _squared_norm_values(snr) / 2.0
             i = draw_sample(w, size=vsamples)
+            selected_weight = _selected_values(w, i)
 
             if sref is not None:
-                mcweight += w[i]
+                mcweight += selected_weight
                 delt = float(snr.start_time - sref.start_time)
                 i += round(delt / sref.delta_t)
                 dx.append(iref - i)
             else:
                 sref = snr
                 iref = i
-                mcweight = w[i]
+                mcweight = selected_weight
 
             idx.append(i)
         mcweight -= logsumexp(mcweight)
