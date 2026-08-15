@@ -1773,13 +1773,13 @@ def nltides_coefs(amplitude, n, m1, m2):
 
     # Calculate chirp mass
     mc = mchirp_from_mass1_mass2(m1, m2)
-    mc *= lal.lal.MSUN_SI
+    mc *= lal.MSUN_SI
 
     # Calculate constants in phasing
     a = (96./5.) * \
-        (lal.lal.G_SI * lal.lal.PI * mc * f_ref / lal.lal.C_SI**3.)**(5./3.)
+        (lal.G_SI * lal.PI * mc * f_ref / lal.C_SI**3.)**(5./3.)
     b = 6. * amplitude
-    t_of_f_factor = -1./(lal.lal.PI*f_ref) * b/(a*a * (n-4.))
+    t_of_f_factor = -1./(lal.PI*f_ref) * b/(a*a * (n-4.))
     phi_of_f_factor = -2.*b / (a*a * (n-3.))
 
     return f_ref, t_of_f_factor, phi_of_f_factor
