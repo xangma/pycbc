@@ -9,7 +9,7 @@ torch = pytest.importorskip("torch")
 
 import pycbc
 from pycbc import scheme
-from pycbc.filter import matchedfilter, resample
+from pycbc.filter import autocorrelation, matchedfilter, resample
 from pycbc.noise import gaussian, reproduceable
 from pycbc.psd import inverse_spectrum_truncation, variation, welch
 from pycbc.strain import gate as strain_gate
@@ -432,6 +432,52 @@ def test_strain_buffer_trimmed_fft_matches_cpu(torch_ctx):
     assert actual.start_time == expected.start_time
     np.testing.assert_allclose(actual.numpy(), expected.numpy(), rtol=1e-11,
                                atol=1e-11)
+
+
+@pytest.mark.parametrize("unbiased", (False, True))
+def test_autocorrelation_stays_on_device(
+        torch_device_ctx, monkeypatch, unbiased):
+    ctx, device = torch_device_ctx
+    if device == "mps":
+        pytest.skip("Autocorrelation requires complex PyCBC arrays on MPS")
+
+    rng = np.random.default_rng(8675309)
+    data = np.empty(257)
+    data[0] = rng.normal()
+    for index in range(1, len(data)):
+        data[index] = 0.7 * data[index - 1] + rng.normal()
+    delta_t = 1 / 1024
+    expected = autocorrelation.calculate_acf(
+        TimeSeries(data, delta_t=delta_t), unbiased=unbiased
+    )
+    expected_acl = None
+    if not unbiased:
+        expected_acl = autocorrelation.calculate_acl(
+            TimeSeries(data, delta_t=delta_t)
+        )
+
+    with ctx:
+        torch_data = TimeSeries(data, delta_t=delta_t)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("Autocorrelation copied Torch data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = autocorrelation.calculate_acf(
+                torch_data, unbiased=unbiased
+            )
+            actual_acl = None
+            if not unbiased:
+                actual_acl = autocorrelation.calculate_acl(torch_data)
+
+    assert actual._data.tensor.device.type == device
+    assert actual.delta_t == expected.delta_t == delta_t
+    np.testing.assert_allclose(
+        actual._data.tensor.detach().cpu().numpy(), expected.numpy(),
+        rtol=1e-10, atol=1e-11,
+    )
+    if not unbiased:
+        assert actual_acl == expected_acl
 
 
 @pytest.mark.parametrize("dtype", (np.float32, np.float64))
