@@ -98,6 +98,12 @@ environment flags:
   primary-object quadrupole deformation, and polarization rotation. Tidal,
   eccentric, second-spin, custom-mode, and non-``dchi`` testing-GR options fall
   back to lalsimulation.
+- IMRPhenomC (FD): ``PYCBC_IMRPHENOMC_NATIVE``. Frequency-grid construction,
+  amplitude and phase evaluation, coalescence-time correction, masking, and
+  polarization assembly run on the active Torch device. The native path covers
+  the aligned-spin, circular, dominant-mode model; transverse spins, tides,
+  testing-GR changes, non-default orders, and custom modes fall back to
+  lalsimulation.
 - IMRPhenomD (FD): ``PYCBC_IMRPHENOMD_NATIVE``. Frequency-grid construction,
   amplitude/phase evaluation, masking, and polarization assembly run on the
   active Torch device; small coefficient and QNM-table setup remains on CPU.
