@@ -10,6 +10,7 @@ torch = pytest.importorskip("torch")
 import pycbc
 from pycbc import scheme
 from pycbc.filter import matchedfilter, resample
+from pycbc.noise import gaussian
 from pycbc.psd import inverse_spectrum_truncation, welch
 from pycbc.strain.strain import StrainBuffer
 from pycbc.types import Array, FrequencySeries, TimeSeries
@@ -99,6 +100,79 @@ def _make_strain_buffer(data, sample_rate, reduced_pad):
     buffer.segments = {}
     buffer.psds = {delta_f: psd}
     return buffer
+
+
+@pytest.mark.parametrize("dtype", (np.float32, np.float64))
+def test_noise_from_psd_stays_on_device_and_is_reproducible(
+        torch_device_ctx, monkeypatch, dtype):
+    ctx, device = torch_device_ctx
+    if device == "mps" and dtype == np.float64:
+        pytest.skip("Torch MPS does not support float64")
+
+    segment_length = 1024
+    delta_t = 1 / 1024
+    delta_f = 1 / (segment_length * delta_t)
+    psd_values = np.linspace(
+        0.5, 2.0, segment_length // 2 + 1, dtype=dtype
+    )
+
+    with ctx:
+        psd = FrequencySeries(psd_values, delta_f=delta_f)
+        original_psd = psd._data.tensor.clone()
+
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError(
+                    "noise generation copied Torch data to host"
+                )
+
+            def _reject_lal(*_args, **_kwargs):
+                raise AssertionError("noise generation called LAL")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(gaussian.lal, "gsl_rng", _reject_lal)
+            patch.setattr(gaussian, "lalsimulation", None)
+            first = gaussian.noise_from_psd(
+                1537, delta_t, psd, seed=9182
+            )
+            repeated = gaussian.noise_from_psd(
+                1537, delta_t, psd, seed=9182
+            )
+            different = gaussian.noise_from_psd(
+                1537, delta_t, psd, seed=9183
+            )
+
+    assert isinstance(first._data.tensor, torch.Tensor)
+    assert first._data.tensor.device.type == device
+    assert first.dtype == np.dtype(dtype)
+    assert len(first) == 1537
+    assert first.delta_t == delta_t
+    assert torch.isfinite(first._data.tensor).all()
+    assert torch.equal(first._data.tensor, repeated._data.tensor)
+    assert not torch.equal(first._data.tensor, different._data.tensor)
+    assert torch.equal(psd._data.tensor, original_psd)
+
+
+def test_noise_from_psd_flat_spectrum_has_expected_variance(torch_ctx):
+    segment_length = 2048
+    delta_t = 1 / 1024
+    delta_f = 1 / (segment_length * delta_t)
+    psd_level = 2.0
+    psd_values = np.full(segment_length // 2 + 1, psd_level)
+
+    with torch_ctx:
+        psd = FrequencySeries(psd_values, delta_f=delta_f)
+        noise = gaussian.noise_from_psd(
+            segment_length * 64, delta_t, psd, seed=1729
+        )
+
+    # DC and Nyquist are zeroed, so this is the integral of the flat
+    # one-sided PSD over the remaining positive-frequency bins.
+    expected_variance = (
+        segment_length // 2 - 1
+    ) * psd_level * delta_f
+    actual_variance = noise._data.tensor.var(unbiased=False).item()
+    assert actual_variance == pytest.approx(expected_variance, rel=0.05)
 
 
 @pytest.mark.parametrize("avg_method", ["mean", "median", "median-mean"])
