@@ -243,6 +243,8 @@ def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
         return timeseries * 1
 
     if method == 'butterworth':
+        # LAL's Butterworth resampler is CPU-only. Keep this as an explicit
+        # host fallback; the LDAS path below remains on the Torch device.
         ts_cpu = timeseries
         if torch_input:
             ts_cpu = TimeSeries(timeseries.numpy(), delta_t=timeseries.delta_t,
@@ -273,15 +275,14 @@ def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
     else:
         raise ValueError('Invalid resampling method: %s' % method)
 
-    ts = TimeSeries(data, delta_t = delta_t,
-                      dtype=timeseries.dtype,
-                      epoch=timeseries._epoch)
-
     if torch_input:
-        tensor = torch.tensor(ts.numpy(), device=timeseries._data.tensor.device,
-                              dtype=timeseries._data.tensor.dtype)
-        ts = TimeSeries(TorchArrayData(tensor), delta_t=delta_t,
-                        epoch=timeseries._epoch, copy=False)
+        # ``data`` is already a Torch-backed, decimated TimeSeries. Retain its
+        # device storage instead of copying it through NumPy and back.
+        ts = TimeSeries(data, delta_t=delta_t, epoch=timeseries._epoch,
+                        copy=False)
+    else:
+        ts = TimeSeries(data, delta_t=delta_t, dtype=timeseries.dtype,
+                        epoch=timeseries._epoch)
 
     # From the construction of the LDAS FIR filter there will be 10 corrupted samples
     # explanation here https://lscsoft.docs.ligo.org/lalsuite/lal/group___resample_time_series__c.html

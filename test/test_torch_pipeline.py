@@ -12,6 +12,7 @@ from pycbc.filter import matchedfilter, resample
 from pycbc.psd import inverse_spectrum_truncation, welch
 from pycbc.strain.strain import StrainBuffer
 from pycbc.types import FrequencySeries, TimeSeries
+from pycbc.types.array_torch import TorchArrayData
 
 if not pycbc.HAVE_TORCH:
     pytest.skip("PyCBC built without torch support", allow_module_level=True)
@@ -29,8 +30,14 @@ def stub_execute_cached_fft_import(monkeypatch):
     def _execute_cached_ifft(*args, **kwargs):
         raise AssertionError("PSD cache path should not be used in this test")
 
+    def _create_memory_and_engine_for_class_based_fft(*args, **kwargs):
+        raise AssertionError("Welch cache path should not be used in this test")
+
     fake_mod.execute_cached_fft = _execute_cached_fft
     fake_mod.execute_cached_ifft = _execute_cached_ifft
+    fake_mod.create_memory_and_engine_for_class_based_fft = (
+        _create_memory_and_engine_for_class_based_fft
+    )
     monkeypatch.setitem(sys.modules, "pycbc.strain", fake_pkg)
     monkeypatch.setitem(sys.modules, "pycbc.strain.strain", fake_mod)
 
@@ -42,6 +49,22 @@ def torch_ctx():
         yield ctx
     finally:
         # Allow other tests to construct schemes after we exit
+        del ctx
+        scheme.Scheme._single = None
+
+
+@pytest.fixture(params=("cpu", "cuda", "mps"))
+def torch_device_ctx(request):
+    device = request.param
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("Torch CUDA device unavailable")
+    if device == "mps" and not torch.backends.mps.is_available():
+        pytest.skip("Torch MPS device unavailable")
+
+    ctx = scheme.TorchScheme(device)
+    try:
+        yield ctx, device
+    finally:
         del ctx
         scheme.Scheme._single = None
 
@@ -157,16 +180,55 @@ def test_strain_buffer_trimmed_fft_matches_cpu(torch_ctx):
                                atol=1e-11)
 
 
-def test_resample_to_delta_t_torch(torch_ctx):
-    data = np.sin(2 * np.pi * 30 * np.arange(0, 1, 1 / 1024.0))
+@pytest.mark.parametrize("dtype", (np.float32, np.float64))
+@pytest.mark.parametrize("factor", (2, 4, 8))
+def test_resample_to_delta_t_torch_matches_cpu_without_host_transfer(
+        torch_device_ctx, monkeypatch, dtype, factor):
+    ctx, device = torch_device_ctx
+    if device == "mps" and dtype == np.float64:
+        pytest.skip("Torch MPS does not support float64")
 
-    with torch_ctx:
-        ts_t = TimeSeries(data, delta_t=1 / 1024.0)
-        rs_t = resample.resample_to_delta_t(ts_t, 1 / 256.0, method="ldas")
+    sample_rate = 2048
+    delta_t = 1 / sample_rate
+    target_delta_t = factor * delta_t
+    samples = np.arange(4096) * delta_t
+    data = (
+        np.sin(2 * np.pi * 31 * samples)
+        + 0.2 * np.cos(2 * np.pi * 173 * samples)
+    ).astype(dtype)
+    expected = resample.resample_to_delta_t(
+        TimeSeries(data, delta_t=delta_t, epoch=123),
+        target_delta_t,
+        method="ldas",
+    )
 
-    assert isinstance(rs_t._data.tensor, torch.Tensor)
-    assert rs_t._data.tensor.device.type == "cpu"
-    assert abs(rs_t.delta_t - 1 / 256.0) < 1e-12
+    with ctx:
+        input_series = TimeSeries(data, delta_t=delta_t, epoch=123)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("LDAS resampling copied Torch data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = resample.resample_to_delta_t(
+                input_series, target_delta_t, method="ldas"
+            )
+
+    assert isinstance(actual._data.tensor, torch.Tensor)
+    assert actual._data.tensor.device.type == device
+    assert actual.dtype == np.dtype(dtype)
+    assert actual.delta_t == target_delta_t
+    assert actual.start_time == expected.start_time
+    assert actual.corrupted_samples == 10
+    assert len(actual) == len(expected)
+
+    rtol, atol = ((5e-5, 5e-6) if dtype == np.float32
+                  else (1e-11, 1e-12))
+    np.testing.assert_allclose(
+        actual._data.tensor.detach().cpu().numpy(),
+        expected.numpy(),
+        rtol=rtol,
+        atol=atol,
+    )
 
 
 def test_matched_filter_torch_vs_cpu(torch_ctx):
