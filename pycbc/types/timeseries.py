@@ -28,6 +28,93 @@ import numpy as _numpy
 from scipy.io.wavfile import write as write_wav
 
 
+def _torch_taper_peak(amplitude, start, end, step):
+    """Return the second eligible LAL taper peak in one direction."""
+    import torch
+
+    indices = torch.arange(
+        start + step, end, step, device=amplitude.device
+    )
+    if indices.numel() == 0:
+        return None
+
+    peaks = (
+        (amplitude[indices] >= amplitude[indices - step])
+        & (amplitude[indices] >= amplitude[indices + step])
+    )
+    candidates = indices[peaks]
+    if candidates.numel() == 0:
+        return None
+
+    # LAL skips the next sample after encountering a flat peak. Reproduce
+    # that scan without copying the candidate list to the host.
+    order = torch.arange(candidates.numel(), device=amplitude.device)
+    new_run = torch.ones_like(candidates, dtype=torch.bool)
+    new_run[1:] = candidates[1:] != candidates[:-1] + step
+    run_starts = torch.where(new_run, order, torch.zeros_like(order))
+    run_starts = torch.cummax(run_starts, dim=0).values
+    candidates = candidates[(order - run_starts).remainder(2) == 0]
+
+    flat = amplitude[candidates] == amplitude[candidates + step]
+    effective = candidates + flat.to(candidates.dtype) * step
+    distance = (effective - start) * step
+    eligible = effective[distance > 19]
+    if eligible.numel() < 2:
+        return None
+    return int(eligible[1].item())
+
+
+def _torch_lal_taper(tensor, location):
+    """Apply LAL's inspiral waveform taper algorithm on a Torch device."""
+    import torch
+
+    result = tensor.clone()
+    if location == 'none':
+        return result
+
+    nonzero = torch.nonzero(result != 0, as_tuple=False).flatten()
+    if nonzero.numel() == 0:
+        return result
+
+    start = int(nonzero[0].item())
+    end = int(nonzero[-1].item())
+    if end - start <= 1:
+        return result
+
+    midpoint = (start + end) // 2
+    amplitude = result.abs()
+
+    if location != 'end':
+        peak = _torch_taper_peak(amplitude, start, midpoint, 1)
+        length = midpoint - start if peak is None else peak - start
+        result[start] = 0
+        if length > 2:
+            offset = torch.arange(
+                1, length - 1, dtype=result.dtype, device=result.device
+            )
+            extent = length - 1
+            exponent = extent / offset + extent / (offset - extent)
+            result[start + 1:start + length - 1] *= 1 / (
+                torch.exp(exponent) + 1
+            )
+
+    if location in ('end', 'startend'):
+        peak = _torch_taper_peak(amplitude, end, midpoint, -1)
+        length = end - midpoint if peak is None else end - peak
+        result[end] = 0
+        if length > 2:
+            offset = torch.arange(
+                1, length - 1, dtype=result.dtype, device=result.device
+            )
+            extent = length - 1
+            exponent = extent / offset + extent / (offset - extent)
+            result[end - length + 2:end] *= 1 / (
+                torch.exp(exponent.flip(0)) + 1
+            )
+
+    return result
+
+
 class TimeSeries(Array):
     """Models a time series consisting of uniformly sampled scalar values.
 
@@ -567,7 +654,8 @@ class TimeSeries(Array):
     # map between tapering string in sim_inspiral table or inspiral
     # code option and lalsimulation constants
 
-    def taper_timeseries(self, location=None, tapermethod='lal', return_lal=False, taper_window=None):
+    def taper_timeseries(self, location=None, tapermethod='lal',
+                         return_lal=False, taper_window=None):
         """
         Taper either or both ends of a time series using wrapped
         LALSimulation functions or a constant window taper.
@@ -590,38 +678,53 @@ class TimeSeries(Array):
             If True, return a wrapped LAL time series object, else return a
             PyCBC time series.
         """
-        import lalsimulation as sim
-
-        taper_map = {
-            'TAPER_NONE'    : None,
-            'TAPER_START'   : sim.SIM_INSPIRAL_TAPER_START,
-            'start'         : sim.SIM_INSPIRAL_TAPER_START,
-            'TAPER_END'     : sim.SIM_INSPIRAL_TAPER_END,
-            'end'           : sim.SIM_INSPIRAL_TAPER_END,
-            'TAPER_STARTEND': sim.SIM_INSPIRAL_TAPER_STARTEND,
-            'startend'      : sim.SIM_INSPIRAL_TAPER_STARTEND}
-
-        taper_func_map = {
-            _numpy.dtype(float32): sim.SimInspiralREAL4WaveTaper,
-            _numpy.dtype(float64): sim.SimInspiralREAL8WaveTaper}
+        taper_locations = {
+            'TAPER_NONE': 'none',
+            'TAPER_START': 'start',
+            'start': 'start',
+            'TAPER_END': 'end',
+            'end': 'end',
+            'TAPER_STARTEND': 'startend',
+            'startend': 'startend',
+        }
 
         tsdata = self
 
         if location is None:
             raise ValueError("Must specify a tapering method (function was called"
                             "with location=None)")
-        if location not in taper_map.keys():
+        if location not in taper_locations:
             raise ValueError("Unknown location %s, valid locations are %s" % \
-                            (location, ", ".join(taper_map.keys())))
+                            (location, ", ".join(taper_locations)))
         if tsdata.dtype not in (float32, float64):
             raise TypeError("Strain dtype must be float32 or float64, not "
                         + str(tsdata.dtype))
         if tapermethod == 'lal':
+            tensor = getattr(tsdata._data, 'tensor', None)
+            if tensor is not None and not return_lal:
+                from pycbc.types.array_torch import TorchArrayData
+                tapered = _torch_lal_taper(
+                    tensor, taper_locations[location]
+                )
+                return tsdata._return(TorchArrayData(tapered))
+
+            import lalsimulation as sim
+            taper_map = {
+                'none': None,
+                'start': sim.SIM_INSPIRAL_TAPER_START,
+                'end': sim.SIM_INSPIRAL_TAPER_END,
+                'startend': sim.SIM_INSPIRAL_TAPER_STARTEND,
+            }
+            taper_func_map = {
+                _numpy.dtype(float32): sim.SimInspiralREAL4WaveTaper,
+                _numpy.dtype(float64): sim.SimInspiralREAL8WaveTaper,
+            }
             taper_func = taper_func_map[tsdata.dtype]
             # make a LAL TimeSeries to pass to the LALSim function
             ts_lal = tsdata.astype(tsdata.dtype).lal()
-            if taper_map[location] is not None:
-                taper_func(ts_lal.data, taper_map[location])
+            taper_location = taper_map[taper_locations[location]]
+            if taper_location is not None:
+                taper_func(ts_lal.data, taper_location)
             if return_lal:
                 return ts_lal
             else:

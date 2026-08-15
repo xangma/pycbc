@@ -1070,6 +1070,63 @@ def test_timeseries_detrend_rejects_unknown_type(torch_device_ctx):
 
 
 @pytest.mark.parametrize("dtype", (np.float32, np.float64))
+@pytest.mark.parametrize(
+    "location",
+    (
+        "TAPER_NONE",
+        "TAPER_START",
+        "TAPER_END",
+        "TAPER_STARTEND",
+        "start",
+        "end",
+        "startend",
+    ),
+)
+def test_timeseries_lal_taper_stays_on_device(
+        torch_device_ctx, monkeypatch, dtype, location):
+    ctx, device = torch_device_ctx
+    if device == "mps" and dtype == np.float64:
+        pytest.skip("Torch MPS does not support float64")
+
+    samples = np.arange(512)
+    data = np.zeros(512, dtype=dtype)
+    signal_samples = samples[17:491] - 17
+    data[17:491] = (
+        np.sin(2 * np.pi * signal_samples / 23 + 0.3)
+        * (1 + 0.001 * signal_samples)
+    ).astype(dtype)
+    expected = TimeSeries(
+        data, delta_t=1 / 2048, epoch=123
+    ).taper_timeseries(location=location).numpy()
+
+    with ctx:
+        series = TimeSeries(data, delta_t=1 / 2048, epoch=123)
+        original = series._data.tensor.clone()
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("taper copied Torch data to host")
+
+            def _reject_lal(_self):
+                raise AssertionError("Torch taper constructed a LAL series")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(TimeSeries, "lal", _reject_lal)
+            patch.setitem(sys.modules, "lalsimulation", None)
+            actual = series.taper_timeseries(location=location)
+
+    assert actual._data.tensor.device.type == device
+    assert actual.dtype == np.dtype(dtype)
+    assert actual.delta_t == series.delta_t
+    assert actual.start_time == series.start_time
+    assert torch.equal(series._data.tensor, original)
+    tolerance = 2e-6 if dtype == np.float32 else 1e-14
+    np.testing.assert_allclose(
+        actual._data.tensor.detach().cpu().numpy(), expected,
+        rtol=tolerance, atol=tolerance,
+    )
+
+
+@pytest.mark.parametrize("dtype", (np.float32, np.float64))
 def test_line_removal_stays_on_device(
         torch_device_ctx, monkeypatch, dtype):
     ctx, device = torch_device_ctx
