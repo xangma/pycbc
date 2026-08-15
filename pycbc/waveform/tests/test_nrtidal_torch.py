@@ -19,6 +19,7 @@ from pycbc.waveform.nrtidal_torch import (  # noqa: E402
     nrtidal_higher_order_spin_terms,
     nrtidal_kappa2t,
     nrtidal_merger_frequency,
+    nrtidal_merger_frequency_v3,
     nrtidal_octupole_from_quadrupole,
     nrtidal_phase,
     nrtidal_quadrupole_from_lambda,
@@ -39,6 +40,7 @@ _LAMBDAS = (400.0, 800.0)
         ("IMRPhenomD_NRTidalv2", 2),
         ("IMRPhenomXAS_NRTidalv2", 2),
         ("SEOBNRv4_ROM_NRTidalv2", 2),
+        ("IMRPhenomXAS_NRTidalv3", 3),
         ("IMRPhenomXAS", None),
     ],
 )
@@ -71,6 +73,44 @@ def test_nrtidal_scalar_fits_match_lal():
     )
     actual_merger = nrtidal_merger_frequency(mass1, mass2, lambda1, lambda2)
     assert actual_merger == pytest.approx(expected_merger, rel=1.0e-14)
+
+
+@pytest.mark.parametrize(
+    ("masses", "lambdas", "spins"),
+    [
+        (_MASSES, _LAMBDAS, (0.15, -0.08)),
+        (_MASSES[::-1], _LAMBDAS[::-1], (-0.08, 0.15)),
+    ],
+)
+def test_nrtidal_v3_merger_frequency_matches_lal(masses, lambdas, spins):
+    mass1, mass2 = masses
+    lambda1, lambda2 = lambdas
+    spin1z, spin2z = spins
+    primary_mass = max(mass1, mass2)
+    secondary_mass = min(mass1, mass2)
+    if mass1 >= mass2:
+        primary_lambda, secondary_lambda = lambda1, lambda2
+        primary_spin, secondary_spin = spin1z, spin2z
+    else:
+        primary_lambda, secondary_lambda = lambda2, lambda1
+        primary_spin, secondary_spin = spin2z, spin1z
+    expected = lalsimulation.SimNRTunedTidesMergerFrequency_v3(
+        mass1 + mass2,
+        primary_lambda,
+        secondary_lambda,
+        primary_mass / secondary_mass,
+        primary_spin,
+        secondary_spin,
+    )
+    actual = nrtidal_merger_frequency_v3(
+        mass1,
+        mass2,
+        lambda1,
+        lambda2,
+        spin1z,
+        spin2z,
+    )
+    assert actual == pytest.approx(expected, rel=1.0e-14)
 
 
 @pytest.mark.parametrize("lambda_tidal", [0.0, 0.499, 0.5, 1.0, 400.0, 5000.0])
@@ -125,24 +165,37 @@ def test_nrtidal_higher_order_spin_fits_match_lal():
     [
         (1, lalsimulation.NRTidal_V),
         (2, lalsimulation.NRTidalv2_V),
+        (3, lalsimulation.NRTidalv3_V),
     ],
 )
 def test_nrtidal_frequency_corrections_match_lal(version, lal_version):
     mass1, mass2 = _MASSES
     lambda1, lambda2 = _LAMBDAS
-    merger = nrtidal_merger_frequency(mass1, mass2, lambda1, lambda2)
-    frequencies = np.array(
-        [
-            20.0,
-            100.0,
-            500.0,
-            0.99 * merger,
-            1.05 * merger,
-            1.19 * merger,
-            1.21 * merger,
-        ],
-        dtype=np.float64,
-    )
+    spin1z, spin2z = 0.15, -0.08
+    if version == 3:
+        merger = nrtidal_merger_frequency_v3(
+            mass1,
+            mass2,
+            lambda1,
+            lambda2,
+            spin1z,
+            spin2z,
+        )
+        frequencies = np.linspace(20.0, 1.5 * merger, 512, dtype=np.float64)
+    else:
+        merger = nrtidal_merger_frequency(mass1, mass2, lambda1, lambda2)
+        frequencies = np.array(
+            [
+                20.0,
+                100.0,
+                500.0,
+                0.99 * merger,
+                1.05 * merger,
+                1.19 * merger,
+                1.21 * merger,
+            ],
+            dtype=np.float64,
+        )
     frequency_vector = _lal_vector(frequencies)
     phase = lal.CreateREAL8Vector(len(frequencies))
     amplitude = lal.CreateREAL8Vector(len(frequencies))
@@ -156,13 +209,14 @@ def test_nrtidal_frequency_corrections_match_lal(version, lal_version):
         mass2 * lal.MSUN_SI,
         lambda1,
         lambda2,
-        0.15,
-        -0.08,
+        spin1z,
+        spin2z,
         lal_version,
     )
     assert status == 0
 
     torch_frequencies = torch.as_tensor(frequencies, dtype=torch.float64)
+    phase_tolerance = 3.0e-13 if version == 3 else 2.0e-13
     np.testing.assert_allclose(
         nrtidal_phase(
             torch_frequencies,
@@ -171,18 +225,20 @@ def test_nrtidal_frequency_corrections_match_lal(version, lal_version):
             lambda1,
             lambda2,
             version,
+            spin1z,
+            spin2z,
         ).numpy(),
         phase.data,
-        rtol=2.0e-13,
-        atol=2.0e-13,
+        rtol=phase_tolerance,
+        atol=phase_tolerance,
     )
     np.testing.assert_allclose(
         nrtidal_taper(torch_frequencies, merger).numpy(),
         taper.data,
         rtol=0.0,
-        atol=3.0e-15,
+        atol=3.0e-14 if version == 3 else 3.0e-15,
     )
-    if version == 2:
+    if version in (2, 3):
         np.testing.assert_allclose(
             nrtidal_amplitude(
                 torch_frequencies,

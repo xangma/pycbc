@@ -164,11 +164,14 @@ def test_imrphenomxas_matches_lal(
         assert relative_error < 1.0e-10
 
 
+@pytest.mark.parametrize(
+    "approximant",
+    ["IMRPhenomXAS_NRTidalv2", "IMRPhenomXAS_NRTidalv3"],
+)
 @pytest.mark.parametrize("params", TIDAL_CASES)
-def test_imrphenomxas_nrtidalv2_matches_lal(
-    params, monkeypatch, preserve_scheme
+def test_imrphenomxas_nrtidal_matches_lal(
+    approximant, params, monkeypatch, preserve_scheme
 ):
-    approximant = "IMRPhenomXAS_NRTidalv2"
     monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
     monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "0")
     _activate_scheme(_scheme.CPUScheme())
@@ -246,10 +249,13 @@ def test_imrphenomxas_public_dispatch_does_not_call_lal(
         )
 
 
-def test_imrphenomxas_nrtidalv2_dispatch_does_not_call_lal(
-    monkeypatch, preserve_scheme
+@pytest.mark.parametrize(
+    "approximant",
+    ["IMRPhenomXAS_NRTidalv2", "IMRPhenomXAS_NRTidalv3"],
+)
+def test_imrphenomxas_nrtidal_dispatch_does_not_call_lal(
+    approximant, monkeypatch, preserve_scheme
 ):
-    approximant = "IMRPhenomXAS_NRTidalv2"
     params = TIDAL_CASES[0]
     monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "0")
     _activate_scheme(_scheme.CPUScheme())
@@ -259,7 +265,7 @@ def test_imrphenomxas_nrtidalv2_dispatch_does_not_call_lal(
     import pycbc.waveform.waveform as waveform_mod
 
     def unexpected_lal(*_args, **_kwargs):
-        raise AssertionError("native IMRPhenomXAS_NRTidalv2 called LAL")
+        raise AssertionError(f"native {approximant} called LAL")
 
     monkeypatch.setattr(
         waveform_mod.lalsimulation,
@@ -310,8 +316,14 @@ def test_imrphenomxas_native_support_boundary(changes, expected):
         ({"mode_array": [(2, 2)]}, False),
     ],
 )
-def test_imrphenomxas_nrtidalv2_native_support_boundary(changes, expected):
-    params = {"approximant": "IMRPhenomXAS_NRTidalv2", **changes}
+@pytest.mark.parametrize(
+    "approximant",
+    ["IMRPhenomXAS_NRTidalv2", "IMRPhenomXAS_NRTidalv3"],
+)
+def test_imrphenomxas_nrtidal_native_support_boundary(
+    approximant, changes, expected
+):
+    params = {"approximant": approximant, **changes}
     assert imrphenomxas_native_supported(params) is expected
 
 
@@ -321,6 +333,11 @@ def test_imrphenomxas_nrtidalv2_native_support_boundary(changes, expected):
         ("IMRPhenomXAS", {}, 4096),
         (
             "IMRPhenomXAS_NRTidalv2",
+            {"lambda1": 400.0, "lambda2": 700.0},
+            4095,
+        ),
+        (
+            "IMRPhenomXAS_NRTidalv3",
             {"lambda1": 400.0, "lambda2": 700.0},
             4095,
         ),
@@ -400,6 +417,7 @@ def test_imrphenomxas_unsupported_options_use_lal_fallback(
     [
         ("IMRPhenomXAS", CASES[0], 1.0e-10),
         ("IMRPhenomXAS_NRTidalv2", TIDAL_CASES[0], 5.0e-6),
+        ("IMRPhenomXAS_NRTidalv3", TIDAL_CASES[0], 5.0e-6),
     ],
 )
 def test_imrphenomxas_stays_on_requested_device(
@@ -443,6 +461,7 @@ def test_imrphenomxas_stays_on_requested_device(
     [
         ("IMRPhenomXAS", CASES[0]),
         ("IMRPhenomXAS_NRTidalv2", TIDAL_CASES[0]),
+        ("IMRPhenomXAS_NRTidalv3", TIDAL_CASES[0]),
     ],
 )
 def test_imrphenomxas_native_avoids_host_transfer(
