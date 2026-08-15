@@ -40,6 +40,7 @@ from astropy.coordinates.matrix_utilities import rotation_matrix
 from astropy.units.si import sday, meter
 
 import pycbc.libutils
+import pycbc.scheme as _scheme
 from pycbc.types import TimeSeries
 from pycbc.types.config import InterpolatingConfigParser
 
@@ -47,6 +48,21 @@ logger = logging.getLogger('pycbc.detector')
 
 # Response functions are modelled after those in lalsuite and as also
 # presented in https://arxiv.org/pdf/gr-qc/0008066.pdf
+
+
+def _to_lal_real8_time_series(series):
+    """Copy a PyCBC series to the host representation required by LAL."""
+    lal_series = lal.CreateREAL8TimeSeries(
+        '',
+        series.start_time,
+        0,
+        series.delta_t,
+        lal.SecondUnit,
+        len(series),
+    )
+    lal_series.data.data[:] = series.numpy()
+    return lal_series
+
 
 def gmst_accurate(gps_time):
     gmst = Time(gps_time, format='gps', scale='utc',
@@ -547,11 +563,18 @@ class Detector(object):
         if method == 'lal':
             import lalsimulation
             h_lal = lalsimulation.SimDetectorStrainREAL8TimeSeries(
-                    hp.astype(np.float64).lal(), hc.astype(np.float64).lal(),
+                    _to_lal_real8_time_series(hp),
+                    _to_lal_real8_time_series(hc),
                     ra, dec, polarization, self.lal())
+            active_scheme = _scheme.mgr.state
+            using_torch = isinstance(active_scheme, _scheme.TorchScheme)
+            output_dtype = np.float64
+            if using_torch and active_scheme.device.type == 'mps':
+                output_dtype = np.float32
             ts = TimeSeries(
                     h_lal.data.data, delta_t=h_lal.deltaT, epoch=h_lal.epoch,
-                    dtype=np.float64, copy=False)
+                    dtype=output_dtype,
+                    copy=not isinstance(active_scheme, _scheme.CPUScheme))
 
         # 'constant' assume fixed orientation relative to source over the
         # duration of the signal, accurate for short duration signals

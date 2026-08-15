@@ -87,6 +87,48 @@ def _relative_l2(a, b):
     return np.linalg.norm(diff) / np.linalg.norm(b)
 
 
+def test_lal_detector_projection_returns_to_torch_device(torch_device_ctx):
+    ctx, device = torch_device_ctx
+    delta_t = 1 / 2048
+    epoch = 1_000_000_000
+    times = np.arange(512) * delta_t
+    hp_data = np.sin(2 * np.pi * 80 * times)
+    hc_data = 0.4 * np.cos(2 * np.pi * 80 * times)
+    detector = Detector("H1")
+    input_dtype = np.float32 if device == "mps" else np.float64
+    hp_data = hp_data.astype(input_dtype)
+    hc_data = hc_data.astype(input_dtype)
+
+    expected = detector.project_wave(
+        TimeSeries(hp_data, delta_t=delta_t, epoch=epoch),
+        TimeSeries(hc_data, delta_t=delta_t, epoch=epoch),
+        1.2,
+        -0.4,
+        0.3,
+        method="lal",
+    ).numpy()
+
+    with ctx:
+        projected = detector.project_wave(
+            TimeSeries(hp_data, delta_t=delta_t, epoch=epoch),
+            TimeSeries(hc_data, delta_t=delta_t, epoch=epoch),
+            1.2,
+            -0.4,
+            0.3,
+            method="lal",
+        )
+
+    expected_dtype = torch.float32 if device == "mps" else torch.float64
+    assert projected._data.tensor.device.type == device
+    assert projected._data.tensor.dtype == expected_dtype
+    torch.testing.assert_close(
+        projected._data.tensor.detach().cpu(),
+        torch.as_tensor(expected, dtype=expected_dtype),
+        rtol=0,
+        atol=0,
+    )
+
+
 @pytest.mark.parametrize(
     ("values", "expected"),
     (
