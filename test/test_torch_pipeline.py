@@ -15,7 +15,7 @@ from pycbc.noise import gaussian, reproduceable
 from pycbc.psd import inverse_spectrum_truncation, variation, welch
 from pycbc.strain import gate as strain_gate
 from pycbc.strain import calibration, lines as strain_lines, recalibrate
-from pycbc.strain.strain import StrainBuffer, detect_loud_glitches
+from pycbc.strain.strain import StrainBuffer, detect_loud_glitches, gate_data
 from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
 
@@ -43,6 +43,7 @@ def stub_execute_cached_fft_import(monkeypatch):
     fake_mod.create_memory_and_engine_for_class_based_fft = (
         _create_memory_and_engine_for_class_based_fft
     )
+    fake_pkg.gate_data = gate_data
     monkeypatch.setitem(sys.modules, "pycbc.strain", fake_pkg)
     monkeypatch.setitem(sys.modules, "pycbc.strain.strain", fake_mod)
 
@@ -1123,6 +1124,77 @@ def test_timeseries_lal_taper_stays_on_device(
     np.testing.assert_allclose(
         actual._data.tensor.detach().cpu().numpy(), expected,
         rtol=tolerance, atol=tolerance,
+    )
+
+
+@pytest.mark.parametrize("dtype", (np.float32, np.float64))
+@pytest.mark.parametrize(
+    "location",
+    (
+        "TAPER_NONE",
+        "TAPER_START",
+        "TAPER_END",
+        "TAPER_STARTEND",
+        "start",
+        "end",
+        "startend",
+    ),
+)
+def test_timeseries_constant_taper_stays_on_device(
+        torch_device_ctx, monkeypatch, dtype, location):
+    ctx, device = torch_device_ctx
+    if device == "mps" and dtype == np.float64:
+        pytest.skip("Torch MPS does not support float64")
+
+    delta_t = 1 / 32
+    taper_window = 0.25
+    epoch = 123
+    data = np.zeros(128, dtype=dtype)
+    data[17:111] = np.linspace(0.5, 2.0, 94, dtype=dtype)
+
+    normalized = {
+        "TAPER_NONE": "none",
+        "TAPER_START": "start",
+        "TAPER_END": "end",
+        "TAPER_STARTEND": "startend",
+    }.get(location, location)
+    gate_params = []
+    if normalized in ("start", "startend"):
+        gate_params.append((epoch + 17 * delta_t, 0, taper_window))
+    if normalized in ("end", "startend"):
+        gate_params.append((epoch + 110 * delta_t, 0, taper_window))
+    expected = gate_data(
+        TimeSeries(data.copy(), delta_t=delta_t, epoch=epoch), gate_params
+    ).numpy()
+    cpu_actual = TimeSeries(
+        data.copy(), delta_t=delta_t, epoch=epoch
+    ).taper_timeseries(
+        location=location,
+        tapermethod="constant",
+        taper_window=taper_window,
+    ).numpy()
+    np.testing.assert_allclose(cpu_actual, expected, rtol=0, atol=0)
+
+    with ctx:
+        series = TimeSeries(data, delta_t=delta_t, epoch=epoch)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("constant taper copied Torch data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = series.taper_timeseries(
+                location=location,
+                tapermethod="constant",
+                taper_window=taper_window,
+            )
+
+    assert actual is series
+    assert actual._data.tensor.device.type == device
+    assert actual.dtype == np.dtype(dtype)
+    np.testing.assert_allclose(
+        actual._data.tensor.detach().cpu().numpy(), expected,
+        rtol=2e-6 if dtype == np.float32 else 1e-14,
+        atol=2e-6 if dtype == np.float32 else 1e-14,
     )
 
 

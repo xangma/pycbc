@@ -734,16 +734,37 @@ class TimeSeries(Array):
             # constant window tapering
             if taper_window is None:
                 raise ValueError("If taper_method is 'constant', taper_window must be set")
-            
+
             gate_params = []
-            if location in ('TAPER_START', 'start' 'TAPER_STARTEND'):
-                first_nonzero = _numpy.nonzero(tsdata)[0][0]
-                nonzero_starttime = tsdata.start_time + first_nonzero * tsdata.delta_t
+            taper_location = taper_locations[location]
+            if taper_location != 'none':
+                tensor = getattr(tsdata._data, 'tensor', None)
+                if tensor is not None:
+                    import torch
+                    nonzero = torch.nonzero(
+                        tensor != 0, as_tuple=False
+                    ).flatten()
+                    if nonzero.numel() == 0:
+                        return tsdata
+                    first_nonzero = int(nonzero[0].item())
+                    last_nonzero = int(nonzero[-1].item())
+                else:
+                    nonzero = _numpy.flatnonzero(tsdata.numpy())
+                    if len(nonzero) == 0:
+                        return tsdata
+                    first_nonzero = int(nonzero[0])
+                    last_nonzero = int(nonzero[-1])
+
+            if taper_location in ('start', 'startend'):
+                nonzero_starttime = (
+                    tsdata.start_time + first_nonzero * tsdata.delta_t
+                )
                 gate_params.append((nonzero_starttime, 0, taper_window))
-            if location in ('TAPER_END', 'end', 'TAPER_STARTEND'):
-                last_nonzero = _numpy.nonzero(tsdata)[0][-1]
-                nonzero_endtime = tsdata.end_time - last_nonzero * tsdata.delta_t
-                gate_params.append((nonzero_endtime - taper_window, 0, taper_window))
+            if taper_location in ('end', 'startend'):
+                nonzero_endtime = (
+                    tsdata.start_time + last_nonzero * tsdata.delta_t
+                )
+                gate_params.append((nonzero_endtime, 0, taper_window))
             from pycbc.strain import gate_data
             return gate_data(tsdata, gate_params)
         else:
