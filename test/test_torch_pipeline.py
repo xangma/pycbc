@@ -12,6 +12,7 @@ from pycbc import scheme
 from pycbc.filter import matchedfilter, resample
 from pycbc.noise import gaussian
 from pycbc.psd import inverse_spectrum_truncation, variation, welch
+from pycbc.strain import gate as strain_gate
 from pycbc.strain.strain import StrainBuffer
 from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
@@ -494,6 +495,91 @@ def test_lfilter_torch_matches_scipy_without_host_transfer(
                   else (1e-11, 1e-11))
     np.testing.assert_allclose(actual_data, expected, rtol=rtol, atol=atol)
     np.testing.assert_array_equal(input_data, data)
+
+
+@pytest.mark.parametrize("complex_system", (False, True))
+def test_torch_levinson_solver_matches_scipy(
+        torch_device_ctx, complex_system):
+    ctx, device = torch_device_ctx
+    if device == "mps" and complex_system:
+        pytest.skip("Torch MPS does not support complex tensors")
+
+    rng = np.random.default_rng(314159)
+    length = 31
+    rho = 0.55 * (np.exp(0.2j) if complex_system else 1.0)
+    coefficients = (rho ** np.arange(length)).astype(
+        np.complex64 if complex_system else np.float32
+    )
+    rhs = rng.normal(size=length)
+    if complex_system:
+        rhs = rhs + 1j * rng.normal(size=length)
+    rhs = rhs.astype(np.complex64 if complex_system else np.float32)
+    expected = strain_gate.linalg.solve_toeplitz(coefficients, rhs)
+
+    with ctx:
+        actual = strain_gate._torch_solve_toeplitz(
+            torch.as_tensor(coefficients, device=device),
+            torch.as_tensor(rhs, device=device),
+        )
+
+    rtol, atol = ((2e-5, 2e-5) if device == "mps"
+                  else (1e-11, 1e-12))
+    np.testing.assert_allclose(
+        actual.detach().cpu().numpy(), expected, rtol=rtol, atol=atol
+    )
+
+
+@pytest.mark.parametrize("dtype", (np.float32, np.float64))
+def test_paint_gate_torch_matches_scipy_without_host_transfer(
+        torch_device_ctx, monkeypatch, dtype):
+    ctx, device = torch_device_ctx
+    if device == "mps":
+        pytest.skip("Paint gating requires complex PyCBC arrays on MPS")
+
+    length = 256
+    delta_t = 1 / 256
+    rng = np.random.default_rng(20250815)
+    data = rng.normal(size=length).astype(dtype)
+    invpsd_values = (
+        1.0 + 0.35 * np.cos(np.linspace(0, np.pi, length // 2 + 1))
+    ).astype(dtype)
+    lindex, rindex = 97, 121
+
+    expected = strain_gate.gate_and_paint(
+        TimeSeries(data, delta_t=delta_t, epoch=123),
+        lindex,
+        rindex,
+        FrequencySeries(invpsd_values, delta_f=1.0),
+    )
+
+    with ctx:
+        torch_data = TimeSeries(data, delta_t=delta_t, epoch=123)
+        torch_invpsd = FrequencySeries(invpsd_values, delta_f=1.0)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("Paint gating copied Torch data to host")
+
+            def _reject_scipy(*_args, **_kwargs):
+                raise AssertionError("Paint gating used SciPy's Toeplitz solve")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(strain_gate.linalg, "solve_toeplitz", _reject_scipy)
+            actual = strain_gate.gate_and_paint(
+                torch_data, lindex, rindex, torch_invpsd
+            )
+
+    assert isinstance(actual._data.tensor, torch.Tensor)
+    assert actual._data.tensor.device.type == device
+    assert actual.dtype == np.dtype(dtype)
+    assert actual.start_time == expected.start_time
+    rtol, atol = ((5e-5, 5e-6) if dtype == np.float32
+                  else (1e-11, 1e-12))
+    np.testing.assert_allclose(
+        actual._data.tensor.detach().cpu().numpy(),
+        expected.numpy(),
+        rtol=rtol,
+        atol=atol,
+    )
 
 
 def test_matched_filter_torch_vs_cpu(torch_ctx):
