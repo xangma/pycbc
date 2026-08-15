@@ -15,7 +15,7 @@ import pycbc
 from pycbc import scheme
 from pycbc.detector import Detector
 from pycbc.filter import autocorrelation, matchedfilter, resample, zpk
-from pycbc.inject.inject import SGBurstInjectionSet
+from pycbc.inject.inject import SGBurstInjectionSet, _InjectionAdder
 from pycbc.noise import gaussian, reproduceable
 from pycbc.psd import inverse_spectrum_truncation, variation, welch
 from pycbc.strain import gate as strain_gate
@@ -126,6 +126,85 @@ def test_lal_detector_projection_returns_to_torch_device(torch_device_ctx):
         torch.as_tensor(expected, dtype=expected_dtype),
         rtol=0,
         atol=0,
+    )
+
+
+@pytest.mark.parametrize("dtype", (np.float32, np.float64))
+@pytest.mark.parametrize(
+    "sample_offset",
+    (96.0, 96.25, 96.6, -31.3, 1800.25),
+)
+def test_lalsim_injection_adder_stays_on_torch_device(
+        torch_device_ctx, monkeypatch, dtype, sample_offset):
+    ctx, device = torch_device_ctx
+    if device == "mps" and dtype == np.float64:
+        pytest.skip("Torch MPS does not support float64")
+
+    rng = np.random.default_rng(173)
+    delta_t = 1 / 1024
+    epoch = lal.LIGOTimeGPS(1_000_000_000)
+    source_epoch = epoch + sample_offset * delta_t
+    target_data = rng.normal(scale=0.1, size=2048).astype(dtype)
+    source_data = rng.normal(size=777).astype(dtype)
+
+    reference = TimeSeries(
+        target_data.copy(), delta_t=delta_t, epoch=epoch
+    ).lal()
+    reference_source = TimeSeries(
+        source_data, delta_t=delta_t, epoch=source_epoch
+    ).lal()
+    add_reference = (
+        lalsimulation.SimAddInjectionREAL4TimeSeries
+        if dtype == np.float32
+        else lalsimulation.SimAddInjectionREAL8TimeSeries
+    )
+    add_reference(reference, reference_source, None)
+    expected = reference.data.data.copy()
+
+    with ctx:
+        target = TimeSeries(
+            target_data, delta_t=delta_t, epoch=epoch
+        )
+        source = TimeSeries(
+            source_data, delta_t=delta_t, epoch=source_epoch
+        )
+
+        with monkeypatch.context() as patch:
+            def _reject_lal_conversion(_self):
+                raise AssertionError("Torch injection converted through LAL")
+
+            def _reject_host_transfer(_self):
+                raise AssertionError("Torch injection copied data to host")
+
+            def _reject_lalsimulation(*_args, **_kwargs):
+                raise AssertionError("Torch injection used lalsimulation")
+
+            patch.setattr(TimeSeries, "lal", _reject_lal_conversion)
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(
+                lalsimulation,
+                "SimAddInjectionREAL4TimeSeries",
+                _reject_lalsimulation,
+            )
+            patch.setattr(
+                lalsimulation,
+                "SimAddInjectionREAL8TimeSeries",
+                _reject_lalsimulation,
+            )
+            adder = _InjectionAdder(target)
+            adder.add(source)
+            adder.finish()
+
+    assert target._data.tensor.device.type == device
+    tolerances = (
+        {"rtol": 2e-5, "atol": 2e-6}
+        if dtype == np.float32 or device == "mps"
+        else {"rtol": 1e-11, "atol": 1e-12}
+    )
+    torch.testing.assert_close(
+        target._data.tensor.detach().cpu(),
+        torch.as_tensor(expected),
+        **tolerances,
     )
 
 
