@@ -757,3 +757,68 @@ def test_followup_background_reduction_stays_on_device(
     assert cpu_result == expected
     assert actual == expected
     assert background._data.tensor.device.type == device
+
+
+@pytest.mark.parametrize("detrend_type", ("constant", "linear", "c", "l"))
+@pytest.mark.parametrize(
+    "dtype", (np.float32, np.float64, np.complex64, np.complex128)
+)
+def test_timeseries_detrend_stays_on_device(
+        torch_device_ctx, monkeypatch, dtype, detrend_type):
+    ctx, device = torch_device_ctx
+    if device == "mps" and dtype != np.float32:
+        pytest.skip("Torch MPS only supports float32 PyCBC arrays")
+
+    rng = np.random.default_rng(161803)
+    positions = np.arange(257)
+    data = 3.2 + 0.03 * positions + rng.normal(scale=0.2, size=257)
+    if np.issubdtype(dtype, np.complexfloating):
+        data = data + 1j * (
+            -1.3 + 0.07 * positions + rng.normal(scale=0.1, size=257)
+        )
+    data = data.astype(dtype)
+    expected = scipy.signal.detrend(data, type=detrend_type)
+
+    with ctx:
+        series = TimeSeries(data, delta_t=1 / 2048, epoch=123)
+        original = series._data.tensor.clone()
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("detrend copied Torch data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = series.detrend(type=detrend_type)
+
+    assert actual._data.tensor.device.type == device
+    assert actual.dtype == np.dtype(dtype)
+    assert actual.delta_t == series.delta_t
+    assert actual.start_time == series.start_time
+    assert torch.equal(series._data.tensor, original)
+    rtol, atol = ((1e-4, 1e-5) if actual.precision == "single"
+                  else (1e-11, 1e-12))
+    np.testing.assert_allclose(
+        actual._data.tensor.detach().cpu().numpy(), expected,
+        rtol=rtol, atol=atol,
+    )
+
+
+@pytest.mark.parametrize("detrend_type", ("constant", "linear"))
+def test_timeseries_detrend_single_sample(torch_device_ctx, detrend_type):
+    ctx, device = torch_device_ctx
+    with ctx:
+        actual = TimeSeries(
+            np.array([3.5], dtype=np.float32), delta_t=0.25
+        ).detrend(type=detrend_type)
+
+    assert actual._data.tensor.device.type == device
+    assert actual._data.tensor.item() == 0
+
+
+def test_timeseries_detrend_rejects_unknown_type(torch_device_ctx):
+    ctx, _ = torch_device_ctx
+    with ctx:
+        series = TimeSeries(
+            np.arange(4, dtype=np.float32), delta_t=0.25
+        )
+        with pytest.raises(ValueError, match="Trend type must be"):
+            series.detrend(type="quadratic")

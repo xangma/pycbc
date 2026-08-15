@@ -1268,8 +1268,38 @@ class TimeSeries(Array):
         ----------
         type: str
             The choice of detrending. The default ('linear') removes a linear
-        least squares fit. 'constant' removes only the mean of the data.
+            least squares fit. 'constant' removes only the mean of the data.
         """
+        if hasattr(self._data, 'tensor'):
+            import torch
+            from pycbc.types.array_torch import TorchArrayData
+
+            tensor = self._data.tensor
+            if type in ('constant', 'c'):
+                result = tensor - tensor.mean()
+            elif type in ('linear', 'l'):
+                if len(tensor) == 1:
+                    result = tensor - tensor.mean()
+                else:
+                    positions = torch.arange(
+                        len(tensor), dtype=tensor.real.dtype,
+                        device=tensor.device
+                    )
+                    positions -= (len(tensor) - 1) / 2
+                    slope = (
+                        torch.sum(positions * tensor)
+                        / torch.sum(positions.square())
+                    )
+                    result = tensor - (
+                        tensor.mean() + slope * positions
+                    )
+            else:
+                raise ValueError(
+                    "Trend type must be 'linear' or 'constant'."
+                )
+
+            return self._return(TorchArrayData(result))
+
         from scipy.signal import detrend
         return self._return(detrend(self.numpy(), type=type))
 
