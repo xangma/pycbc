@@ -18,7 +18,7 @@ from pycbc.strain import calibration, lines as strain_lines, recalibrate
 from pycbc.strain.strain import StrainBuffer, detect_loud_glitches, gate_data
 from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
-from pycbc.waveform import sinegauss
+from pycbc.waveform import ringdown, sinegauss
 
 if not pycbc.HAVE_TORCH:
     pytest.skip("PyCBC built without torch support", allow_module_level=True)
@@ -197,6 +197,135 @@ def test_fd_sine_gaussian_torch_matches_cpu_without_host_transfer(
     torch.testing.assert_close(
         result._data.tensor.detach().cpu(), expected, **tolerances
     )
+
+
+def _ringdown_parameters():
+    return {
+        "lmns": ["221", "331", "201"],
+        "amp220": 1.2,
+        "phi220": 0.4,
+        "f_220": 250.0,
+        "tau_220": 0.02,
+        "amp330": 0.35,
+        "phi330": -0.3,
+        "f_330": 410.0,
+        "tau_330": 0.012,
+        "amp200": 0.15,
+        "phi200": 0.8,
+        "f_200": 180.0,
+        "tau_200": 0.018,
+        "inclination": 0.7,
+        "azimuthal": 0.2,
+    }
+
+
+def _assert_ringdown_close(actual, expected, device):
+    dtype = torch.float32 if device == "mps" else torch.float64
+    if np.iscomplexobj(expected):
+        dtype = torch.complex64 if device == "mps" else torch.complex128
+    tolerances = (
+        {"rtol": 3e-5, "atol": 1e-6}
+        if device == "mps"
+        else {"rtol": 1e-12, "atol": 1e-14}
+    )
+    torch.testing.assert_close(
+        actual.detach().cpu(),
+        torch.as_tensor(expected, dtype=dtype),
+        **tolerances,
+    )
+
+
+def test_td_ringdown_torch_matches_cpu_without_host_transfer(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    parameters = _ringdown_parameters()
+    parameters.update(
+        delta_t=1 / 4096,
+        t_final=0.05,
+        taper=True,
+        dbeta=0.1,
+        dphi=-0.2,
+    )
+    reference_plus, reference_cross = ringdown.get_td_from_freqtau(
+        **parameters
+    )
+    plus_values = reference_plus.numpy().copy()
+    cross_values = reference_cross.numpy().copy()
+
+    with ctx:
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError(
+                    "time-domain ringdown copied Torch data to host"
+                )
+
+            def _reject_numpy_exp(*_args, **_kwargs):
+                raise AssertionError(
+                    "time-domain ringdown evaluated exponentials with NumPy"
+                )
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(ringdown.numpy, "exp", _reject_numpy_exp)
+            plus, cross = ringdown.get_td_from_freqtau(**parameters)
+
+    expected_dtype = torch.float32 if device == "mps" else torch.float64
+    for result in (plus, cross):
+        assert isinstance(result, TimeSeries)
+        assert result._data.tensor.device.type == device
+        assert result._data.tensor.dtype == expected_dtype
+    assert len(plus) == len(reference_plus)
+    assert plus.delta_t == reference_plus.delta_t
+    assert float(plus.start_time) == float(reference_plus.start_time)
+    _assert_ringdown_close(plus._data.tensor, plus_values, device)
+    _assert_ringdown_close(cross._data.tensor, cross_values, device)
+
+
+def test_fd_ringdown_torch_matches_cpu_without_host_transfer(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    parameters = _ringdown_parameters()
+    parameters.update(f_lower=20.0, f_final=1024.0, t_0=0.003)
+    reference_plus, reference_cross = ringdown.get_fd_from_freqtau(
+        **parameters
+    )
+    plus_values = reference_plus.numpy().copy()
+    cross_values = reference_cross.numpy().copy()
+
+    unshifted_plus, _ = ringdown.get_fd_from_freqtau(
+        **(parameters | {"t_0": 0.0})
+    )
+    assert np.max(np.abs(plus_values - unshifted_plus.numpy())) > 0
+
+    with ctx:
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError(
+                    "frequency-domain ringdown copied Torch data to host"
+                )
+
+            def _reject_numpy_exp(*_args, **_kwargs):
+                raise AssertionError(
+                    "frequency-domain ringdown evaluated exponentials "
+                    "with NumPy"
+                )
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(ringdown.numpy, "exp", _reject_numpy_exp)
+            plus, cross = ringdown.get_fd_from_freqtau(**parameters)
+
+    expected_dtype = (
+        torch.complex64 if device == "mps" else torch.complex128
+    )
+    for result in (plus, cross):
+        assert isinstance(result, FrequencySeries)
+        assert result._data.tensor.device.type == device
+        assert result._data.tensor.dtype == expected_dtype
+    assert len(plus) == len(reference_plus)
+    assert plus.delta_f == reference_plus.delta_f
+    kmin = int(parameters["f_lower"] / plus.delta_f)
+    assert torch.count_nonzero(plus._data.tensor[:kmin]) == 0
+    _assert_ringdown_close(plus._data.tensor, plus_values, device)
+    _assert_ringdown_close(cross._data.tensor, cross_values, device)
 
 
 def _make_strain_buffer(data, sample_rate, reduced_pad):
