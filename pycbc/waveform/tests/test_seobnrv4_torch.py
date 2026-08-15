@@ -81,7 +81,9 @@ def _snapshot(series_pair):
     )
 
 
-def _assert_parity(reference, actual, relative_tolerance):
+def _assert_parity(
+    reference, actual, relative_tolerance, *, exact_zero_mask=True
+):
     for expected, result in zip(reference, actual):
         expected_length, expected_delta_f, expected_epoch, expected_array = expected
         assert len(result) == expected_length
@@ -89,7 +91,10 @@ def _assert_parity(reference, actual, relative_tolerance):
         assert float(result.epoch) == expected_epoch
 
         result_array = result.numpy()
-        np.testing.assert_array_equal(result_array == 0.0, expected_array == 0.0)
+        if exact_zero_mask:
+            np.testing.assert_array_equal(
+                result_array == 0.0, expected_array == 0.0
+            )
         nonzero = expected_array != 0.0
         assert nonzero.any(), "waveform contains no non-zero bins"
         relative_error = np.linalg.norm(
@@ -166,13 +171,72 @@ def test_seobnrv4_rom_cpu_torch_parity(params):
 
 
 @pytest.mark.parametrize(
+    ("approximant", "params"),
+    [
+        (
+            "SEOBNRv4_ROM_NRTidal",
+            {
+                **_BASE_PARAMS,
+                "mass1": 1.4,
+                "mass2": 1.2,
+                "spin1z": 0.05,
+                "spin2z": -0.02,
+                "lambda1": 400.0,
+                "lambda2": 800.0,
+                "delta_f": 0.5,
+                "f_lower": 20.0,
+                "f_ref": 30.0,
+            },
+        ),
+        (
+            "SEOBNRv4_ROM_NRTidalv2",
+            {
+                **_BASE_PARAMS,
+                "mass1": 1.15,
+                "mass2": 1.55,
+                "spin1z": 0.1,
+                "spin2z": -0.15,
+                "lambda1": 900.0,
+                "lambda2": 300.0,
+                "delta_f": 0.5,
+                "f_lower": 18.0,
+                "f_final": 4096.1,
+                "f_ref": 0.0,
+                "long_asc_nodes": 0.31,
+            },
+        ),
+    ],
+)
+def test_seobnrv4_rom_nrtidal_parity(approximant, params):
+    reference = _snapshot(
+        _generate(params, native=False, approximant=approximant)
+    )
+    actual = _generate(
+        params, native=True, device="cpu", approximant=approximant
+    )
+    _assert_parity(reference, actual, relative_tolerance=1.0e-8)
+
+
+@pytest.mark.parametrize(
     ("params", "expected"),
     [
         ({}, True),
         ({"long_asc_nodes": 0.4}, True),
         ({"lambda1": 0.0, "dchi3": 0.0}, True),
         ({"approximant": "SEOBNRv4"}, False),
-        ({"approximant": "SEOBNRv4_ROM_NRTidalv2"}, False),
+        (
+            {
+                "approximant": "SEOBNRv4_ROM_NRTidalv2",
+                "lambda1": 400.0,
+                "lambda2": 800.0,
+            },
+            True,
+        ),
+        (
+            {"approximant": "SEOBNRv4_ROM_NRTidal", "lambda1": -1.0},
+            False,
+        ),
+        ({"approximant": "SEOBNRv4_ROM_NRTidalv2_NSBH"}, False),
         ({"spin1x": 0.1}, False),
         ({"phase_order": 2}, False),
         ({"lambda1": 100.0}, False),
@@ -187,19 +251,46 @@ def test_seobnrv4_rom_native_support_boundary(params, expected):
     assert seobnrv4_rom_native_supported(params) is expected
 
 
-def test_seobnrv4_rom_public_native_dispatch_avoids_lalsimulation(monkeypatch):
-    params = {
-        **_BASE_PARAMS,
-        "mass1": 35.0,
-        "mass2": 28.0,
-        "spin1z": 0.2,
-        "spin2z": -0.1,
-        "delta_f": 0.25,
-        "f_lower": 20.0,
-        "f_ref": 30.0,
-        "long_asc_nodes": 0.37,
-    }
-    reference = _snapshot(_generate(params, native=False))
+@pytest.mark.parametrize(
+    ("approximant", "params"),
+    [
+        (
+            "SEOBNRv4_ROM",
+            {
+                **_BASE_PARAMS,
+                "mass1": 35.0,
+                "mass2": 28.0,
+                "spin1z": 0.2,
+                "spin2z": -0.1,
+                "delta_f": 0.25,
+                "f_lower": 20.0,
+                "f_ref": 30.0,
+                "long_asc_nodes": 0.37,
+            },
+        ),
+        (
+            "SEOBNRv4_ROM_NRTidalv2",
+            {
+                **_BASE_PARAMS,
+                "mass1": 1.4,
+                "mass2": 1.2,
+                "spin1z": 0.05,
+                "spin2z": -0.02,
+                "lambda1": 400.0,
+                "lambda2": 800.0,
+                "delta_f": 0.5,
+                "f_lower": 20.0,
+                "f_ref": 30.0,
+            },
+        ),
+    ],
+)
+def test_seobnrv4_rom_public_native_dispatch_avoids_lalsimulation(
+    approximant, params, monkeypatch
+):
+    reference = _snapshot(
+        _generate(params, native=False, approximant=approximant)
+    )
 
     import pycbc.waveform.seobnrv4_torch as native_module
     import pycbc.waveform.waveform as waveform_module
@@ -221,7 +312,9 @@ def test_seobnrv4_rom_public_native_dispatch_avoids_lalsimulation(monkeypatch):
         "SimInspiralChooseFDWaveform",
         unexpected_lalsimulation,
     )
-    actual = _generate(params, native=True, device="cpu")
+    actual = _generate(
+        params, native=True, device="cpu", approximant=approximant
+    )
 
     assert native_calls == 1
     assert all(series._data.tensor.device.type == "cpu" for series in actual)
@@ -229,7 +322,23 @@ def test_seobnrv4_rom_public_native_dispatch_avoids_lalsimulation(monkeypatch):
     _assert_parity(reference, actual, relative_tolerance=1.0e-8)
 
 
-def test_seobnrv4_rom_unsupported_options_use_lal_fallback(monkeypatch):
+@pytest.mark.parametrize(
+    ("approximant", "unsupported"),
+    [
+        ("SEOBNRv4_ROM", {"dchi3": 0.1}),
+        (
+            "SEOBNRv4_ROM_NRTidalv2",
+            {
+                "lambda1": 400.0,
+                "lambda2": 800.0,
+                "dquad_mon1": 0.1,
+            },
+        ),
+    ],
+)
+def test_seobnrv4_rom_unsupported_options_use_lal_fallback(
+    approximant, unsupported, monkeypatch
+):
     params = {
         **_BASE_PARAMS,
         "mass1": 30.0,
@@ -238,9 +347,11 @@ def test_seobnrv4_rom_unsupported_options_use_lal_fallback(monkeypatch):
         "spin2z": -0.1,
         "delta_f": 0.5,
         "f_lower": 20.0,
-        "dchi3": 0.1,
+        **unsupported,
     }
-    reference = _snapshot(_generate(params, native=False))
+    reference = _snapshot(
+        _generate(params, native=False, approximant=approximant)
+    )
 
     import pycbc.waveform.seobnrv4_torch as native_module
     import pycbc.waveform.waveform as waveform_module
@@ -262,7 +373,9 @@ def test_seobnrv4_rom_unsupported_options_use_lal_fallback(monkeypatch):
         "SimInspiralChooseFDWaveform",
         recording_lal,
     )
-    actual = _generate(params, native=True, device="cpu")
+    actual = _generate(
+        params, native=True, device="cpu", approximant=approximant
+    )
 
     assert lal_calls == 1
     assert all(isinstance(series._data.tensor, torch.Tensor) for series in actual)
@@ -347,6 +460,50 @@ def test_seobnrv4_rom_stays_on_requested_device(device_name):
     assert all(series._data.tensor.dtype == expected_dtype for series in actual)
     tolerance = 2.0e-2 if device_name == "mps" else 1.0e-8
     _assert_parity(reference, actual, relative_tolerance=tolerance)
+
+
+@pytest.mark.parametrize("device_name", ["cpu", "mps", "cuda"])
+def test_seobnrv4_rom_nrtidal_stays_on_requested_device(device_name):
+    if device_name == "mps" and not torch.backends.mps.is_available():
+        pytest.skip("Torch MPS device is unavailable")
+    if device_name == "cuda" and not torch.cuda.is_available():
+        pytest.skip("Torch CUDA device is unavailable")
+
+    approximant = "SEOBNRv4_ROM_NRTidalv2"
+    params = {
+        **_BASE_PARAMS,
+        "mass1": 1.4,
+        "mass2": 1.2,
+        "spin1z": 0.05,
+        "spin2z": -0.02,
+        "lambda1": 400.0,
+        "lambda2": 800.0,
+        "delta_f": 2.0,
+        "f_lower": 20.0,
+        "f_ref": 30.0,
+    }
+    reference = _snapshot(
+        _generate(params, native=False, approximant=approximant)
+    )
+    actual = _generate(
+        params,
+        native=True,
+        device=device_name,
+        approximant=approximant,
+    )
+
+    expected_dtype = (
+        torch.complex64 if device_name == "mps" else torch.complex128
+    )
+    assert all(series._data.tensor.device.type == device_name for series in actual)
+    assert all(series._data.tensor.dtype == expected_dtype for series in actual)
+    tolerance = 2.0e-2 if device_name == "mps" else 1.0e-8
+    _assert_parity(
+        reference,
+        actual,
+        relative_tolerance=tolerance,
+        exact_zero_mask=device_name != "mps",
+    )
 
 
 def test_seobnrv4_rom_reconstruction_uses_torch_tensors(monkeypatch):

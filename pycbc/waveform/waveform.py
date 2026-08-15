@@ -267,7 +267,8 @@ def _lalsim_fd_waveform(**p):
             return spintaylorf2_torch(**p)
 
     if (
-        p.get("approximant") == "IMRPhenomD"
+        p.get("approximant")
+        in ("IMRPhenomD", "IMRPhenomD_NRTidal", "IMRPhenomD_NRTidalv2")
         and using_torch
         and torch_native_enabled("PYCBC_IMRPHENOMD_NATIVE", default=False)
     ):
@@ -280,7 +281,12 @@ def _lalsim_fd_waveform(**p):
             return imrphenomd_fd_torch(**p)
 
     if (
-        p.get("approximant") == "SEOBNRv4_ROM"
+        p.get("approximant")
+        in (
+            "SEOBNRv4_ROM",
+            "SEOBNRv4_ROM_NRTidal",
+            "SEOBNRv4_ROM_NRTidalv2",
+        )
         and using_torch
         and torch_native_enabled("PYCBC_SEOBNRV4_NATIVE", default=False)
     ):

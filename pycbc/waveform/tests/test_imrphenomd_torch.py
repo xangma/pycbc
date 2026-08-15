@@ -6,9 +6,11 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from pycbc import scheme as _scheme
-from pycbc.waveform import get_fd_waveform
-from pycbc.waveform.imrphenomd_torch import imrphenomd_native_supported
+from pycbc import scheme as _scheme  # noqa: E402
+from pycbc.waveform import get_fd_waveform  # noqa: E402
+from pycbc.waveform.imrphenomd_torch import (  # noqa: E402
+    imrphenomd_native_supported,
+)
 
 
 @pytest.fixture
@@ -34,7 +36,7 @@ def _tol(dtype):
     return dict(rel=1e-10, mag=1e-11, phase_mean=1e-10, phase_std=1e-10)
 
 
-def _run_case(params, use_native=True):
+def _run_case(params, use_native=True, approximant="IMRPhenomD"):
     env_backup = {
         key: os.environ.get(key)
         for key in (
@@ -52,7 +54,7 @@ def _run_case(params, use_native=True):
         _scheme.mgr.state.prefix = "cpu"
         os.environ["PYCBC_TORCH_NATIVE_PORTS"] = "0"
         os.environ["PYCBC_IMRPHENOMD_NATIVE"] = "0"
-        h_cpu, _ = get_fd_waveform(approximant="IMRPhenomD", **params)
+        h_cpu, _ = get_fd_waveform(approximant=approximant, **params)
 
         # Torch path
         _scheme.Scheme._single = None
@@ -60,7 +62,7 @@ def _run_case(params, use_native=True):
         _scheme.mgr.state.prefix = "torch"
         os.environ["PYCBC_TORCH_NATIVE_PORTS"] = "1" if use_native else "0"
         os.environ["PYCBC_IMRPHENOMD_NATIVE"] = "1" if use_native else "0"
-        h_torch, _ = get_fd_waveform(approximant="IMRPhenomD", **params)
+        h_torch, _ = get_fd_waveform(approximant=approximant, **params)
     finally:
         for k, v in env_backup.items():
             if v is None:
@@ -147,6 +149,57 @@ def test_imrphenomd_torch_parity(params):
     assert phase_diff.std() < tol["phase_std"]
 
 
+@pytest.mark.parametrize(
+    ("approximant", "params"),
+    [
+        (
+            "IMRPhenomD_NRTidal",
+            dict(
+                mass1=1.4,
+                mass2=1.2,
+                spin1z=0.05,
+                spin2z=-0.02,
+                lambda1=400.0,
+                lambda2=800.0,
+                delta_f=0.5,
+                f_lower=20.0,
+                f_ref=30.0,
+                distance=100.0,
+                inclination=0.4,
+                coa_phase=0.7,
+            ),
+        ),
+        (
+            "IMRPhenomD_NRTidalv2",
+            dict(
+                mass1=1.15,
+                mass2=1.55,
+                spin1z=0.1,
+                spin2z=-0.15,
+                lambda1=900.0,
+                lambda2=300.0,
+                delta_f=0.5,
+                f_lower=18.0,
+                f_final=4096.1,
+                f_ref=0.0,
+                distance=120.0,
+                inclination=0.8,
+                coa_phase=0.2,
+                long_asc_nodes=0.31,
+            ),
+        ),
+    ],
+)
+def test_imrphenomd_nrtidal_torch_parity(approximant, params):
+    cpu, tor = _run_case(params, use_native=True, approximant=approximant)
+    np.testing.assert_array_equal(tor == 0.0, cpu == 0.0)
+    nonzero = np.abs(cpu) > 0.0
+    relative_error = np.linalg.norm(
+        tor[nonzero] - cpu[nonzero]
+    ) / np.linalg.norm(cpu[nonzero])
+    assert relative_error < 1.0e-10
+
+
 def test_imrphenomd_torch_global_switch_fallback():
     params = dict(
         mass1=20.0,
@@ -194,6 +247,21 @@ def test_imrphenomd_torch_native_emits_no_runtime_warnings():
         ({"phase_order": 2, "amplitude_order": 0}, True),
         ({"eccentricity": 0.1}, True),
         ({"lambda1": 0.0}, True),
+        (
+            {
+                "approximant": "IMRPhenomD_NRTidal",
+                "lambda1": 400.0,
+                "lambda2": 800.0,
+            },
+            True,
+        ),
+        (
+            {
+                "approximant": "IMRPhenomD_NRTidalv2",
+                "lambda1": -1.0,
+            },
+            False,
+        ),
         ({"spin1x": 0.1}, False),
         ({"spin_order": 2}, False),
         ({"tidal_order": 0}, False),
@@ -208,26 +276,51 @@ def test_imrphenomd_native_support_boundary(params, expected):
     assert imrphenomd_native_supported(params) is expected
 
 
+@pytest.mark.parametrize(
+    ("approximant", "params"),
+    [
+        (
+            "IMRPhenomD",
+            dict(
+                mass1=35.0,
+                mass2=28.0,
+                spin1z=0.2,
+                spin2z=-0.1,
+                delta_f=0.25,
+                f_lower=20.0,
+                f_ref=30.0,
+                distance=500.0,
+                inclination=0.4,
+                coa_phase=1.1,
+                long_asc_nodes=0.37,
+            ),
+        ),
+        (
+            "IMRPhenomD_NRTidalv2",
+            dict(
+                mass1=1.4,
+                mass2=1.2,
+                spin1z=0.05,
+                spin2z=-0.02,
+                lambda1=400.0,
+                lambda2=800.0,
+                delta_f=0.5,
+                f_lower=20.0,
+                f_ref=30.0,
+                distance=100.0,
+                inclination=0.4,
+                coa_phase=0.7,
+            ),
+        ),
+    ],
+)
 def test_imrphenomd_public_native_dispatch_and_metadata(
-    monkeypatch, preserve_scheme
+    approximant, params, monkeypatch, preserve_scheme
 ):
-    params = dict(
-        mass1=35.0,
-        mass2=28.0,
-        spin1z=0.2,
-        spin2z=-0.1,
-        delta_f=0.25,
-        f_lower=20.0,
-        f_ref=30.0,
-        distance=500.0,
-        inclination=0.4,
-        coa_phase=1.1,
-        long_asc_nodes=0.37,
-    )
     monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
     monkeypatch.setenv("PYCBC_IMRPHENOMD_NATIVE", "0")
     _activate_scheme(_scheme.CPUScheme())
-    reference = get_fd_waveform(approximant="IMRPhenomD", **params)
+    reference = get_fd_waveform(approximant=approximant, **params)
     reference_arrays = tuple(series.numpy().copy() for series in reference)
 
     import pycbc.waveform.imrphenomd_torch as imrphenomd_mod
@@ -255,7 +348,7 @@ def test_imrphenomd_public_native_dispatch_and_metadata(
     )
     monkeypatch.setenv("PYCBC_IMRPHENOMD_NATIVE", "1")
     _activate_scheme(_scheme.TorchScheme())
-    actual = get_fd_waveform(approximant="IMRPhenomD", **params)
+    actual = get_fd_waveform(approximant=approximant, **params)
 
     assert calls == 1
     for expected, expected_array, result in zip(
@@ -279,8 +372,22 @@ def test_imrphenomd_public_native_dispatch_and_metadata(
         assert relative_error < 1.0e-10
 
 
+@pytest.mark.parametrize(
+    ("approximant", "unsupported"),
+    [
+        ("IMRPhenomD", {"dchi3": 0.1}),
+        (
+            "IMRPhenomD_NRTidalv2",
+            {
+                "lambda1": 400.0,
+                "lambda2": 800.0,
+                "dquad_mon1": 0.1,
+            },
+        ),
+    ],
+)
 def test_imrphenomd_unsupported_options_use_lal_fallback(
-    monkeypatch, preserve_scheme
+    approximant, unsupported, monkeypatch, preserve_scheme
 ):
     params = dict(
         mass1=30.0,
@@ -290,11 +397,11 @@ def test_imrphenomd_unsupported_options_use_lal_fallback(
         delta_f=0.5,
         f_lower=20.0,
         distance=400.0,
-        dchi3=0.1,
+        **unsupported,
     )
     monkeypatch.setenv("PYCBC_IMRPHENOMD_NATIVE", "0")
     _activate_scheme(_scheme.CPUScheme())
-    reference = get_fd_waveform(approximant="IMRPhenomD", **params)
+    reference = get_fd_waveform(approximant=approximant, **params)
     reference_arrays = tuple(series.numpy().copy() for series in reference)
 
     import pycbc.waveform.imrphenomd_torch as imrphenomd_mod
@@ -321,7 +428,7 @@ def test_imrphenomd_unsupported_options_use_lal_fallback(
     )
     monkeypatch.setenv("PYCBC_IMRPHENOMD_NATIVE", "1")
     _activate_scheme(_scheme.TorchScheme())
-    fallback = get_fd_waveform(approximant="IMRPhenomD", **params)
+    fallback = get_fd_waveform(approximant=approximant, **params)
 
     assert lal_calls == 1
     for expected, actual in zip(reference_arrays, fallback):
@@ -372,6 +479,52 @@ def test_imrphenomd_public_native_stays_on_requested_device(
         actual_array[nonzero] - reference_array[nonzero]
     ) / np.linalg.norm(reference_array[nonzero])
     assert relative_error < 5.0e-5
+
+
+@pytest.mark.parametrize("device_name", ["cpu", "mps", "cuda"])
+def test_imrphenomd_nrtidal_stays_on_requested_device(
+    device_name, monkeypatch, preserve_scheme
+):
+    if device_name == "mps" and not torch.backends.mps.is_available():
+        pytest.skip("Torch MPS device is unavailable")
+    if device_name == "cuda" and not torch.cuda.is_available():
+        pytest.skip("Torch CUDA device is unavailable")
+
+    params = dict(
+        mass1=1.4,
+        mass2=1.2,
+        spin1z=0.05,
+        spin2z=-0.02,
+        lambda1=400.0,
+        lambda2=800.0,
+        delta_f=2.0,
+        f_lower=20.0,
+        f_ref=30.0,
+        distance=100.0,
+        inclination=0.4,
+    )
+    approximant = "IMRPhenomD_NRTidalv2"
+    monkeypatch.setenv("PYCBC_IMRPHENOMD_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference, _ = get_fd_waveform(approximant=approximant, **params)
+    reference_array = reference.numpy().copy()
+
+    monkeypatch.setenv("PYCBC_IMRPHENOMD_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme(device_name))
+    actual, _ = get_fd_waveform(approximant=approximant, **params)
+
+    expected_dtype = (
+        torch.complex64 if device_name == "mps" else torch.complex128
+    )
+    assert actual._data.tensor.device.type == device_name
+    assert actual._data.tensor.dtype == expected_dtype
+    actual_array = actual.numpy()
+    nonzero = np.abs(reference_array) > 0.0
+    relative_error = np.linalg.norm(
+        actual_array[nonzero] - reference_array[nonzero]
+    ) / np.linalg.norm(reference_array[nonzero])
+    tolerance = 5.0e-3 if device_name == "mps" else 5.0e-5
+    assert relative_error < tolerance
 
 
 def test_imrphenomd_frequency_hot_path_uses_torch(

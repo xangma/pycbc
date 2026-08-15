@@ -31,12 +31,13 @@ Activation
 
 When either flag enables the port *and* the current scheme is
 ``TorchScheme``, the torch-native path is taken. CPU/LAL remains the
-default. The torch path is restricted to aligned-spin BBH (no tides, no
-non-GR modifiers).
+default. The torch path covers aligned-spin BBH IMRPhenomD and the standard
+NRTidal v1/v2 extensions.
 
 Limitations
 -----------
-- Tides/NRTidal and non-GR modifiers are not yet implemented.
+- Non-default spin-induced quadrupoles, dynamic-tide parameters, and non-GR
+  modifiers retain the lalsimulation fallback.
 - Only the dominant (2,2) mode is produced; higher modes follow the LAL
   default of zero for IMRPhenomD.
 """
@@ -57,6 +58,16 @@ from scipy.interpolate import CubicSpline
 from pycbc import pnutils, scheme as _scheme
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
+from pycbc.waveform.nrtidal_torch import (
+    NRTIDAL_APPROXIMANTS,
+    nrtidal_amplitude,
+    nrtidal_higher_order_spin_phase,
+    nrtidal_merger_frequency,
+    nrtidal_phase,
+    nrtidal_quadrupole_from_lambda,
+    nrtidal_taper,
+    nrtidal_version,
+)
 from pycbc.waveform.taylorf2_torch import taylorf2_aligned_phasing
 
 _PI = lal.PI
@@ -1087,9 +1098,7 @@ _DEFAULT_ONLY_ORDER_KEYS = (
     "eccentricity_order",
 )
 _TRANSVERSE_SPIN_KEYS = ("spin1x", "spin1y", "spin2x", "spin2y")
-_TIDAL_KEYS = (
-    "lambda1",
-    "lambda2",
+_TIDAL_EXTENSION_KEYS = (
     "dquad_mon1",
     "dquad_mon2",
     "lambda_octu1",
@@ -1139,14 +1148,30 @@ def _is_default_order(value):
         return False
 
 
+def _is_nonnegative_finite(value):
+    """Return whether an optional scalar is finite and non-negative."""
+
+    if value is None:
+        return True
+    try:
+        value = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return False
+    return math.isfinite(value) and value >= 0.0
+
+
 def imrphenomd_native_supported(params):
     """Return whether ``params`` are covered by the native Torch generator.
 
     The public dispatcher sends unsupported configurations to lalsimulation,
     preserving its errors and its testing-GR modifications instead of silently
-    ignoring inputs. The native path covers aligned-spin, quasi-circular BBH
-    IMRPhenomD with the standard (2,2) mode and polarization rotation.
+    ignoring inputs. The native path covers aligned-spin IMRPhenomD and the
+    standard NRTidal v1/v2 corrections, with the (2,2) mode and polarization
+    rotation.
     """
+    approximant = params.get("approximant", "IMRPhenomD")
+    if approximant not in {"IMRPhenomD", *NRTIDAL_APPROXIMANTS}:
+        return False
     if any(
         not _is_default_order(params.get(key, -1))
         for key in _DEFAULT_ONLY_ORDER_KEYS
@@ -1154,8 +1179,16 @@ def imrphenomd_native_supported(params):
         return False
     if any(
         _is_nonzero(params.get(key, 0.0))
-        for key in _TRANSVERSE_SPIN_KEYS + _TIDAL_KEYS + _NON_GR_KEYS
+        for key in (
+            _TRANSVERSE_SPIN_KEYS + _TIDAL_EXTENSION_KEYS + _NON_GR_KEYS
+        )
     ):
+        return False
+    lambdas = (params.get("lambda1", 0.0), params.get("lambda2", 0.0))
+    if approximant == "IMRPhenomD":
+        if any(_is_nonzero(value) for value in lambdas):
+            return False
+    elif not all(_is_nonnegative_finite(value) for value in lambdas):
         return False
     if any(
         _is_nonzero(params.get(key, 0.0))
@@ -1171,7 +1204,7 @@ def imrphenomd_native_supported(params):
 
 
 def imrphenomd_fd_torch(**p):
-    """Generate IMRPhenomD polarizations on the active Torch device."""
+    """Generate IMRPhenomD or NRTidal polarizations with Torch."""
     if not imrphenomd_native_supported(p):
         raise ValueError(
             "IMRPhenomD parameters are not supported by the native Torch path"
@@ -1180,14 +1213,21 @@ def imrphenomd_fd_torch(**p):
     if not isinstance(state, _scheme.TorchScheme):
         raise RuntimeError("native Torch IMRPhenomD requires TorchScheme")
 
-    # ensure m1 >= m2 per LAL convention
+    approximant = p.get("approximant", "IMRPhenomD")
+    tidal_version = nrtidal_version(approximant)
+
+    # Ensure m1 >= m2 per LAL convention, keeping matter parameters paired
+    # with their component.
     mass1 = float(p["mass1"])
     mass2 = float(p["mass2"])
     spin1z = float(p.get("spin1z", 0.0))
     spin2z = float(p.get("spin2z", 0.0))
+    lambda1 = float(p.get("lambda1") or 0.0)
+    lambda2 = float(p.get("lambda2") or 0.0)
     if mass2 > mass1:
         mass1, mass2 = mass2, mass1
         spin1z, spin2z = spin2z, spin1z
+        lambda1, lambda2 = lambda2, lambda1
 
     delta_f = float(p["delta_f"])
     f_lower = float(p["f_lower"])
@@ -1209,6 +1249,11 @@ def imrphenomd_fd_torch(**p):
         raise ValueError("IMRPhenomD spins and angles must be finite")
     if abs(spin1z) > 1.0 or abs(spin2z) > 1.0:
         raise ValueError("IMRPhenomD aligned spins must be between -1 and 1")
+    if not all(
+        math.isfinite(value) and value >= 0.0
+        for value in (lambda1, lambda2)
+    ):
+        raise ValueError("NRTidal deformabilities must be finite and non-negative")
     if not math.isfinite(distance) or distance <= 0.0:
         raise ValueError("IMRPhenomD distance must be finite and positive")
     if not all(
@@ -1224,18 +1269,34 @@ def imrphenomd_fd_torch(**p):
     eta = mass1 * mass2 / (M * M)
     eta = _nudge_eta(eta)
     M_sec = M * _MTSUN_SI
+    dquad1 = 0.0
+    dquad2 = 0.0
+    if tidal_version == 2:
+        dquad1 = nrtidal_quadrupole_from_lambda(lambda1) - 1.0
+        dquad2 = nrtidal_quadrupole_from_lambda(lambda2) - 1.0
 
-    # Determine termination frequency
+    # Determine the base-model termination and output layout. NRTidal asks the
+    # base model to stop no later than 1.3 times its merger fit, then applies a
+    # taper ending at 1.2 times merger. LAL still preserves a larger explicitly
+    # requested f_final as zero padding in the returned power-of-two series.
     f_cut_hz = f_CUT / M_sec
-    f_max_prime = f_final if f_final > 0 else f_cut_hz
-    f_max_prime = min(f_max_prime, f_cut_hz)
-    if f_max_prime <= f_lower:
+    if tidal_version is None:
+        layout_f_max = f_final if f_final > 0.0 else f_cut_hz
+        active_f_max = min(layout_f_max, f_cut_hz)
+    else:
+        merger_frequency = nrtidal_merger_frequency(
+            mass1, mass2, lambda1, lambda2
+        )
+        tidal_f_max = 1.3 * merger_frequency
+        layout_f_max = f_final if f_final > 0.0 else tidal_f_max
+        active_f_max = min(layout_f_max, tidal_f_max, f_cut_hz)
+    if active_f_max <= f_lower:
         raise ValueError("f_final (or default f_cut) is <= f_lower")
 
     # Frequency grid (power-of-two length like LAL), resident on the active
     # device from allocation through final series construction.
     npts = int(
-        math.ceil(2.0 ** math.ceil(math.log2(f_max_prime / delta_f)))
+        math.ceil(2.0 ** math.ceil(math.log2(layout_f_max / delta_f)))
     ) + 1
     device = state.torch_device
     real_dtype = torch.float32 if device.type == "mps" else torch.float64
@@ -1243,7 +1304,7 @@ def imrphenomd_fd_torch(**p):
     # LAL truncates the frequency bounds to integer bins and uses an exclusive
     # upper bin in its evaluation loop.
     first_bin = int(math.floor(f_lower / delta_f))
-    stop_bin = int(math.floor(f_max_prime / delta_f))
+    stop_bin = int(math.floor(active_f_max / delta_f))
     active = torch.zeros(npts, dtype=torch.bool, device=device)
     active[first_bin:stop_bin] = True
 
@@ -1259,8 +1320,8 @@ def imrphenomd_fd_torch(**p):
         spin_order=-1,
         tidal_order=-1,
         dchi={},
-        qm_def1=0.0,
-        qm_def2=0.0,
+        qm_def1=dquad1,
+        qm_def2=dquad2,
         lambda1=0.0,
         lambda2=0.0,
     )
@@ -1304,10 +1365,29 @@ def imrphenomd_fd_torch(**p):
 
     # Amplitude
     amp = _IMRPhenDAmplitude(Mf, amp_coeffs, powers)
+    if tidal_version == 2:
+        amp += 2.0 * math.sqrt(_PI / 5.0) * nrtidal_amplitude(
+            freqs, mass1, mass2, lambda1, lambda2
+        )
 
     # Phase
     phase = _IMRPhenDPhase(Mf, phase_coeffs, pn, phi_pref, _pi_powers())
     phase -= t0 * (Mf - MfRef) + phi_precalc
+    if tidal_version is not None:
+        phase += nrtidal_phase(
+            freqs, mass1, mass2, lambda1, lambda2, tidal_version
+        )
+        if tidal_version == 2:
+            phase += nrtidal_higher_order_spin_phase(
+                freqs,
+                mass1,
+                mass2,
+                spin1z,
+                spin2z,
+                dquad1 + 1.0,
+                dquad2 + 1.0,
+            )
+        amp *= nrtidal_taper(freqs, merger_frequency)
 
     # Zero outside active band
     amp = torch.where(active, amp, 0.0)
