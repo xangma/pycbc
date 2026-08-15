@@ -69,6 +69,56 @@ def gmst_accurate(gps_time):
                 location=(0, 0)).sidereal_time('mean').rad
     return gmst
 
+
+def _torch_antenna_pattern(response, right_ascension, declination,
+                           polarization, gmst_start, phase_offsets):
+    """Evaluate the long-wavelength tensor response on a Torch device."""
+    import torch
+
+    device = phase_offsets.device
+    dtype = phase_offsets.dtype
+    right_ascension = torch.as_tensor(
+        right_ascension, device=device, dtype=dtype
+    )
+    declination = torch.as_tensor(declination, device=device, dtype=dtype)
+    polarization = torch.as_tensor(
+        polarization, device=device, dtype=dtype
+    )
+
+    gha_start = torch.as_tensor(
+        gmst_start, device=device, dtype=dtype
+    ) - right_ascension
+    # Expanding the angle addition keeps sub-second sidereal changes visible
+    # when the device only supports float32 (notably MPS).
+    cos_start = torch.cos(gha_start)
+    sin_start = torch.sin(gha_start)
+    cos_offset = torch.cos(phase_offsets)
+    sin_offset = torch.sin(phase_offsets)
+    cosgha = cos_start * cos_offset - sin_start * sin_offset
+    singha = sin_start * cos_offset + cos_start * sin_offset
+    cosdec = torch.cos(declination)
+    sindec = torch.sin(declination)
+    cospsi = torch.cos(polarization)
+    sinpsi = torch.sin(polarization)
+
+    x = torch.stack((
+        -cospsi * singha - sinpsi * cosgha * sindec,
+        -cospsi * cosgha + sinpsi * singha * sindec,
+        sinpsi * cosdec + torch.zeros_like(phase_offsets),
+    ))
+    y = torch.stack((
+        sinpsi * singha - cospsi * cosgha * sindec,
+        sinpsi * cosgha + cospsi * singha * sindec,
+        cospsi * cosdec + torch.zeros_like(phase_offsets),
+    ))
+
+    response = torch.as_tensor(response, device=device, dtype=dtype)
+    dx = response @ x
+    dy = response @ y
+    fplus = torch.sum(x * dx - y * dy, dim=0)
+    fcross = torch.sum(x * dy + y * dx, dim=0)
+    return fplus, fcross
+
 def get_available_detectors():
     """ List the available detectors """
     dets = list(_ground_detectors.keys())
@@ -581,6 +631,7 @@ class Detector(object):
         # 'fixed_polarization' applies only time changing orientation
         # but no doppler corrections
         elif method in ['constant', 'vary_polarization']:
+            tensor = None
             if reference_time is not None:
                 rtime = reference_time
             else:
@@ -598,12 +649,42 @@ class Detector(object):
                     raise TypeError('Waveform polarizations must be given'
                                     ' as time series for this method')
 
-                # this is more granular than needed, may be optimized later
-                # assume earth rotation in ~30 ms needed for earth ceneter
-                # to detector is completely negligible.
-                time = hp.sample_times.numpy()
+                tensor = getattr(getattr(hp, '_data', None), 'tensor', None)
+                if tensor is None:
+                    time = hp.sample_times.numpy()
+                else:
+                    import torch
+                    from pycbc.types.array_torch import TorchArrayData
 
-            fp, fc = self.antenna_pattern(ra, dec, polarization, time)
+                    # Start from an accurately evaluated scalar GMST and add
+                    # only the small per-sample phase increment.  This avoids
+                    # both a host copy and loss of GPS-time resolution on MPS.
+                    gmst_start = float(
+                        self.gmst_estimate(float(hp.start_time))
+                    )
+                    phase_step = (
+                        hp.delta_t * 2.0 * np.pi / float(sday.si.scale)
+                    )
+                    phase_offsets = torch.arange(
+                        len(hp),
+                        device=tensor.device,
+                        dtype=tensor.real.dtype,
+                    ) * phase_step
+                    fp, fc = _torch_antenna_pattern(
+                        self.response, ra, dec, polarization,
+                        gmst_start, phase_offsets
+                    )
+                    fp = TimeSeries(
+                        TorchArrayData(fp), delta_t=hp.delta_t,
+                        epoch=hp.start_time, copy=False
+                    )
+                    fc = TimeSeries(
+                        TorchArrayData(fc), delta_t=hp.delta_t,
+                        epoch=hp.start_time, copy=False
+                    )
+
+            if method == 'constant' or tensor is None:
+                fp, fc = self.antenna_pattern(ra, dec, polarization, time)
             dt = self.time_delay_from_earth_center(ra, dec, rtime)
             # Keep PyCBC arrays on the left so their active backend handles
             # the scalar operations.  NumPy scalars on the left invoke

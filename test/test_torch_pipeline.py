@@ -252,6 +252,56 @@ def test_lal_detector_projection_returns_to_torch_device(torch_device_ctx):
     )
 
 
+def test_varying_detector_projection_stays_on_device(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    delta_t = 1 / 2048
+    epoch = 1_126_259_462
+    times = np.arange(4096) * delta_t
+    hp_data = np.sin(2 * np.pi * 80 * times)
+    hc_data = 0.4 * np.cos(2 * np.pi * 80 * times)
+    detector = Detector("H1")
+    input_dtype = np.float32 if device == "mps" else np.float64
+    hp_data = hp_data.astype(input_dtype)
+    hc_data = hc_data.astype(input_dtype)
+
+    expected = detector.project_wave(
+        TimeSeries(hp_data, delta_t=delta_t, epoch=epoch),
+        TimeSeries(hc_data, delta_t=delta_t, epoch=epoch),
+        1.2,
+        -0.4,
+        0.3,
+        method="vary_polarization",
+    ).numpy()
+
+    with ctx:
+        hp = TimeSeries(hp_data, delta_t=delta_t, epoch=epoch)
+        hc = TimeSeries(hc_data, delta_t=delta_t, epoch=epoch)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("Detector projection copied data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            projected = detector.project_wave(
+                hp,
+                hc,
+                1.2,
+                -0.4,
+                0.3,
+                method="vary_polarization",
+            )
+
+    expected_dtype = torch.float32 if device == "mps" else torch.float64
+    assert projected._data.tensor.device.type == device
+    assert projected._data.tensor.dtype == expected_dtype
+    torch.testing.assert_close(
+        projected._data.tensor.detach().cpu(),
+        torch.as_tensor(expected, dtype=expected_dtype),
+        rtol=2e-6 if device == "mps" else 2e-9,
+        atol=2e-6 if device == "mps" else 2e-9,
+    )
+
+
 @pytest.mark.parametrize("dtype", (np.float32, np.float64))
 @pytest.mark.parametrize(
     "sample_offset",
