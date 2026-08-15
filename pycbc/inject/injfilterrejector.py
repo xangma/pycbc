@@ -345,7 +345,6 @@ class InjFilterRejector(object):
         inj_waveform.resize(new_length)
         inj_tilde = inj_waveform.to_frequencyseries()
         # Dynamic range is important here!
-        inj_tilde_np = inj_tilde.numpy() * DYN_RANGE_FAC
         delta_f = inj_tilde.get_delta_f()
         new_freq_len = int(self.coarsematch_fmax / delta_f + 1)
         # This shouldn't be a problem if injections are generated at
@@ -354,10 +353,28 @@ class InjFilterRejector(object):
         # ever raised one could consider zero-padding the injection.
         assert(new_freq_len <= len(inj_tilde))
         df_ratio = int(self.coarsematch_deltaf/delta_f)
-        inj_tilde_np = inj_tilde_np[:new_freq_len:df_ratio]
-        new_inj = FrequencySeries(inj_tilde_np, dtype=np.complex64,
-                                  delta_f=self.coarsematch_deltaf)
+        short_data = (
+            inj_tilde[:new_freq_len:df_ratio] * DYN_RANGE_FAC
+        ).astype(np.complex64)
+        new_inj = FrequencySeries(
+            short_data, delta_f=self.coarsematch_deltaf, copy=False
+        )
         self.short_injections[simulation_id] = new_inj
+
+    def _get_short_psd(self, psd):
+        """Return the cached coarse representation of ``psd``."""
+        psd_id = id(psd)
+        try:
+            return self._short_psd_storage[psd_id]
+        except KeyError:
+            step_size = int(self.coarsematch_deltaf / psd.delta_f)
+            max_idx = int(self.coarsematch_fmax / psd.delta_f) + 1
+            red_psd = FrequencySeries(
+                psd[:max_idx:step_size],
+                delta_f=self.coarsematch_deltaf,
+            )
+            self._short_psd_storage[psd_id] = red_psd
+            return red_psd
 
     def template_segment_checker(self, bank, t_num, segment):
         """Test if injections in segment are worth filtering with template.
@@ -425,18 +442,7 @@ class InjFilterRejector(object):
                                   self.coarsematch_deltaf)
                 self._short_template_mem = zeros(wav_len, dtype=np.complex64)
 
-            # Set the current short PSD to red_psd
-            try:
-                red_psd = self._short_psd_storage[id(segment.psd)]
-            except KeyError:
-                # PSD doesn't exist yet, so make it!
-                curr_psd = segment.psd.numpy()
-                step_size = int(self.coarsematch_deltaf / segment.psd.delta_f)
-                max_idx = int(self.coarsematch_fmax / segment.psd.delta_f) + 1
-                red_psd_data = curr_psd[:max_idx:step_size]
-                red_psd = FrequencySeries(red_psd_data, #copy=False,
-                                          delta_f=self.coarsematch_deltaf)
-                self._short_psd_storage[id(curr_psd)] = red_psd
+            red_psd = self._get_short_psd(segment.psd)
 
             # Set htilde to be the current short template
             if not t_num == self._short_template_id:

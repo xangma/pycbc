@@ -16,6 +16,7 @@ from pycbc import scheme
 from pycbc.detector import Detector
 from pycbc.filter import autocorrelation, matchedfilter, resample, zpk
 from pycbc.inject.inject import SGBurstInjectionSet, _InjectionAdder
+from pycbc.inject.injfilterrejector import InjFilterRejector
 from pycbc.noise import gaussian, reproduceable
 from pycbc.psd import inverse_spectrum_truncation, variation, welch
 from pycbc.strain import gate as strain_gate
@@ -782,6 +783,78 @@ def test_sgburst_injection_skips_disjoint_waveforms(monkeypatch):
     )
     _sgburst_injection_set(injection).apply(strain, "H1")
     np.testing.assert_array_equal(strain.numpy(), 0)
+
+
+def _injection_filter_rejector():
+    rejector = object.__new__(InjFilterRejector)
+    rejector.enabled = True
+    rejector.match_threshold = 0.8
+    rejector.coarsematch_deltaf = 1.0
+    rejector.coarsematch_fmax = 64.0
+    rejector.short_injections = {}
+    rejector._short_psd_storage = {}
+    return rejector
+
+
+def test_injection_filter_rejector_coarsens_on_device(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    delta_t = 1 / 512
+    waveform = (
+        np.sin(np.linspace(0, 40 * np.pi, 777))
+        * np.hanning(777)
+        * 1e-21
+    ).astype(np.float32)
+    psd_values = np.linspace(1, 3, 513).astype(np.float32)
+
+    cpu_rejector = _injection_filter_rejector()
+    cpu_rejector.generate_short_inj_from_inj(
+        TimeSeries(waveform, delta_t=delta_t), "injection"
+    )
+    expected_injection = cpu_rejector.short_injections["injection"]
+    expected_psd = cpu_rejector._get_short_psd(
+        FrequencySeries(psd_values, delta_f=0.25)
+    )
+
+    with ctx:
+        rejector = _injection_filter_rejector()
+        torch_waveform = TimeSeries(waveform, delta_t=delta_t)
+        torch_psd = FrequencySeries(psd_values, delta_f=0.25)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError(
+                    "injection filter rejection copied data to host"
+                )
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            rejector.generate_short_inj_from_inj(
+                torch_waveform, "injection"
+            )
+            actual_psd = rejector._get_short_psd(torch_psd)
+            cached_psd = rejector._get_short_psd(torch_psd)
+
+    actual_injection = rejector.short_injections["injection"]
+    assert actual_injection._data.tensor.device.type == device
+    assert actual_psd._data.tensor.device.type == device
+    assert actual_injection.dtype == np.dtype(np.complex64)
+    assert actual_psd.dtype == np.dtype(np.float32)
+    assert actual_injection.delta_f == rejector.coarsematch_deltaf
+    assert actual_psd.delta_f == rejector.coarsematch_deltaf
+    assert cached_psd is actual_psd
+    assert list(rejector._short_psd_storage) == [id(torch_psd)]
+    injection_atol = 2e-8 if device == "mps" else 7e-9
+    np.testing.assert_allclose(
+        actual_injection._data.tensor.detach().cpu().numpy(),
+        expected_injection.numpy(),
+        rtol=5e-5,
+        atol=injection_atol,
+    )
+    np.testing.assert_allclose(
+        actual_psd._data.tensor.detach().cpu().numpy(),
+        expected_psd.numpy(),
+        rtol=0,
+        atol=0,
+    )
 
 
 def _ringdown_parameters():
