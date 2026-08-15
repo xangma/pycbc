@@ -5,8 +5,130 @@ from numpy.fft import rfft, irfft
 import scipy.signal as sig
 from scipy.interpolate import interp1d
 
+import pycbc
 import pycbc.psd
 from pycbc.types import TimeSeries
+
+try:
+    import torch
+    from pycbc.types.array_torch import TorchArrayData
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover - torch optional
+    torch = None
+    TorchArrayData = None
+    _HAVE_TORCH = False
+
+
+def _is_torch_backed(value):
+    """Return whether ``value`` stores data in the Torch backend."""
+    if not _HAVE_TORCH:
+        return False
+    data = getattr(value, "_data", value)
+    return isinstance(data, (TorchArrayData, torch.Tensor))
+
+
+def _as_torch_tensor(value, device=None, dtype=None):
+    """Unwrap PyCBC Torch storage without copying it through the host."""
+    data = getattr(value, "_data", value)
+    if isinstance(data, TorchArrayData):
+        data = data.tensor
+    return torch.as_tensor(data, device=device, dtype=dtype)
+
+
+def _torch_create_full_filt(freqs, filt, plong, srate, psd_duration):
+    """Create the PSD-variation filter on the PSD's Torch device."""
+    reference = next(
+        value for value in (plong, freqs, filt) if _is_torch_backed(value)
+    )
+    reference = _as_torch_tensor(reference)
+    device = reference.device
+    dtype = reference.real.dtype
+
+    freqs = _as_torch_tensor(freqs, device=device, dtype=dtype)
+    filt = _as_torch_tensor(filt, device=device, dtype=dtype)
+    plong = _as_torch_tensor(plong, device=device, dtype=dtype)
+
+    # Start at bin one so that f**(-7/6) never evaluates at zero.
+    fweight = torch.zeros_like(freqs)
+    fweight[1:] = (
+        freqs[1:].pow(-7.0 / 6.0) * filt[1:] / torch.sqrt(plong[1:])
+    )
+    norm = (torch.sum(torch.abs(fweight) ** 2)
+            / (fweight.numel() - 1.0)).pow(-0.5)
+    fweight = norm * fweight
+
+    fwhiten = (2.0 / srate) ** 0.5 / torch.sqrt(plong)
+    fwhiten = fwhiten.clone()
+    fwhiten[0] = 0
+
+    window_length = int(psd_duration * srate)
+    window = torch.hann_window(
+        window_length, periodic=False, dtype=dtype, device=device
+    )
+    shift = int(psd_duration / 2) * srate
+    impulse = torch.roll(torch.fft.irfft(fwhiten * fweight), shift)
+    return window * impulse
+
+
+def _torch_fftconvolve_same(data, filt):
+    """Match ``scipy.signal.fftconvolve(..., mode='same')`` on device."""
+    data = _as_torch_tensor(data)
+    filt = _as_torch_tensor(filt, device=data.device, dtype=data.dtype)
+    if data.ndim != 1 or filt.ndim != 1:
+        raise ValueError("PSD variation convolution inputs must be 1-D")
+
+    full_length = data.numel() + filt.numel() - 1
+    fft_length = 1 << (full_length - 1).bit_length()
+    if data.is_complex() or filt.is_complex():
+        result = torch.fft.ifft(
+            torch.fft.fft(data, n=fft_length)
+            * torch.fft.fft(filt, n=fft_length),
+            n=fft_length,
+        )
+    else:
+        result = torch.fft.irfft(
+            torch.fft.rfft(data, n=fft_length)
+            * torch.fft.rfft(filt, n=fft_length),
+            n=fft_length,
+        )
+    start = (filt.numel() - 1) // 2
+    return result[start:start + data.numel()]
+
+
+def _torch_replace_outliers(short_ms):
+    """Replace short-duration outliers without leaving the device."""
+    if short_ms.numel() < 3:
+        return short_ms
+    averages = 0.5 * (short_ms[2:] + short_ms[:-2])
+    cleaned = short_ms.clone()
+    cleaned[1:-1] = torch.where(
+        short_ms[1:-1] > 2.0 * averages,
+        averages,
+        short_ms[1:-1],
+    )
+    return cleaned
+
+
+def _torch_interpolate_positions(series, positions):
+    """Linearly interpolate uniform ``series`` at fractional indices."""
+    values = series._data.tensor
+    positions = _as_torch_tensor(
+        positions, device=values.device, dtype=values.real.dtype
+    )
+    original_shape = positions.shape
+    positions = positions.reshape(-1)
+
+    output = torch.ones(
+        positions.shape, dtype=values.dtype, device=values.device
+    )
+    valid = (positions >= 0) & (positions <= values.numel() - 1)
+    safe_positions = positions.clamp(0, values.numel() - 1)
+    lower = torch.floor(safe_positions).to(torch.long)
+    upper = torch.clamp(lower + 1, max=values.numel() - 1)
+    fraction = safe_positions - lower.to(safe_positions.dtype)
+    interpolated = values[lower] + (values[upper] - values[lower]) * fraction
+    output[valid] = interpolated[valid]
+    return output.reshape(original_shape).detach().cpu().numpy()
 
 
 def create_full_filt(freqs, filt, plong, srate, psd_duration):
@@ -27,15 +149,22 @@ def create_full_filt(freqs, filt, plong, srate, psd_duration):
 
     Returns
     -------
-    full_filt : numpy.ndarray
-        The full filter used to calculate PSD variation.
+    full_filt : numpy.ndarray or torch.Tensor
+        The full filter used to calculate PSD variation. Torch inputs produce
+        a filter on the same device.
     """
+
+    if any(_is_torch_backed(value) for value in (freqs, filt, plong)):
+        return _torch_create_full_filt(
+            freqs, filt, plong, srate, psd_duration
+        )
 
     # Make the weighting filter - bandpass, which weight by f^-7/6,
     # and whiten. The normalization is chosen so that the variance
     # will be one if this filter is applied to white noise which
     # already has a variance of one.
-    fweight = freqs ** (-7./6.) * filt / numpy.sqrt(plong)
+    with numpy.errstate(divide='ignore'):
+        fweight = freqs ** (-7./6.) * filt / numpy.sqrt(plong)
     fweight[0] = 0.
     norm = (sum(abs(fweight) ** 2) / (len(fweight) - 1.)) ** -0.5
     fweight = norm * fweight
@@ -73,9 +202,26 @@ def mean_square(data, delta_t, srate, short_stride, stride):
 
     Returns
     -------
-    m_s: List
-        Mean square of given time series
+    m_s: list or torch.Tensor
+        Mean square of given time series. Torch input produces a tensor on
+        the same device.
     """
+
+    if _is_torch_backed(data):
+        data = _as_torch_tensor(data)
+        short_size = int(srate * short_stride)
+        short_ms = torch.mean(
+            data.reshape(-1, short_size) ** 2, dim=1
+        )
+        short_ms = _torch_replace_outliers(short_ms)
+
+        count = int(delta_t - stride + 1)
+        if count <= 0:
+            return torch.empty(0, dtype=data.dtype, device=data.device)
+        samples_per_second = int(1.0 / short_stride)
+        window_size = samples_per_second * int(stride)
+        windows = short_ms.unfold(0, window_size, samples_per_second)
+        return torch.mean(windows[:count], dim=1)
 
     # Calculate mean square of data once per short stride and replace
     # outliers
@@ -141,6 +287,8 @@ def calc_filt_psd_variation(strain, segment, short_segment, psd_long_segment,
     psd_var : TimeSeries
         Time series of the variability in the PSD estimation
     """
+    use_torch = _is_torch_backed(strain)
+
     # Calculate strain precision
     if strain.precision == 'single':
         fs_dtype = numpy.float32
@@ -188,22 +336,44 @@ def calc_filt_psd_variation(strain, segment, short_segment, psd_long_segment,
                            seg_len=int(psd_duration * strain.sample_rate),
                            seg_stride=int(psd_stride * strain.sample_rate),
                            avg_method=psd_avg_method)
-        astrain = astrain.numpy()
-        freqs = numpy.array(plong.sample_frequencies, dtype=fs_dtype)
-        plong = plong.numpy()
+        if use_torch:
+            astrain = astrain._data.tensor
+            plong_delta_f = plong.delta_f
+            plong = plong._data.tensor
+            freqs = torch.arange(
+                plong.numel(), dtype=plong.dtype, device=plong.device
+            ) * plong_delta_f
+        else:
+            astrain = astrain.numpy()
+            freqs = numpy.array(plong.sample_frequencies, dtype=fs_dtype)
+            plong = plong.numpy()
 
-        full_filt = create_full_filt(freqs, filt, plong, srate, psd_duration)
+        full_filt = create_full_filt(
+            freqs, filt, plong, srate, psd_duration
+        )
         # Convolve the filter with long segment of data
-        wstrain = sig.fftconvolve(astrain, full_filt, mode='same')
+        if use_torch:
+            wstrain = _torch_fftconvolve_same(astrain, full_filt)
+        else:
+            wstrain = sig.fftconvolve(astrain, full_filt, mode='same')
         wstrain = wstrain[int(strain_crop * srate):-int(strain_crop * srate)]
         # compute the mean square of the chunk of data
         delta_t = len(wstrain) * strain.delta_t
         variation = mean_square(wstrain, delta_t, srate, short_segment, segment)
-        psd_var_list.append(numpy.array(variation, dtype=wstrain.dtype))
+        if use_torch:
+            psd_var_list.append(variation.to(dtype=wstrain.dtype))
+        else:
+            psd_var_list.append(numpy.array(variation, dtype=wstrain.dtype))
 
     # Package up the time series to return
-    psd_var = TimeSeries(numpy.concatenate(psd_var_list), delta_t=step,
-                         epoch=start_time + strain_crop + segment)
+    if use_torch:
+        psd_var = TimeSeries(
+            TorchArrayData(torch.cat(psd_var_list)), delta_t=step,
+            epoch=start_time + strain_crop + segment, copy=False
+        )
+    else:
+        psd_var = TimeSeries(numpy.concatenate(psd_var_list), delta_t=step,
+                             epoch=start_time + strain_crop + segment)
 
     return psd_var
 
@@ -228,6 +398,20 @@ def find_trigger_value(psd_var, idx, start, sample_rate):
     vals : Array
         PSD variation value at a particular time
     """
+    if _is_torch_backed(psd_var):
+        offset = (
+            float(start) - float(psd_var.start_time)
+        ) / psd_var.delta_t
+        if _is_torch_backed(idx):
+            idx = _as_torch_tensor(idx)
+            positions = idx / (sample_rate * psd_var.delta_t) + offset
+        else:
+            positions = (
+                numpy.asarray(idx) / (sample_rate * psd_var.delta_t)
+                + offset
+            )
+        return _torch_interpolate_positions(psd_var, positions)
+
     # Find gps time of the trigger
     time = start + idx / sample_rate
     # Extract the PSD variation at trigger time through linear
@@ -273,9 +457,10 @@ def live_create_filter(psd_estimated,
 
     Returns
     -------
-    full_filt : numpy.ndarray
+    full_filt : numpy.ndarray or torch.Tensor
         The complete filter to be convolved with the strain data to
-        find the psd variation value.
+        find the psd variation value. A Torch-backed PSD produces a filter
+        on the same device.
 
     """
 
@@ -292,8 +477,16 @@ def live_create_filter(psd_estimated,
     filt = abs(rfft(filt))
 
     # Extract the psd frequencies to create a representative filter.
-    freqs = numpy.array(psd_estimated.sample_frequencies, dtype=numpy.float32)
-    plong = psd_estimated.numpy()
+    if _is_torch_backed(psd_estimated):
+        plong = psd_estimated._data.tensor
+        freqs = torch.arange(
+            plong.numel(), dtype=plong.dtype, device=plong.device
+        ) * psd_estimated.delta_f
+    else:
+        freqs = numpy.array(
+            psd_estimated.sample_frequencies, dtype=numpy.float32
+        )
+        plong = psd_estimated.numpy()
     full_filt = create_full_filt(freqs, filt, plong, sample_rate, psd_duration)
 
     return full_filt
@@ -318,7 +511,7 @@ def live_calc_psd_variation(strain,
     ----------
     strain : pycbc.timeseries
         Live data being searched through by the PyCBC Live search.
-    full_filt : numpy.ndarray
+    full_filt : numpy.ndarray or torch.Tensor
         A filter created by `live_create_filter`.
     increment : float
         The number of seconds in each increment in the PyCBC Live search.
@@ -340,6 +533,43 @@ def live_calc_psd_variation(strain,
     # Grab the last increments worth of data, plus padding for edge effects.
     astrain = strain.time_slice(strain.end_time - increment - (data_trim * 3),
                                 strain.end_time)
+
+    if _is_torch_backed(astrain):
+        # Convolve and perform both averaging passes on the strain device.
+        wstrain = _torch_fftconvolve_same(astrain._data.tensor, full_filt)
+        trim_samples = int(data_trim * sample_rate)
+        wstrain = wstrain[trim_samples:-trim_samples]
+
+        short_size = int(sample_rate * short_stride)
+        short_ms = torch.mean(
+            wstrain.reshape(-1, short_size) ** 2, dim=1
+        )
+        short_ms = _torch_replace_outliers(short_ms)
+
+        samples_per_second = 1 / short_stride
+        count = int(len(short_ms) / samples_per_second)
+        starts = torch.tensor(
+            [int(samples_per_second * idx) for idx in range(count)],
+            dtype=torch.long,
+            device=wstrain.device,
+        )
+        ends = torch.tensor(
+            [int(samples_per_second * (idx + 1)) for idx in range(count)],
+            dtype=torch.long,
+            device=wstrain.device,
+        )
+        prefix = torch.cat((
+            torch.zeros(1, dtype=short_ms.dtype, device=short_ms.device),
+            torch.cumsum(short_ms, dim=0),
+        ))
+        m_s = (prefix[ends] - prefix[starts]) / (ends - starts).to(
+            short_ms.dtype
+        )
+        return TimeSeries(
+            TorchArrayData(m_s), delta_t=1.0,
+            epoch=strain.end_time - increment - (data_trim * 2),
+            copy=False,
+        )
 
     # Convolve the data and the filter to produce the PSD variation timeseries,
     #  then trim the beginning and end of the data to prevent edge effects.
@@ -391,6 +621,22 @@ def live_find_var_value(triggers,
     psd_var_vals : numpy.ndarray
         Array of interpolated PSD variation values at trigger times.
     """
+
+    if _is_torch_backed(psd_var_timeseries):
+        trigger_times = triggers['end_time']
+        if _is_torch_backed(trigger_times):
+            positions = (
+                _as_torch_tensor(trigger_times)
+                - float(psd_var_timeseries.start_time)
+            ) / psd_var_timeseries.delta_t
+        else:
+            positions = (
+                numpy.asarray(trigger_times)
+                - float(psd_var_timeseries.start_time)
+            ) / psd_var_timeseries.delta_t
+        return _torch_interpolate_positions(
+            psd_var_timeseries, positions
+        )
 
     # Create the interpolator
     interpolator = interp1d(psd_var_timeseries.sample_times.numpy(),

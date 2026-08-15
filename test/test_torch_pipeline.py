@@ -11,7 +11,7 @@ import pycbc
 from pycbc import scheme
 from pycbc.filter import matchedfilter, resample
 from pycbc.noise import gaussian
-from pycbc.psd import inverse_spectrum_truncation, welch
+from pycbc.psd import inverse_spectrum_truncation, variation, welch
 from pycbc.strain.strain import StrainBuffer
 from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
@@ -217,6 +217,141 @@ def test_inverse_spectrum_truncation_torch_matches_cpu(torch_ctx,
 
     np.testing.assert_allclose(actual.numpy(), expected.numpy(), rtol=1e-12,
                                atol=1e-12)
+
+
+def test_live_psd_variation_stays_on_device(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    sample_rate = 64
+    rng = np.random.default_rng(9182)
+    strain_values = rng.standard_normal(30 * sample_rate).astype(np.float32)
+    psd_values = np.linspace(1.0, 2.0, 129, dtype=np.float32)
+
+    cpu_strain = TimeSeries(
+        strain_values, delta_t=1 / sample_rate, epoch=100
+    )
+    cpu_psd = FrequencySeries(psd_values, delta_f=0.25)
+    expected_filter = variation.live_create_filter(
+        cpu_psd, 4, sample_rate, low_freq=5, high_freq=20
+    )
+    expected_series = variation.live_calc_psd_variation(
+        cpu_strain, expected_filter, 4, data_trim=0.5
+    )
+    trigger_times = np.array([
+        float(expected_series.start_time) - 1,
+        float(expected_series.start_time) + 0.5,
+        float(expected_series.end_time) - 1,
+        float(expected_series.end_time) + 1,
+    ])
+    expected_values = variation.live_find_var_value(
+        {"end_time": trigger_times}, expected_series
+    )
+
+    with ctx:
+        torch_strain = TimeSeries(
+            strain_values, delta_t=1 / sample_rate, epoch=100
+        )
+        torch_psd = FrequencySeries(psd_values, delta_f=0.25)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError(
+                    "PSD variation copied a full PyCBC array to host"
+                )
+
+            def _reject_scipy(*_args, **_kwargs):
+                raise AssertionError("PSD variation used its SciPy data path")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(variation.sig, "fftconvolve", _reject_scipy)
+            patch.setattr(variation, "interp1d", _reject_scipy)
+            actual_filter = variation.live_create_filter(
+                torch_psd, 4, sample_rate, low_freq=5, high_freq=20
+            )
+            actual_series = variation.live_calc_psd_variation(
+                torch_strain, actual_filter, 4, data_trim=0.5
+            )
+            actual_values = variation.live_find_var_value(
+                {"end_time": trigger_times}, actual_series
+            )
+
+    assert isinstance(actual_filter, torch.Tensor)
+    assert actual_filter.device.type == device
+    assert actual_series._data.tensor.device.type == device
+    assert actual_series.dtype == np.dtype(np.float32)
+    assert actual_series.start_time == expected_series.start_time
+    np.testing.assert_allclose(
+        actual_filter.detach().cpu().numpy(), expected_filter,
+        rtol=5e-5, atol=5e-6,
+    )
+    np.testing.assert_allclose(
+        actual_series._data.tensor.detach().cpu().numpy(),
+        expected_series.numpy(), rtol=5e-5, atol=5e-6,
+    )
+    np.testing.assert_allclose(
+        actual_values, expected_values, rtol=5e-5, atol=5e-6
+    )
+
+
+def test_offline_psd_variation_stays_on_device(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    if device == "mps":
+        pytest.skip("Welch requires complex PyCBC arrays, unsupported on MPS")
+    sample_rate = 64
+    rng = np.random.default_rng(1729)
+    strain_values = rng.standard_normal(30 * sample_rate).astype(np.float32)
+    parameters = (4, 0.25, 24, 2, 1, "median", 5, 20)
+
+    cpu_strain = TimeSeries(
+        strain_values, delta_t=1 / sample_rate, epoch=100
+    )
+    expected = variation.calc_filt_psd_variation(
+        cpu_strain, *parameters
+    )
+    trigger_times = np.array([
+        float(expected.start_time) - 1,
+        float(expected.start_time) + 0.5,
+        float(expected.end_time) - 1,
+        float(expected.end_time) + 1,
+    ])
+    trigger_indices = (trigger_times - 100) * sample_rate
+    expected_values = variation.find_trigger_value(
+        expected, trigger_indices, 100, sample_rate
+    )
+
+    with ctx:
+        torch_strain = TimeSeries(
+            strain_values, delta_t=1 / sample_rate, epoch=100
+        )
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError(
+                    "PSD variation copied a full PyCBC array to host"
+                )
+
+            def _reject_scipy(*_args, **_kwargs):
+                raise AssertionError("PSD variation used its SciPy data path")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(variation.sig, "fftconvolve", _reject_scipy)
+            patch.setattr(variation, "interp1d", _reject_scipy)
+            actual = variation.calc_filt_psd_variation(
+                torch_strain, *parameters
+            )
+            actual_values = variation.find_trigger_value(
+                actual, trigger_indices, 100, sample_rate
+            )
+
+    assert actual._data.tensor.device.type == device
+    assert actual.dtype == np.dtype(np.float32)
+    assert actual.start_time == expected.start_time
+    np.testing.assert_allclose(
+        actual._data.tensor.detach().cpu().numpy(), expected.numpy(),
+        rtol=1e-4, atol=1e-5,
+    )
+    np.testing.assert_allclose(
+        actual_values, expected_values, rtol=1e-4, atol=1e-5
+    )
 
 
 def test_whiten_stays_on_device(torch_ctx):
