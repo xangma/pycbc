@@ -1798,6 +1798,33 @@ class LiveBatchMatchedFilter(object):
 
         return result, veto_info
 
+
+def _count_louder_background(background, window, threshold):
+    """Count background windows whose peak reaches ``threshold``.
+
+    The Torch path performs the block reduction on its current device and
+    transfers only the final count to the host.
+    """
+    nsamples = len(background) // window
+    if nsamples == 0:
+        return 0, 0
+
+    tensor = getattr(getattr(background, '_data', None), 'tensor', None)
+    if tensor is not None:
+        peaks = tensor[:nsamples * window].reshape(
+            nsamples, window
+        ).amax(dim=1)
+        count = (peaks >= threshold).sum().item()
+    else:
+        values = background.numpy()
+        peaks = values[:nsamples * window].reshape(
+            nsamples, window
+        ).max(axis=1)
+        count = (peaks >= threshold).sum()
+
+    return int(count), nsamples
+
+
 def followup_event_significance(ifo, data_reader, bank,
                                 template_id, coinc_times,
                                 coinc_threshold=0.005,
@@ -1964,13 +1991,12 @@ def followup_event_significance(ifo, data_reader, bank,
     peak_value = abs(onsrc[peak])
 
     bstart = float(snr.start_time) + length_in_time + trim_pad
-    bkg = abs(snr.time_slice(bstart, onsource_start)).numpy()
+    bkg = abs(snr.time_slice(bstart, onsource_start))
 
     window = int((onsource_end - onsource_start) * snr.sample_rate)
-    nsamples = int(len(bkg) / window)
-
-    peaks = bkg[:nsamples*window].reshape(nsamples, window).max(axis=1)
-    num_louder_bg = (peaks >= peak_value).sum()
+    num_louder_bg, nsamples = _count_louder_background(
+        bkg, window, peak_value
+    )
     pvalue = (1 + num_louder_bg) / float(1 + nsamples)
     pvalue_saturated = num_louder_bg == 0
 

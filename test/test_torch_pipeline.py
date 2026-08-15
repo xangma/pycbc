@@ -727,3 +727,33 @@ def test_matched_filter_torch_vs_cpu(torch_ctx):
     assert isinstance(snr_t._data.tensor, torch.Tensor)
     assert snr_t._data.tensor.device.type == "cpu"
     assert _relative_l2(snr_t.numpy(), snr_cpu.numpy()) < 0.05
+
+
+@pytest.mark.parametrize(
+    "length,window,threshold,expected",
+    ((10, 4, 7, (1, 2)), (3, 8, 0, (0, 0))),
+)
+def test_followup_background_reduction_stays_on_device(
+        torch_device_ctx, monkeypatch, length, window, threshold, expected):
+    ctx, device = torch_device_ctx
+    data = np.arange(length, dtype=np.float32)
+    cpu_result = matchedfilter._count_louder_background(
+        TimeSeries(data, delta_t=1 / 1024), window, threshold
+    )
+
+    with ctx:
+        background = TimeSeries(data, delta_t=1 / 1024)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError(
+                    "followup background copied Torch data to host"
+                )
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = matchedfilter._count_louder_background(
+                background, window, threshold
+            )
+
+    assert cpu_result == expected
+    assert actual == expected
+    assert background._data.tensor.device.type == device
