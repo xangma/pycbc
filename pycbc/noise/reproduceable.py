@@ -22,7 +22,7 @@
 # =============================================================================
 #
 import numpy, pycbc.psd
-from pycbc.types import TimeSeries, complex_same_precision_as, zeros
+from pycbc.types import TimeSeries, complex_same_precision_as
 from numpy.random import RandomState
 
 import pycbc
@@ -134,12 +134,21 @@ def colored_noise(psd, start_time, end_time,
     psd.resize(flen)
 
     # Want to avoid zeroes in PSD.
-    max_val = psd.max()
-    for i in range(len(psd)):
-        if i >= (oldlen-1):
-            psd.data[i] = psd[oldlen - 2]
-        if psd[i] == 0:
-            psd.data[i] = max_val
+    if use_torch:
+        psd_tensor = psd._data.tensor
+        max_val = psd_tensor.max()
+        if oldlen > 1 and oldlen - 1 < len(psd):
+            psd_tensor[oldlen - 1:] = psd_tensor[oldlen - 2]
+        psd_tensor.copy_(torch.where(
+            psd_tensor == 0, max_val, psd_tensor
+        ))
+    else:
+        max_val = psd.max()
+        for i in range(len(psd)):
+            if i >= (oldlen-1):
+                psd.data[i] = psd[oldlen - 2]
+            if psd[i] == 0:
+                psd.data[i] = max_val
 
     fil_len = int(filter_duration * sample_rate)
     wn_dur = int(end_time - start_time) + 2 * filter_duration
@@ -183,11 +192,23 @@ def colored_noise(psd, start_time, end_time,
                          seed=seed,
                          sample_rate=sample_rate)
     if use_torch:
-        # move white noise to PSD device/dtype before coloring
-        tensor = torch.tensor(white_noise.numpy(), device=asd._data.tensor.device,
-                              dtype=asd._data.tensor.real.dtype)
-        white_noise = TimeSeries(TorchArrayData(tensor), delta_t=white_noise.delta_t,
-                                 copy=False)
+        # ``normal`` constructs Torch storage under a Torch scheme. Cast it
+        # directly on-device instead of copying it through NumPy, and retain
+        # the block-derived epoch needed by the final time slice.
+        target = asd._data.tensor
+        if isinstance(getattr(white_noise, "_data", None), TorchArrayData):
+            tensor = white_noise._data.tensor.to(
+                device=target.device, dtype=target.real.dtype
+            )
+        else:  # Defensive support for a Torch PSD used outside its scheme.
+            tensor = torch.as_tensor(
+                white_noise.numpy(), device=target.device,
+                dtype=target.real.dtype,
+            )
+        white_noise = TimeSeries(
+            TorchArrayData(tensor), delta_t=white_noise.delta_t,
+            epoch=white_noise.start_time, copy=False,
+        )
     white_noise = white_noise.to_frequencyseries()
     # Here we color. Do not want to duplicate memory here though so use '*='
     white_noise *= asd*scale

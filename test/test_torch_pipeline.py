@@ -10,7 +10,7 @@ torch = pytest.importorskip("torch")
 import pycbc
 from pycbc import scheme
 from pycbc.filter import matchedfilter, resample
-from pycbc.noise import gaussian
+from pycbc.noise import gaussian, reproduceable
 from pycbc.psd import inverse_spectrum_truncation, variation, welch
 from pycbc.strain import gate as strain_gate
 from pycbc.strain.strain import StrainBuffer
@@ -174,6 +174,49 @@ def test_noise_from_psd_flat_spectrum_has_expected_variance(torch_ctx):
     ) * psd_level * delta_f
     actual_variance = noise._data.tensor.var(unbiased=False).item()
     assert actual_variance == pytest.approx(expected_variance, rel=0.05)
+
+
+def test_reproducible_colored_noise_stays_on_device(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    if device == "mps":
+        pytest.skip("Colored noise requires complex PyCBC arrays on MPS")
+
+    monkeypatch.setattr(reproduceable, "BLOCK_SAMPLES", 512)
+    sample_rate = 64
+    start_time, end_time = 100, 102
+    psd_values = np.linspace(1.0, 2.0, 65)
+    parameters = dict(
+        seed=1729,
+        sample_rate=sample_rate,
+        low_frequency_cutoff=1.0,
+        filter_duration=1,
+    )
+    expected = reproduceable.colored_noise(
+        FrequencySeries(psd_values, delta_f=0.5),
+        start_time, end_time, **parameters
+    )
+
+    with ctx:
+        torch_psd = FrequencySeries(psd_values, delta_f=0.5)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError(
+                    "Reproducible colored noise copied Torch data to host"
+                )
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = reproduceable.colored_noise(
+                torch_psd, start_time, end_time, **parameters
+            )
+
+    assert actual._data.tensor.device.type == device
+    assert actual.start_time == expected.start_time == start_time
+    assert actual.end_time == expected.end_time == end_time
+    np.testing.assert_allclose(
+        actual._data.tensor.detach().cpu().numpy(), expected.numpy(),
+        rtol=1e-11, atol=1e-12,
+    )
 
 
 @pytest.mark.parametrize("avg_method", ["mean", "median", "median-mean"])
