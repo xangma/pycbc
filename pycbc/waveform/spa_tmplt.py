@@ -22,12 +22,20 @@
    vectors.
 """
 from math import sqrt, log
-import os
 import warnings
-import numpy, lal, pycbc.pnutils
+import lal
+import numpy
+import pycbc.pnutils
 import pycbc.scheme as _scheme
 from pycbc.scheme import schemed
-from pycbc.types import FrequencySeries, Array, complex64, float32, zeros
+from pycbc.types import (
+    FrequencySeries,
+    Array,
+    complex64,
+    float32,
+    float64,
+    zeros,
+)
 from pycbc.waveform.utils import ceilpow2
 from pycbc.waveform.torch_switches import torch_native_enabled
 
@@ -123,12 +131,46 @@ def spa_amplitude_factor(**kwds):
 
 
 _prec = None
+_torch_prec = {}
+
+
 def spa_tmplt_precondition(length, delta_f, kmin=0):
     """Return the amplitude portion of the TaylorF2 approximant, used to precondition
     the strain data. The result is cached, and so should not be modified, only read.
     """
+    if isinstance(_scheme.mgr.state, _scheme.TorchScheme):
+        import torch
+
+        device = _scheme.mgr.state.torch_device
+        key = (str(device), float(delta_f))
+        required_length = kmin + length
+        prec = _torch_prec.get(key)
+        if prec is None or len(prec) < required_length:
+            # MPS does not support float64 tensors. Other Torch devices use
+            # float64 for the power before matching the historical float32
+            # preconditioner, just as the NumPy implementation does.
+            work_dtype = (
+                torch.float32 if device.type == "mps" else torch.float64
+            )
+            frequencies = torch.arange(
+                1,
+                required_length + 1,
+                device=device,
+                dtype=work_dtype,
+            ) * float(delta_f)
+            values = frequencies.pow(-7.0 / 6.0).to(torch.float32)
+            data = zeros(required_length, dtype=float32)
+            data._data.tensor.copy_(values)
+            prec = FrequencySeries(data, delta_f=delta_f, copy=False)
+            _torch_prec[key] = prec
+        return prec[kmin:kmin + length]
+
     global _prec
-    if _prec is None or _prec.delta_f != delta_f or len(_prec) < length:
+    if (
+        _prec is None
+        or _prec.delta_f != delta_f
+        or len(_prec) < kmin + length
+    ):
         v = numpy.arange(0, (kmin + length*2), 1.) * delta_f
         v = numpy.power(v[1:len(v)], -7./6.)
         _prec = FrequencySeries(v, delta_f=delta_f, dtype=float32)
@@ -138,6 +180,20 @@ def spa_tmplt_precondition(length, delta_f, kmin=0):
 def spa_tmplt_norm(psd, length, delta_f, f_lower):
     amp = spa_tmplt_precondition(length, delta_f)
     k_min = int(f_lower / delta_f)
+
+    if isinstance(_scheme.mgr.state, _scheme.TorchScheme):
+        amp_data = amp[k_min:length]._data.tensor
+        # Slicing converts a CPU-created PSD to the active Torch scheme when
+        # necessary, while preserving an already resident device tensor.
+        psd_data = psd[k_min:length]._data.tensor
+        sigma = amp_data.square() / psd_data
+        dtype = float32 if sigma.device.type == "mps" else float64
+        norm_vec = zeros(length, dtype=dtype)
+        norm_vec._data.tensor[k_min:length] = (
+            sigma.cumsum(dim=0) * (4.0 * float(delta_f))
+        )
+        return norm_vec
+
     sigma = (amp[k_min:length].numpy() ** 2. / psd[k_min:length].numpy())
     norm_vec = numpy.zeros(length)
     norm_vec[k_min:length] = sigma.cumsum() * 4. * delta_f

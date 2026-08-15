@@ -1,11 +1,27 @@
 import numpy as np
 import pytest
 
-pytest.importorskip("torch")
+torch = pytest.importorskip("torch")
 
 from pycbc import scheme
-from pycbc.types import zeros
-from pycbc.waveform.spa_tmplt import spa_tmplt_engine
+from pycbc.types import FrequencySeries, zeros
+from pycbc.types.array_torch import TorchArrayData
+import pycbc.waveform.spa_tmplt as spa_tmplt_module
+from pycbc.waveform.spa_tmplt import (
+    spa_distance,
+    spa_tmplt_engine,
+    spa_tmplt_norm,
+    spa_tmplt_precondition,
+)
+
+
+def _torch_devices():
+    devices = ["cpu"]
+    if torch.cuda.is_available():
+        devices.append("cuda")
+    if torch.backends.mps.is_available():
+        devices.append("mps")
+    return devices
 
 
 @pytest.fixture
@@ -54,8 +70,64 @@ def test_spatmplt_torch_dtype_and_device(params):
         htilde = zeros(64, dtype=np.complex64)
         spa_tmplt_engine(htilde, **params)
         # Should remain complex64 on CPU device
-        import torch
         assert isinstance(htilde._data.tensor, torch.Tensor)
         assert htilde._data.tensor.dtype == torch.complex64
         assert htilde._data.tensor.device.type == "cpu"
     scheme.Scheme._single = None
+
+
+@pytest.mark.parametrize("device", _torch_devices())
+def test_spatmplt_norm_stays_on_torch_device(monkeypatch, device):
+    length = 513
+    delta_f = 0.25
+    f_lower = 20.0
+    psd_values = np.linspace(1.0, 4.0, length, dtype=np.float32)
+
+    monkeypatch.setattr(spa_tmplt_module, "_prec", None)
+    monkeypatch.setattr(spa_tmplt_module, "_torch_prec", {})
+
+    scheme.Scheme._single = None
+    with scheme.CPUScheme():
+        cpu_psd = FrequencySeries(psd_values, delta_f=delta_f)
+        cpu_prec = spa_tmplt_precondition(length, delta_f).numpy()
+        cpu_norm = spa_tmplt_norm(
+            cpu_psd, length, delta_f, f_lower
+        )
+        cpu_distance = spa_distance(
+            cpu_psd, 1.4, 1.4, f_lower
+        )
+    scheme.Scheme._single = None
+
+    def fail_numpy(self):
+        raise AssertionError("SPA normalization copied Torch data to NumPy")
+
+    with scheme.TorchScheme(device):
+        torch_psd = FrequencySeries(psd_values, delta_f=delta_f)
+        monkeypatch.setattr(TorchArrayData, "numpy", fail_numpy)
+        torch_prec = spa_tmplt_precondition(length, delta_f)
+        torch_norm = spa_tmplt_norm(
+            torch_psd, length, delta_f, f_lower
+        )
+        torch_distance = spa_distance(
+            torch_psd, 1.4, 1.4, f_lower
+        )
+
+        assert torch_prec._data.tensor.device.type == device
+        assert torch_norm._data.tensor.device.type == device
+        prec_tensor = torch_prec._data.tensor.detach().cpu()
+        norm_tensor = torch_norm._data.tensor.detach().cpu()
+    scheme.Scheme._single = None
+
+    torch.testing.assert_close(
+        prec_tensor,
+        torch.as_tensor(cpu_prec, dtype=prec_tensor.dtype),
+        rtol=2e-5,
+        atol=1e-7,
+    )
+    torch.testing.assert_close(
+        norm_tensor,
+        torch.as_tensor(cpu_norm, dtype=norm_tensor.dtype),
+        rtol=2e-5,
+        atol=1e-7,
+    )
+    assert torch_distance == pytest.approx(cpu_distance, rel=2e-5)
