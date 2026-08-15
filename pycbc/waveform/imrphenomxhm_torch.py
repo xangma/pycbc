@@ -7,9 +7,10 @@
 
 """Torch-native pieces of the IMRPhenomXHM mode-by-mode interface.
 
-The quadrupole shares the IMRPhenomXAS implementation.  The ``(2, +/-1)``
-mode uses the native XHM no-mixing kernel.  Other higher modes remain on the
-LAL path until their amplitude, phase, and mode-mixing models are ported.
+The quadrupole shares the IMRPhenomXAS implementation.  The ``(2, +/-1)`` and
+``(3, +/-3)`` modes use native XHM no-mixing kernels.  Other higher modes
+remain on the LAL path until their amplitude, phase, and mode-mixing models
+are ported.
 """
 
 from numbers import Integral
@@ -23,9 +24,10 @@ from .imrphenomxas_torch import (
     imrphenomxas_native_supported,
 )
 from .imrphenomxhm_mode21_torch import imrphenomxhm_h2m1_samples
+from .imrphenomxhm_mode33_torch import imrphenomxhm_h3m3_samples
 
 
-_NATIVE_MODES = frozenset({(2, -2), (2, -1), (2, 1), (2, 2)})
+_NATIVE_MODES = frozenset({(2, -2), (2, -1), (2, 1), (2, 2), (3, -3), (3, 3)})
 
 
 def _requested_modes(params):
@@ -72,8 +74,8 @@ def imrphenomxhm_modes_torch(**params):
 
     if not imrphenomxhm_modes_native_supported(params):
         raise ValueError(
-            "only explicit IMRPhenomXHM (2, +/-1) and (2, +/-2) requests are "
-            "supported by the native Torch path"
+            "only explicit IMRPhenomXHM (2, +/-1), (2, +/-2), and (3, +/-3) "
+            "requests are supported by the native Torch path"
         )
     if not isinstance(_scheme.mgr.state, _scheme.TorchScheme):
         raise RuntimeError("native Torch IMRPhenomXHM modes require TorchScheme")
@@ -84,18 +86,23 @@ def imrphenomxhm_modes_torch(**params):
 
     core = _imrphenomxas_core_torch(_xas_params(params))
     active_modes = {}
-    if any(abs(emm) == 2 for _, emm in modes):
-        active_modes[2] = core.polarization / _XAS_MODE_POLARIZATION_FACTOR
-    if any(abs(emm) == 1 for _, emm in modes):
-        active_modes[1] = imrphenomxhm_h2m1_samples(core, params)
+    mode_families = {(ell, abs(emm)) for ell, emm in modes}
+    if (2, 2) in mode_families:
+        active_modes[2, 2] = core.polarization / _XAS_MODE_POLARIZATION_FACTOR
+    if (2, 1) in mode_families:
+        active_modes[2, 1] = imrphenomxhm_h2m1_samples(core, params)
+    if (3, 3) in mode_families:
+        active_modes[3, 3] = imrphenomxhm_h3m3_samples(core, params)
 
     result = {}
     for ell, emm in modes:
-        # LAL exposes the negative-m mode at positive frequencies. The
-        # positive-m mode follows from equatorial symmetry; ell=2 is even.
-        samples = active_modes[abs(emm)]
+        # LAL exposes the negative-m mode at positive frequencies. Positive-m
+        # modes follow h_lm = (-1)^ell conjugate(h_l,-m).
+        samples = active_modes[ell, abs(emm)]
         if emm > 0:
             samples = samples.conj()
+            if ell % 2:
+                samples = -samples
         hlm = _series_from_active_samples(core, samples)
         hplus = 0.5 * hlm
         hcross = (0.5j if emm < 0 else -0.5j) * hlm
