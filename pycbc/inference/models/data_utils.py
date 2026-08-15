@@ -293,7 +293,12 @@ def check_for_nans(strain_dict):
         :py:class:`pycbc.types.timeseries.TimeSeries`.
     """
     for det, ts in strain_dict.items():
-        if numpy.isnan(ts.numpy()).any():
+        tensor = getattr(getattr(ts, "_data", None), "tensor", None)
+        if tensor is not None:
+            has_nans = tensor.isnan().any().item()
+        else:
+            has_nans = numpy.isnan(ts.numpy()).any()
+        if has_nans:
             raise ValueError("NaN found in strain from {}".format(det))
 
 

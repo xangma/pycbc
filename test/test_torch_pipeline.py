@@ -91,17 +91,21 @@ def _relative_l2(a, b):
     return np.linalg.norm(diff) / np.linalg.norm(b)
 
 
-def _load_inference_tools():
-    """Load the tools module without inference's optional dependencies."""
+def _load_inference_model_module(name):
+    """Load a model module without inference's optional dependencies."""
     module_path = (
-        Path(pycbc.__file__).parent / "inference" / "models" / "tools.py"
+        Path(pycbc.__file__).parent / "inference" / "models" / f"{name}.py"
     )
     spec = importlib.util.spec_from_file_location(
-        "_pycbc_inference_tools_torch_test", module_path
+        f"_pycbc_inference_{name}_torch_test", module_path
     )
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+_INFERENCE_DATA_UTILS = _load_inference_model_module("data_utils")
+_INFERENCE_TOOLS = _load_inference_model_module("tools")
 
 
 @pytest.mark.parametrize("dtype", (np.complex64, np.complex128))
@@ -320,7 +324,6 @@ def test_varying_detector_projection_stays_on_device(
 def test_time_marginalization_weights_stay_on_device(
         torch_device_ctx, monkeypatch):
     ctx, device = torch_device_ctx
-    inference_tools = _load_inference_tools()
     sample_count = 64
     epoch = 1_126_259_461
     delta_t = 1 / 1024
@@ -338,7 +341,7 @@ def test_time_marginalization_weights_stay_on_device(
     }
 
     def make_marginalizer():
-        marginalizer = inference_tools.DistMarg()
+        marginalizer = _INFERENCE_TOOLS.DistMarg()
         marginalizer.marginalized_vector_priors = {
             "tc": types.SimpleNamespace(
                 bounds={"tc": (epoch + 1.5, epoch + 2.0)}
@@ -383,6 +386,30 @@ def test_time_marginalization_weights_stay_on_device(
         rtol=2e-6 if device == "mps" else 1e-13,
         atol=2e-6 if device == "mps" else 1e-13,
     )
+
+
+def test_inference_nan_check_stays_on_device(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    dtype = np.float32 if device == "mps" else np.float64
+    finite_data = np.linspace(-1, 1, 1024, dtype=dtype)
+    nan_data = finite_data.copy()
+    nan_data[713] = np.nan
+
+    with ctx:
+        finite = TimeSeries(finite_data, delta_t=1 / 1024)
+        contains_nan = TimeSeries(nan_data, delta_t=1 / 1024)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("NaN validation copied strain to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            _INFERENCE_DATA_UTILS.check_for_nans({"H1": finite})
+            with pytest.raises(ValueError, match="NaN found in strain from L1"):
+                _INFERENCE_DATA_UTILS.check_for_nans({"L1": contains_nan})
+
+    assert finite._data.tensor.device.type == device
+    assert contains_nan._data.tensor.device.type == device
 
 
 @pytest.mark.parametrize("dtype", (np.float32, np.float64))
