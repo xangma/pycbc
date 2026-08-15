@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-pytest.importorskip("torch")
+torch = pytest.importorskip("torch")
 
 from pycbc import scheme as _scheme
 from pycbc.waveform import get_fd_waveform
@@ -13,7 +13,10 @@ from pycbc.waveform._seobnrv4_qnm import (
     seobnrv4_final_mass_spin,
     seobnrv4_qnm_omega,
 )
-from pycbc.waveform.seobnrv4hm_torch import _active_mode_indices
+from pycbc.waveform.seobnrv4hm_torch import (
+    _active_mode_indices,
+    _compute_i_max_LF_i_min_HF,
+)
 
 _ROM_FILENAMES = ("SEOBNRv4HMROM_v1.0.hdf5", "SEOBNRv4HMROM.hdf5")
 _WAVEFORM_DIR = Path(__file__).resolve().parent.parent
@@ -208,6 +211,28 @@ def test_mode_array_uses_directly_modeled_negative_m_modes():
         _active_mode_indices([(2, 2)])
     with pytest.raises(ValueError, match="not available"):
         _active_mode_indices([(3, -2)])
+
+
+@pytest.mark.parametrize("device_name", ["cpu", "mps", "cuda"])
+def test_hybridization_indices_stay_on_requested_device(device_name):
+    if device_name == "mps" and not torch.backends.mps.is_available():
+        pytest.skip("Torch MPS device is unavailable")
+    if device_name == "cuda" and not torch.cuda.is_available():
+        pytest.skip("Torch CUDA device is unavailable")
+
+    low = torch.tensor([0.001, 0.002, 0.003, 0.004], device=device_name)
+    high = torch.tensor([0.002, 0.003, 0.004, 0.005], device=device_name)
+
+    assert _compute_i_max_LF_i_min_HF(low, high, 0.003) == (1, 1)
+
+
+@pytest.mark.parametrize("threshold", [0.001, 0.006])
+def test_hybridization_indices_require_patch_overlap(threshold):
+    low = torch.tensor([0.001, 0.002, 0.003, 0.004])
+    high = torch.tensor([0.002, 0.003, 0.004, 0.005])
+
+    with pytest.raises(ValueError, match="do not overlap"):
+        _compute_i_max_LF_i_min_HF(low, high, threshold)
 
 
 @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])

@@ -17,8 +17,10 @@
 """Torch-native (lalsimulation-free) evaluator for SEOBNRv4HM_ROM.
 
 This module reconstructs the higher-mode ROM directly from the public ROM
-data file ``SEOBNRv4HMROM_v1.0.hdf5`` using NumPy/SciPy, without calling
-``lalsimulation``. It mirrors the structure of ``LALSimIMRSEOBNRv4HMROM.c``:
+data file ``SEOBNRv4HMROM_v1.0.hdf5`` with PyTorch, without calling
+``lalsimulation``. HDF5 loading and scalar setup remain CPU-side; ROM
+interpolation, hybridization, and waveform assembly run on the active Torch
+device. It mirrors the structure of ``LALSimIMRSEOBNRv4HMROM.c``:
 
 - tensor-product cubic B-splines over (q, chi1, chi2) to interpolate the
   projection coefficients for each ROM patch (low-f plus four high-f patches);
@@ -220,13 +222,13 @@ def _select_hf_patch(q: float, chi1: float) -> int:
 
 
 def _compute_i_max_LF_i_min_HF(
-    freq_lo: np.ndarray, freq_hi: np.ndarray, f_hyb_ini: float
+    freq_lo: torch.Tensor, freq_hi: torch.Tensor, f_hyb_ini: float
 ) -> Tuple[int, int]:
-    low = np.flatnonzero(freq_lo < f_hyb_ini)
-    high = np.flatnonzero(freq_hi >= f_hyb_ini)
-    if not low.size or not high.size:
+    i_max = int(torch.searchsorted(freq_lo, f_hyb_ini, right=False)) - 1
+    i_min = int(torch.searchsorted(freq_hi, f_hyb_ini, right=False))
+    if i_max < 0 or i_min >= freq_hi.numel():
         raise ValueError("ROM patches do not overlap the hybridization window")
-    return int(low[-1]), int(high[0])
+    return i_max, i_min
 
 
 # ---------------------------------------------------------------------------
@@ -429,9 +431,7 @@ def _hybridize_phase(
     sub_hi = [rom.hqls, rom.hqhs, rom.lqls, rom.lqhs][patch]
     f_hi, ph_hi = _eval_phase(sub_hi, q, chi1, chi2, inv_scaling=inv_scaling)
 
-    i_max, i_min = _compute_i_max_LF_i_min_HF(
-        f_lo.cpu().numpy(), f_hi.cpu().numpy(), _F_HYB_INI
-    )
+    i_max, i_min = _compute_i_max_LF_i_min_HF(f_lo, f_hi, _F_HYB_INI)
     f_hyb = torch.cat([f_lo[: i_max + 1], f_hi[i_min:]])
 
     # LAL aligns the low-frequency phase to the high-frequency phase by
@@ -483,9 +483,7 @@ def _hybridize_cmode(
     mode_m = _LM_MODES[mode_idx][1]
     blend_start = _F_HYB_INI * mode_m
     blend_end = _F_HYB_END * mode_m
-    i_max, i_min = _compute_i_max_LF_i_min_HF(
-        f_lo.cpu().numpy(), f_hi.cpu().numpy(), blend_start
-    )
+    i_max, i_min = _compute_i_max_LF_i_min_HF(f_lo, f_hi, blend_start)
     f_hyb = torch.cat([f_lo[: i_max + 1], f_hi[i_min:]])
 
     weight = _blend_weight(f_hyb, blend_start, blend_end)
