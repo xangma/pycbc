@@ -112,6 +112,12 @@ environment flags:
   phase, amplitude, spin, and taper corrections on-device. Transverse spins,
   testing-GR changes, and unsupported tidal or mode options fall back to
   lalsimulation.
+- IMRPhenomXAS (FD): ``PYCBC_IMRPHENOMXAS_NATIVE``. Aligned-spin amplitude and
+  phase fits, scalar matching derivatives, frequency-grid construction,
+  masking, and polarization assembly use Torch. The coefficient tables are
+  moved to the active device for evaluation. Transverse spins, tides,
+  eccentricity, non-default PN orders, testing-GR changes, and custom modes
+  fall back to lalsimulation.
 - IMRPhenomHM (FD higher modes): ``PYCBC_IMRPHENOMHM_NATIVE``. The six modeled
   positive-m modes, their IMRPhenomD frequency maps, and polarization assembly
   run on the active Torch device. Scalar coefficient and spin-weighted
