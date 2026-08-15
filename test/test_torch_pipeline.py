@@ -105,6 +105,7 @@ def _load_inference_model_module(name):
 
 
 _INFERENCE_DATA_UTILS = _load_inference_model_module("data_utils")
+_INFERENCE_RELBIN_TORCH = _load_inference_model_module("relbin_torch")
 _INFERENCE_TOOLS = _load_inference_model_module("tools")
 
 
@@ -431,6 +432,83 @@ def test_inference_frequency_lookup_stays_on_device(
 
     assert index == np.searchsorted(frequencies, 17.31, side="right") - 1
     assert values._data.tensor.device.type == device
+
+
+@pytest.mark.parametrize("response_kind", ("polarization", "earth", "detector"))
+def test_relative_binning_likelihood_stays_on_device(
+        torch_device_ctx, monkeypatch, response_kind):
+    ctx, device = torch_device_ctx
+    complex_dtype = np.complex64 if device == "mps" else np.complex128
+    real_dtype = np.float32 if device == "mps" else np.float64
+    rng = np.random.default_rng(1847)
+    size = 129
+
+    freqs = np.linspace(18.0, 512.0, size, dtype=real_dtype)
+    hp = (rng.normal(size=size) + 1j * rng.normal(size=size)).astype(
+        complex_dtype)
+    hc = (rng.normal(size=size) + 1j * rng.normal(size=size)).astype(
+        complex_dtype)
+    h00 = (1.5 + rng.random(size) + 1j * rng.normal(size=size)).astype(
+        complex_dtype)
+    a0 = (rng.normal(size=size - 1) +
+          1j * rng.normal(size=size - 1)).astype(
+        complex_dtype)
+    a1 = (rng.normal(size=size - 1) +
+          1j * rng.normal(size=size - 1)).astype(
+        complex_dtype)
+    b0 = rng.random(size - 1).astype(real_dtype)
+    b1 = rng.normal(size=size - 1).astype(real_dtype)
+
+    if response_kind == "earth":
+        fp = np.linspace(0.3, 0.7, size, dtype=real_dtype)
+        fc = np.linspace(-0.4, 0.2, size, dtype=real_dtype)
+        dtc = np.linspace(-0.002, 0.003, size, dtype=real_dtype)
+    else:
+        fp, fc, dtc = 0.61, -0.27, 0.0017
+
+    # Match the compatibility constant used by the Cython relbin kernels.
+    shift = np.exp(-2.0j * 3.141592653 * dtc * freqs)
+    if response_kind == "detector":
+        ratio = shift * hp / h00
+    else:
+        ratio = shift * (fp * hp + fc * hc) / h00
+    ratio_delta = ratio[1:] - ratio[:-1]
+    expected_filt = np.conjugate(
+        np.sum(a0 * ratio[:-1] + a1 * ratio_delta))
+    power = np.abs(ratio) ** 2
+    expected_norm = np.sum(
+        b0 * power[:-1] + b1 * (power[1:] - power[:-1]))
+
+    with ctx:
+        hp_array = Array(hp)
+        hc_array = Array(hc)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("Relative binning copied its waveform")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            prepared = _INFERENCE_RELBIN_TORCH.prepare_likelihood_data(
+                hp_array, freqs, h00, a0, a1, b0, b1)
+            assert all(value.device.type == device for value in prepared)
+            if response_kind == "detector":
+                actual_filt, actual_norm = (
+                    _INFERENCE_RELBIN_TORCH.likelihood_parts_det(
+                        prepared[0], dtc, hp_array, *prepared[1:]))
+            else:
+                actual_filt, actual_norm = (
+                    _INFERENCE_RELBIN_TORCH.likelihood_parts(
+                        prepared[0], fp, fc, dtc, hp_array, hc_array,
+                        *prepared[1:]))
+
+    tolerance = 3e-4 if device == "mps" else 2e-12
+    assert actual_filt.device.type == device
+    assert actual_norm.device.type == device
+    np.testing.assert_allclose(
+        actual_filt.item(), expected_filt,
+        rtol=tolerance, atol=tolerance)
+    np.testing.assert_allclose(
+        actual_norm.item(), expected_norm,
+        rtol=tolerance, atol=tolerance)
 
 
 @pytest.mark.parametrize("dtype", (np.float32, np.float64))

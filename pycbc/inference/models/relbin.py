@@ -48,7 +48,20 @@ from .relbin_cpu import (likelihood_parts, likelihood_parts_v,
                          likelihood_parts_vectorp, snr_predictor,
                          likelihood_parts_vectort,
                          snr_predictor_dom)
-from .tools import DistMarg
+from .tools import DistMarg, _torch_tensor
+
+
+def _numpy_value(value):
+    """Return a CPU representation for the legacy relative-bin kernels."""
+    tensor = _torch_tensor(value)
+    if tensor is not None:
+        tensor = tensor.detach()
+        if tensor.is_conj():
+            tensor = tensor.resolve_conj()
+        return tensor.cpu().numpy()
+    if hasattr(value, "numpy"):
+        return value.numpy()
+    return value
 
 
 def setup_bins(f_full, f_lo, f_hi, chi=1.0,
@@ -208,6 +221,7 @@ class Relative(DistMarg, BaseGaussianNoise):
 
         # filtered summary data for linear approximation
         self.sdat = {}
+        self._torch_likelihood_cache = {}
 
         # store fiducial waveform params
         self.fid_params = self.static_params.copy()
@@ -423,7 +437,24 @@ class Relative(DistMarg, BaseGaussianNoise):
 
         return a0, a1
 
-    def get_waveforms(self, params):
+    def _get_torch_likelihood_data(self, ifo, waveform):
+        """Cache static likelihood inputs beside a Torch waveform."""
+        tensor = _torch_tensor(waveform)
+        if tensor is None:
+            return None
+
+        cache_key = (tensor.device.type, tensor.device.index, tensor.dtype)
+        cache = self._torch_likelihood_cache.setdefault(ifo, {})
+        if cache_key not in cache:
+            from .relbin_torch import prepare_likelihood_data
+
+            sdat = self.sdat[ifo]
+            cache[cache_key] = prepare_likelihood_data(
+                tensor, self.fedges[ifo], self.h00_sparse[ifo],
+                sdat['a0'], sdat['a1'], sdat['b0'], sdat['b1'])
+        return cache[cache_key]
+
+    def get_waveforms(self, params, keep_torch=False):
         """ Get the waveform polarizations for each ifo
         """
         if self.still_needs_det_response:
@@ -436,8 +467,9 @@ class Relative(DistMarg, BaseGaussianNoise):
         wfs = []
         for edge in self.edge_unique:
             hp, hc = get_fd_waveform_sequence(sample_points=edge, **params)
-            hp = hp.numpy()
-            hc = hc.numpy()
+            if not keep_torch or _torch_tensor(hp) is None:
+                hp = hp.numpy()
+                hc = hc.numpy()
             wfs.append((hp, hc))
         wf_ret = {ifo: wfs[self.ifo_map[ifo]] for ifo in self.data}
 
@@ -503,6 +535,9 @@ class Relative(DistMarg, BaseGaussianNoise):
                     dtc, channel, h00 = m1._current_wf_parts[det]
                     dtc2, channel2, h002 = m2._current_wf_parts[det]
 
+                    channel = _numpy_value(channel)
+                    channel2 = _numpy_value(channel2)
+
                     c1c2 = self.mlik(fedge,
                                      dtc, channel, h00,
                                      dtc2, channel2, h002,
@@ -516,6 +551,9 @@ class Relative(DistMarg, BaseGaussianNoise):
 
                     fp, fc, dtc, hp, hc, h00 = m1._current_wf_parts[det]
                     fp2, fc2, dtc2, hp2, hc2, h002 = m2._current_wf_parts[det]
+
+                    hp, hc = _numpy_value(hp), _numpy_value(hc)
+                    hp2, hc2 = _numpy_value(hp2), _numpy_value(hc2)
 
                     h1h2 = self.mlik(fedge,
                                      fp, fc, dtc, hp, hc, h00,
@@ -547,7 +585,7 @@ class Relative(DistMarg, BaseGaussianNoise):
         """
         # get model params
         p = self.current_params
-        wfs = self.get_waveforms(p)
+        wfs = self.get_waveforms(p, keep_torch=True)
         lik = self.likelihood_function
         norm = 0.0
         filt = 0j
@@ -567,10 +605,23 @@ class Relative(DistMarg, BaseGaussianNoise):
             if self.still_needs_det_response:
                 dtc = 0.
 
-                channel = wfs[ifo].numpy()
-                filter_i, norm_i = lik(freqs, dtc, channel, h00,
-                                       sdat['a0'], sdat['a1'],
-                                       sdat['b0'], sdat['b1'])
+                channel = wfs[ifo]
+                torch_data = None
+                if lik is likelihood_parts_det:
+                    torch_data = self._get_torch_likelihood_data(ifo, channel)
+                if torch_data is not None:
+                    from .relbin_torch import likelihood_parts_det as torch_lik
+
+                    freqs_t, h00_t, a0_t, a1_t, b0_t, b1_t = torch_data
+                    filter_i, norm_i = torch_lik(
+                        freqs_t, dtc, channel, h00_t,
+                        a0_t, a1_t, b0_t, b1_t)
+                else:
+                    channel = _numpy_value(channel)
+                    filter_i, norm_i = lik(
+                        freqs, dtc, channel, h00,
+                        sdat['a0'], sdat['a1'],
+                        sdat['b0'], sdat['b1'])
                 self._current_wf_parts[ifo] = (dtc, channel, h00)
             else:
                 hp, hc = wfs[ifo]
@@ -580,12 +631,30 @@ class Relative(DistMarg, BaseGaussianNoise):
                 dt = det.time_delay_from_earth_center(p["ra"], p["dec"], times)
                 dtc = p["tc"] + dt - end_time - self.ta[ifo]
 
-                if self.lformat == 'earth_pol':
+                torch_liks = (likelihood_parts, likelihood_parts_v)
+                torch_data = None
+                if lik in torch_liks:
+                    torch_data = self._get_torch_likelihood_data(ifo, hp)
+                if torch_data is not None:
+                    from .relbin_torch import likelihood_parts as torch_lik
+
+                    f = (fp + 1.0j * fc) * pol_phase
+                    fp = f.real.copy()
+                    fc = f.imag.copy()
+                    freqs_t, h00_t, a0_t, a1_t, b0_t, b1_t = torch_data
+                    filter_i, norm_i = torch_lik(
+                        freqs_t, fp, fc, dtc, hp, hc, h00_t,
+                        a0_t, a1_t, b0_t, b1_t)
+                    self._current_wf_parts[ifo] = (
+                        fp, fc, dtc, hp, hc, h00)
+                elif self.lformat == 'earth_pol':
+                    hp, hc = _numpy_value(hp), _numpy_value(hc)
                     filter_i, norm_i = lik(freqs, fp, fc, dtc, pol_phase,
                                            hp, hc, h00,
                                            sdat['a0'], sdat['a1'],
                                            sdat['b0'], sdat['b1'])
                 else:
+                    hp, hc = _numpy_value(hp), _numpy_value(hc)
                     f = (fp + 1.0j * fc) * pol_phase
                     fp = f.real.copy()
                     fc = f.imag.copy()
@@ -597,6 +666,10 @@ class Relative(DistMarg, BaseGaussianNoise):
 
             filt += filter_i
             norm += norm_i
+
+        if _torch_tensor(filt) is not None:
+            filt = filt.item()
+            norm = norm.item()
 
         loglr = self.marginalize_loglr(filt, norm)
         if self.return_sh_hh:
@@ -642,7 +715,8 @@ class Relative(DistMarg, BaseGaussianNoise):
         """
         dmax = 0
         for ifo in self.data:
-            r = self.wf_ret[ifo][0] / self.h00_sparse[ifo]
+            waveform = _numpy_value(self.wf_ret[ifo][0])
+            r = waveform / self.h00_sparse[ifo]
             d = abs(numpy.diff(r / abs(r).min(), n=2)).max()
             dmax = d if dmax < d else dmax
         return dmax
