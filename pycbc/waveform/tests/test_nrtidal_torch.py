@@ -23,11 +23,27 @@ from pycbc.waveform.nrtidal_torch import (  # noqa: E402
     nrtidal_phase,
     nrtidal_quadrupole_from_lambda,
     nrtidal_taper,
+    nrtidal_version,
 )
 
 
 _MASSES = (1.4, 1.2)
 _LAMBDAS = (400.0, 800.0)
+
+
+@pytest.mark.parametrize(
+    ("approximant", "version"),
+    [
+        ("IMRPhenomD_NRTidal", 1),
+        ("SEOBNRv4_ROM_NRTidal", 1),
+        ("IMRPhenomD_NRTidalv2", 2),
+        ("IMRPhenomXAS_NRTidalv2", 2),
+        ("SEOBNRv4_ROM_NRTidalv2", 2),
+        ("IMRPhenomXAS", None),
+    ],
+)
+def test_nrtidal_version(approximant, version):
+    assert nrtidal_version(approximant) == version
 
 
 def _lal_vector(values):

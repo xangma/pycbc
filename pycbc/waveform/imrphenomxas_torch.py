@@ -23,20 +23,22 @@
 # Ruff cannot parse jaxtyping's symbolic shape strings as forward annotations.
 # ruff: noqa: F722
 
-"""Torch-native IMRPhenomXAS frequency-domain waveform.
+"""Torch-native IMRPhenomXAS frequency-domain waveforms.
 
 The coefficient equations are adapted from ripple v0.2.1
 (https://github.com/GW-JAX-Team/ripple/tree/v0.2.1) and reproduce the installed
 LALSuite IMRPhenomXAS implementation.  Scalar matching derivatives use Torch
 autograd; frequency-dependent amplitude, phase, masking, and polarization work
-remains on the active Torch device.  The public PyCBC path is opt-in through
-``PYCBC_IMRPHENOMXAS_NATIVE=1`` or ``PYCBC_TORCH_NATIVE_PORTS=1``.
+remains on the active Torch device. IMRPhenomXAS_NRTidalv2 adds its matter
+phase, amplitude, alignment, and taper corrections there as well. The public
+PyCBC path is opt-in through ``PYCBC_IMRPHENOMXAS_NATIVE=1`` or
+``PYCBC_TORCH_NATIVE_PORTS=1``.
 """
 
 from __future__ import annotations
 
 import math
-from typing import Any
+from typing import Any, NamedTuple
 
 import lal
 import torch
@@ -47,6 +49,15 @@ from pycbc.types.array_torch import TorchArrayData
 
 from ._torch_jax import jax, jnp, torch_context
 from . import imrphenomx_utils_torch as IMRPhenomX_utils
+from .nrtidal_torch import (
+    nrtidal_amplitude,
+    nrtidal_higher_order_spin_phase,
+    nrtidal_merger_frequency,
+    nrtidal_phase,
+    nrtidal_quadrupole_from_lambda,
+    nrtidal_self_spin_phase,
+    nrtidal_taper,
+)
 
 Array = Any
 Float = Any
@@ -63,6 +74,19 @@ uneqspin_indx = 39
 
 amp_eqspin_indx = 8
 amp_uneqspin_indx = 36
+
+
+class _NRTidalV2Params(NamedTuple):
+    mass1: float
+    mass2: float
+    spin1z: float
+    spin2z: float
+    lambda1: float
+    lambda2: float
+    quadrupole1: float
+    quadrupole2: float
+    merger_frequency: float
+    alignment_frequency: float
 
 
 def get_inspiral_phase(
@@ -1487,6 +1511,65 @@ def Amp(
     return Overallamp * Amp * (fM_s ** (-7.0 / 6.0))
 
 
+def _nrtidalv2_phase(
+    frequencies: torch.Tensor,
+    params: _NRTidalV2Params,
+) -> torch.Tensor:
+    """Return all NRTidalv2 and matter-spin phase contributions."""
+
+    return (
+        nrtidal_phase(
+            frequencies,
+            params.mass1,
+            params.mass2,
+            params.lambda1,
+            params.lambda2,
+            2,
+        )
+        + nrtidal_self_spin_phase(
+            frequencies,
+            params.mass1,
+            params.mass2,
+            params.spin1z,
+            params.spin2z,
+            params.quadrupole1 - 1.0,
+            params.quadrupole2 - 1.0,
+        )
+        + nrtidal_higher_order_spin_phase(
+            frequencies,
+            params.mass1,
+            params.mass2,
+            params.spin1z,
+            params.spin2z,
+            params.quadrupole1,
+            params.quadrupole2,
+        )
+    )
+
+
+def _nrtidalv2_phase_derivative(
+    params: _NRTidalV2Params,
+    like: torch.Tensor,
+) -> torch.Tensor:
+    """Differentiate the tidal phase with respect to dimensionless Mf."""
+
+    with torch.enable_grad():
+        mf_alignment = torch.tensor(
+            params.alignment_frequency
+            * (params.mass1 + params.mass2)
+            * MTSUN,
+            dtype=like.dtype,
+            device=like.device,
+            requires_grad=True,
+        )
+        phase = _nrtidalv2_phase(
+            mf_alignment / ((params.mass1 + params.mass2) * MTSUN),
+            params,
+        )
+        derivative = torch.autograd.grad(phase, mf_alignment)[0]
+    return derivative.detach()
+
+
 def _gen_IMRPhenomXAS(
     f: Float[Array, " n_freq"],
     theta_intrinsic: Float[Array, "4"],
@@ -1494,6 +1577,7 @@ def _gen_IMRPhenomXAS(
     phase_coeffs: Float[Array, "13 49"],
     amp_coeffs: Float[Array, "7 42"],
     f_ref: float,
+    nrtidalv2: _NRTidalV2Params | None = None,
 ) -> torch.Tensor:
     m1, m2, chi1, chi2 = theta_intrinsic
     m1_s = m1 * MTSUN
@@ -1534,6 +1618,51 @@ def _gen_IMRPhenomXAS(
     Psi = Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
 
     A = Amp(f, theta_intrinsic, amp_coeffs, D=theta_extrinsic[0])
+    if nrtidalv2 is not None:
+        phase_tidal = _nrtidalv2_phase(f, nrtidalv2)
+        reference = torch.as_tensor(
+            f_ref,
+            dtype=f.dtype,
+            device=f.device,
+        )
+        phase_tidal_ref = _nrtidalv2_phase(reference, nrtidalv2)
+
+        # NRTidal shifts the waveform so the derivative of the complete phase
+        # vanishes at min(f_max, f_merger). Derivatives here are with respect
+        # to the dimensionless frequency Mf, matching LAL's convention.
+        alignment_frequency = torch.as_tensor(
+            nrtidalv2.alignment_frequency,
+            dtype=f.dtype,
+            device=f.device,
+        )
+        base_derivative = (
+            PhaseDerivative(
+                alignment_frequency,
+                theta_intrinsic,
+                phase_coeffs,
+            )
+            / M_s
+        )
+        tidal_derivative = _nrtidalv2_phase_derivative(nrtidalv2, f)
+        tidal_linb = -base_derivative + tidal_derivative
+        Psi = Psi + (tidal_linb - linb) * (fM_s - reference * M_s)
+        Psi = Psi + phase_tidal_ref - phase_tidal
+
+        amp0 = (
+            2.0
+            * jnp.sqrt(5.0 / (64.0 * PI))
+            * M_s**2
+            / ((theta_extrinsic[0] * MPC) / C)
+        )
+        A = A + amp0 * 2.0 * math.sqrt(PI / 5.0) * nrtidal_amplitude(
+            f,
+            nrtidalv2.mass1,
+            nrtidalv2.mass2,
+            nrtidalv2.lambda1,
+            nrtidalv2.lambda2,
+        )
+        A = A * nrtidal_taper(f, nrtidalv2.merger_frequency)
+
     h0 = A * jnp.exp(1j * Psi)
     return h0
 
@@ -1552,10 +1681,6 @@ _ZERO_ONLY_KEYS = (
     "spin2y",
     "eccentricity",
     "mean_per_ano",
-    "lambda1",
-    "lambda2",
-    "dquad_mon1",
-    "dquad_mon2",
     "lambda_octu1",
     "lambda_octu2",
     "quadfmode1",
@@ -1602,10 +1727,29 @@ def _is_default_order(value):
         return False
 
 
+def _is_nonnegative_finite(value):
+    if value is None:
+        return True
+    try:
+        value = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return False
+    return math.isfinite(value) and value >= 0.0
+
+
+def _quadrupole_from_params(lambda_value, dquad_value):
+    lambda_value = float(lambda_value or 0.0)
+    dquad_value = float(dquad_value or 0.0)
+    if lambda_value > 0.0 and dquad_value == 0.0:
+        return nrtidal_quadrupole_from_lambda(lambda_value)
+    return 1.0 + dquad_value
+
+
 def imrphenomxas_native_supported(params):
     """Return whether ``params`` preserve the native XAS model semantics."""
 
-    if params.get("approximant", "IMRPhenomXAS") != "IMRPhenomXAS":
+    approximant = params.get("approximant", "IMRPhenomXAS")
+    if approximant not in {"IMRPhenomXAS", "IMRPhenomXAS_NRTidalv2"}:
         return False
     if any(
         not _is_default_order(params.get(key, -1))
@@ -1614,13 +1758,36 @@ def imrphenomxas_native_supported(params):
         return False
     if any(_is_nonzero(params.get(key, 0.0)) for key in _ZERO_ONLY_KEYS):
         return False
+    matter = (
+        params.get("lambda1", 0.0),
+        params.get("lambda2", 0.0),
+        params.get("dquad_mon1", 0.0),
+        params.get("dquad_mon2", 0.0),
+    )
+    if approximant == "IMRPhenomXAS":
+        if any(_is_nonzero(value) for value in matter):
+            return False
+    else:
+        lambdas = matter[:2]
+        if not all(_is_nonnegative_finite(value) for value in lambdas):
+            return False
+        try:
+            quadrupoles = (
+                _quadrupole_from_params(matter[0], matter[2]),
+                _quadrupole_from_params(matter[1], matter[3]),
+            )
+        except (TypeError, ValueError, OverflowError):
+            return False
+        if not all(math.isfinite(value) and value > 0.0 for value in quadrupoles):
+            return False
     if params.get("mode_array") is not None or params.get("numrel_data", ""):
         return False
     return True
 
 
 def _next_power_of_two(value):
-    return 1 << int(math.ceil(math.log2(value)))
+    value = max(1, int(value))
+    return 1 << (value - 1).bit_length()
 
 
 def imrphenomxas_fd_torch(**p):
@@ -1634,13 +1801,21 @@ def imrphenomxas_fd_torch(**p):
     if not isinstance(state, _scheme.TorchScheme):
         raise RuntimeError("native Torch IMRPhenomXAS requires TorchScheme")
 
+    approximant = p.get("approximant", "IMRPhenomXAS")
+    tidal = approximant == "IMRPhenomXAS_NRTidalv2"
     mass1 = float(p["mass1"])
     mass2 = float(p["mass2"])
     spin1z = float(p.get("spin1z", 0.0))
     spin2z = float(p.get("spin2z", 0.0))
+    lambda1 = float(p.get("lambda1") or 0.0)
+    lambda2 = float(p.get("lambda2") or 0.0)
+    dquad1 = float(p.get("dquad_mon1") or 0.0)
+    dquad2 = float(p.get("dquad_mon2") or 0.0)
     if mass2 > mass1:
         mass1, mass2 = mass2, mass1
         spin1z, spin2z = spin2z, spin1z
+        lambda1, lambda2 = lambda2, lambda1
+        dquad1, dquad2 = dquad2, dquad1
 
     delta_f = float(p["delta_f"])
     f_lower = float(p["f_lower"])
@@ -1670,6 +1845,11 @@ def imrphenomxas_fd_torch(**p):
         raise ValueError("IMRPhenomXAS spins and angles must be finite")
     if abs(spin1z) > 1.0 or abs(spin2z) > 1.0:
         raise ValueError("IMRPhenomXAS aligned spins must be between -1 and 1")
+    if tidal and not all(
+        math.isfinite(value) and value >= 0.0
+        for value in (lambda1, lambda2)
+    ):
+        raise ValueError("NRTidal deformabilities must be finite and non-negative")
     if not math.isfinite(distance) or distance <= 0.0:
         raise ValueError("IMRPhenomXAS distance must be finite and positive")
     if not all(
@@ -1690,7 +1870,9 @@ def imrphenomxas_fd_torch(**p):
 
     npts = _next_power_of_two(layout_f_max / delta_f) + 1
     first_bin = int(f_lower / delta_f)
-    stop_bin = int(active_f_max / delta_f) + 1
+    # The direct XAS generator includes its upper bin. The public tidal model
+    # is routed through XHM's interpolation, whose upper index is exclusive.
+    stop_bin = int(active_f_max / delta_f) + (0 if tidal else 1)
 
     device = state.torch_device
     real_dtype = torch.float32 if device.type == "mps" else torch.float64
@@ -1725,6 +1907,28 @@ def imrphenomxas_fd_torch(**p):
         dtype=real_dtype,
     )
     reference_frequency = f_ref if f_ref > 0.0 else f_lower
+    nrtidalv2 = None
+    if tidal:
+        quadrupole1 = _quadrupole_from_params(lambda1, dquad1)
+        quadrupole2 = _quadrupole_from_params(lambda2, dquad2)
+        merger_frequency = nrtidal_merger_frequency(
+            mass1,
+            mass2,
+            lambda1,
+            lambda2,
+        )
+        nrtidalv2 = _NRTidalV2Params(
+            mass1=mass1,
+            mass2=mass2,
+            spin1z=spin1z,
+            spin2z=spin2z,
+            lambda1=lambda1,
+            lambda2=lambda2,
+            quadrupole1=quadrupole1,
+            quadrupole2=quadrupole2,
+            merger_frequency=merger_frequency,
+            alignment_frequency=min(active_f_max, merger_frequency),
+        )
 
     with torch_context(frequencies):
         h22 = _gen_IMRPhenomXAS(
@@ -1734,6 +1938,7 @@ def imrphenomxas_fd_torch(**p):
             phase_coeffs,
             amp_coeffs,
             reference_frequency,
+            nrtidalv2,
         )
 
     cosi = math.cos(inclination)

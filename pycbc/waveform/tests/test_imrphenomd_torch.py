@@ -266,6 +266,7 @@ def test_imrphenomd_torch_native_emits_no_runtime_warnings():
         ({"spin_order": 2}, False),
         ({"tidal_order": 0}, False),
         ({"lambda1": 100.0}, False),
+        ({"approximant": "IMRPhenomXAS_NRTidalv2"}, False),
         ({"dchi3": 0.1}, False),
         ({"dalpha1": 0.1}, False),
         ({"mode_array": [(2, 2)]}, False),

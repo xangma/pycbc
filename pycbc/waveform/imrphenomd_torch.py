@@ -59,7 +59,6 @@ from pycbc import pnutils, scheme as _scheme
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform.nrtidal_torch import (
-    NRTIDAL_APPROXIMANTS,
     nrtidal_amplitude,
     nrtidal_higher_order_spin_phase,
     nrtidal_merger_frequency,
@@ -1238,7 +1237,11 @@ def imrphenomd_native_supported(params):
     rotation.
     """
     approximant = params.get("approximant", "IMRPhenomD")
-    if approximant not in {"IMRPhenomD", *NRTIDAL_APPROXIMANTS}:
+    if approximant not in {
+        "IMRPhenomD",
+        "IMRPhenomD_NRTidal",
+        "IMRPhenomD_NRTidalv2",
+    }:
         return False
     if any(
         not _is_default_order(params.get(key, -1))
