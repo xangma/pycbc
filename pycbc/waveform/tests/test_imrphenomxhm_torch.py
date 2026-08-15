@@ -179,6 +179,57 @@ CASES = [
         coa_phase=0.0,
         mode_array=[(3, -3)],
     ),
+    dict(
+        mass1=46.0,
+        mass2=19.0,
+        spin1z=0.35,
+        spin2z=-0.2,
+        delta_f=1.0,
+        f_lower=20.0,
+        f_final=700.0,
+        f_ref=25.0,
+        distance=350.0,
+        coa_phase=0.4,
+        mode_array=[(2, -2), (3, -3), (4, -4), (4, 4)],
+    ),
+    dict(
+        mass1=17.0,
+        mass2=43.0,
+        spin1z=-0.45,
+        spin2z=0.65,
+        delta_f=0.5,
+        f_lower=18.0,
+        f_ref=0.0,
+        distance=800.0,
+        coa_phase=0.2,
+        mode_array=[(4, -4)],
+    ),
+    dict(
+        mass1=600.0 / 11.0,
+        mass2=60.0 / 11.0,
+        spin1z=0.98,
+        spin2z=0.8,
+        delta_f=1.0,
+        f_lower=15.0,
+        f_final=900.0,
+        f_ref=25.0,
+        distance=500.0,
+        coa_phase=0.37,
+        mode_array=[(4, 4)],
+    ),
+    dict(
+        mass1=30.0,
+        mass2=30.0,
+        spin1z=0.3,
+        spin2z=0.3,
+        delta_f=1.0,
+        f_lower=20.0,
+        f_final=800.0,
+        f_ref=20.0,
+        distance=500.0,
+        coa_phase=0.0,
+        mode_array=[(4, -4), (4, 4)],
+    ),
 ]
 
 
@@ -233,10 +284,10 @@ def test_imrphenomxhm_native_modes_match_lal(params, monkeypatch, preserve_schem
             relative_error = np.linalg.norm(
                 result.numpy()[nonzero] - expected_array[nonzero]
             ) / np.linalg.norm(expected_array[nonzero])
-            # The (3, 3) model's eight-condition intermediate-amplitude
-            # system is ill-conditioned; different LU implementations retain
+            # The higher-mode eight-condition intermediate-amplitude systems
+            # are ill-conditioned; different LU implementations retain
             # slightly different double-precision roundoff.
-            tolerance = 1.0e-8 if mode[0] == 3 else 1.0e-10
+            tolerance = 1.0e-8 if mode[0] >= 3 else 1.0e-10
             assert relative_error < tolerance
 
 
@@ -249,8 +300,11 @@ def test_imrphenomxhm_native_support_is_deliberately_narrow():
     assert imrphenomxhm_modes_native_supported(
         {**params, "mode_array": [(3, -3), (3, 3)]}
     )
+    assert imrphenomxhm_modes_native_supported(
+        {**params, "mode_array": [(4, -4), (4, 4)]}
+    )
     assert not imrphenomxhm_modes_native_supported({**params, "mode_array": None})
-    assert not imrphenomxhm_modes_native_supported({**params, "mode_array": [(4, 4)]})
+    assert not imrphenomxhm_modes_native_supported({**params, "mode_array": [(3, 2)]})
     assert not imrphenomxhm_modes_native_supported({**params, "spin1x": 0.1})
     assert not imrphenomxhm_modes_native_supported({**params, "lambda1": 100.0})
 
@@ -259,7 +313,7 @@ def test_imrphenomxhm_higher_modes_use_lal_fallback(monkeypatch, preserve_scheme
     import pycbc.waveform.imrphenomxhm_torch as xhm_torch
     import pycbc.waveform.waveform_modes as waveform_modes
 
-    params = {**CASES[0], "mode_array": [(4, 4)]}
+    params = {**CASES[0], "mode_array": [(3, 2)]}
     lal_generator = waveform_modes.lalsimulation.SimIMRPhenomXHMGenerateFDOneMode
     lal_calls = 0
 
@@ -286,7 +340,7 @@ def test_imrphenomxhm_higher_modes_use_lal_fallback(monkeypatch, preserve_scheme
     result = get_fd_waveform_modes(approximant="IMRPhenomXHM", **params)
 
     assert lal_calls == 1
-    assert result.keys() == {(4, 4)}
+    assert result.keys() == {(3, 2)}
 
 
 def test_imrphenomxhm_native_avoids_lal_and_host_transfer(monkeypatch, preserve_scheme):
@@ -307,7 +361,10 @@ def test_imrphenomxhm_native_avoids_lal_and_host_transfer(monkeypatch, preserve_
     monkeypatch.setattr(TorchArrayData, "numpy", reject_host_transfer)
     monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "1")
     _activate_scheme(_scheme.TorchScheme("cpu"))
-    params = {**CASES[0], "mode_array": [(2, -2), (2, -1), (3, -3)]}
+    params = {
+        **CASES[0],
+        "mode_array": [(2, -2), (2, -1), (3, -3), (4, -4)],
+    }
     with torch.no_grad():
         modes = get_fd_waveform_modes(approximant="IMRPhenomXHM", **params)
 
@@ -316,7 +373,7 @@ def test_imrphenomxhm_native_avoids_lal_and_host_transfer(monkeypatch, preserve_
             assert isinstance(series._data.tensor, torch.Tensor)
 
 
-@pytest.mark.parametrize("mode", [(2, -2), (2, -1), (3, -3), (3, 3)])
+@pytest.mark.parametrize("mode", [(2, -2), (2, -1), (3, -3), (3, 3), (4, -4), (4, 4)])
 @pytest.mark.parametrize("device_name", ["cpu", "mps", "cuda"])
 def test_imrphenomxhm_modes_stay_on_requested_device(
     device_name, mode, monkeypatch, preserve_scheme
@@ -347,5 +404,5 @@ def test_imrphenomxhm_modes_stay_on_requested_device(
     if device_name == "mps":
         tolerance = 5.0e-3
     else:
-        tolerance = 1.0e-8 if mode[0] == 3 else 1.0e-10
+        tolerance = 1.0e-8 if mode[0] >= 3 else 1.0e-10
     assert relative_error < tolerance

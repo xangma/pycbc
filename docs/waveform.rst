@@ -120,12 +120,12 @@ environment flags:
   matter-spin, alignment, and taper corrections on-device. Transverse spins,
   unsupported tidal parameters, eccentricity, non-default PN orders,
   testing-GR changes, and custom modes fall back to lalsimulation.
-- IMRPhenomXHM modes (FD): ``PYCBC_IMRPHENOMXHM_NATIVE``. Explicit ``(2, 2)``
-  and ``(2, -2)`` requests through ``get_fd_waveform_modes`` reuse the native
-  XAS quadrupole on the active Torch device. Default mode sets and requests
-  containing the ``(2, 1)``, ``(3, 3)``, ``(3, 2)``, or ``(4, 4)`` fits still
-  fall back to lalsimulation; the normal polarization interface is not yet
-  native.
+- IMRPhenomXHM modes (FD): ``PYCBC_IMRPHENOMXHM_NATIVE``. Explicit
+  ``(2, +/-2)``, ``(2, +/-1)``, ``(3, +/-3)``, and ``(4, +/-4)`` requests
+  through ``get_fd_waveform_modes`` run on the active Torch device. The
+  quadrupole reuses native XAS; the other modes use native XHM no-mixing
+  kernels. Default mode sets and requests containing ``(3, +/-2)`` still fall
+  back to lalsimulation; the normal polarization interface is not yet native.
 - IMRPhenomHM (FD higher modes): ``PYCBC_IMRPHENOMHM_NATIVE``. The six modeled
   positive-m modes, their IMRPhenomD frequency maps, and polarization assembly
   run on the active Torch device. Scalar coefficient and spin-weighted
