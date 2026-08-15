@@ -67,6 +67,29 @@ def apply_polarization(hp, hc, polarization):
 
     return hp_ssb, hc_ssb
 
+
+def _searchsorted_time(series, value, side):
+    """Search a regularly sampled time grid without materializing it."""
+    if side not in ("left", "right"):
+        raise ValueError(f"Invalid search side: {side}")
+
+    start = float(series.start_time)
+    delta_t = float(series.delta_t)
+    value = float(value)
+    low = 0
+    high = len(series)
+    while low < high:
+        middle = (low + high) // 2
+        sample_time = numpy.float64(middle) * delta_t + start
+        before = sample_time < value
+        equal_on_right = side == "right" and sample_time == value
+        if before or equal_on_right:
+            low = middle + 1
+        else:
+            high = middle
+    return low
+
+
 def check_signal_times(hp, hc, orbit_start_time, orbit_end_time,
                        offset=TIME_OFFSET_20_DEGREES, pad_data=False, t0=1e4):
     """
@@ -130,7 +153,9 @@ def check_signal_times(hp, hc, orbit_start_time, orbit_end_time,
         logging.warning('Time of signal end is greater than end of orbital ' +
                         f'data. Cutting signal at {orbit_end_time}.')
         # cut off data succeeding orbit end time
-        end_idx = numpy.argwhere(hp.sample_times.numpy() <= orbit_end_time)[-1][0]
+        end_idx = _searchsorted_time(hp, orbit_end_time, "right") - 1
+        if end_idx < 0:
+            raise IndexError("Signal starts after the orbital data ends")
         hp = hp[:end_idx]
         hc = hc[:end_idx]
 
@@ -138,7 +163,9 @@ def check_signal_times(hp, hc, orbit_start_time, orbit_end_time,
         logging.warning('Time of signal start is less than start of orbital ' +
                         f'data. Cutting signal at {orbit_start_time}.')
         # cut off data preceding orbit start time
-        start_idx = numpy.argwhere(hp.sample_times.numpy() >= orbit_start_time)[0][0]
+        start_idx = _searchsorted_time(hp, orbit_start_time, "left")
+        if start_idx == len(hp):
+            raise IndexError("Signal ends before the orbital data starts")
         hp = hp[start_idx:]
         hc = hc[start_idx:]
 

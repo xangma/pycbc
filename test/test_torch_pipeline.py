@@ -17,6 +17,7 @@ torch = pytest.importorskip("torch")
 import pycbc
 from pycbc import scheme
 from pycbc.detector import Detector
+from pycbc.detector.space import check_signal_times
 from pycbc.filter import autocorrelation, matchedfilter, resample, zpk
 from pycbc.frame.frame import StatusBuffer
 from pycbc.inject.inject import SGBurstInjectionSet, _InjectionAdder
@@ -278,6 +279,62 @@ def test_status_buffer_flag_indices_stay_on_device(
 
     np.testing.assert_array_equal(actual, expected)
     assert status.raw_buffer._data.tensor.device.type == device
+
+
+@pytest.mark.parametrize(
+    "epoch, delta_t, orbit_start, orbit_end",
+    (
+        (100.0, 0.1, 100.25, 100.75),
+        (100.0, 0.1, 100.3, 100.7),
+        (
+            1_000_000_000.1234568,
+            1.0 / 4096,
+            1_000_000_000.124,
+            1_000_000_000.125,
+        ),
+    ),
+)
+def test_space_signal_trimming_stays_on_device(
+        torch_device_ctx, monkeypatch, epoch, delta_t,
+        orbit_start, orbit_end):
+    ctx, device = torch_device_ctx
+    if device == "mps" and delta_t < 1.0:
+        pytest.skip("Torch MPS does not support float64 sample-time grids")
+
+    plus = np.arange(16, dtype=np.float64)
+    cross = plus + 100.0
+    sample_times = np.arange(len(plus)) * delta_t + epoch
+    end_idx = np.flatnonzero(sample_times <= orbit_end)[-1]
+    start_idx = np.flatnonzero(sample_times[:end_idx] >= orbit_start)[0]
+    expected_plus = plus[start_idx:end_idx]
+    expected_cross = cross[start_idx:end_idx]
+    expected_epoch = sample_times[start_idx]
+
+    with ctx:
+        hp = TimeSeries(plus, delta_t=delta_t, epoch=epoch)
+        hc = TimeSeries(cross, delta_t=delta_t, epoch=epoch)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("Signal trimming copied waveform data")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual_hp, actual_hc = check_signal_times(
+                hp,
+                hc,
+                orbit_start,
+                orbit_end,
+                offset=0,
+            )
+
+    assert actual_hp._data.tensor.device.type == device
+    assert actual_hc._data.tensor.device.type == device
+    assert float(actual_hp.start_time) == pytest.approx(expected_epoch)
+    np.testing.assert_array_equal(
+        actual_hp._data.tensor.detach().cpu().numpy(), expected_plus
+    )
+    np.testing.assert_array_equal(
+        actual_hc._data.tensor.detach().cpu().numpy(), expected_cross
+    )
 
 
 @pytest.mark.parametrize("dtype", (np.complex64, np.complex128))
