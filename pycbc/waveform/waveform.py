@@ -37,6 +37,7 @@ from pycbc.fft import fft
 from pycbc import pnutils, libutils
 from pycbc.waveform import utils as wfutils
 from pycbc.waveform import parameters
+from pycbc.waveform.sinegauss import td_sine_gaussian
 from pycbc.conversions import get_final_from_initial, tau_from_final_mass_spin
 from pycbc.filter import interpolate_complex_frequency, resample_to_delta_t
 import pycbc
@@ -66,14 +67,18 @@ default_args = \
     (parameters.fd_waveform_params.default_dict() +
      parameters.td_waveform_params).default_dict()
 
-default_sgburst_args = {'eccentricity':0, 'polarization':0}
-sgburst_required_args = ['q','frequency','hrss']
+default_sgburst_args = {
+    'approximant': 'SineGaussian',
+    'eccentricity': 0,
+    'polarization': 0,
+}
+sgburst_required_args = ['q', 'frequency', 'hrss', 'delta_t']
 
 # td, fd, filter waveforms generated on the CPU
 _lalsim_td_approximants = {}
 _lalsim_fd_approximants = {}
 _lalsim_enum = {}
-_lalsim_sgburst_approximants = {}
+_sgburst_approximants = {'SineGaussian': td_sine_gaussian}
 
 def _check_lal_pars(p):
     """ Create a laldict object from the dictionary of waveform parameters
@@ -356,19 +361,6 @@ def _lalsim_fd_waveform(**p):
 
 _lalsim_fd_waveform.required = parameters.cbc_fd_required
 
-def _lalsim_sgburst_waveform(**p):
-    hp, hc = lalsimulation.SimBurstSineGaussian(float(p['q']),
-               float(p['frequency']),
-               float(p['hrss']),
-               float(p['eccentricity']),
-               float(p['polarization']),
-               float(p['delta_t']))
-
-    hp = TimeSeries(hp.data.data[:], delta_t=hp.deltaT, epoch=hp.epoch)
-    hc = TimeSeries(hc.data.data[:], delta_t=hc.deltaT, epoch=hc.epoch)
-
-    return hp, hc
-
 # Populate waveform approximants from lalsimulation if the library is
 # available
 try:
@@ -385,16 +377,10 @@ try:
             _lalsim_enum[approx_name] = approx_enum
             _lalsim_fd_approximants[approx_name] = _lalsim_fd_waveform
 
-    # sine-Gaussian burst
-    for approx_enum in range(0, lalsimulation.NumApproximants):
-        if lalsimulation.SimInspiralImplementedFDApproximants(approx_enum):
-            approx_name = lalsimulation.GetStringFromApproximant(approx_enum)
-            _lalsim_enum[approx_name] = approx_enum
-            _lalsim_sgburst_approximants[approx_name] = _lalsim_sgburst_waveform
 except ImportError:
     lalsimulation = libutils.import_optional('lalsimulation')
 
-cpu_sgburst = _lalsim_sgburst_approximants
+cpu_sgburst = _sgburst_approximants
 cpu_td = dict(_lalsim_td_approximants.items())
 cpu_fd = _lalsim_fd_approximants
 
@@ -430,8 +416,8 @@ def print_fd_approximants():
         print("  " + approx)
 
 def print_sgburst_approximants():
-    print("LalSimulation Approximants")
-    for approx in _lalsim_sgburst_approximants.keys():
+    print("PyCBC Approximants")
+    for approx in _sgburst_approximants:
         print("  " + approx)
 
 def td_approximants(scheme=_scheme.mgr.state):
@@ -1062,8 +1048,9 @@ def get_sgburst_waveform(template=None, **kwargs):
         An object that has attached properties. This can be used to subsitute
         for keyword arguments. A common example would be a row in an xml table.
     approximant : string
-        A string that indicates the chosen approximant. See `td_approximants`
-        for available options.
+        A string that indicates the chosen approximant. See
+        `sgburst_approximants` for available options. Default is
+        ``SineGaussian``.
     q : float
         The quality factor of a sine-Gaussian burst
     frequency : float
@@ -1072,8 +1059,11 @@ def get_sgburst_waveform(template=None, **kwargs):
         The time step used to generate the waveform
     hrss : float
         The strain rss
-    amplitude: float
-        The strain amplitude
+    eccentricity : float, optional
+        Eccentricity of the polarization ellipse. Zero is circular and one
+        is linear. Default is zero.
+    polarization : float, optional
+        Phase of the sinusoidal oscillation in radians. Default is zero.
 
     Returns
     -------
@@ -1084,11 +1074,23 @@ def get_sgburst_waveform(template=None, **kwargs):
     """
     input_params = props_sgburst(template,**kwargs)
 
-    for arg in sgburst_required_args:
-        if arg not in input_params:
-            raise ValueError("Please provide " + str(arg))
+    check_args(input_params, sgburst_required_args)
+    try:
+        generator = _sgburst_approximants[input_params['approximant']]
+    except KeyError as exc:
+        raise ValueError(
+            "Unknown sine-Gaussian burst approximant "
+            f"{input_params['approximant']}"
+        ) from exc
 
-    return _lalsim_sgburst_waveform(**input_params)
+    return generator(
+        quality=input_params['q'],
+        central_frequency=input_params['frequency'],
+        hrss=input_params['hrss'],
+        delta_t=input_params['delta_t'],
+        eccentricity=input_params['eccentricity'],
+        phase=input_params['polarization'],
+    )
 
 # Waveform filter routines ###################################################
 
@@ -1310,7 +1312,11 @@ if hasattr(_scheme, "TorchScheme"):
         fd_wav[_scheme.TorchScheme][
             "SEOBNRv4"
         ] = _seobnrv4_td_to_fd_torch_dispatch
-sgburst_wav = {_scheme.CPUScheme:cpu_sgburst}
+sgburst_wav = _scheme.ChooseBySchemeDict()
+sgburst_wav.update({
+    _scheme.CPUScheme: cpu_sgburst,
+    getattr(_scheme, 'TorchScheme', object()): cpu_sgburst,
+})
 
 def get_waveform_filter(out, template=None, **kwargs):
     """Return a frequency domain waveform filter for the specified approximant

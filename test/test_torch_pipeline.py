@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 import scipy.interpolate
 import scipy.signal
+import lalsimulation
 
 torch = pytest.importorskip("torch")
 
@@ -19,6 +20,7 @@ from pycbc.strain.strain import StrainBuffer, detect_loud_glitches, gate_data
 from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform import ringdown, sinegauss
+from pycbc.waveform import waveform as waveform_module
 
 if not pycbc.HAVE_TORCH:
     pytest.skip("PyCBC built without torch support", allow_module_level=True)
@@ -197,6 +199,151 @@ def test_fd_sine_gaussian_torch_matches_cpu_without_host_transfer(
     torch.testing.assert_close(
         result._data.tensor.detach().cpu(), expected, **tolerances
     )
+
+
+_SGBURST_CASES = (
+    {
+        "q": 9.0,
+        "frequency": 150.0,
+        "hrss": 1e-21,
+        "eccentricity": 0.0,
+        "polarization": 0.0,
+        "delta_t": 1 / 4096,
+    },
+    {
+        "q": 4.2,
+        "frequency": 80.0,
+        "hrss": 2e-22,
+        "eccentricity": 1.0,
+        "polarization": np.pi / 2,
+        "delta_t": 1 / 2048,
+    },
+    {
+        "q": 25.0,
+        "frequency": 512.0,
+        "hrss": 4e-21,
+        "eccentricity": 0.6,
+        "polarization": -0.7,
+        "delta_t": 1 / 8192,
+    },
+)
+
+
+def _lalsim_sgburst_reference(parameters):
+    plus, cross = lalsimulation.SimBurstSineGaussian(
+        parameters["q"],
+        parameters["frequency"],
+        parameters["hrss"],
+        parameters["eccentricity"],
+        parameters["polarization"],
+        parameters["delta_t"],
+    )
+    return (
+        plus.data.data.copy(),
+        cross.data.data.copy(),
+        float(plus.epoch),
+    )
+
+
+@pytest.mark.parametrize("parameters", _SGBURST_CASES)
+def test_td_sine_gaussian_cpu_matches_lalsimulation(parameters):
+    expected_plus, expected_cross, expected_epoch = (
+        _lalsim_sgburst_reference(parameters)
+    )
+
+    plus, cross = waveform_module.get_sgburst_waveform(**parameters)
+
+    assert isinstance(plus, TimeSeries)
+    assert isinstance(cross, TimeSeries)
+    assert plus.delta_t == parameters["delta_t"]
+    assert cross.delta_t == parameters["delta_t"]
+    assert float(plus.start_time) == expected_epoch
+    assert float(cross.start_time) == expected_epoch
+    np.testing.assert_allclose(
+        plus.numpy(), expected_plus, rtol=5e-14, atol=1e-35
+    )
+    np.testing.assert_allclose(
+        cross.numpy(), expected_cross, rtol=5e-14, atol=1e-35
+    )
+
+
+@pytest.mark.parametrize("parameters", _SGBURST_CASES)
+def test_td_sine_gaussian_torch_matches_lalsimulation_without_host_transfer(
+        torch_device_ctx, monkeypatch, parameters):
+    ctx, device = torch_device_ctx
+    expected_plus, expected_cross, expected_epoch = (
+        _lalsim_sgburst_reference(parameters)
+    )
+    sinegauss._cached_torch_time_grid.cache_clear()
+
+    with ctx:
+        with monkeypatch.context() as patch:
+            def _reject_lalsimulation(*_args, **_kwargs):
+                raise AssertionError("sine-Gaussian generation used LAL")
+
+            def _reject_host_transfer(_self):
+                raise AssertionError(
+                    "sine-Gaussian generation copied Torch data to host"
+                )
+
+            def _reject_numpy(*_args, **_kwargs):
+                raise AssertionError(
+                    "sine-Gaussian generation used a NumPy array operation"
+                )
+
+            patch.setattr(
+                lalsimulation,
+                "SimBurstSineGaussian",
+                _reject_lalsimulation,
+            )
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            for operation in (
+                "abs", "arange", "cos", "exp", "ones", "sin", "where"
+            ):
+                patch.setattr(sinegauss.numpy, operation, _reject_numpy)
+
+            plus, cross = waveform_module.get_sgburst_waveform(**parameters)
+
+    dtype = torch.float32 if device == "mps" else torch.float64
+    tolerances = (
+        {"rtol": 1e-4, "atol": 1e-26}
+        if device == "mps"
+        else {"rtol": 2e-12, "atol": 1e-35}
+    )
+    for actual, expected in (
+        (plus, expected_plus),
+        (cross, expected_cross),
+    ):
+        assert isinstance(actual, TimeSeries)
+        assert actual._data.tensor.device.type == device
+        assert actual._data.tensor.dtype == dtype
+        assert actual.delta_t == parameters["delta_t"]
+        assert float(actual.start_time) == expected_epoch
+        torch.testing.assert_close(
+            actual._data.tensor.detach().cpu(),
+            torch.as_tensor(expected, dtype=dtype),
+            **tolerances,
+        )
+
+
+def test_sgburst_requires_delta_t_and_has_a_real_registry_entry():
+    with pytest.raises(ValueError, match="delta_t"):
+        waveform_module.get_sgburst_waveform(
+            q=9,
+            frequency=150,
+            hrss=1e-21,
+        )
+
+    assert waveform_module.sgburst_approximants() == ["SineGaussian"]
+
+    with pytest.raises(ValueError, match="Unknown sine-Gaussian"):
+        waveform_module.get_sgburst_waveform(
+            approximant="TaylorF2",
+            q=9,
+            frequency=150,
+            hrss=1e-21,
+            delta_t=1 / 4096,
+        )
 
 
 def _ringdown_parameters():
