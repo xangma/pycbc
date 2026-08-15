@@ -281,6 +281,19 @@ def _lalsim_fd_waveform(**p):
             return imrphenomd_fd_torch(**p)
 
     if (
+        p.get("approximant") == "IMRPhenomHM"
+        and using_torch
+        and torch_native_enabled("PYCBC_IMRPHENOMHM_NATIVE", default=False)
+    ):
+        from .imrphenomhm_torch import (
+            imrphenomhm_fd_torch,
+            imrphenomhm_native_supported,
+        )
+
+        if imrphenomhm_native_supported(p):
+            return imrphenomhm_fd_torch(**p)
+
+    if (
         p.get("approximant")
         in (
             "SEOBNRv4_ROM",

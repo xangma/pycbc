@@ -1,17 +1,28 @@
+import os
+
 import numpy as np
 import pytest
 
 torch = pytest.importorskip("torch")
 
-from pycbc import scheme as _scheme
-from pycbc.waveform import get_fd_waveform
+from pycbc import scheme as _scheme  # noqa: E402
+from pycbc.waveform import get_fd_waveform  # noqa: E402
 
 
 def _run_case(approximant, params):
+    env_backup = {
+        key: os.environ.get(key)
+        for key in (
+            "PYCBC_TORCH_NATIVE_PORTS",
+            "PYCBC_IMRPHENOMHM_NATIVE",
+        )
+    }
     old_scheme = _scheme.mgr.state
     old_single = _scheme.Scheme._single
 
     try:
+        os.environ["PYCBC_TORCH_NATIVE_PORTS"] = "0"
+        os.environ["PYCBC_IMRPHENOMHM_NATIVE"] = "0"
         _scheme.Scheme._single = None
         _scheme.mgr.state = _scheme.CPUScheme()
         h_cpu, _ = get_fd_waveform(approximant=approximant, **params)
@@ -20,6 +31,11 @@ def _run_case(approximant, params):
         _scheme.mgr.state = _scheme.TorchScheme()
         h_torch, _ = get_fd_waveform(approximant=approximant, **params)
     finally:
+        for key, value in env_backup.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
         _scheme.mgr.state = old_scheme
         _scheme.Scheme._single = old_single
 
@@ -47,7 +63,7 @@ def _run_case(approximant, params):
         ),
     ],
 )
-def test_lalsim_waveform_is_cast_to_torch(approximant, params):
+def test_imrphenomhm_lalsim_fallback_is_cast_to_torch(approximant, params):
     h_cpu, h_torch = _run_case(approximant, params)
     assert isinstance(h_torch._data.tensor, torch.Tensor)
     cpu = h_cpu.numpy()

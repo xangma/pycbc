@@ -101,13 +101,22 @@ environment flags:
 - IMRPhenomD (FD): ``PYCBC_IMRPHENOMD_NATIVE``. Frequency-grid construction,
   amplitude/phase evaluation, masking, and polarization assembly run on the
   active Torch device; small coefficient and QNM-table setup remains on CPU.
-  Tidal, transverse-spin, testing-GR, and non-default mode options fall back to
+  ``IMRPhenomD_NRTidal`` and ``IMRPhenomD_NRTidalv2`` also apply their tidal
+  phase, amplitude, spin, and taper corrections on-device. Transverse spins,
+  testing-GR changes, and unsupported tidal or mode options fall back to
   lalsimulation.
-- SEOBNRv4_ROM (FD aligned-spin BBH): ``PYCBC_SEOBNRV4_NATIVE``. ROM
-  interpolation, frequency interpolation, and waveform assembly run on the
-  active Torch device using ``SEOBNRv4ROM_v3.0.hdf5``. The time-domain
-  ``SEOBNRv4`` model, transverse-spin/tidal extensions, and NRTidal
-  approximants continue to use lalsimulation.
+- IMRPhenomHM (FD higher modes): ``PYCBC_IMRPHENOMHM_NATIVE``. The six modeled
+  positive-m modes, their IMRPhenomD frequency maps, and polarization assembly
+  run on the active Torch device. Scalar coefficient and spin-weighted
+  spherical-harmonic setup remains on CPU. Mode subsets are supported;
+  transverse spins, tides, testing-GR changes, and unmodeled modes fall back to
+  lalsimulation.
+- SEOBNRv4_ROM (FD aligned-spin): ``PYCBC_SEOBNRV4_NATIVE``. ROM interpolation,
+  frequency interpolation, and waveform assembly run on the active Torch
+  device using ``SEOBNRv4ROM_v3.0.hdf5``. The native path also covers
+  ``SEOBNRv4_ROM_NRTidal`` and ``SEOBNRv4_ROM_NRTidalv2`` with on-device tidal
+  corrections. The time-domain ``SEOBNRv4`` model, transverse spins, and
+  unsupported tidal extensions continue to use lalsimulation.
 - SEOBNRv4HM_ROM (FD higher modes): ``PYCBC_SEOBNRV4HM_NATIVE`` (torch-native ROM
   evaluation using ``SEOBNRv4HMROM_v1.0.hdf5``); requires the ROM file in
   ``$LAL_DATA_PATH`` or ``pycbc/waveform``.

@@ -892,7 +892,15 @@ class _PhaseCoeffs:
     C2MRD: float
 
 
-def _compute_phase_coeffs(eta: float, chi1: float, chi2: float, finspin: float, pn) -> _PhaseCoeffs:
+def _compute_phase_coeffs(
+    eta: float,
+    chi1: float,
+    chi2: float,
+    finspin: float,
+    pn,
+    Rholm: float = 1.0,
+    Taulm: float = 1.0,
+) -> _PhaseCoeffs:
     eta = _nudge_eta(eta)
     eta2 = eta * eta
     eta_inv = 1.0 / eta
@@ -937,9 +945,32 @@ def _compute_phase_coeffs(eta: float, chi1: float, chi2: float, finspin: float, 
 
     PhiIntTempVal = eta_inv * _phi_int(fMRDJoin, beta1, beta2, beta3) + C1Int + C2Int * fMRDJoin
     DPhiIntTempVal = C2Int + (beta1 + beta3 / (fMRDJoin ** 4) + beta2 / fMRDJoin) * eta_inv
-    DPhiMRDVal = _d_phi_mrd(fMRDJoin, alpha1, alpha2, alpha3, alpha4, alpha5, fRD, fDM, eta_inv)
+    DPhiMRDVal = _d_phi_mrd(
+        fMRDJoin,
+        alpha1,
+        alpha2,
+        alpha3,
+        alpha4,
+        alpha5,
+        fRD,
+        fDM,
+        eta_inv,
+        Rholm,
+        Taulm,
+    )
     C2MRD = DPhiIntTempVal - DPhiMRDVal
-    PhiMRDJoin = _phi_mrd(fMRDJoin, alpha1, alpha2, alpha3, alpha4, alpha5, fRD, fDM)
+    PhiMRDJoin = _phi_mrd(
+        fMRDJoin,
+        alpha1,
+        alpha2,
+        alpha3,
+        alpha4,
+        alpha5,
+        fRD,
+        fDM,
+        Rholm,
+        Taulm,
+    )
     C1MRD = PhiIntTempVal - eta_inv * PhiMRDJoin - C2MRD * fMRDJoin
 
     return _PhaseCoeffs(
@@ -1065,16 +1096,53 @@ def _d_phi_int(Mf, beta1, beta2, beta3, eta_inv):
     return eta_inv * (beta1 + beta3 / (Mf ** 4) + beta2 / Mf)
 
 
-def _phi_mrd(f, alpha1, alpha2, alpha3, alpha4, alpha5, fRD, fDM):
+def _phi_mrd(
+    f,
+    alpha1,
+    alpha2,
+    alpha3,
+    alpha4,
+    alpha5,
+    fRD,
+    fDM,
+    Rholm=1.0,
+    Taulm=1.0,
+):
     xp = torch if isinstance(f, torch.Tensor) else _np
     sqrootf = xp.sqrt(f)
     fpow1_5 = f * sqrootf
     fpow0_75 = xp.sqrt(fpow1_5)
-    return -(alpha2 / f) + (4.0 / 3.0) * (alpha3 * fpow0_75) + alpha1 * f + alpha4 * xp.arctan((f - alpha5 * fRD) / (fDM))
+    return (
+        -(alpha2 / f)
+        + (4.0 / 3.0) * (alpha3 * fpow0_75)
+        + alpha1 * f
+        + alpha4
+        * Rholm
+        * xp.arctan((f - alpha5 * fRD) / (Rholm * fDM * Taulm))
+    )
 
 
-def _d_phi_mrd(f, alpha1, alpha2, alpha3, alpha4, alpha5, fRD, fDM, eta_inv):
-    return eta_inv * (alpha1 + alpha2 / (f * f) + alpha3 / (f ** 0.25) + alpha4 / (fDM * (1 + ((f - alpha5 * fRD) ** 2) / (fDM * fDM))))
+def _d_phi_mrd(
+    f,
+    alpha1,
+    alpha2,
+    alpha3,
+    alpha4,
+    alpha5,
+    fRD,
+    fDM,
+    eta_inv,
+    Rholm=1.0,
+    Taulm=1.0,
+):
+    width = fDM * Taulm
+    return eta_inv * (
+        alpha1
+        + alpha2 / (f * f)
+        + alpha3 / (f**0.25)
+        + alpha4
+        / (width * (1 + ((f - alpha5 * fRD) ** 2) / ((width * Rholm) ** 2)))
+    )
 
 
 # ---------- PN helpers --------------------------------------------------------------
@@ -1470,7 +1538,15 @@ def _IMRPhenDAmplitude(Mf, a: _AmpCoeffs, powers: _Powers):
     return res
 
 
-def _IMRPhenDPhase(Mf, p: _PhaseCoeffs, pn, phi_pref: _PhiPref, pow_pi: _Powers):
+def _IMRPhenDPhase(
+    Mf,
+    p: _PhaseCoeffs,
+    pn,
+    phi_pref: _PhiPref,
+    pow_pi: _Powers,
+    Rholm: float = 1.0,
+    Taulm: float = 1.0,
+):
     res = torch.empty_like(Mf) if isinstance(Mf, torch.Tensor) else _np.empty_like(Mf)
     mask_ins = Mf < p.fInsJoin
     mask_mrd = Mf >= p.fMRDJoin
@@ -1499,6 +1575,8 @@ def _IMRPhenDPhase(Mf, p: _PhaseCoeffs, pn, phi_pref: _PhiPref, pow_pi: _Powers)
             p.alpha5,
             p.fRD,
             p.fDM,
+            Rholm,
+            Taulm,
         )
         + p.C1MRD
         + p.C2MRD * Mf[mask_mrd]
