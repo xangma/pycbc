@@ -819,15 +819,24 @@ class StatusBuffer(DataBuffer):
         s = int((start_time - self.raw_buffer.start_time - padding) * sr) - 1
         e = s + int((duration + padding) * sr) + 1
         data = self.raw_buffer[s:e]
-        stamps = data.sample_times.numpy()
+        tensor = getattr(getattr(data, "_data", None), "tensor", None)
 
-        if self.valid_on_zero:
-            invalid = data.numpy() != 0
+        if tensor is not None:
+            if self.valid_on_zero:
+                invalid = tensor != 0
+            else:
+                invalid = tensor.bitwise_and(self.valid_mask) != self.valid_mask
+            stamp_tensor = data.sample_times._data.tensor
+            starts = stamp_tensor[invalid].detach().cpu().numpy() - padding
         else:
-            invalid = numpy.bitwise_and(data.numpy(), self.valid_mask) \
-                    != self.valid_mask
+            stamps = data.sample_times.numpy()
+            if self.valid_on_zero:
+                invalid = data.numpy() != 0
+            else:
+                invalid = numpy.bitwise_and(data.numpy(), self.valid_mask) \
+                        != self.valid_mask
+            starts = stamps[invalid] - padding
 
-        starts = stamps[invalid] - padding
         ends = starts + 1.0 / sr + padding * 2.0
         idx = indices_outside_times(times, starts, ends)
         return idx

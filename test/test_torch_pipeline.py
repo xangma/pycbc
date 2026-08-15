@@ -237,6 +237,49 @@ def test_status_buffer_validation_stays_on_device(
     assert all(array._data.tensor.device.type == device for array in arrays)
 
 
+@pytest.mark.parametrize(
+    "valid_on_zero, status_values",
+    (
+        (True, (0, 0, 1, 0, 0, 2, 0, 0)),
+        (False, (3, 7, 1, 3, 3, 2, 7, 3)),
+    ),
+)
+def test_status_buffer_flag_indices_stay_on_device(
+        torch_device_ctx, monkeypatch, valid_on_zero, status_values):
+    ctx, device = torch_device_ctx
+    if device == "mps":
+        pytest.skip("Torch MPS does not support integer status arrays")
+
+    times = np.asarray(
+        (100.75, 101.0, 101.49, 101.5, 102.5, 102.99, 103.0)
+    )
+    status = StatusBuffer.__new__(StatusBuffer)
+    status.valid_mask = 3
+    status.valid_on_zero = valid_on_zero
+    status.raw_buffer = TimeSeries(
+        np.asarray(status_values, dtype=np.int32),
+        delta_t=0.5,
+        epoch=100,
+    )
+    expected = status.indices_of_flag(100.5, 3.5, times)
+
+    with ctx:
+        status.raw_buffer = TimeSeries(
+            np.asarray(status_values, dtype=np.int32),
+            delta_t=0.5,
+            epoch=100,
+        )
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("Flag selection copied full data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = status.indices_of_flag(100.5, 3.5, times)
+
+    np.testing.assert_array_equal(actual, expected)
+    assert status.raw_buffer._data.tensor.device.type == device
+
+
 @pytest.mark.parametrize("dtype", (np.complex64, np.complex128))
 @pytest.mark.parametrize("custom_frequencies", (False, True))
 def test_waveform_evolution_helpers_stay_on_device(
