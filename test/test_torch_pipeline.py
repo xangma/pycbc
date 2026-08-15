@@ -24,6 +24,7 @@ from pycbc.strain import calibration, lines as strain_lines, recalibrate
 from pycbc.strain.strain import StrainBuffer, detect_loud_glitches, gate_data
 from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
+import pycbc.vetoes.chisq as chisq
 from pycbc.waveform import ringdown, sinegauss, utils as waveform_utils
 from pycbc.waveform import waveform as waveform_module
 
@@ -855,6 +856,46 @@ def test_injection_filter_rejector_coarsens_on_device(
         rtol=0,
         atol=0,
     )
+
+
+def test_power_chisq_bins_stay_on_device(torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    htilde_values = np.ones(513, dtype=np.complex64)
+    psd_values = np.ones(513, dtype=np.float32)
+    parameters = {
+        "num_bins": 8,
+        "low_frequency_cutoff": 20,
+        "high_frequency_cutoff": 400,
+    }
+    expected = chisq.power_chisq_bins(
+        FrequencySeries(htilde_values, delta_f=1),
+        parameters["num_bins"],
+        FrequencySeries(psd_values, delta_f=1),
+        parameters["low_frequency_cutoff"],
+        parameters["high_frequency_cutoff"],
+    )
+
+    with ctx:
+        htilde = FrequencySeries(htilde_values, delta_f=1)
+        psd = FrequencySeries(psd_values, delta_f=1)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("chi-squared bins copied data to host")
+
+            def _reject_numpy_search(*_args, **_kwargs):
+                raise AssertionError("chi-squared bins used NumPy searchsorted")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(chisq.numpy, "searchsorted", _reject_numpy_search)
+            actual = chisq.power_chisq_bins(
+                htilde,
+                parameters["num_bins"],
+                psd,
+                parameters["low_frequency_cutoff"],
+                parameters["high_frequency_cutoff"],
+            )
+
+    np.testing.assert_array_equal(actual, expected)
 
 
 def _ringdown_parameters():

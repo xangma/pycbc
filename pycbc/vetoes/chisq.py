@@ -52,6 +52,21 @@ def power_chisq_bins_from_sigmasq_series(sigmasq_series, num_bins, kmin, kmax):
     bins: List of ints
         A list of the edges of the chisq bins is returned.
     """
+    tensor = getattr(getattr(sigmasq_series, "_data", None), "tensor", None)
+    if tensor is not None:
+        import torch
+
+        sigmasq = tensor[kmax - 1]
+        edge_vec = torch.arange(
+            num_bins, dtype=tensor.dtype, device=tensor.device
+        ) * sigmasq / num_bins
+        bins = torch.searchsorted(
+            tensor[kmin:kmax], edge_vec, right=True
+        ) + kmin
+        return numpy.asarray(
+            [*bins.to(device="cpu").tolist(), kmax], dtype=numpy.int64
+        )
+
     sigmasq = sigmasq_series[kmax - 1]
     edge_vec = numpy.arange(0, num_bins) * sigmasq / num_bins
     bins = numpy.searchsorted(sigmasq_series[kmin:kmax], edge_vec, side='right')
@@ -84,8 +99,9 @@ def power_chisq_bins(htilde, num_bins, psd, low_frequency_cutoff=None,
     bins: List of ints
         A list of the edges of the chisq bins is returned.
     """
-    sigma_vec = sigmasq_series(htilde, psd, low_frequency_cutoff,
-                               high_frequency_cutoff).numpy()
+    sigma_vec = sigmasq_series(
+        htilde, psd, low_frequency_cutoff, high_frequency_cutoff
+    )
     kmin, kmax = get_cutoff_indices(low_frequency_cutoff,
                                     high_frequency_cutoff,
                                     htilde.delta_f,
