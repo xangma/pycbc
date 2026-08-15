@@ -1,3 +1,5 @@
+import importlib
+
 import numpy as np
 import pytest
 
@@ -54,7 +56,8 @@ def _run_engine(scheme_ctx, dtype, params):
     return htilde.numpy()
 
 
-def test_spatmplt_torch_matches_cpu(params):
+def test_spatmplt_torch_matches_cpu(params, monkeypatch):
+    monkeypatch.setenv("PYCBC_SPATPLT_NATIVE", "1")
     scheme.Scheme._single = None
     cpu = _run_engine(scheme.CPUScheme(), np.complex64, params)
     torch_out = _run_engine(scheme.TorchScheme("cpu"), np.complex64, params)
@@ -63,7 +66,8 @@ def test_spatmplt_torch_matches_cpu(params):
     assert rel_l2 < 1e-5
 
 
-def test_spatmplt_torch_dtype_and_device(params):
+def test_spatmplt_torch_dtype_and_device(params, monkeypatch):
+    monkeypatch.setenv("PYCBC_SPATPLT_NATIVE", "1")
     scheme.Scheme._single = None
     ctx = scheme.TorchScheme("cpu")
     with ctx:
@@ -74,6 +78,33 @@ def test_spatmplt_torch_dtype_and_device(params):
         assert htilde._data.tensor.dtype == torch.complex64
         assert htilde._data.tensor.device.type == "cpu"
     scheme.Scheme._single = None
+
+
+@pytest.mark.parametrize("device", _torch_devices())
+def test_spatmplt_native_frequency_grid_stays_on_device(
+    params, monkeypatch, device
+):
+    spa_torch = importlib.import_module("pycbc.waveform.spa_tmplt_torch")
+
+    def reject_numpy_grid(*_args, **_kwargs):
+        raise AssertionError("native SPA built a bulk frequency grid with NumPy")
+
+    for operation in ("arange", "cbrt", "log", "power"):
+        monkeypatch.setattr(spa_torch._np, operation, reject_numpy_grid)
+
+    native_params = {
+        key: value for key, value in params.items() if key != "phase_order"
+    }
+    result = spa_torch._torch_native_spa(
+        64,
+        device=device,
+        dtype_out=torch.complex64,
+        **native_params,
+    )
+
+    for key in ("v", "logv", "kfac", "out"):
+        assert result[key].device.type == device
+        assert torch.isfinite(result[key]).all()
 
 
 @pytest.mark.parametrize("device", _torch_devices())

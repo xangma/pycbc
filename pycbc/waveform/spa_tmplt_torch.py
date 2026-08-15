@@ -22,13 +22,14 @@ phase terms and f^-7/6 amplitude) but keeps computation entirely on the active
 torch device. CPU routes remain available via other scheme backends.
 """
 
-import torch
-import numpy as _np
-import pycbc.scheme as _scheme
-from pycbc.waveform import spa_tmplt_cpu as _spa_cpu
-from pycbc.types import FrequencySeries, zeros
-from pycbc.waveform.torch_switches import torch_native_enabled
+import math
 import os
+
+import numpy as _np
+import torch
+
+from pycbc.waveform import spa_tmplt_cpu as _spa_cpu
+from pycbc.waveform.torch_switches import torch_native_enabled
 
 
 def _torch_native_spa(n, kmin, delta_f, piM, pfaN, pfa2, pfa3, pfa4, pfa5,
@@ -44,44 +45,43 @@ def _torch_native_spa(n, kmin, delta_f, piM, pfaN, pfa2, pfa3, pfa4, pfa5,
     # use float64 intermediates when requested (or when output is complex128)
     f_dtype = torch.float64 if force_f64 or dtype_out == torch.complex128 else torch.float32
 
-    # Build frequency tables with float64 pow/log then cast, matching CPU C code
-    idx_np = _np.arange(n, dtype=_np.float64)
-    delta_f_np = _np.float64(delta_f)
-    f_phase_np = (idx_np + _np.float64(kmin)) * delta_f_np
+    device = torch.device(device)
+    # CPU and CUDA use float64 tables before casting, matching the historical
+    # C/NumPy rounding. MPS has no float64 support, so evaluate there directly
+    # in the float32 precision used by its complex output.
+    table_dtype = (
+        torch.float32 if device.type == "mps" else torch.float64
+    )
+    frequencies = (
+        torch.arange(n, device=device, dtype=table_dtype) + kmin
+    ) * delta_f
+    pi_m_root = torch.pow(
+        torch.tensor(piM, device=device, dtype=table_dtype), 1.0 / 3.0
+    )
+    log_pi_m_root = torch.log(pi_m_root)
+    v = pi_m_root * torch.pow(frequencies, 1.0 / 3.0)
+    safe_frequencies = torch.where(
+        frequencies == 0.0, torch.ones_like(frequencies), frequencies
+    )
+    logv = torch.log(safe_frequencies) / 3.0 + log_pi_m_root
+    # Match CPU lookup behavior at f=0 (logv_vec[0] == 0 -> logpiM13).
+    logv = torch.where(frequencies == 0.0, log_pi_m_root, logv)
+    if table_dtype != f_dtype:
+        v = v.to(f_dtype)
+        logv = logv.to(f_dtype)
 
-    piM13_np = _np.cbrt(_np.float64(piM))
-    logpiM13_np = _np.log(piM13_np)
-    log4_np = _np.log(_np.float64(4.0))
-
-    v_np = piM13_np * _np.power(f_phase_np, _np.float64(1.0 / 3.0))
-    logv_np = _np.log(f_phase_np) * _np.float64(1.0 / 3.0) + logpiM13_np
-    # Match CPU lookup behavior at f=0 (logv_vec[0] == 0 -> logpiM13)
-    logv_np = _np.where(f_phase_np == 0.0, logpiM13_np, logv_np)
-    if f_dtype == torch.float32:
-        v_np = v_np.astype(_np.float32)
-        logv_np = logv_np.astype(_np.float32)
-
-    v = torch.tensor(v_np, device=device, dtype=f_dtype)
-    logv = torch.tensor(logv_np, device=device, dtype=f_dtype)
-
-    # Preconditioner: float64 pow then cast to float32, mirroring spa_tmplt_precondition.
-    # Default now builds on the active torch device to avoid host copies; set
-    # PYCBC_SPATPLT_KFAC_DEVICE=0 to force the legacy numpy path.
-    if os.environ.get("PYCBC_SPATPLT_KFAC_DEVICE", "1").lower() in ("1", "true", "yes", "on"):
-        k_idx = torch.arange(kmin + 1, kmin + n + 1, device=device, dtype=torch.float64)
-        kfac_t = torch.pow(k_idx * delta_f_np, -7.0 / 6.0)
-        kfac = kfac_t.to(f_dtype) if f_dtype == torch.float32 else kfac_t
-    else:
-        v_amp = _np.arange(0, (kmin + n * 2), 1.0, dtype=_np.float64) * delta_f_np
-        v_amp = _np.power(v_amp[1:], -7.0 / 6.0)
-        if f_dtype == torch.float32:
-            v_amp = v_amp.astype(_np.float32)
-        kfac = torch.tensor(v_amp[kmin:kmin + n], device=device, dtype=f_dtype)
+    # Preconditioner: float64 pow then cast to float32, mirroring
+    # spa_tmplt_precondition while keeping the frequency grid on-device.
+    k_idx = torch.arange(
+        kmin + 1, kmin + n + 1, device=device, dtype=table_dtype
+    )
+    kfac_t = torch.pow(k_idx * delta_f, -7.0 / 6.0)
+    kfac = kfac_t.to(f_dtype) if f_dtype == torch.float32 else kfac_t
 
     amp = torch.tensor(amp_factor, device=device, dtype=f_dtype) * kfac
 
-    two_pi = torch.tensor(2.0 * _np.pi, dtype=f_dtype, device=device)
-    log4 = torch.tensor(log4_np, dtype=f_dtype, device=device)
+    two_pi = torch.tensor(2.0 * math.pi, dtype=f_dtype, device=device)
+    log4 = torch.tensor(math.log(4.0), dtype=f_dtype, device=device)
 
     pfa2_t = torch.tensor(pfa2, dtype=f_dtype, device=device)
     pfa3_t = torch.tensor(pfa3, dtype=f_dtype, device=device)
@@ -104,18 +104,20 @@ def _torch_native_spa(n, kmin, delta_f, piM, pfaN, pfa2, pfa3, pfa4, pfa5,
     ph = (ph + pfa3_t) * v
     ph = (ph + pfa2_t) * v2 + torch.tensor(1.0, dtype=f_dtype, device=device)
 
-    ph = ph * (pfaN_t / v5) - torch.tensor(_np.pi / 4.0, dtype=f_dtype, device=device)
+    ph = ph * (pfaN_t / v5) - torch.tensor(
+        math.pi / 4.0, dtype=f_dtype, device=device
+    )
     ph = ph - torch.trunc(ph / two_pi) * two_pi
-    ph = torch.where(ph < -_np.pi, ph + two_pi, ph)
-    ph = torch.where(ph > _np.pi, ph - two_pi, ph)
+    ph = torch.where(ph < -math.pi, ph + two_pi, ph)
+    ph = torch.where(ph > math.pi, ph - two_pi, ph)
 
     sinp = torch.tensor(1.273239545, device=device, dtype=f_dtype) * ph - torch.tensor(
         0.405284735, device=device, dtype=f_dtype
     ) * ph * torch.abs(ph)
     sinp = torch.tensor(0.225, device=device, dtype=f_dtype) * (sinp * torch.abs(sinp) - sinp) + sinp
 
-    phs = ph + torch.tensor(_np.pi / 2.0, device=device, dtype=f_dtype)
-    phs = torch.where(phs > _np.pi, phs - two_pi, phs)
+    phs = ph + torch.tensor(math.pi / 2.0, device=device, dtype=f_dtype)
+    phs = torch.where(phs > math.pi, phs - two_pi, phs)
     cosp = torch.tensor(1.273239545, device=device, dtype=f_dtype) * phs - torch.tensor(
         0.405284735, device=device, dtype=f_dtype
     ) * phs * torch.abs(phs)
@@ -166,7 +168,6 @@ def _numpy_reference(n, kmin, delta_f, piM, pfaN, pfa2, pfa3, pfa4, pfa5,
     piM32 = _np.float32(piM)
     idx = _np.arange(n, dtype=_np.float32)
     f_phase = (idx + kmin) * _np.float32(delta_f)
-    f_amp = (idx + kmin + 1.0) * _np.float32(delta_f)
     v = _np.cbrt(piM32) * _np.power(f_phase, _np.float32(1.0 / 3.0))
     logv = _np.log(f_phase) * _np.float32(1.0 / 3.0) + _np.log(_np.cbrt(piM32))
 
