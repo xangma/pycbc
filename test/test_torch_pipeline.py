@@ -18,6 +18,7 @@ from pycbc.strain import calibration, lines as strain_lines, recalibrate
 from pycbc.strain.strain import StrainBuffer, detect_loud_glitches, gate_data
 from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
+from pycbc.waveform import sinegauss
 
 if not pycbc.HAVE_TORCH:
     pytest.skip("PyCBC built without torch support", allow_module_level=True)
@@ -122,6 +123,79 @@ def test_trim_zeros_stays_on_torch_device(
     torch.testing.assert_close(
         trimmed._data.tensor.detach().cpu(),
         torch.as_tensor(expected),
+    )
+
+
+@pytest.mark.parametrize(
+    "parameters",
+    (
+        {
+            "amp": 1.0,
+            "quality": 8.0,
+            "central_frequency": 150.0,
+            "fmin": 20.0,
+            "fmax": 512.0,
+            "delta_f": 0.25,
+        },
+        {
+            "amp": 0.3,
+            "quality": 100.0,
+            "central_frequency": 80.0,
+            "fmin": 30.0,
+            "fmax": 256.0,
+            "delta_f": 0.5,
+        },
+        {
+            "amp": 2.0,
+            "quality": 4.0,
+            "central_frequency": 60.0,
+            "fmin": 55.0,
+            "fmax": 128.0,
+            "delta_f": 1.0,
+        },
+    ),
+)
+def test_fd_sine_gaussian_torch_matches_cpu_without_host_transfer(
+        torch_device_ctx, monkeypatch, parameters):
+    ctx, device = torch_device_ctx
+    reference = sinegauss.fd_sine_gaussian(**parameters).numpy().copy()
+    sinegauss._cached_torch_arange.cache_clear()
+
+    with ctx:
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError(
+                    "sine-Gaussian generation copied Torch data to host"
+                )
+
+            def _reject_numpy(*_args, **_kwargs):
+                raise AssertionError(
+                    "sine-Gaussian generation used a NumPy array operation"
+                )
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(sinegauss.numpy, "arange", _reject_numpy)
+            patch.setattr(sinegauss.numpy, "zeros", _reject_numpy)
+            patch.setattr(sinegauss.numpy, "exp", _reject_numpy)
+            result = sinegauss.fd_sine_gaussian(**parameters)
+            cast = result.astype(np.complex64)
+
+    expected_dtype = torch.complex64 if device == "mps" else torch.complex128
+    assert isinstance(result, FrequencySeries)
+    assert result._data.tensor.device.type == device
+    assert result._data.tensor.dtype == expected_dtype
+    assert cast._data.tensor.device.type == device
+    assert len(result) == round(parameters["fmax"] / parameters["delta_f"])
+    assert result.delta_f == parameters["delta_f"]
+
+    expected = torch.as_tensor(reference, dtype=expected_dtype)
+    tolerances = (
+        {"rtol": 2e-5, "atol": 1e-7}
+        if device == "mps"
+        else {"rtol": 1e-12, "atol": 1e-14}
+    )
+    torch.testing.assert_close(
+        result._data.tensor.detach().cpu(), expected, **tolerances
     )
 
 
