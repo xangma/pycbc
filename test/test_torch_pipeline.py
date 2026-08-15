@@ -28,6 +28,7 @@ from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
 import pycbc.vetoes.chisq as chisq
 from pycbc.waveform import ringdown, sinegauss, utils as waveform_utils
+from pycbc.waveform.compress import spa_compression
 from pycbc.waveform import waveform as waveform_module
 
 if not pycbc.HAVE_TORCH:
@@ -169,6 +170,54 @@ def test_waveform_evolution_helpers_stay_on_device(
             actual._data.tensor.detach().cpu().numpy(), expected.numpy(),
             rtol=tolerance, atol=tolerance,
         )
+
+
+@pytest.mark.parametrize("dtype", (np.complex64, np.complex128))
+@pytest.mark.parametrize("custom_frequencies", (False, True))
+def test_spa_compression_stays_on_device(
+        torch_device_ctx, monkeypatch, dtype, custom_frequencies):
+    ctx, device = torch_device_ctx
+    if device == "mps" and dtype == np.complex128:
+        pytest.skip("Torch MPS does not support complex128")
+
+    size = 256
+    delta_f = 0.25
+    indices = np.arange(size)
+    amplitude = np.zeros(size)
+    amplitude[4:240] = np.linspace(0.2, 1.0, 236)
+    phase = -0.001 * indices ** 2
+    waveform = (amplitude * np.exp(1j * phase)).astype(dtype)
+    frequencies = np.arange(size, dtype=np.float64) * delta_f
+    expected = spa_compression(
+        FrequencySeries(waveform, delta_f=delta_f),
+        5.0,
+        50.0,
+        sample_frequencies=frequencies if custom_frequencies else None,
+    )
+
+    with ctx:
+        torch_series = FrequencySeries(waveform, delta_f=delta_f)
+        torch_frequencies = None
+        if custom_frequencies:
+            torch_frequencies = torch.arange(
+                size,
+                dtype=torch_series._data.tensor.real.dtype,
+                device=torch_series._data.tensor.device,
+            ) * delta_f
+
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("SPA compression copied data to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = spa_compression(
+                torch_series,
+                5.0,
+                50.0,
+                sample_frequencies=torch_frequencies,
+            )
+
+    np.testing.assert_allclose(actual, expected, rtol=0.0, atol=delta_f)
 
 
 @pytest.mark.parametrize("dtype", (np.float32, np.float64))
