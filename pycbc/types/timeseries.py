@@ -375,6 +375,43 @@ class TimeSeries(Array):
         i = _numpy.asarray(_numpy.floor(fi)).astype(int)
         di = fi - i
 
+        tensor = getattr(self._data, 'tensor', None)
+        if tensor is not None:
+            import torch
+
+            indices = torch.as_tensor(
+                i, device=tensor.device, dtype=torch.int64)
+            offsets = torch.as_tensor(
+                di, device=tensor.device, dtype=tensor.real.dtype)
+            if interpolate == 'linear':
+                a = tensor[indices]
+                b = tensor[indices + 1]
+                ans = a + (b - a) * offsets
+            elif interpolate == 'quadratic':
+                c = tensor[indices]
+                xr = tensor[indices + 1] - c
+                xl = tensor[indices - 1] - c
+                a = 0.5 * (xr + xl)
+                b = 0.5 * (xr - xl)
+                ans = a * offsets.square() + b * offsets + c
+            else:
+                ans = tensor[indices]
+
+            if fill_value is not None:
+                if not tensor.is_complex() and _numpy.iscomplexobj(fill_value):
+                    fill_value = fill_value.real
+                old = ans
+                ans = torch.full(
+                    (size,), fill_value,
+                    device=tensor.device, dtype=tensor.dtype)
+                keep_indices = torch.as_tensor(
+                    keep_idx, device=tensor.device, dtype=torch.int64)
+                ans[keep_indices] = old
+
+            if _numpy.ndim(time) == 0:
+                return ans[0]
+            return ans
+
         if interpolate == 'linear':
             a = self[i]
             b = self[i+1]

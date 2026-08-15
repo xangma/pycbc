@@ -703,6 +703,134 @@ def test_scalar_distance_marginalization_uses_torch_precision(
         actual, expected, rtol=tolerance, atol=tolerance)
 
 
+@pytest.mark.parametrize("dominant_mode", (False, True))
+def test_relative_time_snr_predictor_stays_on_device(
+        torch_device_ctx, monkeypatch, dominant_mode):
+    ctx, device = torch_device_ctx
+    complex_dtype = np.complex64 if device == "mps" else np.complex128
+    real_dtype = np.float32 if device == "mps" else np.float64
+    rng = np.random.default_rng(72819)
+    frequency_count, sample_count = 73, 37
+    freqs = np.linspace(20.0, 600.0, frequency_count, dtype=real_dtype)
+    hp = (rng.normal(size=frequency_count) +
+          1j * rng.normal(size=frequency_count)).astype(complex_dtype)
+    hc = (rng.normal(size=frequency_count) +
+          1j * rng.normal(size=frequency_count)).astype(complex_dtype)
+    h00 = (1.25 + rng.random(frequency_count) +
+           1j * rng.normal(size=frequency_count)).astype(complex_dtype)
+    a0 = (rng.normal(size=frequency_count - 1) +
+          1j * rng.normal(size=frequency_count - 1)).astype(complex_dtype)
+    a1 = (rng.normal(size=frequency_count - 1) +
+          1j * rng.normal(size=frequency_count - 1)).astype(complex_dtype)
+    b0 = rng.random(frequency_count - 1).astype(real_dtype)
+    b1 = rng.normal(size=frequency_count - 1).astype(real_dtype)
+    tstart, delta_t = real_dtype(-0.0173), real_dtype(1 / 2048)
+
+    times = tstart + delta_t * np.arange(sample_count, dtype=real_dtype)
+    shift = np.exp(-2.0j * 3.141592653 * times[:, None] * freqs)
+
+    def products(waveform):
+        ratio = waveform / h00
+        shifted = shift * ratio
+        shifted_lo = shifted[:, :-1]
+        filt = np.conjugate(np.sum(
+            a0 * shifted_lo
+            + a1 * (shifted[:, 1:] - shifted_lo), axis=-1))
+        power = np.abs(ratio) ** 2
+        norm = np.sum(
+            b0 * power[:-1] + b1 * (power[1:] - power[:-1]))
+        return filt, norm
+
+    expected_sh, expected_hh = products(hp)
+    if not dominant_mode:
+        expected_csh, expected_chh = products(hc)
+        expected = np.sqrt(
+            np.abs(expected_sh) ** 2 / (2.0 * expected_hh)
+            + np.abs(expected_csh) ** 2 / (2.0 * expected_chh))
+
+    with ctx:
+        hp_array = Array(hp)
+        hc_array = Array(hc)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("SNR prediction copied its waveform")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(
+                _INFERENCE_RELBIN_TORCH,
+                "_SNR_PREDICTOR_TARGET_ELEMENTS",
+                2 * frequency_count,
+            )
+            prepared = _INFERENCE_RELBIN_TORCH.prepare_likelihood_data(
+                hp_array, freqs, h00, a0, a1, b0, b1)
+            if dominant_mode:
+                actual = _INFERENCE_RELBIN_TORCH.snr_predictor_dom(
+                    prepared[0], tstart, delta_t, sample_count,
+                    hp_array, *prepared[1:])
+            else:
+                actual = _INFERENCE_RELBIN_TORCH.snr_predictor(
+                    prepared[0], tstart, delta_t, sample_count,
+                    hp_array, hc_array, *prepared[1:])
+
+    tolerance = 5e-4 if device == "mps" else 3e-12
+    if dominant_mode:
+        actual_sh, actual_hh = actual
+        assert actual_sh.device.type == device
+        assert actual_hh.device.type == device
+        np.testing.assert_allclose(
+            actual_sh.resolve_conj().cpu().numpy(), expected_sh,
+            rtol=tolerance, atol=tolerance)
+        np.testing.assert_allclose(
+            actual_hh.cpu().numpy(), expected_hh,
+            rtol=tolerance, atol=tolerance)
+    else:
+        assert actual.device.type == device
+        np.testing.assert_allclose(
+            actual.cpu().numpy(), expected,
+            rtol=tolerance, atol=tolerance)
+
+
+@pytest.mark.parametrize("interpolate", (None, "linear", "quadratic"))
+def test_timeseries_at_time_stays_on_device(
+        torch_device_ctx, monkeypatch, interpolate):
+    ctx, device = torch_device_ctx
+    dtype = np.complex64 if device == "mps" else np.complex128
+    epoch, delta_t = 1_000_000_000, 1 / 1024
+    samples = np.arange(64, dtype=np.float64)
+    data = (np.sin(samples / 7.0) + 1j * np.cos(samples / 9.0)).astype(
+        dtype)
+    times = epoch + delta_t * np.array((-3.2, 5.25, 17.6, 63.4, 68.0))
+    reference = TimeSeries(data, delta_t=delta_t, epoch=epoch).at_time(
+        times, interpolate=interpolate, extrapolate=0.0j)
+    scalar_reference = TimeSeries(
+        data, delta_t=delta_t, epoch=epoch
+    ).at_time(
+        float(times[2]), interpolate=interpolate, extrapolate=0.0j)
+
+    with ctx:
+        series = TimeSeries(data, delta_t=delta_t, epoch=epoch)
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError("Time lookup copied its series to host")
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            actual = series.at_time(
+                times, interpolate=interpolate, extrapolate=0.0j)
+            scalar_actual = series.at_time(
+                float(times[2]), interpolate=interpolate, extrapolate=0.0j)
+
+    tolerance = 2e-5 if device == "mps" else 2e-12
+    assert actual.device.type == device
+    assert scalar_actual.device.type == device
+    assert scalar_actual.ndim == 0
+    np.testing.assert_allclose(
+        actual.cpu().numpy(), reference,
+        rtol=tolerance, atol=tolerance)
+    np.testing.assert_allclose(
+        scalar_actual.cpu().numpy(), scalar_reference,
+        rtol=tolerance, atol=tolerance)
+
+
 @pytest.mark.parametrize("dtype", (np.float32, np.float64))
 @pytest.mark.parametrize(
     "sample_offset",

@@ -76,6 +76,18 @@ def _numpy_value(value):
     return value
 
 
+def _time_series_from_values(values, delta_t, epoch):
+    """Wrap values as a TimeSeries without copying Torch storage."""
+    tensor = _torch_tensor(values)
+    if tensor is None:
+        return TimeSeries(values, delta_t=delta_t, epoch=epoch)
+
+    from pycbc.types.array_torch import TorchArrayData
+
+    return TimeSeries(
+        TorchArrayData(tensor), delta_t=delta_t, epoch=epoch, copy=False)
+
+
 def setup_bins(f_full, f_lo, f_hi, chi=1.0,
                eps=0.1, gammas=None,
                ):
@@ -488,6 +500,91 @@ class Relative(DistMarg, BaseGaussianNoise):
         self.wf_ret = wf_ret
         return wf_ret
 
+    def _polarization_likelihood_parts(self, ifo, params, waveform,
+                                       likelihood):
+        """Evaluate one detector's polarization likelihood products."""
+        hp, hc = waveform
+        freqs = self.fedges[ifo]
+        sdat = self.sdat[ifo]
+        h00 = self.h00_sparse[ifo]
+        times = self.antenna_time[ifo]
+        detector = self.det[ifo]
+        fp, fc = detector.antenna_pattern(
+            params["ra"], params["dec"], 0.0, times)
+        delay = detector.time_delay_from_earth_center(
+            params["ra"], params["dec"], times)
+        earth_time = self.lformat in ('earth_time', 'earth_time_pol')
+        if earth_time:
+            dtc = params["tc"] - self.end_time[ifo] - self.ta[ifo]
+        else:
+            dtc = (
+                params["tc"] + delay
+                - self.end_time[ifo] - self.ta[ifo]
+            )
+        pol_phase = numpy.exp(-2.0j * params['polarization'])
+
+        torch_data = None
+        if likelihood in _TORCH_POLARIZATION_LIKELIHOODS:
+            torch_data = self._get_torch_likelihood_data(ifo, hp)
+        if torch_data is not None:
+            from . import relbin_torch
+
+            freqs_t, h00_t, a0_t, a1_t, b0_t, b1_t = torch_data
+            if self.lformat == 'earth_time_pol':
+                filt, norm = relbin_torch.likelihood_parts_v_pol_time(
+                    freqs_t, fp, fc, delay, dtc, pol_phase,
+                    hp, hc, h00_t, a0_t, a1_t, b0_t, b1_t)
+            elif self.lformat == 'earth_pol':
+                filt, norm = relbin_torch.likelihood_parts_v_pol(
+                    freqs_t, fp, fc, dtc, pol_phase,
+                    hp, hc, h00_t, a0_t, a1_t, b0_t, b1_t)
+            else:
+                response = (fp + 1.0j * fc) * pol_phase
+                fp = response.real.copy()
+                fc = response.imag.copy()
+                if self.lformat == 'earth_time':
+                    filt, norm = relbin_torch.likelihood_parts_v_time(
+                        freqs_t, fp, fc, delay, dtc,
+                        hp, hc, h00_t, a0_t, a1_t, b0_t, b1_t)
+                elif likelihood in (
+                        likelihood_parts_vector,
+                        likelihood_parts_vectort,
+                        likelihood_parts_vectorp):
+                    filt, norm = relbin_torch.likelihood_parts_vector(
+                        freqs_t, fp, fc, dtc,
+                        hp, hc, h00_t, a0_t, a1_t, b0_t, b1_t)
+                else:
+                    filt, norm = relbin_torch.likelihood_parts(
+                        freqs_t, fp, fc, dtc,
+                        hp, hc, h00_t, a0_t, a1_t, b0_t, b1_t)
+        else:
+            hp, hc = _numpy_value(hp), _numpy_value(hc)
+            if self.lformat == 'earth_time_pol':
+                filt, norm = likelihood(
+                    freqs, fp, fc, delay, dtc, pol_phase,
+                    hp, hc, h00,
+                    sdat['a0'], sdat['a1'], sdat['b0'], sdat['b1'])
+            elif self.lformat == 'earth_pol':
+                filt, norm = likelihood(
+                    freqs, fp, fc, dtc, pol_phase,
+                    hp, hc, h00,
+                    sdat['a0'], sdat['a1'], sdat['b0'], sdat['b1'])
+            else:
+                response = (fp + 1.0j * fc) * pol_phase
+                fp = response.real.copy()
+                fc = response.imag.copy()
+                if self.lformat == 'earth_time':
+                    filt, norm = likelihood(
+                        freqs, fp, fc, delay, dtc,
+                        hp, hc, h00,
+                        sdat['a0'], sdat['a1'], sdat['b0'], sdat['b1'])
+                else:
+                    filt, norm = likelihood(
+                        freqs, fp, fc, dtc,
+                        hp, hc, h00,
+                        sdat['a0'], sdat['a1'], sdat['b0'], sdat['b1'])
+        return filt, norm, (fp, fc, dtc, hp, hc, h00)
+
     @property
     def multi_signal_support(self):
         """ The list of classes that this model supports in a multi-signal
@@ -602,14 +699,11 @@ class Relative(DistMarg, BaseGaussianNoise):
         norm = 0.0
         filt = 0j
         self._current_wf_parts = {}
-        pol_phase = numpy.exp(-2.0j * p['polarization'])
 
         for ifo in self.data:
             freqs = self.fedges[ifo]
             sdat = self.sdat[ifo]
             h00 = self.h00_sparse[ifo]
-            end_time = self.end_time[ifo]
-            times = self.antenna_time[ifo]
 
             # project waveform to detector frame if waveform does not deal
             # with detector response. Otherwise, skip detector response.
@@ -636,93 +730,10 @@ class Relative(DistMarg, BaseGaussianNoise):
                         sdat['b0'], sdat['b1'])
                 self._current_wf_parts[ifo] = (dtc, channel, h00)
             else:
-                hp, hc = wfs[ifo]
-                det = self.det[ifo]
-                fp, fc = det.antenna_pattern(p["ra"], p["dec"],
-                                             0.0, times)
-                dt = det.time_delay_from_earth_center(p["ra"], p["dec"], times)
-                earth_time = self.lformat in (
-                    'earth_time', 'earth_time_pol')
-                if earth_time:
-                    dtc = p["tc"] - end_time - self.ta[ifo]
-                else:
-                    dtc = p["tc"] + dt - end_time - self.ta[ifo]
-
-                torch_data = None
-                if lik in _TORCH_POLARIZATION_LIKELIHOODS:
-                    torch_data = self._get_torch_likelihood_data(ifo, hp)
-                if torch_data is not None:
-                    from . import relbin_torch
-
-                    freqs_t, h00_t, a0_t, a1_t, b0_t, b1_t = torch_data
-                    if self.lformat == 'earth_time_pol':
-                        filter_i, norm_i = (
-                            relbin_torch.likelihood_parts_v_pol_time(
-                                freqs_t, fp, fc, dt, dtc, pol_phase,
-                                hp, hc, h00_t,
-                                a0_t, a1_t, b0_t, b1_t))
-                    elif self.lformat == 'earth_pol':
-                        filter_i, norm_i = (
-                            relbin_torch.likelihood_parts_v_pol(
-                                freqs_t, fp, fc, dtc, pol_phase,
-                                hp, hc, h00_t,
-                                a0_t, a1_t, b0_t, b1_t))
-                    else:
-                        f = (fp + 1.0j * fc) * pol_phase
-                        fp = f.real.copy()
-                        fc = f.imag.copy()
-                        if self.lformat == 'earth_time':
-                            filter_i, norm_i = (
-                                relbin_torch.likelihood_parts_v_time(
-                                    freqs_t, fp, fc, dt, dtc,
-                                    hp, hc, h00_t,
-                                    a0_t, a1_t, b0_t, b1_t))
-                        elif lik in (likelihood_parts_vector,
-                                    likelihood_parts_vectort,
-                                    likelihood_parts_vectorp):
-                            filter_i, norm_i = (
-                                relbin_torch.likelihood_parts_vector(
-                                    freqs_t, fp, fc, dtc,
-                                    hp, hc, h00_t,
-                                    a0_t, a1_t, b0_t, b1_t))
-                        else:
-                            filter_i, norm_i = relbin_torch.likelihood_parts(
-                                freqs_t, fp, fc, dtc,
-                                hp, hc, h00_t,
-                                a0_t, a1_t, b0_t, b1_t)
-                    self._current_wf_parts[ifo] = (
-                        fp, fc, dtc, hp, hc, h00)
-                else:
-                    hp, hc = _numpy_value(hp), _numpy_value(hc)
-                    if self.lformat == 'earth_time_pol':
-                        filter_i, norm_i = lik(
-                            freqs, fp, fc, dt, dtc, pol_phase,
-                            hp, hc, h00,
-                            sdat['a0'], sdat['a1'],
-                            sdat['b0'], sdat['b1'])
-                    elif self.lformat == 'earth_pol':
-                        filter_i, norm_i = lik(
-                            freqs, fp, fc, dtc, pol_phase,
-                            hp, hc, h00,
-                            sdat['a0'], sdat['a1'],
-                            sdat['b0'], sdat['b1'])
-                    else:
-                        f = (fp + 1.0j * fc) * pol_phase
-                        fp = f.real.copy()
-                        fc = f.imag.copy()
-                        if self.lformat == 'earth_time':
-                            filter_i, norm_i = lik(
-                                freqs, fp, fc, dt, dtc,
-                                hp, hc, h00,
-                                sdat['a0'], sdat['a1'],
-                                sdat['b0'], sdat['b1'])
-                        else:
-                            filter_i, norm_i = lik(
-                                freqs, fp, fc, dtc,
-                                hp, hc, h00,
-                                sdat['a0'], sdat['a1'],
-                                sdat['b0'], sdat['b1'])
-                    self._current_wf_parts[ifo] = (fp, fc, dtc, hp, hc, h00)
+                filter_i, norm_i, wf_parts = (
+                    self._polarization_likelihood_parts(
+                        ifo, p, wfs[ifo], lik))
+                self._current_wf_parts[ifo] = wf_parts
 
             filt += filter_i
             norm += norm_i
@@ -853,16 +864,25 @@ class RelativeTime(Relative):
         for ifo in wfs:
             sdat = self.sdat[ifo]
             dtc = self.tstart[ifo] - self.end_time[ifo] - self.ta[ifo]
+            hp, hc = wfs[ifo]
+            torch_data = self._get_torch_likelihood_data(ifo, hp)
+            if torch_data is not None:
+                from .relbin_torch import snr_predictor as torch_predictor
 
-            snr = snr_predictor(self.fedges[ifo],
-                                dtc - delta_t * 2.0, delta_t,
-                                self.num_samples[ifo] + 4,
-                                wfs[ifo][0], wfs[ifo][1],
-                                self.h00_sparse[ifo],
-                                sdat['a0'], sdat['a1'],
-                                sdat['b0'], sdat['b1'])
-            snrs[ifo] = TimeSeries(snr, delta_t=delta_t,
-                                   epoch=self.tstart[ifo] - delta_t * 2.0)
+                freqs, h00, a0, a1, b0, b1 = torch_data
+                snr = torch_predictor(
+                    freqs, dtc - delta_t * 2.0, delta_t,
+                    self.num_samples[ifo] + 4, hp, hc, h00,
+                    a0, a1, b0, b1)
+            else:
+                hp, hc = _numpy_value(hp), _numpy_value(hc)
+                snr = snr_predictor(
+                    self.fedges[ifo], dtc - delta_t * 2.0, delta_t,
+                    self.num_samples[ifo] + 4, hp, hc,
+                    self.h00_sparse[ifo],
+                    sdat['a0'], sdat['a1'], sdat['b0'], sdat['b1'])
+            snrs[ifo] = _time_series_from_values(
+                snr, delta_t, self.tstart[ifo] - delta_t * 2.0)
         return snrs
 
     @catch_waveform_error
@@ -884,50 +904,17 @@ class RelativeTime(Relative):
         """
         # get model params
         p = self.current_params
-        wfs = self.get_waveforms(p)
+        wfs = self.get_waveforms(p, keep_torch=True)
         lik = self.likelihood_function
         norm = 0.0
         filt = 0j
-        pol_phase = numpy.exp(-2.0j * p['polarization'])
 
         self.snr_draw(wfs)
         p = self.current_params
 
         for ifo in self.data:
-            freqs = self.fedges[ifo]
-            sdat = self.sdat[ifo]
-            h00 = self.h00_sparse[ifo]
-            end_time = self.end_time[ifo]
-            times = self.antenna_time[ifo]
-
-            hp, hc = wfs[ifo]
-            det = self.det[ifo]
-            fp, fc = det.antenna_pattern(p["ra"], p["dec"],
-                                         0, times)
-            times = det.time_delay_from_earth_center(p["ra"], p["dec"], times)
-            dtc = p["tc"] - end_time - self.ta[ifo]
-
-            if self.lformat == 'earth_time_pol':
-                filter_i, norm_i = lik(
-                                       freqs, fp, fc, times, dtc, pol_phase,
-                                       hp, hc, h00,
-                                       sdat['a0'], sdat['a1'],
-                                       sdat['b0'], sdat['b1'])
-            else:
-                f = (fp + 1.0j * fc) * pol_phase
-                fp = f.real.copy()
-                fc = f.imag.copy()
-                if self.lformat == 'earth_time':
-                    filter_i, norm_i = lik(
-                                           freqs, fp, fc, times, dtc,
-                                           hp, hc, h00,
-                                           sdat['a0'], sdat['a1'],
-                                           sdat['b0'], sdat['b1'])
-                else:
-                    filter_i, norm_i = lik(freqs, fp, fc, times + dtc,
-                                           hp, hc, h00,
-                                           sdat['a0'], sdat['a1'],
-                                           sdat['b0'], sdat['b1'])
+            filter_i, norm_i, _ = self._polarization_likelihood_parts(
+                ifo, p, wfs[ifo], lik)
             filt += filter_i
             norm += norm_i
         loglr = self.marginalize_loglr(filt, norm)
@@ -956,18 +943,27 @@ class RelativeTimeDom(RelativeTime):
         for ifo in wfs:
             sdat = self.sdat[ifo]
             dtc = self.tstart[ifo] - self.end_time[ifo] - self.ta[ifo]
+            hp = wfs[ifo][0]
+            torch_data = self._get_torch_likelihood_data(ifo, hp)
+            if torch_data is not None:
+                from .relbin_torch import snr_predictor_dom as torch_predictor
 
-            sh, hh = snr_predictor_dom(self.fedges[ifo],
-                                       dtc - delta_t * 2.0, delta_t,
-                                       self.num_samples[ifo] + 4,
-                                       wfs[ifo][0],
-                                       self.h00_sparse[ifo],
-                                       sdat['a0'], sdat['a1'],
-                                       sdat['b0'], sdat['b1'])
-            snr = TimeSeries(abs(sh[2:-2]) / hh ** 0.5, delta_t=delta_t,
-                             epoch=self.tstart[ifo])
-            self.sh[ifo] = TimeSeries(sh, delta_t=delta_t,
-                                      epoch=self.tstart[ifo] - delta_t * 2.0)
+                freqs, h00, a0, a1, b0, b1 = torch_data
+                sh, hh = torch_predictor(
+                    freqs, dtc - delta_t * 2.0, delta_t,
+                    self.num_samples[ifo] + 4, hp, h00,
+                    a0, a1, b0, b1)
+            else:
+                hp = _numpy_value(hp)
+                sh, hh = snr_predictor_dom(
+                    self.fedges[ifo], dtc - delta_t * 2.0, delta_t,
+                    self.num_samples[ifo] + 4, hp,
+                    self.h00_sparse[ifo],
+                    sdat['a0'], sdat['a1'], sdat['b0'], sdat['b1'])
+            snr = _time_series_from_values(
+                abs(sh[2:-2]) / hh ** 0.5, delta_t, self.tstart[ifo])
+            self.sh[ifo] = _time_series_from_values(
+                sh, delta_t, self.tstart[ifo] - delta_t * 2.0)
             self.hh[ifo] = hh
             snrs[ifo] = snr
 
@@ -999,7 +995,7 @@ class RelativeTimeDom(RelativeTime):
 
         p2 = p.copy()
         p2.pop('inclination')
-        wfs = self.get_waveforms(p2)
+        wfs = self.get_waveforms(p2, keep_torch=True)
 
         sh_total = hh_total = 0
         ic = numpy.cos(p['inclination'])
@@ -1026,11 +1022,21 @@ class RelativeTimeDom(RelativeTime):
             sh = self.sh[ifo].at_time(dts, 
                                       interpolate='quadratic',
                                       extrapolate=0.0j)
+            sh_tensor = _torch_tensor(sh)
+            if sh_tensor is not None:
+                import torch
+
+                htf = torch.as_tensor(
+                    htf, device=sh_tensor.device, dtype=sh_tensor.dtype)
             sh_total += sh * htf
             hh_total += self.hh[ifo] * abs(htf) ** 2.0
 
         loglr = self.marginalize_loglr(sh_total, hh_total)
         if self.return_sh_hh:
+            sh_tensor = _torch_tensor(sh_total)
+            if sh_tensor is not None and sh_tensor.ndim == 0:
+                sh_total = sh_total.item()
+                hh_total = hh_total.item()
             results = (sh_total, hh_total)
         else:
             results = loglr
