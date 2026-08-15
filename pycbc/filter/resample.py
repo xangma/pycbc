@@ -22,11 +22,20 @@
 # =============================================================================
 #
 import functools
+import operator
+
 import lal
 import numpy
 import scipy.signal
-from pycbc.types import TimeSeries, Array, zeros, FrequencySeries, real_same_precision_as
-from pycbc.types import complex_same_precision_as
+
+from pycbc.types import (
+    Array,
+    FrequencySeries,
+    TimeSeries,
+    complex_same_precision_as,
+    real_same_precision_as,
+    zeros,
+)
 from pycbc.fft import ifft, fft
 import pycbc
 
@@ -62,6 +71,12 @@ def _butterworth_resample_sos(resample_factor):
     cutoff *= (1 / numpy.sqrt(nyquist_amplitude) - 1) ** (
         -0.5 / filter_order
     )
+    return _butterworth_sos(cutoff, filter_order, highpass=False)
+
+
+@functools.lru_cache(maxsize=100)
+def _butterworth_sos(cutoff, filter_order, highpass):
+    """Construct LAL's transformed-frequency Butterworth sections."""
 
     sections = []
     for index in range(filter_order // 2):
@@ -71,20 +86,44 @@ def _butterworth_resample_sos(resample_factor):
         pole = ((1 - pole_imag) + 1j * pole_real) / (
             (1 + pole_imag) - 1j * pole_real
         )
-        gain = cutoff**2 / (
+        gain = (1 if highpass else cutoff**2) / (
             pole_real**2 + (1 + pole_imag) ** 2
         )
         sections.append(
             [
                 gain,
-                2 * gain,
+                (-2 if highpass else 2) * gain,
                 gain,
                 1,
                 -2 * pole.real,
                 abs(pole) ** 2,
             ]
         )
+
+    if filter_order % 2:
+        pole = (1 - cutoff) / (1 + cutoff)
+        gain = (1 if highpass else cutoff) / (1 + cutoff)
+        sections.append(
+            [
+                gain,
+                (-1 if highpass else 1) * gain,
+                0,
+                1,
+                -pole,
+                0,
+            ]
+        )
     return numpy.asarray(sections)
+
+
+def _torch_zero_phase_sos(data, sections):
+    """Apply LAL's section-by-section forward/reverse filtering."""
+
+    for section in sections:
+        section = section[numpy.newaxis, :]
+        data = _torch_sosfilt(section, data)
+        data = _torch_sosfilt(section, data.flip(0)).flip(0)
+    return data
 
 
 def _torch_butterworth_resample(timeseries, delta_t):
@@ -114,10 +153,9 @@ def _torch_butterworth_resample(timeseries, delta_t):
     # backward before advancing to the next pair. Calling the device scan one
     # section at a time preserves both that boundary behavior and REAL4's
     # per-pass rounding.
-    for section in _butterworth_resample_sos(factor):
-        section = section[numpy.newaxis, :]
-        data = _torch_sosfilt(section, data)
-        data = _torch_sosfilt(section, data.flip(0)).flip(0)
+    data = _torch_zero_phase_sos(
+        data, _butterworth_resample_sos(factor)
+    )
 
     # LAL truncates the input length before decimation. Cloning releases the
     # full filtered allocation instead of retaining it through a strided view.
@@ -126,6 +164,39 @@ def _torch_butterworth_resample(timeseries, delta_t):
     return TimeSeries(
         TorchArrayData(data),
         delta_t=delta_t,
+        epoch=timeseries._epoch,
+        copy=False,
+    )
+
+
+def _torch_butterworth_filter(
+        timeseries, frequency, filter_order, attenuation, highpass):
+    """Apply LAL's high- or low-pass Butterworth filter on device."""
+
+    try:
+        filter_order = operator.index(filter_order)
+    except TypeError as exc:
+        raise TypeError("filter_order must be an integer") from exc
+
+    normalized_frequency = float(frequency) * timeseries.delta_t
+    if not 0 < normalized_frequency < 0.5 or filter_order <= 0:
+        raise RuntimeError("Internal function call failed: Invalid argument")
+
+    cutoff = numpy.tan(numpy.pi * normalized_frequency)
+    amplitude = float(1 - attenuation)
+    if 0 < amplitude < 1:
+        exponent = 0.5 / filter_order
+        if not highpass:
+            exponent *= -1
+        cutoff *= (1 / numpy.sqrt(amplitude) - 1) ** exponent
+
+    data = _torch_zero_phase_sos(
+        timeseries._data.tensor,
+        _butterworth_sos(cutoff, filter_order, highpass),
+    )
+    return TimeSeries(
+        TorchArrayData(data),
+        delta_t=timeseries.delta_t,
         epoch=timeseries._epoch,
         copy=False,
     )
@@ -532,6 +603,16 @@ def highpass(timeseries, frequency, filter_order=8, attenuation=0.1):
     if timeseries.kind != 'real':
         raise TypeError("Time series must be real")
 
+    if _HAVE_TORCH and isinstance(
+            getattr(timeseries, "_data", None), TorchArrayData):
+        return _torch_butterworth_filter(
+            timeseries,
+            frequency,
+            filter_order,
+            attenuation,
+            highpass=True,
+        )
+
     lal_data = timeseries.lal()
     _highpass_func[timeseries.dtype](lal_data, frequency,
                                      1-attenuation, filter_order)
@@ -573,6 +654,16 @@ def lowpass(timeseries, frequency, filter_order=8, attenuation=0.1):
 
     if timeseries.kind != 'real':
         raise TypeError("Time series must be real")
+
+    if _HAVE_TORCH and isinstance(
+            getattr(timeseries, "_data", None), TorchArrayData):
+        return _torch_butterworth_filter(
+            timeseries,
+            frequency,
+            filter_order,
+            attenuation,
+            highpass=False,
+        )
 
     lal_data = timeseries.lal()
     _lowpass_func[timeseries.dtype](lal_data, frequency,
