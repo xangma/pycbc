@@ -19,10 +19,13 @@
 The coefficient construction mirrors ``XLALSimInspiralPNPhasing_F2`` and the
 waveform generator mirrors ``XLALSimInspiralTaylorF2Core``.  No lalsimulation
 calls are made here.  Coefficients are assembled as small NumPy arrays; all
-frequency-dependent work is performed on the active Torch device.
+frequency-dependent work for regular and arbitrary sampling is performed on
+the active Torch device.
 """
 
 import math
+from dataclasses import dataclass
+
 import numpy as _np
 import lal
 
@@ -38,6 +41,26 @@ class _PNPhasingSeries:
         self.v = _np.zeros(_MAX_PN_ORDER, dtype=_np.float64)
         self.vlogv = _np.zeros(_MAX_PN_ORDER, dtype=_np.float64)
         self.vlogvsq = _np.zeros(_MAX_PN_ORDER, dtype=_np.float64)
+
+
+@dataclass(frozen=True)
+class _TaylorF2Inputs:
+    """Normalized scalar inputs shared by regular and sequence sampling."""
+
+    mass1: float
+    mass2: float
+    distance: float
+    inclination: float
+    coa_phase: float
+    long_asc_nodes: float
+    f_ref: float
+    tidal_order: int
+    lambda1: float
+    lambda2: float
+    phasing: _PNPhasingSeries
+    device: object
+    real_dtype: object
+    complex_dtype: object
 
 
 # ---- Non-spinning phasing pieces (numeric coefficients copied verbatim) ----
@@ -544,17 +567,17 @@ def _evaluate_phase_polynomial(v, coeff, coeff_log, coeff_log_sq):
     return result / v**5
 
 
-def taylorf2_fd_torch(**params):
-    """Generate aligned-spin TaylorF2 polarizations on the active Torch device.
+def taylorf2_sequence_native_supported(params):
+    """Return whether arbitrary-frequency TaylorF2 generation is native."""
 
-    Callers should first use :func:`taylorf2_native_supported`; the public
-    waveform dispatcher does so and routes unsupported options to LAL.
-    """
+    return taylorf2_native_supported(params)
+
+
+def _taylorf2_inputs(params, *, sequence=False):
+    """Validate scalars and construct phasing shared by both public APIs."""
     import torch
 
     from pycbc import scheme as _scheme
-    from pycbc.types import FrequencySeries
-    from pycbc.types.array_torch import TorchArrayData
 
     if not taylorf2_native_supported(params):
         raise ValueError(
@@ -568,10 +591,11 @@ def taylorf2_fd_torch(**params):
     distance = float(params.get("distance", 1.0))
     inclination = float(params.get("inclination", 0.0))
     coa_phase = float(params.get("coa_phase", 0.0))
-    long_asc_nodes = float(params.get("long_asc_nodes", 0.0))
-    delta_f = float(params["delta_f"])
-    f_lower = float(params["f_lower"])
-    f_final = float(params.get("f_final", 0.0))
+    # SimInspiralChooseFDWaveformSequence has no ascending-node argument and
+    # ignores the corresponding PyCBC parameter.
+    long_asc_nodes = (
+        0.0 if sequence else float(params.get("long_asc_nodes", 0.0))
+    )
     f_ref = float(params.get("f_ref", 0.0))
     phase_order = _as_order(params.get("phase_order", -1))
     spin_order = _as_order(params.get("spin_order", -1))
@@ -596,20 +620,8 @@ def taylorf2_fd_torch(**params):
         raise ValueError("TaylorF2 distance must be finite")
     if distance <= 0.0:
         raise ValueError("TaylorF2 distance must be positive")
-    if not all(
-        math.isfinite(value)
-        for value in (
-            delta_f,
-            f_lower,
-            f_final,
-            f_ref,
-        )
-    ):
-        raise ValueError("TaylorF2 frequencies must be finite")
-    if delta_f <= 0.0 or f_lower <= 0.0:
-        raise ValueError("TaylorF2 delta_f and f_lower must be positive")
-    if f_ref < 0.0:
-        raise ValueError("TaylorF2 f_ref must be non-negative")
+    if not math.isfinite(f_ref) or f_ref < 0.0:
+        raise ValueError("TaylorF2 f_ref must be finite and non-negative")
 
     lambda1 = float(params.get("lambda1") or 0.0)
     lambda2 = float(params.get("lambda2") or 0.0)
@@ -643,17 +655,150 @@ def taylorf2_fd_torch(**params):
         phasing.vlogv[phase_order + 1 : 8] = 0.0
         phasing.vlogvsq[phase_order + 1 : 8] = 0.0
 
+    state = _scheme.mgr.state
+    device = getattr(state, "torch_device", torch.device("cpu"))
+    real_dtype = torch.float32 if device.type == "mps" else torch.float64
+    complex_dtype = (
+        torch.complex64 if real_dtype == torch.float32 else torch.complex128
+    )
+    return _TaylorF2Inputs(
+        mass1=mass1,
+        mass2=mass2,
+        distance=distance,
+        inclination=inclination,
+        coa_phase=coa_phase,
+        long_asc_nodes=long_asc_nodes,
+        f_ref=f_ref,
+        tidal_order=tidal_order,
+        lambda1=lambda1,
+        lambda2=lambda2,
+        phasing=phasing,
+        device=device,
+        real_dtype=real_dtype,
+        complex_dtype=complex_dtype,
+    )
+
+
+def _taylorf2_samples(inputs, frequencies, time_shift=0.0):
+    """Evaluate the inclination-independent waveform at device frequencies."""
+    import torch
+
+    mass1 = inputs.mass1
+    mass2 = inputs.mass2
     total_mass = mass1 + mass2
     eta = mass1 * mass2 / total_mass**2
     pi_mass = math.pi * total_mass * lal.MTSUN_SI
+    phasing = inputs.phasing
+    real_dtype = inputs.real_dtype
+    device = inputs.device
+    coeff = torch.as_tensor(phasing.v, dtype=real_dtype, device=device)
+    coeff_log = torch.as_tensor(phasing.vlogv, dtype=real_dtype, device=device)
+    coeff_log_sq = torch.as_tensor(
+        phasing.vlogvsq,
+        dtype=real_dtype,
+        device=device,
+    )
+    velocity = torch.pow(pi_mass * frequencies, 1.0 / 3.0)
+    phase = _evaluate_phase_polynomial(
+        velocity,
+        coeff,
+        coeff_log,
+        coeff_log_sq,
+    )
+
+    if inputs.f_ref == 0.0:
+        reference_phase = torch.zeros((), dtype=real_dtype, device=device)
+    else:
+        reference_velocity = torch.pow(
+            torch.as_tensor(
+                pi_mass * inputs.f_ref,
+                dtype=real_dtype,
+                device=device,
+            ),
+            1.0 / 3.0,
+        )
+        reference_phase = _evaluate_phase_polynomial(
+            reference_velocity,
+            coeff,
+            coeff_log,
+            coeff_log_sq,
+        )
+
+    phase = (
+        phase
+        + 2.0 * math.pi * time_shift * frequencies
+        - 2.0 * inputs.coa_phase
+        - reference_phase
+    )
+    distance_metres = inputs.distance * 1.0e6 * lal.PC_SI
+    amplitude0 = (
+        -4.0
+        * mass1
+        * mass2
+        / distance_metres
+        * lal.MRSUN_SI
+        * lal.MTSUN_SI
+        * math.sqrt(math.pi / 12.0)
+    )
+    amplitude = (
+        amplitude0 * math.sqrt(5.0 / (32.0 * eta)) * torch.pow(velocity, -3.5)
+    )
+    return torch.complex(
+        amplitude * torch.cos(phase - math.pi / 4.0),
+        -amplitude * torch.sin(phase - math.pi / 4.0),
+    ).to(inputs.complex_dtype)
+
+
+def _taylorf2_polarizations(samples, inputs):
+    """Project inclination-independent samples into plus and cross."""
+
+    cos_inclination = math.cos(inputs.inclination)
+    plus0 = samples * (0.5 * (1.0 + cos_inclination**2))
+    cross0 = samples * complex(0.0, -cos_inclination)
+    cos_nodes = math.cos(2.0 * inputs.long_asc_nodes)
+    sin_nodes = math.sin(2.0 * inputs.long_asc_nodes)
+    return (
+        cos_nodes * plus0 + sin_nodes * cross0,
+        cos_nodes * cross0 - sin_nodes * plus0,
+    )
+
+
+def taylorf2_fd_torch(**params):
+    """Generate aligned-spin TaylorF2 polarizations on the active Torch device.
+
+    Callers should first use :func:`taylorf2_native_supported`; the public
+    waveform dispatcher does so and routes unsupported options to LAL.
+    """
+    import torch
+
+    from pycbc.types import FrequencySeries
+    from pycbc.types.array_torch import TorchArrayData
+
+    inputs = _taylorf2_inputs(params)
+    delta_f = float(params["delta_f"])
+    f_lower = float(params["f_lower"])
+    f_final = float(params.get("f_final", 0.0))
+    if not all(math.isfinite(value) for value in (delta_f, f_lower, f_final)):
+        raise ValueError("TaylorF2 frequencies must be finite")
+    if delta_f <= 0.0 or f_lower <= 0.0:
+        raise ValueError("TaylorF2 delta_f and f_lower must be positive")
+
+    mass1 = inputs.mass1
+    mass2 = inputs.mass2
+    pi_mass = math.pi * (mass1 + mass2) * lal.MTSUN_SI
     f_isco = 1.0 / (6.0**1.5 * pi_mass)
     if f_final == 0.0:
-        if tidal_order == 0:
+        if inputs.tidal_order == 0:
             f_max = f_isco
         else:
             f_max = min(
                 f_isco,
-                _contact_frequency(mass1, mass2, lambda1, lambda2),
+                _contact_frequency(
+                    mass1,
+                    mass2,
+                    inputs.lambda1,
+                    inputs.lambda2,
+                ),
             )
     else:
         f_max = f_final
@@ -664,69 +809,70 @@ def taylorf2_fd_torch(**params):
     first_bin = int(math.ceil(f_lower / delta_f))
     if first_bin >= length:
         raise ValueError("TaylorF2 frequency range contains no sampled bins")
-    state = _scheme.mgr.state
-    device = getattr(state, "torch_device", torch.device("cpu"))
-    real_dtype = torch.float32 if device.type == "mps" else torch.float64
-    complex_dtype = torch.complex64 if real_dtype == torch.float32 else torch.complex128
-
-    coeff = torch.as_tensor(phasing.v, dtype=real_dtype, device=device)
-    coeff_log = torch.as_tensor(phasing.vlogv, dtype=real_dtype, device=device)
-    coeff_log_sq = torch.as_tensor(phasing.vlogvsq, dtype=real_dtype, device=device)
-    raw = torch.zeros(length, dtype=complex_dtype, device=device)
+    device = inputs.device
+    real_dtype = inputs.real_dtype
+    raw = torch.zeros(
+        length,
+        dtype=inputs.complex_dtype,
+        device=device,
+    )
     if first_bin < length:
         frequencies = (
             torch.arange(first_bin, length, dtype=real_dtype, device=device) * delta_f
         )
-        velocity = torch.pow(pi_mass * frequencies, 1.0 / 3.0)
-        phase = _evaluate_phase_polynomial(velocity, coeff, coeff_log, coeff_log_sq)
-
-        if f_ref == 0.0:
-            reference_phase = torch.zeros((), dtype=real_dtype, device=device)
-        else:
-            reference_velocity = torch.pow(
-                torch.as_tensor(pi_mass * f_ref, dtype=real_dtype, device=device),
-                1.0 / 3.0,
-            )
-            reference_phase = _evaluate_phase_polynomial(
-                reference_velocity, coeff, coeff_log, coeff_log_sq
-            )
-
         epoch = -1.0 / delta_f
-        phase = (
-            phase
-            + 2.0 * math.pi * epoch * frequencies
-            - 2.0 * coa_phase
-            - reference_phase
+        raw[first_bin:] = _taylorf2_samples(
+            inputs,
+            frequencies,
+            time_shift=epoch,
         )
-        distance_metres = distance * 1.0e6 * lal.PC_SI
-        amplitude0 = (
-            -4.0
-            * mass1
-            * mass2
-            / distance_metres
-            * lal.MRSUN_SI
-            * lal.MTSUN_SI
-            * math.sqrt(math.pi / 12.0)
-        )
-        amplitude = (
-            amplitude0 * math.sqrt(5.0 / (32.0 * eta)) * torch.pow(velocity, -3.5)
-        )
-        raw[first_bin:] = torch.complex(
-            amplitude * torch.cos(phase - math.pi / 4.0),
-            -amplitude * torch.sin(phase - math.pi / 4.0),
-        )
-
-    cos_inclination = math.cos(inclination)
-    plus0 = raw * (0.5 * (1.0 + cos_inclination**2))
-    cross0 = raw * complex(0.0, -cos_inclination)
-    cos_nodes = math.cos(2.0 * long_asc_nodes)
-    sin_nodes = math.sin(2.0 * long_asc_nodes)
-    plus = cos_nodes * plus0 + sin_nodes * cross0
-    cross = cos_nodes * cross0 - sin_nodes * plus0
+    plus, cross = _taylorf2_polarizations(raw, inputs)
     epoch = -1.0 / delta_f
     return (
         FrequencySeries(TorchArrayData(plus), delta_f=delta_f, epoch=epoch, copy=False),
         FrequencySeries(
             TorchArrayData(cross), delta_f=delta_f, epoch=epoch, copy=False
         ),
+    )
+
+
+def _taylorf2_sequence_frequencies(sample_points, inputs):
+    """Move arbitrary sample points directly onto the active Torch device."""
+    import torch
+
+    from pycbc.types.array_torch import TorchArrayData
+
+    values = getattr(sample_points, "_data", sample_points)
+    if isinstance(values, TorchArrayData):
+        values = values.tensor
+    frequencies = torch.as_tensor(
+        values,
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+    if frequencies.ndim != 1 or frequencies.numel() == 0:
+        raise ValueError("TaylorF2 sample_points must be a non-empty vector")
+    return frequencies
+
+
+def taylorf2_fd_sequence_torch(**params):
+    """Evaluate aligned-spin TaylorF2 at arbitrary frequencies with Torch."""
+    from pycbc.types import Array as PyCBCArray
+    from pycbc.types.array_torch import TorchArrayData
+
+    if not taylorf2_sequence_native_supported(params):
+        raise ValueError(
+            "TaylorF2 sequence parameters are not supported by the native "
+            "Torch path"
+        )
+    inputs = _taylorf2_inputs(params, sequence=True)
+    frequencies = _taylorf2_sequence_frequencies(
+        params["sample_points"],
+        inputs,
+    )
+    samples = _taylorf2_samples(inputs, frequencies)
+    plus, cross = _taylorf2_polarizations(samples, inputs)
+    return (
+        PyCBCArray(TorchArrayData(plus), copy=False),
+        PyCBCArray(TorchArrayData(cross), copy=False),
     )

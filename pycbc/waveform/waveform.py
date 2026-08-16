@@ -590,6 +590,19 @@ def _lalsim_fd_sequence(**p):
     """
     using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
     if (
+        p.get("approximant") == "TaylorF2"
+        and using_torch
+        and torch_native_enabled("PYCBC_TAYLORF2_NATIVE", default=False)
+    ):
+        from .taylorf2_torch import (
+            taylorf2_fd_sequence_torch,
+            taylorf2_sequence_native_supported,
+        )
+
+        if taylorf2_sequence_native_supported(p):
+            return taylorf2_fd_sequence_torch(**p)
+
+    if (
         p.get("approximant")
         in (
             "IMRPhenomXAS",

@@ -90,9 +90,11 @@ environment flags:
 - SPA/TaylorF2: ``PYCBC_SPATPLT_NATIVE``, ``PYCBC_TAYLORF2_NATIVE``. The
   public TaylorF2 port covers aligned spins, Newtonian amplitude, all supported
   phase/spin/tidal orders, testing-GR ``dchi`` terms, tidal quadrupoles, and
-  polarization rotation. ``TaylorF2NL`` also applies its nonlinear-tide phase
-  correction on the active Torch device. Precession, higher-PN amplitude
-  corrections, and dynamic-tide extras fall back to lalsimulation.
+  polarization rotation. Regular-grid and arbitrary-frequency
+  ``get_fd_waveform_sequence`` evaluation both run on the active device.
+  ``TaylorF2NL`` also applies its nonlinear-tide phase correction on the active
+  Torch device. Precession, higher-PN amplitude corrections, and dynamic-tide
+  extras fall back to lalsimulation.
 - SpinTaylorF2: ``PYCBC_SPINTAYLORF2_NATIVE``. The native port covers the
   model's single-spin public interface, including precession, reference-phase
   conventions, phase/spin orders, sidebands, testing-GR ``dchi`` terms,

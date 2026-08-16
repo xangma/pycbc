@@ -7,12 +7,13 @@ torch = pytest.importorskip("torch")
 import lal
 import lalsimulation
 
-from pycbc.waveform import get_fd_waveform
+from pycbc.waveform import get_fd_waveform, get_fd_waveform_sequence
 from pycbc.waveform.spa_tmplt import spa_tmplt
 from pycbc.waveform.taylorf2_torch import (
     _eos_q_from_lambda,
     taylorf2_aligned_phasing,
     taylorf2_native_supported,
+    taylorf2_sequence_native_supported,
 )
 from pycbc import scheme as _scheme
 
@@ -192,6 +193,250 @@ def preserve_scheme():
 def _activate_scheme(scheme_type):
     _scheme.Scheme._single = None
     _scheme.mgr.state = scheme_type()
+
+
+SEQUENCE_CASES = [
+    (
+        dict(
+            mass1=30.0,
+            mass2=20.0,
+            spin1z=0.3,
+            spin2z=-0.1,
+            distance=500.0,
+            inclination=0.4,
+            coa_phase=1.1,
+            f_ref=30.0,
+            # The LAL sequence API ignores ascending-node rotation.
+            long_asc_nodes=0.7,
+        ),
+        [20.0, 23.5, 30.0, 50.0, 100.0, 500.0, 1000.0],
+    ),
+    (
+        dict(
+            mass1=1.4,
+            mass2=1.3,
+            spin1z=0.02,
+            spin2z=-0.01,
+            distance=100.0,
+            inclination=0.8,
+            coa_phase=0.2,
+            f_ref=0.0,
+            lambda1=800.0,
+            lambda2=700.0,
+        ),
+        # Sequence sampling is not truncated at the regular-grid termination.
+        [20.0, 5000.0, 100.0, 1000.0],
+    ),
+    (
+        dict(
+            mass1=2.0,
+            mass2=1.6,
+            spin1z=0.1,
+            spin2z=-0.04,
+            distance=150.0,
+            inclination=1.2,
+            coa_phase=0.3,
+            f_ref=25.0,
+            lambda1=300.0,
+            lambda2=100.0,
+            dquad_mon1=2.2,
+            dquad_mon2=1.5,
+            tidal_order=15,
+            phase_order=4,
+            dchi3=0.02,
+            dchi6l=-0.01,
+        ),
+        [19.3, 25.0, 47.0, 300.0, 1200.0],
+    ),
+]
+
+
+@pytest.mark.parametrize(("params", "sample_points"), SEQUENCE_CASES)
+def test_taylorf2_sequence_public_torch_parity_and_dispatch(
+    params,
+    sample_points,
+    monkeypatch,
+    preserve_scheme,
+):
+    monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
+    monkeypatch.setenv("PYCBC_TAYLORF2_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme)
+    reference = get_fd_waveform_sequence(
+        approximant="TaylorF2",
+        sample_points=sample_points,
+        **params,
+    )
+    reference_arrays = tuple(array.numpy().copy() for array in reference)
+
+    import pycbc.waveform.taylorf2_torch as taylorf2_mod
+    import pycbc.waveform.waveform as waveform_mod
+
+    native = taylorf2_mod.taylorf2_fd_sequence_torch
+    calls = 0
+
+    def recording_native(**native_params):
+        nonlocal calls
+        calls += 1
+        return native(**native_params)
+
+    def unexpected_lal(*_args, **_kwargs):
+        raise AssertionError("native TaylorF2 sequence called LAL")
+
+    monkeypatch.setattr(
+        taylorf2_mod,
+        "taylorf2_fd_sequence_torch",
+        recording_native,
+    )
+    monkeypatch.setattr(
+        waveform_mod.lalsimulation,
+        "SimInspiralChooseFDWaveformSequence",
+        unexpected_lal,
+    )
+    monkeypatch.setenv("PYCBC_TAYLORF2_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme)
+    actual = get_fd_waveform_sequence(
+        approximant="TaylorF2",
+        sample_points=sample_points,
+        **params,
+    )
+
+    assert calls == 1
+    for expected, result in zip(reference_arrays, actual):
+        assert result._data.tensor.device.type == "cpu"
+        assert result._data.tensor.dtype == torch.complex128
+        result_array = result.numpy()
+        assert np.all(result_array != 0.0)
+        relative_error = np.linalg.norm(result_array - expected) / np.linalg.norm(
+            expected
+        )
+        assert relative_error < 1.0e-10
+
+
+def test_taylorf2_sequence_unsupported_amplitude_uses_lal_fallback(
+    monkeypatch,
+    preserve_scheme,
+):
+    params, sample_points = SEQUENCE_CASES[0]
+    params = dict(params, amplitude_order=2)
+    monkeypatch.setenv("PYCBC_TAYLORF2_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme)
+    reference = get_fd_waveform_sequence(
+        approximant="TaylorF2",
+        sample_points=sample_points,
+        **params,
+    )
+    reference_arrays = tuple(array.numpy().copy() for array in reference)
+
+    import pycbc.waveform.taylorf2_torch as taylorf2_mod
+    import pycbc.waveform.waveform as waveform_mod
+
+    def unexpected_native(**_params):
+        raise AssertionError("unsupported TaylorF2 sequence reached Torch")
+
+    lal_generator = waveform_mod.lalsimulation.SimInspiralChooseFDWaveformSequence
+    lal_calls = 0
+
+    def recording_lal(*args, **kwargs):
+        nonlocal lal_calls
+        lal_calls += 1
+        return lal_generator(*args, **kwargs)
+
+    monkeypatch.setattr(
+        taylorf2_mod,
+        "taylorf2_fd_sequence_torch",
+        unexpected_native,
+    )
+    monkeypatch.setattr(
+        waveform_mod.lalsimulation,
+        "SimInspiralChooseFDWaveformSequence",
+        recording_lal,
+    )
+    monkeypatch.setenv("PYCBC_TAYLORF2_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme)
+    fallback = get_fd_waveform_sequence(
+        approximant="TaylorF2",
+        sample_points=sample_points,
+        **params,
+    )
+
+    assert lal_calls == 1
+    for expected, result in zip(reference_arrays, fallback):
+        np.testing.assert_allclose(
+            result.numpy(),
+            expected,
+            rtol=1.0e-14,
+            atol=0.0,
+        )
+
+
+@pytest.mark.parametrize("device_name", ["cpu", "mps", "cuda"])
+def test_taylorf2_sequence_stays_on_requested_device(
+    device_name,
+    monkeypatch,
+    preserve_scheme,
+):
+    if device_name == "mps" and not torch.backends.mps.is_available():
+        pytest.skip("Torch MPS device is unavailable")
+    if device_name == "cuda" and not torch.cuda.is_available():
+        pytest.skip("Torch CUDA device is unavailable")
+
+    params, sample_points = SEQUENCE_CASES[1]
+    monkeypatch.setenv("PYCBC_TAYLORF2_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme)
+    reference, _ = get_fd_waveform_sequence(
+        approximant="TaylorF2",
+        sample_points=sample_points,
+        **params,
+    )
+    reference_array = reference.numpy().copy()
+
+    monkeypatch.setenv("PYCBC_TAYLORF2_NATIVE", "1")
+    _scheme.Scheme._single = None
+    _scheme.mgr.state = _scheme.TorchScheme(device_name)
+    actual, _ = get_fd_waveform_sequence(
+        approximant="TaylorF2",
+        sample_points=sample_points,
+        **params,
+    )
+
+    assert actual._data.tensor.device.type == device_name
+    expected_dtype = torch.complex64 if device_name == "mps" else torch.complex128
+    assert actual._data.tensor.dtype == expected_dtype
+    actual_array = actual.numpy()
+    relative_error = np.linalg.norm(actual_array - reference_array) / np.linalg.norm(
+        reference_array
+    )
+    tolerance = 5.0e-3 if device_name == "mps" else 1.0e-10
+    assert relative_error < tolerance
+
+
+def test_taylorf2_sequence_native_avoids_host_transfer(
+    monkeypatch,
+    preserve_scheme,
+):
+    from pycbc.types import Array
+    from pycbc.types.array_torch import TorchArrayData
+
+    params, sample_values = SEQUENCE_CASES[0]
+    monkeypatch.setenv("PYCBC_TAYLORF2_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme)
+    sample_points = Array(sample_values)
+
+    def reject_host_transfer(_self):
+        raise AssertionError("native TaylorF2 sequence materialized on the host")
+
+    monkeypatch.setattr(TorchArrayData, "numpy", reject_host_transfer)
+    with torch.no_grad():
+        hp, hc = get_fd_waveform_sequence(
+            approximant="TaylorF2",
+            sample_points=sample_points,
+            **params,
+        )
+
+    assert isinstance(hp._data.tensor, torch.Tensor)
+    assert isinstance(hc._data.tensor, torch.Tensor)
+    assert hp._data.tensor.device.type == "cpu"
+    assert hc._data.tensor.device.type == "cpu"
 
 
 @pytest.mark.parametrize(
@@ -419,6 +664,7 @@ def test_taylorf2_unsupported_amplitude_uses_lal_fallback(monkeypatch, preserve_
 )
 def test_taylorf2_native_support_boundary(params, expected):
     assert taylorf2_native_supported(params) is expected
+    assert taylorf2_sequence_native_supported(params) is expected
 
 
 @pytest.mark.parametrize("lambda_tidal", [0.25, 0.5, 1.0, 100.0, 800.0])
