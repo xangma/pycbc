@@ -100,6 +100,16 @@ default remains the LAL/CPU path; enable torch ports with environment flags:
   ``TaylorF2NL`` also applies its nonlinear-tide phase correction on the active
   Torch device. Precession, higher-PN amplitude corrections, and dynamic-tide
   extras fall back to lalsimulation.
+- TaylorF2 reduced spin: ``PYCBC_TAYLORF2REDSPIN_NATIVE`` and
+  ``PYCBC_TAYLORF2REDSPINTIDAL_NATIVE``. Both analytic models evaluate their
+  phase and amplitude corrections through 3.5PN, frequency masking, and
+  polarization assembly on the active device. The tidal variant includes its
+  5PN and 6PN tidal phase terms. Arbitrary-frequency evaluation is a native
+  extension because lalsimulation does not expose either model through its
+  sequence API; it accepts unordered positive frequencies, ignores
+  ``long_asc_nodes``, and returns zero above Schwarzschild ISCO. Transverse
+  spins, non-default spin/tidal/eccentricity flags, testing-GR changes, and
+  custom modes retain the regular-grid lalsimulation path.
 - SpinTaylorF2: ``PYCBC_SPINTAYLORF2_NATIVE``. The native port covers the
   model's single-spin public interface, including precession, reference-phase
   conventions, phase/spin orders, sidebands, testing-GR ``dchi`` terms,

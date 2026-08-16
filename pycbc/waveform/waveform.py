@@ -273,6 +273,22 @@ def _lalsim_fd_waveform(**p):
             return taylorf2_fd_torch(**p)
 
     if (
+        p.get("approximant")
+        in ("TaylorF2RedSpin", "TaylorF2RedSpinTidal")
+        and using_torch
+        and torch_native_enabled(
+            f"PYCBC_{p['approximant'].upper()}_NATIVE", default=False
+        )
+    ):
+        from .taylorf2redspin_torch import (
+            taylorf2redspin_fd_torch,
+            taylorf2redspin_native_supported,
+        )
+
+        if taylorf2redspin_native_supported(p):
+            return taylorf2redspin_fd_torch(**p)
+
+    if (
         p.get("approximant") == "TaylorF2Ecc"
         and using_torch
         and torch_native_enabled("PYCBC_TAYLORF2ECC_NATIVE", default=False)
@@ -701,6 +717,22 @@ def _lalsim_fd_sequence(**p):
 
         if taylorf2_sequence_native_supported(p):
             return taylorf2_fd_sequence_torch(**p)
+
+    if (
+        p.get("approximant")
+        in ("TaylorF2RedSpin", "TaylorF2RedSpinTidal")
+        and using_torch
+        and torch_native_enabled(
+            f"PYCBC_{p['approximant'].upper()}_NATIVE", default=False
+        )
+    ):
+        from .taylorf2redspin_torch import (
+            taylorf2redspin_fd_sequence_torch,
+            taylorf2redspin_sequence_native_supported,
+        )
+
+        if taylorf2redspin_sequence_native_supported(p):
+            return taylorf2redspin_fd_sequence_torch(**p)
 
     if (
         p.get("approximant") == "SpinTaylorF2"
