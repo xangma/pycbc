@@ -12,8 +12,9 @@ angles, Wigner rotations, and polarization assembly execute on the active
 Torch device. Scalar source-frame setup remains on the host.
 
 The native configurations are NNLO version 102 with convention 0 and MSA
-version 223 (or its 300 alias) with convention 1. Both require final-spin mode
-0. The public path is opt-in through ``PYCBC_IMRPHENOMXP_NATIVE=1`` or
+version 223 (or its 300 alias) with convention 1. MSA supports final-spin modes
+0, 3, and 4, including LAL's default ``300/1/4`` configuration. The public path
+is opt-in through ``PYCBC_IMRPHENOMXP_NATIVE=1`` or
 ``PYCBC_TORCH_NATIVE_PORTS=1``; unsupported configurations continue to use
 lalsimulation.
 """
@@ -63,11 +64,14 @@ from pycbc.waveform._torch_jax import torch_context
 
 
 _PI = math.pi
-_SUPPORTED_FINAL_SPIN = 0
+_DEFAULT_PREC_VERSION = 300
+_DEFAULT_CONVENTION = 1
+_DEFAULT_FINAL_SPIN = 4
 _NNLO_PREC_VERSION = 102
 _NNLO_CONVENTION = 0
 _MSA_PREC_VERSIONS = (223, 300)
 _MSA_CONVENTION = 1
+_MSA_FINAL_SPIN_MODES = (0, 3, 4)
 
 
 @dataclass(frozen=True)
@@ -82,6 +86,7 @@ class _IMRPhenomXPInputs:
     spin1: tuple
     spin2: tuple
     prec_version: int
+    final_spin_mod: int
     theta_jn: float
     alpha0: float
     epsilon0: float
@@ -106,20 +111,25 @@ class _XPModel:
     alpha_offset: float
     epsilon_offset: float
     harmonics: tuple
+    final_spin: float | None
 
 
 def _as_float(value, default=0.0):
     return float(default if value is None else value)
 
 
-def _is_exact_integer(value, expected):
+def _integer_or_default(value, default):
+    """Resolve a LAL integer flag while rejecting non-integral values."""
+
     if value is None:
-        return False
+        return default
     try:
         number = float(value)
-        return math.isfinite(number) and number == expected and int(number) == expected
     except (TypeError, ValueError, OverflowError):
-        return False
+        return None
+    if not math.isfinite(number) or number != int(number):
+        return None
+    return int(number)
 
 
 def imrphenomxp_native_supported(params):
@@ -127,26 +137,29 @@ def imrphenomxp_native_supported(params):
 
     if params.get("approximant", "IMRPhenomXP") != "IMRPhenomXP":
         return False
-    if not _is_exact_integer(
-        params.get("phenom_xp_final_spin_mod"),
-        _SUPPORTED_FINAL_SPIN,
-    ):
-        return False
-    nnlo = _is_exact_integer(
+    prec_version = _integer_or_default(
         params.get("phenom_x_prec_version"),
-        _NNLO_PREC_VERSION,
-    ) and _is_exact_integer(
-        params.get("phenom_xp_convention"),
-        _NNLO_CONVENTION,
+        _DEFAULT_PREC_VERSION,
     )
-    msa = any(
-        _is_exact_integer(params.get("phenom_x_prec_version"), version)
-        for version in _MSA_PREC_VERSIONS
-    ) and _is_exact_integer(
+    convention = _integer_or_default(
         params.get("phenom_xp_convention"),
-        _MSA_CONVENTION,
+        _DEFAULT_CONVENTION,
     )
-    if not (nnlo or msa):
+    final_spin_mod = _integer_or_default(
+        params.get("phenom_xp_final_spin_mod"),
+        _DEFAULT_FINAL_SPIN,
+    )
+    nnlo = (
+        prec_version == _NNLO_PREC_VERSION
+        and convention == _NNLO_CONVENTION
+        and final_spin_mod == 0
+    )
+    msa = (
+        prec_version in _MSA_PREC_VERSIONS
+        and convention == _MSA_CONVENTION
+        and final_spin_mod in _MSA_FINAL_SPIN_MODES
+    )
+    if not nnlo and not msa:
         return False
     if any(
         not _is_default_order(params.get(key, -1)) for key in _DEFAULT_ONLY_ORDER_KEYS
@@ -361,7 +374,14 @@ def _validated_inputs(
 
     total_mass = mass1 + mass2
     total_mass_seconds = total_mass * MTSUN
-    prec_version = int(float(params["phenom_x_prec_version"]))
+    prec_version = _integer_or_default(
+        params.get("phenom_x_prec_version"),
+        _DEFAULT_PREC_VERSION,
+    )
+    final_spin_mod = _integer_or_default(
+        params.get("phenom_xp_final_spin_mod"),
+        _DEFAULT_FINAL_SPIN,
+    )
     if prec_version == _NNLO_PREC_VERSION:
         source_parameters = _source_frame_parameters_nnlo(
             mass1,
@@ -410,6 +430,7 @@ def _validated_inputs(
         spin1=spin1,
         spin2=spin2,
         prec_version=prec_version,
+        final_spin_mod=final_spin_mod,
         theta_jn=theta_jn,
         alpha0=alpha0,
         epsilon0=epsilon0,
@@ -425,6 +446,36 @@ def _validated_inputs(
         real_dtype=real_dtype,
         complex_dtype=complex_dtype,
     )
+
+
+def _msa_precessing_final_spin(inputs, msa_state):
+    """Return LAL's MSA-averaged final spin (XP modes 3 and 4)."""
+
+    aligned_spin = IMRPhenomX_utils.get_remnant_fMs(
+        inputs.mass1,
+        inputs.mass2,
+        inputs.chi1_l,
+        inputs.chi2_l,
+    ).final_spin.item()
+    orbital_spin = (
+        aligned_spin
+        - msa_state["m1_2"] * inputs.chi1_l
+        - msa_state["m2_2"] * inputs.chi2_l
+    )
+    spin_squared = (
+        msa_state["SAv2"]
+        + orbital_spin * orbital_spin
+        + 2.0
+        * orbital_spin
+        * (msa_state["S1L_pav"] + msa_state["S2L_pav"])
+    )
+    final_spin = math.copysign(
+        math.sqrt(max(spin_squared, 0.0)),
+        aligned_spin,
+    )
+    if abs(final_spin) > 1.0:
+        return math.copysign(1.0, final_spin)
+    return final_spin
 
 
 def _build_model(inputs):
@@ -453,6 +504,7 @@ def _build_model(inputs):
         alpha_offset = _scalar_angle_series(omega_ref, alpha_values) - inputs.alpha0
         epsilon_offset = _scalar_angle_series(omega_ref, epsilon_values)
         msa_state = None
+        final_spin = None
     else:
         angle_coeffs = None
         msa_state = build_msa_state(
@@ -471,6 +523,11 @@ def _build_model(inputs):
         alpha_ref, epsilon_ref, _ = msa_angles(velocity_ref, msa_state)
         alpha_offset = alpha_ref[0] - inputs.alpha0
         epsilon_offset = epsilon_ref[0] - inputs.epsilon0
+        final_spin = (
+            _msa_precessing_final_spin(inputs, msa_state)
+            if inputs.final_spin_mod in (3, 4)
+            else None
+        )
     harmonics = tuple(
         spin_weighted_spherical_harmonic(
             inputs.theta_jn,
@@ -484,16 +541,18 @@ def _build_model(inputs):
         for emm in range(-2, 3)
     )
     return _XPModel(
-        inputs,
-        angle_coeffs,
-        msa_state,
-        alpha_offset,
-        epsilon_offset,
-        harmonics,
+        inputs=inputs,
+        angle_coeffs=angle_coeffs,
+        msa_state=msa_state,
+        alpha_offset=alpha_offset,
+        epsilon_offset=epsilon_offset,
+        harmonics=harmonics,
+        final_spin=final_spin,
     )
 
 
-def _xas_samples(inputs, frequencies):
+def _xas_samples(model, frequencies):
+    inputs = model.inputs
     intrinsic = torch.tensor(
         [inputs.mass1, inputs.mass2, inputs.chi1_l, inputs.chi2_l],
         device=inputs.device,
@@ -521,13 +580,14 @@ def _xas_samples(inputs, frequencies):
             amp_coeffs,
             inputs.f_ref,
             chip=inputs.chip,
+            final_spin=model.final_spin,
         )
     return samples.to(inputs.complex_dtype) / _XAS_MODE_POLARIZATION_FACTOR
 
 
 def _twist_up(model, frequencies):
     inputs = model.inputs
-    h_phenom = _xas_samples(inputs, frequencies)
+    h_phenom = _xas_samples(model, frequencies)
     mf = inputs.total_mass_seconds * frequencies
     omega = _PI * mf
     velocity = torch.pow(omega, 1.0 / 3.0)

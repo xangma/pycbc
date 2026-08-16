@@ -29,7 +29,13 @@ _MSA_MODEL_FLAGS = dict(
     phenom_xp_final_spin_mod=0,
 )
 _MSA_ALIAS_FLAGS = dict(_MSA_MODEL_FLAGS, phenom_x_prec_version=300)
-_NATIVE_MODELS = (_NNLO_MODEL_FLAGS, _MSA_MODEL_FLAGS)
+_DEFAULT_MODEL_FLAGS = {}
+_MSA_FINAL_SPIN_FLAGS = dict(_MSA_MODEL_FLAGS, phenom_xp_final_spin_mod=4)
+_NATIVE_MODELS = (
+    _NNLO_MODEL_FLAGS,
+    _MSA_MODEL_FLAGS,
+    _DEFAULT_MODEL_FLAGS,
+)
 
 
 @pytest.fixture
@@ -141,7 +147,7 @@ def test_imrphenomxp_msa_jacobi_matches_scipy():
 @pytest.mark.parametrize(
     "model_flags",
     _NATIVE_MODELS,
-    ids=("nnlo-v102", "msa-v223"),
+    ids=("nnlo-v102", "msa-v223", "default-msa-final-spin"),
 )
 def test_imrphenomxp_torch_matches_lalsimulation(
     model_flags,
@@ -165,7 +171,11 @@ def test_imrphenomxp_torch_matches_lalsimulation(
         **model_flags,
         **params,
     )
-    tolerance = 2.0e-12 if model_flags["phenom_x_prec_version"] == 102 else 2.0e-11
+    tolerance = (
+        2.0e-12
+        if model_flags.get("phenom_x_prec_version") == 102
+        else 2.0e-11
+    )
 
     for expected, expected_array, result in zip(
         reference,
@@ -185,7 +195,12 @@ def test_imrphenomxp_torch_matches_lalsimulation(
 @pytest.mark.parametrize(
     "model_flags",
     (*_NATIVE_MODELS, _MSA_ALIAS_FLAGS),
-    ids=("nnlo-v102", "msa-v223", "msa-v300-alias"),
+    ids=(
+        "nnlo-v102",
+        "msa-v223",
+        "default-msa-final-spin",
+        "msa-v300-alias",
+    ),
 )
 def test_imrphenomxp_sequence_matches_lalsimulation(
     model_flags,
@@ -248,10 +263,13 @@ def test_imrphenomxp_sequence_matches_lalsimulation(
 @pytest.mark.parametrize(
     ("params", "expected"),
     [
-        ({}, False),
+        ({}, True),
         (_NNLO_MODEL_FLAGS, True),
         (_MSA_MODEL_FLAGS, True),
         (_MSA_ALIAS_FLAGS, True),
+        (_MSA_FINAL_SPIN_FLAGS, True),
+        (dict(_MSA_MODEL_FLAGS, phenom_xp_final_spin_mod=3), True),
+        ({"phenom_x_prec_version": 223}, True),
         (dict(_NNLO_MODEL_FLAGS, phenom_x_prec_version=223), False),
         (dict(_MSA_MODEL_FLAGS, phenom_xp_convention=0), False),
         (dict(_NNLO_MODEL_FLAGS, phenom_xp_convention=1), False),
@@ -274,7 +292,7 @@ def test_imrphenomxp_native_support_boundary(params, expected):
 @pytest.mark.parametrize(
     "model_flags",
     _NATIVE_MODELS,
-    ids=("nnlo-v102", "msa-v223"),
+    ids=("nnlo-v102", "msa-v223", "default-msa-final-spin"),
 )
 def test_imrphenomxp_public_native_dispatch_avoids_lalsimulation(
     model_flags,
@@ -330,7 +348,7 @@ def test_imrphenomxp_public_native_dispatch_avoids_lalsimulation(
         assert _relative_error(result.numpy(), expected) < 5.0e-12
 
 
-def test_imrphenomxp_default_configuration_uses_lal_fallback(
+def test_imrphenomxp_default_configuration_avoids_lalsimulation(
     monkeypatch,
     preserve_scheme,
 ):
@@ -345,39 +363,35 @@ def test_imrphenomxp_default_configuration_uses_lal_fallback(
         delta_f=1.0,
         f_lower=20.0,
     )
-    import pycbc.waveform.imrphenomxp_torch as xp_mod
     import pycbc.waveform.waveform as waveform_mod
 
-    def unexpected_native(**_params):
-        raise AssertionError("default IMRPhenomXP reached the bounded native path")
+    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference = get_fd_waveform(approximant="IMRPhenomXP", **params)
+    reference_arrays = tuple(series.numpy().copy() for series in reference)
 
-    lal_generator = waveform_mod.lalsimulation.SimInspiralChooseFDWaveform
-    lal_calls = 0
+    def unexpected_lal(*_args, **_kwargs):
+        raise AssertionError("default native IMRPhenomXP called lalsimulation")
 
-    def recording_lal(*args, **kwargs):
-        nonlocal lal_calls
-        lal_calls += 1
-        return lal_generator(*args, **kwargs)
-
-    monkeypatch.setattr(xp_mod, "imrphenomxp_fd_torch", unexpected_native)
     monkeypatch.setattr(
         waveform_mod.lalsimulation,
         "SimInspiralChooseFDWaveform",
-        recording_lal,
+        unexpected_lal,
     )
     monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "1")
     _activate_scheme(_scheme.TorchScheme("cpu"))
     result = get_fd_waveform(approximant="IMRPhenomXP", **params)
 
-    assert lal_calls == 1
-    assert all(series._data.tensor.device.type == "cpu" for series in result)
+    for expected, series in zip(reference_arrays, result):
+        assert series._data.tensor.device.type == "cpu"
+        assert _relative_error(series.numpy(), expected) < 5.0e-12
 
 
 @pytest.mark.parametrize("device_name", ["cpu", "mps", "cuda"])
 @pytest.mark.parametrize(
     "model_flags",
     _NATIVE_MODELS,
-    ids=("nnlo-v102", "msa-v223"),
+    ids=("nnlo-v102", "msa-v223", "default-msa-final-spin"),
 )
 def test_imrphenomxp_native_stays_on_requested_device(
     model_flags,

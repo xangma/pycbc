@@ -476,6 +476,8 @@ def get_intermediate_raw_phase(
     dPhaseRD: FloatLike,
     cL: FloatLike,
     chip: FloatLike = 0.0,
+    *,
+    final_spin: FloatLike | None = None,
 ) -> Float[Array, " n_freq"] | FloatLike:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
@@ -490,7 +492,12 @@ def get_intermediate_raw_phase(
     chia = chi1 - chi2
 
     fMs_RD, fMs_damp, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
-        m1, m2, chi1, chi2, chip=chip
+        m1,
+        m2,
+        chi1,
+        chi2,
+        chip=chip,
+        final_spin=final_spin,
     )
 
     gpoints5 = jnp.array(
@@ -691,6 +698,8 @@ def get_mergerringdown_raw_phase(
     theta: Float[Array, "4"],
     phase_coeffs: Float[Array, "13 49"],
     chip: FloatLike = 0.0,
+    *,
+    final_spin: FloatLike | None = None,
 ) -> tuple[Float[Array, " n_freq"], tuple[FloatLike, FloatLike]]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
@@ -706,7 +715,12 @@ def get_mergerringdown_raw_phase(
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
 
     fMs_RD, fMs_damp, _, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
-        m1, m2, chi1, chi2, chip=chip
+        m1,
+        m2,
+        chi1,
+        chi2,
+        chip=chip,
+        final_spin=final_spin,
     )
     fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
     fMs_PhaseRDMin = fMs_IMmatch
@@ -869,6 +883,8 @@ def Phase(
     theta: Float[Array, "4"],
     phase_coeffs: Float[Array, "13 49"],
     chip: FloatLike = 0.0,
+    *,
+    final_spin: FloatLike | None = None,
 ) -> Float[Array, " n_freq"]:
     """
     Computes the phase of the PhenomD waveform following 1508.07253.
@@ -885,7 +901,12 @@ def Phase(
 
     fM_s = f * M_s
     fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
-        m1, m2, chi1, chi2, chip=chip
+        m1,
+        m2,
+        chi1,
+        chi2,
+        chip=chip,
+        final_spin=final_spin,
     )
     fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
     fMs_INmatch = fMs_MECO
@@ -896,7 +917,11 @@ def Phase(
     # Calculate the inspiral and raw merger phase (required for the intemediate phase)
     phi_Ins = get_inspiral_phase(fM_s, theta, phase_coeffs)
     phi_MRD, (cL, CV_phase_RD0) = get_mergerringdown_raw_phase(
-        fM_s, theta, phase_coeffs, chip
+        fM_s,
+        theta,
+        phase_coeffs,
+        chip,
+        final_spin=final_spin,
     )
 
     # Get matching points
@@ -907,15 +932,36 @@ def Phase(
         f1_Ms, theta, phase_coeffs
     )
     phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
-        lambda f_: get_mergerringdown_raw_phase(f_, theta, phase_coeffs, chip),
+        get_mergerringdown_raw_phase,
         has_aux=True,
-    )(f2_Ms)
-    phi_MRD_match_f2, _ = get_mergerringdown_raw_phase(f2_Ms, theta, phase_coeffs, chip)
+    )(
+        f2_Ms,
+        theta,
+        phase_coeffs,
+        chip,
+        final_spin=final_spin,
+    )
+    phi_MRD_match_f2, _ = get_mergerringdown_raw_phase(
+        f2_Ms,
+        theta,
+        phase_coeffs,
+        chip,
+        final_spin=final_spin,
+    )
 
     # Now find the intermediate phase
     phi_Int_match_f1, dphi_Int_match_f1 = jax.value_and_grad(
         get_intermediate_raw_phase
-    )(f1_Ms, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL, chip)
+    )(
+        f1_Ms,
+        theta,
+        phase_coeffs,
+        dphi_Ins_match_f1,
+        CV_phase_RD0,
+        cL,
+        chip,
+        final_spin=final_spin,
+    )
     alpha1 = dphi_Ins_match_f1 - dphi_Int_match_f1
     alpha0 = phi_Ins_match_f1 - phi_Int_match_f1 - alpha1 * f1_Ms
 
@@ -929,6 +975,7 @@ def Phase(
                 CV_phase_RD0,
                 cL,
                 chip,
+                final_spin=final_spin,
             )
             + alpha1 * fM_s_
             + alpha0
@@ -960,6 +1007,8 @@ def PhaseDerivative(
     theta: Float[Array, "4"],
     phase_coeffs: Float[Array, "13 49"],
     chip: float = 0.0,
+    *,
+    final_spin: FloatLike | None = None,
 ) -> Float[Array, " n_freq"]:
     """
     Compute d Phase / d f for IMRPhenomXAS using the same piecewise construction
@@ -974,7 +1023,12 @@ def PhaseDerivative(
 
     fM_s = f * M_s
     fMs_RD, _, fMs_MECO, fMs_ISCO = IMRPhenomX_utils.get_cutoff_fMs(
-        m1, m2, chi1, chi2, chip
+        m1,
+        m2,
+        chi1,
+        chi2,
+        chip,
+        final_spin=final_spin,
     )
     fMs_IMmatch = 0.6 * (0.5 * fMs_RD + fMs_ISCO)
     fMs_INmatch = fMs_MECO
@@ -986,15 +1040,35 @@ def PhaseDerivative(
         f1_Ms, theta, phase_coeffs
     )
     _phi_MRD_match_f2, dphi_MRD_match_f2 = jax.value_and_grad(
-        get_mergerringdown_raw_phase, has_aux=True
-    )(f2_Ms, theta, phase_coeffs, chip)
+        get_mergerringdown_raw_phase,
+        has_aux=True,
+    )(
+        f2_Ms,
+        theta,
+        phase_coeffs,
+        chip,
+        final_spin=final_spin,
+    )
     _phi_MRD_match_f2, (cL, CV_phase_RD0) = get_mergerringdown_raw_phase(
-        f2_Ms, theta, phase_coeffs, chip
+        f2_Ms,
+        theta,
+        phase_coeffs,
+        chip,
+        final_spin=final_spin,
     )
 
     phi_Int_match_f1, dphi_Int_match_f1 = jax.value_and_grad(
         get_intermediate_raw_phase
-    )(f1_Ms, theta, phase_coeffs, dphi_Ins_match_f1, CV_phase_RD0, cL, chip)
+    )(
+        f1_Ms,
+        theta,
+        phase_coeffs,
+        dphi_Ins_match_f1,
+        CV_phase_RD0,
+        cL,
+        chip,
+        final_spin=final_spin,
+    )
     alpha1 = dphi_Ins_match_f1 - dphi_Int_match_f1
     alpha0 = phi_Ins_match_f1 - phi_Int_match_f1 - alpha1 * f1_Ms
 
@@ -1008,6 +1082,7 @@ def PhaseDerivative(
                 CV_phase_RD0,
                 cL,
                 chip,
+                final_spin=final_spin,
             )
             + alpha1 * fM_s_
             + alpha0
@@ -1020,7 +1095,13 @@ def PhaseDerivative(
     dphi_Int = jax.grad(phi_Int_func)(fM_s)
     dphi_MRD = (
         jax.grad(
-            lambda x: get_mergerringdown_raw_phase(x, theta, phase_coeffs, chip)[0]
+            lambda x: get_mergerringdown_raw_phase(
+                x,
+                theta,
+                phase_coeffs,
+                chip,
+                final_spin=final_spin,
+            )[0]
         )(fM_s)
         + beta1
     )
@@ -1249,6 +1330,8 @@ def get_intermediate_Amp(
     amp_coeffs: Float[Array, "7 42"],
     fMs_AmpRDMin: FloatLike,
     chip: float = 0.0,
+    *,
+    final_spin: FloatLike | None = None,
 ) -> Float[Array, " n_freq"]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
@@ -1275,7 +1358,11 @@ def get_intermediate_Amp(
 
     inspFMs1, d1 = jax.value_and_grad(get_inspiral_Amp)(FMs1, theta, amp_coeffs, chip)
     rdFMs4, d4 = jax.value_and_grad(get_mergerringdown_Amp, has_aux=True)(
-        FMs4, theta, amp_coeffs, chip
+        FMs4,
+        theta,
+        amp_coeffs,
+        chip,
+        final_spin=final_spin,
     )
     rdFMs4 = rdFMs4[0]
 
@@ -1445,6 +1532,8 @@ def get_mergerringdown_Amp(
     theta: Float[Array, "4"],
     amp_coeffs: Float[Array, "7 42"],
     chip: FloatLike = 0.0,
+    *,
+    final_spin: FloatLike | None = None,
 ) -> tuple[Float[Array, " n_freq"], FloatLike]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
@@ -1458,7 +1547,14 @@ def get_mergerringdown_Amp(
     StotR = (mm1**2 * chi1 + mm2**2 * chi2) / (mm1**2 + mm2**2)
     chia = chi1 - chi2
 
-    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2, chip)
+    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(
+        m1,
+        m2,
+        chi1,
+        chi2,
+        chip,
+        final_spin=final_spin,
+    )
 
     gamma2 = (
         IMRPhenomX_utils.Amp_Nospin_CV(amp_coeffs[4, 0:amp_eqspin_indx], eta)
@@ -1526,6 +1622,8 @@ def Amp(
     amp_coeffs: Float[Array, "7 42"],
     D: FloatLike = 1.0,
     chip: float = 0.0,
+    *,
+    final_spin: FloatLike | None = None,
 ) -> Float[Array, " n_freq"]:
     m1, m2, chi1, chi2 = theta
     m1_s = m1 * MTSUN
@@ -1545,8 +1643,21 @@ def Amp(
     Overallamp = amp0 * ampNorm
 
     Amp_Ins = get_inspiral_Amp(fM_s, theta, amp_coeffs, chip)
-    Amp_RD, fMs_AmpRDMin = get_mergerringdown_Amp(fM_s, theta, amp_coeffs, chip)
-    Amp_Int = get_intermediate_Amp(fM_s, theta, amp_coeffs, fMs_AmpRDMin, chip)
+    Amp_RD, fMs_AmpRDMin = get_mergerringdown_Amp(
+        fM_s,
+        theta,
+        amp_coeffs,
+        chip,
+        final_spin=final_spin,
+    )
+    Amp_Int = get_intermediate_Amp(
+        fM_s,
+        theta,
+        amp_coeffs,
+        fMs_AmpRDMin,
+        chip,
+        final_spin=final_spin,
+    )
 
     Amp = (
         Amp_Ins * jnp.heaviside(fMs_AmpMatchIN - fM_s, 0.5)
@@ -1636,6 +1747,7 @@ def _gen_IMRPhenomXAS(
     nrtidal: _NRTidalParams | None = None,
     *,
     chip: float = 0.0,
+    final_spin: FloatLike | None = None,
 ) -> torch.Tensor:
     m1, m2, chi1, chi2 = theta_intrinsic
     m1_s = m1 * MTSUN
@@ -1652,9 +1764,20 @@ def _gen_IMRPhenomXAS(
 
     fM_s = f * M_s
     fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(
-        m1, m2, chi1, chi2, chip
+        m1,
+        m2,
+        chi1,
+        chi2,
+        chip,
+        final_spin=final_spin,
     )
-    Psi = Phase(f, theta_intrinsic, phase_coeffs, chip)
+    Psi = Phase(
+        f,
+        theta_intrinsic,
+        phase_coeffs,
+        chip,
+        final_spin=final_spin,
+    )
 
     # Generate the linear in f and constant contribution to the phase in order
     # to roll the waveform such that the peak is at the input tc and phic
@@ -1667,13 +1790,20 @@ def _gen_IMRPhenomXAS(
             theta_intrinsic,
             phase_coeffs,
             chip,
+            final_spin=final_spin,
         )
         / M_s
     )
     linb = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
     phifRef = (
         -(
-            Phase(f_ref, theta_intrinsic, phase_coeffs, chip)
+            Phase(
+                f_ref,
+                theta_intrinsic,
+                phase_coeffs,
+                chip,
+                final_spin=final_spin,
+            )
             + linb * (f_ref * M_s)
             + lina
         )
@@ -1688,6 +1818,7 @@ def _gen_IMRPhenomXAS(
         amp_coeffs,
         D=theta_extrinsic[0],
         chip=chip,
+        final_spin=final_spin,
     )
     if nrtidal is not None:
         phase_tidal = _nrtidal_phase(
@@ -1720,6 +1851,7 @@ def _gen_IMRPhenomXAS(
                 theta_intrinsic,
                 phase_coeffs,
                 chip,
+                final_spin=final_spin,
             )
             / M_s
         )

@@ -12,6 +12,7 @@ from pycbc.waveform.imrphenomxas_torch import (  # noqa: E402
     imrphenomxas_native_supported,
     imrphenomxas_sequence_native_supported,
 )
+from pycbc.waveform.imrphenomx_utils_torch import get_remnant_fMs  # noqa: E402
 
 
 @pytest.fixture
@@ -30,6 +31,25 @@ def preserve_scheme():
 def _activate_scheme(scheme):
     _scheme.Scheme._single = None
     _scheme.mgr.state = scheme
+
+
+def test_remnant_final_spin_override_only_changes_ringdown_quantities():
+    baseline = get_remnant_fMs(35.0, 20.0, 0.2, -0.1, chip=0.3)
+    overridden = get_remnant_fMs(
+        35.0,
+        20.0,
+        0.2,
+        -0.1,
+        chip=0.3,
+        final_spin=-0.4,
+    )
+
+    assert overridden.final_spin.item() == pytest.approx(-0.4)
+    assert overridden.radiated_energy.item() == baseline.radiated_energy.item()
+    assert overridden.meco_frequency.item() == baseline.meco_frequency.item()
+    assert overridden.isco_frequency.item() == baseline.isco_frequency.item()
+    assert overridden.ringdown_frequency.item() != baseline.ringdown_frequency.item()
+    assert overridden.damping_frequency.item() != baseline.damping_frequency.item()
 
 
 CASES = [

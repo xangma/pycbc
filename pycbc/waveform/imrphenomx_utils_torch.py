@@ -67,11 +67,15 @@ def get_remnant_fMs(
     chi1: FloatLike,
     chi2: FloatLike,
     chip: float | FloatLike = 0.0,
+    *,
+    final_spin: FloatLike | None = None,
 ) -> IMRPhenomXRemnant:
     # This function returns a variety of frequencies needed for computing IMRPhenomXAS
     # In particular, we have fRD, fdamp, fMECO, FISCO
     # chip: effective precession spin parameter. When non-zero, fRD/fdamp are computed
     # from the precessing final spin afinal_prec (matching LAL's pWF->afinal = afinal_prec).
+    # final_spin: optional already-computed precessing final spin. This lets XP use
+    # its MSA prescription while preserving the aligned spin for fISCO and Erad.
     m1_s = m1 * MTSUN
     m2_s = m2 * MTSUN
     M_s = m1_s + m2_s
@@ -204,8 +208,11 @@ def get_remnant_fMs(
 
     # Precessing final spin (= a when chip=0): LAL sets pWF->afinal = afinal_prec,
     # so fRD/fdamp use a_prec. fISCO keeps using the aligned-spin a.
-    Sperp_prec = chip * mm1 * mm1  # chip * (m1/M)^2
-    a_prec = jnp.copysign(1.0, a) * jnp.sqrt(Sperp_prec**2 + a**2)
+    if final_spin is None:
+        Sperp_prec = chip * mm1 * mm1  # chip * (m1/M)^2
+        a_prec = jnp.copysign(1.0, a) * jnp.sqrt(Sperp_prec**2 + a**2)
+    else:
+        a_prec = jnp.asarray(final_spin)
 
     a2 = a_prec * a_prec
     a3 = a2 * a_prec
@@ -359,6 +366,8 @@ def get_cutoff_fMs(
     chi1: FloatLike,
     chi2: FloatLike,
     chip: float | FloatLike = 0.0,
+    *,
+    final_spin: FloatLike | None = None,
 ) -> tuple[FloatLike, FloatLike, FloatLike, FloatLike]:
     """Return the legacy PhenomX frequency tuple.
 
@@ -367,7 +376,14 @@ def get_cutoff_fMs(
     are evaluated only once.
     """
 
-    remnant = get_remnant_fMs(m1, m2, chi1, chi2, chip)
+    remnant = get_remnant_fMs(
+        m1,
+        m2,
+        chi1,
+        chi2,
+        chip,
+        final_spin=final_spin,
+    )
     return (
         remnant.ringdown_frequency,
         remnant.damping_frequency,
