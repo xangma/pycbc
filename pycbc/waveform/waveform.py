@@ -590,7 +590,12 @@ def _lalsim_fd_sequence(**p):
     """
     using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
     if (
-        p.get("approximant") == "IMRPhenomXAS"
+        p.get("approximant")
+        in (
+            "IMRPhenomXAS",
+            "IMRPhenomXAS_NRTidalv2",
+            "IMRPhenomXAS_NRTidalv3",
+        )
         and using_torch
         and torch_native_enabled("PYCBC_IMRPHENOMXAS_NATIVE", default=False)
     ):

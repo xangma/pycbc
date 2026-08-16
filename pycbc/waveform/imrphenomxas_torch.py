@@ -31,8 +31,8 @@ LALSuite IMRPhenomXAS implementation.  Scalar matching derivatives use Torch
 autograd; frequency-dependent amplitude, phase, masking, and polarization work
 remains on the active Torch device. Both equal-spaced and arbitrary-frequency
 XAS generation are supported. The NRTidalv2 and NRTidalv3 variants add their
-matter phase, amplitude, alignment, and taper corrections there as well for
-equal-spaced waveforms. The public PyCBC path is opt-in through
+matter phase, amplitude, alignment, and taper corrections there as well. The
+public PyCBC path is opt-in through
 ``PYCBC_IMRPHENOMXAS_NATIVE=1`` or ``PYCBC_TORCH_NATIVE_PORTS=1``.
 """
 
@@ -1847,10 +1847,7 @@ def imrphenomxas_native_supported(params):
 def imrphenomxas_sequence_native_supported(params):
     """Return whether arbitrary-frequency XAS generation is native."""
 
-    return (
-        params.get("approximant", "IMRPhenomXAS") == "IMRPhenomXAS"
-        and imrphenomxas_native_supported(params)
-    )
+    return imrphenomxas_native_supported(params)
 
 
 def _imrphenomxas_inputs(p, *, sequence=False):
@@ -1974,6 +1971,8 @@ def _imrphenomxas_samples(
     if inputs.tidal_version is not None:
         if active_f_max is None:
             raise ValueError("NRTidal generation requires an active maximum frequency")
+        if isinstance(active_f_max, torch.Tensor):
+            active_f_max = active_f_max.detach().item()
         quadrupole1 = _quadrupole_from_params(inputs.lambda1, inputs.dquad1)
         quadrupole2 = _quadrupole_from_params(inputs.lambda2, inputs.dquad2)
         if inputs.tidal_version == 3:
@@ -2199,6 +2198,7 @@ def imrphenomxas_fd_sequence_torch(**p):
             inputs,
             frequencies[active],
             reference_frequency,
+            active_f_max,
         )
 
     plus, cross = _polarizations_from_samples(

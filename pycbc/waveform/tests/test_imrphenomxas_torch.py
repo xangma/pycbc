@@ -143,6 +143,17 @@ SEQUENCE_CASES = [
     ),
 ]
 
+TIDAL_SEQUENCE_CASES = [
+    (
+        TIDAL_CASES[0],
+        [20.0, 23.5, 30.0, 50.0, 100.0, 500.0, 1000.0, 2048.0, 10000.0],
+    ),
+    (
+        TIDAL_CASES[1],
+        [19.3, 1500.0, 30.0, 1024.0],
+    ),
+]
+
 
 def _sequence_params(params):
     return {
@@ -543,15 +554,79 @@ def test_imrphenomxas_sequence_matches_lal(
         assert relative_error < 1.0e-10
 
 
-def test_imrphenomxas_sequence_public_dispatch_does_not_call_lal(
-    monkeypatch, preserve_scheme
+@pytest.mark.parametrize(
+    "approximant",
+    ["IMRPhenomXAS_NRTidalv2", "IMRPhenomXAS_NRTidalv3"],
+)
+@pytest.mark.parametrize(("params", "sample_points"), TIDAL_SEQUENCE_CASES)
+def test_imrphenomxas_nrtidal_sequence_matches_lal(
+    approximant, params, sample_points, monkeypatch, preserve_scheme
 ):
-    params = _sequence_params(CASES[0])
-    sample_points = SEQUENCE_CASES[0][1]
+    params = _sequence_params(params)
+    monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
     monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "0")
     _activate_scheme(_scheme.CPUScheme())
     reference = get_fd_waveform_sequence(
-        approximant="IMRPhenomXAS",
+        approximant=approximant,
+        sample_points=sample_points,
+        **params,
+    )
+    reference_arrays = tuple(array.numpy().copy() for array in reference)
+
+    monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme())
+    actual = get_fd_waveform_sequence(
+        approximant=approximant,
+        sample_points=sample_points,
+        **params,
+    )
+
+    for expected, result in zip(reference_arrays, actual):
+        assert result._data.tensor.device.type == "cpu"
+        assert result._data.tensor.dtype == torch.complex128
+        result_array = result.numpy()
+        np.testing.assert_array_equal(
+            result_array == 0.0,
+            expected == 0.0,
+        )
+        nonzero = np.abs(expected) > 0.0
+        relative_error = np.linalg.norm(
+            result_array[nonzero] - expected[nonzero]
+        ) / np.linalg.norm(expected[nonzero])
+        assert relative_error < 1.0e-9
+
+
+@pytest.mark.parametrize(
+    ("approximant", "params", "sample_points", "tolerance"),
+    [
+        ("IMRPhenomXAS", CASES[0], SEQUENCE_CASES[0][1], 1.0e-10),
+        (
+            "IMRPhenomXAS_NRTidalv2",
+            TIDAL_CASES[0],
+            TIDAL_SEQUENCE_CASES[0][1],
+            1.0e-9,
+        ),
+        (
+            "IMRPhenomXAS_NRTidalv3",
+            TIDAL_CASES[0],
+            TIDAL_SEQUENCE_CASES[0][1],
+            1.0e-9,
+        ),
+    ],
+)
+def test_imrphenomxas_sequence_public_dispatch_does_not_call_lal(
+    approximant,
+    params,
+    sample_points,
+    tolerance,
+    monkeypatch,
+    preserve_scheme,
+):
+    params = _sequence_params(params)
+    monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference = get_fd_waveform_sequence(
+        approximant=approximant,
         sample_points=sample_points,
         **params,
     )
@@ -569,7 +644,7 @@ def test_imrphenomxas_sequence_public_dispatch_does_not_call_lal(
         return native(**native_params)
 
     def unexpected_lal(*_args, **_kwargs):
-        raise AssertionError("native IMRPhenomXAS sequence called LAL")
+        raise AssertionError(f"native {approximant} sequence called LAL")
 
     monkeypatch.setattr(
         xas_mod,
@@ -584,7 +659,7 @@ def test_imrphenomxas_sequence_public_dispatch_does_not_call_lal(
     monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "1")
     _activate_scheme(_scheme.TorchScheme())
     actual = get_fd_waveform_sequence(
-        approximant="IMRPhenomXAS",
+        approximant=approximant,
         sample_points=sample_points,
         **params,
     )
@@ -593,7 +668,7 @@ def test_imrphenomxas_sequence_public_dispatch_does_not_call_lal(
     for expected, result in zip(reference_arrays, actual):
         assert isinstance(result._data.tensor, torch.Tensor)
         np.testing.assert_allclose(
-            result.numpy(), expected, rtol=1.0e-10, atol=0.0
+            result.numpy(), expected, rtol=tolerance, atol=0.0
         )
 
 
@@ -602,7 +677,12 @@ def test_imrphenomxas_sequence_public_dispatch_does_not_call_lal(
     [
         ({}, True),
         ({"approximant": "IMRPhenomXAS"}, True),
-        ({"approximant": "IMRPhenomXAS_NRTidalv2"}, False),
+        ({"approximant": "IMRPhenomXAS_NRTidalv2"}, True),
+        ({"approximant": "IMRPhenomXAS_NRTidalv3"}, True),
+        (
+            {"approximant": "IMRPhenomXAS_NRTidalv3", "lambda1": -1.0},
+            False,
+        ),
         ({"approximant": "IMRPhenomXP"}, False),
         ({"dchi3": 0.1}, False),
         ({"lambda1": 100.0}, False),
@@ -702,20 +782,43 @@ def test_imrphenomxas_sequence_lal_fallback_supports_mps(
 
 
 @pytest.mark.parametrize("device_name", ["cpu", "mps", "cuda"])
+@pytest.mark.parametrize(
+    ("approximant", "params", "sample_points", "cpu_tolerance"),
+    [
+        ("IMRPhenomXAS", CASES[0], SEQUENCE_CASES[0][1], 1.0e-10),
+        (
+            "IMRPhenomXAS_NRTidalv2",
+            TIDAL_CASES[0],
+            TIDAL_SEQUENCE_CASES[0][1],
+            1.0e-9,
+        ),
+        (
+            "IMRPhenomXAS_NRTidalv3",
+            TIDAL_CASES[0],
+            TIDAL_SEQUENCE_CASES[0][1],
+            1.0e-9,
+        ),
+    ],
+)
 def test_imrphenomxas_sequence_stays_on_requested_device(
-    device_name, monkeypatch, preserve_scheme
+    device_name,
+    approximant,
+    params,
+    sample_points,
+    cpu_tolerance,
+    monkeypatch,
+    preserve_scheme,
 ):
     if device_name == "mps" and not torch.backends.mps.is_available():
         pytest.skip("Torch MPS device is unavailable")
     if device_name == "cuda" and not torch.cuda.is_available():
         pytest.skip("Torch CUDA device is unavailable")
 
-    params = _sequence_params(CASES[0])
-    sample_points = SEQUENCE_CASES[0][1]
+    params = _sequence_params(params)
     monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "0")
     _activate_scheme(_scheme.CPUScheme())
     reference, _ = get_fd_waveform_sequence(
-        approximant="IMRPhenomXAS",
+        approximant=approximant,
         sample_points=sample_points,
         **params,
     )
@@ -724,7 +827,7 @@ def test_imrphenomxas_sequence_stays_on_requested_device(
     monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "1")
     _activate_scheme(_scheme.TorchScheme(device_name))
     actual, _ = get_fd_waveform_sequence(
-        approximant="IMRPhenomXAS",
+        approximant=approximant,
         sample_points=sample_points,
         **params,
     )
@@ -739,12 +842,32 @@ def test_imrphenomxas_sequence_stays_on_requested_device(
     relative_error = np.linalg.norm(
         actual_array[nonzero] - reference_array[nonzero]
     ) / np.linalg.norm(reference_array[nonzero])
-    tolerance = 5.0e-3 if device_name == "mps" else 1.0e-10
+    tolerance = 5.0e-3 if device_name == "mps" else cpu_tolerance
     assert relative_error < tolerance
 
 
+@pytest.mark.parametrize(
+    ("approximant", "params", "sample_values"),
+    [
+        ("IMRPhenomXAS", CASES[0], SEQUENCE_CASES[0][1]),
+        (
+            "IMRPhenomXAS_NRTidalv2",
+            TIDAL_CASES[0],
+            TIDAL_SEQUENCE_CASES[0][1],
+        ),
+        (
+            "IMRPhenomXAS_NRTidalv3",
+            TIDAL_CASES[0],
+            TIDAL_SEQUENCE_CASES[0][1],
+        ),
+    ],
+)
 def test_imrphenomxas_sequence_native_avoids_host_transfer(
-    monkeypatch, preserve_scheme
+    approximant,
+    params,
+    sample_values,
+    monkeypatch,
+    preserve_scheme,
 ):
     from pycbc.types import Array
     from pycbc.types.array_torch import TorchArrayData
@@ -754,13 +877,13 @@ def test_imrphenomxas_sequence_native_avoids_host_transfer(
 
     monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "1")
     _activate_scheme(_scheme.TorchScheme())
-    sample_points = Array(SEQUENCE_CASES[0][1])
+    sample_points = Array(sample_values)
     monkeypatch.setattr(TorchArrayData, "numpy", reject_host_transfer)
     with torch.no_grad():
         hp, hc = get_fd_waveform_sequence(
-            approximant="IMRPhenomXAS",
+            approximant=approximant,
             sample_points=sample_points,
-            **_sequence_params(CASES[0]),
+            **_sequence_params(params),
         )
 
     assert isinstance(hp._data.tensor, torch.Tensor)
