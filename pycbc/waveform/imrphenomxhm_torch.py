@@ -8,9 +8,10 @@
 """Torch-native pieces of the IMRPhenomXHM mode-by-mode interface.
 
 The quadrupole shares the IMRPhenomXAS implementation.  The ``(2, +/-1)``,
-``(3, +/-3)``, and ``(4, +/-4)`` modes use native XHM no-mixing kernels.
-Other higher modes remain on the LAL path until their amplitude, phase, and
-mode-mixing models are ported.
+``(3, +/-3)``, and ``(4, +/-4)`` modes use native XHM no-mixing kernels, while
+``(3, +/-2)`` includes the native spheroidal-to-spherical ringdown mixing.
+Only explicit mode requests are native; the default mode set and normal
+polarization interface remain on the LAL path.
 """
 
 from numbers import Integral
@@ -24,12 +25,24 @@ from .imrphenomxas_torch import (
     imrphenomxas_native_supported,
 )
 from .imrphenomxhm_mode21_torch import imrphenomxhm_h2m1_samples
+from .imrphenomxhm_mode32_torch import imrphenomxhm_h3m2_samples
 from .imrphenomxhm_mode33_torch import imrphenomxhm_h3m3_samples
 from .imrphenomxhm_mode44_torch import imrphenomxhm_h4m4_samples
 
 
 _NATIVE_MODES = frozenset(
-    {(2, -2), (2, -1), (2, 1), (2, 2), (3, -3), (3, 3), (4, -4), (4, 4)}
+    {
+        (2, -2),
+        (2, -1),
+        (2, 1),
+        (2, 2),
+        (3, -3),
+        (3, -2),
+        (3, 2),
+        (3, 3),
+        (4, -4),
+        (4, 4),
+    }
 )
 
 
@@ -77,8 +90,9 @@ def imrphenomxhm_modes_torch(**params):
 
     if not imrphenomxhm_modes_native_supported(params):
         raise ValueError(
-            "only explicit IMRPhenomXHM (2, +/-1), (2, +/-2), (3, +/-3), "
-            "and (4, +/-4) requests are supported by the native Torch path"
+            "only explicit IMRPhenomXHM (2, +/-1), (2, +/-2), (3, +/-2), "
+            "(3, +/-3), and (4, +/-4) requests are supported by the native "
+            "Torch path"
         )
     if not isinstance(_scheme.mgr.state, _scheme.TorchScheme):
         raise RuntimeError("native Torch IMRPhenomXHM modes require TorchScheme")
@@ -96,6 +110,8 @@ def imrphenomxhm_modes_torch(**params):
         active_modes[2, 1] = imrphenomxhm_h2m1_samples(core, params)
     if (3, 3) in mode_families:
         active_modes[3, 3] = imrphenomxhm_h3m3_samples(core, params)
+    if (3, 2) in mode_families:
+        active_modes[3, 2] = imrphenomxhm_h3m2_samples(core, params)
     if (4, 4) in mode_families:
         active_modes[4, 4] = imrphenomxhm_h4m4_samples(core, params)
 
