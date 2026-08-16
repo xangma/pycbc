@@ -7,6 +7,8 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
+import lal  # noqa: E402
+import lalsimulation  # noqa: E402
 from pycbc import scheme as _scheme  # noqa: E402
 from pycbc.waveform import (  # noqa: E402
     get_fd_waveform,
@@ -16,6 +18,17 @@ from pycbc.waveform.seobnrv4_torch import (  # noqa: E402
     _clear_rom_cache,
     seobnrv4_rom_native_supported,
     seobnrv4_rom_sequence_native_supported,
+)
+from pycbc.waveform.nsbh_torch import (  # noqa: E402
+    bbh_final_mass_non_precessing_uib2016,
+    bbh_final_spin_non_precessing_uib2016,
+    bhns_mass_aligned,
+    bhns_spin_aligned,
+    nsbh_compactness_from_lambda,
+    nsbh_r_kerr_isco,
+    nsbh_torus_mass_fit,
+    nsbh_xi_tide,
+    seobnrv4_nsbh_amplitude,
 )
 
 
@@ -145,6 +158,76 @@ def _assert_sequence_parity(
 
 
 @pytest.mark.parametrize(
+    ("native", "reference_name", "arguments"),
+    [
+        (
+            nsbh_compactness_from_lambda,
+            "SimNSBH_compactness_from_lambda",
+            (800.0,),
+        ),
+        (nsbh_r_kerr_isco, "SimNSBH_rKerrISCO", (0.8,)),
+        (nsbh_xi_tide, "SimNSBH_xi_tide", (5.0, 0.8, 0.8)),
+        (nsbh_torus_mass_fit, "SimNSBH_torus_mass_fit", (5.0, 0.8, 0.16)),
+        (
+            bbh_final_mass_non_precessing_uib2016,
+            "bbh_final_mass_non_precessing_UIB2016",
+            (8.0, 1.4, 0.8, 0.0),
+        ),
+        (
+            bbh_final_spin_non_precessing_uib2016,
+            "bbh_final_spin_non_precessing_UIB2016",
+            (8.0, 1.4, 0.8, 0.0),
+        ),
+        (bhns_mass_aligned, "BHNS_mass_aligned", (8.0, 1.4, 0.8, 800.0)),
+        (bhns_spin_aligned, "BHNS_spin_aligned", (8.0, 1.4, 0.8, 800.0)),
+    ],
+)
+def test_nsbh_scalar_fits_match_lal(native, reference_name, arguments):
+    expected = getattr(lalsimulation, reference_name)(*arguments)
+    assert native(*arguments) == pytest.approx(
+        expected, rel=2.0e-12, abs=2.0e-14
+    )
+
+
+@pytest.mark.parametrize(
+    ("mass1", "mass2", "spin1z", "lambda2"),
+    [
+        (8.0, 1.4, 0.8, 800.0),
+        (5.0, 1.4, -0.2, 1000.0),
+        (20.0, 2.5, 0.5, 0.0),
+    ],
+)
+def test_seobnrv4_nsbh_amplitude_matches_lal(
+    mass1, mass2, spin1z, lambda2
+):
+    frequencies = np.array(
+        [20.0, 100.0, 500.0, 1000.0, 2000.0, 4096.0]
+    )
+    lal_frequencies = lal.CreateREAL8Sequence(len(frequencies))
+    lal_frequencies.data[:] = frequencies
+    expected = lal.CreateREAL8Sequence(len(frequencies))
+    lalsimulation.SEOBNRv4ROMNSBHAmplitudeCorrectionFrequencySeries(
+        expected,
+        lal_frequencies,
+        mass1 * lal.MSUN_SI,
+        mass2 * lal.MSUN_SI,
+        spin1z,
+        lambda2,
+    )
+
+    frequency_tensor = torch.as_tensor(frequencies, dtype=torch.float64)
+    actual = seobnrv4_nsbh_amplitude(
+        frequency_tensor, mass1, mass2, spin1z, lambda2
+    )
+
+    assert actual.device == frequency_tensor.device
+    assert actual.dtype == frequency_tensor.dtype
+    np.testing.assert_allclose(
+        actual.numpy(), expected.data, rtol=2.0e-11, atol=2.0e-13
+    )
+
+
+@pytest.mark.parametrize(
     "params",
     [
         {
@@ -246,6 +329,23 @@ def test_seobnrv4_rom_cpu_torch_parity(params):
                 "long_asc_nodes": 0.31,
             },
         ),
+        (
+            "SEOBNRv4_ROM_NRTidalv2_NSBH",
+            {
+                **_BASE_PARAMS,
+                "mass1": 8.0,
+                "mass2": 1.4,
+                "spin1z": 0.8,
+                "spin2z": 0.0,
+                "lambda1": 0.0,
+                "lambda2": 800.0,
+                "delta_f": 0.5,
+                "f_lower": 20.0,
+                "f_final": 4096.1,
+                "f_ref": 30.0,
+                "long_asc_nodes": 0.23,
+            },
+        ),
     ],
 )
 def test_seobnrv4_rom_nrtidal_parity(approximant, params):
@@ -255,7 +355,12 @@ def test_seobnrv4_rom_nrtidal_parity(approximant, params):
     actual = _generate(
         params, native=True, device="cpu", approximant=approximant
     )
-    _assert_parity(reference, actual, relative_tolerance=1.0e-8)
+    tolerance = (
+        1.0e-7
+        if approximant == "SEOBNRv4_ROM_NRTidalv2_NSBH"
+        else 1.0e-8
+    )
+    _assert_parity(reference, actual, relative_tolerance=tolerance)
 
 
 @pytest.mark.parametrize(
@@ -277,7 +382,56 @@ def test_seobnrv4_rom_nrtidal_parity(approximant, params):
             {"approximant": "SEOBNRv4_ROM_NRTidal", "lambda1": -1.0},
             False,
         ),
-        ({"approximant": "SEOBNRv4_ROM_NRTidalv2_NSBH"}, False),
+        (
+            {
+                "approximant": "SEOBNRv4_ROM_NRTidalv2_NSBH",
+                "mass1": 8.0,
+                "mass2": 1.4,
+                "lambda1": 0.0,
+                "lambda2": 800.0,
+            },
+            True,
+        ),
+        (
+            {
+                "approximant": "SEOBNRv4_ROM_NRTidalv2_NSBH",
+                "mass1": 1.4,
+                "mass2": 8.0,
+                "lambda1": 0.0,
+                "lambda2": 800.0,
+            },
+            False,
+        ),
+        (
+            {
+                "approximant": "SEOBNRv4_ROM_NRTidalv2_NSBH",
+                "mass1": 8.0,
+                "mass2": 1.4,
+                "lambda1": 1.0,
+                "lambda2": 800.0,
+            },
+            False,
+        ),
+        (
+            {
+                "approximant": "SEOBNRv4_ROM_NRTidalv2_NSBH",
+                "mass1": 8.0,
+                "mass2": 3.1,
+                "lambda1": 0.0,
+                "lambda2": 800.0,
+            },
+            False,
+        ),
+        (
+            {
+                "approximant": "SEOBNRv4_ROM_NRTidalv2_NSBH",
+                "mass1": 8.0,
+                "mass2": 1.4,
+                "lambda1": 0.0,
+                "lambda2": 5000.1,
+            },
+            False,
+        ),
         ({"spin1x": 0.1}, False),
         ({"phase_order": 2}, False),
         ({"lambda1": 100.0}, False),
@@ -350,6 +504,20 @@ def test_seobnrv4_rom_native_support_boundary(params, expected):
             },
             [18.0, 30.0, 150.0, 1024.0, 1500.0, 3000.0],
         ),
+        (
+            "SEOBNRv4_ROM_NRTidalv2_NSBH",
+            {
+                **_BASE_PARAMS,
+                "mass1": 8.0,
+                "mass2": 1.4,
+                "spin1z": 0.8,
+                "spin2z": 0.0,
+                "lambda1": 0.0,
+                "lambda2": 800.0,
+                "f_ref": 30.0,
+            },
+            [20.0, 30.0, 100.0, 500.0, 1000.0, 2048.0, 4096.0, 10000.0],
+        ),
     ],
 )
 def test_seobnrv4_rom_sequence_matches_lal_without_calling_lal(
@@ -409,6 +577,16 @@ def test_seobnrv4_rom_sequence_matches_lal_without_calling_lal(
         ({}, True),
         ({"approximant": "SEOBNRv4_ROM_NRTidal"}, True),
         ({"approximant": "SEOBNRv4_ROM_NRTidalv2"}, True),
+        (
+            {
+                "approximant": "SEOBNRv4_ROM_NRTidalv2_NSBH",
+                "mass1": 8.0,
+                "mass2": 1.4,
+                "lambda1": 0.0,
+                "lambda2": 800.0,
+            },
+            True,
+        ),
         ({"approximant": "SEOBNRv4"}, False),
         ({"spin1x": 0.1}, False),
         ({"dchi3": 0.1}, False),
@@ -523,6 +701,21 @@ def test_seobnrv4_rom_nrtidal_sequence_requires_increasing_frequencies():
                 "lambda1": 400.0,
                 "lambda2": 800.0,
                 "delta_f": 0.5,
+                "f_lower": 20.0,
+                "f_ref": 30.0,
+            },
+        ),
+        (
+            "SEOBNRv4_ROM_NRTidalv2_NSBH",
+            {
+                **_BASE_PARAMS,
+                "mass1": 8.0,
+                "mass2": 1.4,
+                "spin1z": 0.8,
+                "spin2z": 0.0,
+                "lambda1": 0.0,
+                "lambda2": 800.0,
+                "delta_f": 1.0,
                 "f_lower": 20.0,
                 "f_ref": 30.0,
             },
@@ -707,25 +900,49 @@ def test_seobnrv4_rom_stays_on_requested_device(device_name):
 
 
 @pytest.mark.parametrize("device_name", ["cpu", "mps", "cuda"])
-def test_seobnrv4_rom_nrtidal_stays_on_requested_device(device_name):
+@pytest.mark.parametrize(
+    ("approximant", "params"),
+    [
+        (
+            "SEOBNRv4_ROM_NRTidalv2",
+            {
+                **_BASE_PARAMS,
+                "mass1": 1.4,
+                "mass2": 1.2,
+                "spin1z": 0.05,
+                "spin2z": -0.02,
+                "lambda1": 400.0,
+                "lambda2": 800.0,
+                "delta_f": 2.0,
+                "f_lower": 20.0,
+                "f_ref": 30.0,
+            },
+        ),
+        (
+            "SEOBNRv4_ROM_NRTidalv2_NSBH",
+            {
+                **_BASE_PARAMS,
+                "mass1": 8.0,
+                "mass2": 1.4,
+                "spin1z": 0.8,
+                "spin2z": 0.0,
+                "lambda1": 0.0,
+                "lambda2": 800.0,
+                "delta_f": 2.0,
+                "f_lower": 20.0,
+                "f_ref": 30.0,
+            },
+        ),
+    ],
+)
+def test_seobnrv4_rom_nrtidal_stays_on_requested_device(
+    device_name, approximant, params
+):
     if device_name == "mps" and not torch.backends.mps.is_available():
         pytest.skip("Torch MPS device is unavailable")
     if device_name == "cuda" and not torch.cuda.is_available():
         pytest.skip("Torch CUDA device is unavailable")
 
-    approximant = "SEOBNRv4_ROM_NRTidalv2"
-    params = {
-        **_BASE_PARAMS,
-        "mass1": 1.4,
-        "mass2": 1.2,
-        "spin1z": 0.05,
-        "spin2z": -0.02,
-        "lambda1": 400.0,
-        "lambda2": 800.0,
-        "delta_f": 2.0,
-        "f_lower": 20.0,
-        "f_ref": 30.0,
-    }
     reference = _snapshot(
         _generate(params, native=False, approximant=approximant)
     )

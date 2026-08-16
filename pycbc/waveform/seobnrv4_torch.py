@@ -14,7 +14,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-"""Device-native evaluator for ``SEOBNRv4_ROM`` and NRTidal v1/v2.
+"""Device-native evaluator for ``SEOBNRv4_ROM`` and its tidal variants.
 
 The public ROM data are loaded from ``SEOBNRv4ROM_v3.0.hdf5``. Parameter-
 space interpolation, sparse-grid reconstruction, frequency interpolation,
@@ -24,9 +24,10 @@ device. HDF5 input and scalar parameter validation remain host-side.
 The implementation follows ``LALSimIMRSEOBNRv4ROM.c`` and
 ``LALSimIMRSEOBNRv4ROM_NRTidal.c`` from LALSuite 7.26.1, including their
 frequency-series layout, polarization normalization, reference phase, and
-coalescence-time corrections. The public dispatcher retains the LAL path for
-unsupported matter parameters, the NSBH amplitude model, and the distinct
-time-domain ``SEOBNRv4`` approximant.
+coalescence-time corrections. The native path includes the multiplicative
+tidal-disruption amplitude fit used by ``SEOBNRv4_ROM_NRTidalv2_NSBH``. The
+public dispatcher retains the LAL path for unsupported matter parameters and
+the distinct time-domain ``SEOBNRv4`` approximant.
 """
 
 from __future__ import annotations
@@ -60,6 +61,7 @@ from pycbc.waveform.nrtidal_torch import (
     nrtidal_taper,
     nrtidal_version,
 )
+from pycbc.waveform.nsbh_torch import seobnrv4_nsbh_amplitude
 
 _ROM_FILENAME = "SEOBNRv4ROM_v3.0.hdf5"
 _MFM = 0.01
@@ -145,6 +147,7 @@ def seobnrv4_rom_native_supported(params) -> bool:
         "SEOBNRv4_ROM",
         "SEOBNRv4_ROM_NRTidal",
         "SEOBNRv4_ROM_NRTidalv2",
+        "SEOBNRv4_ROM_NRTidalv2_NSBH",
     }:
         return False
     if any(
@@ -166,6 +169,26 @@ def seobnrv4_rom_native_supported(params) -> bool:
             return False
     elif not all(_is_nonnegative_finite(value) for value in lambdas):
         return False
+    if approximant == "SEOBNRv4_ROM_NRTidalv2_NSBH":
+        try:
+            mass1 = float(params["mass1"])
+            mass2 = float(params["mass2"])
+            lambda1 = float(params.get("lambda1") or 0.0)
+            lambda2 = float(params.get("lambda2") or 0.0)
+        except (KeyError, TypeError, ValueError, OverflowError):
+            return False
+        if not all(math.isfinite(value) for value in (mass1, mass2)):
+            return False
+        if (
+            mass1 <= 0.0
+            or mass2 <= 0.0
+            or mass1 < mass2
+            or lambda1 != 0.0
+            or lambda2 > 5000.0
+            or mass2 > 3.0
+            or mass1 / mass2 > 100.0
+        ):
+            return False
     if any(
         _is_nonzero(params.get(key, 0.0))
         for key in ("frame_axis", "modes_choice", "side_bands")
@@ -495,6 +518,7 @@ class _SEOBNRv4ROMInputs:
     """Validated inputs and interpolants shared by both sampling APIs."""
 
     tidal_version: int | None
+    is_nsbh: bool
     mass1: float
     mass2: float
     spin1z: float
@@ -540,9 +564,9 @@ def _seobnrv4_rom_inputs(p, *, sequence=False):
     if not isinstance(state, _scheme.TorchScheme):
         raise RuntimeError("native Torch SEOBNRv4_ROM requires TorchScheme")
 
-    tidal_version = nrtidal_version(
-        p.get("approximant", "SEOBNRv4_ROM")
-    )
+    approximant = p.get("approximant", "SEOBNRv4_ROM")
+    tidal_version = nrtidal_version(approximant)
+    is_nsbh = approximant == "SEOBNRv4_ROM_NRTidalv2_NSBH"
     mass1 = float(p["mass1"])
     mass2 = float(p["mass2"])
     spin1z = float(p.get("spin1z", 0.0))
@@ -585,7 +609,22 @@ def _seobnrv4_rom_inputs(p, *, sequence=False):
     if distance_mpc <= 0.0:
         raise ValueError("distance must be positive")
 
-    if mass1 < mass2:
+    if is_nsbh:
+        if spin2z != 0.0:
+            warnings.warn(
+                "SEOBNRv4_ROM_NRTidalv2_NSBH is calibrated for zero "
+                "neutron-star spin",
+                RuntimeWarning,
+                stacklevel=3,
+            )
+        if mass2 < 1.0:
+            warnings.warn(
+                "SEOBNRv4_ROM_NRTidalv2_NSBH is calibrated for neutron-star "
+                "masses of at least one solar mass",
+                RuntimeWarning,
+                stacklevel=3,
+            )
+    elif mass1 < mass2:
         mass1, mass2 = mass2, mass1
         spin1z, spin2z = spin2z, spin1z
         lambda1, lambda2 = lambda2, lambda1
@@ -646,6 +685,7 @@ def _seobnrv4_rom_inputs(p, *, sequence=False):
 
     return _SEOBNRv4ROMInputs(
         tidal_version=tidal_version,
+        is_nsbh=is_nsbh,
         mass1=mass1,
         mass2=mass2,
         spin1z=spin1z,
@@ -700,7 +740,7 @@ def _seobnrv4_rom_amplitude_phase(
         inputs.amp_values,
         *inputs.amp_coeff,
     )
-    if inputs.tidal_version == 2:
+    if inputs.tidal_version == 2 and not inputs.is_nsbh:
         amplitude += nrtidal_amplitude(
             frequencies_hz,
             inputs.mass1,
@@ -750,6 +790,8 @@ def _nrtidal_correction_phase(inputs, frequencies_hz):
         inputs.lambda2,
         inputs.tidal_version,
     )
+    if inputs.is_nsbh:
+        return phase, 0.0, 0.0
     dquad1 = nrtidal_quadrupole_from_lambda(inputs.lambda1) - 1.0
     dquad2 = nrtidal_quadrupole_from_lambda(inputs.lambda2) - 1.0
     phase += nrtidal_self_spin_phase(
@@ -787,7 +829,7 @@ def _apply_nrtidal(
             inputs, frequencies_hz
         )
     phase -= active_correction
-    if inputs.tidal_version == 2:
+    if inputs.tidal_version == 2 and not inputs.is_nsbh:
         phase -= nrtidal_higher_order_spin_phase(
             frequencies_hz,
             inputs.mass1,
@@ -818,13 +860,22 @@ def _apply_nrtidal(
         * (frequencies_hz - tidal_reference_frequency)
         * tidal_time_correction
     )
-    merger_frequency = nrtidal_merger_frequency(
-        inputs.mass1,
-        inputs.mass2,
-        inputs.lambda1,
-        inputs.lambda2,
-    )
-    amplitude *= nrtidal_taper(frequencies_hz, merger_frequency)
+    if inputs.is_nsbh:
+        amplitude *= seobnrv4_nsbh_amplitude(
+            frequencies_hz,
+            inputs.mass1,
+            inputs.mass2,
+            inputs.spin1z,
+            inputs.lambda2,
+        )
+    else:
+        merger_frequency = nrtidal_merger_frequency(
+            inputs.mass1,
+            inputs.mass2,
+            inputs.lambda1,
+            inputs.lambda2,
+        )
+        amplitude *= nrtidal_taper(frequencies_hz, merger_frequency)
     return amplitude, phase
 
 
@@ -875,7 +926,7 @@ def seobnrv4_fd_torch(**p):
     lower_mf = f_lower * inputs.total_mass_seconds
     base_final_hz = f_final
     tidal_final_hz = None
-    if inputs.tidal_version is not None:
+    if inputs.tidal_version is not None and not inputs.is_nsbh:
         merger_frequency = nrtidal_merger_frequency(
             inputs.mass1,
             inputs.mass2,

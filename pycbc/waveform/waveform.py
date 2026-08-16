@@ -450,6 +450,7 @@ def _lalsim_fd_waveform(**p):
             "SEOBNRv4_ROM",
             "SEOBNRv4_ROM_NRTidal",
             "SEOBNRv4_ROM_NRTidalv2",
+            "SEOBNRv4_ROM_NRTidalv2_NSBH",
         )
         and using_torch
         and torch_native_enabled("PYCBC_SEOBNRV4_NATIVE", default=False)
@@ -887,6 +888,7 @@ def _lalsim_fd_sequence(**p):
             "SEOBNRv4_ROM",
             "SEOBNRv4_ROM_NRTidal",
             "SEOBNRv4_ROM_NRTidalv2",
+            "SEOBNRv4_ROM_NRTidalv2_NSBH",
         )
         and using_torch
         and torch_native_enabled("PYCBC_SEOBNRV4_NATIVE", default=False)

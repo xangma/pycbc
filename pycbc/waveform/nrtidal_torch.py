@@ -70,6 +70,7 @@ NRTIDAL_V2_APPROXIMANTS = frozenset(
         "IMRPhenomPv2_NRTidalv2",
         "IMRPhenomXAS_NRTidalv2",
         "SEOBNRv4_ROM_NRTidalv2",
+        "SEOBNRv4_ROM_NRTidalv2_NSBH",
     }
 )
 NRTIDAL_V3_APPROXIMANTS = frozenset({"IMRPhenomXAS_NRTidalv3"})
