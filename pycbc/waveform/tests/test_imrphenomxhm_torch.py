@@ -269,6 +269,19 @@ CASES = [
         coa_phase=0.37,
         mode_array=[(3, 2)],
     ),
+    dict(
+        mass1=46.0,
+        mass2=19.0,
+        spin1z=0.35,
+        spin2z=-0.2,
+        delta_f=1.0,
+        f_lower=20.0,
+        f_final=700.0,
+        f_ref=25.0,
+        distance=350.0,
+        coa_phase=0.4,
+        mode_array=None,
+    ),
 ]
 
 
@@ -355,7 +368,7 @@ def test_imrphenomxhm_native_support_is_deliberately_narrow():
     assert imrphenomxhm_modes_native_supported(
         {**params, "mode_array": [(3, -2), (3, 2)]}
     )
-    assert not imrphenomxhm_modes_native_supported({**params, "mode_array": None})
+    assert imrphenomxhm_modes_native_supported({**params, "mode_array": None})
     assert not imrphenomxhm_modes_native_supported({**params, "spin1x": 0.1})
     assert not imrphenomxhm_modes_native_supported({**params, "lambda1": 100.0})
 
@@ -414,13 +427,22 @@ def test_imrphenomxhm_native_avoids_lal_and_host_transfer(monkeypatch, preserve_
     monkeypatch.setattr(TorchArrayData, "numpy", reject_host_transfer)
     monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "1")
     _activate_scheme(_scheme.TorchScheme("cpu"))
-    params = {
-        **CASES[0],
-        "mode_array": [(2, -2), (2, -1), (3, -3), (3, -2), (4, -4)],
-    }
+    params = {**CASES[0], "mode_array": None}
     with torch.no_grad():
         modes = get_fd_waveform_modes(approximant="IMRPhenomXHM", **params)
 
+    assert list(modes) == [
+        (2, 2),
+        (2, 1),
+        (3, 3),
+        (3, 2),
+        (4, 4),
+        (2, -2),
+        (2, -1),
+        (3, -3),
+        (3, -2),
+        (4, -4),
+    ]
     for polarizations in modes.values():
         for series in polarizations:
             assert isinstance(series._data.tensor, torch.Tensor)

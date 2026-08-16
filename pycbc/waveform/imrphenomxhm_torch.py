@@ -9,9 +9,9 @@
 
 The quadrupole shares the IMRPhenomXAS implementation.  The ``(2, +/-1)``,
 ``(3, +/-3)``, and ``(4, +/-4)`` modes use native XHM no-mixing kernels, while
-``(3, +/-2)`` includes the native spheroidal-to-spherical ringdown mixing.
-Only explicit mode requests are native; the default mode set and normal
-polarization interface remain on the LAL path.
+``(3, +/-2)`` includes the native spheroidal-to-spherical ringdown mixing.  The
+default mode set is native; the normal polarization interface remains on the
+LAL path.
 """
 
 from numbers import Integral
@@ -45,11 +45,26 @@ _NATIVE_MODES = frozenset(
     }
 )
 
+# Keep this order in sync with waveform_modes.default_modes.  Defining it here
+# avoids importing waveform_modes from its native dispatch target.
+_DEFAULT_MODES = (
+    (2, 2),
+    (2, 1),
+    (3, 3),
+    (3, 2),
+    (4, 4),
+    (2, -2),
+    (2, -1),
+    (3, -3),
+    (3, -2),
+    (4, -4),
+)
+
 
 def _requested_modes(params):
     mode_array = params.get("mode_array")
     if mode_array is None:
-        return None
+        return list(_DEFAULT_MODES)
 
     modes = []
     try:
@@ -86,13 +101,13 @@ def imrphenomxhm_modes_native_supported(params):
 
 
 def imrphenomxhm_modes_torch(**params):
-    """Generate explicitly requested native XHM modes with Torch."""
+    """Generate the requested native XHM modes with Torch."""
 
     if not imrphenomxhm_modes_native_supported(params):
         raise ValueError(
-            "only explicit IMRPhenomXHM (2, +/-1), (2, +/-2), (3, +/-2), "
-            "(3, +/-3), and (4, +/-4) requests are supported by the native "
-            "Torch path"
+            "only the default IMRPhenomXHM mode set or explicit (2, +/-1), "
+            "(2, +/-2), (3, +/-2), (3, +/-3), and (4, +/-4) requests are "
+            "supported by the native Torch path"
         )
     if not isinstance(_scheme.mgr.state, _scheme.TorchScheme):
         raise RuntimeError("native Torch IMRPhenomXHM modes require TorchScheme")
