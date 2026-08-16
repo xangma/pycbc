@@ -16,13 +16,19 @@ and cross polarizations on the active Torch device.
 
 import math
 from numbers import Integral
+from typing import NamedTuple
+
+import torch
 
 from pycbc import scheme as _scheme
+from pycbc.types import Array as PyCBCArray
+from pycbc.types.array_torch import TorchArrayData
 
 from ._spherical_harmonics_torch import spin_weighted_spherical_harmonic
 from .imrphenomxas_torch import (
     _XAS_MODE_POLARIZATION_FACTOR,
     _imrphenomxas_core_torch,
+    _imrphenomxas_sequence_samples,
     _series_from_active_samples,
     imrphenomxas_native_supported,
 )
@@ -61,6 +67,12 @@ _DEFAULT_MODES = (
     (3, -2),
     (4, -4),
 )
+
+
+class _SequenceCore(NamedTuple):
+    """Inclination-independent samples shared by the XHM mode kernels."""
+
+    polarization: torch.Tensor
 
 
 def _requested_modes(params):
@@ -109,7 +121,20 @@ def imrphenomxhm_fd_native_supported(params):
     return bool(modes) and imrphenomxhm_modes_native_supported(params)
 
 
-def _active_mode_samples(core, params, modes):
+def imrphenomxhm_sequence_native_supported(params):
+    """Return whether arbitrary-frequency XHM generation is native."""
+
+    return imrphenomxhm_modes_native_supported(params)
+
+
+def _active_mode_samples(
+    core,
+    params,
+    modes,
+    *,
+    frequencies=None,
+    reference_frequency=None,
+):
     """Generate each requested absolute-m mode family once."""
 
     active_modes = {}
@@ -117,14 +142,98 @@ def _active_mode_samples(core, params, modes):
     if (2, 2) in mode_families:
         active_modes[2, 2] = core.polarization / _XAS_MODE_POLARIZATION_FACTOR
     if (2, 1) in mode_families:
-        active_modes[2, 1] = imrphenomxhm_h2m1_samples(core, params)
+        active_modes[2, 1] = imrphenomxhm_h2m1_samples(
+            core,
+            params,
+            frequencies=frequencies,
+            reference_frequency=reference_frequency,
+        )
     if (3, 3) in mode_families:
-        active_modes[3, 3] = imrphenomxhm_h3m3_samples(core, params)
+        active_modes[3, 3] = imrphenomxhm_h3m3_samples(
+            core,
+            params,
+            frequencies=frequencies,
+            reference_frequency=reference_frequency,
+        )
     if (3, 2) in mode_families:
-        active_modes[3, 2] = imrphenomxhm_h3m2_samples(core, params)
+        active_modes[3, 2] = imrphenomxhm_h3m2_samples(
+            core,
+            params,
+            frequencies=frequencies,
+            reference_frequency=reference_frequency,
+        )
     if (4, 4) in mode_families:
-        active_modes[4, 4] = imrphenomxhm_h4m4_samples(core, params)
+        active_modes[4, 4] = imrphenomxhm_h4m4_samples(
+            core,
+            params,
+            frequencies=frequencies,
+            reference_frequency=reference_frequency,
+        )
     return active_modes
+
+
+def _polarizations_from_active_modes(
+    core,
+    params,
+    modes,
+    active_modes,
+    *,
+    sequence=False,
+):
+    """Assemble requested mode samples into plus and cross polarizations."""
+
+    plus = core.polarization.new_zeros(core.polarization.shape)
+    cross = core.polarization.new_zeros(core.polarization.shape)
+
+    # XHM's aligned-spin convention evaluates the spin-weighted spherical
+    # harmonics at phi=pi/2.  The generated positive-frequency waveform is
+    # h_l,-m; an explicitly selected +m contribution is reconstructed from
+    # equatorial symmetry with the same samples.
+    selected = set(modes)
+    inclination = float(params.get("inclination", 0.0))
+    real_dtype = plus.real.dtype
+    device = plus.device
+    for (ell, emm), samples in active_modes.items():
+        parity = (-1) ** ell
+        factor_plus = plus.new_zeros(())
+        factor_cross = plus.new_zeros(())
+        if (ell, -emm) in selected:
+            y_negative = spin_weighted_spherical_harmonic(
+                inclination,
+                math.pi / 2.0,
+                -2,
+                ell,
+                -emm,
+                dtype=real_dtype,
+                device=device,
+            )
+            factor_plus += 0.5 * y_negative
+            factor_cross += 0.5j * y_negative
+        if (ell, emm) in selected:
+            y_positive_conjugate = spin_weighted_spherical_harmonic(
+                inclination,
+                math.pi / 2.0,
+                -2,
+                ell,
+                emm,
+                dtype=real_dtype,
+                device=device,
+            ).conj()
+            factor_plus += 0.5 * parity * y_positive_conjugate
+            factor_cross -= 0.5j * parity * y_positive_conjugate
+        plus += factor_plus * samples
+        cross += factor_cross * samples
+
+    # SimInspiralChooseFDWaveformSequence has no ascending-node argument.
+    long_asc_nodes = 0.0 if sequence else float(
+        params.get("long_asc_nodes", 0.0)
+    )
+    cos_nodes = math.cos(2.0 * long_asc_nodes)
+    sin_nodes = math.sin(2.0 * long_asc_nodes)
+    return (
+        cos_nodes * plus + sin_nodes * cross,
+        cos_nodes * cross - sin_nodes * plus,
+    )
 
 
 def imrphenomxhm_modes_torch(**params):
@@ -173,56 +282,47 @@ def imrphenomxhm_fd_torch(**params):
     modes = _requested_modes(params)
     core = _imrphenomxas_core_torch(_xas_params(params))
     active_modes = _active_mode_samples(core, params, modes)
-    plus = core.polarization.new_zeros(core.polarization.shape)
-    cross = core.polarization.new_zeros(core.polarization.shape)
-
-    # XHM's aligned-spin convention evaluates the spin-weighted spherical
-    # harmonics at phi=pi/2.  The generated positive-frequency waveform is
-    # h_l,-m; an explicitly selected +m contribution is reconstructed from
-    # equatorial symmetry with the same samples.
-    selected = set(modes)
-    inclination = float(params.get("inclination", 0.0))
-    real_dtype = plus.real.dtype
-    device = plus.device
-    for (ell, emm), samples in active_modes.items():
-        parity = (-1) ** ell
-        factor_plus = plus.new_zeros(())
-        factor_cross = plus.new_zeros(())
-        if (ell, -emm) in selected:
-            y_negative = spin_weighted_spherical_harmonic(
-                inclination,
-                math.pi / 2.0,
-                -2,
-                ell,
-                -emm,
-                dtype=real_dtype,
-                device=device,
-            )
-            factor_plus += 0.5 * y_negative
-            factor_cross += 0.5j * y_negative
-        if (ell, emm) in selected:
-            y_positive_conjugate = spin_weighted_spherical_harmonic(
-                inclination,
-                math.pi / 2.0,
-                -2,
-                ell,
-                emm,
-                dtype=real_dtype,
-                device=device,
-            ).conj()
-            factor_plus += 0.5 * parity * y_positive_conjugate
-            factor_cross -= 0.5j * parity * y_positive_conjugate
-        plus += factor_plus * samples
-        cross += factor_cross * samples
-
-    long_asc_nodes = float(params.get("long_asc_nodes", 0.0))
-    cos_nodes = math.cos(2.0 * long_asc_nodes)
-    sin_nodes = math.sin(2.0 * long_asc_nodes)
+    plus, cross = _polarizations_from_active_modes(
+        core,
+        params,
+        modes,
+        active_modes,
+    )
     return (
-        _series_from_active_samples(
-            core, cos_nodes * plus + sin_nodes * cross
-        ),
-        _series_from_active_samples(
-            core, cos_nodes * cross - sin_nodes * plus
-        ),
+        _series_from_active_samples(core, plus),
+        _series_from_active_samples(core, cross),
+    )
+
+
+def imrphenomxhm_fd_sequence_torch(**params):
+    """Evaluate IMRPhenomXHM polarizations at arbitrary frequencies."""
+
+    if not imrphenomxhm_sequence_native_supported(params):
+        raise ValueError(
+            "IMRPhenomXHM sequence parameters are not supported by the "
+            "native Torch path"
+        )
+    if not isinstance(_scheme.mgr.state, _scheme.TorchScheme):
+        raise RuntimeError("native Torch IMRPhenomXHM requires TorchScheme")
+
+    modes = _requested_modes(params)
+    sequence = _imrphenomxas_sequence_samples(_xas_params(params))
+    core = _SequenceCore(sequence.polarization)
+    active_modes = _active_mode_samples(
+        core,
+        params,
+        modes,
+        frequencies=sequence.frequencies,
+        reference_frequency=sequence.reference_frequency,
+    )
+    plus, cross = _polarizations_from_active_modes(
+        core,
+        params,
+        modes,
+        active_modes,
+        sequence=True,
+    )
+    return (
+        PyCBCArray(TorchArrayData(plus), copy=False),
+        PyCBCArray(TorchArrayData(cross), copy=False),
     )

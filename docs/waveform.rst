@@ -137,6 +137,10 @@ environment flags:
   ``get_fd_waveform`` also run on-device. This path performs the full mode
   evaluation rather than LAL's polarization-interface multibanding,
   so sparse mode selections can retain small additional differences.
+  Arbitrary-frequency ``get_fd_waveform_sequence`` evaluation reuses the same
+  mode kernels on the active device, including supported mode subsets; as in
+  LAL's sequence interface, ``long_asc_nodes`` is ignored and ``f_ref=0`` uses
+  the first supplied frequency.
 - IMRPhenomHM (FD higher modes): ``PYCBC_IMRPHENOMHM_NATIVE``. The six modeled
   positive-m modes, their IMRPhenomD frequency maps, and polarization assembly
   run on the active Torch device, including spin-weighted spherical-harmonic

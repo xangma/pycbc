@@ -638,6 +638,19 @@ def _lalsim_fd_sequence(**p):
         if imrphenomxas_sequence_native_supported(p):
             return imrphenomxas_fd_sequence_torch(**p)
 
+    if (
+        p.get("approximant") == "IMRPhenomXHM"
+        and using_torch
+        and torch_native_enabled("PYCBC_IMRPHENOMXHM_NATIVE", default=False)
+    ):
+        from .imrphenomxhm_torch import (
+            imrphenomxhm_fd_sequence_torch,
+            imrphenomxhm_sequence_native_supported,
+        )
+
+        if imrphenomxhm_sequence_native_supported(p):
+            return imrphenomxhm_fd_sequence_torch(**p)
+
     lal_pars = _check_lal_pars(p)
     sample_points = p['sample_points']
     if sample_points.dtype == numpy.dtype(numpy.float32):

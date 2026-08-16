@@ -127,6 +127,15 @@ class _IMRPhenomXASInputs(NamedTuple):
     complex_dtype: torch.dtype
 
 
+class _IMRPhenomXASSequence(NamedTuple):
+    """Validated frequencies and inclination-independent sequence samples."""
+
+    inputs: _IMRPhenomXASInputs
+    frequencies: torch.Tensor
+    polarization: torch.Tensor
+    reference_frequency: float | torch.Tensor
+
+
 _XAS_MODE_POLARIZATION_FACTOR = math.sqrt(5.0 / (16.0 * PI))
 
 
@@ -2164,14 +2173,9 @@ def _sequence_frequencies(sample_points, inputs):
     return frequencies
 
 
-def imrphenomxas_fd_sequence_torch(**p):
-    """Evaluate IMRPhenomXAS at arbitrary frequencies with Torch."""
+def _imrphenomxas_sequence_samples(p):
+    """Return native XAS samples and metadata for the sequence interface."""
 
-    if not imrphenomxas_sequence_native_supported(p):
-        raise ValueError(
-            "IMRPhenomXAS sequence parameters are not supported by the "
-            "native Torch path"
-        )
     inputs = _imrphenomxas_inputs(p, sequence=True)
     frequencies = _sequence_frequencies(p["sample_points"], inputs)
 
@@ -2190,10 +2194,8 @@ def imrphenomxas_fd_sequence_torch(**p):
         device=inputs.device,
         dtype=inputs.complex_dtype,
     )
+    reference_frequency = inputs.f_ref if inputs.f_ref > 0.0 else frequencies[0]
     if bool(torch.any(active)):
-        reference_frequency = (
-            inputs.f_ref if inputs.f_ref > 0.0 else frequencies[0]
-        )
         samples[active] = _imrphenomxas_samples(
             inputs,
             frequencies[active],
@@ -2201,10 +2203,27 @@ def imrphenomxas_fd_sequence_torch(**p):
             active_f_max,
         )
 
+    return _IMRPhenomXASSequence(
+        inputs=inputs,
+        frequencies=frequencies,
+        polarization=samples,
+        reference_frequency=reference_frequency,
+    )
+
+
+def imrphenomxas_fd_sequence_torch(**p):
+    """Evaluate IMRPhenomXAS at arbitrary frequencies with Torch."""
+
+    if not imrphenomxas_sequence_native_supported(p):
+        raise ValueError(
+            "IMRPhenomXAS sequence parameters are not supported by the "
+            "native Torch path"
+        )
+    sequence = _imrphenomxas_sequence_samples(p)
     plus, cross = _polarizations_from_samples(
-        samples,
-        inputs.inclination,
-        inputs.long_asc_nodes,
+        sequence.polarization,
+        sequence.inputs.inclination,
+        sequence.inputs.long_asc_nodes,
     )
     return (
         PyCBCArray(TorchArrayData(plus), copy=False),

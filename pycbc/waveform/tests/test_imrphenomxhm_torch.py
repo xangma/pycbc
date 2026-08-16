@@ -4,10 +4,14 @@ import pytest
 torch = pytest.importorskip("torch")
 
 from pycbc import scheme as _scheme  # noqa: E402
-from pycbc.waveform import get_fd_waveform  # noqa: E402
+from pycbc.waveform import (  # noqa: E402
+    get_fd_waveform,
+    get_fd_waveform_sequence,
+)
 from pycbc.waveform.imrphenomxhm_torch import (  # noqa: E402
     imrphenomxhm_fd_native_supported,
     imrphenomxhm_modes_native_supported,
+    imrphenomxhm_sequence_native_supported,
 )
 from pycbc.waveform.waveform_modes import get_fd_waveform_modes  # noqa: E402
 
@@ -329,6 +333,55 @@ POLARIZATION_CASES = [
         inclination=0.6,
         coa_phase=0.37,
         mode_array=[(3, -2), (3, 2)],
+    ),
+]
+
+
+SEQUENCE_CASES = [
+    (
+        dict(
+            mass1=46.0,
+            mass2=19.0,
+            spin1z=0.35,
+            spin2z=-0.2,
+            distance=350.0,
+            inclination=0.7,
+            coa_phase=0.4,
+            f_ref=25.0,
+        ),
+        [20.0, 31.5, 80.0, 180.0, 500.0, 900.0, 1000.0, 2000.0],
+        5.0e-4,
+    ),
+    (
+        dict(
+            mass1=43.0,
+            mass2=17.0,
+            spin1z=0.65,
+            spin2z=-0.45,
+            distance=800.0,
+            inclination=1.2,
+            coa_phase=0.2,
+            f_ref=0.0,
+            long_asc_nodes=0.91,
+            mode_array=[(2, -2), (2, 1), (3, -3), (3, 2), (4, 4)],
+        ),
+        [17.3, 500.0, 22.0, 150.0],
+        5.0e-3,
+    ),
+    (
+        dict(
+            mass1=600.0 / 11.0,
+            mass2=60.0 / 11.0,
+            spin1z=0.98,
+            spin2z=0.8,
+            distance=500.0,
+            inclination=0.6,
+            coa_phase=0.37,
+            f_ref=25.0,
+            mode_array=[(3, -2), (3, 2)],
+        ),
+        [15.0, 25.0, 80.0, 250.0, 900.0],
+        5.0e-2,
     ),
 ]
 
@@ -656,5 +709,233 @@ def test_imrphenomxhm_polarizations_stay_on_requested_device(
     relative_error = np.linalg.norm(
         actual.numpy()[nonzero] - reference_array[nonzero]
     ) / np.linalg.norm(reference_array[nonzero])
+    tolerance = 5.0e-3 if device_name == "mps" else 5.0e-4
+    assert relative_error < tolerance
+
+
+@pytest.mark.parametrize(
+    ("params", "sample_points", "tolerance"),
+    SEQUENCE_CASES,
+)
+def test_imrphenomxhm_sequence_matches_lal(
+    params,
+    sample_points,
+    tolerance,
+    monkeypatch,
+    preserve_scheme,
+):
+    monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
+    monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference = get_fd_waveform_sequence(
+        approximant="IMRPhenomXHM",
+        sample_points=sample_points,
+        **params,
+    )
+    reference_arrays = tuple(array.numpy().copy() for array in reference)
+
+    monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    actual = get_fd_waveform_sequence(
+        approximant="IMRPhenomXHM",
+        sample_points=sample_points,
+        **params,
+    )
+
+    for expected, result in zip(reference_arrays, actual):
+        assert result._data.tensor.device.type == "cpu"
+        assert result._data.tensor.dtype == torch.complex128
+        relative_error = np.linalg.norm(result.numpy() - expected) / np.linalg.norm(
+            expected
+        )
+        assert relative_error < tolerance
+
+
+def test_imrphenomxhm_sequence_support_is_deliberately_narrow():
+    params = {"approximant": "IMRPhenomXHM"}
+    assert imrphenomxhm_sequence_native_supported(params)
+    assert imrphenomxhm_sequence_native_supported(
+        {**params, "mode_array": [(2, -1), (3, 2), (4, -4)]}
+    )
+    assert imrphenomxhm_sequence_native_supported(
+        {**params, "mode_array": []}
+    )
+    assert not imrphenomxhm_sequence_native_supported(
+        {**params, "mode_array": [(5, -5)]}
+    )
+    assert not imrphenomxhm_sequence_native_supported(
+        {**params, "spin1x": 0.1}
+    )
+    assert not imrphenomxhm_sequence_native_supported(
+        {**params, "lambda1": 100.0}
+    )
+    assert not imrphenomxhm_sequence_native_supported(
+        {**params, "dchi0": 0.01}
+    )
+
+
+def test_imrphenomxhm_sequence_empty_mode_array_is_zero(
+    monkeypatch,
+    preserve_scheme,
+):
+    params, sample_points, _ = SEQUENCE_CASES[0]
+    monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    polarizations = get_fd_waveform_sequence(
+        approximant="IMRPhenomXHM",
+        sample_points=sample_points,
+        mode_array=[],
+        **params,
+    )
+
+    for polarization in polarizations:
+        assert torch.count_nonzero(polarization._data.tensor) == 0
+
+
+def test_imrphenomxhm_sequence_public_dispatch_avoids_lal_and_host_transfer(
+    monkeypatch,
+    preserve_scheme,
+):
+    from pycbc.types import Array
+    from pycbc.types.array_torch import TorchArrayData
+    import pycbc.waveform.imrphenomxhm_torch as xhm_torch
+    import pycbc.waveform.waveform as waveform
+
+    params, sample_values, _ = SEQUENCE_CASES[0]
+    native = xhm_torch.imrphenomxhm_fd_sequence_torch
+    native_calls = 0
+
+    def recording_native(**native_params):
+        nonlocal native_calls
+        native_calls += 1
+        return native(**native_params)
+
+    def reject_lal(*_args, **_kwargs):
+        raise AssertionError("native IMRPhenomXHM sequence called LAL")
+
+    def reject_host_transfer(_self):
+        raise AssertionError("native IMRPhenomXHM sequence transferred to NumPy")
+
+    monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    sample_points = Array(sample_values)
+    monkeypatch.setattr(
+        xhm_torch,
+        "imrphenomxhm_fd_sequence_torch",
+        recording_native,
+    )
+    monkeypatch.setattr(
+        waveform.lalsimulation,
+        "SimInspiralChooseFDWaveformSequence",
+        reject_lal,
+    )
+    monkeypatch.setattr(TorchArrayData, "numpy", reject_host_transfer)
+    with torch.no_grad():
+        polarizations = get_fd_waveform_sequence(
+            approximant="IMRPhenomXHM",
+            sample_points=sample_points,
+            **params,
+        )
+
+    assert native_calls == 1
+    for polarization in polarizations:
+        assert isinstance(polarization._data.tensor, torch.Tensor)
+
+
+def test_imrphenomxhm_sequence_unsupported_options_use_lal_fallback(
+    monkeypatch,
+    preserve_scheme,
+):
+    import pycbc.waveform.imrphenomxhm_torch as xhm_torch
+    import pycbc.waveform.waveform as waveform
+
+    base, sample_points, _ = SEQUENCE_CASES[0]
+    params = {**base, "dchi0": 0.01}
+    monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference = get_fd_waveform_sequence(
+        approximant="IMRPhenomXHM",
+        sample_points=sample_points,
+        **params,
+    )
+    reference_arrays = tuple(array.numpy().copy() for array in reference)
+
+    lal_generator = waveform.lalsimulation.SimInspiralChooseFDWaveformSequence
+    lal_calls = 0
+
+    def unexpected_native(**_params):
+        raise AssertionError("unsupported XHM sequence reached Torch")
+
+    def recording_lal(*args, **kwargs):
+        nonlocal lal_calls
+        lal_calls += 1
+        return lal_generator(*args, **kwargs)
+
+    monkeypatch.setattr(
+        xhm_torch,
+        "imrphenomxhm_fd_sequence_torch",
+        unexpected_native,
+    )
+    monkeypatch.setattr(
+        waveform.lalsimulation,
+        "SimInspiralChooseFDWaveformSequence",
+        recording_lal,
+    )
+    monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    fallback = get_fd_waveform_sequence(
+        approximant="IMRPhenomXHM",
+        sample_points=sample_points,
+        **params,
+    )
+
+    assert lal_calls == 1
+    for expected, actual in zip(reference_arrays, fallback):
+        assert isinstance(actual._data.tensor, torch.Tensor)
+        np.testing.assert_allclose(
+            actual.numpy(),
+            expected,
+            rtol=1.0e-14,
+            atol=0.0,
+        )
+
+
+@pytest.mark.parametrize("device_name", ["cpu", "mps", "cuda"])
+def test_imrphenomxhm_sequence_stays_on_requested_device(
+    device_name,
+    monkeypatch,
+    preserve_scheme,
+):
+    if device_name == "mps" and not torch.backends.mps.is_available():
+        pytest.skip("Torch MPS device is unavailable")
+    if device_name == "cuda" and not torch.cuda.is_available():
+        pytest.skip("Torch CUDA device is unavailable")
+
+    params, sample_points, _ = SEQUENCE_CASES[0]
+    monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference, _ = get_fd_waveform_sequence(
+        approximant="IMRPhenomXHM",
+        sample_points=sample_points,
+        **params,
+    )
+    reference_array = reference.numpy().copy()
+
+    monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme(device_name))
+    actual, _ = get_fd_waveform_sequence(
+        approximant="IMRPhenomXHM",
+        sample_points=sample_points,
+        **params,
+    )
+
+    expected_dtype = (
+        torch.complex64 if device_name == "mps" else torch.complex128
+    )
+    assert actual._data.tensor.device.type == device_name
+    assert actual._data.tensor.dtype == expected_dtype
+    relative_error = np.linalg.norm(actual.numpy() - reference_array) / np.linalg.norm(
+        reference_array
+    )
     tolerance = 5.0e-3 if device_name == "mps" else 5.0e-4
     assert relative_error < tolerance

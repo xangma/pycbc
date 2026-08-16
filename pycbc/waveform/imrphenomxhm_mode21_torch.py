@@ -1327,22 +1327,29 @@ def _amplitude_21(mf, state):
     return torch.where(amplitude < 0.0, _FALSE_ZERO, amplitude)
 
 
-def imrphenomxhm_h2m1_samples(core, params):
+def imrphenomxhm_h2m1_samples(
+    core,
+    params,
+    *,
+    frequencies=None,
+    reference_frequency=None,
+):
     r"""Return active positive-frequency samples of LAL's :math:`h_{2,-1}`."""
 
     state = _mode21_state(params)
     if state.mass1 == state.mass2 and state.chi1 == state.chi2:
         return torch.zeros_like(core.polarization)
 
-    frequencies = (
-        torch.arange(
-            core.first_bin,
-            core.stop_bin,
-            device=core.polarization.device,
-            dtype=core.polarization.real.dtype,
+    if frequencies is None:
+        frequencies = (
+            torch.arange(
+                core.first_bin,
+                core.stop_bin,
+                device=core.polarization.device,
+                dtype=core.polarization.real.dtype,
+            )
+            * core.delta_f
         )
-        * core.delta_f
-    )
     mf = frequencies * state.total_mass_seconds
     intrinsic = torch.tensor(
         [state.mass1, state.mass2, state.chi1, state.chi2],
@@ -1353,9 +1360,10 @@ def imrphenomxhm_h2m1_samples(core, params):
         device=frequencies.device,
         dtype=frequencies.dtype,
     )
-    reference_frequency = float(params.get("f_ref", 0.0))
-    if reference_frequency <= 0.0:
-        reference_frequency = float(params["f_lower"])
+    if reference_frequency is None:
+        reference_frequency = float(params.get("f_ref", 0.0))
+        if reference_frequency <= 0.0:
+            reference_frequency = float(params["f_lower"])
     coa_phase = float(params.get("coa_phase", 0.0))
     with torch_context(frequencies):
         phase = _phase_21(
