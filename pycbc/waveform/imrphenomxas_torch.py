@@ -29,10 +29,11 @@ The coefficient equations are adapted from ripple v0.2.1
 (https://github.com/GW-JAX-Team/ripple/tree/v0.2.1) and reproduce the installed
 LALSuite IMRPhenomXAS implementation.  Scalar matching derivatives use Torch
 autograd; frequency-dependent amplitude, phase, masking, and polarization work
-remains on the active Torch device. The NRTidalv2 and NRTidalv3 variants add
-their matter phase, amplitude, alignment, and taper corrections there as well.
-The public PyCBC path is opt-in through ``PYCBC_IMRPHENOMXAS_NATIVE=1`` or
-``PYCBC_TORCH_NATIVE_PORTS=1``.
+remains on the active Torch device. Both equal-spaced and arbitrary-frequency
+XAS generation are supported. The NRTidalv2 and NRTidalv3 variants add their
+matter phase, amplitude, alignment, and taper corrections there as well for
+equal-spaced waveforms. The public PyCBC path is opt-in through
+``PYCBC_IMRPHENOMXAS_NATIVE=1`` or ``PYCBC_TORCH_NATIVE_PORTS=1``.
 """
 
 from __future__ import annotations
@@ -44,6 +45,7 @@ import lal
 import torch
 
 from pycbc import scheme as _scheme
+from pycbc.types import Array as PyCBCArray
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
 
@@ -101,6 +103,28 @@ class _IMRPhenomXASCore(NamedTuple):
     stop_bin: int
     delta_f: float
     epoch: float
+
+
+class _IMRPhenomXASInputs(NamedTuple):
+    """Validated scalar inputs shared by uniform and sequence generation."""
+
+    tidal_version: int | None
+    mass1: float
+    mass2: float
+    spin1z: float
+    spin2z: float
+    lambda1: float
+    lambda2: float
+    dquad1: float
+    dquad2: float
+    f_ref: float
+    distance: float
+    inclination: float
+    coa_phase: float
+    long_asc_nodes: float
+    device: torch.device
+    real_dtype: torch.dtype
+    complex_dtype: torch.dtype
 
 
 _XAS_MODE_POLARIZATION_FACTOR = math.sqrt(5.0 / (16.0 * PI))
@@ -1820,13 +1844,17 @@ def imrphenomxas_native_supported(params):
     return True
 
 
-def _next_power_of_two(value):
-    value = max(1, int(value))
-    return 1 << (value - 1).bit_length()
+def imrphenomxas_sequence_native_supported(params):
+    """Return whether arbitrary-frequency XAS generation is native."""
+
+    return (
+        params.get("approximant", "IMRPhenomXAS") == "IMRPhenomXAS"
+        and imrphenomxas_native_supported(params)
+    )
 
 
-def _imrphenomxas_core_torch(p):
-    """Generate the active, inclination-independent XAS samples."""
+def _imrphenomxas_inputs(p, *, sequence=False):
+    """Validate and normalize scalar inputs shared by both public APIs."""
 
     if not imrphenomxas_native_supported(p):
         raise ValueError(
@@ -1838,7 +1866,6 @@ def _imrphenomxas_core_torch(p):
 
     approximant = p.get("approximant", "IMRPhenomXAS")
     tidal_version = nrtidal_version(approximant)
-    tidal = tidal_version is not None
     mass1 = float(p["mass1"])
     mass2 = float(p["mass2"])
     spin1z = float(p.get("spin1z", 0.0))
@@ -1853,14 +1880,13 @@ def _imrphenomxas_core_torch(p):
         lambda1, lambda2 = lambda2, lambda1
         dquad1, dquad2 = dquad2, dquad1
 
-    delta_f = float(p["delta_f"])
-    f_lower = float(p["f_lower"])
-    f_final = float(p.get("f_final", 0.0))
     f_ref = float(p.get("f_ref", 0.0))
     distance = float(p["distance"])
     inclination = float(p.get("inclination", 0.0))
     coa_phase = float(p.get("coa_phase", 0.0))
-    long_asc_nodes = float(p.get("long_asc_nodes", 0.0))
+    # SimInspiralChooseFDWaveformSequence has no ascending-node argument and
+    # ignores the corresponding PyCBC parameter.
+    long_asc_nodes = 0.0 if sequence else float(p.get("long_asc_nodes", 0.0))
 
     if not all(math.isfinite(value) for value in (mass1, mass2)):
         raise ValueError("IMRPhenomXAS component masses must be finite")
@@ -1881,23 +1907,152 @@ def _imrphenomxas_core_torch(p):
         raise ValueError("IMRPhenomXAS spins and angles must be finite")
     if abs(spin1z) > 1.0 or abs(spin2z) > 1.0:
         raise ValueError("IMRPhenomXAS aligned spins must be between -1 and 1")
-    if tidal and not all(
+    if tidal_version is not None and not all(
         math.isfinite(value) and value >= 0.0
         for value in (lambda1, lambda2)
     ):
         raise ValueError("NRTidal deformabilities must be finite and non-negative")
     if not math.isfinite(distance) or distance <= 0.0:
         raise ValueError("IMRPhenomXAS distance must be finite and positive")
-    if not all(
-        math.isfinite(value) for value in (delta_f, f_lower, f_final, f_ref)
-    ):
+    if not math.isfinite(f_ref) or f_ref < 0.0:
+        raise ValueError("IMRPhenomXAS f_ref must be finite and non-negative")
+
+    device = state.torch_device
+    real_dtype = torch.float32 if device.type == "mps" else torch.float64
+    complex_dtype = (
+        torch.complex64 if real_dtype == torch.float32 else torch.complex128
+    )
+    return _IMRPhenomXASInputs(
+        tidal_version=tidal_version,
+        mass1=mass1,
+        mass2=mass2,
+        spin1z=spin1z,
+        spin2z=spin2z,
+        lambda1=lambda1,
+        lambda2=lambda2,
+        dquad1=dquad1,
+        dquad2=dquad2,
+        f_ref=f_ref,
+        distance=distance,
+        inclination=inclination,
+        coa_phase=coa_phase,
+        long_asc_nodes=long_asc_nodes,
+        device=device,
+        real_dtype=real_dtype,
+        complex_dtype=complex_dtype,
+    )
+
+
+def _imrphenomxas_samples(
+    inputs,
+    frequencies,
+    reference_frequency,
+    active_f_max=None,
+):
+    """Evaluate the inclination-independent waveform at device frequencies."""
+
+    intrinsic = torch.tensor(
+        [inputs.mass1, inputs.mass2, inputs.spin1z, inputs.spin2z],
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+    extrinsic = torch.tensor(
+        [inputs.distance, 0.0, inputs.coa_phase],
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+    phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table.to(
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+    amp_coeffs = IMRPhenomX_utils.PhenomX_amp_coeff_table.to(
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+
+    nrtidal = None
+    if inputs.tidal_version is not None:
+        if active_f_max is None:
+            raise ValueError("NRTidal generation requires an active maximum frequency")
+        quadrupole1 = _quadrupole_from_params(inputs.lambda1, inputs.dquad1)
+        quadrupole2 = _quadrupole_from_params(inputs.lambda2, inputs.dquad2)
+        if inputs.tidal_version == 3:
+            merger_frequency = nrtidal_merger_frequency_v3(
+                inputs.mass1,
+                inputs.mass2,
+                inputs.lambda1,
+                inputs.lambda2,
+                inputs.spin1z,
+                inputs.spin2z,
+            )
+        else:
+            merger_frequency = nrtidal_merger_frequency(
+                inputs.mass1,
+                inputs.mass2,
+                inputs.lambda1,
+                inputs.lambda2,
+            )
+        nrtidal = _NRTidalParams(
+            mass1=inputs.mass1,
+            mass2=inputs.mass2,
+            spin1z=inputs.spin1z,
+            spin2z=inputs.spin2z,
+            lambda1=inputs.lambda1,
+            lambda2=inputs.lambda2,
+            quadrupole1=quadrupole1,
+            quadrupole2=quadrupole2,
+            merger_frequency=merger_frequency,
+            alignment_frequency=min(active_f_max, merger_frequency),
+            version=inputs.tidal_version,
+        )
+
+    with torch_context(frequencies):
+        samples = _gen_IMRPhenomXAS(
+            frequencies,
+            intrinsic,
+            extrinsic,
+            phase_coeffs,
+            amp_coeffs,
+            reference_frequency,
+            nrtidal,
+        )
+    return samples.to(inputs.complex_dtype)
+
+
+def _polarizations_from_samples(samples, inclination, long_asc_nodes):
+    """Project inclination-independent XAS samples into plus and cross."""
+
+    cosi = math.cos(inclination)
+    plus0 = -0.5 * (1.0 + cosi * cosi) * samples
+    cross0 = complex(0.0, 1.0) * cosi * samples
+    cos_nodes = math.cos(2.0 * long_asc_nodes)
+    sin_nodes = math.sin(2.0 * long_asc_nodes)
+    return (
+        cos_nodes * plus0 + sin_nodes * cross0,
+        cos_nodes * cross0 - sin_nodes * plus0,
+    )
+
+
+def _next_power_of_two(value):
+    value = max(1, int(value))
+    return 1 << (value - 1).bit_length()
+
+
+def _imrphenomxas_core_torch(p):
+    """Generate the active, inclination-independent XAS samples."""
+
+    inputs = _imrphenomxas_inputs(p)
+    delta_f = float(p["delta_f"])
+    f_lower = float(p["f_lower"])
+    f_final = float(p.get("f_final", 0.0))
+    if not all(math.isfinite(value) for value in (delta_f, f_lower, f_final)):
         raise ValueError("IMRPhenomXAS frequencies must be finite")
     if delta_f <= 0.0 or f_lower <= 0.0:
         raise ValueError("IMRPhenomXAS delta_f and f_lower must be positive")
-    if f_final < 0.0 or f_ref < 0.0:
-        raise ValueError("IMRPhenomXAS f_final and f_ref must be non-negative")
+    if f_final < 0.0:
+        raise ValueError("IMRPhenomXAS f_final must be non-negative")
 
-    total_mass_seconds = (mass1 + mass2) * MTSUN
+    total_mass_seconds = (inputs.mass1 + inputs.mass2) * MTSUN
     cutoff_frequency = IMRPhenomX_utils.fM_CUT / total_mass_seconds
     layout_f_max = f_final if f_final > 0.0 else cutoff_frequency
     active_f_max = min(layout_f_max, cutoff_frequency)
@@ -1908,89 +2063,30 @@ def _imrphenomxas_core_torch(p):
     first_bin = int(f_lower / delta_f)
     # The direct XAS generator includes its upper bin. The public tidal model
     # is routed through XHM's interpolation, whose upper index is exclusive.
-    stop_bin = int(active_f_max / delta_f) + (0 if tidal else 1)
-
-    device = state.torch_device
-    real_dtype = torch.float32 if device.type == "mps" else torch.float64
-    complex_dtype = (
-        torch.complex64 if real_dtype == torch.float32 else torch.complex128
+    stop_bin = int(active_f_max / delta_f) + (
+        0 if inputs.tidal_version is not None else 1
     )
+
     frequencies = (
         torch.arange(
             first_bin,
             stop_bin,
-            device=device,
-            dtype=real_dtype,
+            device=inputs.device,
+            dtype=inputs.real_dtype,
         )
         * delta_f
     )
-    intrinsic = torch.tensor(
-        [mass1, mass2, spin1z, spin2z],
-        device=device,
-        dtype=real_dtype,
+    reference_frequency = inputs.f_ref if inputs.f_ref > 0.0 else f_lower
+    h22 = _imrphenomxas_samples(
+        inputs,
+        frequencies,
+        reference_frequency,
+        active_f_max,
     )
-    extrinsic = torch.tensor(
-        [distance, 0.0, coa_phase],
-        device=device,
-        dtype=real_dtype,
-    )
-    phase_coeffs = IMRPhenomX_utils.PhenomX_phase_coeff_table.to(
-        device=device,
-        dtype=real_dtype,
-    )
-    amp_coeffs = IMRPhenomX_utils.PhenomX_amp_coeff_table.to(
-        device=device,
-        dtype=real_dtype,
-    )
-    reference_frequency = f_ref if f_ref > 0.0 else f_lower
-    nrtidal = None
-    if tidal:
-        quadrupole1 = _quadrupole_from_params(lambda1, dquad1)
-        quadrupole2 = _quadrupole_from_params(lambda2, dquad2)
-        if tidal_version == 3:
-            merger_frequency = nrtidal_merger_frequency_v3(
-                mass1,
-                mass2,
-                lambda1,
-                lambda2,
-                spin1z,
-                spin2z,
-            )
-        else:
-            merger_frequency = nrtidal_merger_frequency(
-                mass1,
-                mass2,
-                lambda1,
-                lambda2,
-            )
-        nrtidal = _NRTidalParams(
-            mass1=mass1,
-            mass2=mass2,
-            spin1z=spin1z,
-            spin2z=spin2z,
-            lambda1=lambda1,
-            lambda2=lambda2,
-            quadrupole1=quadrupole1,
-            quadrupole2=quadrupole2,
-            merger_frequency=merger_frequency,
-            alignment_frequency=min(active_f_max, merger_frequency),
-            version=tidal_version,
-        )
-
-    with torch_context(frequencies):
-        h22 = _gen_IMRPhenomXAS(
-            frequencies,
-            intrinsic,
-            extrinsic,
-            phase_coeffs,
-            amp_coeffs,
-            reference_frequency,
-            nrtidal,
-        )
 
     epoch = -1.0 / delta_f
     return _IMRPhenomXASCore(
-        polarization=h22.to(complex_dtype),
+        polarization=h22,
         npts=npts,
         first_bin=first_bin,
         stop_bin=stop_bin,
@@ -2037,20 +2133,80 @@ def imrphenomxas_fd_torch(**p):
     core = _imrphenomxas_core_torch(p)
     inclination = float(p.get("inclination", 0.0))
     long_asc_nodes = float(p.get("long_asc_nodes", 0.0))
-
-    cosi = math.cos(inclination)
-    plus0 = -0.5 * (1.0 + cosi * cosi) * core.polarization
-    cross0 = complex(0.0, 1.0) * cosi * core.polarization
-    cos_nodes = math.cos(2.0 * long_asc_nodes)
-    sin_nodes = math.sin(2.0 * long_asc_nodes)
+    plus, cross = _polarizations_from_samples(
+        core.polarization,
+        inclination,
+        long_asc_nodes,
+    )
 
     return (
-        _series_from_active_samples(
-            core,
-            cos_nodes * plus0 + sin_nodes * cross0,
-        ),
-        _series_from_active_samples(
-            core,
-            cos_nodes * cross0 - sin_nodes * plus0,
-        ),
+        _series_from_active_samples(core, plus),
+        _series_from_active_samples(core, cross),
+    )
+
+
+def _sequence_frequencies(sample_points, inputs):
+    """Return validated sequence frequencies on the active Torch device."""
+
+    values = getattr(sample_points, "_data", sample_points)
+    if isinstance(values, TorchArrayData):
+        values = values.tensor
+    frequencies = torch.as_tensor(
+        values,
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+    if frequencies.ndim != 1 or frequencies.numel() == 0:
+        raise ValueError("IMRPhenomXAS sample_points must be a non-empty vector")
+    if not bool(torch.all(torch.isfinite(frequencies))):
+        raise ValueError("IMRPhenomXAS sample_points must be finite")
+    if bool(torch.any(frequencies <= 0.0)):
+        raise ValueError("IMRPhenomXAS sample_points must be positive")
+    return frequencies
+
+
+def imrphenomxas_fd_sequence_torch(**p):
+    """Evaluate IMRPhenomXAS at arbitrary frequencies with Torch."""
+
+    if not imrphenomxas_sequence_native_supported(p):
+        raise ValueError(
+            "IMRPhenomXAS sequence parameters are not supported by the "
+            "native Torch path"
+        )
+    inputs = _imrphenomxas_inputs(p, sequence=True)
+    frequencies = _sequence_frequencies(p["sample_points"], inputs)
+
+    # LAL's sequence API treats the last sample as f_max, even if the input
+    # is not sorted, and also applies the calibrated model cutoff.
+    cutoff_frequency = IMRPhenomX_utils.fM_CUT / (
+        (inputs.mass1 + inputs.mass2) * MTSUN
+    )
+    active_f_max = torch.minimum(
+        frequencies[-1],
+        frequencies.new_tensor(cutoff_frequency),
+    )
+    active = frequencies <= active_f_max
+    samples = torch.zeros(
+        frequencies.shape,
+        device=inputs.device,
+        dtype=inputs.complex_dtype,
+    )
+    if bool(torch.any(active)):
+        reference_frequency = (
+            inputs.f_ref if inputs.f_ref > 0.0 else frequencies[0]
+        )
+        samples[active] = _imrphenomxas_samples(
+            inputs,
+            frequencies[active],
+            reference_frequency,
+        )
+
+    plus, cross = _polarizations_from_samples(
+        samples,
+        inputs.inclination,
+        inputs.long_asc_nodes,
+    )
+    return (
+        PyCBCArray(TorchArrayData(plus), copy=False),
+        PyCBCArray(TorchArrayData(cross), copy=False),
     )

@@ -114,12 +114,15 @@ environment flags:
   lalsimulation.
 - IMRPhenomXAS (FD): ``PYCBC_IMRPHENOMXAS_NATIVE``. Aligned-spin amplitude and
   phase fits, scalar matching derivatives, frequency-grid construction,
-  masking, and polarization assembly use Torch. The coefficient tables are
-  moved to the active device for evaluation. ``IMRPhenomXAS_NRTidalv2`` and
-  ``IMRPhenomXAS_NRTidalv3`` also apply their tidal amplitude, phase,
-  matter-spin, alignment, and taper corrections on-device. Transverse spins,
+  masking, and polarization assembly use Torch. Arbitrary-frequency
+  ``get_fd_waveform_sequence`` evaluation is also native for exact
+  ``IMRPhenomXAS``. The coefficient tables are moved to the active device for
+  evaluation. ``IMRPhenomXAS_NRTidalv2`` and ``IMRPhenomXAS_NRTidalv3`` also
+  apply their tidal amplitude, phase, matter-spin, alignment, and taper
+  corrections on-device for equal-spaced waveforms. Transverse spins,
   unsupported tidal parameters, eccentricity, non-default PN orders,
-  testing-GR changes, and custom modes fall back to lalsimulation.
+  testing-GR changes, custom modes, and tidal sequence generation fall back to
+  lalsimulation.
 - IMRPhenomXHM modes (FD): ``PYCBC_IMRPHENOMXHM_NATIVE``. The default mode set
   and explicit ``(2, +/-2)``, ``(2, +/-1)``, ``(3, +/-2)``, ``(3, +/-3)``, and
   ``(4, +/-4)`` requests through ``get_fd_waveform_modes`` run on the active

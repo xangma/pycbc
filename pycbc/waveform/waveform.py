@@ -588,7 +588,30 @@ fd_det = {}
 def _lalsim_fd_sequence(**p):
     """ Shim to interface to lalsimulation SimInspiralChooseFDWaveformSequence
     """
+    using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
+    if (
+        p.get("approximant") == "IMRPhenomXAS"
+        and using_torch
+        and torch_native_enabled("PYCBC_IMRPHENOMXAS_NATIVE", default=False)
+    ):
+        from .imrphenomxas_torch import (
+            imrphenomxas_fd_sequence_torch,
+            imrphenomxas_sequence_native_supported,
+        )
+
+        if imrphenomxas_sequence_native_supported(p):
+            return imrphenomxas_fd_sequence_torch(**p)
+
     lal_pars = _check_lal_pars(p)
+    sample_points = p['sample_points']
+    if sample_points.dtype == numpy.dtype(numpy.float32):
+        # MPS stores real arrays as float32. The LAL sequence API requires a
+        # REAL8 vector, so widen only when this CPU fallback is actually used.
+        lal_sample_points = lal.CreateREAL8Vector(len(sample_points))
+        lal_sample_points.data[:] = sample_points.numpy()
+    else:
+        lal_sample_points = sample_points.lal()
+
     hp, hc = lalsimulation.SimInspiralChooseFDWaveformSequence(
                float(p['coa_phase']),
                float(pnutils.solar_mass_to_kg(p['mass1'])),
@@ -600,8 +623,14 @@ def _lalsim_fd_sequence(**p):
                float(p['inclination']),
                lal_pars,
                _lalsim_enum[p['approximant']],
-               p['sample_points'].lal())
-    return Array(hp.data.data), Array(hc.data.data)
+               lal_sample_points)
+    output_dtype = None
+    if using_torch and _scheme.mgr.state.torch_device.type == "mps":
+        output_dtype = numpy.complex64
+    return (
+        Array(hp.data.data, dtype=output_dtype),
+        Array(hc.data.data, dtype=output_dtype),
+    )
 _lalsim_fd_sequence.required = parameters.cbc_fd_required
 
 for apx in _lalsim_enum:
@@ -641,7 +670,17 @@ def get_fd_waveform_sequence(template=None, **kwds):
     else:
         required = parameters.fd_required
     if not isinstance(input_params['sample_points'], Array):
-        input_params['sample_points'] = Array(input_params['sample_points'])
+        sample_dtype = None
+        state = _scheme.mgr.state
+        if (
+            isinstance(state, _scheme.TorchScheme)
+            and state.torch_device.type == "mps"
+        ):
+            sample_dtype = numpy.float32
+        input_params['sample_points'] = Array(
+            input_params['sample_points'],
+            dtype=sample_dtype,
+        )
     check_args(input_params, required)
     return wav_gen(**input_params)
 
