@@ -267,6 +267,16 @@ default remains the LAL/CPU path; enable torch ports with environment flags:
   There is no sequence-only high-frequency cutoff;
   transverse spins, tides, testing-GR changes, and unmodeled modes fall back to
   lalsimulation.
+- EOBNRv2_ROM (FD nonspinning): ``PYCBC_EOBNRV2_NATIVE``. The dominant
+  ``(2, 2)`` reduced-order model is reconstructed directly from the public
+  ``EOBNRv2HMROM_*.dat`` files. Mass-ratio interpolation, reduced-basis
+  reconstruction, frequency interpolation, harmonic evaluation, and
+  polarization assembly run on the active Torch device; binary data loading
+  remains host-side. The data files must share a directory on
+  ``$LAL_DATA_PATH`` or be placed in ``pycbc/waveform``. The native path
+  covers the regular frequency grid for nonspinning, circular binaries with
+  the model's default orders. ``EOBNRv2HM_ROM``, custom modes, spins, matter,
+  eccentricity, and testing-GR changes retain the lalsimulation path.
 - SEOBNRv4_ROM (FD aligned-spin): ``PYCBC_SEOBNRV4_NATIVE``. ROM interpolation,
   frequency interpolation, and waveform assembly run on the active Torch
   device using ``SEOBNRv4ROM_v3.0.hdf5``. The native path also covers

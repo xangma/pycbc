@@ -59,6 +59,10 @@ from pycbc import pnutils
 from pycbc.types import Array as PyCBCArray
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
+from pycbc.waveform._cubic_spline_torch import (
+    _natural_cubic_coeff,
+    _spline_eval,
+)
 from pycbc.waveform._seobnrv4_qnm import seobnrv4_qnm_omega as _qnm_omega
 from pycbc.waveform._spherical_harmonics_torch import (
     spin_weighted_spherical_harmonic,
@@ -268,53 +272,6 @@ def _unwrap_phase(ph: torch.Tensor) -> torch.Tensor:
     dd = torch.where((dd == -math.pi) & (d > 0), math.pi, dd)
     ph_unwrapped = torch.cat([ph[:1], ph[0] + torch.cumsum(dd, dim=0)])
     return ph_unwrapped
-
-
-def _natural_cubic_coeff(
-    x: torch.Tensor, y: torch.Tensor
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Build coefficients for a natural cubic spline."""
-
-    n = x.numel()
-    h = x[1:] - x[:-1]
-    alpha = (3.0 / h[1:]) * (y[2:] - y[1:-1]) - (3.0 / h[:-1]) * (y[1:-1] - y[:-2])
-    diagonal = torch.ones(n, device=x.device, dtype=x.dtype)
-    upper = torch.zeros(n, device=x.device, dtype=x.dtype)
-    rhs = torch.zeros(n, device=x.device, dtype=x.dtype)
-    for i in range(1, n - 1):
-        diagonal[i] = 2.0 * (x[i + 1] - x[i - 1]) - h[i - 1] * upper[i - 1]
-        upper[i] = h[i] / diagonal[i]
-        rhs[i] = (alpha[i - 1] - h[i - 1] * rhs[i - 1]) / diagonal[i]
-
-    quadratic = torch.zeros(n, device=x.device, dtype=x.dtype)
-    linear = torch.zeros(n - 1, device=x.device, dtype=x.dtype)
-    cubic = torch.zeros(n - 1, device=x.device, dtype=x.dtype)
-    for j in range(n - 2, -1, -1):
-        quadratic[j] = rhs[j] - upper[j] * quadratic[j + 1]
-        linear[j] = (y[j + 1] - y[j]) / h[j] - h[j] * (
-            quadratic[j + 1] + 2.0 * quadratic[j]
-        ) / 3.0
-        cubic[j] = (quadratic[j + 1] - quadratic[j]) / (3.0 * h[j])
-    return linear, quadratic, cubic
-
-
-def _spline_eval(
-    x: torch.Tensor,
-    knots: torch.Tensor,
-    values: torch.Tensor,
-    linear: torch.Tensor,
-    quadratic: torch.Tensor,
-    cubic: torch.Tensor,
-) -> torch.Tensor:
-    index = torch.searchsorted(knots, x.clamp(knots[0], knots[-1])) - 1
-    index = index.clamp(0, knots.numel() - 2)
-    offset = x - knots[index]
-    return (
-        values[index]
-        + linear[index] * offset
-        + quadratic[index] * offset**2
-        + cubic[index] * offset**3
-    )
 
 
 def _spline_derivative_at_end(

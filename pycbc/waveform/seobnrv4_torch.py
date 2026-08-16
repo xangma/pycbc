@@ -50,6 +50,11 @@ from pycbc import pnutils
 from pycbc.types import Array as PyCBCArray
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
+from pycbc.waveform._cubic_spline_torch import (
+    _natural_cubic_coeff,
+    _spline_derivative,
+    _spline_eval,
+)
 from pycbc.waveform._seobnrv4_qnm import seobnrv4_qnm_omega
 from pycbc.waveform.nrtidal_torch import (
     nrtidal_amplitude,
@@ -372,70 +377,6 @@ def _evaluate_submodel(sub: _SubModel, eta: float, chi1: float, chi2: float):
     amp_coeff = _interpolate_coefficients(sub.cvec_amp, basis)
     phase_coeff = _interpolate_coefficients(sub.cvec_phi, basis)
     return sub.Bamp.T @ amp_coeff, sub.Bphi.T @ phase_coeff
-
-
-def _natural_cubic_coeff(x: torch.Tensor, y: torch.Tensor):
-    """Return local coefficients for the GSL-compatible natural spline."""
-
-    count = x.numel()
-    width = x[1:] - x[:-1]
-    alpha = 3.0 * (
-        (y[2:] - y[1:-1]) / width[1:]
-        - (y[1:-1] - y[:-2]) / width[:-1]
-    )
-    diagonal = torch.ones(count, dtype=x.dtype, device=x.device)
-    upper = torch.zeros(count, dtype=x.dtype, device=x.device)
-    rhs = torch.zeros(count, dtype=x.dtype, device=x.device)
-    for index in range(1, count - 1):
-        diagonal[index] = (
-            2.0 * (x[index + 1] - x[index - 1])
-            - width[index - 1] * upper[index - 1]
-        )
-        upper[index] = width[index] / diagonal[index]
-        rhs[index] = (
-            alpha[index - 1] - width[index - 1] * rhs[index - 1]
-        ) / diagonal[index]
-
-    quadratic = torch.zeros(count, dtype=x.dtype, device=x.device)
-    linear = torch.zeros(count - 1, dtype=x.dtype, device=x.device)
-    cubic = torch.zeros(count - 1, dtype=x.dtype, device=x.device)
-    for index in range(count - 2, -1, -1):
-        quadratic[index] = rhs[index] - upper[index] * quadratic[index + 1]
-        linear[index] = (y[index + 1] - y[index]) / width[index] - (
-            width[index]
-            * (quadratic[index + 1] + 2.0 * quadratic[index])
-            / 3.0
-        )
-        cubic[index] = (
-            quadratic[index + 1] - quadratic[index]
-        ) / (3.0 * width[index])
-    return linear, quadratic, cubic
-
-
-def _spline_interval(points: torch.Tensor, knots: torch.Tensor) -> torch.Tensor:
-    indices = torch.searchsorted(knots, points.clamp(knots[0], knots[-1])) - 1
-    return indices.clamp(0, knots.numel() - 2)
-
-
-def _spline_eval(points, knots, values, linear, quadratic, cubic):
-    indices = _spline_interval(points, knots)
-    offset = points - knots[indices]
-    return (
-        values[indices]
-        + linear[indices] * offset
-        + quadratic[indices] * offset**2
-        + cubic[indices] * offset**3
-    )
-
-
-def _spline_derivative(points, knots, linear, quadratic, cubic):
-    indices = _spline_interval(points, knots)
-    offset = points - knots[indices]
-    return (
-        linear[indices]
-        + 2.0 * quadratic[indices] * offset
-        + 3.0 * cubic[indices] * offset**2
-    )
 
 
 def _fit_cubic_at_match(x: torch.Tensor, y: torch.Tensor):
