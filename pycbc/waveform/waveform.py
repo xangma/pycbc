@@ -299,6 +299,21 @@ def _lalsim_fd_waveform(**p):
             return spintaylorf2_torch(**p)
 
     if (
+        p.get("approximant") in ("IMRPhenomA", "IMRPhenomB")
+        and using_torch
+        and torch_native_enabled(
+            f"PYCBC_{p['approximant'].upper()}_NATIVE", default=False
+        )
+    ):
+        from .imrphenomab_torch import (
+            imrphenomab_fd_torch,
+            imrphenomab_native_supported,
+        )
+
+        if imrphenomab_native_supported(p):
+            return imrphenomab_fd_torch(**p)
+
+    if (
         p.get("approximant") == "IMRPhenomC"
         and using_torch
         and torch_native_enabled("PYCBC_IMRPHENOMC_NATIVE", default=False)
@@ -699,6 +714,21 @@ def _lalsim_fd_sequence(**p):
 
         if spintaylorf2_sequence_native_supported(p):
             return spintaylorf2_fd_sequence_torch(**p)
+
+    if (
+        p.get("approximant") in ("IMRPhenomA", "IMRPhenomB")
+        and using_torch
+        and torch_native_enabled(
+            f"PYCBC_{p['approximant'].upper()}_NATIVE", default=False
+        )
+    ):
+        from .imrphenomab_torch import (
+            imrphenomab_fd_sequence_torch,
+            imrphenomab_sequence_native_supported,
+        )
+
+        if imrphenomab_sequence_native_supported(p):
+            return imrphenomab_fd_sequence_torch(**p)
 
     if (
         p.get("approximant") == "IMRPhenomC"

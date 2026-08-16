@@ -111,6 +111,17 @@ default remains the LAL/CPU path; enable torch ports with environment flags:
   frequencies are supported. Tidal, eccentric, second-spin, custom-mode, and
   non-``dchi`` testing-GR options fall back to lalsimulation for regular-grid
   generation and remain unavailable through the sequence API.
+- IMRPhenomA/B (FD): ``PYCBC_IMRPHENOMA_NATIVE`` and
+  ``PYCBC_IMRPHENOMB_NATIVE``. The legacy analytic
+  amplitude and phase fits, their distinct frequency-bin boundary rules,
+  masking, and polarization assembly run on the active Torch device.
+  Arbitrary-frequency ``get_fd_waveform_sequence`` evaluation is a native
+  extension because lalsimulation does not expose either model through its
+  sequence API. It accepts unordered positive frequencies, ignores
+  ``long_asc_nodes``, and returns zero at and above the fitted cutoff.
+  IMRPhenomA covers nonspinning binaries and IMRPhenomB covers aligned spins;
+  transverse spins, tides, testing-GR changes, non-default orders, and custom
+  modes retain the regular-grid lalsimulation path.
 - IMRPhenomC (FD): ``PYCBC_IMRPHENOMC_NATIVE``. Frequency-grid construction,
   amplitude and phase evaluation, regular-grid coalescence-time spline,
   masking, and polarization assembly run on the active Torch device.
@@ -131,6 +142,15 @@ default remains the LAL/CPU path; enable torch ports with environment flags:
   phase, amplitude, spin, and taper corrections on-device for both sampling
   interfaces. Transverse spins, testing-GR changes, and unsupported tidal or
   mode options fall back to lalsimulation.
+- IMRPhenomP (FD): ``PYCBC_IMRPHENOMP_NATIVE``. The IMRPhenomC baseline,
+  NNLO precession angles, small-angle Wigner rotation, frequency masking, and
+  polarization assembly run on the active Torch device. Scalar coefficient
+  construction and the regular-grid time-alignment spline remain on CPU.
+  Regular-grid and strictly increasing arbitrary-frequency sequence
+  evaluation are native; as in LAL's sequence interface,
+  ``long_asc_nodes`` is ignored and ``f_ref=0`` uses the first supplied
+  frequency. Tides, eccentricity, testing-GR changes, non-default orders, and
+  custom modes fall back to lalsimulation.
 - IMRPhenomPv2 (FD): ``PYCBC_IMRPHENOMPV2_NATIVE``. The PhenomD baseline,
   NNLO precession angles, Wigner rotation, frequency-grid construction, and
   polarization assembly run on the active Torch device. Source-frame model
