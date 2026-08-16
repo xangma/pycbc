@@ -260,6 +260,19 @@ def _lalsim_fd_waveform(**p):
     # Torch native path (kept opt-in and Torch-scheme only).
     using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
     if (
+        p.get("approximant") == "EccentricFD"
+        and using_torch
+        and torch_native_enabled("PYCBC_ECCENTRICFD_NATIVE", default=False)
+    ):
+        from .eccentricfd_torch import (
+            eccentricfd_fd_torch,
+            eccentricfd_native_supported,
+        )
+
+        if eccentricfd_native_supported(p):
+            return eccentricfd_fd_torch(**p)
+
+    if (
         p.get("approximant") == "TaylorF2"
         and using_torch
         and torch_native_enabled("PYCBC_TAYLORF2_NATIVE", default=False)

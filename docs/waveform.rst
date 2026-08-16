@@ -110,6 +110,16 @@ default remains the LAL/CPU path; enable torch ports with environment flags:
   ``long_asc_nodes``, and returns zero above Schwarzschild ISCO. Transverse
   spins, non-default spin/tidal/eccentricity flags, testing-GR changes, and
   custom modes retain the regular-grid lalsimulation path.
+- EccentricFD: ``PYCBC_ECCENTRICFD_NATIVE``. The 3.5PN phase with
+  eccentricity corrections through order ``e^8``, ten restricted-amplitude
+  harmonics, frequency cutoffs, and polarization assembly run on the active
+  Torch device. Scalar analytic coefficient setup remains Python work. The
+  implementation mirrors the legacy model's use of ``long_asc_nodes`` both as
+  the inclination azimuth and as a final polarization-basis rotation. Only the
+  regular frequency grid is native because lalsimulation provides no
+  arbitrary-frequency EccentricFD interface. Transverse spins, matter and
+  testing-GR parameters, non-default auxiliary PN orders, and custom modes
+  retain the lalsimulation path.
 - SpinTaylorF2: ``PYCBC_SPINTAYLORF2_NATIVE``. The native port covers the
   model's single-spin public interface, including precession, reference-phase
   conventions, phase/spin orders, sidebands, testing-GR ``dchi`` terms,
