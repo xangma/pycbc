@@ -313,6 +313,11 @@ spherical-harmonic evaluation and waveform assembly on the active Torch device
 for spherical harmonics. Spheroidal harmonics retain their optional CPU
 ``pykerr`` implementation.
 
+The ``CoreCollapseBounce`` time-domain generator loads its principal-component
+basis from HDF5 on the host, then caches and evaluates the requested PCA
+reconstruction on the active Torch device. This path is selected automatically
+under ``TorchScheme`` and does not require an environment flag.
+
 Set a per-approximant flag to ``1`` to request the torch implementation or ``0``
 to force the lalsimulation implementation. Unsupported options retain the
 lalsimulation fallback. If a per-flag is unset, the global flag decides.
