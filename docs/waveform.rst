@@ -115,6 +115,13 @@ environment flags:
   phase, amplitude, spin, and taper corrections on-device for both sampling
   interfaces. Transverse spins, testing-GR changes, and unsupported tidal or
   mode options fall back to lalsimulation.
+- IMRPhenomPv2 (FD): ``PYCBC_IMRPHENOMPV2_NATIVE``. The PhenomD baseline,
+  NNLO precession angles, Wigner rotation, frequency-grid construction, and
+  polarization assembly run on the active Torch device. Source-frame model
+  mapping, scalar coefficient setup, and the merger-time spline remain on CPU.
+  The native path covers the regular-grid BBH model; tidal variants,
+  testing-GR changes, eccentricity, non-default spin/tidal orders, and custom
+  modes fall back to lalsimulation.
 - IMRPhenomXAS (FD): ``PYCBC_IMRPHENOMXAS_NATIVE``. Aligned-spin amplitude and
   phase fits, scalar matching derivatives, frequency-grid construction,
   masking, and polarization assembly use Torch. Arbitrary-frequency
