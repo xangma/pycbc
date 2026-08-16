@@ -83,8 +83,8 @@ or if you include it in a python package, :ref:`PyCBC can directly detect it! <w
 Torch-native waveform ports (torch scheme)
 ===========================================
 PyCBC includes torch-native implementations for several frequency-domain
-approximants. The default remains the LAL/CPU path; enable torch ports with
-environment flags:
+approximants and for SEOBNRv4PHM in both time and frequency domains. The
+default remains the LAL/CPU path; enable torch ports with environment flags:
 
 - Global: ``PYCBC_TORCH_NATIVE_PORTS=1`` (used when a per-approximant flag is unset).
 - SPA/TaylorF2: ``PYCBC_SPATPLT_NATIVE``, ``PYCBC_TAYLORF2_NATIVE``. The
@@ -191,6 +191,18 @@ environment flags:
   supported, provided later samples do not fall below the inspiral spline domain
   set by the first frequency. As in LAL, this model ignores ``f_ref``; the
   sequence interface also ignores ``long_asc_nodes``.
+- SEOBNRv4PHM (TD and FD precessing higher modes):
+  ``PYCBC_SEOBNRV4PHM_NATIVE``. The adaptive EOB dynamics, factorized modes,
+  NQC and ringdown attachment, frame rotations, harmonic projection, and
+  polarization assembly run through the native Torch pipeline. The FD entry
+  point applies a Torch real FFT to the same native TD result. The default
+  ``(2,2)``, ``(2,1)``, ``(3,3)``, ``(4,4)``, and ``(5,5)`` positive-m modes
+  and supported subsets are available. Scalar setup, QNM interpolation, and
+  some adaptive-control decisions remain Python/NumPy/SciPy work. Apple MPS
+  uses ``float32``/``complex64`` because it does not provide the corresponding
+  double-precision kernels. Non-default PN orders, eccentricity, matter and
+  testing-GR parameters, alternate frame options, unsupported modes, and
+  inputs with ``mass1 < mass2`` retain the LAL/CPU path.
 
 These ports provide Torch-device-compatible PyCBC series, but several waveform
 implementations still reconstruct their models with NumPy/SciPy before

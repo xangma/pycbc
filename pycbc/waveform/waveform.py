@@ -179,6 +179,20 @@ def _check_lal_pars(p):
     return lal_pars
 
 def _lalsim_td_waveform(**p):
+    using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
+    if (
+        p.get("approximant") == "SEOBNRv4PHM"
+        and using_torch
+        and torch_native_enabled("PYCBC_SEOBNRV4PHM_NATIVE", default=False)
+    ):
+        from .seobnrv4phm_torch import (
+            seobnrv4phm_native_supported,
+            seobnrv4phm_td_torch,
+        )
+
+        if seobnrv4phm_native_supported(p):
+            return seobnrv4phm_td_torch(**p)
+
     lal_pars = _check_lal_pars(p)
     #nonGRparams can be straightforwardly added if needed, however they have to
     # be invoked one by one
@@ -391,6 +405,26 @@ def _lalsim_fd_waveform(**p):
         if seobnrv4hm_native_supported(p):
             return seobnrv4hm_fd_torch(**p)
 
+    if (
+        p.get("approximant") == "SEOBNRv4PHM"
+        and using_torch
+        and torch_native_enabled("PYCBC_SEOBNRV4PHM_NATIVE", default=False)
+    ):
+        from .seobnrv4phm_torch import (
+            seobnrv4phm_fd_torch,
+            seobnrv4phm_native_supported,
+        )
+
+        if seobnrv4phm_native_supported(p):
+            return seobnrv4phm_fd_torch(**p)
+
+    # SEOBNRv4PHM is implemented by LAL in the time domain. Keep the public
+    # FD API available by using the established CPU TD-to-FD reference path.
+    if p.get("approximant") == "SEOBNRv4PHM":
+        from .seobnrv4phm_torch import seobnrv4phm_fd_from_td
+
+        return seobnrv4phm_fd_from_td(use_torch=False, **p)
+
     lal_pars = _check_lal_pars(p)
     hp1, hc1 = lalsimulation.SimInspiralChooseFDWaveform(
                float(pnutils.solar_mass_to_kg(p['mass1'])),
@@ -429,6 +463,9 @@ try:
             approx_name = lalsimulation.GetStringFromApproximant(approx_enum)
             _lalsim_enum[approx_name] = approx_enum
             _lalsim_fd_approximants[approx_name] = _lalsim_fd_waveform
+
+    if "SEOBNRv4PHM" in _lalsim_enum:
+        _lalsim_fd_approximants["SEOBNRv4PHM"] = _lalsim_fd_waveform
 
 except ImportError:
     lalsimulation = libutils.import_optional('lalsimulation')
