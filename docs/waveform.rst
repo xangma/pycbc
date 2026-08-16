@@ -145,7 +145,10 @@ environment flags:
   positive-m modes, their IMRPhenomD frequency maps, and polarization assembly
   run on the active Torch device, including spin-weighted spherical-harmonic
   evaluation. Scalar model-coefficient setup remains on CPU. Mode subsets are
-  supported;
+  supported. Arbitrary-frequency ``get_fd_waveform_sequence`` evaluation is
+  also native for strictly increasing positive frequencies; as in LAL,
+  ``long_asc_nodes`` is ignored and ``f_ref=0`` uses the first frequency.
+  There is no sequence-only high-frequency cutoff;
   transverse spins, tides, testing-GR changes, and unmodeled modes fall back to
   lalsimulation.
 - SEOBNRv4_ROM (FD aligned-spin): ``PYCBC_SEOBNRV4_NATIVE``. ROM interpolation,

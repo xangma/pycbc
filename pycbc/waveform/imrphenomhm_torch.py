@@ -20,7 +20,8 @@ This ports the six aligned-spin modes modeled by LALSimIMRPhenomHM.c:
 (2,2), (2,1), (3,3), (3,2), (4,4), and (4,3). Scalar model-coefficient setup
 remains on the CPU, while frequency mapping, mode construction,
 spherical-harmonic evaluation, and polarization assembly run on the active
-Torch device without calling lalsimulation.
+Torch device without calling lalsimulation. The same kernels support both a
+regular frequency grid and strictly increasing arbitrary-frequency sequences.
 
 The native path is opt-in through PYCBC_IMRPHENOMHM_NATIVE=1 or the global
 Torch-native switch. Unsupported waveform modifications retain the
@@ -31,12 +32,14 @@ from __future__ import annotations
 
 import cmath
 import math
+from typing import NamedTuple
 
 import lal
 import numpy as np
 import torch
 
 from pycbc import pnutils, scheme as _scheme
+from pycbc.types import Array as PyCBCArray
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform._spherical_harmonics_torch import (
@@ -69,6 +72,41 @@ _DEFAULT_MF_MAX = 0.5
 _MODES = ((2, 2), (2, 1), (3, 3), (3, 2), (4, 4), (4, 3))
 _MODE_SET = frozenset(_MODES)
 _PHASE_SHIFT = (0.0, math.pi / 2.0, 0.0, -math.pi / 2.0, math.pi)
+
+
+class _IMRPhenomHMInputs(NamedTuple):
+    """Validated scalar inputs shared by regular and sequence evaluation."""
+
+    mass1: float
+    mass2: float
+    spin1z: float
+    spin2z: float
+    f_ref: float
+    distance: float
+    inclination: float
+    coa_phase: float
+    long_asc_nodes: float
+    active_modes: tuple[tuple[int, int], ...]
+    total_mass: float
+    total_mass_seconds: float
+    eta: float
+    device: torch.device
+    real_dtype: torch.dtype
+    complex_dtype: torch.dtype
+
+
+class _IMRPhenomHMModel(NamedTuple):
+    """Frequency-independent coefficients for one HM waveform."""
+
+    inputs: _IMRPhenomHMInputs
+    final_spin: float
+    ringdown: dict[tuple[int, int], tuple[float, float]]
+    amp_coefficients: object
+    pn: object
+    phi_pref: object
+    reference_frequency: float
+    phi0: float
+    time_shift: float
 
 
 def _polar_coefficient(magnitude: float, phase: float) -> complex:
@@ -200,6 +238,91 @@ def imrphenomhm_native_supported(params) -> bool:
     ):
         return False
     return not params.get("numrel_data", "")
+
+
+def imrphenomhm_sequence_native_supported(params) -> bool:
+    """Return whether arbitrary-frequency HM generation is native."""
+
+    return imrphenomhm_native_supported(params)
+
+
+def _imrphenomhm_inputs(p, *, sequence=False):
+    """Validate scalar inputs shared by both public sampling interfaces."""
+
+    if not imrphenomhm_native_supported(p):
+        raise ValueError(
+            "IMRPhenomHM parameters are not supported by the native Torch path"
+        )
+    state = _scheme.mgr.state
+    if not isinstance(state, _scheme.TorchScheme):
+        raise RuntimeError("native Torch IMRPhenomHM requires TorchScheme")
+
+    mass1 = float(p["mass1"])
+    mass2 = float(p["mass2"])
+    spin1z = float(p.get("spin1z", 0.0))
+    spin2z = float(p.get("spin2z", 0.0))
+    if mass2 > mass1:
+        mass1, mass2 = mass2, mass1
+        spin1z, spin2z = spin2z, spin1z
+
+    f_ref = float(p.get("f_ref", 0.0))
+    distance = pnutils.megaparsecs_to_meters(float(p["distance"]))
+    inclination = float(p.get("inclination", 0.0))
+    coa_phase = float(p.get("coa_phase", 0.0))
+    # SimInspiralChooseFDWaveformSequence has no ascending-node argument.
+    long_asc_nodes = 0.0 if sequence else float(
+        p.get("long_asc_nodes", 0.0)
+    )
+    active_modes = _active_modes(p.get("mode_array"))
+
+    finite_parameters = (
+        mass1,
+        mass2,
+        spin1z,
+        spin2z,
+        f_ref,
+        distance,
+        inclination,
+        coa_phase,
+        long_asc_nodes,
+    )
+    if not all(math.isfinite(value) for value in finite_parameters):
+        raise ValueError("IMRPhenomHM parameters must be finite")
+    if mass1 <= 0.0 or mass2 <= 0.0:
+        raise ValueError("IMRPhenomHM component masses must be positive")
+    if abs(spin1z) > 1.0 or abs(spin2z) > 1.0:
+        raise ValueError("IMRPhenomHM aligned spins must be between -1 and 1")
+    if f_ref < 0.0:
+        raise ValueError("IMRPhenomHM f_ref must be non-negative")
+    if distance <= 0.0:
+        raise ValueError("IMRPhenomHM distance must be positive")
+
+    total_mass = mass1 + mass2
+    total_mass_seconds = total_mass * lal.MTSUN_SI
+    eta = mass1 * mass2 / (total_mass * total_mass)
+    device = state.torch_device
+    real_dtype = torch.float32 if device.type == "mps" else torch.float64
+    complex_dtype = (
+        torch.complex64 if real_dtype == torch.float32 else torch.complex128
+    )
+    return _IMRPhenomHMInputs(
+        mass1=mass1,
+        mass2=mass2,
+        spin1z=spin1z,
+        spin2z=spin2z,
+        f_ref=f_ref,
+        distance=distance,
+        inclination=inclination,
+        coa_phase=coa_phase,
+        long_asc_nodes=long_asc_nodes,
+        active_modes=active_modes,
+        total_mass=total_mass,
+        total_mass_seconds=total_mass_seconds,
+        eta=eta,
+        device=device,
+        real_dtype=real_dtype,
+        complex_dtype=complex_dtype,
+    )
 
 
 def _mapping_parameters(
@@ -459,101 +582,37 @@ def _mode_amplitude(
     return amplitude * beta * hm_term1 / hm_term2
 
 
-def imrphenomhm_fd_torch(**p):
-    """Generate IMRPhenomHM plus/cross polarizations with Torch."""
+def _imrphenomhm_model(inputs, reference_frequency_hz):
+    """Build the frequency-independent HM coefficients."""
 
-    if not imrphenomhm_native_supported(p):
-        raise ValueError(
-            "IMRPhenomHM parameters are not supported by the native Torch path"
-        )
-    state = _scheme.mgr.state
-    if not isinstance(state, _scheme.TorchScheme):
-        raise RuntimeError("native Torch IMRPhenomHM requires TorchScheme")
+    if isinstance(reference_frequency_hz, torch.Tensor):
+        reference_frequency_hz = reference_frequency_hz.item()
+    reference_frequency_hz = float(reference_frequency_hz)
 
-    mass1 = float(p["mass1"])
-    mass2 = float(p["mass2"])
-    spin1z = float(p.get("spin1z", 0.0))
-    spin2z = float(p.get("spin2z", 0.0))
-    if mass2 > mass1:
-        mass1, mass2 = mass2, mass1
-        spin1z, spin2z = spin2z, spin1z
-
-    delta_f = float(p["delta_f"])
-    f_lower = float(p["f_lower"])
-    f_final = float(p.get("f_final", 0.0))
-    f_ref = float(p.get("f_ref", 0.0))
-    distance = pnutils.megaparsecs_to_meters(float(p["distance"]))
-    inclination = float(p.get("inclination", 0.0))
-    coa_phase = float(p.get("coa_phase", 0.0))
-    long_asc_nodes = float(p.get("long_asc_nodes", 0.0))
-    active_modes = _active_modes(p.get("mode_array"))
-
-    finite_parameters = (
-        mass1,
-        mass2,
-        spin1z,
-        spin2z,
-        delta_f,
-        f_lower,
-        f_final,
-        f_ref,
-        distance,
-        inclination,
-        coa_phase,
-        long_asc_nodes,
+    final_spin = _final_spin0815(
+        inputs.eta,
+        inputs.spin1z,
+        inputs.spin2z,
     )
-    if not all(math.isfinite(value) for value in finite_parameters):
-        raise ValueError("IMRPhenomHM parameters must be finite")
-    if mass1 <= 0.0 or mass2 <= 0.0:
-        raise ValueError("IMRPhenomHM component masses must be positive")
-    if abs(spin1z) > 1.0 or abs(spin2z) > 1.0:
-        raise ValueError("IMRPhenomHM aligned spins must be between -1 and 1")
-    if delta_f <= 0.0 or f_lower <= 0.0:
-        raise ValueError("IMRPhenomHM delta_f and f_lower must be positive")
-    if f_final < 0.0 or f_ref < 0.0:
-        raise ValueError("IMRPhenomHM f_final and f_ref must be non-negative")
-    if distance <= 0.0:
-        raise ValueError("IMRPhenomHM distance must be positive")
-
-    total_mass = mass1 + mass2
-    total_mass_seconds = total_mass * lal.MTSUN_SI
-    eta = mass1 * mass2 / (total_mass * total_mass)
-    layout_f_max = (
-        f_final if f_final > 0.0 else _DEFAULT_MF_MAX / total_mass_seconds
-    )
-    if layout_f_max < f_lower:
-        raise ValueError("IMRPhenomHM f_final must not be below f_lower")
-
-    frequency_bins = int(layout_f_max / delta_f)
-    npts = 1
-    if frequency_bins:
-        npts += 1 << (frequency_bins - 1).bit_length()
-    first_bin = math.ceil(f_lower / delta_f)
-    stop_bin = min(math.ceil(layout_f_max / delta_f), npts)
-
-    device = state.torch_device
-    real_dtype = torch.float32 if device.type == "mps" else torch.float64
-    complex_dtype = (
-        torch.complex64 if real_dtype == torch.float32 else torch.complex128
-    )
-    bins = torch.arange(first_bin, stop_bin, device=device)
-    frequency = bins.to(dtype=real_dtype) * (delta_f * total_mass_seconds)
-    hp = torch.zeros(npts, dtype=complex_dtype, device=device)
-    hc = torch.zeros_like(hp)
-
-    final_spin = _final_spin0815(eta, spin1z, spin2z)
     if final_spin > 1.0:
         raise ValueError("IMRPhenomHM final spin exceeds one")
-    final_mass = 1.0 - _erad_rational_0815(eta, spin1z, spin2z)
+    final_mass = 1.0 - _erad_rational_0815(
+        inputs.eta,
+        inputs.spin1z,
+        inputs.spin2z,
+    )
     ringdown = _ringdown_frequencies(final_mass, final_spin)
     amp_coefficients = _compute_amp_coeffs(
-        eta, spin1z, spin2z, final_spin
+        inputs.eta,
+        inputs.spin1z,
+        inputs.spin2z,
+        final_spin,
     )
     pn = taylorf2_aligned_phasing(
-        mass1,
-        mass2,
-        spin1z,
-        spin2z,
+        inputs.mass1,
+        inputs.mass2,
+        inputs.spin1z,
+        inputs.spin2z,
         spin_order=-1,
         tidal_order=-1,
         dchi={},
@@ -564,12 +623,21 @@ def imrphenomhm_fd_torch(**p):
     )
     pn.v[6] -= (
         _subtract_3pn_ss(
-            mass1, mass2, total_mass, eta, spin1z, spin2z
+            inputs.mass1,
+            inputs.mass2,
+            inputs.total_mass,
+            inputs.eta,
+            inputs.spin1z,
+            inputs.spin2z,
         )
         * pn.v[0]
     )
     base_phase_coefficients = _compute_phase_coeffs(
-        eta, spin1z, spin2z, final_spin, pn
+        inputs.eta,
+        inputs.spin1z,
+        inputs.spin2z,
+        final_spin,
+        pn,
     )
     phi_pref = _init_phi_prefactors(
         base_phase_coefficients.sigma1,
@@ -579,9 +647,7 @@ def imrphenomhm_fd_torch(**p):
         pn,
         _pi_powers(),
     )
-    reference_frequency = (
-        f_ref if f_ref > 0.0 else f_lower
-    ) * total_mass_seconds
+    reference_frequency = reference_frequency_hz * inputs.total_mass_seconds
     phase_at_reference = _phase_at_scalar(
         reference_frequency,
         base_phase_coefficients,
@@ -590,7 +656,7 @@ def imrphenomhm_fd_torch(**p):
         1.0,
         1.0,
     )
-    phi0 = 0.5 * phase_at_reference + coa_phase
+    phi0 = 0.5 * phase_at_reference + inputs.coa_phase
     time_shift = _d_phi_mrd(
         amp_coefficients.fmaxCalc,
         base_phase_coefficients.alpha1,
@@ -602,65 +668,90 @@ def imrphenomhm_fd_torch(**p):
         base_phase_coefficients.fDM,
         base_phase_coefficients.eta_inv,
     )
+    return _IMRPhenomHMModel(
+        inputs=inputs,
+        final_spin=final_spin,
+        ringdown=ringdown,
+        amp_coefficients=amp_coefficients,
+        pn=pn,
+        phi_pref=phi_pref,
+        reference_frequency=reference_frequency,
+        phi0=phi0,
+        time_shift=time_shift,
+    )
 
-    f_rd_22, f_damp_22 = ringdown[(2, 2)]
-    for ell, emm in active_modes:
-        f_rd_lm, f_damp_lm = ringdown[(ell, emm)]
+
+def _imrphenomhm_polarizations(model, frequency):
+    """Evaluate both polarizations at dimensionless frequencies."""
+
+    inputs = model.inputs
+    hp = torch.zeros(
+        frequency.shape,
+        dtype=inputs.complex_dtype,
+        device=inputs.device,
+    )
+    hc = torch.zeros_like(hp)
+
+    f_rd_22, f_damp_22 = model.ringdown[(2, 2)]
+    for ell, emm in inputs.active_modes:
+        f_rd_lm, f_damp_lm = model.ringdown[(ell, emm)]
         rho = f_rd_22 / f_rd_lm
         tau = f_damp_lm / f_damp_22
         phase_coefficients = _compute_phase_coeffs(
-            eta,
-            spin1z,
-            spin2z,
-            final_spin,
-            pn,
+            inputs.eta,
+            inputs.spin1z,
+            inputs.spin2z,
+            model.final_spin,
+            model.pn,
             rho,
             tau,
         )
         mode_phase = _mode_phase(
             frequency,
             (ell, emm),
-            ringdown,
+            model.ringdown,
             phase_coefficients,
-            pn,
-            phi_pref,
+            model.pn,
+            model.phi_pref,
             rho,
             tau,
         )
         mode_amplitude = _mode_amplitude(
             frequency,
             (ell, emm),
-            ringdown,
-            amp_coefficients,
-            mass1,
-            mass2,
-            spin1z,
-            spin2z,
+            model.ringdown,
+            model.amp_coefficients,
+            inputs.mass1,
+            inputs.mass2,
+            inputs.spin1z,
+            inputs.spin2z,
         )
         total_phase = (
-            -time_shift * (frequency - reference_frequency)
+            -model.time_shift * (frequency - model.reference_frequency)
             + mode_phase
-            - emm * phi0
+            - emm * model.phi0
         )
-        hlm = torch.polar(mode_amplitude, -total_phase).to(complex_dtype)
+        hlm = torch.polar(mode_amplitude, -total_phase).to(
+            inputs.complex_dtype
+        )
 
         y_positive = spin_weighted_spherical_harmonic(
-            inclination,
+            inputs.inclination,
             0.0,
             -2,
             ell,
             emm,
-            dtype=real_dtype,
-            device=device,
+            dtype=inputs.real_dtype,
+            device=inputs.device,
         )
         y_negative_conjugate = spin_weighted_spherical_harmonic(
-            inclination,
+            inputs.inclination,
             0.0,
             -2,
             ell,
             -emm,
-            dtype=real_dtype,
-            device=device,
+            dtype=inputs.real_dtype,
+            device=inputs.device,
         ).conj()
         parity = (-1) ** ell
         factor_plus = 0.5 * (
@@ -669,22 +760,70 @@ def imrphenomhm_fd_torch(**p):
         factor_cross = -0.5j * (
             y_positive - parity * y_negative_conjugate
         )
-        hp[bins] += factor_plus * hlm
-        hc[bins] += factor_cross * hlm
+        hp += factor_plus * hlm
+        hc += factor_cross * hlm
 
     amplitude_scale = (
-        total_mass
+        inputs.total_mass
         * lal.MRSUN_SI
-        * total_mass_seconds
-        / distance
+        * inputs.total_mass_seconds
+        / inputs.distance
     )
     hp *= amplitude_scale
     hc *= amplitude_scale
 
-    cos_nodes = math.cos(2.0 * long_asc_nodes)
-    sin_nodes = math.sin(2.0 * long_asc_nodes)
+    cos_nodes = math.cos(2.0 * inputs.long_asc_nodes)
+    sin_nodes = math.sin(2.0 * inputs.long_asc_nodes)
     plus = cos_nodes * hp + sin_nodes * hc
     cross = cos_nodes * hc - sin_nodes * hp
+    return plus, cross
+
+
+def imrphenomhm_fd_torch(**p):
+    """Generate IMRPhenomHM plus/cross polarizations with Torch."""
+
+    inputs = _imrphenomhm_inputs(p)
+    delta_f = float(p["delta_f"])
+    f_lower = float(p["f_lower"])
+    f_final = float(p.get("f_final", 0.0))
+    if not all(math.isfinite(value) for value in (delta_f, f_lower, f_final)):
+        raise ValueError("IMRPhenomHM frequencies must be finite")
+    if delta_f <= 0.0 or f_lower <= 0.0:
+        raise ValueError("IMRPhenomHM delta_f and f_lower must be positive")
+    if f_final < 0.0:
+        raise ValueError("IMRPhenomHM f_final must be non-negative")
+
+    layout_f_max = (
+        f_final
+        if f_final > 0.0
+        else _DEFAULT_MF_MAX / inputs.total_mass_seconds
+    )
+    if layout_f_max < f_lower:
+        raise ValueError("IMRPhenomHM f_final must not be below f_lower")
+
+    frequency_bins = int(layout_f_max / delta_f)
+    npts = 1
+    if frequency_bins:
+        npts += 1 << (frequency_bins - 1).bit_length()
+    first_bin = math.ceil(f_lower / delta_f)
+    stop_bin = min(math.ceil(layout_f_max / delta_f), npts)
+    bins = torch.arange(first_bin, stop_bin, device=inputs.device)
+    frequencies_hz = bins.to(dtype=inputs.real_dtype) * delta_f
+
+    reference_frequency_hz = inputs.f_ref if inputs.f_ref > 0.0 else f_lower
+    model = _imrphenomhm_model(inputs, reference_frequency_hz)
+    active_plus, active_cross = _imrphenomhm_polarizations(
+        model,
+        frequencies_hz * inputs.total_mass_seconds,
+    )
+    plus = torch.zeros(
+        npts,
+        dtype=inputs.complex_dtype,
+        device=inputs.device,
+    )
+    cross = torch.zeros_like(plus)
+    plus[bins] = active_plus
+    cross[bins] = active_cross
 
     epoch = -1.0 / delta_f
     return (
@@ -694,4 +833,49 @@ def imrphenomhm_fd_torch(**p):
         FrequencySeries(
             TorchArrayData(cross), delta_f=delta_f, epoch=epoch, copy=False
         ),
+    )
+
+
+def _sequence_frequencies(sample_points, inputs):
+    """Return a validated increasing sequence on the active Torch device."""
+
+    values = getattr(sample_points, "_data", sample_points)
+    if isinstance(values, TorchArrayData):
+        values = values.tensor
+    frequencies = torch.as_tensor(
+        values,
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+    if frequencies.ndim != 1 or frequencies.numel() == 0:
+        raise ValueError("IMRPhenomHM sample_points must be a non-empty vector")
+    if not bool(torch.all(torch.isfinite(frequencies))):
+        raise ValueError("IMRPhenomHM sample_points must be finite")
+    if bool(torch.any(frequencies <= 0.0)):
+        raise ValueError("IMRPhenomHM sample_points must be positive")
+    if frequencies.numel() > 1 and bool(
+        torch.any(frequencies[1:] <= frequencies[:-1])
+    ):
+        raise ValueError(
+            "IMRPhenomHM sample_points must be strictly increasing"
+        )
+    return frequencies
+
+
+def imrphenomhm_fd_sequence_torch(**p):
+    """Evaluate IMRPhenomHM at arbitrary increasing frequencies."""
+
+    inputs = _imrphenomhm_inputs(p, sequence=True)
+    frequencies_hz = _sequence_frequencies(p["sample_points"], inputs)
+    reference_frequency_hz = (
+        inputs.f_ref if inputs.f_ref > 0.0 else frequencies_hz[0]
+    )
+    model = _imrphenomhm_model(inputs, reference_frequency_hz)
+    plus, cross = _imrphenomhm_polarizations(
+        model,
+        frequencies_hz * inputs.total_mass_seconds,
+    )
+    return (
+        PyCBCArray(TorchArrayData(plus), copy=False),
+        PyCBCArray(TorchArrayData(cross), copy=False),
     )
