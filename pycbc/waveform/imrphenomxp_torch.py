@@ -5,17 +5,17 @@
 # Free Software Foundation; either version 3 of the License, or
 # (at your option) any later version.
 
-"""Torch-native IMRPhenomXP with the NNLO-v102 precession prescription.
+"""Torch-native IMRPhenomXP with NNLO and MSA precession prescriptions.
 
 The aligned-spin IMRPhenomXAS carrier and all frequency-dependent precession
 angles, Wigner rotations, and polarization assembly execute on the active
 Torch device. Scalar source-frame setup remains on the host.
 
-This intentionally covers only the explicit LAL configuration
-``PhenomXPrecVersion=102``, ``PhenomXPConvention=0``, and
-``PhenomXPFinalSpinMod=0``. The public path is opt-in through
-``PYCBC_IMRPHENOMXP_NATIVE=1`` or ``PYCBC_TORCH_NATIVE_PORTS=1``; the default
-MSA-angle model and all other configurations continue to use lalsimulation.
+The native configurations are NNLO version 102 with convention 0 and MSA
+version 223 (or its 300 alias) with convention 1. Both require final-spin mode
+0. The public path is opt-in through ``PYCBC_IMRPHENOMXP_NATIVE=1`` or
+``PYCBC_TORCH_NATIVE_PORTS=1``; unsupported configurations continue to use
+lalsimulation.
 """
 
 from __future__ import annotations
@@ -53,14 +53,21 @@ from pycbc.waveform.imrphenomxas_torch import (
     _is_nonzero,
     _next_power_of_two,
 )
+from pycbc.waveform.imrphenomxp_msa_torch import (
+    build_msa_state,
+    msa_angles,
+    source_frame_parameters_msa223,
+)
 from pycbc.waveform import imrphenomx_utils_torch as IMRPhenomX_utils
 from pycbc.waveform._torch_jax import torch_context
 
 
 _PI = math.pi
-_SUPPORTED_PREC_VERSION = 102
-_SUPPORTED_CONVENTION = 0
 _SUPPORTED_FINAL_SPIN = 0
+_NNLO_PREC_VERSION = 102
+_NNLO_CONVENTION = 0
+_MSA_PREC_VERSIONS = (223, 300)
+_MSA_CONVENTION = 1
 
 
 @dataclass(frozen=True)
@@ -72,10 +79,14 @@ class _IMRPhenomXPInputs:
     chip: float
     spin_aligned: float
     spin_perp: float
+    spin1: tuple
+    spin2: tuple
+    prec_version: int
     theta_jn: float
     alpha0: float
+    epsilon0: float
     distance: float
-    phi_aligned: float
+    carrier_phase: float
     polarization_rotation: float
     long_asc_nodes: float
     f_ref: float
@@ -91,6 +102,7 @@ class _IMRPhenomXPInputs:
 class _XPModel:
     inputs: _IMRPhenomXPInputs
     angle_coeffs: object
+    msa_state: object
     alpha_offset: float
     epsilon_offset: float
     harmonics: tuple
@@ -115,12 +127,26 @@ def imrphenomxp_native_supported(params):
 
     if params.get("approximant", "IMRPhenomXP") != "IMRPhenomXP":
         return False
-    flags = (
-        ("phenom_x_prec_version", _SUPPORTED_PREC_VERSION),
-        ("phenom_xp_convention", _SUPPORTED_CONVENTION),
-        ("phenom_xp_final_spin_mod", _SUPPORTED_FINAL_SPIN),
+    if not _is_exact_integer(
+        params.get("phenom_xp_final_spin_mod"),
+        _SUPPORTED_FINAL_SPIN,
+    ):
+        return False
+    nnlo = _is_exact_integer(
+        params.get("phenom_x_prec_version"),
+        _NNLO_PREC_VERSION,
+    ) and _is_exact_integer(
+        params.get("phenom_xp_convention"),
+        _NNLO_CONVENTION,
     )
-    if any(not _is_exact_integer(params.get(key), expected) for key, expected in flags):
+    msa = any(
+        _is_exact_integer(params.get("phenom_x_prec_version"), version)
+        for version in _MSA_PREC_VERSIONS
+    ) and _is_exact_integer(
+        params.get("phenom_xp_convention"),
+        _MSA_CONVENTION,
+    )
+    if not (nnlo or msa):
         return False
     if any(
         not _is_default_order(params.get(key, -1)) for key in _DEFAULT_ONLY_ORDER_KEYS
@@ -181,7 +207,7 @@ def _lpn_v102(v, eta, chi1_l, chi2_l):
     return eta * polynomial / v
 
 
-def _source_frame_parameters(
+def _source_frame_parameters_nnlo(
     mass1,
     mass2,
     f_ref,
@@ -264,6 +290,7 @@ def _source_frame_parameters(
         spin_perp,
         theta_jn,
         alpha0,
+        0.0,
         phi_aligned,
         polarization_rotation,
     )
@@ -332,6 +359,30 @@ def _validated_inputs(
     if not math.isfinite(reference_frequency) or reference_frequency <= 0.0:
         raise ValueError("IMRPhenomXP reference frequency must be finite and positive")
 
+    total_mass = mass1 + mass2
+    total_mass_seconds = total_mass * MTSUN
+    prec_version = int(float(params["phenom_x_prec_version"]))
+    if prec_version == _NNLO_PREC_VERSION:
+        source_parameters = _source_frame_parameters_nnlo(
+            mass1,
+            mass2,
+            reference_frequency,
+            coa_phase,
+            inclination,
+            spin1,
+            spin2,
+        )
+    else:
+        source_parameters = source_frame_parameters_msa223(
+            mass1,
+            mass2,
+            reference_frequency,
+            coa_phase,
+            inclination,
+            spin1,
+            spin2,
+            total_mass_seconds,
+        )
     (
         chi1_l,
         chi2_l,
@@ -340,18 +391,10 @@ def _validated_inputs(
         spin_perp,
         theta_jn,
         alpha0,
+        epsilon0,
         phi_aligned,
         polarization_rotation,
-    ) = _source_frame_parameters(
-        mass1,
-        mass2,
-        reference_frequency,
-        coa_phase,
-        inclination,
-        spin1,
-        spin2,
-    )
-    total_mass = mass1 + mass2
+    ) = source_parameters
     eta = mass1 * mass2 / (total_mass * total_mass)
     device = state.torch_device
     real_dtype = torch.float32 if device.type == "mps" else torch.float64
@@ -364,15 +407,19 @@ def _validated_inputs(
         chip=chip,
         spin_aligned=spin_aligned,
         spin_perp=spin_perp,
+        spin1=spin1,
+        spin2=spin2,
+        prec_version=prec_version,
         theta_jn=theta_jn,
         alpha0=alpha0,
+        epsilon0=epsilon0,
         distance=distance,
-        phi_aligned=phi_aligned,
+        carrier_phase=(phi_aligned if prec_version == _NNLO_PREC_VERSION else 0.0),
         polarization_rotation=polarization_rotation,
         long_asc_nodes=long_asc_nodes,
         f_ref=reference_frequency,
         total_mass=total_mass,
-        total_mass_seconds=total_mass * MTSUN,
+        total_mass_seconds=total_mass_seconds,
         eta=eta,
         device=device,
         real_dtype=real_dtype,
@@ -381,29 +428,49 @@ def _validated_inputs(
 
 
 def _build_model(inputs):
-    q = inputs.mass1 / inputs.mass2
-    chi_eff = (
-        inputs.mass1 * inputs.chi1_l + inputs.mass2 * inputs.chi2_l
-    ) / inputs.total_mass
-    chil = (1.0 + q) * chi_eff / q
-    angle_coeffs = _nnlo_angle_coefficients(q, chil, inputs.chip)
-    alpha_values = (
-        angle_coeffs.alpha1,
-        angle_coeffs.alpha2,
-        angle_coeffs.alpha3,
-        angle_coeffs.alpha4,
-        angle_coeffs.alpha5,
-    )
-    epsilon_values = (
-        angle_coeffs.epsilon1,
-        angle_coeffs.epsilon2,
-        angle_coeffs.epsilon3,
-        angle_coeffs.epsilon4,
-        angle_coeffs.epsilon5,
-    )
-    omega_ref = _PI * inputs.total_mass_seconds * inputs.f_ref
-    alpha_offset = _scalar_angle_series(omega_ref, alpha_values) - inputs.alpha0
-    epsilon_offset = _scalar_angle_series(omega_ref, epsilon_values)
+    if inputs.prec_version == _NNLO_PREC_VERSION:
+        q = inputs.mass1 / inputs.mass2
+        chi_eff = (
+            inputs.mass1 * inputs.chi1_l + inputs.mass2 * inputs.chi2_l
+        ) / inputs.total_mass
+        chil = (1.0 + q) * chi_eff / q
+        angle_coeffs = _nnlo_angle_coefficients(q, chil, inputs.chip)
+        alpha_values = (
+            angle_coeffs.alpha1,
+            angle_coeffs.alpha2,
+            angle_coeffs.alpha3,
+            angle_coeffs.alpha4,
+            angle_coeffs.alpha5,
+        )
+        epsilon_values = (
+            angle_coeffs.epsilon1,
+            angle_coeffs.epsilon2,
+            angle_coeffs.epsilon3,
+            angle_coeffs.epsilon4,
+            angle_coeffs.epsilon5,
+        )
+        omega_ref = _PI * inputs.total_mass_seconds * inputs.f_ref
+        alpha_offset = _scalar_angle_series(omega_ref, alpha_values) - inputs.alpha0
+        epsilon_offset = _scalar_angle_series(omega_ref, epsilon_values)
+        msa_state = None
+    else:
+        angle_coeffs = None
+        msa_state = build_msa_state(
+            inputs.mass1,
+            inputs.mass2,
+            inputs.spin1,
+            inputs.spin2,
+            inputs.total_mass_seconds,
+            inputs.f_ref,
+        )
+        velocity_ref = torch.tensor(
+            [math.cbrt(_PI * inputs.total_mass_seconds * inputs.f_ref)],
+            dtype=inputs.real_dtype,
+            device=inputs.device,
+        )
+        alpha_ref, epsilon_ref, _ = msa_angles(velocity_ref, msa_state)
+        alpha_offset = alpha_ref[0] - inputs.alpha0
+        epsilon_offset = epsilon_ref[0] - inputs.epsilon0
     harmonics = tuple(
         spin_weighted_spherical_harmonic(
             inputs.theta_jn,
@@ -419,6 +486,7 @@ def _build_model(inputs):
     return _XPModel(
         inputs,
         angle_coeffs,
+        msa_state,
         alpha_offset,
         epsilon_offset,
         harmonics,
@@ -432,7 +500,7 @@ def _xas_samples(inputs, frequencies):
         dtype=inputs.real_dtype,
     )
     extrinsic = torch.tensor(
-        [inputs.distance, 0.0, inputs.phi_aligned],
+        [inputs.distance, 0.0, inputs.carrier_phase],
         device=inputs.device,
         dtype=inputs.real_dtype,
     )
@@ -462,38 +530,42 @@ def _twist_up(model, frequencies):
     h_phenom = _xas_samples(inputs, frequencies)
     mf = inputs.total_mass_seconds * frequencies
     omega = _PI * mf
-    alpha_values = (
-        model.angle_coeffs.alpha1,
-        model.angle_coeffs.alpha2,
-        model.angle_coeffs.alpha3,
-        model.angle_coeffs.alpha4,
-        model.angle_coeffs.alpha5,
-    )
-    epsilon_values = (
-        model.angle_coeffs.epsilon1,
-        model.angle_coeffs.epsilon2,
-        model.angle_coeffs.epsilon3,
-        model.angle_coeffs.epsilon4,
-        model.angle_coeffs.epsilon5,
-    )
-    alpha = _angle_series(omega, alpha_values) - model.alpha_offset
-    epsilon = _angle_series(omega, epsilon_values) - model.epsilon_offset
-
     velocity = torch.pow(omega, 1.0 / 3.0)
-    orbital_momentum = _lpn_v102(
-        velocity,
-        inputs.eta,
-        inputs.chi1_l,
-        inputs.chi2_l,
-    )
-    denominator = orbital_momentum + inputs.spin_aligned
-    ratio = inputs.spin_perp / denominator
-    sign = torch.where(
-        denominator >= 0.0,
-        torch.ones_like(denominator),
-        -torch.ones_like(denominator),
-    )
-    cos_beta = sign * torch.rsqrt(1.0 + ratio * ratio)
+    if inputs.prec_version == _NNLO_PREC_VERSION:
+        alpha_values = (
+            model.angle_coeffs.alpha1,
+            model.angle_coeffs.alpha2,
+            model.angle_coeffs.alpha3,
+            model.angle_coeffs.alpha4,
+            model.angle_coeffs.alpha5,
+        )
+        epsilon_values = (
+            model.angle_coeffs.epsilon1,
+            model.angle_coeffs.epsilon2,
+            model.angle_coeffs.epsilon3,
+            model.angle_coeffs.epsilon4,
+            model.angle_coeffs.epsilon5,
+        )
+        alpha = _angle_series(omega, alpha_values) - model.alpha_offset
+        epsilon = _angle_series(omega, epsilon_values) - model.epsilon_offset
+        orbital_momentum = _lpn_v102(
+            velocity,
+            inputs.eta,
+            inputs.chi1_l,
+            inputs.chi2_l,
+        )
+        denominator = orbital_momentum + inputs.spin_aligned
+        ratio = inputs.spin_perp / denominator
+        sign = torch.where(
+            denominator >= 0.0,
+            torch.ones_like(denominator),
+            -torch.ones_like(denominator),
+        )
+        cos_beta = sign * torch.rsqrt(1.0 + ratio * ratio)
+    else:
+        alpha, epsilon, cos_beta = msa_angles(velocity, model.msa_state)
+        alpha = alpha - model.alpha_offset
+        epsilon = epsilon - model.epsilon_offset
     cos_half = torch.sqrt(torch.abs(0.5 * (1.0 + cos_beta)))
     sin_half = torch.sqrt(torch.abs(0.5 * (1.0 - cos_beta)))
     return _assemble_twisted_polarizations(
@@ -525,7 +597,7 @@ def _series_from_active_samples(inputs, samples, npoints, first_bin, stop_bin, d
 
 
 def imrphenomxp_fd_torch(**params):
-    """Generate a regular-grid NNLO-v102 IMRPhenomXP waveform with Torch."""
+    """Generate a supported regular-grid IMRPhenomXP waveform with Torch."""
 
     delta_f = float(params["delta_f"])
     f_lower = float(params["f_lower"])
@@ -590,7 +662,7 @@ def _sequence_frequencies(sample_points):
 
 
 def imrphenomxp_fd_sequence_torch(**params):
-    """Evaluate NNLO-v102 IMRPhenomXP at arbitrary frequencies with Torch."""
+    """Evaluate supported IMRPhenomXP configurations with Torch."""
 
     if not imrphenomxp_sequence_native_supported(params):
         raise ValueError(
