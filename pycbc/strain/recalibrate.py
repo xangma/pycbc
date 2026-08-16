@@ -32,6 +32,44 @@ from pycbc.strain.calibration import (
 )
 
 
+def _torch_unwrap(phase):
+    """Apply NumPy-compatible phase unwrapping to a 1-D Torch tensor."""
+    import torch
+
+    if phase.numel() < 2:
+        return phase.clone()
+
+    pi = phase.new_tensor(np.pi)
+    delta = torch.diff(phase)
+    delta_mod = torch.remainder(delta + pi, 2 * pi) - pi
+    delta_mod = torch.where(
+        (delta_mod == -pi) & (delta > 0), pi, delta_mod
+    )
+    correction = delta_mod - delta
+    correction = torch.where(
+        torch.abs(delta) < pi, torch.zeros_like(correction), correction
+    )
+    unwrapped = phase.clone()
+    unwrapped[1:] += torch.cumsum(correction, dim=0)
+    return unwrapped
+
+
+def _torch_linear_interpolate(x, y, samples):
+    """Linearly interpolate or extrapolate ``y(x)`` on a Torch device."""
+    import torch
+
+    if x.numel() < 2:
+        raise ValueError("at least two calibration frequencies are required")
+
+    flat_samples = samples.reshape(-1)
+    upper = torch.searchsorted(x, flat_samples).clamp(1, x.numel() - 1)
+    lower = upper - 1
+    x_lower = x[lower]
+    weight = (flat_samples - x_lower) / (x[upper] - x_lower)
+    values = y[lower] + weight * (y[upper] - y[lower])
+    return values.reshape(samples.shape)
+
+
 class Recalibrate(metaclass=ABCMeta):
     """ Base class for modifying calibration """
     name = None
@@ -217,6 +255,7 @@ class PhysicalModel(object):
         self.fc0 = float(fc0)
         self.fs0 = float(fs0)
         self.qinv0 = float(qinv0)
+        self._torch_baselines = {}
 
         # initial detuning at time t0
         init_detuning = self.freq**2 / (self.freq**2 - 1.0j * self.freq * \
@@ -230,6 +269,108 @@ class PhysicalModel(object):
 
         # residual of c0 after factoring out the coupled cavity pole fc0
         self.c_res = self.c0 * (1 + 1.0j * self.freq / self.fc0)/init_detuning
+
+    def _torch_baseline(self, strain_tensor):
+        """Return the fixed physical-model terms on the strain device."""
+        import torch
+
+        if strain_tensor.dtype in (torch.float32, torch.complex64):
+            real_dtype = torch.float32
+            complex_dtype = torch.complex64
+        elif strain_tensor.dtype in (torch.float64, torch.complex128):
+            real_dtype = torch.float64
+            complex_dtype = torch.complex128
+        else:
+            raise TypeError(
+                "physical calibration requires a floating-point strain"
+            )
+
+        key = (strain_tensor.device, complex_dtype)
+        if key not in self._torch_baselines:
+            device = strain_tensor.device
+            freq = torch.as_tensor(
+                self.freq, dtype=real_dtype, device=device
+            )
+            c0 = torch.as_tensor(
+                self.c0, dtype=complex_dtype, device=device
+            )
+            d0 = torch.as_tensor(
+                self.d0, dtype=complex_dtype, device=device
+            )
+            a_tst0 = torch.as_tensor(
+                self.a_tst0, dtype=complex_dtype, device=device
+            )
+            a_pu0 = torch.as_tensor(
+                self.a_pu0, dtype=complex_dtype, device=device
+            )
+
+            init_detuning = freq**2 / (
+                freq**2
+                - 1.0j * freq * self.fs0 * self.qinv0
+                + self.fs0**2
+            )
+            g0 = c0 * d0 * (a_tst0 + a_pu0)
+            r0 = (1.0 + g0) / c0
+            c_res = (
+                c0 * (1.0 + 1.0j * freq / self.fc0) / init_detuning
+            )
+            self._torch_baselines[key] = {
+                "freq": freq,
+                "d0": d0,
+                "a_tst0": a_tst0,
+                "a_pu0": a_pu0,
+                "r0": r0,
+                "c_res": c_res,
+            }
+
+        return self._torch_baselines[key]
+
+    def _adjust_strain_torch(self, strain, fc, fs, qinv, kappa_c,
+                             kappa_tst_re, kappa_tst_im,
+                             kappa_pu_re, kappa_pu_im):
+        """Adjust Torch-backed strain without evaluating on the host."""
+        import torch
+
+        tensor = strain._data.tensor
+        baseline = self._torch_baseline(tensor)
+        freq = baseline["freq"]
+
+        def scalar(value):
+            return torch.as_tensor(
+                value, dtype=freq.dtype, device=freq.device
+            )
+
+        fc = scalar(fc)
+        fs = scalar(fs)
+        qinv = scalar(qinv)
+        kappa_c = scalar(kappa_c)
+        kappa_tst = scalar(kappa_tst_re) + 1.0j * scalar(kappa_tst_im)
+        kappa_pu = scalar(kappa_pu_re) + 1.0j * scalar(kappa_pu_im)
+
+        detuning = freq**2 / (
+            freq**2 - 1.0j * freq * fs * qinv + fs**2
+        )
+        c = baseline["c_res"] * kappa_c * detuning / (
+            1.0 + 1.0j * freq / fc
+        )
+        g = c * baseline["d0"] * (
+            baseline["a_tst0"] * kappa_tst
+            + baseline["a_pu0"] * kappa_pu
+        )
+        response = (1.0 + g) / c
+        error = response / baseline["r0"]
+
+        amplitude = torch.abs(error)
+        phase = _torch_unwrap(torch.angle(error))
+        frequencies = torch.arange(
+            len(strain), dtype=freq.dtype, device=freq.device
+        ) * strain.delta_f
+        amplitude = _torch_linear_interpolate(
+            freq, amplitude, frequencies
+        )
+        phase = _torch_linear_interpolate(freq, phase, frequencies)
+        correction = amplitude * torch.exp(1.0j * phase)
+        return _multiply_frequency_series(strain, correction)
 
     def update_c(self, fs=None, qinv=None, fc=None, kappa_c=1.0):
         """ Calculate the sensing function c(f,t) given the new parameters
@@ -371,9 +512,16 @@ class PhysicalModel(object):
         strain_adjusted : FrequencySeries
             The adjusted strain.
         """
-        fc = self.fc0 + delta_fc if delta_fc else self.fc0
-        fs = self.fs0 + delta_fs if delta_fs else self.fs0
-        qinv = self.qinv0 + delta_qinv if delta_qinv else self.qinv0
+        fc = self.fc0 + (0.0 if delta_fc is None else delta_fc)
+        fs = self.fs0 + (0.0 if delta_fs is None else delta_fs)
+        qinv = self.qinv0 + (0.0 if delta_qinv is None else delta_qinv)
+
+        if hasattr(strain._data, 'tensor'):
+            return self._adjust_strain_torch(
+                strain, fc, fs, qinv, kappa_c,
+                kappa_tst_re, kappa_tst_im,
+                kappa_pu_re, kappa_pu_im,
+            )
 
         # calculate adjusted response function
         r_adjusted = self.update_r(fs=fs, qinv=qinv, fc=fc, kappa_c=kappa_c,

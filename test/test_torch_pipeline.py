@@ -3378,13 +3378,14 @@ def _physical_calibration_model():
     )
 
 
+@pytest.mark.parametrize("dtype", (np.complex64, np.complex128))
 def test_physical_calibration_stays_on_device(
-        torch_device_ctx, monkeypatch):
+        torch_device_ctx, monkeypatch, dtype):
     ctx, device = torch_device_ctx
-    if device == "mps":
-        pytest.skip("Torch MPS does not support complex PyCBC arrays")
+    if device == "mps" and dtype == np.complex128:
+        pytest.skip("Torch MPS does not support complex128")
 
-    data = np.linspace(1, 2, 129).astype(np.complex128)
+    data = np.linspace(1, 2, 137).astype(dtype)
     adjustments = {
         "delta_fs": 0.4,
         "delta_qinv": 0.01,
@@ -3402,21 +3403,36 @@ def test_physical_calibration_stays_on_device(
     with ctx:
         torch_strain = FrequencySeries(data, delta_f=8, epoch=123)
         original = torch_strain._data.tensor.clone()
+        model = _physical_calibration_model()
         with monkeypatch.context() as patch:
             def _reject_host_transfer(_self):
                 raise AssertionError("calibration copied Torch data to host")
 
+            def _reject_host_evaluation(*_args, **_kwargs):
+                raise AssertionError("calibration evaluated on the host")
+
             patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
-            actual = _physical_calibration_model().adjust_strain(
-                torch_strain, **adjustments
+            patch.setattr(model, "update_r", _reject_host_evaluation)
+            patch.setattr(
+                recalibrate, "UnivariateSpline", _reject_host_evaluation
             )
+            patch.setattr(recalibrate.np, "abs", _reject_host_evaluation)
+            patch.setattr(recalibrate.np, "angle", _reject_host_evaluation)
+            patch.setattr(recalibrate.np, "unwrap", _reject_host_evaluation)
+            actual = model.adjust_strain(torch_strain, **adjustments)
 
     assert actual._data.tensor.device.type == device
-    assert actual.dtype == expected.dtype
+    assert actual.dtype == np.dtype(dtype)
     assert actual.delta_f == expected.delta_f
     assert actual.epoch == expected.epoch
     assert torch.equal(torch_strain._data.tensor, original)
+    assert len(model._torch_baselines) == 1
+    assert all(
+        value.device.type == device
+        for value in next(iter(model._torch_baselines.values())).values()
+    )
+    tolerance = 2e-6 if dtype == np.complex64 else 1e-12
     np.testing.assert_allclose(
         actual._data.tensor.detach().cpu().numpy(), expected.numpy(),
-        rtol=1e-12, atol=1e-12,
+        rtol=tolerance, atol=tolerance,
     )
