@@ -158,8 +158,10 @@ def _source_frame_parameters(
     inclination,
     spin1,
     spin2,
+    *,
+    orbital_angular_momentum=_l2pnr,
 ):
-    """Map LAL's source-frame inputs to PhenomPv2 model parameters."""
+    """Map LAL's source-frame inputs to PhenomP model parameters."""
 
     m1sq = mass1 * mass1
     m2sq = mass2 * mass2
@@ -177,7 +179,11 @@ def _source_frame_parameters(
     chip = numerator / denominator
 
     velocity = (_PI * total_mass * _MTSUN_SI * f_ref) ** (1.0 / 3.0)
-    orbital_momentum = total_mass * total_mass * _l2pnr(velocity, eta)
+    orbital_momentum = (
+        total_mass
+        * total_mass
+        * orbital_angular_momentum(velocity, eta)
+    )
     jx = m1sq * spin1[0] + m2sq * spin2[0]
     jy = m1sq * spin1[1] + m2sq * spin2[1]
     jz = orbital_momentum + m1sq * spin1[2] + m2sq * spin2[2]
@@ -758,6 +764,57 @@ def _build_model(inputs):
     )
 
 
+def _assemble_twisted_polarizations(
+    inputs,
+    frequencies,
+    h_phenom,
+    alpha,
+    epsilon,
+    cos_half,
+    sin_half,
+    harmonics,
+    time_correction,
+):
+    """Assemble PhenomP polarizations from a twisted aligned-spin model."""
+
+    cos2 = cos_half * cos_half
+    sin2 = sin_half * sin_half
+    d2 = (
+        sin2 * sin2,
+        2.0 * cos_half * sin2 * sin_half,
+        _SQRT_6 * sin2 * cos2,
+        2.0 * cos2 * cos_half * sin_half,
+        cos2 * cos2,
+    )
+    dm2 = (d2[4], -d2[3], d2[2], -d2[1], d2[0])
+    hp_sum = torch.zeros_like(h_phenom)
+    hc_sum = torch.zeros_like(h_phenom)
+    for index, emm in enumerate(range(-2, 3)):
+        exp_negative = torch.exp(-1j * emm * alpha)
+        exp_positive = torch.exp(1j * emm * alpha)
+        t2m = exp_negative * dm2[index] * harmonics[index]
+        tm2m = exp_positive * d2[index] * torch.conj(
+            harmonics[index]
+        )
+        hp_sum += t2m + tm2m
+        hc_sum += 1j * (t2m - tm2m)
+
+    factor = torch.exp(-2j * epsilon) * h_phenom / 2.0
+    plus = factor * hp_sum
+    cross = factor * hc_sum
+    time_phase = torch.exp(-2j * _PI * frequencies * time_correction)
+    plus *= time_phase
+    cross *= time_phase
+
+    cosine = math.cos(2.0 * inputs.polarization_rotation)
+    sine = math.sin(2.0 * inputs.polarization_rotation)
+    plus, cross = cosine * plus + sine * cross, cosine * cross - sine * plus
+
+    cosine = math.cos(2.0 * inputs.long_asc_nodes)
+    sine = math.sin(2.0 * inputs.long_asc_nodes)
+    return cosine * plus + sine * cross, cosine * cross - sine * plus
+
+
 def _twist_up(model, frequencies):
     inputs = model.inputs
     mf = inputs.total_mass_seconds * frequencies
@@ -818,42 +875,17 @@ def _twist_up(model, frequencies):
     cos_beta = torch.rsqrt(1.0 + ratio * ratio)
     cos_half = torch.sqrt(0.5 * (1.0 + cos_beta))
     sin_half = torch.sqrt(0.5 * (1.0 - cos_beta))
-    cos2 = cos_half * cos_half
-    sin2 = sin_half * sin_half
-    d2 = (
-        sin2 * sin2,
-        2.0 * cos_half * sin2 * sin_half,
-        _SQRT_6 * sin2 * cos2,
-        2.0 * cos2 * cos_half * sin_half,
-        cos2 * cos2,
+    return _assemble_twisted_polarizations(
+        inputs,
+        frequencies,
+        h_phenom,
+        alpha,
+        epsilon,
+        cos_half,
+        sin_half,
+        model.harmonics,
+        model.time_correction,
     )
-    dm2 = (d2[4], -d2[3], d2[2], -d2[1], d2[0])
-    hp_sum = torch.zeros_like(h_phenom)
-    hc_sum = torch.zeros_like(h_phenom)
-    for index, emm in enumerate(range(-2, 3)):
-        exp_negative = torch.exp(-1j * emm * alpha)
-        exp_positive = torch.exp(1j * emm * alpha)
-        t2m = exp_negative * dm2[index] * model.harmonics[index]
-        tm2m = exp_positive * d2[index] * torch.conj(
-            model.harmonics[index]
-        )
-        hp_sum += t2m + tm2m
-        hc_sum += 1j * (t2m - tm2m)
-
-    factor = torch.exp(-2j * epsilon) * h_phenom / 2.0
-    plus = factor * hp_sum
-    cross = factor * hc_sum
-    time_phase = torch.exp(-2j * _PI * frequencies * model.time_correction)
-    plus *= time_phase
-    cross *= time_phase
-
-    cosine = math.cos(2.0 * inputs.polarization_rotation)
-    sine = math.sin(2.0 * inputs.polarization_rotation)
-    plus, cross = cosine * plus + sine * cross, cosine * cross - sine * plus
-
-    cosine = math.cos(2.0 * inputs.long_asc_nodes)
-    sine = math.sin(2.0 * inputs.long_asc_nodes)
-    return cosine * plus + sine * cross, cosine * cross - sine * plus
 
 
 def imrphenompv2_fd_torch(**params):

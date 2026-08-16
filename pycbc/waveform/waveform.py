@@ -326,6 +326,19 @@ def _lalsim_fd_waveform(**p):
             return imrphenomd_fd_torch(**p)
 
     if (
+        p.get("approximant") == "IMRPhenomP"
+        and using_torch
+        and torch_native_enabled("PYCBC_IMRPHENOMP_NATIVE", default=False)
+    ):
+        from .imrphenomp_torch import (
+            imrphenomp_fd_torch,
+            imrphenomp_native_supported,
+        )
+
+        if imrphenomp_native_supported(p):
+            return imrphenomp_fd_torch(**p)
+
+    if (
         p.get("approximant")
         in (
             "IMRPhenomPv2",
@@ -717,6 +730,19 @@ def _lalsim_fd_sequence(**p):
 
         if imrphenomd_sequence_native_supported(p):
             return imrphenomd_fd_sequence_torch(**p)
+
+    if (
+        p.get("approximant") == "IMRPhenomP"
+        and using_torch
+        and torch_native_enabled("PYCBC_IMRPHENOMP_NATIVE", default=False)
+    ):
+        from .imrphenomp_torch import (
+            imrphenomp_fd_sequence_torch,
+            imrphenomp_sequence_native_supported,
+        )
+
+        if imrphenomp_sequence_native_supported(p):
+            return imrphenomp_fd_sequence_torch(**p)
 
     if (
         p.get("approximant")
