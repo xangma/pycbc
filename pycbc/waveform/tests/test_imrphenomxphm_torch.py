@@ -214,6 +214,178 @@ def test_imrphenomxphm_regular_grid_matches_lalsimulation(
 
 
 @pytest.mark.parametrize(
+    ("mode_array", "tolerance"),
+    [
+        ([(2, 2)], 5.0e-5),
+        ([(2, 1)], 5.0e-5),
+        ([(3, 3)], 5.0e-5),
+        ([(3, 2)], 5.0e-4),
+        ([(4, 4)], 5.0e-5),
+        ([(3, 3), (4, 4)], 5.0e-5),
+        ([(4, 4), (2, 1), (2, 1)], 5.0e-5),
+    ],
+    ids=(
+        "22",
+        "21",
+        "33",
+        "32",
+        "44",
+        "multi",
+        "duplicate-reordered",
+    ),
+)
+def test_imrphenomxphm_sequence_mode_subsets_match_lalsimulation(
+    mode_array,
+    tolerance,
+    monkeypatch,
+    preserve_scheme,
+):
+    params = dict(_SEQUENCE_PARAMS, mode_array=mode_array)
+    monkeypatch.setenv("PYCBC_IMRPHENOMXPHM_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference = get_fd_waveform_sequence(
+        approximant="IMRPhenomXPHM",
+        sample_points=_SAMPLE_POINTS,
+        **params,
+    )
+    reference_arrays = tuple(array.numpy().copy() for array in reference)
+
+    import pycbc.waveform.waveform as waveform
+
+    def reject_lal(*_args, **_kwargs):
+        raise AssertionError("native IMRPhenomXPHM sequence called lalsimulation")
+
+    monkeypatch.setattr(
+        waveform.lalsimulation,
+        "SimInspiralChooseFDWaveformSequence",
+        reject_lal,
+    )
+    monkeypatch.setenv("PYCBC_IMRPHENOMXPHM_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    actual = get_fd_waveform_sequence(
+        approximant="IMRPhenomXPHM",
+        sample_points=_SAMPLE_POINTS,
+        **params,
+    )
+
+    for expected, result in zip(reference_arrays, actual):
+        assert result._data.tensor.device.type == "cpu"
+        assert result._data.tensor.dtype == torch.complex128
+        result_array = result.numpy()
+        np.testing.assert_array_equal(result_array == 0.0, expected == 0.0)
+        assert _relative_error(result_array, expected) < tolerance
+
+
+def test_imrphenomxphm_empty_mode_array_is_zero(
+    monkeypatch,
+    preserve_scheme,
+):
+    import pycbc.waveform.waveform as waveform
+
+    def reject_lal(*_args, **_kwargs):
+        raise AssertionError("zero-mode IMRPhenomXPHM called lalsimulation")
+
+    monkeypatch.setattr(
+        waveform.lalsimulation,
+        "SimInspiralChooseFDWaveformSequence",
+        reject_lal,
+    )
+    monkeypatch.setattr(
+        waveform.lalsimulation,
+        "SimInspiralChooseFDWaveform",
+        reject_lal,
+    )
+    monkeypatch.setenv("PYCBC_IMRPHENOMXPHM_NATIVE", "1")
+
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    sequence = get_fd_waveform_sequence(
+        approximant="IMRPhenomXPHM",
+        sample_points=_SAMPLE_POINTS,
+        mode_array=[],
+        **_SEQUENCE_PARAMS,
+    )
+    for polarization in sequence:
+        assert polarization._data.tensor.device.type == "cpu"
+        assert polarization._data.tensor.dtype == torch.complex128
+        np.testing.assert_array_equal(polarization.numpy(), 0.0)
+
+    grid = get_fd_waveform(
+        approximant="IMRPhenomXPHM",
+        delta_f=0.5,
+        f_lower=20.0,
+        f_final=512.0,
+        mode_array=[],
+        **_SEQUENCE_PARAMS,
+    )
+    assert len(grid[0]) == 1025
+    for series in grid:
+        assert series._data.tensor.device.type == "cpu"
+        assert series._data.tensor.dtype == torch.complex128
+        np.testing.assert_array_equal(series.numpy(), 0.0)
+
+
+def test_imrphenomxphm_regular_grid_mode_subset_matches_lalsimulation(
+    monkeypatch,
+    preserve_scheme,
+):
+    params = dict(
+        mass1=40.0,
+        mass2=20.0,
+        spin1x=0.2,
+        spin1y=0.1,
+        spin1z=0.3,
+        spin2x=-0.1,
+        spin2y=0.05,
+        spin2z=-0.2,
+        distance=500.0,
+        inclination=0.7,
+        coa_phase=1.2,
+        long_asc_nodes=0.3,
+        delta_f=0.5,
+        f_lower=20.0,
+        f_final=512.0,
+        f_ref=30.0,
+        mode_array=[(3, 3), (4, 4)],
+    )
+    monkeypatch.setenv("PYCBC_IMRPHENOMXPHM_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference = get_fd_waveform(approximant="IMRPhenomXPHM", **params)
+    reference_arrays = tuple(series.numpy().copy() for series in reference)
+
+    import pycbc.waveform.waveform as waveform
+
+    def reject_lal(*_args, **_kwargs):
+        raise AssertionError("native IMRPhenomXPHM called lalsimulation")
+
+    monkeypatch.setattr(
+        waveform.lalsimulation,
+        "SimInspiralChooseFDWaveform",
+        reject_lal,
+    )
+    monkeypatch.setenv("PYCBC_IMRPHENOMXPHM_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    actual = get_fd_waveform(approximant="IMRPhenomXPHM", **params)
+
+    for expected, expected_array, result in zip(
+        reference,
+        reference_arrays,
+        actual,
+    ):
+        assert len(result) == len(expected)
+        assert result.delta_f == expected.delta_f
+        assert float(result.epoch) == float(expected.epoch)
+        assert result._data.tensor.device.type == "cpu"
+        assert result._data.tensor.dtype == torch.complex128
+        result_array = result.numpy()
+        # LAL's regular-grid multibanding may leave the requested upper
+        # endpoint zero for a sparse mode set. The native path deliberately
+        # performs full mode evaluation, so include that endpoint in the norm.
+        relative_error = np.linalg.norm(result_array - expected_array)
+        relative_error /= np.linalg.norm(expected_array)
+        assert relative_error < 5.0e-3
+
+
+@pytest.mark.parametrize(
     ("params", "expected"),
     [
         ({}, True),
@@ -221,11 +393,19 @@ def test_imrphenomxphm_regular_grid_matches_lalsimulation(
         (_MSA_FINAL_SPIN_FLAGS, True),
         (_MSA_ALIAS_FLAGS, True),
         ({"phenom_x_prec_version": 223}, True),
+        (dict(_MSA_FLAGS, mode_array=[]), True),
+        (dict(_MSA_FLAGS, mode_array=[(2, 2)]), True),
+        (dict(_MSA_FLAGS, mode_array=[(4, 4), (2, 1), (2, 1)]), True),
+        (dict(_MSA_FLAGS, mode_array=(3, 3)), False),
         ({"phenom_x_prec_version": 102}, False),
         (dict(_MSA_FLAGS, phenom_xp_convention=0), False),
         (dict(_MSA_FLAGS, phenom_xp_final_spin_mod=2), False),
         (dict(_MSA_FLAGS, phenom_xp_final_spin_mod=3.5), False),
-        (dict(_MSA_FLAGS, mode_array=[(2, 2)]), False),
+        (dict(_MSA_FLAGS, mode_array=[(2, -1)]), False),
+        (dict(_MSA_FLAGS, mode_array=[(3, 1)]), False),
+        (dict(_MSA_FLAGS, mode_array=[(2.0, 2.0)]), False),
+        (dict(_MSA_FLAGS, mode_array=["22"]), False),
+        (dict(_MSA_FLAGS, mode_array=[(2, 2, 1)]), False),
         (dict(_MSA_FLAGS, lambda1=100.0), False),
         (dict(_MSA_FLAGS, dchi3=0.1), False),
         (dict(_MSA_FLAGS, eccentricity=0.1), False),
@@ -282,7 +462,7 @@ def test_imrphenomxphm_unsupported_options_use_lal_fallback(
     import pycbc.waveform.imrphenomxphm_torch as xphm_torch
     import pycbc.waveform.waveform as waveform
 
-    params = {**_SEQUENCE_PARAMS, "mode_array": [(2, 2)]}
+    params = {**_SEQUENCE_PARAMS, "mode_array": [(2, 2), (2, -1)]}
     monkeypatch.setenv("PYCBC_IMRPHENOMXPHM_NATIVE", "0")
     _activate_scheme(_scheme.CPUScheme())
     reference = get_fd_waveform_sequence(

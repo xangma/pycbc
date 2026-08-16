@@ -233,13 +233,17 @@ default remains the LAL/CPU path; enable torch ports with environment flags:
 - IMRPhenomXPHM (FD): ``PYCBC_IMRPHENOMXPHM_NATIVE``. The default XHM
   co-precessing modes, MSA Euler angles, Wigner rotations, and polarization
   assembly run on the active Torch device for regular-grid and arbitrary-
-  frequency evaluation. The native scope covers the default mode set with MSA
-  version 223 or its 300 alias, convention 1, and final-spin modes 0, 3, and 4.
+  frequency evaluation. The native scope covers the default mode set and
+  explicit subsets of the five positive-m co-precessing families with MSA
+  version 223 or its 300 alias, convention 1, and final-spin modes 0, 3, and
+  4. Explicit arrays are deduplicated and evaluated in canonical model order,
+  and an empty array returns all-zero polarizations.
   Scalar source-frame, MSA-coefficient, and remnant-spin setup remain on CPU.
   It inherits XHM's analytic ``(3, 2)`` phase-boundary derivative and performs
   full regular-grid mode evaluation, so the XHM calibration-edge and
   multibanding differences described above also apply.
-  Custom mode arrays, NNLO and SpinTaylor angles, PNR options, matter,
+  Mode arrays with negative-m or unmodeled entries, NNLO and SpinTaylor
+  angles, PNR options, matter,
   eccentricity, testing-GR changes, and non-default orders fall back to
   lalsimulation. As in LAL's sequence interface, ``long_asc_nodes`` is ignored
   and ``f_ref=0`` uses the first supplied frequency.

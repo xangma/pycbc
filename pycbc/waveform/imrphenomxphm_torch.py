@@ -10,14 +10,16 @@
 The native path combines the existing XHM co-precessing modes with the XP MSA
 Euler angles.  Mode generation, Wigner rotations, and polarization assembly
 execute on the active Torch device; scalar source-frame setup remains on the
-host.  The bounded implementation covers the default XPHM mode set with MSA
-precession version 223 (and its 300 alias), convention 1, and final-spin modes
-0, 3, and 4.  Other configurations continue to use lalsimulation.
+host.  The bounded implementation covers the default XPHM mode set and explicit
+subsets of its positive-m co-precessing families with MSA precession version
+223 (and its 300 alias), convention 1, and final-spin modes 0, 3, and 4.
+Other configurations continue to use lalsimulation.
 """
 
 from __future__ import annotations
 
 import math
+from numbers import Integral
 
 import torch
 
@@ -63,6 +65,35 @@ _COPRECESSING_MODES = (
     (3, 2),
     (4, 4),
 )
+_POSITIVE_COPRECESSING_MODES = frozenset(_COPRECESSING_MODES)
+
+
+def _requested_coprecessing_modes(params):
+    """Return the deduplicated canonical co-precessing families to twist.
+
+    ``None`` selects the full default set. Explicit arrays must contain only
+    integral members of the positive-m families; entries are deduplicated and
+    returned in canonical model order, matching LAL's idempotent mode
+    activation. Invalid or unsupported requests return ``None`` so the caller
+    falls back to lalsimulation.
+    """
+
+    mode_array = params.get("mode_array")
+    if mode_array is None:
+        return list(_COPRECESSING_MODES)
+    try:
+        requested = set()
+        for mode in mode_array:
+            ell, emm = mode
+            if not isinstance(ell, Integral) or not isinstance(emm, Integral):
+                return None
+            family = (int(ell), int(emm))
+            if family not in _POSITIVE_COPRECESSING_MODES:
+                return None
+            requested.add(family)
+    except (TypeError, ValueError):
+        return None
+    return [mode for mode in _COPRECESSING_MODES if mode in requested]
 
 
 def _xp_params(params):
@@ -77,7 +108,7 @@ def imrphenomxphm_native_supported(params):
 
     if params.get("approximant") != "IMRPhenomXPHM":
         return False
-    if params.get("mode_array") is not None:
+    if _requested_coprecessing_modes(params) is None:
         return False
     prec_version = _integer_or_default(
         params.get("phenom_x_prec_version"),
@@ -323,21 +354,21 @@ def _twist_mode(model, frequencies, samples, ell, mprime):
     return factor * plus_sum, factor * cross_sum
 
 
-def _twist_default_modes(model, frequencies, params):
+def _twist_coprecessing_modes(model, frequencies, params, modes):
     inputs = model.inputs
     carrier = _xas_samples(model, frequencies)
     core = _SequenceCore(carrier * _XAS_MODE_POLARIZATION_FACTOR)
     active_modes = _active_mode_samples(
         core,
         _coprecessing_params(params, inputs),
-        _COPRECESSING_MODES,
+        modes,
         frequencies=frequencies,
         reference_frequency=inputs.f_ref,
         final_spin=_coprecessing_final_spin(model),
     )
     plus = torch.zeros_like(carrier)
     cross = torch.zeros_like(carrier)
-    for ell, mprime in _COPRECESSING_MODES:
+    for ell, mprime in modes:
         mode_plus, mode_cross = _twist_mode(
             model,
             frequencies,
@@ -390,8 +421,22 @@ def imrphenomxphm_fd_torch(**params):
         )
         * delta_f
     )
-    model = _build_model(inputs)
-    plus, cross = _twist_default_modes(model, frequencies, params)
+    modes = _requested_coprecessing_modes(params)
+    if modes:
+        model = _build_model(inputs)
+        plus, cross = _twist_coprecessing_modes(
+            model,
+            frequencies,
+            params,
+            modes,
+        )
+    else:
+        plus = torch.zeros(
+            frequencies.shape,
+            dtype=inputs.complex_dtype,
+            device=inputs.device,
+        )
+        cross = torch.zeros_like(plus)
     return (
         _series_from_active_samples(
             inputs, plus, npoints, first_bin, stop_bin, delta_f
@@ -419,6 +464,7 @@ def imrphenomxphm_fd_sequence_torch(**params):
         sequence=True,
         default_reference_frequency=float(frequencies[0].item()),
     )
+    modes = _requested_coprecessing_modes(params)
     cutoff_frequency = IMRPhenomX_utils.fM_CUT / inputs.total_mass_seconds
     active = frequencies <= cutoff_frequency
     plus = torch.zeros(
@@ -427,12 +473,13 @@ def imrphenomxphm_fd_sequence_torch(**params):
         device=inputs.device,
     )
     cross = torch.zeros_like(plus)
-    if bool(torch.any(active)):
+    if modes and bool(torch.any(active)):
         model = _build_model(inputs)
-        plus[active], cross[active] = _twist_default_modes(
+        plus[active], cross[active] = _twist_coprecessing_modes(
             model,
             frequencies[active],
             params,
+            modes,
         )
     return (
         PyCBCArray(TorchArrayData(plus), copy=False),
