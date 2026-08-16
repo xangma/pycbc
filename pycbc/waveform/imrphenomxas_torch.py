@@ -1957,6 +1957,60 @@ def _quadrupole_from_params(lambda_value, dquad_value):
     return 1.0 + dquad_value
 
 
+def _build_nrtidal_params(
+    *,
+    tidal_version,
+    mass1,
+    mass2,
+    spin1z,
+    spin2z,
+    lambda1,
+    lambda2,
+    dquad1,
+    dquad2,
+    active_f_max,
+):
+    """Build the shared scalar matter state for PhenomX carriers."""
+
+    if tidal_version is None:
+        return None
+    if active_f_max is None:
+        raise ValueError("NRTidal generation requires an active maximum frequency")
+    if isinstance(active_f_max, torch.Tensor):
+        active_f_max = active_f_max.detach().item()
+    quadrupole1 = _quadrupole_from_params(lambda1, dquad1)
+    quadrupole2 = _quadrupole_from_params(lambda2, dquad2)
+    if tidal_version == 3:
+        merger_frequency = nrtidal_merger_frequency_v3(
+            mass1,
+            mass2,
+            lambda1,
+            lambda2,
+            spin1z,
+            spin2z,
+        )
+    else:
+        merger_frequency = nrtidal_merger_frequency(
+            mass1,
+            mass2,
+            lambda1,
+            lambda2,
+        )
+    return _NRTidalParams(
+        mass1=mass1,
+        mass2=mass2,
+        spin1z=spin1z,
+        spin2z=spin2z,
+        lambda1=lambda1,
+        lambda2=lambda2,
+        quadrupole1=quadrupole1,
+        quadrupole2=quadrupole2,
+        merger_frequency=merger_frequency,
+        alignment_frequency=min(active_f_max, merger_frequency),
+        version=tidal_version,
+    )
+
+
 def imrphenomxas_native_supported(params):
     """Return whether ``params`` preserve the native XAS model semantics."""
 
@@ -2124,43 +2178,18 @@ def _imrphenomxas_samples(
         dtype=inputs.real_dtype,
     )
 
-    nrtidal = None
-    if inputs.tidal_version is not None:
-        if active_f_max is None:
-            raise ValueError("NRTidal generation requires an active maximum frequency")
-        if isinstance(active_f_max, torch.Tensor):
-            active_f_max = active_f_max.detach().item()
-        quadrupole1 = _quadrupole_from_params(inputs.lambda1, inputs.dquad1)
-        quadrupole2 = _quadrupole_from_params(inputs.lambda2, inputs.dquad2)
-        if inputs.tidal_version == 3:
-            merger_frequency = nrtidal_merger_frequency_v3(
-                inputs.mass1,
-                inputs.mass2,
-                inputs.lambda1,
-                inputs.lambda2,
-                inputs.spin1z,
-                inputs.spin2z,
-            )
-        else:
-            merger_frequency = nrtidal_merger_frequency(
-                inputs.mass1,
-                inputs.mass2,
-                inputs.lambda1,
-                inputs.lambda2,
-            )
-        nrtidal = _NRTidalParams(
-            mass1=inputs.mass1,
-            mass2=inputs.mass2,
-            spin1z=inputs.spin1z,
-            spin2z=inputs.spin2z,
-            lambda1=inputs.lambda1,
-            lambda2=inputs.lambda2,
-            quadrupole1=quadrupole1,
-            quadrupole2=quadrupole2,
-            merger_frequency=merger_frequency,
-            alignment_frequency=min(active_f_max, merger_frequency),
-            version=inputs.tidal_version,
-        )
+    nrtidal = _build_nrtidal_params(
+        tidal_version=inputs.tidal_version,
+        mass1=inputs.mass1,
+        mass2=inputs.mass2,
+        spin1z=inputs.spin1z,
+        spin2z=inputs.spin2z,
+        lambda1=inputs.lambda1,
+        lambda2=inputs.lambda2,
+        dquad1=inputs.dquad1,
+        dquad2=inputs.dquad2,
+        active_f_max=active_f_max,
+    )
 
     with torch_context(frequencies):
         samples = _gen_IMRPhenomXAS(

@@ -36,6 +36,34 @@ _NATIVE_MODELS = (
     _MSA_MODEL_FLAGS,
     _DEFAULT_MODEL_FLAGS,
 )
+_TIDAL_APPROXIMANTS = (
+    "IMRPhenomXP_NRTidalv2",
+    "IMRPhenomXP_NRTidalv3",
+)
+_TIDAL_PARAMS = dict(
+    # The reversed mass order also exercises body-labelled matter reordering.
+    mass1=1.2,
+    mass2=1.6,
+    spin1x=0.015,
+    spin1y=-0.02,
+    spin1z=-0.04,
+    spin2x=0.01,
+    spin2y=0.012,
+    spin2z=0.05,
+    lambda1=800.0,
+    lambda2=300.0,
+    dquad_mon1=3.0,
+    dquad_mon2=4.0,
+    distance=130.0,
+    inclination=0.8,
+    coa_phase=0.6,
+    long_asc_nodes=0.2,
+    delta_f=2.0,
+    f_lower=19.3,
+    f_final=2048.0,
+    f_ref=0.0,
+)
+_TIDAL_SAMPLE_POINTS = [19.3, 30.0, 100.0, 500.0, 1024.0, 2048.0, 5000.0]
 
 
 @pytest.fixture
@@ -60,6 +88,18 @@ def _relative_error(actual, expected):
     return np.linalg.norm(actual[nonzero] - expected[nonzero]) / np.linalg.norm(
         expected[nonzero]
     )
+
+
+def _full_relative_error(actual, expected):
+    return np.linalg.norm(actual - expected) / np.linalg.norm(expected)
+
+
+def _tidal_sequence_params():
+    return {
+        key: value
+        for key, value in _TIDAL_PARAMS.items()
+        if key not in {"delta_f", "f_lower", "f_final", "long_asc_nodes"}
+    }
 
 
 def test_imrphenomxp_msa_jacobi_matches_scipy():
@@ -445,3 +485,249 @@ def test_imrphenomxp_native_stays_on_requested_device(
         result_array = result.numpy()
         np.testing.assert_array_equal(result_array == 0.0, expected == 0.0)
         assert _relative_error(result_array, expected) < tolerance
+
+
+@pytest.mark.parametrize("approximant", _TIDAL_APPROXIMANTS)
+@pytest.mark.parametrize(
+    "model_flags",
+    (_NNLO_MODEL_FLAGS, _DEFAULT_MODEL_FLAGS),
+    ids=("nnlo-v102", "default-msa-final-spin"),
+)
+def test_imrphenomxp_nrtidal_matches_lalsimulation(
+    approximant,
+    model_flags,
+    monkeypatch,
+    preserve_scheme,
+):
+    monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
+    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference = get_fd_waveform(
+        approximant=approximant,
+        **model_flags,
+        **_TIDAL_PARAMS,
+    )
+    reference_arrays = tuple(series.numpy().copy() for series in reference)
+
+    import pycbc.waveform.waveform as waveform_mod
+
+    def unexpected_lal(*_args, **_kwargs):
+        raise AssertionError(f"native {approximant} called lalsimulation")
+
+    monkeypatch.setattr(
+        waveform_mod.lalsimulation,
+        "SimInspiralChooseFDWaveform",
+        unexpected_lal,
+    )
+    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    actual = get_fd_waveform(
+        approximant=approximant,
+        **model_flags,
+        **_TIDAL_PARAMS,
+    )
+
+    for expected, expected_array, result in zip(
+        reference,
+        reference_arrays,
+        actual,
+    ):
+        assert len(result) == len(expected)
+        assert result.delta_f == expected.delta_f
+        assert float(result.epoch) == float(expected.epoch)
+        assert result._data.tensor.device.type == "cpu"
+        assert result._data.tensor.dtype == torch.complex128
+        assert _full_relative_error(result.numpy(), expected_array) < 1.0e-6
+
+
+@pytest.mark.parametrize("approximant", _TIDAL_APPROXIMANTS)
+@pytest.mark.parametrize(
+    "model_flags",
+    (_NNLO_MODEL_FLAGS, _DEFAULT_MODEL_FLAGS),
+    ids=("nnlo-v102", "default-msa-final-spin"),
+)
+def test_imrphenomxp_nrtidal_sequence_matches_lalsimulation(
+    approximant,
+    model_flags,
+    monkeypatch,
+    preserve_scheme,
+):
+    params = _tidal_sequence_params()
+    monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
+    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference = get_fd_waveform_sequence(
+        approximant=approximant,
+        sample_points=_TIDAL_SAMPLE_POINTS,
+        **model_flags,
+        **params,
+    )
+    reference_arrays = tuple(array.numpy().copy() for array in reference)
+
+    import pycbc.waveform.waveform as waveform_mod
+
+    def unexpected_lal(*_args, **_kwargs):
+        raise AssertionError(f"native {approximant} sequence called lalsimulation")
+
+    monkeypatch.setattr(
+        waveform_mod.lalsimulation,
+        "SimInspiralChooseFDWaveformSequence",
+        unexpected_lal,
+    )
+    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    actual = get_fd_waveform_sequence(
+        approximant=approximant,
+        sample_points=_TIDAL_SAMPLE_POINTS,
+        **model_flags,
+        **params,
+    )
+
+    for expected, result in zip(reference_arrays, actual):
+        assert result._data.tensor.device.type == "cpu"
+        assert result._data.tensor.dtype == torch.complex128
+        assert _full_relative_error(result.numpy(), expected) < 1.0e-9
+
+
+@pytest.mark.parametrize(
+    ("changes", "expected"),
+    [
+        ({"approximant": "IMRPhenomXP_NRTidalv2"}, True),
+        ({"approximant": "IMRPhenomXP_NRTidalv3"}, True),
+        (
+            {
+                "approximant": "IMRPhenomXP_NRTidalv2",
+                "lambda1": 400.0,
+                "lambda2": 700.0,
+            },
+            True,
+        ),
+        (
+            {
+                "approximant": "IMRPhenomXP_NRTidalv3",
+                "lambda1": 400.0,
+                "dquad_mon1": 3.0,
+            },
+            True,
+        ),
+        ({"approximant": "IMRPhenomXP", "lambda1": 400.0}, False),
+        ({"approximant": "IMRPhenomXP_NRTidalv2", "lambda1": -1.0}, False),
+        (
+            {"approximant": "IMRPhenomXP_NRTidalv3", "lambda1": float("nan")},
+            False,
+        ),
+        (
+            {"approximant": "IMRPhenomXP_NRTidalv2", "dquad_mon1": -1.0},
+            False,
+        ),
+        (
+            {"approximant": "IMRPhenomXP_NRTidalv3", "lambda_octu1": 10.0},
+            False,
+        ),
+        (
+            {"approximant": "IMRPhenomXP_NRTidalv2", "mode_array": [(2, 2)]},
+            False,
+        ),
+    ],
+)
+def test_imrphenomxp_nrtidal_native_support_boundary(changes, expected):
+    assert imrphenomxp_native_supported(changes) is expected
+    assert imrphenomxp_sequence_native_supported(changes) is expected
+
+
+def test_imrphenomxp_nrtidal_unsupported_options_use_lal_fallback(
+    monkeypatch,
+    preserve_scheme,
+):
+    params = {**_TIDAL_PARAMS, "dchi3": 0.1}
+    import pycbc.waveform.imrphenomxp_torch as xp_mod
+    import pycbc.waveform.waveform as waveform_mod
+
+    def unexpected_native(**_params):
+        raise AssertionError("unsupported XP NRTidal parameters reached Torch")
+
+    lal_generator = waveform_mod.lalsimulation.SimInspiralChooseFDWaveform
+    lal_calls = 0
+
+    def recording_lal(*args, **kwargs):
+        nonlocal lal_calls
+        lal_calls += 1
+        return lal_generator(*args, **kwargs)
+
+    monkeypatch.setattr(xp_mod, "imrphenomxp_fd_torch", unexpected_native)
+    monkeypatch.setattr(
+        waveform_mod.lalsimulation,
+        "SimInspiralChooseFDWaveform",
+        recording_lal,
+    )
+    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    result = get_fd_waveform(
+        approximant="IMRPhenomXP_NRTidalv2",
+        **params,
+    )
+
+    assert lal_calls == 1
+    assert all(isinstance(series._data.tensor, torch.Tensor) for series in result)
+
+
+@pytest.mark.parametrize("device_name", ["cpu", "mps", "cuda"])
+@pytest.mark.parametrize("approximant", _TIDAL_APPROXIMANTS)
+def test_imrphenomxp_nrtidal_stays_on_requested_device(
+    approximant,
+    device_name,
+    monkeypatch,
+    preserve_scheme,
+):
+    if device_name == "mps" and not torch.backends.mps.is_available():
+        pytest.skip("Torch MPS device is unavailable")
+    if device_name == "cuda" and not torch.cuda.is_available():
+        pytest.skip("Torch CUDA device is unavailable")
+
+    params = {**_TIDAL_PARAMS, "f_final": 1024.0}
+    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference, _ = get_fd_waveform(approximant=approximant, **params)
+    reference_array = reference.numpy().copy()
+
+    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme(device_name))
+    actual, _ = get_fd_waveform(approximant=approximant, **params)
+
+    expected_dtype = torch.complex64 if device_name == "mps" else torch.complex128
+    assert actual._data.tensor.device.type == device_name
+    assert actual._data.tensor.dtype == expected_dtype
+    # LAL's XPHM multibanding can leave the final requested bins zero. The
+    # native path deliberately evaluates the full grid, as does native XPHM.
+    # Compare their common support; MPS performs the long BNS phase in float32.
+    tolerance = 1.0e-2 if device_name == "mps" else 1.0e-6
+    assert _relative_error(actual.numpy(), reference_array) < tolerance
+
+
+@pytest.mark.parametrize("approximant", _TIDAL_APPROXIMANTS)
+def test_imrphenomxp_nrtidal_native_avoids_host_transfer(
+    approximant,
+    monkeypatch,
+    preserve_scheme,
+):
+    from pycbc.types.array_torch import TorchArrayData
+
+    def reject_host_transfer(_self):
+        raise AssertionError(f"native {approximant} transferred data to NumPy")
+
+    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    monkeypatch.setattr(TorchArrayData, "numpy", reject_host_transfer)
+    with torch.no_grad():
+        regular = get_fd_waveform(
+            approximant=approximant,
+            **{**_TIDAL_PARAMS, "f_final": 1024.0},
+        )
+        sequence = get_fd_waveform_sequence(
+            approximant=approximant,
+            sample_points=_TIDAL_SAMPLE_POINTS,
+            **_tidal_sequence_params(),
+        )
+
+    assert all(isinstance(series._data.tensor, torch.Tensor) for series in regular)
+    assert all(isinstance(array._data.tensor, torch.Tensor) for array in sequence)

@@ -41,8 +41,10 @@ _LAMBDAS = (400.0, 800.0)
         ("IMRPhenomD_NRTidalv2", 2),
         ("IMRPhenomPv2_NRTidalv2", 2),
         ("IMRPhenomXAS_NRTidalv2", 2),
+        ("IMRPhenomXP_NRTidalv2", 2),
         ("SEOBNRv4_ROM_NRTidalv2", 2),
         ("IMRPhenomXAS_NRTidalv3", 3),
+        ("IMRPhenomXP_NRTidalv3", 3),
         ("IMRPhenomXAS", None),
     ],
 )

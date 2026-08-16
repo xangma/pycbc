@@ -9,7 +9,9 @@
 
 The aligned-spin IMRPhenomXAS carrier and all frequency-dependent precession
 angles, Wigner rotations, and polarization assembly execute on the active
-Torch device. Scalar source-frame setup remains on the host.
+Torch device. The NRTidalv2 and NRTidalv3 variants apply matter corrections to
+the co-precessing carrier before twist-up. Scalar source-frame setup remains on
+the host.
 
 The native configurations are NNLO version 102 with convention 0 and MSA
 version 223 (or its 300 alias) with convention 1. MSA supports final-spin modes
@@ -49,10 +51,13 @@ from pycbc.waveform.imrphenomxas_torch import (
     MTSUN,
     _DEFAULT_ONLY_ORDER_KEYS,
     _XAS_MODE_POLARIZATION_FACTOR,
+    _build_nrtidal_params,
     _gen_IMRPhenomXAS,
     _is_default_order,
+    _is_nonnegative_finite,
     _is_nonzero,
     _next_power_of_two,
+    _quadrupole_from_params,
 )
 from pycbc.waveform.imrphenomxp_msa_torch import (
     build_msa_state,
@@ -61,6 +66,7 @@ from pycbc.waveform.imrphenomxp_msa_torch import (
 )
 from pycbc.waveform import imrphenomx_utils_torch as IMRPhenomX_utils
 from pycbc.waveform._torch_jax import torch_context
+from pycbc.waveform.nrtidal_torch import nrtidal_version
 
 
 _PI = math.pi
@@ -72,10 +78,21 @@ _NNLO_CONVENTION = 0
 _MSA_PREC_VERSIONS = (223, 300)
 _MSA_CONVENTION = 1
 _MSA_FINAL_SPIN_MODES = (0, 3, 4)
+_XP_APPROXIMANTS = {
+    "IMRPhenomXP",
+    "IMRPhenomXP_NRTidalv2",
+    "IMRPhenomXP_NRTidalv3",
+}
+_UNSUPPORTED_TIDAL_EXTENSION_KEYS = tuple(
+    key
+    for key in _TIDAL_EXTENSION_KEYS
+    if key not in {"dquad_mon1", "dquad_mon2"}
+)
 
 
 @dataclass(frozen=True)
 class _IMRPhenomXPInputs:
+    tidal_version: int | None
     mass1: float
     mass2: float
     chi1_l: float
@@ -85,6 +102,10 @@ class _IMRPhenomXPInputs:
     spin_perp: float
     spin1: tuple
     spin2: tuple
+    lambda1: float
+    lambda2: float
+    dquad1: float
+    dquad2: float
     prec_version: int
     final_spin_mod: int
     theta_jn: float
@@ -135,7 +156,8 @@ def _integer_or_default(value, default):
 def imrphenomxp_native_supported(params):
     """Return whether ``params`` select the bounded native XP model."""
 
-    if params.get("approximant", "IMRPhenomXP") != "IMRPhenomXP":
+    approximant = params.get("approximant", "IMRPhenomXP")
+    if approximant not in _XP_APPROXIMANTS:
         return False
     prec_version = _integer_or_default(
         params.get("phenom_x_prec_version"),
@@ -166,11 +188,9 @@ def imrphenomxp_native_supported(params):
     ):
         return False
     unsupported_zero = (
-        _TIDAL_EXTENSION_KEYS
+        _UNSUPPORTED_TIDAL_EXTENSION_KEYS
         + _NON_GR_KEYS
         + (
-            "lambda1",
-            "lambda2",
             "eccentricity",
             "mean_per_ano",
             "frame_axis",
@@ -180,6 +200,27 @@ def imrphenomxp_native_supported(params):
     )
     if any(_is_nonzero(params.get(key, 0.0)) for key in unsupported_zero):
         return False
+    matter = (
+        params.get("lambda1", 0.0),
+        params.get("lambda2", 0.0),
+        params.get("dquad_mon1", 0.0),
+        params.get("dquad_mon2", 0.0),
+    )
+    if approximant == "IMRPhenomXP":
+        if any(_is_nonzero(value) for value in matter):
+            return False
+    else:
+        if not all(_is_nonnegative_finite(value) for value in matter[:2]):
+            return False
+        try:
+            quadrupoles = (
+                _quadrupole_from_params(matter[0], matter[2]),
+                _quadrupole_from_params(matter[1], matter[3]),
+            )
+        except (TypeError, ValueError, OverflowError):
+            return False
+        if not all(math.isfinite(value) and value > 0.0 for value in quadrupoles):
+            return False
     if params.get("mode_array") is not None or params.get("numrel_data", ""):
         return False
     return True
@@ -323,6 +364,8 @@ def _validated_inputs(
     if not isinstance(state, _scheme.TorchScheme):
         raise RuntimeError("native Torch IMRPhenomXP requires TorchScheme")
 
+    approximant = params.get("approximant", "IMRPhenomXP")
+    tidal_version = nrtidal_version(approximant)
     mass1 = float(params["mass1"])
     mass2 = float(params["mass2"])
     distance = float(params["distance"])
@@ -332,6 +375,10 @@ def _validated_inputs(
     f_ref = _as_float(params.get("f_ref"))
     spin1 = tuple(_as_float(params.get(f"spin1{axis}")) for axis in "xyz")
     spin2 = tuple(_as_float(params.get(f"spin2{axis}")) for axis in "xyz")
+    lambda1 = _as_float(params.get("lambda1"))
+    lambda2 = _as_float(params.get("lambda2"))
+    dquad1 = _as_float(params.get("dquad_mon1"))
+    dquad2 = _as_float(params.get("dquad_mon2"))
     scalars = (
         mass1,
         mass2,
@@ -359,6 +406,8 @@ def _validated_inputs(
     if mass2 > mass1:
         mass1, mass2 = mass2, mass1
         spin1, spin2 = spin2, spin1
+        lambda1, lambda2 = lambda2, lambda1
+        dquad1, dquad2 = dquad2, dquad1
     if mass1 / mass2 > 1000.0 + 1.0e-12:
         raise ValueError("IMRPhenomXP is not valid beyond mass ratio 1000")
 
@@ -420,6 +469,7 @@ def _validated_inputs(
     real_dtype = torch.float32 if device.type == "mps" else torch.float64
     complex_dtype = torch.complex64 if real_dtype == torch.float32 else torch.complex128
     return _IMRPhenomXPInputs(
+        tidal_version=tidal_version,
         mass1=mass1,
         mass2=mass2,
         chi1_l=chi1_l,
@@ -429,6 +479,10 @@ def _validated_inputs(
         spin_perp=spin_perp,
         spin1=spin1,
         spin2=spin2,
+        lambda1=lambda1,
+        lambda2=lambda2,
+        dquad1=dquad1,
+        dquad2=dquad2,
         prec_version=prec_version,
         final_spin_mod=final_spin_mod,
         theta_jn=theta_jn,
@@ -551,7 +605,7 @@ def _build_model(inputs):
     )
 
 
-def _xas_samples(model, frequencies):
+def _xas_samples(model, frequencies, active_f_max):
     inputs = model.inputs
     intrinsic = torch.tensor(
         [inputs.mass1, inputs.mass2, inputs.chi1_l, inputs.chi2_l],
@@ -571,6 +625,18 @@ def _xas_samples(model, frequencies):
         device=inputs.device,
         dtype=inputs.real_dtype,
     )
+    nrtidal = _build_nrtidal_params(
+        tidal_version=inputs.tidal_version,
+        mass1=inputs.mass1,
+        mass2=inputs.mass2,
+        spin1z=inputs.chi1_l,
+        spin2z=inputs.chi2_l,
+        lambda1=inputs.lambda1,
+        lambda2=inputs.lambda2,
+        dquad1=inputs.dquad1,
+        dquad2=inputs.dquad2,
+        active_f_max=active_f_max,
+    )
     with torch_context(frequencies):
         samples = _gen_IMRPhenomXAS(
             frequencies,
@@ -579,15 +645,16 @@ def _xas_samples(model, frequencies):
             phase_coeffs,
             amp_coeffs,
             inputs.f_ref,
+            nrtidal,
             chip=inputs.chip,
             final_spin=model.final_spin,
         )
     return samples.to(inputs.complex_dtype) / _XAS_MODE_POLARIZATION_FACTOR
 
 
-def _twist_up(model, frequencies):
+def _twist_up(model, frequencies, active_f_max):
     inputs = model.inputs
-    h_phenom = _xas_samples(model, frequencies)
+    h_phenom = _xas_samples(model, frequencies, active_f_max)
     mf = inputs.total_mass_seconds * frequencies
     omega = _PI * mf
     velocity = torch.pow(omega, 1.0 / 3.0)
@@ -688,7 +755,7 @@ def imrphenomxp_fd_torch(**params):
         * delta_f
     )
     model = _build_model(inputs)
-    plus, cross = _twist_up(model, frequencies)
+    plus, cross = _twist_up(model, frequencies, active_f_max)
     return (
         _series_from_active_samples(
             inputs, plus, npoints, first_bin, stop_bin, delta_f
@@ -748,7 +815,11 @@ def imrphenomxp_fd_sequence_torch(**params):
     cross = torch.zeros_like(plus)
     if bool(torch.any(active)):
         model = _build_model(inputs)
-        plus[active], cross[active] = _twist_up(model, frequencies[active])
+        plus[active], cross[active] = _twist_up(
+            model,
+            frequencies[active],
+            active_f_max,
+        )
     return (
         PyCBCArray(TorchArrayData(plus), copy=False),
         PyCBCArray(TorchArrayData(cross), copy=False),

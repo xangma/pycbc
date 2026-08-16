@@ -476,7 +476,12 @@ def _lalsim_fd_waveform(**p):
             return imrphenomxas_fd_torch(**p)
 
     if (
-        p.get("approximant") == "IMRPhenomXP"
+        p.get("approximant")
+        in (
+            "IMRPhenomXP",
+            "IMRPhenomXP_NRTidalv2",
+            "IMRPhenomXP_NRTidalv3",
+        )
         and using_torch
         and torch_native_enabled("PYCBC_IMRPHENOMXP_NATIVE", default=False)
     ):
@@ -955,7 +960,12 @@ def _lalsim_fd_sequence(**p):
             return imrphenomxas_fd_sequence_torch(**p)
 
     if (
-        p.get("approximant") == "IMRPhenomXP"
+        p.get("approximant")
+        in (
+            "IMRPhenomXP",
+            "IMRPhenomXP_NRTidalv2",
+            "IMRPhenomXP_NRTidalv3",
+        )
         and using_torch
         and torch_native_enabled("PYCBC_IMRPHENOMXP_NATIVE", default=False)
     ):

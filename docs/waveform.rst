@@ -211,9 +211,11 @@ default remains the LAL/CPU path; enable torch ports with environment flags:
   grid and arbitrary-frequency evaluation. Native NNLO version 102 uses
   convention 0 and final-spin mode 0. Native MSA version 223 (including its 300
   alias) uses convention 1 and supports final-spin modes 0, 3, and 4, so the
-  default XP configuration is native. MSA coefficient, reference-frame, and
-  final-spin setup remain scalar CPU work. Other configurations continue to use
-  lalsimulation.
+  default XP configuration is native. ``IMRPhenomXP_NRTidalv2`` and
+  ``IMRPhenomXP_NRTidalv3`` apply their matter phase, amplitude, alignment, and
+  taper corrections to the co-precessing carrier on-device before twist-up.
+  MSA coefficient, reference-frame, final-spin, and matter-scalar setup remain
+  CPU work. Other configurations continue to use lalsimulation.
 - IMRPhenomXHM modes (FD): ``PYCBC_IMRPHENOMXHM_NATIVE``. The default mode set
   and explicit ``(2, +/-2)``, ``(2, +/-1)``, ``(3, +/-2)``, ``(3, +/-3)``, and
   ``(4, +/-4)`` requests through ``get_fd_waveform_modes`` run on the active
