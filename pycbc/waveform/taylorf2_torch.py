@@ -573,7 +573,12 @@ def taylorf2_sequence_native_supported(params):
     return taylorf2_native_supported(params)
 
 
-def _taylorf2_inputs(params, *, sequence=False):
+def _taylorf2_inputs(
+    params,
+    *,
+    sequence=False,
+    infer_tidal_quadrupoles=True,
+):
     """Validate scalars and construct phasing shared by both public APIs."""
     import torch
 
@@ -627,10 +632,10 @@ def _taylorf2_inputs(params, *, sequence=False):
     lambda2 = float(params.get("lambda2") or 0.0)
 
     dquad1 = float(params.get("dquad_mon1") or 0.0)
-    if lambda1 > 0.0 and dquad1 == 0.0:
+    if infer_tidal_quadrupoles and lambda1 > 0.0 and dquad1 == 0.0:
         dquad1 = _eos_q_from_lambda(lambda1) - 1.0
     dquad2 = float(params.get("dquad_mon2") or 0.0)
-    if lambda2 > 0.0 and dquad2 == 0.0:
+    if infer_tidal_quadrupoles and lambda2 > 0.0 and dquad2 == 0.0:
         dquad2 = _eos_q_from_lambda(lambda2) - 1.0
 
     dchi = {key: float(params.get(key) or 0.0) for key in _DCHI_KEYS}

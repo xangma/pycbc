@@ -110,6 +110,24 @@ def _check_lal_pars(p):
         lalsimulation.SimInspiralWaveformParamsInsertTidalLambda1(lal_pars, p['lambda1'])
     if p['lambda2'] is not None:
         lalsimulation.SimInspiralWaveformParamsInsertTidalLambda2(lal_pars, p['lambda2'])
+    if p['nl_tides_a1'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNLTidesA1(
+            lal_pars, p['nl_tides_a1'])
+    if p['nl_tides_n1'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNLTidesN1(
+            lal_pars, p['nl_tides_n1'])
+    if p['nl_tides_f1'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNLTidesF1(
+            lal_pars, p['nl_tides_f1'])
+    if p['nl_tides_a2'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNLTidesA2(
+            lal_pars, p['nl_tides_a2'])
+    if p['nl_tides_n2'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNLTidesN2(
+            lal_pars, p['nl_tides_n2'])
+    if p['nl_tides_f2'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNLTidesF2(
+            lal_pars, p['nl_tides_f2'])
     if p['lambda_octu1'] is not None:
         lalsimulation.SimInspiralWaveformParamsInsertTidalOctupolarLambda1(lal_pars, p['lambda_octu1'])
     if p['lambda_octu2'] is not None:
@@ -284,6 +302,21 @@ def _lalsim_fd_waveform(**p):
 
         if taylorf2_native_supported(p):
             return taylorf2_fd_torch(**p)
+
+    if (
+        p.get("approximant") == "TaylorF2NLTides"
+        and using_torch
+        and torch_native_enabled(
+            "PYCBC_TAYLORF2NLTIDES_NATIVE", default=False
+        )
+    ):
+        from .taylorf2nltides_torch import (
+            taylorf2nltides_fd_torch,
+            taylorf2nltides_native_supported,
+        )
+
+        if taylorf2nltides_native_supported(p):
+            return taylorf2nltides_fd_torch(**p)
 
     if (
         p.get("approximant")
