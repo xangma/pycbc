@@ -81,6 +81,28 @@ def _as_torch_tensor(value, device, dtype=None):
     return torch.as_tensor(data, device=device, dtype=dtype)
 
 
+def _torch_kaiser_window(data, length, beta):
+    """Return SciPy's periodic Kaiser window on ``data``'s device.
+
+    ``torch.kaiser_window`` is not implemented by the MPS backend.  The
+    analytic definition is small and keeps taper construction device-native
+    on every Torch backend supported by PyCBC.
+    """
+    dtype = data.real.dtype
+    if length <= 1:
+        return torch.ones(length, dtype=dtype, device=data.device)
+
+    position = torch.arange(length, dtype=dtype, device=data.device)
+    radius = 2 * position / length - 1
+    argument = float(beta) * torch.sqrt(
+        torch.clamp(1 - radius * radius, min=0)
+    )
+    normalization = torch.i0(
+        torch.as_tensor(float(beta), dtype=dtype, device=data.device)
+    )
+    return torch.i0(argument) / normalization
+
+
 def scheme_cast_series(series):
     """Move a waveform series to the active Torch device when necessary.
 
@@ -98,9 +120,17 @@ def scheme_cast_series(series):
     copy = True
     if hasattr(series._data, "tensor"):
         tensor = series._data.tensor
-        if tensor.device == _scheme.mgr.state.device:
+        target_device = _scheme.mgr.state.torch_device
+        same_device = (
+            tensor.device.type == target_device.type
+            and (
+                target_device.index is None
+                or tensor.device.index == target_device.index
+            )
+        )
+        if same_device:
             return series
-        data = TorchArrayData(tensor.to(_scheme.mgr.state.device))
+        data = TorchArrayData(tensor.to(target_device))
         copy = False
 
     if isinstance(series, TimeSeries):
@@ -538,9 +568,27 @@ def td_taper(out, start, end, beta=8, side='left'):
     out = out.copy()
     width = end - start
     winlen = 2 * int(width / out.delta_t)
-    window = Array(signal.get_window(('kaiser', beta), winlen))
     xmin = int((start - out.start_time) / out.delta_t)
     xmax = xmin + winlen//2
+    if _is_torch_series(out):
+        data = out._data.tensor
+        window = _torch_kaiser_window(data, winlen, beta)
+        if side == 'left':
+            data[xmin:xmax] *= window[:winlen//2]
+            if xmin > 0:
+                data[:xmin].zero_()
+        elif side == 'right':
+            data[xmin:xmax] *= window[winlen//2:]
+            if xmax < len(out):
+                data[xmax:].zero_()
+        else:
+            raise ValueError("unrecognized side argument {}".format(side))
+        return out
+
+    window = Array(
+        signal.get_window(('kaiser', beta), winlen),
+        dtype=real_same_precision_as(out),
+    )
     if side == 'left':
         out[xmin:xmax] *= window[:winlen//2]
         if xmin > 0:
@@ -582,9 +630,25 @@ def fd_taper(out, start, end, beta=8, side='left'):
     out = out.copy()
     width = end - start
     winlen = 2 * int(width / out.delta_f)
-    window = Array(signal.get_window(('kaiser', beta), winlen))
     kmin = int(start / out.delta_f)
     kmax = kmin + winlen//2
+    if _is_torch_series(out):
+        data = out._data.tensor
+        window = _torch_kaiser_window(data, winlen, beta)
+        if side == 'left':
+            data[kmin:kmax] *= window[:winlen//2]
+            data[:kmin].zero_()
+        elif side == 'right':
+            data[kmin:kmax] *= window[winlen//2:]
+            data[kmax:].zero_()
+        else:
+            raise ValueError("unrecognized side argument {}".format(side))
+        return out
+
+    window = Array(
+        signal.get_window(('kaiser', beta), winlen),
+        dtype=real_same_precision_as(out),
+    )
     if side == 'left':
         out[kmin:kmax] *= window[:winlen//2]
         out[:kmin] *= 0.

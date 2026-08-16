@@ -103,8 +103,12 @@ default remains the LAL/CPU path; enable torch ports with environment flags:
   phase and both nonlinear-tide corrections run on the active device; LAL
   does not expose this model through its arbitrary-frequency sequence API.
   ``TaylorF2NL`` also applies its nonlinear-tide phase correction on the active
-  Torch device. Precession, higher-PN amplitude corrections, and dynamic-tide
-  extras fall back to lalsimulation.
+  Torch device. ``PreTaylorF2`` shares the ``PYCBC_TAYLORF2_NATIVE`` switch;
+  its carrier, cyclic shift, frequency masking, and optional final Kaiser
+  taper remain on the active device. The shared ``fd_taper`` and ``td_taper``
+  helpers likewise construct their Kaiser windows on-device for Torch-backed
+  series. Precession, higher-PN amplitude corrections, and dynamic-tide extras
+  fall back to lalsimulation.
 - TaylorF2 reduced spin: ``PYCBC_TAYLORF2REDSPIN_NATIVE`` and
   ``PYCBC_TAYLORF2REDSPINTIDAL_NATIVE``. Both analytic models evaluate their
   phase and amplitude corrections through 3.5PN, frequency masking, and
