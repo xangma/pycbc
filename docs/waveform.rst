@@ -170,10 +170,15 @@ environment flags:
   sequence interface, ``long_asc_nodes`` is ignored and ``f_ref=0`` uses the
   first supplied frequency. The time-domain ``SEOBNRv4`` model, transverse
   spins, and unsupported tidal extensions continue to use lalsimulation.
-- SEOBNRv4HM_ROM (FD higher modes): ``PYCBC_SEOBNRV4HM_NATIVE`` (torch-native ROM
-  interpolation, harmonic evaluation, and waveform assembly using
-  ``SEOBNRv4HMROM_v1.0.hdf5``); requires the ROM file in ``$LAL_DATA_PATH`` or
-  ``pycbc/waveform``.
+- SEOBNRv4HM_ROM (FD higher modes): ``PYCBC_SEOBNRV4HM_NATIVE``. ROM
+  interpolation, harmonic evaluation, and waveform assembly run on the active
+  Torch device using ``SEOBNRv4HMROM_v1.0.hdf5``; the file must be in
+  ``$LAL_DATA_PATH`` or ``pycbc/waveform``. Regular-grid and arbitrary-frequency
+  ``get_fd_waveform_sequence`` evaluation are native where every requested mode
+  is above its low-frequency TaylorF2/ROM hybridization window. Requests that
+  enter that unported hybrid region fall back to lalsimulation. Mode subsets and
+  unordered sequence frequencies are supported. As in LAL, this model ignores
+  ``f_ref``; the sequence interface also ignores ``long_asc_nodes``.
 
 These ports provide Torch-device-compatible PyCBC series, but several waveform
 implementations still reconstruct their models with NumPy/SciPy before

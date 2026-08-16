@@ -383,9 +383,13 @@ def _lalsim_fd_waveform(**p):
         and using_torch
         and torch_native_enabled("PYCBC_SEOBNRV4HM_NATIVE", default=False)
     ):
-        from .seobnrv4hm_torch import seobnrv4hm_fd_torch
+        from .seobnrv4hm_torch import (
+            seobnrv4hm_fd_torch,
+            seobnrv4hm_native_supported,
+        )
 
-        return seobnrv4hm_fd_torch(**p)
+        if seobnrv4hm_native_supported(p):
+            return seobnrv4hm_fd_torch(**p)
 
     lal_pars = _check_lal_pars(p)
     hp1, hc1 = lalsimulation.SimInspiralChooseFDWaveform(
@@ -717,6 +721,19 @@ def _lalsim_fd_sequence(**p):
 
         if seobnrv4_rom_sequence_native_supported(p):
             return seobnrv4_fd_sequence_torch(**p)
+
+    if (
+        p.get("approximant") == "SEOBNRv4HM_ROM"
+        and using_torch
+        and torch_native_enabled("PYCBC_SEOBNRV4HM_NATIVE", default=False)
+    ):
+        from .seobnrv4hm_torch import (
+            seobnrv4hm_fd_sequence_torch,
+            seobnrv4hm_sequence_native_supported,
+        )
+
+        if seobnrv4hm_sequence_native_supported(p):
+            return seobnrv4hm_fd_sequence_torch(**p)
 
     lal_pars = _check_lal_pars(p)
     sample_points = p['sample_points']

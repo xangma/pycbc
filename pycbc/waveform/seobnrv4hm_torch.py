@@ -53,7 +53,9 @@ import numpy as np
 import torch
 
 import lal
+import pycbc.scheme as _scheme
 from pycbc import pnutils
+from pycbc.types import Array as PyCBCArray
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform._seobnrv4_qnm import seobnrv4_qnm_omega as _qnm_omega
@@ -71,6 +73,165 @@ _PATCH_NAMES = ("lowf", "hqls", "hqhs", "lqls", "lqhs")
 _CONST_PHASESHIFT = [0.0, -math.pi / 2.0, math.pi / 2.0, math.pi, math.pi / 2.0]
 _CONST_FMAX = [1.7, 1.55, 1.7, 1.35, 1.25]
 _MF_LOW_22 = 0.0004925491025543576
+_PN_HYBRID_END_FACTOR = 2.0
+
+_DEFAULT_ONLY_ORDER_KEYS = (
+    "phase_order",
+    "spin_order",
+    "tidal_order",
+    "amplitude_order",
+    "eccentricity_order",
+)
+_TRANSVERSE_SPIN_KEYS = ("spin1x", "spin1y", "spin2x", "spin2y")
+_TIDAL_KEYS = (
+    "lambda1",
+    "lambda2",
+    "dquad_mon1",
+    "dquad_mon2",
+    "lambda_octu1",
+    "lambda_octu2",
+    "quadfmode1",
+    "quadfmode2",
+    "octufmode1",
+    "octufmode2",
+)
+_NON_GR_KEYS = (
+    "dchi0",
+    "dchi1",
+    "dchi2",
+    "dchi3",
+    "dchi4",
+    "dchi5",
+    "dchi5l",
+    "dchi6",
+    "dchi6l",
+    "dchi7",
+    "dalpha1",
+    "dalpha2",
+    "dalpha3",
+    "dalpha4",
+    "dalpha5",
+    "dbeta1",
+    "dbeta2",
+    "dbeta3",
+)
+
+
+def _is_nonzero(value) -> bool:
+    if value is None:
+        return False
+    try:
+        return float(value) != 0.0
+    except (TypeError, ValueError, OverflowError):
+        return True
+
+
+def _is_default_order(value) -> bool:
+    try:
+        return float(value) == -1.0 and int(value) == -1
+    except (TypeError, ValueError, OverflowError):
+        return False
+
+
+def _native_minimum_mf(active_mode_indices) -> float:
+    """Lowest frequency where every requested mode is purely ROM."""
+
+    return _PN_HYBRID_END_FACTOR * max(
+        _MF_LOW_22 * _LM_MODES[index][1] / 2.0
+        for index in active_mode_indices
+    )
+
+
+def _native_features_supported(params) -> bool:
+    """Return whether non-sampling parameters are covered by this port."""
+
+    if params.get("approximant", "SEOBNRv4HM_ROM") != "SEOBNRv4HM_ROM":
+        return False
+    try:
+        active_mode_indices = _active_mode_indices(params.get("mode_array"))
+    except (TypeError, ValueError, OverflowError):
+        return False
+    if not active_mode_indices:
+        return False
+    if any(
+        not _is_default_order(params.get(key, -1))
+        for key in _DEFAULT_ONLY_ORDER_KEYS
+    ):
+        return False
+    if any(
+        _is_nonzero(params.get(key, 0.0))
+        for key in (
+            _TRANSVERSE_SPIN_KEYS
+            + _TIDAL_KEYS
+            + _NON_GR_KEYS
+            + (
+                "eccentricity",
+                "mean_per_ano",
+                "frame_axis",
+                "modes_choice",
+                "side_bands",
+            )
+        )
+    ):
+        return False
+    return not params.get("numrel_data", "")
+
+
+def seobnrv4hm_native_supported(params) -> bool:
+    """Return whether regular-grid generation can stay in the native ROM."""
+
+    if not _native_features_supported(params):
+        return False
+    if not {"mass1", "mass2", "f_lower"}.issubset(params):
+        return True
+    try:
+        total_mass_seconds = (
+            float(params["mass1"]) + float(params["mass2"])
+        ) * lal.MTSUN_SI
+        f_lower = float(params["f_lower"])
+        active_mode_indices = _active_mode_indices(params.get("mode_array"))
+    except (TypeError, ValueError, OverflowError):
+        return True
+    if not math.isfinite(total_mass_seconds) or not math.isfinite(f_lower):
+        return True
+    # LAL blends TaylorF2 through this boundary. That hybrid is not yet ported.
+    return (
+        f_lower * total_mass_seconds
+        > _native_minimum_mf(active_mode_indices)
+    )
+
+
+def seobnrv4hm_sequence_native_supported(params) -> bool:
+    """Return whether arbitrary frequencies remain inside the native ROM."""
+
+    if not _native_features_supported(params):
+        return False
+    if not {"mass1", "mass2", "sample_points"}.issubset(params):
+        return True
+    sample_points = params["sample_points"]
+    values = getattr(sample_points, "_data", sample_points)
+    if isinstance(values, TorchArrayData):
+        values = values.tensor
+    try:
+        frequencies = torch.as_tensor(values)
+        total_mass_seconds = (
+            float(params["mass1"]) + float(params["mass2"])
+        ) * lal.MTSUN_SI
+        active_mode_indices = _active_mode_indices(params.get("mode_array"))
+    except (TypeError, ValueError, OverflowError, RuntimeError):
+        return False
+    if frequencies.ndim != 1 or frequencies.numel() == 0:
+        return True
+    if not bool(torch.all(torch.isfinite(frequencies))):
+        return True
+    if bool(torch.any(frequencies <= 0.0)):
+        return True
+    return bool(
+        torch.all(
+            frequencies * total_mass_seconds
+            > _native_minimum_mf(active_mode_indices)
+        )
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -539,128 +700,198 @@ def _active_mode_indices(mode_array) -> Tuple[int, ...]:
     return tuple(index for index, mode in enumerate(_LM_MODES) if mode in requested)
 
 
-def seobnrv4hm_fd_torch(**p):
-    m1 = float(p["mass1"])
-    m2 = float(p["mass2"])
-    spin1z = float(p.get("spin1z", 0.0))
-    spin2z = float(p.get("spin2z", 0.0))
-    delta_f = float(p["delta_f"])
-    f_lower = float(p["f_lower"])
-    f_final = float(p.get("f_final", 0.0))
-    distance_mpc = float(p["distance"])
-    inclination = float(p.get("inclination", 0.0))
-    coa_phase = float(p.get("coa_phase", 0.0))
-    active_mode_indices = _active_mode_indices(p.get("mode_array"))
+@dataclass
+class _SEOBNRv4HMInputs:
+    """Validated parameters and interpolants shared by both sampling APIs."""
 
-    scalar_parameters = {
-        "mass1": m1,
-        "mass2": m2,
-        "spin1z": spin1z,
-        "spin2z": spin2z,
-        "delta_f": delta_f,
-        "f_lower": f_lower,
-        "f_final": f_final,
-        "distance": distance_mpc,
-        "inclination": inclination,
-        "coa_phase": coa_phase,
-    }
-    for name, value in scalar_parameters.items():
-        if not math.isfinite(value):
-            raise ValueError(f"{name} must be finite")
-    if m1 <= 0.0 or m2 <= 0.0:
-        raise ValueError("component masses must be positive")
-    if abs(spin1z) > 1.0 or abs(spin2z) > 1.0:
-        raise ValueError("dimensionless component spins must lie in [-1, 1]")
-    if delta_f <= 0.0:
-        raise ValueError("delta_f must be positive")
-    if distance_mpc <= 0.0:
-        raise ValueError("distance must be positive")
-    if f_final < 0.0:
-        raise ValueError("f_final must be non-negative")
-    distance = pnutils.megaparsecs_to_meters(distance_mpc)
+    mass1: float
+    mass2: float
+    spin1z: float
+    spin2z: float
+    distance: float
+    inclination: float
+    coa_phase: float
+    long_asc_nodes: float
+    active_mode_indices: Tuple[int, ...]
+    sign_odd: float
+    q: float
+    total_mass: float
+    total_mass_seconds: float
+    device: torch.device
+    real_dtype: torch.dtype
+    complex_dtype: torch.dtype
+    qnm_omega: Dict[Tuple[int, int], float]
+    mf_rom_max: float
+    roms: Dict[str, _ModeROM]
+    f_carrier: torch.Tensor
+    phase_carrier: torch.Tensor
 
-    import pycbc.scheme as _scheme  # pylint: disable=import-outside-toplevel
 
-    active_scheme = _scheme.mgr.state
-    target_dtype = getattr(active_scheme, "dtype", None)
-    device = getattr(active_scheme, "device", None)
-    if target_dtype in (
+def _seobnrv4hm_dtypes(state):
+    """Resolve the model dtypes while respecting MPS limitations."""
+
+    device = state.torch_device
+    configured = getattr(state, "dtype", None)
+    if device.type == "mps":
+        real_dtype = torch.float32
+    elif configured in (
         torch.float32,
         torch.complex64,
         np.float32,
         np.complex64,
     ):
-        target_dtype = torch.float32
-    elif target_dtype in (
+        real_dtype = torch.float32
+    elif configured in (
         None,
         torch.float64,
         torch.complex128,
         np.float64,
         np.complex128,
     ):
-        target_dtype = torch.float64
+        real_dtype = torch.float64
     else:
-        raise TypeError(f"unsupported SEOBNRv4HM dtype {target_dtype}")
-    device = torch.device("cpu" if device is None else device)
+        raise TypeError(f"unsupported SEOBNRv4HM dtype {configured}")
+    complex_dtype = (
+        torch.complex64 if real_dtype == torch.float32 else torch.complex128
+    )
+    return device, real_dtype, complex_dtype
+
+
+def _seobnrv4hm_inputs(p, *, sequence=False):
+    """Validate scalar inputs and reconstruct the selected HM ROM modes."""
+
+    if not _native_features_supported(p):
+        raise ValueError(
+            "SEOBNRv4HM_ROM parameters are not supported by the native "
+            "Torch path"
+        )
+    state = _scheme.mgr.state
+    if not isinstance(state, _scheme.TorchScheme):
+        raise RuntimeError("native Torch SEOBNRv4HM_ROM requires TorchScheme")
+
+    mass1 = float(p["mass1"])
+    mass2 = float(p["mass2"])
+    spin1z = float(p.get("spin1z", 0.0))
+    spin2z = float(p.get("spin2z", 0.0))
+    distance_mpc = float(p["distance"])
+    inclination = float(p.get("inclination", 0.0))
+    coa_phase = float(p.get("coa_phase", 0.0))
+    f_ref = float(p.get("f_ref", 0.0))
+    # SimInspiralChooseFDWaveformSequence has no ascending-node argument.
+    long_asc_nodes = (
+        0.0 if sequence else float(p.get("long_asc_nodes", 0.0))
+    )
+    active_mode_indices = _active_mode_indices(p.get("mode_array"))
+
+    scalar_parameters = {
+        "mass1": mass1,
+        "mass2": mass2,
+        "spin1z": spin1z,
+        "spin2z": spin2z,
+        "distance": distance_mpc,
+        "inclination": inclination,
+        "coa_phase": coa_phase,
+        "f_ref": f_ref,
+        "long_asc_nodes": long_asc_nodes,
+    }
+    for name, value in scalar_parameters.items():
+        if not math.isfinite(value):
+            raise ValueError(f"{name} must be finite")
+    if mass1 <= 0.0 or mass2 <= 0.0:
+        raise ValueError("component masses must be positive")
+    if abs(spin1z) > 1.0 or abs(spin2z) > 1.0:
+        raise ValueError("dimensionless component spins must lie in [-1, 1]")
+    if f_ref < 0.0:
+        raise ValueError("f_ref must be non-negative")
+    if distance_mpc <= 0.0:
+        raise ValueError("distance must be positive")
 
     sign_odd = 1.0
-    if m1 < m2:
-        m1, m2 = m2, m1
+    if mass1 < mass2:
+        mass1, mass2 = mass2, mass1
         spin1z, spin2z = spin2z, spin1z
         sign_odd = -1.0
-
-    q = m1 / m2
+    q = mass1 / mass2
     if q > 50.0:
         raise ValueError("SEOBNRv4HM_ROM requires a mass ratio no greater than 50")
-    total_mass = m1 + m2
+
+    total_mass = mass1 + mass2
     total_mass_seconds = total_mass * lal.MTSUN_SI
-    f_lower_geom = f_lower * total_mass_seconds
-    if f_lower_geom < _MF_LOW_22:
-        raise ValueError(
-            f"starting frequency M*f_lower={f_lower_geom:g} is below the "
-            f"ROM minimum {_MF_LOW_22:g}"
-        )
+    device, real_dtype, complex_dtype = _seobnrv4hm_dtypes(state)
+    qnm_omega = {
+        mode: _qnm_omega(mass1, mass2, spin1z, spin2z, *mode)
+        for mode in _LM_MODES
+    }
+    mf_rom_max = (
+        _CONST_FMAX[-1]
+        * qnm_omega[_LM_MODES[-1]]
+        / (2.0 * math.pi)
+    )
+    roms = _load_rom(real_dtype, device, active_mode_indices)
+    f_carrier, phase_carrier = _hybridize_phase(
+        mass1, mass2, spin1z, spin2z, roms
+    )
+    return _SEOBNRv4HMInputs(
+        mass1=mass1,
+        mass2=mass2,
+        spin1z=spin1z,
+        spin2z=spin2z,
+        distance=pnutils.megaparsecs_to_meters(distance_mpc),
+        inclination=inclination,
+        coa_phase=coa_phase,
+        long_asc_nodes=long_asc_nodes,
+        active_mode_indices=active_mode_indices,
+        sign_odd=sign_odd,
+        q=q,
+        total_mass=total_mass,
+        total_mass_seconds=total_mass_seconds,
+        device=device,
+        real_dtype=real_dtype,
+        complex_dtype=complex_dtype,
+        qnm_omega=qnm_omega,
+        mf_rom_max=mf_rom_max,
+        roms=roms,
+        f_carrier=f_carrier,
+        phase_carrier=phase_carrier,
+    )
 
-    qnm_omega = {mode: _qnm_omega(m1, m2, spin1z, spin2z, *mode) for mode in _LM_MODES}
-    mf_rom_max = _CONST_FMAX[-1] * qnm_omega[_LM_MODES[-1]] / (2.0 * math.pi)
-    fmax_target = f_final if f_final > 0.0 else mf_rom_max / total_mass_seconds
-    fmax_target_geom = fmax_target * total_mass_seconds
-    if fmax_target_geom < _MF_LOW_22:
-        raise ValueError("f_final is below the ROM minimum frequency")
-    if fmax_target <= f_lower:
-        raise ValueError("f_final must be greater than f_lower")
 
-    roms = _load_rom(target_dtype, device, active_mode_indices)
-    f_carrier, phase_carrier = _hybridize_phase(m1, m2, spin1z, spin2z, roms)
-    rom22 = roms["22"]
-    device = rom22.lowf.qvec.device
-    dtype = rom22.lowf.qvec.dtype
-    complex_dtype = torch.complex128 if dtype == torch.float64 else torch.complex64
-    npts = _next_power_of_two(int(fmax_target / delta_f)) + 1
-    hp = torch.zeros(npts, device=device, dtype=complex_dtype)
+def _seobnrv4hm_polarizations(inputs, eval_mf):
+    """Evaluate selected pure-ROM modes at arbitrary geometric frequencies."""
+
+    hp = torch.zeros(
+        eval_mf.shape,
+        device=inputs.device,
+        dtype=inputs.complex_dtype,
+    )
     hc = torch.zeros_like(hp)
+    b_car, c_car, d_car = _natural_cubic_coeff(
+        inputs.f_carrier, inputs.phase_carrier
+    )
+    carrier_max_frequency = inputs.f_carrier[-1]
+    carrier_max_phase = inputs.phase_carrier[-1]
+    carrier_end_derivative = _spline_derivative_at_end(
+        inputs.f_carrier, b_car, c_car, d_car
+    )
+    observer_phi = math.pi / 2.0 - inputs.coa_phase
 
-    i_start = math.ceil(f_lower / delta_f)
-    i_stop = min(math.ceil(fmax_target / delta_f), npts)
-    bin_indices = torch.arange(i_start, i_stop, device=device)
-    eval_mf = bin_indices.to(dtype=dtype) * (delta_f * total_mass_seconds)
-
-    b_car, c_car, d_car = _natural_cubic_coeff(f_carrier, phase_carrier)
-    carrier_max_frequency = f_carrier[-1]
-    carrier_max_phase = phase_carrier[-1]
-    carrier_end_derivative = _spline_derivative_at_end(f_carrier, b_car, c_car, d_car)
-    observer_phi = math.pi / 2.0 - coa_phase
-
-    for idx in active_mode_indices:
+    for idx in inputs.active_mode_indices:
         ell, emm = _LM_MODES[idx]
-        omega_qnm = qnm_omega[(ell, emm)]
-        f_hyb, cmode = _hybridize_cmode(idx, q, spin1z, spin2z, omega_qnm, roms)
+        omega_qnm = inputs.qnm_omega[(ell, emm)]
+        f_hyb, cmode = _hybridize_cmode(
+            idx,
+            inputs.q,
+            inputs.spin1z,
+            inputs.spin2z,
+            omega_qnm,
+            inputs.roms,
+        )
 
         carrier_frequency = f_hyb / emm
         carrier_phase = _spline_eval(
             carrier_frequency,
-            f_carrier,
-            phase_carrier,
+            inputs.f_carrier,
+            inputs.phase_carrier,
             b_car,
             c_car,
             d_car,
@@ -673,78 +904,201 @@ def seobnrv4hm_fd_torch(**p):
             carrier_phase,
             carrier_extrapolation,
         )
-        const_phase_shift = _CONST_PHASESHIFT[idx] + (1.0 - emm) * math.pi / 4.0
+        const_phase_shift = (
+            _CONST_PHASESHIFT[idx] + (1.0 - emm) * math.pi / 4.0
+        )
         phase_approx = emm * carrier_phase + const_phase_shift
 
         phase_cmode = _unwrap_phase(torch.angle(cmode))
-        amp = torch.abs(cmode)
-        recon_phase = phase_cmode - phase_approx
-
-        b_amp, c_amp, d_amp = _natural_cubic_coeff(f_hyb, amp)
-        b_ph, c_ph, d_ph = _natural_cubic_coeff(f_hyb, recon_phase)
+        amplitude = torch.abs(cmode)
+        reconstructed_phase = phase_cmode - phase_approx
+        amp_coeff = _natural_cubic_coeff(f_hyb, amplitude)
+        phase_coeff = _natural_cubic_coeff(f_hyb, reconstructed_phase)
 
         mf_max = _CONST_FMAX[idx] * omega_qnm / (2.0 * math.pi)
-        valid = (eval_mf <= mf_max) & (eval_mf > _MF_LOW_22 * emm / 2.0)
-        if not torch.any(valid):
+        active = (eval_mf <= mf_max) & (
+            eval_mf > _MF_LOW_22 * emm / 2.0
+        )
+        if not bool(torch.any(active)):
             continue
-        mode_bins = bin_indices[valid]
-        mode_frequencies = eval_mf[valid]
-        mode_amplitude = _spline_eval(mode_frequencies, f_hyb, amp, b_amp, c_amp, d_amp)
+        mode_frequencies = eval_mf[active]
+        mode_amplitude = _spline_eval(
+            mode_frequencies, f_hyb, amplitude, *amp_coeff
+        )
         mode_phase = _spline_eval(
-            mode_frequencies, f_hyb, recon_phase, b_ph, c_ph, d_ph
+            mode_frequencies,
+            f_hyb,
+            reconstructed_phase,
+            *phase_coeff,
         )
-        hlm = torch.polar(mode_amplitude, mode_phase).to(complex_dtype)
-        time_shift = torch.exp((-2j * math.pi * 1000.0) * mode_frequencies).to(
-            complex_dtype
+        hlm = torch.polar(mode_amplitude, mode_phase).to(
+            inputs.complex_dtype
         )
+        time_shift = torch.exp(
+            (-2j * math.pi * 1000.0) * mode_frequencies
+        ).to(inputs.complex_dtype)
         # Store the directly modeled (l,-m) positive-frequency mode in LAL's
         # convention, including the mass-swap sign for odd-m modes.
         hlm = ((-1) ** ell) * torch.conj(hlm * time_shift)
         if emm % 2:
-            hlm = hlm * sign_odd
+            hlm = hlm * inputs.sign_odd
 
         y_negative = spin_weighted_spherical_harmonic(
-            inclination,
+            inputs.inclination,
             observer_phi,
             -2,
             ell,
             -emm,
-            dtype=dtype,
-            device=device,
+            dtype=inputs.real_dtype,
+            device=inputs.device,
         )
         y_positive_conjugate = spin_weighted_spherical_harmonic(
-            inclination,
+            inputs.inclination,
             observer_phi,
             -2,
             ell,
             emm,
-            dtype=dtype,
-            device=device,
+            dtype=inputs.real_dtype,
+            device=inputs.device,
         ).conj()
         parity = (-1) ** ell
-        factor_plus = 0.5 * (y_negative + parity * y_positive_conjugate)
-        factor_cross = 0.5j * (y_negative - parity * y_positive_conjugate)
-        hp[mode_bins] += factor_plus * hlm
-        hc[mode_bins] += factor_cross * hlm
+        factor_plus = 0.5 * (
+            y_negative + parity * y_positive_conjugate
+        )
+        factor_cross = 0.5j * (
+            y_negative - parity * y_positive_conjugate
+        )
+        hp[active] += factor_plus * hlm
+        hc[active] += factor_cross * hlm
 
-    amp0 = total_mass * total_mass_seconds * lal.MRSUN_SI / distance
-    hp *= amp0
-    hc *= amp0
-    target_complex = (
-        torch.complex64 if target_dtype == torch.float32 else torch.complex128
+    amplitude_scale = (
+        inputs.total_mass
+        * inputs.total_mass_seconds
+        * lal.MRSUN_SI
+        / inputs.distance
     )
-    hp = hp.to(dtype=target_complex)
-    hc = hc.to(dtype=target_complex)
+    hp *= amplitude_scale
+    hc *= amplitude_scale
+    if inputs.long_asc_nodes:
+        cosine = math.cos(2.0 * inputs.long_asc_nodes)
+        sine = math.sin(2.0 * inputs.long_asc_nodes)
+        plus = cosine * hp + sine * hc
+        cross = cosine * hc - sine * hp
+        hp, hc = plus, cross
+    return hp, hc
+
+
+def seobnrv4hm_fd_torch(**p):
+    """Generate regular-grid ``SEOBNRv4HM_ROM`` polarizations with Torch."""
+
+    if not seobnrv4hm_native_supported(p):
+        raise ValueError(
+            "SEOBNRv4HM_ROM parameters require an unsupported feature or "
+            "the unported low-frequency TaylorF2 hybrid"
+        )
+    inputs = _seobnrv4hm_inputs(p)
+    delta_f = float(p["delta_f"])
+    f_lower = float(p["f_lower"])
+    f_final = float(p.get("f_final", 0.0))
+    for name, value in (
+        ("delta_f", delta_f),
+        ("f_lower", f_lower),
+        ("f_final", f_final),
+    ):
+        if not math.isfinite(value):
+            raise ValueError(f"{name} must be finite")
+    if delta_f <= 0.0 or f_lower <= 0.0:
+        raise ValueError("delta_f and f_lower must be positive")
+    if f_final < 0.0:
+        raise ValueError("f_final must be non-negative")
+
+    default_final = inputs.mf_rom_max / inputs.total_mass_seconds
+    final_frequency = f_final if f_final > 0.0 else default_final
+    if final_frequency <= f_lower:
+        raise ValueError("f_final (or the ROM cutoff) must exceed f_lower")
+
+    npts = _next_power_of_two(int(final_frequency / delta_f)) + 1
+    hp = torch.zeros(
+        npts, device=inputs.device, dtype=inputs.complex_dtype
+    )
+    hc = torch.zeros_like(hp)
+    first_bin = math.ceil(f_lower / delta_f)
+    stop_bin = min(math.ceil(final_frequency / delta_f), npts)
+    bin_indices = torch.arange(first_bin, stop_bin, device=inputs.device)
+    eval_mf = (
+        bin_indices.to(dtype=inputs.real_dtype)
+        * delta_f
+        * inputs.total_mass_seconds
+    )
+    plus, cross = _seobnrv4hm_polarizations(inputs, eval_mf)
+    hp[first_bin:stop_bin] = plus
+    hc[first_bin:stop_bin] = cross
 
     epoch = -1.0 / delta_f
-    hp_fs = FrequencySeries(
-        TorchArrayData(hp), delta_f=delta_f, epoch=epoch, copy=False
+    return (
+        FrequencySeries(
+            TorchArrayData(hp), delta_f=delta_f, epoch=epoch, copy=False
+        ),
+        FrequencySeries(
+            TorchArrayData(hc), delta_f=delta_f, epoch=epoch, copy=False
+        ),
     )
-    hc_fs = FrequencySeries(
-        TorchArrayData(hc), delta_f=delta_f, epoch=epoch, copy=False
+
+
+def _seobnrv4hm_sequence_frequencies(sample_points, inputs):
+    """Return validated arbitrary frequencies on the active Torch device."""
+
+    values = getattr(sample_points, "_data", sample_points)
+    if isinstance(values, TorchArrayData):
+        values = values.tensor
+    frequencies = torch.as_tensor(
+        values,
+        dtype=inputs.real_dtype,
+        device=inputs.device,
+    )
+    if frequencies.ndim != 1 or frequencies.numel() == 0:
+        raise ValueError(
+            "SEOBNRv4HM_ROM sample_points must be a non-empty vector"
+        )
+    if not bool(torch.all(torch.isfinite(frequencies))):
+        raise ValueError("SEOBNRv4HM_ROM sample_points must be finite")
+    if bool(torch.any(frequencies <= 0.0)):
+        raise ValueError("SEOBNRv4HM_ROM sample_points must be positive")
+    minimum_mf = _native_minimum_mf(inputs.active_mode_indices)
+    if bool(
+        torch.any(frequencies * inputs.total_mass_seconds <= minimum_mf)
+    ):
+        raise ValueError(
+            "SEOBNRv4HM_ROM sample_points enter the unported "
+            "low-frequency TaylorF2 hybrid"
+        )
+    return frequencies
+
+
+def seobnrv4hm_fd_sequence_torch(**p):
+    """Evaluate pure-ROM ``SEOBNRv4HM_ROM`` at arbitrary frequencies."""
+
+    if not seobnrv4hm_sequence_native_supported(p):
+        raise ValueError(
+            "SEOBNRv4HM_ROM sequence parameters require an unsupported "
+            "feature or the unported low-frequency TaylorF2 hybrid"
+        )
+    inputs = _seobnrv4hm_inputs(p, sequence=True)
+    frequencies = _seobnrv4hm_sequence_frequencies(
+        p["sample_points"], inputs
+    )
+    plus, cross = _seobnrv4hm_polarizations(
+        inputs, frequencies * inputs.total_mass_seconds
+    )
+    return (
+        PyCBCArray(TorchArrayData(plus), copy=False),
+        PyCBCArray(TorchArrayData(cross), copy=False),
     )
 
-    return hp_fs, hc_fs
 
-
-__all__ = ["seobnrv4hm_fd_torch"]
+__all__ = [
+    "seobnrv4hm_fd_sequence_torch",
+    "seobnrv4hm_fd_torch",
+    "seobnrv4hm_native_supported",
+    "seobnrv4hm_sequence_native_supported",
+]
