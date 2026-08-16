@@ -27,7 +27,7 @@ import torch
 from scipy.interpolate import CubicSpline
 
 from pycbc import pnutils, scheme as _scheme
-from pycbc.types import FrequencySeries
+from pycbc.types import Array as PyCBCArray, FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform._spherical_harmonics_torch import (
     spin_weighted_spherical_harmonic,
@@ -414,7 +414,12 @@ def imrphenompv2_native_supported(params):
     return True
 
 
-def _validated_inputs(params):
+def _validated_inputs(
+    params,
+    *,
+    sequence=False,
+    default_reference_frequency=None,
+):
     if not imrphenompv2_native_supported(params):
         raise ValueError(
             "IMRPhenomPv2 parameters are not supported by the native Torch path"
@@ -428,7 +433,11 @@ def _validated_inputs(params):
     distance = pnutils.megaparsecs_to_meters(float(params["distance"]))
     inclination = _as_float(params.get("inclination"))
     coa_phase = _as_float(params.get("coa_phase"))
-    long_asc_nodes = _as_float(params.get("long_asc_nodes"))
+    # SimInspiralChooseFDWaveformSequence has no ascending-node argument and
+    # ignores the corresponding PyCBC parameter.
+    long_asc_nodes = (
+        0.0 if sequence else _as_float(params.get("long_asc_nodes"))
+    )
     f_ref = _as_float(params.get("f_ref"))
     spin1 = tuple(_as_float(params.get(f"spin1{axis}")) for axis in "xyz")
     spin2 = tuple(_as_float(params.get(f"spin2{axis}")) for axis in "xyz")
@@ -458,7 +467,14 @@ def _validated_inputs(params):
 
     reference_frequency = f_ref
     if reference_frequency == 0.0:
-        reference_frequency = float(params["f_lower"])
+        if default_reference_frequency is None:
+            reference_frequency = float(params["f_lower"])
+        else:
+            reference_frequency = float(default_reference_frequency)
+    if not math.isfinite(reference_frequency) or reference_frequency <= 0.0:
+        raise ValueError(
+            "IMRPhenomPv2 reference frequency must be finite and positive"
+        )
     (
         chi1_l,
         chi2_l,
@@ -811,4 +827,84 @@ def imrphenompv2_fd_torch(**params):
     )
 
 
-__all__ = ["imrphenompv2_fd_torch", "imrphenompv2_native_supported"]
+def imrphenompv2_sequence_native_supported(params):
+    """Return whether the native port covers a sequence parameter set."""
+
+    return imrphenompv2_native_supported(params)
+
+
+def _sequence_frequencies(sample_points):
+    """Validate and move sequence frequencies to the active Torch device."""
+
+    state = _scheme.mgr.state
+    if not isinstance(state, _scheme.TorchScheme):
+        raise RuntimeError("native Torch IMRPhenomPv2 requires TorchScheme")
+    real_dtype = (
+        torch.float32 if state.torch_device.type == "mps" else torch.float64
+    )
+    values = getattr(sample_points, "_data", sample_points)
+    if isinstance(values, TorchArrayData):
+        values = values.tensor
+    frequencies = torch.as_tensor(
+        values,
+        device=state.torch_device,
+        dtype=real_dtype,
+    )
+    if frequencies.ndim != 1 or frequencies.numel() == 0:
+        raise ValueError(
+            "IMRPhenomPv2 sample_points must be a non-empty vector"
+        )
+    if not bool(torch.all(torch.isfinite(frequencies))):
+        raise ValueError("IMRPhenomPv2 sample_points must be finite")
+    if bool(torch.any(frequencies <= 0.0)):
+        raise ValueError("IMRPhenomPv2 sample_points must be positive")
+    if frequencies.numel() > 1 and not bool(
+        torch.all(frequencies[1:] > frequencies[:-1])
+    ):
+        raise ValueError(
+            "IMRPhenomPv2 sample_points must be strictly increasing"
+        )
+    return frequencies
+
+
+def imrphenompv2_fd_sequence_torch(**params):
+    """Evaluate BBH IMRPhenomPv2 at arbitrary frequencies with Torch."""
+
+    if not imrphenompv2_sequence_native_supported(params):
+        raise ValueError(
+            "IMRPhenomPv2 sequence parameters are not supported by the "
+            "native Torch path"
+        )
+    frequencies = _sequence_frequencies(params["sample_points"])
+    inputs = _validated_inputs(
+        params,
+        sequence=True,
+        default_reference_frequency=float(frequencies[0].item()),
+    )
+    f_cut = f_CUT / inputs.total_mass_seconds
+    if float(frequencies[0].item()) >= f_cut:
+        raise ValueError("IMRPhenomPv2 fCut must exceed the first sample point")
+
+    active = frequencies <= f_cut
+    model = _build_model(inputs)
+    active_plus, active_cross = _twist_up(model, frequencies[active])
+    plus = torch.zeros(
+        frequencies.shape,
+        dtype=inputs.complex_dtype,
+        device=inputs.device,
+    )
+    cross = torch.zeros_like(plus)
+    plus[active] = active_plus
+    cross[active] = active_cross
+    return (
+        PyCBCArray(TorchArrayData(plus), copy=False),
+        PyCBCArray(TorchArrayData(cross), copy=False),
+    )
+
+
+__all__ = [
+    "imrphenompv2_fd_sequence_torch",
+    "imrphenompv2_fd_torch",
+    "imrphenompv2_native_supported",
+    "imrphenompv2_sequence_native_supported",
+]
