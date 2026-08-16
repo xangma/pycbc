@@ -17,10 +17,10 @@
 """Torch-native frequency-domain IMRPhenomHM.
 
 This ports the six aligned-spin modes modeled by LALSimIMRPhenomHM.c:
-(2,2), (2,1), (3,3), (3,2), (4,4), and (4,3). Scalar coefficient and
-spherical-harmonic setup remains on the CPU, while frequency mapping, mode
-construction, and polarization assembly run on the active Torch device
-without calling lalsimulation.
+(2,2), (2,1), (3,3), (3,2), (4,4), and (4,3). Scalar model-coefficient setup
+remains on the CPU, while frequency mapping, mode construction,
+spherical-harmonic evaluation, and polarization assembly run on the active
+Torch device without calling lalsimulation.
 
 The native path is opt-in through PYCBC_IMRPHENOMHM_NATIVE=1 or the global
 Torch-native switch. Unsupported waveform modifications retain the
@@ -39,6 +39,9 @@ import torch
 from pycbc import pnutils, scheme as _scheme
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
+from pycbc.waveform._spherical_harmonics_torch import (
+    spin_weighted_spherical_harmonic,
+)
 from pycbc.waveform.imrphenomd_torch import (
     AMP_fJoin_INS,
     PHI_fJoin_INS,
@@ -641,16 +644,24 @@ def imrphenomhm_fd_torch(**p):
         )
         hlm = torch.polar(mode_amplitude, -total_phase).to(complex_dtype)
 
-        y_positive = complex(
-            lal.SpinWeightedSphericalHarmonic(
-                inclination, 0.0, -2, ell, emm
-            )
+        y_positive = spin_weighted_spherical_harmonic(
+            inclination,
+            0.0,
+            -2,
+            ell,
+            emm,
+            dtype=real_dtype,
+            device=device,
         )
-        y_negative_conjugate = complex(
-            lal.SpinWeightedSphericalHarmonic(
-                inclination, 0.0, -2, ell, -emm
-            )
-        ).conjugate()
+        y_negative_conjugate = spin_weighted_spherical_harmonic(
+            inclination,
+            0.0,
+            -2,
+            ell,
+            -emm,
+            dtype=real_dtype,
+            device=device,
+        ).conj()
         parity = (-1) ** ell
         factor_plus = 0.5 * (
             y_positive + parity * y_negative_conjugate

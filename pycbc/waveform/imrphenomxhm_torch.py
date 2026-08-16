@@ -17,10 +17,9 @@ and cross polarizations on the active Torch device.
 import math
 from numbers import Integral
 
-import lal
-
 from pycbc import scheme as _scheme
 
+from ._spherical_harmonics_torch import spin_weighted_spherical_harmonic
 from .imrphenomxas_torch import (
     _XAS_MODE_POLARIZATION_FACTOR,
     _imrphenomxas_core_torch,
@@ -183,24 +182,34 @@ def imrphenomxhm_fd_torch(**params):
     # equatorial symmetry with the same samples.
     selected = set(modes)
     inclination = float(params.get("inclination", 0.0))
+    real_dtype = plus.real.dtype
+    device = plus.device
     for (ell, emm), samples in active_modes.items():
         parity = (-1) ** ell
-        factor_plus = 0.0j
-        factor_cross = 0.0j
+        factor_plus = plus.new_zeros(())
+        factor_cross = plus.new_zeros(())
         if (ell, -emm) in selected:
-            y_negative = complex(
-                lal.SpinWeightedSphericalHarmonic(
-                    inclination, math.pi / 2.0, -2, ell, -emm
-                )
+            y_negative = spin_weighted_spherical_harmonic(
+                inclination,
+                math.pi / 2.0,
+                -2,
+                ell,
+                -emm,
+                dtype=real_dtype,
+                device=device,
             )
             factor_plus += 0.5 * y_negative
             factor_cross += 0.5j * y_negative
         if (ell, emm) in selected:
-            y_positive_conjugate = complex(
-                lal.SpinWeightedSphericalHarmonic(
-                    inclination, math.pi / 2.0, -2, ell, emm
-                )
-            ).conjugate()
+            y_positive_conjugate = spin_weighted_spherical_harmonic(
+                inclination,
+                math.pi / 2.0,
+                -2,
+                ell,
+                emm,
+                dtype=real_dtype,
+                device=device,
+            ).conj()
             factor_plus += 0.5 * parity * y_positive_conjugate
             factor_cross -= 0.5j * parity * y_positive_conjugate
         plus += factor_plus * samples

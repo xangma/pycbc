@@ -128,14 +128,15 @@ environment flags:
   no-mixing kernels. The mixed mode uses analytic phase-boundary derivatives
   instead of LAL's roundoff-sensitive ``1e-7`` finite difference, so measurable
   phase differences can remain near the calibration boundary. Polarization
-  assembly through ``get_fd_waveform`` also runs on-device; spin-weighted
-  spherical-harmonic coefficients are scalar CPU setup. This path performs the
-  full mode evaluation rather than LAL's polarization-interface multibanding,
+  assembly and spin-weighted spherical-harmonic evaluation through
+  ``get_fd_waveform`` also run on-device. This path performs the full mode
+  evaluation rather than LAL's polarization-interface multibanding,
   so sparse mode selections can retain small additional differences.
 - IMRPhenomHM (FD higher modes): ``PYCBC_IMRPHENOMHM_NATIVE``. The six modeled
   positive-m modes, their IMRPhenomD frequency maps, and polarization assembly
-  run on the active Torch device. Scalar coefficient and spin-weighted
-  spherical-harmonic setup remains on CPU. Mode subsets are supported;
+  run on the active Torch device, including spin-weighted spherical-harmonic
+  evaluation. Scalar model-coefficient setup remains on CPU. Mode subsets are
+  supported;
   transverse spins, tides, testing-GR changes, and unmodeled modes fall back to
   lalsimulation.
 - SEOBNRv4_ROM (FD aligned-spin): ``PYCBC_SEOBNRV4_NATIVE``. ROM interpolation,
@@ -145,8 +146,9 @@ environment flags:
   corrections. The time-domain ``SEOBNRv4`` model, transverse spins, and
   unsupported tidal extensions continue to use lalsimulation.
 - SEOBNRv4HM_ROM (FD higher modes): ``PYCBC_SEOBNRV4HM_NATIVE`` (torch-native ROM
-  evaluation using ``SEOBNRv4HMROM_v1.0.hdf5``); requires the ROM file in
-  ``$LAL_DATA_PATH`` or ``pycbc/waveform``.
+  interpolation, harmonic evaluation, and waveform assembly using
+  ``SEOBNRv4HMROM_v1.0.hdf5``); requires the ROM file in ``$LAL_DATA_PATH`` or
+  ``pycbc/waveform``.
 
 These ports provide Torch-device-compatible PyCBC series, but several waveform
 implementations still reconstruct their models with NumPy/SciPy before
@@ -157,6 +159,11 @@ itself, imply an end-to-end differentiable waveform.
 The ``multiband`` wrapper keeps its overlap windows, FFT interpolation, and
 band accumulation on the active Torch device when its base approximant returns
 Torch-backed series.
+
+The analytical time- and frequency-domain ringdown generators keep their
+spherical-harmonic evaluation and waveform assembly on the active Torch device
+for spherical harmonics. Spheroidal harmonics retain their optional CPU
+``pykerr`` implementation.
 
 Set a per-approximant flag to ``1`` to request the torch implementation or ``0``
 to force the lalsimulation implementation. Unsupported options retain the

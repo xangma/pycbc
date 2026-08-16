@@ -1899,8 +1899,18 @@ def test_td_ringdown_torch_matches_cpu_without_host_transfer(
                     "time-domain ringdown evaluated exponentials with NumPy"
                 )
 
+            def _reject_lal_harmonic(*_args, **_kwargs):
+                raise AssertionError(
+                    "time-domain ringdown evaluated harmonics with LAL"
+                )
+
             patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
             patch.setattr(ringdown.numpy, "exp", _reject_numpy_exp)
+            patch.setattr(
+                ringdown.lal,
+                "SpinWeightedSphericalHarmonic",
+                _reject_lal_harmonic,
+            )
             plus, cross = ringdown.get_td_from_freqtau(**parameters)
 
     expected_dtype = torch.float32 if device == "mps" else torch.float64
@@ -1944,8 +1954,18 @@ def test_fd_ringdown_torch_matches_cpu_without_host_transfer(
                     "with NumPy"
                 )
 
+            def _reject_lal_harmonic(*_args, **_kwargs):
+                raise AssertionError(
+                    "frequency-domain ringdown evaluated harmonics with LAL"
+                )
+
             patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
             patch.setattr(ringdown.numpy, "exp", _reject_numpy_exp)
+            patch.setattr(
+                ringdown.lal,
+                "SpinWeightedSphericalHarmonic",
+                _reject_lal_harmonic,
+            )
             plus, cross = ringdown.get_fd_from_freqtau(**parameters)
 
     expected_dtype = (

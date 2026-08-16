@@ -523,6 +523,34 @@ def spher_harms(harmonics='spherical', l=None, m=None, n=0,
     return xlm, xlnm
 
 
+def _spher_harms_for_grid(grid, **kwargs):
+    """Evaluate spherical harmonics beside a Torch waveform grid."""
+
+    torch_device, _ = _torch_device_and_dtype()
+    if (
+        kwargs.get('harmonics', 'spherical') != 'spherical'
+        or torch_device is None
+    ):
+        return spher_harms(**kwargs)
+
+    from pycbc.waveform._spherical_harmonics_torch import (
+        spin_weighted_spherical_harmonic,
+    )
+
+    common = dict(
+        theta=kwargs.get('inclination', 0.),
+        phi=kwargs.get('azimuthal', 0.),
+        spin_weight=-2,
+        ell=kwargs['l'],
+        dtype=grid.dtype,
+        device=grid.device,
+    )
+    return (
+        spin_weighted_spherical_harmonic(emm=kwargs['m'], **common),
+        spin_weighted_spherical_harmonic(emm=-kwargs['m'], **common),
+    )
+
+
 def Kerr_factor(final_mass, distance):
     """Return the factor final_mass/distance (in dimensionless units) for Kerr
     ringdowns
@@ -641,10 +669,6 @@ def td_damped_sinusoid(f_0, tau, amp, phi, times,
     hcross : numpy.ndarray or torch.Tensor
         The cross polarization.
     """
-    # evaluate the harmonics
-    xlm, xlnm = spher_harms(harmonics=harmonics, l=l, m=m, n=n,
-                            inclination=inclination, azimuthal=azimuthal,
-                            spin=final_spin, pol=pol, polnm=polnm)
     torch_times = _torch_vector(times)
     if torch_times is not None:
         import torch
@@ -653,6 +677,12 @@ def td_damped_sinusoid(f_0, tau, amp, phi, times,
         exponential = torch.exp
     else:
         exponential = numpy.exp
+
+    # evaluate the harmonics on the same device as the waveform grid
+    xlm, xlnm = _spher_harms_for_grid(
+        times, harmonics=harmonics, l=l, m=m, n=n,
+        inclination=inclination, azimuthal=azimuthal,
+        spin=final_spin, pol=pol, polnm=polnm)
 
     # generate the +/-m modes
     # we measure things as deviations from circular polarization, which occurs
@@ -765,9 +795,10 @@ def fd_damped_sinusoid(f_0, tau, amp, phi, freqs, t_0=0.,
         inclination = 0.
     if azimuthal is None:
         azimuthal = 0.
-    xlm, xlnm = spher_harms(harmonics=harmonics, l=l, m=m, n=n,
-                            inclination=inclination, azimuthal=azimuthal,
-                            spin=final_spin, pol=pol, polnm=polnm)
+    xlm, xlnm = _spher_harms_for_grid(
+        freqs, harmonics=harmonics, l=l, m=m, n=n,
+        inclination=inclination, azimuthal=azimuthal,
+        spin=final_spin, pol=pol, polnm=polnm)
     # we'll assume circular polarization
     xp = xlm + (-1)**l * xlnm
     xc = xlm - (-1)**l * xlnm

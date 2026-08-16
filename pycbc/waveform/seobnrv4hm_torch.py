@@ -18,9 +18,10 @@
 
 This module reconstructs the higher-mode ROM directly from the public ROM
 data file ``SEOBNRv4HMROM_v1.0.hdf5`` with PyTorch, without calling
-``lalsimulation``. HDF5 loading and scalar setup remain CPU-side; ROM
-interpolation, hybridization, and waveform assembly run on the active Torch
-device. It mirrors the structure of ``LALSimIMRSEOBNRv4HMROM.c``:
+``lalsimulation``. HDF5 loading and scalar model setup remain CPU-side; ROM
+interpolation, hybridization, spherical-harmonic evaluation, and waveform
+assembly run on the active Torch device. It mirrors the structure of
+``LALSimIMRSEOBNRv4HMROM.c``:
 
 - tensor-product cubic B-splines over (q, chi1, chi2) to interpolate the
   projection coefficients for each ROM patch (low-f plus four high-f patches);
@@ -56,6 +57,9 @@ from pycbc import pnutils
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform._seobnrv4_qnm import seobnrv4_qnm_omega as _qnm_omega
+from pycbc.waveform._spherical_harmonics_torch import (
+    spin_weighted_spherical_harmonic,
+)
 
 _ROM_FILENAME = "SEOBNRv4HMROM_v1.0.hdf5"
 _ROM_FILENAMES = (_ROM_FILENAME, "SEOBNRv4HMROM.hdf5")
@@ -699,12 +703,24 @@ def seobnrv4hm_fd_torch(**p):
         if emm % 2:
             hlm = hlm * sign_odd
 
-        y_negative = complex(
-            lal.SpinWeightedSphericalHarmonic(inclination, observer_phi, -2, ell, -emm)
+        y_negative = spin_weighted_spherical_harmonic(
+            inclination,
+            observer_phi,
+            -2,
+            ell,
+            -emm,
+            dtype=dtype,
+            device=device,
         )
-        y_positive_conjugate = complex(
-            lal.SpinWeightedSphericalHarmonic(inclination, observer_phi, -2, ell, emm)
-        ).conjugate()
+        y_positive_conjugate = spin_weighted_spherical_harmonic(
+            inclination,
+            observer_phi,
+            -2,
+            ell,
+            emm,
+            dtype=dtype,
+            device=device,
+        ).conj()
         parity = (-1) ** ell
         factor_plus = 0.5 * (y_negative + parity * y_positive_conjugate)
         factor_cross = 0.5j * (y_negative - parity * y_positive_conjugate)
