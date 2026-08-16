@@ -89,9 +89,13 @@ default remains the LAL/CPU path; enable torch ports with environment flags:
 - Global: ``PYCBC_TORCH_NATIVE_PORTS=1`` (used when a per-approximant flag is unset).
 - SPA/TaylorF2: ``PYCBC_SPATPLT_NATIVE``, ``PYCBC_TAYLORF2_NATIVE``,
   ``PYCBC_TAYLORF2ECC_NATIVE``, and ``PYCBC_TAYLORF2NLTIDES_NATIVE``. The
-  public TaylorF2 port covers aligned spins, Newtonian amplitude, all supported
-  phase/spin/tidal orders, testing-GR ``dchi`` terms, tidal quadrupoles, and
-  polarization rotation. Regular-grid and arbitrary-frequency
+  optimized ``SPAtmplt`` filter kernel supports both its regular grid and its
+  direct arbitrary-frequency ``sample_points`` interface on the active device.
+  Set both SPA and TaylorF2 flags (or the global flag) to keep its synthesis
+  and PN-coefficient construction independent of lalsimulation.
+  The public TaylorF2 port covers aligned spins, Newtonian amplitude, all
+  supported phase/spin/tidal orders, testing-GR ``dchi`` terms, tidal
+  quadrupoles, and polarization rotation. Regular-grid and arbitrary-frequency
   ``get_fd_waveform_sequence`` evaluation both run on the active device.
   ``TaylorF2Ecc`` adds the model's low-eccentricity phase correction through
   relative 3PN order for regular-grid generation, including its eccentricity

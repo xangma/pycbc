@@ -217,6 +217,20 @@ def spa_distance(psd, mass1, mass2, lower_frequency_cutoff, snr=8):
     return sqrt(norm1[kend] * norm2) / snr
 
 
+def _cpu_sequence_frequencies(sample_points):
+    """Normalize arbitrary-frequency samples for the legacy Cython kernel."""
+    if isinstance(sample_points, Array):
+        sample_points = sample_points.numpy()
+    frequencies = numpy.asarray(sample_points, dtype=numpy.float32)
+    if frequencies.ndim != 1 or frequencies.size == 0:
+        raise ValueError("SPAtmplt sample_points must be a non-empty vector")
+    if not numpy.all(numpy.isfinite(frequencies)):
+        raise ValueError("SPAtmplt sample_points must be finite")
+    if numpy.any(frequencies <= 0.0):
+        raise ValueError("SPAtmplt sample_points must be positive")
+    return numpy.ascontiguousarray(frequencies)
+
+
 @schemed("pycbc.waveform.spa_tmplt_")
 def spa_tmplt_engine(htilde, kmin, phase_order, delta_f, piM, pfaN,
                      pfa2, pfa3, pfa4, pfa5, pfl5,
@@ -247,21 +261,15 @@ def spa_tmplt(**kwds):
 
     amp_factor = spa_amplitude_factor(mass1=mass1, mass2=mass2) / distance
 
-    lal_pars = lal.CreateDict()
-    if phase_order != -1:
-        lalsimulation.SimInspiralWaveformParamsInsertPNPhaseOrder(
-            lal_pars, phase_order)
-
-    if spin_order != -1:
-        lalsimulation.SimInspiralWaveformParamsInsertPNSpinOrder(
-            lal_pars, spin_order)
-
     # Calculate the PN terms. If requested, use the native torch port to avoid
     # lalsimulation (matches XLALSimInspiralPNPhasing_F2; LAL reference:
     # lalsimulation/lib/LALSimInspiralPNCoefficients.c lines 955-1109).
-    use_native = torch_native_enabled("PYCBC_TAYLORF2_NATIVE", default=False)
+    using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
+    use_native_phasing = using_torch and torch_native_enabled(
+        "PYCBC_TAYLORF2_NATIVE", default=False
+    )
 
-    if use_native and isinstance(_scheme.mgr.state, getattr(_scheme, "TorchScheme", object())):
+    if use_native_phasing:
         from .taylorf2_torch import taylorf2_aligned_phasing
 
         phasing = taylorf2_aligned_phasing(
@@ -275,6 +283,15 @@ def spa_tmplt(**kwds):
             lambda2=0.0,
         )
     else:
+        lal_pars = lal.CreateDict()
+        if phase_order != -1:
+            lalsimulation.SimInspiralWaveformParamsInsertPNPhaseOrder(
+                lal_pars, phase_order
+            )
+        if spin_order != -1:
+            lalsimulation.SimInspiralWaveformParamsInsertPNSpinOrder(
+                lal_pars, spin_order
+            )
         phasing = lalsimulation.SimInspiralTaylorF2AlignedPhasing(
                                         float(mass1), float(mass2),
                                         float(s1z), float(s2z),
@@ -334,10 +351,48 @@ def spa_tmplt(**kwds):
                          pfa2, pfa3, pfa4, pfa5, pfl5,
                          pfa6, pfl6, pfa7, amp_factor)
     else:
-        from .spa_tmplt_cpu import spa_tmplt_inline_sequence
-        htilde = numpy.empty(len(kwds['sample_points']), dtype=numpy.complex64)
-        spa_tmplt_inline_sequence(
-            piM, pfaN, pfa2, pfa3, pfa4, pfa5, pfl5, pfa6, pfl6, pfa7,
-            amp_factor, kwds['sample_points'], htilde)
+        sample_points = kwds['sample_points']
+        use_native_sequence = using_torch and torch_native_enabled(
+            "PYCBC_SPATPLT_NATIVE", default=False
+        )
+        if use_native_sequence:
+            from .spa_tmplt_torch import spa_tmplt_sequence
+
+            htilde = spa_tmplt_sequence(
+                sample_points,
+                piM,
+                pfaN,
+                pfa2,
+                pfa3,
+                pfa4,
+                pfa5,
+                pfl5,
+                pfa6,
+                pfl6,
+                pfa7,
+                amp_factor,
+            )
+        else:
+            from .spa_tmplt_cpu import spa_tmplt_inline_sequence
+
+            sample_points = _cpu_sequence_frequencies(sample_points)
+            htilde = numpy.empty(
+                len(sample_points), dtype=numpy.complex64
+            )
+            spa_tmplt_inline_sequence(
+                piM,
+                pfaN,
+                pfa2,
+                pfa3,
+                pfa4,
+                pfa5,
+                pfl5,
+                pfa6,
+                pfl6,
+                pfa7,
+                amp_factor,
+                sample_points,
+                htilde,
+            )
 
     return htilde

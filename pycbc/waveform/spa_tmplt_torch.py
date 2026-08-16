@@ -28,6 +28,9 @@ import os
 import numpy as _np
 import torch
 
+import pycbc.scheme as _scheme
+from pycbc.types import Array as PyCBCArray
+from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform import spa_tmplt_cpu as _spa_cpu
 from pycbc.waveform.torch_switches import torch_native_enabled
 
@@ -136,6 +139,145 @@ def _torch_native_spa(n, kmin, delta_f, piM, pfaN, pfa2, pfa3, pfa4, pfa5,
         "kfac": kfac,
         "amp": amp,
     }
+
+
+def _torch_native_spa_sequence_frequencies(
+    frequencies,
+    piM,
+    pfaN,
+    pfa2,
+    pfa3,
+    pfa4,
+    pfa5,
+    pfl5,
+    pfa6,
+    pfl6,
+    pfa7,
+    amp_factor,
+):
+    """Match the legacy REAL4/COMPLEX8 arbitrary-frequency kernel."""
+    device = frequencies.device
+    table_dtype = torch.float32 if device.type == "mps" else torch.float64
+    f32 = torch.float32
+    frequency_table = frequencies.to(table_dtype)
+
+    # Cython promotes each power/log operation to double, but stores the
+    # result and every phase-polynomial stage back into a C float. Preserve
+    # those rounding boundaries; they matter for long BNS inspiral phases.
+    pi_m = torch.tensor(piM, dtype=f32, device=device)
+    pi_m_root = torch.pow(pi_m.to(table_dtype), 1.0 / 3.0).to(f32)
+    log_pi_m_root = torch.log(pi_m_root.to(table_dtype)).to(f32)
+    v = (
+        pi_m_root.to(table_dtype)
+        * torch.pow(frequency_table, 1.0 / 3.0)
+    ).to(f32)
+    logv = (
+        torch.log(frequency_table) / 3.0
+        + log_pi_m_root.to(table_dtype)
+    ).to(f32)
+    amp = (
+        torch.tensor(amp_factor, dtype=f32, device=device).to(table_dtype)
+        * torch.pow(frequency_table, -7.0 / 6.0)
+    ).to(f32)
+
+    def coefficient(value):
+        return torch.tensor(value, dtype=f32, device=device)
+
+    phase = coefficient(pfa7) * v
+    phase = (
+        phase
+        + coefficient(pfa6)
+        + coefficient(pfl6) * (logv + coefficient(math.log(4.0)))
+    ) * v
+    phase = (
+        phase + coefficient(pfa5) + coefficient(pfl5) * logv
+    ) * v
+    phase = (phase + coefficient(pfa4)) * v
+    phase = (phase + coefficient(pfa3)) * v
+    phase = (phase + coefficient(pfa2)) * v * v + 1.0
+    v5 = v * v * v * v * v
+    phase = phase * coefficient(pfaN) / v5
+    phase = (phase.to(table_dtype) - math.pi / 4.0).to(f32)
+
+    two_pi = coefficient(2.0 * math.pi)
+    phase = phase - torch.trunc(phase / two_pi) * two_pi
+    phase = torch.where(phase < -math.pi, phase + two_pi, phase)
+    phase = torch.where(phase > math.pi, phase - two_pi, phase)
+
+    # The inferred Cython sin/cos temporaries are doubles. MPS has no float64
+    # support, so it uses the output precision for this small approximation.
+    trig_dtype = torch.float32 if device.type == "mps" else torch.float64
+    trig_phase = phase.to(trig_dtype)
+    sinp = 1.273239545 * trig_phase - 0.405284735 * trig_phase.abs() * trig_phase
+    sinp = 0.225 * (sinp * sinp.abs() - sinp) + sinp
+
+    cosine_phase = (phase.to(table_dtype) + math.pi / 2.0).to(f32)
+    cosine_phase = torch.where(
+        cosine_phase > math.pi,
+        cosine_phase - two_pi,
+        cosine_phase,
+    ).to(trig_dtype)
+    cosp = (
+        1.273239545 * cosine_phase
+        - 0.405284735 * cosine_phase.abs() * cosine_phase
+    )
+    cosp = 0.225 * (cosp * cosp.abs() - cosp) + cosp
+
+    real = (cosp * amp.to(trig_dtype)).to(f32)
+    imag = (-sinp * amp.to(trig_dtype)).to(f32)
+    return torch.complex(real, imag)
+
+
+def spa_tmplt_sequence(
+    sample_points,
+    piM,
+    pfaN,
+    pfa2,
+    pfa3,
+    pfa4,
+    pfa5,
+    pfl5,
+    pfa6,
+    pfl6,
+    pfa7,
+    amp_factor,
+):
+    """Evaluate SPAtmplt at arbitrary frequencies on the active Torch device."""
+    device = _scheme.mgr.state.torch_device
+    values = getattr(sample_points, "_data", sample_points)
+    if isinstance(values, TorchArrayData):
+        values = values.tensor
+
+    # The legacy Cython sequence API accepts REAL4 samples and returns
+    # COMPLEX8 values. Round to that public precision before using float64
+    # lookup arithmetic on devices which support it.
+    frequencies = torch.as_tensor(
+        values,
+        dtype=torch.float32,
+        device=device,
+    )
+    if frequencies.ndim != 1 or frequencies.numel() == 0:
+        raise ValueError("SPAtmplt sample_points must be a non-empty vector")
+    if not bool(torch.all(torch.isfinite(frequencies))):
+        raise ValueError("SPAtmplt sample_points must be finite")
+    if bool(torch.any(frequencies <= 0.0)):
+        raise ValueError("SPAtmplt sample_points must be positive")
+
+    result = _torch_native_spa_sequence_frequencies(
+        frequencies,
+        piM,
+        pfaN,
+        pfa2,
+        pfa3,
+        pfa4,
+        pfa5,
+        pfl5,
+        pfa6,
+        pfl6,
+        pfa7,
+        amp_factor,
+    )
+    return PyCBCArray(TorchArrayData(result), copy=False)
 
 
 def _cpu_reference(n, kmin, delta_f, piM, pfaN, pfa2, pfa3, pfa4, pfa5,
