@@ -309,7 +309,7 @@ def test_seobnrv4hm_sequence_matches_lal_without_calling_lal(
         ),
         (
             {"mass1": 35.0, "mass2": 25.0, "f_lower": 8.0},
-            False,
+            True,
         ),
         (
             {
@@ -327,7 +327,7 @@ def test_seobnrv4hm_sequence_matches_lal_without_calling_lal(
                 "f_lower": 3.0,
                 "mode_array": [(2, -2)],
             },
-            False,
+            True,
         ),
         ({"spin1x": 0.1}, False),
         ({"phase_order": 2}, False),
@@ -360,7 +360,7 @@ def test_seobnrv4hm_native_support_boundary(params, expected):
                 "mass2": 25.0,
                 "sample_points": [20.0, 8.0],
             },
-            False,
+            True,
         ),
         (
             {
@@ -378,7 +378,7 @@ def test_seobnrv4hm_native_support_boundary(params, expected):
                 "sample_points": [20.0, 3.0],
                 "mode_array": [(2, -2)],
             },
-            False,
+            True,
         ),
         ({"spin2y": 0.1}, False),
         ({"eccentricity": 0.1}, False),
@@ -388,18 +388,50 @@ def test_seobnrv4hm_sequence_native_support_boundary(params, expected):
     assert seobnrv4hm_sequence_native_supported(params) is expected
 
 
-def test_seobnrv4hm_sequence_low_frequency_uses_lal_fallback(monkeypatch):
+@pytest.mark.parametrize(
+    ("params", "sample_points"),
+    [
+        (
+            {
+                **_BASE_PARAMS,
+                "mass1": 35.0,
+                "mass2": 25.0,
+                "spin1z": 0.2,
+                "spin2z": -0.1,
+                "f_ref": 20.0,
+            },
+            [2.0, 3.0, 5.0, 9.0, 20.0, 100.0],
+        ),
+        (
+            {
+                **_BASE_PARAMS,
+                "mass1": 30.0,
+                "mass2": 30.0,
+                "spin1z": 0.8,
+                "spin2z": -0.8,
+                "f_ref": 20.0,
+                "mode_array": [(2, -1)],
+            },
+            [2.0, 3.0, 5.0, 9.0, 20.0, 100.0],
+        ),
+        (
+            {
+                **_BASE_PARAMS,
+                "mass1": 18.0,
+                "mass2": 42.0,
+                "spin1z": -0.3,
+                "spin2z": 0.45,
+                "f_ref": 20.0,
+                "mode_array": [(2, -1), (5, -5)],
+            },
+            [2.0, 4.0, 8.0, 20.0, 100.0],
+        ),
+    ],
+)
+def test_seobnrv4hm_sequence_low_frequency_is_native(
+    params, sample_points, monkeypatch
+):
     _require_rom_data()
-    params = {
-        **_BASE_PARAMS,
-        "mass1": 35.0,
-        "mass2": 25.0,
-        "spin1z": 0.2,
-        "spin2z": -0.1,
-        "f_ref": 20.0,
-        "mode_array": [(2, -2)],
-    }
-    sample_points = [2.0, 3.0, 5.0, 20.0, 100.0]
     reference = _snapshot_sequence(
         _generate_sequence(params, sample_points, native=False)
     )
@@ -407,28 +439,28 @@ def test_seobnrv4hm_sequence_low_frequency_uses_lal_fallback(monkeypatch):
     import pycbc.waveform.seobnrv4hm_torch as native_module
     import pycbc.waveform.waveform as waveform_module
 
-    def unexpected_native(**_params):
-        raise AssertionError("low-frequency HM sequence reached the native ROM")
+    native = native_module.seobnrv4hm_fd_sequence_torch
+    native_calls = 0
 
-    lal_generator = (
-        waveform_module.lalsimulation.SimInspiralChooseFDWaveformSequence
-    )
-    lal_calls = 0
+    def recording_native(**native_params):
+        nonlocal native_calls
+        native_calls += 1
+        return native(**native_params)
 
-    def recording_lal(*args, **kwargs):
-        nonlocal lal_calls
-        lal_calls += 1
-        return lal_generator(*args, **kwargs)
+    def unexpected_lalsimulation(*_args, **_kwargs):
+        raise AssertionError(
+            "native low-frequency HM sequence called lalsimulation"
+        )
 
     monkeypatch.setattr(
         native_module,
         "seobnrv4hm_fd_sequence_torch",
-        unexpected_native,
+        recording_native,
     )
     monkeypatch.setattr(
         waveform_module.lalsimulation,
         "SimInspiralChooseFDWaveformSequence",
-        recording_lal,
+        unexpected_lalsimulation,
     )
     actual = _generate_sequence(
         params,
@@ -437,12 +469,12 @@ def test_seobnrv4hm_sequence_low_frequency_uses_lal_fallback(monkeypatch):
         device="cpu",
     )
 
-    assert lal_calls == 1
+    assert native_calls == 1
     assert all(isinstance(series._data.tensor, torch.Tensor) for series in actual)
-    _assert_sequence_parity(reference, actual, relative_tolerance=1.0e-14)
+    _assert_sequence_parity(reference, actual, relative_tolerance=1.0e-10)
 
 
-def test_seobnrv4hm_regular_low_frequency_uses_lal_fallback(monkeypatch):
+def test_seobnrv4hm_regular_low_frequency_is_native(monkeypatch):
     _require_rom_data()
     params = {
         **_BASE_PARAMS,
@@ -454,7 +486,6 @@ def test_seobnrv4hm_regular_low_frequency_uses_lal_fallback(monkeypatch):
         "f_lower": 2.0,
         "f_final": 128.0,
         "f_ref": 20.0,
-        "mode_array": [(2, -2)],
     }
     reference = tuple(
         series.numpy().copy() for series in _generate(params, native=False)
@@ -463,33 +494,101 @@ def test_seobnrv4hm_regular_low_frequency_uses_lal_fallback(monkeypatch):
     import pycbc.waveform.seobnrv4hm_torch as native_module
     import pycbc.waveform.waveform as waveform_module
 
-    def unexpected_native(**_params):
-        raise AssertionError("low-frequency HM waveform reached the native ROM")
+    native = native_module.seobnrv4hm_fd_torch
+    native_calls = 0
 
-    lal_generator = waveform_module.lalsimulation.SimInspiralChooseFDWaveform
-    lal_calls = 0
+    def recording_native(**native_params):
+        nonlocal native_calls
+        native_calls += 1
+        return native(**native_params)
 
-    def recording_lal(*args, **kwargs):
-        nonlocal lal_calls
-        lal_calls += 1
-        return lal_generator(*args, **kwargs)
+    def unexpected_lalsimulation(*_args, **_kwargs):
+        raise AssertionError(
+            "native low-frequency HM waveform called lalsimulation"
+        )
 
     monkeypatch.setattr(
         native_module,
         "seobnrv4hm_fd_torch",
-        unexpected_native,
+        recording_native,
     )
     monkeypatch.setattr(
         waveform_module.lalsimulation,
         "SimInspiralChooseFDWaveform",
-        recording_lal,
+        unexpected_lalsimulation,
     )
     actual = _generate(params, native=True, device="cpu")
 
-    assert lal_calls == 1
+    assert native_calls == 1
     for expected, result in zip(reference, actual):
         assert isinstance(result._data.tensor, torch.Tensor)
-        np.testing.assert_allclose(result.numpy(), expected, rtol=1e-14)
+        scale = np.max(np.abs(expected))
+        np.testing.assert_allclose(
+            result.numpy(),
+            expected,
+            rtol=1.0e-10,
+            atol=scale * 1.0e-12,
+        )
+
+
+@pytest.mark.parametrize("device_name", ["cpu", "mps", "cuda"])
+def test_seobnrv4hm_low_frequency_stays_on_requested_device(device_name):
+    if device_name == "mps" and not torch.backends.mps.is_available():
+        pytest.skip("Torch MPS device is unavailable")
+    if device_name == "cuda" and not torch.cuda.is_available():
+        pytest.skip("Torch CUDA device is unavailable")
+
+    _require_rom_data()
+    params = {
+        **_BASE_PARAMS,
+        "mass1": 35.0,
+        "mass2": 25.0,
+        "spin1z": 0.2,
+        "spin2z": -0.1,
+        "f_ref": 20.0,
+    }
+    sample_points = [2.0, 3.0, 5.0, 9.0, 20.0, 100.0, 400.0]
+    reference = _snapshot_sequence(
+        _generate_sequence(params, sample_points, native=False)
+    )
+    actual = _generate_sequence(
+        params,
+        sample_points,
+        native=True,
+        device=device_name,
+    )
+
+    expected_dtype = (
+        torch.complex64 if device_name == "mps" else torch.complex128
+    )
+    assert all(
+        series._data.tensor.device.type == device_name for series in actual
+    )
+    assert all(
+        series._data.tensor.dtype == expected_dtype for series in actual
+    )
+    tolerance = 2.0e-2 if device_name == "mps" else 1.0e-10
+    _assert_sequence_parity(reference, actual, relative_tolerance=tolerance)
+
+
+def test_seobnrv4hm_sequence_rejects_frequency_below_first_sample_domain():
+    _require_rom_data()
+    params = {
+        **_BASE_PARAMS,
+        "mass1": 35.0,
+        "mass2": 25.0,
+        "spin1z": 0.2,
+        "spin2z": -0.1,
+        "f_ref": 20.0,
+    }
+
+    with pytest.raises(ValueError, match="below the TaylorF2 spline domain"):
+        _generate_sequence(
+            params,
+            [20.0, 0.5],
+            native=True,
+            device="cpu",
+        )
 
 
 def test_seobnrv4hm_sequence_avoids_host_transfer(monkeypatch):
@@ -502,7 +601,7 @@ def test_seobnrv4hm_sequence_avoids_host_transfer(monkeypatch):
 
     monkeypatch.setenv("PYCBC_SEOBNRV4HM_NATIVE", "1")
     _activate_scheme(_scheme.TorchScheme("cpu"))
-    sample_points = Array([20.0, 30.0, 100.0, 400.0])
+    sample_points = Array([2.0, 3.0, 20.0, 100.0, 400.0])
     monkeypatch.setattr(TorchArrayData, "numpy", reject_host_transfer)
     with torch.no_grad():
         hp, hc = get_fd_waveform_sequence(

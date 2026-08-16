@@ -27,6 +27,7 @@ assembly run on the active Torch device. It mirrors the structure of
   projection coefficients for each ROM patch (low-f plus four high-f patches);
 - hybridization of low/high patches via the f_hyb window;
 - carrier phase reconstruction and per-mode approximate phasing;
+- low-frequency TaylorF2 amplitude/phase generation and alignment to the ROM;
 - assembly of (l,-m) modes, time shift correction, and spherical-harmonic
   summation to plus/cross polarizations.
 
@@ -62,6 +63,7 @@ from pycbc.waveform._seobnrv4_qnm import seobnrv4_qnm_omega as _qnm_omega
 from pycbc.waveform._spherical_harmonics_torch import (
     spin_weighted_spherical_harmonic,
 )
+from pycbc.waveform.taylorf2_torch import taylorf2_aligned_phasing
 
 _ROM_FILENAME = "SEOBNRv4HMROM_v1.0.hdf5"
 _ROM_FILENAMES = (_ROM_FILENAME, "SEOBNRv4HMROM.hdf5")
@@ -73,7 +75,10 @@ _PATCH_NAMES = ("lowf", "hqls", "hqhs", "lqls", "lqhs")
 _CONST_PHASESHIFT = [0.0, -math.pi / 2.0, math.pi / 2.0, math.pi, math.pi / 2.0]
 _CONST_FMAX = [1.7, 1.55, 1.7, 1.35, 1.25]
 _MF_LOW_22 = 0.0004925491025543576
+_PN_HYBRID_START_FACTOR = 1.01
 _PN_HYBRID_END_FACTOR = 2.0
+_PN_GRID_HIGH_FACTOR = 1.1
+_PN_GRID_ACCURACY = 1.0e-4
 
 _DEFAULT_ONLY_ORDER_KEYS = (
     "phase_order",
@@ -133,15 +138,6 @@ def _is_default_order(value) -> bool:
         return False
 
 
-def _native_minimum_mf(active_mode_indices) -> float:
-    """Lowest frequency where every requested mode is purely ROM."""
-
-    return _PN_HYBRID_END_FACTOR * max(
-        _MF_LOW_22 * _LM_MODES[index][1] / 2.0
-        for index in active_mode_indices
-    )
-
-
 def _native_features_supported(params) -> bool:
     """Return whether non-sampling parameters are covered by this port."""
 
@@ -178,60 +174,15 @@ def _native_features_supported(params) -> bool:
 
 
 def seobnrv4hm_native_supported(params) -> bool:
-    """Return whether regular-grid generation can stay in the native ROM."""
+    """Return whether regular-grid generation is covered by this port."""
 
-    if not _native_features_supported(params):
-        return False
-    if not {"mass1", "mass2", "f_lower"}.issubset(params):
-        return True
-    try:
-        total_mass_seconds = (
-            float(params["mass1"]) + float(params["mass2"])
-        ) * lal.MTSUN_SI
-        f_lower = float(params["f_lower"])
-        active_mode_indices = _active_mode_indices(params.get("mode_array"))
-    except (TypeError, ValueError, OverflowError):
-        return True
-    if not math.isfinite(total_mass_seconds) or not math.isfinite(f_lower):
-        return True
-    # LAL blends TaylorF2 through this boundary. That hybrid is not yet ported.
-    return (
-        f_lower * total_mass_seconds
-        > _native_minimum_mf(active_mode_indices)
-    )
+    return _native_features_supported(params)
 
 
 def seobnrv4hm_sequence_native_supported(params) -> bool:
-    """Return whether arbitrary frequencies remain inside the native ROM."""
+    """Return whether arbitrary-frequency generation is covered here."""
 
-    if not _native_features_supported(params):
-        return False
-    if not {"mass1", "mass2", "sample_points"}.issubset(params):
-        return True
-    sample_points = params["sample_points"]
-    values = getattr(sample_points, "_data", sample_points)
-    if isinstance(values, TorchArrayData):
-        values = values.tensor
-    try:
-        frequencies = torch.as_tensor(values)
-        total_mass_seconds = (
-            float(params["mass1"]) + float(params["mass2"])
-        ) * lal.MTSUN_SI
-        active_mode_indices = _active_mode_indices(params.get("mode_array"))
-    except (TypeError, ValueError, OverflowError, RuntimeError):
-        return False
-    if frequencies.ndim != 1 or frequencies.numel() == 0:
-        return True
-    if not bool(torch.all(torch.isfinite(frequencies))):
-        return True
-    if bool(torch.any(frequencies <= 0.0)):
-        return True
-    return bool(
-        torch.all(
-            frequencies * total_mass_seconds
-            > _native_minimum_mf(active_mode_indices)
-        )
-    )
+    return _native_features_supported(params)
 
 
 # ---------------------------------------------------------------------------
@@ -394,6 +345,182 @@ def _compute_i_max_LF_i_min_HF(
     if i_max < 0 or i_min >= freq_hi.numel():
         raise ValueError("ROM patches do not overlap the hybridization window")
     return i_max, i_min
+
+
+def _linear_phase_alignment(
+    freq_lo: torch.Tensor,
+    phase_lo: torch.Tensor,
+    freq_hi: torch.Tensor,
+    phase_hi: torch.Tensor,
+    window_start: float,
+    window_end: float,
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Align ``phase_lo`` to ``phase_hi`` as LAL's linear fit does."""
+
+    fit_frequency = torch.linspace(
+        window_start,
+        window_end,
+        10,
+        device=freq_lo.device,
+        dtype=freq_lo.dtype,
+    )
+    difference = _spline_eval(
+        fit_frequency,
+        freq_hi,
+        phase_hi,
+        *_natural_cubic_coeff(freq_hi, phase_hi),
+    ) - _spline_eval(
+        fit_frequency,
+        freq_lo,
+        phase_lo,
+        *_natural_cubic_coeff(freq_lo, phase_lo),
+    )
+    centered_frequency = fit_frequency - torch.mean(fit_frequency)
+    slope = torch.sum(
+        centered_frequency * (difference - torch.mean(difference))
+    ) / torch.sum(centered_frequency**2)
+    intercept = torch.mean(difference) - slope * torch.mean(fit_frequency)
+    aligned = phase_lo + intercept + slope * freq_lo
+    return aligned, slope / (2.0 * math.pi), intercept
+
+
+def _phase_alignment_from_22(
+    freq_lo: torch.Tensor,
+    phase_lo: torch.Tensor,
+    freq_hi: torch.Tensor,
+    phase_hi: torch.Tensor,
+    window_start: float,
+    window_end: float,
+    delta_time_22: torch.Tensor,
+    delta_phase_22: torch.Tensor,
+    mode_m: int,
+) -> torch.Tensor:
+    """Propagate LAL's 22 alignment and resolve the mode's pi ambiguity."""
+
+    fit_frequency = torch.linspace(
+        window_start,
+        window_end,
+        10,
+        device=freq_lo.device,
+        dtype=freq_lo.dtype,
+    )
+    difference = _spline_eval(
+        fit_frequency,
+        freq_hi,
+        phase_hi,
+        *_natural_cubic_coeff(freq_hi, phase_hi),
+    ) - _spline_eval(
+        fit_frequency,
+        freq_lo,
+        phase_lo,
+        *_natural_cubic_coeff(freq_lo, phase_lo),
+    )
+    alignment = (
+        2.0 * math.pi * delta_time_22 * fit_frequency
+        + mode_m / 2.0 * delta_phase_22
+    )
+    average_residual = torch.mean(difference - alignment)
+    pi_shift = torch.floor(
+        (average_residual + math.pi / 2.0) / math.pi
+    ) * math.pi
+    return phase_lo + (
+        2.0 * math.pi * delta_time_22 * freq_lo
+        + mode_m / 2.0 * delta_phase_22
+        + pi_shift
+    )
+
+
+def _hybridize_sparse_functions(
+    freq_lo: torch.Tensor,
+    values_lo: torch.Tensor,
+    freq_hi: torch.Tensor,
+    values_hi: torch.Tensor,
+    window_start: float,
+    window_end: float,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Blend two sparse functions using LAL's merged-grid convention."""
+
+    i_max, i_min = _compute_i_max_LF_i_min_HF(
+        freq_lo, freq_hi, window_start
+    )
+    frequency = torch.cat([freq_lo[: i_max + 1], freq_hi[i_min:]])
+    weight = _blend_weight(frequency, window_start, window_end)
+    values = torch.zeros_like(frequency)
+    low_coefficients = _natural_cubic_coeff(freq_lo, values_lo)
+    high_coefficients = _natural_cubic_coeff(freq_hi, values_hi)
+
+    low_region = frequency <= window_end
+    values[low_region] = _spline_eval(
+        frequency[low_region],
+        freq_lo,
+        values_lo,
+        *low_coefficients,
+    ) * (1.0 - weight[low_region])
+
+    high_region = frequency > window_end
+    values[high_region] = _spline_eval(
+        frequency[high_region],
+        freq_hi,
+        values_hi,
+        *high_coefficients,
+    )
+    blend_region = (frequency >= window_start) & (
+        frequency <= window_end
+    )
+    values[blend_region] += _spline_eval(
+        frequency[blend_region],
+        freq_hi,
+        values_hi,
+        *high_coefficients,
+    ) * weight[blend_region]
+    return frequency, values
+
+
+def _mode_minimum_mf(mode_index: int) -> float:
+    """Return the ROM's first geometric frequency for one mode."""
+
+    return _MF_LOW_22 * _LM_MODES[mode_index][1] / 2.0
+
+
+def _inspiral_minimum_mf(start_mf: float) -> float:
+    """Return LAL's lower TaylorF2 spline boundary."""
+
+    return min(start_mf / 2.0, _mode_minimum_mf(2))
+
+
+def _inspiral_frequency_grid(
+    start_mf: float,
+    q: float,
+    device: torch.device,
+    dtype: torch.dtype,
+) -> torch.Tensor:
+    """Build LAL's geometric grid for TaylorF2 spline interpolation."""
+
+    minimum_mf = _inspiral_minimum_mf(start_mf)
+    maximum_mf = (
+        _PN_GRID_HIGH_FACTOR
+        * _PN_HYBRID_END_FACTOR
+        * _mode_minimum_mf(4)
+    )
+    eta = q / (1.0 + q) ** 2
+    spacing = (
+        3.8
+        * (_PN_GRID_ACCURACY * eta) ** 0.25
+        * math.pi ** (5.0 / 12.0)
+    )
+    transformed_span = minimum_mf ** (-5.0 / 12.0) - maximum_mf ** (
+        -5.0 / 12.0
+    )
+    sample_count = 1 + math.ceil(12.0 / 5.0 / spacing * transformed_span)
+    adjusted_spacing = 12.0 / 5.0 / (sample_count - 1) * transformed_span
+    indices = torch.arange(sample_count, device=device, dtype=dtype)
+    frequency = (
+        minimum_mf ** (-5.0 / 12.0)
+        - 5.0 / 12.0 * adjusted_spacing * indices
+    ) ** (-12.0 / 5.0)
+    frequency[0] = minimum_mf
+    frequency[-1] = maximum_mf
+    return frequency
 
 
 # ---------------------------------------------------------------------------
@@ -601,22 +728,16 @@ def _hybridize_phase(
 
     # LAL aligns the low-frequency phase to the high-frequency phase by
     # fitting phase_hi - phase_lo at ten equally spaced frequencies.
-    f_common = torch.linspace(
+    ph_lo_aligned, _, _ = _linear_phase_alignment(
+        f_lo,
+        ph_lo,
+        f_hi,
+        ph_hi,
         _F_HYB_INI,
         _F_HYB_END,
-        10,
-        device=f_lo.device,
-        dtype=f_lo.dtype,
     )
-    b_lo, c_lo, d_lo = _natural_cubic_coeff(f_lo, ph_lo)
-    b_hi, c_hi, d_hi = _natural_cubic_coeff(f_hi, ph_hi)
-    diff = _spline_eval(f_common, f_hi, ph_hi, b_hi, c_hi, d_hi) - _spline_eval(
-        f_common, f_lo, ph_lo, b_lo, c_lo, d_lo
-    )
-    A = torch.stack([torch.ones_like(f_common), f_common], dim=1)
-    sol = torch.linalg.lstsq(A, diff.unsqueeze(1)).solution[:2]
-    ph_lo_aligned = ph_lo + sol[0, 0] + sol[1, 0] * f_lo
     b_lo, c_lo, d_lo = _natural_cubic_coeff(f_lo, ph_lo_aligned)
+    b_hi, c_hi, d_hi = _natural_cubic_coeff(f_hi, ph_hi)
 
     weight = _blend_weight(f_hyb, _F_HYB_INI, _F_HYB_END)
     ph_hyb = (1.0 - weight) * _spline_eval(
@@ -725,6 +846,7 @@ class _SEOBNRv4HMInputs:
     roms: Dict[str, _ModeROM]
     f_carrier: torch.Tensor
     phase_carrier: torch.Tensor
+    pn_phasing: object
 
 
 def _seobnrv4hm_dtypes(state):
@@ -831,6 +953,13 @@ def _seobnrv4hm_inputs(p, *, sequence=False):
     f_carrier, phase_carrier = _hybridize_phase(
         mass1, mass2, spin1z, spin2z, roms
     )
+    pn_phasing = taylorf2_aligned_phasing(
+        mass1,
+        mass2,
+        spin1z,
+        spin2z,
+        spin_order=7,
+    )
     return _SEOBNRv4HMInputs(
         mass1=mass1,
         mass2=mass2,
@@ -853,11 +982,264 @@ def _seobnrv4hm_inputs(p, *, sequence=False):
         roms=roms,
         f_carrier=f_carrier,
         phase_carrier=phase_carrier,
+        pn_phasing=pn_phasing,
     )
 
 
-def _seobnrv4hm_polarizations(inputs, eval_mf):
-    """Evaluate selected pure-ROM modes at arbitrary geometric frequencies."""
+@dataclass
+class _ModeAmpPhase:
+    """Sparse amplitude and phase data for one hybridized mode."""
+
+    amplitude_frequency: torch.Tensor
+    amplitude: torch.Tensor
+    phase_frequency: torch.Tensor
+    phase: torch.Tensor
+
+
+def _rom_mode_amp_phase(inputs, mode_index: int) -> _ModeAmpPhase:
+    """Reconstruct one pure-ROM mode's amplitude and phase splines."""
+
+    ell, emm = _LM_MODES[mode_index]
+    f_hyb, cmode = _hybridize_cmode(
+        mode_index,
+        inputs.q,
+        inputs.spin1z,
+        inputs.spin2z,
+        inputs.qnm_omega[(ell, emm)],
+        inputs.roms,
+    )
+    carrier_coeff = _natural_cubic_coeff(
+        inputs.f_carrier, inputs.phase_carrier
+    )
+    carrier_frequency = f_hyb / emm
+    carrier_phase = _spline_eval(
+        carrier_frequency,
+        inputs.f_carrier,
+        inputs.phase_carrier,
+        *carrier_coeff,
+    )
+    carrier_end_derivative = _spline_derivative_at_end(
+        inputs.f_carrier, *carrier_coeff
+    )
+    carrier_extrapolation = inputs.phase_carrier[-1] + (
+        carrier_end_derivative
+        * (carrier_frequency - inputs.f_carrier[-1])
+    )
+    carrier_phase = torch.where(
+        carrier_frequency < inputs.f_carrier[-1],
+        carrier_phase,
+        carrier_extrapolation,
+    )
+    phase_approximation = emm * carrier_phase + (
+        _CONST_PHASESHIFT[mode_index]
+        + (1.0 - emm) * math.pi / 4.0
+    )
+    reconstructed_phase = (
+        _unwrap_phase(torch.angle(cmode)) - phase_approximation
+    )
+    return _ModeAmpPhase(
+        amplitude_frequency=f_hyb,
+        amplitude=torch.abs(cmode),
+        phase_frequency=f_hyb,
+        phase=reconstructed_phase,
+    )
+
+
+def _taylorf2_mode_amp_phase(
+    inputs,
+    mode_index: int,
+    frequency: torch.Tensor,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Evaluate LAL's leading-order higher-mode TaylorF2 construction."""
+
+    ell, emm = _LM_MODES[mode_index]
+    velocity = torch.pow(
+        math.pi * (2.0 / emm) * frequency,
+        1.0 / 3.0,
+    )
+    log_velocity = torch.log(velocity)
+    orders = torch.arange(
+        8,
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+    powers = velocity.unsqueeze(-1) ** orders
+    coefficients = torch.as_tensor(
+        inputs.pn_phasing.v[:8],
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+    log_coefficients = torch.as_tensor(
+        inputs.pn_phasing.vlogv[:8],
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+    phase = torch.sum(
+        (
+            coefficients
+            + log_coefficients * log_velocity.unsqueeze(-1)
+        )
+        * powers,
+        dim=-1,
+    )
+    phase = (
+        phase / velocity**5 * (emm / 2.0)
+        + _CONST_PHASESHIFT[mode_index]
+        - math.pi / 4.0
+    )
+
+    eta = inputs.q / (1.0 + inputs.q) ** 2
+    delta = (
+        inputs.q - 1.0 + np.finfo(np.float64).eps
+    ) / (1.0 + inputs.q)
+    symmetric_spin = 0.5 * (inputs.spin1z + inputs.spin2z)
+    antisymmetric_spin = 0.5 * (inputs.spin1z - inputs.spin2z)
+    if (ell, emm) == (2, 2):
+        mode_factor = torch.ones_like(velocity)
+    elif (ell, emm) == (2, 1):
+        mode_factor = velocity * (
+            delta / 3.0
+            - 0.5
+            * velocity
+            * (antisymmetric_spin + delta * symmetric_spin)
+        )
+    elif (ell, emm) == (3, 3):
+        mode_factor = velocity * 0.75 * math.sqrt(15.0 / 14.0) * delta
+    elif (ell, emm) == (4, 4):
+        mode_factor = (
+            velocity**2
+            * 8.0
+            * math.sqrt(35.0)
+            / 63.0
+            * (1.0 - 3.0 * eta)
+        )
+    else:
+        mode_factor = (
+            velocity**3
+            * 625.0
+            * math.sqrt(66.0)
+            / 6336.0
+            * delta
+            * (1.0 - 2.0 * eta)
+        )
+    amplitude = (
+        math.pi
+        * math.sqrt(2.0 * eta / 3.0)
+        * velocity ** (-3.5)
+        * math.sqrt(2.0 / emm)
+        * mode_factor
+    )
+    return amplitude, phase
+
+
+def _hybridized_mode_data(inputs, start_mf: float):
+    """Build the TaylorF2/ROM splines needed by the selected modes."""
+
+    pn_frequency = _inspiral_frequency_grid(
+        start_mf,
+        inputs.q,
+        inputs.device,
+        inputs.real_dtype,
+    )
+    required_modes = (0,) + tuple(
+        index for index in inputs.active_mode_indices if index != 0
+    )
+    mode_data = {}
+    delta_time_22 = None
+    delta_phase_22 = None
+
+    for mode_index in required_modes:
+        rom = _rom_mode_amp_phase(inputs, mode_index)
+        pn_amplitude, pn_phase = _taylorf2_mode_amp_phase(
+            inputs, mode_index, pn_frequency
+        )
+        mode_m = _LM_MODES[mode_index][1]
+        window_start = (
+            _mode_minimum_mf(mode_index) * _PN_HYBRID_START_FACTOR
+        )
+        window_end = (
+            _mode_minimum_mf(mode_index) * _PN_HYBRID_END_FACTOR
+        )
+
+        if mode_index == 0:
+            aligned_phase, delta_time_22, delta_phase_22 = (
+                _linear_phase_alignment(
+                    pn_frequency,
+                    pn_phase,
+                    rom.phase_frequency,
+                    rom.phase,
+                    window_start,
+                    window_end,
+                )
+            )
+        else:
+            aligned_phase = _phase_alignment_from_22(
+                pn_frequency,
+                pn_phase,
+                rom.phase_frequency,
+                rom.phase,
+                window_start,
+                window_end,
+                delta_time_22,
+                delta_phase_22,
+                mode_m,
+            )
+        phase_frequency, hybrid_phase = _hybridize_sparse_functions(
+            pn_frequency,
+            aligned_phase,
+            rom.phase_frequency,
+            rom.phase,
+            window_start,
+            window_end,
+        )
+
+        if mode_index not in inputs.active_mode_indices:
+            continue
+        start = pn_frequency.new_tensor([window_start])
+        pn_amplitude_at_start = _spline_eval(
+            start,
+            pn_frequency,
+            pn_amplitude,
+            *_natural_cubic_coeff(pn_frequency, pn_amplitude),
+        )[0]
+        rom_amplitude_at_start = _spline_eval(
+            start,
+            rom.amplitude_frequency,
+            rom.amplitude,
+            *_natural_cubic_coeff(
+                rom.amplitude_frequency, rom.amplitude
+            ),
+        )[0]
+        scaled_pn_amplitude = (
+            pn_amplitude * rom_amplitude_at_start / pn_amplitude_at_start
+        )
+        amplitude_frequency, hybrid_amplitude = (
+            _hybridize_sparse_functions(
+                pn_frequency,
+                scaled_pn_amplitude,
+                rom.amplitude_frequency,
+                rom.amplitude,
+                window_start,
+                window_end,
+            )
+        )
+        mode_data[mode_index] = _ModeAmpPhase(
+            amplitude_frequency=amplitude_frequency,
+            amplitude=hybrid_amplitude,
+            phase_frequency=phase_frequency,
+            phase=hybrid_phase,
+        )
+    return mode_data
+
+
+def _seobnrv4hm_polarizations(inputs, eval_mf, start_mf: float):
+    """Evaluate selected TaylorF2/ROM modes at geometric frequencies."""
+
+    if bool(torch.any(eval_mf < _inspiral_minimum_mf(start_mf))):
+        raise ValueError(
+            "SEOBNRv4HM_ROM frequency lies below the TaylorF2 spline "
+            "domain set by the starting frequency"
+        )
 
     hp = torch.zeros(
         eval_mf.shape,
@@ -865,74 +1247,40 @@ def _seobnrv4hm_polarizations(inputs, eval_mf):
         dtype=inputs.complex_dtype,
     )
     hc = torch.zeros_like(hp)
-    b_car, c_car, d_car = _natural_cubic_coeff(
-        inputs.f_carrier, inputs.phase_carrier
-    )
-    carrier_max_frequency = inputs.f_carrier[-1]
-    carrier_max_phase = inputs.phase_carrier[-1]
-    carrier_end_derivative = _spline_derivative_at_end(
-        inputs.f_carrier, b_car, c_car, d_car
-    )
+    hybridized_modes = _hybridized_mode_data(inputs, start_mf)
     observer_phi = math.pi / 2.0 - inputs.coa_phase
 
     for idx in inputs.active_mode_indices:
         ell, emm = _LM_MODES[idx]
         omega_qnm = inputs.qnm_omega[(ell, emm)]
-        f_hyb, cmode = _hybridize_cmode(
-            idx,
-            inputs.q,
-            inputs.spin1z,
-            inputs.spin2z,
-            omega_qnm,
-            inputs.roms,
+        mode = hybridized_modes[idx]
+        amp_coeff = _natural_cubic_coeff(
+            mode.amplitude_frequency, mode.amplitude
         )
-
-        carrier_frequency = f_hyb / emm
-        carrier_phase = _spline_eval(
-            carrier_frequency,
-            inputs.f_carrier,
-            inputs.phase_carrier,
-            b_car,
-            c_car,
-            d_car,
+        phase_coeff = _natural_cubic_coeff(
+            mode.phase_frequency, mode.phase
         )
-        carrier_extrapolation = carrier_max_phase + carrier_end_derivative * (
-            carrier_frequency - carrier_max_frequency
-        )
-        carrier_phase = torch.where(
-            carrier_frequency < carrier_max_frequency,
-            carrier_phase,
-            carrier_extrapolation,
-        )
-        const_phase_shift = (
-            _CONST_PHASESHIFT[idx] + (1.0 - emm) * math.pi / 4.0
-        )
-        phase_approx = emm * carrier_phase + const_phase_shift
-
-        phase_cmode = _unwrap_phase(torch.angle(cmode))
-        amplitude = torch.abs(cmode)
-        reconstructed_phase = phase_cmode - phase_approx
-        amp_coeff = _natural_cubic_coeff(f_hyb, amplitude)
-        phase_coeff = _natural_cubic_coeff(f_hyb, reconstructed_phase)
 
         mf_max = _CONST_FMAX[idx] * omega_qnm / (2.0 * math.pi)
-        active = (eval_mf <= mf_max) & (
-            eval_mf > _MF_LOW_22 * emm / 2.0
-        )
+        active = eval_mf <= mf_max
         if not bool(torch.any(active)):
             continue
         mode_frequencies = eval_mf[active]
         mode_amplitude = _spline_eval(
-            mode_frequencies, f_hyb, amplitude, *amp_coeff
+            mode_frequencies,
+            mode.amplitude_frequency,
+            mode.amplitude,
+            *amp_coeff,
         )
         mode_phase = _spline_eval(
             mode_frequencies,
-            f_hyb,
-            reconstructed_phase,
+            mode.phase_frequency,
+            mode.phase,
             *phase_coeff,
         )
-        hlm = torch.polar(mode_amplitude, mode_phase).to(
-            inputs.complex_dtype
+        hlm = torch.complex(
+            mode_amplitude * torch.cos(mode_phase),
+            mode_amplitude * torch.sin(mode_phase),
         )
         time_shift = torch.exp(
             (-2j * math.pi * 1000.0) * mode_frequencies
@@ -993,8 +1341,7 @@ def seobnrv4hm_fd_torch(**p):
 
     if not seobnrv4hm_native_supported(p):
         raise ValueError(
-            "SEOBNRv4HM_ROM parameters require an unsupported feature or "
-            "the unported low-frequency TaylorF2 hybrid"
+            "SEOBNRv4HM_ROM parameters require an unsupported feature"
         )
     inputs = _seobnrv4hm_inputs(p)
     delta_f = float(p["delta_f"])
@@ -1030,7 +1377,11 @@ def seobnrv4hm_fd_torch(**p):
         * delta_f
         * inputs.total_mass_seconds
     )
-    plus, cross = _seobnrv4hm_polarizations(inputs, eval_mf)
+    plus, cross = _seobnrv4hm_polarizations(
+        inputs,
+        eval_mf,
+        f_lower * inputs.total_mass_seconds,
+    )
     hp[first_bin:stop_bin] = plus
     hc[first_bin:stop_bin] = cross
 
@@ -1064,31 +1415,24 @@ def _seobnrv4hm_sequence_frequencies(sample_points, inputs):
         raise ValueError("SEOBNRv4HM_ROM sample_points must be finite")
     if bool(torch.any(frequencies <= 0.0)):
         raise ValueError("SEOBNRv4HM_ROM sample_points must be positive")
-    minimum_mf = _native_minimum_mf(inputs.active_mode_indices)
-    if bool(
-        torch.any(frequencies * inputs.total_mass_seconds <= minimum_mf)
-    ):
-        raise ValueError(
-            "SEOBNRv4HM_ROM sample_points enter the unported "
-            "low-frequency TaylorF2 hybrid"
-        )
     return frequencies
 
 
 def seobnrv4hm_fd_sequence_torch(**p):
-    """Evaluate pure-ROM ``SEOBNRv4HM_ROM`` at arbitrary frequencies."""
+    """Evaluate ``SEOBNRv4HM_ROM`` at arbitrary frequencies with Torch."""
 
     if not seobnrv4hm_sequence_native_supported(p):
         raise ValueError(
-            "SEOBNRv4HM_ROM sequence parameters require an unsupported "
-            "feature or the unported low-frequency TaylorF2 hybrid"
+            "SEOBNRv4HM_ROM sequence parameters require an unsupported feature"
         )
     inputs = _seobnrv4hm_inputs(p, sequence=True)
     frequencies = _seobnrv4hm_sequence_frequencies(
         p["sample_points"], inputs
     )
     plus, cross = _seobnrv4hm_polarizations(
-        inputs, frequencies * inputs.total_mass_seconds
+        inputs,
+        frequencies * inputs.total_mass_seconds,
+        float(frequencies[0]) * inputs.total_mass_seconds,
     )
     return (
         PyCBCArray(TorchArrayData(plus), copy=False),
