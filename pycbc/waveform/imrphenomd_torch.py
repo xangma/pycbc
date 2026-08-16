@@ -56,6 +56,7 @@ import torch
 from scipy.interpolate import CubicSpline
 
 from pycbc import pnutils, scheme as _scheme
+from pycbc.types import Array as PyCBCArray
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform.nrtidal_torch import (
@@ -1274,8 +1275,41 @@ def imrphenomd_native_supported(params):
 # ---------- Main waveform -----------------------------------------------------------
 
 
-def imrphenomd_fd_torch(**p):
-    """Generate IMRPhenomD or NRTidal polarizations with Torch."""
+@dataclass
+class _IMRPhenomDInputs:
+    """Validated scalar inputs shared by regular and sequence generation."""
+
+    tidal_version: int | None
+    mass1: float
+    mass2: float
+    spin1z: float
+    spin2z: float
+    lambda1: float
+    lambda2: float
+    distance: float
+    inclination: float
+    coa_phase: float
+    long_asc_nodes: float
+    f_ref: float
+    total_mass: float
+    eta: float
+    total_mass_seconds: float
+    dquad1: float
+    dquad2: float
+    device: torch.device
+    real_dtype: torch.dtype
+    complex_dtype: torch.dtype
+
+
+def imrphenomd_sequence_native_supported(params):
+    """Return whether arbitrary-frequency IMRPhenomD generation is native."""
+
+    return imrphenomd_native_supported(params)
+
+
+def _imrphenomd_inputs(p, *, sequence=False):
+    """Validate and normalize scalar inputs shared by both public APIs."""
+
     if not imrphenomd_native_supported(p):
         raise ValueError(
             "IMRPhenomD parameters are not supported by the native Torch path"
@@ -1300,14 +1334,13 @@ def imrphenomd_fd_torch(**p):
         spin1z, spin2z = spin2z, spin1z
         lambda1, lambda2 = lambda2, lambda1
 
-    delta_f = float(p["delta_f"])
-    f_lower = float(p["f_lower"])
-    f_final = float(p.get("f_final", 0.0))
     f_ref = float(p.get("f_ref", 0.0))
     distance = pnutils.megaparsecs_to_meters(float(p["distance"]))
     inclination = float(p.get("inclination", 0.0))
     coa_phase = float(p.get("coa_phase", 0.0))
-    long_asc_nodes = float(p.get("long_asc_nodes", 0.0))
+    # SimInspiralChooseFDWaveformSequence has no ascending-node argument and
+    # ignores the corresponding PyCBC parameter.
+    long_asc_nodes = 0.0 if sequence else float(p.get("long_asc_nodes", 0.0))
 
     if not math.isfinite(mass1) or not math.isfinite(mass2):
         raise ValueError("IMRPhenomD component masses must be finite")
@@ -1327,36 +1360,235 @@ def imrphenomd_fd_torch(**p):
         raise ValueError("NRTidal deformabilities must be finite and non-negative")
     if not math.isfinite(distance) or distance <= 0.0:
         raise ValueError("IMRPhenomD distance must be finite and positive")
-    if not all(
-        math.isfinite(value) for value in (delta_f, f_lower, f_final, f_ref)
-    ):
-        raise ValueError("IMRPhenomD frequencies must be finite")
-    if delta_f <= 0.0 or f_lower <= 0.0:
-        raise ValueError("IMRPhenomD delta_f and f_lower must be positive")
-    if f_final < 0.0 or f_ref < 0.0:
-        raise ValueError("IMRPhenomD f_final and f_ref must be non-negative")
+    if not math.isfinite(f_ref) or f_ref < 0.0:
+        raise ValueError("IMRPhenomD f_ref must be finite and non-negative")
 
-    M = mass1 + mass2
-    eta = mass1 * mass2 / (M * M)
+    total_mass = mass1 + mass2
+    eta = mass1 * mass2 / (total_mass * total_mass)
     eta = _nudge_eta(eta)
-    M_sec = M * _MTSUN_SI
+    total_mass_seconds = total_mass * _MTSUN_SI
     dquad1 = 0.0
     dquad2 = 0.0
     if tidal_version == 2:
         dquad1 = nrtidal_quadrupole_from_lambda(lambda1) - 1.0
         dquad2 = nrtidal_quadrupole_from_lambda(lambda2) - 1.0
 
+    device = state.torch_device
+    real_dtype = torch.float32 if device.type == "mps" else torch.float64
+    complex_dtype = (
+        torch.complex64 if real_dtype == torch.float32 else torch.complex128
+    )
+    return _IMRPhenomDInputs(
+        tidal_version=tidal_version,
+        mass1=mass1,
+        mass2=mass2,
+        spin1z=spin1z,
+        spin2z=spin2z,
+        lambda1=lambda1,
+        lambda2=lambda2,
+        distance=distance,
+        inclination=inclination,
+        coa_phase=coa_phase,
+        long_asc_nodes=long_asc_nodes,
+        f_ref=f_ref,
+        total_mass=total_mass,
+        eta=eta,
+        total_mass_seconds=total_mass_seconds,
+        dquad1=dquad1,
+        dquad2=dquad2,
+        device=device,
+        real_dtype=real_dtype,
+        complex_dtype=complex_dtype,
+    )
+
+
+def _imrphenomd_samples(inputs, frequencies, reference_frequency):
+    """Evaluate the inclination-independent waveform at device frequencies."""
+
+    mass1 = inputs.mass1
+    mass2 = inputs.mass2
+    spin1z = inputs.spin1z
+    spin2z = inputs.spin2z
+    lambda1 = inputs.lambda1
+    lambda2 = inputs.lambda2
+    total_mass = inputs.total_mass
+    eta = inputs.eta
+    total_mass_seconds = inputs.total_mass_seconds
+
+    finspin = _final_spin0815(eta, spin1z, spin2z)
+    amp_coeffs = _compute_amp_coeffs(eta, spin1z, spin2z, finspin)
+
+    # PN phasing series (reuse TaylorF2 port).
+    pn = taylorf2_aligned_phasing(
+        mass1,
+        mass2,
+        spin1z,
+        spin2z,
+        spin_order=-1,
+        tidal_order=-1,
+        dchi={},
+        qm_def1=inputs.dquad1,
+        qm_def2=inputs.dquad2,
+        lambda1=0.0,
+        lambda2=0.0,
+    )
+    # Subtract 3PN spin-spin term (matches LAL tuning).
+    pn.v[6] -= _subtract_3pn_ss(
+        mass1,
+        mass2,
+        total_mass,
+        eta,
+        spin1z,
+        spin2z,
+    ) * pn.v[0]
+    phase_coeffs = _compute_phase_coeffs(eta, spin1z, spin2z, finspin, pn)
+    pi_powers = _pi_powers()
+    phi_pref = _init_phi_prefactors(
+        phase_coeffs.sigma1,
+        phase_coeffs.sigma2,
+        phase_coeffs.sigma3,
+        phase_coeffs.sigma4,
+        pn,
+        pi_powers,
+    )
+
+    # A sequence with f_ref=0 uses its first sample as the reference. Keep
+    # that device scalar in Torch; regular-grid generation retains the exact
+    # NumPy scalar setup used by the original port.
+    mf_ref = total_mass_seconds * reference_frequency
+    if isinstance(mf_ref, torch.Tensor):
+        reference_values = mf_ref.reshape(1)
+    else:
+        reference_values = _np.array([mf_ref])
+    phase_at_reference = _IMRPhenDPhase(
+        reference_values,
+        phase_coeffs,
+        pn,
+        phi_pref,
+        pi_powers,
+    )[0]
+    phase_offset = 2.0 * inputs.coa_phase + phase_at_reference
+
+    time_shift = _d_phi_mrd(
+        amp_coeffs.fmaxCalc,
+        phase_coeffs.alpha1,
+        phase_coeffs.alpha2,
+        phase_coeffs.alpha3,
+        phase_coeffs.alpha4,
+        phase_coeffs.alpha5,
+        phase_coeffs.fRD,
+        phase_coeffs.fDM,
+        phase_coeffs.eta_inv,
+    )
+
+    dimensionless_frequencies = total_mass_seconds * frequencies
+    powers = _powers(dimensionless_frequencies)
+    amplitude = _IMRPhenDAmplitude(
+        dimensionless_frequencies,
+        amp_coeffs,
+        powers,
+    )
+    if inputs.tidal_version == 2:
+        amplitude += 2.0 * math.sqrt(_PI / 5.0) * nrtidal_amplitude(
+            frequencies,
+            mass1,
+            mass2,
+            lambda1,
+            lambda2,
+        )
+
+    phase = _IMRPhenDPhase(
+        dimensionless_frequencies,
+        phase_coeffs,
+        pn,
+        phi_pref,
+        pi_powers,
+    )
+    phase -= time_shift * (dimensionless_frequencies - mf_ref) + phase_offset
+    if inputs.tidal_version is not None:
+        phase += nrtidal_phase(
+            frequencies,
+            mass1,
+            mass2,
+            lambda1,
+            lambda2,
+            inputs.tidal_version,
+        )
+        if inputs.tidal_version == 2:
+            phase += nrtidal_higher_order_spin_phase(
+                frequencies,
+                mass1,
+                mass2,
+                spin1z,
+                spin2z,
+                inputs.dquad1 + 1.0,
+                inputs.dquad2 + 1.0,
+            )
+        merger_frequency = nrtidal_merger_frequency(
+            mass1,
+            mass2,
+            lambda1,
+            lambda2,
+        )
+        amplitude *= nrtidal_taper(frequencies, merger_frequency)
+
+    amplitude_scale = (
+        2.0
+        * math.sqrt(5.0 / (64.0 * _PI))
+        * total_mass
+        * _MRSUN_SI
+        * total_mass_seconds
+        / inputs.distance
+    )
+    scaled_amplitude = amplitude_scale * amplitude
+    return torch.complex(
+        scaled_amplitude * torch.cos(phase),
+        -scaled_amplitude * torch.sin(phase),
+    ).to(inputs.complex_dtype)
+
+
+def _imrphenomd_polarizations(samples, inputs):
+    """Project inclination-independent samples into plus and cross."""
+
+    cosi = math.cos(inputs.inclination)
+    plus0 = samples * 0.5 * (1.0 + cosi * cosi)
+    cross0 = samples * complex(0.0, -cosi)
+    cos_nodes = math.cos(2.0 * inputs.long_asc_nodes)
+    sin_nodes = math.sin(2.0 * inputs.long_asc_nodes)
+    return (
+        cos_nodes * plus0 + sin_nodes * cross0,
+        cos_nodes * cross0 - sin_nodes * plus0,
+    )
+
+
+def imrphenomd_fd_torch(**p):
+    """Generate IMRPhenomD or NRTidal polarizations with Torch."""
+
+    inputs = _imrphenomd_inputs(p)
+    delta_f = float(p["delta_f"])
+    f_lower = float(p["f_lower"])
+    f_final = float(p.get("f_final", 0.0))
+    if not all(math.isfinite(value) for value in (delta_f, f_lower, f_final)):
+        raise ValueError("IMRPhenomD frequencies must be finite")
+    if delta_f <= 0.0 or f_lower <= 0.0:
+        raise ValueError("IMRPhenomD delta_f and f_lower must be positive")
+    if f_final < 0.0:
+        raise ValueError("IMRPhenomD f_final must be non-negative")
+
     # Determine the base-model termination and output layout. NRTidal asks the
     # base model to stop no later than 1.3 times its merger fit, then applies a
     # taper ending at 1.2 times merger. LAL still preserves a larger explicitly
     # requested f_final as zero padding in the returned power-of-two series.
-    f_cut_hz = f_CUT / M_sec
-    if tidal_version is None:
+    f_cut_hz = f_CUT / inputs.total_mass_seconds
+    if inputs.tidal_version is None:
         layout_f_max = f_final if f_final > 0.0 else f_cut_hz
         active_f_max = min(layout_f_max, f_cut_hz)
     else:
         merger_frequency = nrtidal_merger_frequency(
-            mass1, mass2, lambda1, lambda2
+            inputs.mass1,
+            inputs.mass2,
+            inputs.lambda1,
+            inputs.lambda2,
         )
         tidal_f_max = 1.3 * merger_frequency
         layout_f_max = f_final if f_final > 0.0 else tidal_f_max
@@ -1369,116 +1601,29 @@ def imrphenomd_fd_torch(**p):
     npts = int(
         math.ceil(2.0 ** math.ceil(math.log2(layout_f_max / delta_f)))
     ) + 1
-    device = state.torch_device
-    real_dtype = torch.float32 if device.type == "mps" else torch.float64
-    freqs = torch.arange(npts, dtype=real_dtype, device=device) * delta_f
+    freqs = (
+        torch.arange(
+            npts,
+            dtype=inputs.real_dtype,
+            device=inputs.device,
+        )
+        * delta_f
+    )
     # LAL truncates the frequency bounds to integer bins and uses an exclusive
     # upper bin in its evaluation loop.
     first_bin = int(math.floor(f_lower / delta_f))
     stop_bin = int(math.floor(active_f_max / delta_f))
-    active = torch.zeros(npts, dtype=torch.bool, device=device)
+    active = torch.zeros(npts, dtype=torch.bool, device=inputs.device)
     active[first_bin:stop_bin] = True
 
-    finspin = _final_spin0815(eta, spin1z, spin2z)
-    amp_coeffs = _compute_amp_coeffs(eta, spin1z, spin2z, finspin)
-
-    # PN phasing series (reuse TaylorF2 port)
-    pn = taylorf2_aligned_phasing(
-        mass1,
-        mass2,
-        spin1z,
-        spin2z,
-        spin_order=-1,
-        tidal_order=-1,
-        dchi={},
-        qm_def1=dquad1,
-        qm_def2=dquad2,
-        lambda1=0.0,
-        lambda2=0.0,
+    reference_frequency = inputs.f_ref if inputs.f_ref > 0.0 else f_lower
+    samples = _imrphenomd_samples(inputs, freqs, reference_frequency)
+    samples = torch.where(
+        active,
+        samples,
+        torch.zeros((), dtype=inputs.complex_dtype, device=inputs.device),
     )
-    # Subtract 3PN spin-spin term (matches LAL tuning)
-    pn.v[6] -= _subtract_3pn_ss(mass1, mass2, M, eta, spin1z, spin2z) * pn.v[0]
-    phase_coeffs = _compute_phase_coeffs(eta, spin1z, spin2z, finspin, pn)
-    phi_pref = _init_phi_prefactors(
-        phase_coeffs.sigma1,
-        phase_coeffs.sigma2,
-        phase_coeffs.sigma3,
-        phase_coeffs.sigma4,
-        pn,
-        _pi_powers(),
-    )
-
-    # Pre-compute reference phase
-    MfRef = M_sec * (f_ref if f_ref > 0 else f_lower)
-    phifRef = _IMRPhenDPhase(
-        _np.array([MfRef]),
-        phase_coeffs,
-        pn,
-        phi_pref,
-        _pi_powers(),
-    )[0]
-    phi_precalc = 2.0 * coa_phase + phifRef
-
-    t0 = _d_phi_mrd(
-        amp_coeffs.fmaxCalc,
-        phase_coeffs.alpha1,
-        phase_coeffs.alpha2,
-        phase_coeffs.alpha3,
-        phase_coeffs.alpha4,
-        phase_coeffs.alpha5,
-        phase_coeffs.fRD,
-        phase_coeffs.fDM,
-        phase_coeffs.eta_inv,
-    )
-
-    Mf = M_sec * freqs
-    powers = _powers(Mf)
-
-    # Amplitude
-    amp = _IMRPhenDAmplitude(Mf, amp_coeffs, powers)
-    if tidal_version == 2:
-        amp += 2.0 * math.sqrt(_PI / 5.0) * nrtidal_amplitude(
-            freqs, mass1, mass2, lambda1, lambda2
-        )
-
-    # Phase
-    phase = _IMRPhenDPhase(Mf, phase_coeffs, pn, phi_pref, _pi_powers())
-    phase -= t0 * (Mf - MfRef) + phi_precalc
-    if tidal_version is not None:
-        phase += nrtidal_phase(
-            freqs, mass1, mass2, lambda1, lambda2, tidal_version
-        )
-        if tidal_version == 2:
-            phase += nrtidal_higher_order_spin_phase(
-                freqs,
-                mass1,
-                mass2,
-                spin1z,
-                spin2z,
-                dquad1 + 1.0,
-                dquad2 + 1.0,
-            )
-        amp *= nrtidal_taper(freqs, merger_frequency)
-
-    # Zero outside active band
-    amp = torch.where(active, amp, 0.0)
-    phase = torch.where(active, phase, 0.0)
-
-    # Overall scaling (amp0 uses masses in SI)
-    amp_scale = 2.0 * math.sqrt(5.0 / (64.0 * _PI)) * M * _MRSUN_SI * M_sec / distance
-    scaled_amp = amp_scale * amp
-    h22 = torch.complex(
-        scaled_amp * torch.cos(phase),
-        -scaled_amp * torch.sin(phase),
-    )
-
-    cosi = math.cos(inclination)
-    plus0 = h22 * 0.5 * (1.0 + cosi * cosi)
-    cross0 = h22 * complex(0.0, -cosi)
-    cos_nodes = math.cos(2.0 * long_asc_nodes)
-    sin_nodes = math.sin(2.0 * long_asc_nodes)
-    hp = cos_nodes * plus0 + sin_nodes * cross0
-    hc = cos_nodes * cross0 - sin_nodes * plus0
+    hp, hc = _imrphenomd_polarizations(samples, inputs)
 
     epoch = -1.0 / delta_f
     hp_fs = FrequencySeries(
@@ -1488,6 +1633,54 @@ def imrphenomd_fd_torch(**p):
         TorchArrayData(hc), delta_f=delta_f, epoch=epoch, copy=False
     )
     return hp_fs, hc_fs
+
+
+def _imrphenomd_sequence_frequencies(sample_points, inputs):
+    """Return validated sequence frequencies on the active Torch device."""
+
+    values = getattr(sample_points, "_data", sample_points)
+    if isinstance(values, TorchArrayData):
+        values = values.tensor
+    frequencies = torch.as_tensor(
+        values,
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+    if frequencies.ndim != 1 or frequencies.numel() == 0:
+        raise ValueError("IMRPhenomD sample_points must be a non-empty vector")
+    if not bool(torch.all(torch.isfinite(frequencies))):
+        raise ValueError("IMRPhenomD sample_points must be finite")
+    if bool(torch.any(frequencies <= 0.0)):
+        raise ValueError("IMRPhenomD sample_points must be positive")
+    return frequencies
+
+
+def imrphenomd_fd_sequence_torch(**p):
+    """Evaluate IMRPhenomD or NRTidal at arbitrary frequencies with Torch."""
+
+    if not imrphenomd_sequence_native_supported(p):
+        raise ValueError(
+            "IMRPhenomD sequence parameters are not supported by the "
+            "native Torch path"
+        )
+    inputs = _imrphenomd_inputs(p, sequence=True)
+    frequencies = _imrphenomd_sequence_frequencies(
+        p["sample_points"],
+        inputs,
+    )
+    reference_frequency = (
+        inputs.f_ref if inputs.f_ref > 0.0 else frequencies[0]
+    )
+    samples = _imrphenomd_samples(
+        inputs,
+        frequencies,
+        reference_frequency,
+    )
+    plus, cross = _imrphenomd_polarizations(samples, inputs)
+    return (
+        PyCBCArray(TorchArrayData(plus), copy=False),
+        PyCBCArray(TorchArrayData(cross), copy=False),
+    )
 
 
 def _IMRPhenDAmplitude(Mf, a: _AmpCoeffs, powers: _Powers):

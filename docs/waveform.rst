@@ -110,10 +110,11 @@ environment flags:
 - IMRPhenomD (FD): ``PYCBC_IMRPHENOMD_NATIVE``. Frequency-grid construction,
   amplitude/phase evaluation, masking, and polarization assembly run on the
   active Torch device; small coefficient and QNM-table setup remains on CPU.
+  Arbitrary-frequency ``get_fd_waveform_sequence`` evaluation is also native.
   ``IMRPhenomD_NRTidal`` and ``IMRPhenomD_NRTidalv2`` also apply their tidal
-  phase, amplitude, spin, and taper corrections on-device. Transverse spins,
-  testing-GR changes, and unsupported tidal or mode options fall back to
-  lalsimulation.
+  phase, amplitude, spin, and taper corrections on-device for both sampling
+  interfaces. Transverse spins, testing-GR changes, and unsupported tidal or
+  mode options fall back to lalsimulation.
 - IMRPhenomXAS (FD): ``PYCBC_IMRPHENOMXAS_NATIVE``. Aligned-spin amplitude and
   phase fits, scalar matching derivatives, frequency-grid construction,
   masking, and polarization assembly use Torch. Arbitrary-frequency

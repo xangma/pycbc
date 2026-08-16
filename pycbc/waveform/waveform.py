@@ -605,6 +605,24 @@ def _lalsim_fd_sequence(**p):
     if (
         p.get("approximant")
         in (
+            "IMRPhenomD",
+            "IMRPhenomD_NRTidal",
+            "IMRPhenomD_NRTidalv2",
+        )
+        and using_torch
+        and torch_native_enabled("PYCBC_IMRPHENOMD_NATIVE", default=False)
+    ):
+        from .imrphenomd_torch import (
+            imrphenomd_fd_sequence_torch,
+            imrphenomd_sequence_native_supported,
+        )
+
+        if imrphenomd_sequence_native_supported(p):
+            return imrphenomd_fd_sequence_torch(**p)
+
+    if (
+        p.get("approximant")
+        in (
             "IMRPhenomXAS",
             "IMRPhenomXAS_NRTidalv2",
             "IMRPhenomXAS_NRTidalv3",
