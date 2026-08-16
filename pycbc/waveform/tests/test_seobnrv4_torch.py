@@ -8,10 +8,14 @@ import pytest
 torch = pytest.importorskip("torch")
 
 from pycbc import scheme as _scheme  # noqa: E402
-from pycbc.waveform import get_fd_waveform  # noqa: E402
+from pycbc.waveform import (  # noqa: E402
+    get_fd_waveform,
+    get_fd_waveform_sequence,
+)
 from pycbc.waveform.seobnrv4_torch import (  # noqa: E402
     _clear_rom_cache,
     seobnrv4_rom_native_supported,
+    seobnrv4_rom_sequence_native_supported,
 )
 
 
@@ -74,6 +78,26 @@ def _generate(params, *, native, device=None, approximant="SEOBNRv4_ROM"):
     return get_fd_waveform(approximant=approximant, **params)
 
 
+def _generate_sequence(
+    params,
+    sample_points,
+    *,
+    native,
+    device=None,
+    approximant="SEOBNRv4_ROM",
+):
+    os.environ["PYCBC_SEOBNRV4_NATIVE"] = "1" if native else "0"
+    if device is None:
+        _activate_scheme(_scheme.CPUScheme())
+    else:
+        _activate_scheme(_scheme.TorchScheme(device))
+    return get_fd_waveform_sequence(
+        approximant=approximant,
+        sample_points=sample_points,
+        **params,
+    )
+
+
 def _snapshot(series_pair):
     return tuple(
         (len(series), series.delta_f, float(series.epoch), series.numpy().copy())
@@ -97,6 +121,23 @@ def _assert_parity(
             )
         nonzero = expected_array != 0.0
         assert nonzero.any(), "waveform contains no non-zero bins"
+        relative_error = np.linalg.norm(
+            result_array[nonzero] - expected_array[nonzero]
+        ) / np.linalg.norm(expected_array[nonzero])
+        assert relative_error < relative_tolerance
+
+
+def _assert_sequence_parity(
+    reference, actual, relative_tolerance, *, exact_zero_mask=True
+):
+    for expected_array, result in zip(reference, actual):
+        result_array = result.numpy()
+        if exact_zero_mask:
+            np.testing.assert_array_equal(
+                result_array == 0.0, expected_array == 0.0
+            )
+        nonzero = expected_array != 0.0
+        assert nonzero.any(), "waveform contains no non-zero samples"
         relative_error = np.linalg.norm(
             result_array[nonzero] - expected_array[nonzero]
         ) / np.linalg.norm(expected_array[nonzero])
@@ -249,6 +290,209 @@ def test_seobnrv4_rom_nrtidal_parity(approximant, params):
 )
 def test_seobnrv4_rom_native_support_boundary(params, expected):
     assert seobnrv4_rom_native_supported(params) is expected
+
+
+@pytest.mark.parametrize(
+    ("approximant", "params", "sample_points"),
+    [
+        (
+            "SEOBNRv4_ROM",
+            {
+                **_BASE_PARAMS,
+                "mass1": 35.0,
+                "mass2": 28.0,
+                "spin1z": 0.2,
+                "spin2z": -0.1,
+                "f_ref": 30.0,
+                "long_asc_nodes": 0.37,
+            },
+            [20.0, 23.5, 30.0, 45.0, 100.0, 400.0, 700.0, 10000.0],
+        ),
+        (
+            "SEOBNRv4_ROM",
+            {
+                **_BASE_PARAMS,
+                "mass1": 18.0,
+                "mass2": 42.0,
+                "spin1z": -0.4,
+                "spin2z": 0.7,
+                "f_ref": 0.0,
+                "long_asc_nodes": 0.21,
+            },
+            [17.3, 400.0, 22.0, 150.0],
+        ),
+        (
+            "SEOBNRv4_ROM_NRTidal",
+            {
+                **_BASE_PARAMS,
+                "mass1": 1.4,
+                "mass2": 1.2,
+                "spin1z": 0.05,
+                "spin2z": -0.02,
+                "lambda1": 400.0,
+                "lambda2": 800.0,
+                "f_ref": 30.0,
+            },
+            [20.0, 30.0, 100.0, 500.0, 1000.0, 2048.0, 10000.0],
+        ),
+        (
+            "SEOBNRv4_ROM_NRTidalv2",
+            {
+                **_BASE_PARAMS,
+                "mass1": 1.15,
+                "mass2": 1.55,
+                "spin1z": 0.1,
+                "spin2z": -0.15,
+                "lambda1": 900.0,
+                "lambda2": 300.0,
+                "f_ref": 0.0,
+                "long_asc_nodes": 0.31,
+            },
+            [18.0, 30.0, 150.0, 1024.0, 1500.0, 3000.0],
+        ),
+    ],
+)
+def test_seobnrv4_rom_sequence_matches_lal_without_calling_lal(
+    approximant, params, sample_points, monkeypatch
+):
+    reference = tuple(
+        series.numpy().copy()
+        for series in _generate_sequence(
+            params,
+            sample_points,
+            native=False,
+            approximant=approximant,
+        )
+    )
+
+    import pycbc.waveform.seobnrv4_torch as native_module
+    import pycbc.waveform.waveform as waveform_module
+
+    native = native_module.seobnrv4_fd_sequence_torch
+    native_calls = 0
+
+    def recording_native(**native_params):
+        nonlocal native_calls
+        native_calls += 1
+        return native(**native_params)
+
+    def unexpected_lalsimulation(*_args, **_kwargs):
+        raise AssertionError("native SEOBNRv4_ROM sequence called lalsimulation")
+
+    monkeypatch.setattr(
+        native_module,
+        "seobnrv4_fd_sequence_torch",
+        recording_native,
+    )
+    monkeypatch.setattr(
+        waveform_module.lalsimulation,
+        "SimInspiralChooseFDWaveformSequence",
+        unexpected_lalsimulation,
+    )
+    actual = _generate_sequence(
+        params,
+        sample_points,
+        native=True,
+        device="cpu",
+        approximant=approximant,
+    )
+
+    assert native_calls == 1
+    assert all(series._data.tensor.device.type == "cpu" for series in actual)
+    assert all(series._data.tensor.dtype == torch.complex128 for series in actual)
+    _assert_sequence_parity(reference, actual, relative_tolerance=1.0e-8)
+
+
+@pytest.mark.parametrize(
+    ("changes", "expected"),
+    [
+        ({}, True),
+        ({"approximant": "SEOBNRv4_ROM_NRTidal"}, True),
+        ({"approximant": "SEOBNRv4_ROM_NRTidalv2"}, True),
+        ({"approximant": "SEOBNRv4"}, False),
+        ({"spin1x": 0.1}, False),
+        ({"dchi3": 0.1}, False),
+    ],
+)
+def test_seobnrv4_rom_sequence_native_support_boundary(changes, expected):
+    assert seobnrv4_rom_sequence_native_supported(changes) is expected
+
+
+def test_seobnrv4_rom_sequence_unsupported_options_use_lal_fallback(
+    monkeypatch,
+):
+    params = {
+        **_BASE_PARAMS,
+        "mass1": 30.0,
+        "mass2": 20.0,
+        "spin1z": 0.2,
+        "spin2z": -0.1,
+        "f_ref": 20.0,
+        "dchi3": 0.1,
+    }
+    sample_points = [20.0, 30.0, 100.0, 400.0]
+    reference = tuple(
+        series.numpy().copy()
+        for series in _generate_sequence(
+            params, sample_points, native=False
+        )
+    )
+
+    import pycbc.waveform.seobnrv4_torch as native_module
+    import pycbc.waveform.waveform as waveform_module
+
+    def unexpected_native(**_params):
+        raise AssertionError("unsupported SEOBNRv4_ROM sequence reached Torch")
+
+    lal_generator = waveform_module.lalsimulation.SimInspiralChooseFDWaveformSequence
+    lal_calls = 0
+
+    def recording_lal(*args, **kwargs):
+        nonlocal lal_calls
+        lal_calls += 1
+        return lal_generator(*args, **kwargs)
+
+    monkeypatch.setattr(
+        native_module,
+        "seobnrv4_fd_sequence_torch",
+        unexpected_native,
+    )
+    monkeypatch.setattr(
+        waveform_module.lalsimulation,
+        "SimInspiralChooseFDWaveformSequence",
+        recording_lal,
+    )
+    fallback = _generate_sequence(
+        params,
+        sample_points,
+        native=True,
+        device="cpu",
+    )
+
+    assert lal_calls == 1
+    assert all(isinstance(series._data.tensor, torch.Tensor) for series in fallback)
+    _assert_sequence_parity(reference, fallback, relative_tolerance=1.0e-14)
+
+
+def test_seobnrv4_rom_nrtidal_sequence_requires_increasing_frequencies():
+    params = {
+        **_BASE_PARAMS,
+        "mass1": 1.4,
+        "mass2": 1.2,
+        "spin1z": 0.05,
+        "spin2z": -0.02,
+        "lambda1": 400.0,
+        "lambda2": 800.0,
+        "f_ref": 20.0,
+    }
+    with pytest.raises(ValueError, match="strictly increasing"):
+        _generate_sequence(
+            params,
+            [20.0, 100.0, 50.0, 400.0],
+            native=True,
+            device="cpu",
+            approximant="SEOBNRv4_ROM_NRTidalv2",
+        )
 
 
 @pytest.mark.parametrize(
@@ -504,6 +748,90 @@ def test_seobnrv4_rom_nrtidal_stays_on_requested_device(device_name):
         relative_tolerance=tolerance,
         exact_zero_mask=device_name != "mps",
     )
+
+
+@pytest.mark.parametrize("device_name", ["cpu", "mps", "cuda"])
+def test_seobnrv4_rom_sequence_stays_on_requested_device(device_name):
+    if device_name == "mps" and not torch.backends.mps.is_available():
+        pytest.skip("Torch MPS device is unavailable")
+    if device_name == "cuda" and not torch.cuda.is_available():
+        pytest.skip("Torch CUDA device is unavailable")
+
+    approximant = "SEOBNRv4_ROM_NRTidalv2"
+    params = {
+        **_BASE_PARAMS,
+        "mass1": 1.4,
+        "mass2": 1.2,
+        "spin1z": 0.05,
+        "spin2z": -0.02,
+        "lambda1": 400.0,
+        "lambda2": 800.0,
+        "f_ref": 0.0,
+    }
+    sample_points = [20.0, 30.0, 100.0, 500.0, 1000.0, 2048.0]
+    reference = tuple(
+        series.numpy().copy()
+        for series in _generate_sequence(
+            params,
+            sample_points,
+            native=False,
+            approximant=approximant,
+        )
+    )
+    actual = _generate_sequence(
+        params,
+        sample_points,
+        native=True,
+        device=device_name,
+        approximant=approximant,
+    )
+
+    expected_dtype = (
+        torch.complex64 if device_name == "mps" else torch.complex128
+    )
+    assert all(
+        series._data.tensor.device.type == device_name for series in actual
+    )
+    assert all(series._data.tensor.dtype == expected_dtype for series in actual)
+    tolerance = 2.0e-2 if device_name == "mps" else 1.0e-8
+    _assert_sequence_parity(
+        reference,
+        actual,
+        relative_tolerance=tolerance,
+        exact_zero_mask=device_name != "mps",
+    )
+
+
+def test_seobnrv4_rom_sequence_avoids_host_transfer(monkeypatch):
+    from pycbc.types import Array
+    from pycbc.types.array_torch import TorchArrayData
+
+    def reject_host_transfer(_self):
+        raise AssertionError("native SEOBNRv4_ROM sequence transferred to NumPy")
+
+    monkeypatch.setenv("PYCBC_SEOBNRV4_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    sample_points = Array([20.0, 30.0, 100.0, 400.0])
+    monkeypatch.setattr(TorchArrayData, "numpy", reject_host_transfer)
+    with torch.no_grad():
+        hp, hc = get_fd_waveform_sequence(
+            approximant="SEOBNRv4_ROM_NRTidalv2",
+            sample_points=sample_points,
+            mass1=1.4,
+            mass2=1.2,
+            spin1z=0.05,
+            spin2z=-0.02,
+            lambda1=400.0,
+            lambda2=800.0,
+            f_ref=0.0,
+            distance=100.0,
+            inclination=0.4,
+        )
+
+    assert isinstance(hp._data.tensor, torch.Tensor)
+    assert isinstance(hc._data.tensor, torch.Tensor)
+    assert hp._data.tensor.device.type == "cpu"
+    assert hc._data.tensor.device.type == "cpu"
 
 
 def test_seobnrv4_rom_reconstruction_uses_torch_tensors(monkeypatch):

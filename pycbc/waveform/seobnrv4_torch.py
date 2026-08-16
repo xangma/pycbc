@@ -46,6 +46,7 @@ import torch
 import lal
 import pycbc.scheme as _scheme
 from pycbc import pnutils
+from pycbc.types import Array as PyCBCArray
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform._seobnrv4_qnm import seobnrv4_qnm_omega
@@ -489,8 +490,47 @@ def _nudge_eta(eta: float) -> float:
     return eta
 
 
-def seobnrv4_fd_torch(**p):
-    """Generate Torch ``SEOBNRv4_ROM`` or NRTidal polarizations."""
+@dataclass
+class _SEOBNRv4ROMInputs:
+    """Validated inputs and interpolants shared by both sampling APIs."""
+
+    tidal_version: int | None
+    mass1: float
+    mass2: float
+    spin1z: float
+    spin2z: float
+    lambda1: float
+    lambda2: float
+    f_ref: float
+    distance_mpc: float
+    inclination: float
+    coa_phase: float
+    long_asc_nodes: float
+    total_mass: float
+    eta: float
+    total_mass_seconds: float
+    minimum_mf: float
+    maximum_mf: float
+    ringdown_mf: float
+    device: torch.device
+    real_dtype: torch.dtype
+    complex_dtype: torch.dtype
+    amp_grid: torch.Tensor
+    amp_values: torch.Tensor
+    amp_coeff: tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+    phase_grid: torch.Tensor
+    phase_values: torch.Tensor
+    phase_coeff: tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+
+
+def seobnrv4_rom_sequence_native_supported(params) -> bool:
+    """Return whether arbitrary-frequency ROM generation is native."""
+
+    return seobnrv4_rom_native_supported(params)
+
+
+def _seobnrv4_rom_inputs(p, *, sequence=False):
+    """Validate scalar inputs and reconstruct the parameter-space ROM."""
 
     if not seobnrv4_rom_native_supported(p):
         raise ValueError(
@@ -500,23 +540,23 @@ def seobnrv4_fd_torch(**p):
     if not isinstance(state, _scheme.TorchScheme):
         raise RuntimeError("native Torch SEOBNRv4_ROM requires TorchScheme")
 
-    approximant = p.get("approximant", "SEOBNRv4_ROM")
-    tidal_version = nrtidal_version(approximant)
-
+    tidal_version = nrtidal_version(
+        p.get("approximant", "SEOBNRv4_ROM")
+    )
     mass1 = float(p["mass1"])
     mass2 = float(p["mass2"])
     spin1z = float(p.get("spin1z", 0.0))
     spin2z = float(p.get("spin2z", 0.0))
     lambda1 = float(p.get("lambda1") or 0.0)
     lambda2 = float(p.get("lambda2") or 0.0)
-    delta_f = float(p["delta_f"])
-    f_lower = float(p["f_lower"])
-    f_final = float(p.get("f_final", 0.0))
     f_ref = float(p.get("f_ref", 0.0))
     distance_mpc = float(p["distance"])
     inclination = float(p.get("inclination", 0.0))
     coa_phase = float(p.get("coa_phase", 0.0))
-    long_asc_nodes = float(p.get("long_asc_nodes", 0.0))
+    # SimInspiralChooseFDWaveformSequence has no ascending-node argument.
+    long_asc_nodes = (
+        0.0 if sequence else float(p.get("long_asc_nodes", 0.0))
+    )
 
     scalars = {
         "mass1": mass1,
@@ -525,9 +565,6 @@ def seobnrv4_fd_torch(**p):
         "spin2z": spin2z,
         "lambda1": lambda1,
         "lambda2": lambda2,
-        "delta_f": delta_f,
-        "f_lower": f_lower,
-        "f_final": f_final,
         "f_ref": f_ref,
         "distance": distance_mpc,
         "inclination": inclination,
@@ -543,10 +580,8 @@ def seobnrv4_fd_torch(**p):
         raise ValueError("dimensionless component spins must lie in [-1, 1]")
     if lambda1 < 0.0 or lambda2 < 0.0:
         raise ValueError("tidal deformabilities must be non-negative")
-    if delta_f <= 0.0 or f_lower <= 0.0:
-        raise ValueError("delta_f and f_lower must be positive")
-    if f_final < 0.0 or f_ref < 0.0:
-        raise ValueError("f_final and f_ref must be non-negative")
+    if f_ref < 0.0:
+        raise ValueError("f_ref must be non-negative")
     if distance_mpc <= 0.0:
         raise ValueError("distance must be positive")
 
@@ -564,7 +599,7 @@ def seobnrv4_fd_torch(**p):
         warnings.warn(
             "SEOBNRv4_ROM can disagree with SEOBNRv4 above 500 solar masses",
             RuntimeWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
 
     metadata = _rom_metadata()
@@ -581,37 +616,14 @@ def seobnrv4_fd_torch(**p):
         metadata[high_name].amp_bounds[1],
         metadata[high_name].phase_bounds[1],
     )
-    lower_mf = f_lower * total_mass_seconds
-    base_final_hz = f_final
-    if tidal_version is not None:
-        merger_frequency = nrtidal_merger_frequency(
-            mass1, mass2, lambda1, lambda2
-        )
-        tidal_final_hz = 1.3 * merger_frequency
-        if base_final_hz == 0.0 or base_final_hz > tidal_final_hz:
-            base_final_hz = tidal_final_hz
-    requested_final_mf = base_final_hz * total_mass_seconds
-    if lower_mf < minimum_mf:
-        raise ValueError(
-            f"starting frequency M*f_lower={lower_mf:g} is below the "
-            f"ROM minimum {minimum_mf:g}"
-        )
-    if requested_final_mf == 0.0 or requested_final_mf > maximum_mf:
-        final_mf = maximum_mf
-    elif requested_final_mf < minimum_mf:
-        raise ValueError("f_final is below the ROM minimum frequency")
-    else:
-        final_mf = requested_final_mf
-    if final_mf <= lower_mf:
-        raise ValueError("f_final (or the ROM cutoff) must exceed f_lower")
 
-    reference_mf = (f_ref if f_ref > 0.0 else f_lower) * total_mass_seconds
-    reference_mf = min(max(reference_mf, minimum_mf), maximum_mf)
     device = state.torch_device
     real_dtype = torch.float32 if device.type == "mps" else torch.float64
+    complex_dtype = (
+        torch.complex64 if real_dtype == torch.float32 else torch.complex128
+    )
     sub_lo = _load_submodel("sub1", real_dtype, device)
     sub_hi = _load_submodel(high_name, real_dtype, device)
-
     amp_lo, phase_lo = _evaluate_submodel(
         sub_lo, eta, spin1z, spin2z
     )
@@ -625,145 +637,308 @@ def seobnrv4_fd_torch(**p):
         sub_lo, sub_hi, phase_lo, phase_hi
     )
 
-    final_hz = final_mf / total_mass_seconds
-    npts = _next_power_of_two(int(final_hz / delta_f)) + 1
-    if tidal_version is not None and f_final > tidal_final_hz:
-        # The outer NRTidal wrapper resizes with the untruncated ratio, unlike
-        # the base ROM's size_t-valued ``NextPow2`` helper.
-        npts = 2 ** math.ceil(math.log2(f_final / delta_f)) + 1
-    elif f_final > final_hz:
-        npts = _next_power_of_two(int(f_final / delta_f)) + 1
-    complex_dtype = (
-        torch.complex64 if real_dtype == torch.float32 else torch.complex128
-    )
-    hp = torch.zeros(npts, dtype=complex_dtype, device=device)
-    hc = torch.zeros_like(hp)
-
-    first_bin = math.ceil(f_lower / delta_f)
-    stop_bin = math.ceil(final_hz / delta_f)
-    bin_indices = torch.arange(first_bin, stop_bin, device=device)
-    frequencies_mf = bin_indices.to(real_dtype) * (
-        delta_f * total_mass_seconds
-    )
-    amplitude = _spline_eval(
-        frequencies_mf, amp_grid, amp_values, *amp_coeff
-    )
-    frequencies_hz = bin_indices.to(real_dtype) * delta_f
-    if tidal_version == 2:
-        amplitude += nrtidal_amplitude(
-            frequencies_hz, mass1, mass2, lambda1, lambda2
-        )
-    phase = _spline_eval(
-        frequencies_mf, phase_grid, phase_values, *phase_coeff
-    )
-    reference = torch.as_tensor(
-        reference_mf, dtype=real_dtype, device=device
-    )
-    phase_reference = _spline_eval(
-        reference, phase_grid, phase_values, *phase_coeff
-    ) - 2.0 * coa_phase
-
     ringdown_mf = seobnrv4_qnm_omega(
         mass1, mass2, spin1z, spin2z, 2, 2
     ) / (2.0 * math.pi)
     ringdown_mf = min(ringdown_mf, maximum_mf)
     if ringdown_mf < minimum_mf:
         raise ValueError("SEOBNRv4 ringdown frequency is below the ROM minimum")
+
+    return _SEOBNRv4ROMInputs(
+        tidal_version=tidal_version,
+        mass1=mass1,
+        mass2=mass2,
+        spin1z=spin1z,
+        spin2z=spin2z,
+        lambda1=lambda1,
+        lambda2=lambda2,
+        f_ref=f_ref,
+        distance_mpc=distance_mpc,
+        inclination=inclination,
+        coa_phase=coa_phase,
+        long_asc_nodes=long_asc_nodes,
+        total_mass=total_mass,
+        eta=eta,
+        total_mass_seconds=total_mass_seconds,
+        minimum_mf=minimum_mf,
+        maximum_mf=maximum_mf,
+        ringdown_mf=ringdown_mf,
+        device=device,
+        real_dtype=real_dtype,
+        complex_dtype=complex_dtype,
+        amp_grid=amp_grid,
+        amp_values=amp_values,
+        amp_coeff=amp_coeff,
+        phase_grid=phase_grid,
+        phase_values=phase_values,
+        phase_coeff=phase_coeff,
+    )
+
+
+def _reference_mf(inputs, reference_frequency):
+    """Clamp a scalar reference frequency to the ROM interpolation domain."""
+
+    reference = torch.as_tensor(
+        reference_frequency,
+        dtype=inputs.real_dtype,
+        device=inputs.device,
+    )
+    return (reference * inputs.total_mass_seconds).clamp(
+        inputs.minimum_mf, inputs.maximum_mf
+    )
+
+
+def _seobnrv4_rom_amplitude_phase(
+    inputs, frequencies_hz, reference_frequency
+):
+    """Evaluate the inclination-independent base ROM on a device tensor."""
+
+    frequencies_mf = frequencies_hz * inputs.total_mass_seconds
+    amplitude = _spline_eval(
+        frequencies_mf,
+        inputs.amp_grid,
+        inputs.amp_values,
+        *inputs.amp_coeff,
+    )
+    if inputs.tidal_version == 2:
+        amplitude += nrtidal_amplitude(
+            frequencies_hz,
+            inputs.mass1,
+            inputs.mass2,
+            inputs.lambda1,
+            inputs.lambda2,
+        )
+
+    phase = _spline_eval(
+        frequencies_mf,
+        inputs.phase_grid,
+        inputs.phase_values,
+        *inputs.phase_coeff,
+    )
+    reference = _reference_mf(inputs, reference_frequency)
+    phase_reference = _spline_eval(
+        reference,
+        inputs.phase_grid,
+        inputs.phase_values,
+        *inputs.phase_coeff,
+    ) - 2.0 * inputs.coa_phase
     ringdown = torch.as_tensor(
-        ringdown_mf, dtype=real_dtype, device=device
+        inputs.ringdown_mf,
+        dtype=inputs.real_dtype,
+        device=inputs.device,
     )
     time_correction = _spline_derivative(
-        ringdown, phase_grid, *phase_coeff
+        ringdown,
+        inputs.phase_grid,
+        *inputs.phase_coeff,
     ) / (2.0 * math.pi)
-    phase = (
-        phase
-        - phase_reference
-        - 2.0
-        * math.pi
-        * (frequencies_mf - reference)
-        * time_correction
+    phase -= (
+        phase_reference
+        + 2.0 * math.pi * (frequencies_mf - reference) * time_correction
     )
+    return amplitude, phase
 
-    if tidal_version is not None:
-        # The outer NRTidal wrapper evaluates its correction through the final
-        # allocated bin, including any zero-padded tail, and uses that full
-        # grid for the separate coalescence-time correction.
-        correction_bins = torch.arange(first_bin, npts - 1, device=device)
-        correction_frequencies = correction_bins.to(real_dtype) * delta_f
-        correction_phase = nrtidal_phase(
-            correction_frequencies,
-            mass1,
-            mass2,
-            lambda1,
-            lambda2,
-            tidal_version,
+
+def _nrtidal_correction_phase(inputs, frequencies_hz):
+    """Return the NRTidal and spin-induced-quadrupole phase correction."""
+
+    phase = nrtidal_phase(
+        frequencies_hz,
+        inputs.mass1,
+        inputs.mass2,
+        inputs.lambda1,
+        inputs.lambda2,
+        inputs.tidal_version,
+    )
+    dquad1 = nrtidal_quadrupole_from_lambda(inputs.lambda1) - 1.0
+    dquad2 = nrtidal_quadrupole_from_lambda(inputs.lambda2) - 1.0
+    phase += nrtidal_self_spin_phase(
+        frequencies_hz,
+        inputs.mass1,
+        inputs.mass2,
+        inputs.spin1z,
+        inputs.spin2z,
+        dquad1,
+        dquad2,
+    )
+    return phase, dquad1, dquad2
+
+
+def _apply_nrtidal(
+    inputs,
+    frequencies_hz,
+    amplitude,
+    phase,
+    correction_frequencies,
+    tidal_reference_frequency,
+):
+    """Apply NRTidal corrections and their coalescence-time alignment."""
+
+    correction_phase, dquad1, dquad2 = _nrtidal_correction_phase(
+        inputs, correction_frequencies
+    )
+    if (
+        correction_frequencies.shape == frequencies_hz.shape
+        and correction_frequencies.data_ptr() == frequencies_hz.data_ptr()
+    ):
+        active_correction = correction_phase
+    else:
+        active_correction, _, _ = _nrtidal_correction_phase(
+            inputs, frequencies_hz
         )
-        dquad1 = nrtidal_quadrupole_from_lambda(lambda1) - 1.0
-        dquad2 = nrtidal_quadrupole_from_lambda(lambda2) - 1.0
-        correction_phase += nrtidal_self_spin_phase(
-            correction_frequencies,
-            mass1,
-            mass2,
-            spin1z,
-            spin2z,
-            dquad1,
-            dquad2,
+    phase -= active_correction
+    if inputs.tidal_version == 2:
+        phase -= nrtidal_higher_order_spin_phase(
+            frequencies_hz,
+            inputs.mass1,
+            inputs.mass2,
+            inputs.spin1z,
+            inputs.spin2z,
+            dquad1 + 1.0,
+            dquad2 + 1.0,
         )
 
-        active_count = stop_bin - first_bin
-        phase -= correction_phase[:active_count]
-        if tidal_version == 2:
-            phase -= nrtidal_higher_order_spin_phase(
-                frequencies_hz,
-                mass1,
-                mass2,
-                spin1z,
-                spin2z,
-                dquad1 + 1.0,
-                dquad2 + 1.0,
-            )
+    correction_coeff = _natural_cubic_coeff(
+        correction_frequencies, correction_phase
+    )
+    ringdown_hz = inputs.ringdown_mf / inputs.total_mass_seconds
+    correction_ringdown = torch.as_tensor(
+        min(ringdown_hz, float(correction_frequencies[-1])),
+        dtype=inputs.real_dtype,
+        device=inputs.device,
+    )
+    tidal_time_correction = _spline_derivative(
+        correction_ringdown,
+        correction_frequencies,
+        *correction_coeff,
+    ) / (2.0 * math.pi)
+    phase -= (
+        2.0
+        * math.pi
+        * (frequencies_hz - tidal_reference_frequency)
+        * tidal_time_correction
+    )
+    merger_frequency = nrtidal_merger_frequency(
+        inputs.mass1,
+        inputs.mass2,
+        inputs.lambda1,
+        inputs.lambda2,
+    )
+    amplitude *= nrtidal_taper(frequencies_hz, merger_frequency)
+    return amplitude, phase
 
-        correction_coeff = _natural_cubic_coeff(
-            correction_frequencies, correction_phase
-        )
-        ringdown_hz = ringdown_mf / total_mass_seconds
-        correction_end = (npts - 2) * delta_f
-        correction_ringdown = torch.as_tensor(
-            min(ringdown_hz, correction_end),
-            dtype=real_dtype,
-            device=device,
-        )
-        tidal_time_correction = _spline_derivative(
-            correction_ringdown,
-            correction_frequencies,
-            *correction_coeff,
-        ) / (2.0 * math.pi)
-        tidal_reference_hz = f_ref if f_ref > 0.0 else f_lower
-        phase -= (
-            2.0
-            * math.pi
-            * (frequencies_hz - tidal_reference_hz)
-            * tidal_time_correction
-        )
-        amplitude *= nrtidal_taper(frequencies_hz, merger_frequency)
 
-    distance = pnutils.megaparsecs_to_meters(distance_mpc)
+def _seobnrv4_rom_polarizations(inputs, amplitude, phase):
+    """Scale and project ROM samples into the two polarizations."""
+
+    distance = pnutils.megaparsecs_to_meters(inputs.distance_mpc)
     amplitude_scale = (
         0.5
-        * total_mass
-        * total_mass_seconds
+        * inputs.total_mass
+        * inputs.total_mass_seconds
         * lal.MRSUN_SI
         / distance
     )
-    htilde = torch.polar(amplitude_scale * amplitude, phase).to(complex_dtype)
-    cos_inclination = math.cos(inclination)
+    htilde = torch.polar(amplitude_scale * amplitude, phase).to(
+        inputs.complex_dtype
+    )
+    cos_inclination = math.cos(inputs.inclination)
     plus = 0.5 * (1.0 + cos_inclination**2) * htilde
     cross = complex(0.0, -cos_inclination) * htilde
+    cos_nodes = math.cos(2.0 * inputs.long_asc_nodes)
+    sin_nodes = math.sin(2.0 * inputs.long_asc_nodes)
+    return (
+        cos_nodes * plus + sin_nodes * cross,
+        cos_nodes * cross - sin_nodes * plus,
+    )
 
-    cos_nodes = math.cos(2.0 * long_asc_nodes)
-    sin_nodes = math.sin(2.0 * long_asc_nodes)
-    hp[first_bin:stop_bin] = cos_nodes * plus + sin_nodes * cross
-    hc[first_bin:stop_bin] = cos_nodes * cross - sin_nodes * plus
+
+def seobnrv4_fd_torch(**p):
+    """Generate Torch ``SEOBNRv4_ROM`` or NRTidal polarizations."""
+
+    inputs = _seobnrv4_rom_inputs(p)
+    delta_f = float(p["delta_f"])
+    f_lower = float(p["f_lower"])
+    f_final = float(p.get("f_final", 0.0))
+    for name, value in (
+        ("delta_f", delta_f),
+        ("f_lower", f_lower),
+        ("f_final", f_final),
+    ):
+        if not math.isfinite(value):
+            raise ValueError(f"{name} must be finite")
+    if delta_f <= 0.0 or f_lower <= 0.0:
+        raise ValueError("delta_f and f_lower must be positive")
+    if f_final < 0.0:
+        raise ValueError("f_final must be non-negative")
+
+    lower_mf = f_lower * inputs.total_mass_seconds
+    base_final_hz = f_final
+    tidal_final_hz = None
+    if inputs.tidal_version is not None:
+        merger_frequency = nrtidal_merger_frequency(
+            inputs.mass1,
+            inputs.mass2,
+            inputs.lambda1,
+            inputs.lambda2,
+        )
+        tidal_final_hz = 1.3 * merger_frequency
+        if base_final_hz == 0.0 or base_final_hz > tidal_final_hz:
+            base_final_hz = tidal_final_hz
+    requested_final_mf = base_final_hz * inputs.total_mass_seconds
+    if lower_mf < inputs.minimum_mf:
+        raise ValueError(
+            f"starting frequency M*f_lower={lower_mf:g} is below the "
+            f"ROM minimum {inputs.minimum_mf:g}"
+        )
+    if requested_final_mf == 0.0 or requested_final_mf > inputs.maximum_mf:
+        final_mf = inputs.maximum_mf
+    elif requested_final_mf < inputs.minimum_mf:
+        raise ValueError("f_final is below the ROM minimum frequency")
+    else:
+        final_mf = requested_final_mf
+    if final_mf <= lower_mf:
+        raise ValueError("f_final (or the ROM cutoff) must exceed f_lower")
+
+    final_hz = final_mf / inputs.total_mass_seconds
+    npts = _next_power_of_two(int(final_hz / delta_f)) + 1
+    if tidal_final_hz is not None and f_final > tidal_final_hz:
+        # The outer NRTidal wrapper resizes with the untruncated ratio, unlike
+        # the base ROM's size_t-valued ``NextPow2`` helper.
+        npts = 2 ** math.ceil(math.log2(f_final / delta_f)) + 1
+    elif f_final > final_hz:
+        npts = _next_power_of_two(int(f_final / delta_f)) + 1
+    hp = torch.zeros(npts, dtype=inputs.complex_dtype, device=inputs.device)
+    hc = torch.zeros_like(hp)
+
+    first_bin = math.ceil(f_lower / delta_f)
+    stop_bin = math.ceil(final_hz / delta_f)
+    bin_indices = torch.arange(first_bin, stop_bin, device=inputs.device)
+    frequencies_hz = bin_indices.to(inputs.real_dtype) * delta_f
+    reference_frequency = inputs.f_ref if inputs.f_ref > 0.0 else f_lower
+    amplitude, phase = _seobnrv4_rom_amplitude_phase(
+        inputs, frequencies_hz, reference_frequency
+    )
+    if inputs.tidal_version is not None:
+        # The outer wrapper evaluates its correction through the last allocated
+        # non-Nyquist bin, including the zero-padded tail, for its time shift.
+        correction_bins = torch.arange(
+            first_bin, npts - 1, device=inputs.device
+        )
+        correction_frequencies = (
+            correction_bins.to(inputs.real_dtype) * delta_f
+        )
+        amplitude, phase = _apply_nrtidal(
+            inputs,
+            frequencies_hz,
+            amplitude,
+            phase,
+            correction_frequencies,
+            reference_frequency,
+        )
+    plus, cross = _seobnrv4_rom_polarizations(inputs, amplitude, phase)
+    hp[first_bin:stop_bin] = plus
+    hc[first_bin:stop_bin] = cross
 
     epoch = -1.0 / delta_f
     return (
@@ -776,7 +951,91 @@ def seobnrv4_fd_torch(**p):
     )
 
 
+def _seobnrv4_sequence_frequencies(sample_points, inputs):
+    """Return a validated arbitrary-frequency vector on the active device."""
+
+    values = getattr(sample_points, "_data", sample_points)
+    if isinstance(values, TorchArrayData):
+        values = values.tensor
+    frequencies = torch.as_tensor(
+        values,
+        dtype=inputs.real_dtype,
+        device=inputs.device,
+    )
+    if frequencies.ndim != 1 or frequencies.numel() < 2:
+        raise ValueError(
+            "SEOBNRv4_ROM sample_points must contain at least two frequencies"
+        )
+    if not bool(torch.all(torch.isfinite(frequencies))):
+        raise ValueError("SEOBNRv4_ROM sample_points must be finite")
+    if bool(torch.any(frequencies <= 0.0)):
+        raise ValueError("SEOBNRv4_ROM sample_points must be positive")
+
+    frequencies_mf = frequencies * inputs.total_mass_seconds
+    if float(frequencies_mf[0]) < inputs.minimum_mf:
+        raise ValueError("first sample frequency is below the ROM minimum")
+    if bool(torch.any(frequencies_mf < inputs.minimum_mf)):
+        raise ValueError("sample frequency is below the ROM minimum")
+    final_mf = min(float(frequencies_mf[-1]), inputs.maximum_mf)
+    if final_mf <= float(frequencies_mf[0]):
+        raise ValueError(
+            "last sample frequency must exceed the first within the ROM domain"
+        )
+    if inputs.tidal_version is not None and not bool(
+        torch.all(frequencies[1:] > frequencies[:-1])
+    ):
+        # The outer LAL NRTidal time-correction spline has the same constraint.
+        raise ValueError("NRTidal sample_points must be strictly increasing")
+    return frequencies
+
+
+def seobnrv4_fd_sequence_torch(**p):
+    """Evaluate ``SEOBNRv4_ROM`` or NRTidal at arbitrary frequencies."""
+
+    if not seobnrv4_rom_sequence_native_supported(p):
+        raise ValueError(
+            "SEOBNRv4_ROM sequence parameters are not supported by the "
+            "native Torch path"
+        )
+    inputs = _seobnrv4_rom_inputs(p, sequence=True)
+    frequencies_hz = _seobnrv4_sequence_frequencies(
+        p["sample_points"], inputs
+    )
+    reference_frequency = (
+        inputs.f_ref if inputs.f_ref > 0.0 else frequencies_hz[0]
+    )
+    # The ROM returns exact zeros above its geometric upper bound. Clamp only
+    # for safe spline evaluation, then restore that support mask at the end.
+    frequencies_mf = frequencies_hz * inputs.total_mass_seconds
+    active = frequencies_mf <= inputs.maximum_mf
+    evaluation_frequencies = frequencies_hz.clamp(
+        max=inputs.maximum_mf / inputs.total_mass_seconds
+    )
+    amplitude, phase = _seobnrv4_rom_amplitude_phase(
+        inputs, evaluation_frequencies, reference_frequency
+    )
+    if inputs.tidal_version is not None:
+        amplitude, phase = _apply_nrtidal(
+            inputs,
+            frequencies_hz,
+            amplitude,
+            phase,
+            frequencies_hz,
+            reference_frequency,
+        )
+    plus, cross = _seobnrv4_rom_polarizations(inputs, amplitude, phase)
+    zero = torch.zeros((), dtype=inputs.complex_dtype, device=inputs.device)
+    plus = torch.where(active, plus, zero)
+    cross = torch.where(active, cross, zero)
+    return (
+        PyCBCArray(TorchArrayData(plus), copy=False),
+        PyCBCArray(TorchArrayData(cross), copy=False),
+    )
+
+
 __all__ = [
+    "seobnrv4_fd_sequence_torch",
     "seobnrv4_fd_torch",
     "seobnrv4_rom_native_supported",
+    "seobnrv4_rom_sequence_native_supported",
 ]

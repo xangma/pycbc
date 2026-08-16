@@ -700,6 +700,24 @@ def _lalsim_fd_sequence(**p):
         if imrphenomhm_sequence_native_supported(p):
             return imrphenomhm_fd_sequence_torch(**p)
 
+    if (
+        p.get("approximant")
+        in (
+            "SEOBNRv4_ROM",
+            "SEOBNRv4_ROM_NRTidal",
+            "SEOBNRv4_ROM_NRTidalv2",
+        )
+        and using_torch
+        and torch_native_enabled("PYCBC_SEOBNRV4_NATIVE", default=False)
+    ):
+        from .seobnrv4_torch import (
+            seobnrv4_fd_sequence_torch,
+            seobnrv4_rom_sequence_native_supported,
+        )
+
+        if seobnrv4_rom_sequence_native_supported(p):
+            return seobnrv4_fd_sequence_torch(**p)
+
     lal_pars = _check_lal_pars(p)
     sample_points = p['sample_points']
     if sample_points.dtype == numpy.dtype(numpy.float32):

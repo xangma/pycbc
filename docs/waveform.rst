@@ -165,8 +165,11 @@ environment flags:
   frequency interpolation, and waveform assembly run on the active Torch
   device using ``SEOBNRv4ROM_v3.0.hdf5``. The native path also covers
   ``SEOBNRv4_ROM_NRTidal`` and ``SEOBNRv4_ROM_NRTidalv2`` with on-device tidal
-  corrections. The time-domain ``SEOBNRv4`` model, transverse spins, and
-  unsupported tidal extensions continue to use lalsimulation.
+  corrections. Regular-grid and arbitrary-frequency
+  ``get_fd_waveform_sequence`` evaluation are both native; as in LAL's
+  sequence interface, ``long_asc_nodes`` is ignored and ``f_ref=0`` uses the
+  first supplied frequency. The time-domain ``SEOBNRv4`` model, transverse
+  spins, and unsupported tidal extensions continue to use lalsimulation.
 - SEOBNRv4HM_ROM (FD higher modes): ``PYCBC_SEOBNRV4HM_NATIVE`` (torch-native ROM
   interpolation, harmonic evaluation, and waveform assembly using
   ``SEOBNRv4HMROM_v1.0.hdf5``); requires the ROM file in ``$LAL_DATA_PATH`` or
