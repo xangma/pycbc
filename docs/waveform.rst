@@ -205,6 +205,13 @@ default remains the LAL/CPU path; enable torch ports with environment flags:
   on-device for both sampling interfaces. Transverse spins,
   unsupported tidal parameters, eccentricity, non-default PN orders,
   testing-GR changes, and custom modes fall back to lalsimulation.
+- IMRPhenomXP (FD): ``PYCBC_IMRPHENOMXP_NATIVE``. The aligned-spin XAS carrier,
+  NNLO precession angles, Wigner rotation, frequency masking, and polarization
+  assembly run on the active Torch device for regular-grid and arbitrary-
+  frequency evaluation. This bounded port requires explicit
+  ``phenom_x_prec_version=102``, ``phenom_xp_convention=0``, and
+  ``phenom_xp_final_spin_mod=0``. The default MSA-angle XP configuration and
+  other prescriptions continue to use lalsimulation.
 - IMRPhenomXHM modes (FD): ``PYCBC_IMRPHENOMXHM_NATIVE``. The default mode set
   and explicit ``(2, +/-2)``, ``(2, +/-1)``, ``(3, +/-2)``, ``(3, +/-3)``, and
   ``(4, +/-4)`` requests through ``get_fd_waveform_modes`` run on the active

@@ -194,6 +194,15 @@ def _check_lal_pars(p):
         lalsimulation.SimInspiralWaveformParamsInsertNonGRDBeta2(lal_pars,p['dbeta2'])
     if p['dbeta3'] is not None:
         lalsimulation.SimInspiralWaveformParamsInsertNonGRDBeta3(lal_pars,p['dbeta3'])
+    if p['phenom_x_prec_version'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertPhenomXPrecVersion(
+            lal_pars, int(p['phenom_x_prec_version']))
+    if p['phenom_xp_convention'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertPhenomXPConvention(
+            lal_pars, int(p['phenom_xp_convention']))
+    if p['phenom_xp_final_spin_mod'] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertPhenomXPFinalSpinMod(
+            lal_pars, int(p['phenom_xp_final_spin_mod']))
     return lal_pars
 
 def _lalsim_td_waveform(**p):
@@ -465,6 +474,19 @@ def _lalsim_fd_waveform(**p):
 
         if imrphenomxas_native_supported(p):
             return imrphenomxas_fd_torch(**p)
+
+    if (
+        p.get("approximant") == "IMRPhenomXP"
+        and using_torch
+        and torch_native_enabled("PYCBC_IMRPHENOMXP_NATIVE", default=False)
+    ):
+        from .imrphenomxp_torch import (
+            imrphenomxp_fd_torch,
+            imrphenomxp_native_supported,
+        )
+
+        if imrphenomxp_native_supported(p):
+            return imrphenomxp_fd_torch(**p)
 
     if (
         p.get("approximant") == "IMRPhenomXHM"
@@ -918,6 +940,19 @@ def _lalsim_fd_sequence(**p):
 
         if imrphenomxas_sequence_native_supported(p):
             return imrphenomxas_fd_sequence_torch(**p)
+
+    if (
+        p.get("approximant") == "IMRPhenomXP"
+        and using_torch
+        and torch_native_enabled("PYCBC_IMRPHENOMXP_NATIVE", default=False)
+    ):
+        from .imrphenomxp_torch import (
+            imrphenomxp_fd_sequence_torch,
+            imrphenomxp_sequence_native_supported,
+        )
+
+        if imrphenomxp_sequence_native_supported(p):
+            return imrphenomxp_fd_sequence_torch(**p)
 
     if (
         p.get("approximant") == "IMRPhenomXHM"

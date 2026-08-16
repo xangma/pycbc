@@ -1634,6 +1634,8 @@ def _gen_IMRPhenomXAS(
     amp_coeffs: Float[Array, "7 42"],
     f_ref: float,
     nrtidal: _NRTidalParams | None = None,
+    *,
+    chip: float = 0.0,
 ) -> torch.Tensor:
     m1, m2, chi1, chi2 = theta_intrinsic
     m1_s = m1 * MTSUN
@@ -1649,8 +1651,10 @@ def _gen_IMRPhenomXAS(
     chia = chi1 - chi2
 
     fM_s = f * M_s
-    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(m1, m2, chi1, chi2)
-    Psi = Phase(f, theta_intrinsic, phase_coeffs)
+    fMs_RD, fMs_damp, _, _ = IMRPhenomX_utils.get_cutoff_fMs(
+        m1, m2, chi1, chi2, chip
+    )
+    Psi = Phase(f, theta_intrinsic, phase_coeffs, chip)
 
     # Generate the linear in f and constant contribution to the phase in order
     # to roll the waveform such that the peak is at the input tc and phic
@@ -1662,18 +1666,29 @@ def _gen_IMRPhenomXAS(
             (fMs_RD - fMs_damp) / M_s,
             theta_intrinsic,
             phase_coeffs,
+            chip,
         )
         / M_s
     )
     linb = linb - dphi22Ref - 2.0 * PI * (500.0 + psi4tostrain)
     phifRef = (
-        -(Phase(f_ref, theta_intrinsic, phase_coeffs) + linb * (f_ref * M_s) + lina)
+        -(
+            Phase(f_ref, theta_intrinsic, phase_coeffs, chip)
+            + linb * (f_ref * M_s)
+            + lina
+        )
         + PI / 4.0
     )
     ext_phase_contrib = 2.0 * PI * f * theta_extrinsic[1] + 2 * theta_extrinsic[2]
     Psi = Psi + (linb * fM_s) + lina + phifRef - 2 * PI + ext_phase_contrib
 
-    A = Amp(f, theta_intrinsic, amp_coeffs, D=theta_extrinsic[0])
+    A = Amp(
+        f,
+        theta_intrinsic,
+        amp_coeffs,
+        D=theta_extrinsic[0],
+        chip=chip,
+    )
     if nrtidal is not None:
         phase_tidal = _nrtidal_phase(
             f,
@@ -1704,6 +1719,7 @@ def _gen_IMRPhenomXAS(
                 alignment_frequency,
                 theta_intrinsic,
                 phase_coeffs,
+                chip,
             )
             / M_s
         )

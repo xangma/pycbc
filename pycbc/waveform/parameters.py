@@ -388,6 +388,19 @@ sample_points = Parameter("sample_points",
 approximant = Parameter("approximant",
                 dtype=str, default=None, label=None,
                 description="A string that indicates the chosen approximant.")
+phenom_x_prec_version = Parameter(
+                "phenom_x_prec_version", dtype=int, default=None, label=None,
+                description="IMRPhenomX precession-angle prescription. A "
+                            "default of None uses the lalsimulation default.")
+phenom_xp_convention = Parameter(
+                "phenom_xp_convention", dtype=int, default=None, label=None,
+                description="IMRPhenomXP source-frame convention. A default "
+                            "of None uses the lalsimulation default.")
+phenom_xp_final_spin_mod = Parameter(
+                "phenom_xp_final_spin_mod", dtype=int, default=None,
+                label=None,
+                description="IMRPhenomXP final-spin prescription. A default "
+                            "of None uses the lalsimulation default.")
 phase_order = Parameter("phase_order",
                 dtype=int, default=-1, label=None,
                 description="The pN order of the orbital phase. The default "
@@ -636,7 +649,9 @@ common_generation_params = ParameterList([
 
 # Flags having discrete values, optional to generate either
 # a TD, FD, or frequency sequence waveform
-flags_generation_params = ParameterList([frame_axis, modes_choice, side_bands, mode_array])
+flags_generation_params = ParameterList([
+    frame_axis, modes_choice, side_bands, mode_array, phenom_x_prec_version,
+    phenom_xp_convention, phenom_xp_final_spin_mod])
 
 # the following are parameters needed to generate an FD or TD waveform that
 # is equally sampled
