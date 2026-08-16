@@ -98,9 +98,14 @@ environment flags:
 - SpinTaylorF2: ``PYCBC_SPINTAYLORF2_NATIVE``. The native port covers the
   model's single-spin public interface, including precession, reference-phase
   conventions, phase/spin orders, sidebands, testing-GR ``dchi`` terms,
-  primary-object quadrupole deformation, and polarization rotation. Tidal,
-  eccentric, second-spin, custom-mode, and non-``dchi`` testing-GR options fall
-  back to lalsimulation.
+  primary-object quadrupole deformation, and polarization rotation.
+  Arbitrary-frequency ``get_fd_waveform_sequence`` evaluation also runs on the
+  active device. This is a native extension because lalsimulation does not
+  expose SpinTaylorF2 through its sequence API; ``long_asc_nodes`` is ignored,
+  ``f_ref=0`` uses the first supplied frequency, and unordered positive
+  frequencies are supported. Tidal, eccentric, second-spin, custom-mode, and
+  non-``dchi`` testing-GR options fall back to lalsimulation for regular-grid
+  generation and remain unavailable through the sequence API.
 - IMRPhenomC (FD): ``PYCBC_IMRPHENOMC_NATIVE``. Frequency-grid construction,
   amplitude and phase evaluation, coalescence-time correction, masking, and
   polarization assembly run on the active Torch device. The native path covers

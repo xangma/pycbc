@@ -6,6 +6,7 @@ Public PyCBC parameter conventions are applied here; unsupported options are
 left to the waveform dispatcher to generate with lalsimulation.
 """
 
+from dataclasses import dataclass
 import math
 
 import lal
@@ -539,12 +540,42 @@ def _evaluate_phasing(velocity, pfa):
     )
 
 
-def spintaylorf2_torch(**params):
-    """Generate SpinTaylorF2 polarizations on the active Torch device.
+@dataclass(frozen=True)
+class _SpinTaylorF2Inputs:
+    """Validated scalar and coefficient state shared by both public APIs."""
 
-    Callers should first use spintaylorf2_native_supported; the public waveform
-    dispatcher does so and routes unsupported options to LAL.
-    """
+    mass1: float
+    mass2: float
+    distance: float
+    coa_phase: float
+    long_asc_nodes: float
+    eta: float
+    pi_mass: float
+    sideband: int
+    device: torch.device
+    real_dtype: torch.dtype
+    complex_dtype: torch.dtype
+    orientation: dict
+    coeffs: dict
+    enable_precession: bool
+    alpha_reference: torch.Tensor
+    pfa: dict
+    reference_phasing: torch.Tensor
+
+
+def spintaylorf2_sequence_native_supported(params):
+    """Return whether arbitrary-frequency SpinTaylorF2 is native."""
+
+    return spintaylorf2_native_supported(params)
+
+
+def _spintaylorf2_inputs(
+    params,
+    *,
+    default_reference_frequency,
+    sequence=False,
+):
+    """Validate scalars and construct model state shared by both samplers."""
     from pycbc import scheme as _scheme
 
     if not spintaylorf2_native_supported(params):
@@ -560,10 +591,11 @@ def spintaylorf2_torch(**params):
     distance = float(params.get("distance", 1.0))
     inclination = float(params.get("inclination", 0.0))
     coa_phase = float(params.get("coa_phase", 0.0))
-    long_asc_nodes = float(params.get("long_asc_nodes", 0.0))
-    delta_f = float(params["delta_f"])
-    f_lower = float(params["f_lower"])
-    f_final = float(params.get("f_final", 0.0))
+    # SimInspiralChooseFDWaveformSequence has no ascending-node argument and
+    # ignores the corresponding PyCBC parameter.
+    long_asc_nodes = (
+        0.0 if sequence else float(params.get("long_asc_nodes", 0.0))
+    )
     f_ref = float(params.get("f_ref", 0.0))
     phase_order = _as_order(params.get("phase_order", -1))
     spin_order = _as_order(params.get("spin_order", -1))
@@ -591,38 +623,27 @@ def spintaylorf2_torch(**params):
         raise ValueError("SpinTaylorF2 spins, angles, and PN terms must be finite")
     if not math.isfinite(distance) or distance <= 0.0:
         raise ValueError("SpinTaylorF2 distance must be finite and positive")
-    if not all(math.isfinite(value) for value in (delta_f, f_lower, f_final, f_ref)):
-        raise ValueError("SpinTaylorF2 frequencies must be finite")
-    if delta_f <= 0.0 or f_lower <= 0.0:
-        raise ValueError("SpinTaylorF2 delta_f and f_lower must be positive")
-    if f_final < 0.0 or f_ref < 0.0:
-        raise ValueError("SpinTaylorF2 f_final and f_ref must be non-negative")
+    if not math.isfinite(f_ref) or f_ref < 0.0:
+        raise ValueError("SpinTaylorF2 f_ref must be finite and non-negative")
+    default_reference_frequency = float(default_reference_frequency)
+    if (
+        not math.isfinite(default_reference_frequency)
+        or default_reference_frequency <= 0.0
+    ):
+        raise ValueError(
+            "SpinTaylorF2 default reference frequency must be finite and positive"
+        )
 
     total_mass = mass1 + mass2
     eta = mass1 * mass2 / total_mass**2
     pi_mass = math.pi * total_mass * lal.MTSUN_SI
-    f_isco = 1.0 / (6.0**1.5 * pi_mass)
-    f_max = f_final if f_final > 0.0 else f_isco
-    if f_max <= f_lower:
-        raise ValueError("SpinTaylorF2 ending frequency must exceed f_lower")
-
-    length = int(f_max / delta_f + 1.0)
-    first_bin = int(math.ceil(f_lower / delta_f))
-    if first_bin >= length:
-        raise ValueError("SpinTaylorF2 frequency range contains no sampled bins")
 
     state = _scheme.mgr.state
     device = getattr(state, "torch_device", torch.device("cpu"))
     real_dtype = torch.float32 if device.type == "mps" else torch.float64
     complex_dtype = torch.complex64 if real_dtype == torch.float32 else torch.complex128
 
-    frequencies = (
-        torch.arange(first_bin, length, dtype=real_dtype, device=device) * delta_f
-    )
     pi_mass_tensor = torch.as_tensor(pi_mass, dtype=real_dtype, device=device)
-    velocity = torch.pow(pi_mass_tensor * frequencies, 1.0 / 3.0)
-    velocity2 = velocity * velocity
-    velocity3 = velocity2 * velocity
 
     # The public LAL wrapper rotates the source-frame spin around +y before
     # invoking the core generator, then supplies LNhat from the inclination.
@@ -638,9 +659,11 @@ def spintaylorf2_torch(**params):
     lnhaty = torch.zeros((), dtype=real_dtype, device=device)
     lnhatz = torch.as_tensor(cos_inclination, dtype=real_dtype, device=device)
 
-    # FIX_REFERENCE_FREQUENCY maps f_ref=0 to f_lower for SpinTaylorF2 before
-    # the legacy LAL generator is called.
-    effective_f_ref = f_ref if f_ref > 0.0 else f_lower
+    # Regular generation maps f_ref=0 to f_lower. Sequence generation follows
+    # the other LAL sequence interfaces and uses the first supplied frequency.
+    effective_f_ref = (
+        f_ref if f_ref > 0.0 else default_reference_frequency
+    )
     reference_velocity = torch.pow(
         pi_mass_tensor
         * torch.as_tensor(effective_f_ref, dtype=real_dtype, device=device),
@@ -685,42 +708,75 @@ def spintaylorf2_torch(**params):
         qm_def1=dquad_mon1,
         non_gr=non_gr,
     )
-    phasing = _evaluate_phasing(velocity, pfa)
     reference_phasing = _evaluate_phasing(reference_velocity, pfa)
-    epoch = -1.0 / delta_f
-    phasing = (
-        phasing
-        + 2.0 * math.pi * epoch * frequencies
-        - 2.0 * coa_phase
-        - reference_phasing
-        - math.pi / 4.0
+    return _SpinTaylorF2Inputs(
+        mass1=mass1,
+        mass2=mass2,
+        distance=distance,
+        coa_phase=coa_phase,
+        long_asc_nodes=long_asc_nodes,
+        eta=eta,
+        pi_mass=pi_mass,
+        sideband=sideband,
+        device=device,
+        real_dtype=real_dtype,
+        complex_dtype=complex_dtype,
+        orientation=orientation,
+        coeffs=coeffs,
+        enable_precession=enable_precession,
+        alpha_reference=alpha_reference,
+        pfa=pfa,
+        reference_phasing=reference_phasing,
     )
 
+
+def _spintaylorf2_samples(inputs, frequencies, *, time_shift=0.0):
+    """Evaluate SpinTaylorF2 polarizations at device-resident frequencies."""
+    velocity = torch.pow(inputs.pi_mass * frequencies, 1.0 / 3.0)
+    velocity2 = velocity * velocity
+    velocity3 = velocity2 * velocity
+    phasing = (
+        _evaluate_phasing(velocity, inputs.pfa)
+        + 2.0 * math.pi * time_shift * frequencies
+        - 2.0 * inputs.coa_phase
+        - inputs.reference_phasing
+        - math.pi / 4.0
+    )
     alpha = (
-        _alpha(velocity, coeffs) - alpha_reference
-        if enable_precession
+        _alpha(velocity, inputs.coeffs) - inputs.alpha_reference
+        if inputs.enable_precession
         else torch.zeros_like(velocity)
     )
     precession_phase = torch.complex(torch.cos(alpha), torch.sin(alpha))
     inverse_precession_phase = 1.0 / precession_phase
-    em0, em1, em2, em3, em4 = _emission(velocity, coeffs)
+    em0, em1, em2, em3, em4 = _emission(velocity, inputs.coeffs)
 
-    sideband_plus = torch.zeros(5, dtype=complex_dtype, device=device)
-    sideband_cross = torch.zeros(5, dtype=complex_dtype, device=device)
+    sideband_plus = torch.zeros(
+        5,
+        dtype=inputs.complex_dtype,
+        device=inputs.device,
+    )
+    sideband_cross = torch.zeros_like(sideband_plus)
     # PyCBC only inserts a non-zero side_bands value into the LAL dictionary.
     # LAL's default selects m=0; any inserted value activates all five terms.
-    sideband_modes = (0,) if sideband == 0 else (-2, -1, 0, 1, 2)
-    quarter_turn = torch.as_tensor(math.pi / 4.0, dtype=real_dtype, device=device)
+    sideband_modes = (
+        (0,) if inputs.sideband == 0 else (-2, -1, 0, 1, 2)
+    )
+    quarter_turn = torch.as_tensor(
+        math.pi / 4.0,
+        dtype=inputs.real_dtype,
+        device=inputs.device,
+    )
     for mode in sideband_modes:
         index = 2 - mode
         sideband_plus[index] = _polarization(
-            orientation["thetaJ"],
-            orientation["psiJ"],
+            inputs.orientation["thetaJ"],
+            inputs.orientation["psiJ"],
             mode,
         )
         sideband_cross[index] = _polarization(
-            orientation["thetaJ"],
-            orientation["psiJ"] + quarter_turn,
+            inputs.orientation["thetaJ"],
+            inputs.orientation["psiJ"] + quarter_turn,
             mode,
         )
 
@@ -739,16 +795,16 @@ def spintaylorf2_torch(**params):
         + sideband_cross[4] * em4 * inverse_precession_phase**2
     )
 
-    distance_metres = distance * 1.0e6 * lal.PC_SI
+    distance_metres = inputs.distance * 1.0e6 * lal.PC_SI
     amplitude0 = (
         -4.0
-        * mass1
-        * mass2
+        * inputs.mass1
+        * inputs.mass2
         / distance_metres
         * lal.MRSUN_SI
         * lal.MTSUN_SI
         * math.sqrt(math.pi / 12.0)
-        * math.sqrt(5.0 / (32.0 * eta))
+        * math.sqrt(5.0 / (32.0 * inputs.eta))
     )
     amplitude = amplitude0 / (velocity3 * torch.sqrt(velocity))
     carrier = torch.exp(-1j * phasing)
@@ -757,13 +813,60 @@ def spintaylorf2_torch(**params):
 
     # The legacy public wrapper applies the longitude-of-ascending-nodes
     # polarization rotation after waveform generation.
-    cos_nodes = math.cos(2.0 * long_asc_nodes)
-    sin_nodes = math.sin(2.0 * long_asc_nodes)
+    cos_nodes = math.cos(2.0 * inputs.long_asc_nodes)
+    sin_nodes = math.sin(2.0 * inputs.long_asc_nodes)
     rotated_plus = cos_nodes * plus + sin_nodes * cross
     rotated_cross = cos_nodes * cross - sin_nodes * plus
+    return rotated_plus, rotated_cross
 
-    plus_full = torch.zeros(length, dtype=complex_dtype, device=device)
-    cross_full = torch.zeros(length, dtype=complex_dtype, device=device)
+
+def spintaylorf2_torch(**params):
+    """Generate regular-grid SpinTaylorF2 on the active Torch device."""
+    delta_f = float(params["delta_f"])
+    f_lower = float(params["f_lower"])
+    f_final = float(params.get("f_final", 0.0))
+    if not all(math.isfinite(value) for value in (delta_f, f_lower, f_final)):
+        raise ValueError("SpinTaylorF2 frequencies must be finite")
+    if delta_f <= 0.0 or f_lower <= 0.0:
+        raise ValueError("SpinTaylorF2 delta_f and f_lower must be positive")
+    if f_final < 0.0:
+        raise ValueError("SpinTaylorF2 f_final must be non-negative")
+
+    inputs = _spintaylorf2_inputs(
+        params,
+        default_reference_frequency=f_lower,
+    )
+    f_isco = 1.0 / (6.0**1.5 * inputs.pi_mass)
+    f_max = f_final if f_final > 0.0 else f_isco
+    if f_max <= f_lower:
+        raise ValueError("SpinTaylorF2 ending frequency must exceed f_lower")
+
+    length = int(f_max / delta_f + 1.0)
+    first_bin = int(math.ceil(f_lower / delta_f))
+    if first_bin >= length:
+        raise ValueError("SpinTaylorF2 frequency range contains no sampled bins")
+    frequencies = (
+        torch.arange(
+            first_bin,
+            length,
+            dtype=inputs.real_dtype,
+            device=inputs.device,
+        )
+        * delta_f
+    )
+    epoch = -1.0 / delta_f
+    rotated_plus, rotated_cross = _spintaylorf2_samples(
+        inputs,
+        frequencies,
+        time_shift=epoch,
+    )
+
+    plus_full = torch.zeros(
+        length,
+        dtype=inputs.complex_dtype,
+        device=inputs.device,
+    )
+    cross_full = torch.zeros_like(plus_full)
     plus_full[first_bin:] = rotated_plus
     cross_full[first_bin:] = rotated_cross
     return (
@@ -780,3 +883,64 @@ def spintaylorf2_torch(**params):
             copy=False,
         ),
     )
+
+
+def _sequence_frequencies(sample_points):
+    """Validate and move arbitrary frequencies to the active Torch device."""
+    from pycbc import scheme as _scheme
+
+    state = _scheme.mgr.state
+    device = getattr(state, "torch_device", torch.device("cpu"))
+    real_dtype = torch.float32 if device.type == "mps" else torch.float64
+    values = getattr(sample_points, "_data", sample_points)
+    if isinstance(values, TorchArrayData):
+        values = values.tensor
+    frequencies = torch.as_tensor(
+        values,
+        dtype=real_dtype,
+        device=device,
+    )
+    if frequencies.ndim != 1 or frequencies.numel() == 0:
+        raise ValueError(
+            "SpinTaylorF2 sample_points must be a non-empty vector"
+        )
+    if not bool(torch.all(torch.isfinite(frequencies))):
+        raise ValueError("SpinTaylorF2 sample_points must be finite")
+    if bool(torch.any(frequencies <= 0.0)):
+        raise ValueError("SpinTaylorF2 sample_points must be positive")
+    return frequencies
+
+
+def spintaylorf2_fd_sequence_torch(**params):
+    """Evaluate SpinTaylorF2 at arbitrary frequencies with Torch.
+
+    LAL does not expose SpinTaylorF2 through its sequence API. This native
+    extension follows the common sequence conventions: no epoch time shift,
+    ``long_asc_nodes`` is ignored, and ``f_ref=0`` uses the first sample.
+    """
+    from pycbc.types import Array as PyCBCArray
+
+    if not spintaylorf2_sequence_native_supported(params):
+        raise ValueError(
+            "SpinTaylorF2 sequence parameters are not supported by the "
+            "native Torch path"
+        )
+    frequencies = _sequence_frequencies(params["sample_points"])
+    inputs = _spintaylorf2_inputs(
+        params,
+        default_reference_frequency=float(frequencies[0].item()),
+        sequence=True,
+    )
+    plus, cross = _spintaylorf2_samples(inputs, frequencies)
+    return (
+        PyCBCArray(TorchArrayData(plus), copy=False),
+        PyCBCArray(TorchArrayData(cross), copy=False),
+    )
+
+
+__all__ = [
+    "spintaylorf2_fd_sequence_torch",
+    "spintaylorf2_native_supported",
+    "spintaylorf2_sequence_native_supported",
+    "spintaylorf2_torch",
+]
