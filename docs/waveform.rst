@@ -119,11 +119,12 @@ environment flags:
   NNLO precession angles, Wigner rotation, frequency-grid construction, and
   polarization assembly run on the active Torch device. Source-frame model
   mapping, scalar coefficient setup, and the merger-time spline remain on CPU.
-  The native path covers regular-grid and arbitrary-frequency BBH evaluation.
-  As in LAL's sequence interface, ``long_asc_nodes`` is ignored there and
-  ``f_ref=0`` uses the first supplied frequency. Tidal variants, testing-GR
-  changes, eccentricity, non-default spin/tidal orders, and custom modes fall
-  back to lalsimulation.
+  The native path covers regular-grid and arbitrary-frequency BBH evaluation,
+  plus the ``IMRPhenomPv2_NRTidal`` and ``IMRPhenomPv2_NRTidalv2`` phase,
+  amplitude, matter-spin, and taper corrections on-device. As in LAL's
+  sequence interface, ``long_asc_nodes`` is ignored there and ``f_ref=0`` uses
+  the first supplied frequency. Testing-GR changes, eccentricity, non-default
+  spin/tidal orders, and custom modes fall back to lalsimulation.
 - IMRPhenomXAS (FD): ``PYCBC_IMRPHENOMXAS_NATIVE``. Aligned-spin amplitude and
   phase fits, scalar matching derivatives, frequency-grid construction,
   masking, and polarization assembly use Torch. Arbitrary-frequency

@@ -36,8 +36,10 @@ _LAMBDAS = (400.0, 800.0)
     ("approximant", "version"),
     [
         ("IMRPhenomD_NRTidal", 1),
+        ("IMRPhenomPv2_NRTidal", 1),
         ("SEOBNRv4_ROM_NRTidal", 1),
         ("IMRPhenomD_NRTidalv2", 2),
+        ("IMRPhenomPv2_NRTidalv2", 2),
         ("IMRPhenomXAS_NRTidalv2", 2),
         ("SEOBNRv4_ROM_NRTidalv2", 2),
         ("IMRPhenomXAS_NRTidalv3", 3),
@@ -251,3 +253,26 @@ def test_nrtidal_frequency_corrections_match_lal(version, lal_version):
             rtol=2.0e-13,
             atol=2.0e-13,
         )
+
+
+def test_nrtidal_float32_taper_preserves_lal_support():
+    merger = nrtidal_merger_frequency(*_MASSES, *_LAMBDAS)
+    width = 0.2 * merger
+    frequencies = [
+        merger + 0.95 * width,
+        merger + 0.97 * width,
+        merger + 0.98 * width,
+    ]
+    expected = nrtidal_taper(
+        torch.tensor(frequencies, dtype=torch.float64),
+        merger,
+    )
+    actual = nrtidal_taper(
+        torch.tensor(frequencies, dtype=torch.float32),
+        merger,
+    )
+
+    np.testing.assert_array_equal(
+        actual.numpy() == 0.0,
+        expected.numpy() == 0.0,
+    )

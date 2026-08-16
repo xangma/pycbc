@@ -60,12 +60,14 @@ class _NRTidalV3Coefficients(NamedTuple):
 NRTIDAL_V1_APPROXIMANTS = frozenset(
     {
         "IMRPhenomD_NRTidal",
+        "IMRPhenomPv2_NRTidal",
         "SEOBNRv4_ROM_NRTidal",
     }
 )
 NRTIDAL_V2_APPROXIMANTS = frozenset(
     {
         "IMRPhenomD_NRTidalv2",
+        "IMRPhenomPv2_NRTidalv2",
         "IMRPhenomXAS_NRTidalv2",
         "SEOBNRv4_ROM_NRTidalv2",
     }
@@ -354,10 +356,20 @@ def nrtidal_taper(
     exponent = width / (safe_frequencies - merger_frequency) + width / (
         safe_frequencies - taper_end
     )
-    # Keep the literal LAL expression. Besides numerical parity in the
-    # transition, its floating-point cancellation gives the same exact-zero
-    # bins near the lower end of the taper.
-    tapered = 1.0 - 1.0 / (torch.exp(exponent) + 1.0)
+    if frequencies.dtype == torch.float32:
+        # The algebraically equivalent sigmoid avoids float32 cancellation.
+        # Explicitly reproduce the point where LAL's REAL8 expression rounds
+        # to zero so device backends retain the same support mask.
+        tapered = torch.sigmoid(exponent)
+        lal_zero_exponent = math.log(math.ulp(1.0) / 2.0)
+        tapered = torch.where(
+            exponent <= lal_zero_exponent,
+            torch.zeros_like(tapered),
+            tapered,
+        )
+    else:
+        # Keep the literal expression for bit-level REAL8 parity with LAL.
+        tapered = 1.0 - 1.0 / (torch.exp(exponent) + 1.0)
     return torch.where(
         frequencies <= merger_frequency,
         torch.ones_like(frequencies),

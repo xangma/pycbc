@@ -7,10 +7,11 @@
 
 """Torch-native, lalsimulation-free IMRPhenomPv2 waveforms.
 
-This ports the BBH ``IMRPhenomPv2`` implementation in
+This ports the ``IMRPhenomPv2`` implementation in
 ``LALSimIMRPhenomP.c``. Scalar model setup remains on the host, while the
 frequency-dependent PhenomD baseline, NNLO precession angles, Wigner rotation,
-and polarization assembly execute on the active Torch device.
+NRTidal corrections, and polarization assembly execute on the active Torch
+device.
 
 The native path is opt-in through ``PYCBC_IMRPHENOMPV2_NATIVE=1`` or the
 global ``PYCBC_TORCH_NATIVE_PORTS=1`` switch. Unsupported options continue to
@@ -45,12 +46,22 @@ from pycbc.waveform.imrphenomd_torch import (
     _final_spin0815,
     _init_phi_prefactors,
     _is_default_order,
+    _is_nonnegative_finite,
     _is_nonzero,
     _nudge_eta,
     _pi_powers,
     _powers,
     _subtract_3pn_ss,
     f_CUT,
+)
+from pycbc.waveform.nrtidal_torch import (
+    nrtidal_amplitude,
+    nrtidal_higher_order_spin_phase,
+    nrtidal_merger_frequency,
+    nrtidal_phase,
+    nrtidal_quadrupole_from_lambda,
+    nrtidal_taper,
+    nrtidal_version,
 )
 from pycbc.waveform.taylorf2_torch import taylorf2_aligned_phasing
 
@@ -76,6 +87,7 @@ class _NNLOAngleCoefficients:
 
 @dataclass(frozen=True)
 class _IMRPhenomPv2Inputs:
+    tidal_version: int | None
     mass1: float
     mass2: float
     chi1_l: float
@@ -88,6 +100,10 @@ class _IMRPhenomPv2Inputs:
     polarization_rotation: float
     long_asc_nodes: float
     f_ref: float
+    lambda1: float
+    lambda2: float
+    dquad1: float
+    dquad2: float
     total_mass: float
     total_mass_seconds: float
     eta: float
@@ -385,29 +401,34 @@ def _as_float(value, default=0.0):
 
 
 def imrphenompv2_native_supported(params):
-    """Return whether a parameter set is covered by the native BBH port."""
+    """Return whether a parameter set is covered by the native Torch port."""
 
-    if params.get("approximant", "IMRPhenomPv2") != "IMRPhenomPv2":
+    approximant = params.get("approximant", "IMRPhenomPv2")
+    if approximant not in {
+        "IMRPhenomPv2",
+        "IMRPhenomPv2_NRTidal",
+        "IMRPhenomPv2_NRTidalv2",
+    }:
         return False
     if any(
         not _is_default_order(params.get(key, -1))
         for key in _DEFAULT_ONLY_ORDER_KEYS
     ):
         return False
-    unsupported_zero = (
-        _TIDAL_EXTENSION_KEYS
-        + _NON_GR_KEYS
-        + (
-            "lambda1",
-            "lambda2",
-            "eccentricity",
-            "mean_per_ano",
-            "frame_axis",
-            "modes_choice",
-            "side_bands",
-        )
+    unsupported_zero = _TIDAL_EXTENSION_KEYS + _NON_GR_KEYS + (
+        "eccentricity",
+        "mean_per_ano",
+        "frame_axis",
+        "modes_choice",
+        "side_bands",
     )
     if any(_is_nonzero(params.get(key, 0.0)) for key in unsupported_zero):
+        return False
+    lambdas = (params.get("lambda1", 0.0), params.get("lambda2", 0.0))
+    if approximant == "IMRPhenomPv2":
+        if any(_is_nonzero(value) for value in lambdas):
+            return False
+    elif not all(_is_nonnegative_finite(value) for value in lambdas):
         return False
     if params.get("mode_array") is not None or params.get("numrel_data", ""):
         return False
@@ -441,6 +462,10 @@ def _validated_inputs(
     f_ref = _as_float(params.get("f_ref"))
     spin1 = tuple(_as_float(params.get(f"spin1{axis}")) for axis in "xyz")
     spin2 = tuple(_as_float(params.get(f"spin2{axis}")) for axis in "xyz")
+    approximant = params.get("approximant", "IMRPhenomPv2")
+    tidal_version = nrtidal_version(approximant)
+    lambda1 = _as_float(params.get("lambda1"))
+    lambda2 = _as_float(params.get("lambda2"))
     scalars = (
         mass1,
         mass2,
@@ -451,6 +476,8 @@ def _validated_inputs(
         f_ref,
         *spin1,
         *spin2,
+        lambda1,
+        lambda2,
     )
     if not all(math.isfinite(value) for value in scalars):
         raise ValueError("IMRPhenomPv2 inputs must be finite")
@@ -464,6 +491,8 @@ def _validated_inputs(
         raise ValueError("IMRPhenomPv2 spin1 magnitude must not exceed one")
     if sum(value * value for value in spin2) > 1.0 + 1.0e-14:
         raise ValueError("IMRPhenomPv2 spin2 magnitude must not exceed one")
+    if lambda1 < 0.0 or lambda2 < 0.0:
+        raise ValueError("NRTidal deformabilities must be non-negative")
 
     reference_frequency = f_ref
     if reference_frequency == 0.0:
@@ -497,14 +526,21 @@ def _validated_inputs(
     if mass1 > mass2:
         mass1, mass2 = mass2, mass1
         chi1_l, chi2_l = chi2_l, chi1_l
+        lambda1, lambda2 = lambda2, lambda1
     total_mass = mass1 + mass2
     eta = _nudge_eta(mass1 * mass2 / (total_mass * total_mass))
+    dquad1 = 0.0
+    dquad2 = 0.0
+    if tidal_version is not None:
+        dquad1 = nrtidal_quadrupole_from_lambda(lambda1) - 1.0
+        dquad2 = nrtidal_quadrupole_from_lambda(lambda2) - 1.0
     device = state.torch_device
     real_dtype = torch.float32 if device.type == "mps" else torch.float64
     complex_dtype = (
         torch.complex64 if real_dtype == torch.float32 else torch.complex128
     )
     return _IMRPhenomPv2Inputs(
+        tidal_version=tidal_version,
         mass1=mass1,
         mass2=mass2,
         chi1_l=chi1_l,
@@ -517,6 +553,10 @@ def _validated_inputs(
         polarization_rotation=polarization_rotation,
         long_asc_nodes=long_asc_nodes,
         f_ref=reference_frequency,
+        lambda1=lambda1,
+        lambda2=lambda2,
+        dquad1=dquad1,
+        dquad2=dquad2,
         total_mass=total_mass,
         total_mass_seconds=total_mass * _MTSUN_SI,
         eta=eta,
@@ -552,6 +592,30 @@ def _raw_phase(model, frequencies):
     ) - 2.0 * model.inputs.phi_aligned
 
 
+def _tidal_phase(inputs, frequencies):
+    """Return the complete Pv2 NRTidal phase correction."""
+
+    phase = nrtidal_phase(
+        frequencies,
+        inputs.mass1,
+        inputs.mass2,
+        inputs.lambda1,
+        inputs.lambda2,
+        inputs.tidal_version,
+    )
+    if inputs.tidal_version == 2:
+        phase += nrtidal_higher_order_spin_phase(
+            frequencies,
+            inputs.mass1,
+            inputs.mass2,
+            inputs.chi1_l,
+            inputs.chi2_l,
+            inputs.dquad1 + 1.0,
+            inputs.dquad2 + 1.0,
+        )
+    return phase
+
+
 def _build_model(inputs):
     eta = inputs.eta
     final_spin = _final_spin(
@@ -577,8 +641,8 @@ def _build_model(inputs):
         spin_order=-1,
         tidal_order=-1,
         dchi={},
-        qm_def1=0.0,
-        qm_def2=0.0,
+        qm_def1=inputs.dquad1,
+        qm_def2=inputs.dquad2,
         lambda1=0.0,
         lambda2=0.0,
     )
@@ -643,7 +707,15 @@ def _build_model(inputs):
         for emm in range(-2, 3)
     )
 
-    final_frequency = amp_coeffs.fRD / inputs.total_mass_seconds
+    if inputs.tidal_version is None:
+        final_frequency = amp_coeffs.fRD / inputs.total_mass_seconds
+    else:
+        final_frequency = nrtidal_merger_frequency(
+            inputs.mass1,
+            inputs.mass2,
+            inputs.lambda1,
+            inputs.lambda2,
+        )
     fixed_start = 0.8 * final_frequency
     fixed_stop = min(
         1.2 * final_frequency,
@@ -651,16 +723,20 @@ def _build_model(inputs):
     )
     fixed_frequencies = np.linspace(fixed_start, fixed_stop, 10)
     fixed_mf = inputs.total_mass_seconds * fixed_frequencies
-    fixed_phase = -(
-        _IMRPhenDPhase(
-            fixed_mf,
-            phase_coeffs,
-            pn,
-            phase_prefactors,
-            _pi_powers(),
+    fixed_phase = _IMRPhenDPhase(
+        fixed_mf,
+        phase_coeffs,
+        pn,
+        phase_prefactors,
+        _pi_powers(),
+    ) - 2.0 * inputs.phi_aligned
+    if inputs.tidal_version is not None:
+        fixed_tensor = torch.as_tensor(
+            fixed_frequencies,
+            dtype=torch.float64,
         )
-            - 2.0 * inputs.phi_aligned
-    )
+        fixed_phase += _tidal_phase(inputs, fixed_tensor).numpy()
+    fixed_phase = -fixed_phase
     derivative = CubicSpline(
         fixed_frequencies,
         fixed_phase,
@@ -687,7 +763,18 @@ def _twist_up(model, frequencies):
     mf = inputs.total_mass_seconds * frequencies
     powers = _powers(mf)
     amplitude = _IMRPhenDAmplitude(mf, model.amp_coeffs, powers)
+    if inputs.tidal_version == 2:
+        amplitude += 2.0 * math.sqrt(_PI / 5.0) * nrtidal_amplitude(
+            frequencies,
+            inputs.mass1,
+            inputs.mass2,
+            inputs.lambda1,
+            inputs.lambda2,
+        )
     phase = _raw_phase(model, frequencies)
+    if inputs.tidal_version is not None:
+        phase += _tidal_phase(inputs, frequencies)
+        amplitude *= nrtidal_taper(frequencies, model.final_frequency)
     amplitude_scale = (
         inputs.total_mass
         * _MRSUN_SI
@@ -770,7 +857,7 @@ def _twist_up(model, frequencies):
 
 
 def imrphenompv2_fd_torch(**params):
-    """Generate a regular-grid BBH IMRPhenomPv2 waveform with Torch."""
+    """Generate a regular-grid IMRPhenomPv2 waveform with Torch."""
 
     delta_f = float(params["delta_f"])
     f_lower = float(params["f_lower"])
@@ -868,7 +955,7 @@ def _sequence_frequencies(sample_points):
 
 
 def imrphenompv2_fd_sequence_torch(**params):
-    """Evaluate BBH IMRPhenomPv2 at arbitrary frequencies with Torch."""
+    """Evaluate IMRPhenomPv2 at arbitrary frequencies with Torch."""
 
     if not imrphenompv2_sequence_native_supported(params):
         raise ValueError(
