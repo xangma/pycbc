@@ -273,6 +273,19 @@ def _lalsim_fd_waveform(**p):
             return taylorf2_fd_torch(**p)
 
     if (
+        p.get("approximant") == "TaylorF2Ecc"
+        and using_torch
+        and torch_native_enabled("PYCBC_TAYLORF2ECC_NATIVE", default=False)
+    ):
+        from .taylorf2ecc_torch import (
+            taylorf2ecc_fd_torch,
+            taylorf2ecc_native_supported,
+        )
+
+        if taylorf2ecc_native_supported(p):
+            return taylorf2ecc_fd_torch(**p)
+
+    if (
         p.get("approximant") == "SpinTaylorF2"
         and using_torch
         and torch_native_enabled("PYCBC_SPINTAYLORF2_NATIVE", default=False)

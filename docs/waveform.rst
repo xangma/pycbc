@@ -87,11 +87,16 @@ approximants and for SEOBNRv4PHM in both time and frequency domains. The
 default remains the LAL/CPU path; enable torch ports with environment flags:
 
 - Global: ``PYCBC_TORCH_NATIVE_PORTS=1`` (used when a per-approximant flag is unset).
-- SPA/TaylorF2: ``PYCBC_SPATPLT_NATIVE``, ``PYCBC_TAYLORF2_NATIVE``. The
+- SPA/TaylorF2: ``PYCBC_SPATPLT_NATIVE``, ``PYCBC_TAYLORF2_NATIVE``, and
+  ``PYCBC_TAYLORF2ECC_NATIVE``. The
   public TaylorF2 port covers aligned spins, Newtonian amplitude, all supported
   phase/spin/tidal orders, testing-GR ``dchi`` terms, tidal quadrupoles, and
   polarization rotation. Regular-grid and arbitrary-frequency
   ``get_fd_waveform_sequence`` evaluation both run on the active device.
+  ``TaylorF2Ecc`` adds the model's low-eccentricity phase correction through
+  relative 3PN order for regular-grid generation, including its eccentricity
+  reference-frequency convention. LAL does not expose ``TaylorF2Ecc`` through
+  the arbitrary-frequency sequence API.
   ``TaylorF2NL`` also applies its nonlinear-tide phase correction on the active
   Torch device. Precession, higher-PN amplitude corrections, and dynamic-tide
   extras fall back to lalsimulation.
