@@ -2082,6 +2082,89 @@ def test_noise_from_psd_flat_spectrum_has_expected_variance(torch_ctx):
     assert actual_variance == pytest.approx(expected_variance, rel=0.05)
 
 
+def test_frequency_noise_from_psd_uses_local_device_rng(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    psd_values = np.linspace(0.5, 2.0, 513, dtype=np.float32)
+
+    with ctx:
+        psd = FrequencySeries(psd_values, delta_f=1.0)
+        global_rng_state = torch.random.get_rng_state()
+
+        with monkeypatch.context() as patch:
+            def _reject_host_transfer(_self):
+                raise AssertionError(
+                    "frequency-domain noise copied Torch data to host"
+                )
+
+            def _reject_numpy_rng(*_args, **_kwargs):
+                raise AssertionError(
+                    "frequency-domain noise used NumPy's RNG"
+                )
+
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            patch.setattr(gaussian.numpy.random, "normal", _reject_numpy_rng)
+            first = gaussian.frequency_noise_from_psd(psd, seed=9182)
+            repeated = gaussian.frequency_noise_from_psd(psd, seed=9182)
+            different = gaussian.frequency_noise_from_psd(psd, seed=9183)
+
+        final_rng_state = torch.random.get_rng_state()
+
+    assert first._data.tensor.device.type == device
+    assert first.dtype == np.dtype(np.complex64)
+    assert torch.equal(first._data.tensor, repeated._data.tensor)
+    assert not torch.equal(first._data.tensor, different._data.tensor)
+    assert torch.equal(global_rng_state, final_rng_state)
+
+
+def test_reproducible_normal_is_device_native_and_overlap_safe(
+        torch_device_ctx, monkeypatch):
+    ctx, device = torch_device_ctx
+    monkeypatch.setattr(reproduceable, "BLOCK_SAMPLES", 512)
+    sample_rate = 64
+
+    with ctx:
+        global_rng_state = torch.random.get_rng_state()
+
+        with monkeypatch.context() as patch:
+            def _reject_numpy_block(*_args, **_kwargs):
+                raise AssertionError("Torch white noise used a NumPy block")
+
+            def _reject_host_transfer(_self):
+                raise AssertionError("Torch white noise copied data to host")
+
+            patch.setattr(reproduceable, "block", _reject_numpy_block)
+            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
+            first = reproduceable.normal(
+                100, 110, sample_rate=sample_rate, seed=1729
+            )
+            repeated = reproduceable.normal(
+                100, 110, sample_rate=sample_rate, seed=1729
+            )
+            overlapping = reproduceable.normal(
+                104, 112, sample_rate=sample_rate, seed=1729
+            )
+            different = reproduceable.normal(
+                100, 110, sample_rate=sample_rate, seed=1730
+            )
+            first_overlap = first.time_slice(104, 110)._data.tensor.clone()
+            second_overlap = overlapping.time_slice(
+                104, 110
+            )._data.tensor.clone()
+
+        final_rng_state = torch.random.get_rng_state()
+
+    assert first._data.tensor.device.type == device
+    expected_dtype = torch.float32 if device == "mps" else torch.float64
+    assert first._data.tensor.dtype == expected_dtype
+    assert first.start_time == repeated.start_time == 100
+    assert first.end_time == repeated.end_time == 110
+    assert torch.equal(first._data.tensor, repeated._data.tensor)
+    assert torch.equal(first_overlap, second_overlap)
+    assert not torch.equal(first._data.tensor, different._data.tensor)
+    assert torch.equal(global_rng_state, final_rng_state)
+
+
 def test_reproducible_colored_noise_stays_on_device(
         torch_device_ctx, monkeypatch):
     ctx, device = torch_device_ctx
@@ -2098,11 +2181,6 @@ def test_reproducible_colored_noise_stays_on_device(
         low_frequency_cutoff=1.0,
         filter_duration=1,
     )
-    expected = reproduceable.colored_noise(
-        FrequencySeries(psd_values, delta_f=0.5),
-        start_time, end_time, **parameters
-    )
-
     with ctx:
         torch_psd = FrequencySeries(psd_values, delta_f=0.5)
         with monkeypatch.context() as patch:
@@ -2115,14 +2193,14 @@ def test_reproducible_colored_noise_stays_on_device(
             actual = reproduceable.colored_noise(
                 torch_psd, start_time, end_time, **parameters
             )
+            repeated = reproduceable.colored_noise(
+                torch_psd, start_time, end_time, **parameters
+            )
 
     assert actual._data.tensor.device.type == device
-    assert actual.start_time == expected.start_time == start_time
-    assert actual.end_time == expected.end_time == end_time
-    np.testing.assert_allclose(
-        actual._data.tensor.detach().cpu().numpy(), expected.numpy(),
-        rtol=1e-11, atol=1e-12,
-    )
+    assert actual.start_time == repeated.start_time == start_time
+    assert actual.end_time == repeated.end_time == end_time
+    assert torch.equal(actual._data.tensor, repeated._data.tensor)
 
 
 @pytest.mark.parametrize("avg_method", ["mean", "median", "median-mean"])

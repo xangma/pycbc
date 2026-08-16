@@ -26,6 +26,7 @@ from pycbc.types import TimeSeries, complex_same_precision_as
 from numpy.random import RandomState
 
 import pycbc
+from pycbc import scheme
 try:
     import torch
     from pycbc.types.array_torch import TorchArrayData
@@ -58,6 +59,45 @@ def block(seed, sample_rate):
     variance = sample_rate / 2
     return rng.normal(size=num, scale=variance**0.5)
 
+
+def _block_bounds(start, end, sample_rate):
+    """Return the inclusive noise-block range and its duration."""
+    block_dur = BLOCK_SAMPLES / sample_rate
+    start_block = int(numpy.floor(start / block_dur))
+    end_block = int(numpy.floor(end / block_dur))
+
+    # The data evenly divides so the last block would be superfluous.
+    if end % block_dur == 0:
+        end_block -= 1
+    return start_block, end_block, block_dur
+
+
+def _torch_normal(start, end, sample_rate, seed):
+    """Generate reproducible white noise directly on a Torch device."""
+    device = scheme.mgr.state.torch_device
+    dtype = torch.float32 if device.type == "mps" else torch.float64
+    start_block, end_block, block_dur = _block_bounds(
+        start, end, sample_rate
+    )
+    seed_offset = int(RandomState(seed).randint(-2**50, 2**50))
+    scale = (sample_rate / 2) ** 0.5
+
+    blocks = []
+    for block_index in range(start_block, end_block + 1):
+        generator = torch.Generator(device=device)
+        generator.manual_seed((block_index + seed_offset) % 2**32)
+        blocks.append(torch.randn(
+            BLOCK_SAMPLES, dtype=dtype, device=device,
+            generator=generator,
+        ) * scale)
+
+    data = torch.cat(blocks)
+    noise = TimeSeries(
+        TorchArrayData(data), delta_t=1.0 / sample_rate,
+        epoch=start_block * block_dur, copy=False,
+    )
+    return noise.time_slice(start, end)
+
 def normal(start, end, sample_rate=16384, seed=0):
     """ Generate data with a white Gaussian (normal) distribution
 
@@ -77,20 +117,29 @@ def normal(start, end, sample_rate=16384, seed=0):
     --------
     noise : TimeSeries
         A TimeSeries containing gaussian noise
+
+    Notes
+    -----
+    NumPy and Torch schemes use different random number generators, so their
+    seeded samples are not identical. Both implementations reproduce samples
+    exactly across repeated and overlapping requests within the same backend.
     """
-    # This is reproduceable because we used fixed seeds from known values
-    block_dur = BLOCK_SAMPLES / sample_rate
-    s = int(numpy.floor(start / block_dur))
-    e = int(numpy.floor(end / block_dur))
+    if _HAVE_TORCH and isinstance(scheme.mgr.state, scheme.TorchScheme):
+        return _torch_normal(start, end, sample_rate, seed)
 
-    # The data evenly divides so the last block would be superfluous
-    if end % block_dur == 0:
-        e -= 1
-
-    sv = RandomState(seed).randint(-2**50, 2**50)
-    data = numpy.concatenate([block(i + sv, sample_rate)
-                              for i in numpy.arange(s, e + 1, 1)])
-    ts = TimeSeries(data, delta_t=1.0 / sample_rate, epoch=(s * block_dur))
+    # This is reproducible because fixed block seeds derive from known values.
+    start_block, end_block, block_dur = _block_bounds(
+        start, end, sample_rate
+    )
+    seed_offset = int(RandomState(seed).randint(-2**50, 2**50))
+    data = numpy.concatenate([
+        block(block_index + seed_offset, sample_rate)
+        for block_index in range(start_block, end_block + 1)
+    ])
+    ts = TimeSeries(
+        data, delta_t=1.0 / sample_rate,
+        epoch=start_block * block_dur,
+    )
     return ts.time_slice(start, end)
 
 def colored_noise(psd, start_time, end_time,

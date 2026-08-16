@@ -66,18 +66,24 @@ def frequency_noise_from_psd(psd, seed=None):
     """
     sigma = 0.5 * (psd / psd.delta_f) ** (0.5)
     if _HAVE_TORCH and isinstance(getattr(psd, "_data", None), TorchArrayData):
-        if seed is not None:
-            torch.manual_seed(seed)
         sigma_t = sigma._data.tensor
-        dtype = sigma_t.dtype
         device = sigma_t.device
+        generator = None
+        if seed is not None:
+            generator = torch.Generator(device=device)
+            generator.manual_seed(int(seed))
         noise_re = torch.zeros_like(sigma_t)
         noise_im = torch.zeros_like(sigma_t)
         mask = sigma_t != 0
         sigma_red = sigma_t[mask]
-        # torch.randn_like requires shape; use randn with sigma_red
-        noise_re_red = torch.randn_like(sigma_red) * sigma_red
-        noise_im_red = torch.randn_like(sigma_red) * sigma_red
+        noise_re_red = torch.randn(
+            sigma_red.shape, dtype=sigma_red.dtype,
+            device=device, generator=generator,
+        ) * sigma_red
+        noise_im_red = torch.randn(
+            sigma_red.shape, dtype=sigma_red.dtype,
+            device=device, generator=generator,
+        ) * sigma_red
         noise_re[mask] = noise_re_red
         noise_im[mask] = noise_im_red
         noise = torch.complex(noise_re, noise_im)
