@@ -88,8 +88,8 @@ def _qnm_fdamp_33(final_spin):
     return numerator / denominator
 
 
-def _mode33_state(params):
-    base = _mode21_state(params)
+def _mode33_state(params, *, final_spin=None):
+    base = _mode21_state(params, final_spin=final_spin)
     final_mass = 1.0 - base.radiated_energy
     return _Mode33State(
         base=base,
@@ -321,12 +321,18 @@ def _phase_33(mf, state, intrinsic, phase_coeffs, reference_frequency, coa_phase
             _tensor((state.f_ring_22 - state.f_damp_22) / state.total_mass_seconds, mf),
             intrinsic,
             phase_coeffs,
+            final_spin=state.final_spin,
         )
         / state.total_mass_seconds
     )
     timeshift = linb_fit - dphi22_ref + delta_t
     mf_ref = reference_frequency * state.total_mass_seconds
-    phase_ref_22 = Phase(_tensor(reference_frequency, mf), intrinsic, phase_coeffs)
+    phase_ref_22 = Phase(
+        _tensor(reference_frequency, mf),
+        intrinsic,
+        phase_coeffs,
+        final_spin=state.final_spin,
+    )
     phiref22 = -phase_ref_22 - timeshift * mf_ref - lina + 2.0 * coa_phase + _PI / 4.0
 
     f_align = m_over_2 * state.f_meco_22
@@ -340,6 +346,7 @@ def _phase_33(mf, state, intrinsic, phase_coeffs, reference_frequency, coa_phase
                 _tensor(two_over_m * f_align / state.total_mass_seconds, mf),
                 intrinsic,
                 phase_coeffs,
+                final_spin=state.final_spin,
             )
             + lina
             + phiref22
@@ -1266,10 +1273,11 @@ def imrphenomxhm_h3m3_samples(
     *,
     frequencies=None,
     reference_frequency=None,
+    final_spin=None,
 ):
     r"""Return active positive-frequency samples of LAL's :math:`h_{3,-3}`."""
 
-    state = _mode33_state(params)
+    state = _mode33_state(params, final_spin=final_spin)
     if state.mass1 == state.mass2 and state.chi1 == state.chi2:
         return torch.zeros_like(core.polarization)
 

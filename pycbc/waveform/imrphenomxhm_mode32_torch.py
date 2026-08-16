@@ -366,8 +366,8 @@ def xhm32_rd_amp_sigma_fit(state):
     chi2 = chi * chi
     return float(1.3353917551819414 + 0.13401718687342024 * eta + chi * state.delta * (144.37065005786636 * eta3 - 754.4085447486738 * eta4 + 123.86194078913776 * eta5) + chi2 * (209.09202210427972 * eta3 - 1769.4658099037918 * eta4 + 3592.287297392387 * eta5) + s * (-0.012086025709597246 * (-6.230497473791485 + 600.5968613752918 * eta - 6606.1009717965735 * eta2 + 17277.60594350428 * eta3) - 0.06066548829900489 * (-0.9208054306316676 + 142.0346574366267 * eta - 1567.249168668069 * eta2 + 4119.373703246675 * eta3) * s))
 
-def _mode32_state(params):
-    base = _mode21_state(params)
+def _mode32_state(params, *, final_spin=None):
+    base = _mode21_state(params, final_spin=final_spin)
     final_mass = 1.0 - base.radiated_energy
     final_spin = base.final_spin
     mixing_322 = -complex(
@@ -575,6 +575,7 @@ def _partial_phase(
             _tensor(derivative_frequency, mf),
             intrinsic,
             phase_table,
+            final_spin=state.final_spin,
         )
         / state.total_mass_seconds
     )
@@ -593,6 +594,7 @@ def _partial_phase(
             derivative_match / state.total_mass_seconds,
             intrinsic,
             phase_table,
+            final_spin=state.final_spin,
         )
         / state.total_mass_seconds
         + linb
@@ -617,7 +619,12 @@ def _partial_phase(
 
     mf_ref = reference_frequency * state.total_mass_seconds
     phiref22 = (
-        -Phase(_tensor(reference_frequency, mf), intrinsic, phase_table)
+        -Phase(
+            _tensor(reference_frequency, mf),
+            intrinsic,
+            phase_table,
+            final_spin=state.final_spin,
+        )
         - linb * mf_ref
         + 2.0 * coa_phase
         + _PI / 4.0
@@ -628,6 +635,7 @@ def _partial_phase(
             phase_match / state.total_mass_seconds,
             intrinsic,
             phase_table,
+            final_spin=state.final_spin,
         )
         + linb * phase_match
         + phiref22
@@ -710,12 +718,18 @@ def _h22_ringdown_component(
     phase_table,
     amp_table,
 ):
-    amp22, _ = get_mergerringdown_Amp(frequency, intrinsic, amp_table)
+    amp22, _ = get_mergerringdown_Amp(
+        frequency,
+        intrinsic,
+        amp_table,
+        final_spin=state.final_spin,
+    )
     phase22 = (
         Phase(
             frequency / state.total_mass_seconds,
             intrinsic,
             phase_table,
+            final_spin=state.final_spin,
         )
         + phase.linb * frequency
         + phase.phiref22
@@ -1184,6 +1198,7 @@ def _complete_phase(
         align_tensor / state.total_mass_seconds,
         intrinsic,
         phase_table,
+        final_spin=state.final_spin,
     )
     mode_align = (
         inspiral_raw(align_tensor)
@@ -1297,10 +1312,11 @@ def imrphenomxhm_h3m2_samples(
     *,
     frequencies=None,
     reference_frequency=None,
+    final_spin=None,
 ):
     r"""Return active positive-frequency samples of LAL's h_(3,-2)."""
 
-    state = _mode32_state(params)
+    state = _mode32_state(params, final_spin=final_spin)
     if frequencies is None:
         frequencies = (
             torch.arange(

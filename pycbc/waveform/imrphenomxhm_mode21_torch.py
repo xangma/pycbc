@@ -102,7 +102,7 @@ def _qnm_fdamp_21(final_spin):
     return numerator / denominator
 
 
-def _mode21_state(params):
+def _mode21_state(params, *, final_spin=None):
     mass1 = float(params["mass1"])
     mass2 = float(params["mass2"])
     chi1 = float(params.get("spin1z", 0.0))
@@ -121,7 +121,13 @@ def _mode21_state(params):
     chi_pn_hat = (chi_eff - (38.0 / 113.0) * eta * (chi1 + chi2)) / (
         1.0 - 76.0 * eta / 113.0
     )
-    remnant = _xutils.get_remnant_fMs(mass1, mass2, chi1, chi2)
+    remnant = _xutils.get_remnant_fMs(
+        mass1,
+        mass2,
+        chi1,
+        chi2,
+        final_spin=final_spin,
+    )
     final_spin = _as_float(remnant.final_spin)
     radiated_energy = _as_float(remnant.radiated_energy)
     final_mass = 1.0 - radiated_energy
@@ -415,6 +421,7 @@ def _phase_21(mf, state, intrinsic, phase_coeffs, reference_frequency, coa_phase
                 _tensor(2.0 * points[index] / state.total_mass_seconds, mf),
                 intrinsic,
                 phase_coeffs,
+                final_spin=state.final_spin,
             )
             / state.total_mass_seconds
             + delta_t
@@ -497,12 +504,18 @@ def _phase_21(mf, state, intrinsic, phase_coeffs, reference_frequency, coa_phase
             ),
             intrinsic,
             phase_coeffs,
+            final_spin=state.final_spin,
         )
         / state.total_mass_seconds
     )
     timeshift = linb_fit - dphi22_ref + delta_t
     mf_ref = reference_frequency * state.total_mass_seconds
-    phase_ref_22 = Phase(_tensor(reference_frequency, mf), intrinsic, phase_coeffs)
+    phase_ref_22 = Phase(
+        _tensor(reference_frequency, mf),
+        intrinsic,
+        phase_coeffs,
+        final_spin=state.final_spin,
+    )
     phiref22 = -phase_ref_22 - timeshift * mf_ref - lina + 2.0 * coa_phase + _PI / 4.0
     f_align = 0.5 * state.f_meco_22
     if state.eta > 0.05:
@@ -515,6 +528,7 @@ def _phase_21(mf, state, intrinsic, phase_coeffs, reference_frequency, coa_phase
                 _tensor(2.0 * f_align / state.total_mass_seconds, mf),
                 intrinsic,
                 phase_coeffs,
+                final_spin=state.final_spin,
             )
             + lina
             + phiref22
@@ -1333,10 +1347,11 @@ def imrphenomxhm_h2m1_samples(
     *,
     frequencies=None,
     reference_frequency=None,
+    final_spin=None,
 ):
     r"""Return active positive-frequency samples of LAL's :math:`h_{2,-1}`."""
 
-    state = _mode21_state(params)
+    state = _mode21_state(params, final_spin=final_spin)
     if state.mass1 == state.mass2 and state.chi1 == state.chi2:
         return torch.zeros_like(core.polarization)
 

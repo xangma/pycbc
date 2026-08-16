@@ -134,6 +134,7 @@ def _active_mode_samples(
     *,
     frequencies=None,
     reference_frequency=None,
+    final_spin=None,
 ):
     """Generate each requested absolute-m mode family once."""
 
@@ -147,6 +148,7 @@ def _active_mode_samples(
             params,
             frequencies=frequencies,
             reference_frequency=reference_frequency,
+            final_spin=final_spin,
         )
     if (3, 3) in mode_families:
         active_modes[3, 3] = imrphenomxhm_h3m3_samples(
@@ -154,6 +156,7 @@ def _active_mode_samples(
             params,
             frequencies=frequencies,
             reference_frequency=reference_frequency,
+            final_spin=final_spin,
         )
     if (3, 2) in mode_families:
         active_modes[3, 2] = imrphenomxhm_h3m2_samples(
@@ -161,6 +164,7 @@ def _active_mode_samples(
             params,
             frequencies=frequencies,
             reference_frequency=reference_frequency,
+            final_spin=final_spin,
         )
     if (4, 4) in mode_families:
         active_modes[4, 4] = imrphenomxhm_h4m4_samples(
@@ -168,6 +172,7 @@ def _active_mode_samples(
             params,
             frequencies=frequencies,
             reference_frequency=reference_frequency,
+            final_spin=final_spin,
         )
     return active_modes
 
