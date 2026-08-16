@@ -317,6 +317,19 @@ def _lalsim_fd_waveform(**p):
             return imrphenomxas_fd_torch(**p)
 
     if (
+        p.get("approximant") == "IMRPhenomXHM"
+        and using_torch
+        and torch_native_enabled("PYCBC_IMRPHENOMXHM_NATIVE", default=False)
+    ):
+        from .imrphenomxhm_torch import (
+            imrphenomxhm_fd_torch,
+            imrphenomxhm_fd_native_supported,
+        )
+
+        if imrphenomxhm_fd_native_supported(p):
+            return imrphenomxhm_fd_torch(**p)
+
+    if (
         p.get("approximant") == "IMRPhenomHM"
         and using_torch
         and torch_native_enabled("PYCBC_IMRPHENOMHM_NATIVE", default=False)

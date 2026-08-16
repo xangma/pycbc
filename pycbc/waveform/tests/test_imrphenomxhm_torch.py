@@ -4,7 +4,9 @@ import pytest
 torch = pytest.importorskip("torch")
 
 from pycbc import scheme as _scheme  # noqa: E402
+from pycbc.waveform import get_fd_waveform  # noqa: E402
 from pycbc.waveform.imrphenomxhm_torch import (  # noqa: E402
+    imrphenomxhm_fd_native_supported,
     imrphenomxhm_modes_native_supported,
 )
 from pycbc.waveform.waveform_modes import get_fd_waveform_modes  # noqa: E402
@@ -284,6 +286,52 @@ CASES = [
     ),
 ]
 
+POLARIZATION_CASES = [
+    dict(
+        mass1=46.0,
+        mass2=19.0,
+        spin1z=0.35,
+        spin2z=-0.2,
+        delta_f=1.0,
+        f_lower=20.0,
+        f_final=700.0,
+        f_ref=25.0,
+        distance=350.0,
+        inclination=0.9,
+        coa_phase=0.4,
+        long_asc_nodes=0.37,
+    ),
+    dict(
+        mass1=17.0,
+        mass2=43.0,
+        spin1z=-0.45,
+        spin2z=0.65,
+        delta_f=0.5,
+        f_lower=18.0,
+        f_final=620.0,
+        f_ref=0.0,
+        distance=800.0,
+        inclination=1.2,
+        coa_phase=0.2,
+        long_asc_nodes=-0.21,
+        mode_array=[(2, -2), (2, 1), (3, -3), (3, 2), (4, 4)],
+    ),
+    dict(
+        mass1=600.0 / 11.0,
+        mass2=60.0 / 11.0,
+        spin1z=0.98,
+        spin2z=0.8,
+        delta_f=1.0,
+        f_lower=15.0,
+        f_final=900.0,
+        f_ref=25.0,
+        distance=500.0,
+        inclination=0.6,
+        coa_phase=0.37,
+        mode_array=[(3, -2), (3, 2)],
+    ),
+]
+
 
 @pytest.fixture
 def preserve_scheme():
@@ -353,6 +401,43 @@ def test_imrphenomxhm_native_modes_match_lal(params, monkeypatch, preserve_schem
             assert relative_error < tolerance
 
 
+@pytest.mark.parametrize("params", POLARIZATION_CASES)
+def test_imrphenomxhm_native_polarizations_match_lal(
+    params, monkeypatch, preserve_scheme
+):
+    monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
+    monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference = get_fd_waveform(approximant="IMRPhenomXHM", **params)
+    reference_arrays = tuple(series.numpy().copy() for series in reference)
+
+    monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    actual = get_fd_waveform(approximant="IMRPhenomXHM", **params)
+
+    mass_ratio = max(params["mass1"], params["mass2"]) / min(
+        params["mass1"], params["mass2"]
+    )
+    # LAL's ordinary polarization path enables higher-mode multibanding,
+    # whereas its one-mode interface and the native kernels perform the full
+    # evaluation.  Sparse, sign-asymmetric mode selections can expose a few
+    # parts in 1e3 of multibanding error through polarization cancellation.
+    tolerance = 5.0e-2 if mass_ratio >= 8.0 else 5.0e-3
+    for expected, expected_array, result in zip(
+        reference, reference_arrays, actual
+    ):
+        assert len(result) == len(expected)
+        assert result.delta_f == expected.delta_f
+        assert float(result.epoch) == float(expected.epoch)
+        assert result._data.tensor.device.type == "cpu"
+        assert result._data.tensor.dtype == torch.complex128
+        nonzero = np.abs(expected_array) > 0.0
+        relative_error = np.linalg.norm(
+            result.numpy()[nonzero] - expected_array[nonzero]
+        ) / np.linalg.norm(expected_array[nonzero])
+        assert relative_error < tolerance
+
+
 def test_imrphenomxhm_native_support_is_deliberately_narrow():
     params = {"approximant": "IMRPhenomXHM", **CASES[0]}
     assert imrphenomxhm_modes_native_supported(params)
@@ -371,6 +456,8 @@ def test_imrphenomxhm_native_support_is_deliberately_narrow():
     assert imrphenomxhm_modes_native_supported({**params, "mode_array": None})
     assert not imrphenomxhm_modes_native_supported({**params, "spin1x": 0.1})
     assert not imrphenomxhm_modes_native_supported({**params, "lambda1": 100.0})
+    assert imrphenomxhm_fd_native_supported({**params, "mode_array": None})
+    assert not imrphenomxhm_fd_native_supported({**params, "mode_array": []})
 
 
 def test_imrphenomxhm_unsupported_options_use_lal_fallback(
@@ -409,7 +496,40 @@ def test_imrphenomxhm_unsupported_options_use_lal_fallback(
     assert result.keys() == {(3, 2)}
 
 
+def test_imrphenomxhm_polarization_unsupported_options_use_lal_fallback(
+    monkeypatch, preserve_scheme
+):
+    import pycbc.waveform.imrphenomxhm_torch as xhm_torch
+    import pycbc.waveform.waveform as waveform
+
+    params = {**POLARIZATION_CASES[0], "dchi0": 0.01}
+    lal_generator = waveform.lalsimulation.SimInspiralChooseFDWaveform
+    lal_calls = 0
+
+    def unexpected_native(**_params):
+        raise AssertionError("unsupported XHM parameters reached the Torch generator")
+
+    def recording_lal(*args, **kwargs):
+        nonlocal lal_calls
+        lal_calls += 1
+        return lal_generator(*args, **kwargs)
+
+    monkeypatch.setattr(xhm_torch, "imrphenomxhm_fd_torch", unexpected_native)
+    monkeypatch.setattr(
+        waveform.lalsimulation,
+        "SimInspiralChooseFDWaveform",
+        recording_lal,
+    )
+    monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    hp, hc = get_fd_waveform(approximant="IMRPhenomXHM", **params)
+
+    assert lal_calls == 1
+    assert len(hp) == len(hc)
+
+
 def test_imrphenomxhm_native_avoids_lal_and_host_transfer(monkeypatch, preserve_scheme):
+    import pycbc.waveform.waveform as waveform
     import pycbc.waveform.waveform_modes as waveform_modes
     from pycbc.types.array_torch import TorchArrayData
 
@@ -424,12 +544,23 @@ def test_imrphenomxhm_native_avoids_lal_and_host_transfer(monkeypatch, preserve_
         "SimIMRPhenomXHMGenerateFDOneMode",
         reject_lal,
     )
+    monkeypatch.setattr(
+        waveform.lalsimulation,
+        "SimInspiralChooseFDWaveform",
+        reject_lal,
+    )
     monkeypatch.setattr(TorchArrayData, "numpy", reject_host_transfer)
     monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "1")
     _activate_scheme(_scheme.TorchScheme("cpu"))
     params = {**CASES[0], "mode_array": None}
     with torch.no_grad():
         modes = get_fd_waveform_modes(approximant="IMRPhenomXHM", **params)
+        polarizations = get_fd_waveform(
+            approximant="IMRPhenomXHM",
+            inclination=0.9,
+            long_asc_nodes=0.2,
+            **params,
+        )
 
     assert list(modes) == [
         (2, 2),
@@ -443,9 +574,11 @@ def test_imrphenomxhm_native_avoids_lal_and_host_transfer(monkeypatch, preserve_
         (3, -2),
         (4, -4),
     ]
-    for polarizations in modes.values():
-        for series in polarizations:
+    for mode_polarizations in modes.values():
+        for series in mode_polarizations:
             assert isinstance(series._data.tensor, torch.Tensor)
+    for series in polarizations:
+        assert isinstance(series._data.tensor, torch.Tensor)
 
 
 @pytest.mark.parametrize(
@@ -494,4 +627,34 @@ def test_imrphenomxhm_modes_stay_on_requested_device(
         tolerance = 5.0e-4
     else:
         tolerance = 1.0e-8 if mode[0] >= 3 else 1.0e-10
+    assert relative_error < tolerance
+
+
+@pytest.mark.parametrize("device_name", ["cpu", "mps", "cuda"])
+def test_imrphenomxhm_polarizations_stay_on_requested_device(
+    device_name, monkeypatch, preserve_scheme
+):
+    if device_name == "mps" and not torch.backends.mps.is_available():
+        pytest.skip("Torch MPS device is unavailable")
+    if device_name == "cuda" and not torch.cuda.is_available():
+        pytest.skip("Torch CUDA device is unavailable")
+
+    params = POLARIZATION_CASES[0]
+    monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference, _ = get_fd_waveform(approximant="IMRPhenomXHM", **params)
+    reference_array = reference.numpy().copy()
+
+    monkeypatch.setenv("PYCBC_IMRPHENOMXHM_NATIVE", "1")
+    _activate_scheme(_scheme.TorchScheme(device_name))
+    actual, _ = get_fd_waveform(approximant="IMRPhenomXHM", **params)
+
+    expected_dtype = torch.complex64 if device_name == "mps" else torch.complex128
+    assert actual._data.tensor.device.type == device_name
+    assert actual._data.tensor.dtype == expected_dtype
+    nonzero = np.abs(reference_array) > 0.0
+    relative_error = np.linalg.norm(
+        actual.numpy()[nonzero] - reference_array[nonzero]
+    ) / np.linalg.norm(reference_array[nonzero])
+    tolerance = 5.0e-3 if device_name == "mps" else 5.0e-4
     assert relative_error < tolerance

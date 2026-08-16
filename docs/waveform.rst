@@ -127,8 +127,11 @@ environment flags:
   spheroidal-to-spherical ringdown mixing, and the other modes use native XHM
   no-mixing kernels. The mixed mode uses analytic phase-boundary derivatives
   instead of LAL's roundoff-sensitive ``1e-7`` finite difference, so measurable
-  phase differences can remain near the calibration boundary. The normal
-  polarization interface still falls back to lalsimulation.
+  phase differences can remain near the calibration boundary. Polarization
+  assembly through ``get_fd_waveform`` also runs on-device; spin-weighted
+  spherical-harmonic coefficients are scalar CPU setup. This path performs the
+  full mode evaluation rather than LAL's polarization-interface multibanding,
+  so sparse mode selections can retain small additional differences.
 - IMRPhenomHM (FD higher modes): ``PYCBC_IMRPHENOMHM_NATIVE``. The six modeled
   positive-m modes, their IMRPhenomD frequency maps, and polarization assembly
   run on the active Torch device. Scalar coefficient and spin-weighted
