@@ -107,11 +107,17 @@ environment flags:
   non-``dchi`` testing-GR options fall back to lalsimulation for regular-grid
   generation and remain unavailable through the sequence API.
 - IMRPhenomC (FD): ``PYCBC_IMRPHENOMC_NATIVE``. Frequency-grid construction,
-  amplitude and phase evaluation, coalescence-time correction, masking, and
-  polarization assembly run on the active Torch device. The native path covers
-  the aligned-spin, circular, dominant-mode model; transverse spins, tides,
-  testing-GR changes, non-default orders, and custom modes fall back to
-  lalsimulation.
+  amplitude and phase evaluation, regular-grid coalescence-time spline,
+  masking, and polarization assembly run on the active Torch device.
+  Arbitrary-frequency ``get_fd_waveform_sequence`` evaluation is also native.
+  This is a native extension because lalsimulation does not expose IMRPhenomC
+  through its sequence API; it uses the continuous phase derivative at
+  ringdown instead of a grid-dependent spline, ignores ``long_asc_nodes``,
+  accepts unordered positive frequencies, and returns zero at and above the
+  model's fixed ``Mf=0.15`` cutoff. The native path covers the aligned-spin,
+  circular, dominant-mode model; transverse spins, tides, testing-GR changes,
+  non-default orders, and custom modes fall back to lalsimulation for the
+  regular grid and remain unavailable through the sequence API.
 - IMRPhenomD (FD): ``PYCBC_IMRPHENOMD_NATIVE``. Frequency-grid construction,
   amplitude/phase evaluation, masking, and polarization assembly run on the
   active Torch device; small coefficient and QNM-table setup remains on CPU.

@@ -28,19 +28,23 @@ Activation
 - Per-model flag: ``PYCBC_IMRPHENOMC_NATIVE=1``
 - Global flag   : ``PYCBC_TORCH_NATIVE_PORTS=1`` (fallback)
 
-When enabled and running under ``TorchScheme``, ``get_fd_waveform`` will route
-IMRPhenomC requests here; otherwise the code falls back to lalsimulation.
+When enabled and running under ``TorchScheme``, supported ``get_fd_waveform``
+and ``get_fd_waveform_sequence`` requests route here. Unsupported regular-grid
+requests fall back to lalsimulation; lalsimulation has no IMRPhenomC sequence
+implementation.
 """
 
 from __future__ import annotations
 
 import math
 import warnings
+from dataclasses import dataclass
 
 import lal
 import torch
 
 import pycbc.scheme as _scheme
+from pycbc.types import Array as PyCBCArray
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform.imrphenomd_torch import (
@@ -199,9 +203,84 @@ def _natural_cubic_derivative(values, spacing, sample_position):
     )
 
 
-def imrphenomc_fd_torch(**kwds):
-    """Torch-native IMRPhenomC FD waveform (hp, hc)."""
-    if not imrphenomc_native_supported(kwds):
+def imrphenomc_sequence_native_supported(params):
+    """Return whether arbitrary-frequency IMRPhenomC is Torch-native."""
+    return imrphenomc_native_supported(params)
+
+
+@dataclass(frozen=True)
+class _IMRPhenomCInputs:
+    """Validated scalar inputs shared by regular and sequence generation."""
+
+    distance: float
+    inclination: float
+    coa_phase: float
+    long_asc_nodes: float
+    total_mass: float
+    eta: float
+    xi: float
+    total_mass_seconds: float
+    f_cut: float
+    device: torch.device
+    real_dtype: torch.dtype
+    complex_dtype: torch.dtype
+
+
+@dataclass(frozen=True)
+class _IMRPhenomCCoefficients:
+    """Frequency-independent PhenomC fit coefficients."""
+
+    a1: float
+    a2: float
+    a3: float
+    a4: float
+    a5: float
+    a6: float
+    g1: float
+    del1: float
+    del2: float
+    Q: float
+    f_rd: float
+    Mfrd: float
+    f1: float
+    Mf1: float
+    Mf2: float
+    d1: float
+    d2: float
+    Mf0: float
+    d0: float
+    b1: float
+    b2: float
+    pfaN: float
+    pfa2: float
+    pfa3: float
+    pfa4: float
+    pfa5: float
+    pfa6: float
+    pfa6log: float
+    pfa7: float
+    xdotaN: float
+    xdota2: float
+    xdota3: float
+    xdota4: float
+    xdota5: float
+    xdota6: float
+    xdota6log: float
+    xdota7: float
+    AN: float
+    A2: float
+    A3: float
+    A4: float
+    A5: float
+    A5imag: float
+    A6: float
+    A6log: float
+    A6imag: float
+
+
+def _imrphenomc_inputs(params, *, sequence=False):
+    """Validate scalar inputs and select the active Torch precision."""
+    if not imrphenomc_native_supported(params):
         raise ValueError(
             "IMRPhenomC parameters are not supported by the native Torch path"
         )
@@ -210,23 +289,25 @@ def imrphenomc_fd_torch(**kwds):
     if not isinstance(state, _scheme.TorchScheme):
         raise RuntimeError("native Torch IMRPhenomC requires TorchScheme")
     device = state.torch_device
-    dtype = torch.float32 if device.type == "mps" else torch.float64
+    real_dtype = torch.float32 if device.type == "mps" else torch.float64
     complex_dtype = (
-        torch.complex64 if dtype == torch.float32 else torch.complex128
+        torch.complex64 if real_dtype == torch.float32 else torch.complex128
     )
 
-    f_min = float(kwds["f_lower"])
-    f_final = float(kwds.get("f_final", 0.0))
-    f_ref = float(kwds.get("f_ref", 0.0))
-    delta_f = float(kwds["delta_f"])
-    distance = float(kwds["distance"])
-    mass1 = float(kwds["mass1"])
-    mass2 = float(kwds["mass2"])
-    spin1z = float(kwds.get("spin1z", 0.0))
-    spin2z = float(kwds.get("spin2z", 0.0))
-    inclination = float(kwds.get("inclination", 0.0))
-    coa_phase = float(kwds.get("coa_phase", 0.0))
-    long_asc_nodes = float(kwds.get("long_asc_nodes", 0.0))
+    f_ref = float(params.get("f_ref", 0.0))
+    distance = float(params["distance"])
+    mass1 = float(params["mass1"])
+    mass2 = float(params["mass2"])
+    spin1z = float(params.get("spin1z", 0.0))
+    spin2z = float(params.get("spin2z", 0.0))
+    inclination = float(params.get("inclination", 0.0))
+    coa_phase = float(params.get("coa_phase", 0.0))
+    # The LAL sequence API has no ascending-node argument. Match the common
+    # PyCBC sequence convention even though this native extension has no LAL
+    # IMRPhenomC sequence implementation to call.
+    long_asc_nodes = (
+        0.0 if sequence else float(params.get("long_asc_nodes", 0.0))
+    )
 
     if not all(
         math.isfinite(value)
@@ -238,10 +319,7 @@ def imrphenomc_fd_torch(**kwds):
             inclination,
             coa_phase,
             long_asc_nodes,
-            f_min,
-            f_final,
             f_ref,
-            delta_f,
             distance,
         )
     ):
@@ -250,10 +328,8 @@ def imrphenomc_fd_torch(**kwds):
         raise ValueError("IMRPhenomC component masses must be positive")
     if abs(spin1z) > 1.0 or abs(spin2z) > 1.0:
         raise ValueError("IMRPhenomC aligned spins must be between -1 and 1")
-    if delta_f <= 0.0 or f_min <= 0.0:
-        raise ValueError("IMRPhenomC delta_f and f_lower must be positive")
-    if f_final < 0.0 or f_ref < 0.0:
-        raise ValueError("IMRPhenomC f_final and f_ref must be non-negative")
+    if f_ref < 0.0:
+        raise ValueError("IMRPhenomC f_ref must be non-negative")
     if distance <= 0.0:
         raise ValueError("IMRPhenomC distance must be positive")
 
@@ -264,7 +340,7 @@ def imrphenomc_fd_torch(**kwds):
         warnings.warn(
             "IMRPhenomC is calibrated only for mass ratios up to 4",
             RuntimeWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
 
     M = mass1 + mass2
@@ -272,26 +348,33 @@ def imrphenomc_fd_torch(**kwds):
     xi = (mass1 * spin1z / M) + (mass2 * spin2z / M)
     if abs(xi) > 0.9:
         raise ValueError("IMRPhenomC effective spin must be between -0.9 and 0.9")
+    m_sec = M * _MTSUN_SI
+    return _IMRPhenomCInputs(
+        distance=distance * _distance_scale(M),
+        inclination=inclination,
+        coa_phase=coa_phase,
+        long_asc_nodes=long_asc_nodes,
+        total_mass=M,
+        eta=eta,
+        xi=xi,
+        total_mass_seconds=m_sec,
+        f_cut=0.15 / m_sec,
+        device=device,
+        real_dtype=real_dtype,
+        complex_dtype=complex_dtype,
+    )
+
+
+def _imrphenomc_coefficients(inputs):
+    """Assemble the scalar PhenomC fits shared by both sampling APIs."""
+    M = inputs.total_mass
+    eta = inputs.eta
+    xi = inputs.xi
     xisum = 2.0 * xi
     xiprod = xi * xi
     xi2 = xi * xi
     eta2 = eta * eta
-
-    m_sec = M * _MTSUN_SI
-    piM = _PI * m_sec
-
-    # Convert distance from Mpc to the dimensionless normalization used below
-    distance *= _distance_scale(M)
-
-    # LAL evaluates only through its fixed Mf=0.15 cutoff while retaining an
-    # explicitly larger f_final as zero padding in the output layout.
-    f_cut = 0.15 / m_sec
-    layout_f_max = f_final if f_final > 0.0 else f_cut
-    active_f_max = min(layout_f_max, f_cut)
-    if f_cut <= f_min:
-        raise ValueError("IMRPhenomC f_cut is <= f_lower")
-    if active_f_max <= f_min:
-        raise ValueError("IMRPhenomC f_final is <= f_lower")
+    m_sec = inputs.total_mass_seconds
 
     # Lambda parameter fits (Table II and Eq. 5.14 of PhenomC)
     z101 = -2.417e-03
@@ -504,32 +587,136 @@ def imrphenomc_fd_torch(**kwds):
     A6log = -428.0 / 105.0
     A6imag = 4.28 * _PI / 1.05
 
-    # Frequency grid and derived powers (power-of-two layout like LAL).
-    # LAL truncates f_max / delta_f to size_t before selecting the next
-    # power-of-two FFT length. Preserve that order at power-of-two boundaries.
-    layout_bins = int(layout_f_max / delta_f)
-    fft_length = (
-        1 if layout_bins <= 1 else 1 << (layout_bins - 1).bit_length()
+    return _IMRPhenomCCoefficients(
+        a1=a1,
+        a2=a2,
+        a3=a3,
+        a4=a4,
+        a5=a5,
+        a6=a6,
+        g1=g1,
+        del1=del1,
+        del2=del2,
+        Q=Q,
+        f_rd=f_rd,
+        Mfrd=Mfrd,
+        f1=f1,
+        Mf1=Mf1,
+        Mf2=Mf2,
+        d1=d1,
+        d2=d2,
+        Mf0=Mf0,
+        d0=d0,
+        b1=b1,
+        b2=b2,
+        pfaN=pfaN,
+        pfa2=pfa2,
+        pfa3=pfa3,
+        pfa4=pfa4,
+        pfa5=pfa5,
+        pfa6=pfa6,
+        pfa6log=pfa6log,
+        pfa7=pfa7,
+        xdotaN=xdotaN,
+        xdota2=xdota2,
+        xdota3=xdota3,
+        xdota4=xdota4,
+        xdota5=xdota5,
+        xdota6=xdota6,
+        xdota6log=xdota6log,
+        xdota7=xdota7,
+        AN=AN,
+        A2=A2,
+        A3=A3,
+        A4=A4,
+        A5=A5,
+        A5imag=A5imag,
+        A6=A6,
+        A6log=A6log,
+        A6imag=A6imag,
     )
-    nfreq = fft_length + 1
-    bins = torch.arange(nfreq, device=device)
-    freqs = bins.to(dtype=dtype) * delta_f
-    kmin = int(math.floor(f_min / delta_f))
-    kmax = int(math.floor(active_f_max / delta_f))
-    mask = (bins >= kmin) & (bins < kmax)
-    if kmax - kmin < 2:
-        raise ValueError("IMRPhenomC needs at least two active frequency bins")
-    fsel = freqs[mask]
 
-    fd = fsel * m_sec
-    v = torch.pow(piM * fsel, 1.0 / 3.0)
+
+def _imrphenomc_components(inputs, coefficients, frequencies):
+    """Evaluate the fitted amplitude and phase at device frequencies."""
+    m_sec = inputs.total_mass_seconds
+    piM = _PI * m_sec
+    eta = inputs.eta
+    distance = inputs.distance
+    (
+        a1,
+        a2,
+        a3,
+        a4,
+        a5,
+        a6,
+    ) = (
+        coefficients.a1,
+        coefficients.a2,
+        coefficients.a3,
+        coefficients.a4,
+        coefficients.a5,
+        coefficients.a6,
+    )
+    (
+        pfaN,
+        pfa2,
+        pfa3,
+        pfa4,
+        pfa5,
+        pfa6,
+        pfa6log,
+        pfa7,
+    ) = (
+        coefficients.pfaN,
+        coefficients.pfa2,
+        coefficients.pfa3,
+        coefficients.pfa4,
+        coefficients.pfa5,
+        coefficients.pfa6,
+        coefficients.pfa6log,
+        coefficients.pfa7,
+    )
+    (
+        xdotaN,
+        xdota2,
+        xdota3,
+        xdota4,
+        xdota5,
+        xdota6,
+        xdota6log,
+        xdota7,
+    ) = (
+        coefficients.xdotaN,
+        coefficients.xdota2,
+        coefficients.xdota3,
+        coefficients.xdota4,
+        coefficients.xdota5,
+        coefficients.xdota6,
+        coefficients.xdota6log,
+        coefficients.xdota7,
+    )
+    AN, A2, A3, A4, A5, A5imag, A6, A6log, A6imag = (
+        coefficients.AN,
+        coefficients.A2,
+        coefficients.A3,
+        coefficients.A4,
+        coefficients.A5,
+        coefficients.A5imag,
+        coefficients.A6,
+        coefficients.A6log,
+        coefficients.A6imag,
+    )
+
+    fd = frequencies * m_sec
+    v = torch.pow(piM * frequencies, 1.0 / 3.0)
     v2 = v * v
     v3 = v2 * v
     v4 = v2 * v2
     v5 = v2 * v3
     v6 = v3 * v3
     v7 = v3 * v4
-    w = torch.pow(m_sec * fsel, 1.0 / 3.0)
+    w = torch.pow(m_sec * frequencies, 1.0 / 3.0)
     w2 = w * w
     w3 = w2 * w
 
@@ -545,13 +732,32 @@ def imrphenomc_fd_torch(**kwds):
     )
     phSPA = phSPA * (pfaN / v5) - (_PI / 4.0)
 
-    phPM = (a1 / (w3 * w2) + a2 / w3 + a3 / w + a4 + a5 * w2 + a6 * w3) / eta
-    phRD = b1 + b2 * fd
+    phPM = (
+        a1 / (w3 * w2)
+        + a2 / w3
+        + a3 / w
+        + a4
+        + a5 * w2
+        + a6 * w3
+    ) / eta
+    phRD = coefficients.b1 + coefficients.b2 * fd
 
-    wPlusf1 = 0.5 * (1.0 + torch.tanh((4.0 * (fd - Mf1) / d1)))
-    wMinusf1 = 0.5 * (1.0 - torch.tanh((4.0 * (fd - Mf1) / d1)))
-    wPlusf2 = 0.5 * (1.0 + torch.tanh((4.0 * (fd - Mf2) / d2)))
-    wMinusf2 = 0.5 * (1.0 - torch.tanh((4.0 * (fd - Mf2) / d2)))
+    wPlusf1 = 0.5 * (
+        1.0
+        + torch.tanh(4.0 * (fd - coefficients.Mf1) / coefficients.d1)
+    )
+    wMinusf1 = 0.5 * (
+        1.0
+        - torch.tanh(4.0 * (fd - coefficients.Mf1) / coefficients.d1)
+    )
+    wPlusf2 = 0.5 * (
+        1.0
+        + torch.tanh(4.0 * (fd - coefficients.Mf2) / coefficients.d2)
+    )
+    wMinusf2 = 0.5 * (
+        1.0
+        - torch.tanh(4.0 * (fd - coefficients.Mf2) / coefficients.d2)
+    )
     phasing = phSPA * wMinusf1 + phPM * wPlusf1 * wMinusf2 + phRD * wPlusf2
 
     xdot = (
@@ -565,7 +771,7 @@ def imrphenomc_fd_torch(**kwds):
     )
     xdot = xdot * (xdotaN * v5 * v5)
 
-    if torch.any((xdot < 0.0) & (fsel < f1)):
+    if torch.any((xdot < 0.0) & (frequencies < coefficients.f1)):
         raise ValueError("IMRPhenomC xdot is negative below the transition")
     omgdot = 1.5 * v * xdot
     ampfac = torch.sqrt(torch.abs(_PI / omgdot))
@@ -585,52 +791,239 @@ def imrphenomc_fd_torch(**kwds):
     ampSPAim = ampfac * AN * v2 * (A5imag * v5 + A6imag * v6)
     ampSPA = torch.sqrt(ampSPAre * ampSPAre + ampSPAim * ampSPAim)
 
-    ampPM = ampSPA + g1 * torch.pow(fd, 5.0 / 6.0)
+    ampPM = ampSPA + coefficients.g1 * torch.pow(fd, 5.0 / 6.0)
 
-    sig = Mfrd * del2 / Q
+    sig = coefficients.Mfrd * coefficients.del2 / coefficients.Q
     sig2 = sig * sig
-    L = sig2 / ((fd - Mfrd) * (fd - Mfrd) + sig2 / 4.0)
-    ampRD = del1 * L * torch.pow(fd, -7.0 / 6.0)
+    L = sig2 / (
+        (fd - coefficients.Mfrd) * (fd - coefficients.Mfrd)
+        + sig2 / 4.0
+    )
+    ampRD = coefficients.del1 * L * torch.pow(fd, -7.0 / 6.0)
 
-    wPlusf0 = 0.5 * (1.0 + torch.tanh((4.0 * (fd - Mf0) / d0)))
-    wMinusf0 = 0.5 * (1.0 - torch.tanh((4.0 * (fd - Mf0) / d0)))
+    wPlusf0 = 0.5 * (
+        1.0
+        + torch.tanh(4.0 * (fd - coefficients.Mf0) / coefficients.d0)
+    )
+    wMinusf0 = 0.5 * (
+        1.0
+        - torch.tanh(4.0 * (fd - coefficients.Mf0) / coefficients.d0)
+    )
     amplitude = -(ampPM * wMinusf0 + ampRD * wPlusf0) / distance
+    return amplitude, phasing
+
+
+def _imrphenomc_ringdown_time_correction(inputs, coefficients):
+    """Return the continuous-phase coalescence-time correction.
+
+    The regular LAL implementation differentiates a natural cubic spline of
+    ``-phase`` at ringdown. An arbitrary sequence has no grid on which to build
+    that spline, so this evaluates the analytic derivative of the same phase
+    ansatz. The result is independent of sequence density and ordering.
+    """
+    f = coefficients.f_rd
+    m_sec = inputs.total_mass_seconds
+    eta = inputs.eta
+    fd = f * m_sec
+    v = pow(_PI * m_sec * f, 1.0 / 3.0)
+    v2 = v * v
+    v3 = v2 * v
+    v4 = v2 * v2
+    v5 = v2 * v3
+    v6 = v3 * v3
+    v7 = v3 * v4
+    dv_df = v / (3.0 * f)
+    logv3 = math.log(v3)
+
+    spa_bracket = (
+        1.0
+        + coefficients.pfa2 * v2
+        + coefficients.pfa3 * v3
+        + coefficients.pfa4 * v4
+        + (1.0 + logv3) * coefficients.pfa5 * v5
+        + (coefficients.pfa6 + coefficients.pfa6log * logv3) * v6
+        + coefficients.pfa7 * v7
+    )
+    spa_bracket_derivative = (
+        2.0 * coefficients.pfa2 * v * dv_df
+        + 3.0 * coefficients.pfa3 * v2 * dv_df
+        + 4.0 * coefficients.pfa4 * v3 * dv_df
+        + coefficients.pfa5
+        * (v5 / f + 5.0 * (1.0 + logv3) * v4 * dv_df)
+        + coefficients.pfa6log * v6 / f
+        + (coefficients.pfa6 + coefficients.pfa6log * logv3)
+        * 6.0
+        * v5
+        * dv_df
+        + 7.0 * coefficients.pfa7 * v6 * dv_df
+    )
+    phSPA = coefficients.pfaN * spa_bracket / v5 - _PI / 4.0
+    dphSPA_df = coefficients.pfaN * (
+        spa_bracket_derivative / v5
+        - 5.0 * spa_bracket * dv_df / v6
+    )
+
+    w = pow(m_sec * f, 1.0 / 3.0)
+    w2 = w * w
+    w3 = w2 * w
+    w4 = w2 * w2
+    w5 = w3 * w2
+    w6 = w3 * w3
+    dw_df = w / (3.0 * f)
+    phPM = (
+        coefficients.a1 / w5
+        + coefficients.a2 / w3
+        + coefficients.a3 / w
+        + coefficients.a4
+        + coefficients.a5 * w2
+        + coefficients.a6 * w3
+    ) / eta
+    dphPM_df = (
+        -5.0 * coefficients.a1 / w6
+        - 3.0 * coefficients.a2 / w4
+        - coefficients.a3 / w2
+        + 2.0 * coefficients.a5 * w
+        + 3.0 * coefficients.a6 * w2
+    ) * dw_df / eta
+    phRD = coefficients.b1 + coefficients.b2 * fd
+    dphRD_df = coefficients.b2 * m_sec
+
+    tanh1 = math.tanh(
+        4.0 * (fd - coefficients.Mf1) / coefficients.d1
+    )
+    tanh2 = math.tanh(
+        4.0 * (fd - coefficients.Mf2) / coefficients.d2
+    )
+    wPlusf1 = 0.5 * (1.0 + tanh1)
+    wMinusf1 = 1.0 - wPlusf1
+    wPlusf2 = 0.5 * (1.0 + tanh2)
+    wMinusf2 = 1.0 - wPlusf2
+    dwPlusf1_df = (
+        2.0 * m_sec / coefficients.d1 * (1.0 - tanh1 * tanh1)
+    )
+    dwPlusf2_df = (
+        2.0 * m_sec / coefficients.d2 * (1.0 - tanh2 * tanh2)
+    )
+    dphasing_df = (
+        dphSPA_df * wMinusf1
+        - phSPA * dwPlusf1_df
+        + dphPM_df * wPlusf1 * wMinusf2
+        + phPM * dwPlusf1_df * wMinusf2
+        - phPM * wPlusf1 * dwPlusf2_df
+        + dphRD_df * wPlusf2
+        + phRD * dwPlusf2_df
+    )
+    return -dphasing_df / (2.0 * _PI)
+
+
+def _imrphenomc_polarizations(
+    inputs,
+    frequencies,
+    amplitude,
+    phasing,
+    time_correction,
+):
+    """Apply phase/time conventions and project into polarizations."""
+    complex_phase = (
+        -phasing
+        + 2.0 * inputs.coa_phase
+        - 2.0 * _PI * frequencies * time_correction
+    )
+    # ``torch.polar`` requires a non-negative magnitude, whereas PhenomC's
+    # fitted amplitude carries an overall minus sign.
+    samples = torch.complex(
+        amplitude * torch.cos(complex_phase),
+        amplitude * torch.sin(complex_phase),
+    )
+
+    cosi = math.cos(inputs.inclination)
+    plus0 = 0.5 * (1.0 + cosi * cosi) * samples
+    cross0 = samples * complex(0.0, -cosi)
+    cos_nodes = math.cos(2.0 * inputs.long_asc_nodes)
+    sin_nodes = math.sin(2.0 * inputs.long_asc_nodes)
+    return (
+        (cos_nodes * plus0 + sin_nodes * cross0).to(
+            inputs.complex_dtype
+        ),
+        (cos_nodes * cross0 - sin_nodes * plus0).to(
+            inputs.complex_dtype
+        ),
+    )
+
+
+def imrphenomc_fd_torch(**params):
+    """Torch-native regular-grid IMRPhenomC waveform (hp, hc)."""
+    inputs = _imrphenomc_inputs(params)
+    delta_f = float(params["delta_f"])
+    f_min = float(params["f_lower"])
+    f_final = float(params.get("f_final", 0.0))
+    if not all(math.isfinite(value) for value in (delta_f, f_min, f_final)):
+        raise ValueError("IMRPhenomC frequencies must be finite")
+    if delta_f <= 0.0 or f_min <= 0.0:
+        raise ValueError("IMRPhenomC delta_f and f_lower must be positive")
+    if f_final < 0.0:
+        raise ValueError("IMRPhenomC f_final must be non-negative")
+
+    # LAL evaluates only through its fixed Mf=0.15 cutoff while retaining an
+    # explicitly larger f_final as zero padding in the output layout.
+    layout_f_max = f_final if f_final > 0.0 else inputs.f_cut
+    active_f_max = min(layout_f_max, inputs.f_cut)
+    if inputs.f_cut <= f_min:
+        raise ValueError("IMRPhenomC f_cut is <= f_lower")
+    if active_f_max <= f_min:
+        raise ValueError("IMRPhenomC f_final is <= f_lower")
+
+    # Frequency grid and derived powers (power-of-two layout like LAL).
+    # LAL truncates f_max / delta_f to size_t before selecting the next
+    # power-of-two FFT length. Preserve that order at power-of-two boundaries.
+    layout_bins = int(layout_f_max / delta_f)
+    fft_length = (
+        1 if layout_bins <= 1 else 1 << (layout_bins - 1).bit_length()
+    )
+    nfreq = fft_length + 1
+    bins = torch.arange(nfreq, device=inputs.device)
+    freqs = bins.to(dtype=inputs.real_dtype) * delta_f
+    kmin = int(math.floor(f_min / delta_f))
+    kmax = int(math.floor(active_f_max / delta_f))
+    mask = (bins >= kmin) & (bins < kmax)
+    if kmax - kmin < 2:
+        raise ValueError("IMRPhenomC needs at least two active frequency bins")
+    active_frequencies = freqs[mask]
+
+    coefficients = _imrphenomc_coefficients(inputs)
+    amplitude, phasing = _imrphenomc_components(
+        inputs,
+        coefficients,
+        active_frequencies,
+    )
 
     # LAL shifts the signal so that coalescence is at t=0. It obtains the
     # shift from the derivative of a natural cubic spline of -phase at the
     # ringdown frequency (clipped to the final active sample).
-    correction_frequency = min(f_rd, (kmax - 1) * delta_f)
+    correction_frequency = min(coefficients.f_rd, (kmax - 1) * delta_f)
     if correction_frequency < kmin * delta_f:
         raise ValueError("IMRPhenomC ringdown frequency is <= f_lower")
     sample_position = (correction_frequency - kmin * delta_f) / delta_f
     time_correction = _natural_cubic_derivative(
         -phasing, delta_f, sample_position
     ) / (2.0 * _PI)
-    complex_phase = (
-        -phasing
-        + 2.0 * coa_phase
-        - 2.0 * _PI * fsel * time_correction
+    hp_segment, hc_segment = _imrphenomc_polarizations(
+        inputs,
+        active_frequencies,
+        amplitude,
+        phasing,
+        time_correction,
     )
-    # ``torch.polar`` requires a non-negative magnitude, whereas PhenomC's
-    # fitted amplitude carries an overall minus sign.
-    hseg = torch.complex(
-        amplitude * torch.cos(complex_phase),
-        amplitude * torch.sin(complex_phase),
-    )
-
-    cosi = math.cos(inclination)
-    plus0 = 0.5 * (1.0 + cosi * cosi) * hseg
-    cross0 = hseg * complex(0.0, -cosi)
-    cos_nodes = math.cos(2.0 * long_asc_nodes)
-    sin_nodes = math.sin(2.0 * long_asc_nodes)
-    hp_seg = cos_nodes * plus0 + sin_nodes * cross0
-    hc_seg = cos_nodes * cross0 - sin_nodes * plus0
 
     # Assemble the full spectrum with zeros outside the active band
-    hp_data = torch.zeros(nfreq, device=device, dtype=complex_dtype)
+    hp_data = torch.zeros(
+        nfreq,
+        device=inputs.device,
+        dtype=inputs.complex_dtype,
+    )
     hc_data = torch.zeros_like(hp_data)
-    hp_data[mask] = hp_seg.to(complex_dtype)
-    hc_data[mask] = hc_seg.to(complex_dtype)
+    hp_data[mask] = hp_segment
+    hc_data[mask] = hc_segment
 
     epoch = -1.0 / delta_f
     hp = FrequencySeries(
@@ -642,4 +1035,82 @@ def imrphenomc_fd_torch(**kwds):
     return hp, hc
 
 
-__all__ = ["imrphenomc_fd_torch", "imrphenomc_native_supported"]
+def _imrphenomc_sequence_frequencies(sample_points, inputs):
+    """Return validated arbitrary frequencies on the active Torch device."""
+    values = getattr(sample_points, "_data", sample_points)
+    if isinstance(values, TorchArrayData):
+        values = values.tensor
+    frequencies = torch.as_tensor(
+        values,
+        dtype=inputs.real_dtype,
+        device=inputs.device,
+    )
+    if frequencies.ndim != 1 or frequencies.numel() == 0:
+        raise ValueError(
+            "IMRPhenomC sample_points must be a non-empty vector"
+        )
+    if not bool(torch.all(torch.isfinite(frequencies))):
+        raise ValueError("IMRPhenomC sample_points must be finite")
+    if bool(torch.any(frequencies <= 0.0)):
+        raise ValueError("IMRPhenomC sample_points must be positive")
+    return frequencies
+
+
+def imrphenomc_fd_sequence_torch(**params):
+    """Evaluate IMRPhenomC at arbitrary frequencies with Torch.
+
+    LAL does not expose IMRPhenomC through its sequence API. This native
+    extension uses the continuous phase derivative at ringdown in place of
+    the regular generator's grid-dependent spline derivative. Frequencies at
+    and above the model's fixed ``Mf=0.15`` cutoff are returned as zero.
+    """
+    if not imrphenomc_sequence_native_supported(params):
+        raise ValueError(
+            "IMRPhenomC sequence parameters are not supported by the "
+            "native Torch path"
+        )
+    inputs = _imrphenomc_inputs(params, sequence=True)
+    frequencies = _imrphenomc_sequence_frequencies(
+        params["sample_points"],
+        inputs,
+    )
+    coefficients = _imrphenomc_coefficients(inputs)
+    plus = torch.zeros(
+        frequencies.shape,
+        dtype=inputs.complex_dtype,
+        device=inputs.device,
+    )
+    cross = torch.zeros_like(plus)
+    active = frequencies < inputs.f_cut
+    if bool(torch.any(active)):
+        active_frequencies = frequencies[active]
+        amplitude, phasing = _imrphenomc_components(
+            inputs,
+            coefficients,
+            active_frequencies,
+        )
+        time_correction = _imrphenomc_ringdown_time_correction(
+            inputs,
+            coefficients,
+        )
+        plus_segment, cross_segment = _imrphenomc_polarizations(
+            inputs,
+            active_frequencies,
+            amplitude,
+            phasing,
+            time_correction,
+        )
+        plus[active] = plus_segment
+        cross[active] = cross_segment
+    return (
+        PyCBCArray(TorchArrayData(plus), copy=False),
+        PyCBCArray(TorchArrayData(cross), copy=False),
+    )
+
+
+__all__ = [
+    "imrphenomc_fd_sequence_torch",
+    "imrphenomc_fd_torch",
+    "imrphenomc_native_supported",
+    "imrphenomc_sequence_native_supported",
+]
