@@ -162,6 +162,15 @@ default remains the LAL/CPU path; enable torch ports with environment flags:
   phase, amplitude, spin, and taper corrections on-device for both sampling
   interfaces. Transverse spins, testing-GR changes, and unsupported tidal or
   mode options fall back to lalsimulation.
+- IMRPhenomNSBH (FD): ``PYCBC_IMRPHENOMNSBH_NATIVE``. The PhenomC-derived
+  amplitude, PhenomD plus NRTidalv2 phase, frequency-grid construction, and
+  polarization assembly run on the active Torch device. Remnant, disruption,
+  and phenomenological coefficient fits remain scalar CPU work. Regular-grid
+  and arbitrary-frequency sequence evaluation are native; as in LAL's
+  sequence interface, ``long_asc_nodes`` is ignored and ``f_ref=0`` uses the
+  first supplied frequency. The implementation covers the aligned-spin,
+  dominant-mode model with a black hole in ``mass1`` and neutron star in
+  ``mass2``; unsupported waveform modifications fall back to lalsimulation.
 - IMRPhenomP (FD): ``PYCBC_IMRPHENOMP_NATIVE``. The IMRPhenomC baseline,
   NNLO precession angles, small-angle Wigner rotation, frequency masking, and
   polarization assembly run on the active Torch device. Scalar coefficient

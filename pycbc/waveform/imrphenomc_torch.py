@@ -637,6 +637,60 @@ def _imrphenomc_coefficients(inputs):
     )
 
 
+def _imrphenomc_spa_amplitude(coefficients, frequencies, m_sec):
+    """Evaluate the dimensionless PhenomC inspiral SPA amplitude."""
+
+    v = torch.pow(_PI * m_sec * frequencies, 1.0 / 3.0)
+    v2 = v * v
+    v3 = v2 * v
+    v4 = v2 * v2
+    v5 = v2 * v3
+    v6 = v3 * v3
+    v7 = v3 * v4
+    xdot = (
+        1.0
+        + coefficients.xdota2 * v2
+        + coefficients.xdota3 * v3
+        + coefficients.xdota4 * v4
+        + coefficients.xdota5 * v5
+        + (
+            coefficients.xdota6
+            + coefficients.xdota6log * torch.log(v2)
+        )
+        * v6
+        + coefficients.xdota7 * v7
+    )
+    xdot = xdot * (coefficients.xdotaN * v5 * v5)
+
+    if torch.any((xdot < 0.0) & (frequencies < coefficients.f1)):
+        raise ValueError("IMRPhenomC xdot is negative below the transition")
+    amplitude_factor = torch.sqrt(torch.abs(_PI / (1.5 * v * xdot)))
+    real = (
+        amplitude_factor
+        * coefficients.AN
+        * v2
+        * (
+            1.0
+            + coefficients.A2 * v2
+            + coefficients.A3 * v3
+            + coefficients.A4 * v4
+            + coefficients.A5 * v5
+            + (
+                coefficients.A6
+                + coefficients.A6log * torch.log(v2)
+            )
+            * v6
+        )
+    )
+    imag = (
+        amplitude_factor
+        * coefficients.AN
+        * v2
+        * (coefficients.A5imag * v5 + coefficients.A6imag * v6)
+    )
+    return torch.sqrt(real * real + imag * imag)
+
+
 def _imrphenomc_components(inputs, coefficients, frequencies):
     """Evaluate the fitted amplitude and phase at device frequencies."""
     m_sec = inputs.total_mass_seconds
@@ -677,37 +731,6 @@ def _imrphenomc_components(inputs, coefficients, frequencies):
         coefficients.pfa6log,
         coefficients.pfa7,
     )
-    (
-        xdotaN,
-        xdota2,
-        xdota3,
-        xdota4,
-        xdota5,
-        xdota6,
-        xdota6log,
-        xdota7,
-    ) = (
-        coefficients.xdotaN,
-        coefficients.xdota2,
-        coefficients.xdota3,
-        coefficients.xdota4,
-        coefficients.xdota5,
-        coefficients.xdota6,
-        coefficients.xdota6log,
-        coefficients.xdota7,
-    )
-    AN, A2, A3, A4, A5, A5imag, A6, A6log, A6imag = (
-        coefficients.AN,
-        coefficients.A2,
-        coefficients.A3,
-        coefficients.A4,
-        coefficients.A5,
-        coefficients.A5imag,
-        coefficients.A6,
-        coefficients.A6log,
-        coefficients.A6imag,
-    )
-
     fd = frequencies * m_sec
     v = torch.pow(piM * frequencies, 1.0 / 3.0)
     v2 = v * v
@@ -760,36 +783,7 @@ def _imrphenomc_components(inputs, coefficients, frequencies):
     )
     phasing = phSPA * wMinusf1 + phPM * wPlusf1 * wMinusf2 + phRD * wPlusf2
 
-    xdot = (
-        1.0
-        + xdota2 * v2
-        + xdota3 * v3
-        + xdota4 * v4
-        + xdota5 * v5
-        + (xdota6 + xdota6log * torch.log(v2)) * v6
-        + xdota7 * v7
-    )
-    xdot = xdot * (xdotaN * v5 * v5)
-
-    if torch.any((xdot < 0.0) & (frequencies < coefficients.f1)):
-        raise ValueError("IMRPhenomC xdot is negative below the transition")
-    omgdot = 1.5 * v * xdot
-    ampfac = torch.sqrt(torch.abs(_PI / omgdot))
-    ampSPAre = (
-        ampfac
-        * AN
-        * v2
-        * (
-            1.0
-            + A2 * v2
-            + A3 * v3
-            + A4 * v4
-            + A5 * v5
-            + (A6 + A6log * torch.log(v2)) * v6
-        )
-    )
-    ampSPAim = ampfac * AN * v2 * (A5imag * v5 + A6imag * v6)
-    ampSPA = torch.sqrt(ampSPAre * ampSPAre + ampSPAim * ampSPAim)
+    ampSPA = _imrphenomc_spa_amplitude(coefficients, frequencies, m_sec)
 
     ampPM = ampSPA + coefficients.g1 * torch.pow(fd, 5.0 / 6.0)
 
