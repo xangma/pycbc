@@ -275,10 +275,18 @@ default remains the LAL/CPU path; enable torch ports with environment flags:
   interpolation, harmonic evaluation, and polarization assembly run on the
   active Torch device; binary data loading remains host-side. The data files
   must share a directory on ``$LAL_DATA_PATH`` or be placed in
-  ``pycbc/waveform``. The native path covers the regular frequency grid for
-  nonspinning, circular binaries with the model's default orders. Custom mode
-  selections, spins, matter, eccentricity, and testing-GR changes retain the
-  lalsimulation path.
+  ``pycbc/waveform``. Regular-grid and strictly increasing positive-frequency
+  ``get_fd_waveform_sequence`` evaluation are native. ``EOBNRv2HM_ROM`` also
+  accepts canonical positive-m mode subsets; duplicates are removed, and an
+  empty array returns zero polarizations. The ``(2, 2)`` ROM is still
+  reconstructed when it is not selected because its phase fixes the common
+  reference calibration. As in LAL's sequence interface,
+  ``long_asc_nodes`` is ignored; ``f_ref=0`` retains EOBNRv2's regular-grid
+  reference convention. Spins, matter, eccentricity, testing-GR changes, and
+  unmodeled modes retain the lalsimulation path. LAL itself ignores EOBNRv2HM
+  mode arrays and does not implement EOBNRv2 frequency-sequence generation,
+  so mode subsets are meaningful only on the native path and unsupported
+  sequence requests still fail in the fallback.
 - SEOBNRv4_ROM (FD aligned-spin): ``PYCBC_SEOBNRV4_NATIVE``. ROM interpolation,
   frequency interpolation, and waveform assembly run on the active Torch
   device using ``SEOBNRv4ROM_v3.0.hdf5``. The native path also covers

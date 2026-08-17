@@ -11,12 +11,13 @@ This module reconstructs ``EOBNRv2_ROM`` and ``EOBNRv2HM_ROM`` from the public
 ``EOBNRv2HMROM_*.dat`` data without calling ``lalsimulation``. Binary ROM
 loading remains host-side; mass-ratio interpolation, reduced-basis
 reconstruction, frequency interpolation, and polarization assembly run on the
-active Torch device.
+active Torch device. Both regular grids and strictly increasing arbitrary-
+frequency sequences are supported.
 
 The native path is opt-in through ``PYCBC_EOBNRV2_NATIVE=1`` or the global
-Torch-native switch. The dominant-mode approximant uses ``(2, 2)``;
-the higher-mode approximant adds ``(2, 1)``, ``(3, 3)``, ``(4, 4)``, and
-``(5, 5)``.
+Torch-native switch. The dominant-mode approximant uses ``(2, 2)``; the
+higher-mode approximant adds ``(2, 1)``, ``(3, 3)``, ``(4, 4)``, and
+``(5, 5)``, and accepts explicit subsets of those positive-m modes.
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ import torch
 
 import lal
 import pycbc.scheme as _scheme
+from pycbc.types import Array as PyCBCArray
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform._cubic_spline_torch import (
@@ -55,6 +57,7 @@ _DOMINANT_APPROXIMANT = "EOBNRv2_ROM"
 _HIGHER_MODE_APPROXIMANT = "EOBNRv2HM_ROM"
 _APPROXIMANTS = (_DOMINANT_APPROXIMANT, _HIGHER_MODE_APPROXIMANT)
 _MODES = ((2, 2), (2, 1), (3, 3), (4, 4), (5, 5))
+_MODE_SET = frozenset(_MODES)
 _MODE_NAMES = tuple(f"{ell}{emm}" for ell, emm in _MODES)
 _Q_MAX = 11.9894197212
 _MF_ROM_MIN = 0.0003940393857519091
@@ -82,6 +85,37 @@ _ROM_SHAPES = {
         )
     },
 }
+
+
+def _active_mode_indices(approximant, mode_array) -> tuple[int, ...]:
+    """Return requested modes in canonical ROM order."""
+
+    if mode_array is None:
+        if approximant == _HIGHER_MODE_APPROXIMANT:
+            return tuple(range(len(_MODES)))
+        return (0,)
+    if approximant != _HIGHER_MODE_APPROXIMANT:
+        raise ValueError(
+            "mode_array is available only for EOBNRv2HM_ROM"
+        )
+
+    requested = set()
+    for mode in mode_array:
+        try:
+            raw_ell, raw_emm = mode
+        except (TypeError, ValueError):
+            raise ValueError("mode_array entries must be (l, m) pairs")
+        ell, emm = int(raw_ell), int(raw_emm)
+        if (ell, emm) != (raw_ell, raw_emm):
+            raise ValueError("mode_array entries must contain integers")
+        if (ell, emm) not in _MODE_SET:
+            raise ValueError(
+                f"mode ({ell}, {emm}) is not available in EOBNRv2HM_ROM"
+            )
+        requested.add((ell, emm))
+    return tuple(
+        index for index, mode in enumerate(_MODES) if mode in requested
+    )
 
 
 def eobnrv2_native_supported(params) -> bool:
@@ -116,9 +150,20 @@ def eobnrv2_native_supported(params) -> bool:
         )
     ):
         return False
-    return params.get("mode_array") is None and not params.get(
-        "numrel_data", ""
-    )
+    try:
+        _active_mode_indices(
+            params.get("approximant", _DOMINANT_APPROXIMANT),
+            params.get("mode_array"),
+        )
+    except (TypeError, ValueError, OverflowError):
+        return False
+    return not params.get("numrel_data", "")
+
+
+def eobnrv2_sequence_native_supported(params) -> bool:
+    """Return whether arbitrary-frequency generation is native."""
+
+    return eobnrv2_native_supported(params)
 
 
 def _find_rom_directory() -> Path:
@@ -225,7 +270,7 @@ def _load_rom(dtype: torch.dtype, device: torch.device) -> _ROMData:
 
 @dataclass(frozen=True)
 class _Inputs:
-    modes: tuple[tuple[int, int], ...]
+    active_mode_indices: tuple[int, ...]
     total_mass: float
     total_mass_seconds: float
     mass_ratio: float
@@ -241,7 +286,7 @@ class _Inputs:
     rom: _ROMData
 
 
-def _validated_inputs(params) -> _Inputs:
+def _validated_inputs(params, *, sequence=False) -> _Inputs:
     if not eobnrv2_native_supported(params):
         raise ValueError(
             "EOBNRv2 ROM parameters are not supported by the native Torch path"
@@ -255,7 +300,10 @@ def _validated_inputs(params) -> _Inputs:
     distance = float(params["distance"])
     inclination = float(params.get("inclination", 0.0))
     coa_phase = float(params.get("coa_phase", 0.0))
-    long_asc_nodes = float(params.get("long_asc_nodes", 0.0))
+    # SimInspiralChooseFDWaveformSequence has no ascending-node argument.
+    long_asc_nodes = (
+        0.0 if sequence else float(params.get("long_asc_nodes", 0.0))
+    )
     f_ref = float(params.get("f_ref", 0.0))
     if not all(
         math.isfinite(value)
@@ -291,10 +339,9 @@ def _validated_inputs(params) -> _Inputs:
         torch.complex64 if real_dtype == torch.float32 else torch.complex128
     )
     return _Inputs(
-        modes=(
-            _MODES
-            if params.get("approximant") == _HIGHER_MODE_APPROXIMANT
-            else _MODES[:1]
+        active_mode_indices=_active_mode_indices(
+            params.get("approximant", _DOMINANT_APPROXIMANT),
+            params.get("mode_array"),
         ),
         total_mass=total_mass,
         total_mass_seconds=total_mass_seconds,
@@ -322,20 +369,18 @@ def _reconstruct_modes(inputs: _Inputs):
         inputs.rom.coefficient_values,
         *inputs.rom.coefficient_spline,
     )
-    mode_count = len(inputs.modes)
-    active_coefficients = coefficients[:mode_count]
     amplitude = torch.matmul(
-        inputs.rom.amplitude_basis[:mode_count],
-        active_coefficients[:, :_AMP_BASIS_COUNT].unsqueeze(-1),
+        inputs.rom.amplitude_basis,
+        coefficients[:, :_AMP_BASIS_COUNT].unsqueeze(-1),
     ).squeeze(-1)
     phase = torch.matmul(
-        inputs.rom.phase_basis[:mode_count],
-        active_coefficients[
+        inputs.rom.phase_basis,
+        coefficients[
             :,
             _AMP_BASIS_COUNT : _AMP_BASIS_COUNT + _PHASE_BASIS_COUNT,
         ].unsqueeze(-1),
     ).squeeze(-1)
-    return amplitude, phase, active_coefficients[:, -2:]
+    return amplitude, phase, coefficients[:, -2:]
 
 
 def _reference_calibration(
@@ -428,7 +473,7 @@ def _mode_samples(
     phase_change_22: torch.Tensor,
     frequency_scale: float,
 ) -> torch.Tensor:
-    mode = inputs.modes[mode_index]
+    mode = _MODES[mode_index]
     mode_frequency = inputs.rom.frequency[mode_index] / frequency_scale
     phase_spline = _natural_cubic_coeff(mode_frequency, phase)
     total_time_shift = (
@@ -560,7 +605,8 @@ def eobnrv2_fd_torch(**params):
     peak_time_22, phase_change_22 = _reference_calibration(
         inputs, phases[0], shifts[0]
     )
-    for mode_index, mode_number in enumerate(inputs.modes):
+    for mode_index in inputs.active_mode_indices:
+        mode_number = _MODES[mode_index]
         frequency_scale = _frequency_scale(
             mode_number, inputs.mass_ratio
         )
@@ -609,4 +655,85 @@ def eobnrv2_fd_torch(**params):
     )
 
 
-__all__ = ["eobnrv2_fd_torch", "eobnrv2_native_supported"]
+def _sequence_frequencies(sample_points, inputs):
+    """Return a validated increasing sequence on the active Torch device."""
+
+    values = getattr(sample_points, "_data", sample_points)
+    if isinstance(values, TorchArrayData):
+        values = values.tensor
+    frequencies = torch.as_tensor(
+        values,
+        dtype=inputs.real_dtype,
+        device=inputs.device,
+    )
+    if frequencies.ndim != 1 or frequencies.numel() == 0:
+        raise ValueError(
+            "EOBNRv2 ROM sample_points must be a non-empty vector"
+        )
+    if not bool(torch.all(torch.isfinite(frequencies))):
+        raise ValueError("EOBNRv2 ROM sample_points must be finite")
+    if bool(torch.any(frequencies <= 0.0)):
+        raise ValueError("EOBNRv2 ROM sample_points must be positive")
+    if frequencies.numel() > 1 and bool(
+        torch.any(frequencies[1:] <= frequencies[:-1])
+    ):
+        raise ValueError(
+            "EOBNRv2 ROM sample_points must be strictly increasing"
+        )
+    return frequencies
+
+
+def eobnrv2_fd_sequence_torch(**params):
+    """Evaluate an EOBNRv2 ROM at arbitrary increasing frequencies."""
+
+    inputs = _validated_inputs(params, sequence=True)
+    frequencies_hz = _sequence_frequencies(params["sample_points"], inputs)
+    frequencies = frequencies_hz * inputs.total_mass_seconds
+    plus = torch.zeros_like(frequencies, dtype=inputs.complex_dtype)
+    cross = torch.zeros_like(plus)
+
+    amplitudes, phases, shifts = _reconstruct_modes(inputs)
+    peak_time_22, phase_change_22 = _reference_calibration(
+        inputs, phases[0], shifts[0]
+    )
+    for mode_index in inputs.active_mode_indices:
+        mode_number = _MODES[mode_index]
+        frequency_scale = _frequency_scale(
+            mode_number, inputs.mass_ratio
+        )
+        stored_low, stored_high = inputs.rom.frequency_bounds[mode_index]
+        mode_low = stored_low / frequency_scale
+        mode_high = min(stored_high / frequency_scale, _MF_ROM_MAX)
+        active = (frequencies >= mode_low) & (frequencies < mode_high)
+        if not bool(torch.any(active)):
+            continue
+        mode = _mode_samples(
+            inputs,
+            mode_index,
+            frequencies[active],
+            amplitudes[mode_index],
+            phases[mode_index],
+            shifts[mode_index],
+            peak_time_22,
+            phase_change_22,
+            frequency_scale,
+        )
+        plus_segment, cross_segment = _polarizations(
+            inputs, mode_number, mode
+        )
+        plus[active] += plus_segment
+        cross[active] += cross_segment
+
+    plus, cross = _rotate_polarizations(inputs, plus, cross)
+    return (
+        PyCBCArray(TorchArrayData(plus), copy=False),
+        PyCBCArray(TorchArrayData(cross), copy=False),
+    )
+
+
+__all__ = [
+    "eobnrv2_fd_sequence_torch",
+    "eobnrv2_fd_torch",
+    "eobnrv2_native_supported",
+    "eobnrv2_sequence_native_supported",
+]
