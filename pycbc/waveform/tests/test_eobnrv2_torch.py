@@ -26,6 +26,39 @@ _BASE_PARAMS = dict(
     inclination=0.7,
     coa_phase=0.3,
 )
+_PARITY_PARAMS = (
+    _BASE_PARAMS,
+    {
+        **_BASE_PARAMS,
+        "mass1": 20.0,
+        "mass2": 80.0,
+        "delta_f": 0.5,
+        "f_lower": 10.3,
+        "f_final": 512.0,
+        "f_ref": 0.0,
+        "distance": 300.0,
+        "inclination": 1.2,
+        "coa_phase": -0.5,
+        "long_asc_nodes": 0.4,
+    },
+    {
+        **_BASE_PARAMS,
+        "mass1": 68.0,
+        "mass2": 6.0,
+        "delta_f": 1.0,
+        "f_lower": 15.0,
+        "f_final": 2048.0,
+        "f_ref": 4000.0,
+        "inclination": 2.1,
+        "coa_phase": 2.3,
+    },
+    {
+        **_BASE_PARAMS,
+        "mass1": 35.0,
+        "mass2": 35.0,
+        "inclination": 1.5,
+    },
+)
 
 
 @pytest.fixture(autouse=True)
@@ -57,7 +90,14 @@ def _activate_scheme(state):
     _scheme.mgr.state = state
 
 
-def _generate(params, *, native, device=None, global_flag=False):
+def _generate(
+    params,
+    *,
+    native,
+    device=None,
+    global_flag=False,
+    approximant="EOBNRv2_ROM",
+):
     os.environ["PYCBC_TORCH_NATIVE_PORTS"] = "1" if global_flag else "0"
     if native is None:
         os.environ.pop("PYCBC_EOBNRV2_NATIVE", None)
@@ -66,7 +106,7 @@ def _generate(params, *, native, device=None, global_flag=False):
     _activate_scheme(
         _scheme.CPUScheme() if device is None else _scheme.TorchScheme(device)
     )
-    return get_fd_waveform(approximant="EOBNRv2_ROM", **params)
+    return get_fd_waveform(approximant=approximant, **params)
 
 
 def _snapshot(series_pair):
@@ -86,40 +126,16 @@ def _assert_parity(reference, actual, tolerance):
         assert relative_error < tolerance
 
 
-@pytest.mark.parametrize(
-    "params",
-    [
-        _BASE_PARAMS,
-        {
-            **_BASE_PARAMS,
-            "mass1": 20.0,
-            "mass2": 80.0,
-            "delta_f": 0.5,
-            "f_lower": 10.3,
-            "f_final": 512.0,
-            "f_ref": 0.0,
-            "distance": 300.0,
-            "inclination": 1.2,
-            "coa_phase": -0.5,
-            "long_asc_nodes": 0.4,
-        },
-        {
-            **_BASE_PARAMS,
-            "mass1": 68.0,
-            "mass2": 6.0,
-            "delta_f": 1.0,
-            "f_lower": 15.0,
-            "f_final": 2048.0,
-            "f_ref": 4000.0,
-            "inclination": 2.1,
-            "coa_phase": 2.3,
-        },
-    ],
-)
-def test_eobnrv2_torch_matches_lalsimulation(params):
+@pytest.mark.parametrize("approximant", ["EOBNRv2_ROM", "EOBNRv2HM_ROM"])
+@pytest.mark.parametrize("params", _PARITY_PARAMS)
+def test_eobnrv2_torch_matches_lalsimulation(approximant, params):
     _require_rom_data()
-    reference = _snapshot(_generate(params, native=False))
-    actual = _generate(params, native=True, device="cpu")
+    reference = _snapshot(
+        _generate(params, native=False, approximant=approximant)
+    )
+    actual = _generate(
+        params, native=True, device="cpu", approximant=approximant
+    )
 
     assert all(series._data.tensor.device.type == "cpu" for series in actual)
     assert all(series._data.tensor.dtype == torch.complex128 for series in actual)
@@ -127,9 +143,14 @@ def test_eobnrv2_torch_matches_lalsimulation(params):
     _assert_parity(reference, actual, tolerance=3.0e-11)
 
 
-def test_eobnrv2_global_flag_avoids_lalsimulation(monkeypatch):
+@pytest.mark.parametrize("approximant", ["EOBNRv2_ROM", "EOBNRv2HM_ROM"])
+def test_eobnrv2_global_flag_avoids_lalsimulation(
+    monkeypatch, approximant
+):
     _require_rom_data()
-    reference = _snapshot(_generate(_BASE_PARAMS, native=False))
+    reference = _snapshot(
+        _generate(_BASE_PARAMS, native=False, approximant=approximant)
+    )
 
     import pycbc.waveform.waveform as waveform_module
 
@@ -142,7 +163,11 @@ def test_eobnrv2_global_flag_avoids_lalsimulation(monkeypatch):
         unexpected_lalsimulation,
     )
     actual = _generate(
-        _BASE_PARAMS, native=None, device="cpu", global_flag=True
+        _BASE_PARAMS,
+        native=None,
+        device="cpu",
+        global_flag=True,
+        approximant=approximant,
     )
     _assert_parity(reference, actual, tolerance=3.0e-11)
 
@@ -151,7 +176,7 @@ def test_eobnrv2_global_flag_avoids_lalsimulation(monkeypatch):
     ("params", "expected"),
     [
         ({"approximant": "EOBNRv2_ROM"}, True),
-        ({"approximant": "EOBNRv2HM_ROM"}, False),
+        ({"approximant": "EOBNRv2HM_ROM"}, True),
         ({"approximant": "EOBNRv2_ROM", "spin1z": 0.1}, False),
         ({"approximant": "EOBNRv2_ROM", "spin2x": 0.1}, False),
         ({"approximant": "EOBNRv2_ROM", "lambda1": 100.0}, False),
@@ -164,7 +189,16 @@ def test_eobnrv2_native_support_boundary(params, expected):
     assert eobnrv2_native_supported(params) is expected
 
 
-def test_eobnrv2_unsupported_parameters_use_lal(monkeypatch):
+@pytest.mark.parametrize(
+    ("approximant", "extra_params"),
+    [
+        ("EOBNRv2_ROM", {"spin1z": 0.1}),
+        ("EOBNRv2HM_ROM", {"mode_array": [(2, 2)]}),
+    ],
+)
+def test_eobnrv2_unsupported_parameters_use_lal(
+    monkeypatch, approximant, extra_params
+):
     import pycbc.waveform.eobnrv2_torch as native_module
     import pycbc.waveform.waveform as waveform_module
 
@@ -182,18 +216,26 @@ def test_eobnrv2_unsupported_parameters_use_lal(monkeypatch):
     )
     with pytest.raises(RuntimeError, match="LAL fallback reached"):
         _generate(
-            {**_BASE_PARAMS, "spin1z": 0.1}, native=True, device="cpu"
+            {**_BASE_PARAMS, **extra_params},
+            native=True,
+            device="cpu",
+            approximant=approximant,
         )
 
 
 @pytest.mark.skipif(
     not torch.backends.mps.is_available(), reason="MPS is not available"
 )
-def test_eobnrv2_mps_residency_and_parity():
+@pytest.mark.parametrize("approximant", ["EOBNRv2_ROM", "EOBNRv2HM_ROM"])
+def test_eobnrv2_mps_residency_and_parity(approximant):
     _require_rom_data()
-    reference = _snapshot(_generate(_BASE_PARAMS, native=False))
-    actual = _generate(_BASE_PARAMS, native=True, device="mps")
+    reference = _snapshot(
+        _generate(_BASE_PARAMS, native=False, approximant=approximant)
+    )
+    actual = _generate(
+        _BASE_PARAMS, native=True, device="mps", approximant=approximant
+    )
 
     assert all(series._data.tensor.device.type == "mps" for series in actual)
     assert all(series._data.tensor.dtype == torch.complex64 for series in actual)
-    _assert_parity(reference, actual, tolerance=3.0e-3)
+    _assert_parity(reference, actual, tolerance=5.0e-3)

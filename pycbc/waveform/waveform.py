@@ -533,7 +533,7 @@ def _lalsim_fd_waveform(**p):
             return imrphenomhm_fd_torch(**p)
 
     if (
-        p.get("approximant") == "EOBNRv2_ROM"
+        p.get("approximant") in ("EOBNRv2_ROM", "EOBNRv2HM_ROM")
         and using_torch
         and torch_native_enabled("PYCBC_EOBNRV2_NATIVE", default=False)
     ):
