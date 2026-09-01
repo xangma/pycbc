@@ -63,6 +63,43 @@ def ifft(invec, outvec, _, itype, otype):
         raise ValueError(_INV_FFT_MSG.format("IFFT", itype, otype))
 
 
+def _batch_fft(fftobj):
+    """Execute independent transforms for the class-based batch API."""
+    if fftobj.invec.ptr == fftobj.outvec.ptr:
+        raise NotImplementedError("cupy backend of pycbc.fft does not "
+                                  "support in-place transforms")
+
+    input_data = fftobj.invec.data.reshape(fftobj.nbatch, fftobj.idist)
+    output_data = fftobj.outvec.data.reshape(fftobj.nbatch, fftobj.odist)
+    if fftobj.itype == 'complex' and fftobj.otype == 'complex':
+        result = cupy.fft.fft(input_data, n=fftobj.size, axis=-1)
+    elif fftobj.itype == 'real' and fftobj.otype == 'complex':
+        result = cupy.fft.rfft(input_data, n=fftobj.size, axis=-1)
+    else:
+        raise ValueError(_INV_FFT_MSG.format(
+            "FFT", fftobj.itype, fftobj.otype))
+    output_data[:] = cupy.asarray(result, dtype=fftobj.outvec.dtype)
+
+
+def _batch_ifft(fftobj):
+    """Execute independent unnormalised inverse batch transforms."""
+    if fftobj.invec.ptr == fftobj.outvec.ptr:
+        raise NotImplementedError("cupy backend of pycbc.fft does not "
+                                  "support in-place transforms")
+
+    input_data = fftobj.invec.data.reshape(fftobj.nbatch, fftobj.idist)
+    output_data = fftobj.outvec.data.reshape(fftobj.nbatch, fftobj.odist)
+    if fftobj.itype == 'complex' and fftobj.otype == 'complex':
+        result = cupy.fft.ifft(input_data, n=fftobj.size, axis=-1)
+    elif fftobj.itype == 'complex' and fftobj.otype == 'real':
+        result = cupy.fft.irfft(input_data, n=fftobj.size, axis=-1)
+    else:
+        raise ValueError(_INV_FFT_MSG.format(
+            "IFFT", fftobj.itype, fftobj.otype))
+    result *= fftobj.size
+    output_data[:] = cupy.asarray(result, dtype=fftobj.outvec.dtype)
+
+
 class FFT(_BaseFFT):
     """
     Class for performing FFTs via the cupy interface.
@@ -72,7 +109,10 @@ class FFT(_BaseFFT):
         self.prec, self.itype, self.otype = _check_fft_args(invec, outvec)
 
     def execute(self):
-        fft(self.invec, self.outvec, self.prec, self.itype, self.otype)
+        if self.nbatch == 1:
+            fft(self.invec, self.outvec, self.prec, self.itype, self.otype)
+        else:
+            _batch_fft(self)
 
 
 class IFFT(_BaseIFFT):
@@ -84,4 +124,7 @@ class IFFT(_BaseIFFT):
         self.prec, self.itype, self.otype = _check_fft_args(invec, outvec)
 
     def execute(self):
-        ifft(self.invec, self.outvec, self.prec, self.itype, self.otype)
+        if self.nbatch == 1:
+            ifft(self.invec, self.outvec, self.prec, self.itype, self.otype)
+        else:
+            _batch_ifft(self)

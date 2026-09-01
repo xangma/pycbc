@@ -1,0 +1,1018 @@
+{
+  "artifact_type": "waveform_throughput",
+  "campaigns": [
+    {
+      "complete": true,
+      "mode": "all",
+      "models": [
+        "TaylorF2",
+        "IMRPhenomD",
+        "IMRPhenomXAS",
+        "IMRPhenomXPHM"
+      ],
+      "timestamp_utc": "2026-09-01T03:12:35.991940+00:00"
+    }
+  ],
+  "compatibility": {
+    "material": {
+      "runtime": {
+        "cuda_devices": [],
+        "machine": "arm64",
+        "platform": "macOS-26.6-arm64-arm-64bit",
+        "python": "3.12.7",
+        "python_executable": "/Users/xangma/miniconda3/bin/python",
+        "torch": "2.13.0",
+        "torch_cuda": null
+      },
+      "settings": {
+        "parallel_samples": 3,
+        "parallel_waveform_count_policy": {
+          "fast_frequency_domain": 256,
+          "other": 64,
+          "time_domain": 32
+        },
+        "single_call_samples": 3,
+        "tensor_batch_samples": 3,
+        "tensor_batch_sizes": [
+          1,
+          32,
+          128
+        ],
+        "waveform_parameters": {
+          "frequency_domain": {
+            "delta_f": 0.25,
+            "distance": 500.0,
+            "f_lower": 20.0,
+            "mass1": 30.0,
+            "mass2": 25.0,
+            "spin1z": 0.4,
+            "spin2z": -0.3
+          },
+          "precessing_frequency_domain": {
+            "delta_f": 0.25,
+            "distance": 500.0,
+            "f_lower": 20.0,
+            "inclination": 0.7,
+            "mass1": 30.0,
+            "mass2": 25.0,
+            "spin1x": 0.2,
+            "spin1y": 0.1,
+            "spin1z": 0.4,
+            "spin2x": -0.1,
+            "spin2y": 0.05,
+            "spin2z": -0.3
+          }
+        },
+        "workers": 8
+      },
+      "source": {
+        "dirty": false,
+        "files_sha256": {
+          "tools/bench_waveform_throughput.py": "edaae38fd6f01c0ded1d1f253b180d8fd86dcaf9abb161a9f27f55a16910f9f5",
+          "tools/benchmark_artifact.py": "b4b3f1699824926568048e31b5dd400fb61af6a54e562dd404d44711029d4263"
+        },
+        "repository": "/Users/xangma/repos/pycbc",
+        "revision": "f1831c2a56c04752f120d24ea307c05fbac3bca8",
+        "status_sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+        "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "untracked_files_sha256": {}
+      }
+    },
+    "sha256": "03b6b8e85d5d7131713e041ff1ee6586c7616864e4252fb96a19ba34a4fe6333"
+  },
+  "content_sha256": "2514885b696150e5e8f31d76b194132421b92c4810fcd820571c1d49f526c4e6",
+  "metadata": {
+    "cuda_available": false,
+    "cuda_devices": [],
+    "hostname": "client-3792.default.vpn.port.ac.uk",
+    "machine": "arm64",
+    "platform": "macOS-26.6-arm64-arm-64bit",
+    "processor": "arm",
+    "python": "3.12.7",
+    "python_executable": "/Users/xangma/miniconda3/bin/python",
+    "source": {
+      "dirty": false,
+      "files_sha256": {
+        "tools/bench_waveform_throughput.py": "edaae38fd6f01c0ded1d1f253b180d8fd86dcaf9abb161a9f27f55a16910f9f5",
+        "tools/benchmark_artifact.py": "b4b3f1699824926568048e31b5dd400fb61af6a54e562dd404d44711029d4263"
+      },
+      "repository": "/Users/xangma/repos/pycbc",
+      "revision": "f1831c2a56c04752f120d24ea307c05fbac3bca8",
+      "status_sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126",
+      "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "untracked_files_sha256": {}
+    },
+    "timestamp_utc": "2026-09-01T03:12:35.991940+00:00",
+    "torch": "2.13.0",
+    "torch_cuda": null
+  },
+  "results": {
+    "IMRPhenomD": {
+      "parallel": {
+        "torch_cpu_8process": {
+          "status": "ok",
+          "throughput": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 2556.3986681254964,
+            "mean": 2443.0190130779233,
+            "median": 2551.172943305569,
+            "median_ci95": {
+              "high": 2556.3986681254964,
+              "low": 2221.485427802704
+            },
+            "minimum": 2221.485427802704,
+            "p25": 2386.3291855541365,
+            "p75": 2553.7858057155327,
+            "samples": [
+              2551.172943305569,
+              2556.3986681254964,
+              2221.485427802704
+            ],
+            "stddev": 191.8715041470279,
+            "unit": "waveforms/second"
+          },
+          "waveforms_per_sample": 256,
+          "workers": 8
+        }
+      },
+      "single_call": {
+        "torch_cpu_16thread": {
+          "latency": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 1.2280410155653954,
+            "mean": 1.1874857203414042,
+            "median": 1.1807079426944256,
+            "median_ci95": {
+              "high": 1.2280410155653954,
+              "low": 1.153708202764392
+            },
+            "minimum": 1.153708202764392,
+            "p25": 1.1672080727294087,
+            "p75": 1.2043744791299105,
+            "samples": [
+              1.1807079426944256,
+              1.153708202764392,
+              1.2280410155653954
+            ],
+            "stddev": 0.037627057646076566,
+            "unit": "ms"
+          },
+          "status": "ok",
+          "throughput": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 866.7702956466004,
+            "mean": 842.6749479078195,
+            "median": 846.9494985508081,
+            "median_ci95": {
+              "high": 866.7702956466004,
+              "low": 814.30504952605
+            },
+            "minimum": 814.30504952605,
+            "p25": 830.627274038429,
+            "p75": 856.8598970987043,
+            "samples": [
+              846.9494985508081,
+              866.7702956466004,
+              814.30504952605
+            ],
+            "stddev": 26.49253385431618,
+            "unit": "waveforms/second"
+          }
+        },
+        "torch_cpu_1thread": {
+          "latency": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 1.2662089429795742,
+            "mean": 1.1534033498416345,
+            "median": 1.101084053516388,
+            "median_ci95": {
+              "high": 1.2662089429795742,
+              "low": 1.0929170530289412
+            },
+            "minimum": 1.0929170530289412,
+            "p25": 1.0970005532726645,
+            "p75": 1.183646498247981,
+            "samples": [
+              1.2662089429795742,
+              1.101084053516388,
+              1.0929170530289412
+            ],
+            "stddev": 0.09777781628080212,
+            "unit": "ms"
+          },
+          "status": "ok",
+          "throughput": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 914.9825206117627,
+            "mean": 870.9791573152022,
+            "median": 908.1958791487634,
+            "median_ci95": {
+              "high": 914.9825206117627,
+              "low": 789.7590721850805
+            },
+            "minimum": 789.7590721850805,
+            "p25": 848.9774756669219,
+            "p75": 911.5891998802631,
+            "samples": [
+              789.7590721850805,
+              908.1958791487634,
+              914.9825206117627
+            ],
+            "stddev": 70.42046078374511,
+            "unit": "waveforms/second"
+          }
+        }
+      },
+      "tensor_batching": {
+        "batch_1": {
+          "routes": {
+            "torch_cpu": {
+              "status": "ok",
+              "throughput": {
+                "bootstrap": {
+                  "method": "percentile",
+                  "resamples": 2000
+                },
+                "count": 3,
+                "maximum": 467.7176832389179,
+                "mean": 438.3809080742216,
+                "median": 450.8226706224602,
+                "median_ci95": {
+                  "high": 467.7176832389179,
+                  "low": 396.6023703612867
+                },
+                "minimum": 396.6023703612867,
+                "p25": 423.7125204918734,
+                "p75": 459.27017693068905,
+                "samples": [
+                  450.8226706224602,
+                  396.6023703612867,
+                  467.7176832389179
+                ],
+                "stddev": 37.154340566088756,
+                "unit": "waveforms/second"
+              },
+              "waveforms_per_sample": 1,
+              "workers": 1
+            }
+          },
+          "status": "ok"
+        },
+        "batch_128": {
+          "routes": {
+            "torch_cpu": {
+              "status": "ok",
+              "throughput": {
+                "bootstrap": {
+                  "method": "percentile",
+                  "resamples": 2000
+                },
+                "count": 3,
+                "maximum": 1447.1868692905166,
+                "mean": 1396.4988378860874,
+                "median": 1386.5988355860852,
+                "median_ci95": {
+                  "high": 1447.1868692905166,
+                  "low": 1355.71080878166
+                },
+                "minimum": 1355.71080878166,
+                "p25": 1371.1548221838725,
+                "p75": 1416.892852438301,
+                "samples": [
+                  1355.71080878166,
+                  1447.1868692905166,
+                  1386.5988355860852
+                ],
+                "stddev": 46.53466391530115,
+                "unit": "waveforms/second"
+              },
+              "waveforms_per_sample": 128,
+              "workers": 1
+            }
+          },
+          "status": "ok"
+        },
+        "batch_32": {
+          "routes": {
+            "torch_cpu": {
+              "status": "ok",
+              "throughput": {
+                "bootstrap": {
+                  "method": "percentile",
+                  "resamples": 2000
+                },
+                "count": 3,
+                "maximum": 1583.0350776706687,
+                "mean": 1537.8568745590921,
+                "median": 1559.6093138934298,
+                "median_ci95": {
+                  "high": 1583.0350776706687,
+                  "low": 1470.9262321131778
+                },
+                "minimum": 1470.9262321131778,
+                "p25": 1515.2677730033038,
+                "p75": 1571.3221957820492,
+                "samples": [
+                  1559.6093138934298,
+                  1470.9262321131778,
+                  1583.0350776706687
+                ],
+                "stddev": 59.13522449271557,
+                "unit": "waveforms/second"
+              },
+              "waveforms_per_sample": 32,
+              "workers": 1
+            }
+          },
+          "status": "ok"
+        }
+      }
+    },
+    "IMRPhenomXAS": {
+      "parallel": {
+        "torch_cpu_8process": {
+          "status": "ok",
+          "throughput": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 1452.6240953018712,
+            "mean": 1418.3283672936973,
+            "median": 1440.7427701082008,
+            "median_ci95": {
+              "high": 1452.6240953018712,
+              "low": 1361.61823647102
+            },
+            "minimum": 1361.61823647102,
+            "p25": 1401.1805032896104,
+            "p75": 1446.683432705036,
+            "samples": [
+              1452.6240953018712,
+              1361.61823647102,
+              1440.7427701082008
+            ],
+            "stddev": 49.47040201507683,
+            "unit": "waveforms/second"
+          },
+          "waveforms_per_sample": 256,
+          "workers": 8
+        }
+      },
+      "single_call": {
+        "torch_cpu_16thread": {
+          "latency": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 2.120541175827384,
+            "mean": 1.9954164357235034,
+            "median": 1.9527911208570004,
+            "median_ci95": {
+              "high": 2.120541175827384,
+              "low": 1.912917010486126
+            },
+            "minimum": 1.912917010486126,
+            "p25": 1.9328540656715631,
+            "p75": 2.036666148342192,
+            "samples": [
+              1.912917010486126,
+              1.9527911208570004,
+              2.120541175827384
+            ],
+            "stddev": 0.11018001910062873,
+            "unit": "ms"
+          },
+          "status": "ok",
+          "throughput": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 522.7618315474501,
+            "mean": 502.1423679077769,
+            "median": 512.0875393785798,
+            "median_ci95": {
+              "high": 522.7618315474501,
+              "low": 471.5777327973007
+            },
+            "minimum": 471.5777327973007,
+            "p25": 491.8326360879403,
+            "p75": 517.424685463015,
+            "samples": [
+              522.7618315474501,
+              512.0875393785798,
+              471.5777327973007
+            ],
+            "stddev": 27.002459478795924,
+            "unit": "waveforms/second"
+          }
+        },
+        "torch_cpu_1thread": {
+          "latency": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 2.423750003799796,
+            "mean": 2.1844446503867707,
+            "median": 2.103041857481003,
+            "median_ci95": {
+              "high": 2.423750003799796,
+              "low": 2.026542089879513
+            },
+            "minimum": 2.026542089879513,
+            "p25": 2.064791973680258,
+            "p75": 2.2633959306403995,
+            "samples": [
+              2.026542089879513,
+              2.423750003799796,
+              2.103041857481003
+            ],
+            "stddev": 0.21074473359937204,
+            "unit": "ms"
+          },
+          "status": "ok",
+          "throughput": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 493.4513845007061,
+            "mean": 460.51230006957593,
+            "median": 475.5017102692323,
+            "median_ci95": {
+              "high": 493.4513845007061,
+              "low": 412.58380543878934
+            },
+            "minimum": 412.58380543878934,
+            "p25": 444.0427578540108,
+            "p75": 484.4765473849692,
+            "samples": [
+              493.4513845007061,
+              412.58380543878934,
+              475.5017102692323
+            ],
+            "stddev": 42.46649443307056,
+            "unit": "waveforms/second"
+          }
+        }
+      },
+      "tensor_batching": {
+        "batch_1": {
+          "routes": {
+            "torch_cpu": {
+              "status": "ok",
+              "throughput": {
+                "bootstrap": {
+                  "method": "percentile",
+                  "resamples": 2000
+                },
+                "count": 3,
+                "maximum": 207.5819307712131,
+                "mean": 202.76104165098374,
+                "median": 201.76716005180876,
+                "median_ci95": {
+                  "high": 207.5819307712131,
+                  "low": 198.93403412992933
+                },
+                "minimum": 198.93403412992933,
+                "p25": 200.35059709086903,
+                "p75": 204.67454541151093,
+                "samples": [
+                  198.93403412992933,
+                  207.5819307712131,
+                  201.76716005180876
+                ],
+                "stddev": 4.408784362436631,
+                "unit": "waveforms/second"
+              },
+              "waveforms_per_sample": 1,
+              "workers": 1
+            }
+          },
+          "status": "ok"
+        },
+        "batch_128": {
+          "error_type": "ValueError",
+          "message": "only one element tensors can be converted to Python scalars",
+          "status": "unsupported"
+        },
+        "batch_32": {
+          "error_type": "ValueError",
+          "message": "only one element tensors can be converted to Python scalars",
+          "status": "unsupported"
+        }
+      }
+    },
+    "IMRPhenomXPHM": {
+      "parallel": {
+        "torch_cpu_8process": {
+          "status": "ok",
+          "throughput": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 242.17163625874878,
+            "mean": 240.12388265003963,
+            "median": 239.28420362703156,
+            "median_ci95": {
+              "high": 242.17163625874878,
+              "low": 238.91580806433856
+            },
+            "minimum": 238.91580806433856,
+            "p25": 239.10000584568508,
+            "p75": 240.72791994289017,
+            "samples": [
+              242.17163625874878,
+              239.28420362703156,
+              238.91580806433856
+            ],
+            "stddev": 1.7829469857903693,
+            "unit": "waveforms/second"
+          },
+          "waveforms_per_sample": 64,
+          "workers": 8
+        }
+      },
+      "single_call": {
+        "torch_cpu_16thread": {
+          "latency": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 47.48845915310085,
+            "mean": 41.54083365574479,
+            "median": 39.0262498985976,
+            "median_ci95": {
+              "high": 47.48845915310085,
+              "low": 38.10779191553593
+            },
+            "minimum": 38.10779191553593,
+            "p25": 38.56702090706676,
+            "p75": 43.25735452584922,
+            "samples": [
+              39.0262498985976,
+              47.48845915310085,
+              38.10779191553593
+            ],
+            "stddev": 5.1712259725583785,
+            "unit": "ms"
+          },
+          "status": "ok",
+          "throughput": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 26.241352482884643,
+            "mean": 24.307626431693066,
+            "median": 25.62377893336697,
+            "median_ci95": {
+              "high": 26.241352482884643,
+              "low": 21.057747878827588
+            },
+            "minimum": 21.057747878827588,
+            "p25": 23.34076340609728,
+            "p75": 25.932565708125807,
+            "samples": [
+              25.62377893336697,
+              21.057747878827588,
+              26.241352482884643
+            ],
+            "stddev": 2.831365788545739,
+            "unit": "waveforms/second"
+          }
+        },
+        "torch_cpu_1thread": {
+          "latency": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 39.35758396983147,
+            "mean": 37.76009722302357,
+            "median": 38.53295790031552,
+            "median_ci95": {
+              "high": 39.35758396983147,
+              "low": 35.38974979892373
+            },
+            "minimum": 35.38974979892373,
+            "p25": 36.96135384961963,
+            "p75": 38.945270935073495,
+            "samples": [
+              35.38974979892373,
+              39.35758396983147,
+              38.53295790031552
+            ],
+            "stddev": 2.093779410977646,
+            "unit": "ms"
+          },
+          "status": "ok",
+          "throughput": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 28.25676942283474,
+            "mean": 26.538881017256646,
+            "median": 25.951809943762754,
+            "median_ci95": {
+              "high": 28.25676942283474,
+              "low": 25.408063685172444
+            },
+            "minimum": 25.408063685172444,
+            "p25": 25.6799368144676,
+            "p75": 27.104289683298745,
+            "samples": [
+              28.25676942283474,
+              25.408063685172444,
+              25.951809943762754
+            ],
+            "stddev": 1.5123724504722622,
+            "unit": "waveforms/second"
+          }
+        }
+      },
+      "tensor_batching": {
+        "batch_1": {
+          "routes": {
+            "torch_cpu": {
+              "status": "ok",
+              "throughput": {
+                "bootstrap": {
+                  "method": "percentile",
+                  "resamples": 2000
+                },
+                "count": 3,
+                "maximum": 20.547065679910762,
+                "mean": 18.915245083792147,
+                "median": 18.539833852902284,
+                "median_ci95": {
+                  "high": 20.547065679910762,
+                  "low": 17.658835718563395
+                },
+                "minimum": 17.658835718563395,
+                "p25": 18.09933478573284,
+                "p75": 19.543449766406525,
+                "samples": [
+                  20.547065679910762,
+                  18.539833852902284,
+                  17.658835718563395
+                ],
+                "stddev": 1.4802595284661522,
+                "unit": "waveforms/second"
+              },
+              "waveforms_per_sample": 1,
+              "workers": 1
+            }
+          },
+          "status": "ok"
+        },
+        "batch_128": {
+          "routes": {
+            "torch_cpu": {
+              "status": "ok",
+              "throughput": {
+                "bootstrap": {
+                  "method": "percentile",
+                  "resamples": 2000
+                },
+                "count": 3,
+                "maximum": 15.778142472056997,
+                "mean": 15.64482365381747,
+                "median": 15.619021716559246,
+                "median_ci95": {
+                  "high": 15.778142472056997,
+                  "low": 15.537306772836168
+                },
+                "minimum": 15.537306772836168,
+                "p25": 15.578164244697707,
+                "p75": 15.698582094308122,
+                "samples": [
+                  15.619021716559246,
+                  15.537306772836168,
+                  15.778142472056997
+                ],
+                "stddev": 0.12247352154447286,
+                "unit": "waveforms/second"
+              },
+              "waveforms_per_sample": 128,
+              "workers": 1
+            }
+          },
+          "status": "ok"
+        },
+        "batch_32": {
+          "routes": {
+            "torch_cpu": {
+              "status": "ok",
+              "throughput": {
+                "bootstrap": {
+                  "method": "percentile",
+                  "resamples": 2000
+                },
+                "count": 3,
+                "maximum": 16.867572706405422,
+                "mean": 16.65430863586001,
+                "median": 16.67283359032214,
+                "median_ci95": {
+                  "high": 16.867572706405422,
+                  "low": 16.42251961085246
+                },
+                "minimum": 16.42251961085246,
+                "p25": 16.5476766005873,
+                "p75": 16.77020314836378,
+                "samples": [
+                  16.867572706405422,
+                  16.67283359032214,
+                  16.42251961085246
+                ],
+                "stddev": 0.22310411228546695,
+                "unit": "waveforms/second"
+              },
+              "waveforms_per_sample": 32,
+              "workers": 1
+            }
+          },
+          "status": "ok"
+        }
+      }
+    },
+    "TaylorF2": {
+      "parallel": {
+        "torch_cpu_8process": {
+          "status": "ok",
+          "throughput": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 2839.072534868813,
+            "mean": 2573.9242467409763,
+            "median": 2490.8670087972437,
+            "median_ci95": {
+              "high": 2839.072534868813,
+              "low": 2391.8331965568723
+            },
+            "minimum": 2391.8331965568723,
+            "p25": 2441.350102677058,
+            "p75": 2664.969771833028,
+            "samples": [
+              2490.8670087972437,
+              2391.8331965568723,
+              2839.072534868813
+            ],
+            "stddev": 234.9034589242078,
+            "unit": "waveforms/second"
+          },
+          "waveforms_per_sample": 256,
+          "workers": 8
+        }
+      },
+      "single_call": {
+        "torch_cpu_16thread": {
+          "latency": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 0.7329578511416912,
+            "mean": 0.7154999766498804,
+            "median": 0.7069590501487255,
+            "median_ci95": {
+              "high": 0.7329578511416912,
+              "low": 0.7065830286592245
+            },
+            "minimum": 0.7065830286592245,
+            "p25": 0.706771039403975,
+            "p75": 0.7199584506452084,
+            "samples": [
+              0.7329578511416912,
+              0.7069590501487255,
+              0.7065830286592245
+            ],
+            "stddev": 0.015120131757660225,
+            "unit": "ms"
+          },
+          "status": "ok",
+          "throughput": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 1415.2618438876864,
+            "mean": 1398.0352873611043,
+            "median": 1414.5090861905317,
+            "median_ci95": {
+              "high": 1415.2618438876864,
+              "low": 1364.3349320050952
+            },
+            "minimum": 1364.3349320050952,
+            "p25": 1389.4220090978133,
+            "p75": 1414.885465039109,
+            "samples": [
+              1364.3349320050952,
+              1414.5090861905317,
+              1415.2618438876864
+            ],
+            "stddev": 29.187790673133016,
+            "unit": "waveforms/second"
+          }
+        },
+        "torch_cpu_1thread": {
+          "latency": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 0.8266251534223557,
+            "mean": 0.7747362833470106,
+            "median": 0.7682088762521744,
+            "median_ci95": {
+              "high": 0.8266251534223557,
+              "low": 0.7293748203665018
+            },
+            "minimum": 0.7293748203665018,
+            "p25": 0.7487918483093381,
+            "p75": 0.797417014837265,
+            "samples": [
+              0.7682088762521744,
+              0.7293748203665018,
+              0.8266251534223557
+            ],
+            "stddev": 0.04895265163813819,
+            "unit": "ms"
+          },
+          "status": "ok",
+          "throughput": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 3,
+            "maximum": 1371.0371842799734,
+            "mean": 1294.1682167534075,
+            "median": 1301.7292964364776,
+            "median_ci95": {
+              "high": 1371.0371842799734,
+              "low": 1209.7381695437716
+            },
+            "minimum": 1209.7381695437716,
+            "p25": 1255.7337329901247,
+            "p75": 1336.3832403582255,
+            "samples": [
+              1301.7292964364776,
+              1371.0371842799734,
+              1209.7381695437716
+            ],
+            "stddev": 80.91489654691318,
+            "unit": "waveforms/second"
+          }
+        }
+      },
+      "tensor_batching": {
+        "batch_1": {
+          "routes": {
+            "torch_cpu": {
+              "status": "ok",
+              "throughput": {
+                "bootstrap": {
+                  "method": "percentile",
+                  "resamples": 2000
+                },
+                "count": 3,
+                "maximum": 4788.4880259015135,
+                "mean": 3617.2251236682805,
+                "median": 3498.5332082160357,
+                "median_ci95": {
+                  "high": 4788.4880259015135,
+                  "low": 2564.654136887292
+                },
+                "minimum": 2564.654136887292,
+                "p25": 3031.593672551664,
+                "p75": 4143.510617058775,
+                "samples": [
+                  2564.654136887292,
+                  3498.5332082160357,
+                  4788.4880259015135
+                ],
+                "stddev": 1116.6580137075634,
+                "unit": "waveforms/second"
+              },
+              "waveforms_per_sample": 1,
+              "workers": 1
+            }
+          },
+          "status": "ok"
+        },
+        "batch_128": {
+          "routes": {
+            "torch_cpu": {
+              "status": "ok",
+              "throughput": {
+                "bootstrap": {
+                  "method": "percentile",
+                  "resamples": 2000
+                },
+                "count": 3,
+                "maximum": 25608.748754535925,
+                "mean": 25088.551277397273,
+                "median": 25067.727239017968,
+                "median_ci95": {
+                  "high": 25608.748754535925,
+                  "low": 24589.177838637926
+                },
+                "minimum": 24589.177838637926,
+                "p25": 24828.452538827947,
+                "p75": 25338.237996776945,
+                "samples": [
+                  25067.727239017968,
+                  24589.177838637926,
+                  25608.748754535925
+                ],
+                "stddev": 510.1043457637743,
+                "unit": "waveforms/second"
+              },
+              "waveforms_per_sample": 128,
+              "workers": 1
+            }
+          },
+          "status": "ok"
+        },
+        "batch_32": {
+          "routes": {
+            "torch_cpu": {
+              "status": "ok",
+              "throughput": {
+                "bootstrap": {
+                  "method": "percentile",
+                  "resamples": 2000
+                },
+                "count": 3,
+                "maximum": 25638.457955891965,
+                "mean": 23637.984193042434,
+                "median": 24887.382734608917,
+                "median_ci95": {
+                  "high": 25638.457955891965,
+                  "low": 20388.11188862642
+                },
+                "minimum": 20388.11188862642,
+                "p25": 22637.74731161767,
+                "p75": 25262.92034525044,
+                "samples": [
+                  25638.457955891965,
+                  24887.382734608917,
+                  20388.11188862642
+                ],
+                "stddev": 2839.415607702408,
+                "unit": "waveforms/second"
+              },
+              "waveforms_per_sample": 32,
+              "workers": 1
+            }
+          },
+          "status": "ok"
+        }
+      }
+    }
+  },
+  "schema_version": 2
+}

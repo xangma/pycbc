@@ -1,0 +1,157 @@
+{
+  "host": "roni1",
+  "gpu_devices": [
+    "NVIDIA GeForce RTX 3090",
+    "NVIDIA GeForce RTX 3090"
+  ],
+  "torch_version": "2.7.0+cu126",
+  "size": 131072,
+  "num_blocks": 15,
+  "experiments": {
+    "task1_stream_pipelining": {
+      "bank_256": {
+        "num_templates": 256,
+        "h2d_ms": 0.04456052556633949,
+        "corr_per_subbatch_ms": 0.20126206800341606,
+        "ifft_per_subbatch_ms": 0.6244336254894733,
+        "peak_per_subbatch_ms": 1.104012131690979,
+        "d2h_ms": 0.06804848089814186,
+        "sync_latency_ms": 8.172882720828056,
+        "pipelined_latency_ms": 7.6917000114917755,
+        "sync_throughput_wps": 31303.484247057553,
+        "pipelined_throughput_wps": 31786.15657288289,
+        "pipeline_speedup": 1.0154191246576876
+      },
+      "bank_512": {
+        "num_templates": 512,
+        "h2d_ms": 0.04429882392287254,
+        "corr_per_subbatch_ms": 0.20083598792552948,
+        "ifft_per_subbatch_ms": 0.6239372305572033,
+        "peak_per_subbatch_ms": 1.1040880344808102,
+        "d2h_ms": 0.06836419925093651,
+        "sync_latency_ms": 16.209556721150875,
+        "pipelined_latency_ms": 15.368211083114147,
+        "sync_throughput_wps": 31590.744702197633,
+        "pipelined_throughput_wps": 33110.07302150881,
+        "pipeline_speedup": 1.0480940963447907
+      },
+      "bank_1024": {
+        "num_templates": 1024,
+        "h2d_ms": 0.04186946898698807,
+        "corr_per_subbatch_ms": 0.2008909359574318,
+        "ifft_per_subbatch_ms": 0.624604057520628,
+        "peak_per_subbatch_ms": 1.1040871031582355,
+        "d2h_ms": 0.06868550553917885,
+        "sync_latency_ms": 32.285439781844616,
+        "pipelined_latency_ms": 31.79052099585533,
+        "sync_throughput_wps": 31721.55589253939,
+        "pipelined_throughput_wps": 30498.05743462141,
+        "pipeline_speedup": 0.9614300615624678
+      }
+    },
+    "task2_dual_gpu_scaling": {
+      "bank_256": {
+        "num_templates": 256,
+        "single_gpu_latency_ms": 7.892190478742123,
+        "single_gpu_throughput_wps": 32439.573765994355,
+        "dual_partition_latency_ms": 4.218526184558868,
+        "dual_partition_throughput_wps": 60549.519921416606,
+        "dual_partition_scaling": 1.8665325370239374,
+        "dual_pipelined_latency_ms": 4.000452347099781,
+        "dual_pipelined_throughput_wps": 63976.76207281198,
+        "dual_pipelined_scaling": 1.9721825734922978,
+        "interleaved_throughput_wps": 59535.25134255671,
+        "interleaved_scaling": 1.8352661404252517,
+        "real_time_factor_single": 7095.621950691365,
+        "real_time_factor_dual": 13998.416964171183
+      },
+      "bank_512": {
+        "num_templates": 512,
+        "single_gpu_latency_ms": 15.637069940567017,
+        "single_gpu_throughput_wps": 32735.179390637284,
+        "dual_partition_latency_ms": 8.115814067423344,
+        "dual_partition_throughput_wps": 63095.64660457883,
+        "dual_partition_scaling": 1.9274568760305943,
+        "dual_pipelined_latency_ms": 7.798162288963795,
+        "dual_pipelined_throughput_wps": 65673.90782007834,
+        "dual_pipelined_scaling": 2.006218051728838,
+        "interleaved_throughput_wps": 61332.202556764016,
+        "interleaved_scaling": 1.8735868780455156,
+        "real_time_factor_single": 3581.233582304319,
+        "real_time_factor_dual": 7181.179093855609
+      },
+      "bank_1024": {
+        "num_templates": 1024,
+        "single_gpu_latency_ms": 31.135929748415947,
+        "single_gpu_throughput_wps": 32896.63640808505,
+        "dual_partition_latency_ms": 15.952489338815212,
+        "dual_partition_throughput_wps": 64090.44774490881,
+        "dual_partition_scaling": 1.9482371069753872,
+        "dual_pipelined_latency_ms": 15.446329489350319,
+        "dual_pipelined_throughput_wps": 66266.08297243896,
+        "dual_pipelined_scaling": 2.014372598778903,
+        "interleaved_throughput_wps": 61644.63176728956,
+        "interleaved_scaling": 1.8738885946448642,
+        "real_time_factor_single": 1798.5652091487334,
+        "real_time_factor_dual": 3625.456781729922
+      },
+      "bank_2048": {
+        "num_templates": 2048,
+        "single_gpu_latency_ms": 62.22356762737036,
+        "single_gpu_throughput_wps": 31672.087636516488,
+        "dual_partition_latency_ms": 31.4699225127697,
+        "dual_partition_throughput_wps": 65062.37101357147,
+        "dual_partition_scaling": 2.0542495259629647,
+        "dual_pipelined_latency_ms": 30.67812230437994,
+        "dual_pipelined_throughput_wps": 66212.4398140205,
+        "dual_pipelined_scaling": 2.0905612719283004,
+        "interleaved_throughput_wps": 61703.36455017292,
+        "interleaved_scaling": 1.948193793169217,
+        "real_time_factor_single": 899.9805400963093,
+        "real_time_factor_dual": 1825.4050702446295
+      },
+      "bank_4096": {
+        "num_templates": 4096,
+        "single_gpu_latency_ms": 125.33936742693186,
+        "single_gpu_throughput_wps": 31890.659931144342,
+        "dual_partition_latency_ms": 62.71837651729584,
+        "dual_partition_throughput_wps": 62793.51975612393,
+        "dual_partition_scaling": 1.9690254103145708,
+        "dual_pipelined_latency_ms": 61.45432963967323,
+        "dual_pipelined_throughput_wps": 65460.11726173372,
+        "dual_pipelined_scaling": 2.0526422909739015,
+        "interleaved_throughput_wps": 59373.00233407681,
+        "interleaved_scaling": 1.8617677546425835,
+        "real_time_factor_single": 446.78700036240326,
+        "real_time_factor_dual": 911.2458036455081
+      }
+    },
+    "task3_subbatch_sweep": {
+      "batch_32": {
+        "sub_batch_size": 32,
+        "latency_ms": 36.66133340448141,
+        "throughput_wps": 27880.245860039005
+      },
+      "batch_64": {
+        "sub_batch_size": 64,
+        "latency_ms": 32.85347484052181,
+        "throughput_wps": 30998.334861753887
+      },
+      "batch_128": {
+        "sub_batch_size": 128,
+        "latency_ms": 31.326771713793278,
+        "throughput_wps": 32711.36511221854
+      },
+      "batch_256": {
+        "sub_batch_size": 256,
+        "latency_ms": 31.67943935841322,
+        "throughput_wps": 31839.602089357748
+      },
+      "batch_512": {
+        "sub_batch_size": 512,
+        "latency_ms": 30.34809697419405,
+        "throughput_wps": 33829.88220761633
+      }
+    }
+  }
+}

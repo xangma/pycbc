@@ -19,9 +19,11 @@ Provides a class representing a frequency series.
 """
 import os as _os
 import h5py
+from pycbc.types.array import Array, _convert, _regular_grid, zeros, _noreal
 import numpy as _numpy
+from pycbc import lal_compat as _lal
 
-from pycbc.types.array import Array, _convert, zeros, _noreal
+from pycbc.types.array import Array, _convert, _regular_grid, zeros, _noreal
 from pycbc.types.utils import determine_epoch
 from pycbc.types import float64
 from pycbc.libutils import import_optional
@@ -92,7 +94,7 @@ class FrequencySeries(Array):
     def get_sample_frequencies(self):
         """Return an Array containing the sample frequencies.
         """
-        return Array(range(len(self))) * self._delta_f
+        return _regular_grid(len(self), self._delta_f)
     sample_frequencies = property(get_sample_frequencies,
                                   doc="Array of the sample frequencies.")
 
@@ -161,11 +163,10 @@ class FrequencySeries(Array):
         Thus, this method returns 'True' if the types of both 'self'
         and 'other' are identical, as well as their lengths, dtypes,
         epochs, delta_fs and the data in the arrays, element by element.
-        It will always do the comparison on the CPU, but will *not* move
-        either object to the CPU if it is not already there, nor change
-        the scheme of either object. It is possible to compare a CPU
-        object to a GPU object, and the comparison should be true if the
-        data and meta-data of the two objects are the same.
+        Same-device Torch arrays are reduced on their device,
+        synchronizing only the final boolean. Mixed backends retain the
+        CPU comparison path. Neither object is relocated nor has its
+        scheme changed.
 
         Note in particular that this function returns a single boolean,
         and not an array of booleans as Numpy does.  If the numpy
@@ -209,9 +210,9 @@ class FrequencySeries(Array):
         equality between the two is required.
 
         Other meta-data (type, dtype, length, and epoch) must be exactly
-        equal.  If either object's memory lives on the GPU it will be
-        copied to the CPU for the comparison, which may be slow. But the
-        original object itself will not have its memory relocated nor
+        equal. Same-device Torch arrays are reduced on their device,
+        synchronizing only the final boolean. Mixed backends retain the
+        CPU comparison path. Neither object is relocated nor has its
         scheme changed.
 
         Parameters
@@ -267,9 +268,9 @@ class FrequencySeries(Array):
         equality between the two is required.
 
         Other meta-data (type, dtype, length, and epoch) must be exactly
-        equal.  If either object's memory lives on the GPU it will be
-        copied to the CPU for the comparison, which may be slow. But the
-        original object itself will not have its memory relocated nor
+        equal. Same-device Torch arrays are reduced on their device,
+        synchronizing only the final boolean. Mixed backends retain the
+        CPU comparison path. Neither object is relocated nor has its
         scheme changed.
 
         Parameters
@@ -325,20 +326,21 @@ class FrequencySeries(Array):
             If frequency series is stored in GPU memory.
         """
 
+        lal = _lal.require_lal("FrequencySeries.lal() conversion")
         lal_data = None
         if self._epoch is None:
-            ep = _lal.LIGOTimeGPS(0,0)
+            ep = lal.LIGOTimeGPS(0,0)
         else:
             ep = _lal.LIGOTimeGPS(self._epoch)
 
         if self._data.dtype == _numpy.float32:
-            lal_data = _lal.CreateREAL4FrequencySeries("",ep,0,self.delta_f,_lal.SecondUnit,len(self))
+            lal_data = lal.CreateREAL4FrequencySeries("",ep,0,self.delta_f,lal.SecondUnit,len(self))
         elif self._data.dtype == _numpy.float64:
-            lal_data = _lal.CreateREAL8FrequencySeries("",ep,0,self.delta_f,_lal.SecondUnit,len(self))
+            lal_data = lal.CreateREAL8FrequencySeries("",ep,0,self.delta_f,lal.SecondUnit,len(self))
         elif self._data.dtype == _numpy.complex64:
-            lal_data = _lal.CreateCOMPLEX8FrequencySeries("",ep,0,self.delta_f,_lal.SecondUnit,len(self))
+            lal_data = lal.CreateCOMPLEX8FrequencySeries("",ep,0,self.delta_f,lal.SecondUnit,len(self))
         elif self._data.dtype == _numpy.complex128:
-            lal_data = _lal.CreateCOMPLEX16FrequencySeries("",ep,0,self.delta_f,_lal.SecondUnit,len(self))
+            lal_data = lal.CreateCOMPLEX16FrequencySeries("",ep,0,self.delta_f,lal.SecondUnit,len(self))
 
         lal_data.data.data[:] = self.numpy()
 

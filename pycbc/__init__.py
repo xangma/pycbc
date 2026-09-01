@@ -206,7 +206,12 @@ DYN_RANGE_FAC =  5.9029581035870565e+20
 # This is used by the distributions and transforms modules
 VARARGS_DELIM = '+'
 
-# Check for optional CUDA support of the PyCBC Package
+# Check for optional components of the PyCBC Package
+# Torch and CPUScheme both load GNU OpenMP, while MKL otherwise selects its
+# Intel OpenMP layer.  Mixing those runtimes can silently corrupt threaded
+# DFTI output, so require MKL's compatible layer before either runtime loads.
+os.environ["MKL_THREADING_LAYER"] = "GNU"
+
 try:
     #check if pycuda is installed
     import pycuda
@@ -227,6 +232,13 @@ try:
         warnings.warn("PyCUDA imported but no CUDA device found; disabling CUDA support")
 except ImportError:
     HAVE_CUDA = False
+
+# Check for PyTorch capability
+try:
+    import torch  # noqa: F401
+    HAVE_TORCH = True
+except ImportError:
+    HAVE_TORCH = False
 
 # Check for MKL capability
 try:

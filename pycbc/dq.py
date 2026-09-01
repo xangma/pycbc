@@ -28,7 +28,11 @@ gravitational-wave detectors from public sources and/or dqsegdb.
 import logging
 import json
 import numpy
-from igwn_segments import segmentlist, segment
+try:
+    from igwn_segments import segmentlist, segment
+except ImportError:
+    segmentlist = None
+    segment = None
 from pycbc.frame.gwosc import get_run
 from pycbc.io import get_file
 

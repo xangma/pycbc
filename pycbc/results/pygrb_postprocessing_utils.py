@@ -28,10 +28,13 @@ import argparse
 import copy
 import numpy
 import h5py
-import igwn_segments as segments
+try:
+    import igwn_segments as segments
+    from igwn_segments.utils import fromsegwizard
+except ImportError:
+    segments = None
+    fromsegwizard = None
 
-from scipy import stats
-from igwn_segments.utils import fromsegwizard
 from pycbc.events.coherent import reweightedsnr_cut
 from pycbc.events import veto
 from pycbc import add_common_pycbc_options

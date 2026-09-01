@@ -1,0 +1,283 @@
+{
+  "artifact_type": "waveform_throughput",
+  "campaigns": [
+    {
+      "complete": true,
+      "mode": "single",
+      "models": [
+        "IMRPhenomXPHM"
+      ],
+      "timestamp_utc": "2026-09-01T10:25:09.967975+00:00"
+    }
+  ],
+  "compatibility": {
+    "material": {
+      "runtime": {
+        "cuda_devices": [],
+        "machine": "arm64",
+        "platform": "macOS-26.6-arm64-arm-64bit",
+        "python": "3.12.7",
+        "python_executable": "/Users/xangma/miniconda3/bin/python",
+        "torch": "2.13.0",
+        "torch_cuda": null
+      },
+      "settings": {
+        "parallel_samples": 5,
+        "parallel_waveform_count_policy": {
+          "fast_frequency_domain": 256,
+          "other": 64,
+          "time_domain": 32
+        },
+        "single_call_samples": 20,
+        "tensor_batch_samples": 5,
+        "tensor_batch_sizes": [
+          64,
+          256,
+          1024
+        ],
+        "waveform_parameters": {
+          "frequency_domain": {
+            "delta_f": 0.25,
+            "distance": 500.0,
+            "f_lower": 20.0,
+            "mass1": 30.0,
+            "mass2": 25.0,
+            "spin1z": 0.4,
+            "spin2z": -0.3
+          },
+          "precessing_frequency_domain": {
+            "delta_f": 0.25,
+            "distance": 500.0,
+            "f_lower": 20.0,
+            "inclination": 0.7,
+            "mass1": 30.0,
+            "mass2": 25.0,
+            "spin1x": 0.2,
+            "spin1y": 0.1,
+            "spin1z": 0.4,
+            "spin2x": -0.1,
+            "spin2y": 0.05,
+            "spin2z": -0.3
+          }
+        },
+        "workers": 16
+      },
+      "source": {
+        "dirty": true,
+        "files_sha256": {
+          "tools/bench_waveform_throughput.py": "8389fa65fe1f25623c81d1f788c9cb62f1bb809aaaf68cb07101a7beddd4dbfc",
+          "tools/benchmark_artifact.py": "b4b3f1699824926568048e31b5dd400fb61af6a54e562dd404d44711029d4263"
+        },
+        "repository": "/Users/xangma/repos/pycbc",
+        "revision": "1dd4acddac582f89fbf412872383b3792615f441",
+        "status_sha256": "a3e91820ec3bf2ef98016a05defb851ee28713821f2061c8123fbb6827734533",
+        "tracked_diff_sha256": "a205da47d95289e38cbe6efbbbb3fc8a7df64da287749817e18659e9def3f5ea",
+        "untracked_files_sha256": {}
+      }
+    },
+    "sha256": "ce7e3a50eaee1ea4762f015a37f0420978f909b1e720bed71d7660bd31f63797"
+  },
+  "content_sha256": "99abba2e708c18674b4859adf6a450f04509d5b430954007cd63db5f6f54c1b3",
+  "metadata": {
+    "cuda_available": false,
+    "cuda_devices": [],
+    "hostname": "client-3792.default.vpn.port.ac.uk",
+    "machine": "arm64",
+    "platform": "macOS-26.6-arm64-arm-64bit",
+    "processor": "arm",
+    "python": "3.12.7",
+    "python_executable": "/Users/xangma/miniconda3/bin/python",
+    "source": {
+      "dirty": true,
+      "files_sha256": {
+        "tools/bench_waveform_throughput.py": "8389fa65fe1f25623c81d1f788c9cb62f1bb809aaaf68cb07101a7beddd4dbfc",
+        "tools/benchmark_artifact.py": "b4b3f1699824926568048e31b5dd400fb61af6a54e562dd404d44711029d4263"
+      },
+      "repository": "/Users/xangma/repos/pycbc",
+      "revision": "1dd4acddac582f89fbf412872383b3792615f441",
+      "status_sha256": "a3e91820ec3bf2ef98016a05defb851ee28713821f2061c8123fbb6827734533",
+      "tracked_diff_sha256": "a205da47d95289e38cbe6efbbbb3fc8a7df64da287749817e18659e9def3f5ea",
+      "untracked_files_sha256": {}
+    },
+    "timestamp_utc": "2026-09-01T10:25:09.967975+00:00",
+    "torch": "2.13.0",
+    "torch_cuda": null
+  },
+  "results": {
+    "IMRPhenomXPHM": {
+      "single_call": {
+        "torch_cpu_16thread": {
+          "latency": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 20,
+            "maximum": 24.487290997058153,
+            "mean": 22.125114465598017,
+            "median": 22.49093702994287,
+            "median_ci95": {
+              "high": 22.662687581032515,
+              "low": 21.44281193614006
+            },
+            "minimum": 19.8405000846833,
+            "p25": 21.099676960147917,
+            "p75": 22.734312631655484,
+            "samples": [
+              23.076624842360616,
+              22.7098751347512,
+              24.477750062942505,
+              24.487290997058153,
+              22.037750110030174,
+              24.272249778732657,
+              21.76041598431766,
+              21.825165953487158,
+              22.58691703900695,
+              22.45016605593264,
+              22.61550002731383,
+              21.12520788796246,
+              22.584833903238177,
+              20.313374930992723,
+              21.023084176704288,
+              19.8405000846833,
+              22.5317080039531,
+              19.96941608376801,
+              22.807625122368336,
+              20.006833132356405
+            ],
+            "stddev": 1.4226562147304374,
+            "unit": "ms"
+          },
+          "status": "ok",
+          "throughput": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 20,
+            "maximum": 50.401955380751296,
+            "mean": 45.37701231296048,
+            "median": 44.46249993173362,
+            "median_ci95": {
+              "high": 46.645908053271384,
+              "low": 44.125584482089195
+            },
+            "minimum": 40.83751036895578,
+            "p25": 43.9865271106777,
+            "p75": 47.39429921004745,
+            "samples": [
+              43.33389335880478,
+              44.033707542045256,
+              40.853428008235355,
+              40.83751036895578,
+              45.37668296478523,
+              41.19931234706557,
+              45.95500383451686,
+              45.81866649404437,
+              44.27341714112772,
+              44.54310037211247,
+              44.217461422133134,
+              47.33681227202591,
+              44.27750074604806,
+              49.22864877929616,
+              47.56676002411204,
+              50.401955380751296,
+              44.38189949135476,
+              50.07657689164194,
+              43.84498581657503,
+              49.982923003577824
+            ],
+            "stddev": 2.9456163968871505,
+            "unit": "waveforms/second"
+          }
+        },
+        "torch_cpu_1thread": {
+          "latency": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 20,
+            "maximum": 21.674707997590303,
+            "mean": 20.75466470560059,
+            "median": 20.765041932463646,
+            "median_ci95": {
+              "high": 20.939250010997057,
+              "low": 20.598187460564077
+            },
+            "minimum": 19.514166982844472,
+            "p25": 20.553312497213483,
+            "p75": 21.062156301923096,
+            "samples": [
+              20.27916698716581,
+              21.539042005315423,
+              20.779249956831336,
+              20.72120807133615,
+              20.567249972373247,
+              20.03645896911621,
+              19.55029205419123,
+              20.88141697458923,
+              20.51150007173419,
+              20.66191704943776,
+              19.514166982844472,
+              21.261374931782484,
+              20.995750091969967,
+              20.750833908095956,
+              20.867082988843322,
+              21.674707997590303,
+              20.629124948754907,
+              21.353417076170444,
+              21.6365831438452,
+              20.882749930024147
+            ],
+            "stddev": 0.5986660157334482,
+            "unit": "ms"
+          },
+          "status": "ok",
+          "throughput": {
+            "bootstrap": {
+              "method": "percentile",
+              "resamples": 2000
+            },
+            "count": 20,
+            "maximum": 51.244821307470204,
+            "mean": 48.220610949436946,
+            "median": 48.15788339944922,
+            "median_ci95": {
+              "high": 48.5480704445156,
+              "low": 47.7575500686069
+            },
+            "minimum": 46.1367230465654,
+            "p25": 47.479926623529124,
+            "p75": 48.654025064038585,
+            "samples": [
+              49.31169020073042,
+              46.42732020083433,
+              48.124932424292936,
+              48.259734497976005,
+              48.620987314455746,
+              49.90901843191851,
+              51.150131017383856,
+              47.88947039450955,
+              48.75313831278712,
+              48.39821966215915,
+              51.244821307470204,
+              47.03364684591277,
+              47.62868654940125,
+              48.1908343746055,
+              47.92236655859635,
+              46.1367230465654,
+              48.47515357457545,
+              46.83091218763108,
+              46.218018499120674,
+              47.886413587812555
+            ],
+            "stddev": 1.4121758984221895,
+            "unit": "waveforms/second"
+          }
+        }
+      }
+    }
+  },
+  "schema_version": 2
+}

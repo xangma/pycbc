@@ -14,7 +14,10 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 import copy
-import igwn_segments as segments
+try:
+    import igwn_segments as segments
+except ImportError:
+    segments = None
 from pycbc.psd.read import *
 from pycbc.psd.analytical import *
 from pycbc.psd.analytical_space import *

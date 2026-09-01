@@ -57,8 +57,12 @@ def determine_epoch(epoch, initial_array):
 
     # LIGOTimeGPS is a special case, as numpy.isscalar fails, but
     # it can be converted using float64().
-    # We require lal to be imported to do this check
-    is_ltg = _lal is not None and isinstance(epoch, _lal.LIGOTimeGPS)
+    is_ltg = False
+    if _lal is not None:
+        try:
+            is_ltg = isinstance(epoch, _lal.LIGOTimeGPS)
+        except (ImportError, AttributeError):
+            is_ltg = False
 
     # It looks like this is an array/list/tuple, so float conversion could
     # succeed, but we shouldn't be trying it

@@ -31,7 +31,7 @@ import os
 import tempfile
 
 from pycbc.types import (
-    Array, FrequencySeries, float32, complex64, float64, complex128,
+    Array, FrequencySeries, float32, complex64, float64, complex128, zeros,
 )
 from pycbc.scheme import DefaultScheme
 
@@ -47,6 +47,9 @@ if _scheme == 'cuda':
     from pycuda.gpuarray import GPUArray as SchemeArray
 elif _scheme == 'cpu':
     from numpy import ndarray as SchemeArray
+elif _scheme == 'torch':
+    from pycbc.types.array_torch import TorchArrayData
+    SchemeArray = TorchArrayData
 
 from numpy import ndarray as CPUArray
 
@@ -205,6 +208,8 @@ class TestFrequencySeriesBase(array_base,unittest.TestCase):
             # We also need to check initialization using GPU arrays
             if self.scheme == 'cuda':
                 in4 = pycuda.gpuarray.zeros(3,self.dtype)
+            elif self.scheme == 'torch':
+                in4 = zeros(3, dtype=self.dtype)._data
             if self.scheme != 'cpu':
                 out4 = FrequencySeries(in4,0.1, copy=False, epoch=self.epoch)
                 in4 += 1

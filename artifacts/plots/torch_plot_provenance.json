@@ -1,0 +1,358 @@
+{
+  "allow_dirty_source": true,
+  "content_sha256": "a2b26225bae139e27d0b046f9161ec3c38f1d768c2a524f7dc73ef3c73827e00",
+  "expected_revision": "f1831c2a56c04752f120d24ea307c05fbac3bca8",
+  "generator": {
+    "path": "/Users/xangma/repos/pycbc/tools/generate_torch_performance_plots.py",
+    "revision": "a391e64e5a5933b576250f0a1e80f6586d0c82f3",
+    "sha256": "eb42c5abc571812ad2a1fe2036e842933296b2457137ab6db17903473a7f4163"
+  },
+  "inputs": [
+    {
+      "artifact_type": "production_live_batch",
+      "path": "/Users/xangma/repos/pycbc/artifacts/production_live_batch.json",
+      "sha256": "a525c17792a67e3ee7aa9f20e85d156ff78c7ec5129d168ff3045cdad1580f9a"
+    },
+    {
+      "artifact_type": "waveform_throughput",
+      "path": "/Users/xangma/repos/pycbc/artifacts/waveform_throughput.json",
+      "sha256": "ee54ccf7b123934a140c594bcf6f19a3aec97ee461fc355bfc65ef34d61b2067"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "/Users/xangma/repos/pycbc/artifacts/plots/torch_live_batch_evidence.png",
+      "sha256": "7d88611b122a2f9f4c148e3505501e2c577440c49359f39402c5e16be3d972d8"
+    },
+    {
+      "path": "/Users/xangma/repos/pycbc/artifacts/plots/torch_live_batch_evidence.svg",
+      "sha256": "ffb2379a70b14ee76af97a15f513031e3421c1fbce760aa8f6eec4602cabd3b9"
+    },
+    {
+      "path": "/Users/xangma/repos/pycbc/artifacts/plots/torch_evidence_qualification.png",
+      "sha256": "c0eefdca2e651ab614b57d68813470ad484795984bcaa34033277948a80dff9d"
+    },
+    {
+      "path": "/Users/xangma/repos/pycbc/artifacts/plots/torch_evidence_qualification.svg",
+      "sha256": "89bcdf8c6d6f0ecbc3bf556ce65ad112fd8a44ab7fbb75db353712590c31599b"
+    },
+    {
+      "path": "/Users/xangma/repos/pycbc/artifacts/plots/torch_waveform_evidence.png",
+      "sha256": "7cf1a19caaf80597f81c1fd79c04e3e4dcba6d5510481e17d0acff97150862e1"
+    },
+    {
+      "path": "/Users/xangma/repos/pycbc/artifacts/plots/torch_waveform_evidence.svg",
+      "sha256": "ca6390af76bc5e28436fe473ac7b78f8e11b7eed3be666e9bd070fdcfd529983"
+    },
+    {
+      "path": "/Users/xangma/repos/pycbc/artifacts/plots/torch_waveform_tensor_batch_evidence.png",
+      "sha256": "9ab0de8f9e80f3e82e19480f0c2717b6238dff0724bc0edd4dc6e12565832de9"
+    },
+    {
+      "path": "/Users/xangma/repos/pycbc/artifacts/plots/torch_waveform_tensor_batch_evidence.svg",
+      "sha256": "8010a76a25927458cc77942ba4b0b54fc94004b7d5aef6912179f63c8e4d6762"
+    }
+  ],
+  "plotted_data": {
+    "production_live_batch": {
+      "baseline": "branch_standard",
+      "qualification": {
+        "Clean source": [
+          "pass",
+          "pass"
+        ],
+        "Launcher sealed": [
+          "pass",
+          "pass"
+        ],
+        "Parity passed": [
+          "pass",
+          "pass"
+        ],
+        "Raw samples + CI": [
+          "pass",
+          "pass"
+        ],
+        "Revision checked": [
+          "pass",
+          "pass"
+        ]
+      },
+      "routes": {
+        "branch_standard": {
+          "paired_speedup_ci95_error": [
+            [
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "speedup_median": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "throughput_ci95_error": [
+            [
+              24.742046669551428,
+              3.0500418553837108,
+              9.409199470009185
+            ],
+            [
+              4.4194368638137576,
+              3.4951634490242895,
+              1.9407946903963875
+            ]
+          ],
+          "throughput_median": [
+            701.8092173751119,
+            695.679900285881,
+            696.3108486557563
+          ]
+        },
+        "torch_cpu": {
+          "paired_speedup_ci95_error": [
+            [
+              0.027452085058043862,
+              0.018835142572928065,
+              0.016357205429437638
+            ],
+            [
+              0.03984127116987379,
+              0.017796866487346685,
+              0.014492168624853141
+            ]
+          ],
+          "speedup_median": [
+            0.8783718369562409,
+            1.2958741433807521,
+            1.314010138597301
+          ],
+          "throughput_ci95_error": [
+            [
+              23.14803520628095,
+              9.150759730384152,
+              8.980610623221423
+            ],
+            [
+              1.360590888728325,
+              20.924887577673076,
+              4.959312871103521
+            ]
+          ],
+          "throughput_median": [
+            620.331360334979,
+            897.5611244735524,
+            912.5504257779678
+          ]
+        }
+      }
+    },
+    "waveform_throughput": {
+      "models": [
+        "TaylorF2",
+        "IMRPhenomD",
+        "IMRPhenomXAS",
+        "IMRPhenomXPHM"
+      ],
+      "parallel": {
+        "torch_cpu_8process": {
+          "ci95_error": [
+            [
+              99.03381224037139,
+              329.6875155028647,
+              79.12453363718078,
+              0.3683955626929958
+            ],
+            [
+              348.20552607156924,
+              5.225724819927564,
+              11.881325193670364,
+              2.8874326317172176
+            ]
+          ],
+          "median_waveforms_per_second": [
+            2490.8670087972437,
+            2551.172943305569,
+            1440.7427701082008,
+            239.28420362703156
+          ],
+          "models": [
+            "TaylorF2",
+            "IMRPhenomD",
+            "IMRPhenomXAS",
+            "IMRPhenomXPHM"
+          ]
+        }
+      },
+      "single": {
+        "torch_cpu_16thread": {
+          "ci95_error_ms": [
+            [
+              0.00037602148950099945,
+              0.026999739930033684,
+              0.039874110370874405,
+              0.9184579830616713
+            ],
+            [
+              0.025998800992965698,
+              0.04733307287096977,
+              0.16775005497038364,
+              8.46220925450325
+            ]
+          ],
+          "median_ms": [
+            0.7069590501487255,
+            1.1807079426944256,
+            1.9527911208570004,
+            39.0262498985976
+          ],
+          "models": [
+            "TaylorF2",
+            "IMRPhenomD",
+            "IMRPhenomXAS",
+            "IMRPhenomXPHM"
+          ]
+        },
+        "torch_cpu_1thread": {
+          "ci95_error_ms": [
+            [
+              0.03883405588567257,
+              0.008167000487446785,
+              0.07649976760149002,
+              3.1432081013917923
+            ],
+            [
+              0.058416277170181274,
+              0.16512488946318626,
+              0.3207081463187933,
+              0.8246260695159435
+            ]
+          ],
+          "median_ms": [
+            0.7682088762521744,
+            1.101084053516388,
+            2.103041857481003,
+            38.53295790031552
+          ],
+          "models": [
+            "TaylorF2",
+            "IMRPhenomD",
+            "IMRPhenomXAS",
+            "IMRPhenomXPHM"
+          ]
+        }
+      },
+      "tensor_batch": {
+        "torch_cpu": {
+          "IMRPhenomD": {
+            "batch_sizes": [
+              1,
+              32,
+              128
+            ],
+            "ci95_error": [
+              [
+                54.22030026117346,
+                88.683081780252,
+                30.88802680442518
+              ],
+              [
+                16.895012616457734,
+                23.4257637772389,
+                60.58803370443138
+              ]
+            ],
+            "median_waveforms_per_second": [
+              450.8226706224602,
+              1559.6093138934298,
+              1386.5988355860852
+            ]
+          },
+          "IMRPhenomXAS": {
+            "batch_sizes": [
+              1
+            ],
+            "ci95_error": [
+              [
+                2.8331259218794287
+              ],
+              [
+                5.8147707194043505
+              ]
+            ],
+            "median_waveforms_per_second": [
+              201.76716005180876
+            ]
+          },
+          "IMRPhenomXPHM": {
+            "batch_sizes": [
+              1,
+              32,
+              128
+            ],
+            "ci95_error": [
+              [
+                0.8809981343388884,
+                0.25031397946967715,
+                0.08171494372307819
+              ],
+              [
+                2.0072318270084786,
+                0.19473911608328365,
+                0.15912075549775118
+              ]
+            ],
+            "median_waveforms_per_second": [
+              18.539833852902284,
+              16.67283359032214,
+              15.619021716559246
+            ]
+          },
+          "TaylorF2": {
+            "batch_sizes": [
+              1,
+              32,
+              128
+            ],
+            "ci95_error": [
+              [
+                933.8790713287435,
+                4499.270845982497,
+                478.54940038004133
+              ],
+              [
+                1289.9548176854778,
+                751.0752212830484,
+                541.0215155179576
+              ]
+            ],
+            "median_waveforms_per_second": [
+              3498.5332082160357,
+              24887.382734608917,
+              25067.727239017968
+            ]
+          }
+        }
+      },
+      "tensor_batch_exclusions": {
+        "IMRPhenomXAS": {
+          "batch_128": {
+            "message": "only one element tensors can be converted to Python scalars",
+            "status": "unsupported"
+          },
+          "batch_32": {
+            "message": "only one element tensors can be converted to Python scalars",
+            "status": "unsupported"
+          }
+        }
+      }
+    }
+  },
+  "schema_version": 1
+}

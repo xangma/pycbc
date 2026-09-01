@@ -66,6 +66,43 @@ def ifft(invec, outvec, _, itype, otype):
         raise ValueError(_INV_FFT_MSG.format("IFFT", itype, otype))
 
 
+def _batch_fft(fftobj):
+    """Execute independent transforms for the class-based batch API."""
+    if fftobj.invec.ptr == fftobj.outvec.ptr:
+        raise NotImplementedError("numpy backend of pycbc.fft does not "
+                                  "support in-place transforms")
+
+    input_data = fftobj.invec.data.reshape(fftobj.nbatch, fftobj.idist)
+    output_data = fftobj.outvec.data.reshape(fftobj.nbatch, fftobj.odist)
+    if fftobj.itype == 'complex' and fftobj.otype == 'complex':
+        result = numpy.fft.fft(input_data, n=fftobj.size, axis=-1)
+    elif fftobj.itype == 'real' and fftobj.otype == 'complex':
+        result = numpy.fft.rfft(input_data, n=fftobj.size, axis=-1)
+    else:
+        raise ValueError(_INV_FFT_MSG.format(
+            "FFT", fftobj.itype, fftobj.otype))
+    output_data[:] = numpy.asarray(result, dtype=fftobj.outvec.dtype)
+
+
+def _batch_ifft(fftobj):
+    """Execute independent unnormalised inverse batch transforms."""
+    if fftobj.invec.ptr == fftobj.outvec.ptr:
+        raise NotImplementedError("numpy backend of pycbc.fft does not "
+                                  "support in-place transforms")
+
+    input_data = fftobj.invec.data.reshape(fftobj.nbatch, fftobj.idist)
+    output_data = fftobj.outvec.data.reshape(fftobj.nbatch, fftobj.odist)
+    if fftobj.itype == 'complex' and fftobj.otype == 'complex':
+        result = numpy.fft.ifft(input_data, n=fftobj.size, axis=-1)
+    elif fftobj.itype == 'complex' and fftobj.otype == 'real':
+        result = numpy.fft.irfft(input_data, n=fftobj.size, axis=-1)
+    else:
+        raise ValueError(_INV_FFT_MSG.format(
+            "IFFT", fftobj.itype, fftobj.otype))
+    result *= fftobj.size
+    output_data[:] = numpy.asarray(result, dtype=fftobj.outvec.dtype)
+
+
 WARN_MSG = ("You are using the class-based PyCBC FFT API, with the numpy "
             "backed. This is provided for convenience only. If performance is "
             "important use the class-based API with one of the other backends "
@@ -90,21 +127,10 @@ class FFT(_BaseFFT):
         self.prec, self.itype, self.otype = _check_fft_args(invec, outvec)
 
     def execute(self):
-        # nbatch independent transforms of length self.size, laid out
-        # contiguously. Previously the whole buffer was handed to numpy.fft
-        # as ONE transform of length nbatch*size whenever nbatch > 1,
-        # silently returning wrong results for every batched caller.
-        if self.invec.ptr == self.outvec.ptr:
-            raise NotImplementedError("numpy backend of pycbc.fft does not "
-                                      "support in-place transforms")
-        inp = _batched_view(self.invec, self.nbatch, self.idist)
-        out = _batched_view(self.outvec, self.nbatch, self.odist)
-        if self.itype == 'complex' and self.otype == 'complex':
-            out[:] = numpy.fft.fft(inp[:, :self.size], axis=-1)
-        elif self.itype == 'real' and self.otype == 'complex':
-            out[:] = numpy.fft.rfft(inp[:, :self.size], axis=-1)
+        if self.nbatch == 1:
+            fft(self.invec, self.outvec, self.prec, self.itype, self.otype)
         else:
-            raise ValueError(_INV_FFT_MSG.format("FFT", self.itype, self.otype))
+            _batch_fft(self)
 
 
 class IFFT(_BaseIFFT):
@@ -117,21 +143,7 @@ class IFFT(_BaseIFFT):
         self.prec, self.itype, self.otype = _check_fft_args(invec, outvec)
 
     def execute(self):
-        # See FFT.execute. The un-normalization below is by self.size, the
-        # length of a single transform, not len(outvec) (which is nbatch
-        # times too large for nbatch > 1).
-        if self.invec.ptr == self.outvec.ptr:
-            raise NotImplementedError("numpy backend of pycbc.fft does not "
-                                      "support in-place transforms")
-        inp = _batched_view(self.invec, self.nbatch, self.idist)
-        out = _batched_view(self.outvec, self.nbatch, self.odist)
-        if self.itype == 'complex' and self.otype == 'complex':
-            out[:, :self.size] = numpy.fft.ifft(inp[:, :self.size], axis=-1)
-        elif self.itype == 'complex' and self.otype == 'real':
-            out[:, :self.size] = numpy.fft.irfft(inp[:, :self.idist],
-                                                 n=self.size, axis=-1)
+        if self.nbatch == 1:
+            ifft(self.invec, self.outvec, self.prec, self.itype, self.otype)
         else:
-            raise ValueError(_INV_FFT_MSG.format("IFFT", self.itype, self.otype))
-        # pycbc's class-based IFFT is unnormalized (matching MKL/FFTW), while
-        # numpy.fft.ifft divides by n.
-        out[:, :self.size] *= self.size
+            _batch_ifft(self)

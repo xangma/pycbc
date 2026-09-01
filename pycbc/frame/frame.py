@@ -27,60 +27,58 @@ import re
 from urllib.parse import urlparse
 import numpy
 
-import lalframe
-import lal
-from gwdatafind import find_urls as find_frame_urls
-
-import pycbc
-from pycbc.types import TimeSeries, zeros
-
-logger = logging.getLogger('pycbc.frame.frame')
-
-# map LAL series types to corresponding functions and Numpy types
-_fr_type_map = {
-    lal.S_TYPE_CODE: [
-        lalframe.FrStreamReadREAL4TimeSeries, numpy.float32,
-        lal.CreateREAL4TimeSeries,
-        lalframe.FrStreamGetREAL4TimeSeriesMetadata,
-        lal.CreateREAL4Sequence,
-        lalframe.FrameAddREAL4TimeSeriesProcData
-    ],
-    lal.D_TYPE_CODE: [
-        lalframe.FrStreamReadREAL8TimeSeries, numpy.float64,
-        lal.CreateREAL8TimeSeries,
-        lalframe.FrStreamGetREAL8TimeSeriesMetadata,
-        lal.CreateREAL8Sequence,
-        lalframe.FrameAddREAL8TimeSeriesProcData
-    ],
-    lal.C_TYPE_CODE: [
-        lalframe.FrStreamReadCOMPLEX8TimeSeries, numpy.complex64,
-        lal.CreateCOMPLEX8TimeSeries,
-        lalframe.FrStreamGetCOMPLEX8TimeSeriesMetadata,
-        lal.CreateCOMPLEX8Sequence,
-        lalframe.FrameAddCOMPLEX8TimeSeriesProcData
-    ],
-    lal.Z_TYPE_CODE: [
-        lalframe.FrStreamReadCOMPLEX16TimeSeries, numpy.complex128,
-        lal.CreateCOMPLEX16TimeSeries,
-        lalframe.FrStreamGetCOMPLEX16TimeSeriesMetadata,
-        lal.CreateCOMPLEX16Sequence,
-        lalframe.FrameAddCOMPLEX16TimeSeriesProcData
-    ],
-    lal.U4_TYPE_CODE: [
-        lalframe.FrStreamReadUINT4TimeSeries, numpy.uint32,
-        lal.CreateUINT4TimeSeries,
-        lalframe.FrStreamGetUINT4TimeSeriesMetadata,
-        lal.CreateUINT4Sequence,
-        lalframe.FrameAddUINT4TimeSeriesProcData
-    ],
-    lal.I4_TYPE_CODE: [
-        lalframe.FrStreamReadINT4TimeSeries, numpy.int32,
-        lal.CreateINT4TimeSeries,
-        lalframe.FrStreamGetINT4TimeSeriesMetadata,
-        lal.CreateINT4Sequence,
-        lalframe.FrameAddINT4TimeSeriesProcData
-    ],
-}
+try:
+    import lalframe
+    from pycbc import lal_compat as lal
+    # map LAL series types to corresponding functions and Numpy types
+    _fr_type_map = {
+        lal.S_TYPE_CODE: [
+            lalframe.FrStreamReadREAL4TimeSeries, numpy.float32,
+            lal.CreateREAL4TimeSeries,
+            lalframe.FrStreamGetREAL4TimeSeriesMetadata,
+            lal.CreateREAL4Sequence,
+            lalframe.FrameAddREAL4TimeSeriesProcData
+        ],
+        lal.D_TYPE_CODE: [
+            lalframe.FrStreamReadREAL8TimeSeries, numpy.float64,
+            lal.CreateREAL8TimeSeries,
+            lalframe.FrStreamGetREAL8TimeSeriesMetadata,
+            lal.CreateREAL8Sequence,
+            lalframe.FrameAddREAL8TimeSeriesProcData
+        ],
+        lal.C_TYPE_CODE: [
+            lalframe.FrStreamReadCOMPLEX8TimeSeries, numpy.complex64,
+            lal.CreateCOMPLEX8TimeSeries,
+            lalframe.FrStreamGetCOMPLEX8TimeSeriesMetadata,
+            lal.CreateCOMPLEX8Sequence,
+            lalframe.FrameAddCOMPLEX8TimeSeriesProcData
+        ],
+        lal.Z_TYPE_CODE: [
+            lalframe.FrStreamReadCOMPLEX16TimeSeries, numpy.complex128,
+            lal.CreateCOMPLEX16TimeSeries,
+            lalframe.FrStreamGetCOMPLEX16TimeSeriesMetadata,
+            lal.CreateCOMPLEX16Sequence,
+            lalframe.FrameAddCOMPLEX16TimeSeriesProcData
+        ],
+        lal.U4_TYPE_CODE: [
+            lalframe.FrStreamReadUINT4TimeSeries, numpy.uint32,
+            lal.CreateUINT4TimeSeries,
+            lalframe.FrStreamGetUINT4TimeSeriesMetadata,
+            lal.CreateUINT4Sequence,
+            lalframe.FrameAddUINT4TimeSeriesProcData
+        ],
+        lal.I4_TYPE_CODE: [
+            lalframe.FrStreamReadINT4TimeSeries, numpy.int32,
+            lal.CreateINT4TimeSeries,
+            lalframe.FrStreamGetINT4TimeSeriesMetadata,
+            lal.CreateINT4Sequence,
+            lalframe.FrameAddINT4TimeSeriesProcData
+        ],
+    }
+except (ImportError, AttributeError):
+    lalframe = None
+    from pycbc import lal_compat as lal
+    _fr_type_map = {}
 
 def _read_channel(channel, stream, start, duration):
     """ Get channel using lalframe """

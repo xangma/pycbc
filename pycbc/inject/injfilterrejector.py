@@ -27,8 +27,12 @@ testing the "similarity" of templates and injections.
 """
 
 import numpy as np
-from igwn_segments import segment
-from igwn_segments import segmentlist
+try:
+    from igwn_segments import segment
+    from igwn_segments import segmentlist
+except ImportError:
+    segment = None
+    segmentlist = None
 from pycbc import DYN_RANGE_FAC
 from pycbc.filter import match
 from pycbc.pnutils import nearest_larger_binary_number
