@@ -1,0 +1,1078 @@
+# Copyright (C) 2026 PyCBC contributors
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+
+"""Torch-native IMRPhenomXP with NNLO and MSA precession prescriptions.
+
+The aligned-spin IMRPhenomXAS carrier and all frequency-dependent precession
+angles, Wigner rotations, and polarization assembly execute on the active
+Torch device. The NRTidalv2 and NRTidalv3 variants apply matter corrections to
+the co-precessing carrier before twist-up. Scalar source-frame setup remains on
+the host.
+
+The native configurations are NNLO version 102 with convention 0 and MSA
+version 223 (or its 300 alias) with convention 1. MSA supports final-spin modes
+0, 3, and 4, including LAL's default ``300/1/4`` configuration. The public path
+is opt-in through ``PYCBC_IMRPHENOMXP_NATIVE=1`` or
+``PYCBC_TORCH_NATIVE_PORTS=1``; unsupported configurations continue to use
+lalsimulation.
+"""
+
+from __future__ import annotations
+
+import math
+import os
+from dataclasses import dataclass
+
+import torch
+
+from pycbc import scheme as _scheme
+from pycbc.types import Array as PyCBCArray, FrequencySeries
+from pycbc.types.array_torch import TorchArrayData
+from pycbc.waveform._spherical_harmonics_torch import (
+    spin_weighted_spherical_harmonic,
+)
+from pycbc.waveform.imrphenomd_torch import (
+    _NON_GR_KEYS,
+    _TIDAL_EXTENSION_KEYS,
+)
+from pycbc.waveform.imrphenompv2_torch import (
+    _angle_series,
+    _assemble_twisted_polarizations,
+    _atan2tol,
+    _nnlo_angle_coefficients,
+    _rotate_y,
+    _rotate_z,
+    _scalar_angle_series,
+)
+from pycbc.waveform.imrphenomxas_torch import (
+    MTSUN,
+    _XAS_MODE_POLARIZATION_FACTOR,
+    _build_nrtidal_params,
+    _gen_IMRPhenomXAS,
+    _is_lal_int4_order,
+    _is_nonnegative_finite,
+    _is_nonzero,
+    _next_power_of_two,
+    _phase_fit_python_scalars_supported,
+    _prepare_amp_fit_rows_from_host,
+    _prepare_phase_fit_rows_from_host,
+    _prepare_phase_fit_rows_torch,
+    _quadrupole_from_params,
+)
+from pycbc.waveform.imrphenomxp_msa_torch import (
+    _reference_angle_residuals,
+    build_msa_state,
+    msa_angles,
+    source_frame_parameters_msa223,
+)
+from pycbc.waveform import imrphenomx_utils_torch as IMRPhenomX_utils
+from pycbc.waveform._torch_jax import torch_context
+from pycbc.waveform.nrtidal_torch import nrtidal_version
+from pycbc.waveform.torch_switches import _parse_switch
+
+
+_PI = math.pi
+_DEFAULT_PREC_VERSION = 300
+_DEFAULT_CONVENTION = 1
+_DEFAULT_FINAL_SPIN = 4
+_NNLO_PREC_VERSION = 102
+_NNLO_CONVENTION = 0
+_MSA_PREC_VERSIONS = (223, 300)
+_MSA_CONVENTION = 1
+_MSA_FINAL_SPIN_MODES = (0, 3, 4)
+_XP_APPROXIMANTS = {
+    "IMRPhenomXP",
+    "IMRPhenomXP_NRTidalv2",
+    "IMRPhenomXP_NRTidalv3",
+}
+_UNSUPPORTED_TIDAL_EXTENSION_KEYS = tuple(
+    key
+    for key in _TIDAL_EXTENSION_KEYS
+    if key not in {"dquad_mon1", "dquad_mon2"}
+)
+_COERCED_ORDER_KEYS = ("phase_order", "amplitude_order", "spin_order")
+_EXACT_ORDER_KEYS = ("tidal_order", "eccentricity_order")
+_REFERENCE_ANGLE_REUSE_ENV = "PYCBC_IMRPHENOMXP_REFERENCE_ANGLE_REUSE"
+
+
+def _reference_angle_reuse_enabled():
+    """Return the strict, off-by-default reference-angle reuse switch."""
+
+    value = os.environ.get(_REFERENCE_ANGLE_REUSE_ENV)
+    return False if value is None else _parse_switch(_REFERENCE_ANGLE_REUSE_ENV, value)
+
+
+def _reference_angle_reuse_supported(inputs):
+    """Return whether Python-float residual reuse is exact for ``inputs``."""
+
+    return (
+        inputs.device.type == "cpu"
+        and inputs.real_dtype == torch.float64
+        and inputs.complex_dtype == torch.complex128
+        and not IMRPhenomX_utils._tree_has_autograd(vars(inputs))
+    )
+
+
+@dataclass(frozen=True)
+class _IMRPhenomXPInputs:
+    tidal_version: int | None
+    mass1: float
+    mass2: float
+    chi1_l: float
+    chi2_l: float
+    chip: float
+    spin_aligned: float
+    spin_perp: float
+    spin1: tuple
+    spin2: tuple
+    lambda1: float
+    lambda2: float
+    dquad1: float
+    dquad2: float
+    prec_version: int
+    final_spin_mod: int
+    theta_jn: float
+    alpha0: float
+    epsilon0: float
+    distance: float
+    carrier_phase: float
+    polarization_rotation: float
+    long_asc_nodes: float
+    f_ref: float
+    total_mass: float
+    total_mass_seconds: float
+    eta: float
+    device: torch.device
+    real_dtype: torch.dtype
+    complex_dtype: torch.dtype
+
+
+@dataclass(frozen=True)
+class _XPModel:
+    inputs: _IMRPhenomXPInputs
+    angle_coeffs: object
+    msa_state: object
+    alpha_offset: float
+    epsilon_offset: float
+    harmonics: tuple
+    final_spin: float | None
+    packed_remnant_plan: object | None = None
+    msa_reference_angles_deferred: bool = False
+
+
+def _as_float(value, default=0.0):
+    return float(default if value is None else value)
+
+
+def _integer_or_default(value, default):
+    """Resolve a LAL integer flag while rejecting non-integral values."""
+
+    if value is None:
+        return default
+    try:
+        number = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if not math.isfinite(number) or number != int(number):
+        return None
+    return int(number)
+
+
+def imrphenomxp_native_supported(params):
+    """Return whether ``params`` select the bounded native XP model."""
+
+    approximant = params.get("approximant", "IMRPhenomXP")
+    if approximant not in _XP_APPROXIMANTS:
+        return False
+    prec_version = _integer_or_default(
+        params.get("phenom_x_prec_version"),
+        _DEFAULT_PREC_VERSION,
+    )
+    convention = _integer_or_default(
+        params.get("phenom_xp_convention"),
+        _DEFAULT_CONVENTION,
+    )
+    final_spin_mod = _integer_or_default(
+        params.get("phenom_xp_final_spin_mod"),
+        _DEFAULT_FINAL_SPIN,
+    )
+    nnlo = (
+        prec_version == _NNLO_PREC_VERSION
+        and convention == _NNLO_CONVENTION
+        and final_spin_mod == 0
+    )
+    msa = (
+        prec_version in _MSA_PREC_VERSIONS
+        and convention == _MSA_CONVENTION
+        and final_spin_mod in _MSA_FINAL_SPIN_MODES
+    )
+    if not nnlo and not msa:
+        return False
+    # The bounded NNLO/MSA angle models never enter PhenomX's SpinTaylor path,
+    # so LAL accepts but ignores every PN-order field for these configurations.
+    if any(
+        not _is_lal_int4_order(params.get(key, -1), coerce=True)
+        for key in _COERCED_ORDER_KEYS
+    ) or any(
+        not _is_lal_int4_order(params.get(key, -1), coerce=False)
+        for key in _EXACT_ORDER_KEYS
+    ):
+        return False
+    unsupported_zero = (
+        _UNSUPPORTED_TIDAL_EXTENSION_KEYS
+        + _NON_GR_KEYS
+        + (
+            "eccentricity",
+            "mean_per_ano",
+            "frame_axis",
+            "modes_choice",
+            "side_bands",
+        )
+    )
+    if any(_is_nonzero(params.get(key, 0.0)) for key in unsupported_zero):
+        return False
+    matter = (
+        params.get("lambda1", 0.0),
+        params.get("lambda2", 0.0),
+        params.get("dquad_mon1", 0.0),
+        params.get("dquad_mon2", 0.0),
+    )
+    if approximant == "IMRPhenomXP":
+        if any(_is_nonzero(value) for value in matter):
+            return False
+    else:
+        if not all(_is_nonnegative_finite(value) for value in matter[:2]):
+            return False
+        try:
+            quadrupoles = (
+                _quadrupole_from_params(matter[0], matter[2]),
+                _quadrupole_from_params(matter[1], matter[3]),
+            )
+        except (TypeError, ValueError, OverflowError):
+            return False
+        if not all(math.isfinite(value) and value > 0.0 for value in quadrupoles):
+            return False
+    if params.get("mode_array") is not None or params.get("numrel_data", ""):
+        return False
+    return True
+
+
+def imrphenomxp_sequence_native_supported(params):
+    """Return whether arbitrary-frequency XP generation is native."""
+
+    return imrphenomxp_native_supported(params)
+
+
+def _lpn_v102(v, eta, chi1_l, chi2_l):
+    """3PN orbital angular momentum used by XP precession version 102."""
+
+    delta = math.sqrt(max(0.0, 1.0 - 4.0 * eta))
+    l2 = 1.5 + eta / 6.0
+    l3 = (
+        5.0
+        * (chi1_l * (-2.0 - 2.0 * delta + eta) + chi2_l * (-2.0 + 2.0 * delta + eta))
+        / 6.0
+    )
+    l4 = (81.0 + (-57.0 + eta) * eta) / 24.0
+    l5 = (
+        -7.0
+        * (
+            chi1_l * (72.0 + delta * (72.0 - 31.0 * eta) + eta * (-121.0 + 2.0 * eta))
+            + chi2_l
+            * (72.0 + eta * (-121.0 + 2.0 * eta) + delta * (-72.0 + 31.0 * eta))
+        )
+        / 144.0
+    )
+    l6 = (
+        10935.0 + eta * (-62001.0 + eta * (1674.0 + 7.0 * eta) + 2214.0 * _PI * _PI)
+    ) / 1296.0
+    v2 = v * v
+    polynomial = 1.0 + l2 * v2 + l3 * v2 * v + l4 * v2 * v2
+    polynomial += l5 * v2 * v2 * v + l6 * v2 * v2 * v2
+    return eta * polynomial / v
+
+
+def _source_frame_parameters_nnlo(
+    mass1,
+    mass2,
+    f_ref,
+    coa_phase,
+    inclination,
+    spin1,
+    spin2,
+):
+    """Map LAL source-frame inputs to convention-0 XP parameters."""
+
+    total_mass = mass1 + mass2
+    fraction1 = mass1 / total_mass
+    fraction2 = mass2 / total_mass
+    fraction1_sq = fraction1 * fraction1
+    fraction2_sq = fraction2 * fraction2
+    eta = fraction1 * fraction2
+    chi1_l = spin1[2]
+    chi2_l = spin2[2]
+
+    spin1_perp = fraction1_sq * math.hypot(spin1[0], spin1[1])
+    spin2_perp = fraction2_sq * math.hypot(spin2[0], spin2[1])
+    a1 = 2.0 + 1.5 * fraction2 / fraction1
+    a2 = 2.0 + 1.5 * fraction1 / fraction2
+    chip = max(a1 * spin1_perp, a2 * spin2_perp) / (a1 * fraction1_sq)
+    spin_aligned = chi1_l * fraction1_sq + chi2_l * fraction2_sq
+    spin_perp = chip * fraction1_sq
+
+    velocity = (_PI * total_mass * MTSUN * f_ref) ** (1.0 / 3.0)
+    orbital_momentum = _lpn_v102(velocity, eta, chi1_l, chi2_l)
+    jx = fraction1_sq * spin1[0] + fraction2_sq * spin2[0]
+    jy = fraction1_sq * spin1[1] + fraction2_sq * spin2[1]
+    jz = spin_aligned + orbital_momentum
+    jmag = math.sqrt(jx * jx + jy * jy + jz * jz)
+    theta_j_source = (
+        0.0 if jmag < 1.0e-10 else math.acos(max(-1.0, min(1.0, jz / jmag)))
+    )
+    if abs(jx) < 1.0e-15 and abs(jy) < 1.0e-15:
+        phi_j_source = _PI / 2.0 - coa_phase
+    else:
+        phi_j_source = math.atan2(jy, jx)
+    phi_aligned = -phi_j_source
+
+    line_of_sight = (
+        math.sin(inclination) * math.sin(coa_phase),
+        math.sin(inclination) * math.cos(coa_phase),
+        math.cos(inclination),
+    )
+
+    def rotate_to_intermediate(vector):
+        return _rotate_y(-theta_j_source, _rotate_z(-phi_j_source, vector))
+
+    rotated_sight = rotate_to_intermediate(line_of_sight)
+    kappa = _atan2tol(rotated_sight[1], rotated_sight[0])
+
+    def rotate_to_j_frame(vector):
+        return _rotate_z(-kappa, rotate_to_intermediate(vector))
+
+    rotated_orbit = rotate_to_j_frame((0.0, 0.0, 1.0))
+    if abs(rotated_orbit[0]) < 1.0e-15 and abs(rotated_orbit[1]) < 1.0e-15:
+        alpha0 = _PI
+    else:
+        alpha0 = math.atan2(rotated_orbit[1], rotated_orbit[0])
+
+    rotated_sight = rotate_to_j_frame(line_of_sight)
+    theta_jn = math.acos(max(-1.0, min(1.0, rotated_sight[2])))
+    waveframe_x = (
+        -math.cos(inclination) * math.sin(coa_phase),
+        -math.cos(inclination) * math.cos(coa_phase),
+        math.sin(inclination),
+    )
+    rotated_x = rotate_to_j_frame(waveframe_x)
+    x_dot_p = -rotated_x[1]
+    x_dot_q = rotated_x[0] * rotated_sight[2] - rotated_x[2] * rotated_sight[0]
+    polarization_rotation = math.atan2(x_dot_q, x_dot_p)
+    return (
+        chi1_l,
+        chi2_l,
+        chip,
+        spin_aligned,
+        spin_perp,
+        theta_jn,
+        alpha0,
+        0.0,
+        phi_aligned,
+        polarization_rotation,
+    )
+
+
+def _validated_inputs(
+    params,
+    *,
+    sequence=False,
+    default_reference_frequency=None,
+):
+    if not imrphenomxp_native_supported(params):
+        raise ValueError(
+            "IMRPhenomXP parameters are not supported by the native Torch path"
+        )
+    state = _scheme.mgr.state
+    if not isinstance(state, _scheme.TorchScheme):
+        raise RuntimeError("native Torch IMRPhenomXP requires TorchScheme")
+
+    approximant = params.get("approximant", "IMRPhenomXP")
+    tidal_version = nrtidal_version(approximant)
+    mass1 = float(params["mass1"])
+    mass2 = float(params["mass2"])
+    distance = float(params["distance"])
+    inclination = _as_float(params.get("inclination"))
+    coa_phase = _as_float(params.get("coa_phase"))
+    long_asc_nodes = 0.0 if sequence else _as_float(params.get("long_asc_nodes"))
+    f_ref = _as_float(params.get("f_ref"))
+    spin1 = tuple(_as_float(params.get(f"spin1{axis}")) for axis in "xyz")
+    spin2 = tuple(_as_float(params.get(f"spin2{axis}")) for axis in "xyz")
+    lambda1 = _as_float(params.get("lambda1"))
+    lambda2 = _as_float(params.get("lambda2"))
+    dquad1 = _as_float(params.get("dquad_mon1"))
+    dquad2 = _as_float(params.get("dquad_mon2"))
+    scalars = (
+        mass1,
+        mass2,
+        distance,
+        inclination,
+        coa_phase,
+        long_asc_nodes,
+        f_ref,
+        *spin1,
+        *spin2,
+    )
+    if not all(math.isfinite(value) for value in scalars):
+        raise ValueError("IMRPhenomXP inputs must be finite")
+    if mass1 <= 0.0 or mass2 <= 0.0:
+        raise ValueError("IMRPhenomXP component masses must be positive")
+    if distance <= 0.0:
+        raise ValueError("IMRPhenomXP distance must be positive")
+    if f_ref < 0.0:
+        raise ValueError("IMRPhenomXP f_ref must be non-negative")
+    if sum(value * value for value in spin1) > 1.0 + 1.0e-14:
+        raise ValueError("IMRPhenomXP spin1 magnitude must not exceed one")
+    if sum(value * value for value in spin2) > 1.0 + 1.0e-14:
+        raise ValueError("IMRPhenomXP spin2 magnitude must not exceed one")
+
+    if mass2 > mass1:
+        mass1, mass2 = mass2, mass1
+        spin1, spin2 = spin2, spin1
+        lambda1, lambda2 = lambda2, lambda1
+        dquad1, dquad2 = dquad2, dquad1
+    if mass1 / mass2 > 1000.0 + 1.0e-12:
+        raise ValueError("IMRPhenomXP is not valid beyond mass ratio 1000")
+
+    reference_frequency = f_ref
+    if reference_frequency == 0.0:
+        reference_frequency = (
+            float(params["f_lower"])
+            if default_reference_frequency is None
+            else float(default_reference_frequency)
+        )
+    if not math.isfinite(reference_frequency) or reference_frequency <= 0.0:
+        raise ValueError("IMRPhenomXP reference frequency must be finite and positive")
+
+    total_mass = mass1 + mass2
+    total_mass_seconds = total_mass * MTSUN
+    prec_version = _integer_or_default(
+        params.get("phenom_x_prec_version"),
+        _DEFAULT_PREC_VERSION,
+    )
+    final_spin_mod = _integer_or_default(
+        params.get("phenom_xp_final_spin_mod"),
+        _DEFAULT_FINAL_SPIN,
+    )
+    if prec_version == _NNLO_PREC_VERSION:
+        source_parameters = _source_frame_parameters_nnlo(
+            mass1,
+            mass2,
+            reference_frequency,
+            coa_phase,
+            inclination,
+            spin1,
+            spin2,
+        )
+    else:
+        source_parameters = source_frame_parameters_msa223(
+            mass1,
+            mass2,
+            reference_frequency,
+            coa_phase,
+            inclination,
+            spin1,
+            spin2,
+            total_mass_seconds,
+        )
+    (
+        chi1_l,
+        chi2_l,
+        chip,
+        spin_aligned,
+        spin_perp,
+        theta_jn,
+        alpha0,
+        epsilon0,
+        phi_aligned,
+        polarization_rotation,
+    ) = source_parameters
+    eta = mass1 * mass2 / (total_mass * total_mass)
+    device = state.torch_device
+    real_dtype = torch.float32 if device.type == "mps" else torch.float64
+    complex_dtype = torch.complex64 if real_dtype == torch.float32 else torch.complex128
+    return _IMRPhenomXPInputs(
+        tidal_version=tidal_version,
+        mass1=mass1,
+        mass2=mass2,
+        chi1_l=chi1_l,
+        chi2_l=chi2_l,
+        chip=chip,
+        spin_aligned=spin_aligned,
+        spin_perp=spin_perp,
+        spin1=spin1,
+        spin2=spin2,
+        lambda1=lambda1,
+        lambda2=lambda2,
+        dquad1=dquad1,
+        dquad2=dquad2,
+        prec_version=prec_version,
+        final_spin_mod=final_spin_mod,
+        theta_jn=theta_jn,
+        alpha0=alpha0,
+        epsilon0=epsilon0,
+        distance=distance,
+        carrier_phase=(phi_aligned if prec_version == _NNLO_PREC_VERSION else 0.0),
+        polarization_rotation=polarization_rotation,
+        long_asc_nodes=long_asc_nodes,
+        f_ref=reference_frequency,
+        total_mass=total_mass,
+        total_mass_seconds=total_mass_seconds,
+        eta=eta,
+        device=device,
+        real_dtype=real_dtype,
+        complex_dtype=complex_dtype,
+    )
+
+
+def _msa_precessing_final_spin(
+    inputs,
+    msa_state,
+    *,
+    _aligned_remnant=None,
+):
+    """Return LAL's MSA-averaged final spin (XP modes 3 and 4)."""
+
+    if _aligned_remnant is None:
+        _aligned_remnant = IMRPhenomX_utils.get_remnant_fMs(
+            inputs.mass1,
+            inputs.mass2,
+            inputs.chi1_l,
+            inputs.chi2_l,
+        )
+    aligned_spin = _aligned_remnant.final_spin.item()
+    orbital_spin = (
+        aligned_spin
+        - msa_state["m1_2"] * inputs.chi1_l
+        - msa_state["m2_2"] * inputs.chi2_l
+    )
+    spin_squared = (
+        msa_state["SAv2"]
+        + orbital_spin * orbital_spin
+        + 2.0
+        * orbital_spin
+        * (msa_state["S1L_pav"] + msa_state["S2L_pav"])
+    )
+    final_spin = math.copysign(
+        math.sqrt(max(spin_squared, 0.0)),
+        aligned_spin,
+    )
+    if abs(final_spin) > 1.0:
+        return math.copysign(1.0, final_spin)
+    return final_spin
+
+
+def _build_model(
+    inputs,
+    *,
+    harmonics=None,
+    _defer_msa_reference_angles=False,
+    _prepare_packed_remnant_plan=False,
+):
+    aligned_remnant = None
+    aligned_remnant_base = None
+    if _prepare_packed_remnant_plan is True:
+        aligned_remnant, aligned_remnant_base = (
+            IMRPhenomX_utils._get_aligned_remnant_for_packed_plan(
+                inputs.mass1,
+                inputs.mass2,
+                inputs.chi1_l,
+                inputs.chi2_l,
+            )
+        )
+    if inputs.prec_version == _NNLO_PREC_VERSION:
+        q = inputs.mass1 / inputs.mass2
+        chi_eff = (
+            inputs.mass1 * inputs.chi1_l + inputs.mass2 * inputs.chi2_l
+        ) / inputs.total_mass
+        chil = (1.0 + q) * chi_eff / q
+        angle_coeffs = _nnlo_angle_coefficients(q, chil, inputs.chip)
+        alpha_values = (
+            angle_coeffs.alpha1,
+            angle_coeffs.alpha2,
+            angle_coeffs.alpha3,
+            angle_coeffs.alpha4,
+            angle_coeffs.alpha5,
+        )
+        epsilon_values = (
+            angle_coeffs.epsilon1,
+            angle_coeffs.epsilon2,
+            angle_coeffs.epsilon3,
+            angle_coeffs.epsilon4,
+            angle_coeffs.epsilon5,
+        )
+        omega_ref = _PI * inputs.total_mass_seconds * inputs.f_ref
+        alpha_offset = _scalar_angle_series(omega_ref, alpha_values) - inputs.alpha0
+        epsilon_offset = _scalar_angle_series(omega_ref, epsilon_values)
+        msa_state = None
+        final_spin = None
+    else:
+        angle_coeffs = None
+        reuse_reference_angles = (
+            _reference_angle_reuse_enabled()
+            and _reference_angle_reuse_supported(inputs)
+        )
+        defer_reference_angles = (
+            _defer_msa_reference_angles is True
+            and _reference_angle_reuse_supported(inputs)
+        )
+        msa_state = build_msa_state(
+            inputs.mass1,
+            inputs.mass2,
+            inputs.spin1,
+            inputs.spin2,
+            inputs.total_mass_seconds,
+            inputs.f_ref,
+            _capture_reference_residuals=(
+                reuse_reference_angles and not defer_reference_angles
+            ),
+            _defer_reference_angles=defer_reference_angles,
+        )
+        reference_residuals = None
+        if reuse_reference_angles and not defer_reference_angles:
+            reference_residuals = _reference_angle_residuals(msa_state)
+        if defer_reference_angles:
+            alpha_offset = None
+            epsilon_offset = None
+        elif reference_residuals is None:
+            velocity_ref = torch.tensor(
+                [math.cbrt(_PI * inputs.total_mass_seconds * inputs.f_ref)],
+                dtype=inputs.real_dtype,
+                device=inputs.device,
+            )
+            alpha_ref, epsilon_ref, _ = msa_angles(velocity_ref, msa_state)
+            alpha_offset = alpha_ref[0] - inputs.alpha0
+            epsilon_offset = epsilon_ref[0] - inputs.epsilon0
+        else:
+            alpha_ref = torch.tensor(
+                reference_residuals[0],
+                dtype=inputs.real_dtype,
+                device=inputs.device,
+            )
+            epsilon_ref = torch.tensor(
+                reference_residuals[1],
+                dtype=inputs.real_dtype,
+                device=inputs.device,
+            )
+            alpha_offset = alpha_ref - inputs.alpha0
+            epsilon_offset = epsilon_ref - inputs.epsilon0
+        final_spin = (
+            _msa_precessing_final_spin(
+                inputs,
+                msa_state,
+                _aligned_remnant=aligned_remnant,
+            )
+            if inputs.final_spin_mod in (3, 4)
+            else None
+        )
+    packed_remnant_plan = None
+    if aligned_remnant is not None and final_spin is not None:
+        packed_remnant_plan = IMRPhenomX_utils._pack_remnant_plan(
+            aligned_remnant,
+            aligned_remnant_base,
+            final_spin,
+        )
+    if harmonics is None:
+        harmonics = tuple(
+            spin_weighted_spherical_harmonic(
+                inputs.theta_jn,
+                0.0,
+                -2,
+                2,
+                emm,
+                dtype=inputs.real_dtype,
+                device=inputs.device,
+            )
+            for emm in range(-2, 3)
+        )
+    else:
+        harmonics = tuple(harmonics)
+    return _XPModel(
+        inputs=inputs,
+        angle_coeffs=angle_coeffs,
+        msa_state=msa_state,
+        alpha_offset=alpha_offset,
+        epsilon_offset=epsilon_offset,
+        harmonics=harmonics,
+        final_spin=final_spin,
+        packed_remnant_plan=packed_remnant_plan,
+        msa_reference_angles_deferred=(
+            False
+            if inputs.prec_version == _NNLO_PREC_VERSION
+            else defer_reference_angles
+        ),
+    )
+
+
+def _xas_samples(
+    model,
+    frequencies,
+    active_f_max,
+    *,
+    coprecessing_deviations=None,
+    return_phase_plan=False,
+    return_amp_plan=False,
+    _request_proof=None,
+    _return_carrier_alignment_result=False,
+):
+    inputs = model.inputs
+    aligned_cutoff_fMs = None
+    cutoff_fMs = None
+    if (
+        getattr(model, "packed_remnant_plan", None) is not None
+        and coprecessing_deviations is None
+    ):
+        aligned = model.packed_remnant_plan.aligned
+        carrier = model.packed_remnant_plan.carrier
+        aligned_cutoff_fMs = (
+            aligned.ringdown_frequency,
+            aligned.damping_frequency,
+            aligned.meco_frequency,
+            aligned.isco_frequency,
+        )
+        cutoff_fMs = (
+            carrier.ringdown_frequency,
+            carrier.damping_frequency,
+            carrier.meco_frequency,
+            carrier.isco_frequency,
+        )
+    intrinsic = torch.tensor(
+        [inputs.mass1, inputs.mass2, inputs.chi1_l, inputs.chi2_l],
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+    extrinsic = torch.tensor(
+        [inputs.distance, 0.0, inputs.carrier_phase],
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+    phase_coeffs = (
+        IMRPhenomX_utils._get_phenomx_phase_coeff_table_cached_master(
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+        )
+    )
+    amp_coeffs = IMRPhenomX_utils._get_phenomx_amp_coeff_table_cached_master(
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+    phase_fit_rows = _prepare_phase_fit_rows_from_host(
+        (inputs.mass1, inputs.mass2, inputs.chi1_l, inputs.chi2_l),
+        IMRPhenomX_utils._PHENOMX_PHASE_COEFF_TABLE_CPU_MASTER,
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+    amp_fit_rows = _prepare_amp_fit_rows_from_host(
+        (inputs.mass1, inputs.mass2, inputs.chi1_l, inputs.chi2_l),
+        IMRPhenomX_utils._PHENOMX_AMP_COEFF_TABLE_CPU_MASTER,
+        device=inputs.device,
+        dtype=inputs.real_dtype,
+    )
+    if (
+        phase_fit_rows is None
+        and _phase_fit_python_scalars_supported(intrinsic, phase_coeffs)
+    ):
+        # For precessing CPU waveforms, a rare one-ULP host-libm phase-row
+        # change is microscopically worse than the Torch rows against LAL.
+        # Compute those rows once with legacy Torch arithmetic and reuse them.
+        phase_fit_rows = _prepare_phase_fit_rows_torch(
+            intrinsic,
+            phase_coeffs,
+        )
+    nrtidal = _build_nrtidal_params(
+        tidal_version=inputs.tidal_version,
+        mass1=inputs.mass1,
+        mass2=inputs.mass2,
+        spin1z=inputs.chi1_l,
+        spin2z=inputs.chi2_l,
+        lambda1=inputs.lambda1,
+        lambda2=inputs.lambda2,
+        dquad1=inputs.dquad1,
+        dquad2=inputs.dquad2,
+        active_f_max=active_f_max,
+    )
+    with torch_context(frequencies):
+        if _return_carrier_alignment_result:
+            generated = _gen_IMRPhenomXAS(
+                frequencies,
+                intrinsic,
+                extrinsic,
+                phase_coeffs,
+                amp_coeffs,
+                inputs.f_ref,
+                nrtidal,
+                chip=inputs.chip,
+                final_spin=model.final_spin,
+                coprecessing_deviations=coprecessing_deviations,
+                return_phase_plan=return_phase_plan,
+                return_amp_plan=return_amp_plan,
+                _phase_fit_rows=phase_fit_rows,
+                _amp_fit_rows=amp_fit_rows,
+                _aligned_cutoff_fMs=aligned_cutoff_fMs,
+                _cutoff_fMs=cutoff_fMs,
+                _request_proof=_request_proof,
+                _return_carrier_alignment_result=True,
+            )
+        else:
+            generated = _gen_IMRPhenomXAS(
+                frequencies,
+                intrinsic,
+                extrinsic,
+                phase_coeffs,
+                amp_coeffs,
+                inputs.f_ref,
+                nrtidal,
+                chip=inputs.chip,
+                final_spin=model.final_spin,
+                coprecessing_deviations=coprecessing_deviations,
+                return_phase_plan=return_phase_plan,
+                return_amp_plan=return_amp_plan,
+                _phase_fit_rows=phase_fit_rows,
+                _amp_fit_rows=amp_fit_rows,
+                _aligned_cutoff_fMs=aligned_cutoff_fMs,
+                _cutoff_fMs=cutoff_fMs,
+                _request_proof=_request_proof,
+            )
+    if _return_carrier_alignment_result:
+        if return_phase_plan and return_amp_plan:
+            samples, phase_plan, amp_plan, alignment_result = generated
+        elif return_phase_plan:
+            samples, phase_plan, alignment_result = generated
+            amp_plan = None
+        elif return_amp_plan:
+            samples, amp_plan, alignment_result = generated
+            phase_plan = None
+        else:
+            samples, alignment_result = generated
+            phase_plan = None
+            amp_plan = None
+    elif return_phase_plan and return_amp_plan:
+        samples, phase_plan, amp_plan = generated
+        alignment_result = None
+    elif return_phase_plan:
+        samples, phase_plan = generated
+        amp_plan = None
+        alignment_result = None
+    elif return_amp_plan:
+        samples, amp_plan = generated
+        phase_plan = None
+        alignment_result = None
+    else:
+        samples = generated
+        phase_plan = None
+        amp_plan = None
+        alignment_result = None
+    samples = samples.to(inputs.complex_dtype) / _XAS_MODE_POLARIZATION_FACTOR
+    if (
+        _return_carrier_alignment_result
+        and return_phase_plan
+        and return_amp_plan
+    ):
+        return samples, phase_plan, amp_plan, alignment_result
+    if _return_carrier_alignment_result and return_phase_plan:
+        return samples, phase_plan, alignment_result
+    if _return_carrier_alignment_result and return_amp_plan:
+        return samples, amp_plan, alignment_result
+    if _return_carrier_alignment_result:
+        return samples, alignment_result
+    if return_phase_plan and return_amp_plan:
+        return samples, phase_plan, amp_plan
+    if return_phase_plan:
+        return samples, phase_plan
+    if return_amp_plan:
+        return samples, amp_plan
+    return samples
+
+
+def _twist_up(model, frequencies, active_f_max):
+    inputs = model.inputs
+    h_phenom = _xas_samples(model, frequencies, active_f_max)
+    mf = inputs.total_mass_seconds * frequencies
+    omega = _PI * mf
+    velocity = torch.pow(omega, 1.0 / 3.0)
+    if inputs.prec_version == _NNLO_PREC_VERSION:
+        alpha_values = (
+            model.angle_coeffs.alpha1,
+            model.angle_coeffs.alpha2,
+            model.angle_coeffs.alpha3,
+            model.angle_coeffs.alpha4,
+            model.angle_coeffs.alpha5,
+        )
+        epsilon_values = (
+            model.angle_coeffs.epsilon1,
+            model.angle_coeffs.epsilon2,
+            model.angle_coeffs.epsilon3,
+            model.angle_coeffs.epsilon4,
+            model.angle_coeffs.epsilon5,
+        )
+        alpha = _angle_series(omega, alpha_values) - model.alpha_offset
+        epsilon = _angle_series(omega, epsilon_values) - model.epsilon_offset
+        orbital_momentum = _lpn_v102(
+            velocity,
+            inputs.eta,
+            inputs.chi1_l,
+            inputs.chi2_l,
+        )
+        denominator = orbital_momentum + inputs.spin_aligned
+        ratio = inputs.spin_perp / denominator
+        sign = torch.where(
+            denominator >= 0.0,
+            torch.ones_like(denominator),
+            -torch.ones_like(denominator),
+        )
+        cos_beta = sign * torch.rsqrt(1.0 + ratio * ratio)
+    else:
+        alpha, epsilon, cos_beta = msa_angles(velocity, model.msa_state)
+        alpha = alpha - model.alpha_offset
+        epsilon = epsilon - model.epsilon_offset
+    cos_half = torch.sqrt(torch.abs(0.5 * (1.0 + cos_beta)))
+    sin_half = torch.sqrt(torch.abs(0.5 * (1.0 - cos_beta)))
+    return _assemble_twisted_polarizations(
+        inputs,
+        frequencies,
+        h_phenom,
+        alpha,
+        epsilon,
+        cos_half,
+        sin_half,
+        model.harmonics,
+        0.0,
+    )
+
+
+def _series_from_active_samples(inputs, samples, npoints, first_bin, stop_bin, delta_f):
+    data = torch.zeros(
+        npoints,
+        dtype=inputs.complex_dtype,
+        device=inputs.device,
+    )
+    data[first_bin:stop_bin] = samples
+    return FrequencySeries(
+        TorchArrayData(data),
+        delta_f=delta_f,
+        epoch=-1.0 / delta_f,
+        copy=False,
+    )
+
+
+def imrphenomxp_fd_torch(**params):
+    """Generate a supported regular-grid IMRPhenomXP waveform with Torch."""
+
+    delta_f = float(params["delta_f"])
+    f_lower = float(params["f_lower"])
+    f_final = _as_float(params.get("f_final"))
+    if not all(math.isfinite(value) for value in (delta_f, f_lower, f_final)):
+        raise ValueError("IMRPhenomXP frequencies must be finite")
+    if delta_f <= 0.0 or f_lower <= 0.0:
+        raise ValueError("IMRPhenomXP delta_f and f_lower must be positive")
+    if f_final < 0.0:
+        raise ValueError("IMRPhenomXP f_final must be non-negative")
+
+    inputs = _validated_inputs(params)
+    cutoff_frequency = IMRPhenomX_utils.fM_CUT / inputs.total_mass_seconds
+    layout_f_max = f_final if f_final > 0.0 else cutoff_frequency
+    active_f_max = min(layout_f_max, cutoff_frequency)
+    if active_f_max <= f_lower:
+        raise ValueError("f_final (or the IMRPhenomXP cutoff) is <= f_lower")
+    npoints = _next_power_of_two(layout_f_max / delta_f) + 1
+    first_bin = int(f_lower / delta_f)
+    stop_bin = int(active_f_max / delta_f) + 1
+    frequencies = (
+        torch.arange(
+            first_bin,
+            stop_bin,
+            dtype=inputs.real_dtype,
+            device=inputs.device,
+        )
+        * delta_f
+    )
+    model = _build_model(inputs)
+    plus, cross = _twist_up(model, frequencies, active_f_max)
+    return (
+        _series_from_active_samples(
+            inputs, plus, npoints, first_bin, stop_bin, delta_f
+        ),
+        _series_from_active_samples(
+            inputs, cross, npoints, first_bin, stop_bin, delta_f
+        ),
+    )
+
+
+def _sequence_frequencies(sample_points):
+    state = _scheme.mgr.state
+    if not isinstance(state, _scheme.TorchScheme):
+        raise RuntimeError("native Torch IMRPhenomXP requires TorchScheme")
+    real_dtype = torch.float32 if state.torch_device.type == "mps" else torch.float64
+    values = getattr(sample_points, "_data", sample_points)
+    if isinstance(values, TorchArrayData):
+        values = values.tensor
+    frequencies = torch.as_tensor(
+        values,
+        device=state.torch_device,
+        dtype=real_dtype,
+    )
+    if frequencies.ndim != 1 or frequencies.numel() == 0:
+        raise ValueError("IMRPhenomXP sample_points must be a non-empty vector")
+    if not bool(torch.all(torch.isfinite(frequencies))):
+        raise ValueError("IMRPhenomXP sample_points must be finite")
+    if bool(torch.any(frequencies <= 0.0)):
+        raise ValueError("IMRPhenomXP sample_points must be positive")
+    return frequencies
+
+
+def imrphenomxp_fd_sequence_torch(**params):
+    """Evaluate supported IMRPhenomXP configurations with Torch."""
+
+    if not imrphenomxp_sequence_native_supported(params):
+        raise ValueError(
+            "IMRPhenomXP sequence parameters are not supported by the native Torch path"
+        )
+    frequencies = _sequence_frequencies(params["sample_points"])
+    inputs = _validated_inputs(
+        params,
+        sequence=True,
+        default_reference_frequency=float(frequencies[0].item()),
+    )
+    cutoff_frequency = IMRPhenomX_utils.fM_CUT / inputs.total_mass_seconds
+    active_f_max = torch.minimum(
+        frequencies[-1],
+        frequencies.new_tensor(cutoff_frequency),
+    )
+    active = frequencies <= active_f_max
+    plus = torch.zeros(
+        frequencies.shape,
+        dtype=inputs.complex_dtype,
+        device=inputs.device,
+    )
+    cross = torch.zeros_like(plus)
+    if bool(torch.any(active)):
+        model = _build_model(inputs)
+        plus[active], cross[active] = _twist_up(
+            model,
+            frequencies[active],
+            active_f_max,
+        )
+    return (
+        PyCBCArray(TorchArrayData(plus), copy=False),
+        PyCBCArray(TorchArrayData(cross), copy=False),
+    )
+
+
+__all__ = [
+    "imrphenomxp_fd_sequence_torch",
+    "imrphenomxp_fd_torch",
+    "imrphenomxp_native_supported",
+    "imrphenomxp_sequence_native_supported",
+]
