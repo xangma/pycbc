@@ -390,4 +390,3 @@ def imrphenomc_tmplt(**kwds):
     hp = htilde
     hc = htilde * 1j
     return hp, hc
-
