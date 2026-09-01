@@ -30,10 +30,326 @@ paper <10.1088/1361-6382/ab1101>, <10.1088/0264-9381/33/3/035010>,
 and <10.1103/PhysRevD.107.064021>.
 """
 
+from functools import lru_cache
+
 import numpy as np
 from scipy.interpolate import interp1d
 from astropy.constants import c
+
+import pycbc
+from pycbc import scheme as _scheme
 from pycbc.psd.read import from_numpy_arrays
+
+try:
+    import torch
+
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover - torch optional
+    torch = None
+    _HAVE_TORCH = False
+
+
+def _is_torch_tensor(value):
+    """Return whether ``value`` is a direct Torch tensor input."""
+    return _HAVE_TORCH and isinstance(value, torch.Tensor)
+
+
+def _torch_averaged_fplus_sq_if_tensor(detector, frequencies, len_arm):
+    """Evaluate a low-level antenna response on its input Torch device."""
+    if not _is_torch_tensor(frequencies):
+        return None
+
+    from pycbc.psd.analytical_space_torch import (
+        _averaged_fplus_sq_approximated,
+        _averaged_lisa_fplus_sq_numerical,
+        _averaged_tianqin_fplus_sq,
+    )
+
+    if detector == "lisa":
+        if float(len_arm) != 2.5e9:
+            raise ValueError("Currently only support 'len_arm=2.5e9'.")
+        response_frequencies, response_values = (
+            _load_lisa_averaged_response_data()
+        )
+        return _averaged_lisa_fplus_sq_numerical(
+            frequencies,
+            len_arm,
+            response_frequencies,
+            response_values,
+        )
+    if detector == "tianqin":
+        return _averaged_tianqin_fplus_sq(frequencies, len_arm)
+    if detector == "taiji":
+        return _averaged_fplus_sq_approximated(frequencies, len_arm)
+    raise ValueError(f"Unknown antenna-response detector {detector!r}")
+
+
+def _torch_averaged_tdi_response_if_tensor(
+    detector,
+    frequencies,
+    len_arm,
+    tdi,
+):
+    """Evaluate a low-level TDI response on its input Torch device."""
+    if not _is_torch_tensor(frequencies):
+        return None
+
+    from pycbc.psd.analytical_space_torch import _averaged_tdi_response
+
+    response_frequencies = response_values = None
+    if detector == "lisa":
+        if float(len_arm) != 2.5e9:
+            raise ValueError("Currently only support 'len_arm=2.5e9'.")
+        response_frequencies, response_values = (
+            _load_lisa_averaged_response_data()
+        )
+    return _averaged_tdi_response(
+        detector,
+        frequencies,
+        len_arm,
+        tdi,
+        response_frequencies,
+        response_values,
+    )
+
+
+def _torch_analytical_psd_if_active(
+    detector,
+    channel,
+    length,
+    delta_f,
+    low_freq_cutoff,
+    len_arm,
+    acc_noise_level,
+    oms_noise_level,
+    tdi,
+):
+    """Dispatch a direct TDI PSD to Torch when its scheme is active."""
+    state = _scheme.mgr.state
+    if not isinstance(state, _scheme.TorchScheme):
+        return None
+
+    from pycbc.psd.analytical_space_torch import analytical_tdi_psd
+
+    return analytical_tdi_psd(
+        detector=detector,
+        channel=channel,
+        length=length,
+        delta_f=delta_f,
+        low_freq_cutoff=low_freq_cutoff,
+        len_arm=len_arm,
+        acc_noise_level=acc_noise_level,
+        oms_noise_level=oms_noise_level,
+        tdi=tdi,
+        device=state.torch_device,
+    )
+
+
+def _torch_analytical_csd_if_active(
+    length,
+    delta_f,
+    low_freq_cutoff,
+    len_arm,
+    acc_noise_level,
+    oms_noise_level,
+    tdi,
+):
+    """Dispatch the LISA XY cross spectrum to an active Torch device."""
+    state = _scheme.mgr.state
+    if not isinstance(state, _scheme.TorchScheme):
+        return None
+
+    from pycbc.psd.analytical_space_torch import analytical_tdi_csd_xy
+
+    return analytical_tdi_csd_xy(
+        length=length,
+        delta_f=delta_f,
+        low_freq_cutoff=low_freq_cutoff,
+        len_arm=len_arm,
+        acc_noise_level=acc_noise_level,
+        oms_noise_level=oms_noise_level,
+        tdi=tdi,
+        device=state.torch_device,
+    )
+
+
+def _torch_sensitivity_curve_if_active(
+    detector,
+    length,
+    delta_f,
+    low_freq_cutoff,
+    **parameters,
+):
+    """Dispatch an analytical sensitivity curve to active Torch storage."""
+    state = _scheme.mgr.state
+    if not isinstance(state, _scheme.TorchScheme):
+        return None
+
+    from pycbc.psd.analytical_space_torch import analytical_sensitivity_curve
+
+    if detector == "lisa_semi":
+        (
+            parameters["response_frequencies"],
+            parameters["response_values"],
+        ) = _load_lisa_averaged_response_data()
+
+    return analytical_sensitivity_curve(
+        detector=detector,
+        length=length,
+        delta_f=delta_f,
+        low_freq_cutoff=low_freq_cutoff,
+        device=state.torch_device,
+        **parameters,
+    )
+
+
+def _torch_confusion_fit_if_active(
+    detector,
+    length,
+    delta_f,
+    low_freq_cutoff,
+    duration,
+):
+    """Dispatch a Galactic-confusion fit to active Torch storage."""
+    state = _scheme.mgr.state
+    if not isinstance(state, _scheme.TorchScheme):
+        return None
+
+    from pycbc.psd.analytical_space_torch import analytical_confusion_fit
+
+    return analytical_confusion_fit(
+        detector=detector,
+        length=length,
+        delta_f=delta_f,
+        low_freq_cutoff=low_freq_cutoff,
+        duration=duration,
+        device=state.torch_device,
+    )
+
+
+def _torch_combined_sensitivity_curve_if_active(
+    detector,
+    length,
+    delta_f,
+    low_freq_cutoff,
+    duration,
+    **parameters,
+):
+    """Dispatch an instrument-plus-confusion curve to active Torch storage."""
+    state = _scheme.mgr.state
+    if not isinstance(state, _scheme.TorchScheme):
+        return None
+
+    from pycbc.psd.analytical_space_torch import (
+        analytical_combined_sensitivity_curve,
+    )
+
+    if detector == "lisa_semi":
+        (
+            parameters["response_frequencies"],
+            parameters["response_values"],
+        ) = _load_lisa_averaged_response_data()
+
+    return analytical_combined_sensitivity_curve(
+        detector=detector,
+        length=length,
+        delta_f=delta_f,
+        low_freq_cutoff=low_freq_cutoff,
+        duration=duration,
+        device=state.torch_device,
+        **parameters,
+    )
+
+
+def _torch_confusion_tdi_psd_if_active(
+    detector,
+    length,
+    delta_f,
+    low_freq_cutoff,
+    len_arm,
+    duration,
+    tdi,
+    include_instrument=False,
+    acc_noise_level=None,
+    oms_noise_level=None,
+):
+    """Dispatch a confusion-only or combined A/E PSD to active Torch."""
+    state = _scheme.mgr.state
+    if not isinstance(state, _scheme.TorchScheme):
+        return None
+
+    response_parameters = {}
+    if detector == "lisa":
+        (
+            response_parameters["response_frequencies"],
+            response_parameters["response_values"],
+        ) = _load_lisa_averaged_response_data()
+
+    if not include_instrument:
+        from pycbc.psd.analytical_space_torch import analytical_confusion_tdi_psd
+
+        return analytical_confusion_tdi_psd(
+            detector=detector,
+            length=length,
+            delta_f=delta_f,
+            low_freq_cutoff=low_freq_cutoff,
+            len_arm=len_arm,
+            duration=duration,
+            tdi=tdi,
+            device=state.torch_device,
+            **response_parameters,
+        )
+
+    from pycbc.psd.analytical_space_torch import analytical_ae_confusion_psd
+
+    return analytical_ae_confusion_psd(
+        detector=detector,
+        length=length,
+        delta_f=delta_f,
+        low_freq_cutoff=low_freq_cutoff,
+        len_arm=len_arm,
+        acc_noise_level=acc_noise_level,
+        oms_noise_level=oms_noise_level,
+        duration=duration,
+        tdi=tdi,
+        device=state.torch_device,
+        **response_parameters,
+    )
+
+
+def _torch_sh_transformed_psd_if_active(
+    length,
+    delta_f,
+    low_freq_cutoff,
+    len_arm,
+    acc_noise_level,
+    oms_noise_level,
+    base_model,
+    duration,
+    tdi,
+):
+    """Dispatch the response-transformed LISA PSD to active Torch storage."""
+    state = _scheme.mgr.state
+    if not isinstance(state, _scheme.TorchScheme):
+        return None
+
+    from pycbc.psd.analytical_space_torch import analytical_sh_transformed_psd
+
+    response_frequencies, response_values = _load_lisa_averaged_response_data()
+    return analytical_sh_transformed_psd(
+        length=length,
+        delta_f=delta_f,
+        low_freq_cutoff=low_freq_cutoff,
+        len_arm=len_arm,
+        acc_noise_level=acc_noise_level,
+        oms_noise_level=oms_noise_level,
+        base_model=base_model,
+        duration=duration,
+        tdi=tdi,
+        device=state.torch_device,
+        response_frequencies=response_frequencies,
+        response_values=response_values,
+    )
 
 
 def _psd_acc_noise(f, acc_noise_level=None):
@@ -402,6 +718,20 @@ def analytical_psd_lisa_tdi_XYZ(length, delta_f, low_freq_cutoff,
     -----
         Please see Eq.(19-20) in <LISA-LCST-SGS-TN-001> for more details.
     """
+    torch_psd = _torch_analytical_psd_if_active(
+        "lisa",
+        "XYZ",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        acc_noise_level,
+        oms_noise_level,
+        tdi,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     psd_components = np.array(lisa_psd_components(
         fr, acc_noise_level, oms_noise_level))
@@ -443,6 +773,20 @@ def analytical_psd_tianqin_tdi_XYZ(length, delta_f, low_freq_cutoff,
         Please see Table(1) in <10.1088/0264-9381/33/3/035010>
         for more details.
     """
+    torch_psd = _torch_analytical_psd_if_active(
+        "tianqin",
+        "XYZ",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        acc_noise_level,
+        oms_noise_level,
+        tdi,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     psd_components = np.array(tianqin_psd_components(
         fr, acc_noise_level, oms_noise_level))
@@ -482,6 +826,20 @@ def analytical_psd_taiji_tdi_XYZ(length, delta_f, low_freq_cutoff,
     -----
         Please see <10.1103/PhysRevD.107.064021> for more details.
     """
+    torch_psd = _torch_analytical_psd_if_active(
+        "taiji",
+        "XYZ",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        acc_noise_level,
+        oms_noise_level,
+        tdi,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     psd_components = np.array(taiji_psd_components(
         fr, acc_noise_level, oms_noise_level))
@@ -564,6 +922,18 @@ def analytical_csd_lisa_tdi_XY(length, delta_f, low_freq_cutoff,
     -----
         Please see Eq.(56) in <LISA-LCST-SGS-MAN-001(Radler)> for more details.
     """
+    torch_csd = _torch_analytical_csd_if_active(
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        acc_noise_level,
+        oms_noise_level,
+        tdi,
+    )
+    if torch_csd is not None:
+        return torch_csd
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     psd_components = np.array(lisa_psd_components(
         fr, acc_noise_level, oms_noise_level))
@@ -647,6 +1017,20 @@ def analytical_psd_lisa_tdi_AE(length, delta_f, low_freq_cutoff,
     -----
         Please see Eq.(58) in <LISA-LCST-SGS-MAN-001(Radler)> for more details.
     """
+    torch_psd = _torch_analytical_psd_if_active(
+        "lisa",
+        "AE",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        acc_noise_level,
+        oms_noise_level,
+        tdi,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     psd_components = np.array(lisa_psd_components(
         fr, acc_noise_level, oms_noise_level))
@@ -688,6 +1072,20 @@ def analytical_psd_tianqin_tdi_AE(length, delta_f, low_freq_cutoff,
         Please see Table(1) in <10.1088/0264-9381/33/3/035010>
         for more details.
     """
+    torch_psd = _torch_analytical_psd_if_active(
+        "tianqin",
+        "AE",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        acc_noise_level,
+        oms_noise_level,
+        tdi,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     psd_components = np.array(tianqin_psd_components(
         fr, acc_noise_level, oms_noise_level))
@@ -727,6 +1125,20 @@ def analytical_psd_taiji_tdi_AE(length, delta_f, low_freq_cutoff,
     -----
         Please see <10.1103/PhysRevD.107.064021> for more details.
     """
+    torch_psd = _torch_analytical_psd_if_active(
+        "taiji",
+        "AE",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        acc_noise_level,
+        oms_noise_level,
+        tdi,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     psd_components = np.array(taiji_psd_components(
         fr, acc_noise_level, oms_noise_level))
@@ -809,6 +1221,20 @@ def analytical_psd_lisa_tdi_T(length, delta_f, low_freq_cutoff,
     -----
         Please see Eq.(59) in <LISA-LCST-SGS-MAN-001(Radler)> for more details.
     """
+    torch_psd = _torch_analytical_psd_if_active(
+        "lisa",
+        "T",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        acc_noise_level,
+        oms_noise_level,
+        tdi,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     psd_components = np.array(lisa_psd_components(
         fr, acc_noise_level, oms_noise_level))
@@ -850,6 +1276,20 @@ def analytical_psd_tianqin_tdi_T(length, delta_f, low_freq_cutoff,
         Please see Table(1) in <10.1088/0264-9381/33/3/035010>
         for more details.
     """
+    torch_psd = _torch_analytical_psd_if_active(
+        "tianqin",
+        "T",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        acc_noise_level,
+        oms_noise_level,
+        tdi,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     psd_components = np.array(tianqin_psd_components(
         fr, acc_noise_level, oms_noise_level))
@@ -889,6 +1329,20 @@ def analytical_psd_taiji_tdi_T(length, delta_f, low_freq_cutoff,
     -----
         Please see <10.1103/PhysRevD.107.064021> for more details.
     """
+    torch_psd = _torch_analytical_psd_if_active(
+        "taiji",
+        "T",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        acc_noise_level,
+        oms_noise_level,
+        tdi,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     psd_components = np.array(taiji_psd_components(
         fr, acc_noise_level, oms_noise_level))
@@ -898,36 +1352,49 @@ def analytical_psd_taiji_tdi_T(length, delta_f, low_freq_cutoff,
     return fseries
 
 
+@lru_cache(maxsize=1)
+def _load_lisa_averaged_response_data():
+    """Load and pad the small tabulated LISA response on the host."""
+    from astropy.utils.data import download_file
+
+    url = "https://zenodo.org/record/7497853/files/AvFXp2_Raw.npy"
+    file_path = download_file(url, cache=True)
+    frequencies, response = np.load(file_path)
+    frequencies = np.append(frequencies, 2.0)
+    response = np.append(response, 0.0012712348970728724)
+    frequencies.setflags(write=False)
+    response.setflags(write=False)
+    return frequencies, response
+
+
 def averaged_lisa_fplus_sq_numerical(f, len_arm=2.5e9):
     """ A numerical fit for LISA's squared antenna response function,
     averaged over sky and polarization angle.
 
     Parameters
     ----------
-    f : float or numpy.array
+    f : float, numpy.array, or torch.Tensor
         The frequency or frequency range, in the unit of "Hz".
     len_arm : float
         The arm length of LISA, in the unit of "m".
 
     Returns
     -------
-    fp_sq_numerical : float or numpy.array
+    fp_sq_numerical : float, numpy.array, or torch.Tensor
         The sky and polarization angle averaged squared antenna response.
     Notes
     -----
         Please see Eq.(36) in <LISA-LCST-SGS-TN-001> for more details.
     """
-    from astropy.utils.data import download_file
+    torch_response = _torch_averaged_fplus_sq_if_tensor(
+        "lisa", f, len_arm
+    )
+    if torch_response is not None:
+        return torch_response
 
     if len_arm != 2.5e9:
         raise ValueError("Currently only support 'len_arm=2.5e9'.")
-    # Download the numerical LISA averaged response.
-    url = "https://zenodo.org/record/7497853/files/AvFXp2_Raw.npy"
-    file_path = download_file(url, cache=True)
-    freqs, fp_sq = np.load(file_path)
-    # Padding the end.
-    freqs = np.append(freqs, 2)
-    fp_sq = np.append(fp_sq, 0.0012712348970728724)
+    freqs, fp_sq = _load_lisa_averaged_response_data()
     fp_sq_interp = interp1d(freqs, fp_sq, kind='linear',
                             fill_value="extrapolate")
     fp_sq_numerical = fp_sq_interp(f)/16
@@ -970,20 +1437,26 @@ def averaged_tianqin_fplus_sq_numerical(f, len_arm=np.sqrt(3)*1e8):
 
     Parameters
     ----------
-    f : float or numpy.array
+    f : float, numpy.array, or torch.Tensor
         The frequency or frequency range, in the unit of "Hz".
     len_arm : float
         The arm length of TianQin, in the unit of "m".
 
     Returns
     -------
-    fp_sq_numerical : float or numpy.array
+    fp_sq_numerical : float, numpy.array, or torch.Tensor
         The sky and polarization angle averaged squared antenna response.
     Notes
     -----
         Please see Eq.(15-16) in <10.1103/PhysRevD.100.043003>
         for more details.
     """
+    torch_response = _torch_averaged_fplus_sq_if_tensor(
+        "tianqin", f, len_arm
+    )
+    if torch_response is not None:
+        return torch_response
+
     base = averaged_fplus_sq_approximated(f, len_arm)
     a = [1, 1e-4, 2639e-4, 231/5*1e-4, -2093/1.25*1e-4, 2173e-5,
          2101e-6, 3027/2*1e-5, -42373/5*1e-6, 176087e-8,
@@ -1010,7 +1483,7 @@ def averaged_response_lisa_tdi(f, len_arm=2.5e9, tdi=None):
 
     Parameters
     ----------
-    f : float or numpy.array
+    f : float, numpy.array, or torch.Tensor
         The frequency or frequency range, in the unit of "Hz".
     len_arm : float
         The arm length of LISA, in the unit of "m".
@@ -1019,12 +1492,18 @@ def averaged_response_lisa_tdi(f, len_arm=2.5e9, tdi=None):
 
     Returns
     -------
-    response_tdi : float or numpy.array
+    response_tdi : float, numpy.array, or torch.Tensor
         The sky and polarization angle averaged TDI-1.5/2.0 response to GW.
     Notes
     -----
         Please see Eq.(39-40) in <LISA-LCST-SGS-TN-001> for more details.
     """
+    torch_response = _torch_averaged_tdi_response_if_tensor(
+        "lisa", f, len_arm, tdi
+    )
+    if torch_response is not None:
+        return torch_response
+
     omega_len = omega_length(f, len_arm)
     ave_fp2 = averaged_lisa_fplus_sq_numerical(f, len_arm)
     response_tdi = (4*omega_len)**2 * np.sin(omega_len)**2 * ave_fp2
@@ -1043,7 +1522,7 @@ def averaged_response_tianqin_tdi(f, len_arm=np.sqrt(3)*1e8, tdi=None):
 
     Parameters
     ----------
-    f : float or numpy.array
+    f : float, numpy.array, or torch.Tensor
         The frequency or frequency range, in the unit of "Hz".
     len_arm : float
         The arm length of TianQin, in the unit of "m".
@@ -1052,9 +1531,15 @@ def averaged_response_tianqin_tdi(f, len_arm=np.sqrt(3)*1e8, tdi=None):
 
     Returns
     -------
-    response_tdi : float or numpy.array
+    response_tdi : float, numpy.array, or torch.Tensor
         The sky and polarization angle averaged TDI-1.5/2.0 response to GW.
     """
+    torch_response = _torch_averaged_tdi_response_if_tensor(
+        "tianqin", f, len_arm, tdi
+    )
+    if torch_response is not None:
+        return torch_response
+
     omega_len = omega_length(f, len_arm)
     ave_fp2 = averaged_tianqin_fplus_sq_numerical(f, len_arm)
     response_tdi = (4*omega_len)**2 * np.sin(omega_len)**2 * ave_fp2
@@ -1073,7 +1558,7 @@ def averaged_response_taiji_tdi(f, len_arm=3e9, tdi=None):
 
     Parameters
     ----------
-    f : float or numpy.array
+    f : float, numpy.array, or torch.Tensor
         The frequency or frequency range, in the unit of "Hz".
     len_arm : float
         The arm length of Taiji, in the unit of "m".
@@ -1082,9 +1567,15 @@ def averaged_response_taiji_tdi(f, len_arm=3e9, tdi=None):
 
     Returns
     -------
-    response_tdi : float or numpy.array
+    response_tdi : float, numpy.array, or torch.Tensor
         The sky and polarization angle averaged TDI-1.5/2.0 response to GW.
     """
+    torch_response = _torch_averaged_tdi_response_if_tensor(
+        "taiji", f, len_arm, tdi
+    )
+    if torch_response is not None:
+        return torch_response
+
     omega_len = omega_length(f, len_arm)
     ave_fp2 = averaged_fplus_sq_approximated(f, len_arm)
     response_tdi = (4*omega_len)**2 * np.sin(omega_len)**2 * ave_fp2
@@ -1131,6 +1622,18 @@ def sensitivity_curve_lisa_semi_analytical(length, delta_f, low_freq_cutoff,
     len_arm = np.float64(len_arm)
     acc_noise_level = np.float64(acc_noise_level)
     oms_noise_level = np.float64(oms_noise_level)
+    torch_curve = _torch_sensitivity_curve_if_active(
+        "lisa_semi",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm=len_arm,
+        acc_noise_level=acc_noise_level,
+        oms_noise_level=oms_noise_level,
+    )
+    if torch_curve is not None:
+        return torch_curve
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     fp_sq = averaged_lisa_fplus_sq_numerical(fr, len_arm)
     s_acc_nu, s_oms_nu = lisa_psd_components(
@@ -1172,6 +1675,18 @@ def sensitivity_curve_tianqin_analytical(length, delta_f, low_freq_cutoff,
         The sky and polarization angle averaged analytical
         TianQin's sensitivity curve (6-links).
     """
+    torch_curve = _torch_sensitivity_curve_if_active(
+        "tianqin",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm=len_arm,
+        acc_noise_level=acc_noise_level,
+        oms_noise_level=oms_noise_level,
+    )
+    if torch_curve is not None:
+        return torch_curve
+
     len_arm = np.float64(len_arm)
     acc_noise_level = np.float64(acc_noise_level)
     oms_noise_level = np.float64(oms_noise_level)
@@ -1215,6 +1730,18 @@ def sensitivity_curve_taiji_analytical(length, delta_f, low_freq_cutoff,
         The sky and polarization angle averaged analytical
         Taiji's sensitivity curve (6-links).
     """
+    torch_curve = _torch_sensitivity_curve_if_active(
+        "taiji",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm=len_arm,
+        acc_noise_level=acc_noise_level,
+        oms_noise_level=oms_noise_level,
+    )
+    if torch_curve is not None:
+        return torch_curve
+
     len_arm = np.float64(len_arm)
     acc_noise_level = np.float64(acc_noise_level)
     oms_noise_level = np.float64(oms_noise_level)
@@ -1253,6 +1780,15 @@ def sensitivity_curve_lisa_SciRD(length, delta_f, low_freq_cutoff):
     -----
         Please see Eq.(114) in <LISA-LCST-SGS-TN-001> for more details.
     """
+    torch_curve = _torch_sensitivity_curve_if_active(
+        "lisa_scird",
+        length,
+        delta_f,
+        low_freq_cutoff,
+    )
+    if torch_curve is not None:
+        return torch_curve
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     s_I = 5.76e-48 * (1+(4e-4/fr)**2)
     s_II = 3.6e-41
@@ -1289,6 +1825,16 @@ def confusion_fit_lisa(length, delta_f, low_freq_cutoff, duration=1.0):
     -----
         Please see Eq.(85-86) in <LISA-LCST-SGS-TN-001> for more details.
     """
+    torch_curve = _torch_confusion_fit_if_active(
+        "lisa",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        duration,
+    )
+    if torch_curve is not None:
+        return torch_curve
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     f1 = 10**(-0.25*np.log10(duration)-2.7)
     fk = 10**(-0.27*np.log10(duration)-2.47)
@@ -1328,6 +1874,16 @@ def confusion_fit_tianqin(length, delta_f, low_freq_cutoff, duration=1.0):
         Please see Table(II) in <10.1103/PhysRevD.102.063021>
         for more details.
     """
+    torch_curve = _torch_confusion_fit_if_active(
+        "tianqin",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        duration,
+    )
+    if torch_curve is not None:
+        return torch_curve
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     t_obs = [0.5, 1, 2, 4, 5]
     a0 = [-18.6, -18.6, -18.6, -18.6, -18.6]
@@ -1398,6 +1954,16 @@ def confusion_fit_taiji(length, delta_f, low_freq_cutoff, duration=1.0):
         Please see Eq.(6) and Table(I) in <10.1103/PhysRevD.107.064021>
         for more details.
     """
+    torch_curve = _torch_confusion_fit_if_active(
+        "taiji",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        duration,
+    )
+    if torch_curve is not None:
+        return torch_curve
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     t_obs = [0.5, 1, 2, 4]
     a0 = [-85.3498, -85.4336, -85.3919, -85.5448]
@@ -1466,6 +2032,21 @@ def sensitivity_curve_lisa_confusion(length, delta_f, low_freq_cutoff,
     -----
         Please see Eq.(85-86) in <LISA-LCST-SGS-TN-001> for more details.
     """
+    if base_model in ("semi", "SciRD"):
+        detector = "lisa_semi" if base_model == "semi" else "lisa_scird"
+        torch_curve = _torch_combined_sensitivity_curve_if_active(
+            detector,
+            length,
+            delta_f,
+            low_freq_cutoff,
+            duration,
+            len_arm=len_arm,
+            acc_noise_level=acc_noise_level,
+            oms_noise_level=oms_noise_level,
+        )
+        if torch_curve is not None:
+            return torch_curve
+
     if base_model == "semi":
         base_curve = sensitivity_curve_lisa_semi_analytical(
             length, delta_f, low_freq_cutoff,
@@ -1516,6 +2097,19 @@ def sensitivity_curve_tianqin_confusion(length, delta_f, low_freq_cutoff,
         The sky and polarization angle averaged
         TianQin's sensitivity curve with Galactic confusion noise.
     """
+    torch_curve = _torch_combined_sensitivity_curve_if_active(
+        "tianqin",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        duration,
+        len_arm=len_arm,
+        acc_noise_level=acc_noise_level,
+        oms_noise_level=oms_noise_level,
+    )
+    if torch_curve is not None:
+        return torch_curve
+
     base_curve = sensitivity_curve_tianqin_analytical(
         length, delta_f, low_freq_cutoff,
         len_arm, acc_noise_level, oms_noise_level)
@@ -1559,6 +2153,19 @@ def sensitivity_curve_taiji_confusion(length, delta_f, low_freq_cutoff,
         The sky and polarization angle averaged
         Taiji's sensitivity curve with Galactic confusion noise.
     """
+    torch_curve = _torch_combined_sensitivity_curve_if_active(
+        "taiji",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        duration,
+        len_arm=len_arm,
+        acc_noise_level=acc_noise_level,
+        oms_noise_level=oms_noise_level,
+    )
+    if torch_curve is not None:
+        return torch_curve
+
     base_curve = sensitivity_curve_taiji_analytical(
         length, delta_f, low_freq_cutoff,
         len_arm, acc_noise_level, oms_noise_level)
@@ -1611,6 +2218,20 @@ def sh_transformed_psd_lisa_tdi_XYZ(length, delta_f, low_freq_cutoff,
     -----
         Please see Eq.(7,41-43) in <LISA-LCST-SGS-TN-001> for more details.
     """
+    torch_psd = _torch_sh_transformed_psd_if_active(
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        acc_noise_level,
+        oms_noise_level,
+        base_model,
+        duration,
+        tdi,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     if str(tdi) in ["1.5", "2.0"]:
         response = averaged_response_lisa_tdi(fr, len_arm, tdi)
@@ -1656,6 +2277,18 @@ def semi_analytical_psd_lisa_confusion_noise(length, delta_f, low_freq_cutoff,
         The TDI-1.5/2.0 PSD (X,Y,Z channel) for LISA Galactic confusion
         noise, no instrumental noise.
     """
+    torch_psd = _torch_confusion_tdi_psd_if_active(
+        "lisa",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        duration,
+        tdi,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     if str(tdi) in ["1.5", "2.0"]:
         response = averaged_response_lisa_tdi(fr, len_arm, tdi)
@@ -1700,6 +2333,18 @@ def analytical_psd_tianqin_confusion_noise(length, delta_f, low_freq_cutoff,
         The TDI-1.5/2.0 PSD (X,Y,Z channel) for TianQin Galactic confusion
         noise, no instrumental noise.
     """
+    torch_psd = _torch_confusion_tdi_psd_if_active(
+        "tianqin",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        duration,
+        tdi,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     if str(tdi) in ["1.5", "2.0"]:
         response = averaged_response_tianqin_tdi(fr, len_arm, tdi)
@@ -1744,6 +2389,18 @@ def analytical_psd_taiji_confusion_noise(length, delta_f, low_freq_cutoff,
         The TDI-1.5/2.0 PSD (X,Y,Z channel) for Taiji Galactic confusion
         noise, no instrumental noise.
     """
+    torch_psd = _torch_confusion_tdi_psd_if_active(
+        "taiji",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        duration,
+        tdi,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     fr = np.linspace(low_freq_cutoff, (length-1)*2*delta_f, length)
     if str(tdi) in ["1.5", "2.0"]:
         response = averaged_response_taiji_tdi(fr, len_arm, tdi)
@@ -1793,6 +2450,21 @@ def analytical_psd_lisa_tdi_AE_confusion(length, delta_f, low_freq_cutoff,
         The TDI-1.5/2.0 PSD (A,E channel) for LISA with Galactic confusion
         noise.
     """
+    torch_psd = _torch_confusion_tdi_psd_if_active(
+        "lisa",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        duration,
+        tdi,
+        include_instrument=True,
+        acc_noise_level=acc_noise_level,
+        oms_noise_level=oms_noise_level,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     psd_AE = analytical_psd_lisa_tdi_AE(length, delta_f, low_freq_cutoff,
                                         len_arm, acc_noise_level,
                                         oms_noise_level, tdi)
@@ -1840,6 +2512,21 @@ def analytical_psd_tianqin_tdi_AE_confusion(length, delta_f, low_freq_cutoff,
         The TDI-1.5/2.0 PSD (A,E channel) for TianQin with Galactic confusion
         noise.
     """
+    torch_psd = _torch_confusion_tdi_psd_if_active(
+        "tianqin",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        duration,
+        tdi,
+        include_instrument=True,
+        acc_noise_level=acc_noise_level,
+        oms_noise_level=oms_noise_level,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     psd_AE = analytical_psd_tianqin_tdi_AE(length, delta_f,
                                            low_freq_cutoff,
                                            len_arm, acc_noise_level,
@@ -1887,6 +2574,21 @@ def analytical_psd_taiji_tdi_AE_confusion(length, delta_f, low_freq_cutoff,
         The TDI-1.5/2.0 PSD (A,E channel) for Taiji with Galactic confusion
         noise.
     """
+    torch_psd = _torch_confusion_tdi_psd_if_active(
+        "taiji",
+        length,
+        delta_f,
+        low_freq_cutoff,
+        len_arm,
+        duration,
+        tdi,
+        include_instrument=True,
+        acc_noise_level=acc_noise_level,
+        oms_noise_level=oms_noise_level,
+    )
+    if torch_psd is not None:
+        return torch_psd
+
     psd_AE = analytical_psd_taiji_tdi_AE(length, delta_f, low_freq_cutoff,
                                          len_arm, acc_noise_level,
                                          oms_noise_level, tdi)

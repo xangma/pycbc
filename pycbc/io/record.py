@@ -28,8 +28,11 @@ useful for storing and retrieving data created by a search for gravitationa
 waves.
 """
 
+try:
+    from igwn_ligolw import types as ligolw_types
+except ImportError:
+    ligolw_types = None
 import types, re, copy, numpy, inspect
-from igwn_ligolw import types as ligolw_types
 from pycbc import coordinates, conversions, cosmology
 from pycbc.population import population_models
 from pycbc.waveform import parameters
@@ -47,9 +50,10 @@ _numpy_function_lib = {_x: _y for _x,_y in numpy.__dict__.items()
 #
 # add ligolw_types to numpy sctypeDict
 # but don't include bindings that numpy already defines
-numpy.sctypeDict.update({_k: _val
-                         for (_k, _val) in ligolw_types.ToNumPyType.items()
-                         if _k not in numpy.sctypeDict})
+if ligolw_types is not None:
+    numpy.sctypeDict.update({_k: _val
+                             for (_k, _val) in ligolw_types.Types.items()
+                             if _k not in numpy.sctypeDict})
 
 # Annoyingly, numpy has no way to store NaNs in an integer field to indicate
 # the equivalent of None. This can be problematic for fields that store ids:

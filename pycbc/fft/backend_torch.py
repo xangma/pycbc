@@ -1,4 +1,4 @@
-# Copyright (C) 2012  Josh Willis, Andrew Miller
+# Copyright (C) 2025
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -14,13 +14,36 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-from .parser_support import (
-    export_wisdom_from_cli,
-    from_cli,
-    import_wisdom_from_cli,
-    insert_fft_option_group,
-    verify_fft_options,
-)
-from .func_api import fft, ifft
-from .class_api import FFT, IFFT
-from .backend_support import get_backend_names
+"""
+Torch FFT backend registration for the torch scheme.
+"""
+
+import pycbc
+from .core import _list_available
+
+_backend_dict = {'torch': 'torchfft'}
+_backend_list = ['torch']
+
+_alist = []
+_adict = {}
+
+if getattr(pycbc, "HAVE_TORCH", False):
+    # torchfft module import will validate torch presence
+    _alist, _adict = _list_available(_backend_list, _backend_dict)
+
+torch_backend = None
+
+
+def set_backend(backend_list):
+    global torch_backend
+    for backend in backend_list:
+        if backend in _alist:
+            torch_backend = backend
+            break
+
+
+def get_backend():
+    return _adict[torch_backend]
+
+
+set_backend(_backend_list)

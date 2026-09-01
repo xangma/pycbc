@@ -17,28 +17,34 @@
 
 import os
 import sys
-import numpy
-from igwn_ligolw import lsctables
-from igwn_ligolw import ligolw
-from igwn_ligolw.ligolw import LIGOLWContentHandler as OrigLIGOLWContentHandler
-from igwn_ligolw.lsctables import TableByName
-from igwn_ligolw.types import FormatFunc, FromPyType, ToPyType
+try:
+    from igwn_ligolw import lsctables
+    from igwn_ligolw import ligolw
+    from igwn_ligolw.ligolw import LIGOLWContentHandler as OrigLIGOLWContentHandler
+    from igwn_ligolw.lsctables import TableByName
+    from igwn_ligolw.types import FormatFunc, FromPyType, ToPyType
+    ROWID_PYTYPE = int
+    ROWID_TYPE = FromPyType[ROWID_PYTYPE]
+except ImportError:
+    class _DummyHandler:
+        def endElementNS(self, *args, **kwargs):
+            pass
+
+        def startColumn(self, *args, **kwargs):
+            pass
+
+    lsctables = None
+    ligolw = None
+    OrigLIGOLWContentHandler = _DummyHandler
+    TableByName = {}
+    FormatFunc = None
+    FromPyType = None
+    ToPyType = None
+    ROWID_PYTYPE = int
+    ROWID_TYPE = None
 import pycbc.version as pycbc_version
 
-
-__all__ = (
-    'default_null_value',
-    'return_empty_sngl',
-    'return_search_summary',
-    'create_process_table',
-    'legacy_row_id_converter',
-    'get_table_columns',
-    'LIGOLWContentHandler'
-)
-
-ROWID_PYTYPE = int
-ROWID_TYPE = FromPyType[ROWID_PYTYPE]
-ROWID_FORMATFUNC = FormatFunc[ROWID_TYPE]
+ROWID_FORMATFUNC = FormatFunc[ROWID_TYPE] if FormatFunc is not None else str
 IDTypes = set([u"ilwd:char", u"ilwd:char_u"])
 
 
@@ -173,6 +179,9 @@ def legacy_row_id_converter(ContentHandler):
     outside of :func:`ligo.lw.lsctables.use_in`, :func:`ligo.lw.param.use_in`,
     or :func:`ligo.lw.table.use_in`.
     """
+
+    if ligolw is None:
+        return ContentHandler
 
     def endElementNS(self, uri_localname, qname,
                      __orig_endElementNS=ContentHandler.endElementNS):

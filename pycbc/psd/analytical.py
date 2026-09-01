@@ -21,6 +21,7 @@ found in the guide about :ref:`Analytic PSDs from lalsimulation`. For
 space-borne ones, see `pycbc.psd.analytical_space` module.
 """
 import numbers
+from pycbc import scheme as _scheme
 from pycbc.types import FrequencySeries
 from pycbc.psd.analytical_space import (
     analytical_psd_lisa_tdi_XYZ, analytical_psd_lisa_tdi_AE,
@@ -31,7 +32,7 @@ from pycbc.psd.analytical_space import (
     analytical_psd_taiji_tdi_XYZ, analytical_psd_taiji_tdi_AE,
     analytical_psd_taiji_tdi_T, analytical_psd_taiji_tdi_AE_confusion,
     )
-import lal
+from pycbc import lal_compat as lal, libutils
 import numpy
 
 # build a list of usable PSD functions from lalsimulation
@@ -39,24 +40,37 @@ _name_prefix = 'SimNoisePSD'
 _name_suffix = 'Ptr'
 _name_blacklist = ('FromFile', 'MirrorTherm', 'Quantum', 'Seismic', 'Shot', 'SuspTherm')
 _psd_list = []
+lalsimulation = None
 
-try:
-    import lalsimulation
-    for _name in lalsimulation.__dict__:
-        if _name != _name_prefix and _name.startswith(_name_prefix) and not _name.endswith(_name_suffix):
-            _name = _name[len(_name_prefix):]
-            if _name not in _name_blacklist:
-                _psd_list.append(_name)
-except ImportError:
-    pass
+if not libutils.defer_lalsimulation_import():
+    try:
+        import lalsimulation
+        for _name in lalsimulation.__dict__:
+            if _name != _name_prefix and _name.startswith(_name_prefix) and not _name.endswith(_name_suffix):
+                _name = _name[len(_name_prefix):]
+                if _name not in _name_blacklist:
+                    _psd_list.append(_name)
+    except ImportError:
+        pass
 
 _psd_list = sorted(_psd_list)
 
-# add functions wrapping lalsimulation PSDs
-for _name in _psd_list:
+# Torch-native models are a PyCBC capability, rather than a property of the
+# installed LALSimulation module.  Keep their registry available when
+# LALSimulation is absent, while retaining the historical optional-Torch
+# import behavior.
+try:
+    from pycbc.psd.analytical_torch import TORCH_ANALYTICAL_PSD_MODELS
+except ImportError:  # pragma: no cover - Torch is an optional dependency
+    _torch_psd_list = []
+else:
+    _torch_psd_list = sorted(TORCH_ANALYTICAL_PSD_MODELS)
+
+# Add convenience functions for every ground-detector model PyCBC can expose.
+for _name in sorted(set(_psd_list) | set(_torch_psd_list)):
     exec("""
 def %s(length, delta_f, low_freq_cutoff):
-    \"\"\"Return a FrequencySeries containing the %s PSD from LALSimulation.
+    \"\"\"Return a FrequencySeries containing the %s analytical PSD.
     \"\"\"
     return from_string("%s", length, delta_f, low_freq_cutoff)
 """ % (_name, _name, _name))
@@ -69,12 +83,32 @@ def get_psd_model_list():
     list
         Returns a list of names of reference PSD functions.
     """
-    return get_lalsim_psd_list() + get_pycbc_psd_list()
+    ground_models = set(get_lalsim_psd_list()) | set(get_torch_psd_list())
+    return sorted(ground_models) + get_pycbc_psd_list()
 
 def get_lalsim_psd_list():
     """Return a list of available reference PSD functions from LALSimulation.
     """
     return _psd_list
+
+
+def get_torch_psd_list():
+    """Return analytical PSD models implemented by the Torch backend."""
+    return _torch_psd_list
+
+
+def _swig_real8_compatible(value):
+    """Return whether SWIG accepts ``value`` for a LAL ``REAL8`` argument."""
+    if not isinstance(
+        value,
+        (int, float, numpy.integer, numpy.floating),
+    ):
+        return False
+    try:
+        float(value)
+    except (TypeError, ValueError, OverflowError):
+        return False
+    return True
 
 def get_pycbc_psd_list():
     """ Return a list of available reference PSD functions coded in PyCBC.
@@ -112,10 +146,19 @@ def from_string(psd_name, length, delta_f, low_freq_cutoff, **kwargs):
         The generated frequency series.
     """
 
+    ground_models = set(get_lalsim_psd_list()) | set(get_torch_psd_list())
+
     # check if valid PSD model
     if psd_name not in get_psd_model_list():
+        if lalsimulation is None:
+            detail = (
+                " It is not a built-in Torch model, and lalsimulation is "
+                "not installed."
+            )
+        else:
+            detail = ""
         raise ValueError(
-            psd_name + ' not found among analytical PSD functions.'
+            psd_name + ' not found among analytical PSD functions.' + detail
         )
 
     # make sure length has the right type for CreateREAL8FrequencySeries
@@ -123,19 +166,59 @@ def from_string(psd_name, length, delta_f, low_freq_cutoff, **kwargs):
         raise TypeError('length must be a positive integer')
     length = int(length)
 
-    # if PSD model is in LALSimulation
-    if psd_name in get_lalsim_psd_list():
-        lalseries = lal.CreateREAL8FrequencySeries(
-            '', lal.LIGOTimeGPS(0), 0, delta_f, lal.DimensionlessUnit, length)
-        try:
-            func = lalsimulation.__dict__[
-                                        _name_prefix + psd_name + _name_suffix]
-        except KeyError:
-            func = lalsimulation.__dict__[_name_prefix + psd_name]
-            func(lalseries, low_freq_cutoff)
-        else:
-            lalsimulation.SimNoisePSD(lalseries, 0, func)
-        psd = FrequencySeries(lalseries.data.data, delta_f=delta_f)
+    # if PSD model is provided by LALSimulation or the native Torch backend
+    if psd_name in ground_models:
+        state = _scheme.mgr.state
+        native_torch = False
+        if (
+            isinstance(state, _scheme.TorchScheme)
+            and state.torch_device.type in ('cpu', 'cuda')
+            and _swig_real8_compatible(delta_f)
+        ):
+            from pycbc.psd.analytical_torch import (
+                _DataFileNativeUnsupported,
+                DATA_FILE_TORCH_ANALYTICAL_MODELS,
+                analytical_psd,
+            )
+            native_torch = psd_name in get_torch_psd_list()
+            if psd_name in DATA_FILE_TORCH_ANALYTICAL_MODELS:
+                native_torch = (
+                    native_torch
+                    and _swig_real8_compatible(low_freq_cutoff)
+                    and numpy.isfinite(float(delta_f))
+                    and float(delta_f) > 0.0
+                    and numpy.isfinite(float(low_freq_cutoff))
+                )
+        if native_torch:
+            try:
+                psd = analytical_psd(
+                    psd_name,
+                    length,
+                    delta_f,
+                    state.torch_device,
+                    low_freq_cutoff=low_freq_cutoff,
+                )
+            except _DataFileNativeUnsupported:
+                native_torch = False
+        if not native_torch:
+            if lalsimulation is None:
+                raise ImportError(
+                    f"Analytical PSD {psd_name} requires lalsimulation "
+                    "outside its supported Torch-native CPU/CUDA path. "
+                    "Install LALSimulation or activate TorchScheme."
+                )
+            lalseries = lal.CreateREAL8FrequencySeries(
+                '', lal.LIGOTimeGPS(0), 0, delta_f,
+                lal.DimensionlessUnit, length)
+            try:
+                func = lalsimulation.__dict__[
+                    _name_prefix + psd_name + _name_suffix]
+            except KeyError:
+                func = lalsimulation.__dict__[_name_prefix + psd_name]
+                func(lalseries, low_freq_cutoff)
+            else:
+                lalsimulation.SimNoisePSD(lalseries, 0, func)
+            psd = FrequencySeries(lalseries.data.data, delta_f=delta_f)
 
     # if PSD model is coded in PyCBC
     else:
@@ -165,6 +248,24 @@ def flat_unity(length, delta_f, low_freq_cutoff):
     FrequencySeries
         Returns a FrequencySeries containing the unity PSD model.
     """
+    state = _scheme.mgr.state
+    if isinstance(state, _scheme.TorchScheme):
+        import torch
+        from pycbc.types.array_torch import TorchArrayData
+
+        dtype = (
+            torch.float32
+            if state.torch_device.type == "mps"
+            else torch.float64
+        )
+        values = torch.ones(length, dtype=dtype, device=state.torch_device)
+        values[:int(low_freq_cutoff / delta_f)] = 0
+        return FrequencySeries(
+            TorchArrayData(values),
+            delta_f=delta_f,
+            copy=False,
+        )
+
     fseries = FrequencySeries(numpy.ones(length), delta_f=delta_f)
     kmin = int(low_freq_cutoff / fseries.delta_f)
     fseries.data[:kmin] = 0

@@ -31,8 +31,13 @@ import copy
 import logging
 from abc import ABCMeta, abstractmethod
 
-import lal
-from igwn_ligolw import utils as ligolw_utils, ligolw, lsctables
+from pycbc import lal_compat as lal
+try:
+    from igwn_ligolw import utils as ligolw_utils, ligolw, lsctables
+except ImportError:
+    ligolw_utils = None
+    ligolw = None
+    lsctables = None
 
 from pycbc import waveform, frame, libutils
 from pycbc.opt import LimitedSizeDict

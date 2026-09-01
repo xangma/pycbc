@@ -19,6 +19,7 @@
 import logging
 import numpy
 import scipy.interpolate
+from pycbc import scheme as _scheme
 from pycbc.types import FrequencySeries
 
 logger = logging.getLogger('pycbc.psd.read')
@@ -71,6 +72,19 @@ def from_numpy_arrays(freq_data, noise_data, length, delta_f, low_freq_cutoff):
                        '(requested %f Hz, available %f Hz)',
                        (length - 1) * delta_f, freq_data[-1])
         length = int(freq_data[-1]/delta_f + 1)
+
+    state = _scheme.mgr.state
+    if isinstance(state, _scheme.TorchScheme):
+        from pycbc.psd.read_torch import from_prepared_arrays
+
+        return from_prepared_arrays(
+            freq_data,
+            noise_data,
+            length,
+            delta_f,
+            low_freq_cutoff,
+            state.torch_device,
+        )
 
     flog = numpy.log(freq_data)
     slog = numpy.log(noise_data)

@@ -177,6 +177,9 @@ extras_require = {
         'pycuda>=2015.1',
         'scikit-cuda',
     ],
+    'torch': [
+        'torch',
+    ],
     'igwn': [
         'ciecplib>=0.7.0',
     ],
@@ -268,7 +271,15 @@ setup(
     package_data = {
         'pycbc.workflow': find_files('pycbc/workflow'),
         'pycbc.results': find_files('pycbc/results'),
-        'pycbc.neutron_stars': find_files('pycbc/neutron_stars')
+        'pycbc.neutron_stars': find_files('pycbc/neutron_stars'),
+        'pycbc.waveform': find_files(
+            'pycbc/waveform/data', relpath='pycbc/waveform'
+        ) + [
+            '_imrphenomxhm_mode32_native.cpp',
+            '_imrphenomxhm_mode44_native.cpp',
+            '_imrphenomxp_msa_native.cpp',
+            'seobnr_native_ode.cpp',
+        ],
     },
     ext_modules = ext,
     python_requires='>=3.11',

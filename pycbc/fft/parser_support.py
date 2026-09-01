@@ -32,6 +32,64 @@ from .backend_support import set_backend, get_backend
 # Next we add all of the machinery to set backends and their options
 # from the command line.
 
+
+def _load_fftw_for_wisdom():
+    """Import FFTW only when a caller requested wisdom I/O."""
+    from importlib import import_module
+
+    return import_module(".fftw", __package__)
+
+
+def _load_wisdom_cache():
+    """Import the lightweight automatic wisdom-cache coordinator."""
+    from importlib import import_module
+
+    return import_module(".wisdom_cache", __package__)
+
+
+def import_wisdom_from_cli(opt):
+    """Import the FFTW wisdom requested by parsed command-line options."""
+    wisdom_cache = _load_wisdom_cache()
+    wisdom_cache.configure_from_cli(opt)
+    system_wisdom = getattr(opt, "fftw_import_system_wisdom", False)
+    float_wisdom = getattr(opt, "fftw_input_float_wisdom_file", None)
+    double_wisdom = getattr(opt, "fftw_input_double_wisdom_file", None)
+
+    if not system_wisdom and float_wisdom is None and double_wisdom is None:
+        return
+
+    fftw = _load_fftw_for_wisdom()
+    if system_wisdom:
+        fftw.import_sys_wisdom()
+    if float_wisdom is not None:
+        fftw.import_single_wisdom_from_filename(float_wisdom)
+    if double_wisdom is not None:
+        fftw.import_double_wisdom_from_filename(double_wisdom)
+
+
+def export_wisdom_from_cli(opt):
+    """Export the FFTW wisdom requested by parsed command-line options."""
+    float_wisdom = getattr(opt, "fftw_output_float_wisdom_file", None)
+    double_wisdom = getattr(opt, "fftw_output_double_wisdom_file", None)
+
+    wisdom_cache = _load_wisdom_cache()
+    automatic_wisdom = wisdom_cache.has_pending_export()
+    if (
+        float_wisdom is None
+        and double_wisdom is None
+        and not automatic_wisdom
+    ):
+        return
+
+    fftw = _load_fftw_for_wisdom()
+    if float_wisdom is not None:
+        fftw.export_single_wisdom_to_filename(float_wisdom)
+    if double_wisdom is not None:
+        fftw.export_double_wisdom_to_filename(double_wisdom)
+    if automatic_wisdom:
+        wisdom_cache.export_pending(fftw)
+
+
 def insert_fft_option_group(parser):
     """
     Adds the options used to choose an FFT backend. This should be used
