@@ -23,12 +23,101 @@
 #
 import numpy, logging, math, pycbc.fft
 
-from pycbc.types import zeros, real_same_precision_as, TimeSeries, complex_same_precision_as
+from pycbc.types import (
+    Array,
+    TimeSeries,
+    complex_same_precision_as,
+    real_same_precision_as,
+    zeros,
+)
 from pycbc.filter import sigmasq_series, make_frequency_series, matched_filter_core, get_cutoff_indices
-from pycbc.scheme import schemed
+from pycbc.scheme import TorchScheme, mgr, schemed
 import pycbc.pnutils
 
 BACKEND_PREFIX="pycbc.vetoes.chisq_"
+
+
+def _torch_tensor(value):
+    """Return the tensor stored by a Torch-backed PyCBC array, if any."""
+    return getattr(getattr(value, "_data", None), "tensor", None)
+
+
+def _as_torch_tensor(value, reference, dtype=None):
+    """Move small trigger metadata to the device without copying bulk data."""
+    import torch
+
+    tensor = _torch_tensor(value)
+    if tensor is None:
+        return torch.as_tensor(
+            value, device=reference.device, dtype=dtype
+        )
+    if dtype is None:
+        return tensor.to(device=reference.device)
+    return tensor.to(device=reference.device, dtype=dtype)
+
+
+def _torch_array(tensor):
+    """Wrap a tensor as a PyCBC Array without a host copy."""
+    from pycbc.types.array_torch import TorchArrayData
+
+    return Array(TorchArrayData(tensor), copy=False)
+
+
+def _chisq_zeros(corr, length):
+    """Allocate chi-squared output alongside its correlation array."""
+    corr_tensor = _torch_tensor(corr)
+    if corr_tensor is None:
+        return numpy.zeros(length, dtype=numpy.float32)
+
+    import torch
+
+    return _torch_array(
+        torch.zeros(
+            length, device=corr_tensor.device, dtype=torch.float32
+        )
+    )
+
+
+def _chisq_dof_array(reference, dof, length):
+    """Allocate chi-squared degrees of freedom beside the statistic."""
+    reference_tensor = _torch_tensor(reference)
+    if reference_tensor is None:
+        return numpy.repeat(dof, length)
+
+    import torch
+
+    return _torch_array(
+        torch.full(
+            (length,),
+            int(dof),
+            device=reference_tensor.device,
+            dtype=torch.int64,
+        )
+    )
+
+
+def _copy_chisq_masked(output, mask, values):
+    """Scatter selected chi-squared values without leaving Torch."""
+    output_tensor = _torch_tensor(output)
+    if output_tensor is None:
+        output[mask] = values
+        return
+
+    import torch
+
+    mask_tensor = _as_torch_tensor(mask, output_tensor, dtype=torch.bool)
+    values_tensor = _as_torch_tensor(
+        values, output_tensor, dtype=output_tensor.dtype
+    )
+    output_tensor[mask_tensor] = values_tensor
+
+
+def _torch_multiply_and_add(array, other, factor):
+    """Call the Torch backend with a device scalar coefficient."""
+    from pycbc.types import array_torch
+
+    data = array_torch.multiply_and_add(array, other._data, factor)
+    return array._return(data)
 
 def power_chisq_bins_from_sigmasq_series(sigmasq_series, num_bins, kmin, kmax):
     """Returns bins of equal power for use with the chisq functions
@@ -52,6 +141,21 @@ def power_chisq_bins_from_sigmasq_series(sigmasq_series, num_bins, kmin, kmax):
     bins: List of ints
         A list of the edges of the chisq bins is returned.
     """
+    tensor = getattr(getattr(sigmasq_series, "_data", None), "tensor", None)
+    if tensor is not None:
+        import torch
+
+        sigmasq = tensor[kmax - 1]
+        edge_vec = torch.arange(
+            num_bins, dtype=tensor.dtype, device=tensor.device
+        ) * sigmasq / num_bins
+        bins = torch.searchsorted(
+            tensor[kmin:kmax], edge_vec, right=True
+        ) + kmin
+        return numpy.asarray(
+            [*bins.to(device="cpu").tolist(), kmax], dtype=numpy.int64
+        )
+
     sigmasq = sigmasq_series[kmax - 1]
     edge_vec = numpy.arange(0, num_bins) * sigmasq / num_bins
     bins = numpy.searchsorted(sigmasq_series[kmin:kmax], edge_vec, side='right')
@@ -84,8 +188,9 @@ def power_chisq_bins(htilde, num_bins, psd, low_frequency_cutoff=None,
     bins: List of ints
         A list of the edges of the chisq bins is returned.
     """
-    sigma_vec = sigmasq_series(htilde, psd, low_frequency_cutoff,
-                               high_frequency_cutoff).numpy()
+    sigma_vec = sigmasq_series(
+        htilde, psd, low_frequency_cutoff, high_frequency_cutoff
+    )
     kmin, kmax = get_cutoff_indices(low_frequency_cutoff,
                                     high_frequency_cutoff,
                                     htilde.delta_f,
@@ -133,6 +238,13 @@ def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
     chisq: Array
         An array containing only the chisq at the selected points.
     """
+    if isinstance(mgr.state, TorchScheme):
+        from .chisq_torch import (
+            power_chisq_at_points_from_precomputed as _torch_impl,
+        )
+
+        return _torch_impl(corr, snr, snr_norm, bins, indices)
+
     num_bins = len(bins) - 1
     chisq = shift_sum(corr, indices, bins) # pylint:disable=assignment-from-no-return
     return (chisq * num_bins - (snr.conj() * snr).real) * (snr_norm ** 2.0)
@@ -371,13 +483,34 @@ class SingleDetPowerChisq(object):
         if self.do:
             num_above = len(indices)
             dof = -100
+            corr_tensor = _torch_tensor(corr)
             if self.snr_threshold:
-                above = abs(snrv * snr_norm) > self.snr_threshold
-                num_above = above.sum()
+                if corr_tensor is not None:
+                    import torch
+
+                    snrv_tensor = _as_torch_tensor(
+                        snrv, corr_tensor, dtype=corr_tensor.dtype
+                    )
+                    index_tensor = _as_torch_tensor(
+                        indices, corr_tensor, dtype=torch.long
+                    )
+                    above = (
+                        torch.abs(snrv_tensor * snr_norm)
+                        > self.snr_threshold
+                    )
+                    num_above = int(torch.count_nonzero(above).item())
+                    above_indices = index_tensor[above]
+                    above_snrv = snrv_tensor[above]
+                    chisq_out = _chisq_zeros(corr, len(indices))
+                else:
+                    above = abs(snrv * snr_norm) > self.snr_threshold
+                    num_above = above.sum()
+                    above_indices = indices[above]
+                    above_snrv = snrv[above]
+                    chisq_out = numpy.zeros(
+                        len(indices), dtype=numpy.float32
+                    )
                 logging.info('%s above chisq activation threshold' % num_above)
-                above_indices = indices[above]
-                above_snrv = snrv[above]
-                chisq_out = numpy.zeros(len(indices), dtype=numpy.float32)
             else:
                 above_indices = indices
                 above_snrv = snrv
@@ -391,14 +524,16 @@ class SingleDetPowerChisq(object):
 
             if self.snr_threshold:
                 if num_above > 0:
-                    chisq_out[above] = _chisq
+                    _copy_chisq_masked(chisq_out, above, _chisq)
             else:
                 if num_above == 0:
-                    chisq_out = numpy.zeros(0, dtype=numpy.float32)
+                    chisq_out = _chisq_zeros(corr, 0)
                 else:
                     chisq_out = _chisq
 
-            return chisq_out, numpy.repeat(dof, len(indices))# dof * numpy.ones_like(indices)
+            return chisq_out, _chisq_dof_array(
+                chisq_out, dof, len(indices)
+            )
         else:
             return None, None
 
@@ -443,18 +578,55 @@ class SingleDetSkyMaxPowerChisq(SingleDetPowerChisq):
         """
         if self.do:
             num_above = len(indices)
+            dof = -100
+            corr_tensor = _torch_tensor(corr_plus)
+            torch_backed = corr_tensor is not None
             if self.snr_threshold:
-                above = abs(snrv) > self.snr_threshold
-                num_above = above.sum()
+                if torch_backed:
+                    import torch
+
+                    snrv_tensor = _as_torch_tensor(
+                        snrv, corr_tensor, dtype=corr_tensor.dtype
+                    )
+                    index_tensor = _as_torch_tensor(
+                        indices, corr_tensor, dtype=torch.long
+                    )
+                    u_tensor = _as_torch_tensor(
+                        u_vals, corr_tensor, dtype=corr_tensor.real.dtype
+                    )
+                    above = torch.abs(snrv_tensor) > self.snr_threshold
+                    num_above = int(torch.count_nonzero(above).item())
+                    above_indices = index_tensor[above]
+                    above_snrv = snrv_tensor[above]
+                    above_u_vals = u_tensor[above]
+                    rchisq = _chisq_zeros(corr_plus, len(indices))
+                else:
+                    above = abs(snrv) > self.snr_threshold
+                    num_above = above.sum()
+                    above_indices = indices[above]
+                    above_snrv = snrv[above]
+                    above_u_vals = u_vals[above]
+                    rchisq = numpy.zeros(
+                        len(indices), dtype=numpy.float32
+                    )
                 logging.info('%s above chisq activation threshold' % num_above)
-                above_indices = indices[above]
-                above_snrv = snrv[above]
-                u_vals = u_vals[above]
-                rchisq = numpy.zeros(len(indices), dtype=numpy.float32)
-                dof = -100
             else:
-                above_indices = indices
-                above_snrv = snrv
+                if torch_backed:
+                    import torch
+
+                    above_indices = _as_torch_tensor(
+                        indices, corr_tensor, dtype=torch.long
+                    )
+                    above_snrv = _as_torch_tensor(
+                        snrv, corr_tensor, dtype=corr_tensor.dtype
+                    )
+                    above_u_vals = _as_torch_tensor(
+                        u_vals, corr_tensor, dtype=corr_tensor.real.dtype
+                    )
+                else:
+                    above_indices = indices
+                    above_snrv = snrv
+                    above_u_vals = u_vals
 
             if num_above > 0:
                 chisq = []
@@ -471,50 +643,91 @@ class SingleDetSkyMaxPowerChisq(SingleDetPowerChisq):
 
                 tmplt_data = template_cross.data
                 corr_data = corr_cross.data
-                numpy.copyto(self.template_mem.data, template_cross.data)
-                numpy.copyto(self.corr_mem.data, corr_cross.data)
+                self.template_mem[:] = template_cross
+                self.corr_mem[:] = corr_cross
                 template_cross._data = self.template_mem.data
                 corr_cross._data = self.corr_mem.data
 
-                for lidx, index in enumerate(above_indices):
-                    above_local_indices = numpy.array([index])
-                    above_local_snr = numpy.array([above_snrv[lidx]])
-                    local_u_val = u_vals[lidx]
-                    # Construct template from _plus and _cross
-                    # Note that this modifies in place, so we store that and
-                    # revert on the next pass.
-                    template = template_cross.multiply_and_add(template_plus,
-                                               local_u_val-curr_tmplt_mult_fac)
-                    curr_tmplt_mult_fac = local_u_val
+                try:
+                    for lidx in range(num_above):
+                        if torch_backed:
+                            above_local_indices = above_indices[
+                                lidx:lidx + 1
+                            ]
+                            above_local_snr = above_snrv[lidx:lidx + 1]
+                            local_u_val = above_u_vals[lidx]
+                            template = _torch_multiply_and_add(
+                                template_cross,
+                                template_plus,
+                                local_u_val - curr_tmplt_mult_fac,
+                            )
+                        else:
+                            above_local_indices = numpy.array(
+                                [above_indices[lidx]]
+                            )
+                            above_local_snr = numpy.array(
+                                [above_snrv[lidx]]
+                            )
+                            local_u_val = above_u_vals[lidx]
+                            template = template_cross.multiply_and_add(
+                                template_plus,
+                                local_u_val - curr_tmplt_mult_fac,
+                            )
+                        curr_tmplt_mult_fac = local_u_val
 
-                    template.f_lower = template_plus.f_lower
-                    template.params = template_plus.params
-                    # Construct the corr vector
-                    norm_fac = local_u_val*local_u_val + 1
-                    norm_fac += 2 * local_u_val * hplus_cross_corr
-                    norm_fac = hcnorm / (norm_fac**0.5)
-                    hp_fac = local_u_val * hpnorm / hcnorm
-                    corr = corr_cross.multiply_and_add(corr_plus,
-                                                   hp_fac - curr_corr_mult_fac)
-                    curr_corr_mult_fac = hp_fac
+                        template.f_lower = template_plus.f_lower
+                        template.params = template_plus.params
+                        # Construct the corr vector
+                        norm_fac = local_u_val*local_u_val + 1
+                        norm_fac += 2 * local_u_val * hplus_cross_corr
+                        norm_fac = hcnorm / (norm_fac**0.5)
+                        hp_fac = local_u_val * hpnorm / hcnorm
+                        if torch_backed:
+                            corr = _torch_multiply_and_add(
+                                corr_cross,
+                                corr_plus,
+                                hp_fac - curr_corr_mult_fac,
+                            )
+                        else:
+                            corr = corr_cross.multiply_and_add(
+                                corr_plus,
+                                hp_fac - curr_corr_mult_fac,
+                            )
+                        curr_corr_mult_fac = hp_fac
 
-                    bins = self.calculate_chisq_bins(template, psd)
-                    dof = (len(bins) - 1) * 2 - 2
-                    curr_chisq = power_chisq_at_points_from_precomputed(corr,
-                                          above_local_snr/ norm_fac, norm_fac,
-                                          bins, above_local_indices)
-                    chisq.append(curr_chisq[0])
-                chisq = numpy.array(chisq)
-                # Must reset corr and template to original values!
-                template_cross._data = tmplt_data
-                corr_cross._data = corr_data
+                        bins = self.calculate_chisq_bins(template, psd)
+                        dof = (len(bins) - 1) * 2 - 2
+                        curr_chisq = power_chisq_at_points_from_precomputed(
+                            corr,
+                            above_local_snr / norm_fac,
+                            norm_fac,
+                            bins,
+                            above_local_indices,
+                        )
+                        if torch_backed:
+                            chisq.append(curr_chisq._data.tensor)
+                        else:
+                            chisq.append(curr_chisq[0])
+                    if torch_backed:
+                        chisq = _torch_array(torch.cat(chisq))
+                    else:
+                        chisq = numpy.array(chisq)
+                finally:
+                    # Must reset corr and template to original values!
+                    template_cross._data = tmplt_data
+                    corr_cross._data = corr_data
 
             if self.snr_threshold:
                 if num_above > 0:
-                    rchisq[above] = chisq
+                    _copy_chisq_masked(rchisq, above, chisq)
             else:
-                rchisq = chisq
+                if num_above == 0:
+                    rchisq = _chisq_zeros(corr_plus, 0)
+                else:
+                    rchisq = chisq
 
-            return rchisq, numpy.repeat(dof, len(indices))# dof * numpy.ones_like(indices)
+            return rchisq, _chisq_dof_array(
+                rchisq, dof, len(indices)
+            )
         else:
             return None, None

@@ -334,10 +334,27 @@ class QuadratureSumStatistic(Stat):
         numpy.ndarray
             Array of coincident ranking statistic values
         """
+        tensors = ranking._torch_ranking_tensors(
+            *(sngl[1] for sngl in sngls_list)
+        )
+        if tensors is not None:
+            import torch
+            from pycbc.types import Array
+            from pycbc.types.array_torch import TorchArrayData
+
+            stacked = torch.stack(tensors)
+            values = torch.sqrt(torch.sum(stacked.square(), dim=0))
+            values = torch.where(
+                torch.any(stacked == -1, dim=0),
+                torch.zeros_like(values),
+                values,
+            )
+            return Array(TorchArrayData(values), copy=False)
+
         cstat = sum(sngl[1] ** 2. for sngl in sngls_list) ** 0.5
         # For single-detector "cuts" the single ranking is set to -1
-        for sngls in sngls_list:
-            cstat[sngls == -1] = 0
+        for sngl in sngls_list:
+            cstat[sngl[1] == -1] = 0
         return cstat
 
     def coinc_lim_for_thresh(
@@ -368,6 +385,27 @@ class QuadratureSumStatistic(Stat):
         # Safety against subclassing and not rethinking this
         allowed_names = ["QuadratureSumStatistic"]
         self._check_coinc_lim_subclass(allowed_names)
+
+        tensors = ranking._torch_ranking_tensors(
+            *(sngl[1] for sngl in s)
+        )
+        if tensors is not None:
+            import torch
+            from pycbc.types import Array
+            from pycbc.types.array_torch import TorchArrayData
+
+            stacked = torch.stack(tensors)
+            threshold = torch.as_tensor(
+                thresh, dtype=stacked.dtype, device=stacked.device
+            )
+            values = torch.sqrt(
+                torch.clamp_min(
+                    threshold.square()
+                    - torch.sum(stacked.square(), dim=0),
+                    0,
+                )
+            )
+            return Array(TorchArrayData(values), copy=False)
 
         s0 = thresh ** 2. - sum(sngl[1] ** 2. for sngl in s)
         s0[s0 < 0] = 0

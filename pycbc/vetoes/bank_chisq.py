@@ -21,10 +21,13 @@
 #
 # =============================================================================
 #
-import logging, numpy
+import logging
 from pycbc.types import Array, zeros, real_same_precision_as, TimeSeries
-from pycbc.filter import overlap_cplx, matched_filter_core
-from pycbc.waveform import FilterBank
+try:
+    from pycbc.waveform.bank import FilterBank
+except Exception:
+    FilterBank = None
+from pycbc.vetoes.chisq import _chisq_dof_array
 from math import sqrt
 
 def segment_snrs(filters, stilde, psd, low_frequency_cutoff):
@@ -228,7 +231,7 @@ class SingleDetBankVeto(object):
         bank_veto_snrs, bank_veto_norms = self.cache_segment_snrs(stilde, psd)
         chisq = bank_chisq_from_filters(snrv, norm, bank_veto_snrs,
                                         bank_veto_norms, overlaps, indices)
-        dof = numpy.repeat(self.dof, len(chisq))
+        dof = _chisq_dof_array(chisq, self.dof, len(chisq))
         return chisq, dof
 
 class SingleDetSkyMaxBankVeto(SingleDetBankVeto):
