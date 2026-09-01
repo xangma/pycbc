@@ -129,6 +129,63 @@ def point_chisq_code(numpy.ndarray[REALTYPE, ndim=1] chisq,
     free(outr_tmp)
     free(outi_tmp)
 
+
+@boundscheck(False)
+@wraparound(False)
+@cdivision(True)
+def point_chisq_code_single_double(
+        numpy.ndarray[numpy.complex64_t, ndim=1] v1,
+        numpy.ndarray[numpy.complex64_t, ndim=1] snr,
+        int slen, double shift,
+        numpy.ndarray[numpy.uint32_t, ndim=1] bins,
+        int num_bins, double snr_norm):
+    """Fused high-precision pointwise chi-square for one search point.
+
+    This is the common sparse-search specialization of ``point_chisq_code``.
+    Scalar state avoids its eight heap arrays and the inner point loop while
+    retaining the same double-precision phase recurrence and accumulation.
+    """
+    cdef int bstart, bend, i, j
+    cdef float complex v
+    cdef double outr, outi, pr, pi, vsr, vsi
+    cdef double vr, vi, t1, t2, k1, k2, k3, vs, va
+    cdef double snr_real = snr[0].real
+    cdef double snr_imag = snr[0].imag
+    cdef double chisq = -(snr_real * snr_real + snr_imag * snr_imag) \
+                        / num_bins
+
+    vsr = cos(2 * 3.141592653 * shift / slen)
+    vsi = sin(2 * 3.141592653 * shift / slen)
+    for i in range(num_bins):
+        bstart = bins[i]
+        bend = bins[i + 1]
+        pr = cos(2 * 3.141592653 * shift * bstart / slen)
+        pi = sin(2 * 3.141592653 * shift * bstart / slen)
+        outr = 0.
+        outi = 0.
+
+        for j in range(bstart, bend):
+            v = v1[j]
+            vr = v.real
+            vi = v.imag
+            vs = vr + vi
+            va = vi - vr
+            t1 = pr
+            t2 = pi
+
+            k1 = vr * (t1 + t2)
+            k2 = t1 * va
+            k3 = t2 * vs
+            outr += k1 - k3
+            outi += k1 + k2
+
+            pr = t1 * vsr - t2 * vsi
+            pi = t1 * vsi + t2 * vsr
+
+        chisq += outr * outr + outi * outi
+
+    return chisq * (num_bins * snr_norm * snr_norm)
+
 def chisq_accum_bin_numpy(chisq, q):
     chisq += q.squared_norm()
 
@@ -154,4 +211,3 @@ def shift_sum(v1, shifts, bins):
     point_chisq_code(chisq, v1, n, slen, shifts, bins, blen)
 
     return  chisq
-
