@@ -31,8 +31,169 @@ import copy
 import numpy as np
 from pycbc.events import trigger_fits as trstats
 from pycbc import conversions as conv
+from pycbc.types import Array
 
 logger = logging.getLogger('pycbc.events.significance')
+
+
+def _torch_significance_tensors(*values):
+    """Return compatible Torch tensors for significance arithmetic."""
+    if not values:
+        return None
+
+    from pycbc import scheme
+    if scheme.current_prefix() != "torch":
+        return None
+
+    import torch
+    from pycbc.types.array_torch import (
+        TorchArrayData,
+        _device_matches_active,
+    )
+
+    data = [
+        value._data if isinstance(value, Array) else value
+        for value in values
+    ]
+    torch_data = []
+    for value in data:
+        if isinstance(value, TorchArrayData):
+            torch_data.append(value.tensor)
+        elif isinstance(value, torch.Tensor):
+            torch_data.append(value)
+    if not torch_data:
+        return None
+
+    first = torch_data[0]
+    if not (
+        first.is_floating_point()
+        and _device_matches_active(first)
+        and all(
+            value.is_floating_point()
+            and value.device == first.device
+            and _device_matches_active(value)
+            for value in torch_data
+        )
+    ):
+        return None
+
+    tensors = []
+    for value in data:
+        if isinstance(value, TorchArrayData):
+            tensors.append(value.tensor.to(dtype=first.dtype))
+        elif isinstance(value, torch.Tensor):
+            tensors.append(value.to(dtype=first.dtype))
+        elif isinstance(value, Array):
+            return None
+        else:
+            try:
+                host = np.asarray(value)
+                if host.dtype.kind not in "fiu":
+                    return None
+                tensors.append(
+                    torch.as_tensor(
+                        host,
+                        dtype=first.dtype,
+                        device=first.device,
+                    )
+                )
+            except (TypeError, ValueError, RuntimeError):
+                return None
+
+    return tuple(tensors)
+
+
+def _torch_significance_result(input_value, tensor):
+    """Wrap a Torch result when its public input was a PyCBC Array."""
+    if isinstance(input_value, Array):
+        from pycbc.types.array_torch import TorchArrayData
+
+        return Array(TorchArrayData(tensor), copy=False)
+    return tensor
+
+
+def _torch_count_n_louder(bstat, fstat, dec):
+    """Torch implementation of the direct louder-event count."""
+    import torch
+
+    sort = torch.argsort(bstat)
+    sorted_bstat = bstat[sort]
+    sorted_dec = dec[sort]
+    n_louder = torch.flip(
+        torch.cumsum(torch.flip(sorted_dec, dims=(0,)), dim=0),
+        dims=(0,),
+    ) - sorted_dec
+
+    foreground_shape = fstat.shape
+    idx = torch.searchsorted(
+        sorted_bstat,
+        fstat.reshape(-1),
+        side="left",
+    ) - 1
+    idx = torch.clamp(idx, min=0)
+    fore_n_louder = n_louder[idx].reshape(foreground_shape)
+
+    unsort = torch.argsort(sort)
+    return n_louder[unsort], fore_n_louder
+
+
+def _torch_n_louder_from_fit(
+        back_stat, fore_stat, dec_facs, fit_function, fit_threshold):
+    """Torch implementation of fitted background extrapolation."""
+    import torch
+
+    alpha, sig_alpha = trstats.fit_above_thresh(
+        fit_function,
+        back_stat,
+        thresh=fit_threshold,
+        weights=dec_facs,
+    )
+
+    bg_above = back_stat > fit_threshold
+    fg_above = fore_stat > fit_threshold
+    n_above = torch.sum(dec_facs[bg_above])
+
+    bg_n_louder = torch.zeros_like(back_stat).masked_scatter(
+        bg_above,
+        n_above * trstats.cum_fit(
+            fit_function,
+            back_stat[bg_above],
+            alpha,
+            fit_threshold,
+        ),
+    )
+    fg_n_louder = torch.zeros_like(fore_stat).masked_scatter(
+        fg_above,
+        n_above * trstats.cum_fit(
+            fit_function,
+            fore_stat[fg_above],
+            alpha,
+            fit_threshold,
+        ),
+    )
+
+    bg_below = torch.logical_not(bg_above)
+    fg_below = torch.logical_not(fg_above)
+    bg_counted, fg_counted = _torch_count_n_louder(
+        back_stat[bg_below],
+        fore_stat[fg_below],
+        dec_facs[bg_below],
+    )
+    bg_n_louder = bg_n_louder.masked_scatter(
+        bg_below,
+        bg_counted + n_above,
+    )
+    fg_n_louder = fg_n_louder.masked_scatter(
+        fg_below,
+        fg_counted + n_above,
+    )
+
+    sig_info = {
+        'alpha': alpha,
+        'sig_alpha': sig_alpha,
+        'n_above': n_above,
+    }
+    return bg_n_louder, fg_n_louder, sig_info
 
 
 def count_n_louder(bstat, fstat, dec,
@@ -58,6 +219,15 @@ def count_n_louder(bstat, fstat, dec,
     {} : (empty) dictionary
         Ensure we return the same tuple of objects as n_louder_from_fit()
     """
+    tensors = _torch_significance_tensors(bstat, fstat, dec)
+    if tensors is not None:
+        back_cum_num, fore_n_louder = _torch_count_n_louder(*tensors)
+        return (
+            _torch_significance_result(bstat, back_cum_num),
+            _torch_significance_result(fstat, fore_n_louder),
+            {},
+        )
+
     sort = bstat.argsort()
     bstat = copy.deepcopy(bstat)[sort]
     dec = copy.deepcopy(dec)[sort]
@@ -124,6 +294,26 @@ def n_louder_from_fit(back_stat, fore_stat, dec_facs,
     sig_info : a dictionary
         Information regarding the significance fit
     """
+
+    tensors = _torch_significance_tensors(
+        back_stat,
+        fore_stat,
+        dec_facs,
+        fit_threshold,
+    )
+    if tensors is not None:
+        bg_n_louder, fg_n_louder, sig_info = _torch_n_louder_from_fit(
+            tensors[0],
+            tensors[1],
+            tensors[2],
+            fit_function,
+            tensors[3],
+        )
+        return (
+            _torch_significance_result(back_stat, bg_n_louder),
+            _torch_significance_result(fore_stat, fg_n_louder),
+            sig_info,
+        )
 
     # Calculate the fitting factor of the ranking statistic distribution
     alpha, sig_alpha = trstats.fit_above_thresh(
@@ -197,6 +387,36 @@ def get_n_louder(back_stat, fore_stat, dec_facs,
     Wrapper to find the correct n_louder calculation method using standard
     inputs
     """
+    tensors = _torch_significance_tensors(
+        back_stat,
+        fore_stat,
+        dec_facs,
+    )
+    if tensors is not None:
+        import torch
+
+        back_stat_t = tensors[0]
+        nanmask = torch.isnan(back_stat_t)
+        if torch.any(nanmask):
+            logging.warning(
+                "Setting %d NaN background statistic values to inf",
+                int(torch.sum(nanmask)),
+            )
+        back_stat_nonan = _torch_significance_result(
+            back_stat,
+            torch.where(
+                nanmask,
+                torch.full_like(back_stat_t, -torch.inf),
+                back_stat_t,
+            ),
+        )
+        return _significance_meth_dict[method](
+            back_stat_nonan,
+            fore_stat,
+            dec_facs,
+            **kwargs,
+        )
+
     # Deal with edge case: we don't expect nan statistic values but if they
     # exist they will ruin the n_louder count, as they are considered larger
     # than floats in an argsort.
@@ -253,8 +473,8 @@ def get_far(back_stat, fore_stat, dec_facs,
     # we add one. This is part of the p-value calculation in Usman 2015.
     # If we are doing trigger fit extrapolation, this is not needed
     if method == 'n_louder':
-        bg_n_louder += 1
-        fg_n_louder += 1
+        bg_n_louder = bg_n_louder + 1
+        fg_n_louder = fg_n_louder + 1
 
     bg_far = bg_n_louder / background_time
     fg_far = fg_n_louder / background_time
@@ -464,6 +684,50 @@ def apply_far_limit(far, significance_dict, combo=None):
         FARs with far limit applied as appropriate
 
     """
+    tensors = _torch_significance_tensors(far)
+    if tensors is not None:
+        import torch
+
+        far_tensor = tensors[0]
+        far_out = far_tensor.clone()
+        if isinstance(combo, str):
+            far_limit = significance_dict[combo]['far_limit']
+            if far_limit == 0:
+                return _torch_significance_result(far, far_out)
+            far_limit_str = f"{far_limit:.3e}"
+            logger.info(
+                "Applying FAR limit of %s to %s events",
+                far_limit_str,
+                combo,
+            )
+            far_out = torch.maximum(
+                far_tensor,
+                far_tensor.new_tensor(far_limit),
+            )
+        else:
+            combo_values = np.asarray(combo)
+            for ifo_combo in significance_dict:
+                far_limit = significance_dict[ifo_combo]['far_limit']
+                if far_limit == 0:
+                    continue
+                far_limit_str = f"{far_limit:.3e}"
+                logger.info(
+                    "Applying FAR limit of %s to %s events",
+                    far_limit_str,
+                    ifo_combo,
+                )
+                this_combo_idx = torch.as_tensor(
+                    combo_values == ifo_combo.encode('utf-8'),
+                    dtype=torch.bool,
+                    device=far_tensor.device,
+                )
+                limited = torch.maximum(
+                    far_tensor,
+                    far_tensor.new_tensor(far_limit),
+                )
+                far_out = torch.where(this_combo_idx, limited, far_out)
+        return _torch_significance_result(far, far_out)
+
     far_out = copy.deepcopy(far)
     if isinstance(combo, str):
         # Single IFO combo used

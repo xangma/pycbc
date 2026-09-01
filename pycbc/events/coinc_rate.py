@@ -12,9 +12,102 @@
 import itertools
 import logging
 import numpy
-import pycbc.detector
+
+from pycbc.types import Array
+from pycbc import lal_compat as _lal
 
 logger = logging.getLogger('pycbc.events.coinc_rate')
+
+
+def _detector_class(feature):
+    """Load detector geometry only for operations that require it."""
+    _lal.require_lal(feature)
+    from pycbc.detector import Detector
+
+    return Detector
+
+
+def _torch_rate_tensors(*values, coerce_host=False):
+    """Return compatible Torch tensors for coincidence-rate arithmetic."""
+    if not values:
+        return None
+
+    from pycbc import scheme
+    if scheme.current_prefix() != "torch":
+        return None
+
+    import torch
+    from pycbc.types.array_torch import (
+        TorchArrayData,
+        _device_matches_active,
+    )
+
+    data = [
+        value._data if isinstance(value, Array) else value
+        for value in values
+    ]
+    torch_data = [
+        value for value in data if isinstance(value, TorchArrayData)
+    ]
+    if not torch_data or (
+        not coerce_host
+        and len(torch_data) != len(data)
+    ):
+        return None
+
+    first = torch_data[0].tensor
+    if not (
+        all(_device_matches_active(value.tensor) for value in torch_data)
+        and all(value.tensor.device == first.device for value in torch_data)
+        and all(value.tensor.shape == first.shape for value in torch_data)
+        and all(value.tensor.dtype == first.dtype for value in torch_data)
+        and all(value.dtype.kind == "f" for value in torch_data)
+    ):
+        return None
+
+    tensors = []
+    for value in data:
+        if isinstance(value, TorchArrayData):
+            tensors.append(value.tensor)
+            continue
+        if isinstance(value, Array):
+            return None
+        try:
+            host = numpy.asarray(value)
+            if host.dtype.kind != "f" or host.shape != first.shape:
+                return None
+            tensors.append(
+                torch.as_tensor(
+                    host, dtype=first.dtype, device=first.device
+                )
+            )
+        except (TypeError, ValueError, RuntimeError):
+            return None
+
+    return tuple(tensors)
+
+
+def _torch_combination_noise(values, allowed_area, *, rates_are_logs):
+    """Combine coincidence-rate vectors without leaving Torch."""
+    tensors = _torch_rate_tensors(*values, coerce_host=True)
+    if tensors is None:
+        return None
+
+    import torch
+    from pycbc.types.array_torch import TorchArrayData
+
+    stacked = torch.stack(tensors)
+    if not rates_are_logs:
+        stacked = torch.log(stacked)
+    log_rate = stacked.sum(dim=0) + torch.log(
+        torch.as_tensor(
+            allowed_area,
+            dtype=stacked.dtype,
+            device=stacked.device,
+        )
+    )
+    values = log_rate if rates_are_logs else torch.exp(log_rate)
+    return Array(TorchArrayData(values), copy=False)
 
 
 def multiifo_noise_lograte(log_rates, slop):
@@ -81,12 +174,19 @@ def combination_noise_rate(rates, slop):
 
     Returns
     -------
-    numpy array
+    numpy.ndarray or pycbc.types.Array
         Expected coincidence rate in the combination, units Hz
     """
     logger.warning('combination_noise_rate() is liable to numerical '
                    'underflows, use combination_noise_lograte '
                    'instead')
+    tensors = _torch_rate_tensors(*rates.values(), coerce_host=True)
+    if tensors is not None:
+        allowed_area = multiifo_noise_coincident_area(list(rates), slop)
+        return _torch_combination_noise(
+            rates.values(), allowed_area, rates_are_logs=False
+        )
+
     log_rates = {k: numpy.log(r) for (k, r) in rates.items()}
     # exp may underflow
     return numpy.exp(combination_noise_lograte(log_rates, slop))
@@ -111,13 +211,19 @@ def combination_noise_lograte(log_rates, slop, dets=None):
 
     Returns
     -------
-    numpy array
+    numpy.ndarray or pycbc.types.Array
         Expected log coincidence rate in the combination, units Hz
     """
     # multiply product of trigger rates by the overlap time
     allowed_area = multiifo_noise_coincident_area(list(log_rates),
                                                   slop,
                                                   dets=dets)
+    torch_rate = _torch_combination_noise(
+        log_rates.values(), allowed_area, rates_are_logs=True
+    )
+    if torch_rate is not None:
+        return torch_rate
+
     # list(dict.values()) is python-3-proof
     rateprod = numpy.sum(list(log_rates.values()), axis=0)
     return numpy.log(allowed_area) + rateprod
@@ -147,7 +253,8 @@ def multiifo_noise_coincident_area(ifos, slop, dets=None):
     """
     # set up detector objects
     if dets is None:
-        dets = {ifo: pycbc.detector.Detector(ifo) for ifo in ifos}
+        detector = _detector_class("multi-detector coincidence area")
+        dets = {ifo: detector(ifo) for ifo in ifos}
     n_ifos = len(ifos)
 
     if n_ifos == 2:
@@ -190,10 +297,11 @@ def multiifo_signal_coincident_area(ifos):
         area in units of seconds^(n_ifos-1) that coincident signals will occupy
     """
     n_ifos = len(ifos)
+    detector = _detector_class("multi-detector signal coincidence area")
 
     if n_ifos == 2:
-        det0 = pycbc.detector.Detector(ifos[0])
-        det1 = pycbc.detector.Detector(ifos[1])
+        det0 = detector(ifos[0])
+        det1 = detector(ifos[1])
         allowed_area = 2 * det0.light_travel_time_to_detector(det1)
     elif n_ifos == 3:
         dets = {}
@@ -201,7 +309,7 @@ def multiifo_signal_coincident_area(ifos):
         ifo2_num = []
         # set up detector objects
         for ifo in ifos:
-            dets[ifo] = pycbc.detector.Detector(ifo)
+            dets[ifo] = detector(ifo)
 
         # calculate travel time between detectors
         for i, ifo in enumerate(ifos):
