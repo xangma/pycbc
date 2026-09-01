@@ -25,14 +25,471 @@
 triggers.
 """
 import logging
+import operator
 import numpy as np
 
 from .eventmgr_cython import get_coinc_indexes_cython_twodet_twocoinc
+from pycbc.types import Array
 
 logger = logging.getLogger('pycbc.events.coherent')
 
 
-def get_coinc_indexes(idx_dict, time_delay_idx, min_nifos, wraparound_dict):
+def _torch_coherent_tensors(*values, kinds="f", coerce_host=False):
+    """Return compatible Torch tensors for coherent statistics."""
+    if not values:
+        return None
+
+    from pycbc import scheme
+    if scheme.current_prefix() != "torch":
+        return None
+
+    import torch
+    from pycbc.types.array_torch import (
+        TorchArrayData,
+        _device_matches_active,
+    )
+
+    data = [
+        value._data if isinstance(value, Array) else value
+        for value in values
+    ]
+    torch_data = [
+        value for value in data if isinstance(value, TorchArrayData)
+    ]
+    if not torch_data or (
+        not coerce_host
+        and len(torch_data) != len(data)
+    ):
+        return None
+
+    first = torch_data[0].tensor
+    if not (
+        all(_device_matches_active(value.tensor) for value in torch_data)
+        and all(value.tensor.device == first.device for value in torch_data)
+        and all(value.tensor.shape == first.shape for value in torch_data)
+        and all(value.tensor.dtype == first.dtype for value in torch_data)
+        and all(value.dtype.kind in kinds for value in torch_data)
+    ):
+        return None
+
+    tensors = []
+    for value in data:
+        if isinstance(value, TorchArrayData):
+            tensors.append(value.tensor)
+            continue
+        if isinstance(value, Array):
+            return None
+        try:
+            host = np.asarray(value)
+            if host.dtype.kind not in kinds or host.shape != first.shape:
+                return None
+            tensors.append(
+                torch.as_tensor(
+                    host, dtype=first.dtype, device=first.device
+                )
+            )
+        except (TypeError, ValueError, RuntimeError):
+            return None
+
+    return tuple(tensors)
+
+
+def _torch_boolean_mask(mask, reference):
+    """Return a boolean mask on the same Torch device as ``reference``."""
+    import torch
+    from pycbc.types.array_torch import TorchArrayData
+
+    data = mask._data if isinstance(mask, Array) else mask
+    if isinstance(data, TorchArrayData):
+        tensor = data.tensor
+        if (
+            tensor.device == reference.device
+            and tensor.shape == reference.shape
+            and tensor.dtype == torch.bool
+        ):
+            return tensor
+        return None
+
+    try:
+        tensor = torch.as_tensor(
+            data, dtype=torch.bool, device=reference.device
+        )
+    except (TypeError, ValueError, RuntimeError):
+        return None
+    return tensor if tensor.shape == reference.shape else None
+
+
+def _torch_array(tensor):
+    """Wrap a Torch tensor as a PyCBC Array without a host copy."""
+    from pycbc.types.array_torch import TorchArrayData
+
+    return Array(TorchArrayData(tensor), copy=False)
+
+
+def _torch_cache_tensors(cache, indices):
+    """Return a device cache and compatible integer indices, when possible."""
+    from pycbc import scheme
+
+    if scheme.current_prefix() != "torch":
+        return None
+
+    import torch
+    from pycbc.types.array_torch import (
+        TorchArrayData,
+        _device_matches_active,
+    )
+
+    cache_data = cache._data if isinstance(cache, Array) else cache
+    if not isinstance(cache_data, TorchArrayData):
+        return None
+    cache_tensor = cache_data.tensor
+    if not _device_matches_active(cache_tensor):
+        return None
+
+    index_data = indices._data if isinstance(indices, Array) else indices
+    if isinstance(index_data, TorchArrayData):
+        index_tensor = index_data.tensor
+    elif isinstance(index_data, torch.Tensor):
+        index_tensor = index_data
+    else:
+        try:
+            host_indices = np.asarray(index_data)
+        except (TypeError, ValueError):
+            return None
+        if host_indices.dtype.kind not in "iu" or host_indices.ndim != 1:
+            return None
+        index_tensor = torch.as_tensor(host_indices)
+
+    if index_tensor.dtype not in (
+        torch.uint8,
+        torch.uint32,
+        torch.int8,
+        torch.int16,
+        torch.int32,
+        torch.int64,
+    ) or index_tensor.ndim != 1:
+        return None
+    return cache_tensor, index_tensor.to(
+        device=cache_tensor.device, dtype=torch.int64
+    )
+
+
+def create_coherent_cache(reference, fill_value, dtype):
+    """Allocate a coherent-trigger cache beside its reference array."""
+    from pycbc import scheme
+
+    data = reference._data if isinstance(reference, Array) else reference
+    if scheme.current_prefix() == "torch":
+        import torch
+        from pycbc.types.array_torch import (
+            TorchArrayData,
+            _device_matches_active,
+        )
+
+        if (
+            isinstance(data, TorchArrayData)
+            and _device_matches_active(data.tensor)
+        ):
+            torch_dtype = torch.from_numpy(
+                np.empty(0, dtype=np.dtype(dtype))
+            ).dtype
+            return _torch_array(
+                torch.full(
+                    (len(reference),),
+                    fill_value,
+                    dtype=torch_dtype,
+                    device=data.tensor.device,
+                )
+            )
+
+    return np.full(len(reference), fill_value, dtype=dtype)
+
+
+def unavailable_coherent_indices(cache, indices):
+    """Return cache indices whose floating-point values are still NaN."""
+    tensors = _torch_cache_tensors(cache, indices)
+    if tensors is not None:
+        import torch
+
+        cache_tensor, index_tensor = tensors
+        if not cache_tensor.is_floating_point():
+            raise TypeError("coherent cache availability requires real values")
+        return _torch_array(
+            index_tensor[torch.isnan(cache_tensor[index_tensor])]
+        )
+
+    if isinstance(cache, Array):
+        raise TypeError("Torch coherent cache requires device indices")
+    if isinstance(indices, Array):
+        indices = indices.numpy()
+    indices = np.asarray(indices)
+    return indices[np.isnan(cache[indices])]
+
+
+def update_coherent_cache(cache, indices, values):
+    """Scatter newly calculated values into a coherent-trigger cache."""
+    tensors = _torch_cache_tensors(cache, indices)
+    if tensors is not None:
+        import torch
+        from pycbc.types.array_torch import TorchArrayData
+
+        cache_tensor, index_tensor = tensors
+        value_data = values._data if isinstance(values, Array) else values
+        if isinstance(value_data, TorchArrayData):
+            value_tensor = value_data.tensor.to(
+                device=cache_tensor.device, dtype=cache_tensor.dtype
+            )
+        elif isinstance(value_data, torch.Tensor):
+            value_tensor = value_data.to(
+                device=cache_tensor.device, dtype=cache_tensor.dtype
+            )
+        else:
+            value_tensor = torch.as_tensor(
+                value_data,
+                device=cache_tensor.device,
+                dtype=cache_tensor.dtype,
+            )
+        cache_tensor[index_tensor] = value_tensor
+        return
+
+    if isinstance(cache, Array):
+        raise TypeError("Torch coherent cache requires device indices")
+    if isinstance(indices, Array):
+        indices = indices.numpy()
+    if isinstance(values, Array):
+        values = values.numpy()
+    cache[indices] = values
+
+
+def _torch_selection_indices(mask):
+    """Return ordered device indices selected by a Torch mask."""
+    return mask.nonzero(as_tuple=False).flatten()
+
+
+def _torch_select(value, device_indices, host_indices=None):
+    """Select values with Torch indices, transferring only host positions.
+
+    Device-backed values stay on their existing Torch device. Host values use
+    one compact copy of the selected positions, which callers may reuse for
+    any other host-resident companions.
+    """
+    import torch
+    from pycbc.types.array_torch import TorchArrayData
+
+    data = value._data if isinstance(value, Array) else value
+    if isinstance(data, TorchArrayData):
+        return _torch_array(data.tensor[device_indices]), host_indices
+    if isinstance(data, torch.Tensor):
+        return data[device_indices], host_indices
+
+    if host_indices is None:
+        host_indices = device_indices.detach().cpu().numpy()
+    return value[host_indices], host_indices
+
+
+def _torch_coincidence_indexes(idx_dict, time_delay_idx, min_nifos):
+    """Build sorted coincidence indices on the active Torch device."""
+    if not idx_dict:
+        return None
+
+    from pycbc import scheme
+    if scheme.current_prefix() != "torch":
+        return None
+
+    import torch
+    from pycbc.types.array_torch import (
+        TorchArrayData,
+        _device_matches_active,
+    )
+
+    tensors = []
+    device = None
+    try:
+        for ifo, value in idx_dict.items():
+            data = value._data if isinstance(value, Array) else value
+            if not isinstance(data, TorchArrayData):
+                return None
+            tensor = data.tensor
+            if (
+                tensor.ndim != 1
+                or data.dtype.kind not in "iu"
+                or not _device_matches_active(tensor)
+                or (device is not None and tensor.device != device)
+            ):
+                return None
+            device = tensor.device
+            delay = operator.index(time_delay_idx[ifo])
+            if tensor.numel():
+                tensors.append(tensor.to(dtype=torch.int64) - delay)
+    except (KeyError, TypeError, ValueError, RuntimeError):
+        return None
+
+    if device is None:
+        return None
+    if tensors:
+        coincident = torch.sort(torch.cat(tensors)).values
+    else:
+        coincident = torch.empty(0, dtype=torch.int64, device=device)
+
+    if not coincident.numel():
+        return _torch_array(coincident)
+
+    run_start = torch.ones_like(coincident, dtype=torch.bool)
+    run_start[1:] = coincident[1:] != coincident[:-1]
+    starts = torch.nonzero(run_start, as_tuple=False).flatten()
+    unique = coincident[starts]
+    if len(idx_dict) == 1:
+        return _torch_array(unique)
+
+    ends = torch.cat(
+        (
+            starts[1:],
+            torch.tensor(
+                [coincident.numel()], dtype=starts.dtype, device=device
+            ),
+        )
+    )
+    counts = ends - starts
+    try:
+        selected = counts > (min_nifos - 1)
+    except (TypeError, ValueError, RuntimeError):
+        return None
+    return _torch_array(unique[selected])
+
+
+def _torch_coincidence_triggers(snrs, idx, t_delay_idx):
+    """Gather coincident SNR triggers with device-resident indices."""
+    from pycbc import scheme
+    if scheme.current_prefix() != "torch":
+        return None
+
+    import torch
+    from pycbc.types.array_torch import (
+        TorchArrayData,
+        _device_matches_active,
+    )
+
+    idx_data = idx._data if isinstance(idx, Array) else idx
+    if not isinstance(idx_data, TorchArrayData):
+        return None
+    idx_tensor = idx_data.tensor
+    if (
+        idx_tensor.ndim != 1
+        or idx_data.dtype.kind not in "iu"
+        or not _device_matches_active(idx_tensor)
+    ):
+        return None
+
+    gathered = {}
+    try:
+        for ifo, values in snrs.items():
+            data = values._data if isinstance(values, Array) else values
+            if not isinstance(data, TorchArrayData):
+                return None
+            tensor = data.tensor
+            if (
+                tensor.ndim != 1
+                or tensor.device != idx_tensor.device
+                or not _device_matches_active(tensor)
+                or not tensor.numel()
+            ):
+                return None
+            delay = operator.index(t_delay_idx[ifo])
+            indices = torch.remainder(
+                idx_tensor.to(dtype=torch.int64) + delay,
+                tensor.numel(),
+            )
+            gathered[ifo] = _torch_array(tensor[indices])
+    except (KeyError, TypeError, ValueError, RuntimeError):
+        return None
+    return gathered
+
+
+def _torch_network_chisq(chisq, chisq_dof, snr_dict, ifos):
+    """Return network chi-squared on Torch for device-resident SNRs."""
+    if not ifos:
+        return None
+
+    from pycbc import scheme
+    if scheme.current_prefix() != "torch":
+        return None
+
+    import torch
+    from pycbc.types.array_torch import (
+        TorchArrayData,
+        _device_matches_active,
+    )
+
+    data = {
+        ifo: (
+            snr_dict[ifo]._data
+            if isinstance(snr_dict[ifo], Array)
+            else snr_dict[ifo]
+        )
+        for ifo in ifos
+    }
+    if not all(isinstance(value, TorchArrayData) for value in data.values()):
+        return None
+
+    tensors = {ifo: data[ifo].tensor for ifo in ifos}
+    first = tensors[ifos[0]]
+    if not (
+        all(_device_matches_active(tensor) for tensor in tensors.values())
+        and all(tensor.device == first.device for tensor in tensors.values())
+        and all(tensor.shape == first.shape for tensor in tensors.values())
+        and all(tensor.dtype == first.dtype for tensor in tensors.values())
+        and all(data[ifo].dtype.kind in "fc" for ifo in ifos)
+    ):
+        return None
+
+    def summary_tensor(value):
+        summary = value._data if isinstance(value, Array) else value
+        if isinstance(summary, TorchArrayData):
+            tensor = summary.tensor
+            if not (
+                _device_matches_active(tensor)
+                and tensor.device == first.device
+                and summary.dtype.kind == "f"
+            ):
+                return None
+            return tensor
+        if isinstance(value, Array):
+            return None
+        try:
+            host = np.asarray(value)
+            if host.dtype.kind != "f":
+                return None
+            return torch.as_tensor(host, device=first.device)
+        except (TypeError, ValueError, RuntimeError):
+            return None
+
+    try:
+        snr2 = {
+            ifo: (
+                tensor.real.square() + tensor.imag.square()
+                if tensor.is_complex()
+                else tensor.square()
+            )
+            for ifo, tensor in tensors.items()
+        }
+        coinc_snr2 = sum(snr2.values())
+        net_chisq = None
+        for ifo in ifos:
+            chisq_t = summary_tensor(chisq[ifo])
+            dof_t = summary_tensor(chisq_dof[ifo])
+            if chisq_t is None or dof_t is None:
+                return None
+            term = (chisq_t / dof_t) * (snr2[ifo] / coinc_snr2)
+            if term.shape != first.shape:
+                return None
+            net_chisq = term if net_chisq is None else net_chisq + term
+    except (KeyError, TypeError, ValueError, RuntimeError):
+        return None
+
+    return Array(TorchArrayData(net_chisq), copy=False)
+
+
+def get_coinc_indexes(idx_dict, time_delay_idx, min_nifos, wraparound_dict=None):
     """Return the indexes corresponding to coincident triggers. If only one
     detector is available in the network, the list of its unique indexes is
     simply returned.
@@ -57,7 +514,17 @@ def get_coinc_indexes(idx_dict, time_delay_idx, min_nifos, wraparound_dict):
         List of indexes for triggers in geocent time that appear in
         multiple detectors
     """
-    if min_nifos == 2 and len(idx_dict) == 2:
+    torch_indexes = _torch_coincidence_indexes(
+        idx_dict, time_delay_idx, min_nifos
+    )
+    if torch_indexes is not None:
+        return torch_indexes
+
+    if (
+        wraparound_dict is not None
+        and min_nifos == 2
+        and len(idx_dict) == 2
+    ):
         ifos = list(idx_dict.keys())
         # Could cache an output array if needed
         idxarr1 = idx_dict[ifos[0]]
@@ -87,9 +554,10 @@ def get_coinc_indexes(idx_dict, time_delay_idx, min_nifos, wraparound_dict):
         # collective list will later be searched for repeating index values as
         # these represent triggers appearing in multiple detectors.
         if len(idx_dict[ifo]) != 0:
-            coinc_list = np.hstack(
-                [coinc_list, (idx_dict[ifo] - time_delay_idx[ifo]) % wraparound_dict[ifo]]
-            )
+            delayed = idx_dict[ifo] - time_delay_idx[ifo]
+            if wraparound_dict is not None and ifo in wraparound_dict:
+                delayed = delayed % wraparound_dict[ifo]
+            coinc_list = np.hstack([coinc_list, delayed])
     # Search through coinc_idx for repeated indexes. These must have been loud
     # in at least min_nifos detectors if the analysis uses more than 1
     # detector.
@@ -120,6 +588,10 @@ def get_coinc_triggers(snrs, idx, t_delay_idx):
     coincs: dict
         Dictionary of coincident trigger SNRs in each detector
     """
+    torch_triggers = _torch_coincidence_triggers(snrs, idx, t_delay_idx)
+    if torch_triggers is not None:
+        return torch_triggers
+
     # loops through snrs
     # %len(snrs[ifo]) was included as part of a wrap-around solution
     coincs = {
@@ -147,7 +619,7 @@ def coincident_snr(snr_dict, index, threshold, time_delay_idx):
 
     Returns
     -------
-    rho_coinc: numpy.ndarray
+    rho_coinc: numpy.ndarray or Array
         Coincident SNR values for surviving triggers
     index: list
         The subset of input indexes corresponding to triggers that
@@ -158,6 +630,28 @@ def coincident_snr(snr_dict, index, threshold, time_delay_idx):
     """
     # Restrict the snr timeseries to just the interesting points
     coinc_triggers = get_coinc_triggers(snr_dict, index, time_delay_idx)
+    torch_tensors = _torch_coherent_tensors(
+        *coinc_triggers.values(), kinds="fc"
+    )
+    if torch_tensors is not None:
+        import torch
+
+        snr_tensor = torch.stack(torch_tensors)
+        if snr_tensor.is_complex():
+            snr2 = snr_tensor.real.square() + snr_tensor.imag.square()
+        else:
+            snr2 = snr_tensor.square()
+        rho_tensor = torch.sqrt(torch.sum(snr2, dim=0))
+        above_mask = rho_tensor > threshold
+        above_indices = _torch_selection_indices(above_mask)
+        index, above = _torch_select(index, above_indices)
+        coinc_triggers = {
+            ifo: _torch_select(trigger, above_indices)[0]
+            for ifo, trigger in coinc_triggers.items()
+        }
+        rho_coinc = _torch_array(rho_tensor[above_indices])
+        return rho_coinc, index, coinc_triggers
+
     # Calculate the coincident snr
     snr_array = np.array(
         [coinc_triggers[ifo] for ifo in coinc_triggers.keys()]
@@ -255,7 +749,7 @@ def coherent_snr(
 
     Returns
     -------
-    rho_coh: numpy.ndarray
+    rho_coh: numpy.ndarray or Array
         Array of coherent SNR for the detector network
     index: numpy.ndarray
         Indexes that survive cuts
@@ -265,9 +759,53 @@ def coherent_snr(
         The coincident SNR values for triggers surviving the coherent
         cut
     """
+    ifos = sorted(snr_triggers.keys())
+    torch_tensors = _torch_coherent_tensors(
+        *(snr_triggers[ifo] for ifo in ifos), kinds="fc"
+    )
+    projection = np.asarray(projection_matrix)
+    if (
+        torch_tensors is not None
+        and projection.shape == (len(ifos), len(ifos))
+        and projection.dtype.kind in "fc"
+    ):
+        import torch
+
+        snr_tensor = torch.stack(torch_tensors)
+        projection_tensor = torch.as_tensor(
+            projection, device=snr_tensor.device
+        )
+        target_dtype = torch.promote_types(
+            snr_tensor.dtype, projection_tensor.dtype
+        )
+        snr_tensor = snr_tensor.to(dtype=target_dtype)
+        projection_tensor = projection_tensor.to(dtype=target_dtype)
+        snr_proj = torch.matmul(
+            snr_tensor.conj().transpose(0, 1),
+            projection_tensor.transpose(0, 1),
+        )
+        rho_coh2 = torch.sum(
+            snr_proj.transpose(0, 1) * snr_tensor, dim=0
+        )
+        rho_tensor = torch.abs(torch.sqrt(rho_coh2))
+        above_mask = rho_tensor > threshold
+        above_indices = _torch_selection_indices(above_mask)
+        index, above = _torch_select(index, above_indices)
+        coinc_snr = [] if coinc_snr is None else coinc_snr
+        if len(coinc_snr) != 0:
+            coinc_snr, above = _torch_select(
+                coinc_snr, above_indices, above
+            )
+        snrv = {
+            ifo: _torch_select(snr_triggers[ifo], above_indices)[0]
+            for ifo in snr_triggers.keys()
+        }
+        rho_coh = _torch_array(rho_tensor[above_indices])
+        return rho_coh, index, snrv, coinc_snr
+
     # Calculate rho_coh
     snr_array = np.array(
-        [snr_triggers[ifo] for ifo in sorted(snr_triggers.keys())]
+        [snr_triggers[ifo] for ifo in ifos]
     )
     snr_proj = np.inner(snr_array.conj().transpose(), projection_matrix)
     rho_coh2 = sum(snr_proj.transpose() * snr_array)
@@ -284,6 +822,109 @@ def coherent_snr(
     }
     rho_coh = rho_coh[above]
     return rho_coh, index, snrv, coinc_snr
+
+
+def select_coherent_values(values_left, values_right, select_left):
+    """Select left- or right-polarized values point by point."""
+    tensors = _torch_coherent_tensors(
+        values_left, values_right, kinds="fciu"
+    )
+    if tensors is not None:
+        import torch
+
+        left_tensor, right_tensor = tensors
+        selector = _torch_boolean_mask(select_left, left_tensor)
+        if selector is not None:
+            return _torch_array(
+                torch.where(selector, left_tensor, right_tensor)
+            )
+    return np.where(select_left, values_left, values_right)
+
+
+def compare_coherent_values(values_left, values_right, comparison):
+    """Compare coherent values without moving Torch masks to the host.
+
+    The return value follows the active backend: a Torch boolean tensor for
+    device-backed values and the comparison's normal NumPy result otherwise.
+    """
+    from pycbc import scheme
+
+    if scheme.current_prefix() == "torch":
+        import torch
+        from pycbc.types.array_torch import (
+            TorchArrayData,
+            _device_matches_active,
+        )
+
+        operations = {
+            np.less: torch.lt,
+            np.less_equal: torch.le,
+            np.greater: torch.gt,
+            np.greater_equal: torch.ge,
+        }
+        operation = operations.get(comparison)
+        left_data = (
+            values_left._data
+            if isinstance(values_left, Array)
+            else values_left
+        )
+        if operation is not None and isinstance(left_data, TorchArrayData):
+            left_tensor = left_data.tensor
+            if _device_matches_active(left_tensor):
+                right_data = (
+                    values_right._data
+                    if isinstance(values_right, Array)
+                    else values_right
+                )
+                try:
+                    if isinstance(right_data, TorchArrayData):
+                        right_tensor = right_data.tensor
+                        if (
+                            not _device_matches_active(right_tensor)
+                            or right_tensor.device != left_tensor.device
+                        ):
+                            raise ValueError
+                    else:
+                        right_tensor = torch.as_tensor(
+                            right_data,
+                            dtype=left_tensor.dtype,
+                            device=left_tensor.device,
+                        )
+                    return operation(left_tensor, right_tensor)
+                except (TypeError, ValueError, RuntimeError):
+                    pass
+
+    return comparison(values_left, values_right)
+
+
+def select_coherent_triggers(snrv_left, snrv_right, select_left):
+    """Select left- or right-polarized detector triggers point by point.
+
+    The selector is normally derived from the small coherent-SNR summary
+    arrays. Torch-backed detector triggers remain on their active device.
+
+    Parameters
+    ----------
+    snrv_left, snrv_right: dict
+        Matching dictionaries of detector trigger arrays.
+    select_left: array-like
+        Boolean selector. True chooses the left trigger and False chooses the
+        right trigger.
+
+    Returns
+    -------
+    dict
+        Selected detector triggers.
+    """
+    if snrv_left.keys() != snrv_right.keys():
+        raise ValueError("Left and right trigger dictionaries must match")
+
+    selected = {}
+    for ifo in snrv_left:
+        selected[ifo] = select_coherent_values(
+            snrv_left[ifo], snrv_right[ifo], select_left
+        )
+    return selected
 
 
 def network_chisq(chisq, chisq_dof, snr_dict):
@@ -303,15 +944,28 @@ def network_chisq(chisq, chisq_dof, snr_dict):
 
     Returns
     -------
-    net_chisq: list
+    net_chisq: numpy.ndarray or Array
         Network chi-squared values
     """
     ifos = sorted(snr_dict.keys())
+    torch_chisq = _torch_network_chisq(
+        chisq, chisq_dof, snr_dict, ifos
+    )
+    if torch_chisq is not None:
+        return torch_chisq
+
     chisq_per_dof = dict.fromkeys(ifos)
     for ifo in ifos:
         chisq_per_dof[ifo] = chisq[ifo] / chisq_dof[ifo]
     snr2 = {
-        ifo: np.real(np.array(snr_dict[ifo]) * np.array(snr_dict[ifo]).conj())
+        ifo: (
+            snr_dict[ifo].squared_norm()
+            if isinstance(snr_dict[ifo], Array)
+            else np.real(
+                np.array(snr_dict[ifo])
+                * np.array(snr_dict[ifo]).conj()
+            )
+        )
         for ifo in ifos
     }
     coinc_snr2 = sum(snr2.values())
@@ -334,9 +988,9 @@ def null_snr(
 
     Parameters
     ----------
-    rho_coh: numpy.ndarray
+    rho_coh: numpy.ndarray or Array
         Array of coherent snr triggers
-    rho_coinc: numpy.ndarray
+    rho_coinc: numpy.ndarray or Array
         Array of coincident snr triggers
     apply_cut: bool
         Apply a cut and downweight on null SNR determined by null_min,
@@ -357,11 +1011,11 @@ def null_snr(
 
     Returns
     -------
-    null: numpy.ndarray
+    null: numpy.ndarray or Array
         Null SNR for surviving triggers
-    rho_coh: numpy.ndarray
+    rho_coh: numpy.ndarray or Array
         Coherent SNR for surviving triggers
-    rho_coinc: numpy.ndarray
+    rho_coinc: numpy.ndarray or Array
         Coincident SNR for suviving triggers
     index: dict
         Indexes for surviving triggers
@@ -371,6 +1025,48 @@ def null_snr(
     index = {} if index is None else index
     snrv = {} if snrv is None else snrv
     # Calculate null SNRs
+    torch_tensors = _torch_coherent_tensors(
+        rho_coh, rho_coinc, coerce_host=True
+    )
+    if torch_tensors is not None:
+        import torch
+
+        rho_coh_t, rho_coinc_t = torch_tensors
+        null_t = torch.sqrt(
+            torch.clamp_min(rho_coinc_t.square() - rho_coh_t.square(), 0)
+        )
+        if apply_cut:
+            keep_mask = (
+                ((null_t < null_min) & (rho_coh_t <= null_step))
+                | (
+                    (
+                        null_t
+                        < ((rho_coh_t - null_step) * null_grad + null_min)
+                    )
+                    & (rho_coh_t > null_step)
+                )
+            )
+            keep_indices = _torch_selection_indices(keep_mask)
+            keep = None
+            if not isinstance(index, dict) or index:
+                index, keep = _torch_select(index, keep_indices)
+            selected_snrv = {}
+            for ifo, triggers in snrv.items():
+                selected_snrv[ifo], keep = _torch_select(
+                    triggers, keep_indices, keep
+                )
+            snrv = selected_snrv
+            rho_coh_t = rho_coh_t[keep_indices]
+            rho_coinc_t = rho_coinc_t[keep_indices]
+            null_t = null_t[keep_indices]
+        return (
+            _torch_array(null_t),
+            _torch_array(rho_coh_t),
+            _torch_array(rho_coinc_t),
+            index,
+            snrv,
+        )
+
     null2 = rho_coinc ** 2 - rho_coh ** 2
     # Numerical errors may make this negative and break the sqrt, so set
     # negative values to 0.
@@ -387,7 +1083,13 @@ def null_snr(
             )
         index = index[keep]
         rho_coh = rho_coh[keep]
-        snrv = {ifo: snrv[ifo][keep] for ifo in snrv}
+        selected_snrv = {}
+        for ifo, triggers in snrv.items():
+            selected = triggers[keep]
+            if _torch_coherent_tensors(triggers, kinds="fc") is not None:
+                selected = Array(selected, copy=False)
+            selected_snrv[ifo] = selected
+        snrv = selected_snrv
         rho_coinc = rho_coinc[keep]
         null = null[keep]
     return null, rho_coh, rho_coinc, index, snrv
@@ -412,9 +1114,35 @@ def reweight_snr_by_null(
 
     Returns
     -------
-    rw_snr: numpy.ndarray
+    rw_snr: numpy.ndarray or Array
         Re-weighted SNR for each trigger
     """
+    tensors = _torch_coherent_tensors(
+        network_snr, null, coherent, coerce_host=True
+    )
+    if tensors is not None:
+        import torch
+        from pycbc.types.array_torch import TorchArrayData
+
+        network_t, null_t, coherent_t = tensors
+        downweight = (
+            ((null_t > null_min - 1) & (coherent_t <= null_step))
+            | (
+                (null_t > (coherent_t * null_grad + null_min - 1))
+                & (coherent_t > null_step)
+            )
+        )
+        rw_fac = torch.where(
+            coherent_t > null_step,
+            1 + null_t - (null_min - 1)
+            - (coherent_t - null_step) * null_grad,
+            1 + null_t - (null_min - 1),
+        )
+        values = torch.where(
+            downweight, network_t / rw_fac, network_t
+        )
+        return Array(TorchArrayData(values), copy=False)
+
     downweight = (
         ((null > null_min - 1) & (coherent <= null_step))
         | (
@@ -446,5 +1174,17 @@ def reweightedsnr_cut(rw_snr, rw_snr_threshold):
 
     """
     if rw_snr_threshold is not None:
+        tensors = _torch_coherent_tensors(rw_snr)
+        if tensors is not None:
+            import torch
+            from pycbc.types.array_torch import TorchArrayData
+
+            values = torch.where(
+                tensors[0] < rw_snr_threshold,
+                torch.zeros_like(tensors[0]),
+                tensors[0],
+            )
+            return Array(TorchArrayData(values), copy=False)
+
         rw_snr = np.where(rw_snr < rw_snr_threshold, 0, rw_snr)
     return rw_snr

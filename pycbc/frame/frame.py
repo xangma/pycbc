@@ -27,6 +27,8 @@ import re
 from urllib.parse import urlparse
 import numpy
 
+from pycbc.types import TimeSeries, zeros
+
 try:
     import lalframe
     from pycbc import lal_compat as lal
@@ -745,7 +747,7 @@ class StatusBuffer(DataBuffer):
         ----------
         values: pycbc.types.Array
             Array of status information
-        flag: str, optional
+        flag: int, optional
             Override the default valid mask with a user defined mask.
 
         Returns
@@ -754,12 +756,19 @@ class StatusBuffer(DataBuffer):
             Returns True if all of the status information if valid,
              False if any is not.
         """
+        tensor = getattr(getattr(values, "_data", None), "tensor", None)
         if self.valid_on_zero:
-            valid = values.numpy() == 0
+            valid = tensor == 0 if tensor is not None else values.numpy() == 0
         else:
             if flag is None:
                 flag = self.valid_mask
-            valid = numpy.bitwise_and(values.numpy(), flag) == flag
+            if tensor is not None:
+                valid = tensor.bitwise_and(flag) == flag
+            else:
+                valid = numpy.bitwise_and(values.numpy(), flag) == flag
+
+        if tensor is not None:
+            return bool(valid.all().item())
         return bool(numpy.all(valid))
 
     def is_extent_valid(self, start_time, duration, flag=None):
@@ -810,15 +819,25 @@ class StatusBuffer(DataBuffer):
         s = int((start_time - self.raw_buffer.start_time - padding) * sr) - 1
         e = s + int((duration + padding) * sr) + 1
         data = self.raw_buffer[s:e]
-        stamps = data.sample_times.numpy()
+        tensor = getattr(getattr(data, "_data", None), "tensor", None)
 
-        if self.valid_on_zero:
-            invalid = data.numpy() != 0
+        if tensor is not None:
+            if self.valid_on_zero:
+                invalid = tensor != 0
+            else:
+                invalid = tensor.bitwise_and(self.valid_mask) != self.valid_mask
+            invalid_idx = invalid.nonzero(as_tuple=False).flatten()
+            invalid_idx = invalid_idx.detach().cpu().numpy()
+            starts = float(data.start_time) + invalid_idx / sr - padding
         else:
-            invalid = numpy.bitwise_and(data.numpy(), self.valid_mask) \
-                    != self.valid_mask
+            stamps = data.sample_times.numpy()
+            if self.valid_on_zero:
+                invalid = data.numpy() != 0
+            else:
+                invalid = numpy.bitwise_and(data.numpy(), self.valid_mask) \
+                        != self.valid_mask
+            starts = stamps[invalid] - padding
 
-        starts = stamps[invalid] - padding
         ends = starts + 1.0 / sr + padding * 2.0
         idx = indices_outside_times(times, starts, ends)
         return idx
@@ -923,15 +942,27 @@ class iDQBuffer(object):
 
         # find samples when iDQ FAP is below threshold and state is valid
         idq_fap = self.idq.raw_buffer[s:e]
-        low_fap = idq_fap.numpy() <= self.threshold
         idq_valid = self.idq_state.raw_buffer[s:e]
-        idq_valid = idq_valid.numpy().astype(bool)
-        valid_low_fap = numpy.logical_and(idq_valid, low_fap)
+        fap_tensor = getattr(getattr(idq_fap, "_data", None), "tensor", None)
+        valid_tensor = getattr(
+            getattr(idq_valid, "_data", None), "tensor", None
+        )
 
-        # find times corresponding to the valid low FAP samples
-        glitch_idx = numpy.flatnonzero(valid_low_fap)
-        stamps = idq_fap.sample_times.numpy()
-        glitch_times = stamps[glitch_idx]
+        # Find times corresponding to valid low-FAP samples. Keep the dense
+        # mask on the active Torch device and transfer only matching times.
+        if fap_tensor is not None and valid_tensor is not None:
+            valid_low_fap = (valid_tensor != 0) & \
+                (fap_tensor <= self.threshold)
+            glitch_idx = valid_low_fap.nonzero(as_tuple=False).flatten()
+            glitch_idx = glitch_idx.detach().cpu().numpy()
+            glitch_times = float(idq_fap.start_time) + glitch_idx / sr
+        else:
+            low_fap = idq_fap.numpy() <= self.threshold
+            valid = idq_valid.numpy().astype(bool)
+            valid_low_fap = numpy.logical_and(valid, low_fap)
+            glitch_idx = numpy.flatnonzero(valid_low_fap)
+            stamps = idq_fap.sample_times.numpy()
+            glitch_times = stamps[glitch_idx]
 
         # construct start and end times of flag segments
         starts = glitch_times - padding
