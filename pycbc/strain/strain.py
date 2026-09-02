@@ -22,6 +22,15 @@ import functools
 import numpy
 
 from scipy.signal import kaiserord
+import pycbc
+try:
+    import torch
+    from pycbc.types.array_torch import TorchArrayData
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover
+    torch = None
+    TorchArrayData = None
+    _HAVE_TORCH = False
 
 import pycbc.types
 from pycbc.types import TimeSeries, zeros
@@ -43,6 +52,48 @@ import pycbc.frame
 import pycbc.filter
 
 logger = logging.getLogger('pycbc.strain.strain')
+
+
+def _hann_window_for_series(series, length):
+    """Create a NumPy-compatible Hann window beside ``series``."""
+    if _HAVE_TORCH and isinstance(series._data, TorchArrayData):
+        tensor = series._data.tensor
+        window = torch.hann_window(
+            length,
+            periodic=False,
+            dtype=tensor.real.dtype,
+            device=tensor.device,
+        )
+        if tensor.is_complex():
+            window = window.to(dtype=tensor.dtype)
+        return Array(TorchArrayData(window), copy=False)
+    return Array(numpy.hanning(length), dtype=series.dtype)
+
+
+def _linear_tapers_for_series(series, length):
+    """Create rising and falling linear tapers beside ``series``."""
+    if _HAVE_TORCH and isinstance(series._data, TorchArrayData):
+        tensor = series._data.tensor
+        dtype = tensor.real.dtype
+        denominator = float(length) if length else 1.0
+        rising = torch.arange(
+            length, dtype=dtype, device=tensor.device
+        ) / denominator
+        falling = torch.flip(rising, dims=(0,))
+        if tensor.is_complex():
+            rising = rising.to(dtype=tensor.dtype)
+            falling = falling.to(dtype=tensor.dtype)
+        return (
+            Array(TorchArrayData(rising), copy=False),
+            Array(TorchArrayData(falling), copy=False),
+        )
+
+    rising = numpy.arange(length) / float(length if length else 1)
+    return (
+        Array(rising, dtype=series.dtype),
+        Array(rising[::-1], dtype=series.dtype),
+    )
+
 
 def next_power_of_2(n):
     """Return the smallest integer power of 2 larger than the argument.
@@ -107,10 +158,11 @@ def detect_loud_glitches(strain, psd_duration=4., psd_stride=2.,
 
     # taper strain
     corrupt_length = int(corrupt_time * strain.sample_rate)
-    w = numpy.arange(corrupt_length) / float(corrupt_length)
-    strain[0:corrupt_length] *= pycbc.types.Array(w, dtype=strain.dtype)
-    strain[(len(strain) - corrupt_length):] *= \
-        pycbc.types.Array(w[::-1], dtype=strain.dtype)
+    rising_taper, falling_taper = _linear_tapers_for_series(
+        strain, corrupt_length
+    )
+    strain[0:corrupt_length] *= rising_taper
+    strain[(len(strain) - corrupt_length):] *= falling_taper
 
     if output_intermediates:
         strain.save_to_wav('strain_conditioned.wav')
@@ -161,19 +213,28 @@ def detect_loud_glitches(strain, psd_duration=4., psd_stride=2.,
     if output_intermediates:
         mag.save('strain_whitened_mag.npy')
 
-    mag = mag.numpy()
-
     # remove strain corrupted by filters at the ends
-    mag[0:corrupt_length] = 0
-    mag[-1:-corrupt_length-1:-1] = 0
+    if corrupt_length:
+        mag[0:corrupt_length] = 0
+        mag[len(mag)-corrupt_length:] = 0
 
     # find peaks and their times
-    indices = numpy.where(mag > threshold)[0]
-    cluster_idx = pycbc.events.findchirp_cluster_over_window(
-            indices, numpy.array(mag[indices]),
-            int(cluster_window*strain.sample_rate))
-    times = [idx * strain.delta_t + strain.start_time \
-             for idx in indices[cluster_idx]]
+    cluster_samples = int(cluster_window * strain.sample_rate)
+    if _HAVE_TORCH and isinstance(mag._data, TorchArrayData):
+        indices, _ = pycbc.events.threshold_real_and_cluster_findchirp(
+            mag, threshold, cluster_samples
+        )
+    else:
+        mag = mag.numpy()
+        indices = numpy.where(mag > threshold)[0]
+        values = numpy.array(mag[indices])
+        cluster_idx = pycbc.events.findchirp_cluster_over_window(
+            indices, values, cluster_samples
+        )
+        indices = indices[cluster_idx]
+    times = [
+        idx * strain.delta_t + strain.start_time for idx in indices
+    ]
 
     return times
 
@@ -428,7 +489,7 @@ def from_cli(opt, dyn_range_fac=1, precision='single',
             tf = pycbc.psd.interpolate(tf, stilde.delta_f)
 
             tf_time = tf.to_timeseries()
-            window = Array(numpy.hanning(flen * 2), dtype=strain.dtype)
+            window = _hann_window_for_series(strain, flen * 2)
             tf_time[0:flen] *= window[flen:]
             tf_time[len(tf_time)-flen:] *= window[0:flen]
             tf = tf_time.to_frequencyseries()
@@ -1016,30 +1077,9 @@ def gate_data(data, gate_params):
     data: TimeSeries
         The gated time series.
     """
-    def inverted_tukey(M, n_pad):
-        midlen = M - 2*n_pad
-        if midlen < 0:
-            raise ValueError("No zeros left after applying padding.")
-        padarr = 0.5*(1.+numpy.cos(numpy.pi*numpy.arange(n_pad)/n_pad))
-        return numpy.concatenate((padarr,numpy.zeros(midlen),padarr[::-1]))
+    from .gate import gate_data as apply_gate_data
 
-    sample_rate = 1./data.delta_t
-    temp = data.data
-
-    for glitch_time, glitch_width, pad_width in gate_params:
-        t_start = glitch_time - glitch_width - pad_width - data.start_time
-        t_end = glitch_time + glitch_width + pad_width - data.start_time
-        if t_start > data.duration or t_end < 0.:
-            continue # Skip gate segments that don't overlap
-        win_samples = int(2*sample_rate*(glitch_width+pad_width))
-        pad_samples = int(sample_rate*pad_width)
-        window = inverted_tukey(win_samples, pad_samples)
-        offset = int(t_start * sample_rate)
-        idx1 = max(0, -offset)
-        idx2 = min(len(window), len(data)-offset)
-        temp[idx1+offset:idx2+offset] *= window[idx1:idx2]
-
-    return data
+    return apply_gate_data(data, gate_params)
 
 
 class StrainSegments(object):
@@ -1345,12 +1385,13 @@ class StrainSegments(object):
 
 
 @functools.lru_cache(maxsize=500)
-def create_memory_and_engine_for_class_based_fft(
+def _create_memory_and_engine_for_class_based_fft(
     npoints_time,
     dtype,
     delta_t=1,
     ifft=False,
-    uid=0
+    uid=0,
+    scheme_key=None,
 ):
     """ Create memory and engine for class-based FFT/IFFT
 
@@ -1375,6 +1416,9 @@ def create_memory_and_engine_for_class_based_fft(
         of memory in the cache, for instance if calling this from different
         codes.
     """
+    # ``scheme_key`` participates in the cache identity. The arrays and FFT
+    # engine below belong to the processing scheme active on a cache miss.
+    del scheme_key
     npoints_freq = npoints_time // 2 + 1
     delta_f_tmp = 1.0 / (npoints_time * delta_t)
     vec = TimeSeries(
@@ -1403,6 +1447,35 @@ def create_memory_and_engine_for_class_based_fft(
         outvec = vectilde
 
     return invec, outvec, fft_class
+
+
+def create_memory_and_engine_for_class_based_fft(
+    npoints_time,
+    dtype,
+    delta_t=1,
+    ifft=False,
+    uid=0,
+):
+    """Create backend-local cached memory and an FFT/IFFT engine."""
+    return _create_memory_and_engine_for_class_based_fft(
+        npoints_time,
+        dtype,
+        delta_t=delta_t,
+        ifft=ifft,
+        uid=uid,
+        scheme_key=pycbc.scheme.current_backend_key(),
+    )
+
+
+create_memory_and_engine_for_class_based_fft.cache_clear = (
+    _create_memory_and_engine_for_class_based_fft.cache_clear
+)
+create_memory_and_engine_for_class_based_fft.cache_info = (
+    _create_memory_and_engine_for_class_based_fft.cache_info
+)
+create_memory_and_engine_for_class_based_fft.cache_parameters = (
+    _create_memory_and_engine_for_class_based_fft.cache_parameters
+)
 
 
 def execute_cached_fft(invec_data, normalize_by_rate=True, ifft=False,
@@ -1840,57 +1913,117 @@ class StrainBuffer(pycbc.frame.DataBuffer):
             e = len(self.strain)
             s = int(e - buffer_length * self.sample_rate - self.reduced_pad * 2)
 
-            # FFT the contents of self.strain[s:e] into fseries
-            fseries = execute_cached_fft(self.strain[s:e],
-                                         copy_output=False,
-                                         uid=STRAINBUFFER_UNIQUE_ID_1)
-            fseries._epoch = self.strain._epoch + s*self.strain.delta_t
+            use_torch = pycbc.HAVE_TORCH and hasattr(self.strain._data, "tensor")
 
-            # we haven't calculated a resample psd for this delta_f
-            if delta_f not in self.psds:
-                psdt = pycbc.psd.interpolate(self.psd, fseries.delta_f)
-                psdt = pycbc.psd.inverse_spectrum_truncation(psdt,
-                                       int(self.sample_rate * self.psd_inverse_length),
-                                       low_frequency_cutoff=self.low_frequency_cutoff)
-                psdt._delta_f = fseries.delta_f
+            if use_torch:
+                tensor = self.strain._data.tensor[s:e]
+                # Match PyCBC's FFT convention: forward transforms include
+                # delta_t, while inverse transforms include 1 / delta_t.
+                fseries_tensor = torch.fft.rfft(tensor) * self.strain.delta_t
+                fseries = FrequencySeries(TorchArrayData(fseries_tensor),
+                                          delta_f=delta_f,
+                                          epoch=self.strain._epoch + s*self.strain.delta_t,
+                                          copy=False)
 
-                psd = pycbc.psd.interpolate(self.psd, delta_f)
-                psd = pycbc.psd.inverse_spectrum_truncation(psd,
-                                       int(self.sample_rate * self.psd_inverse_length),
-                                       low_frequency_cutoff=self.low_frequency_cutoff)
+                if delta_f not in self.psds:
+                    psdt = pycbc.psd.interpolate(self.psd, fseries.delta_f)
+                    psdt = pycbc.psd.inverse_spectrum_truncation(psdt,
+                                           int(self.sample_rate * self.psd_inverse_length),
+                                           low_frequency_cutoff=self.low_frequency_cutoff)
+                    psdt._delta_f = fseries.delta_f
 
-                psd.psdt = psdt
-                self.psds[delta_f] = psd
+                    psd = pycbc.psd.interpolate(self.psd, delta_f)
+                    psd = pycbc.psd.inverse_spectrum_truncation(psd,
+                                           int(self.sample_rate * self.psd_inverse_length),
+                                           low_frequency_cutoff=self.low_frequency_cutoff)
 
-            psd = self.psds[delta_f]
-            fseries /= psd.psdt
+                    psd.psdt = psdt
+                    self.psds[delta_f] = psd
 
-            # trim ends of strain
-            if self.reduced_pad  != 0:
-                # IFFT the contents of fseries into overwhite
-                overwhite = execute_cached_ifft(fseries,
-                                                copy_output=False,
-                                                uid=STRAINBUFFER_UNIQUE_ID_2)
+                psd = self.psds[delta_f]
+                fseries_tensor = fseries_tensor / psd.psdt._data.tensor
+                if self.reduced_pad != 0:
+                    overwhite = (
+                        torch.fft.irfft(fseries_tensor)
+                        / self.strain.delta_t
+                    )
+                    overwhite_ts = TimeSeries(TorchArrayData(overwhite),
+                                              delta_t=self.strain.delta_t,
+                                              epoch=self.strain._epoch + s*self.strain.delta_t,
+                                              copy=False)
+                    overwhite2 = overwhite_ts[self.reduced_pad:len(overwhite_ts)-self.reduced_pad]
+                    taper_window = self.trim_padding / 2.0 / overwhite_ts.sample_rate
+                    gate_params = [(overwhite2.start_time, 0., taper_window),
+                                   (overwhite2.end_time, 0., taper_window)]
+                    gate_data(overwhite2, gate_params)
+                    fseries_tensor = (
+                        torch.fft.rfft(overwhite2._data.tensor)
+                        * overwhite2.delta_t
+                    )
+                    fseries_trimmed = FrequencySeries(TorchArrayData(fseries_tensor),
+                                                      delta_f=overwhite2.delta_f,
+                                                      epoch=overwhite2.start_time,
+                                                      copy=False)
+                else:
+                    fseries_trimmed = FrequencySeries(TorchArrayData(fseries_tensor),
+                                                      delta_f=delta_f,
+                                                      epoch=fseries.epoch,
+                                                      copy=False)
+                fseries_trimmed.psd = psd
+                self.segments[delta_f] = fseries_trimmed
 
-                overwhite2 = overwhite[self.reduced_pad:len(overwhite)-self.reduced_pad]
-                taper_window = self.trim_padding / 2.0 / overwhite.sample_rate
-                gate_params = [(overwhite2.start_time, 0., taper_window),
-                               (overwhite2.end_time, 0., taper_window)]
-                gate_data(overwhite2, gate_params)
-
-                # FFT the contents of overwhite2 into fseries_trimmed
-                fseries_trimmed = execute_cached_fft(
-                    overwhite2,
-                    copy_output=True,
-                    uid=STRAINBUFFER_UNIQUE_ID_3
-                )
-
-                fseries_trimmed.start_time = fseries.start_time + self.reduced_pad * self.strain.delta_t
             else:
-                fseries_trimmed = fseries
+                # FFT the contents of self.strain[s:e] into fseries
+                fseries = execute_cached_fft(self.strain[s:e],
+                                             copy_output=False,
+                                             uid=STRAINBUFFER_UNIQUE_ID_1)
+                fseries._epoch = self.strain._epoch + s*self.strain.delta_t
 
-            fseries_trimmed.psd = psd
-            self.segments[delta_f] = fseries_trimmed
+                # we haven't calculated a resample psd for this delta_f
+                if delta_f not in self.psds:
+                    psdt = pycbc.psd.interpolate(self.psd, fseries.delta_f)
+                    psdt = pycbc.psd.inverse_spectrum_truncation(psdt,
+                                           int(self.sample_rate * self.psd_inverse_length),
+                                           low_frequency_cutoff=self.low_frequency_cutoff)
+                    psdt._delta_f = fseries.delta_f
+
+                    psd = pycbc.psd.interpolate(self.psd, delta_f)
+                    psd = pycbc.psd.inverse_spectrum_truncation(psd,
+                                           int(self.sample_rate * self.psd_inverse_length),
+                                           low_frequency_cutoff=self.low_frequency_cutoff)
+
+                    psd.psdt = psdt
+                    self.psds[delta_f] = psd
+
+                psd = self.psds[delta_f]
+                fseries /= psd.psdt
+
+                # trim ends of strain
+                if self.reduced_pad  != 0:
+                    # IFFT the contents of fseries into overwhite
+                    overwhite = execute_cached_ifft(fseries,
+                                                    copy_output=False,
+                                                    uid=STRAINBUFFER_UNIQUE_ID_2)
+
+                    overwhite2 = overwhite[self.reduced_pad:len(overwhite)-self.reduced_pad]
+                    taper_window = self.trim_padding / 2.0 / overwhite.sample_rate
+                    gate_params = [(overwhite2.start_time, 0., taper_window),
+                                   (overwhite2.end_time, 0., taper_window)]
+                    gate_data(overwhite2, gate_params)
+
+                    # FFT the contents of overwhite2 into fseries_trimmed
+                    fseries_trimmed = execute_cached_fft(
+                        overwhite2,
+                        copy_output=True,
+                        uid=STRAINBUFFER_UNIQUE_ID_3
+                    )
+
+                    fseries_trimmed.start_time = fseries.start_time + self.reduced_pad * self.strain.delta_t
+                else:
+                    fseries_trimmed = fseries
+
+                fseries_trimmed.psd = psd
+                self.segments[delta_f] = fseries_trimmed
 
         stilde = self.segments[delta_f]
         return stilde
