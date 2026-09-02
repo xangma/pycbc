@@ -1,23 +1,26 @@
 import unittest
 import numpy
 
-from utils import simple_exit
+from utils import simple_exit, parse_args_all_schemes
 
 from pycbc import cosmology
 from pycbc.waveform import get_td_waveform, get_fd_waveform
 from pycbc.waveform.utils import (
     apply_fd_time_shift,
+    fd_to_td,
     redshift_waveform,
 )
-from pycbc.types import (TimeSeries)
+from pycbc.types import TimeSeries
+
+_scheme, _context = parse_args_all_schemes("Waveform Utils")
 
 
 class TestFDTimeShift(unittest.TestCase):
-    """Tests ``apply_fd_time_shift``."""
+    """Tests waveform utility helpers across schemes."""
     def setUp(self):
-        # we'll use a sine wave time series to do the testing, with the
-        # the segment length such that an interger number of cycles fit, so
-        # we don't have to worry about boundary effects
+        self.scheme = _scheme
+        self.context = _context
+        # Build a clean sinusoid with integer cycles to avoid edge effects
         self.freq = 128
         self.sample_rate = 4096
         self.seglen = 1
@@ -25,85 +28,70 @@ class TestFDTimeShift(unittest.TestCase):
         t = numpy.linspace(0, ncycles*2*numpy.pi,
                            num=self.sample_rate*self.seglen,
                            endpoint=False)
-        self.time_series = TimeSeries(t, delta_t=1./self.sample_rate, epoch=0)
-        self.tdsinx = numpy.sin(self.time_series)
-        self.fdsinx = self.tdsinx.to_frequencyseries()
+        with self.context:
+            self.time_series = TimeSeries(t, delta_t=1./self.sample_rate, epoch=0)
+            tdsinx_arr = numpy.sin(t)
+            self.tdsinx = TimeSeries(tdsinx_arr, delta_t=1./self.sample_rate, epoch=0)
+            self.fdsinx = self.tdsinx.to_frequencyseries()
 
     def _shift_and_ifft(self, fdsinx, tshift, fseries=None):
-        """Calls apply_fd_time_shift, and iFFTs to the time domain.
-        """
         start_time = self.time_series.start_time
         tdshift = apply_fd_time_shift(fdsinx, start_time+tshift,
                                       fseries=fseries)
         return tdshift.to_timeseries()
 
     def _test_apply_fd_time_shift(self, fdsinx, fseries=None, atol=1e-8):
-        """Tests ``apply_fd_time_shift`` with the given fdseries.
-
-        If ``fdsinx`` is a FrequencySeries, this will test the shift code
-        written in C. Otherwise, this will test the numpy version.
-
-        Parameters
-        ----------
-        fdsinx : FrequencySeries
-            The frequency series to shift and test.
-        fseires : array, optional
-            Array of the sample frequencies of ``fdsinx``. This is only needed
-            for the numpy version.
-        atol : float, optional
-            The absolute tolerance for the comparison test. See
-            ``numpy.isclose`` for details.
-        """
-        # shift by -pi/2: should be the same as the cosine
+        # shift by -pi/2: should be cosine
         tshift = 1./(4*self.freq)
         tdshift = self._shift_and_ifft(fdsinx, -tshift, fseries=fseries)
-        # check
-        comp = numpy.cos(self.time_series)
+        comp = numpy.cos(self.time_series.numpy())
         if tdshift.precision == 'single':
-            # cast to single
             comp = comp.astype(numpy.float32)
         self.assertTrue(numpy.isclose(tdshift, comp, atol=atol).all())
-        # shift by +pi/2: should be the same as the -cosine
+
+        # shift by +pi/2: should be -cosine
         tdshift = self._shift_and_ifft(fdsinx, tshift, fseries=fseries)
-        self.assertTrue(numpy.isclose(tdshift, -1*comp, atol=atol).all())
-        # shift by a non-integer fraction of the period; we'll do this by
-        # shifting by a prime number times dt / 3
-        # forward:
+        self.assertTrue(numpy.isclose(tdshift.numpy(), -1*comp, atol=atol).all())
+
+        # shift by an arbitrary fraction of period
         tshift = 193 * self.time_series.delta_t / 3.
         tdshift = self._shift_and_ifft(fdsinx, tshift, fseries=fseries)
-        comp = numpy.sin(self.time_series - 2*numpy.pi*self.freq*tshift)
+        comp = numpy.sin(self.time_series.numpy() - 2*numpy.pi*self.freq*tshift)
         if tdshift.precision == 'single':
-            # cast to single
             comp = comp.astype(numpy.float32)
         self.assertTrue(numpy.isclose(tdshift, comp, atol=atol).all())
-        # backward:
+
+        # backward
         tdshift = self._shift_and_ifft(fdsinx, -tshift, fseries=fseries)
-        comp = numpy.sin(self.time_series + 2*numpy.pi*self.freq*tshift)
+        comp = numpy.sin(self.time_series.numpy() + 2*numpy.pi*self.freq*tshift)
         if tdshift.precision == 'single':
-            # cast to single
             comp = comp.astype(numpy.float32)
-        self.assertTrue(numpy.isclose(tdshift, comp, atol=atol).all())
+        self.assertTrue(numpy.isclose(tdshift.numpy(), comp, atol=atol).all())
 
     def test_fd_time_shift(self):
-        """Applies shifts to fdsinx using cython code, and compares the
-        result to applying the shift directly in the time domain.
-        """
-        self._test_apply_fd_time_shift(self.fdsinx)
+        with self.context:
+            self._test_apply_fd_time_shift(self.fdsinx)
 
     def test_fd_time_shift32(self):
-        """Tests the cython code using single precision.
-        """
-        # we need to increase the tolerance on isclose
-        self._test_apply_fd_time_shift(self.fdsinx.astype(numpy.complex64),
-                                       atol=1e-4)
+        with self.context:
+            self._test_apply_fd_time_shift(self.fdsinx.astype(numpy.complex64),
+                                           atol=1e-4)
 
     def test_fseries_time_shift(self):
-        """Applies shifts to fdsinx using numpy code, and compares the result
-        to applying the shift directly in the time domain.
-        """
+        if self.scheme != 'cpu':
+            self.skipTest("Non-uniform fseries path tested only under CPU scheme")
         fdsinx = self.fdsinx.copy()
         fseries = self.fdsinx.sample_frequencies.numpy()
-        self._test_apply_fd_time_shift(fdsinx, fseries)
+        with self.context:
+            self._test_apply_fd_time_shift(fdsinx, fseries)
+
+    def test_fd_to_td_roundtrip(self):
+        """Convert FD back to TD and compare with original sine."""
+        with self.context:
+            td_round = fd_to_td(self.fdsinx, delta_t=self.time_series.delta_t)
+        comp = self.tdsinx[:len(td_round)]
+        self.assertTrue(numpy.allclose(td_round, comp, atol=1e-6))
+
 
 
 class TestRedshiftWaveform(unittest.TestCase):

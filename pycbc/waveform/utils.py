@@ -24,18 +24,121 @@
 #
 """This module contains convenience utilities for manipulating waveforms
 """
-
+from pycbc.types import TimeSeries, FrequencySeries, Array, complex_same_precision_as, real_same_precision_as
 from math import frexp
 import numpy
-
-from scipy import signal
+import pycbc
+try:
+    import torch
+    from pycbc.types.array_torch import TorchArrayData
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover
+    torch = None
+    TorchArrayData = None
+    _HAVE_TORCH = False
 
 from pycbc.scheme import schemed
-from pycbc.types import (
-    TimeSeries, FrequencySeries, Array,
-    complex_same_precision_as, real_same_precision_as
-)
-from pycbc.constants import PI
+import pycbc.scheme as _scheme
+
+
+def _is_torch_series(series):
+    """Return whether ``series`` has Torch-backed PyCBC storage."""
+    return _HAVE_TORCH and isinstance(
+        getattr(series, "_data", None), TorchArrayData
+    )
+
+
+def _torch_unwrap(phase):
+    """Apply NumPy-compatible phase unwrapping to a 1-D Torch tensor."""
+    if phase.numel() < 2:
+        return phase.clone()
+
+    pi = phase.new_tensor(numpy.pi)
+    delta = torch.diff(phase)
+    delta_mod = torch.remainder(delta + pi, 2 * pi) - pi
+    delta_mod = torch.where(
+        (delta_mod == -pi) & (delta > 0), pi, delta_mod
+    )
+    correction = delta_mod - delta
+    correction = torch.where(
+        torch.abs(delta) < pi, torch.zeros_like(correction), correction
+    )
+    unwrapped = phase.clone()
+    unwrapped[1:] += torch.cumsum(correction, dim=0)
+    return unwrapped
+
+
+def _as_torch_tensor(value, device, dtype=None):
+    """Return array-like input as a tensor on ``device`` without host copies."""
+    tensor = getattr(value, "tensor", None)
+    if tensor is None:
+        tensor = getattr(getattr(value, "_data", None), "tensor", None)
+    if tensor is not None:
+        return tensor.to(device=device, dtype=dtype)
+
+    data = getattr(value, "_data", value)
+    return torch.as_tensor(data, device=device, dtype=dtype)
+
+
+def _torch_kaiser_window(data, length, beta):
+    """Return SciPy's periodic Kaiser window on ``data``'s device.
+
+    ``torch.kaiser_window`` is not implemented by the MPS backend.  The
+    analytic definition is small and keeps taper construction device-native
+    on every Torch backend supported by PyCBC.
+    """
+    dtype = data.real.dtype
+    if length <= 1:
+        return torch.ones(length, dtype=dtype, device=data.device)
+
+    position = torch.arange(length, dtype=dtype, device=data.device)
+    radius = 2 * position / length - 1
+    argument = float(beta) * torch.sqrt(
+        torch.clamp(1 - radius * radius, min=0)
+    )
+    normalization = torch.i0(
+        torch.as_tensor(float(beta), dtype=dtype, device=data.device)
+    )
+    return torch.i0(argument) / normalization
+
+
+def scheme_cast_series(series):
+    """Move a waveform series to the active Torch device when necessary.
+
+    CPU/LAL waveform generators may be used as fallbacks by the Torch scheme.
+    This helper keeps that conversion in one place and avoids an intermediate
+    ``series.numpy()`` copy. Native Torch outputs already on the requested
+    device are returned unchanged.
+    """
+    if not (_HAVE_TORCH and hasattr(series, "_data")):
+        return series
+    if not isinstance(_scheme.mgr.state, _scheme.TorchScheme):
+        return series
+
+    data = series
+    copy = True
+    if hasattr(series._data, "tensor"):
+        tensor = series._data.tensor
+        target_device = _scheme.mgr.state.torch_device
+        same_device = (
+            tensor.device.type == target_device.type
+            and (
+                target_device.index is None
+                or tensor.device.index == target_device.index
+            )
+        )
+        if same_device:
+            return series
+        data = TorchArrayData(tensor.to(target_device))
+        copy = False
+
+    if isinstance(series, TimeSeries):
+        return TimeSeries(data, delta_t=series.delta_t,
+                          epoch=series.start_time, copy=copy)
+    if isinstance(series, FrequencySeries):
+        return FrequencySeries(data, delta_f=series.delta_f,
+                               epoch=series.epoch, copy=copy)
+    raise TypeError("Expected a TimeSeries or FrequencySeries")
 
 def ceilpow2(n):
     """convenience function to determine a power-of-2 upper frequency limit"""
@@ -123,8 +226,18 @@ def phase_from_frequencyseries(htilde, remove_start_phase=True):
     FrequencySeries
         The phase of the waveform as a function of frequency.
     """
+    if _is_torch_series(htilde):
+        p = _torch_unwrap(torch.angle(htilde._data.tensor))
+        if remove_start_phase:
+            p = p - p[0]
+        return FrequencySeries(
+            TorchArrayData(p), delta_f=htilde.delta_f,
+            epoch=htilde.epoch, copy=False,
+        )
+
     p = numpy.unwrap(numpy.angle(htilde.data)).astype(
-            real_same_precision_as(htilde))
+        real_same_precision_as(htilde)
+    )
     if remove_start_phase:
         p += -p[0]
     return FrequencySeries(p, delta_f=htilde.delta_f, epoch=htilde.epoch,
@@ -144,6 +257,13 @@ def amplitude_from_frequencyseries(htilde):
     FrequencySeries
         The amplitude of the waveform as a function of frequency.
     """
+    if _is_torch_series(htilde):
+        amp = torch.abs(htilde._data.tensor)
+        return FrequencySeries(
+            TorchArrayData(amp), delta_f=htilde.delta_f,
+            epoch=htilde.epoch, copy=False,
+        )
+
     amp = abs(htilde.data).astype(real_same_precision_as(htilde))
     return FrequencySeries(amp, delta_f=htilde.delta_f, epoch=htilde.epoch,
         copy=False)
@@ -183,6 +303,37 @@ def time_from_frequencyseries(htilde, sample_frequencies=None,
     FrequencySeries
         The time evolution of the waveform as a function of frequency.
     """
+    if _is_torch_series(htilde):
+        source = htilde._data.tensor
+        if sample_frequencies is None:
+            sample_frequencies = torch.arange(
+                len(htilde), dtype=source.real.dtype, device=source.device
+            ) * htilde.delta_f
+        else:
+            sample_frequencies = _as_torch_tensor(
+                sample_frequencies, source.device,
+                dtype=source.real.dtype if source.device.type == "mps" else None,
+            )
+
+        phase = phase_from_frequencyseries(htilde)._data.tensor
+        dphi = torch.diff(phase)
+        time = -dphi / (2 * numpy.pi * torch.diff(sample_frequencies))
+        nzidx = torch.nonzero(torch.abs(source), as_tuple=False).flatten()
+        kmin = nzidx[0].item()
+        kmax = nzidx[-2].item()
+        discont_idx = torch.nonzero(
+            torch.abs(dphi[kmin:]) >= discont_threshold, as_tuple=False
+        ).flatten()
+        if discont_idx.numel():
+            kmax = min(kmax, kmin + discont_idx[0].item() - 1)
+        time[:kmin] = time[kmin]
+        time[kmax:] = time[kmax]
+        time = time.to(dtype=source.real.dtype)
+        return FrequencySeries(
+            TorchArrayData(time), delta_f=htilde.delta_f,
+            epoch=htilde.epoch, copy=False,
+        )
+
     if sample_frequencies is None:
         sample_frequencies = htilde.sample_frequencies.numpy()
     phase = phase_from_frequencyseries(htilde).data
@@ -229,6 +380,17 @@ def phase_from_polarizations(h_plus, h_cross, remove_start_phase=True):
     >>> phase = phase_from_polarizations(hp, hc)
 
     """
+    if _is_torch_series(h_plus) and _is_torch_series(h_cross):
+        p = _torch_unwrap(torch.atan2(
+            h_cross._data.tensor, h_plus._data.tensor
+        ))
+        if remove_start_phase:
+            p = p - p[0]
+        return TimeSeries(
+            TorchArrayData(p), delta_t=h_plus.delta_t,
+            epoch=h_plus.start_time, copy=False,
+        )
+
     p = numpy.unwrap(numpy.arctan2(h_cross.data, h_plus.data)).astype(
         real_same_precision_as(h_plus))
     if remove_start_phase:
@@ -265,7 +427,9 @@ def amplitude_from_polarizations(h_plus, h_cross):
 
     """
     amp = (h_plus.squared_norm() + h_cross.squared_norm()) ** (0.5)
-    return TimeSeries(amp, delta_t=h_plus.delta_t, epoch=h_plus.start_time)
+    return TimeSeries(
+        amp, delta_t=h_plus.delta_t, epoch=h_plus.start_time, copy=False
+    )
 
 def frequency_from_polarizations(h_plus, h_cross):
     """Return gravitational wave frequency
@@ -299,7 +463,17 @@ def frequency_from_polarizations(h_plus, h_cross):
 
     """
     phase = phase_from_polarizations(h_plus, h_cross)
-    freq = numpy.diff(phase) / ( 2 * PI * phase.delta_t )
+    if _is_torch_series(phase):
+        freq = torch.diff(phase._data.tensor) / (
+            2 * numpy.pi * phase.delta_t
+        )
+        start_time = phase.start_time + phase.delta_t / 2
+        return TimeSeries(
+            TorchArrayData(freq), delta_t=phase.delta_t,
+            epoch=start_time, copy=False,
+        )
+
+    freq = numpy.diff(phase) / ( 2 * numpy.pi * phase.delta_t )
     start_time = phase.start_time + phase.delta_t / 2
     return TimeSeries(freq.astype(real_same_precision_as(h_plus)),
         delta_t=phase.delta_t, epoch=start_time)
@@ -347,9 +521,17 @@ def apply_fd_time_shift(htilde, shifttime, kmin=0, fseries=None, copy=True):
         htilde = apply_fseries_time_shift(htilde, dt, kmin=kmin, copy=copy)
     else:
         if fseries is None:
-            fseries = htilde.sample_frequencies.numpy()
-        shift = Array(numpy.exp(-2j*numpy.pi*dt*fseries),
-                    dtype=complex_same_precision_as(htilde))
+            fseries = htilde.sample_frequencies
+        # Support torch-backed non-uniform frequency arrays
+        if _HAVE_TORCH and hasattr(fseries, "_data") and hasattr(fseries._data, "tensor"):
+            phase = -2j * numpy.pi * dt
+            shift = torch.exp(phase * fseries._data.tensor)
+            shift = Array(shift, dtype=complex_same_precision_as(htilde))
+        else:
+            if not isinstance(fseries, numpy.ndarray):
+                fseries = fseries.numpy()
+            shift = Array(numpy.exp(-2j*numpy.pi*dt*fseries),
+                          dtype=complex_same_precision_as(htilde))
         if copy:
             htilde = 1. * htilde
         htilde *= shift
@@ -385,9 +567,28 @@ def td_taper(out, start, end, beta=8, side='left'):
     out = out.copy()
     width = end - start
     winlen = 2 * int(width / out.delta_t)
-    window = Array(signal.get_window(('kaiser', beta), winlen))
     xmin = int((start - out.start_time) / out.delta_t)
     xmax = xmin + winlen//2
+    if _is_torch_series(out):
+        data = out._data.tensor
+        window = _torch_kaiser_window(data, winlen, beta)
+        if side == 'left':
+            data[xmin:xmax] *= window[:winlen//2]
+            if xmin > 0:
+                data[:xmin].zero_()
+        elif side == 'right':
+            data[xmin:xmax] *= window[winlen//2:]
+            if xmax < len(out):
+                data[xmax:].zero_()
+        else:
+            raise ValueError("unrecognized side argument {}".format(side))
+        return out
+
+    from scipy import signal
+    window = Array(
+        signal.get_window(('kaiser', beta), winlen),
+        dtype=real_same_precision_as(out),
+    )
     if side == 'left':
         out[xmin:xmax] *= window[:winlen//2]
         if xmin > 0:
@@ -429,9 +630,26 @@ def fd_taper(out, start, end, beta=8, side='left'):
     out = out.copy()
     width = end - start
     winlen = 2 * int(width / out.delta_f)
-    window = Array(signal.get_window(('kaiser', beta), winlen))
     kmin = int(start / out.delta_f)
     kmax = kmin + winlen//2
+    if _is_torch_series(out):
+        data = out._data.tensor
+        window = _torch_kaiser_window(data, winlen, beta)
+        if side == 'left':
+            data[kmin:kmax] *= window[:winlen//2]
+            data[:kmin].zero_()
+        elif side == 'right':
+            data[kmin:kmax] *= window[winlen//2:]
+            data[kmax:].zero_()
+        else:
+            raise ValueError("unrecognized side argument {}".format(side))
+        return out
+
+    from scipy import signal
+    window = Array(
+        signal.get_window(('kaiser', beta), winlen),
+        dtype=real_same_precision_as(out),
+    )
     if side == 'left':
         out[kmin:kmax] *= window[:winlen//2]
         out[:kmin] *= 0.

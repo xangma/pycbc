@@ -23,11 +23,13 @@
 """ Utilities for handling frequency compressed an unequally spaced frequency
 domain waveforms.
 """
-import numpy, logging, h5py, time
+import h5py
+import logging
+import numpy
+import time
 from scipy import interpolate
-
 from pycbc import filter
-from pycbc.types import FrequencySeries, real_same_precision_as
+from pycbc.types import FrequencySeries, real_same_precision_as, zeros
 from pycbc.waveform import utils
 from pycbc.scheme import schemed
 from pycbc.io.hdf import HFile
@@ -140,6 +142,52 @@ def spa_compression(htilde, fmin, fmax, min_seglen=0.02,
     array
         The frequencies at which to evaluate the compressed waveform.
     """
+    source = getattr(getattr(htilde, "_data", None), "tensor", None)
+    if source is not None:
+        import torch
+
+        if sample_frequencies is None:
+            frequencies = torch.arange(
+                len(htilde), dtype=source.real.dtype, device=source.device
+            ) * htilde.delta_f
+        else:
+            frequencies = getattr(
+                getattr(sample_frequencies, "_data", None), "tensor", None
+            )
+            if frequencies is None:
+                frequencies = torch.as_tensor(
+                    sample_frequencies,
+                    dtype=source.real.dtype,
+                    device=source.device,
+                )
+            else:
+                frequencies = frequencies.to(
+                    dtype=source.real.dtype, device=source.device
+                )
+
+        kmin = int(fmin / htilde.delta_f)
+        kmax = int(fmax / htilde.delta_f)
+        tf = torch.abs(
+            utils.time_from_frequencyseries(
+                htilde, sample_frequencies=frequencies
+            )._data.tensor[kmin:kmax]
+        )
+        frequencies = frequencies[kmin:kmax]
+        sample_points = []
+        f = fmin
+        while f < fmax:
+            f = int(f / htilde.delta_f) * htilde.delta_f
+            sample_points.append(f)
+            query = torch.as_tensor(
+                f, dtype=frequencies.dtype, device=frequencies.device
+            )
+            jj = int(torch.searchsorted(frequencies, query).item())
+            max_time = float(tf[jj:].max().item())
+            f += 1.0 / (max_time + min_seglen) * scale
+        if sample_points[-1] < fmax:
+            sample_points.append(fmax)
+        return numpy.array(sample_points)
+
     if sample_frequencies is None:
         sample_frequencies = htilde.sample_frequencies.numpy()
     kmin = int(fmin/htilde.delta_f)
@@ -625,10 +673,9 @@ def fd_decompress(amp, phase, sample_frequencies, out=None, df=None,
     if out is None:
         if df is None:
             raise ValueError("Either provide output memory or a df")
-        hlen = int(numpy.ceil(sample_frequencies.max()/df+1))
-        out = FrequencySeries(numpy.zeros(hlen,
-            dtype=_complex_dtypes[precision]), copy=False,
-            delta_f=df)
+        hlen = int(numpy.ceil(sample_frequencies.max()/df + 1))
+        arr = zeros(hlen, dtype=_complex_dtypes[precision])
+        out = FrequencySeries(arr, copy=False, delta_f=df)
     else:
         # check for precision compatibility
         if out.precision != precision:
@@ -648,8 +695,21 @@ def fd_decompress(amp, phase, sample_frequencies, out=None, df=None,
             raise ValueError("f_lower is > than the maximum sample frequency")
         if f_lower < sample_frequencies.min():
             raise ValueError("f_lower is < than the minimum sample frequency")
-        imin = int(numpy.searchsorted(sample_frequencies, f_lower,
-            side='right')) - 1 # pylint:disable=unused-variable
+        frequency_tensor = getattr(
+            getattr(sample_frequencies, "_data", None), "tensor", None
+        )
+        if frequency_tensor is None:
+            imin = int(numpy.searchsorted(
+                sample_frequencies, f_lower, side='right'
+            )) - 1
+        else:
+            import torch
+
+            query = frequency_tensor.new_tensor(f_lower)
+            imin = int(torch.searchsorted(
+                frequency_tensor,
+                query, right=True
+            ).item()) - 1
         start_index = int(numpy.ceil(f_lower/df))
     if start_index >= hlen:
         raise ValueError('requested f_lower >= largest frequency in out')

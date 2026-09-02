@@ -273,6 +273,32 @@ lambda1 = Parameter("lambda1",
 lambda2 = Parameter("lambda2",
                 dtype=float, default=None, label=r"$\Lambda_2$",
                 description="The dimensionless tidal deformability parameter of object 2.")
+nl_tides_a1 = Parameter(
+                "nl_tides_a1", dtype=float, default=None,
+                label=r"$A_{\mathrm{NL},1}$",
+                description="The nonlinear-tide amplitude for object 1.")
+nl_tides_n1 = Parameter(
+                "nl_tides_n1", dtype=float, default=None,
+                label=r"$n_{\mathrm{NL},1}$",
+                description="The nonlinear-tide spectral index for object 1.")
+nl_tides_f1 = Parameter(
+                "nl_tides_f1", dtype=float, default=None,
+                label=r"$f_{\mathrm{NL},1}$",
+                description="The nonlinear-tide turn-on frequency for object "
+                            "1 (in Hz).")
+nl_tides_a2 = Parameter(
+                "nl_tides_a2", dtype=float, default=None,
+                label=r"$A_{\mathrm{NL},2}$",
+                description="The nonlinear-tide amplitude for object 2.")
+nl_tides_n2 = Parameter(
+                "nl_tides_n2", dtype=float, default=None,
+                label=r"$n_{\mathrm{NL},2}$",
+                description="The nonlinear-tide spectral index for object 2.")
+nl_tides_f2 = Parameter(
+                "nl_tides_f2", dtype=float, default=None,
+                label=r"$f_{\mathrm{NL},2}$",
+                description="The nonlinear-tide turn-on frequency for object "
+                            "2 (in Hz).")
 dquad_mon1 = Parameter("dquad_mon1",
                 dtype=float, default=None, label=r"$qm_1$",
                 description="Quadrupole-monopole parameter / m_1^5 -1.")
@@ -362,6 +388,19 @@ sample_points = Parameter("sample_points",
 approximant = Parameter("approximant",
                 dtype=str, default=None, label=None,
                 description="A string that indicates the chosen approximant.")
+phenom_x_prec_version = Parameter(
+                "phenom_x_prec_version", dtype=int, default=None, label=None,
+                description="IMRPhenomX precession-angle prescription. A "
+                            "default of None uses the lalsimulation default.")
+phenom_xp_convention = Parameter(
+                "phenom_xp_convention", dtype=int, default=None, label=None,
+                description="IMRPhenomXP source-frame convention. A default "
+                            "of None uses the lalsimulation default.")
+phenom_xp_final_spin_mod = Parameter(
+                "phenom_xp_final_spin_mod", dtype=int, default=None,
+                label=None,
+                description="IMRPhenomXP final-spin prescription. A default "
+                            "of None uses the lalsimulation default.")
 phase_order = Parameter("phase_order",
                 dtype=int, default=-1, label=None,
                 description="The pN order of the orbital phase. The default "
@@ -589,8 +628,10 @@ testingGR_params = ParameterList\
 # by every waveform model
 cbc_intrinsic_params = ParameterList\
     ([mass1, mass2, spin1x, spin1y, spin1z, spin2x, spin2y, spin2z,
-      eccentricity, lambda1, lambda2, dquad_mon1, dquad_mon2, lambda_octu1,
-      lambda_octu2, quadfmode1, quadfmode2, octufmode1, octufmode2]) + \
+      eccentricity, lambda1, lambda2, nl_tides_a1, nl_tides_n1,
+      nl_tides_f1, nl_tides_a2, nl_tides_n2, nl_tides_f2, dquad_mon1,
+      dquad_mon2, lambda_octu1, lambda_octu2, quadfmode1, quadfmode2,
+      octufmode1, octufmode2]) + \
     testingGR_params
 
 # the parameters of a cbc in the radiation frame
@@ -608,7 +649,9 @@ common_generation_params = ParameterList([
 
 # Flags having discrete values, optional to generate either
 # a TD, FD, or frequency sequence waveform
-flags_generation_params = ParameterList([frame_axis, modes_choice, side_bands, mode_array])
+flags_generation_params = ParameterList([
+    frame_axis, modes_choice, side_bands, mode_array, phenom_x_prec_version,
+    phenom_xp_convention, phenom_xp_final_spin_mod])
 
 # the following are parameters needed to generate an FD or TD waveform that
 # is equally sampled

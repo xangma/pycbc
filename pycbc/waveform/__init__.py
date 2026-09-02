@@ -1,6 +1,9 @@
 from pycbc.waveform.waveform import *
 from pycbc.waveform.utils import *
-from pycbc.waveform.bank import *
+from pycbc import lal_compat as _lal_compat
+
+if _lal_compat.LAL_AVAILABLE:
+    from pycbc.waveform.bank import *
 from pycbc.waveform.ringdown import *
 from pycbc.waveform.parameters import *
 from pycbc.waveform.waveform_modes import (get_td_waveform_modes,
