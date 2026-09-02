@@ -1077,9 +1077,30 @@ def gate_data(data, gate_params):
     data: TimeSeries
         The gated time series.
     """
-    from .gate import gate_data as apply_gate_data
+    def inverted_tukey(M, n_pad):
+        midlen = M - 2*n_pad
+        if midlen < 0:
+            raise ValueError("No zeros left after applying padding.")
+        padarr = 0.5*(1.+numpy.cos(numpy.pi*numpy.arange(n_pad)/n_pad))
+        return numpy.concatenate((padarr,numpy.zeros(midlen),padarr[::-1]))
 
-    return apply_gate_data(data, gate_params)
+    sample_rate = 1./data.delta_t
+    temp = data.data
+
+    for glitch_time, glitch_width, pad_width in gate_params:
+        t_start = glitch_time - glitch_width - pad_width - data.start_time
+        t_end = glitch_time + glitch_width + pad_width - data.start_time
+        if t_start > data.duration or t_end < 0.:
+            continue # Skip gate segments that don't overlap
+        win_samples = int(2*sample_rate*(glitch_width+pad_width))
+        pad_samples = int(sample_rate*pad_width)
+        window = inverted_tukey(win_samples, pad_samples)
+        offset = int(t_start * sample_rate)
+        idx1 = max(0, -offset)
+        idx2 = min(len(window), len(data)-offset)
+        temp[idx1+offset:idx2+offset] *= window[idx1:idx2]
+
+    return data
 
 
 class StrainSegments(object):

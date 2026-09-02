@@ -676,15 +676,8 @@ def _sky_max_threshold_locations(
             hc_sq = torch.view_as_real(hc_analyse).square().sum(dim=-1)
         else:
             hc_sq = hc_analyse.square()
-        idx_p = torch.nonzero(
-            hp_sq > hp_thresh.square(),
-            as_tuple=False,
-        ).flatten() + start
-        idx_c = torch.nonzero(
-            hc_sq > hc_thresh.square(),
-            as_tuple=False,
-        ).flatten() + start
-        indices = torch.unique(torch.cat((idx_p, idx_c)), sorted=True)
+        mask = (hp_sq > hp_thresh.square()) | (hc_sq > hc_thresh.square())
+        indices = torch.nonzero(mask, as_tuple=False).flatten() + start
         hp_red = hplus_tensor[indices] * hpnorm
         hc_red = hcross_tensor[indices] * hcnorm
         if hp_red.is_complex():
@@ -2788,14 +2781,7 @@ class LiveBatchMatchedFilter(object):
                 else:
                     clean_vals = torch.nan_to_num(torch.abs(values), nan=0.0)
                     indices = torch.argmax(clean_vals, dim=-1)
-                g_idx = indices.unsqueeze(1)
-                if values.is_complex():
-                    peaks = torch.complex(
-                        values.real.gather(1, g_idx),
-                        values.imag.gather(1, g_idx),
-                    ).squeeze(1)
-                else:
-                    peaks = values.gather(1, g_idx).squeeze(1)
+                peaks = values[torch.arange(values.shape[0], device=values.device), indices]
                 static_indices.copy_(indices)
                 static_peaks.copy_(peaks)
 
@@ -2986,9 +2972,12 @@ class LiveBatchMatchedFilter(object):
                                     epoch=getattr(next_stilde, "_epoch", 0),
                                     copy=False,
                                 )
-                            else:
-                                next_stilde_dev = next_stilde_gpu
-                            self._async_prefetched = (next_block_id, next_stilde_dev, next_event)
+                            self._async_prefetched = (
+                                next_block_id,
+                                next_stilde_dev,
+                                next_event,
+                                next_pinned,
+                            )
                         else:
                             self._async_prefetched = (next_block_id, next_stilde, None)
                     except Exception:

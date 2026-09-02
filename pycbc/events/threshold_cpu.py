@@ -61,7 +61,7 @@ def threshold_inline(series, value):
     if num > 0:
         return outl[0:num], outv[0:num]
     else:
-        return numpy.array([], numpy.uint32), numpy.array([], numpy.complex64)
+        return numpy.array([], numpy.uint32), numpy.array([], numpy.float32)
 
 # threshold_numpy can also be used here, but for now we use the inline code
 # in all instances. Not sure why we're defining threshold *and* threshold_only
@@ -78,22 +78,12 @@ class CPUThresholdCluster(_BaseThresholdCluster):
         self.outl = numpy.zeros(self.slen, numpy.uint32)
         self.segsize = numpy.uint32(default_segsize)
 
-        # Pre-allocate reusable workspace to eliminate dynamic malloc/free churn per template
-        self.ws_cvals = numpy.zeros(self.slen, dtype=numpy.complex64)
-        self.ws_norms = numpy.zeros(self.slen, dtype=numpy.float32)
-        self.ws_mlocs = numpy.zeros(self.slen, dtype=numpy.int64)
-        self.ws_seglens = numpy.zeros(self.slen, dtype=numpy.int64)
-
     def threshold_and_cluster(self, threshold, window):
         self.count = parallel_thresh_cluster(self.series, self.slen,
                                              self.outv, self.outl,
                                              numpy.float32(threshold),
                                              numpy.uint32(window),
-                                             self.segsize,
-                                             self.ws_cvals,
-                                             self.ws_norms,
-                                             self.ws_mlocs,
-                                             self.ws_seglens)
+                                             self.segsize)
         if self.count > 0:
             return self.outv[0:self.count], self.outl[0:self.count]
         else:

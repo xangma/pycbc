@@ -213,8 +213,11 @@ def test_skymax_power_chisq_keeps_dense_scratch_on_torch(
 
 def test_power_chisq_cuda_triton_fused():
     import torch
+    from pycbc.vetoes.chisq_torch import _HAS_TRITON
     if not torch.cuda.is_available():
         pytest.skip("CUDA not available")
+    if not _HAS_TRITON:
+        pytest.skip("Triton not available")
 
     rng = np.random.default_rng(42)
     corr = (rng.normal(size=256) + 1j * rng.normal(size=256)).astype(np.complex64)
