@@ -334,10 +334,9 @@ class MatchedFilterControl(object):
                 g, g_thresh_sq = graph_entry
                 g_thresh_sq.fill_(float(thresh_val * thresh_val))
                 g.replay()
-                keep = clusterer._triton_keep
-                if not keep.any():
+                kept_idx = clusterer._triton_block_idx[clusterer._triton_keep]
+                if kept_idx.numel() == 0:
                     return [], [], [], [], []
-                kept_idx = clusterer._triton_block_idx[keep]
                 kept_vals = clusterer.series[kept_idx]
                 from pycbc.events.threshold_torch import _array_from_tensor
                 idx = _array_from_tensor(kept_idx)

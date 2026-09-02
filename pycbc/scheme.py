@@ -223,6 +223,12 @@ class TorchScheme(Scheme):
             import torch
             self._prev_num_threads = torch.get_num_threads()
             torch.set_num_threads(self.num_threads)
+            try:
+                self._libgomp = _resolve_libgomp()
+                if self._libgomp is not None:
+                    self._libgomp.omp_set_num_threads(int(self.num_threads))
+            except Exception:
+                self._libgomp = None
         return self
 
     def __exit__(self, type, value, traceback):
@@ -230,6 +236,11 @@ class TorchScheme(Scheme):
             import torch
             torch.set_num_threads(self._prev_num_threads)
             self._prev_num_threads = None
+            if getattr(self, "_libgomp", None) is not None:
+                try:
+                    self._libgomp.omp_set_num_threads(1)
+                except Exception:
+                    pass
         super().__exit__(type, value, traceback)
 
 
