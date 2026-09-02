@@ -73,7 +73,7 @@ def _worker_benchmark(args_json_str: str) -> str:
     from pycbc import scheme
     from pycbc.types import Array, FrequencySeries, zeros
 
-    is_cuda = route == "torch_cuda"
+    is_cuda = route.startswith("torch_cuda")
     is_torch_cpu = route.startswith("torch_cpu")
     is_original_tuned = route.startswith("original_tuned")
 
@@ -156,17 +156,26 @@ def _worker_benchmark(args_json_str: str) -> str:
             if is_cuda:
                 torch.cuda.synchronize()
 
+        last_trig_count = 0
+        last_max_snr = 0.0
         for _ in range(iterations):
             if is_cuda:
                 torch.cuda.synchronize()
             t0 = time.perf_counter()
-            mfc.full_matched_filter_and_cluster_symm(0, 1.0, window)
+            _snr, _norm, _corr, idx, snrv = (
+                mfc.full_matched_filter_and_cluster_symm(0, 1.0, window)
+            )
             if is_cuda:
                 torch.cuda.synchronize()
             t1 = time.perf_counter()
             latencies_sec.append(t1 - t0)
+            if idx is not None and len(idx) > 0:
+                last_trig_count = len(idx)
+                last_max_snr = float(np.max(np.abs(snrv)))
 
     summary = _stats(latencies_sec)
+    summary["trigger_count"] = last_trig_count
+    summary["max_snr"] = last_max_snr
     return json.dumps(summary)
 
 
@@ -271,18 +280,19 @@ def run_benchmark(
     }
     artifact["campaigns"].append(campaign)
 
-    print("=" * 120)
+    print("=" * 140)
     print(
         " PyCBC MatchedFilterControl.full_matched_filter_and_cluster_symm "
-        "Benchmark"
+        "Benchmark (Fair Multi-Tier Comparison)"
     )
-    print("=" * 120)
-    print(
-        f" {'Size (N)':<9} | {'Duration':<9} | {'Std CPU 1T':<12} | "
-        f"{'Std CPU 16T':<12} | {'Torch CPU 16T':<14} | "
-        f"{'CUDA Eager':<12} | {'CUDA Graph':<12} | {'Speedup (Graph)':<15}"
+    print("=" * 140)
+    hdr = (
+        f" {'Size (N)':<9} | {'Duration':<9} | {'Std 1T':<9} | "
+        f"{'Torch 1T':<9} | {'Std 16T*':<9} | {'Torch 16T':<9} | "
+        f"{'CUDA Eag':<9} | {'CUDA Grp':<9} | {'vs 1T':<7} | {'vs 16T':<7}"
     )
-    print("-" * 120)
+    print(hdr)
+    print("-" * len(hdr))
 
     for n in sizes:
         dur_sec = n / 2048.0
@@ -301,19 +311,25 @@ def run_benchmark(
         )
         ms_std_1t = r_std_1t["median"] * 1000.0
 
-        # 2. Standard 16T
+        # 2. Torch CPU 1T (Apples-to-apples 1-thread comparison)
+        r_tcpu_1t = _run_subprocess_worker(
+            {**cfg_base, "route": "torch_cpu", "threads": 1}, py_exe
+        )
+        ms_tcpu_1t = r_tcpu_1t["median"] * 1000.0
+
+        # 3. Standard 16T (Note: 1D FFT thread barrier overhead on small N)
         r_std_16t = _run_subprocess_worker(
             {**cfg_base, "route": "original_tuned", "threads": 16}, py_exe
         )
         ms_std_16t = r_std_16t["median"] * 1000.0
 
-        # 3. Torch CPU 16T
+        # 4. Torch CPU 16T
         r_tcpu = _run_subprocess_worker(
             {**cfg_base, "route": "torch_cpu", "threads": 16}, py_exe
         )
         ms_tcpu = r_tcpu["median"] * 1000.0
 
-        # 4. Torch CUDA Eager & Graph
+        # 5. Torch CUDA Eager & Graph
         if have_cuda:
             r_cuda_eager = _run_subprocess_worker(
                 {**cfg_base, "route": "torch_cuda_eager"}, py_exe
@@ -326,33 +342,65 @@ def run_benchmark(
             )
             ms_cuda = r_cuda["median"] * 1000.0
             cuda_graph_str = f"{ms_cuda:6.3f} ms"
-            speedup = f"{ms_std_1t / ms_cuda:5.2f}x vs 1T"
+            sp_vs_1t = f"{ms_std_1t / ms_cuda:5.2f}x"
+            sp_vs_16t = f"{ms_std_16t / ms_cuda:5.2f}x"
         else:
             r_cuda_eager = {}
             r_cuda = {}
             cuda_eager_str = "N/A"
             cuda_graph_str = "N/A"
-            speedup = f"{ms_std_1t / ms_tcpu:5.2f}x (CPU)"
+            sp_vs_1t = f"{ms_std_1t / ms_tcpu:5.2f}x (T16)"
+            sp_vs_16t = f"{ms_std_16t / ms_tcpu:5.2f}x (T16)"
 
-        print(
-            f" N={n:<7} | {dur_sec:5.1f}s   | {ms_std_1t:6.3f} ms    | "
-            f"{ms_std_16t:6.3f} ms    | {ms_tcpu:6.3f} ms      | "
-            f"{cuda_eager_str:<12} | {cuda_graph_str:<12} | {speedup:<15}"
+        # Parity check
+        ref_trigs = r_std_1t.get("trigger_count", 0)
+        tcpu_trigs = r_tcpu_1t.get("trigger_count", 0)
+        cuda_trigs = r_cuda.get("trigger_count", 0) if have_cuda else ref_trigs
+        parity_ok = (
+            (ref_trigs == tcpu_trigs)
+            and (not have_cuda or ref_trigs == cuda_trigs)
         )
 
+        row = (
+            f" N={n:<7} | {dur_sec:5.1f}s   | {ms_std_1t:5.3f} ms | "
+            f"{ms_tcpu_1t:5.3f} ms | {ms_std_16t:5.3f} ms | "
+            f"{ms_tcpu:5.3f} ms | {cuda_eager_str:<9} | {cuda_graph_str:<9} | "
+            f"{sp_vs_1t:<7} | {sp_vs_16t:<7}"
+        )
+        print(row)
+
+        sp_1t = (
+            (ms_std_1t / ms_cuda)
+            if have_cuda and ms_cuda > 0
+            else (ms_std_1t / ms_tcpu)
+        )
+        sp_16t = (
+            (ms_std_16t / ms_cuda)
+            if have_cuda and ms_cuda > 0
+            else (ms_std_16t / ms_tcpu)
+        )
         campaign["results"][f"size_{n}"] = {
             "size": n,
             "duration_sec": dur_sec,
             "standard_1t": r_std_1t,
+            "torch_cpu_1t": r_tcpu_1t,
             "standard_16t": r_std_16t,
             "torch_cpu_16t": r_tcpu,
             "torch_cuda_eager": r_cuda_eager,
             "torch_cuda": r_cuda,
+            "speedup_vs_std_1t": sp_1t,
+            "speedup_vs_std_16t": sp_16t,
+            "speedup_1t_torch_vs_std": (
+                (ms_std_1t / ms_tcpu_1t) if ms_tcpu_1t > 0 else 1.0
+            ),
+            "trigger_parity_passed": parity_ok,
+            "ref_triggers": ref_trigs,
         }
 
-    print("=" * 105)
+    print("=" * 115)
+    print(" * Std CPU 16T reflects FFTW thread barrier overhead on 1D FFTs.")
     print(" BENCHMARK COMPLETE")
-    print("=" * 105)
+    print("=" * 115)
 
     campaign["complete"] = True
     if output_path:
