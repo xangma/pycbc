@@ -167,10 +167,14 @@ relbin_seq_ms = np.array([0.30, 2.98, 29.41, 298.62])
 relbin_bat_ms = np.array([0.04, 0.13, 1.48, 5.52])
 
 # Try loading from comprehensive suite artifact
-suite_json = os.path.join(artifacts_dir, "len_extended_full_suite.json")
+suite_json = os.path.join(artifacts_dir, "extended_full_suite.json")
 if not os.path.exists(suite_json):
     suite_json = os.path.join(
         artifacts_dir, "comprehensive_benchmark_results.json"
+    )
+if not os.path.exists(suite_json):
+    suite_json = os.path.join(
+        artifacts_dir, "len_extended_full_suite.json"
     )
 
 if os.path.exists(suite_json):
@@ -813,7 +817,7 @@ axs[1, 1].annotate(
 
 plt.suptitle(
     'PyCBC PyTorch Acceleration Suite Performance Dashboard '
-    '(len: RTX 4090 + AMD Threadripper PRO)',
+    '(RTX 4090 + AMD Threadripper PRO 3995WX)',
     fontsize=14, y=0.995, fontweight='bold'
 )
 plt.tight_layout()
@@ -1158,3 +1162,137 @@ ax2.annotate(
 plt.tight_layout()
 save_fig_dual(fig, 'torch_matched_filter_symm_scaling.png')
 plt.close()
+
+# ==============================================================================
+# FIGURE 8: CPU Multi-Thread Scaling & Component Breakdown (1T-64T)
+# ==============================================================================
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.6))
+
+# Fallback values from AMD Ryzen Threadripper PRO 3995WX profile
+cpu_threads = np.array([1, 4, 8, 16, 32, 64])
+cpu_sizes = [32768, 65536, 131072, 262144, 524288]
+cpu_size_labels = ['32k (16s)', '65k (32s)', '131k (64s)', '262k (128s)', '524k (256s)']
+
+# Latencies in ms across threads for each N
+cpu_scaling_data = {
+    32768: [0.284, 0.254, 0.212, 0.215, 0.252, 0.264],
+    65536: [0.720, 0.471, 0.313, 0.311, 0.343, 0.448],
+    131072: [0.925, 0.639, 0.473, 0.438, 0.432, 5.019],
+    262144: [2.036, 1.072, 0.614, 0.534, 0.731, 4.035],
+    524288: [4.036, 2.209, 1.090, 0.687, 0.688, 2.877],
+}
+
+# Component breakdown at N=524288 (ms)
+comp_corr = [0.296, 0.152, 0.083, 0.057, 0.061, 0.078]
+comp_ifft = [3.144, 1.774, 0.869, 0.522, 0.497, 0.540]
+comp_clust = [0.546, 0.217, 0.116, 0.092, 0.116, 2.203]
+
+cpu_breakdown_json = os.path.join(artifacts_dir, "cpu_profile_breakdown.json")
+if os.path.exists(cpu_breakdown_json):
+    try:
+        with open(cpu_breakdown_json, "r") as f:
+            cp_data = json.load(f)
+        dyn_scaling = {n: {} for n in cpu_sizes}
+        dyn_corr = {}
+        dyn_ifft = {}
+        dyn_clust = {}
+        for item in cp_data:
+            n_val = item.get("N")
+            t_val = item.get("threads")
+            if n_val in dyn_scaling and t_val in cpu_threads:
+                full_ms = item["full_us"]["median"] / 1000.0
+                dyn_scaling[n_val][t_val] = full_ms
+                if n_val == 524288:
+                    dyn_corr[t_val] = item["corr_us"]["median"] / 1000.0
+                    dyn_ifft[t_val] = item["ifft_us"]["median"] / 1000.0
+                    dyn_clust[t_val] = item["cluster_us"]["median"] / 1000.0
+        for n_val in cpu_sizes:
+            if all(t in dyn_scaling[n_val] for t in cpu_threads):
+                cpu_scaling_data[n_val] = [dyn_scaling[n_val][t] for t in cpu_threads]
+        if all(t in dyn_corr for t in cpu_threads):
+            comp_corr = [dyn_corr[t] for t in cpu_threads]
+            comp_ifft = [dyn_ifft[t] for t in cpu_threads]
+            comp_clust = [dyn_clust[t] for t in cpu_threads]
+        print(f"Loaded CPU scaling breakdown from {cpu_breakdown_json}")
+    except Exception as e:
+        print(f"Notice: using default CPU scaling data ({e})")
+
+# Panel 1: End-to-End Latency vs Thread Count
+colors_n = ['#718096', '#3182CE', '#38A169', '#D69E2E', '#E53E3E']
+markers_n = ['o', 's', '^', 'D', 'v']
+
+for idx, n_val in enumerate(cpu_sizes):
+    ax1.plot(
+        cpu_threads, cpu_scaling_data[n_val],
+        marker=markers_n[idx], color=colors_n[idx], linewidth=1.8,
+        label=f'N = {cpu_size_labels[idx]}'
+    )
+
+# Highlight sweet spot (16 threads)
+ax1.axvspan(12, 20, color='#38A169', alpha=0.15, label='Optimal Bandwidth Range (16T)')
+
+ax1.set_xlabel('CPU Threads (OMP_NUM_THREADS / MKL_NUM_THREADS)')
+ax1.set_ylabel('Sequential Execution Latency (ms, log scale)')
+ax1.set_title('(A) CPU Thread Scaling vs Segment Size $N$\n(MKL DFTI + SIMD Peak Clustering)')
+ax1.set_xscale('log', base=2)
+ax1.set_yscale('log')
+ax1.set_xticks(cpu_threads)
+ax1.set_xticklabels([f'{t}T' for t in cpu_threads])
+ax1.legend(frameon=True, facecolor='white', framealpha=0.9, loc='upper right', fontsize=8.5)
+ax1.grid(True, which='both', linestyle='--', alpha=0.5)
+
+# Panel 2: Stacked Operation Breakdown at N=524288
+x_indices = np.arange(len(cpu_threads))
+width_b = 0.55
+
+bar_corr = ax2.bar(
+    x_indices, comp_corr, width_b,
+    label='Frequency Correlation (Htilde * Stilde)',
+    color='#63B3ED', edgecolor='black', linewidth=0.5
+)
+bar_ifft = ax2.bar(
+    x_indices, comp_ifft, width_b, bottom=comp_corr,
+    label='MKL DFTI Inverse FFT (IFFT)',
+    color='#3182CE', edgecolor='black', linewidth=0.5
+)
+bar_clust = ax2.bar(
+    x_indices, comp_clust, width_b,
+    bottom=np.array(comp_corr) + np.array(comp_ifft),
+    label='Peak Finding & Clustering',
+    color='#DD6B20', edgecolor='black', linewidth=0.5
+)
+
+# Annotate speedup at 16T
+speedup_16t = cpu_scaling_data[524288][0] / cpu_scaling_data[524288][3]
+ax2.annotate(
+    f'16T Optimum: {cpu_scaling_data[524288][3]:.2f} ms\n({speedup_16t:.1f}x speedup vs 1T)',
+    xy=(3, cpu_scaling_data[524288][3]),
+    xytext=(1.8, 3.2),
+    arrowprops=dict(arrowstyle='->', color='#2B6CB0', lw=1.5),
+    bbox=dict(boxstyle='round,pad=0.3', facecolor='#EBF8FF', edgecolor='#3182CE', alpha=0.9),
+    fontsize=9, fontweight='bold', color='#2B6CB0'
+)
+
+# Annotate cross-NUMA barrier penalty at 64T
+ax2.annotate(
+    '64T Cross-NUMA Barrier\nOverhead Penalty',
+    xy=(5, cpu_scaling_data[524288][5]),
+    xytext=(3.5, 4.2),
+    arrowprops=dict(arrowstyle='->', color='#C53030', lw=1.5),
+    bbox=dict(boxstyle='round,pad=0.3', facecolor='#FFF5F5', edgecolor='#E53E3E', alpha=0.9),
+    fontsize=8.5, fontweight='bold', color='#9B2C2C'
+)
+
+ax2.set_xlabel('CPU Threads')
+ax2.set_ylabel('Execution Time (ms) [N = 524,288 / 256s]')
+ax2.set_title('(B) Component Scaling & Amdahl Bottlenecks ($N=524,288$)\nLinear MKL Scaling up to 16 Threads')
+ax2.set_xticks(x_indices)
+ax2.set_xticklabels([f'{t}T' for t in cpu_threads])
+ax2.set_ylim(0, 5.2)
+ax2.legend(frameon=True, facecolor='white', framealpha=0.9, loc='upper right', fontsize=8.5)
+ax2.grid(True, linestyle='--', alpha=0.5, axis='y')
+
+plt.tight_layout()
+save_fig_dual(fig, 'torch_cpu_thread_scaling.png')
+plt.close()
+

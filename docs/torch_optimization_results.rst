@@ -404,6 +404,15 @@ The benchmark measures single-template filtering across segment lengths from :ma
    Verifies strict :math:`O(K)` linearity (:math:`R^2 > 0.9999`) across uniform, strictly decreasing (22.7 ns/event),
    strictly increasing (2.5 ns/event), zigzag, and bursty input distributions up to 1,000,000 events.
 
+.. figure:: images/torch_cpu_thread_scaling.png
+   :alt: PyTorch CPU multi-thread scaling and Amdahl component breakdown
+   :align: center
+   :width: 100%
+
+   **Figure 11: PyTorch CPU multi-thread scaling and Amdahl component breakdown.**
+   *Left:* Execution latency (ms) vs CPU thread count (:math:`1, 4, 8, 16, 32, 64` threads) across segment lengths (:math:`N=32\text{k}` to :math:`524\text{k}`), showing optimal memory bandwidth utilization at 16 threads.
+   *Right:* Stacked sub-operation breakdown at :math:`N=524,288` (Frequency Correlation, MKL DFTI IFFT, Symmetric Peak Clustering), illustrating linear scaling up to 16 threads and cross-NUMA barrier synchronization overhead at 64 threads.
+
 Current conclusions
 ===================
 

@@ -391,9 +391,21 @@ measurement and restored after it completed.
 
 For the visual live-batch throughput scaling curve, paired speedup plots, and
 block latency breakdown, see :ref:`torch-live-batch-evidence`
-and :ref:`torch-evidence-qualification` in :doc:`torch_optimization_results`
-(specifically ``torch_live_batch_scaling.png`` and
-``torch_latency_breakdown.png``).
+and :ref:`torch-evidence-qualification` in :doc:`torch_optimization_results`:
+
+.. figure:: images/torch_live_batch_scaling.png
+   :alt: Live-batch matched filter search throughput and speedup scaling
+   :align: center
+   :width: 100%
+
+   Live-batch matched filter search throughput across batch sizes :math:`B=1..1024` on NVIDIA GeForce RTX 4090 and AMD Threadripper PRO 3995WX, displaying multi-tier speedup curves.
+
+.. figure:: images/torch_latency_breakdown.png
+   :alt: Live-batch matched filter latency per block and per-waveform marginal cost
+   :align: center
+   :width: 100%
+
+   Live-batch block latency and per-waveform cost amortization down to :math:`\approx 3.7\,\mu\text{s}`.
 
 Historical batched search component/pipeline baseline
 -----------------------------------------------------
@@ -609,10 +621,28 @@ passed.  The sealed artifact SHA-256 is
 For the visual single-call latency comparison, vectorized tensor-batch
 scaling curves across approximants, executive dashboard, and time-domain
 numerical ODE evidence, see :ref:`torch-waveform-evidence` and
-:ref:`torch-td-waveform-evidence` in :doc:`torch_optimization_results`
-(specifically ``torch_waveform_throughput.png``,
-``torch_performance_dashboard.png``, and
-``torch_td_waveform_evidence.png``).
+:ref:`torch-td-waveform-evidence` in :doc:`torch_optimization_results`:
+
+.. figure:: images/torch_waveform_throughput.png
+   :alt: Waveform generation latency and batched throughput across approximants
+   :align: center
+   :width: 100%
+
+   Waveform latency (:math:`N=1`) and batched throughput (:math:`B=4096`) comparing PyTorch native and accelerated models against compiled LAL C references across 9 waveform families.
+
+.. figure:: images/torch_performance_dashboard.png
+   :alt: Executive PyTorch acceleration performance dashboard
+   :align: center
+   :width: 100%
+
+   Comprehensive 4-panel executive performance dashboard summarizing search, waveform, inference, and latency scaling.
+
+.. figure:: images/torch_td_waveform_evidence.png
+   :alt: Dedicated time-domain and SEOBNR waveform evidence
+   :align: center
+   :width: 100%
+
+   Time-domain waveform generation latency and execution location breakdown across TaylorT4, SEOBNRv4, SEOBNRv4HM, and SEOBNRv4PHM.
 
 Regular waveform routing
 ------------------------
@@ -1375,7 +1405,7 @@ benchmarking, parity validation, and visualization into a standardized toolchain
      - Science correctness, numeric accuracy, and parity gates against LALSuite
      - Console validation report & pass/fail exit code
    * - ``tools/generate_torch_performance_plots.py``
-     - Dynamic JSON ingestion and automated rendering of 7 publication figures at 300 DPI
+     - Dynamic JSON ingestion and automated rendering of 8 publication figures at 300 DPI
      - ``docs/images/torch_*.png``
 
 Reproduction Commands
@@ -1400,6 +1430,13 @@ Reproduction Commands
           --iterations 30 \
           --output artifacts/matched_filter_symm_benchmark.json
 
+   .. figure:: images/torch_matched_filter_symm_scaling.png
+      :alt: Single-template production matched filtering latency and speedup scaling
+      :align: center
+      :width: 100%
+
+      Single-template production matched filtering latency (ms) and speedup curves across segment lengths :math:`N=32\text{k}..524\text{k}` (16 s to 256 s) on NVIDIA GeForce RTX 4090.
+
 3. **Running the 4-Route Production Live-Batch Gate:**
 
    .. code-block:: bash
@@ -1418,6 +1455,13 @@ Reproduction Commands
 
       # Dynamically parses JSON artifacts from artifacts/ and renders docs/images/*.png:
       python tools/generate_torch_performance_plots.py
+
+   .. figure:: images/torch_cpu_thread_scaling.png
+      :alt: PyTorch CPU multi-thread scaling and Amdahl component breakdown
+      :align: center
+      :width: 100%
+
+      PyTorch CPU multi-thread scaling (1T to 64T) across segment lengths and Amdahl sub-operation breakdown at :math:`N=524,288`.
 
 5. **Verifying Parity & Documentation Build:**
 
