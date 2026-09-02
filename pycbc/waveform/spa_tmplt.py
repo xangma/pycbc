@@ -23,17 +23,26 @@
 """
 from math import sqrt, log
 import warnings
+from pycbc import lal_compat as lal
 import numpy
-
 import pycbc.pnutils
+import pycbc.scheme as _scheme
 from pycbc.scheme import schemed
-from pycbc.types import FrequencySeries, Array, complex64, float32, zeros
+from pycbc.types import (
+    FrequencySeries,
+    Array,
+    complex64,
+    float32,
+    float64,
+    zeros,
+)
 from pycbc.waveform.utils import ceilpow2
 from pycbc.constants import PI, GAMMA, MTSUN_SI, PC_SI, MRSUN_SI
-from pycbc.libutils import import_optional
+from pycbc.waveform.torch_switches import torch_native_enabled
 
-lal = import_optional('lal')
-lalsimulation = import_optional('lalsimulation')
+lalsimulation = pycbc.libutils.import_optional(
+    'lalsimulation', defer=pycbc.libutils.defer_lalsimulation_import()
+)
 
 def findchirp_chirptime(m1, m2, fLower, porder):
     # variables used to compute chirp time
@@ -125,12 +134,46 @@ def spa_amplitude_factor(**kwds):
 
 
 _prec = None
+_torch_prec = {}
+
+
 def spa_tmplt_precondition(length, delta_f, kmin=0):
     """Return the amplitude portion of the TaylorF2 approximant, used to precondition
     the strain data. The result is cached, and so should not be modified, only read.
     """
+    if isinstance(_scheme.mgr.state, _scheme.TorchScheme):
+        import torch
+
+        device = _scheme.mgr.state.torch_device
+        key = (str(device), float(delta_f))
+        required_length = kmin + length
+        prec = _torch_prec.get(key)
+        if prec is None or len(prec) < required_length:
+            # MPS does not support float64 tensors. Other Torch devices use
+            # float64 for the power before matching the historical float32
+            # preconditioner, just as the NumPy implementation does.
+            work_dtype = (
+                torch.float32 if device.type == "mps" else torch.float64
+            )
+            frequencies = torch.arange(
+                1,
+                required_length + 1,
+                device=device,
+                dtype=work_dtype,
+            ) * float(delta_f)
+            values = frequencies.pow(-7.0 / 6.0).to(torch.float32)
+            data = zeros(required_length, dtype=float32)
+            data._data.tensor.copy_(values)
+            prec = FrequencySeries(data, delta_f=delta_f, copy=False)
+            _torch_prec[key] = prec
+        return prec[kmin:kmin + length]
+
     global _prec
-    if _prec is None or _prec.delta_f != delta_f or len(_prec) < length:
+    if (
+        _prec is None
+        or _prec.delta_f != delta_f
+        or len(_prec) < kmin + length
+    ):
         v = numpy.arange(0, (kmin + length*2), 1.) * delta_f
         v = numpy.power(v[1:len(v)], -7./6.)
         _prec = FrequencySeries(v, delta_f=delta_f, dtype=float32)
@@ -140,6 +183,20 @@ def spa_tmplt_precondition(length, delta_f, kmin=0):
 def spa_tmplt_norm(psd, length, delta_f, f_lower):
     amp = spa_tmplt_precondition(length, delta_f)
     k_min = int(f_lower / delta_f)
+
+    if isinstance(_scheme.mgr.state, _scheme.TorchScheme):
+        amp_data = amp[k_min:length]._data.tensor
+        # Slicing converts a CPU-created PSD to the active Torch scheme when
+        # necessary, while preserving an already resident device tensor.
+        psd_data = psd[k_min:length]._data.tensor
+        sigma = amp_data.square() / psd_data
+        dtype = float32 if sigma.device.type == "mps" else float64
+        norm_vec = zeros(length, dtype=dtype)
+        norm_vec._data.tensor[k_min:length] = (
+            sigma.cumsum(dim=0) * (4.0 * float(delta_f))
+        )
+        return norm_vec
+
     sigma = (amp[k_min:length].numpy() ** 2. / psd[k_min:length].numpy())
     norm_vec = numpy.zeros(length)
     norm_vec[k_min:length] = sigma.cumsum() * 4. * delta_f
@@ -161,6 +218,20 @@ def spa_distance(psd, mass1, mass2, lower_frequency_cutoff, snr=8):
     if kend >= len(psd):
         kend = len(psd) - 2
     return sqrt(norm1[kend] * norm2) / snr
+
+
+def _cpu_sequence_frequencies(sample_points):
+    """Normalize arbitrary-frequency samples for the legacy Cython kernel."""
+    if isinstance(sample_points, Array):
+        sample_points = sample_points.numpy()
+    frequencies = numpy.asarray(sample_points, dtype=numpy.float32)
+    if frequencies.ndim != 1 or frequencies.size == 0:
+        raise ValueError("SPAtmplt sample_points must be a non-empty vector")
+    if not numpy.all(numpy.isfinite(frequencies)):
+        raise ValueError("SPAtmplt sample_points must be finite")
+    if numpy.any(frequencies <= 0.0):
+        raise ValueError("SPAtmplt sample_points must be positive")
+    return numpy.ascontiguousarray(frequencies)
 
 
 @schemed("pycbc.waveform.spa_tmplt_")
@@ -193,20 +264,41 @@ def spa_tmplt(**kwds):
 
     amp_factor = spa_amplitude_factor(mass1=mass1, mass2=mass2) / distance
 
-    lal_pars = lal.CreateDict()
-    if phase_order != -1:
-        lalsimulation.SimInspiralWaveformParamsInsertPNPhaseOrder(
-            lal_pars, phase_order)
+    # Calculate the PN terms. Under TorchScheme the native port is the default
+    # and avoids lalsimulation (matches XLALSimInspiralPNPhasing_F2; reference:
+    # lalsimulation/lib/LALSimInspiralPNCoefficients.c lines 955-1109).
+    using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
+    use_native_phasing = using_torch and torch_native_enabled(
+        "PYCBC_TAYLORF2_NATIVE", default=True
+    )
 
-    if spin_order != -1:
-        lalsimulation.SimInspiralWaveformParamsInsertPNSpinOrder(
-            lal_pars, spin_order)
+    if use_native_phasing:
+        from .taylorf2_torch import taylorf2_aligned_phasing
 
-    # Calculate the PN terms
-    phasing = lalsimulation.SimInspiralTaylorF2AlignedPhasing(
-                                    float(mass1), float(mass2),
-                                    float(s1z), float(s2z),
-                                    lal_pars)
+        phasing = taylorf2_aligned_phasing(
+            float(mass1), float(mass2), float(s1z), float(s2z),
+            spin_order=spin_order,
+            tidal_order=int(kwds.get("tidal_order", -1)),
+            dchi={},
+            qm_def1=0.0,
+            qm_def2=0.0,
+            lambda1=0.0,
+            lambda2=0.0,
+        )
+    else:
+        lal_pars = lal.CreateDict()
+        if phase_order != -1:
+            lalsimulation.SimInspiralWaveformParamsInsertPNPhaseOrder(
+                lal_pars, phase_order
+            )
+        if spin_order != -1:
+            lalsimulation.SimInspiralWaveformParamsInsertPNSpinOrder(
+                lal_pars, spin_order
+            )
+        phasing = lalsimulation.SimInspiralTaylorF2AlignedPhasing(
+                                        float(mass1), float(mass2),
+                                        float(s1z), float(s2z),
+                                        lal_pars)
 
     pfaN = phasing.v[0]
     pfa2 = phasing.v[2] / pfaN
@@ -262,10 +354,48 @@ def spa_tmplt(**kwds):
                          pfa2, pfa3, pfa4, pfa5, pfl5,
                          pfa6, pfl6, pfa7, amp_factor)
     else:
-        from .spa_tmplt_cpu import spa_tmplt_inline_sequence
-        htilde = numpy.empty(len(kwds['sample_points']), dtype=numpy.complex64)
-        spa_tmplt_inline_sequence(
-            piM, pfaN, pfa2, pfa3, pfa4, pfa5, pfl5, pfa6, pfl6, pfa7,
-            amp_factor, kwds['sample_points'], htilde)
+        sample_points = kwds['sample_points']
+        use_native_sequence = using_torch and torch_native_enabled(
+            "PYCBC_SPATPLT_NATIVE", default=True
+        )
+        if use_native_sequence:
+            from .spa_tmplt_torch import spa_tmplt_sequence
+
+            htilde = spa_tmplt_sequence(
+                sample_points,
+                piM,
+                pfaN,
+                pfa2,
+                pfa3,
+                pfa4,
+                pfa5,
+                pfl5,
+                pfa6,
+                pfl6,
+                pfa7,
+                amp_factor,
+            )
+        else:
+            from .spa_tmplt_cpu import spa_tmplt_inline_sequence
+
+            sample_points = _cpu_sequence_frequencies(sample_points)
+            htilde = numpy.empty(
+                len(sample_points), dtype=numpy.complex64
+            )
+            spa_tmplt_inline_sequence(
+                piM,
+                pfaN,
+                pfa2,
+                pfa3,
+                pfa4,
+                pfa5,
+                pfl5,
+                pfa6,
+                pfl6,
+                pfa7,
+                amp_factor,
+                sample_points,
+                htilde,
+            )
 
     return htilde
