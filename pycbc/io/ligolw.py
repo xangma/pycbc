@@ -41,8 +41,19 @@ except ImportError:
     FromPyType = None
     ToPyType = None
     ROWID_PYTYPE = int
-    ROWID_TYPE = None
+import numpy
 import pycbc.version as pycbc_version
+
+
+__all__ = (
+    'default_null_value',
+    'return_empty_sngl',
+    'return_search_summary',
+    'create_process_table',
+    'legacy_row_id_converter',
+    'get_table_columns',
+    'LIGOLWContentHandler'
+)
 
 ROWID_FORMATFUNC = FormatFunc[ROWID_TYPE] if FormatFunc is not None else str
 IDTypes = set([u"ilwd:char", u"ilwd:char_u"])

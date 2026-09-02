@@ -1,6 +1,7 @@
 """Hardware inspection and cache hierarchy detection utilities for PyCBC."""
 
 import ctypes
+import functools
 import glob
 import math
 import os
@@ -26,6 +27,7 @@ def _parse_cache_size_string(size_str):
     return int(digits) if digits else 0
 
 
+@functools.lru_cache(maxsize=32)
 def get_gpu_l2_cache_size(device_id=0):
     """Return the L2 cache size in bytes for the specified CUDA GPU device.
 
@@ -82,6 +84,7 @@ def get_gpu_l2_cache_size(device_id=0):
     return 6 * 1024 * 1024
 
 
+@functools.lru_cache(maxsize=32)
 def get_cpu_l3_cache_size(per_ccx=True):
     """Return the CPU L3/L2 cache size in bytes.
 
@@ -105,9 +108,11 @@ def get_cpu_l3_cache_size(per_ccx=True):
                 id_file = os.path.join(dirpath, "id")
                 shared_file = os.path.join(dirpath, "shared_cpu_list")
                 if os.path.exists(id_file):
-                    cid = open(id_file).read().strip()
+                    with open(id_file) as f:
+                        cid = f.read().strip()
                 elif os.path.exists(shared_file):
-                    cid = open(shared_file).read().strip()
+                    with open(shared_file) as f:
+                        cid = f.read().strip()
                 else:
                     cid = p
                 if cid not in l3_caches:
@@ -178,6 +183,7 @@ def get_optimal_batch_maxelements(is_cuda=False, device_id=0, safety_factor=0.85
         return 2 ** max(21, min(27, power))
 
 
+@functools.lru_cache(maxsize=32)
 def get_optimal_batch_tile_size(
     transform_size,
     is_cuda=False,

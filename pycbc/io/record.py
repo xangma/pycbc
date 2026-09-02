@@ -51,8 +51,11 @@ _numpy_function_lib = {_x: _y for _x,_y in numpy.__dict__.items()
 # add ligolw_types to numpy sctypeDict
 # but don't include bindings that numpy already defines
 if ligolw_types is not None:
+    _types_dict = getattr(ligolw_types, 'ToNumPyType', None)
+    if _types_dict is None:
+        _types_dict = ligolw_types.Types if isinstance(getattr(ligolw_types, 'Types', None), dict) else {}
     numpy.sctypeDict.update({_k: _val
-                             for (_k, _val) in ligolw_types.Types.items()
+                             for (_k, _val) in _types_dict.items()
                              if _k not in numpy.sctypeDict})
 
 # Annoyingly, numpy has no way to store NaNs in an integer field to indicate

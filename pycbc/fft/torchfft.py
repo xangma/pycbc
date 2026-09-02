@@ -1538,7 +1538,8 @@ class IFFT(_BaseIFFT):
             return
         if _execute_mkl_cpu_ifft_plan(self):
             return
-        if self._fftw_plan is None:
+        fin = getattr(getattr(self.invec, "_data", None), "tensor", None)
+        if self._fftw_plan is None and fin is not None and fin.device.type == "cpu":
             _setup_fftw_cpu_plan(self, forward=False)
         if not _execute_fftw_cpu_plan(self):
             ifft(self.invec, self.outvec, self.prec, self.itype, self.otype)

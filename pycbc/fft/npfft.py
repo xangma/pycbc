@@ -66,14 +66,22 @@ def ifft(invec, outvec, _, itype, otype):
         raise ValueError(_INV_FFT_MSG.format("IFFT", itype, otype))
 
 
+def _batched_view(vec, nbatch, dist):
+    """View a flat pycbc array as its nbatch transform rows, each `dist`
+    apart. nbatch=1 is just a single row, so this also covers the unbatched
+    case.
+    """
+    return vec.data[:nbatch * dist].reshape(nbatch, dist)
+
+
 def _batch_fft(fftobj):
     """Execute independent transforms for the class-based batch API."""
     if fftobj.invec.ptr == fftobj.outvec.ptr:
         raise NotImplementedError("numpy backend of pycbc.fft does not "
                                   "support in-place transforms")
 
-    input_data = fftobj.invec.data.reshape(fftobj.nbatch, fftobj.idist)
-    output_data = fftobj.outvec.data.reshape(fftobj.nbatch, fftobj.odist)
+    input_data = _batched_view(fftobj.invec, fftobj.nbatch, fftobj.idist)
+    output_data = _batched_view(fftobj.outvec, fftobj.nbatch, fftobj.odist)
     if fftobj.itype == 'complex' and fftobj.otype == 'complex':
         result = numpy.fft.fft(input_data, n=fftobj.size, axis=-1)
     elif fftobj.itype == 'real' and fftobj.otype == 'complex':
@@ -90,8 +98,8 @@ def _batch_ifft(fftobj):
         raise NotImplementedError("numpy backend of pycbc.fft does not "
                                   "support in-place transforms")
 
-    input_data = fftobj.invec.data.reshape(fftobj.nbatch, fftobj.idist)
-    output_data = fftobj.outvec.data.reshape(fftobj.nbatch, fftobj.odist)
+    input_data = _batched_view(fftobj.invec, fftobj.nbatch, fftobj.idist)
+    output_data = _batched_view(fftobj.outvec, fftobj.nbatch, fftobj.odist)
     if fftobj.itype == 'complex' and fftobj.otype == 'complex':
         result = numpy.fft.ifft(input_data, n=fftobj.size, axis=-1)
     elif fftobj.itype == 'complex' and fftobj.otype == 'real':
@@ -107,14 +115,6 @@ WARN_MSG = ("You are using the class-based PyCBC FFT API, with the numpy "
             "backed. This is provided for convenience only. If performance is "
             "important use the class-based API with one of the other backends "
             "(for e.g. MKL or FFTW)")
-
-
-def _batched_view(vec, nbatch, dist):
-    """View a flat pycbc array as its nbatch transform rows, each `dist`
-    apart. nbatch=1 is just a single row, so this also covers the unbatched
-    case.
-    """
-    return vec.data[:nbatch * dist].reshape(nbatch, dist)
 
 
 class FFT(_BaseFFT):

@@ -32,6 +32,12 @@ _NUMPY_TRAPEZOID = getattr(np, "trapezoid", None)
 if _NUMPY_TRAPEZOID is None:
     _NUMPY_TRAPEZOID = np.trapz
 
+if not hasattr(np, "exceptions"):
+    class _NumpyExceptionsShim:
+        AxisError = getattr(np, "AxisError", ValueError)
+        ComplexWarning = getattr(np, "ComplexWarning", UserWarning)
+    np.exceptions = _NumpyExceptionsShim()
+
 _TORCH_UINT16 = getattr(torch, "uint16", None)
 _TORCH_UINT32 = getattr(torch, "uint32", None)
 
@@ -7191,7 +7197,7 @@ class TorchArrayData:
 
 
 def _scheme_matches_base_array(array):
-    return isinstance(array, TorchArrayData)
+    return isinstance(array, TorchArrayData) and _device_matches_active(array.tensor)
 
 
 def _copy_base_array(array):
@@ -7330,8 +7336,11 @@ def multiply_and_add(self, other, mult_fac):
         mult_fac = mult_fac.to(device=a.device)
     elif hasattr(mult_fac, "item"):
         mult_fac = mult_fac.item()
-    result = a + other_t * mult_fac
-    self._data = TorchArrayData(result)
+    if a.dtype == self._data.tensor.dtype and a.data_ptr() == self._data.tensor.data_ptr():
+        self._data.tensor.add_(other_t, alpha=mult_fac)
+    else:
+        result = a + other_t * mult_fac
+        self._data = TorchArrayData(result)
     self._saved = None
     return self._data
 

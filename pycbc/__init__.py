@@ -24,7 +24,7 @@
 #
 """PyCBC contains a toolkit for CBC gravitational wave analysis
 """
-import subprocess, os, sys, signal, warnings
+import os, sys, signal, warnings
 
 # Filter annoying Cython warnings that serve no good purpose.
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
@@ -210,7 +210,7 @@ VARARGS_DELIM = '+'
 # Torch and CPUScheme both load GNU OpenMP, while MKL otherwise selects its
 # Intel OpenMP layer.  Mixing those runtimes can silently corrupt threaded
 # DFTI output, so require MKL's compatible layer before either runtime loads.
-os.environ["MKL_THREADING_LAYER"] = "GNU"
+os.environ.setdefault("MKL_THREADING_LAYER", "GNU")
 
 try:
     #check if pycuda is installed
@@ -242,7 +242,7 @@ except ImportError:
 
 # Check for MKL capability
 try:
-    import pycbc.fft.mkl
+    import pycbc.fft.mkl  # noqa: F401
     HAVE_MKL=True
 except (ImportError, OSError):
     HAVE_MKL=False

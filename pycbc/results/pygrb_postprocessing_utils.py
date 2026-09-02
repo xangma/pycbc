@@ -28,6 +28,7 @@ import argparse
 import copy
 import numpy
 import h5py
+from scipy import stats
 try:
     import igwn_segments as segments
     from igwn_segments.utils import fromsegwizard

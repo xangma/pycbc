@@ -28,6 +28,16 @@ from urllib.parse import urlparse
 import numpy
 
 try:
+    from gwdatafind import find_urls as find_frame_urls
+except ImportError:
+    find_frame_urls = None
+
+import pycbc
+from pycbc.types import TimeSeries, zeros
+
+logger = logging.getLogger('pycbc.frame.frame')
+
+try:
     import lalframe
     from pycbc import lal_compat as lal
     # map LAL series types to corresponding functions and Numpy types

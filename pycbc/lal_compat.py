@@ -369,6 +369,7 @@ _FALLBACK_CONSTANTS = {
     "HBAR_SI": 1.0545718176461565e-34,
     "K_SI": 1.380649e-23,
     "YRJUL_SI": 31557600.0,
+    "REARTH_SI": 6378137.0,
 }
 
 for _name, _fallback in _FALLBACK_CONSTANTS.items():
