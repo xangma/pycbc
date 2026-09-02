@@ -23,13 +23,12 @@
 #
 """ This module provides functions to generate sortable html tables
 """
+import mako.template
 import uuid
 import copy
 import numpy
 
-try:
-    import mako.template
-    google_table_template = mako.template.Template("""
+google_table_template = mako.template.Template("""
     <script type='text/javascript' src='https://www.google.com/jsapi'></script>
     <script type='text/javascript'>
       google.load('visualization', '1', {packages:['table']});
@@ -58,10 +57,6 @@ try:
     </script>
     <div id='${div_id}'></div>
 """)
-except ImportError:
-    mako = None
-    google_table_template = None
-
 
 def html_table(columns, names, page_size=None, format_strings=None):
     """ Return an HTML table of this data.
@@ -136,8 +131,7 @@ def html_table(columns, names, page_size=None, format_strings=None):
         format_strings=format_strings,
     )
 
-if mako is not None:
-    static_table_template = mako.template.Template("""
+static_table_template = mako.template.Template("""
     <table class="table">
         % for row in range(n_rows):
             % if titles is not None:
@@ -171,9 +165,6 @@ if mako is not None:
         % endfor
     </table>
 """)
-else:
-    static_table_template = None
-
 
 def static_table(data, titles=None, columns_max=None, row_labels=None):
     """ Return an html table of this data

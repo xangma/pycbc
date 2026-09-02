@@ -21,7 +21,6 @@ import os as _os
 import h5py
 from pycbc.types.array import Array, _convert, _regular_grid, zeros, _noreal
 import numpy as _numpy
-from pycbc import lal_compat as _lal
 
 from pycbc.types.array import Array, _convert, _regular_grid, zeros, _noreal
 from pycbc.types.utils import determine_epoch

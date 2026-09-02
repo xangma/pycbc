@@ -15,7 +15,7 @@ Torch device.
 
 import math
 
-from pycbc import lal_compat as lal
+import lal
 import numpy as np
 import torch
 

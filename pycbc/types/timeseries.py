@@ -36,8 +36,9 @@ from pycbc.types.utils import determine_epoch
 from pycbc.types.array import _nocomplex
 from pycbc.types.frequencyseries import FrequencySeries
 from pycbc.types import float32, float64
-import numpy as _numpy
-from pycbc import lal_compat as _lal
+from pycbc.libutils import import_optional
+
+_lal = import_optional('lal')
 from scipy.io.wavfile import write as write_wav
 
 _TORCH_AT_TIME_FALLBACK = object()

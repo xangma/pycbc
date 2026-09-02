@@ -201,81 +201,13 @@ def get_ctypes_library(libname, packages, mode=DEFAULT_RTLD_MODE):
         else:
             return ctypes.CDLL(fullpath, mode=mode)
 
-class _DeferredOptionalModule:
-    """Proxy that imports an optional module on its first real use."""
-
-    __slots__ = ("_library_name", "_module", "_import_error")
-
-    def __init__(self, library_name):
-        self._library_name = library_name
-        self._module = None
-        self._import_error = None
-
-    def __repr__(self):
-        return "<deferred optional module {!r}>".format(self._library_name)
-
-    def _load(self):
-        if self._module is not None:
-            return self._module
-        if self._import_error is not None:
-            raise self._import_error
-        try:
-            module = importlib.import_module(self._library_name)
-        except ImportError as exc:
-            self._import_error = exc
-            raise
-        self._module = module
-        return module
-
-    def __getattr__(self, attr):
-        try:
-            module = self._load()
-        except ImportError as exc:
-            curframe = inspect.currentframe()
-            calframe = inspect.getouterframes(curframe, 2)
-            fun = calframe[1][3]
-            msg = """The function {} tried to access
-                     '{}' of library '{}', however,
-                    '{}' is not currently installed. To enable this
-                    functionality install '{}' (e.g. through pip
-                    / conda / system packages / source).
-                  """.format(
-                fun,
-                attr,
-                self._library_name,
-                self._library_name,
-                self._library_name,
-            )
-            raise ImportError(inspect.cleandoc(msg)) from exc
-        return getattr(module, attr)
-
-
-def defer_lalsimulation_import():
-    """Return whether native Torch ports requested a LAL-free import path.
-
-    The global native-port switches are available before a processing scheme
-    is entered, including while command-line programs import PyCBC.  Deferring
-    LALSimulation here prevents optional imports from probing it merely as a
-    side effect of importing otherwise Torch-native functionality.
-    """
-    true_values = {"1", "true", "yes", "on"}
-    for name in ("PYCBC_TORCH_NATIVE_PORTS", "PYCBC_TORCH_NATIVE"):
-        if name in os.environ:
-            return os.environ[name].strip().lower() in true_values
-    return False
-
-
-def import_optional(library_name, *, defer=False):
-    """Try to import a library, or return a diagnostic stub if unavailable.
+def import_optional(library_name):
+    """ Try to import library but and return stub if not found
 
     Parameters
     ----------
     library_name: str
         The name of the python library to import
-    defer: bool, optional
-        If true, do not attempt the import until an attribute of the returned
-        proxy is accessed. This is useful when importing a module should not
-        require an optional dependency unless its API is actually selected.
 
     Returns
     -------
@@ -283,9 +215,6 @@ def import_optional(library_name, *, defer=False):
         Either returns the library if importing is sucessful or it returns
         a stub which raises an import error and message when accessed.
     """
-    if defer:
-        return _DeferredOptionalModule(library_name)
-
     try:
         return importlib.import_module(library_name)
     except ImportError:

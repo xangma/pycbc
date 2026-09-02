@@ -10,16 +10,11 @@ import pickle
 
 from itertools import chain
 from io import BytesIO
-from pycbc.lal_compat import LIGOTimeGPS
+from lal import LIGOTimeGPS
 
-try:
-    from igwn_ligolw import ligolw
-    from igwn_ligolw import lsctables
-    from igwn_ligolw import utils as ligolw_utils
-except ImportError:
-    ligolw = None
-    lsctables = None
-    ligolw_utils = None
+from igwn_ligolw import ligolw
+from igwn_ligolw import lsctables
+from igwn_ligolw import utils as ligolw_utils
 
 from pycbc.io.ligolw import (
     return_search_summary,

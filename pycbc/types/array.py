@@ -40,7 +40,8 @@ from numpy import float32, float64, complex64, complex128, ones
 from numpy.linalg import norm
 
 import pycbc.scheme as _scheme
-from pycbc import lal_compat as _lal_compat
+from pycbc.libutils import import_optional
+_lal = import_optional('lal')
 from pycbc.scheme import schemed, cpuonly
 from pycbc.opt import LimitedSizeDict
 
@@ -1918,17 +1919,15 @@ class Array(object):
     def lal(self):
         """ Returns a LAL Object that contains this data """
 
-        lal = _lal_compat.require_lal("Array.lal() conversion")
-
         lal_data = None
         if self._data.dtype == float32:
-            lal_data = lal.CreateREAL4Vector(len(self))
+            lal_data = _lal.CreateREAL4Vector(len(self))
         elif self._data.dtype == float64:
-            lal_data = lal.CreateREAL8Vector(len(self))
+            lal_data = _lal.CreateREAL8Vector(len(self))
         elif self._data.dtype == complex64:
-            lal_data = lal.CreateCOMPLEX8Vector(len(self))
+            lal_data = _lal.CreateCOMPLEX8Vector(len(self))
         elif self._data.dtype == complex128:
-            lal_data = lal.CreateCOMPLEX16Vector(len(self))
+            lal_data = _lal.CreateCOMPLEX16Vector(len(self))
 
         lal_data.data[:] = self.numpy()
 

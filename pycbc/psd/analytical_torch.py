@@ -10,7 +10,7 @@ import importlib.util
 import math
 import os
 
-from pycbc import lal_compat as lal
+import lal
 import numpy
 import torch
 

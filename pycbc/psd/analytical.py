@@ -32,7 +32,7 @@ from pycbc.psd.analytical_space import (
     analytical_psd_taiji_tdi_XYZ, analytical_psd_taiji_tdi_AE,
     analytical_psd_taiji_tdi_T, analytical_psd_taiji_tdi_AE_confusion,
     )
-from pycbc import lal_compat as lal, libutils
+import lal
 import numpy
 
 # build a list of usable PSD functions from lalsimulation
@@ -40,18 +40,16 @@ _name_prefix = 'SimNoisePSD'
 _name_suffix = 'Ptr'
 _name_blacklist = ('FromFile', 'MirrorTherm', 'Quantum', 'Seismic', 'Shot', 'SuspTherm')
 _psd_list = []
-lalsimulation = None
 
-if not libutils.defer_lalsimulation_import():
-    try:
-        import lalsimulation
-        for _name in lalsimulation.__dict__:
-            if _name != _name_prefix and _name.startswith(_name_prefix) and not _name.endswith(_name_suffix):
-                _name = _name[len(_name_prefix):]
-                if _name not in _name_blacklist:
-                    _psd_list.append(_name)
-    except ImportError:
-        pass
+try:
+    import lalsimulation
+    for _name in lalsimulation.__dict__:
+        if _name != _name_prefix and _name.startswith(_name_prefix) and not _name.endswith(_name_suffix):
+            _name = _name[len(_name_prefix):]
+            if _name not in _name_blacklist:
+                _psd_list.append(_name)
+except ImportError:
+    pass
 
 _psd_list = sorted(_psd_list)
 

@@ -38,9 +38,7 @@ from pycbc.constants import YRJUL_SI, MSUN_SI, MTSUN_SI, C_SI, G_SI, PI
 from pycbc import libutils
 
 pykerr = libutils.import_optional('pykerr')
-lalsim = libutils.import_optional(
-    'lalsimulation', defer=libutils.defer_lalsimulation_import()
-)
+lalsim = libutils.import_optional('lalsimulation')
 
 logger = logging.getLogger('pycbc.conversions')
 

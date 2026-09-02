@@ -33,7 +33,7 @@ import logging
 import numpy as np
 from numpy import cos, sin
 
-from pycbc import lal_compat as lal
+import lal
 from astropy import constants, coordinates, units
 from astropy.coordinates.matrix_utilities import rotation_matrix
 from astropy.units.si import sday, meter
