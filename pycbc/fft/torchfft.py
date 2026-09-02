@@ -81,7 +81,9 @@ _MKL_DIRECT_PLATFORM_SUPPORTED = (
     platform.system() == "Linux"
     and platform.machine().lower() in {"x86_64", "amd64"}
 )
-_MKL_DIRECT_IFFT_SIZES = frozenset({32768})
+_MKL_DIRECT_IFFT_SIZES = frozenset(
+    {32768, 65536, 131072, 262144, 524288, 1048576}
+)
 _TRUE_ENV_VALUES = {"1", "true", "yes", "on"}
 _FALSE_ENV_VALUES = {"0", "false", "no", "off"}
 _TORCH_IS_INFERENCE = getattr(torch, "is_inference", None)
