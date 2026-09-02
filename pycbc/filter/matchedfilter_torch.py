@@ -798,7 +798,7 @@ def standard_peak_tensor(values):
     if values.ndim != 2 or values.shape[1] == 0:
         raise ValueError("values must be a non-empty 2D tensor")
     device = values.device
-    if device.type in ("cpu", "mps") or values.dtype in (torch.complex64, torch.float32):
+    if device.type in ("cpu", "mps"):
         if values.is_complex():
             sq_mag = torch.view_as_real(values).square().sum(dim=-1)
         else:
@@ -813,7 +813,8 @@ def standard_peak_tensor(values):
             )
         else:
             sq_mag = values.to(torch.float64).square()
-    indices = torch.argmax(sq_mag, dim=-1)
+    clean_mag = torch.nan_to_num(sq_mag, nan=0.0)
+    indices = torch.argmax(clean_mag, dim=-1)
     peaks = values[torch.arange(values.shape[0], device=values.device), indices]
     return indices, peaks
 
@@ -1076,6 +1077,7 @@ def batch_correlate_execute(self, y):
                         and t.layout == torch.strided
                         and not t.is_conj()
                         and not t.is_neg()
+                        and not _has_autograd_state(t)
                         for t in all_tensors
                     )
                 ):
@@ -1085,7 +1087,14 @@ def batch_correlate_execute(self, y):
                     cached_conj_x = getattr(self, "_cached_conj_packed_x", None)
                     cached_epoch = getattr(self, "_cached_conj_packed_x_epoch", -1)
 
-                    if cached_conj_x is None or cached_epoch != epoch:
+                    current_ptrs = tuple(t.data_ptr() for t in x_tensors)
+                    cached_ptrs = getattr(self, "_cached_conj_packed_x_ptrs", None)
+
+                    if (
+                        cached_conj_x is None
+                        or cached_epoch != epoch
+                        or cached_ptrs != current_ptrs
+                    ):
                         if x_stride is not None:
                             packed_x = x_tensors[0].as_strided(
                                 size=(num_vectors, size),
@@ -1101,6 +1110,7 @@ def batch_correlate_execute(self, y):
                             cached_conj_x = None
                         self._cached_conj_packed_x = cached_conj_x
                         self._cached_conj_packed_x_epoch = epoch
+                        self._cached_conj_packed_x_ptrs = current_ptrs
 
                     if cached_conj_x is not None and z_stride is not None:
                         packed_z = z_tensors[0].as_strided(

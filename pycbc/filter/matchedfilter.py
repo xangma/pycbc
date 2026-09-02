@@ -2171,12 +2171,17 @@ def _torch_batch_peak_values(output, template_count, template_size, segment):
         if native is not None:
             return native
 
-    from . import matchedfilter_torch
+    import torch
 
     values = tensor.reshape(template_count, template_size)[:, segment]
     if values.shape[1] == 0:
         return None
-    indices, peaks = matchedfilter_torch.standard_peak_tensor(values)
+    if values.is_complex():
+        sq_mag = torch.view_as_real(values).square().sum(dim=-1)
+    else:
+        sq_mag = values.square()
+    indices = torch.argmax(sq_mag, dim=-1)
+    peaks = values[torch.arange(values.shape[0], device=values.device), indices]
     return (
         indices.detach().cpu().numpy(),
         peaks.detach().cpu().numpy(),

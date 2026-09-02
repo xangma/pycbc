@@ -603,6 +603,42 @@ def _accelerator_batched_bin_sums(corr, pts, bins):
     return out.to(corr.dtype)
 
 
+def _accelerator_single_point_bin_sums(corr, pts, bins):
+    """Sum accelerator bins after constructing their shared phases once."""
+    length = corr.shape[-1]
+    band_start = bins[0]
+    band_end = bins[-1]
+    frequency = torch.arange(
+        band_start, band_end, device=corr.device, dtype=pts.dtype
+    )
+    phase = torch.exp(
+        2j
+        * torch.pi
+        * pts[:, None]
+        * frequency[None, :]
+        / float(length)
+    ).to(corr.dtype)
+
+    out = torch.zeros(
+        (1, len(bins) - 1), device=corr.device, dtype=corr.dtype
+    )
+    for index, (start, end) in enumerate(zip(bins, bins[1:])):
+        offset_start = start - band_start
+        offset_end = end - band_start
+        out[:, index] = torch.sum(
+            corr[start:end] * phase[:, offset_start:offset_end], dim=1
+        )
+    return out
+
+
+def _accelerator_single_point_phase_reuse_eligible(corr, pts, bins):
+    """Whether single-point accelerator phase vector reuse preserves current semantics."""
+    return (
+        getattr(pts, "numel", lambda: 0)() == 1
+        and _accelerator_phase_reuse_eligible(corr, pts, bins)
+    )
+
+
 def shift_sum(corr, points, bins):
     """
     Calculate time-shifted sums of corr over provided bins at given points.
@@ -642,6 +678,12 @@ def shift_sum(corr, points, bins):
                 out[:, j] = _cpu_shifted_bin_sum(
                     corr._data.tensor, pts, s, e, step_angle, step
                 )
+    elif _accelerator_single_point_phase_reuse_eligible(
+        corr._data.tensor, pts, bin_edges
+    ):
+        out = _accelerator_single_point_bin_sums(
+            corr._data.tensor, pts, bin_edges
+        )
     elif _accelerator_phase_reuse_eligible(
         corr._data.tensor, pts, bin_edges
     ):

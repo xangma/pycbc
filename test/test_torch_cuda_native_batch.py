@@ -483,6 +483,7 @@ def test_cuda_promoted_rows_gate_is_strict_and_default_off(monkeypatch):
         invec = zeros(batch * size, dtype=np.complex64)
         outvec = zeros(batch * size, dtype=np.complex64)
 
+        monkeypatch.setenv("PYCBC_TORCH_DIRECT_BATCH_IFFT", "0")
         monkeypatch.delenv(PROMOTED_ROWS_GATE, raising=False)
         fftobj = torchfft.IFFT(invec, outvec, nbatch=batch, size=size)
         assert fftobj._promoted_batch_plan is not None
@@ -503,6 +504,7 @@ def test_cuda_promoted_rows_fft_execution_and_accuracy(monkeypatch):
 
     size = 131072
     batch = 32
+    monkeypatch.setenv("PYCBC_TORCH_DIRECT_BATCH_IFFT", "0")
     monkeypatch.setenv(PROMOTED_ROWS_GATE, "1")
 
     with scheme.TorchScheme("cuda"):
