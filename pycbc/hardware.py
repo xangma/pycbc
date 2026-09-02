@@ -234,3 +234,84 @@ def get_optimal_batch_tile_size(
 
     power = 2 ** int(round(math.log2(optimal)))
     return max(min_tile, min(max_tile, power))
+
+
+def get_cpu_cores_per_numa_node():
+    """Return the number of CPU cores/threads sharing a single L3 cache/NUMA node."""
+    import multiprocessing
+
+    # 1. Linux sysfs inspection
+    try:
+        shared_list = (
+            "/sys/devices/system/cpu/cpu0/cache/index3/shared_cpu_list"
+        )
+        if not os.path.exists(shared_list):
+            shared_list = (
+                "/sys/devices/system/cpu/cpu0/cache/index2/shared_cpu_list"
+            )
+        if os.path.exists(shared_list):
+            with open(shared_list) as f:
+                content = f.read().strip()
+            total = 0
+            for part in content.split(","):
+                if "-" in part:
+                    start, end = part.split("-")
+                    total += int(end) - int(start) + 1
+                elif part.isdigit():
+                    total += 1
+            if total > 0:
+                return total
+    except Exception:
+        pass
+
+    # 2. Darwin sysctl inspection
+    if sys.platform == "darwin":
+        import subprocess
+
+        for key in ("hw.perflevel0.logicalcpu", "hw.logicalcpu"):
+            try:
+                out = subprocess.check_output(
+                    ["sysctl", "-n", key],
+                    text=True,
+                    stderr=subprocess.DEVNULL,
+                ).strip()
+                if out and int(out) > 0:
+                    return int(out)
+            except Exception:
+                pass
+
+    return min(8, multiprocessing.cpu_count())
+
+
+def get_optimal_1d_fft_threads(transform_size, requested_threads=None):
+    """Compute the optimal thread count for a single 1D FFT to prevent cache thrashing.
+
+    Parameters
+    ----------
+    transform_size : int
+        Number of complex frequency/time domain samples (e.g., 131,072).
+    requested_threads : int, optional
+        User-requested or scheme-active thread count.
+
+    Returns
+    -------
+    int
+        Optimal thread team size for the 1D transform.
+    """
+    if requested_threads is None:
+        import multiprocessing
+
+        requested_threads = multiprocessing.cpu_count()
+    requested_threads = int(max(1, requested_threads))
+
+    # Working set for single complex64 in/out pair: 2 * transform_size * 8 bytes
+    working_set_bytes = 2 * int(transform_size) * 8
+    ccx_cache_bytes = get_cpu_l3_cache_size(per_ccx=True)
+
+    if working_set_bytes <= ccx_cache_bytes:
+        # Fits inside a single CCD/L3 cache domain: bound to cores in this domain
+        cores_in_node = get_cpu_cores_per_numa_node()
+        return max(1, min(requested_threads, cores_in_node))
+
+    return requested_threads
+
