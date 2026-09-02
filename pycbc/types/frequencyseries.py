@@ -21,8 +21,6 @@ import os as _os
 import h5py
 from pycbc.types.array import Array, _convert, _regular_grid, zeros, _noreal
 import numpy as _numpy
-
-from pycbc.types.array import Array, _convert, _regular_grid, zeros, _noreal
 from pycbc.types.utils import determine_epoch
 from pycbc.types import float64
 from pycbc.libutils import import_optional

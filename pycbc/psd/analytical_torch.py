@@ -807,7 +807,7 @@ def _resolve_data_file(filename):
     it, reproduce the useful public search surface: the current directory,
     ``LAL_DATA_PATH`` entries, and data shipped in the ``lalapps`` wheel.
     """
-    if lal.LAL_AVAILABLE:
+    if hasattr(lal, "FileResolvePath"):
         return lal.FileResolvePath(filename)
 
     candidates = [filename]

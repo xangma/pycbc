@@ -329,6 +329,8 @@ def _torch_constant_taper_parameters(count, delta_t, epoch, taper_window):
     power-of-two sample rates, without extracting a data-dependent index from
     the device. Less common rates retain the established implementation.
     """
+    if _lal is None:
+        return None
     # Keep this deliberately narrow. In particular, unusual scalar classes
     # must continue through the legacy arithmetic and preserve its errors.
     if type(taper_window) not in (bool, int, float):
@@ -1450,8 +1452,11 @@ class TimeSeries(Array):
             from pycbc.types.array_torch import TorchArrayData
 
             spectrum = torch.fft.rfft(tensor.to(dtype=work_dtype))
+            psd_tensor = getattr(getattr(psd, "_data", None), "tensor", None)
+            if psd_tensor is None:
+                psd_tensor = torch.as_tensor(psd.numpy(), device=tensor.device)
             spectrum.div_(
-                torch.sqrt(psd._data.tensor.to(dtype=work_dtype))
+                torch.sqrt(psd_tensor.to(dtype=work_dtype))
             )
             white_tensor = torch.fft.irfft(
                 spectrum, n=tensor.numel()
@@ -1514,10 +1519,16 @@ class TimeSeries(Array):
             frange = (30, int(self.sample_rate / 2 * 8))
 
         use_torch = hasattr(self._data, "tensor")
-        # Torch path stays on-device and avoids SciPy interpolation.
+        _qtorch = None
         if use_torch:
+            try:
+                from pycbc.filter import qtransform_torch as _qtorch
+            except ImportError:
+                _qtorch = None
+
+        # Torch path stays on-device and avoids SciPy interpolation.
+        if _qtorch is not None:
             import torch
-            from pycbc.filter import qtransform_torch as _qtorch
 
             q_base = qtiling(self, qrange, frange, mismatch)
             fft_input = self
@@ -1961,15 +1972,14 @@ class TimeSeries(Array):
                 if len(tensor) == 1:
                     result = tensor - tensor.mean()
                 else:
+                    n = len(tensor)
                     positions = torch.arange(
-                        len(tensor), dtype=tensor.real.dtype,
+                        n, dtype=tensor.real.dtype,
                         device=tensor.device
                     )
-                    positions -= (len(tensor) - 1) / 2
-                    slope = (
-                        torch.sum(positions * tensor)
-                        / torch.sum(positions.square())
-                    )
+                    positions -= (n - 1) / 2
+                    norm_sq = (n * (n * n - 1)) / 12.0
+                    slope = torch.sum(positions * tensor) / norm_sq
                     result = tensor - (
                         tensor.mean() + slope * positions
                     )

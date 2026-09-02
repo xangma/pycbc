@@ -850,16 +850,17 @@ class TorchArrayData:
             else:
                 return NotImplemented
             if nan_mask is not None:
-                nan_index = torch.argmax(
-                    nan_mask.to(dtype=tensor.dtype),
-                    dim=reduction_axis,
-                    keepdim=reduction_keepdims,
-                )
                 has_nan = torch.any(
                     nan_mask, dim=reduction_axis,
                     keepdim=reduction_keepdims,
                 )
-                index = torch.where(has_nan, nan_index, index)
+                if torch.any(has_nan):
+                    nan_index = torch.argmax(
+                        nan_mask.to(dtype=torch.int8),
+                        dim=reduction_axis,
+                        keepdim=reduction_keepdims,
+                    )
+                    index = torch.where(has_nan, nan_index, index)
             if axis is None and keepdims:
                 index = index.reshape(result_shape)
         except (TypeError, ValueError, RuntimeError):
@@ -7309,9 +7310,8 @@ def min(self):
 
 def abs_max_loc(self):
     tensor = self._data.tensor
-    abs_vals = torch.abs(tensor)
-    idx = torch.argmax(abs_vals)
-    return abs_vals[idx].item(), int(idx.item())
+    val, idx = torch.max(torch.abs(tensor).flatten(), dim=0)
+    return val.item(), int(idx.item())
 
 
 def cumsum(self):
@@ -7324,8 +7324,8 @@ def max(self):
 
 def max_loc(self):
     tensor = self._data.tensor
-    idx = torch.argmax(tensor)
-    return tensor[idx].item(), int(idx.item())
+    val, idx = torch.max(tensor.flatten(), dim=0)
+    return val.item(), int(idx.item())
 
 def multiply_and_add(self, other, mult_fac):
     """ other * mult_fac + self (self mutated) """
@@ -7465,7 +7465,10 @@ def _getvalue(self, index):
     res = tensor[index]
     if res.ndim == 0:
         return _resolve_for_numpy(res).item()
-    return TorchArrayData(res)
+    if hasattr(self, "_return"):
+        return self._return(TorchArrayData(res))
+    from pycbc.types.array import Array
+    return Array(TorchArrayData(res), copy=False)
 
 
 def sum(self):
