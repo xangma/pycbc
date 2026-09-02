@@ -45,7 +45,10 @@ from operator import attrgetter
 
 import igwn_segments as segments
 import lal
-import lal.utils
+try:
+    import lal.utils
+except ImportError:
+    pass
 import Pegasus.api  # Try and move this into pegasus_workflow
 from igwn_ligolw import lsctables, ligolw
 from igwn_ligolw import utils as ligolw_utils
