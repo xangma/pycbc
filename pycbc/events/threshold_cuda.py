@@ -193,12 +193,11 @@ __global__ void threshold_and_cluster2(float2* outv, int* outl, float threshold,
 
     int l = outl[i];
     loc[i] = l;
+    val[i] = (l == -1) ? -1.0f : (outv[i].x * outv[i].x + outv[i].y * outv[i].y);
+    __syncthreads();
 
     if (l == -1)
         return;
-
-    val[i] = outv[i].x * outv[i].x + outv[i].y * outv[i].y;
-
 
     // Check right
     if ( (i < (${blocks} - 1)) && (val[i + 1] > val[i]) ){
