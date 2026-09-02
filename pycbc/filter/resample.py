@@ -27,7 +27,7 @@ import operator
 import numpy
 import scipy.signal
 
-from pycbc import lal_compat as lal
+import lal
 from pycbc.types import (
     Array,
     FrequencySeries,
@@ -50,13 +50,10 @@ except Exception:  # pragma: no cover - torch optional
     _torch_sosfilt = None
     _HAVE_TORCH = False
 
-if lal.LAL_AVAILABLE:
-    _resample_func = {
-        numpy.dtype('float32'): lal.ResampleREAL4TimeSeries,
-        numpy.dtype('float64'): lal.ResampleREAL8TimeSeries,
-    }
-else:
-    _resample_func = {}
+_resample_func = {
+    numpy.dtype('float32'): lal.ResampleREAL4TimeSeries,
+    numpy.dtype('float64'): lal.ResampleREAL8TimeSeries,
+}
 
 @functools.lru_cache(maxsize=20)
 def cached_firwin(*args, **kwargs):
@@ -464,7 +461,6 @@ def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
         if torch_input:
             ts = _torch_butterworth_resample(timeseries, delta_t)
         else:
-            lal.require_lal("CPU Butterworth resampling")
             lal_data = timeseries.lal()
             _resample_func[timeseries.dtype](lal_data, delta_t)
             data = lal_data.data.data
@@ -509,18 +505,14 @@ def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
     return ts
 
 
-if lal.LAL_AVAILABLE:
-    _highpass_func = {
-        numpy.dtype('float32'): lal.HighPassREAL4TimeSeries,
-        numpy.dtype('float64'): lal.HighPassREAL8TimeSeries,
-    }
-    _lowpass_func = {
-        numpy.dtype('float32'): lal.LowPassREAL4TimeSeries,
-        numpy.dtype('float64'): lal.LowPassREAL8TimeSeries,
-    }
-else:
-    _highpass_func = {}
-    _lowpass_func = {}
+_highpass_func = {
+    numpy.dtype('float32'): lal.HighPassREAL4TimeSeries,
+    numpy.dtype('float64'): lal.HighPassREAL8TimeSeries,
+}
+_lowpass_func = {
+    numpy.dtype('float32'): lal.LowPassREAL4TimeSeries,
+    numpy.dtype('float64'): lal.LowPassREAL8TimeSeries,
+}
 
 
 def notch_fir(timeseries, f1, f2, order, beta=5.0):
@@ -637,7 +629,6 @@ def highpass(timeseries, frequency, filter_order=8, attenuation=0.1):
             highpass=True,
         )
 
-    lal.require_lal("CPU high-pass filtering")
     lal_data = timeseries.lal()
     _highpass_func[timeseries.dtype](lal_data, frequency,
                                      1-attenuation, filter_order)
@@ -690,7 +681,6 @@ def lowpass(timeseries, frequency, filter_order=8, attenuation=0.1):
             highpass=False,
         )
 
-    lal.require_lal("CPU low-pass filtering")
     lal_data = timeseries.lal()
     _lowpass_func[timeseries.dtype](lal_data, frequency,
                                     1-attenuation, filter_order)

@@ -9,14 +9,12 @@ except ImportError:
     segment = segmentlist = None
 
 from pycbc.types import Array
-from pycbc import lal_compat as _lal
 
 logger = logging.getLogger('pycbc.events.veto')
 
 
-def _ligolw_modules(feature):
-    """Load LIGO-LW table support only for XML-backed operations."""
-    _lal.require_lal(feature)
+def _ligolw_modules(feature=None):
+    """Load LIGO-LW table support for XML-backed operations."""
     from igwn_ligolw import ligolw, lsctables, utils as ligolw_utils
 
     return ligolw, lsctables, ligolw_utils
