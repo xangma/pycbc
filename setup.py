@@ -56,8 +56,6 @@ install_requires = setup_requires + [
 def find_files(dirname, relpath=None):
     def find_paths(dirname):
         items = []
-        if not os.path.exists(dirname):
-            return items
         for fname in os.listdir(dirname):
             path = os.path.join(dirname, fname)
             if os.path.isdir(path):

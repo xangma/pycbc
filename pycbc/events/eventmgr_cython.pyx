@@ -4,7 +4,6 @@ import cython
 from cython import wraparound, boundscheck, cdivision
 from libc.math cimport M_PI, sqrt
 from libc.math cimport round as cround
-from libc.stdlib cimport malloc, free
 
 
 ctypedef fused REALTYPE:
@@ -268,58 +267,45 @@ def timecluster_cython(
     int leftlen,
 ):
     cdef:
-        int i, j, max_loc, head, tail, curr_r
+        int i, j, k, max_loc
         long int l, r
         REALTYPE max_val
-        int *deque_view
 
-    if leftlen == 0:
-        return 0
-
-    deque_view = <int *>malloc(leftlen * sizeof(int))
-    if deque_view == NULL:
-        raise MemoryError("Failed to allocate monotonic deque in timecluster_cython")
-
+    # i is the index we are inspecting, j is the next one to save
     i = 0
     j = 0
-    head = 0
-    tail = 0
-    curr_r = 0
+    while i < leftlen:
+        l = left[i]
+        r = right[i]
 
-    try:
-        while i < leftlen:
-            l = left[i]
-            r = right[i]
+        # If there are no other points to compare it is obviously the max
+        if (r - l) == 1:
+            indices[j] = i
+            j += 1
+            i += 1
+            continue
 
-            # Push elements up to right boundary r into monotonic deque (strictly decreasing)
-            while curr_r < r:
-                while tail > head and stat[curr_r] > stat[deque_view[tail - 1]]:
-                    tail -= 1
-                deque_view[tail] = curr_r
-                tail += 1
-                curr_r += 1
+        # Find the location of the maximum within the time interval around i
+        # Following block replaces max_loc = argmax(stat[l:r]) + l
+        max_val = stat[l]
+        max_loc = l
+        for k in range(l + 1, r):
+            if stat[k] > max_val:
+                max_val = stat[k]
+                max_loc = k
 
-            # Pop expired elements before left boundary l
-            while head < tail and deque_view[head] < l:
-                head += 1
+        # If this point is the max, we can skip to the right boundary
+        if max_loc == i:
+            indices[j] = i
+            i = r
+            j += 1
 
-            max_loc = deque_view[head]
+        # If the max is later than i, we can skip to it
+        elif max_loc > i:
+            i = max_loc
 
-            # If this point is the max, we can skip to the right boundary
-            if max_loc == i:
-                indices[j] = i
-                i = r
-                j += 1
-
-            # If the max is later than i, we can skip to it
-            elif max_loc > i:
-                i = max_loc
-
-            elif max_loc < i:
-                i += 1
-    finally:
-        free(deque_view)
-
+        elif max_loc < i:
+            i += 1
     return j
 
 ctypedef fused numeric_type:

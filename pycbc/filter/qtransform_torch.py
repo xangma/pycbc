@@ -66,22 +66,22 @@ def _bilinear_interp(values, freqs_old, times_old, freqs_new, times_new):
         t_lo, t_hi, tw = _lin_interp_indices(times_old, times_new)
         v0 = values[:, t_lo]
         v1 = values[:, t_hi]
-        time_interp = v0 + (v1 - v0) * tw
+        time_interp = torch.lerp(v0, v1, tw)
 
         f_lo, f_hi, fw = _lin_interp_indices(freqs_old, freqs_new)
         v0 = time_interp[f_lo, :]
         v1 = time_interp[f_hi, :]
-        return v0 + (v1 - v0) * fw.unsqueeze(-1)
+        return torch.lerp(v0, v1, fw.unsqueeze(-1))
 
     f_lo, f_hi, fw = _lin_interp_indices(freqs_old, freqs_new)
     v0 = values[f_lo, :]
     v1 = values[f_hi, :]
-    freq_interp = v0 + (v1 - v0) * fw.unsqueeze(-1)
+    freq_interp = torch.lerp(v0, v1, fw.unsqueeze(-1))
 
     t_lo, t_hi, tw = _lin_interp_indices(times_old, times_new)
     v0 = freq_interp[:, t_lo]
     v1 = freq_interp[:, t_hi]
-    return v0 + (v1 - v0) * tw
+    return torch.lerp(v0, v1, tw)
 
 
 def _qseries_batch_row_limit(tlen, tile_count):
@@ -286,8 +286,10 @@ def qplane(qplane_tile_dict, fseries, return_complex=False):
         plane = _qseries_batch(
             fseries, q, qplane_tile_dict[q],
             return_complex=return_complex
-        )
-        tile_maxima = torch.abs(plane).amax(dim=1)
+        if return_complex:
+            tile_maxima = torch.abs(plane).amax(dim=1)
+        else:
+            tile_maxima = plane.amax(dim=1)
         qplanes[q] = plane
         qkeys.append(q)
         # Match the NumPy implementation's initialization behavior: every

@@ -36,16 +36,6 @@ cdef extern from "simd_threshold_ccode.cpp":
                                  uint32_t * locs,
                                  const float thresh, const uint32_t winsize,
                                  const uint32_t segsize)
-    int _parallel_thresh_cluster_workspace(float complex * inarr,
-                                           const uint32_t arrlen,
-                                           float complex * values,
-                                           uint32_t * locs,
-                                           const float thresh, const uint32_t winsize,
-                                           const uint32_t segsize,
-                                           float complex * ws_cvals,
-                                           float * ws_norms,
-                                           int64_t * ws_mlocs,
-                                           int64_t * ws_seglens)
 
 # As a reference for sending numpy arrays onto C++
 # https://github.com/cython/cython/wiki/tutorials-NumpyPointerToC
@@ -72,14 +62,6 @@ def parallel_thresh_cluster(numpy.ndarray[numpy.complex64_t, ndim=1, mode="c"] s
                             numpy.ndarray[uint32_t, ndim=1, mode="c"] locs not None,
                             float thresh,
                             int window,
-                            int segsize,
-                            numpy.ndarray[numpy.complex64_t, ndim=1, mode="c"] ws_cvals = None,
-                            numpy.ndarray[numpy.float32_t, ndim=1, mode="c"] ws_norms = None,
-                            numpy.ndarray[numpy.int64_t, ndim=1, mode="c"] ws_mlocs = None,
-                            numpy.ndarray[numpy.int64_t, ndim=1, mode="c"] ws_seglens = None):
-    if ws_cvals is not None and ws_norms is not None and ws_mlocs is not None and ws_seglens is not None:
-        return _parallel_thresh_cluster_workspace(&series[0], slen, &values[0], &locs[0],
-                                                 thresh, window, segsize,
-                                                 &ws_cvals[0], &ws_norms[0], &ws_mlocs[0], &ws_seglens[0])
+                            int segsize):
     return _parallel_thresh_cluster(&series[0], slen, &values[0], &locs[0],
                                     thresh, window, segsize)

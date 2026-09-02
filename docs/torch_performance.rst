@@ -105,7 +105,7 @@ Search workflow
 Authoritative CPU result
 ------------------------
 
-The final current-source matrix ran on ``len`` CPU 119 with one thread,
+The final current-source matrix ran on an AMD Threadripper PRO workstation with one thread,
 sequential H1/L1 processing, ``n_batch=1``, and six paired warm observations
 per shape. C used native Torch ports, compilation off, the qualified direct-MKL
 IFFT, and trusted threshold-result construction. The latter makes this an
@@ -333,7 +333,7 @@ Key architectural takeaways:
 Replacement-runtime production batch result
 -------------------------------------------
 
-The qualified replacement-runtime campaign ran on ``len`` from source
+The qualified replacement-runtime campaign ran on an AMD Threadripper PRO 3995WX + NVIDIA RTX 4090 workstation from source
 ``ae381181e167db14e4d5e55324bcd492715e35e0`` with Python 3.11.9, Torch
 2.13.0+cu130, CUDA runtime 13.0, NVIDIA driver 610.57.04, and one RTX 4090.
 Each route/batch cell retained three counterbalanced replicates, and every
@@ -683,7 +683,7 @@ raw-byte and metadata exact.  This isolates the native-Torch optimization
 bundle; it is not an original-PyCBC or LAL comparison.  The canonical public
 comparison is reported below.
 
-A subsequent same-host ``len`` CPU119 ablation compared ``pr_style_exact``
+A subsequent same-host CPU ablation compared ``pr_style_exact``
 with ``torch213_cpu_candidate`` while keeping the phase-anchor cache and
 carrier-alignment result reuse enabled in both arms.  Across eight isolated
 AB/BA pairs, warm medians were 72.21--74.19 ms for the baseline and
@@ -756,7 +756,7 @@ Canonical public XPHM four-route seal
 -------------------------------------
 
 The canonical cache-enabled ``n_batch=1`` comparison ran the exact public
-``get_fd_waveform`` interface on ``len`` with Python 3.11.9, PyTorch
+``get_fd_waveform`` interface on an AMD Threadripper PRO 3995WX + NVIDIA RTX 4090 workstation with Python 3.11.9, PyTorch
 2.13.0+cu126, NumPy 1.26.4, LAL 7.6.0/lalsimulation 6.0.0, one pinned CPU
 thread, and an RTX 4090 with CUDA 12.6. Compilation was disabled. Its
 IMRPhenomXPHM 40/20 case produced 1,025 complex128 bins. It completed 32 fresh
@@ -836,7 +836,7 @@ Representative qualified component results
      - One PhenomX/Torch environment scan is shared while constructing public
        result and co-precessing-plan cache identities
      - Same-process warm latency improved 15.78--16.07% (1.187--1.191x) on
-       Python 3.13/PyTorch 2.9 and 8.288--8.328% (about 1.090x) on ``len`` with
+        Python 3.13/PyTorch 2.9 and 8.288--8.328% (about 1.090x) on an AMD Threadripper PRO workstation with
        Python 3.11/PyTorch 2.1
      - Raw-exact sentinels and 29 public-cache tests passed. This live source
        state postdates the canonical seal and is not included in 1.334611 ms
@@ -1385,7 +1385,7 @@ Reproduction Commands
 
    .. code-block:: bash
 
-      # On GPU host (e.g. len with NVIDIA RTX 4090):
+       # On GPU host (e.g. workstation with NVIDIA RTX 4090):
       python tools/bench_comprehensive_suite.py \
           --workloads all \
           --no-merge \

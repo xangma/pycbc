@@ -212,16 +212,12 @@ void _windowed_max(std::complex<float> * __restrict inarr,
   return;
 }
 
-int _parallel_thresh_cluster_workspace(std::complex<float> * __restrict inarr,
-                                       const uint32_t arrlen,
-                                       std::complex<float> * __restrict values,
-                                       uint32_t * __restrict locs,
-                                       const float thresh, const uint32_t winsize,
-                                       const uint32_t segsize,
-                                       std::complex<float> * ws_cvals,
-                                       float * ws_norms,
-                                       int64_t * ws_mlocs,
-                                       int64_t * ws_seglens){
+int _parallel_thresh_cluster(std::complex<float> * __restrict inarr,
+                             const uint32_t arrlen,
+                             std::complex<float> * __restrict values,
+                             uint32_t * __restrict locs,
+                             const float thresh, const uint32_t winsize,
+                             const uint32_t segsize){
 
   /*
 
@@ -233,16 +229,13 @@ int _parallel_thresh_cluster_workspace(std::complex<float> * __restrict inarr,
   'segsize', specifies in what size chunks the array should be processed, and should be no
   larger than what can fit in the cache local to a single processor core (the parallelization
   will call 'windowed_max' in parallel on chunks of this size).
-  Optional workspace buffers ws_cvals, ws_norms, ws_mlocs, and ws_seglens allow callers
-  to reuse pre-allocated memory and eliminate dynamic heap allocations.
 
   */
 
-  int64_t i, nsegs, nwins_ps, last_arrlen, outlen, true_segsize;
+  int64_t i, nsegs, nwins_ps, last_arrlen, last_nwins_ps, outlen, true_segsize;
   int64_t *seglens, *mlocs, cnt, s_segsize, s_arrlen, s_winsize;
   float *norms, thr_sqr;
   std::complex<float> *cvals;
-  bool dynamically_allocated = false;
 
   thr_sqr = (thresh * thresh);
 
@@ -287,21 +280,21 @@ int _parallel_thresh_cluster_workspace(std::complex<float> * __restrict inarr,
 
   last_arrlen = s_arrlen - true_segsize * (nsegs -1);
 
-  if (ws_cvals != NULL && ws_norms != NULL && ws_mlocs != NULL && ws_seglens != NULL) {
-    cvals = (std::complex<float> *) ws_cvals;
-    norms = ws_norms;
-    mlocs = ws_mlocs;
-    seglens = ws_seglens;
-  } else {
-    cvals = (std::complex<float> *) malloc(outlen * sizeof(std::complex<float>) );
-    norms = (float *) malloc(outlen * sizeof(float) );
-    mlocs = (int64_t *) malloc(outlen * sizeof(int64_t) );
-    seglens = (int64_t *) malloc(nsegs * sizeof(int64_t) );
-    dynamically_allocated = true;
+  // Now dynamic allocation.  No reason really to align this memory; it will be parceled
+  // out to different cores anyway.
 
-    if ( (cvals == NULL) || (norms == NULL) || (mlocs == NULL) || (seglens == NULL) ){
-      error(EXIT_FAILURE, ENOMEM, "Could not allocate temporary memory needed by parallel_thresh_cluster");
-    }
+  cvals = (std::complex<float> *) malloc(outlen * sizeof(std::complex<float>) );
+  norms = (float *) malloc(outlen * sizeof(float) );
+  mlocs = (int64_t *) malloc(outlen * sizeof(int64_t) );
+
+  // The next array allows us to dynamically communicate possibly changed sizes to the
+  // many parallel calls to windowed_max:
+
+  seglens = (int64_t *) malloc(nsegs * sizeof(int64_t) );
+
+  // check to see if anything failed
+  if ( (cvals == NULL) || (norms == NULL) || (mlocs == NULL) || (seglens == NULL) ){
+    error(EXIT_FAILURE, ENOMEM, "Could not allocate temporary memory needed by parallel_thresh_cluster");
   }
 
   for (i = 0; i < (nsegs-1); i++){
@@ -372,24 +365,11 @@ int _parallel_thresh_cluster_workspace(std::complex<float> * __restrict inarr,
     }
   }
 
-  if (dynamically_allocated) {
-    free(cvals);
-    free(norms);
-    free(mlocs);
-    free(seglens);
-  }
+  free(cvals);
+  free(norms);
+  free(mlocs);
+  free(seglens);
 
   return cnt;
-}
-
-int _parallel_thresh_cluster(std::complex<float> * inarr,
-                             const uint32_t arrlen,
-                             std::complex<float> * values,
-                             uint32_t * locs,
-                             const float thresh, const uint32_t winsize,
-                             const uint32_t segsize)
-{
-  return _parallel_thresh_cluster_workspace(inarr, arrlen, values, locs, thresh, winsize, segsize,
-                                           NULL, NULL, NULL, NULL);
 }
 

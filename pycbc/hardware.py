@@ -242,6 +242,7 @@ def get_optimal_batch_tile_size(
     return max(min_tile, min(max_tile, power))
 
 
+@functools.lru_cache(maxsize=1)
 def get_cpu_cores_per_numa_node():
     """Return the number of CPU cores/threads sharing a single L3 cache/NUMA node."""
     import multiprocessing
@@ -289,6 +290,7 @@ def get_cpu_cores_per_numa_node():
     return min(8, multiprocessing.cpu_count())
 
 
+@functools.lru_cache(maxsize=64)
 def get_optimal_1d_fft_threads(transform_size, requested_threads=None):
     """Compute the optimal thread count for a single 1D FFT to prevent cache thrashing.
 

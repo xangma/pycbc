@@ -814,14 +814,7 @@ def standard_peak_tensor(values):
         else:
             sq_mag = values.to(torch.float64).square()
     indices = torch.argmax(sq_mag, dim=-1)
-    gather_indices = indices.unsqueeze(1)
-    if values.is_complex():
-        peaks = torch.complex(
-            values.real.gather(1, gather_indices),
-            values.imag.gather(1, gather_indices),
-        ).squeeze(1)
-    else:
-        peaks = values.gather(1, gather_indices).squeeze(1)
+    peaks = values[torch.arange(values.shape[0], device=values.device), indices]
     return indices, peaks
 
 
@@ -954,16 +947,7 @@ def _torch_batch_peak_and_threshold_gpu(
     crossing_mask = max_snr_sq >= thresh_sq
     survivor_indices_gpu = torch.nonzero(crossing_mask, as_tuple=True)[0]
     surv_indices_within_seg = indices[survivor_indices_gpu]
-    surv_values = values[survivor_indices_gpu]
-    g_idx = surv_indices_within_seg.unsqueeze(1)
-
-    if values.is_complex():
-        surv_peaks = torch.complex(
-            surv_values.real.gather(1, g_idx),
-            surv_values.imag.gather(1, g_idx),
-        ).squeeze(1)
-    else:
-        surv_peaks = surv_values.gather(1, g_idx).squeeze(1)
+    surv_peaks = values[survivor_indices_gpu, surv_indices_within_seg]
 
     if values.device.type == "cuda":
         return (

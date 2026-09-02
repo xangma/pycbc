@@ -461,37 +461,25 @@ def _findchirp_cluster_indices(times, values, window_length):
 
     fwd_times = times[fwd_indices]
 
-    if fwd_times.is_cuda:
-        # Vectorized GPU searchsorted: evaluate all successors in 1 parallel GPU kernel launch
-        target_t = fwd_times + window_length
-        next_idx = torch.searchsorted(fwd_times, target_t, right=True)
-        next_idx_cpu = next_idx.cpu().numpy()
+    # Vectorized searchsorted: evaluate all successors in 1 parallel kernel launch
+    target_t = fwd_times + window_length
+    next_idx = torch.searchsorted(fwd_times, target_t, right=True)
+    next_idx_cpu = next_idx.detach().cpu().numpy()
 
-        survivor_positions = []
-        curr_idx = 0
-        while curr_idx < num_fwd:
-            survivor_positions.append(curr_idx)
-            curr_idx = int(next_idx_cpu[curr_idx])
-
-        if len(survivor_positions) == 0:
-            return torch.empty(0, device=times.device, dtype=torch.long)
-        survivor_tensor = torch.as_tensor(
-            survivor_positions,
-            device=fwd_indices.device,
-            dtype=torch.long,
-        )
-        return fwd_indices[survivor_tensor]
-
-    survivors = []
+    survivor_positions = []
     curr_idx = 0
     while curr_idx < num_fwd:
-        survivors.append(fwd_indices[curr_idx])
-        target_t = fwd_times[curr_idx] + window_length
-        curr_idx = torch.searchsorted(fwd_times, target_t, right=True).item()
+        survivor_positions.append(curr_idx)
+        curr_idx = int(next_idx_cpu[curr_idx])
 
-    if len(survivors) == 0:
+    if len(survivor_positions) == 0:
         return torch.empty(0, device=times.device, dtype=torch.long)
-    return torch.stack(survivors)
+    survivor_tensor = torch.as_tensor(
+        survivor_positions,
+        device=fwd_indices.device,
+        dtype=torch.long,
+    )
+    return fwd_indices[survivor_tensor]
 
 
 def _findchirp_cluster_positions(times, values, window_length):
