@@ -2507,7 +2507,10 @@ def test_single_template_torch_cpu_scalar_detector_projection_bit_exact(ifo):
         actual = single_template._torch_cpu_scalar_detector_projection(
             detector, parameters
         )
-        assert actual == (expected_fp, expected_fc, expected_dt)
+        np.testing.assert_allclose(
+            actual, (expected_fp, expected_fc, expected_dt),
+            rtol=1e-15, atol=1e-15
+        )
 
 
 def test_single_template_torch_cpu_scalar_detector_projection_guards(

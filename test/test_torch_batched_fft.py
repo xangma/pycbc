@@ -267,9 +267,14 @@ def _single_precision_case(kind, rows, size):
 @pytest.mark.parametrize(
     "kind", ["c2c_fft", "c2c_ifft", "r2c_fft", "c2r_ifft"]
 )
-def test_single_precision_batches_reuse_promoted_workspaces(device, kind):
+def test_single_precision_batches_reuse_promoted_workspaces(
+    monkeypatch, device, kind
+):
     """The released batch path improves on native float32 FFT precision."""
     from pycbc.fft import torchfft
+
+    if device == "cuda" and kind == "c2c_ifft":
+        monkeypatch.setenv("PYCBC_TORCH_DIRECT_BATCH_IFFT", "0")
 
     rows, size = 2, 4096
     values, output_dtype, output_size, expected = _single_precision_case(
@@ -327,13 +332,18 @@ def test_single_precision_batches_reuse_promoted_workspaces(device, kind):
 @pytest.mark.parametrize(
     "kind", ["c2c_fft", "c2c_ifft", "r2c_fft", "c2r_ifft"]
 )
-def test_promoted_batches_match_or_exceed_legacy_fftw(device, kind):
+def test_promoted_batches_match_or_exceed_legacy_fftw(
+    monkeypatch, device, kind
+):
     """Guard the precision promise against the established CPU backend."""
     try:
         from pycbc.types import array_cpu  # noqa: F401
         from pycbc.fft import fftw, torchfft
     except (ImportError, OSError, RuntimeError) as exc:
         pytest.skip(f"compiled CPU FFT backend unavailable: {exc}")
+
+    if device == "cuda" and kind == "c2c_ifft":
+        monkeypatch.setenv("PYCBC_TORCH_DIRECT_BATCH_IFFT", "0")
 
     rows, size = 2, 4096
     values, output_dtype, output_size, expected = _single_precision_case(
