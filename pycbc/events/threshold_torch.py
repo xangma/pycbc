@@ -880,22 +880,6 @@ class TorchThresholdCluster(_BaseThresholdCluster):
             and active_scheme.torch_device.type == "cpu"
         ):
             self._trusted_native_result_scheme = active_scheme
-        if native_cpu_candidate:
-            import multiprocessing
-            try:
-                nthreads = multiprocessing.cpu_count()
-            except (NotImplementedError, AttributeError):
-                nthreads = 1
-            segsize = int(_CPU_NATIVE_SEGSIZE)
-            self._ws_cvals = np.empty(nthreads * segsize, dtype=np.complex64)
-            self._ws_norms = np.empty(nthreads * segsize, dtype=np.float32)
-            self._ws_mlocs = np.empty(nthreads * (segsize // 2 + 2), dtype=np.int64)
-            self._ws_seglens = np.empty(nthreads, dtype=np.int64)
-        else:
-            self._ws_cvals = None
-            self._ws_norms = None
-            self._ws_mlocs = None
-            self._ws_seglens = None
 
         self._triton_scratch_nb = 0
         self._triton_block_max = None
@@ -982,10 +966,6 @@ class TorchThresholdCluster(_BaseThresholdCluster):
             threshold,
             window,
             _CPU_NATIVE_SEGSIZE,
-            self._ws_cvals,
-            self._ws_norms,
-            self._ws_mlocs,
-            self._ws_seglens,
         )
         # The native buffers are reused on the next call.  Survivors are
         # sparse (at most one per clustering window), so copying only these
