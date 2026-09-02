@@ -882,6 +882,14 @@ def _torch_batch_peak_and_threshold_gpu(
     else:
         surv_peaks = surv_values.gather(1, g_idx).squeeze(1)
 
+    if values.device.type == "cuda":
+        return (
+            survivor_indices_gpu.to(device="cpu", non_blocking=True).numpy(),
+            surv_indices_within_seg.to(device="cpu", non_blocking=True).numpy(),
+            surv_peaks.to(device="cpu", non_blocking=True).numpy(),
+            False,
+        )
+
     return (
         survivor_indices_gpu.detach().cpu().numpy(),
         surv_indices_within_seg.detach().cpu().numpy(),

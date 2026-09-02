@@ -209,3 +209,31 @@ def test_skymax_power_chisq_keeps_dense_scratch_on_torch(
         actual_values, expected, rtol=2e-5, atol=2e-5
     )
     np.testing.assert_array_equal(actual_dof, expected_dof)
+
+
+def test_power_chisq_cuda_triton_fused():
+    import torch
+    if not torch.cuda.is_available():
+        pytest.skip("CUDA not available")
+
+    rng = np.random.default_rng(42)
+    corr = (rng.normal(size=256) + 1j * rng.normal(size=256)).astype(np.complex64)
+    snr = (rng.normal(size=10) + 1j * rng.normal(size=10)).astype(np.complex64)
+    indices = np.array([5, 12, 25, 50, 75, 100, 120, 150, 180, 200], dtype=np.int64)
+    bins = np.array([2, 10, 30, 60, 100, 150, 200], dtype=np.int64)
+    snr_norm = 0.5
+
+    cpu_corr = FrequencySeries(corr.copy(), delta_f=0.1)
+    cpu_chisq = power_chisq_at_points_from_precomputed(
+        cpu_corr, snr.copy(), snr_norm, bins, indices
+    )
+
+    with scheme.TorchScheme("cuda"):
+        cuda_corr = FrequencySeries(corr.copy(), delta_f=0.1)
+        cuda_chisq = power_chisq_at_points_from_precomputed(
+            cuda_corr, snr.copy(), snr_norm, bins, indices
+        )
+
+    assert cuda_chisq.kind == "real"
+    assert isinstance(cuda_chisq._data, TorchArrayData)
+    np.testing.assert_allclose(cuda_chisq.numpy(), cpu_chisq, rtol=1e-4, atol=1e-4)
