@@ -25,6 +25,74 @@ import torch
 from pycbc.types import Array
 from pycbc.types.array import _convert_to_scheme
 
+try:
+    import triton
+    import triton.language as tl
+    _HAS_TRITON = True
+except ImportError:
+    triton = None
+    tl = None
+    _HAS_TRITON = False
+
+
+if _HAS_TRITON:
+    @triton.jit
+    def _triton_pointwise_chisq_bin_kernel(
+        corr_real_ptr, corr_imag_ptr,
+        pts_ptr,
+        bin_starts_ptr, bin_ends_ptr,
+        out_real_ptr, out_imag_ptr,
+        two_pi_over_N,
+        stride_out_p, stride_out_b,
+        BLOCK_SIZE: tl.constexpr,
+    ):
+        pid_p = tl.program_id(0)
+        pid_b = tl.program_id(1)
+
+        p_val = tl.load(pts_ptr + pid_p)
+        k_start = tl.load(bin_starts_ptr + pid_b)
+        k_end = tl.load(bin_ends_ptr + pid_b)
+
+        num_k = k_end - k_start
+        if num_k <= 0:
+            out_ptr_re = out_real_ptr + pid_p * stride_out_p + pid_b * stride_out_b
+            out_ptr_im = out_imag_ptr + pid_p * stride_out_p + pid_b * stride_out_b
+            tl.store(out_ptr_re, 0.0)
+            tl.store(out_ptr_im, 0.0)
+            return
+
+        acc_real = 0.0
+        acc_imag = 0.0
+
+        scale = p_val.to(tl.float64) * two_pi_over_N
+
+        for offset in range(0, num_k, BLOCK_SIZE):
+            k_offsets = offset + tl.arange(0, BLOCK_SIZE)
+            mask = k_offsets < num_k
+            k_indices = k_start + k_offsets
+
+            c_re = tl.load(corr_real_ptr + k_indices, mask=mask, other=0.0)
+            c_im = tl.load(corr_imag_ptr + k_indices, mask=mask, other=0.0)
+
+            # Double-precision angle range reduction to prevent phase drift
+            theta_f64 = scale * k_indices.to(tl.float64)
+            turns = (theta_f64 * (1.0 / 6.283185307179586476925286766559)).to(tl.int64)
+            theta_red = (theta_f64 - turns.to(tl.float64) * 6.283185307179586476925286766559).to(tl.float32)
+
+            cos_t = tl.cos(theta_red)
+            sin_t = tl.sin(theta_red)
+
+            term_re = c_re * cos_t - c_im * sin_t
+            term_im = c_re * sin_t + c_im * cos_t
+
+            acc_real += tl.sum(tl.where(mask, term_re, 0.0))
+            acc_imag += tl.sum(tl.where(mask, term_im, 0.0))
+
+        out_ptr_re = out_real_ptr + pid_p * stride_out_p + pid_b * stride_out_b
+        out_ptr_im = out_imag_ptr + pid_p * stride_out_p + pid_b * stride_out_b
+        tl.store(out_ptr_re, acc_real)
+        tl.store(out_ptr_im, acc_imag)
+
 
 # ``point_chisq_code`` uses this literal internally.  Correcting the input
 # shift lets its double-precision specialization evaluate phases with Torch's
@@ -442,7 +510,7 @@ def _accelerator_phase_reuse_eligible(corr, pts, bins):
 
 
 def _accelerator_batched_bin_sums(corr, pts, bins):
-    """Sum accelerator bins with batched (P x K) phase matrix operations."""
+    """Sum accelerator bins with batched (P x K) phase matrix or fused Triton operations."""
     length = corr.shape[-1]
     band_start = bins[0]
     band_end = bins[-1]
@@ -451,6 +519,30 @@ def _accelerator_batched_bin_sums(corr, pts, bins):
         return torch.zeros(
             (pts.numel(), len(bins) - 1), device=corr.device, dtype=corr.dtype
         )
+
+    # Fast-path for CUDA GPUs via fused SRAM register accumulation
+    if _HAS_TRITON and corr.device.type == "cuda" and corr.dtype == torch.complex64:
+        P = pts.numel()
+        B = len(bins) - 1
+        two_pi_over_N = float(2.0 * np.pi / length)
+        bin_starts = torch.as_tensor(bins[:-1], device=corr.device, dtype=torch.int32)
+        bin_ends = torch.as_tensor(bins[1:], device=corr.device, dtype=torch.int32)
+        pts_f64 = pts.to(torch.float64)
+        corr_re = corr.real.contiguous()
+        corr_im = corr.imag.contiguous()
+        out_re = torch.empty((P, B), device=corr.device, dtype=torch.float32)
+        out_im = torch.empty((P, B), device=corr.device, dtype=torch.float32)
+        grid = (P, B)
+        _triton_pointwise_chisq_bin_kernel[grid](
+            corr_re, corr_im,
+            pts_f64,
+            bin_starts, bin_ends,
+            out_re, out_im,
+            two_pi_over_N,
+            out_re.stride(0), out_re.stride(1),
+            BLOCK_SIZE=512,
+        )
+        return torch.complex(out_re, out_im)
 
     frequency = torch.arange(
         band_start, band_end, device=corr.device, dtype=pts.dtype

@@ -115,6 +115,112 @@ if _TRITON_AVAILABLE:
         )
         return block_max, block_idx
 
+    @triton.jit
+    def _triton_symm_mask_tensor_kernel(
+        max_vals_ptr,
+        thresh_sq_ptr,
+        out_keep_ptr,
+        nb,
+        BLOCK_SIZE: tl.constexpr,
+    ):
+        pid = tl.program_id(0)
+        offsets = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
+        mask = offsets < nb
+
+        thresh_sq = tl.load(thresh_sq_ptr)
+        curr = tl.load(max_vals_ptr + offsets, mask=mask, other=-1e30)
+        thresh_ok = curr > thresh_sq
+
+        # Left neighbor
+        left_offsets = offsets - 1
+        left_mask = mask & (offsets > 0)
+        left_val = tl.load(
+            max_vals_ptr + left_offsets, mask=left_mask, other=-1e30
+        )
+        left_ok = tl.where(offsets > 0, curr > left_val, True)
+
+        # Right neighbor
+        right_offsets = offsets + 1
+        right_mask = mask & (offsets < nb - 1)
+        right_val = tl.load(
+            max_vals_ptr + right_offsets, mask=right_mask, other=-1e30
+        )
+        right_ok = tl.where(offsets < nb - 1, curr >= right_val, True)
+
+        # First element special: curr[0] > curr[1] when nb > 1
+        first_special = tl.where(
+            (offsets == 0) & (nb > 1), curr > right_val, True
+        )
+
+        keep = thresh_ok & left_ok & right_ok & first_special
+        tl.store(out_keep_ptr + offsets, keep.to(tl.int1), mask=mask)
+
+    @triton.jit
+    def _triton_symm_mask_scalar_kernel(
+        max_vals_ptr,
+        thresh_sq,
+        out_keep_ptr,
+        nb,
+        BLOCK_SIZE: tl.constexpr,
+    ):
+        pid = tl.program_id(0)
+        offsets = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
+        mask = offsets < nb
+
+        curr = tl.load(max_vals_ptr + offsets, mask=mask, other=-1e30)
+        thresh_ok = curr > thresh_sq
+
+        # Left neighbor
+        left_offsets = offsets - 1
+        left_mask = mask & (offsets > 0)
+        left_val = tl.load(
+            max_vals_ptr + left_offsets, mask=left_mask, other=-1e30
+        )
+        left_ok = tl.where(offsets > 0, curr > left_val, True)
+
+        # Right neighbor
+        right_offsets = offsets + 1
+        right_mask = mask & (offsets < nb - 1)
+        right_val = tl.load(
+            max_vals_ptr + right_offsets, mask=right_mask, other=-1e30
+        )
+        right_ok = tl.where(offsets < nb - 1, curr >= right_val, True)
+
+        # First element special: curr[0] > curr[1] when nb > 1
+        first_special = tl.where(
+            (offsets == 0) & (nb > 1), curr > right_val, True
+        )
+
+        keep = thresh_ok & left_ok & right_ok & first_special
+        tl.store(out_keep_ptr + offsets, keep.to(tl.int1), mask=mask)
+
+    def _triton_symmetric_cluster_mask(max_vals, threshold_sq, out=None):
+        """Run Triton fused symmetric neighbor clustering mask on CUDA tensor."""
+        nb = max_vals.numel()
+        if nb == 0:
+            return torch.empty(0, device=max_vals.device, dtype=torch.bool)
+        if out is None or out.numel() != nb:
+            out = torch.empty(nb, device=max_vals.device, dtype=torch.bool)
+        BLOCK_SIZE = 512
+        grid = ((nb + BLOCK_SIZE - 1) // BLOCK_SIZE,)
+        if isinstance(threshold_sq, torch.Tensor) and threshold_sq.is_cuda:
+            _triton_symm_mask_tensor_kernel[grid](
+                max_vals,
+                threshold_sq,
+                out,
+                nb,
+                BLOCK_SIZE=BLOCK_SIZE,
+            )
+        else:
+            _triton_symm_mask_scalar_kernel[grid](
+                max_vals,
+                float(threshold_sq),
+                out,
+                nb,
+                BLOCK_SIZE=BLOCK_SIZE,
+            )
+        return out
+
 
 _l2_size = opt.get_l2_cache_size() if hasattr(opt, "get_l2_cache_size") else getattr(opt, "LEVEL2_CACHE_SIZE", None)
 if _l2_size is not None:
@@ -644,6 +750,14 @@ def _symmetric_cluster_mask(max_vals, threshold_sq, out=None):
     nb = max_vals.numel()
     if nb == 0:
         return torch.empty(0, device=max_vals.device, dtype=torch.bool)
+
+    if (
+        _TRITON_AVAILABLE
+        and max_vals.is_cuda
+        and max_vals.dtype == torch.float32
+        and max_vals.is_contiguous()
+    ):
+        return _triton_symmetric_cluster_mask(max_vals, threshold_sq, out=out)
 
     if out is None or out.numel() != nb:
         keep = max_vals > threshold_sq

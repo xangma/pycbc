@@ -186,10 +186,6 @@ def test_matched_filter_and_cluster_symm_torch_cpu_parity():
     )
 
 
-@pytest.mark.skipif(
-    not pycbc.HAVE_TORCH or not getattr(pytest, "have_cuda", False),
-    reason="PyTorch CUDA not available",
-)
 def test_matched_filter_and_cluster_symm_torch_cuda_graph_parity():
     """Verify parity between CPUScheme, eager Torch CUDA, and CUDA Graph."""
     import torch
