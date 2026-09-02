@@ -1034,18 +1034,17 @@ class TimeSeries(Array):
         TypeError
             If time series is stored in GPU memory.
         """
-        lal = _lal.require_lal("TimeSeries.lal() conversion")
         lal_data = None
         ep = _lal.LIGOTimeGPS(self._epoch)
 
         if self._data.dtype == _numpy.float32:
-            lal_data = lal.CreateREAL4TimeSeries("",ep,0,self.delta_t,lal.SecondUnit,len(self))
+            lal_data = _lal.CreateREAL4TimeSeries("",ep,0,self.delta_t,_lal.SecondUnit,len(self))
         elif self._data.dtype == _numpy.float64:
-            lal_data = lal.CreateREAL8TimeSeries("",ep,0,self.delta_t,lal.SecondUnit,len(self))
+            lal_data = _lal.CreateREAL8TimeSeries("",ep,0,self.delta_t,_lal.SecondUnit,len(self))
         elif self._data.dtype == _numpy.complex64:
-            lal_data = lal.CreateCOMPLEX8TimeSeries("",ep,0,self.delta_t,lal.SecondUnit,len(self))
+            lal_data = _lal.CreateCOMPLEX8TimeSeries("",ep,0,self.delta_t,_lal.SecondUnit,len(self))
         elif self._data.dtype == _numpy.complex128:
-            lal_data = lal.CreateCOMPLEX16TimeSeries("",ep,0,self.delta_t,lal.SecondUnit,len(self))
+            lal_data = _lal.CreateCOMPLEX16TimeSeries("",ep,0,self.delta_t,_lal.SecondUnit,len(self))
 
         lal_data.data.data[:] = self.numpy()
 

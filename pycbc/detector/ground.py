@@ -634,7 +634,7 @@ def load_detector_config(config_files):
 # Prepopulate from detector geometry hardcoded in LAL. CachedDetectors contains
 # the same FrDetector records returned by lalsimulation's prefix lookup, while
 # avoiding an eager dependency on the optional lalsimulation package.
-if lal.LAL_AVAILABLE:
+if hasattr(lal, "CachedDetectors"):
     for detector in lal.CachedDetectors:
         lal_det = detector.frDetector
         pref = lal_det.prefix
