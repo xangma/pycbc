@@ -282,6 +282,8 @@ def _load_inference_model_module(name):
     module_path = (
         Path(pycbc.__file__).parent / "inference" / "models" / f"{name}.py"
     )
+    if not module_path.is_file():
+        return None
     spec = importlib.util.spec_from_file_location(
         f"_pycbc_inference_{name}_torch_test", module_path
     )
