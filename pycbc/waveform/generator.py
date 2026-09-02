@@ -26,23 +26,31 @@ This modules provides classes for generating waveforms.
 """
 import os
 import logging
+import numpy as np
 
 from abc import (ABCMeta, abstractmethod)
 
 from . import waveform
 from .waveform import (FailedWaveformError)
 from . import ringdown
-from . import supernovae
 from . import waveform_modes
-from pycbc.types import TimeSeries
+from pycbc.types import TimeSeries, FrequencySeries
 from pycbc.waveform import parameters
 from pycbc.waveform.utils import apply_fseries_time_shift, \
-                                 ceilpow2, apply_fd_time_shift
-from pycbc.detector import Detector
+                                 ceilpow2, apply_fd_time_shift, \
+                                 scheme_cast_series as _scheme_cast_series
 from pycbc.pool import use_mpi
 from pycbc import strain
-from numpy import pi
+try:
+    import torch
+except ImportError:
+    torch = None
 
+def _apply_gates_to_fd(strain_dict, gates):
+    """Apply frequency-domain gates without importing strain eagerly."""
+    from pycbc.strain import apply_gates_to_fd
+
+    return apply_gates_to_fd(strain_dict, gates)
 
 # utility functions/class
 failed_counter = 0
@@ -437,6 +445,8 @@ class TDomainSupernovaeGenerator(BaseGenerator):
     using a set of Principal Components provided in a .hdf file.
     """
     def __init__(self, variable_args=(), **frozen_params):
+        from . import supernovae
+
         super(TDomainSupernovaeGenerator,
               self).__init__(supernovae.get_corecollapse_bounce,
            variable_args=variable_args, **frozen_params)
@@ -529,6 +539,8 @@ class BaseFDomainDetFrameGenerator(metaclass=ABCMeta):
         # if detectors are provided, convert to detector type; also ensure that
         # location variables are specified
         if detectors is not None:
+            from pycbc.detector import Detector
+
             self.detectors = {det: Detector(det) for det in detectors}
             missing_args = [arg for arg in self.location_args if not
                 (arg in self.current_params or arg in self.variable_args)]
@@ -667,6 +679,8 @@ class FDomainDetFrameGenerator(BaseFDomainDetFrameGenerator):
         rfparams = {param: self.current_params[param]
             for param in kwargs if param not in self.location_args}
         hp, hc = self.rframe_generator.generate(**rfparams)
+        hp = _scheme_cast_series(hp)
+        hc = _scheme_cast_series(hc)
         if isinstance(hp, TimeSeries):
             df = self.current_params['delta_f']
             hp = hp.to_frequencyseries(delta_f=df)
@@ -685,18 +699,70 @@ class FDomainDetFrameGenerator(BaseFDomainDetFrameGenerator):
             ref_tc = self.current_params['tc']
             pol = self.current_params['polarization']
             refframe = self.current_params.get('tc_ref_frame', 'geocentric')
-            for detname, det in self.detectors.items():
-                tc = det.arrival_time(ref_tc, ra, dec, refframe)
-                # apply response function
-                fp, fc = det.antenna_pattern(ra, dec, pol, tc)
-                thish = fp*hp + fc*hc
-                # apply time shift
-                h[detname] = apply_fd_time_shift(thish, tc+tshift, copy=False)
-                if self.recalib:
-                    # recalibrate with given calibration model
-                    h[detname] = \
-                        self.recalib[detname].map_to_adjust(h[detname],
-                            **self.current_params)
+
+            hp_tensor = getattr(getattr(hp, "_data", None), "tensor", None)
+            hc_tensor = getattr(getattr(hc, "_data", None), "tensor", None)
+            use_torch_fused = (
+                hp_tensor is not None
+                and hc_tensor is not None
+            )
+
+            if use_torch_fused:
+                from .utils_torch import fused_detector_strain_fd_torch
+                from pycbc.types.array_torch import TorchArrayData
+
+                fp_list = []
+                fc_list = []
+                dt_list = []
+                det_list = []
+                for detname, det in self.detectors.items():
+                    if hasattr(det, 'antenna_pattern_and_time_delay') and refframe == 'geocentric':
+                        fp, fc, delay = det.antenna_pattern_and_time_delay(ra, dec, pol, ref_tc)
+                        tc = ref_tc + delay
+                    elif hasattr(det, 'antenna_pattern_and_delay') and refframe == 'geocentric':
+                        fp, fc, tc = det.antenna_pattern_and_delay(ra, dec, pol, ref_tc)
+                    else:
+                        tc = det.arrival_time(ref_tc, ra, dec, refframe)
+                        fp, fc = det.antenna_pattern(ra, dec, pol, tc)
+                    fp_list.append(fp)
+                    fc_list.append(fc)
+                    dt_list.append(float(tc + tshift - self._epoch))
+                    det_list.append(detname)
+
+                strains = fused_detector_strain_fd_torch(
+                    hp_tensor, hc_tensor, fp_list, fc_list, dt_list, hp.delta_f
+                )
+                for i, detname in enumerate(det_list):
+                    series = FrequencySeries(
+                        TorchArrayData(strains[i]),
+                        delta_f=hp.delta_f,
+                        epoch=self._epoch,
+                        copy=False,
+                    )
+                    if self.recalib:
+                        series = self.recalib[detname].map_to_adjust(
+                            series, **self.current_params
+                        )
+                    h[detname] = series
+            else:
+                for detname, det in self.detectors.items():
+                    if hasattr(det, 'antenna_pattern_and_time_delay') and refframe == 'geocentric':
+                        fp, fc, delay = det.antenna_pattern_and_time_delay(ra, dec, pol, ref_tc)
+                        tc = ref_tc + delay
+                    elif hasattr(det, 'antenna_pattern_and_delay') and refframe == 'geocentric':
+                        fp, fc, tc = det.antenna_pattern_and_delay(ra, dec, pol, ref_tc)
+                    else:
+                        tc = det.arrival_time(ref_tc, ra, dec, refframe)
+                        # apply response function
+                        fp, fc = det.antenna_pattern(ra, dec, pol, tc)
+                    thish = fp*hp + fc*hc
+                    # apply time shift
+                    h[detname] = apply_fd_time_shift(thish, tc+tshift, copy=False)
+                    if self.recalib:
+                        # recalibrate with given calibration model
+                        h[detname] = \
+                            self.recalib[detname].map_to_adjust(h[detname],
+                                **self.current_params)
         else:
             # no detector response, just use the + polarization
             if 'tc' in self.current_params:
@@ -707,7 +773,9 @@ class FDomainDetFrameGenerator(BaseFDomainDetFrameGenerator):
             # resize all to nearest power of 2
             for d in h.values():
                 d.resize(ceilpow2(len(d)-1) + 1)
-            h = strain.apply_gates_to_fd(h, self.gates)
+            h = _apply_gates_to_fd(h, self.gates)
+        # Ensure outputs live on torch device when torch scheme is active
+        h = {det: _scheme_cast_series(series) for det, series in h.items()}
         return h
 
     @staticmethod
@@ -853,8 +921,8 @@ class FDomainDetFrameTwoPolGenerator(BaseFDomainDetFrameGenerator):
                 hc.resize(ceilpow2(len(hc)-1) + 1)
                 hps[det] = hp
                 hcs[det] = hc
-            hps = strain.apply_gates_to_fd(hps, self.gates)
-            hcs = strain.apply_gates_to_fd(hps, self.gates)
+            hps = _apply_gates_to_fd(hps, self.gates)
+            hcs = _apply_gates_to_fd(hps, self.gates)
             h = {det: (hps[det], hcs[det]) for det in h}
         return h
 
@@ -1070,7 +1138,7 @@ class FDomainDetFrameTwoPhaseGenerator(BaseFDomainDetFrameGenerator):
         # generate the sine term: shift all phases by pi/2
         sin_params = rfparams.copy()
         for i in phases:
-            sin_params[i] = rfparams[i] + pi/2
+            sin_params[i] = rfparams[i] + np.pi / 2
         hps, hcs = self.rframe_generator.generate(**sin_params)
         if isinstance(hpc, TimeSeries):
             df = self.current_params['delta_f']
@@ -1276,8 +1344,8 @@ class FDomainDetFrameModesGenerator(BaseFDomainDetFrameGenerator):
                     vlm.resize(ceilpow2(len(vlm)-1) + 1)
                     ulms[det] = ulm
                     vlms[det] = vlm
-                ulms = strain.apply_gates_to_fd(ulms, self.gates)
-                vlms = strain.apply_gates_to_fd(ulms, self.gates)
+                ulms = _apply_gates_to_fd(ulms, self.gates)
+                vlms = _apply_gates_to_fd(ulms, self.gates)
                 for det in ulms:
                     h[det][mode] = (ulms[det], vlms[det])
         return h
@@ -1396,11 +1464,13 @@ def get_td_generator(approximant, modes=False):
             return TDomainMassSpinRingdownGenerator
         return TDomainFreqTauRingdownGenerator
 
+    from . import supernovae
+
     if approximant in supernovae.supernovae_td_approximants:
         return TDomainSupernovaeGenerator
 
-    raise ValueError(f"No time-domain generator found for " 
-                      "approximant: {approximant}")
+    raise ValueError("No time-domain generator found for "
+                     f"approximant: {approximant}")
 
 def get_fd_generator(approximant, modes=False):
     """Returns the frequency-domain generator for the given approximant."""
@@ -1414,8 +1484,8 @@ def get_fd_generator(approximant, modes=False):
             return FDomainMassSpinRingdownGenerator
         return FDomainFreqTauRingdownGenerator
 
-    raise ValueError(f"No frequency-domain generator found for "
-                      "approximant: {approximant}")
+    raise ValueError("No frequency-domain generator found for "
+                     f"approximant: {approximant}")
 
 def select_waveform_generator(approximant, domain=None):
     """Returns the single-IFO generator for the approximant.
