@@ -317,7 +317,7 @@ class MatchedFilterControl(object):
         # Fast path: CUDA Graph replay if enabled/captured
         use_cuda_graph = (
             getattr(self, "_cuda_graph_enabled", False)
-            or os.environ.get("PYCBC_TORCH_CUDA_GRAPH", "0") == "1"
+            or os.environ.get("PYCBC_TORCH_CUDA_GRAPH", "1") != "0"
         ) and (
             hasattr(clusterer, "series")
             and getattr(clusterer.series, "is_cuda", False)
@@ -334,6 +334,9 @@ class MatchedFilterControl(object):
                 g, g_thresh_sq = graph_entry
                 g_thresh_sq.fill_(float(thresh_val * thresh_val))
                 g.replay()
+                # Fast path: skip host-device sync in kept_idx = idx[keep] when no triggers
+                if not bool(clusterer._triton_keep.any()):
+                    return [], [], [], [], []
                 kept_idx = clusterer._triton_block_idx[clusterer._triton_keep]
                 if kept_idx.numel() == 0:
                     return [], [], [], [], []

@@ -573,9 +573,7 @@ def _cluster_candidates(mag_sq, window):
 
     pad = num_blocks * window - length
     if pad:
-        pad_val = torch.full((pad,), float("-inf"), device=mag_sq.device,
-                             dtype=mag_sq.dtype)
-        mag_padded = torch.cat((mag_sq, pad_val))
+        mag_padded = F.pad(mag_sq, (0, pad), value=float("-inf"))
     else:
         mag_padded = mag_sq
 
@@ -913,6 +911,10 @@ class TorchThresholdCluster(_BaseThresholdCluster):
         self._triton_block_max = None
         self._triton_block_idx = None
         self._triton_keep = None
+        self._cached_empty_vals_cpu = None
+        self._cached_empty_idx_cpu = None
+        self._cached_empty_vals_cuda = None
+        self._cached_empty_idx_cuda = None
 
         if (
             # Reusable ``out=`` kernels bypass Tensor-subclass dispatch, so
@@ -999,6 +1001,17 @@ class TorchThresholdCluster(_BaseThresholdCluster):
             self._ws_mlocs,
             self._ws_seglens,
         )
+        # Zero-trigger fast path: avoid copying and wrapping empty buffers
+        if count == 0:
+            if self._cached_empty_vals_cpu is None:
+                self._cached_empty_vals_cpu = _array_from_tensor(
+                    torch.empty(0, dtype=torch.complex64)
+                )
+                self._cached_empty_idx_cpu = _array_from_tensor(
+                    torch.empty(0, dtype=torch.int64)
+                )
+            return self._cached_empty_vals_cpu, self._cached_empty_idx_cpu
+
         # The native buffers are reused on the next call.  Survivors are
         # sparse (at most one per clustering window), so copying only these
         # values is cheap and preserves the existing Torch engine's stable
@@ -1151,6 +1164,28 @@ class TorchThresholdCluster(_BaseThresholdCluster):
                 window,
                 single_series=self._source.ndim == 1,
             )
+
+        # Fast path: >99.9% of templates have zero triggers.
+        # bool(keep.any()) avoids the host-device sync and allocation in block_idx[keep].
+        if not bool(keep.any()):
+            if self.series.is_cuda:
+                if self._cached_empty_vals_cuda is None:
+                    self._cached_empty_vals_cuda = _array_from_tensor(
+                        torch.empty(0, device=self.series.device, dtype=self.series.dtype)
+                    )
+                    self._cached_empty_idx_cuda = _array_from_tensor(
+                        torch.empty(0, device=self.series.device, dtype=torch.int64)
+                    )
+                return self._cached_empty_vals_cuda, self._cached_empty_idx_cuda
+            else:
+                if self._cached_empty_vals_cpu is None:
+                    self._cached_empty_vals_cpu = _array_from_tensor(
+                        torch.empty(0, dtype=self.series.dtype)
+                    )
+                    self._cached_empty_idx_cpu = _array_from_tensor(
+                        torch.empty(0, dtype=torch.int64)
+                    )
+                return self._cached_empty_vals_cpu, self._cached_empty_idx_cpu
 
         kept_idx = block_idx[keep]
         flat_series = self.series.reshape(-1)

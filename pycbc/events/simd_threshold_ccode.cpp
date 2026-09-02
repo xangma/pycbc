@@ -310,7 +310,7 @@ int _parallel_thresh_cluster_workspace(std::complex<float> * __restrict inarr,
   seglens[i] = last_arrlen;
 
   // Now the real work, in an OpenMP parallel for loop:
-#pragma omp parallel for schedule(dynamic,1)
+#pragma omp parallel for schedule(static)
   for (i = 0; i < nsegs; i++){
     _windowed_max(&inarr[i*true_segsize], seglens[i], &cvals[i*nwins_ps],
                  &norms[i*nwins_ps], &mlocs[i*nwins_ps],
