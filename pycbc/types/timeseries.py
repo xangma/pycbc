@@ -1518,6 +1518,78 @@ class TimeSeries(Array):
         if frange is None:
             frange = (30, int(self.sample_rate / 2 * 8))
 
+        use_torch = hasattr(self._data, "tensor")
+        # Torch path stays on-device and avoids SciPy interpolation.
+        if use_torch:
+            import torch
+            from pycbc.filter import qtransform_torch as _qtorch
+
+            q_base = qtiling(self, qrange, frange, mismatch)
+            fft_input = self
+            if (self._data.tensor.device.type != "mps"
+                    and self.dtype == _numpy.dtype(_numpy.float32)):
+                # The legacy implementation performs the downstream
+                # window/IFFT in double precision.  Promote before the
+                # forward FFT as well so every double-capable Torch device
+                # uses at least that precision and CPU/CUDA results do not
+                # diverge when low-energy tiles are normalized by their
+                # median.  This remains an on-device conversion.
+                fft_input = self.astype(_numpy.float64)
+            _, times, freqs, q_plane = _qtorch.qplane(
+                q_base,
+                fft_input.to_frequencyseries(),
+                return_complex=return_complex,
+            )
+
+            target_times = times
+            target_freqs = freqs
+            device = self._data.tensor.device
+            grid_dtype = (
+                torch.float32 if device.type == "mps" else torch.float64
+            )
+
+            if delta_t:
+                target_times = torch.arange(float(self.start_time),
+                                            float(self.end_time), delta_t,
+                                            device=device, dtype=grid_dtype)
+            if delta_f:
+                target_freqs = torch.arange(int(frange[0]), int(frange[1]),
+                                            delta_f, device=device,
+                                            dtype=grid_dtype)
+            if logfsteps:
+                if device.type == "mps":
+                    # torch.logspace has no MPS kernel. Build the equivalent
+                    # logarithmic grid from supported on-device operations.
+                    target_freqs = torch.linspace(
+                        _numpy.log(float(frange[0])),
+                        _numpy.log(float(frange[1])),
+                        steps=logfsteps,
+                        device=device,
+                        dtype=grid_dtype,
+                    ).exp()
+                else:
+                    target_freqs = torch.logspace(
+                        torch.log10(torch.tensor(
+                            float(frange[0]), device=device, dtype=grid_dtype
+                        )),
+                        torch.log10(torch.tensor(
+                            float(frange[1]), device=device, dtype=grid_dtype
+                        )),
+                        steps=logfsteps,
+                        device=device,
+                        dtype=grid_dtype,
+                    )
+
+            if delta_f or delta_t or logfsteps:
+                q_plane = _qtorch.interpolate_qplane(
+                    q_plane, times, freqs, target_times, target_freqs,
+                    return_complex=return_complex
+                )
+                times, freqs = target_times, target_freqs
+
+            return times, freqs, q_plane
+
+        # CPU path (unchanged)
         from scipy.interpolate import RectBivariateSpline as interp2d
 
         q_base = qtiling(self, qrange, frange, mismatch)
