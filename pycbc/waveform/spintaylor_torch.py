@@ -25,7 +25,7 @@ import pycbc.scheme as _scheme
 from pycbc.types import TimeSeries
 from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform.constants import _MRSUN_SI, _MTSUN_SI, _PC_SI
-from pycbc.waveform.imrphenomd_torch import (
+from pycbc.waveform.utils_torch import (
     _NON_GR_KEYS,
     _TIDAL_EXTENSION_KEYS,
     _is_nonzero,

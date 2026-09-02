@@ -87,7 +87,6 @@ scheme.verify_processing_options(args, parser)
 fft.verify_fft_options(args, parser)
 
 scheme_context = scheme.from_cli(args)
-fft.from_cli(args)
 
 # Set a minimum mass for points tried in optimization allowing for
 # minimal slop relative to the lightest template
@@ -187,6 +186,8 @@ else:
     initial_point = None
 
 with scheme_context:
+    # FFT backend options apply to the active processing scheme.
+    fft.from_cli(args)
     logging.info('Starting optimization')
 
     optimize_func = snr_optimizer.optimize_funcs[args.snr_opt_method]

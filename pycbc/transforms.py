@@ -16,6 +16,7 @@
 This modules provides classes and functions for transforming parameters.
 """
 
+import ast
 import os
 import logging
 import numpy
@@ -30,6 +31,300 @@ from pycbc import VARARGS_DELIM
 from pycbc.pnutils import jframe_to_l0frame
 
 logger = logging.getLogger('pycbc.transforms')
+
+
+_TORCH_EXPRESSION_UNSUPPORTED = object()
+
+_TORCH_EXPRESSION_FUNCTIONS = {
+    "abs": "abs",
+    "absolute": "absolute",
+    "acos": "acos",
+    "acosh": "acosh",
+    "asin": "asin",
+    "asinh": "asinh",
+    "atan": "atan",
+    "atan2": "atan2",
+    "arctan2": "atan2",
+    "ceil": "ceil",
+    "cos": "cos",
+    "cosh": "cosh",
+    "exp": "exp",
+    "expm1": "expm1",
+    "floor": "floor",
+    "hypot": "hypot",
+    "log": "log",
+    "log10": "log10",
+    "log1p": "log1p",
+    "log2": "log2",
+    "maximum": "maximum",
+    "minimum": "minimum",
+    "sign": "sign",
+    "sin": "sin",
+    "sinh": "sinh",
+    "sqrt": "sqrt",
+    "tan": "tan",
+    "tanh": "tanh",
+}
+
+_TORCH_EXPRESSION_NODES = (
+    ast.Expression,
+    ast.BinOp,
+    ast.UnaryOp,
+    ast.Call,
+    ast.keyword,
+    ast.Name,
+    ast.Load,
+    ast.Constant,
+    ast.Add,
+    ast.Sub,
+    ast.Mult,
+    ast.Div,
+    ast.Pow,
+    ast.UAdd,
+    ast.USub,
+)
+
+_TORCH_CONSTRAINT_NODES = _TORCH_EXPRESSION_NODES + (
+    ast.Compare,
+    ast.Eq,
+    ast.NotEq,
+    ast.Lt,
+    ast.LtE,
+    ast.Gt,
+    ast.GtE,
+    ast.BitAnd,
+    ast.BitOr,
+    ast.Invert,
+)
+
+_TORCH_EXPRESSION_CONVERSIONS = {
+    "det_tc",
+    "eta_from_mass1_mass2",
+    "eta_from_q",
+    "invq_from_mass1_mass2",
+    "mass1_from_mchirp_eta",
+    "mass1_from_mchirp_q",
+    "mass1_from_mtotal_eta",
+    "mass1_from_mtotal_q",
+    "mass2_from_mchirp_eta",
+    "mass2_from_mchirp_q",
+    "mass2_from_mtotal_eta",
+    "mass2_from_mtotal_q",
+    "mchirp_from_mass1_mass2",
+    "mtotal_from_mass1_mass2",
+    "mtotal_from_mchirp_eta",
+    "primary_mass",
+    "q_from_mass1_mass2",
+    "secondary_mass",
+}
+
+_TORCH_EXPRESSION_KEYWORDS = {
+    "det_tc": {"ref_frame", "relative"},
+}
+
+_TORCH_EXPRESSION_COSMOLOGY = {
+    "distance_from_comoving_volume",
+    "redshift",
+    "redshift_from_comoving_volume",
+}
+
+
+def _torch_module_for(value):
+    """Return Torch for raw tensor inputs without importing it eagerly."""
+    if type(value).__module__.split(".", 1)[0] != "torch":
+        return None
+
+    import torch
+
+    return torch if isinstance(value, torch.Tensor) else None
+
+
+def _torch_expression_context(maps, input_names):
+    """Build the audited expression library for raw tensor inputs."""
+    if not isinstance(maps, dict):
+        return None
+
+    reference = next(
+        (
+            maps[name]
+            for name in input_names
+            if name in maps and _torch_module_for(maps[name]) is not None
+        ),
+        None,
+    )
+    if reference is None:
+        return None
+
+    torch = _torch_module_for(reference)
+    context = {
+        name: value
+        for name, value in record._numpy_function_lib.items()
+        if isinstance(value, float)
+    }
+    context.update(
+        {
+            name: getattr(torch, torch_name)
+            for name, torch_name in _TORCH_EXPRESSION_FUNCTIONS.items()
+            if hasattr(torch, torch_name)
+        }
+    )
+    context.update(
+        {
+            name: getattr(conversions, name)
+            for name in _TORCH_EXPRESSION_CONVERSIONS
+        }
+    )
+    context.update(
+        {
+            name: getattr(cosmology, name)
+            for name in _TORCH_EXPRESSION_COSMOLOGY
+        }
+    )
+    context.update({name: maps[name] for name in input_names if name in maps})
+    return context
+
+
+def _evaluate_raw_torch_expression(
+    expression,
+    maps,
+    input_names,
+    code_cache,
+    allowed_nodes=_TORCH_EXPRESSION_NODES,
+):
+    """Evaluate a structurally audited expression on raw Torch tensors.
+
+    Unknown names and unsupported syntax return a sentinel so callers can
+    retain their established FieldArray/NumPy fallback.
+    """
+    context = _torch_expression_context(maps, input_names)
+    if context is None:
+        return _TORCH_EXPRESSION_UNSUPPORTED
+
+    cached = code_cache.get(expression)
+    if cached is None:
+        tree = ast.parse(expression, mode="eval")
+        string_constants = set()
+        keyword_nodes = set()
+        for call in (
+            node for node in ast.walk(tree) if isinstance(node, ast.Call)
+        ):
+            if not isinstance(call.func, ast.Name):
+                code_cache[expression] = False
+                return _TORCH_EXPRESSION_UNSUPPORTED
+            allowed_keywords = _TORCH_EXPRESSION_KEYWORDS.get(call.func.id)
+            if call.keywords and allowed_keywords is None:
+                code_cache[expression] = False
+                return _TORCH_EXPRESSION_UNSUPPORTED
+            for keyword in call.keywords:
+                if keyword.arg not in allowed_keywords:
+                    code_cache[expression] = False
+                    return _TORCH_EXPRESSION_UNSUPPORTED
+                keyword_nodes.add(id(keyword))
+            if call.func.id in _TORCH_EXPRESSION_KEYWORDS:
+                string_constants.update(
+                    id(value)
+                    for value in (
+                        *call.args,
+                        *(keyword.value for keyword in call.keywords),
+                    )
+                    if isinstance(value, ast.Constant)
+                    and isinstance(value.value, str)
+                )
+        if any(
+            not isinstance(node, allowed_nodes)
+            or (isinstance(node, ast.keyword) and id(node) not in keyword_nodes)
+            or (
+                isinstance(node, ast.Constant)
+                and not (
+                    isinstance(node.value, (int, float))
+                    or (
+                        isinstance(node.value, str)
+                        and id(node) in string_constants
+                    )
+                )
+            )
+            or (isinstance(node, ast.Compare) and len(node.ops) != 1)
+            for node in ast.walk(tree)
+        ):
+            code_cache[expression] = False
+            return _TORCH_EXPRESSION_UNSUPPORTED
+        names = {
+            node.id for node in ast.walk(tree) if isinstance(node, ast.Name)
+        }
+        calls = {
+            node.func.id
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        }
+        cached = (compile(tree, "<string>", "eval"), names, calls)
+        code_cache[expression] = cached
+    elif cached is False:
+        return _TORCH_EXPRESSION_UNSUPPORTED
+
+    code, names, calls = cached
+    if not names.issubset(context) or any(
+        not callable(context[name]) for name in calls
+    ):
+        return _TORCH_EXPRESSION_UNSUPPORTED
+    return eval(code, {"__builtins__": {}}, context)
+
+
+def _components_from_mass_order(primary, secondary, mass1, mass2):
+    """Map primary/secondary values back to component-one/two order."""
+    values = (primary, secondary, mass1, mass2)
+    reference = next(
+        (value for value in values if _torch_module_for(value) is not None),
+        None,
+    )
+    if reference is not None:
+        torch = _torch_module_for(reference)
+
+        def as_tensor(value):
+            if _torch_module_for(value) is not None:
+                return value
+            return torch.as_tensor(
+                value, device=reference.device, dtype=reference.dtype
+            )
+
+        primary, secondary, mass1, mass2 = map(as_tensor, values)
+        primary_is_one = mass1 >= mass2
+        return (
+            torch.where(primary_is_one, primary, secondary),
+            torch.where(primary_is_one, secondary, primary),
+        )
+
+    primary_is_one = numpy.asarray(mass1) >= numpy.asarray(mass2)
+    if numpy.ndim(primary_is_one) == 0:
+        if primary_is_one:
+            return primary, secondary
+        return secondary, primary
+    return (
+        numpy.where(primary_is_one, primary, secondary),
+        numpy.where(primary_is_one, secondary, primary),
+    )
+
+
+def _log(value):
+    """Evaluate a logarithm with the backend of a raw tensor input."""
+    torch = _torch_module_for(value)
+    return torch.log(value) if torch is not None else numpy.log(value)
+
+
+def _exp(value):
+    """Evaluate an exponential with the backend of a raw tensor input."""
+    torch = _torch_module_for(value)
+    return torch.exp(value) if torch is not None else numpy.exp(value)
+
+
+def _all_in_bounds(value, bounds):
+    """Return whether every scalar in ``value`` lies within ``bounds``."""
+    isin = bounds.__contains__(value)
+    torch = _torch_module_for(isin)
+    if torch is not None:
+        return bool(torch.all(isin))
+    if isinstance(isin, numpy.ndarray):
+        return bool(isin.all())
+    return bool(isin)
 
 
 class BaseTransform(object):
@@ -209,10 +504,24 @@ class CustomTransform(BaseTransform):
         self.outputs = set(output_args)
         self.transform_functions = transform_functions
         self._jacobian = jacobian
+        self._torch_code_cache = {}
         # we'll create a scratch FieldArray space to do transforms on
         # we'll default to length 1; this will be changed if a map is passed
         # with more than one value in it
         self._createscratch()
+
+    def _torch_expression_context(self, maps):
+        """Build a conservative expression library for raw tensor inputs."""
+        return _torch_expression_context(maps, self.inputs)
+
+    def _evaluate_torch_expression(self, expression, maps):
+        """Evaluate an audited expression without staging tensors on host."""
+        return _evaluate_raw_torch_expression(
+            expression,
+            maps,
+            self.inputs,
+            self._torch_code_cache,
+        )
 
     def _createscratch(self, shape=1):
         """Creates a scratch FieldArray to use for transforms."""
@@ -267,6 +576,15 @@ class CustomTransform(BaseTransform):
         """
         if self.transform_functions is None:
             raise NotImplementedError("no transform function(s) provided")
+        out = {}
+        for param, expression in self.transform_functions.items():
+            value = self._evaluate_torch_expression(expression, maps)
+            if value is _TORCH_EXPRESSION_UNSUPPORTED:
+                break
+            out[param] = value
+        else:
+            return self.format_output(maps, out)
+
         # copy values to scratch
         self._copytoscratch(maps)
         # ensure that we return the same data type in each dict
@@ -281,6 +599,10 @@ class CustomTransform(BaseTransform):
     def jacobian(self, maps):
         if self._jacobian is None:
             raise NotImplementedError("no jacobian provided")
+        out = self._evaluate_torch_expression(self._jacobian, maps)
+        if out is not _TORCH_EXPRESSION_UNSUPPORTED:
+            return out
+
         # copy values to scratch
         self._copytoscratch(maps)
         out = self._scratch[self._jacobian]
@@ -1076,34 +1398,19 @@ class PrecessionMassSpinToCartesianSpin(BaseTransform):
             m_p, m_s, xi_s, maps["phi_a"], maps["phi_s"]
         )
 
-        # map parameters from primary/secondary to indices
-        out = {}
-        if isinstance(m_p, numpy.ndarray):
-            mass1, mass2 = map(numpy.array, [maps["mass1"], maps["mass2"]])
-            mask_mass1_gte_mass2 = mass1 >= mass2
-            mask_mass1_lt_mass2 = mass1 < mass2
-            out[parameters.spin1x] = numpy.concatenate(
-                (spinx_p[mask_mass1_gte_mass2], spinx_s[mask_mass1_lt_mass2])
-            )
-            out[parameters.spin1y] = numpy.concatenate(
-                (spiny_p[mask_mass1_gte_mass2], spiny_s[mask_mass1_lt_mass2])
-            )
-            out[parameters.spin2x] = numpy.concatenate(
-                (spinx_p[mask_mass1_lt_mass2], spinx_s[mask_mass1_gte_mass2])
-            )
-            out[parameters.spin2y] = numpy.concatenate(
-                (spinx_p[mask_mass1_lt_mass2], spinx_s[mask_mass1_gte_mass2])
-            )
-        elif maps["mass1"] > maps["mass2"]:
-            out[parameters.spin1x] = spinx_p
-            out[parameters.spin1y] = spiny_p
-            out[parameters.spin2x] = spinx_s
-            out[parameters.spin2y] = spiny_s
-        else:
-            out[parameters.spin1x] = spinx_s
-            out[parameters.spin1y] = spiny_s
-            out[parameters.spin2x] = spinx_p
-            out[parameters.spin2y] = spiny_p
+        # map parameters from primary/secondary to component indices
+        spin1x, spin2x = _components_from_mass_order(
+            spinx_p, spinx_s, maps["mass1"], maps["mass2"]
+        )
+        spin1y, spin2y = _components_from_mass_order(
+            spiny_p, spiny_s, maps["mass1"], maps["mass2"]
+        )
+        out = {
+            parameters.spin1x: spin1x,
+            parameters.spin1y: spin1y,
+            parameters.spin2x: spin2x,
+            parameters.spin2y: spin2y,
+        }
 
         return self.format_output(maps, out)
 
@@ -1155,25 +1462,13 @@ class PrecessionMassSpinToCartesianSpin(BaseTransform):
             maps[parameters.spin2y],
         )
 
-        # map parameters from primary/secondary to indices
-        if isinstance(xi1, numpy.ndarray):
-            mass1, mass2 = map(
-                numpy.array, [maps[parameters.mass1], maps[parameters.mass2]]
-            )
-            mask_mass1_gte_mass2 = mass1 >= mass2
-            mask_mass1_lt_mass2 = mass1 < mass2
-            out["xi1"] = numpy.concatenate(
-                (xi1[mask_mass1_gte_mass2], xi2[mask_mass1_lt_mass2])
-            )
-            out["xi2"] = numpy.concatenate(
-                (xi1[mask_mass1_gte_mass2], xi2[mask_mass1_lt_mass2])
-            )
-        elif maps["mass1"] > maps["mass2"]:
-            out["xi1"] = xi1
-            out["xi2"] = xi2
-        else:
-            out["xi1"] = xi2
-            out["xi2"] = xi1
+        # map parameters from primary/secondary to component indices
+        out["xi1"], out["xi2"] = _components_from_mass_order(
+            xi1,
+            xi2,
+            maps[parameters.mass1],
+            maps[parameters.mass2],
+        )
 
         return self.format_output(maps, out)
 
@@ -1316,6 +1611,7 @@ class LambdaFromTOVFile(BaseTransform):
         dtype = [(fname, float) for fname in file_columns]
         data = numpy.loadtxt(self._mass_lambda_file, dtype=dtype)
         self._data = data
+        self._torch_data_cache = {}
         super(LambdaFromTOVFile, self).__init__()
 
     @property
@@ -1379,6 +1675,71 @@ class LambdaFromTOVFile(BaseTransform):
             lambdav = numpy.interp(m_src, mass_data, lambda_data)
         return lambdav
 
+    def _torch_tov_data(self, reference):
+        """Return the static interpolation table on ``reference``'s device."""
+        torch = _torch_module_for(reference)
+        dtype = (
+            reference.dtype
+            if reference.dtype.is_floating_point
+            else torch.get_default_dtype()
+        )
+        key = (reference.device.type, reference.device.index, dtype)
+        try:
+            return self._torch_data_cache[key]
+        except KeyError:
+            pass
+
+        tables = (
+            torch.as_tensor(
+                numpy.asarray(self.mass_data).reshape(-1),
+                device=reference.device,
+                dtype=dtype,
+            ).contiguous(),
+            torch.as_tensor(
+                numpy.asarray(self.lambda_data).reshape(-1),
+                device=reference.device,
+                dtype=dtype,
+            ).contiguous(),
+        )
+        self._torch_data_cache[key] = tables
+        return tables
+
+    def _lambda_from_tov_torch(self, m_src):
+        """Interpolate Lambda without moving tensor masses to the host."""
+        torch = _torch_module_for(m_src)
+        if m_src.dtype.is_complex:
+            raise TypeError("mass must be real")
+        mass_data, lambda_data = self._torch_tov_data(m_src)
+        values = m_src.to(dtype=mass_data.dtype)
+        shape = values.shape
+        values = values.reshape(-1).contiguous()
+
+        if mass_data.numel() == 1:
+            result = torch.where(
+                values > mass_data[0],
+                torch.zeros_like(values),
+                lambda_data[0],
+            )
+            return result.reshape(shape)
+
+        upper = torch.searchsorted(mass_data, values).clamp(
+            min=1, max=mass_data.numel() - 1
+        )
+        mass_left = mass_data[upper - 1]
+        mass_right = mass_data[upper]
+        lambda_left = lambda_data[upper - 1]
+        lambda_right = lambda_data[upper]
+        result = lambda_left + (
+            (values - mass_left)
+            * (lambda_right - lambda_left)
+            / (mass_right - mass_left)
+        )
+        result = torch.where(values < mass_data[0], lambda_data[0], result)
+        result = torch.where(
+            values > mass_data[-1], torch.zeros_like(result), result
+        )
+        return result.reshape(shape)
+
     def transform(self, maps):
         """Computes the transformation of mass to Lambda.
 
@@ -1412,11 +1773,15 @@ class LambdaFromTOVFile(BaseTransform):
             shift = 1.0 / (1.0 + cosmology.redshift(abs(d)))
         else:
             shift = 1.0
-        out = {
-            self._lambda_param: self.lambda_from_tov_data(
+        torch, values = conversions._torch_values(m, shift)
+        if torch is not None:
+            m_src = values[0] * values[1]
+            lambdav = self._lambda_from_tov_torch(m_src)
+        else:
+            lambdav = self.lambda_from_tov_data(
                 m * shift, self._data["mass"], self._data["lambda"]
             )
-        }
+        out = {self._lambda_param: lambdav}
         return self.format_output(maps, out)
 
     @classmethod
@@ -2004,7 +2369,7 @@ class Log(BaseTransform):
             with the original variable name and value(s).
         """
         x = maps[self._inputvar]
-        out = {self._outputvar: numpy.log(x)}
+        out = {self._outputvar: _log(x)}
         return self.format_output(maps, out)
 
     def inverse_transform(self, maps):
@@ -2023,7 +2388,7 @@ class Log(BaseTransform):
             with the original variable name and value(s).
         """
         y = maps[self._outputvar]
-        out = {self._inputvar: numpy.exp(y)}
+        out = {self._inputvar: _exp(y)}
         return self.format_output(maps, out)
 
     def jacobian(self, maps):
@@ -2070,7 +2435,7 @@ class Log(BaseTransform):
             The value of the jacobian at the given point(s).
         """
         x = maps[self._outputvar]
-        return numpy.exp(x)
+        return _exp(x)
 
 
 class Logit(BaseTransform):
@@ -2148,7 +2513,7 @@ class Logit(BaseTransform):
         float
             The logit of x.
         """
-        return numpy.log(x - a) - numpy.log(b - x)
+        return _log(x - a) - _log(b - x)
 
     @staticmethod
     def logistic(x, a=0.0, b=1.0):
@@ -2179,7 +2544,7 @@ class Logit(BaseTransform):
         float
             The logistic of x.
         """
-        expx = numpy.exp(x)
+        expx = _exp(x)
         return (a + b * expx) / (1.0 + expx)
 
     def transform(self, maps):
@@ -2201,10 +2566,7 @@ class Logit(BaseTransform):
         """
         x = maps[self._inputvar]
         # check that x is in bounds
-        isin = self._bounds.__contains__(x)
-        if isinstance(isin, numpy.ndarray):
-            isin = isin.all()
-        if not isin:
+        if not _all_in_bounds(x, self._bounds):
             raise ValueError("one or more values are not in bounds")
         out = {self._outputvar: self.logit(x, self._a, self._b)}
         return self.format_output(maps, out)
@@ -2254,11 +2616,8 @@ class Logit(BaseTransform):
         """
         x = maps[self._inputvar]
         # check that x is in bounds
-        isin = self._bounds.__contains__(x)
-        if isinstance(isin, numpy.ndarray) and not isin.all():
+        if not _all_in_bounds(x, self._bounds):
             raise ValueError("one or more values are not in bounds")
-        elif not isin:
-            raise ValueError("{} is not in bounds".format(x))
         return (self._b - self._a) / ((x - self._a) * (self._b - x))
 
     def inverse_jacobian(self, maps):
@@ -2284,7 +2643,7 @@ class Logit(BaseTransform):
             The value of the jacobian at the given point(s).
         """
         x = maps[self._outputvar]
-        expx = numpy.exp(x)
+        expx = _exp(x)
         return expx * (self._b - self._a) / (1.0 + expx) ** 2.0
 
     @classmethod

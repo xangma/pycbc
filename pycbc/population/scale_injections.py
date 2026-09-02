@@ -7,6 +7,8 @@ from astropy.cosmology import WMAP9 as cosmo
 
 from pycbc.conversions import mchirp_from_mass1_mass2 as m1m2tomch
 from pycbc.io.hdf import HFile
+from pycbc.population._torch import result as _torch_result
+from pycbc.population._torch import tensors as _torch_tensors
 
 _mch_BNS = 1.4/2**.2
 _redshifts, _d_lum, _I = np.arange(0., 5., 0.01), [], []
@@ -362,6 +364,83 @@ def inj_mass_pdf(key, mass1, mass2, lomass, himass, lomass_2 = 0, himass_2 = 0):
           Probability density of the injections
     '''
 
+    tensor_values = _torch_tensors(
+        mass1, mass2, lomass, himass, lomass_2, himass_2
+    )
+    if tensor_values is not None:
+        import torch
+
+        mass1_t, mass2_t, lomass_t, himass_t, lomass_2_t, himass_2_t = (
+            tensor_values
+        )
+        zeros = mass1_t * 0 + mass2_t * 0
+        ones = zeros + 1
+
+        if key == 'totalMass':
+            bound = torch.sign(
+                (lomass_t + himass_t) - (mass1_t + mass2_t)
+            )
+            bound = bound + torch.sign(
+                (himass_t - mass1_t) * (mass1_t - lomass_t)
+            )
+            bound = bound + torch.sign(
+                (himass_t - mass2_t) * (mass2_t - lomass_t)
+            )
+            valid = bound == 3
+            denominator = (
+                (himass_t - lomass_t)
+                * (mass1_t + mass2_t - 2 * lomass_t)
+            )
+            denominator = torch.where(
+                valid, denominator, ones
+            )
+            pdf = torch.where(
+                valid,
+                ones / denominator,
+                zeros,
+            )
+            return _torch_result(mass1, pdf)
+
+        bound = torch.sign(
+            (himass_t - mass1_t) * (mass1_t - lomass_t)
+        )
+        bound = bound + torch.sign(
+            (himass_2_t - mass2_t) * (mass2_t - lomass_2_t)
+        )
+        valid = bound == 2
+
+        if key == 'componentMass':
+            denominator = (
+                (himass_t - lomass_t) * (himass_2_t - lomass_2_t)
+            )
+            denominator = torch.where(
+                valid, denominator, ones
+            )
+            pdf = torch.where(
+                valid,
+                ones / denominator,
+                zeros,
+            )
+            return _torch_result(mass1, pdf)
+
+        if key == 'log':
+            normalization = (
+                (torch.log(himass_t) - torch.log(lomass_t))
+                * (torch.log(himass_2_t) - torch.log(lomass_2_t))
+            )
+            denominator = normalization * mass1_t * mass2_t
+            denominator = torch.where(
+                valid, denominator, ones
+            )
+            pdf = torch.where(
+                valid,
+                ones / denominator,
+                zeros,
+            )
+            return _torch_result(mass1, pdf)
+
+        return None
+
     mass1, mass2 = np.array(mass1), np.array(mass2)
 
     if key == 'totalMass':
@@ -431,6 +510,46 @@ def inj_spin_pdf(key, high_spin, spinz):
           Spin of the injections (for one component)
     '''
 
+    tensor_values = _torch_tensors(spinz, high_spin)
+    if tensor_values is not None:
+        import torch
+
+        spinz_t, high_spin_t = tensor_values
+        zeros = spinz_t * 0
+        ones = zeros + 1
+        first_zero = spinz_t[:1] == 0
+
+        if key == 'disable_spin':
+            return _torch_result(spinz, ones)
+
+        bound = torch.sign(torch.abs(high_spin_t) - torch.abs(spinz_t))
+        bound = bound + torch.sign(1 - torch.abs(spinz_t))
+        valid = (bound == 2) & ~first_zero
+
+        if key == 'precessing':
+            safe_spin = torch.where(valid, torch.abs(spinz_t), ones)
+            safe_high_spin = torch.where(
+                valid, high_spin_t, torch.ones_like(spinz_t)
+            )
+            pdf = (
+                torch.log(safe_high_spin - torch.log(safe_spin))
+                / safe_high_spin
+                / 2
+            )
+            pdf = torch.where(valid, pdf, zeros)
+            pdf = torch.where(first_zero, ones, pdf)
+            return _torch_result(spinz, pdf)
+
+        if key == 'aligned':
+            denominator = torch.where(
+                valid, 2 * high_spin_t, torch.ones_like(bound)
+            )
+            pdf = torch.where(valid, ones / denominator, zeros)
+            pdf = torch.where(first_zero, ones, pdf)
+            return _torch_result(spinz, pdf)
+
+        return None
+
     # If the data comes from disable_spin simulation
     if spinz[0] == 0:
         return np.ones_like(spinz)
@@ -483,6 +602,40 @@ def inj_distance_pdf(key, distance, low_dist, high_dist, mchirp = 1):
         high_dist: float
           Higher value of distance used in the injection strategy
     '''
+
+    tensor_values = _torch_tensors(distance, low_dist, high_dist, mchirp)
+    if tensor_values is not None:
+        import torch
+
+        distance_t, low_dist_t, high_dist_t, mchirp_t = tensor_values
+        zeros = distance_t * 0
+        ones = zeros + 1
+
+        if key == 'uniform':
+            bound = torch.sign(
+                (high_dist_t - distance_t) * (distance_t - low_dist_t)
+            )
+            valid = bound == 1
+            denominator = torch.where(
+                valid, high_dist_t - low_dist_t, ones
+            )
+            pdf = torch.where(valid, ones / denominator, zeros)
+            return _torch_result(distance, pdf)
+
+        if key == 'dchirp':
+            weight = (mchirp_t / _mch_BNS) ** (5. / 6)
+            bound = torch.sign(
+                (weight * high_dist_t - distance_t)
+                * (distance_t - weight * low_dist_t)
+            )
+            valid = bound == 1
+            denominator = torch.where(
+                valid, weight * (high_dist_t - low_dist_t), ones
+            )
+            pdf = torch.where(valid, ones / denominator, zeros)
+            return _torch_result(distance, pdf)
+
+        return None
 
     distance = np.array(distance)
 

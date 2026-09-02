@@ -51,12 +51,51 @@ class Constraint(object):
                 r'\b{}(?!\_|\=)'.format(arg), swp, constraint_arg)
         self.constraint_arg = constraint_arg
         self.transforms = transforms
+        self._torch_code_cache = {}
         for kwarg in kwargs.keys():
             setattr(self, kwarg, kwargs[kwarg])
 
     def __call__(self, params):
         """Evaluates constraint.
         """
+
+        if isinstance(params, dict) and type(self) is Constraint:
+            input_names = set(params)
+            out = transforms._evaluate_raw_torch_expression(
+                self.constraint_arg,
+                params,
+                input_names,
+                self._torch_code_cache,
+                allowed_nodes=transforms._TORCH_CONSTRAINT_NODES,
+            )
+            if (
+                out is transforms._TORCH_EXPRESSION_UNSUPPORTED
+                and self.transforms
+            ):
+                transformed = transforms.apply_transforms(
+                    params, self.transforms
+                )
+                input_names = set(transformed)
+                out = transforms._evaluate_raw_torch_expression(
+                    self.constraint_arg,
+                    transformed,
+                    input_names,
+                    self._torch_code_cache,
+                    allowed_nodes=transforms._TORCH_CONSTRAINT_NODES,
+                )
+            if out is not transforms._TORCH_EXPRESSION_UNSUPPORTED:
+                reference = next(
+                    (
+                        value
+                        for value in params.values()
+                        if transforms._torch_module_for(value) is not None
+                    ),
+                    None,
+                )
+                torch = transforms._torch_module_for(reference)
+                if not isinstance(out, torch.Tensor):
+                    out = torch.as_tensor(out, device=reference.device)
+                return out.to(dtype=torch.bool)
 
         if isinstance(params, dict):
             params = record.FieldArray.from_kwargs(**params)
@@ -90,10 +129,12 @@ class SupernovaeConvexHull(Constraint):
     """
     name = "supernovae_convex_hull"
     required_parameters = ["coeff_0", "coeff_1"]
+    _torch_max_working_elements = 1 << 20
 
     def __init__(self, constraint_arg, transforms=None, **kwargs):
         super(SupernovaeConvexHull,
               self).__init__(constraint_arg, transforms=transforms, **kwargs)
+        self._torch_hull_cache = {}
 
         if 'principal_components_file' in kwargs:
             pc_filename = kwargs['principal_components_file']
@@ -108,17 +149,121 @@ class SupernovaeConvexHull(Constraint):
             hull_points = numpy.array(hull_points).T
             pc_coeffs_hull = scipy.spatial.Delaunay(hull_points)
             self._hull = pc_coeffs_hull
+            self.required_parameters = [
+                f"coeff_{dim}" for dim in range(self.hull_dimention)
+            ]
+
+    def __call__(self, params):
+        """Evaluate tensor-valued coefficients without leaving Torch."""
+        if isinstance(params, dict):
+            reference = next(
+                (
+                    value for value in params.values()
+                    if transforms._torch_module_for(value) is not None
+                ),
+                None,
+            )
+            torch = transforms._torch_module_for(reference)
+            if torch is not None:
+                try:
+                    return self._torch_constraint(params, torch, reference)
+                except (NameError, AttributeError, TypeError):
+                    if not self.transforms:
+                        raise
+                    transformed = transforms.apply_transforms(
+                        params, self.transforms
+                    )
+                    return self._torch_constraint(
+                        transformed, torch, reference
+                    )
+        return super().__call__(params)
+
+    def _torch_transform(self, torch, reference, dtype):
+        """Return the cached Delaunay affine transforms on a device."""
+        cache_key = (reference.device, dtype)
+        try:
+            return self._torch_hull_cache[cache_key]
+        except KeyError:
+            transform = torch.as_tensor(
+                self._hull.transform,
+                dtype=dtype,
+                device=reference.device,
+            )
+            self._torch_hull_cache[cache_key] = transform
+            return transform
+
+    def _torch_constraint(self, params, torch, reference):
+        """Test Delaunay barycentric coordinates in bounded chunks."""
+        dtype = (
+            reference.dtype
+            if reference.is_floating_point()
+            else torch.get_default_dtype()
+        )
+        if dtype in (torch.float16, torch.bfloat16):
+            dtype = torch.float32
+
+        coefficients = []
+        for dim in range(self.hull_dimention):
+            value = params[f"coeff_{dim}"]
+            if isinstance(value, torch.Tensor):
+                if value.device != reference.device:
+                    raise ValueError(
+                        "convex-hull coefficients must share a Torch device"
+                    )
+                if value.is_complex():
+                    raise TypeError(
+                        "convex-hull coefficients must be real-valued"
+                    )
+            coefficients.append(torch.as_tensor(
+                value, dtype=dtype, device=reference.device
+            ))
+
+        coefficients = torch.broadcast_tensors(*coefficients)
+        output_shape = coefficients[0].shape
+        points = torch.stack(coefficients, dim=-1).reshape(
+            -1, self.hull_dimention
+        )
+
+        transform = self._torch_transform(
+            torch, reference, points.dtype
+        )
+        matrices = transform[:, :self.hull_dimention, :]
+        offsets = transform[:, self.hull_dimention, :]
+        simplex_count = matrices.shape[0]
+        working_size = max(
+            1, simplex_count * self.hull_dimention
+        )
+        chunk_size = max(
+            1, self._torch_max_working_elements // working_size
+        )
+        tolerance = 100 * torch.finfo(points.dtype).eps
+        inside = torch.empty(
+            len(points), dtype=torch.bool, device=reference.device
+        )
+
+        for start in range(0, len(points), chunk_size):
+            stop = min(start + chunk_size, len(points))
+            delta = points[start:stop, None, :] - offsets[None, :, :]
+            barycentric = torch.einsum(
+                "sij,nsj->nsi", matrices, delta
+            )
+            final_coordinate = 1 - barycentric.sum(dim=-1)
+            simplex_inside = torch.logical_and(
+                torch.all(barycentric >= -tolerance, dim=-1),
+                final_coordinate >= -tolerance,
+            )
+            inside[start:stop] = torch.any(simplex_inside, dim=-1)
+        return inside.reshape(output_shape)
 
     def _constraint(self, params):
-
-        output_array = []
-        points = numpy.array([params["coeff_0"],
-                              params["coeff_1"],
-                              params["coeff_2"]])
-        for coeff_index in range(len(params["coeff_0"])):
-            point = points[:, coeff_index][:self.hull_dimention]
-            output_array.append(self._hull.find_simplex(point) >= 0)
-        return numpy.array(output_array)
+        points = numpy.stack(
+            [
+                params[f"coeff_{dim}"]
+                for dim in range(self.hull_dimention)
+            ],
+            axis=-1,
+        )
+        return self._hull.find_simplex(points) >= 0
 
 
 # list of all constraints

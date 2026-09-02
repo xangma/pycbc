@@ -118,7 +118,15 @@ def trials_type(ntriggered, nactive):
 def signal_pdf_from_snr(netsnr, thresh):
     """ FGMC approximate signal distribution ~ SNR ** -4
     """
-    return numpy.exp(fgmcfun.log_rho_fg_analytic(netsnr, thresh))
+    log_density = fgmcfun.log_rho_fg_analytic(netsnr, thresh)
+    tensors = fgmcfun._torch_fgmc_tensors(log_density)
+    if tensors is not None:
+        import torch
+
+        return fgmcfun._torch_fgmc_result(
+            log_density, torch.exp(tensors[0])
+        )
+    return numpy.exp(log_density)
 
 
 def signal_rate_rescale(horizons, ref_dhor):

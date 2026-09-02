@@ -17,6 +17,7 @@ Carlson's duplication algorithm for an incomplete elliptic integral.
 from __future__ import annotations
 
 import math
+import os
 
 import numpy as np
 import torch
@@ -246,22 +247,35 @@ def natural_cubic_interpolate_torch(
     if x.numel() < 2:
         raise ValueError("natural cubic interpolation requires at least two points")
 
+    real_dtype = y.real.dtype if y.is_complex() else y.dtype
     if (
-        y.ndim == 1
-        and not y.is_complex()
-        and x.device.type == "cpu"
+        x.device.type == "cpu"
         and x.dtype == torch.float64
-        and y.dtype == torch.float64
         and values.device.type == "cpu"
         and values.dtype == torch.float64
-        and not torch.is_grad_enabled()
+        and y.device.type == "cpu"
+        and real_dtype == torch.float64
+        and (not torch.is_grad_enabled() or not (values.requires_grad or x.requires_grad or y.requires_grad))
         and os.environ.get("PYCBC_SEOBNR_NATIVE_ODE", "1") not in ("0", "", "false", "False")
     ):
         try:
             from pycbc.waveform._seobnr_native_ode import get_extension
             ext = get_extension()
             if ext is not None and hasattr(ext, "natural_spline_interpolate_native"):
-                return ext.natural_spline_interpolate_native(values, x, y, int(derivative), bool(extrapolate))
+                if not y.is_complex():
+                    if y.ndim in (1, 2):
+                        return ext.natural_spline_interpolate_native(
+                            values.contiguous(), x.contiguous(), y.contiguous(), int(derivative), bool(extrapolate)
+                        )
+                else:
+                    if y.ndim in (1, 2):
+                        r_out = ext.natural_spline_interpolate_native(
+                            values.contiguous(), x.contiguous(), y.real.contiguous(), int(derivative), bool(extrapolate)
+                        )
+                        i_out = ext.natural_spline_interpolate_native(
+                            values.contiguous(), x.contiguous(), y.imag.contiguous(), int(derivative), bool(extrapolate)
+                        )
+                        return torch.complex(r_out, i_out)
         except Exception:
             pass
 

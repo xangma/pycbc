@@ -19,6 +19,62 @@ import scipy.integrate as sig
 import scipy.optimize as sop
 
 
+def _torch_p_bg(posterior, logbf):
+    """Evaluate foreground/background probabilities on a Torch device."""
+    from pycbc import scheme
+    from pycbc.types import Array
+
+    if scheme.current_prefix() != 'torch' or not isinstance(logbf, Array):
+        return None
+
+    import torch
+    from pycbc.types.array_torch import (
+        TorchArrayData,
+        _device_matches_active,
+    )
+
+    data = logbf._data
+    if not isinstance(data, TorchArrayData):
+        return None
+
+    values = data.tensor
+    if not _device_matches_active(values):
+        return None
+
+    if values.is_complex():
+        dtype = (
+            torch.complex64
+            if values.device.type == 'mps'
+            else torch.complex128
+        )
+    else:
+        dtype = (
+            torch.float32
+            if values.device.type == 'mps'
+            else torch.float64
+        )
+
+    nodes = torch.as_tensor(
+        posterior.x, dtype=dtype, device=values.device
+    )
+    weights = torch.as_tensor(
+        posterior.p, dtype=dtype, device=values.device
+    )
+    exponent_values = values if (
+        values.is_floating_point() or values.is_complex()
+    ) else values.to(dtype=dtype)
+    weighted_bayes_factor = (
+        torch.exp(exponent_values) / posterior.Lambda0
+    ).to(dtype=dtype)
+    probabilities = torch.matmul(
+        torch.reciprocal(
+            1.0 + weighted_bayes_factor.reshape(-1, 1) * nodes
+        ),
+        weights,
+    )
+    return Array(TorchArrayData(probabilities), copy=False)
+
+
 class augmented_rv_continuous(sst.rv_continuous):
 
     def __init__(self, unit='dimensionless', texunit=r'\mbox{dimensionless}',
@@ -168,6 +224,10 @@ class count_posterior(augmented_rv_continuous):
         logbf : array_like
             Logs of foreground over background probability ratios of events.
         '''
+        torch_result = _torch_p_bg(self, logbf)
+        if torch_result is not None:
+            return torch_result
+
         # get weighted bayes factor
         k = numpy.exp(numpy.asarray(logbf)) / self.Lambda0
 

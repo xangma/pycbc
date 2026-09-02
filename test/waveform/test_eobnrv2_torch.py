@@ -4,6 +4,8 @@ import numpy as np
 import pytest
 
 torch = pytest.importorskip("torch")
+lal = pytest.importorskip("lal")
+lalsimulation = pytest.importorskip("lalsimulation")
 
 from pycbc import scheme as _scheme  # noqa: E402
 from pycbc.waveform import (  # noqa: E402

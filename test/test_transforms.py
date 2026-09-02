@@ -96,6 +96,39 @@ class TestTransforms(unittest.TestCase):
                 raise ValueError(
                 "Transform {} does not map back to itself.".format(trans.name))
 
+    def test_precession_mass_spin_array_order(self):
+        inputs = {
+            "mass1": numpy.array([30.0, 8.0, 20.0]),
+            "mass2": numpy.array([10.0, 12.0, 20.0]),
+            "xi1": numpy.array([0.4, 0.3, 0.2]),
+            "xi2": numpy.array([0.2, 0.35, 0.15]),
+            "phi_a": numpy.array([0.3, 1.1, 2.2]),
+            "phi_s": numpy.array([1.5, 2.0, 4.0]),
+        }
+        transform = transforms.PrecessionMassSpinToCartesianSpin()
+        actual = transform.transform(inputs)
+        spin_parameters = ("spin1x", "spin1y", "spin2x", "spin2y")
+        expected = {parameter: [] for parameter in spin_parameters}
+        for index in range(len(inputs["mass1"])):
+            scalar = transform.transform({
+                key: value[index] for key, value in inputs.items()
+            })
+            for parameter in spin_parameters:
+                expected[parameter].append(scalar[parameter])
+
+        for parameter in spin_parameters:
+            numpy.testing.assert_allclose(
+                actual[parameter], expected[parameter], rtol=1e-13
+            )
+
+        roundtrip = transforms.CartesianSpinToPrecessionMassSpin().transform(
+            actual
+        )
+        for parameter in ("xi1", "xi2", "phi_a", "phi_s"):
+            numpy.testing.assert_allclose(
+                roundtrip[parameter], inputs[parameter], rtol=1e-13
+            )
+
 suite = unittest.TestSuite()
 suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestTransforms))
 

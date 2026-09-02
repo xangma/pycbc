@@ -134,3 +134,70 @@ def fused_detector_strain_fd_torch(
         re_act * cos_t - im_act * sin_t, re_act * sin_t + im_act * cos_t
     )
     return out
+
+
+_DEFAULT_ONLY_ORDER_KEYS = (
+    "spin_order",
+    "tidal_order",
+    "eccentricity_order",
+)
+_TRANSVERSE_SPIN_KEYS = ("spin1x", "spin1y", "spin2x", "spin2y")
+_TIDAL_EXTENSION_KEYS = (
+    "lambda1",
+    "lambda2",
+    "dquad_mon1",
+    "dquad_mon2",
+    "quadfmode1",
+    "quadfmode2",
+    "octufmode1",
+    "octufmode2",
+)
+_NON_GR_KEYS = (
+    "dchi0",
+    "dchi1",
+    "dchi2",
+    "dchi3",
+    "dchi4",
+    "dchi5",
+    "dchi5l",
+    "dchi6",
+    "dchi6l",
+    "dchi7",
+    "dalpha1",
+    "dalpha2",
+    "dalpha3",
+    "dalpha4",
+    "dalpha5",
+    "dbeta1",
+    "dbeta2",
+    "dbeta3",
+)
+
+
+def _is_nonzero(value):
+    """Return whether an optional scalar is set to a non-zero value."""
+    if value is None:
+        return False
+    try:
+        return float(value) != 0.0
+    except (TypeError, ValueError, OverflowError):
+        return True
+
+
+def _is_default_order(value):
+    """Return whether an integer-valued LAL order flag has its default."""
+    try:
+        return float(value) == -1.0 and int(value) == -1
+    except (TypeError, ValueError, OverflowError):
+        return False
+
+
+def _is_nonnegative_finite(value):
+    """Return whether an optional scalar is finite and non-negative."""
+    if value is None:
+        return True
+    try:
+        value = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return False
+    return math.isfinite(value) and value >= 0.0

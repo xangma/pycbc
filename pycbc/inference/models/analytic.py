@@ -23,7 +23,31 @@ import numpy
 import numpy.random
 from scipy import stats
 
-from .base import BaseModel
+from .base import BaseModel, _torch_tensor
+
+
+def _torch_parameter_vector(params, names):
+    """Stack model parameters without moving a Torch value off device."""
+    import torch
+
+    tensors = [_torch_tensor(params[name]) for name in names]
+    reference = next((value for value in tensors if value is not None), None)
+    if reference is None:
+        return None
+    values = [
+        value if value is not None else reference.new_tensor(params[name])
+        for name, value in zip(names, tensors)
+    ]
+    return torch.stack(values, dim=-1)
+
+
+def _torch_constant(value, reference):
+    """Create a constant matching a Torch parameter's device and dtype."""
+    import torch
+
+    return torch.as_tensor(
+        value, device=reference.device, dtype=reference.dtype
+    )
 
 
 class TestNormal(BaseModel):
@@ -79,10 +103,29 @@ class TestNormal(BaseModel):
         if self._dist.dim != len(variable_params):
             raise ValueError("dimension mis-match between variable_params and "
                              "mean and/or cov")
+        covariance = numpy.atleast_2d(self._dist.cov)
+        _, logdet = numpy.linalg.slogdet(covariance)
+        self._torch_mean = numpy.asarray(self._dist.mean)
+        self._torch_precision = numpy.linalg.inv(covariance)
+        self._torch_log_norm = -0.5 * (
+            self._dist.dim * numpy.log(2.0 * numpy.pi) + logdet
+        )
 
     def _loglikelihood(self):
         """Returns the log pdf of the multivariate normal.
         """
+        values = _torch_parameter_vector(
+            self.current_params, self.variable_params
+        )
+        if values is not None:
+            import torch
+
+            delta = values - _torch_constant(self._torch_mean, values)
+            precision = _torch_constant(self._torch_precision, values)
+            quadratic = torch.einsum(
+                '...i,ij,...j->...', delta, precision, delta
+            )
+            return values.new_tensor(self._torch_log_norm) - 0.5 * quadratic
         return self._dist.logpdf([self.current_params[p]
                                   for p in self.variable_params])
 
@@ -115,6 +158,11 @@ class TestEggbox(BaseModel):
     def _loglikelihood(self):
         """Returns the log pdf of the eggbox function.
         """
+        values = _torch_parameter_vector(
+            self.current_params, self.variable_params
+        )
+        if values is not None:
+            return (2.0 + (values / 2.0).cos().prod(dim=-1)) ** 5
         return (2 + numpy.prod(numpy.cos([
             self.current_params[p]/2. for p in self.variable_params]))) ** 5
 
@@ -147,6 +195,16 @@ class TestRosenbrock(BaseModel):
     def _loglikelihood(self):
         """Returns the log pdf of the Rosenbrock function.
         """
+        values = _torch_parameter_vector(
+            self.current_params, self.variable_params
+        )
+        if values is not None:
+            return -(
+                (1.0 - values[..., :-1]) ** 2
+                + 100.0 * (
+                    values[..., 1:] - values[..., :-1] ** 2
+                ) ** 2
+            ).sum(dim=-1)
         logl = 0
         p = [self.current_params[p] for p in self.variable_params]
         for i in range(len(p) - 1):
@@ -185,6 +243,20 @@ class TestVolcano(BaseModel):
     def _loglikelihood(self):
         """Returns the log pdf of the 2D volcano function.
         """
+        values = _torch_parameter_vector(
+            self.current_params, self.variable_params
+        )
+        if values is not None:
+            radius = (values.square().sum(dim=-1)).sqrt()
+            mu, sigma = 5.0, 2.0
+            normalization = sigma * values.new_tensor(
+                2.0 * numpy.pi
+            ).sqrt()
+            return 25.0 * (
+                (-radius / 35.0).exp()
+                + (-0.5 * ((radius - mu) / sigma) ** 2).exp()
+                / normalization
+            )
         p = [self.current_params[p] for p in self.variable_params]
         r = numpy.sqrt(p[0]**2 + p[1]**2)
         mu, sigma = 5.0, 2.0
@@ -213,6 +285,11 @@ class TestPrior(BaseModel):
     def _loglikelihood(self):
         """Returns zero.
         """
+        values = _torch_parameter_vector(
+            self.current_params, self.variable_params
+        )
+        if values is not None:
+            return values.new_zeros(())
         return 0.
 
 
@@ -250,12 +327,42 @@ class TestPosterior(BaseModel):
         samples = samples[:, idx]
 
         logging.info('making kde with %s samples', samples.shape[-1])
-        self.kde = stats.gaussian_kde(samples)
+        self._set_kde(stats.gaussian_kde(samples))
         logging.info('done initializing test posterior model')
+
+    def _set_kde(self, kde):
+        """Store the KDE and static arrays needed for Torch evaluation."""
+        self.kde = kde
+        covariance = numpy.asarray(kde.covariance)
+        _, logdet = numpy.linalg.slogdet(covariance)
+        self._torch_kde_dataset = numpy.asarray(kde.dataset).T
+        self._torch_kde_precision = numpy.asarray(kde.inv_cov)
+        self._torch_kde_log_weights = numpy.log(numpy.asarray(kde.weights))
+        self._torch_kde_log_norm = -0.5 * (
+            kde.d * numpy.log(2.0 * numpy.pi) + logdet
+        )
 
     def _loglikelihood(self):
         """Returns the log pdf of the test posterior kde
         """
+        values = _torch_parameter_vector(
+            self.current_params, self.variable_params
+        )
+        if values is not None:
+            import torch
+
+            dataset = _torch_constant(self._torch_kde_dataset, values)
+            precision = _torch_constant(self._torch_kde_precision, values)
+            log_weights = _torch_constant(
+                self._torch_kde_log_weights, values
+            )
+            delta = values.unsqueeze(-2) - dataset
+            quadratic = torch.einsum(
+                '...ni,ij,...nj->...n', delta, precision, delta
+            )
+            return values.new_tensor(
+                self._torch_kde_log_norm
+            ) + torch.logsumexp(log_weights - 0.5 * quadratic, dim=-1)
         p = numpy.array([self.current_params[p] for p in self.variable_params])
         logpost = self.kde.logpdf(p)
         return float(logpost[0])

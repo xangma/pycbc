@@ -32,7 +32,7 @@ from pycbc.waveform.eccentricfd_coefficients import (
     EccentricFDCoefficients,
     eccentricfd_coefficients,
 )
-from pycbc.waveform.imrphenomd_torch import (
+from pycbc.waveform.utils_torch import (
     _NON_GR_KEYS,
     _TIDAL_EXTENSION_KEYS,
     _is_default_order,

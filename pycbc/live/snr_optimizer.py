@@ -58,6 +58,11 @@ Nfeval = 0
 start_time = time.time()
 
 
+def _max_abs_snr(series):
+    """Return the largest SNR magnitude using the active array backend."""
+    return abs(series).max()
+
+
 def callback_func(Xi, convergence=0):
     global Nfeval
     logger.info("Currently at %d %s", Nfeval, convergence)
@@ -159,7 +164,7 @@ def compute_network_snr_core(v, data, coinc_times, ifos, flen, approximant,
         snr_series = snr[onsource_slice] * norm
         snr_series_dict[ifo] = snr * norm
         snr_series_dict['sigmasq_' + ifo] = sigmasq
-        network_snrsq += max(abs(snr_series._data)) ** 2.
+        network_snrsq += _max_abs_snr(snr_series) ** 2.0
 
     return network_snrsq ** 0.5, snr_series_dict
 

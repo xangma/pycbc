@@ -205,6 +205,88 @@ class TestParams(unittest.TestCase):
                     # check that this equals the original time
                     self.assertAlmostEqual(back, time1, places=6)
 
+    def test_tidal_conversions(self):
+        """Check scalar support and primary/secondary tidal round trips."""
+        scalar_lambda = conversions.lambda_tilde(
+            1.6, 1.2, 300.0, 900.0
+        )
+        scalar_delta = conversions.delta_lambda_tilde(
+            1.6, 1.2, 300.0, 900.0
+        )
+        scalar_primary = (
+            conversions.lambda1_from_delta_lambda_tilde_lambda_tilde(
+                scalar_delta, scalar_lambda, 1.6, 1.2
+            )
+        )
+        scalar_secondary = (
+            conversions.lambda2_from_delta_lambda_tilde_lambda_tilde(
+                scalar_delta, scalar_lambda, 1.6, 1.2
+            )
+        )
+        self.assertTrue(all(numpy.isscalar(value) for value in (
+            scalar_lambda, scalar_delta, scalar_primary, scalar_secondary
+        )))
+        self.assertAlmostEqual(scalar_primary, 300.0)
+        self.assertAlmostEqual(scalar_secondary, 900.0)
+
+        mass1 = numpy.array([1.6, 1.2, 1.5])
+        mass2 = numpy.array([1.2, 1.6, 1.3])
+        lambda1 = numpy.array([300.0, 900.0, 400.0])
+        lambda2 = numpy.array([900.0, 300.0, 700.0])
+        lambda_eff = conversions.lambda_tilde(
+            mass1, mass2, lambda1, lambda2
+        )
+        delta_lambda_eff = conversions.delta_lambda_tilde(
+            mass1, mass2, lambda1, lambda2
+        )
+        recovered_primary = (
+            conversions.lambda1_from_delta_lambda_tilde_lambda_tilde(
+                delta_lambda_eff, lambda_eff, mass1, mass2
+            )
+        )
+        recovered_secondary = (
+            conversions.lambda2_from_delta_lambda_tilde_lambda_tilde(
+                delta_lambda_eff, lambda_eff, mass1, mass2
+            )
+        )
+        primary_mask = mass1 >= mass2
+        numpy.testing.assert_allclose(
+            recovered_primary,
+            numpy.where(primary_mask, lambda1, lambda2),
+        )
+        numpy.testing.assert_allclose(
+            recovered_secondary,
+            numpy.where(primary_mask, lambda2, lambda1),
+        )
+
+    def test_snr_from_loglr(self):
+        """Check scalar and array likelihood-statistic conversions."""
+        self.assertAlmostEqual(conversions.snr_from_loglr(8.0), 4.0)
+        self.assertEqual(conversions.snr_from_loglr(-1.0), 0.0)
+        values = numpy.array([-2.0, 0.5, 8.0, numpy.nan])
+        numpy.testing.assert_allclose(
+            conversions.snr_from_loglr(values),
+            numpy.array([0.0, 1.0, 4.0, 0.0]),
+        )
+
+    def test_hypertriangle(self):
+        """Check scalar and batched ordered-parameter maps agree."""
+        params = (
+            numpy.array([0.2, 0.8]),
+            numpy.array([0.4, 0.1]),
+            numpy.array([0.6, 0.3]),
+        )
+        batched = conversions.hypertriangle(*params, bounds=(-1.0, 1.0))
+        columns = numpy.array([
+            conversions.hypertriangle(
+                *(param[index] for param in params), bounds=(-1.0, 1.0)
+            )
+            for index in range(2)
+        ]).T
+        numpy.testing.assert_allclose(batched, columns)
+        self.assertTrue(numpy.all(numpy.diff(batched, axis=0) >= 0))
+        self.assertTrue(numpy.all((-1.0 <= batched) & (batched <= 1.0)))
+
 suite = unittest.TestSuite()
 suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestParams))
 

@@ -18,9 +18,11 @@ pycbc/types/array_cpu.cpp
 pycbc/vetoes/chisq_cpu.cpp
 pycbc/waveform/decompress_cpu_cython.cpp
 pycbc/waveform/spa_tmplt_cpu.cpp
+pycbc/waveform/taylort4_cpu.cpp
 pycbc/waveform/utils_cpu.cpp
 # pixi environments
 .pixi/*
+!.pixi/config.toml
 .codex-scratch/
 tools/torch_workflows/experiments/
 artifacts/

@@ -40,7 +40,6 @@ from pycbc.waveform.utils import apply_fseries_time_shift, \
                                  ceilpow2, apply_fd_time_shift, \
                                  scheme_cast_series as _scheme_cast_series
 from pycbc.pool import use_mpi
-from pycbc import strain
 try:
     import torch
 except ImportError:

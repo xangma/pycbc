@@ -26,9 +26,7 @@ from pycbc import lal_compat as _lal
 from pycbc.types.array import Array, _convert, _regular_grid, zeros, _noreal
 from pycbc.types.utils import determine_epoch
 from pycbc.types import float64
-from pycbc.libutils import import_optional
-
-_lal = import_optional('lal')
+from pycbc import lal_compat as _lal
 
 class FrequencySeries(Array):
     """Models a frequency series consisting of uniformly sampled scalar values.

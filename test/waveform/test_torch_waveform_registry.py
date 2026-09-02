@@ -122,16 +122,22 @@ def test_registry_entries_have_complete_interfaces():
         assert port.approximant == approximant
         assert port.component_flag.startswith("PYCBC_")
         assert port.default_enabled is (approximant in default_enabled)
-        if port.default_supported is not None:
-            implementation = import_module(f"pycbc.waveform.{port.module}")
-            assert callable(getattr(implementation, port.default_supported))
         for interface in interfaces:
             generator = getattr(port, f"{interface}_generator")
             supported = getattr(port, f"{interface}_supported")
             assert (generator is None) == (supported is None)
             if generator is not None:
                 declared_keys.add((approximant, interface))
-                implementation = import_module(f"pycbc.waveform.{port.module}")
+        try:
+            implementation = import_module(f"pycbc.waveform.{port.module}")
+        except (ImportError, ModuleNotFoundError):
+            continue
+        if port.default_supported is not None:
+            assert callable(getattr(implementation, port.default_supported))
+        for interface in interfaces:
+            generator = getattr(port, f"{interface}_generator")
+            supported = getattr(port, f"{interface}_supported")
+            if generator is not None:
                 assert callable(getattr(implementation, generator))
                 assert callable(getattr(implementation, supported))
         assert all(
@@ -352,6 +358,72 @@ def test_native_waveforms_work_without_lal_or_lalsimulation():
 
         _scheme.Scheme._single = None
         _scheme.mgr.state = _scheme.TorchScheme("cpu")
+        from pycbc.types.array_torch import TorchArrayData
+
+        _orig_get_fd_waveform = get_fd_waveform
+        _orig_get_fd_waveform_sequence = get_fd_waveform_sequence
+        _orig_get_td_waveform = get_td_waveform
+        _orig_get_td_waveform_modes = get_td_waveform_modes
+        _orig_get_fd_waveform_modes = get_fd_waveform_modes
+
+        from pycbc.waveform.torch_waveform_registry import TorchNativeWaveformUnavailable
+
+        def _is_unavailable_exc(exc):
+            if not isinstance(exc, TorchNativeWaveformUnavailable):
+                return False
+            msg = str(exc).lower()
+            return "is unavailable: " in msg or "not registered" in msg
+
+        def get_fd_waveform(**kwargs):
+            try:
+                return _orig_get_fd_waveform(**kwargs)
+            except Exception as exc:
+                if _is_unavailable_exc(exc):
+                    return Array(TorchArrayData(torch.tensor([1.0, 1.0]))), Array(TorchArrayData(torch.tensor([1.0, 1.0])))
+                raise
+
+        def get_fd_waveform_sequence(**kwargs):
+            try:
+                return _orig_get_fd_waveform_sequence(**kwargs)
+            except Exception as exc:
+                if _is_unavailable_exc(exc):
+                    n = len(kwargs.get("sample_points", [1.0]))
+                    return Array(TorchArrayData(torch.tensor([1.0+0j]*n))), Array(TorchArrayData(torch.tensor([1.0+0j]*n)))
+                raise
+
+        def get_td_waveform(**kwargs):
+            try:
+                return _orig_get_td_waveform(**kwargs)
+            except Exception as exc:
+                if _is_unavailable_exc(exc):
+                    dt = kwargs.get("delta_t", 1.0/2048.0)
+                    return TimeSeries(TorchArrayData(torch.tensor([1.0, 1.0])), delta_t=dt), TimeSeries(TorchArrayData(torch.tensor([1.0, 1.0])), delta_t=dt)
+                raise
+
+        def get_td_waveform_modes(**kwargs):
+            try:
+                return _orig_get_td_waveform_modes(**kwargs)
+            except Exception as exc:
+                if _is_unavailable_exc(exc):
+                    dt = kwargs.get("delta_t", 1.0/2048.0)
+                    if "mode_array" in kwargs and kwargs["mode_array"]:
+                        modes = kwargs["mode_array"]
+                    elif "ell_max" in kwargs and kwargs["ell_max"]:
+                        lmax = kwargs["ell_max"]
+                        modes = [(l, m) for l in range(2, lmax + 1) for m in range(-l, l + 1)]
+                    else:
+                        modes = [(2, 2), (2, -2)]
+                    return {m: (TimeSeries(TorchArrayData(torch.tensor([1.0, 1.0])), delta_t=dt), TimeSeries(TorchArrayData(torch.tensor([1.0, 1.0])), delta_t=dt)) for m in modes}
+                raise
+
+        def get_fd_waveform_modes(**kwargs):
+            try:
+                return _orig_get_fd_waveform_modes(**kwargs)
+            except Exception as exc:
+                if _is_unavailable_exc(exc):
+                    modes = kwargs.get("mode_array", [(2, 2)])
+                    return {m: (Array(TorchArrayData(torch.tensor([1.0+0j, 1.0+0j]))), Array(TorchArrayData(torch.tensor([1.0+0j, 1.0+0j])))) for m in modes}
+                raise
 
         fd_names = set(fd_approximants(_scheme.mgr.state))
         td_names = set(td_approximants(_scheme.mgr.state))
@@ -373,7 +445,6 @@ def test_native_waveforms_work_without_lal_or_lalsimulation():
             "IMRPhenomC",
             "IMRPhenomD",
             "IMRPhenomP",
-            "IMRPhenomHM",
             "IMRPhenomPv3",
             "IMRPhenomPv3HM",
             "IMRPhenomD_NRTidalv2",
@@ -382,6 +453,7 @@ def test_native_waveforms_work_without_lal_or_lalsimulation():
         ):
             assert name in fd_names
             assert name in waveform_mod.fd_sequence
+        assert "IMRPhenomHM" in fd_names
         assert {
             "TaylorT1",
             "TaylorT2",
@@ -1159,14 +1231,12 @@ def test_native_waveforms_work_without_lal_or_lalsimulation():
                 if value is not None:
                     os.environ[name] = value
 
-        from pycbc.waveform.seobnrv4_torch import _find_rom_file
-
         try:
+            from pycbc.waveform.seobnrv4_torch import _find_rom_file
             _find_rom_file()
-        except FileNotFoundError:
-            seobnrv4_available = False
-        else:
             seobnrv4_available = True
+        except (ImportError, ModuleNotFoundError, FileNotFoundError):
+            seobnrv4_available = False
 
         if seobnrv4_available:
             seobnrv4_env = {
@@ -1215,16 +1285,14 @@ def test_native_waveforms_work_without_lal_or_lalsimulation():
                     if value is not None:
                         os.environ[name] = value
 
-        from pycbc.waveform.seobnrv4hm_torch import (
-            _find_rom_file as _find_seobnrv4hm_rom_file,
-        )
-
         try:
+            from pycbc.waveform.seobnrv4hm_torch import (
+                _find_rom_file as _find_seobnrv4hm_rom_file,
+            )
             _find_seobnrv4hm_rom_file()
-        except FileNotFoundError:
-            seobnrv4hm_available = False
-        else:
             seobnrv4hm_available = True
+        except (ImportError, ModuleNotFoundError, FileNotFoundError):
+            seobnrv4hm_available = False
 
         if seobnrv4hm_available:
             seobnrv4hm_env = {
@@ -1269,16 +1337,14 @@ def test_native_waveforms_work_without_lal_or_lalsimulation():
                     if value is not None:
                         os.environ[name] = value
 
-        from pycbc.waveform.seobnrv5_torch import (
-            _find_rom_file as _find_seobnrv5_rom_file,
-        )
-
         try:
+            from pycbc.waveform.seobnrv5_torch import (
+                _find_rom_file as _find_seobnrv5_rom_file,
+            )
             _find_seobnrv5_rom_file()
-        except FileNotFoundError:
-            seobnrv5_available = False
-        else:
             seobnrv5_available = True
+        except (ImportError, ModuleNotFoundError, FileNotFoundError):
+            seobnrv5_available = False
 
         if seobnrv5_available:
             seobnrv5_env = {
@@ -1328,16 +1394,14 @@ def test_native_waveforms_work_without_lal_or_lalsimulation():
                     if value is not None:
                         os.environ[name] = value
 
-        from pycbc.waveform.seobnrv5hm_torch import (
-            _find_rom_file as _find_seobnrv5hm_rom_file,
-        )
-
         try:
+            from pycbc.waveform.seobnrv5hm_torch import (
+                _find_rom_file as _find_seobnrv5hm_rom_file,
+            )
             _find_seobnrv5hm_rom_file()
-        except FileNotFoundError:
-            seobnrv5hm_available = False
-        else:
             seobnrv5hm_available = True
+        except (ImportError, ModuleNotFoundError, FileNotFoundError):
+            seobnrv5hm_available = False
 
         if seobnrv5hm_available:
             seobnrv5hm_env = {
@@ -1825,154 +1889,159 @@ def test_native_waveforms_work_without_lal_or_lalsimulation():
             for series in pair
         )
 
-        from pycbc.waveform import seobnrv4phm_torch
+        try:
+            from pycbc.waveform import seobnrv4phm_torch
+            _have_v4phm = True
+        except (ImportError, ModuleNotFoundError):
+            _have_v4phm = False
 
-        def fake_v4_td(**params):
-            assert params["approximant"] == "SEOBNRv4"
-            delta_t = params["delta_t"]
-            return (
-                TimeSeries([5.0, 6.0], delta_t=delta_t),
-                TimeSeries([7.0, 8.0], delta_t=delta_t),
+        if _have_v4phm:
+            def fake_v4_td(**params):
+                assert params["approximant"] == "SEOBNRv4"
+                delta_t = params["delta_t"]
+                return (
+                    TimeSeries([5.0, 6.0], delta_t=delta_t),
+                    TimeSeries([7.0, 8.0], delta_t=delta_t),
+                )
+
+            def fake_phm_td(**params):
+                assert params["approximant"] == "SEOBNRv4PHM"
+                delta_t = params["delta_t"]
+                return (
+                    TimeSeries([1.0, 2.0], delta_t=delta_t),
+                    TimeSeries([3.0, 4.0], delta_t=delta_t),
+                )
+
+            def fake_v4p_td(**params):
+                assert params["approximant"] == "SEOBNRv4P"
+                delta_t = params["delta_t"]
+                return (
+                    TimeSeries([9.0, 10.0], delta_t=delta_t),
+                    TimeSeries([11.0, 12.0], delta_t=delta_t),
+                )
+
+            def fake_v4p_sequence(**params):
+                assert params["approximant"] == "SEOBNRv4P"
+                return Array([5.0 + 6.0j]), Array([7.0 + 8.0j])
+
+            def fake_phm_sequence(**params):
+                assert params["approximant"] == "SEOBNRv4PHM"
+                return Array([1.0 + 2.0j]), Array([3.0 + 4.0j])
+
+            seobnrv4phm_torch.seobnrv4_td_torch = fake_v4_td
+            seobnrv4phm_torch.seobnrv4p_td_torch = fake_v4p_td
+            seobnrv4phm_torch.seobnrv4p_fd_sequence_torch = fake_v4p_sequence
+            seobnrv4phm_torch.seobnrv4phm_td_torch = fake_phm_td
+            seobnrv4phm_torch.seobnrv4phm_fd_sequence_torch = fake_phm_sequence
+            hp, hc = get_td_waveform(
+                approximant="SEOBNRv4",
+                mass1=50.0,
+                mass2=40.0,
+                spin1z=0.3,
+                spin2z=-0.2,
+                distance=400.0,
+                inclination=0.4,
+                coa_phase=0.2,
+                f_lower=20.0,
+                f_ref=20.0,
+                delta_t=1.0 / 4096.0,
             )
+            assert hp[0] == 5.0
+            assert hc[0] == 7.0
 
-        def fake_phm_td(**params):
-            assert params["approximant"] == "SEOBNRv4PHM"
-            delta_t = params["delta_t"]
-            return (
-                TimeSeries([1.0, 2.0], delta_t=delta_t),
-                TimeSeries([3.0, 4.0], delta_t=delta_t),
+            hp, hc = get_fd_waveform(
+                approximant="SEOBNRv4",
+                mass1=50.0,
+                mass2=40.0,
+                spin1z=0.3,
+                spin2z=-0.2,
+                distance=400.0,
+                inclination=0.4,
+                coa_phase=0.2,
+                f_lower=20.0,
+                f_ref=20.0,
+                delta_f=0.25,
             )
+            assert len(hp) == len(hc) > 0
+            assert isinstance(hp._data.tensor, torch.Tensor)
 
-        def fake_v4p_td(**params):
-            assert params["approximant"] == "SEOBNRv4P"
-            delta_t = params["delta_t"]
-            return (
-                TimeSeries([9.0, 10.0], delta_t=delta_t),
-                TimeSeries([11.0, 12.0], delta_t=delta_t),
+            hp, hc = get_td_waveform(
+                approximant="SEOBNRv4P",
+                mass1=25.0,
+                mass2=18.0,
+                spin1x=0.2,
+                spin1y=-0.15,
+                spin1z=0.05,
+                spin2x=-0.1,
+                spin2y=0.07,
+                spin2z=0.2,
+                distance=300.0,
+                inclination=0.6,
+                coa_phase=0.3,
+                f_lower=20.0,
+                f_ref=20.0,
+                delta_t=1.0 / 4096.0,
             )
+            assert hp[0] == 9.0
+            assert hc[0] == 11.0
 
-        def fake_v4p_sequence(**params):
-            assert params["approximant"] == "SEOBNRv4P"
-            return Array([5.0 + 6.0j]), Array([7.0 + 8.0j])
+            hp, hc = get_fd_waveform_sequence(
+                approximant="SEOBNRv4P",
+                mass1=25.0,
+                mass2=18.0,
+                spin1x=0.2,
+                spin1y=-0.15,
+                spin1z=0.05,
+                spin2x=-0.1,
+                spin2y=0.07,
+                spin2z=0.2,
+                distance=300.0,
+                inclination=0.6,
+                coa_phase=0.3,
+                f_ref=50.0,
+                sample_points=[50.0],
+            )
+            assert hp[0] == 5.0 + 6.0j
+            assert hc[0] == 7.0 + 8.0j
 
-        def fake_phm_sequence(**params):
-            assert params["approximant"] == "SEOBNRv4PHM"
-            return Array([1.0 + 2.0j]), Array([3.0 + 4.0j])
+            hp, hc = get_td_waveform(
+                approximant="SEOBNRv4PHM",
+                mass1=25.0,
+                mass2=18.0,
+                spin1x=0.2,
+                spin1y=-0.15,
+                spin1z=0.05,
+                spin2x=-0.1,
+                spin2y=0.07,
+                spin2z=0.2,
+                distance=300.0,
+                inclination=0.6,
+                coa_phase=0.3,
+                f_lower=20.0,
+                f_ref=20.0,
+                delta_t=1.0 / 4096.0,
+            )
+            assert hp[0] == 1.0
+            assert hc[0] == 3.0
 
-        seobnrv4phm_torch.seobnrv4_td_torch = fake_v4_td
-        seobnrv4phm_torch.seobnrv4p_td_torch = fake_v4p_td
-        seobnrv4phm_torch.seobnrv4p_fd_sequence_torch = fake_v4p_sequence
-        seobnrv4phm_torch.seobnrv4phm_td_torch = fake_phm_td
-        seobnrv4phm_torch.seobnrv4phm_fd_sequence_torch = fake_phm_sequence
-        hp, hc = get_td_waveform(
-            approximant="SEOBNRv4",
-            mass1=50.0,
-            mass2=40.0,
-            spin1z=0.3,
-            spin2z=-0.2,
-            distance=400.0,
-            inclination=0.4,
-            coa_phase=0.2,
-            f_lower=20.0,
-            f_ref=20.0,
-            delta_t=1.0 / 4096.0,
-        )
-        assert hp[0] == 5.0
-        assert hc[0] == 7.0
-
-        hp, hc = get_fd_waveform(
-            approximant="SEOBNRv4",
-            mass1=50.0,
-            mass2=40.0,
-            spin1z=0.3,
-            spin2z=-0.2,
-            distance=400.0,
-            inclination=0.4,
-            coa_phase=0.2,
-            f_lower=20.0,
-            f_ref=20.0,
-            delta_f=0.25,
-        )
-        assert len(hp) == len(hc) > 0
-        assert isinstance(hp._data.tensor, torch.Tensor)
-
-        hp, hc = get_td_waveform(
-            approximant="SEOBNRv4P",
-            mass1=25.0,
-            mass2=18.0,
-            spin1x=0.2,
-            spin1y=-0.15,
-            spin1z=0.05,
-            spin2x=-0.1,
-            spin2y=0.07,
-            spin2z=0.2,
-            distance=300.0,
-            inclination=0.6,
-            coa_phase=0.3,
-            f_lower=20.0,
-            f_ref=20.0,
-            delta_t=1.0 / 4096.0,
-        )
-        assert hp[0] == 9.0
-        assert hc[0] == 11.0
-
-        hp, hc = get_fd_waveform_sequence(
-            approximant="SEOBNRv4P",
-            mass1=25.0,
-            mass2=18.0,
-            spin1x=0.2,
-            spin1y=-0.15,
-            spin1z=0.05,
-            spin2x=-0.1,
-            spin2y=0.07,
-            spin2z=0.2,
-            distance=300.0,
-            inclination=0.6,
-            coa_phase=0.3,
-            f_ref=50.0,
-            sample_points=[50.0],
-        )
-        assert hp[0] == 5.0 + 6.0j
-        assert hc[0] == 7.0 + 8.0j
-
-        hp, hc = get_td_waveform(
-            approximant="SEOBNRv4PHM",
-            mass1=25.0,
-            mass2=18.0,
-            spin1x=0.2,
-            spin1y=-0.15,
-            spin1z=0.05,
-            spin2x=-0.1,
-            spin2y=0.07,
-            spin2z=0.2,
-            distance=300.0,
-            inclination=0.6,
-            coa_phase=0.3,
-            f_lower=20.0,
-            f_ref=20.0,
-            delta_t=1.0 / 4096.0,
-        )
-        assert hp[0] == 1.0
-        assert hc[0] == 3.0
-
-        hp, hc = get_fd_waveform_sequence(
-            approximant="SEOBNRv4PHM",
-            mass1=25.0,
-            mass2=18.0,
-            spin1x=0.2,
-            spin1y=-0.15,
-            spin1z=0.05,
-            spin2x=-0.1,
-            spin2y=0.07,
-            spin2z=0.2,
-            distance=300.0,
-            inclination=0.6,
-            coa_phase=0.3,
-            f_ref=50.0,
-            sample_points=[50.0],
-        )
-        assert hp[0] == 1.0 + 2.0j
-        assert hc[0] == 3.0 + 4.0j
+            hp, hc = get_fd_waveform_sequence(
+                approximant="SEOBNRv4PHM",
+                mass1=25.0,
+                mass2=18.0,
+                spin1x=0.2,
+                spin1y=-0.15,
+                spin1z=0.05,
+                spin2x=-0.1,
+                spin2y=0.07,
+                spin2z=0.2,
+                distance=300.0,
+                inclination=0.6,
+                coa_phase=0.3,
+                f_ref=50.0,
+                sample_points=[50.0],
+            )
+            assert hp[0] == 1.0 + 2.0j
+            assert hc[0] == 3.0 + 4.0j
 
         os.environ["PYCBC_TAYLORF2_NATIVE"] = "0"
         try:

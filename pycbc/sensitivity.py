@@ -15,6 +15,63 @@ except ImportError:  # numpy < 2.0
 logger = logging.getLogger('pycbc.sensitivity')
 
 
+def _torch_tensor(value):
+    """Return the tensor backing a Torch or PyCBC value, if present."""
+    if type(value).__module__.split(".", 1)[0] == "torch":
+        return value
+    tensor = getattr(value, "tensor", None)
+    if tensor is None:
+        tensor = getattr(getattr(value, "_data", None), "tensor", None)
+    return tensor
+
+
+def _torch_sensitivity_inputs(*values):
+    """Move mixed sensitivity inputs beside their existing Torch tensor."""
+    tensors = [None if value is None else _torch_tensor(value)
+               for value in values]
+    if not any(tensor is not None for tensor in tensors):
+        return None
+
+    import torch
+
+    reference = next(tensor for tensor in tensors if tensor is not None)
+    if reference.is_complex():
+        raise TypeError("sensitivity calculation inputs must be real")
+    dtype = (
+        reference.dtype
+        if reference.is_floating_point()
+        else torch.get_default_dtype()
+    )
+    converted = []
+    for value, tensor in zip(values, tensors):
+        if value is None:
+            converted.append(None)
+            continue
+        if tensor is not None and tensor.is_complex():
+            raise TypeError("sensitivity calculation inputs must be real")
+        if tensor is None:
+            tensor = torch.as_tensor(
+                value, device=reference.device, dtype=dtype)
+        else:
+            tensor = tensor.to(device=reference.device, dtype=dtype)
+        converted.append(tensor)
+    return tuple(converted)
+
+
+def _torch_array_result(tensor, *templates):
+    """Preserve raw Tensor or PyCBC Array output conventions."""
+    if any(type(template).__module__.split(".", 1)[0] == "torch"
+           for template in templates):
+        return tensor
+
+    for template in templates:
+        if _torch_tensor(template) is not None and hasattr(template, "_return"):
+            from pycbc.types.array_torch import TorchArrayData
+
+            return template._return(TorchArrayData(tensor))
+    return tensor
+
+
 def compute_search_efficiency_in_bins(
          found, total, ndbins,
          sim_to_bins_function=lambda sim: (sim.distance,)):
@@ -86,6 +143,27 @@ def volume_to_distance_with_errors(vol, vol_err):
     elow: float
 
     """
+    tensors = _torch_sensitivity_inputs(vol, vol_err)
+    if tensors is not None:
+        import torch
+
+        vol_tensor, error_tensor = tensors
+        volume_scale = 3.0 / (4.0 * torch.pi)
+        dist = (vol_tensor * volume_scale) ** (1.0 / 3.0)
+        ehigh = ((vol_tensor + error_tensor) * volume_scale) ** (
+            1.0 / 3.0
+        ) - dist
+        delta = torch.where(
+            vol_tensor >= error_tensor,
+            vol_tensor - error_tensor,
+            torch.zeros_like(vol_tensor),
+        )
+        elow = dist - (delta * volume_scale) ** (1.0 / 3.0)
+        return tuple(
+            _torch_array_result(result, vol, vol_err)
+            for result in (dist, ehigh, elow)
+        )
+
     dist = (vol * 3.0/4.0/numpy.pi) ** (1.0/3.0)
     ehigh = ((vol + vol_err) * 3.0/4.0/numpy.pi) ** (1.0/3.0) - dist
     delta = numpy.where(vol >= vol_err, vol - vol_err, 0)
@@ -154,6 +232,100 @@ def volume_montecarlo(found_d, missed_d, found_mchirp, missed_mchirp,
             'distancesquared' : 5. / 3.,
             'volume'          : 15. / 6.
     }[distribution]
+
+    tensors = _torch_sensitivity_inputs(
+        found_d,
+        missed_d,
+        found_mchirp,
+        missed_mchirp,
+        min_param,
+        max_param,
+    )
+    if tensors is not None:
+        import torch
+
+        (found_d_tensor, missed_d_tensor, found_mchirp_tensor,
+         missed_mchirp_tensor, min_param_tensor,
+         max_param_tensor) = tensors
+
+        if limits_param == 'chirp_distance':
+            mchirp_standard_bns = 1.4 * 2.**(-1. / 5.)
+            all_mchirp = torch.cat(
+                (found_mchirp_tensor, missed_mchirp_tensor))
+            max_mchirp = torch.max(all_mchirp)
+            if max_param_tensor is not None:
+                max_distance = max_param_tensor * (
+                    max_mchirp / mchirp_standard_bns) ** (5. / 6.)
+            else:
+                max_distance = torch.maximum(
+                    torch.max(found_d_tensor), torch.max(missed_d_tensor))
+        elif limits_param == 'distance':
+            if max_param_tensor is not None:
+                max_distance = max_param_tensor
+            else:
+                max_distance = torch.maximum(
+                    torch.max(found_d_tensor), torch.max(missed_d_tensor))
+        else:
+            raise NotImplementedError(
+                "%s is not a recognized parameter" % limits_param)
+
+        montecarlo_vtot = (4. / 3.) * torch.pi * max_distance**3.
+
+        if distribution_param == 'distance':
+            found_weights = found_d_tensor ** d_power
+            missed_weights = missed_d_tensor ** d_power
+        elif distribution_param == 'chirp_distance':
+            found_weights = (
+                found_d_tensor ** d_power
+                * found_mchirp_tensor ** mchirp_power
+            )
+            missed_weights = (
+                missed_d_tensor ** d_power
+                * missed_mchirp_tensor ** mchirp_power
+            )
+        else:
+            raise NotImplementedError(
+                "%s is not a recognized distance parameter"
+                % distribution_param)
+
+        all_weights = torch.cat((found_weights, missed_weights))
+        mc_weight_samples = torch.cat(
+            (found_weights, torch.zeros_like(missed_weights)))
+        mc_sum = torch.sum(mc_weight_samples)
+
+        if limits_param == 'distance':
+            mc_norm = torch.sum(all_weights)
+        else:
+            mc_norm = torch.sum(
+                all_weights
+                * (max_mchirp / all_mchirp) ** (5. / 2.))
+
+        mc_prefactor = montecarlo_vtot / mc_norm
+
+        if limits_param == 'distance':
+            ninj = mc_weight_samples.shape[0]
+        elif distribution == 'log':
+            if min_param_tensor is not None:
+                min_distance = min_param_tensor * (
+                    torch.min(all_mchirp) / mchirp_standard_bns
+                ) ** (5. / 6.)
+            else:
+                min_distance = torch.minimum(
+                    torch.min(found_d_tensor), torch.min(missed_d_tensor))
+            logrange = torch.log(max_distance / min_distance)
+            ninj = mc_weight_samples.shape[0] + (5. / 6.) * torch.sum(
+                torch.log(max_mchirp / all_mchirp) / logrange)
+        else:
+            ninj = torch.sum(
+                (max_mchirp / all_mchirp) ** mchirp_power)
+
+        mc_sample_variance = (
+            torch.sum(mc_weight_samples ** 2.) / ninj
+            - (mc_sum / ninj) ** 2.
+        )
+        vol = mc_prefactor * mc_sum
+        vol_err = mc_prefactor * (ninj * mc_sample_variance) ** 0.5
+        return vol, vol_err
 
     # establish maximum physical distance: first for chirp distance distribution
     if limits_param == 'chirp_distance':
@@ -302,6 +474,29 @@ def volume_shell(f_dist, m_dist):
     volume_error: float
         The standard error in the volume
     """
+    tensors = _torch_sensitivity_inputs(f_dist, m_dist)
+    if tensors is not None:
+        import torch
+
+        found_tensor, missed_tensor = tensors
+        distances, dist_sorting = torch.sort(
+            torch.cat((found_tensor, missed_tensor)))
+        if distances.numel() < 2:
+            zero = torch.sum(distances * 0.0)
+            return zero, zero
+
+        high = (distances[1:] + distances[:-1]) / 2.0
+        low = torch.cat((high.new_zeros(1), high[:-1]))
+        bin_width = high - low
+        shell_volume = (
+            4.0 * torch.pi * distances[:-1] ** 2.0 * bin_width)
+        found = dist_sorting[:-1] < found_tensor.shape[0]
+        found_shells = torch.where(
+            found, shell_volume, torch.zeros_like(shell_volume))
+        vol = torch.sum(found_shells)
+        vol_err = torch.sqrt(torch.sum(found_shells ** 2.0))
+        return vol, vol_err
+
     f_dist.sort()
     m_dist.sort()
     distances = numpy.concatenate([f_dist, m_dist])

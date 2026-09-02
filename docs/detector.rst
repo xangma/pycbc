@@ -33,6 +33,19 @@ Antenna Patterns and Projecting a Signal into the Detector Frame
 
 .. literalinclude:: ../examples/detector/ant.py
 .. command-output:: python ../examples/detector/ant.py
+
+Torch detector projection
+=========================
+
+When :class:`pycbc.scheme.TorchScheme` is active,
+:meth:`pycbc.detector.Detector.project_wave` with ``method="lal"`` evaluates
+the waveform mixing, finite-arm response kernels, sub-sample interpolation,
+and output assembly on the active Torch device. This path follows the output
+layout and time-dependent response of LAL's full detector projection without
+copying the waveform through ``lalsimulation``. Small scalar calculations of
+detector geometry and Earth orientation still use ``lal`` at the four-Hertz
+response-update cadence. CPU and CUDA use float64 output; Apple MPS uses
+float32.
    
 ==============================================================
 Adding a custom detector / overriding existing ones

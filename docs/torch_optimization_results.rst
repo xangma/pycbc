@@ -159,7 +159,7 @@ therefore cannot support a current production multi-GPU claim.  The plotting
 tool now fails closed on these legacy or mismatched inputs instead of drawing
 figures from embedded numbers.
 
-The replacement-runtime campaign ran on ``len`` from exact source
+The replacement-runtime campaign ran on an AMD Threadripper PRO 3995WX / NVIDIA RTX 4090 system from exact source
 ``ae381181e167db14e4d5e55324bcd492715e35e0`` with Python 3.11.9, Torch
 2.13.0+cu130, CUDA runtime 13.0, NVIDIA driver 610.57.04, and one RTX 4090.
 The strict A/B/C/D matrix passed all 13 cases in each of A-to-B, B-to-C,
@@ -311,7 +311,7 @@ PyCBC provides single-template/segment production filtering, IFFT, thresholding,
 :meth:`MatchedFilterControl.full_matched_filter_and_cluster_symm <pycbc.filter.matchedfilter.MatchedFilterControl.full_matched_filter_and_cluster_symm>`.
 
 The benchmark measures single-template filtering across segment lengths from :math:`N=32,768` (16 s) to
-:math:`N=524,288` (256 s binary neutron star segments) at a 2048 Hz sampling rate on ``len`` (AMD Threadripper PRO 3995WX + NVIDIA RTX 4090):
+:math:`N=524,288` (256 s binary neutron star segments) at a 2048 Hz sampling rate on AMD Threadripper PRO 3995WX + NVIDIA RTX 4090:
 
 .. list-table:: Production Single-Template Matched Filtering Latency & Speedup
    :header-rows: 1
@@ -711,7 +711,7 @@ maintained inventory; the archive retains the gate-by-gate chronology.
    * - Shared public-cache environment snapshot
      - Same-process public-cache warm latency improved 15.78--16.07%
        (about 1.187--1.191x) on Python 3.13/PyTorch 2.9 and 8.288--8.328%
-       (about 1.090x) on ``len`` with Python 3.11/PyTorch 2.1.
+       (about 1.090x) on Linux with Python 3.11/PyTorch 2.1.
      - Raw-exact sentinels passed; the public-cache suite passed 29 tests.
      - Implemented shared identity-scan reuse. This source state postdates the
        canonical public seal, so its saving is not included in the 1.334611 ms
@@ -903,7 +903,7 @@ raw-byte and metadata exact.  This is an optimization-only native-Torch
 comparison, not a comparison with original or direct LAL.  The canonical public
 comparison is reported below.
 
-**CPU candidate-profile ablation.**  A later same-host ``len`` CPU119 run held
+**CPU candidate-profile ablation.**  A later same-hardware CPU run held
 the phase-anchor cache and carrier-alignment result reuse common while comparing
 ``pr_style_exact`` with ``torch213_cpu_candidate``.  Across eight isolated
 AB/BA pairs, the candidate profile was **1.2611x** faster (95% t-log CI
@@ -990,7 +990,7 @@ ordinary-execution wins:
 End-to-end search results
 =========================
 
-The authoritative CPU matrix used a source-sealed snapshot on ``len`` CPU 119,
+The authoritative CPU matrix used a source-sealed snapshot on the AMD Threadripper CPU,
 one thread, sequential H1/L1 processing, and six paired warm observations per
 cell. The primary metric is the poll-free operation inside a persistent worker.
 
@@ -1075,7 +1075,7 @@ warm operations and the same persistent-worker boundary.
 Waveform routing result
 =======================
 
-The audited production-routing matrix below used ``len``, Python 3.11.9,
+The audited production-routing matrix below used an AMD Threadripper PRO 3995WX / NVIDIA RTX 4090 benchmark system, Python 3.11.9,
 PyTorch 2.13.0+cu126, one thread, ``n_batch=1``, and compilation disabled.
 Values are warm medians in milliseconds.
 

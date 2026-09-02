@@ -44,7 +44,7 @@ from pycbc.waveform._cubic_spline_torch import (
 from pycbc.waveform._spherical_harmonics_torch import (
     spin_weighted_spherical_harmonic,
 )
-from pycbc.waveform.imrphenomd_torch import (
+from pycbc.waveform.utils_torch import (
     _DEFAULT_ONLY_ORDER_KEYS,
     _NON_GR_KEYS,
     _TIDAL_EXTENSION_KEYS,

@@ -7,6 +7,57 @@ from . import bin_utils
 logger = logging.getLogger('pycbc.rate')
 
 
+def _torch_tensor(value):
+    """Return the tensor backing a Torch or PyCBC value, if present."""
+    if type(value).__module__.split(".", 1)[0] == "torch":
+        return value
+    tensor = getattr(value, "tensor", None)
+    if tensor is None:
+        tensor = getattr(getattr(value, "_data", None), "tensor", None)
+    return tensor
+
+
+def _torch_rate_inputs(*values):
+    """Move mixed rate inputs beside their existing Torch tensor."""
+    tensors = [_torch_tensor(value) for value in values]
+    if not any(tensor is not None for tensor in tensors):
+        return None
+
+    import torch
+
+    reference = next(tensor for tensor in tensors if tensor is not None)
+    if reference.is_complex():
+        raise TypeError("rate calculation inputs must be real")
+    dtype = (
+        reference.dtype if reference.is_floating_point() else torch.get_default_dtype()
+    )
+    converted = []
+    for value, tensor in zip(values, tensors):
+        if tensor is not None and tensor.is_complex():
+            raise TypeError("rate calculation inputs must be real")
+        if tensor is None:
+            tensor = torch.as_tensor(value, device=reference.device, dtype=dtype)
+        else:
+            tensor = tensor.to(device=reference.device, dtype=dtype)
+        converted.append(tensor)
+    return tuple(converted)
+
+
+def _torch_array_result(tensor, *templates):
+    """Preserve raw Tensor or PyCBC Array output conventions."""
+    if any(
+        type(template).__module__.split(".", 1)[0] == "torch" for template in templates
+    ):
+        return tensor
+
+    for template in templates:
+        if _torch_tensor(template) is not None and hasattr(template, "_return"):
+            from pycbc.types.array_torch import TorchArrayData
+
+            return template._return(TorchArrayData(tensor))
+    return tensor
+
+
 def integral_element(mu, pdf):
     '''
     Returns an array of elements of the integrand dP = p(mu) dmu
@@ -14,6 +65,13 @@ def integral_element(mu, pdf):
     not be equally spaced.  Uses a simple trapezium rule.
     Number of dP elements is 1 - (number of mu samples).
     '''
+    tensors = _torch_rate_inputs(mu, pdf)
+    if tensors is not None:
+        mu_tensor, pdf_tensor = tensors
+        dmu = mu_tensor[1:] - mu_tensor[:-1]
+        bin_mean = (pdf_tensor[1:] + pdf_tensor[:-1]) / 2.0
+        return _torch_array_result(dmu * bin_mean, mu, pdf)
+
     dmu = mu[1:] - mu[:-1]
     bin_mean = (pdf[1:] + pdf[:-1]) / 2.
     return dmu * bin_mean
@@ -25,6 +83,32 @@ def normalize_pdf(mu, pofmu):
     normalizes it to be a suitable pdf. Both mu and pofmu must be
     arrays or lists of the same length.
     """
+    tensors = _torch_rate_inputs(mu, pofmu)
+    if tensors is not None:
+        import torch
+
+        mu_tensor, pofmu_tensor = tensors
+        if bool(torch.any(pofmu_tensor < 0)):
+            raise ValueError(
+                "Probabilities cannot be negative, don't ask me to "
+                "normalize a function with negative values!"
+            )
+        if bool(torch.any(mu_tensor < 0)):
+            raise ValueError(
+                "Rates cannot be negative, don't ask me to "
+                "normalize a function over a negative domain!"
+            )
+
+        dp = (
+            (mu_tensor[1:] - mu_tensor[:-1])
+            * (pofmu_tensor[1:] + pofmu_tensor[:-1])
+            / 2.0
+        )
+        return (
+            _torch_array_result(mu_tensor, mu, pofmu),
+            _torch_array_result(pofmu_tensor / torch.sum(dp), pofmu, mu),
+        )
+
     if min(pofmu) < 0:
         raise ValueError("Probabilities cannot be negative, don't ask me to "
                          "normalize a function with negative values!")
@@ -42,6 +126,24 @@ def compute_upper_limit(mu_in, post, alpha=0.9):
     posterior distribution post on the given parameter mu.
     The posterior need not be normalized.
     """
+    tensors = _torch_rate_inputs(mu_in, post)
+    if tensors is not None:
+        import torch
+
+        mu_tensor, post_tensor = tensors
+        if 0 < alpha < 1:
+            dp = (
+                (mu_tensor[1:] - mu_tensor[:-1])
+                * (post_tensor[1:] + post_tensor[:-1])
+                / 2.0
+            )
+            cdf = torch.cumsum(dp, dim=0) / torch.sum(dp)
+            high_idx = torch.searchsorted(cdf, cdf.new_tensor(alpha), right=False)
+            return mu_tensor[high_idx]
+        if alpha == 1:
+            return torch.max(mu_tensor[post_tensor > 0])
+        raise ValueError("Confidence level must be in (0,1].")
+
     if 0 < alpha < 1:
         dp = integral_element(mu_in, post)
         high_idx = bisect.bisect_left(dp.cumsum() / dp.sum(), alpha)
@@ -63,6 +165,24 @@ def compute_lower_limit(mu_in, post, alpha=0.9):
     posterior distribution post on the given parameter mu.
     The posterior need not be normalized.
     """
+    tensors = _torch_rate_inputs(mu_in, post)
+    if tensors is not None:
+        import torch
+
+        mu_tensor, post_tensor = tensors
+        if 0 < alpha < 1:
+            dp = (
+                (mu_tensor[1:] - mu_tensor[:-1])
+                * (post_tensor[1:] + post_tensor[:-1])
+                / 2.0
+            )
+            cdf = torch.cumsum(dp, dim=0) / torch.sum(dp)
+            low_idx = torch.searchsorted(cdf, cdf.new_tensor(1 - alpha), right=True)
+            return mu_tensor[low_idx]
+        if alpha == 1:
+            return torch.min(mu_tensor[post_tensor > 0])
+        raise ValueError("Confidence level must be in (0,1].")
+
     if 0 < alpha < 1:
         dp = integral_element(mu_in, post)
         low_idx = bisect.bisect_right(dp.cumsum() / dp.sum(), 1 - alpha)
@@ -85,6 +205,23 @@ def confidence_interval_min_width(mu, post, alpha=0.9):
     '''
     if not 0 < alpha < 1:
         raise ValueError("Confidence level must be in (0,1).")
+
+    tensors = _torch_rate_inputs(mu, post)
+    if tensors is not None:
+        import torch
+
+        mu_tensor, post_tensor = tensors
+        low_candidates = [torch.min(mu_tensor)]
+        high_candidates = [torch.max(mu_tensor)]
+        for ai in numpy.arange(0, 1 - alpha, 0.01):
+            low_candidates.append(compute_lower_limit(mu_tensor, post_tensor, 1 - ai))
+            high_candidates.append(
+                compute_upper_limit(mu_tensor, post_tensor, alpha + ai)
+            )
+        low_candidates = torch.stack(low_candidates)
+        high_candidates = torch.stack(high_candidates)
+        best = torch.argmin(high_candidates - low_candidates)
+        return low_candidates[best], high_candidates[best]
 
     # choose a step size for the sliding confidence window
     alpha_step = 0.01
@@ -111,6 +248,15 @@ def hpd_coverage(mu, pdf, thresh):
     This gives the coverage of the HPD interval for
     the given threshold.
     '''
+    tensors = _torch_rate_inputs(mu, pdf, thresh)
+    if tensors is not None:
+        import torch
+
+        mu_tensor, pdf_tensor, threshold = tensors
+        dp = (mu_tensor[1:] - mu_tensor[:-1]) * (pdf_tensor[1:] + pdf_tensor[:-1]) / 2.0
+        bin_mean = (pdf_tensor[1:] + pdf_tensor[:-1]) / 2.0
+        return torch.sum(dp[bin_mean > threshold])
+
     dp = integral_element(mu, pdf)
     bin_mean = (pdf[1:] + pdf[:-1]) / 2.
 
@@ -124,19 +270,68 @@ def hpd_threshold(mu_in, post, alpha, tol):
     has coverage of at least alpha, and less than alpha
     plus a given tolerance.
     '''
-    norm_post = normalize_pdf(mu_in, post)
+    if not 0 < alpha < 1:
+        raise ValueError("Confidence level must be in (0,1).")
+    if tol <= 0:
+        raise ValueError("Coverage tolerance must be positive.")
+
+    tensors = _torch_rate_inputs(mu_in, post)
+    if tensors is not None:
+        import torch
+
+        mu_tensor, post_tensor = tensors
+        normalize_pdf(mu_tensor, post_tensor)
+        total = torch.sum(
+            (mu_tensor[1:] - mu_tensor[:-1])
+            * (post_tensor[1:] + post_tensor[:-1])
+            / 2.0
+        )
+        if bool(total <= 0):
+            raise ValueError("PDF integral must be positive.")
+
+        p_minus = post_tensor.new_zeros(())
+        p_plus = torch.max(post_tensor)
+        coverage_minus = hpd_coverage(mu_tensor, post_tensor, p_minus) / total
+        coverage_plus = hpd_coverage(mu_tensor, post_tensor, p_plus) / total
+        for _ in range(256):
+            if not bool(torch.abs(coverage_minus - coverage_plus) >= tol):
+                break
+            p_test = (p_minus + p_plus) / 2.0
+            if bool((p_test == p_minus) | (p_test == p_plus)):
+                break
+            coverage_test = hpd_coverage(mu_tensor, post_tensor, p_test) / total
+            if bool(coverage_test >= alpha):
+                p_minus = p_test
+                coverage_minus = coverage_test
+            else:
+                p_plus = p_test
+                coverage_plus = coverage_test
+        return p_minus
+
+    normalize_pdf(mu_in, post)
+    total = integral_element(mu_in, post).sum()
+    if total <= 0:
+        raise ValueError("PDF integral must be positive.")
     # initialize bisection search
     p_minus = 0.0
     p_plus = max(post)
-    while abs(hpd_coverage(mu_in, norm_post, p_minus) -
-              hpd_coverage(mu_in, norm_post, p_plus)) >= tol:
+    coverage_minus = hpd_coverage(mu_in, post, p_minus) / total
+    coverage_plus = hpd_coverage(mu_in, post, p_plus) / total
+    for _ in range(256):
+        if abs(coverage_minus - coverage_plus) < tol:
+            break
         p_test = (p_minus + p_plus) / 2.
-        if hpd_coverage(mu_in, post, p_test) >= alpha:
+        if p_test == p_minus or p_test == p_plus:
+            break
+        coverage_test = hpd_coverage(mu_in, post, p_test) / total
+        if coverage_test >= alpha:
             # test value was too low or just right
             p_minus = p_test
+            coverage_minus = coverage_test
         else:
             # test value was too high
             p_plus = p_test
+            coverage_plus = coverage_test
     # p_minus never goes above the required threshold and p_plus never goes below
     # thus on exiting p_minus is at or below the required threshold and the
     # difference in coverage is within tolerance
@@ -155,6 +350,20 @@ def hpd_credible_interval(mu_in, post, alpha=0.9, tolerance=1e-3):
     in this case will over-cover by including the whole range from
     minimum to maximum mu.
     '''
+    tensors = _torch_rate_inputs(mu_in, post)
+    if tensors is not None:
+        import torch
+
+        mu_tensor, post_tensor = tensors
+        if alpha == 1:
+            nonzero_samples = mu_tensor[post_tensor > 0]
+        elif 0 < alpha < 1:
+            pthresh = hpd_threshold(mu_tensor, post_tensor, alpha, tol=tolerance)
+            nonzero_samples = mu_tensor[post_tensor > pthresh]
+        else:
+            raise ValueError("Confidence level must be in (0,1].")
+        return torch.min(nonzero_samples), torch.max(nonzero_samples)
+
     if alpha == 1:
         nonzero_samples = mu_in[post > 0]
         mu_low = numpy.min(nonzero_samples)
@@ -166,6 +375,8 @@ def hpd_credible_interval(mu_in, post, alpha=0.9, tolerance=1e-3):
         samples_over_threshold = mu_in[post > pthresh]
         mu_low = numpy.min(samples_over_threshold)
         mu_high = numpy.max(samples_over_threshold)
+    else:
+        raise ValueError("Confidence level must be in (0,1].")
 
     return mu_low, mu_high
 
@@ -176,6 +387,25 @@ def hpd_credible_interval(mu_in, post, alpha=0.9, tolerance=1e-3):
 
 
 def integrate_efficiency(dbins, eff, err=0, logbins=False):
+    tensors = _torch_rate_inputs(dbins, eff, err)
+    if tensors is not None:
+        import torch
+
+        dbins_tensor, eff_tensor, err_tensor = tensors
+        if logbins:
+            logd = torch.log(dbins_tensor)
+            dlogd = logd[1:] - logd[:-1]
+            dreps = torch.exp(
+                (torch.log(dbins_tensor[1:]) + torch.log(dbins_tensor[:-1])) / 2.0
+            )
+            volume_elements = 4.0 * torch.pi * dreps**3.0 * dlogd
+        else:
+            dd = dbins_tensor[1:] - dbins_tensor[:-1]
+            dreps = (dbins_tensor[1:] + dbins_tensor[:-1]) / 2.0
+            volume_elements = 4.0 * torch.pi * dreps**2.0 * dd
+        vol = torch.sum(volume_elements * eff_tensor)
+        verr = torch.sqrt(torch.sum((volume_elements * err_tensor) ** 2.0))
+        return vol, verr
 
     if logbins:
         logd = numpy.log(dbins)
@@ -203,6 +433,31 @@ def compute_efficiency(f_dist, m_dist, dbins):
     and missed injection distances.
     Note that injections that do not fit into any dbin get lost :(
     '''
+    tensors = _torch_rate_inputs(f_dist, m_dist, dbins)
+    if tensors is not None:
+        import torch
+
+        found_dist, missed_dist, bin_edges = tensors
+        lower = bin_edges[:-1]
+        upper = bin_edges[1:]
+        found = torch.sum(
+            (lower <= found_dist.reshape(-1, 1)) & (found_dist.reshape(-1, 1) < upper),
+            dim=0,
+        ).to(dtype=bin_edges.dtype)
+        missed = torch.sum(
+            (lower <= missed_dist.reshape(-1, 1))
+            & (missed_dist.reshape(-1, 1) < upper),
+            dim=0,
+        ).to(dtype=bin_edges.dtype)
+        total = found + missed
+        safe_total = torch.where(total == 0, torch.ones_like(total), total)
+        efficiency = found / safe_total
+        error = torch.sqrt(efficiency * (1 - efficiency) / safe_total)
+        return (
+            _torch_array_result(efficiency, f_dist, m_dist, dbins),
+            _torch_array_result(error, f_dist, m_dist, dbins),
+        )
+
     efficiency = numpy.zeros(len(dbins) - 1)
     error = numpy.zeros(len(dbins) - 1)
     for j, dlow in enumerate(dbins[:-1]):
@@ -221,17 +476,40 @@ def compute_efficiency(f_dist, m_dist, dbins):
 
 def mean_efficiency_volume(found, missed, dbins):
 
+    dbins_template = dbins
+    tensors = _torch_rate_inputs(dbins)
+
     if len(found) == 0:
         # no efficiency here
+        if tensors is not None:
+            bin_edges = tensors[0]
+            zeros = bin_edges.new_zeros(max(bin_edges.numel() - 1, 0))
+            scalar_zero = bin_edges.new_zeros(())
+            return (
+                _torch_array_result(zeros, dbins),
+                _torch_array_result(zeros.clone(), dbins),
+                scalar_zero,
+                scalar_zero.clone(),
+            )
         return numpy.zeros(len(dbins) - 1), numpy.zeros(len(dbins) - 1), 0, 0
 
     # only need distances
-    f_dist = numpy.array([l.distance for l in found])
-    m_dist = numpy.array([l.distance for l in missed])
+    found_distances = [l.distance for l in found]
+    missed_distances = [l.distance for l in missed]
+    tensors = _torch_rate_inputs(found_distances, missed_distances, dbins)
+    if tensors is not None:
+        f_dist, m_dist, dbins = tensors
+    else:
+        f_dist = numpy.array(found_distances)
+        m_dist = numpy.array(missed_distances)
 
     # compute the efficiency and its variance
     eff, err = compute_efficiency(f_dist, m_dist, dbins)
     vol, verr = integrate_efficiency(dbins, eff, err)
+
+    if tensors is not None:
+        eff = _torch_array_result(eff, dbins_template)
+        err = _torch_array_result(err, dbins_template)
 
     return eff, err, vol, verr
 

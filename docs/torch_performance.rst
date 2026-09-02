@@ -105,7 +105,7 @@ Search workflow
 Authoritative CPU result
 ------------------------
 
-The final current-source matrix ran on ``len`` CPU 119 with one thread,
+The final current-source matrix ran on the AMD Threadripper CPU with one thread,
 sequential H1/L1 processing, ``n_batch=1``, and six paired warm observations
 per shape. C used native Torch ports, compilation off, the qualified direct-MKL
 IFFT, and trusted threshold-result construction. The latter makes this an
@@ -333,7 +333,7 @@ Key architectural takeaways:
 Replacement-runtime production batch result
 -------------------------------------------
 
-The qualified replacement-runtime campaign ran on ``len`` from source
+The qualified replacement-runtime campaign ran on an AMD Threadripper PRO 3995WX / NVIDIA RTX 4090 system from source
 ``ae381181e167db14e4d5e55324bcd492715e35e0`` with Python 3.11.9, Torch
 2.13.0+cu130, CUDA runtime 13.0, NVIDIA driver 610.57.04, and one RTX 4090.
 Each route/batch cell retained three counterbalanced replicates, and every
@@ -530,7 +530,7 @@ default-off large-workspace candidate, not unbounded automatic row scaling.
 The raw manifest SHA-256 is
 ``c1ac7e064e55eb371539c0d786d02e653a2f7997a13ecd756828f938fb85f2a0``;
 the analysis ``summary.json`` at
-``/home/xangma/pycbc-nbatch-20260829.vJ4HVO/artifacts/cuda-promoted-rows-analysis``
+``artifacts/cuda-promoted-rows-analysis``
 has SHA-256
 ``27c367d360745f2f4cbdc006c7ffb81bae52875f808ec1fd8299093b86e8cbbb``.
 
@@ -542,7 +542,7 @@ CPU and ``4.01e-8`` for Torch CUDA, compared with ``1.70e-7`` for the legacy
 routes. The distinct ``B=1`` CUDA diagnostic route measured ``2.69e-7``.
 
 The evidence root is
-``/home/xangma/pycbc-nbatch-20260829.vJ4HVO``. The 82-entry manifest SHA-256 is
+``evidence/pycbc-nbatch-20260829``. The 82-entry manifest SHA-256 is
 ``0ee962a666122c2a2169f8621594697d0954d6ce207f7d505664878570fbc2ac``;
 the sealed ``summary.json`` and ``summary.md`` SHA-256 values are
 ``2f0cf6838048631474d116fb7f327b36b5a669359c923a14ef090ada6d21ebed``
@@ -683,7 +683,7 @@ raw-byte and metadata exact.  This isolates the native-Torch optimization
 bundle; it is not an original-PyCBC or LAL comparison.  The canonical public
 comparison is reported below.
 
-A subsequent same-host ``len`` CPU119 ablation compared ``pr_style_exact``
+A subsequent same-hardware CPU ablation compared ``pr_style_exact``
 with ``torch213_cpu_candidate`` while keeping the phase-anchor cache and
 carrier-alignment result reuse enabled in both arms.  Across eight isolated
 AB/BA pairs, warm medians were 72.21--74.19 ms for the baseline and
@@ -756,7 +756,7 @@ Canonical public XPHM four-route seal
 -------------------------------------
 
 The canonical cache-enabled ``n_batch=1`` comparison ran the exact public
-``get_fd_waveform`` interface on ``len`` with Python 3.11.9, PyTorch
+``get_fd_waveform`` interface on an AMD Threadripper PRO 3995WX / NVIDIA RTX 4090 system with Python 3.11.9, PyTorch
 2.13.0+cu126, NumPy 1.26.4, LAL 7.6.0/lalsimulation 6.0.0, one pinned CPU
 thread, and an RTX 4090 with CUDA 12.6. Compilation was disabled. Its
 IMRPhenomXPHM 40/20 case produced 1,025 complex128 bins. It completed 32 fresh
@@ -836,7 +836,7 @@ Representative qualified component results
      - One PhenomX/Torch environment scan is shared while constructing public
        result and co-precessing-plan cache identities
      - Same-process warm latency improved 15.78--16.07% (1.187--1.191x) on
-       Python 3.13/PyTorch 2.9 and 8.288--8.328% (about 1.090x) on ``len`` with
+       Python 3.13/PyTorch 2.9 and 8.288--8.328% (about 1.090x) on Linux with
        Python 3.11/PyTorch 2.1
      - Raw-exact sentinels and 29 public-cache tests passed. This live source
        state postdates the canonical seal and is not included in 1.334611 ms
@@ -1268,7 +1268,7 @@ The main sealed evidence roots are:
   (SHA-256
   ``5b51644b70ff2ceb33fade2ac21ce49eaeb298afb51ea9dacda3b50ffc9683db``;
   remote root
-  ``/home/xangma/pycbc-four-route-canonical-final-20260829-ReP0Mi``;
+  ``evidence/pycbc-four-route-canonical-final-20260829``;
   log SHA-256
   ``67833947d8236ba99affb31672162ac8933342d04497d3d01508a0f1f52c2941``)
 * Mode-(3,2) derivative-region CUDA qualification:
@@ -1312,7 +1312,7 @@ The main sealed evidence roots are:
   XPHM source SHA-256
   ``b0aecf05496c081bef46ed08b94dcadb7f7f0fd3e5bd18ed133c1df11a9a389a``)
 * CUDA XPHM aggregate preterminal-twist public-fastpath qualification:
-  ``/Users/xangma/.codex/visualizations/2026/08/26/01a03d14-5eef-79b2-ad50-3e9b250533df/public-fastpath-qualification-final.json``
+  ``.codex-scratch/visualizations/public-fastpath-qualification-final.json``
   (SHA-256
   ``9858d9635e8d77823dbd656e26680aa9637c44982fd89b3d0e6870fa60101488``;
   aggregate helper SHA-256
@@ -1327,15 +1327,15 @@ The main sealed evidence roots are:
   produced six misses, aggregate stores, and plan misses/stores. The full CUDA
   aggregate test file passed 50 tests with five warnings.
 * CPU search matrix:
-  ``/home/xangma/pycbc-ifft-dispatch-20260826.aUnwLU/final-abc-current-20260826T224809Z.lkWSY2``
+  ``evidence/pycbc-ifft-dispatch-20260826/final-abc-current-20260826T224809Z.lkWSY2``
 * Four-way CUDA search matrix:
-  ``/home/xangma/pycbc-final-matrix-20260826.s2uCW9``
+  ``evidence/pycbc-final-matrix-20260826``
 * Paired CUDA threshold/chi-square campaign:
-  ``/home/xangma/pycbc-phase-reuse-threshold-canonical.Zr05NR``
+  ``evidence/pycbc-phase-reuse-threshold-canonical``
 * Production XPHM intrinsic cache:
-  ``/home/xangma/pycbc-ifft-dispatch-20260826.aUnwLU/xphm-cache-production-20260826T210656Z.argkvM``
+  ``evidence/pycbc-ifft-dispatch-20260826/xphm-cache-production-20260826T210656Z.argkvM``
 * Same-host waveform profile:
-  ``/home/xangma/pycbc-pr-style-20260828.7s1ush``
+  ``evidence/pycbc-pr-style-20260828``
 
 The archive pages retain exact artifact paths, SHA256 manifests, environment
 versions, rejected candidates, historical corrections, and rerun notes. Use
@@ -1366,7 +1366,7 @@ benchmarking, parity validation, and visualization into a standardized toolchain
    * - ``tools/bench_matched_filter_symm.py``
      - Dedicated single-template production filtering & symmetric peak clustering
        benchmark across segment sizes (:math:`N=32\text{k}..512\text{k}`)
-     - ``artifacts/len_matched_filter_symm_benchmark.json`` (Schema-v2 signed JSON)
+     - ``artifacts/matched_filter_symm_benchmark.json`` (Schema-v2 signed JSON)
    * - ``tools/bench_production_live_batch.py``
      - Full 4-route counterbalanced production pipeline
        (Routes A, B, C, D) on real GW150914 strain data across :math:`B=1..1024`
@@ -1385,11 +1385,11 @@ Reproduction Commands
 
    .. code-block:: bash
 
-      # On GPU host (e.g. len with NVIDIA RTX 4090):
+      # On GPU benchmark host (NVIDIA RTX 4090):
       python tools/bench_comprehensive_suite.py \
           --workloads all \
           --no-merge \
-          --output artifacts/len_extended_full_suite.json
+          --output artifacts/extended_full_suite.json
 
 2. **Running Single-Template Matched Filtering Scaling Benchmark:**
 
@@ -1398,7 +1398,7 @@ Reproduction Commands
       python tools/bench_matched_filter_symm.py \
           --sizes 32768 65536 131072 262144 524288 \
           --iterations 30 \
-          --output artifacts/len_matched_filter_symm_benchmark.json
+          --output artifacts/matched_filter_symm_benchmark.json
 
 3. **Running the 4-Route Production Live-Batch Gate:**
 

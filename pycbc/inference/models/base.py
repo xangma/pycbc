@@ -36,6 +36,62 @@ from pycbc.io import FieldArray
 #
 # =============================================================================
 #
+#                           Torch scalar helpers
+#
+# =============================================================================
+#
+
+
+def _torch_tensor(value):
+    """Return the tensor backing a Torch/PyCBC value, if present."""
+    if type(value).__module__.split('.', 1)[0] == 'torch':
+        return value
+    tensor = getattr(value, 'tensor', None)
+    if tensor is None:
+        tensor = getattr(getattr(value, '_data', None), 'tensor', None)
+    return tensor
+
+
+def _replace_nan_with_neginf(value):
+    """Replace a NaN model statistic without moving Torch data to the host."""
+    tensor = _torch_tensor(value)
+    if tensor is None:
+        return -numpy.inf if numpy.isnan(value) else value
+
+    import torch
+
+    return torch.where(
+        torch.isnan(tensor), tensor.new_full((), -torch.inf), tensor
+    )
+
+
+def _is_neginf_scalar(value):
+    """Return whether a scalar model statistic is negative infinity."""
+    tensor = _torch_tensor(value)
+    if tensor is None:
+        return value == -numpy.inf
+    if tensor.numel() != 1:
+        raise ValueError("model statistics must be scalar values")
+
+    import torch
+
+    # Model likelihoods are scalar by contract. This scalar predicate keeps
+    # the historical invalid-prior short circuit while leaving the statistic
+    # itself, its cache entry, and the finite posterior calculation on device.
+    return bool(torch.isneginf(tensor.detach()))
+
+
+def _public_stat_value(value):
+    """Materialize a scalar Torch statistic at the public stats boundary."""
+    tensor = _torch_tensor(value)
+    if tensor is value and tensor.ndim == 0:
+        return tensor.detach().item()
+    return value
+
+
+#
+# =============================================================================
+#
 #                               Support classes
 #
 # =============================================================================
@@ -50,6 +106,10 @@ class _NoPrior(object):
         return params
 
     def __call__(self, **params):
+        for value in params.values():
+            tensor = _torch_tensor(value)
+            if tensor is not None:
+                return tensor.new_zeros(())
         return 0.
 
 
@@ -66,6 +126,8 @@ class ModelStats(object):
 
         If a requested stat is not an attribute (implying it hasn't been
         stored), then the default value is returned for that stat.
+        Device-resident scalar Torch values are materialized here so sampler
+        and serialization callers retain the established scalar interface.
 
         Parameters
         ----------
@@ -80,7 +142,9 @@ class ModelStats(object):
         tuple
             A tuple of the requested stats.
         """
-        return tuple(getattr(self, n, default) for n in names)
+        return tuple(
+            _public_stat_value(getattr(self, n, default)) for n in names
+        )
 
     def getstatsdict(self, names, default=numpy.nan):
         """Get the requested stats as a dictionary.
@@ -158,11 +222,16 @@ class SamplingTransforms(object):
 
         Returns
         -------
-        float :
-            The value of the jacobian.
+        float or torch.Tensor :
+            The value of the jacobian. Torch inputs return a tensor on the
+            same device.
         """
-        return numpy.log(abs(transforms.compute_jacobian(
-            params, self.sampling_transforms, inverse=True)))
+        jacobian = transforms.compute_jacobian(
+            params, self.sampling_transforms, inverse=True
+        )
+        if type(jacobian).__module__.split(".", 1)[0] == "torch":
+            return jacobian.abs().log()
+        return numpy.log(abs(jacobian))
 
     def apply(self, samples, inverse=False):
         """Applies the sampling transforms to the given samples.
@@ -564,9 +633,7 @@ class BaseModel(metaclass=ABCMeta):
         """Calculates the log prior at the current parameters."""
         logj = self.logjacobian
         logp = self.prior_distribution(**self.current_params) + logj
-        if numpy.isnan(logp):
-            logp = -numpy.inf
-        return logp
+        return _replace_nan_with_neginf(logp)
 
     @property
     def logposterior(self):
@@ -577,10 +644,9 @@ class BaseModel(metaclass=ABCMeta):
         is not called.
         """
         logp = self.logprior
-        if logp == -numpy.inf:
+        if _is_neginf_scalar(logp):
             return logp
-        else:
-            return logp + self.loglikelihood
+        return logp + self.loglikelihood
 
     def prior_rvs(self, size=1, prior=None):
         """Returns random variates drawn from the prior.
