@@ -160,14 +160,18 @@ def _torch_cache_tensors(cache, indices):
             return None
         index_tensor = torch.as_tensor(host_indices)
 
-    if index_tensor.dtype not in (
+    valid_dtypes = {
         torch.uint8,
-        torch.uint32,
         torch.int8,
         torch.int16,
         torch.int32,
         torch.int64,
-    ) or index_tensor.ndim != 1:
+    }
+    uint32_t = getattr(torch, "uint32", None)
+    if uint32_t is not None:
+        valid_dtypes.add(uint32_t)
+
+    if index_tensor.dtype not in valid_dtypes or index_tensor.ndim != 1:
         return None
     return cache_tensor, index_tensor.to(
         device=cache_tensor.device, dtype=torch.int64

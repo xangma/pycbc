@@ -6,8 +6,11 @@ import time
 import numpy as np
 import torch
 import torch.nn.functional as F
+import os
 
-sys.path.insert(0, "/home/xangma/pycbc_bench_repo")
+repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if repo_root not in sys.path:
+    sys.path.insert(0, repo_root)
 import pycbc.events.threshold_torch as tt
 from pycbc.types import Array, FrequencySeries, zeros
 import pycbc.scheme as scheme
