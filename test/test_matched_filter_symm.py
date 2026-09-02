@@ -184,3 +184,99 @@ def test_matched_filter_and_cluster_symm_torch_cpu_parity():
     np.testing.assert_allclose(
         np.array(snrv_ref), np.array(snrv_t), rtol=1e-4, atol=1e-5
     )
+
+
+@pytest.mark.skipif(
+    not pycbc.HAVE_TORCH or not getattr(pytest, "have_cuda", False),
+    reason="PyTorch CUDA not available",
+)
+def test_matched_filter_and_cluster_symm_torch_cuda_graph_parity():
+    """Verify parity between CPUScheme, eager Torch CUDA, and CUDA Graph."""
+    import torch
+    from pycbc.scheme import TorchScheme
+
+    if not torch.cuda.is_available():
+        pytest.skip("CUDA not available")
+
+    (
+        size,
+        sample_rate,
+        delta_f,
+        freq_len,
+        flow,
+        fhigh,
+        sig_np,
+        seg_data,
+        sgm_val,
+    ) = _generate_test_data()
+
+    window = int(0.5 * sample_rate)
+
+    # 1. Standard CPU reference
+    with CPUScheme():
+        seg_cpu = FrequencySeries(Array(seg_data), delta_f=delta_f)
+        seg_cpu.analyze = slice(
+            int(8 * sample_rate), int(size - 8 * sample_rate)
+        )
+        tmpl_cpu = zeros(size, dtype=np.complex64)
+        tmpl_cpu[:freq_len] = Array(sig_np)
+
+        mfc_cpu = MatchedFilterControl(
+            low_frequency_cutoff=flow,
+            high_frequency_cutoff=fhigh,
+            snr_threshold=5.5,
+            tlen=size,
+            delta_f=delta_f,
+            dtype=np.complex64,
+            segment_list=[seg_cpu],
+            template_output=tmpl_cpu,
+            use_cluster=True,
+            downsample_factor=1,
+            cluster_function="symmetric",
+        )
+        snr_ref, norm_ref, corr_ref, idx_ref, snrv_ref = (
+            mfc_cpu.full_matched_filter_and_cluster_symm(0, 1.0, window)
+        )
+
+    # 2. Torch CUDA with CUDA Graph
+    with TorchScheme(device="cuda"):
+        seg_cuda = FrequencySeries(Array(seg_data), delta_f=delta_f)
+        seg_cuda.analyze = slice(
+            int(8 * sample_rate), int(size - 8 * sample_rate)
+        )
+        tmpl_cuda = zeros(size, dtype=np.complex64)
+        tmpl_cuda[:freq_len] = Array(sig_np)
+
+        mfc_cuda = MatchedFilterControl(
+            low_frequency_cutoff=flow,
+            high_frequency_cutoff=fhigh,
+            snr_threshold=5.5,
+            tlen=size,
+            delta_f=delta_f,
+            dtype=np.complex64,
+            segment_list=[seg_cuda],
+            template_output=tmpl_cuda,
+            use_cluster=True,
+            downsample_factor=1,
+            cluster_function="symmetric",
+        )
+
+        # Call 1: Eager execution / automatic graph capture
+        mfc_cuda.capture_cuda_graph_symm(0, window, 1.0)
+        # Call 2: Graph replay
+        snr_g, norm_g, corr_g, idx_g, snrv_g = (
+            mfc_cuda.full_matched_filter_and_cluster_symm(0, 1.0, window)
+        )
+
+    np.testing.assert_allclose(norm_ref, norm_g, rtol=1e-5)
+    np.testing.assert_allclose(
+        corr_ref.numpy(), corr_g.numpy(), rtol=1e-5, atol=1e-6
+    )
+    np.testing.assert_allclose(
+        snr_ref.numpy(), snr_g.numpy(), rtol=1e-4, atol=1e-5
+    )
+    assert len(idx_ref) == len(idx_g)
+    np.testing.assert_array_equal(np.array(idx_ref), np.array(idx_g))
+    np.testing.assert_allclose(
+        np.array(snrv_ref), np.array(snrv_g), rtol=1e-4, atol=1e-5
+    )

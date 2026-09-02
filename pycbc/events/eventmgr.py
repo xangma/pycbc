@@ -416,7 +416,6 @@ class EventManager(object):
         # Convert trigger time to integer bin number
         # NB time_index and window are in units of samples
         wtime = (e_copy['time_index'] / window).astype(numpy.int32)
-        bins = numpy.unique(wtime)
 
         if log_chirp_width:
             from pycbc.conversions import mchirp_from_mass1_mass2
@@ -426,21 +425,34 @@ class EventManager(object):
 
             # convert chirp mass to integer bin number
             imc = (numpy.log(mc) / log_chirp_width).astype(numpy.int32)
-            cbins = numpy.unique(imc)
 
-        keep = []
-        for b in bins:
-            if log_chirp_width:
-                for b2 in cbins:
-                    bloc = numpy.where((wtime == b) & (imc == b2))[0]
-                    bloudest = statv[bloc].argsort()[-num_keep:]
-                    keep.append(bloc[bloudest])
+        if len(wtime) == 0:
+            return
+
+        if log_chirp_width:
+            order = numpy.lexsort((statv, imc, wtime))
+            w_sorted = wtime[order]
+            imc_sorted = imc[order]
+            diffs = (w_sorted[:-1] != w_sorted[1:]) | (imc_sorted[:-1] != imc_sorted[1:])
+            split_idx = numpy.nonzero(diffs)[0] + 1
+            groups = numpy.split(order, split_idx)
+            keep = [g[-num_keep:] for g in groups if len(g) > 0]
+            if len(keep) > 0:
+                keep = numpy.concatenate(keep)
             else:
-                bloc = numpy.where((wtime == b))[0]
-                bloudest = statv[bloc].argsort()[-num_keep:]
-                keep.append(bloc[bloudest])
+                keep = numpy.array([], dtype=numpy.int64)
+        else:
+            order = numpy.lexsort((statv, wtime))
+            w_sorted = wtime[order]
+            diffs = w_sorted[:-1] != w_sorted[1:]
+            split_idx = numpy.nonzero(diffs)[0] + 1
+            groups = numpy.split(order, split_idx)
+            keep = [g[-num_keep:] for g in groups if len(g) > 0]
+            if len(keep) > 0:
+                keep = numpy.concatenate(keep)
+            else:
+                keep = numpy.array([], dtype=numpy.int64)
 
-        keep = numpy.concatenate(keep)
         self.cut_events_via_indices(keep)
 
     def add_template_events(self, columns, vectors):

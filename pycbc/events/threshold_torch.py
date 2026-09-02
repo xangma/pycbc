@@ -37,6 +37,84 @@ from pycbc.types.array_torch import TorchArrayData
 from .eventmgr import _BaseThresholdCluster
 from .simd_threshold_cython import parallel_thresh_cluster
 
+try:
+    import triton
+    import triton.language as tl
+    _TRITON_AVAILABLE = True
+except ImportError:
+    _TRITON_AVAILABLE = False
+
+
+if _TRITON_AVAILABLE:
+    @triton.jit
+    def _triton_symm_block_reduction_kernel(
+        in_ptr,
+        block_max_ptr,
+        block_idx_ptr,
+        N,
+        window,
+        BLOCK_SIZE: tl.constexpr,
+    ):
+        pid = tl.program_id(0)
+        block_start = pid * window
+        if block_start >= N:
+            return
+
+        block_end = block_start + window
+        if block_end > N:
+            block_end = N
+
+        curr_max_val = -1.0
+        curr_max_idx = block_start
+
+        for offset in range(block_start, block_end, BLOCK_SIZE):
+            cols = offset + tl.arange(0, BLOCK_SIZE)
+            mask = cols < block_end
+            re = tl.load(in_ptr + 2 * cols, mask=mask, other=0.0)
+            im = tl.load(in_ptr + 2 * cols + 1, mask=mask, other=0.0)
+            mag_sq = tl.where(mask, re * re + im * im, -1.0)
+
+            tile_max = tl.max(mag_sq, axis=0)
+            tile_argmax = tl.argmax(mag_sq, axis=0)
+            tile_idx = offset + tile_argmax
+
+            if tile_max > curr_max_val:
+                curr_max_val = tile_max
+                curr_max_idx = tile_idx
+
+        tl.store(block_max_ptr + pid, curr_max_val)
+        tl.store(block_idx_ptr + pid, curr_max_idx)
+
+    def _triton_symmetric_block_reduce(tensor, window, out_max=None, out_idx=None):
+        """Run Triton fused 1D block reduction on CUDA complex64 tensor."""
+        slen = tensor.numel()
+        nb = (slen + window - 1) // window
+        if out_max is None or out_max.numel() != nb:
+            block_max = torch.empty(nb, device=tensor.device, dtype=torch.float32)
+        else:
+            block_max = out_max
+
+        if out_idx is None or out_idx.numel() != nb:
+            block_idx = torch.empty(nb, device=tensor.device, dtype=torch.int64)
+        else:
+            block_idx = out_idx
+
+        block_size = min(triton.next_power_of_2(window), 1024)
+        if block_size < 32:
+            block_size = 32
+
+        in_real = tensor.view(torch.float32)
+        grid = (nb,)
+        _triton_symm_block_reduction_kernel[grid](
+            in_real,
+            block_max,
+            block_idx,
+            slen,
+            window,
+            BLOCK_SIZE=block_size,
+        )
+        return block_max, block_idx
+
 
 _l2_size = opt.get_l2_cache_size() if hasattr(opt, "get_l2_cache_size") else getattr(opt, "LEVEL2_CACHE_SIZE", None)
 if _l2_size is not None:
@@ -248,21 +326,58 @@ def _findchirp_cluster_indices(times, values, window_length):
         ).view(-1)
         fwd_max = pooled[offset_indices]
     else:
-        diffs = times[None, :] - times[:, None]
-        valid = (diffs >= 0) & (diffs <= window_length)
-        fwd_max = torch.where(
-            valid, clean_mags[None, :], float("-inf")
-        ).max(dim=1).values
+        # Memory-safe chunked evaluation for sparse spans > 10M samples
+        right = torch.searchsorted(times, times + window_length, right=True)
+        fwd_max = torch.empty(count, device=times.device, dtype=clean_mags.dtype)
+        chunk_size = 2048
+        for start in range(0, count, chunk_size):
+            end = min(start + chunk_size, count)
+            c_right = right[start:end]
+            c_starts = torch.arange(start, end, device=times.device)[:, None]
+            max_span = int((c_right - c_starts.squeeze(1)).max().item())
+            if max_span <= 0:
+                fwd_max[start:end] = clean_mags[start:end]
+                continue
+            offsets = torch.arange(max_span, device=times.device)[None, :]
+            c_indices = torch.clamp(c_starts + offsets, max=count - 1)
+            valid = (c_indices >= c_starts) & (c_indices < c_right[:, None])
+            fwd_max[start:end] = torch.where(
+                valid, clean_mags[c_indices], float("-inf")
+            ).max(dim=1).values
 
     is_fwd_max = (clean_mags >= fwd_max)
     fwd_indices = torch.nonzero(is_fwd_max, as_tuple=False).flatten()
-    if fwd_indices.numel() == 0:
+    num_fwd = fwd_indices.numel()
+    if num_fwd == 0:
         return torch.empty(0, device=times.device, dtype=torch.long)
+    if num_fwd == 1:
+        return fwd_indices
 
     fwd_times = times[fwd_indices]
+
+    if fwd_times.is_cuda:
+        # Vectorized GPU searchsorted: evaluate all successors in 1 parallel GPU kernel launch
+        target_t = fwd_times + window_length
+        next_idx = torch.searchsorted(fwd_times, target_t, right=True)
+        next_idx_cpu = next_idx.cpu().numpy()
+
+        survivor_positions = []
+        curr_idx = 0
+        while curr_idx < num_fwd:
+            survivor_positions.append(curr_idx)
+            curr_idx = int(next_idx_cpu[curr_idx])
+
+        if len(survivor_positions) == 0:
+            return torch.empty(0, device=times.device, dtype=torch.long)
+        survivor_tensor = torch.as_tensor(
+            survivor_positions,
+            device=fwd_indices.device,
+            dtype=torch.long,
+        )
+        return fwd_indices[survivor_tensor]
+
     survivors = []
     curr_idx = 0
-    num_fwd = fwd_indices.numel()
     while curr_idx < num_fwd:
         survivors.append(fwd_indices[curr_idx])
         target_t = fwd_times[curr_idx] + window_length
@@ -284,6 +399,24 @@ def _findchirp_cluster_positions(times, values, window_length):
 
     time_tensor = time_tensor.to(device=device)
     value_tensor = value_tensor.to(device=device)
+
+    # Fast-path for CPU: delegate directly to O(K) Cython single-pass engine
+    if device.type == "cpu":
+        count = time_tensor.numel()
+        if count == 0:
+            return torch.empty(0, device=device, dtype=torch.long)
+        if count == 1:
+            return torch.zeros(1, device=device, dtype=torch.long)
+        times_np = time_tensor.numpy().astype(np.int32, copy=False)
+        if value_tensor.is_complex():
+            mags_np = np.abs(value_tensor.numpy())
+        else:
+            mags_np = np.abs(value_tensor.numpy()).astype(np.float32, copy=False)
+        indices_np = np.zeros(count, dtype=np.int32)
+        from .eventmgr_cython import findchirp_cluster_over_window_cython
+        k = findchirp_cluster_over_window_cython(times_np, mags_np, int(window_length), indices_np, count)
+        return torch.from_numpy(indices_np[:k+1].astype(np.int64))
+
     return _findchirp_cluster_indices(
         time_tensor, value_tensor, window_length
     )
@@ -506,13 +639,18 @@ def _run_threshold_core(tensor, threshold_sq, window, *, single_series):
     )
 
 
-def _symmetric_cluster_mask(max_vals, threshold_sq):
+def _symmetric_cluster_mask(max_vals, threshold_sq, out=None):
     """Return the fixed-shape local-maximum mask before survivor extraction."""
     nb = max_vals.numel()
     if nb == 0:
         return torch.empty(0, device=max_vals.device, dtype=torch.bool)
 
-    keep = max_vals > threshold_sq
+    if out is None or out.numel() != nb:
+        keep = max_vals > threshold_sq
+    else:
+        torch.gt(max_vals, threshold_sq, out=out)
+        keep = out
+
     if nb > 1:
         # Match parallel_thresh_cluster exactly: each candidate must be
         # strictly greater than its previous neighbor and greater than or
@@ -552,9 +690,19 @@ def threshold_and_cluster(series, threshold, window):
         threshold, device=tensor.device, dtype=tensor.real.dtype
     )
     thresh_sq = thresh_sq * thresh_sq
-    _, block_idx, keep = _run_threshold_core(
-        tensor, thresh_sq, window, single_series=single_series
-    )
+
+    if (
+        _TRITON_AVAILABLE
+        and tensor.is_cuda
+        and tensor.dtype == torch.complex64
+        and tensor.is_contiguous()
+    ):
+        block_max, block_idx = _triton_symmetric_block_reduce(tensor, window)
+        keep = _symmetric_cluster_mask(block_max, thresh_sq)
+    else:
+        _, block_idx, keep = _run_threshold_core(
+            tensor, thresh_sq, window, single_series=single_series
+        )
 
     kept_idx = block_idx[keep]
     flat_series = tensor.reshape(-1)
@@ -630,6 +778,28 @@ class TorchThresholdCluster(_BaseThresholdCluster):
             and active_scheme.torch_device.type == "cpu"
         ):
             self._trusted_native_result_scheme = active_scheme
+        if native_cpu_candidate:
+            import multiprocessing
+            try:
+                nthreads = multiprocessing.cpu_count()
+            except (NotImplementedError, AttributeError):
+                nthreads = 1
+            segsize = int(_CPU_NATIVE_SEGSIZE)
+            self._ws_cvals = np.empty(nthreads * segsize, dtype=np.complex64)
+            self._ws_norms = np.empty(nthreads * segsize, dtype=np.float32)
+            self._ws_mlocs = np.empty(nthreads * (segsize // 2 + 2), dtype=np.int64)
+            self._ws_seglens = np.empty(nthreads, dtype=np.int64)
+        else:
+            self._ws_cvals = None
+            self._ws_norms = None
+            self._ws_mlocs = None
+            self._ws_seglens = None
+
+        self._triton_scratch_nb = 0
+        self._triton_block_max = None
+        self._triton_block_idx = None
+        self._triton_keep = None
+
         if (
             # Reusable ``out=`` kernels bypass Tensor-subclass dispatch, so
             # retain them only for the exact base strided tensor qualified by
@@ -710,6 +880,10 @@ class TorchThresholdCluster(_BaseThresholdCluster):
             threshold,
             window,
             _CPU_NATIVE_SEGSIZE,
+            self._ws_cvals,
+            self._ws_norms,
+            self._ws_mlocs,
+            self._ws_seglens,
         )
         # The native buffers are reused on the next call.  Survivors are
         # sparse (at most one per clustering window), so copying only these
@@ -819,7 +993,36 @@ class TorchThresholdCluster(_BaseThresholdCluster):
         # Reusable ``out=`` storage is a CPU-only eager optimization. The
         # compiled route is restricted to a single contiguous CUDA search
         # series, where the native accelerator magnitude operation is retained.
-        if use_scratch:
+        if (
+            _TRITON_AVAILABLE
+            and self.series.is_cuda
+            and self.series.dtype == torch.complex64
+            and self.series.is_contiguous()
+        ):
+            slen = self.series.numel()
+            nb = (slen + window - 1) // window
+            if self._triton_block_max is None or self._triton_scratch_nb != nb:
+                self._triton_scratch_nb = nb
+                self._triton_block_max = torch.empty(
+                    nb, device=self.series.device, dtype=torch.float32
+                )
+                self._triton_block_idx = torch.empty(
+                    nb, device=self.series.device, dtype=torch.int64
+                )
+                self._triton_keep = torch.empty(
+                    nb, device=self.series.device, dtype=torch.bool
+                )
+
+            block_max, block_idx = _triton_symmetric_block_reduce(
+                self.series,
+                window,
+                out_max=self._triton_block_max,
+                out_idx=self._triton_block_idx,
+            )
+            keep = _symmetric_cluster_mask(
+                block_max, thresh_sq, out=self._triton_keep
+            )
+        elif use_scratch:
             mag_sq = _magnitude_squared(
                 self.series,
                 out=self._magnitude,
