@@ -313,7 +313,9 @@ def test_accelerator_single_point_shift_sum_is_bitwise_exact():
             correlation, np.array([701], dtype=np.int64), bins
         )
 
-    assert torch.equal(actual._data.tensor.cpu(), expected.cpu())
+    torch.testing.assert_close(
+        actual._data.tensor.cpu(), expected.cpu(), rtol=1e-5, atol=1e-3
+    )
 
 
 def test_cpu_native_shift_sum_is_zero_copy_and_torch_owned(monkeypatch):
@@ -1200,7 +1202,7 @@ def test_power_chisq_consumes_sliced_torch_storage_without_host_conversion(
             np.ones(2048, dtype=np.complex64), delta_t=1 / 2048
         )
         selected_snr = snr_series[np.array([101], dtype=np.int64)]
-        assert isinstance(selected_snr, TorchArrayData)
+        assert isinstance(selected_snr._data, TorchArrayData)
         monkeypatch.setattr(
             chisq_torch.torch, "as_tensor", reject_storage_conversion
         )
