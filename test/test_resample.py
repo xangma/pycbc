@@ -62,7 +62,11 @@ class TestUtils(unittest.TestCase):
         self.assertRaises(TypeError, resample_to_delta_t, self.c, self.target_delta_t)
         self.assertRaises(TypeError, resample_to_delta_t, self.d, self.target_delta_t)
 
-        if self.scheme != 'cpu':
+        if self.scheme == 'torch':
+            with self.context:
+                ra = resample_to_delta_t(self.a, self.target_delta_t)
+                self.assertAlmostEqual(ra.numpy()[0], 0.00696246)
+        elif self.scheme != 'cpu':
             with self.context:
                 self.assertRaises(TypeError, resample_to_delta_t, self.a, self.target_delta_t)
 
@@ -72,15 +76,15 @@ class TestUtils(unittest.TestCase):
             c = uniform(-10, 10, size=csize)
             ts = TimeSeries(uniform(-1, 1, size=vsize), delta_t=self.delta_t)
 
-            ref = scipy.signal.lfilter(c, 1.0, ts)
+            ref = scipy.signal.lfilter(c, 1.0, ts.numpy())
             test = lfilter(c, ts)
 
             # These only agree where there is no fft wraparound
             # so excluded corrupted region from test
             ref = ref[len(c):]
-            test = test[len(c):]
+            test_data = test[len(c):].numpy()
 
-            maxreldiff =  ((ref - test) / ref).max()
+            maxreldiff = ((ref - test_data) / ref).max()
             self.assertTrue(isinstance(test, TimeSeries))
             self.assertTrue(maxreldiff < 1e-7)
 

@@ -3243,6 +3243,9 @@ def _precessing_ic_radial_momentum_summary(
         return None
 
 
+_orig_precessing_ic_radial_momentum_summary = _precessing_ic_radial_momentum_summary
+
+
 def _precessing_ic_radial_momentum(
     params: EOBParams,
     r: float,
@@ -3558,6 +3561,34 @@ def initial_cartesian_conditions(params, *, device, dtype):
         and _env_on("PYCBC_SEOBNRV4PHM_PRECESSING_IC_ROOT", True)
     )
     if use_precessing_root:
+        if (
+            isinstance(device, torch.device)
+            and device.type == "cpu"
+            and dtype == torch.float64
+            and _env_on("PYCBC_SEOBNR_NATIVE_ODE", True)
+            and _precessing_ic_radial_momentum_summary is _orig_precessing_ic_radial_momentum_summary
+        ):
+            try:
+                from pycbc.waveform._seobnr_native_ode import get_extension
+
+                ext = get_extension()
+                if ext is not None and hasattr(ext, "initial_cartesian_conditions_native"):
+                    res = ext.initial_cartesian_conditions_native(
+                        float(params.mass1),
+                        float(params.mass2),
+                        float(params.spin1x),
+                        float(params.spin1y),
+                        float(params.spin1z),
+                        float(params.spin2x),
+                        float(params.spin2y),
+                        float(params.spin2z),
+                        float(params.f_lower),
+                    )
+                    if res is not None and res.numel() == 14:
+                        return res.to(device=device, dtype=dtype)
+            except Exception:
+                pass
+
         omega_target = torch.tensor(_PI * params.f_lower * params.M_sec, device=device, dtype=dtype)
         S1 = torch.tensor([params.spin1x, params.spin1y, params.spin1z], device=device, dtype=dtype)
         S2 = torch.tensor([params.spin2x, params.spin2y, params.spin2z], device=device, dtype=dtype)
@@ -3821,6 +3852,37 @@ def non_keplerian_vphi(
     ``XLALSimIMRSpinPrecEOBNonKeplerCoeff`` plus the follow-up scaling in
     ``LALSimIMRSpinEOBFactorizedWaveformPrec``.
     """
+
+    if (
+        r.device.type == "cpu"
+        and r.dtype == torch.float64
+        and (not torch.is_grad_enabled() or not r.requires_grad)
+        and aligned_derivative is _gsl_deriv_central
+        and not _env_on("PYCBC_SEOBNRV4PHM_FD_CALCOMEGA", False)
+        and os.environ.get("PYCBC_SEOBNR_NATIVE_ODE", "1") not in ("0", "", "false", "False")
+    ):
+        try:
+            from pycbc.waveform._seobnr_native_ode import get_extension
+            ext = get_extension()
+            if ext is not None and hasattr(ext, "non_keplerian_vphi_native"):
+                return ext.non_keplerian_vphi_native(
+                    r.contiguous(),
+                    omega.contiguous(),
+                    phi.contiguous(),
+                    L_vec.contiguous(),
+                    S1.contiguous(),
+                    S2.contiguous(),
+                    float(params.mass1),
+                    float(params.mass2),
+                    bool(params.aligned_spins),
+                    None if r_vec is None else r_vec.contiguous(),
+                    None if p_vec is None else p_vec.contiguous(),
+                    None if rdot_vec is None else rdot_vec.contiguous(),
+                    None if S1_weighted_override is None else S1_weighted_override.contiguous(),
+                    None if S2_weighted_override is None else S2_weighted_override.contiguous(),
+                )
+        except Exception:
+            pass
 
     pr0 = torch.zeros_like(r)
     if params.aligned_spins:
@@ -4489,6 +4551,31 @@ def _calcomega_lal_polar_derivative(
     S2_weighted_override: torch.Tensor | None = None,
 ):
     """Port of XLALSimIMRSpinPrecEOBCalcOmega for the non-Keplerian flux factor."""
+
+    if (
+        r_vec.device.type == "cpu"
+        and r_vec.dtype == torch.float64
+        and (not torch.is_grad_enabled() or not r_vec.requires_grad)
+        and not _env_on("PYCBC_SEOBNRV4PHM_FD_CALCOMEGA", False)
+        and os.environ.get("PYCBC_SEOBNR_NATIVE_ODE", "1") not in ("0", "", "false", "False")
+    ):
+        try:
+            from pycbc.waveform._seobnr_native_ode import get_extension
+            ext = get_extension()
+            if ext is not None and hasattr(ext, "calcomega_lal_polar_derivative_native"):
+                return ext.calcomega_lal_polar_derivative_native(
+                    r_vec.contiguous(),
+                    p_vec.contiguous(),
+                    S1.contiguous(),
+                    S2.contiguous(),
+                    float(params.mass1),
+                    float(params.mass2),
+                    None if rdot_vec is None else rdot_vec.contiguous(),
+                    None if S1_weighted_override is None else S1_weighted_override.contiguous(),
+                    None if S2_weighted_override is None else S2_weighted_override.contiguous(),
+                )
+        except Exception:
+            pass
 
     hcoeffs_saved = params.hcoeffs
     device, dtype = r_vec.device, r_vec.dtype

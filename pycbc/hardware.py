@@ -176,3 +176,61 @@ def get_optimal_batch_maxelements(is_cuda=False, device_id=0, safety_factor=0.85
         power = int(math.floor(math.log2(max(1, elements))))
         # Return at least 2**21 elements (~2M) up to 2**27 (~134M)
         return 2 ** max(21, min(27, power))
+
+
+def get_optimal_batch_tile_size(
+    transform_size,
+    is_cuda=False,
+    device_id=0,
+    safety_factor=0.85,
+    min_tile=8,
+    max_tile=64,
+):
+    """Compute optimal batch tile count to ensure active transforms fit in cache.
+
+    Parameters
+    ----------
+    transform_size : int
+        Number of complex frequency/time domain samples (e.g., 131,072).
+    is_cuda : bool, default False
+        Whether running on a CUDA GPU.
+    device_id : int, default 0
+        CUDA device ordinal.
+    safety_factor : float, default 0.85
+        Fraction of cache capacity dedicated to active working buffers.
+    min_tile : int, default 8
+        Minimum tile size.
+    max_tile : int, default 64
+        Maximum tile size.
+
+    Returns
+    -------
+    int
+        Optimal number of templates/transforms per execution tile.
+    """
+    if "PYCBC_BATCH_TILE_SIZE" in os.environ and os.environ["PYCBC_BATCH_TILE_SIZE"].strip():
+        try:
+            val = int(os.environ["PYCBC_BATCH_TILE_SIZE"].strip())
+            if val > 0:
+                return val
+        except ValueError:
+            pass
+
+    if is_cuda:
+        cache_bytes = get_gpu_l2_cache_size(device_id)
+    else:
+        cache_bytes = get_cpu_l3_cache_size(per_ccx=True)
+
+    # In/out buffer pair per template occupies: 2 * transform_size * 8 bytes
+    bytes_per_template = 2 * int(transform_size) * 8
+    if bytes_per_template <= 0:
+        return max_tile
+
+    allowed_bytes = cache_bytes * safety_factor
+    optimal = int(allowed_bytes / bytes_per_template)
+
+    if optimal <= min_tile:
+        return min_tile
+
+    power = 2 ** int(round(math.log2(optimal)))
+    return max(min_tile, min(max_tile, power))

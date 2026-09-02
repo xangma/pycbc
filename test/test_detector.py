@@ -67,8 +67,9 @@ class TestDetector(unittest.TestCase):
 
     def test_response_matrix(self):
         import lal
+        cached = {d.frDetector.prefix: d for d in lal.CachedDetectors}
         for ifo in ['H1', 'L1', 'V1', 'K1', 'I1']:
-            ref_resp = lal.cached_detector_by_prefix[ifo].response
+            ref_resp = cached[ifo].response
             resp = det.Detector(ifo).response
             self.assertAlmostEqual((ref_resp - resp).max(), 0, places=6)
 
@@ -198,6 +199,198 @@ class TestDetector(unittest.TestCase):
                                           rtol=1e-14, atol=1e-16),
                             "%s at %s: %r against %r"
                             % (kwargs, index, whole[index], single))
+
+    def test_antenna_pattern_and_time_delay_scalar(self):
+        from pycbc.detector.ground import _scalar_antenna_pattern_and_time_delay
+        for d in self.d:
+            ra = 1.234
+            dec = 0.567
+            time = 1126259462.0
+            # polarization = 0
+            fp0, fc0, dt0 = _scalar_antenna_pattern_and_time_delay(
+                d, ra, dec, time
+            )
+            fp, fc, dt = d.antenna_pattern_and_time_delay(ra, dec, 0.0, time)
+            self.assertEqual(fp, fp0)
+            self.assertEqual(fc, fc0)
+            self.assertEqual(dt, dt0)
+
+            # polarization != 0
+            pol = 0.891
+            cos2psi = numpy.cos(2.0 * pol)
+            sin2psi = numpy.sin(2.0 * pol)
+            expected_fp = cos2psi * fp0 + sin2psi * fc0
+            expected_fc = -sin2psi * fp0 + cos2psi * fc0
+            fp, fc, dt = d.antenna_pattern_and_time_delay(ra, dec, pol, time)
+            self.assertEqual(fp, expected_fp)
+            self.assertEqual(fc, expected_fc)
+            self.assertEqual(dt, dt0)
+
+    def test_antenna_pattern_and_time_delay_numpy(self):
+        for d in self.d:
+            # 1D array
+            fp, fc, dt = d.antenna_pattern_and_time_delay(
+                self.ra, self.dec, self.pol, self.time
+            )
+            fp_ref, fc_ref = d.antenna_pattern(
+                self.ra, self.dec, self.pol, self.time
+            )
+            dt_ref = d.time_delay_from_earth_center(
+                self.ra, self.dec, self.time
+            )
+            numpy.testing.assert_allclose(fp, fp_ref, rtol=1e-14, atol=1e-16)
+            numpy.testing.assert_allclose(fc, fc_ref, rtol=1e-14, atol=1e-16)
+            numpy.testing.assert_allclose(dt, dt_ref, rtol=1e-14, atol=1e-16)
+
+            # 2D array and broadcasting
+            ra2 = uniform(0, numpy.pi * 2, size=(5, 10))
+            dec2 = uniform(-numpy.pi / 2, numpy.pi / 2, size=(5, 10))
+            pol2 = uniform(0, numpy.pi * 2, size=(10,))
+            t2 = 1126259462.0
+            fp2, fc2, dt2 = d.antenna_pattern_and_time_delay(
+                ra2, dec2, pol2, t2
+            )
+            self.assertEqual(fp2.shape, (5, 10))
+            self.assertEqual(fc2.shape, (5, 10))
+            self.assertEqual(dt2.shape, (5, 10))
+            fp2_ref, fc2_ref = d.antenna_pattern(ra2, dec2, pol2, t2)
+            dt2_ref = d.time_delay_from_earth_center(ra2, dec2, t2)
+            numpy.testing.assert_allclose(fp2, fp2_ref, rtol=1e-14, atol=1e-16)
+            numpy.testing.assert_allclose(fc2, fc2_ref, rtol=1e-14, atol=1e-16)
+            numpy.testing.assert_allclose(dt2, dt2_ref, rtol=1e-14, atol=1e-16)
+
+    def test_antenna_pattern_and_time_delay_torch(self):
+        try:
+            import torch
+        except ImportError:
+            return
+
+        d = det.Detector('H1')
+        # 1D tensors
+        ra_t = torch.tensor(
+            self.ra[:50], dtype=torch.float64, requires_grad=True
+        )
+        dec_t = torch.tensor(
+            self.dec[:50], dtype=torch.float64, requires_grad=True
+        )
+        pol_t = torch.tensor(
+            self.pol[:50], dtype=torch.float64, requires_grad=True
+        )
+        t_t = torch.tensor(
+            self.time[:50], dtype=torch.float64, requires_grad=True
+        )
+
+        fp_t, fc_t, dt_t = d.antenna_pattern_and_time_delay(
+            ra_t, dec_t, pol_t, t_t
+        )
+        fp_ref, fc_ref = d.antenna_pattern(ra_t, dec_t, pol_t, t_t)
+        dt_ref = d.time_delay_from_earth_center(ra_t, dec_t, t_t)
+
+        torch.testing.assert_close(fp_t, fp_ref)
+        torch.testing.assert_close(fc_t, fc_ref)
+        torch.testing.assert_close(dt_t, dt_ref)
+
+        loss = (fp_t.square() + fc_t.square() + dt_t.square()).sum()
+        loss.backward()
+        self.assertTrue(torch.isfinite(ra_t.grad).all())
+        self.assertTrue(torch.isfinite(dec_t.grad).all())
+        self.assertTrue(torch.isfinite(pol_t.grad).all())
+        self.assertTrue(torch.isfinite(t_t.grad).all())
+
+        # 2D tensors and broadcasting
+        ra2_t = torch.tensor(self.ra[:20].reshape(4, 5), dtype=torch.float64)
+        dec2_t = torch.tensor(self.dec[:20].reshape(4, 5), dtype=torch.float64)
+        pol2_t = torch.tensor(0.4, dtype=torch.float64)
+        t2_t = torch.tensor(1126259462.0, dtype=torch.float64)
+
+        fp2_t, fc2_t, dt2_t = d.antenna_pattern_and_time_delay(
+            ra2_t, dec2_t, pol2_t, t2_t
+        )
+        self.assertEqual(fp2_t.shape, torch.Size([4, 5]))
+        self.assertEqual(fc2_t.shape, torch.Size([4, 5]))
+        self.assertEqual(dt2_t.shape, torch.Size([4, 5]))
+        fp2_ref, fc2_ref = d.antenna_pattern(ra2_t, dec2_t, pol2_t, t2_t)
+        dt2_ref = d.time_delay_from_earth_center(ra2_t, dec2_t, t2_t)
+        torch.testing.assert_close(fp2_t, fp2_ref)
+        torch.testing.assert_close(fc2_t, fc2_ref)
+        torch.testing.assert_close(dt2_t, dt2_ref)
+
+    def test_network_geometry(self):
+        ifos = ['H1', 'L1', 'V1', 'K1']
+        net = det.NetworkGeometry(ifos)
+        self.assertEqual(len(net), 4)
+        self.assertEqual(net.detector_names, ifos)
+        for name in ifos:
+            self.assertEqual(net[name].name, name)
+
+        # 1. Scalar test
+        ra = 1.2
+        dec = -0.4
+        pol = 0.8
+        t_gps = 1126259462.0
+
+        fp_net, fc_net, dt_net = net.antenna_pattern_and_time_delay(
+            ra, dec, pol, t_gps
+        )
+        for i, name in enumerate(ifos):
+            d = net[name]
+            fp_ref, fc_ref, dt_ref = d.antenna_pattern_and_time_delay(
+                ra, dec, pol, t_gps
+            )
+            numpy.testing.assert_allclose(fp_net[i], fp_ref, rtol=1e-12)
+            numpy.testing.assert_allclose(fc_net[i], fc_ref, rtol=1e-12)
+            numpy.testing.assert_allclose(dt_net[i], dt_ref, rtol=1e-12)
+
+        # to_dict helper
+        d_dict = net.to_dict(fp_net)
+        for i, name in enumerate(ifos):
+            self.assertEqual(d_dict[name], fp_net[i])
+
+        # 2. Vector test (1D array)
+        ra_arr = self.ra[:50]
+        dec_arr = self.dec[:50]
+        pol_arr = self.pol[:50]
+        time_arr = self.time[:50]
+
+        fp_net, fc_net, dt_net = net.antenna_pattern_and_time_delay(
+            ra_arr, dec_arr, pol_arr, time_arr
+        )
+        self.assertEqual(fp_net.shape, (4, 50))
+        for i, name in enumerate(ifos):
+            d = net[name]
+            fp_ref, fc_ref, dt_ref = d.antenna_pattern_and_time_delay(
+                ra_arr, dec_arr, pol_arr, time_arr
+            )
+            numpy.testing.assert_allclose(fp_net[i], fp_ref, rtol=1e-12)
+            numpy.testing.assert_allclose(fc_net[i], fc_ref, rtol=1e-12)
+            numpy.testing.assert_allclose(dt_net[i], dt_ref, rtol=1e-12)
+
+        # 3. Torch test with gradients
+        import torch
+        ra_t = torch.tensor(ra_arr, dtype=torch.float64, requires_grad=True)
+        dec_t = torch.tensor(dec_arr, dtype=torch.float64, requires_grad=True)
+        pol_t = torch.tensor(pol_arr, dtype=torch.float64, requires_grad=True)
+        t_t = torch.tensor(time_arr, dtype=torch.float64, requires_grad=True)
+
+        fp_net_t, fc_net_t, dt_net_t = net.antenna_pattern_and_time_delay(
+            ra_t, dec_t, pol_t, t_t
+        )
+        self.assertEqual(fp_net_t.shape, torch.Size([4, 50]))
+        for i, name in enumerate(ifos):
+            d = net[name]
+            fp_ref_t, fc_ref_t, dt_ref_t = d.antenna_pattern_and_time_delay(
+                ra_t, dec_t, pol_t, t_t
+            )
+            torch.testing.assert_close(fp_net_t[i], fp_ref_t)
+            torch.testing.assert_close(fc_net_t[i], fc_ref_t)
+            torch.testing.assert_close(dt_net_t[i], dt_ref_t)
+
+        loss = (fp_net_t.square() + fc_net_t.square() + dt_net_t.square()).sum()
+        loss.backward()
+        self.assertTrue(torch.isfinite(ra_t.grad).all())
+        self.assertTrue(torch.isfinite(dec_t.grad).all())
+        self.assertTrue(torch.isfinite(pol_t.grad).all())
+        self.assertTrue(torch.isfinite(t_t.grad).all())
 
 
 suite = unittest.TestSuite()

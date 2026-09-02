@@ -33,6 +33,8 @@ import scipy.interpolate as scipy_interpolate
 from astropy import units
 from pycbc.cosmology import get_cosmology
 from pycbc.cosmology import cosmological_quantity_from_redshift
+from pycbc.population._torch import result as _torch_result
+from pycbc.population._torch import tensors as _torch_tensors
 
 
 def sfr_grb_2008(z):
@@ -146,11 +148,25 @@ def diff_lookback_time(z, **kwargs):
     -----
          Pease see Eq.(A3) in <arXiv:2011.02717v3> for more details.
     """
-    from sympy import sqrt
-
     cosmology = get_cosmology(**kwargs)
     H0 = cosmology.H0.value * \
         (3.0856776E+19)**(-1)/(1/24/3600/365*1e-9)  # Gyr^-1
+
+    tensor_values = _torch_tensors(z)
+    if tensor_values is not None:
+        import torch
+
+        redshift, = tensor_values
+        omega_de = redshift.new_tensor(float(cosmology.Ode0))
+        omega_m = redshift.new_tensor(float(cosmology.Om0))
+        dt_dz = (
+            1 / H0 / (1 + redshift)
+            / torch.sqrt(omega_de + omega_m * (1 + redshift) ** 3)
+        )
+        return _torch_result(z, dt_dz)
+
+    from sympy import sqrt
+
     dt_dz = 1/H0/(1+z)/sqrt((cosmology.Ode0+cosmology.Om0*(1+z)**3))
     return dt_dz
 
@@ -176,6 +192,45 @@ def p_tau(tau, td_model="inverse"):
     -----
          Pease see the Appendix in <arXiv:2011.02717v3> for more details.
     """
+    tensor_values = _torch_tensors(tau)
+    if tensor_values is not None:
+        import torch
+
+        delay, = tensor_values
+        if td_model == "log_normal":
+            t_ln = delay.new_tensor(2.9)
+            sigma_ln = delay.new_tensor(0.2)
+            p_t = torch.exp(
+                -(torch.log(delay) - torch.log(t_ln)) ** 2
+                / (2 * sigma_ln ** 2)
+            ) / (torch.sqrt(delay.new_tensor(2 * np.pi)) * sigma_ln)
+        elif td_model == "gaussian":
+            t_g = delay.new_tensor(2.0)
+            sigma_g = delay.new_tensor(0.3)
+            p_t = torch.exp(
+                -(delay - t_g) ** 2 / (2 * sigma_g ** 2)
+            ) / (torch.sqrt(delay.new_tensor(2 * np.pi)) * sigma_g)
+        elif td_model == "power_law":
+            p_t = delay ** -0.81
+        elif td_model == "inverse":
+            td_min = delay.new_tensor(0.02)
+            td_max = delay.new_tensor(float(
+                cosmological_quantity_from_redshift(0, 'age')
+            ))
+            valid = (delay >= td_min) & (delay <= td_max)
+            safe_delay = torch.where(valid, delay, torch.ones_like(delay))
+            norm_const = torch.reciprocal(torch.log(td_max / td_min))
+            p_t = torch.where(
+                valid,
+                norm_const * safe_delay ** -0.999,
+                torch.zeros_like(delay),
+            )
+        else:
+            raise ValueError("'model' must choose from "
+                             "['log_normal', 'gaussian', "
+                             "'power_law', 'inverse'].")
+        return _torch_result(tau, p_t)
+
     from sympy import sqrt, exp, log, Piecewise
 
     if td_model == "log_normal":

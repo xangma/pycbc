@@ -4729,8 +4729,7 @@ def test_live_batch_matched_filter_cuda_graphs_pipeline(torch_device_ctx, enable
 
         if device == "cuda" and enable_cuda_graphs and torch.cuda.is_available():
             assert 0 in batch._cuda_graphs
-            graph = batch._cuda_graphs[0]["graph"]
-            assert graph.replay_count == 0
+            assert batch._cuda_graphs[0]["replays"] == 0
 
             # Second run replays graph
             res2 = batch.process_data(types.SimpleNamespace(
@@ -4740,6 +4739,6 @@ def test_live_batch_matched_filter_cuda_graphs_pipeline(torch_device_ctx, enable
                 sample_rate=1,
                 start_time=100.0,
             ))
-            assert graph.replay_count == 1
+            assert batch._cuda_graphs[0]["replays"] == 1
             np.testing.assert_allclose(res1["snr"], res2["snr"])
 

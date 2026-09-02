@@ -22,7 +22,7 @@ from shutil import which
 from mpi4py import MPI as mpi
 from pycbc.pool import BroadcastPool
 from pycbc import fft, version, waveform, scheme, makedir
-from pycbc.types import MultiDetOptionAction, MultiDetMultiColonOptionAction
+from pycbc.types import Array, MultiDetOptionAction, MultiDetMultiColonOptionAction
 from pycbc.filter import LiveBatchMatchedFilter, compute_followup_snr_series
 from pycbc.filter import followup_event_significance
 from pycbc.strain import StrainBuffer
@@ -1078,7 +1078,6 @@ pycbc.init_logging(
 )
 
 ctx = scheme.from_cli(args)
-fft.from_cli(args)
 
 # Approximant guess of the total padding
 valid_pad = args.analysis_chunk
@@ -1122,23 +1121,19 @@ if evnt.rank == 0 and args.enable_gracedb_upload:
 
 # I'm not the root, so do some actual filtering.
 with ctx:
+    # FFT configuration is scheme-local, so enter the selected context before
+    # constructing any plans.  Keep configuration errors outside the wisdom
+    # handler so they retain their normal nonzero command-line failure status.
+    fft.from_cli(args)
     try:
-        # Import system wisdom.
-        if args.fftw_import_system_wisdom:
-            fft.fftw.import_sys_wisdom()
-
-        # Read specified user-provided wisdom files
-        if args.fftw_input_float_wisdom_file is not None:
-            fft.fftw.import_single_wisdom_from_filename(args.fftw_input_float_wisdom_file)
-
-        if args.fftw_input_double_wisdom_file is not None:
-            fft.fftw.import_double_wisdom_from_filename(args.fftw_input_double_wisdom_file)
+        # Import wisdom before constructing any plans.
+        fft.import_wisdom_from_cli(args)
 
         if args.fftw_planning_limit:
             fft.fftw.set_planning_limit(args.fftw_planning_limit)
     except (ValueError, RuntimeError) as e:
         print(e)
-        exit()
+        raise SystemExit(1) from e
 
     if evnt.rank > 0:
         bank.table.sort(order='mchirp')
@@ -1364,6 +1359,11 @@ with ctx:
                     psd_var_vals = variation.live_find_var_value(
                         results[ifo], psd_var_ts
                     )
+                    if isinstance(psd_var_vals, Array):
+                        # The live trigger table and its ranking/coincidence
+                        # consumers are NumPy based. Keep interpolation on the
+                        # active Torch device until this explicit boundary.
+                        psd_var_vals = psd_var_vals.numpy()
 
                     results[ifo]['psd_var_val'] = psd_var_vals
 
@@ -1459,11 +1459,7 @@ with ctx:
                 logging.error('I/O error writing status JSON file!')
 
 if evnt.rank == 1:
-    if args.fftw_output_float_wisdom_file:
-        fft.fftw.export_single_wisdom_to_filename(args.fftw_output_float_wisdom_file)
-
-    if args.fftw_output_double_wisdom_file:
-        fft.fftw.export_double_wisdom_to_filename(args.fftw_output_double_wisdom_file)
+    fft.export_wisdom_from_cli(args)
 
 if args.enable_profiling is not None and evnt.rank == args.enable_profiling:
     pr.dump_stats(f'profiling_rank_{evnt.rank:03d}')

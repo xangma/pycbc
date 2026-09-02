@@ -1,3 +1,8 @@
+"""CuPy decompression backend (legacy).
+
+Torch users should prefer `waveform/decompress_torch.py`; this module is only
+used when the CuPy scheme is explicitly selected.
+"""
 # Copyright (C) 2024  The PyCBC team
 
 # This program is free software; you can redistribute it and/or modify it

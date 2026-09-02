@@ -27,6 +27,43 @@ import numpy as np
 from scipy.optimize import root_scalar
 
 
+def _torch_values(*values):
+    """Return broadcast Torch inputs without importing Torch eagerly."""
+    if not any(
+            type(value).__module__.split(".", 1)[0] == "torch"
+            for value in values):
+        return None, values
+
+    import torch
+
+    tensors = [value for value in values
+               if isinstance(value, torch.Tensor)]
+    if not tensors:
+        return None, values
+    if any(value.is_complex() for value in tensors):
+        raise TypeError("Torch ISSO inputs must be real-valued")
+
+    reference = tensors[0]
+    dtype = reference.dtype
+    if not dtype.is_floating_point:
+        dtype = torch.get_default_dtype()
+    converted = tuple(
+        value.to(device=reference.device, dtype=dtype)
+        if isinstance(value, torch.Tensor)
+        else torch.as_tensor(value, device=reference.device, dtype=dtype)
+        for value in values
+    )
+    return torch, torch.broadcast_tensors(*converted)
+
+
+def _sin(value):
+    """Evaluate sine without sending Torch inputs through NumPy."""
+    if type(value).__module__.split(".", 1)[0] == "torch":
+        import torch
+        return torch.sin(value)
+    return np.sin(value)
+
+
 def ISCO_solution(chi, incl):
     r"""Analytic solution of the innermost
     stable circular orbit (ISCO) for the Kerr metric.
@@ -47,6 +84,21 @@ def ISCO_solution(chi, incl):
     ----------
     float
     """
+    torch, values = _torch_values(chi, incl)
+    if torch is not None:
+        chi, incl = values
+
+        def cbrt(value):
+            return torch.sign(value) * torch.abs(value).pow(1.0 / 3.0)
+
+        chi2 = chi * chi
+        sgn = torch.sign(torch.cos(incl))
+        z1 = 1 + cbrt(1 - chi2) * (cbrt(1 + chi) + cbrt(1 - chi))
+        z2 = torch.sqrt(3 * chi2 + z1 * z1)
+        return 3 + z2 - sgn * torch.sqrt(
+            (3 - z1) * (3 + z1 + 2 * z2)
+        )
+
     chi2 = chi * chi
     sgn = np.sign(np.cos(incl))
     Z1 = 1 + np.cbrt(1 - chi2) * (np.cbrt(1 + chi) + np.cbrt(1 - chi))
@@ -179,7 +231,7 @@ def PG_ISSO_eq(r, chi, incl):
     r4 = r2 * r2
     three_r = 3 * r
     r_minus_2 = r - 2
-    sin_incl2 = (np.sin(incl))**2
+    sin_incl2 = _sin(incl)**2
 
     X = (
         chi2 * (
@@ -213,7 +265,7 @@ def PG_ISSO_eq_dr(r, chi, incl):
     -------
     float
     """
-    sini = np.sin(incl)
+    sini = _sin(incl)
     sin2i = sini * sini
     sin4i = sin2i * sin2i
     chi2 = chi * chi
@@ -255,7 +307,7 @@ def PG_ISSO_eq_dr2(r, chi, incl):
     -------
     float
     """
-    sini = np.sin(incl)
+    sini = _sin(incl)
     sin2i = sini * sini
     sin4i = sin2i * sin2i
     chi2 = chi * chi
@@ -279,6 +331,158 @@ def PG_ISSO_eq_dr2(r, chi, incl):
         + 12 * chi8 * chi2 * sin4i + 72 * chi8 * sin4i)
 
 
+def _PG_ISSO_extremal_eq(r, incl):
+    """PG polynomial with its repeated ``(r - 1)^3`` root removed."""
+    sin2i = _sin(incl)**2
+    sin4i = sin2i * sin2i
+    return (
+        r**9 - 9 * r**8 + 12 * r**7 * sin2i
+        + 36 * r**6 * sin2i
+        + r**5 * (36 * sin4i - 6 * sin2i)
+        + r**4 * (-36 * sin4i + 6 * sin2i)
+        - 36 * r**3 * sin4i
+        - 12 * r**2 * sin4i
+        + 9 * r * sin4i
+        - sin4i
+    )
+
+
+def _PG_ISSO_extremal_eq_dr(r, incl):
+    """Radial derivative of :func:`_PG_ISSO_extremal_eq`."""
+    sin2i = _sin(incl)**2
+    sin4i = sin2i * sin2i
+    return (
+        9 * r**8 - 72 * r**7 + 84 * r**6 * sin2i
+        + 216 * r**5 * sin2i
+        + r**4 * (180 * sin4i - 30 * sin2i)
+        + r**3 * (-144 * sin4i + 24 * sin2i)
+        - 108 * r**2 * sin4i
+        - 24 * r * sin4i
+        + 9 * sin4i
+    )
+
+
+def _PG_ISSO_root_eq(r, chi, incl):
+    """Numerically stable generic polynomial for Torch root finding."""
+    import torch
+    return torch.where(
+        chi == 1,
+        _PG_ISSO_extremal_eq(r, incl),
+        PG_ISSO_eq(r, chi, incl),
+    )
+
+
+def _PG_ISSO_root_eq_dr(r, chi, incl):
+    """Radial derivative of :func:`_PG_ISSO_root_eq`."""
+    import torch
+    return torch.where(
+        chi == 1,
+        _PG_ISSO_extremal_eq_dr(r, incl),
+        PG_ISSO_eq_dr(r, chi, incl),
+    )
+
+
+def _torch_bisect(function, lo, hi, args, iterations=64):
+    """Vectorized bisection for already-bracketed Torch roots."""
+    import torch
+
+    f_lo = function(lo, *args)
+    f_hi = function(hi, *args)
+    bracketed = ((f_lo < 0) & (f_hi > 0)) | (
+        (f_lo > 0) & (f_hi < 0)
+    )
+    lo_root = f_lo == 0
+    hi_root = f_hi == 0
+
+    for _ in range(iterations):
+        mid = 0.5 * (lo + hi)
+        f_mid = function(mid, *args)
+        same_side = ((f_lo < 0) & (f_mid < 0)) | (
+            (f_lo > 0) & (f_mid > 0)
+        )
+        update_lo = bracketed & same_side
+        lo = torch.where(update_lo, mid, lo)
+        f_lo = torch.where(update_lo, f_mid, f_lo)
+        hi = torch.where(bracketed & ~same_side, mid, hi)
+
+    midpoint = 0.5 * (lo + hi)
+    return torch.where(
+        lo_root,
+        lo,
+        torch.where(hi_root, hi, midpoint),
+    ), bracketed | lo_root | hi_root
+
+
+def _torch_newton_refine(root, lo, hi, function, derivative, args):
+    """Refine values and expose the implicit root derivative to autograd."""
+    import torch
+
+    value = function(root, *args)
+    slope = derivative(root, *args)
+    safe_slope = torch.where(
+        torch.isfinite(slope) & (slope != 0),
+        slope,
+        torch.ones_like(slope),
+    )
+    candidate = root - value / safe_slope
+    valid = (
+        torch.isfinite(candidate)
+        & torch.isfinite(slope)
+        & (slope != 0)
+        & (candidate >= lo)
+        & (candidate <= hi)
+    )
+    return torch.where(valid, candidate, root)
+
+
+def _PG_ISSO_solver_torch(torch, chi, incl):
+    """Torch implementation of :func:`PG_ISSO_solver`."""
+    chi = torch.abs(chi)
+    r_isco = ISCO_solution(chi, incl)
+    equatorial = torch.isclose(incl, torch.zeros_like(incl)) | torch.isclose(
+        incl, torch.full_like(incl, torch.pi)
+    )
+
+    pole_lo = torch.full_like(chi, 5.0)
+    pole_hi = torch.full_like(chi, 6.5)
+    r_pole, _ = _torch_bisect(
+        ISSO_eq_at_pole, pole_lo, pole_hi, (chi,)
+    )
+    r_pole = _torch_newton_refine(
+        r_pole,
+        pole_lo,
+        pole_hi,
+        ISSO_eq_at_pole,
+        ISSO_eq_at_pole_dr,
+        (chi,),
+    )
+    polar = torch.isclose(
+        incl, torch.full_like(incl, 0.5 * torch.pi)
+    )
+
+    initial_lo = torch.minimum(r_isco, r_pole)
+    initial_hi = torch.maximum(r_isco, r_pole)
+
+    # At exactly extremal spin, PG's polynomial has a repeated r=1 root.
+    # The root helper factors it out so the physical inclined root remains
+    # bracketable without cancellation near the equatorial endpoint.
+    generic_lo = initial_lo
+    generic_hi = initial_hi
+    generic, bracketed = _torch_bisect(
+        _PG_ISSO_root_eq, generic_lo, generic_hi, (chi, incl)
+    )
+    generic = _torch_newton_refine(
+        generic,
+        generic_lo,
+        generic_hi,
+        _PG_ISSO_root_eq,
+        _PG_ISSO_root_eq_dr,
+        (chi, incl),
+    )
+    generic = torch.where(bracketed, generic, r_isco)
+    return torch.where(equatorial, r_isco, torch.where(polar, r_pole, generic))
+
+
 def PG_ISSO_solver(chi, incl):
     """Function that determines the radius of the innermost stable
     spherical orbit (ISSO) for a Kerr BH and a generic inclination
@@ -295,9 +499,13 @@ def PG_ISSO_solver(chi, incl):
 
     Returns
     -------
-    solution: array
+    solution: array or torch.Tensor
         the radius of the orbit in BH mass units
     """
+    torch, values = _torch_values(chi, incl)
+    if torch is not None:
+        return _PG_ISSO_solver_torch(torch, *values)
+
     # Auxiliary variables
     if np.isscalar(chi):
         chi = np.array(chi, copy=False, ndmin=1)

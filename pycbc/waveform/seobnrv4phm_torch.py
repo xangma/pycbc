@@ -49,6 +49,9 @@ from pycbc.types import Array as PyCBCArray
 from pycbc.types import FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
 from pycbc.waveform import seobnrv4phm_dynamics as _dyn
+_orig_eob_potentials = _dyn._eob_potentials
+_orig_reduced_to_cartesian = _dyn._reduced_to_cartesian
+_orig_non_keplerian_vphi = _dyn.non_keplerian_vphi
 from pycbc.waveform._native_math import (
     NaturalCubicSpline,
     associated_legendre_at_zero,
@@ -1274,19 +1277,21 @@ def _waveform_state_from_cartesian(
     """Keep exact Cartesian geometry after projecting to the waveform state."""
 
     if y.ndim == 2:
+        out = torch.empty((y.shape[0], 18), dtype=y.dtype, device=y.device)
         r_vec = y[:, 0:3]
         p_vec = y[:, 3:6]
         s1_scale = _dyn._lal_spin_scale(params.mass1, params.M)
         s2_scale = _dyn._lal_spin_scale(params.mass2, params.M)
-        S1 = y[:, 6:9] / max(s1_scale, 1.0e-15)
-        S2 = y[:, 9:12] / max(s2_scale, 1.0e-15)
-        phi = y[:, 12] + y[:, 13]
         r = torch.linalg.norm(r_vec, dim=-1, keepdim=True)
         n_hat = r_vec / torch.clamp(r, min=1.0e-15)
-        pr = torch.sum(p_vec * n_hat, dim=-1, keepdim=True)
-        L_vec = torch.linalg.cross(r_vec, p_vec)
-        reduced = torch.cat([r, pr, phi.unsqueeze(-1), L_vec, S1, S2], dim=-1)
-        return torch.cat((reduced, y[:, 0:6]), dim=-1)
+        out[:, 0:1] = r
+        out[:, 1:2] = torch.sum(p_vec * n_hat, dim=-1, keepdim=True)
+        out[:, 2] = y[:, 12] + y[:, 13]
+        out[:, 3:6] = torch.linalg.cross(r_vec, p_vec)
+        out[:, 6:9] = y[:, 6:9] / max(s1_scale, 1.0e-15)
+        out[:, 9:12] = y[:, 9:12] / max(s2_scale, 1.0e-15)
+        out[:, 12:18] = y[:, 0:6]
+        return out
 
     reduced = _dyn.cartesian_state_to_reduced_state(y, params)
     return torch.cat((reduced, y[0:6]))
@@ -1336,31 +1341,56 @@ def _build_coprecessing_modes(
         params,
         weighted_tplspin=weighted_tplspin,
     )
-    if H is None:
-        pot = _dyn._eob_potentials(
-            r,
-            pr,
-            phi,
-            Lvec,
-            S1,
-            S2,
-            params,
-            r_vec=r_vec,
-            p_vec=p_vec,
-            compute_grad_p=False,
-            compute_base_grad=False,
-            fd_pphi=False,
-        )
-        H = pot["H"]
-    else:
-        H = H.to(device=v.device, dtype=v.dtype)
-
-    modes: Dict[Tuple[int, int], torch.Tensor] = {}
     if r_vec is None:
         phi_nk = torch.zeros_like(phi) if params.aligned_spins else phi
         r_vec, p_vec, _, _, _ = _dyn._reduced_to_cartesian(
             r, pr, phi_nk, Lvec, S1, S2, params
         )
+
+    if H is None:
+        if (
+            r_vec.device.type == "cpu"
+            and r_vec.dtype == torch.float64
+            and (not torch.is_grad_enabled() or not r_vec.requires_grad)
+            and _dyn._eob_potentials is _orig_eob_potentials
+            and _dyn.non_keplerian_vphi is _orig_non_keplerian_vphi
+            and os.environ.get("PYCBC_SEOBNR_NATIVE_ODE", "1") not in ("0", "", "false", "False")
+        ):
+            try:
+                from pycbc.waveform._seobnr_native_ode import get_extension
+                ext = get_extension()
+                if ext is not None and hasattr(ext, "eob_hamiltonian_trajectory_native"):
+                    H = ext.eob_hamiltonian_trajectory_native(
+                        r_vec.contiguous(),
+                        p_vec.contiguous(),
+                        S1.contiguous(),
+                        S2.contiguous(),
+                        float(params.mass1),
+                        float(params.mass2),
+                    )
+            except Exception:
+                pass
+
+        if H is None:
+            pot = _dyn._eob_potentials(
+                r,
+                pr,
+                phi,
+                Lvec,
+                S1,
+                S2,
+                params,
+                r_vec=r_vec,
+                p_vec=p_vec,
+                compute_grad_p=False,
+                compute_base_grad=False,
+                fd_pphi=False,
+            )
+            H = pot["H"]
+    else:
+        H = H.to(device=v.device, dtype=v.dtype)
+
+    modes: Dict[Tuple[int, int], torch.Tensor] = {}
     vphi = _dyn.non_keplerian_vphi(
         r,
         omega_dimless,
@@ -1557,6 +1587,27 @@ def _rotate_interpolate_modes_jframe(
     gamma_u = _interp_series_cubic(t_out, t_modes, _unwrap_angle(gamma)).to(device=device, dtype=dtype)
 
     n_out = len(t_out)
+    if (
+        alpha.device.type == "cpu"
+        and alpha.dtype == torch.float64
+        and (not torch.is_grad_enabled() or not alpha.requires_grad)
+        and os.environ.get("PYCBC_SEOBNR_NATIVE_ODE", "1") not in ("0", "", "false", "False")
+    ):
+        try:
+            from pycbc.waveform._seobnr_native_ode import get_extension
+            ext = get_extension()
+            if ext is not None and hasattr(ext, "rotate_modes_jframe_native"):
+                l_unique = sorted({lm[0] for lm in positive_modes})
+                return ext.rotate_modes_jframe_native(
+                    h_pos_out,
+                    alpha_u.contiguous(),
+                    beta_u.contiguous(),
+                    gamma_u.contiguous(),
+                    l_unique,
+                )
+        except Exception:
+            pass
+
     out = {}
     for l in sorted({lm[0] for lm in positive_modes}):
         m_list = list(range(-l, l + 1))
@@ -2955,18 +3006,44 @@ def _higher_mode_residual_calibration(
 
     omega_dimless = torch.abs(omega_orb * params.M_sec)
     v = torch.clamp(omega_dimless, min=1.0e-12) ** (1.0 / 3.0)
-    pot = _dyn._eob_potentials(
-        r,
-        pr,
-        phi,
-        Lvec,
-        S1vec,
-        S2vec,
-        params,
-        r_vec=r_vec,
-        p_vec=p_vec,
-    )
-    H = pot["H"]
+    H = None
+    if (
+        r_vec is not None
+        and p_vec is not None
+        and r_vec.device.type == "cpu"
+        and r_vec.dtype == torch.float64
+        and (not torch.is_grad_enabled() or not r_vec.requires_grad)
+        and _dyn._eob_potentials is _orig_eob_potentials
+        and os.environ.get("PYCBC_SEOBNR_NATIVE_ODE", "1") not in ("0", "", "false", "False")
+    ):
+        try:
+            from pycbc.waveform._seobnr_native_ode import get_extension
+            ext = get_extension()
+            if ext is not None and hasattr(ext, "eob_hamiltonian_trajectory_native"):
+                H = ext.eob_hamiltonian_trajectory_native(
+                    r_vec.contiguous(),
+                    p_vec.contiguous(),
+                    S1vec.contiguous(),
+                    S2vec.contiguous(),
+                    float(params.mass1),
+                    float(params.mass2),
+                )
+        except Exception:
+            pass
+
+    if H is None:
+        pot = _dyn._eob_potentials(
+            r,
+            pr,
+            phi,
+            Lvec,
+            S1vec,
+            S2vec,
+            params,
+            r_vec=r_vec,
+            p_vec=p_vec,
+        )
+        H = pot["H"]
     _, _, chiS_dyn, chiA_dyn, tplspin_dyn = _dynamic_spin_projection_combos(
         Lvec,
         S1vec,
@@ -3344,10 +3421,37 @@ def _omega_from_hamiltonian_velocity(
     r_vec: torch.Tensor | None = None,
     p_vec: torch.Tensor | None = None,
 ):
-    """LAL omegaVec from r x rdot rather than differentiating orbital phase."""
-
     if (r_vec is None) != (p_vec is None):
         raise ValueError("r_vec and p_vec must be supplied together")
+
+    if (
+        r.device.type == "cpu"
+        and r.dtype == torch.float64
+        and (not torch.is_grad_enabled() or not r.requires_grad)
+        and _dyn._eob_potentials is _orig_eob_potentials
+        and _dyn._reduced_to_cartesian is _orig_reduced_to_cartesian
+        and os.environ.get("PYCBC_SEOBNR_NATIVE_ODE", "1") not in ("0", "", "false", "False")
+    ):
+        try:
+            from pycbc.waveform._seobnr_native_ode import get_extension
+            ext = get_extension()
+            if ext is not None and hasattr(ext, "omega_from_hamiltonian_velocity_native"):
+                r_vec_use = r_vec
+                p_vec_use = p_vec
+                if r_vec_use is None:
+                    r_vec_use, p_vec_use, _, _, _ = _dyn._reduced_to_cartesian(
+                        r, pr, phi, Lvec, S1vec, S2vec, params
+                    )
+                return ext.omega_from_hamiltonian_velocity_native(
+                    r_vec_use.contiguous(),
+                    p_vec_use.contiguous(),
+                    S1vec.contiguous(),
+                    S2vec.contiguous(),
+                    float(params.mass1),
+                    float(params.mass2),
+                )
+        except Exception:
+            pass
 
     omega_parts = []
     n = int(r.numel())

@@ -19,6 +19,20 @@
 import numpy
 
 
+def _torch_chain(x):
+    """Return a floating Torch chain without importing Torch eagerly."""
+    if type(x).__module__.split(".", 1)[0] != "torch":
+        return None
+
+    import torch
+
+    if not isinstance(x, torch.Tensor):
+        return None
+    if not (x.is_floating_point() or x.is_complex()):
+        return x.to(dtype=torch.get_default_dtype())
+    return x
+
+
 def geweke(x, seg_length, seg_stride, end_idx, ref_start,
            ref_end=None, seg_start=0):
     """ Calculates Geweke conervergence statistic for a chain of data.
@@ -27,8 +41,9 @@ def geweke(x, seg_length, seg_stride, end_idx, ref_start,
 
     Parameters
     ----------
-    x : numpy.array
-        A one-dimensional array of data.
+    x : numpy.array or torch.Tensor
+        A one-dimensional array of data. Torch inputs remain on their current
+        device and produce Torch outputs.
     seg_length : int
         Number of samples to use for each Geweke calculation.
     seg_stride : int
@@ -46,13 +61,45 @@ def geweke(x, seg_length, seg_stride, end_idx, ref_start,
 
     Returns
     -------
-    starts : numpy.array
+    starts : numpy.array or torch.Tensor
         The start index of the first segment in the chain.
-    ends : numpy.array
+    ends : numpy.array or torch.Tensor
         The end index of the first segment in the chain.
-    stats : numpy.array
+    stats : numpy.array or torch.Tensor
         The Geweke convergence diagnostic statistic for the segment.
     """
+
+    tensor = _torch_chain(x)
+    if tensor is not None:
+        import torch
+
+        start_values = range(seg_start, end_idx, seg_stride)
+        starts = torch.arange(
+            seg_start, end_idx, seg_stride,
+            device=tensor.device, dtype=torch.int64,
+        )
+        x_end = tensor[ref_start:ref_end]
+        x_end_mean = x_end.mean()
+        x_end_variance = x_end.var(correction=0)
+        stats = []
+        ends = []
+        for start in start_values:
+            x_start_end = start + seg_length
+            x_start = tensor[start:x_start_end]
+            stats.append(
+                (x_start.mean() - x_end_mean) / torch.sqrt(
+                    x_start.var(correction=0) + x_end_variance
+                )
+            )
+            ends.append(x_start_end)
+        stats = (
+            torch.stack(stats)
+            if stats else tensor.new_empty((0,))
+        )
+        ends = torch.tensor(
+            ends, device=tensor.device, dtype=torch.int64
+        )
+        return starts, ends, stats
 
     # lists to hold statistic and end index
     stats = []

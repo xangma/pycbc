@@ -192,6 +192,10 @@ def test_live_batch_maxelements_cuda_and_cpu_defaults(monkeypatch):
     # default maxelements = 2**27 = 134217728.
     # grabs = 2**27 // 131072 = 1024 -> all 128 templates in 1 chunk.
     monkeypatch.delenv("PYCBC_BATCH_MAXELEMENTS", raising=False)
+    monkeypatch.setattr(
+        "pycbc.hardware.get_optimal_batch_maxelements",
+        lambda is_cuda=False, **kwargs: 2**23 if is_cuda else 2**27,
+    )
     with scheme.CPUScheme():
         batch = matchedfilter.LiveBatchMatchedFilter(
             templates,
@@ -259,4 +263,3 @@ def test_torch_batched_ifft_inplace_shares_storage(device):
             rtol=tol,
             atol=tol,
         )
-

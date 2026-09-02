@@ -26,6 +26,124 @@ except ImportError:  # numpy < 2.0
     from numpy import trapz as trapezoid
 
 
+def _torch_log_likelihood(log_likelihood):
+    """Return a Torch likelihood tensor without importing Torch eagerly."""
+    if type(log_likelihood).__module__.split(".", 1)[0] != "torch":
+        return None
+
+    import torch
+
+    if isinstance(log_likelihood, torch.Tensor):
+        if log_likelihood.numel() == 0:
+            raise ValueError(
+                "zero-size array to reduction operation maximum which has "
+                "no identity"
+            )
+        if not log_likelihood.is_floating_point():
+            return log_likelihood.to(dtype=torch.get_default_dtype())
+        return log_likelihood
+    return None
+
+
+def _torch_evidence_inputs(*values):
+    """Move mixed estimator inputs beside their existing Torch tensor."""
+    if not any(
+            type(value).__module__.split(".", 1)[0] == "torch"
+            for value in values):
+        return None
+
+    import torch
+
+    reference = next(
+        value for value in values if isinstance(value, torch.Tensor)
+    )
+    dtype = (
+        reference.dtype
+        if reference.is_floating_point()
+        else torch.get_default_dtype()
+    )
+    tensors = []
+    for value in values:
+        is_complex = (
+            value.is_complex()
+            if isinstance(value, torch.Tensor)
+            else numpy.iscomplexobj(value)
+        )
+        if is_complex:
+            raise TypeError("evidence estimator inputs must be real")
+        tensor = torch.as_tensor(
+            value, device=reference.device, dtype=dtype
+        )
+        tensors.append(tensor)
+    return tensors
+
+
+def _numpy_simpson_last(values, x, axis=0):
+    """Integrate with the legacy SciPy ``simps(even="last")`` rule."""
+    values = numpy.asarray(values)
+    x = numpy.asarray(x)
+    count = values.shape[axis]
+    if x.ndim != 1 or len(x) != count:
+        raise ValueError("x must be one-dimensional and match the integration axis")
+    if count == 0:
+        raise ValueError("cannot integrate an empty axis")
+
+    result = values.sum(axis=axis) * 0.0
+    start = 0
+    if count % 2 == 0:
+        first = numpy.take(values, 0, axis=axis)
+        second = numpy.take(values, 1, axis=axis)
+        result = 0.5 * (x[1] - x[0]) * (first + second)
+        start = 1
+
+    if count - start >= 3:
+        slices = [slice(None)] * values.ndim
+        slices[axis] = slice(start, None)
+        simpson = getattr(integrate, "simpson", None)
+        if simpson is None:
+            simpson = integrate.simps
+        result = result + simpson(
+            values[tuple(slices)], x=x[start:], axis=axis
+        )
+    return result
+
+
+def _torch_simpson_last(values, x, dim=0):
+    """Torch implementation of the legacy ``simps(even="last")`` rule."""
+    import torch
+
+    values = values.movedim(dim, 0)
+    count = values.shape[0]
+    if x.ndim != 1 or len(x) != count:
+        raise ValueError("x must be one-dimensional and match the integration axis")
+    if count == 0:
+        raise ValueError("cannot integrate an empty axis")
+
+    result = values.sum(dim=0) * 0.0
+    start = 0
+    if count % 2 == 0:
+        result = 0.5 * (x[1] - x[0]) * (values[0] + values[1])
+        start = 1
+
+    if count - start >= 3:
+        y0 = values[start:-2:2]
+        y1 = values[start + 1:-1:2]
+        y2 = values[start + 2::2]
+        h0 = x[start + 1:-1:2] - x[start:-2:2]
+        h1 = x[start + 2::2] - x[start + 1:-1:2]
+        shape = (len(h0),) + (1,) * (values.ndim - 1)
+        h0 = h0.reshape(shape)
+        h1 = h1.reshape(shape)
+        width = h0 + h1
+        triples = width / 6.0 * (
+            y0 * (2.0 - h1 / h0)
+            + y1 * width.square() / (h0 * h1)
+            + y2 * (2.0 - h0 / h1)
+        )
+        result = result + torch.sum(triples, dim=0)
+    return result
+
+
 def arithmetic_mean_estimator(log_likelihood):
     """Returns the log evidence via the prior arithmetic mean estimator (AME).
 
@@ -44,6 +162,15 @@ def arithmetic_mean_estimator(log_likelihood):
     float :
         Estimation of the log of the evidence.
     """
+    tensor = _torch_log_likelihood(log_likelihood)
+    if tensor is not None:
+        import torch
+
+        num_samples = tensor.numel()
+        return torch.logsumexp(tensor.reshape(-1), dim=0) - torch.log(
+            tensor.new_tensor(num_samples)
+        )
+
     num_samples = len(log_likelihood)
     logl_max = numpy.max(log_likelihood)
 
@@ -77,6 +204,15 @@ def harmonic_mean_estimator(log_likelihood):
     float :
         Estimation of the log of the evidence.
     """
+    tensor = _torch_log_likelihood(log_likelihood)
+    if tensor is not None:
+        import torch
+
+        num_samples = tensor.numel()
+        return torch.log(tensor.new_tensor(num_samples)) - torch.logsumexp(
+            -tensor.reshape(-1), dim=0
+        )
+
     num_samples = len(log_likelihood)
     logl_max = numpy.max(-1.0*log_likelihood)
 
@@ -181,16 +317,17 @@ def thermodynamic_integration(log_likelihood, betas,
 
     Parameters
     ----------
-    log_likelihood : numpy.ndarray
-        3d array of shape (ntemps, nwalkers, niterations)
+    log_likelihood : 3d array or torch.Tensor
         The log likelihood for each temperature separated by
-        temperature, walker, and iteration.
+        temperature, walker, and iteration. All methods support Torch
+        tensors on their current device.
 
-    betas : numpy.ndarray
-        The inverse temperatures used in the MCMC.
+    betas : 1d array or torch.Tensor
+        The inverse temperatures used in the MCMC. For Torch methods, mixed
+        inputs are moved beside the existing Torch tensor.
 
-    method : string
-        Optional. Can be one of {"trapezoid", "trapezoid_corrected", "simpsons"}
+    method : {"trapezoid", "trapezoid_corrected", "simpsons"},
+             optional.
         The numerical integration method to use for the
         thermodynamic integration. Choices include: "trapezoid",
         "trapezoid_corrected", "simpsons", for the trapezoid rule,
@@ -199,12 +336,12 @@ def thermodynamic_integration(log_likelihood, betas,
 
     Returns
     -------
-    log_evidence : float
+    log_evidence : float or torch.Tensor
         Estimation of the log of the evidence.
 
-    mcmc_std : float
+    mcmc_std : float or torch.Tensor
         The standard deviation of the log evidence estimate from
-        Monte-Carlo spread.
+        Monte-Carlo spread. Torch inputs return scalar tensors.
     """
     # Check if the method of integration is in the list of choices
     method_list = ["trapezoid", "trapezoid_corrected", "simpsons"]
@@ -212,6 +349,44 @@ def thermodynamic_integration(log_likelihood, betas,
     if method not in method_list:
         raise ValueError("Method %s not supported. Expected %s"
                          % (method, method_list))
+
+    torch_inputs = _torch_evidence_inputs(log_likelihood, betas)
+    if torch_inputs is not None:
+        import torch
+
+        log_likelihood, betas = torch_inputs
+        if log_likelihood.numel() == 0:
+            raise ValueError("thermodynamic integration requires samples")
+        order = torch.argsort(betas)
+        betas = betas[order]
+        log_likelihood = log_likelihood[order].reshape(len(betas), -1)
+        num_samples = log_likelihood.shape[1]
+
+        average_logl = log_likelihood.mean(dim=1)
+        if method == "simpsons":
+            log_evidence = _torch_simpson_last(average_logl, betas)
+        else:
+            log_evidence = torch.trapezoid(average_logl, betas)
+
+        if method == "trapezoid_corrected":
+            delta_beta = betas[1:] - betas[:-1]
+            variances = log_likelihood.var(dim=1, correction=0)
+            variance_delta = variances[1:] - variances[:-1]
+            log_evidence -= (
+                delta_beta.square() * variance_delta / 12.0
+            ).sum()
+
+        if method == "simpsons":
+            ti_vec = _torch_simpson_last(log_likelihood, betas, dim=0)
+        else:
+            ti_vec = torch.trapezoid(
+                log_likelihood, betas[:, None], dim=0
+            )
+        mcmc_std = ti_vec.std(correction=0) / torch.sqrt(
+            ti_vec.new_tensor(num_samples)
+        )
+        return log_evidence, mcmc_std
+
     # Read in the data and ensure ordering of data.
     # Ascending order sort
     order = numpy.argsort(betas)
@@ -250,8 +425,7 @@ def thermodynamic_integration(log_likelihood, betas,
         # so we can sacrifice precision there, rather than near
         # beta -> 1. Option even="last" puts trapezoid rule at
         # first few points.
-        log_evidence = integrate.simps(average_logl, betas,
-                                       even="last")
+        log_evidence = _numpy_simpson_last(average_logl, betas)
 
     # Estimate the Monte Carlo variance of the evidence calculation
     # See (Evans, Annis, 2019.)
@@ -268,9 +442,7 @@ def thermodynamic_integration(log_likelihood, betas,
             ti_vec[i] = trapezoid(logl_per_samp[i], betas)
 
     elif method == "simpsons":
-        for i, _ in enumerate(log_likelihood[0]):
-            ti_vec[i] = integrate.simps(logl_per_samp[i], betas,
-                                        even="last")
+        ti_vec[:] = _numpy_simpson_last(log_likelihood, betas, axis=0)
 
     # Standard error is sample std / sqrt(number of samples)
     mcmc_std = numpy.std(ti_vec) / numpy.sqrt(float(len(log_likelihood[0])))
@@ -284,22 +456,51 @@ def stepping_stone_algorithm(log_likelihood, betas):
 
     Parameters
     ----------
-    log_likelihood : numpy.ndarray
-        3d array of shape (ntemps, nwalkers, niterations)
+    log_likelihood : 3d array or torch.Tensor
         The log likelihood for each temperature separated by
-        temperature, walker, and iteration.
+        temperature, walker, and iteration. Torch inputs are evaluated on
+        their current device.
 
-    betas          : numpy.ndarray
-        The inverse temperatures used in the MCMC.
+    betas : 1d array or torch.Tensor
+        The inverse temperatures used in the MCMC. Mixed array and Torch
+        inputs are moved to the device and dtype of the Torch input.
 
     Returns
     -------
-    log_evidence : float
+    log_evidence : float or torch.Tensor
         Estimation of the log of the evidence.
-    mcmc_std : float
+    mcmc_std : float or torch.Tensor
         The standard deviation of the log evidence estimate from
-        Monte-Carlo spread.
+        Monte-Carlo spread. Torch inputs return scalar Torch tensors.
     """
+    torch_inputs = _torch_evidence_inputs(log_likelihood, betas)
+    if torch_inputs is not None:
+        import torch
+
+        log_likelihood, betas = torch_inputs
+        if log_likelihood.numel() == 0:
+            raise ValueError(
+                "zero-size array to reduction operation maximum which has "
+                "no identity"
+            )
+        order = torch.argsort(betas, descending=True)
+        betas = betas[order]
+        log_likelihood = log_likelihood[order].reshape(len(betas), -1)
+        num_samples = log_likelihood.shape[1]
+
+        delta_beta = betas[:-1] - betas[1:]
+        weighted_logl = delta_beta[:, None] * log_likelihood[1:]
+        log_rk_pb = torch.logsumexp(weighted_logl, dim=1) - torch.log(
+            weighted_logl.new_tensor(num_samples)
+        )
+        log_evidence = log_rk_pb.sum()
+
+        centered = torch.exp(weighted_logl - log_rk_pb[:, None]) - 1.0
+        mcmc_std = torch.sqrt(
+            centered.square().sum() / float(num_samples) ** 2.0
+        )
+        return log_evidence, mcmc_std
+
     # Reverse order sort
     order = numpy.argsort(betas)[::-1]
     betas = betas[order]

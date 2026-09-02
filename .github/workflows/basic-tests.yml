@@ -26,23 +26,22 @@ jobs:
     - name: Inject Python Version
       run: |
         pixi add python="${{ matrix.python-version }}.*"
-
     - name: Cache LAL auxiliary data files
       id: cache-lal-aux-data
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
       with:
-        key: lal-aux-data
+        key: lal-aux-data-v2
         path: ~/lal_aux_data
 
     - if: ${{ steps.cache-lal-aux-data.outputs.cache-hit != 'true' }}
       name: Download LAL auxiliary data files
       run: |
-        mkdir ~/lal_aux_data
-        pushd ~/lal_aux_data
-        curl --show-error --silent \
+        mkdir -p ~/lal_aux_data
+        curl --fail --location --retry 3 --show-error --silent \
+          --output-dir ~/lal_aux_data \
           --remote-name https://zenodo.org/records/14999310/files/SEOBNRv4ROM_v2.0.hdf5 \
-          --remote-name https://zenodo.org/records/14999310/files/SEOBNRv4ROM_v3.0.hdf5
-        popd
+          --remote-name https://zenodo.org/records/14999310/files/SEOBNRv4ROM_v3.0.hdf5 \
+          --remote-name https://zenodo.org/records/14999310/files/SEOBNRv4HMROM_v1.0.hdf5
 
     - name: Cache example GW data
       id: cache-example-gw-data
@@ -62,11 +61,12 @@ jobs:
           examples/inference/relmarg/*.gwf
           examples/inference/single/*.gwf
 
-    - name: run pycbc test suite
+    - name: Run pycbc test suite (analytical FD and SEOBNR time-domain suites)
       run: |
+        # Export LAL data path for SEOBNR auxiliary datasets and run full test suite
+        # covering analytical FD models (Phenom/TaylorF2) and SEOBNR time-domain models
         export LAL_DATA_PATH=$HOME/lal_aux_data
         pixi run -e ${{matrix.test-type}} test-${{matrix.test-type}}
-
     - name: check help messages work
       if: matrix.test-type == 'unittest'
       run: |

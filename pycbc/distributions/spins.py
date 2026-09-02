@@ -148,11 +148,15 @@ class IndependentChiPChiEff(Arbitrary):
         bool
             Whether or not the values satisfy physical
         """
-        mass1, mass2, phi_a, phi_s, chi_eff, chi_a, xi1, xi2, _ = \
-            conversions.ensurearray(values['mass1'], values['mass2'],
-                                    values['phi_a'], values['phi_s'],
-                                    values['chi_eff'], values['chi_a'],
-                                    values['xi1'], values['xi2'])
+        inputs = (
+            values['mass1'], values['mass2'], values['phi_a'],
+            values['phi_s'], values['chi_eff'], values['chi_a'],
+            values['xi1'], values['xi2'],
+        )
+        torch, converted = conversions._torch_values(*inputs)
+        if torch is None:
+            converted = conversions.ensurearray(*inputs)[:-1]
+        mass1, mass2, phi_a, phi_s, chi_eff, chi_a, xi1, xi2 = converted
         s1x = conversions.spin1x_from_xi1_phi_a_phi_s(xi1, phi_a, phi_s)
         s2x = conversions.spin2x_from_mass1_mass2_xi2_phi_a_phi_s(mass1, mass2,
             xi2, phi_a, phi_s)
@@ -171,7 +175,15 @@ class IndependentChiPChiEff(Arbitrary):
         """Determines whether the given values are in each parameter's bounds
         and satisfy the constraints.
         """
-        isin = all([params in dist for dist in self.distributions.values()])
+        torch, converted = conversions._torch_values(
+            *(params[p] for p in self._params)
+        )
+        if torch is not None:
+            isin = torch.ones_like(converted[0], dtype=torch.bool)
+            for dist in self.distributions.values():
+                isin = isin & dist.__contains__(params)
+            return isin & self._constraints(params)
+        isin = all(params in dist for dist in self.distributions.values())
         if not isin:
             return False
         # in the individual distributions, apply constrains
@@ -290,5 +302,3 @@ class IndependentChiPChiEff(Arbitrary):
             nsamples = None
         return cls(mass1=mass1, mass2=mass2, chi_eff=chi_eff, chi_a=chi_a,
                    xi_bounds=xi_bounds, nsamples=nsamples)
-
-

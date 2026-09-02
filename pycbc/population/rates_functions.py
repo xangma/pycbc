@@ -9,6 +9,9 @@ import scipy.stats as ss
 
 from pycbc.conversions import mchirp_from_mass1_mass2
 from pycbc.io.hdf import HFile
+from . import fgmc_functions as _fgmc_functions
+from ._torch import result as _torch_result
+from ._torch import tensors as _torch_tensors
 
 
 def process_full_data(fname, rhomin, mass1, mass2, lo_mchirp, hi_mchirp):
@@ -97,6 +100,46 @@ def save_bkg_falloff(fname_statmap, fname_bank, path, rhomin, lo_mchirp, hi_mchi
 
 
 def log_rho_fgmc(t, injstats, bins):
+    tensors = _fgmc_functions._torch_fgmc_tensors(t, injstats, bins)
+    if tensors is not None:
+        import torch
+
+        trig_values, injection_values, bin_values = tensors
+        if trig_values.numel() == 0:
+            raise ValueError(
+                "zero-size array to reduction operation minimum which has "
+                "no identity"
+            )
+
+        bin_count = bin_values.numel() - 1
+        injection_values = injection_values.reshape(-1)
+        indices = torch.searchsorted(
+            bin_values.contiguous(),
+            injection_values.contiguous(),
+            right=True,
+        ) - 1
+        valid = (
+            (injection_values >= bin_values[0])
+            & (injection_values <= bin_values[-1])
+        )
+        indices = torch.clamp(indices, 0, bin_count - 1)
+        counts = torch.zeros(
+            bin_count,
+            dtype=trig_values.dtype,
+            device=trig_values.device,
+        )
+        counts.scatter_add_(0, indices, valid.to(dtype=counts.dtype))
+        density = counts / torch.diff(bin_values) / torch.sum(counts)
+
+        assert torch.min(trig_values) >= torch.min(bin_values)
+        assert torch.max(trig_values) < torch.max(bin_values)
+        trig_indices = torch.searchsorted(
+            bin_values.contiguous(), trig_values.contiguous()
+        ) - 1
+        return _fgmc_functions._torch_fgmc_result(
+            t, torch.log(density[trig_indices])
+        )
+
     counts, bins = np.histogram(injstats, bins)
 
     N = sum(counts)
@@ -239,9 +282,29 @@ def prob_lnm(m1, m2, s1z, s2z, **kwargs):
     min_mass = kwargs.get('min_mass', 5.)
     max_mass = kwargs.get('max_mass', 95.)
     max_mtotal = min_mass + max_mass
-    m1, m2 = np.array(m1), np.array(m2)
 
     C_lnm = integrate.quad(lambda x: (log(max_mtotal - x) - log(min_mass))/x, min_mass, max_mass)[0]
+
+    tensor_values = _torch_tensors(m1, m2)
+    if tensor_values is not None:
+        import torch
+
+        mass1, mass2 = tensor_values
+        secondary = torch.minimum(mass1, mass2)
+        primary = torch.maximum(mass1, mass2)
+        bound = torch.sign(max_mtotal - primary - secondary)
+        bound = bound + (
+            torch.sign(max_mass - primary)
+            * torch.sign(secondary - min_mass)
+        )
+        valid = bound == 2
+        zeros = primary * 0 + secondary * 0
+        denominator = C_lnm * primary * secondary
+        denominator = torch.where(valid, denominator, zeros + 1)
+        density = torch.where(valid, 1 / denominator, zeros)
+        return _torch_result(m1, density)
+
+    m1, m2 = np.array(m1), np.array(m2)
 
     xx = np.minimum(m1, m2)
     m1 = np.maximum(m1, m2)
@@ -282,10 +345,23 @@ def prob_imf(m1, m2, s1z, s2z, **kwargs):
     max_mass = kwargs.get('max_mass', 95.)
     alpha = kwargs.get('alpha', -2.35)
     max_mtotal = min_mass + max_mass
-    m1, m2 = np.array(m1), np.array(m2)
 
     C_imf = max_mass**(alpha + 1)/(alpha + 1)
     C_imf -= min_mass**(alpha + 1)/(alpha + 1)
+
+    tensor_values = _torch_tensors(m1, m2)
+    if tensor_values is not None:
+        import torch
+
+        mass1, mass2 = tensor_values
+        secondary = torch.minimum(mass1, mass2)
+        primary = torch.maximum(mass1, mass2)
+        zeros = primary * 0 + secondary * 0
+        density = (1. / C_imf) * primary**alpha / (primary - min_mass)
+        density = torch.where(primary <= max_mtotal / 2., density, zeros)
+        return _torch_result(m1, density / 2.)
+
+    m1, m2 = np.array(m1), np.array(m2)
 
     xx = np.minimum(m1, m2)
     m1 = np.maximum(m1, m2)
@@ -329,14 +405,28 @@ def prob_flat(m1, m2, s1z, s2z, **kwargs):
     min_mass = kwargs.get('min_mass', 1.)
     max_mass = kwargs.get('max_mass', 2.)
 
-    bound = np.sign(m1 - m2)
-    bound += np.sign(max_mass - m1) * np.sign(m2 - min_mass)
-    idx = np.where(bound != 2)
+    tensor_values = _torch_tensors(m1, m2)
+    if tensor_values is not None:
+        import torch
 
-    p_m1_m2 = 2. / (max_mass - min_mass)**2
-    p_m1_m2[idx] = 0
+        mass1, mass2 = tensor_values
+        valid = (
+            (mass1 > mass2)
+            & (mass1 < max_mass)
+            & (mass2 > min_mass)
+        )
+        zeros = mass1 * 0 + mass2 * 0
+        density = zeros + 2. / (max_mass - min_mass)**2
+        return _torch_result(m1, torch.where(valid, density, zeros))
 
-    return p_m1_m2
+    mass1, mass2 = np.array(m1), np.array(m2)
+    valid = (
+        (mass1 > mass2)
+        & (mass1 < max_mass)
+        & (mass2 > min_mass)
+    )
+
+    return np.where(valid, 2. / (max_mass - min_mass)**2, 0.)
 
 
 # Generate samples for the two canonical models plus flat in mass model

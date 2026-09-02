@@ -28,13 +28,28 @@ noise spectrum.
 """
 
 import lal
+from pycbc import libutils
+from pycbc.types import TimeSeries, zeros
+from pycbc.types import complex_same_precision_as, FrequencySeries
+import pycbc
+from pycbc import lal_compat as lal
 import numpy.random
-
+import pycbc
 from pycbc import libutils
 from pycbc.types import FrequencySeries, TimeSeries, complex_same_precision_as, zeros
 
-lalsimulation = libutils.import_optional("lalsimulation")
+try:
+    import torch
+    from pycbc.types.array_torch import TorchArrayData
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover - torch optional
+    torch = None
+    TorchArrayData = None
+    _HAVE_TORCH = False
 
+lalsimulation = libutils.import_optional(
+    'lalsimulation', defer=libutils.defer_lalsimulation_import()
+)
 
 def frequency_noise_from_psd(psd, seed=None):
     """Create noise with a given psd.
@@ -57,22 +72,131 @@ def frequency_noise_from_psd(psd, seed=None):
         A FrequencySeries containing gaussian noise colored by the given psd.
     """
     sigma = 0.5 * (psd / psd.delta_f) ** (0.5)
+    if _HAVE_TORCH and isinstance(getattr(psd, "_data", None), TorchArrayData):
+        sigma_t = sigma._data.tensor
+        device = sigma_t.device
+        generator = None
+        if seed is not None:
+            generator = torch.Generator(device=device)
+            generator.manual_seed(int(seed))
+        noise_re = torch.zeros_like(sigma_t)
+        noise_im = torch.zeros_like(sigma_t)
+        mask = sigma_t != 0
+        sigma_red = sigma_t[mask]
+        noise_re_red = torch.randn(
+            sigma_red.shape, dtype=sigma_red.dtype,
+            device=device, generator=generator,
+        ) * sigma_red
+        noise_im_red = torch.randn(
+            sigma_red.shape, dtype=sigma_red.dtype,
+            device=device, generator=generator,
+        ) * sigma_red
+        noise_re[mask] = noise_re_red
+        noise_im[mask] = noise_im_red
+        noise = torch.complex(noise_re, noise_im)
+        return FrequencySeries(TorchArrayData(noise), delta_f=psd.delta_f,
+                               copy=False)
+
     if seed is not None:
         numpy.random.seed(seed)
-    sigma = sigma.numpy()
+    sigma_np = sigma.numpy()
     dtype = complex_same_precision_as(psd)
 
-    not_zero = sigma != 0
+    not_zero = (sigma_np != 0)
 
-    sigma_red = sigma[not_zero]
+    sigma_red = sigma_np[not_zero]
     noise_re = numpy.random.normal(0, sigma_red)
     noise_co = numpy.random.normal(0, sigma_red)
     noise_red = noise_re + 1j * noise_co
 
-    noise = numpy.zeros(len(sigma), dtype=dtype)
+    noise = numpy.zeros(len(sigma_np), dtype=dtype)
     noise[not_zero] = noise_red
 
     return FrequencySeries(noise, delta_f=psd.delta_f, dtype=dtype)
+
+
+
+def _torch_noise_segment(sigma, length, delta_f, generator):
+    """Generate one periodic colored-noise segment on a Torch device."""
+    noise_re = torch.randn(
+        sigma.shape, dtype=sigma.dtype, device=sigma.device,
+        generator=generator,
+    )
+    noise_im = torch.randn(
+        sigma.shape, dtype=sigma.dtype, device=sigma.device,
+        generator=generator,
+    )
+    stilde = torch.complex(noise_re * sigma, noise_im * sigma)
+
+    # LAL's frequency-to-time transform is unnormalised and then multiplied
+    # by delta_f. torch.fft.irfft includes a 1 / length normalisation.
+    return torch.fft.irfft(stilde, n=length) * (length * delta_f)
+
+
+def _torch_noise_from_psd(length, delta_t, psd, seed):
+    """Torch implementation of LALSimNoise's overlap-and-feather method."""
+    length = int(length)
+    samples_per_segment = 1.0 / delta_t / psd.delta_f
+    segment_length = int(samples_per_segment)
+    frequency_length = segment_length // 2 + 1
+    stride = segment_length // 2
+
+    if segment_length < 2:
+        raise ValueError("PSD and delta_t must define at least two samples")
+    if (int(samples_per_segment + 0.5) != segment_length
+            or frequency_length > len(psd)):
+        raise ValueError("PSD not compatible with requested delta_t")
+
+    psd_tensor = psd._data.tensor
+    generator = torch.Generator(device=psd_tensor.device)
+    if seed is None:
+        generator.seed()
+    else:
+        generator.manual_seed(int(seed))
+
+    sigma = 0.5 * torch.sqrt(
+        psd_tensor[:frequency_length] / psd.delta_f
+    )
+    sigma = sigma.clone()
+    sigma[0] = 0
+    sigma[-1] = 0
+
+    segment = _torch_noise_segment(
+        sigma, segment_length, psd.delta_f, generator
+    )
+    output = torch.empty(
+        length, dtype=psd_tensor.dtype, device=psd_tensor.device
+    )
+
+    overlap_length = segment_length - stride
+    overlap_index = torch.arange(
+        overlap_length, dtype=psd_tensor.dtype, device=psd_tensor.device
+    )
+    phase = overlap_index * (torch.pi / (2.0 * overlap_length))
+    old_weight = torch.cos(phase)
+    new_weight = torch.sin(phase)
+
+    length_generated = 0
+    while length_generated < length:
+        copy_length = min(stride, length - length_generated)
+        output[
+            length_generated:length_generated + copy_length
+        ] = segment[:copy_length]
+        length_generated += stride
+
+        if length_generated < length:
+            new_segment = _torch_noise_segment(
+                sigma, segment_length, psd.delta_f, generator
+            )
+            new_segment[:overlap_length] = (
+                old_weight * segment[stride:]
+                + new_weight * new_segment[:overlap_length]
+            )
+            segment = new_segment
+
+    return TimeSeries(
+        TorchArrayData(output), delta_t=delta_t, copy=False
+    )
 
 
 def noise_from_psd(length, delta_t, psd, seed=None):
@@ -89,15 +213,31 @@ def noise_from_psd(length, delta_t, psd, seed=None):
         The time step of the noise.
     psd : FrequencySeries
         The noise weighting to color the noise.
-    seed : {0, int}
-        The seed to generate the noise.
+    seed : {None, int}
+        The seed to generate the noise. If ``None``, a random seed is used.
+        Torch and LAL use different random number generators, so their seeded
+        realizations are not identical.
 
     Returns
     --------
     noise : TimeSeries
         A TimeSeries containing gaussian noise colored by the given psd.
     """
-    noise_ts = TimeSeries(zeros(length), delta_t=delta_t)
+    use_torch = _HAVE_TORCH and isinstance(
+        getattr(psd, "_data", None), TorchArrayData
+    )
+    if use_torch:
+        return _torch_noise_from_psd(length, delta_t, psd, seed)
+
+    try:
+        sim_noise = lalsimulation.SimNoise
+    except ImportError as exc:
+        raise ImportError(
+            "CPU noise_from_psd requires lalsimulation; pass a Torch-backed "
+            "PSD under TorchScheme to use the native Torch noise generator."
+        ) from exc
+
+    noise_ts = TimeSeries(zeros(length, dtype=psd.dtype), delta_t=delta_t)
 
     if seed is None:
         seed = numpy.random.randint(2**32)
@@ -111,14 +251,14 @@ def noise_from_psd(length, delta_t, psd, seed=None):
     if n > len(psd):
         raise ValueError("PSD not compatible with requested delta_t")
 
-    psd = (psd[0:n]).lal()
-    psd.data.data[n - 1] = 0
-    psd.data.data[0] = 0
+    psd_lal = (psd[0:n]).lal()
+    psd_lal.data.data[n - 1] = 0
+    psd_lal.data.data[0] = 0
 
     segment = TimeSeries(zeros(N), delta_t=delta_t).lal()
     length_generated = 0
 
-    lalsimulation.SimNoise(segment, 0, psd, randomness)
+    sim_noise(segment, 0, psd_lal, randomness)
     while length_generated < length:
         if (length_generated + stride) < length:
             noise_ts.data[length_generated : length_generated + stride] = (
@@ -130,7 +270,7 @@ def noise_from_psd(length, delta_t, psd, seed=None):
             ]
 
         length_generated += stride
-        lalsimulation.SimNoise(segment, stride, psd, randomness)
+        sim_noise(segment, stride, psd_lal, randomness)
 
     return noise_ts
 

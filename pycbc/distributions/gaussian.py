@@ -140,16 +140,31 @@ class Gaussian(bounded.BoundedDist):
         """The CDF of the normal distribution, without bounds."""
         mu = self._mean[param]
         var = self._var[param]
+        torch, reference = bounded._torch_module_and_reference((value,))
+        if torch is not None:
+            if not reference.is_floating_point():
+                value = bounded._torch_as_tensor(value, reference)
+            return 0.5 * (1. + torch.erf(
+                (value - mu) / (2 * var) ** 0.5
+            ))
         return 0.5*(1. + erf((value - mu)/(2*var)**0.5))
 
     def cdf(self, param, value):
         """Returns the CDF of the given parameter value."""
         a, b = self._bounds[param]
-        if a != -numpy.inf:
+        finite_a = a != -numpy.inf
+        finite_b = b != numpy.inf
+        torch, reference = bounded._torch_module_and_reference((value,))
+        if torch is not None:
+            if finite_a:
+                a = bounded._torch_as_tensor(a, reference)
+            if finite_b:
+                b = bounded._torch_as_tensor(b, reference)
+        if finite_a:
             phi_a = self._normalcdf(param, a)
         else:
             phi_a = 0.
-        if b != numpy.inf:
+        if finite_b:
             phi_b = self._normalcdf(param, b)
         else:
             phi_b = 1.
@@ -160,17 +175,30 @@ class Gaussian(bounded.BoundedDist):
         """The inverse CDF of the normal distribution, without bounds."""
         mu = self._mean[param]
         var = self._var[param]
+        torch, reference = bounded._torch_module_and_reference((p,))
+        if torch is not None:
+            if not reference.is_floating_point():
+                p = bounded._torch_as_tensor(p, reference)
+            return mu + (2 * var) ** 0.5 * torch.erfinv(2 * p - 1.)
         return mu + (2*var)**0.5 * erfinv(2*p - 1.)
 
     def _cdfinv_param(self, param, p):
         """Return inverse of the CDF.
         """
         a, b = self._bounds[param]
-        if a != -numpy.inf:
+        finite_a = a != -numpy.inf
+        finite_b = b != numpy.inf
+        torch, reference = bounded._torch_module_and_reference((p,))
+        if torch is not None:
+            if finite_a:
+                a = bounded._torch_as_tensor(a, reference)
+            if finite_b:
+                b = bounded._torch_as_tensor(b, reference)
+        if finite_a:
             phi_a = self._normalcdf(param, a)
         else:
             phi_a = 0.
-        if b != numpy.inf:
+        if finite_b:
             phi_b = self._normalcdf(param, b)
         else:
             phi_b = 1.
@@ -182,7 +210,9 @@ class Gaussian(bounded.BoundedDist):
         contain all of parameters in self's params. Unrecognized arguments are
         ignored.
         """
-        return numpy.exp(self._logpdf(**kwargs))
+        logpdf = self._logpdf(**kwargs)
+        torch, _ = bounded._torch_module_and_reference((logpdf,))
+        return torch.exp(logpdf) if torch is not None else numpy.exp(logpdf)
 
 
     def _logpdf(self, **kwargs):
@@ -190,12 +220,16 @@ class Gaussian(bounded.BoundedDist):
         arguments must contain all of parameters in self's params. Unrecognized
         arguments are ignored.
         """
-        if kwargs in self:
-            return sum([self._lognorm[p] +
-                        self._expnorm[p]*(kwargs[p]-self._mean[p])**2.
-                        for p in self._params])
-        else:
-            return -numpy.inf
+        contained = self.__contains__(kwargs)
+        logpdf = sum([self._lognorm[p] +
+                      self._expnorm[p]*(kwargs[p]-self._mean[p])**2.
+                      for p in self._params])
+        torch_result = bounded._torch_where(
+            kwargs, contained, logpdf, -numpy.inf
+        )
+        if torch_result is not None:
+            return torch_result
+        return logpdf if contained else -numpy.inf
 
     @classmethod
     def from_config(cls, cp, section, variable_args):

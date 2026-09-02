@@ -25,9 +25,8 @@
 """Base classes for mofdels with data.
 """
 
-import numpy
 from abc import (ABCMeta, abstractmethod)
-from .base import BaseModel
+from .base import BaseModel, _is_neginf_scalar
 
 
 class BaseDataModel(BaseModel, metaclass=ABCMeta):
@@ -132,10 +131,9 @@ class BaseDataModel(BaseModel, metaclass=ABCMeta):
         called.
         """
         logp = self.logprior
-        if logp == -numpy.inf:
+        if _is_neginf_scalar(logp):
             return logp
-        else:
-            return logp + self.loglr
+        return logp + self.loglr
 
     @property
     def detectors(self):

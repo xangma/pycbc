@@ -16,6 +16,7 @@
 This modules provides classes for evaluating angular distributions.
 """
 import logging
+import math
 from configparser import Error
 import numpy
 
@@ -209,18 +210,48 @@ class SinAngle(UniformAngle):
     def _cdfinv_param(self, arg, value):
         """Return inverse of cdf for mapping unit interval to parameter bounds.
         """
+        torch, reference = bounded._torch_module_and_reference((value,))
+        if torch is not None:
+            if (not reference.is_floating_point()
+                    and not reference.is_complex()):
+                value = bounded._torch_as_tensor(value, reference)
+            scale_value = (math.cos(self._bounds[arg][0])
+                           - math.cos(self._bounds[arg][1]))
+            scale = torch.as_tensor(
+                scale_value, dtype=value.dtype, device=value.device)
+            offset = torch.as_tensor(
+                1. + math.cos(self._bounds[arg][1]) / scale_value,
+                dtype=value.dtype, device=value.device)
+            return torch.acos(-scale * (value - offset))
         scale = (numpy.cos(self._bounds[arg][0])
                  - numpy.cos(self._bounds[arg][1]))
         offset = 1. + numpy.cos(self._bounds[arg][1]) / scale
         new_value = numpy.arccos(-scale * (value - offset))
         return new_value
 
+    def _torch_dfunc(self, torch, value):
+        """Evaluate the angular Jacobian with Torch."""
+        return torch.sin(value)
+
     def _pdf(self, **kwargs):
         """Returns the pdf at the given values. The keyword arguments must
         contain all of parameters in self's params. Unrecognized arguments are
         ignored.
         """
-        if kwargs not in self:
+        contained = self.__contains__(kwargs)
+        params = {param: kwargs[param] for param in self._params}
+        torch, reference = bounded._torch_module_and_reference(
+            params.values()
+        )
+        if torch is not None:
+            pdf = bounded._torch_as_tensor(self._norm, reference)
+            for param in self._params:
+                value = params[param]
+                if not isinstance(value, torch.Tensor):
+                    value = bounded._torch_as_tensor(value, reference)
+                pdf = pdf * self._torch_dfunc(torch, value)
+            return bounded._torch_where(params, contained, pdf, 0.0)
+        if not contained:
             return 0.
         return self._norm * \
             self._dfunc(numpy.array([kwargs[p] for p in self._params])).prod()
@@ -231,7 +262,26 @@ class SinAngle(UniformAngle):
         arguments must contain all of parameters in self's params. Unrecognized
         arguments are ignored.
         """
-        if kwargs not in self:
+        contained = self.__contains__(kwargs)
+        params = {param: kwargs[param] for param in self._params}
+        torch, reference = bounded._torch_module_and_reference(
+            params.values()
+        )
+        if torch is not None:
+            logpdf = bounded._torch_as_tensor(self._lognorm, reference)
+            for param in self._params:
+                value = params[param]
+                if not isinstance(value, torch.Tensor):
+                    value = bounded._torch_as_tensor(value, reference)
+                jacobian = self._torch_dfunc(torch, value)
+                safe_jacobian = torch.where(
+                    contained, jacobian, torch.ones_like(jacobian)
+                )
+                logpdf = logpdf + torch.log(safe_jacobian)
+            return bounded._torch_where(
+                params, contained, logpdf, -numpy.inf
+            )
+        if not contained:
             return -numpy.inf
         return self._lognorm + \
             numpy.log(self._dfunc(
@@ -257,7 +307,24 @@ class CosAngle(SinAngle):
     _arcfunc = numpy.arcsin
     _domainbounds = (-numpy.pi/2, numpy.pi/2)
 
+    def _torch_dfunc(self, torch, value):
+        """Evaluate the angular Jacobian with Torch."""
+        return torch.cos(value)
+
     def _cdfinv_param(self, param, value):
+        torch, reference = bounded._torch_module_and_reference((value,))
+        if torch is not None:
+            if (not reference.is_floating_point()
+                    and not reference.is_complex()):
+                value = bounded._torch_as_tensor(value, reference)
+            sin_a = math.sin(self._bounds[param][0])
+            sin_b = math.sin(self._bounds[param][1])
+            scale = torch.as_tensor(
+                sin_b - sin_a, dtype=value.dtype, device=value.device)
+            offset = torch.as_tensor(
+                1. - sin_b / (sin_b - sin_a),
+                dtype=value.dtype, device=value.device)
+            return torch.asin((value - offset) * scale)
         a = self._bounds[param][0]
         b = self._bounds[param][1]
         scale = numpy.sin(b) - numpy.sin(a)

@@ -22,7 +22,9 @@ from pycbc.constants import MTSUN_SI, PI
 import pycbc.libutils
 
 lal = pycbc.libutils.import_optional('lal')
-lalsimulation = pycbc.libutils.import_optional('lalsimulation')
+lalsimulation = pycbc.libutils.import_optional(
+    'lalsimulation', defer=pycbc.libutils.defer_lalsimulation_import()
+)
 
 logger = logging.getLogger('pycbc.tmpltbank.lambda_mapping')
 
@@ -194,6 +196,76 @@ def get_chirp_params(mass1, mass2, spin1z, spin2z, f0, order,
     lambdas : list of floats or numpy.arrays
         The lambda coordinates for the input system(s)
     """
+
+    torch_inputs = (
+        mass1,
+        mass2,
+        spin1z,
+        spin2z,
+        f0,
+        1.0 if quadparam1 is None else quadparam1,
+        1.0 if quadparam2 is None else quadparam2,
+        0.0 if lambda1 is None else lambda1,
+        0.0 if lambda2 is None else lambda2,
+    )
+    if any(
+        type(value).__module__.split(".", 1)[0] == "torch"
+        for value in torch_inputs
+    ):
+        from pycbc import conversions
+        from pycbc.waveform.taylorf2_torch import taylorf2_aligned_phasing
+
+        torch, values = conversions._torch_values(*torch_inputs)
+        (
+            mass1,
+            mass2,
+            spin1z,
+            spin2z,
+            f0,
+            quadparam1,
+            quadparam2,
+            lambda1,
+            lambda2,
+        ) = values
+        phasing = taylorf2_aligned_phasing(
+            mass1,
+            mass2,
+            spin1z,
+            spin2z,
+            qm_def1=quadparam1 - 1.0,
+            qm_def2=quadparam2 - 1.0,
+            lambda1=lambda1,
+            lambda2=lambda2,
+        )
+
+        pim = PI * (mass1 + mass2) * MTSUN_SI
+        pmf13 = (pim * f0) ** (1.0 / 3.0)
+        logpim13 = torch.log(pim ** (1.0 / 3.0))
+
+        mapping = generate_inverse_mapping(order)
+        lambdas = []
+        for idx in range(len(mapping)):
+            rematch = re.match(r"^Lambda([0-9]+)", mapping[idx])
+            if rematch:
+                pn_order = int(rematch.group(1))
+                term = (
+                    phasing.v[pn_order]
+                    + logpim13 * phasing.vlogv[pn_order]
+                )
+                lambdas.append(term * pmf13 ** (-5 + pn_order))
+                continue
+            rematch = re.match(r"^LogLambda([0-9]+)", mapping[idx])
+            if rematch:
+                pn_order = int(rematch.group(1))
+                lambdas.append(
+                    phasing.vlogv[pn_order]
+                    * pmf13 ** (-5 + pn_order)
+                )
+                continue
+            if re.match(r"^LogLogLambda([0-9]+)", mapping[idx]):
+                raise ValueError("LOGLOG terms are not implemented")
+            raise ValueError("Failed to parse " + mapping[idx])
+        return lambdas
 
     # Determine whether array or single value input
     sngl_inp = False

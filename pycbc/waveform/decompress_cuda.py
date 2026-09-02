@@ -1,3 +1,8 @@
+"""CUDA decompression backend (legacy).
+
+Torch users should use the torch scheme (`waveform/decompress_torch.py`);
+this module is only invoked when the CUDA scheme is selected.
+"""
 # Copyright (C) 2016  Josh Willis
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the

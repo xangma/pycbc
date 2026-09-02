@@ -816,59 +816,40 @@ torch::Tensor natural_spline_interpolate_native(
 ) {
     validate_tensor(query_tensor, "query");
     validate_tensor(x_tensor, "x");
-    validate_tensor(y_tensor, "y");
+    TORCH_CHECK(y_tensor.device().is_cpu(), "y must be a CPU tensor");
+    TORCH_CHECK(y_tensor.scalar_type() == torch::kFloat64, "y must be float64");
+    TORCH_CHECK(y_tensor.is_contiguous(), "y must be contiguous");
+
     int64_t n = x_tensor.numel();
     int64_t nq = query_tensor.numel();
-    TORCH_CHECK(y_tensor.numel() == n, "x and y must have same length");
     TORCH_CHECK(n >= 2, "need at least 2 points");
 
-    auto out_tensor = torch::empty_like(query_tensor);
-
     const double* x = x_tensor.data_ptr<double>();
-    const double* y = y_tensor.data_ptr<double>();
     const double* xq = query_tensor.data_ptr<double>();
-    double* out = out_tensor.data_ptr<double>();
-
-    std::vector<double> h(n - 1);
-    std::vector<double> alpha(n);
-    std::vector<double> l(n);
-    std::vector<double> mu(n);
-    std::vector<double> z(n);
-    std::vector<double> c_full(n);
-    std::vector<double> b(n - 1);
-    std::vector<double> d(n - 1);
-
-    for (int64_t i = 0; i < n - 1; ++i) {
-        h[i] = x[i + 1] - x[i];
-    }
-    for (int64_t i = 1; i < n - 1; ++i) {
-        alpha[i] = (3.0 / h[i]) * (y[i + 1] - y[i]) - (3.0 / h[i - 1]) * (y[i] - y[i - 1]);
-    }
-    l[0] = 1.0;
-    mu[0] = 0.0;
-    z[0] = 0.0;
-    for (int64_t i = 1; i < n - 1; ++i) {
-        l[i] = 2.0 * (x[i + 1] - x[i - 1]) - h[i - 1] * mu[i - 1];
-        mu[i] = h[i] / l[i];
-        z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
-    }
-    l[n - 1] = 1.0;
-    z[n - 1] = 0.0;
-    c_full[n - 1] = 0.0;
-
-    for (int64_t j = n - 2; j >= 0; --j) {
-        c_full[j] = z[j] - mu[j] * c_full[j + 1];
-        b[j] = (y[j + 1] - y[j]) / h[j] - h[j] * (c_full[j + 1] + 2.0 * c_full[j]) / 3.0;
-        d[j] = (c_full[j + 1] - c_full[j]) / (3.0 * h[j]);
-    }
-
     const double x_min = x[0];
     const double x_max = x[n - 1];
 
+    std::vector<double> h(n - 1);
+    std::vector<double> l(n);
+    std::vector<double> mu(n);
+    for (int64_t i = 0; i < n - 1; ++i) {
+        h[i] = x[i + 1] - x[i];
+    }
+    l[0] = 1.0;
+    mu[0] = 0.0;
+    for (int64_t i = 1; i < n - 1; ++i) {
+        l[i] = 2.0 * (x[i + 1] - x[i - 1]) - h[i - 1] * mu[i - 1];
+        mu[i] = h[i] / l[i];
+    }
+    l[n - 1] = 1.0;
+
+    std::vector<int64_t> query_idx(nq);
+    std::vector<double> query_dx(nq);
+    std::vector<bool> query_valid(nq, true);
     for (int64_t i = 0; i < nq; ++i) {
         double q = xq[i];
         if (!extrapolate && (q < x_min || q > x_max)) {
-            out[i] = std::numeric_limits<double>::quiet_NaN();
+            query_valid[i] = false;
             continue;
         }
         int64_t low = 0, high = n - 1;
@@ -883,19 +864,95 @@ torch::Tensor natural_spline_interpolate_native(
         int64_t idx = low - 1;
         if (idx < 0) idx = 0;
         if (idx > n - 2) idx = n - 2;
-
-        double dx = q - x[idx];
-        if (derivative == 0) {
-            out[i] = y[idx] + dx * (b[idx] + dx * (c_full[idx] + dx * d[idx]));
-        } else if (derivative == 1) {
-            out[i] = b[idx] + 2.0 * c_full[idx] * dx + 3.0 * d[idx] * dx * dx;
-        } else if (derivative == 2) {
-            out[i] = 2.0 * c_full[idx] + 6.0 * d[idx] * dx;
-        } else if (derivative == 3) {
-            out[i] = 6.0 * d[idx];
-        }
+        query_idx[i] = idx;
+        query_dx[i] = q - x[idx];
     }
-    return out_tensor;
+
+    if (y_tensor.dim() == 1) {
+        TORCH_CHECK(y_tensor.numel() == n, "x and y must have same length");
+        auto out_tensor = torch::empty_like(query_tensor);
+        const double* y = y_tensor.data_ptr<double>();
+        double* out = out_tensor.data_ptr<double>();
+
+        std::vector<double> alpha(n), z(n), c_full(n), b(n - 1), d(n - 1);
+        for (int64_t i = 1; i < n - 1; ++i) {
+            alpha[i] = (3.0 / h[i]) * (y[i + 1] - y[i]) - (3.0 / h[i - 1]) * (y[i] - y[i - 1]);
+            z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
+        }
+        z[0] = 0.0;
+        z[n - 1] = 0.0;
+        c_full[n - 1] = 0.0;
+
+        for (int64_t j = n - 2; j >= 0; --j) {
+            c_full[j] = z[j] - mu[j] * c_full[j + 1];
+            b[j] = (y[j + 1] - y[j]) / h[j] - h[j] * (c_full[j + 1] + 2.0 * c_full[j]) / 3.0;
+            d[j] = (c_full[j + 1] - c_full[j]) / (3.0 * h[j]);
+        }
+
+        for (int64_t i = 0; i < nq; ++i) {
+            if (!query_valid[i]) {
+                out[i] = std::numeric_limits<double>::quiet_NaN();
+                continue;
+            }
+            int64_t idx = query_idx[i];
+            double dx = query_dx[i];
+            if (derivative == 0) {
+                out[i] = y[idx] + dx * (b[idx] + dx * (c_full[idx] + dx * d[idx]));
+            } else if (derivative == 1) {
+                out[i] = b[idx] + 2.0 * c_full[idx] * dx + 3.0 * d[idx] * dx * dx;
+            } else if (derivative == 2) {
+                out[i] = 2.0 * c_full[idx] + 6.0 * d[idx] * dx;
+            } else if (derivative == 3) {
+                out[i] = 6.0 * d[idx];
+            }
+        }
+        return out_tensor;
+    } else if (y_tensor.dim() == 2) {
+        TORCH_CHECK(y_tensor.size(0) == n, "x and y.size(0) must have same length");
+        int64_t cols = y_tensor.size(1);
+        auto out_tensor = torch::empty({nq, cols}, query_tensor.options());
+        const double* y_base = y_tensor.data_ptr<double>();
+        double* out_base = out_tensor.data_ptr<double>();
+
+        std::vector<double> alpha(n), z(n), c_full(n), b(n - 1), d(n - 1);
+        for (int64_t col = 0; col < cols; ++col) {
+            auto get_y = [&](int64_t row) { return y_base[row * cols + col]; };
+            for (int64_t i = 1; i < n - 1; ++i) {
+                alpha[i] = (3.0 / h[i]) * (get_y(i + 1) - get_y(i)) - (3.0 / h[i - 1]) * (get_y(i) - get_y(i - 1));
+                z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
+            }
+            z[0] = 0.0;
+            z[n - 1] = 0.0;
+            c_full[n - 1] = 0.0;
+
+            for (int64_t j = n - 2; j >= 0; --j) {
+                c_full[j] = z[j] - mu[j] * c_full[j + 1];
+                b[j] = (get_y(j + 1) - get_y(j)) / h[j] - h[j] * (c_full[j + 1] + 2.0 * c_full[j]) / 3.0;
+                d[j] = (c_full[j + 1] - c_full[j]) / (3.0 * h[j]);
+            }
+
+            for (int64_t i = 0; i < nq; ++i) {
+                if (!query_valid[i]) {
+                    out_base[i * cols + col] = std::numeric_limits<double>::quiet_NaN();
+                    continue;
+                }
+                int64_t idx = query_idx[i];
+                double dx = query_dx[i];
+                if (derivative == 0) {
+                    out_base[i * cols + col] = get_y(idx) + dx * (b[idx] + dx * (c_full[idx] + dx * d[idx]));
+                } else if (derivative == 1) {
+                    out_base[i * cols + col] = b[idx] + 2.0 * c_full[idx] * dx + 3.0 * d[idx] * dx * dx;
+                } else if (derivative == 2) {
+                    out_base[i * cols + col] = 2.0 * c_full[idx] + 6.0 * d[idx] * dx;
+                } else if (derivative == 3) {
+                    out_base[i * cols + col] = 6.0 * d[idx];
+                }
+            }
+        }
+        return out_tensor;
+    } else {
+        TORCH_CHECK(false, "y_tensor must be 1D or 2D");
+    }
 }
 
 
@@ -933,6 +990,70 @@ inline double gsl_deriv_central_c(const std::function<double(double)>& f, double
         if (error_opt < error && std::fabs(r_opt - result) < 4.0 * error) {
             result = r_opt;
         }
+    }
+    return result;
+}
+
+inline double gsl_deriv_central_with_err_c(const std::function<double(double)>& f, double x, double h, double* abs_err) {
+    constexpr double eps_f = 2.2204460492503131e-16;
+    double fm1 = f(x - h);
+    double fp1 = f(x + h);
+    double fmh = f(x - h * 0.5);
+    double fph = f(x + h * 0.5);
+    double r3 = 0.5 * (fp1 - fm1);
+    double r5 = (4.0 / 3.0) * (fph - fmh) - (1.0 / 3.0) * r3;
+    double e3 = (std::fabs(fp1) + std::fabs(fm1)) * eps_f;
+    double e5 = 2.0 * (std::fabs(fph) + std::fabs(fmh)) * eps_f + e3;
+    double dy = std::max(std::fabs(r3 / h), std::fabs(r5 / h)) * (std::fabs(x) / h) * eps_f;
+    double result = r5 / h;
+    double trunc = std::fabs((r5 - r3) / h);
+    double round_err = std::fabs(e5 / h) + dy;
+    double error = round_err + trunc;
+    if (round_err < trunc && round_err > 0.0 && trunc > 0.0) {
+        double h_opt = h * std::cbrt(round_err / (2.0 * trunc));
+        double fm1_opt = f(x - h_opt);
+        double fp1_opt = f(x + h_opt);
+        double fmh_opt = f(x - h_opt * 0.5);
+        double fph_opt = f(x + h_opt * 0.5);
+        double r3_opt = 0.5 * (fp1_opt - fm1_opt);
+        double r5_opt = (4.0 / 3.0) * (fph_opt - fmh_opt) - (1.0 / 3.0) * r3_opt;
+        double e3_opt = (std::fabs(fp1_opt) + std::fabs(fm1_opt)) * eps_f;
+        double e5_opt = 2.0 * (std::fabs(fph_opt) + std::fabs(fmh_opt)) * eps_f + e3_opt;
+        double dy_opt = std::max(std::fabs(r3_opt / h_opt), std::fabs(r5_opt / h_opt)) * (std::fabs(x) / h_opt) * eps_f;
+        double r_opt = r5_opt / h_opt;
+        double trunc_opt = std::fabs((r5_opt - r3_opt) / h_opt);
+        double round_opt = std::fabs(e5_opt / h_opt) + dy_opt;
+        double error_opt = round_opt + trunc_opt;
+        if (error_opt < error && std::fabs(r_opt - result) < 4.0 * error) {
+            result = r_opt;
+            error = error_opt;
+        }
+    }
+    if (abs_err) *abs_err = error;
+    return result;
+}
+
+inline double robust_gsl_derivative_c(const std::function<double(double)>& f, double x, double h) {
+    double abs_err = 0.0;
+    double result = gsl_deriv_central_with_err_c(f, x, h, &abs_err);
+    constexpr double frac = 0.01;
+    if (abs_err <= frac * std::fabs(result)) {
+        return result;
+    }
+    for (int n = 1; n <= 10; ++n) {
+        double h1 = h * double(2 * n);
+        double h2 = h / double(2 * n);
+        double abs_err1 = 0.0, abs_err2 = 0.0;
+        double temp1 = gsl_deriv_central_with_err_c(f, x, h1, &abs_err1);
+        double temp2 = gsl_deriv_central_with_err_c(f, x, h2, &abs_err2);
+        double t1 = std::fabs(temp1);
+        double t2 = std::fabs(temp2);
+        double e1 = std::fabs(abs_err1);
+        double e2 = std::fabs(abs_err2);
+        double rel1 = (t1 == 0.0) ? std::numeric_limits<double>::infinity() : e1 / t1;
+        double rel2 = (t2 == 0.0) ? std::numeric_limits<double>::infinity() : e2 / t2;
+        if (rel1 < rel2 && e1 < frac * t1) return temp1;
+        if (rel1 > rel2 && e2 < frac * t2) return temp2;
     }
     return result;
 }
@@ -2244,23 +2365,127 @@ inline void rho_aux_flux_c(
     *aux_out = aux;
 }
 
-inline double non_keplerian_vphi_c(
+inline void calculate_rdot_c(
     const double r_vec[3],
     const double p_vec[3],
-    const double dxdt[3],
-    const double S1_weighted[3],
-    const double S2_weighted[3],
+    const double s1_w[3],
+    const double s2_w[3],
     double mass1,
     double mass2,
     double eta,
     double M,
-    double omega,
-    double r
+    double rdot_out[3]
 ) {
+    double L_vec[3] = {
+        r_vec[1] * p_vec[2] - r_vec[2] * p_vec[1],
+        r_vec[2] * p_vec[0] - r_vec[0] * p_vec[2],
+        r_vec[0] * p_vec[1] - r_vec[1] * p_vec[0]
+    };
+    HCoeffs h_inst;
+    instantaneous_hcoeffs_c(eta, L_vec, s1_w, s2_w, &h_inst);
+
+    double r_clamp = std::sqrt(r_vec[0]*r_vec[0] + r_vec[1]*r_vec[1] + r_vec[2]*r_vec[2]);
+    if (r_clamp < 1.0e-15) r_clamp = 1.0e-15;
+    double r2 = r_clamp * r_clamp;
+    double u = 1.0 / r_clamp;
+    double u2 = u * u;
+    double u3 = u2 * u;
+    double u4 = u2 * u2;
+    double u5 = u4 * u;
+    double logu = std::log(u);
+    double sigma_vec[3] = {s1_w[0] + s2_w[0], s1_w[1] + s2_w[1], s1_w[2] + s2_w[2]};
+    double a2 = sigma_vec[0]*sigma_vec[0] + sigma_vec[1]*sigma_vec[1] + sigma_vec[2]*sigma_vec[2];
+    double w2 = r2 + a2;
+
+    double D_term = 1.0 + 6.0 * eta * u2 + 2.0 * (26.0 - 3.0 * eta) * eta * u3;
+    double D = 1.0 + std::log(D_term);
+    double m1PlusetaKK = -1.0 + eta * h_inst.KK;
+    double bulk = 1.0 / (m1PlusetaKK * m1PlusetaKK) + (2.0 * u) / m1PlusetaKK + a2 * u2;
+    double log_arg = 1.0 + h_inst.k1 * u + h_inst.k2 * u2 + h_inst.k3 * u3 + h_inst.k4 * u4 + h_inst.k5 * u5 + h_inst.k5l * u5 * logu;
+    double logTerms = 1.0 + eta * h_inst.k0 + eta * std::log(std::fabs(log_arg));
+    double deltaU = bulk * logTerms;
+    double deltaT = r2 * deltaU;
+    double deltaR = deltaT * D;
+    double csi = std::sqrt(std::max(deltaT * deltaR, 0.0)) / w2;
+    double csi_fac = (csi < 1.0e-15) ? 1.0e-15 : csi;
+
+    double Tmat[3][3];
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j <= i; ++j) {
+            double tij = (r_vec[i] * r_vec[j] / r2) * (csi_fac - 1.0);
+            if (i == j) {
+                tij += 1.0;
+            }
+            Tmat[i][j] = tij;
+            Tmat[j][i] = tij;
+        }
+    }
+
+    double dH_dpvec[3];
+    double p_tmp[3] = {p_vec[0], p_vec[1], p_vec[2]};
+    constexpr double STEP_DERIV = 2.0e-3;
+    for (int axis = 0; axis < 3; ++axis) {
+        auto f = [&](double p_val) -> double {
+            double orig = p_tmp[axis];
+            p_tmp[axis] = p_val;
+            double h_val = eob_hamiltonian_c(
+                r_vec, p_tmp, s1_w, s2_w,
+                mass1, mass2, eta, M,
+                h_inst.k0, h_inst.k1, h_inst.k2, h_inst.k3, h_inst.k4, h_inst.k5, h_inst.k5l,
+                h_inst.KK, h_inst.d1, h_inst.d1v2, h_inst.dheffSS, h_inst.dheffSSv2,
+                h_inst.b3, h_inst.bb3,
+                1, true
+            ) / eta;
+            p_tmp[axis] = orig;
+            return h_val;
+        };
+        dH_dpvec[axis] = gsl_deriv_central_c(f, p_vec[axis], STEP_DERIV);
+    }
+
+    rdot_out[0] = Tmat[0][0]*dH_dpvec[0] + Tmat[0][1]*dH_dpvec[1] + Tmat[0][2]*dH_dpvec[2];
+    rdot_out[1] = Tmat[1][0]*dH_dpvec[0] + Tmat[1][1]*dH_dpvec[1] + Tmat[1][2]*dH_dpvec[2];
+    rdot_out[2] = Tmat[2][0]*dH_dpvec[0] + Tmat[2][1]*dH_dpvec[1] + Tmat[2][2]*dH_dpvec[2];
+}
+
+inline double calcomega_lal_polar_derivative_point_c(
+    const double r_vec[3],
+    const double p_vec[3],
+    const double s1[3],
+    const double s2[3],
+    double mass1,
+    double mass2,
+    double eta,
+    double M,
+    const double* rdot_in = nullptr,
+    const double* s1_weighted_in = nullptr,
+    const double* s2_weighted_in = nullptr
+) {
+    double s1_scale = (mass1 * mass1) / (M * M);
+    double s2_scale = (mass2 * mass2) / (M * M);
+
+    double s1_w[3], s2_w[3];
+    if (s1_weighted_in) {
+        s1_w[0] = s1_weighted_in[0]; s1_w[1] = s1_weighted_in[1]; s1_w[2] = s1_weighted_in[2];
+    } else {
+        s1_w[0] = s1[0] * s1_scale; s1_w[1] = s1[1] * s1_scale; s1_w[2] = s1[2] * s1_scale;
+    }
+    if (s2_weighted_in) {
+        s2_w[0] = s2_weighted_in[0]; s2_w[1] = s2_weighted_in[1]; s2_w[2] = s2_weighted_in[2];
+    } else {
+        s2_w[0] = s2[0] * s2_scale; s2_w[1] = s2[1] * s2_scale; s2_w[2] = s2[2] * s2_scale;
+    }
+
+    double rdot[3];
+    if (rdot_in) {
+        rdot[0] = rdot_in[0]; rdot[1] = rdot_in[1]; rdot[2] = rdot_in[2];
+    } else {
+        calculate_rdot_c(r_vec, p_vec, s1_w, s2_w, mass1, mass2, eta, M, rdot);
+    }
+
     double LN[3] = {
-        r_vec[1] * dxdt[2] - r_vec[2] * dxdt[1],
-        r_vec[2] * dxdt[0] - r_vec[0] * dxdt[2],
-        r_vec[0] * dxdt[1] - r_vec[1] * dxdt[0]
+        r_vec[1] * rdot[2] - r_vec[2] * rdot[1],
+        r_vec[2] * rdot[0] - r_vec[0] * rdot[2],
+        r_vec[0] * rdot[1] - r_vec[1] * rdot[0]
     };
     double LN_norm = std::sqrt(LN[0]*LN[0] + LN[1]*LN[1] + LN[2]*LN[2]);
     double LN_clamp = (LN_norm < 1.0e-15) ? 1.0e-15 : LN_norm;
@@ -2314,11 +2539,11 @@ inline double non_keplerian_vphi_c(
         }
     };
 
-    double r_prime[3], p_prime[3], S1_prime[3], S2_prime[3];
+    double r_prime[3], p_prime[3], s1_w_prime[3], s2_w_prime[3];
     rotate(r_vec, r_prime);
     rotate(p_vec, p_prime);
-    rotate(S1_weighted, S1_prime);
-    rotate(S2_weighted, S2_prime);
+    rotate(s1_w, s1_w_prime);
+    rotate(s2_w, s2_w_prime);
 
     double r_polar = std::sqrt(r_prime[0]*r_prime[0] + r_prime[1]*r_prime[1] + r_prime[2]*r_prime[2]);
     double r_polar_clamp = (r_polar < 1.0e-15) ? 1.0e-15 : r_polar;
@@ -2364,14 +2589,176 @@ inline double non_keplerian_vphi_c(
     };
 
     HCoeffs h_inst;
-    instantaneous_hcoeffs_c(eta, L_eval, S1_prime, S2_prime, &h_inst);
+    instantaneous_hcoeffs_c(eta, L_eval, s1_w_prime, s2_w_prime, &h_inst);
 
-    double omega_circ_val = calcomega_polar_derivative_core_c(
+    return calcomega_polar_derivative_core_c(
         pphi_polar, r_polar, theta_polar, phi_polar, ptheta_polar,
-        S1_prime, S2_prime, mass1, mass2, eta, M,
+        s1_w_prime, s2_w_prime, mass1, mass2, eta, M,
         h_inst.k0, h_inst.k1, h_inst.k2, h_inst.k3, h_inst.k4, h_inst.k5, h_inst.k5l,
         h_inst.KK, h_inst.d1, h_inst.d1v2, h_inst.dheffSS, h_inst.dheffSSv2,
         h_inst.b3, h_inst.bb3
+    );
+}
+
+inline double aligned_non_keplerian_omega_c(
+    double r,
+    double pphi,
+    const double S1_weighted[3],
+    const double S2_weighted[3],
+    double mass1,
+    double mass2,
+    double eta,
+    double M,
+    const HCoeffs& h
+) {
+    double r_clamp = (r < 1.0e-15) ? 1.0e-15 : r;
+    double py0 = pphi / r_clamp;
+    double r_vec[3] = {r, 0.0, 0.0};
+    auto f = [&](double py_eval) -> double {
+        double p_vec[3] = {0.0, py_eval, 0.0};
+        return eob_hamiltonian_c(
+            r_vec, p_vec, S1_weighted, S2_weighted,
+            mass1, mass2, eta, M,
+            h.k0, h.k1, h.k2, h.k3, h.k4, h.k5, h.k5l,
+            h.KK, h.d1, h.d1v2, h.dheffSS, h.dheffSSv2,
+            h.b3, h.bb3,
+            1, true
+        ) / eta;
+    };
+    constexpr double STEP_DERIV = 2.0e-3;
+    double dH_dpy = gsl_deriv_central_c(f, py0, STEP_DERIV);
+    return std::fabs(dH_dpy / r_clamp);
+}
+
+inline double non_keplerian_vphi_point_c(
+    double r,
+    double omega,
+    double phi,
+    const double L_vec[3],
+    const double s1[3],
+    const double s2[3],
+    double mass1,
+    double mass2,
+    double eta,
+    double M,
+    bool aligned_spins,
+    const double* r_vec_in = nullptr,
+    const double* p_vec_in = nullptr,
+    const double* rdot_in = nullptr,
+    const double* s1_weighted_in = nullptr,
+    const double* s2_weighted_in = nullptr
+) {
+    double omega_circ = 0.0;
+    if (aligned_spins) {
+        double s1_scale = (mass1 * mass1) / (M * M);
+        double s2_scale = (mass2 * mass2) / (M * M);
+        double s1_w[3], s2_w[3];
+        if (s1_weighted_in) {
+            s1_w[0] = s1_weighted_in[0]; s1_w[1] = s1_weighted_in[1]; s1_w[2] = s1_weighted_in[2];
+        } else {
+            s1_w[0] = s1[0] * s1_scale; s1_w[1] = s1[1] * s1_scale; s1_w[2] = s1[2] * s1_scale;
+        }
+        if (s2_weighted_in) {
+            s2_w[0] = s2_weighted_in[0]; s2_w[1] = s2_weighted_in[1]; s2_w[2] = s2_weighted_in[2];
+        } else {
+            s2_w[0] = s2[0] * s2_scale; s2_w[1] = s2[1] * s2_scale; s2_w[2] = s2[2] * s2_scale;
+        }
+        double pphi = std::sqrt(L_vec[0]*L_vec[0] + L_vec[1]*L_vec[1] + L_vec[2]*L_vec[2]);
+        HCoeffs h_inst;
+        instantaneous_hcoeffs_c(eta, L_vec, s1_w, s2_w, &h_inst);
+        omega_circ = aligned_non_keplerian_omega_c(r, pphi, s1_w, s2_w, mass1, mass2, eta, M, h_inst);
+    } else {
+        double r_eval[3], p_eval[3];
+        if (r_vec_in && p_vec_in) {
+            r_eval[0] = r_vec_in[0]; r_eval[1] = r_vec_in[1]; r_eval[2] = r_vec_in[2];
+            p_eval[0] = p_vec_in[0]; p_eval[1] = p_vec_in[1]; p_eval[2] = p_vec_in[2];
+        } else {
+            bool aligned_gauge = (
+                (std::fabs(L_vec[0]) + std::fabs(L_vec[1]) < 1.0e-14) &&
+                (std::fabs(s1[0]) + std::fabs(s1[1]) + std::fabs(s2[0]) + std::fabs(s2[1]) < 1.0e-14)
+            );
+            double phi_eval = aligned_gauge ? 0.0 : phi;
+            double L_mag = std::sqrt(L_vec[0]*L_vec[0] + L_vec[1]*L_vec[1] + L_vec[2]*L_vec[2]);
+            double L_clamp = (L_mag < 1.0e-15) ? 1.0e-15 : L_mag;
+            double Lhat[3] = {L_vec[0] / L_clamp, L_vec[1] / L_clamp, L_vec[2] / L_clamp};
+            double xhat[3] = {1.0, 0.0, 0.0};
+            double yhat[3] = {0.0, 1.0, 0.0};
+            double dot_xL = xhat[0]*Lhat[0] + xhat[1]*Lhat[1] + xhat[2]*Lhat[2];
+            double e1[3] = {xhat[0] - dot_xL * Lhat[0], xhat[1] - dot_xL * Lhat[1], xhat[2] - dot_xL * Lhat[2]};
+            double e1_norm = std::sqrt(e1[0]*e1[0] + e1[1]*e1[1] + e1[2]*e1[2]);
+            if (e1_norm < 1.0e-14) {
+                double dot_yL = yhat[0]*Lhat[0] + yhat[1]*Lhat[1] + yhat[2]*Lhat[2];
+                e1[0] = yhat[0] - dot_yL * Lhat[0];
+                e1[1] = yhat[1] - dot_yL * Lhat[1];
+                e1[2] = yhat[2] - dot_yL * Lhat[2];
+                e1_norm = std::sqrt(e1[0]*e1[0] + e1[1]*e1[1] + e1[2]*e1[2]);
+            }
+            double e1_clamp = (e1_norm < 1.0e-15) ? 1.0e-15 : e1_norm;
+            e1[0] /= e1_clamp; e1[1] /= e1_clamp; e1[2] /= e1_clamp;
+
+            double e2[3] = {
+                Lhat[1]*e1[2] - Lhat[2]*e1[1],
+                Lhat[2]*e1[0] - Lhat[0]*e1[2],
+                Lhat[0]*e1[1] - Lhat[1]*e1[0]
+            };
+            double cos_p = std::cos(phi_eval), sin_p = std::sin(phi_eval);
+            double n_hat[3] = {
+                cos_p * e1[0] + sin_p * e2[0],
+                cos_p * e1[1] + sin_p * e2[1],
+                cos_p * e1[2] + sin_p * e2[2]
+            };
+            double n_norm = std::sqrt(n_hat[0]*n_hat[0] + n_hat[1]*n_hat[1] + n_hat[2]*n_hat[2]);
+            double n_clamp = (n_norm < 1.0e-15) ? 1.0e-15 : n_norm;
+            n_hat[0] /= n_clamp; n_hat[1] /= n_clamp; n_hat[2] /= n_clamp;
+
+            r_eval[0] = r * n_hat[0];
+            r_eval[1] = r * n_hat[1];
+            r_eval[2] = r * n_hat[2];
+
+            double n_cross_L[3] = {
+                n_hat[1]*L_vec[2] - n_hat[2]*L_vec[1],
+                n_hat[2]*L_vec[0] - n_hat[0]*L_vec[2],
+                n_hat[0]*L_vec[1] - n_hat[1]*L_vec[0]
+            };
+            double r_denom = (r < 1.0e-12) ? 1.0e-12 : r;
+            p_eval[0] = -n_cross_L[0] / r_denom;
+            p_eval[1] = -n_cross_L[1] / r_denom;
+            p_eval[2] = -n_cross_L[2] / r_denom;
+        }
+
+        double val = calcomega_lal_polar_derivative_point_c(
+            r_eval, p_eval, s1, s2, mass1, mass2, eta, M,
+            rdot_in, s1_weighted_in, s2_weighted_in
+        );
+        omega_circ = std::fabs(val);
+    }
+
+    double om_clamp = (omega_circ < 1.0e-12) ? 1.0e-12 : omega_circ;
+    double r_clamp = (r < 1.0e-12) ? 1.0e-12 : r;
+    double denom_coeff = om_clamp * om_clamp * r_clamp * r_clamp * r_clamp;
+    double coeff = 1.0 / denom_coeff;
+    if (coeff < 1.0e-12) coeff = 1.0e-12;
+    double vphi = r * std::cbrt(coeff) * std::fabs(omega);
+    return (vphi < 1.0e-12) ? 1.0e-12 : vphi;
+}
+
+inline double non_keplerian_vphi_c(
+    const double r_vec[3],
+    const double p_vec[3],
+    const double dxdt[3],
+    const double S1_weighted[3],
+    const double S2_weighted[3],
+    double mass1,
+    double mass2,
+    double eta,
+    double M,
+    double omega,
+    double r
+) {
+    double omega_circ_val = calcomega_lal_polar_derivative_point_c(
+        r_vec, p_vec, S1_weighted, S2_weighted,
+        mass1, mass2, eta, M,
+        dxdt, S1_weighted, S2_weighted
     );
     double omega_circ = std::fabs(omega_circ_val);
     double om_clamp = (omega_circ < 1.0e-12) ? 1.0e-12 : omega_circ;
@@ -2805,6 +3192,872 @@ torch::Tensor eob_rhs_cartesian_native(
     return dydt_t;
 }
 
+// Initial conditions spherical derivatives and root finding
+inline void ic_spherical_derivatives_c(
+    double mass1,
+    double mass2,
+    double eta,
+    double M,
+    double r,
+    double ptheta,
+    double pphi,
+    const double S1[3],
+    const double S2[3],
+    double* out_dHdr,
+    double* out_dHdptheta,
+    double* out_dHdpphi,
+    HCoeffs* inout_hcoeffs,
+    double py_cart = std::numeric_limits<double>::quiet_NaN(),
+    double pz_cart = std::numeric_limits<double>::quiet_NaN(),
+    const double* S1_weighted_override = nullptr,
+    const double* S2_weighted_override = nullptr
+) {
+    double py = std::isnan(py_cart) ? (pphi / r) : py_cart;
+    double pz = std::isnan(pz_cart) ? (-ptheta / r) : pz_cart;
+    double r_vec[3] = {r, 0.0, 0.0};
+    double p_vec[3] = {0.0, py, pz};
+    double L_vec[3] = {
+        0.0,
+        -r * pz,
+        r * py
+    };
+    double s1_m2[3], s2_m2[3];
+    if (S1_weighted_override != nullptr) {
+        s1_m2[0] = S1_weighted_override[0];
+        s1_m2[1] = S1_weighted_override[1];
+        s1_m2[2] = S1_weighted_override[2];
+    } else {
+        double s1_scale = (mass1 * mass1) / (M * M);
+        s1_m2[0] = S1[0] * s1_scale;
+        s1_m2[1] = S1[1] * s1_scale;
+        s1_m2[2] = S1[2] * s1_scale;
+    }
+    if (S2_weighted_override != nullptr) {
+        s2_m2[0] = S2_weighted_override[0];
+        s2_m2[1] = S2_weighted_override[1];
+        s2_m2[2] = S2_weighted_override[2];
+    } else {
+        double s2_scale = (mass2 * mass2) / (M * M);
+        s2_m2[0] = S2[0] * s2_scale;
+        s2_m2[1] = S2[1] * s2_scale;
+        s2_m2[2] = S2[2] * s2_scale;
+    }
+
+    HCoeffs entry_hcoeffs = *inout_hcoeffs;
+    HCoeffs h_inst;
+    instantaneous_hcoeffs_c(eta, L_vec, s1_m2, s2_m2, &h_inst);
+    *inout_hcoeffs = h_inst;
+
+    double r_clamp = (r < 1.0e-15) ? 1.0e-15 : r;
+    double r2 = r_clamp * r_clamp;
+    double u = 1.0 / r_clamp;
+    double u2 = u * u;
+    double u3 = u2 * u;
+    double u4 = u2 * u2;
+    double u5 = u4 * u;
+    double logu = std::log(u);
+    double sigma_vec[3] = {s1_m2[0] + s2_m2[0], s1_m2[1] + s2_m2[1], s1_m2[2] + s2_m2[2]};
+    double a2 = sigma_vec[0]*sigma_vec[0] + sigma_vec[1]*sigma_vec[1] + sigma_vec[2]*sigma_vec[2];
+    double a = std::sqrt(a2);
+    double w2 = r2 + a2;
+
+    double D_term = 1.0 + 6.0 * eta * u2 + 2.0 * (26.0 - 3.0 * eta) * eta * u3;
+    double D = 1.0 + std::log(D_term);
+    double eobD_r = (u2 / (D * D)) * (12.0 * eta * u + 6.0 * (26.0 - 3.0 * eta) * eta * u2) / D_term;
+
+    double m1PlusetaKK = -1.0 + eta * entry_hcoeffs.KK;
+    double bulk = 1.0 / (m1PlusetaKK * m1PlusetaKK) + (2.0 * u) / m1PlusetaKK + a2 * u2;
+    double log_arg = 1.0 + entry_hcoeffs.k1 * u + entry_hcoeffs.k2 * u2 + entry_hcoeffs.k3 * u3 + entry_hcoeffs.k4 * u4 + entry_hcoeffs.k5 * u5 + entry_hcoeffs.k5l * u5 * logu;
+    double logTerms = 1.0 + eta * entry_hcoeffs.k0 + eta * std::log(std::fabs(log_arg));
+    double deltaU = bulk * logTerms;
+    double deltaT = r2 * deltaU;
+    double dlogarg_du = entry_hcoeffs.k1 + u * (2.0 * entry_hcoeffs.k2 + u * (3.0 * entry_hcoeffs.k3 + u * (4.0 * entry_hcoeffs.k4 + 5.0 * (entry_hcoeffs.k5 + entry_hcoeffs.k5l * logu) * u)));
+    double deltaU_u = 2.0 * (1.0 / m1PlusetaKK + a2 * u) * logTerms + bulk * (eta * dlogarg_du) / log_arg;
+    double deltaU_r = -u2 * deltaU_u;
+    double deltaR = deltaT * D;
+    double csi = std::sqrt(std::max(deltaT * deltaR, 0.0)) / w2;
+    double csi_fac = (csi < 1.0e-15) ? 1.0e-15 : csi;
+    double dcsi = csi * (2.0 / r_clamp + deltaU_r / deltaU)
+                 + (csi * csi * csi) / (2.0 * r2 * r2 * deltaU * deltaU) * (r_clamp * (-4.0 * w2) / D - eobD_r * (w2 * w2));
+
+    double Tmat[3][3], invTmat[3][3], dTijdXk[3][3][3];
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j <= i; ++j) {
+            double tij = (r_vec[i] * r_vec[j] / r2) * (csi_fac - 1.0);
+            double inv_tij = -((csi_fac - 1.0) / csi_fac) * (r_vec[i] * r_vec[j] / r2);
+            if (i == j) {
+                tij += 1.0;
+                inv_tij += 1.0;
+            }
+            Tmat[i][j] = tij;
+            Tmat[j][i] = tij;
+            invTmat[i][j] = inv_tij;
+            invTmat[j][i] = inv_tij;
+        }
+    }
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            for (int k = 0; k < 3; ++k) {
+                double delta_jk = (j == k) ? 1.0 : 0.0;
+                double delta_ik = (i == k) ? 1.0 : 0.0;
+                dTijdXk[i][j][k] = (r_vec[i] * delta_jk + delta_ik * r_vec[j]) * (csi_fac - 1.0) / r2
+                                 + (r_vec[i] * r_vec[j] * r_vec[k] / (r2 * r_clamp)) * (-2.0 / r_clamp * (csi_fac - 1.0) + dcsi);
+            }
+        }
+    }
+
+    double p_non_tortoise[3] = {p_vec[0], p_vec[1], p_vec[2]};
+
+    constexpr double STEP_DERIV = 2.0e-3;
+    double dH_dx[3];
+    double r_tmp[3] = {r_vec[0], r_vec[1], r_vec[2]};
+    for (int axis = 0; axis < 3; ++axis) {
+        auto f = [&](double r_val) -> double {
+            double orig = r_tmp[axis];
+            r_tmp[axis] = r_val;
+            double h_val = eob_hamiltonian_c(
+                r_tmp, p_non_tortoise, s1_m2, s2_m2,
+                mass1, mass2, eta, M,
+                h_inst.k0, h_inst.k1, h_inst.k2, h_inst.k3, h_inst.k4, h_inst.k5, h_inst.k5l,
+                h_inst.KK, h_inst.d1, h_inst.d1v2, h_inst.dheffSS, h_inst.dheffSSv2,
+                h_inst.b3, h_inst.bb3,
+                2, false
+            ) / eta;
+            r_tmp[axis] = orig;
+            return h_val;
+        };
+        dH_dx[axis] = gsl_deriv_central_c(f, r_vec[axis], STEP_DERIV);
+    }
+
+    double dH_dpvec[3];
+    double p_tmp[3] = {p_vec[0], p_vec[1], p_vec[2]};
+    for (int axis = 0; axis < 3; ++axis) {
+        auto f = [&](double p_val) -> double {
+            double orig = p_tmp[axis];
+            p_tmp[axis] = p_val;
+            double h_val = eob_hamiltonian_c(
+                r_vec, p_tmp, s1_m2, s2_m2,
+                mass1, mass2, eta, M,
+                h_inst.k0, h_inst.k1, h_inst.k2, h_inst.k3, h_inst.k4, h_inst.k5, h_inst.k5l,
+                h_inst.KK, h_inst.d1, h_inst.d1v2, h_inst.dheffSS, h_inst.dheffSSv2,
+                h_inst.b3, h_inst.bb3,
+                1, true
+            ) / eta;
+            p_tmp[axis] = orig;
+            return h_val;
+        };
+        dH_dpvec[axis] = gsl_deriv_central_c(f, p_vec[axis], STEP_DERIV);
+    }
+
+    double dxdt[3] = {
+        Tmat[0][0]*dH_dpvec[0] + Tmat[0][1]*dH_dpvec[1] + Tmat[0][2]*dH_dpvec[2],
+        Tmat[1][0]*dH_dpvec[0] + Tmat[1][1]*dH_dpvec[1] + Tmat[1][2]*dH_dpvec[2],
+        Tmat[2][0]*dH_dpvec[0] + Tmat[2][1]*dH_dpvec[1] + Tmat[2][2]*dH_dpvec[2]
+    };
+
+    double pdot_t1[3] = {
+        -(dH_dx[0]*Tmat[0][0] + dH_dx[1]*Tmat[0][1] + dH_dx[2]*Tmat[0][2]),
+        -(dH_dx[0]*Tmat[1][0] + dH_dx[1]*Tmat[1][1] + dH_dx[2]*Tmat[1][2]),
+        -(dH_dx[0]*Tmat[2][0] + dH_dx[1]*Tmat[2][1] + dH_dx[2]*Tmat[2][2])
+    };
+
+    double pdot_t3[3] = {0.0, 0.0, 0.0};
+    for (int i = 0; i < 3; ++i) {
+        double acc_i = 0.0;
+        for (int j = 0; j < 3; ++j) {
+            double acc_ij = 0.0;
+            for (int l = 0; l < 3; ++l) {
+                double acc_ijl = 0.0;
+                for (int k = 0; k < 3; ++k) {
+                    acc_ijl += dTijdXk[i][k][j] * invTmat[k][l];
+                }
+                acc_ij += acc_ijl * p_vec[l];
+            }
+            acc_i += acc_ij * dxdt[j];
+        }
+        pdot_t3[i] = acc_i;
+    }
+
+    double dpdt[3] = {
+        pdot_t1[0] + pdot_t3[0],
+        pdot_t1[1] + pdot_t3[1],
+        pdot_t1[2] + pdot_t3[2]
+    };
+
+    double dHdx = -dpdt[0];
+    double dHdpy = dxdt[1];
+    double dHdpz = dxdt[2];
+
+    double r2_denom = (r2 < 1.0e-15) ? 1.0e-15 : r2;
+    double r_denom = (r_clamp < 1.0e-15) ? 1.0e-15 : r_clamp;
+
+    *out_dHdr = dHdx - dHdpy * pphi / r2_denom + dHdpz * ptheta / r2_denom;
+    *out_dHdptheta = -dHdpz / r_denom;
+    *out_dHdpphi = dHdpy / r_denom;
+}
+
+inline bool gsl_multiroot_hybrids_3d_c(
+    const std::function<void(const double[3], double[3])>& residual,
+    const double guess[3],
+    double epsabs,
+    int max_iter,
+    double sol_x[3],
+    double final_f[3]
+) {
+    constexpr double SQRT_DBL_EPSILON = 1.4901161193847656e-08;
+
+    double x[3] = {guess[0], guess[1], guess[2]};
+    double f[3];
+    residual(x, f);
+
+    auto enorm = [](const double v[3]) {
+        return std::sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+    };
+    auto scaled_enorm = [](const double diag[3], const double v[3]) {
+        double d0 = diag[0]*v[0], d1 = diag[1]*v[1], d2 = diag[2]*v[2];
+        return std::sqrt(d0*d0 + d1*d1 + d2*d2);
+    };
+
+    auto fdjac = [&](const double cur_x[3], const double cur_f[3], double J[3][3]) {
+        double x_tr[3] = {cur_x[0], cur_x[1], cur_x[2]};
+        for (int j = 0; j < 3; ++j) {
+            double xj = cur_x[j];
+            double step = SQRT_DBL_EPSILON * std::fabs(xj);
+            if (step == 0.0) step = SQRT_DBL_EPSILON;
+            x_tr[j] = xj + step;
+            double f_tr[3];
+            residual(x_tr, f_tr);
+            x_tr[j] = xj;
+            for (int i = 0; i < 3; ++i) {
+                J[i][j] = (f_tr[i] - cur_f[i]) / step;
+            }
+        }
+    };
+
+    auto update_diag = [](const double J[3][3], double diag[3], bool init) {
+        for (int j = 0; j < 3; ++j) {
+            double tot = J[0][j]*J[0][j] + J[1][j]*J[1][j] + J[2][j]*J[2][j];
+            if (tot == 0.0) tot = 1.0;
+            double norm = std::sqrt(tot);
+            if (init) {
+                diag[j] = norm;
+            } else if (norm > diag[j]) {
+                diag[j] = norm;
+            }
+        }
+    };
+
+    auto qr_decomp = [](const double J[3][3], double Q[3][3], double R[3][3]) {
+        double A[3][3];
+        for (int i = 0; i < 3; ++i) for (int j = 0; j < 3; ++j) A[i][j] = J[i][j];
+        double tau[3] = {0.0, 0.0, 0.0};
+        for (int i = 0; i < 3; ++i) {
+            int len = 3 - i;
+            if (len == 1) {
+                tau[i] = 0.0;
+            } else {
+                double xnorm = 0.0;
+                for (int k = i + 1; k < 3; ++k) xnorm += A[k][i] * A[k][i];
+                xnorm = std::sqrt(xnorm);
+                if (xnorm == 0.0) {
+                    tau[i] = 0.0;
+                } else {
+                    double alpha = A[i][i];
+                    double sign = (alpha >= 0.0) ? 1.0 : -1.0;
+                    double beta = -sign * std::hypot(alpha, xnorm);
+                    tau[i] = (beta - alpha) / beta;
+                    double scale = 1.0 / (alpha - beta);
+                    for (int k = i + 1; k < 3; ++k) A[k][i] *= scale;
+                    A[i][i] = beta;
+                }
+            }
+            if (i + 1 < 3 && tau[i] != 0.0) {
+                double first = A[i][i];
+                A[i][i] = 1.0;
+                for (int j = i + 1; j < 3; ++j) {
+                    double dot = 0.0;
+                    for (int k = i; k < 3; ++k) dot += A[k][i] * A[k][j];
+                    for (int k = i; k < 3; ++k) A[k][j] -= tau[i] * dot * A[k][i];
+                }
+                A[i][i] = first;
+            }
+        }
+        for (int i = 0; i < 3; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                Q[i][j] = (i == j) ? 1.0 : 0.0;
+            }
+        }
+        for (int i = 2; i >= 0; --i) {
+            if (tau[i] != 0.0) {
+                for (int j = 0; j < 3; ++j) {
+                    double dot = Q[i][j];
+                    for (int k = i + 1; k < 3; ++k) dot += A[k][i] * Q[k][j];
+                    Q[i][j] -= tau[i] * dot;
+                    for (int k = i + 1; k < 3; ++k) Q[k][j] -= tau[i] * dot * A[k][i];
+                }
+            }
+        }
+        for (int i = 0; i < 3; ++i) {
+            for (int j = 0; j < 3; ++j) {
+                R[i][j] = (j >= i) ? A[i][j] : 0.0;
+            }
+        }
+    };
+
+    auto givens = [](double a, double b, double& c, double& s) {
+        if (b == 0.0) {
+            c = 1.0; s = 0.0;
+        } else if (std::fabs(b) > std::fabs(a)) {
+            double t = -a / b;
+            s = 1.0 / std::sqrt(1.0 + t*t);
+            c = s * t;
+        } else {
+            double t = -b / a;
+            c = 1.0 / std::sqrt(1.0 + t*t);
+            s = c * t;
+        }
+    };
+
+    auto apply_givens = [&](double Q[3][3], double R[3][3], int i, int j, double c, double s) {
+        for (int k = 0; k < 3; ++k) {
+            double qi = Q[k][i];
+            double qj = Q[k][j];
+            Q[k][i] = c * qi - s * qj;
+            Q[k][j] = s * qi + c * qj;
+        }
+        int start = std::min(i, j);
+        for (int k = start; k < 3; ++k) {
+            double ri = R[i][k];
+            double rj = R[j][k];
+            R[i][k] = c * ri - s * rj;
+            R[j][k] = s * ri + c * rj;
+        }
+    };
+
+    auto qr_update = [&](double Q[3][3], double R[3][3], double w[3], const double v[3]) {
+        for (int k = 2; k >= 1; --k) {
+            double c, s;
+            givens(w[k - 1], w[k], c, s);
+            double wi = w[k - 1];
+            double wj = w[k];
+            w[k - 1] = c * wi - s * wj;
+            w[k] = s * wi + c * wj;
+            apply_givens(Q, R, k - 1, k, c, s);
+        }
+        for (int j = 0; j < 3; ++j) {
+            R[0][j] += w[0] * v[j];
+        }
+        for (int k = 1; k < 3; ++k) {
+            double c, s;
+            givens(R[k - 1][k - 1], R[k][k - 1], c, s);
+            apply_givens(Q, R, k - 1, k, c, s);
+            R[k][k - 1] = 0.0;
+        }
+    };
+
+    auto dogleg = [&](const double R[3][3], const double qtf[3], const double diag[3], double delta, double dx[3]) {
+        double newton[3];
+        for (int i = 2; i >= 0; --i) {
+            double sum = -qtf[i];
+            for (int j = i + 1; j < 3; ++j) sum -= R[i][j] * newton[j];
+            newton[i] = sum / R[i][i];
+        }
+        double qnorm = scaled_enorm(diag, newton);
+        if (qnorm <= delta) {
+            dx[0] = newton[0]; dx[1] = newton[1]; dx[2] = newton[2];
+            return;
+        }
+        double grad[3];
+        for (int j = 0; j < 3; ++j) {
+            double sum = 0.0;
+            for (int i = 0; i < 3; ++i) sum += R[i][j] * qtf[i];
+            grad[j] = -sum / diag[j];
+        }
+        double gnorm = enorm(grad);
+        if (gnorm == 0.0) {
+            for (int i = 0; i < 3; ++i) dx[i] = (delta / qnorm) * newton[i];
+            return;
+        }
+        double scaled_grad[3];
+        for (int i = 0; i < 3; ++i) scaled_grad[i] = (grad[i] / gnorm) / diag[i];
+        double rg[3] = {0.0, 0.0, 0.0};
+        for (int i = 0; i < 3; ++i) {
+            for (int j = i; j < 3; ++j) rg[i] += R[i][j] * scaled_grad[j];
+        }
+        double temp = enorm(rg);
+        double sgnorm = (gnorm / temp) / temp;
+        if (sgnorm > delta) {
+            for (int i = 0; i < 3; ++i) dx[i] = delta * scaled_grad[i];
+            return;
+        }
+        double bnorm = enorm(qtf);
+        double bg = bnorm / gnorm;
+        double bq = bnorm / qnorm;
+        double dq = delta / qnorm;
+        double dq2 = dq * dq;
+        double sd = sgnorm / delta;
+        double sd2 = sd * sd;
+        double term1 = bg * bq * sd;
+        double u = term1 - dq;
+        double term2 = term1 - dq * sd2 + std::sqrt(u * u + (1.0 - dq2) * (1.0 - sd2));
+        double alpha = dq * (1.0 - sd2) / term2;
+        double beta = (1.0 - alpha) * sgnorm;
+        for (int i = 0; i < 3; ++i) {
+            dx[i] = alpha * newton[i] + beta * scaled_grad[i];
+        }
+    };
+
+    double J[3][3], Q[3][3], R[3][3], diag[3];
+    fdjac(x, f, J);
+    update_diag(J, diag, true);
+    double scaled_xnorm = scaled_enorm(diag, x);
+    double delta = (scaled_xnorm > 0.0) ? (100.0 * scaled_xnorm) : 100.0;
+    qr_decomp(J, Q, R);
+
+    int iteration = 1;
+    double fnorm = enorm(f);
+    int ncfail = 0, ncsuc = 0, nslow1 = 0, nslow2 = 0;
+
+    for (int iter = 0; iter < max_iter; ++iter) {
+        double old_fnorm = fnorm;
+        double qtf[3] = {0.0, 0.0, 0.0};
+        for (int j = 0; j < 3; ++j) {
+            for (int i = 0; i < 3; ++i) qtf[j] += Q[i][j] * f[i];
+        }
+        double dx[3];
+        dogleg(R, qtf, diag, delta, dx);
+        double x_tr[3] = {x[0] + dx[0], x[1] + dx[1], x[2] + dx[2]};
+        double pnorm = scaled_enorm(diag, dx);
+        if (iteration == 1 && pnorm < delta) {
+            delta = pnorm;
+        }
+        double f_tr[3];
+        residual(x_tr, f_tr);
+        double df[3] = {f_tr[0] - f[0], f_tr[1] - f[1], f_tr[2] - f[2]};
+        double fnorm1 = enorm(f_tr);
+        double actred = (fnorm1 < old_fnorm) ? (1.0 - (fnorm1 / old_fnorm) * (fnorm1 / old_fnorm)) : -1.0;
+
+        double rdx[3] = {0.0, 0.0, 0.0};
+        for (int i = 0; i < 3; ++i) {
+            for (int j = i; j < 3; ++j) rdx[i] += R[i][j] * dx[j];
+        }
+        double v_pred[3] = {qtf[0] + rdx[0], qtf[1] + rdx[1], qtf[2] + rdx[2]};
+        double fnorm1p = enorm(v_pred);
+        double prered = (fnorm1p < old_fnorm) ? (1.0 - (fnorm1p / old_fnorm) * (fnorm1p / old_fnorm)) : 0.0;
+        double ratio = (prered > 0.0) ? (actred / prered) : 0.0;
+
+        if (ratio < 0.1) {
+            ncsuc = 0;
+            ncfail += 1;
+            delta *= 0.5;
+        } else {
+            ncfail = 0;
+            ncsuc += 1;
+            if (ratio >= 0.5 || ncsuc > 1) {
+                delta = std::max(delta, pnorm / 0.5);
+            }
+            if (std::fabs(ratio - 1.0) <= 0.1) {
+                delta = pnorm / 0.5;
+            }
+        }
+
+        if (ratio >= 0.0001) {
+            x[0] = x_tr[0]; x[1] = x_tr[1]; x[2] = x_tr[2];
+            f[0] = f_tr[0]; f[1] = f_tr[1]; f[2] = f_tr[2];
+            fnorm = fnorm1;
+            iteration += 1;
+        }
+
+        nslow1 += 1;
+        if (actred >= 0.001) nslow1 = 0;
+        if (actred >= 0.1) nslow2 = 0;
+
+        if (ncfail == 2) {
+            fdjac(x, f, J);
+            nslow2 += 1;
+            if (iteration == 1) {
+                update_diag(J, diag, true);
+                scaled_xnorm = scaled_enorm(diag, x);
+                delta = (scaled_xnorm > 0.0) ? (100.0 * scaled_xnorm) : 100.0;
+            } else {
+                update_diag(J, diag, false);
+            }
+            qr_decomp(J, Q, R);
+        } else {
+            if (pnorm == 0.0) return false;
+            double qtdf[3] = {0.0, 0.0, 0.0};
+            for (int j = 0; j < 3; ++j) {
+                for (int i = 0; i < 3; ++i) qtdf[j] += Q[i][j] * df[i];
+            }
+            double w[3] = {
+                (qtdf[0] - rdx[0]) / pnorm,
+                (qtdf[1] - rdx[1]) / pnorm,
+                (qtdf[2] - rdx[2]) / pnorm
+            };
+            double v[3] = {
+                diag[0] * diag[0] * dx[0] / pnorm,
+                diag[1] * diag[1] * dx[1] / pnorm,
+                diag[2] * diag[2] * dx[2] / pnorm
+            };
+            qr_update(Q, R, w, v);
+            if (nslow2 == 5 || nslow1 == 10) return false;
+        }
+
+        if ((std::fabs(f[0]) + std::fabs(f[1]) + std::fabs(f[2])) < epsabs) {
+            sol_x[0] = x[0]; sol_x[1] = x[1]; sol_x[2] = x[2];
+            final_f[0] = f[0]; final_f[1] = f[1]; final_f[2] = f[2];
+            return true;
+        }
+    }
+    return false;
+}
+
+inline bool initial_cartesian_conditions_c(
+    double mass1,
+    double mass2,
+    double spin1x,
+    double spin1y,
+    double spin1z,
+    double spin2x,
+    double spin2y,
+    double spin2z,
+    double f_lower,
+    double out_state[14]
+) {
+    constexpr double MTSUN_SI = 4.925490947641266978197229498498379006e-6;
+    constexpr double PI_VAL = 3.14159265358979323846;
+
+    double M = mass1 + mass2;
+    double eta = (mass1 * mass2) / (M * M);
+    double M_sec = M * MTSUN_SI;
+    double omega_target = PI_VAL * f_lower * M_sec;
+    if (!std::isfinite(omega_target) || omega_target <= 0.0) {
+        return false;
+    }
+
+    double v0 = std::cbrt(omega_target);
+    double v0_sq = v0 * v0;
+    double x0_sq = (1.0 / v0_sq) * (1.0 / v0_sq) - 36.0;
+    if (!std::isfinite(x0_sq) || x0_sq <= 0.0) {
+        return false;
+    }
+    double x0 = std::sqrt(x0_sq);
+    double guess[3] = {x0, 2.0 * v0, 200.0e-3};
+
+    double S1[3] = {spin1x, spin1y, spin1z};
+    double S2[3] = {spin2x, spin2y, spin2z};
+
+    HCoeffs h_state;
+    double s1_scale = (mass1 * mass1) / (M * M);
+    double s2_scale = (mass2 * mass2) / (M * M);
+    double s1_init[3] = {S1[0] * s1_scale, S1[1] * s1_scale, S1[2] * s1_scale};
+    double s2_init[3] = {S2[0] * s2_scale, S2[1] * s2_scale, S2[2] * s2_scale};
+    double L_init[3] = {0.0, 0.0, 1.0};
+    instantaneous_hcoeffs_c(eta, L_init, s1_init, s2_init, &h_state);
+
+    auto residual = [&](const double scaled[3], double res[3]) {
+        double x_scaled = scaled[0];
+        double py_scaled = scaled[1];
+        double pz_scaled = scaled[2];
+        double r = std::sqrt(x_scaled * x_scaled + 36.0);
+        double py = py_scaled / 2.0;
+        double pz = pz_scaled / 200.0;
+        double ptheta = -r * pz;
+        double pphi = r * py;
+
+        double dHdr = 0.0, dHdptheta = 0.0, dHdpphi = 0.0;
+        ic_spherical_derivatives_c(
+            mass1, mass2, eta, M,
+            r, ptheta, pphi, S1, S2,
+            &dHdr, &dHdptheta, &dHdpphi,
+            &h_state,
+            py, pz
+        );
+        res[0] = dHdr;
+        res[1] = dHdptheta;
+        res[2] = dHdpphi - omega_target;
+        if (!std::isfinite(res[0]) || !std::isfinite(res[1]) || !std::isfinite(res[2])) {
+            res[0] = 1.0e3; res[1] = 1.0e3; res[2] = 1.0e3;
+        }
+    };
+
+    double sol_x[3] = {guess[0], guess[1], guess[2]};
+    double final_res[3] = {1.0e3, 1.0e3, 1.0e3};
+    bool ok = gsl_multiroot_hybrids_3d_c(residual, guess, 1.0e-9, 10000, sol_x, final_res);
+    double res_norm = std::sqrt(final_res[0]*final_res[0] + final_res[1]*final_res[1] + final_res[2]*final_res[2]);
+    if (!ok || !std::isfinite(res_norm) || res_norm > 1.0e-7) {
+        return false;
+    }
+
+    double x_scaled = sol_x[0];
+    double py_scaled = sol_x[1];
+    double pz_scaled = sol_x[2];
+    double r = std::sqrt(x_scaled * x_scaled + 36.0);
+    double py = py_scaled / 2.0;
+    double pz = pz_scaled / 200.0;
+
+    double p_unrotated_norm = std::sqrt(py * py + pz * pz);
+    if (p_unrotated_norm <= 0.0) return false;
+    double py_hat = py / p_unrotated_norm;
+    double pz_hat = pz / p_unrotated_norm;
+    double p_norm = py_hat * py + pz_hat * pz;
+
+    double rotMatrix2[3][3] = {
+        {1.0, 0.0, 0.0},
+        {0.0, py_hat, pz_hat},
+        {0.0, -pz_hat, py_hat}
+    };
+
+    double S1_ic[3], S2_ic[3], S1_deriv_ic[3], S2_deriv_ic[3], S1_norm_ic[3], S2_norm_ic[3];
+    for (int i = 0; i < 3; ++i) {
+        S1_ic[i] = rotMatrix2[i][0]*S1[0] + rotMatrix2[i][1]*S1[1] + rotMatrix2[i][2]*S1[2];
+        S2_ic[i] = rotMatrix2[i][0]*S2[0] + rotMatrix2[i][1]*S2[1] + rotMatrix2[i][2]*S2[2];
+        S1_deriv_ic[i] = S1_ic[i] * s1_scale;
+        S2_deriv_ic[i] = S2_ic[i] * s2_scale;
+        S1_norm_ic[i] = S1_deriv_ic[i];
+        S2_norm_ic[i] = S2_deriv_ic[i];
+    }
+    double py_ic = p_norm;
+    double pz_ic = 0.0;
+    double ptheta = 0.0;
+    double pphi = r * p_norm;
+    double L_vec_ic[3] = {0.0, 0.0, pphi};
+
+    auto deriv2_fn_dHdr = [&](double r_eval) -> double {
+        double dHdr_val = 0.0, dHdptheta_val = 0.0, dHdpphi_val = 0.0;
+        HCoeffs h_tmp = h_state;
+        ic_spherical_derivatives_c(
+            mass1, mass2, eta, M,
+            r_eval, ptheta, pphi, S1_ic, S2_ic,
+            &dHdr_val, &dHdptheta_val, &dHdpphi_val,
+            &h_tmp,
+            std::numeric_limits<double>::quiet_NaN(),
+            std::numeric_limits<double>::quiet_NaN(),
+            S1_deriv_ic, S2_deriv_ic
+        );
+        return dHdr_val;
+    };
+
+    auto deriv2_fn_dHdpphi = [&](double r_eval) -> double {
+        double dHdr_val = 0.0, dHdptheta_val = 0.0, dHdpphi_val = 0.0;
+        HCoeffs h_tmp = h_state;
+        ic_spherical_derivatives_c(
+            mass1, mass2, eta, M,
+            r_eval, ptheta, pphi, S1_ic, S2_ic,
+            &dHdr_val, &dHdptheta_val, &dHdpphi_val,
+            &h_tmp,
+            std::numeric_limits<double>::quiet_NaN(),
+            std::numeric_limits<double>::quiet_NaN(),
+            S1_deriv_ic, S2_deriv_ic
+        );
+        return dHdpphi_val;
+    };
+
+    double d2Hdr2 = robust_gsl_derivative_c(deriv2_fn_dHdr, r, 3.0e-3);
+    double d2Hdrdpphi = robust_gsl_derivative_c(deriv2_fn_dHdpphi, r, 3.0e-3);
+
+    double r_vec_ic[3] = {r, 0.0, 0.0};
+    double p_vec_ic[3] = {0.0, py_ic, 0.0};
+    HCoeffs h_base;
+    instantaneous_hcoeffs_c(eta, L_vec_ic, S1_deriv_ic, S2_deriv_ic, &h_base);
+
+    double dH_dpvec_base[3];
+    double p_tmp[3] = {p_vec_ic[0], p_vec_ic[1], p_vec_ic[2]};
+    constexpr double STEP_DERIV = 2.0e-3;
+    for (int axis = 0; axis < 3; ++axis) {
+        auto f = [&](double p_val) -> double {
+            double orig = p_tmp[axis];
+            p_tmp[axis] = p_val;
+            double h_val = eob_hamiltonian_c(
+                r_vec_ic, p_tmp, S1_deriv_ic, S2_deriv_ic,
+                mass1, mass2, eta, M,
+                h_base.k0, h_base.k1, h_base.k2, h_base.k3, h_base.k4, h_base.k5, h_base.k5l,
+                h_base.KK, h_base.d1, h_base.d1v2, h_base.dheffSS, h_base.dheffSSv2,
+                h_base.b3, h_base.bb3,
+                1, true
+            ) / eta;
+            p_tmp[axis] = orig;
+            return h_val;
+        };
+        dH_dpvec_base[axis] = gsl_deriv_central_c(f, p_vec_ic[axis], STEP_DERIV);
+    }
+    double dHdpphi = dH_dpvec_base[1] / r;
+    if (std::fabs(d2Hdrdpphi) < 1.0e-14 || std::fabs(d2Hdr2) < 1.0e-14) {
+        return false;
+    }
+    double dEdr = -dHdpphi * d2Hdr2 / d2Hdrdpphi;
+
+    EOBDynamicsContext dyn_ctx;
+    init_eob_dynamics_context(mass1, mass2, &dyn_ctx);
+
+    double dxdt_base[3] = {0.0, dH_dpvec_base[1], dH_dpvec_base[2]};
+    double vphi_nk = non_keplerian_vphi_c(
+        r_vec_ic, p_vec_ic, dxdt_base, S1_norm_ic, S2_norm_ic,
+        mass1, mass2, eta, M, omega_target, r
+    );
+
+    double H_val = eob_hamiltonian_c(
+        r_vec_ic, p_vec_ic, S1_norm_ic, S2_norm_ic,
+        mass1, mass2, eta, M,
+        h_base.k0, h_base.k1, h_base.k2, h_base.k3, h_base.k4, h_base.k5, h_base.k5l,
+        h_base.KK, h_base.d1, h_base.d1v2, h_base.dheffSS, h_base.dheffSSv2,
+        h_base.b3, h_base.bb3,
+        1, true
+    );
+
+    double flux = factorized_flux_c(
+        r, omega_target, H_val, pphi, L_vec_ic,
+        S1_norm_ic, S2_norm_ic, mass1, mass2, eta, M,
+        vphi_nk, dyn_ctx.prefix_table
+    );
+
+    double pr_probe = 1.0e-3;
+    double p_probe_vec[3] = {pr_probe, py_ic, 0.0};
+    HCoeffs h_probe;
+    instantaneous_hcoeffs_c(eta, L_vec_ic, S1_deriv_ic, S2_deriv_ic, &h_probe);
+
+    double dH_dpvec_probe0 = 0.0;
+    {
+        double p_pr_tmp[3] = {p_probe_vec[0], p_probe_vec[1], p_probe_vec[2]};
+        auto f = [&](double p_val) -> double {
+            double orig = p_pr_tmp[0];
+            p_pr_tmp[0] = p_val;
+            double h_val = eob_hamiltonian_c(
+                r_vec_ic, p_pr_tmp, S1_deriv_ic, S2_deriv_ic,
+                mass1, mass2, eta, M,
+                h_probe.k0, h_probe.k1, h_probe.k2, h_probe.k3, h_probe.k4, h_probe.k5, h_probe.k5l,
+                h_probe.KK, h_probe.d1, h_probe.d1v2, h_probe.dheffSS, h_probe.dheffSSv2,
+                h_probe.b3, h_probe.bb3,
+                1, true
+            ) / eta;
+            p_pr_tmp[0] = orig;
+            return h_val;
+        };
+        dH_dpvec_probe0 = gsl_deriv_central_c(f, p_probe_vec[0], STEP_DERIV);
+    }
+
+    double r_clamp = (r < 1.0e-15) ? 1.0e-15 : r;
+    double r2 = r_clamp * r_clamp;
+    double u = 1.0 / r_clamp;
+    double u2 = u * u;
+    double u3 = u2 * u;
+    double u4 = u2 * u2;
+    double u5 = u4 * u;
+    double logu = std::log(u);
+    double sigma_vec[3] = {S1_deriv_ic[0] + S2_deriv_ic[0], S1_deriv_ic[1] + S2_deriv_ic[1], S1_deriv_ic[2] + S2_deriv_ic[2]};
+    double a2 = sigma_vec[0]*sigma_vec[0] + sigma_vec[1]*sigma_vec[1] + sigma_vec[2]*sigma_vec[2];
+    double w2 = r2 + a2;
+    double D_term = 1.0 + 6.0 * eta * u2 + 2.0 * (26.0 - 3.0 * eta) * eta * u3;
+    double D = 1.0 + std::log(D_term);
+    double m1PlusetaKK = -1.0 + eta * h_probe.KK;
+    double bulk = 1.0 / (m1PlusetaKK * m1PlusetaKK) + (2.0 * u) / m1PlusetaKK + a2 * u2;
+    double log_arg = 1.0 + h_probe.k1 * u + h_probe.k2 * u2 + h_probe.k3 * u3 + h_probe.k4 * u4 + h_probe.k5 * u5 + h_probe.k5l * u5 * logu;
+    double logTerms = 1.0 + eta * h_probe.k0 + eta * std::log(std::fabs(log_arg));
+    double deltaU = bulk * logTerms;
+    double deltaT = r2 * deltaU;
+    double deltaR = deltaT * D;
+    double csi_ic = std::sqrt(std::max(deltaT * deltaR, 0.0)) / w2;
+    if (csi_ic < 1.0e-15) csi_ic = 1.0e-15;
+
+    double dxdt_probe0 = csi_ic * dH_dpvec_probe0;
+    double dHdpr = csi_ic * dxdt_probe0;
+    if (std::fabs(dHdpr) < 1.0e-14 || std::fabs(dEdr) < 1.0e-14) {
+        return false;
+    }
+    double r_dot = -flux / dEdr;
+    double pr_non_tortoise = r_dot / (dHdpr / pr_probe);
+    double pr_star = csi_ic * pr_non_tortoise;
+    if (!std::isfinite(pr_star)) {
+        return false;
+    }
+
+    double S1_norm[3] = {S1[0] * s1_scale, S1[1] * s1_scale, S1[2] * s1_scale};
+    double S2_norm[3] = {S2[0] * s2_scale, S2[1] * s2_scale, S2[2] * s2_scale};
+
+    out_state[0] = r;
+    out_state[1] = 0.0;
+    out_state[2] = 0.0;
+    out_state[3] = pr_star;
+    out_state[4] = py;
+    out_state[5] = pz;
+    out_state[6] = S1_norm[0];
+    out_state[7] = S1_norm[1];
+    out_state[8] = S1_norm[2];
+    out_state[9] = S2_norm[0];
+    out_state[10] = S2_norm[1];
+    out_state[11] = S2_norm[2];
+    out_state[12] = 0.0;
+    out_state[13] = 0.0;
+
+    return true;
+}
+
+torch::Tensor initial_cartesian_conditions_native(
+    double mass1,
+    double mass2,
+    double spin1x,
+    double spin1y,
+    double spin1z,
+    double spin2x,
+    double spin2y,
+    double spin2z,
+    double f_lower
+) {
+    auto options = torch::TensorOptions().dtype(torch::kFloat64).device(torch::kCPU);
+    double out_state[14];
+    bool ok = initial_cartesian_conditions_c(
+        mass1, mass2,
+        spin1x, spin1y, spin1z,
+        spin2x, spin2y, spin2z,
+        f_lower,
+        out_state
+    );
+    if (!ok) {
+        return torch::empty({0}, options);
+    }
+    auto tensor = torch::empty({14}, options);
+    std::copy(out_state, out_state + 14, tensor.data_ptr<double>());
+    return tensor;
+}
+
+torch::Tensor ic_spherical_derivatives_native(
+    double mass1,
+    double mass2,
+    double r,
+    double ptheta,
+    double pphi,
+    const torch::Tensor& s1_tensor,
+    const torch::Tensor& s2_tensor
+) {
+    validate_tensor(s1_tensor, "S1");
+    validate_tensor(s2_tensor, "S2");
+    TORCH_CHECK(s1_tensor.numel() == 3 && s2_tensor.numel() == 3, "S1 and S2 must be 3-vectors");
+    double M = mass1 + mass2;
+    double eta = mass1 * mass2 / (M * M);
+    const double* S1 = s1_tensor.data_ptr<double>();
+    const double* S2 = s2_tensor.data_ptr<double>();
+    double s1_scale = (mass1 * mass1) / (M * M);
+    double s2_scale = (mass2 * mass2) / (M * M);
+    double s1_init[3] = {S1[0] * s1_scale, S1[1] * s1_scale, S1[2] * s1_scale};
+    double s2_init[3] = {S2[0] * s2_scale, S2[1] * s2_scale, S2[2] * s2_scale};
+    double L_init[3] = {0.0, 0.0, 1.0};
+    HCoeffs h_state;
+    instantaneous_hcoeffs_c(eta, L_init, s1_init, s2_init, &h_state);
+
+    double dHdr = 0.0, dHdptheta = 0.0, dHdpphi = 0.0;
+    ic_spherical_derivatives_c(
+        mass1, mass2, eta, M,
+        r, ptheta, pphi, S1, S2,
+        &dHdr, &dHdptheta, &dHdpphi,
+        &h_state
+    );
+    auto options = s1_tensor.options();
+    auto out = torch::empty({3}, options);
+    double* d = out.data_ptr<double>();
+    d[0] = dHdr; d[1] = dHdptheta; d[2] = dHdpphi;
+    return out;
+}
+
 py::tuple integrate_cartesian_native(
     const torch::Tensor& y0_tensor,
     double mass1,
@@ -3012,6 +4265,527 @@ py::tuple integrate_cartesian_native(
     return py::make_tuple(traj, diag);
 }
 
+torch::Tensor calcomega_lal_polar_derivative_native(
+    const torch::Tensor& r_vec_t,
+    const torch::Tensor& p_vec_t,
+    const torch::Tensor& s1_t,
+    const torch::Tensor& s2_t,
+    double mass1,
+    double mass2,
+    const c10::optional<torch::Tensor>& rdot_vec_opt,
+    const c10::optional<torch::Tensor>& s1_weighted_opt,
+    const c10::optional<torch::Tensor>& s2_weighted_opt
+) {
+    validate_tensor(r_vec_t, "r_vec");
+    validate_tensor(p_vec_t, "p_vec");
+    validate_tensor(s1_t, "s1");
+    validate_tensor(s2_t, "s2");
+
+    double eta = (mass1 * mass2) / ((mass1 + mass2) * (mass1 + mass2));
+    double M = mass1 + mass2;
+
+    const double* rdot_ptr = nullptr;
+    if (rdot_vec_opt.has_value() && rdot_vec_opt.value().defined()) {
+        validate_tensor(rdot_vec_opt.value(), "rdot_vec");
+        rdot_ptr = rdot_vec_opt.value().data_ptr<double>();
+    }
+    const double* s1_weighted_ptr = nullptr;
+    if (s1_weighted_opt.has_value() && s1_weighted_opt.value().defined()) {
+        validate_tensor(s1_weighted_opt.value(), "s1_weighted");
+        s1_weighted_ptr = s1_weighted_opt.value().data_ptr<double>();
+    }
+    const double* s2_weighted_ptr = nullptr;
+    if (s2_weighted_opt.has_value() && s2_weighted_opt.value().defined()) {
+        validate_tensor(s2_weighted_opt.value(), "s2_weighted");
+        s2_weighted_ptr = s2_weighted_opt.value().data_ptr<double>();
+    }
+
+    if (r_vec_t.dim() == 1) {
+        TORCH_CHECK(r_vec_t.numel() == 3, "r_vec must have length 3");
+        TORCH_CHECK(p_vec_t.numel() == 3, "p_vec must have length 3");
+        TORCH_CHECK(s1_t.numel() == 3, "s1 must have length 3");
+        TORCH_CHECK(s2_t.numel() == 3, "s2 must have length 3");
+
+        double val = calcomega_lal_polar_derivative_point_c(
+            r_vec_t.data_ptr<double>(),
+            p_vec_t.data_ptr<double>(),
+            s1_t.data_ptr<double>(),
+            s2_t.data_ptr<double>(),
+            mass1, mass2, eta, M,
+            rdot_ptr, s1_weighted_ptr, s2_weighted_ptr
+        );
+        return torch::tensor(val, r_vec_t.options());
+    }
+
+    TORCH_CHECK(r_vec_t.dim() == 2 && r_vec_t.size(1) == 3, "r_vec must have shape (N, 3)");
+    int64_t N = r_vec_t.size(0);
+    TORCH_CHECK(p_vec_t.size(0) == N && p_vec_t.size(1) == 3, "p_vec must have shape (N, 3)");
+
+    bool s1_is_2d = (s1_t.dim() == 2);
+    bool s2_is_2d = (s2_t.dim() == 2);
+
+    const double* r_data = r_vec_t.data_ptr<double>();
+    const double* p_data = p_vec_t.data_ptr<double>();
+    const double* s1_data = s1_t.data_ptr<double>();
+    const double* s2_data = s2_t.data_ptr<double>();
+
+    auto out = torch::empty({N}, r_vec_t.options());
+    double* out_data = out.data_ptr<double>();
+
+    for (int64_t i = 0; i < N; ++i) {
+        const double* r_i = r_data + 3 * i;
+        const double* p_i = p_data + 3 * i;
+        const double* s1_i = s1_is_2d ? (s1_data + 3 * i) : s1_data;
+        const double* s2_i = s2_is_2d ? (s2_data + 3 * i) : s2_data;
+
+        const double* rdot_i = rdot_ptr ? (rdot_vec_opt.value().dim() == 2 ? (rdot_ptr + 3 * i) : rdot_ptr) : nullptr;
+        const double* s1_w_i = s1_weighted_ptr ? (s1_weighted_opt.value().dim() == 2 ? (s1_weighted_ptr + 3 * i) : s1_weighted_ptr) : nullptr;
+        const double* s2_w_i = s2_weighted_ptr ? (s2_weighted_opt.value().dim() == 2 ? (s2_weighted_ptr + 3 * i) : s2_weighted_ptr) : nullptr;
+
+        out_data[i] = calcomega_lal_polar_derivative_point_c(
+            r_i, p_i, s1_i, s2_i, mass1, mass2, eta, M,
+            rdot_i, s1_w_i, s2_w_i
+        );
+    }
+    return out;
+}
+
+torch::Tensor non_keplerian_vphi_native(
+    const torch::Tensor& r_t,
+    const torch::Tensor& omega_t,
+    const torch::Tensor& phi_t,
+    const torch::Tensor& L_vec_t,
+    const torch::Tensor& s1_t,
+    const torch::Tensor& s2_t,
+    double mass1,
+    double mass2,
+    bool aligned_spins,
+    const c10::optional<torch::Tensor>& r_vec_opt,
+    const c10::optional<torch::Tensor>& p_vec_opt,
+    const c10::optional<torch::Tensor>& rdot_vec_opt,
+    const c10::optional<torch::Tensor>& s1_weighted_opt,
+    const c10::optional<torch::Tensor>& s2_weighted_opt
+) {
+    validate_tensor(r_t, "r");
+    validate_tensor(omega_t, "omega");
+    validate_tensor(phi_t, "phi");
+    validate_tensor(L_vec_t, "L_vec");
+    validate_tensor(s1_t, "s1");
+    validate_tensor(s2_t, "s2");
+
+    double eta = (mass1 * mass2) / ((mass1 + mass2) * (mass1 + mass2));
+    double M = mass1 + mass2;
+
+    const double* r_vec_ptr = nullptr;
+    if (r_vec_opt.has_value() && r_vec_opt.value().defined()) {
+        validate_tensor(r_vec_opt.value(), "r_vec");
+        r_vec_ptr = r_vec_opt.value().data_ptr<double>();
+    }
+    const double* p_vec_ptr = nullptr;
+    if (p_vec_opt.has_value() && p_vec_opt.value().defined()) {
+        validate_tensor(p_vec_opt.value(), "p_vec");
+        p_vec_ptr = p_vec_opt.value().data_ptr<double>();
+    }
+    const double* rdot_ptr = nullptr;
+    if (rdot_vec_opt.has_value() && rdot_vec_opt.value().defined()) {
+        validate_tensor(rdot_vec_opt.value(), "rdot_vec");
+        rdot_ptr = rdot_vec_opt.value().data_ptr<double>();
+    }
+    const double* s1_weighted_ptr = nullptr;
+    if (s1_weighted_opt.has_value() && s1_weighted_opt.value().defined()) {
+        validate_tensor(s1_weighted_opt.value(), "s1_weighted");
+        s1_weighted_ptr = s1_weighted_opt.value().data_ptr<double>();
+    }
+    const double* s2_weighted_ptr = nullptr;
+    if (s2_weighted_opt.has_value() && s2_weighted_opt.value().defined()) {
+        validate_tensor(s2_weighted_opt.value(), "s2_weighted");
+        s2_weighted_ptr = s2_weighted_opt.value().data_ptr<double>();
+    }
+
+    if (r_t.dim() == 0) {
+        double val = non_keplerian_vphi_point_c(
+            r_t.item<double>(),
+            omega_t.item<double>(),
+            phi_t.item<double>(),
+            L_vec_t.data_ptr<double>(),
+            s1_t.data_ptr<double>(),
+            s2_t.data_ptr<double>(),
+            mass1, mass2, eta, M,
+            aligned_spins,
+            r_vec_ptr, p_vec_ptr, rdot_ptr, s1_weighted_ptr, s2_weighted_ptr
+        );
+        return torch::tensor(val, r_t.options());
+    }
+
+    int64_t N = r_t.numel();
+    auto out = torch::empty({N}, r_t.options());
+    double* out_data = out.data_ptr<double>();
+
+    const double* r_data = r_t.data_ptr<double>();
+    const double* omega_data = omega_t.data_ptr<double>();
+    const double* phi_data = phi_t.data_ptr<double>();
+    const double* L_data = L_vec_t.data_ptr<double>();
+    const double* s1_data = s1_t.data_ptr<double>();
+    const double* s2_data = s2_t.data_ptr<double>();
+
+    bool L_is_2d = (L_vec_t.dim() == 2);
+    bool s1_is_2d = (s1_t.dim() == 2);
+    bool s2_is_2d = (s2_t.dim() == 2);
+    bool r_vec_is_2d = r_vec_ptr && (r_vec_opt.value().dim() == 2);
+    bool p_vec_is_2d = p_vec_ptr && (p_vec_opt.value().dim() == 2);
+    bool rdot_is_2d = rdot_ptr && (rdot_vec_opt.value().dim() == 2);
+    bool s1_w_is_2d = s1_weighted_ptr && (s1_weighted_opt.value().dim() == 2);
+    bool s2_w_is_2d = s2_weighted_ptr && (s2_weighted_opt.value().dim() == 2);
+
+    for (int64_t i = 0; i < N; ++i) {
+        double r_i = r_data[i];
+        double om_i = omega_data[i];
+        double phi_i = phi_data[i];
+        const double* L_i = L_is_2d ? (L_data + 3 * i) : L_data;
+        const double* s1_i = s1_is_2d ? (s1_data + 3 * i) : s1_data;
+        const double* s2_i = s2_is_2d ? (s2_data + 3 * i) : s2_data;
+
+        const double* r_vec_i = r_vec_ptr ? (r_vec_is_2d ? (r_vec_ptr + 3 * i) : r_vec_ptr) : nullptr;
+        const double* p_vec_i = p_vec_ptr ? (p_vec_is_2d ? (p_vec_ptr + 3 * i) : p_vec_ptr) : nullptr;
+        const double* rdot_i = rdot_ptr ? (rdot_is_2d ? (rdot_ptr + 3 * i) : rdot_ptr) : nullptr;
+        const double* s1_w_i = s1_weighted_ptr ? (s1_w_is_2d ? (s1_weighted_ptr + 3 * i) : s1_weighted_ptr) : nullptr;
+        const double* s2_w_i = s2_weighted_ptr ? (s2_w_is_2d ? (s2_weighted_ptr + 3 * i) : s2_weighted_ptr) : nullptr;
+
+        out_data[i] = non_keplerian_vphi_point_c(
+            r_i, om_i, phi_i, L_i, s1_i, s2_i, mass1, mass2, eta, M,
+            aligned_spins,
+            r_vec_i, p_vec_i, rdot_i, s1_w_i, s2_w_i
+        );
+    }
+    return out;
+}
+
+torch::Tensor eob_hamiltonian_trajectory_native(
+    const torch::Tensor& r_vec_t,
+    const torch::Tensor& p_vec_t,
+    const torch::Tensor& s1_t,
+    const torch::Tensor& s2_t,
+    double mass1,
+    double mass2
+) {
+    validate_tensor(r_vec_t, "r_vec");
+    validate_tensor(p_vec_t, "p_vec");
+    int64_t n = r_vec_t.size(0);
+    auto h_out = torch::empty({n}, r_vec_t.options());
+    double* h_data = h_out.data_ptr<double>();
+    const double* r_data = r_vec_t.data_ptr<double>();
+    const double* p_data = p_vec_t.data_ptr<double>();
+    const double* s1_data = s1_t.data_ptr<double>();
+    const double* s2_data = s2_t.data_ptr<double>();
+    bool s1_is_2d = s1_t.dim() == 2;
+    bool s2_is_2d = s2_t.dim() == 2;
+
+    EOBDynamicsContext ctx;
+    init_eob_dynamics_context(mass1, mass2, &ctx);
+
+    #pragma omp parallel for schedule(static)
+    for (int64_t i = 0; i < n; ++i) {
+        const double* r_row = r_data + i * 3;
+        const double* p_row = p_data + i * 3;
+        const double* s1_row = s1_is_2d ? (s1_data + i * 3) : s1_data;
+        const double* s2_row = s2_is_2d ? (s2_data + i * 3) : s2_data;
+
+        double S1_weighted[3] = {
+            s1_row[0] * ctx.s1_scale,
+            s1_row[1] * ctx.s1_scale,
+            s1_row[2] * ctx.s1_scale
+        };
+        double S2_weighted[3] = {
+            s2_row[0] * ctx.s2_scale,
+            s2_row[1] * ctx.s2_scale,
+            s2_row[2] * ctx.s2_scale
+        };
+
+        // Instantaneous L_vec
+        double L_vec[3] = {
+            r_row[1] * p_row[2] - r_row[2] * p_row[1],
+            r_row[2] * p_row[0] - r_row[0] * p_row[2],
+            r_row[0] * p_row[1] - r_row[1] * p_row[0]
+        };
+        double L_norm = std::sqrt(L_vec[0]*L_vec[0] + L_vec[1]*L_vec[1] + L_vec[2]*L_vec[2]);
+        double L_clamp = (L_norm < 1.0e-15) ? 1.0e-15 : L_norm;
+        double Lhat[3] = {L_vec[0] / L_clamp, L_vec[1] / L_clamp, L_vec[2] / L_clamp};
+
+        double chi1_dot_L = (s1_row[0] * Lhat[0] + s1_row[1] * Lhat[1] + s1_row[2] * Lhat[2]);
+        double chi2_dot_L = (s2_row[0] * Lhat[0] + s2_row[1] * Lhat[1] + s2_row[2] * Lhat[2]);
+        double chi_eff = (ctx.mass1 * chi1_dot_L + ctx.mass2 * chi2_dot_L) / ctx.M;
+        double a = std::sqrt(
+            (S1_weighted[0] + S2_weighted[0]) * (S1_weighted[0] + S2_weighted[0]) +
+            (S1_weighted[1] + S2_weighted[1]) * (S1_weighted[1] + S2_weighted[1]) +
+            (S1_weighted[2] + S2_weighted[2]) * (S1_weighted[2] + S2_weighted[2])
+        );
+
+        HCoeffs h_inst;
+        compute_spin_aligned_hcoeffs_c(ctx.eta, a, chi_eff, &h_inst);
+
+        h_data[i] = eob_hamiltonian_c(
+            r_row, p_row, S1_weighted, S2_weighted,
+            ctx.mass1, ctx.mass2, ctx.eta, ctx.M,
+            h_inst.k0, h_inst.k1, h_inst.k2, h_inst.k3, h_inst.k4, h_inst.k5, h_inst.k5l,
+            h_inst.KK, h_inst.d1, h_inst.d1v2, h_inst.dheffSS, h_inst.dheffSSv2,
+            h_inst.b3, h_inst.bb3,
+            2, true
+        );
+    }
+    return h_out;
+}
+
+torch::Tensor omega_from_hamiltonian_velocity_native(
+    const torch::Tensor& r_vec_t,
+    const torch::Tensor& p_vec_t,
+    const torch::Tensor& s1_t,
+    const torch::Tensor& s2_t,
+    double mass1,
+    double mass2
+) {
+    validate_tensor(r_vec_t, "r_vec");
+    validate_tensor(p_vec_t, "p_vec");
+    int64_t n = r_vec_t.size(0);
+    auto om_out = torch::empty({n}, r_vec_t.options());
+    double* om_data = om_out.data_ptr<double>();
+    const double* r_data = r_vec_t.data_ptr<double>();
+    const double* p_data = p_vec_t.data_ptr<double>();
+    const double* s1_data = s1_t.data_ptr<double>();
+    const double* s2_data = s2_t.data_ptr<double>();
+    bool s1_is_2d = s1_t.dim() == 2;
+    bool s2_is_2d = s2_t.dim() == 2;
+
+    EOBDynamicsContext ctx;
+    init_eob_dynamics_context(mass1, mass2, &ctx);
+
+    #pragma omp parallel for schedule(static)
+    for (int64_t i = 0; i < n; ++i) {
+        const double* r_row = r_data + i * 3;
+        const double* p_row = p_data + i * 3;
+        const double* s1_row = s1_is_2d ? (s1_data + i * 3) : s1_data;
+        const double* s2_row = s2_is_2d ? (s2_data + i * 3) : s2_data;
+
+        double S1_weighted[3] = {
+            s1_row[0] * ctx.s1_scale,
+            s1_row[1] * ctx.s1_scale,
+            s1_row[2] * ctx.s1_scale
+        };
+        double S2_weighted[3] = {
+            s2_row[0] * ctx.s2_scale,
+            s2_row[1] * ctx.s2_scale,
+            s2_row[2] * ctx.s2_scale
+        };
+
+        // Instantaneous L_vec
+        double L_vec[3] = {
+            r_row[1] * p_row[2] - r_row[2] * p_row[1],
+            r_row[2] * p_row[0] - r_row[0] * p_row[2],
+            r_row[0] * p_row[1] - r_row[1] * p_row[0]
+        };
+        double L_norm = std::sqrt(L_vec[0]*L_vec[0] + L_vec[1]*L_vec[1] + L_vec[2]*L_vec[2]);
+        double L_clamp = (L_norm < 1.0e-15) ? 1.0e-15 : L_norm;
+        double Lhat[3] = {L_vec[0] / L_clamp, L_vec[1] / L_clamp, L_vec[2] / L_clamp};
+
+        double chi1_dot_L = (s1_row[0] * Lhat[0] + s1_row[1] * Lhat[1] + s1_row[2] * Lhat[2]);
+        double chi2_dot_L = (s2_row[0] * Lhat[0] + s2_row[1] * Lhat[1] + s2_row[2] * Lhat[2]);
+        double chi_eff = (ctx.mass1 * chi1_dot_L + ctx.mass2 * chi2_dot_L) / ctx.M;
+        double a = std::sqrt(
+            (S1_weighted[0] + S2_weighted[0]) * (S1_weighted[0] + S2_weighted[0]) +
+            (S1_weighted[1] + S2_weighted[1]) * (S1_weighted[1] + S2_weighted[1]) +
+            (S1_weighted[2] + S2_weighted[2]) * (S1_weighted[2] + S2_weighted[2])
+        );
+
+        HCoeffs h_inst;
+        compute_spin_aligned_hcoeffs_c(ctx.eta, a, chi_eff, &h_inst);
+
+        double r2 = r_row[0]*r_row[0] + r_row[1]*r_row[1] + r_row[2]*r_row[2];
+        double r_mag = std::sqrt(r2);
+        double r_clamp = (r_mag < 1.0e-15) ? 1.0e-15 : r_mag;
+        double u = 1.0 / r_clamp;
+        double u2 = u * u;
+        double u3 = u2 * u;
+        double u4 = u2 * u2;
+        double u5 = u4 * u;
+        double a2 = a * a;
+        double w2 = a2 + r2;
+        double inv_w2 = 1.0 / w2;
+
+        double m1PlusetaKK = -1.0 + ctx.eta * h_inst.KK;
+        double logu = std::log(u);
+        double log_arg = 1.0 + ctx.eta * (h_inst.k0 + h_inst.k1 * u + h_inst.k2 * u2 + h_inst.k3 * u3 + h_inst.k4 * u4 + (h_inst.k5 + h_inst.k5l * logu) * u5);
+        if (log_arg < 1.0e-15) log_arg = 1.0e-15;
+        double logTerms = std::log(log_arg);
+        double bulk = 1.0 / (m1PlusetaKK * m1PlusetaKK) + 2.0 * u / m1PlusetaKK + a2 * u2;
+        double deltaU = bulk * logTerms + 1.0 - 2.0 * u;
+        double D = 1.0 + std::log(1.0 + 6.0 * ctx.eta * u2 + 2.0 * (26.0 - 3.0 * ctx.eta) * ctx.eta * u3);
+        double deltaT = r2 * deltaU;
+        double deltaR = deltaT * D;
+        double csi = std::sqrt(std::max(deltaT * deltaR, 0.0)) * inv_w2;
+        double csi_fac = (csi < 1.0e-15) ? 1.0e-15 : csi;
+
+        // Tortoise matrix Tmat
+        double Tmat[3][3];
+        for (int ax1 = 0; ax1 < 3; ++ax1) {
+            for (int ax2 = 0; ax2 <= ax1; ++ax2) {
+                double tij = (r_row[ax1] * r_row[ax2] / r2) * (csi_fac - 1.0);
+                if (ax1 == ax2) tij += 1.0;
+                Tmat[ax1][ax2] = tij;
+                Tmat[ax2][ax1] = tij;
+            }
+        }
+
+        // dH/dp
+        double dH_dp[3];
+        double p_tmp[3] = {p_row[0], p_row[1], p_row[2]};
+        constexpr double STEP_DERIV = 2.0e-3;
+        for (int axis = 0; axis < 3; ++axis) {
+            auto f = [&](double p_val) -> double {
+                double orig = p_tmp[axis];
+                p_tmp[axis] = p_val;
+                double h_val = eob_hamiltonian_c(
+                    r_row, p_tmp, S1_weighted, S2_weighted,
+                    ctx.mass1, ctx.mass2, ctx.eta, ctx.M,
+                    h_inst.k0, h_inst.k1, h_inst.k2, h_inst.k3, h_inst.k4, h_inst.k5, h_inst.k5l,
+                    h_inst.KK, h_inst.d1, h_inst.d1v2, h_inst.dheffSS, h_inst.dheffSSv2,
+                    h_inst.b3, h_inst.bb3,
+                    1, true
+                ) / ctx.eta;
+                p_tmp[axis] = orig;
+                return h_val;
+            };
+            dH_dp[axis] = gsl_deriv_central_c(f, p_row[axis], STEP_DERIV);
+        }
+
+        // dxdt = Tmat * dH_dp
+        double dxdt[3] = {
+            Tmat[0][0]*dH_dp[0] + Tmat[0][1]*dH_dp[1] + Tmat[0][2]*dH_dp[2],
+            Tmat[1][0]*dH_dp[0] + Tmat[1][1]*dH_dp[1] + Tmat[1][2]*dH_dp[2],
+            Tmat[2][0]*dH_dp[0] + Tmat[2][1]*dH_dp[1] + Tmat[2][2]*dH_dp[2]
+        };
+
+        // r x dxdt
+        double rx = r_row[1] * dxdt[2] - r_row[2] * dxdt[1];
+        double ry = r_row[2] * dxdt[0] - r_row[0] * dxdt[2];
+        double rz = r_row[0] * dxdt[1] - r_row[1] * dxdt[0];
+        double rCrossV_mag = std::sqrt(rx*rx + ry*ry + rz*rz);
+        om_data[i] = rCrossV_mag / ((r2 < 1.0e-24) ? 1.0e-24 : r2);
+    }
+    return om_out;
+}
+
+static const double fact_table_wigner[] = {
+    1.0, 1.0, 2.0, 6.0, 24.0, 120.0, 720.0, 5040.0, 40320.0, 362880.0,
+    3628800.0, 39916800.0, 479001600.0, 6227020800.0, 87178291200.0,
+    1307674368000.0, 20922789888000.0, 355687428096000.0, 6402373705728000.0
+};
+
+inline double wigner_d_element_c(int l, int mp, int m, double cosb2, double sinb2) {
+    int k_min = std::max(0, m - mp);
+    int k_max = std::min(l + m, l - mp);
+    double pref = std::sqrt(
+        fact_table_wigner[l + m] * fact_table_wigner[l - m] * fact_table_wigner[l + mp] * fact_table_wigner[l - mp]
+    );
+    double sum = 0.0;
+    for (int k = k_min; k <= k_max; ++k) {
+        double denom = fact_table_wigner[l + m - k] * fact_table_wigner[k] * fact_table_wigner[mp - m + k] * fact_table_wigner[l - mp - k];
+        double coef = pref / denom;
+        double sign = ((k - mp + m) % 2 != 0) ? -1.0 : 1.0;
+        int cos_pow = 2 * l + m - mp - 2 * k;
+        int sin_pow = mp - m + 2 * k;
+        double term = sign * coef * std::pow(cosb2, cos_pow) * std::pow(sinb2, sin_pow);
+        sum += term;
+    }
+    if ((m - mp) % 2 != 0) sum = -sum;
+    return sum;
+}
+
+py::dict rotate_modes_jframe_native(
+    const py::dict& modes_in,
+    const torch::Tensor& alpha_u_t,
+    const torch::Tensor& beta_u_t,
+    const torch::Tensor& gamma_u_t,
+    const std::vector<int>& l_values
+) {
+    validate_tensor(alpha_u_t, "alpha_u");
+    validate_tensor(beta_u_t, "beta_u");
+    validate_tensor(gamma_u_t, "gamma_u");
+    int64_t n = alpha_u_t.size(0);
+    const double* alpha_data = alpha_u_t.data_ptr<double>();
+    const double* beta_data = beta_u_t.data_ptr<double>();
+    const double* gamma_data = gamma_u_t.data_ptr<double>();
+
+    py::dict out;
+    for (int l : l_values) {
+        int dim = 2 * l + 1;
+        std::vector<const std::complex<double>*> h_pos(l + 1, nullptr);
+        for (int mp = 1; mp <= l; ++mp) {
+            py::tuple key = py::make_tuple(l, mp);
+            if (modes_in.contains(key)) {
+                torch::Tensor t = modes_in[key].cast<torch::Tensor>();
+                if (t.numel() == n && t.is_complex()) {
+                    h_pos[mp] = reinterpret_cast<const std::complex<double>*>(t.data_ptr<c10::complex<double>>());
+                }
+            }
+        }
+
+        std::vector<torch::Tensor> out_tensors;
+        std::vector<std::complex<double>*> out_ptrs;
+        out_tensors.reserve(dim);
+        out_ptrs.reserve(dim);
+        for (int m = -l; m <= l; ++m) {
+            auto t = torch::zeros({n}, torch::dtype(torch::kComplexDouble).device(alpha_u_t.device()));
+            out_ptrs.push_back(reinterpret_cast<std::complex<double>*>(t.data_ptr<c10::complex<double>>()));
+            out_tensors.push_back(t);
+        }
+
+        double parity_l = ((l % 2) != 0) ? -1.0 : 1.0;
+
+        #pragma omp parallel for schedule(static)
+        for (int64_t i = 0; i < n; ++i) {
+            double a_val = alpha_data[i];
+            double b_val = beta_data[i];
+            double g_val = gamma_data[i];
+            double cosb2 = std::cos(b_val * 0.5);
+            double sinb2 = std::sin(b_val * 0.5);
+
+            std::complex<double> exp_a[2 * 8 + 1];
+            std::complex<double> exp_g[2 * 8 + 1];
+            for (int m = -l; m <= l; ++m) {
+                exp_a[m + l] = std::polar(1.0, -m * a_val);
+                exp_g[m + l] = std::polar(1.0, -m * g_val);
+            }
+
+            for (int m_idx = 0; m_idx < dim; ++m_idx) {
+                int m = m_idx - l;
+                std::complex<double> sum_val(0.0, 0.0);
+
+                for (int mp_idx = 0; mp_idx < dim; ++mp_idx) {
+                    int mp = mp_idx - l;
+                    std::complex<double> h_val(0.0, 0.0);
+                    if (mp > 0 && h_pos[mp] != nullptr) {
+                        h_val = h_pos[mp][i];
+                    } else if (mp < 0 && h_pos[-mp] != nullptr) {
+                        h_val = parity_l * std::conj(h_pos[-mp][i]);
+                    } else {
+                        continue;
+                    }
+
+                    double d_elem = wigner_d_element_c(l, mp, m, cosb2, sinb2);
+                    std::complex<double> D_val = exp_a[m + l] * d_elem * exp_g[mp + l];
+                    sum_val += D_val * h_val;
+                }
+                out_ptrs[m_idx][i] = sum_val;
+            }
+        }
+
+        for (int m_idx = 0; m_idx < dim; ++m_idx) {
+            int m = m_idx - l;
+            out[py::make_tuple(l, m)] = out_tensors[m_idx];
+        }
+    }
+    return out;
+}
+
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, module) {
     module.doc() = "Native C++ RKF45 ODE integrator for SEOBNR dynamics";
     module.def("rkf45_step_native", &rkf45_step_native, "Single Fehlberg 4(5) step");
@@ -3021,12 +4795,20 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, module) {
     module.def("natural_spline_eval_derivs_native", &natural_spline_eval_derivs_native, "Fast natural cubic spline evaluate (val, d1, d2)");
     module.def("natural_spline_interpolate_native", &natural_spline_interpolate_native, "Fast natural cubic spline interpolate vector");
     module.def("calcomega_polar_derivative_core_native", &calcomega_polar_derivative_core_native, "Fast C++ CalcOmega polar derivative");
+    module.def("calcomega_lal_polar_derivative_native", &calcomega_lal_polar_derivative_native, "Fast C++ CalcOmega LAL polar derivative");
+    module.def("non_keplerian_vphi_native", &non_keplerian_vphi_native, "Fast C++ Non-Keplerian vPhi evaluator");
 
     module.def("eob_hamiltonian_native", &eob_hamiltonian_native, "Fast C++ EOB Cartesian Hamiltonian");
+    module.def("eob_hamiltonian_trajectory_native", &eob_hamiltonian_trajectory_native, "Fast C++ EOB Cartesian Hamiltonian across trajectory");
+    module.def("omega_from_hamiltonian_velocity_native", &omega_from_hamiltonian_velocity_native, "Fast C++ orbital frequency from Cartesian trajectory");
+    module.def("rotate_modes_jframe_native", &rotate_modes_jframe_native, "Fast C++ Wigner-D J-frame mode rotation");
     module.def("dH_dx_cartesian_native", &dH_dx_cartesian_native, "Fast C++ Cartesian d(H/eta)/dx");
     module.def("dH_dp_cartesian_native", &dH_dp_cartesian_native, "Fast C++ Cartesian d(H/eta)/dp");
     module.def("dH_dspin_cartesian_native", &dH_dspin_cartesian_native, "Fast C++ Cartesian d(H/eta)/dS1, d(H/eta)/dS2");
     module.def("eob_rhs_cartesian_native", &eob_rhs_cartesian_native, "Fast C++ 14D Cartesian RHS");
     module.def("integrate_cartesian_native", &integrate_cartesian_native, "Fast C++ 14D adaptive Cartesian trajectory integrator");
+    module.def("ic_spherical_derivatives_native", &ic_spherical_derivatives_native, "Fast C++ initial-condition spherical Hamiltonian derivatives");
+    module.def("initial_cartesian_conditions_native", &initial_cartesian_conditions_native, "Fast C++ 14D Cartesian initial conditions");
 }
+
 

@@ -111,7 +111,13 @@ class Uniform(bounded.BoundedDist):
         contain all of parameters in self's params. Unrecognized arguments are
         ignored.
         """
-        if kwargs in self:
+        contained = self.__contains__(kwargs)
+        torch_result = bounded._torch_where(
+            kwargs, contained, self._norm, 0.0
+        )
+        if torch_result is not None:
+            return torch_result
+        if contained:
             return self._norm
         else:
             return 0.
@@ -121,7 +127,13 @@ class Uniform(bounded.BoundedDist):
         arguments must contain all of parameters in self's params. Unrecognized
         arguments are ignored.
         """
-        if kwargs in self:
+        contained = self.__contains__(kwargs)
+        torch_result = bounded._torch_where(
+            kwargs, contained, self._lognorm, -numpy.inf
+        )
+        if torch_result is not None:
+            return torch_result
+        if contained:
             return self._lognorm
         else:
             return -numpy.inf

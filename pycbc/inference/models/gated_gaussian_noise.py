@@ -37,6 +37,55 @@ from .gaussian_noise import (BaseGaussianNoise, create_waveform_generator,
                              catch_waveform_error)
 from .base_data import BaseDataModel
 from .data_utils import fd_data_from_strain_dict
+from .tools import _last_index_at_or_below, _real_inner, _torch_tensor
+
+
+def _logdet_sample_sizes(size):
+    """Return the covariance sizes used by the determinant regression."""
+    max_size = 8192
+    if size > max_size:
+        return [size, max_size, max_size // 2, max_size // 4]
+    return [size, size // 2, size // 4, size // 8]
+
+
+def _torch_logdet_fit(correlation, psd):
+    """Fit covariance log determinants without leaving the Torch device."""
+    import torch
+
+    correlation = _torch_tensor(correlation) / 2
+    psd_tensor = _torch_tensor(psd)
+    size = correlation.shape[0]
+    sample_sizes = _logdet_sample_sizes(size)
+
+    sample_dets = []
+    for sample_size in sample_sizes:
+        if sample_size == size:
+            logdet = 2 * torch.log(
+                psd_tensor / (2 * psd.delta_t)
+            ).sum()
+        else:
+            gate_size = size - sample_size
+            start = (size - gate_size) // 2
+            end = start + gate_size
+            retained = torch.cat((
+                torch.arange(start, device=correlation.device),
+                torch.arange(end, size, device=correlation.device),
+            ))
+            offsets = retained[:, None] - retained[None, :]
+            values = correlation[offsets.abs()]
+            covariance = torch.where(offsets < 0, values.conj(), values)
+            logdet = torch.linalg.slogdet(covariance).logabsdet
+        sample_dets.append(logdet)
+
+    # The cached fit is scalar metadata. Keep the covariance work on-device,
+    # transfer only four determinant values, and retain NumPy's float64
+    # regression accuracy for float32 Torch backends.
+    samples = [value.item() for value in sample_dets]
+    design = numpy.vstack([sample_sizes, numpy.ones(len(sample_sizes))]).T
+    slope, intercept = numpy.linalg.lstsq(
+        design, samples, rcond=None
+    )[0]
+    return (sample_sizes, samples), (slope, intercept)
 
 
 class BaseGatedGaussian(BaseGaussianNoise):
@@ -173,8 +222,11 @@ class BaseGatedGaussian(BaseGaussianNoise):
         except KeyError:
             raise ValueError("No psd set for detector %s" % det)
         Rss = self._Rss[det]
-        cov = scipy.linalg.toeplitz(Rss/2) # full covariance matrix
-        samples, fit = self.logdet_fit(cov, p)
+        if _torch_tensor(Rss) is not None:
+            samples, fit = _torch_logdet_fit(Rss, p)
+        else:
+            cov = scipy.linalg.toeplitz(Rss/2) # full covariance matrix
+            samples, fit = self.logdet_fit(cov, p)
         self._cov_samples[det] = samples
         self._cov_regressions[det] = fit
         return
@@ -187,16 +239,11 @@ class BaseGatedGaussian(BaseGaussianNoise):
         linear fit parameters.
         """
         # initialize lists for matrix sizes and determinants
-        sample_sizes = []
         sample_dets = []
         # set sizes of sample matrices; ensure exact calculations are only on
         # small matrices
         s = cov.shape[0]
-        max_size = 8192
-        if s > max_size:
-            sample_sizes = [s, max_size, max_size//2, max_size//4]
-        else:
-            sample_sizes = [s, s//2, s//4, s//8]
+        sample_sizes = _logdet_sample_sizes(s)
         for i in sample_sizes:
             # calculate logdet of the full matrix using circulant eigenvalue
             # approximation
@@ -524,8 +571,8 @@ class BaseGatedGaussian(BaseGaussianNoise):
             h.resize(len(invpsd))
             ht = h.to_timeseries()
             f_low = int((self._f_lower[det]+1)/h.delta_f)
-            sample_freqs = h.sample_frequencies[f_low:].numpy()
-            f_idx = numpy.where(sample_freqs <= meco_f)[0][-1]
+            sample_freqs = h.sample_frequencies[f_low:]
+            f_idx = _last_index_at_or_below(sample_freqs, meco_f)
             # find time corresponding to meco frequency
             t_from_freq = time_from_frequencyseries(
                 h[f_low:], sample_frequencies=sample_freqs)
@@ -883,6 +930,7 @@ class GatedGaussianMargPol(BaseGatedGaussian):
         # the polarization parameters
         self.polarization_samples = polarization_samples
         self.pol = numpy.linspace(0, 2*numpy.pi, self.polarization_samples)
+        self._torch_polarization_grids = {}
         self.dets = {}
         # create the waveform generator
         self.waveform_generator = create_waveform_generator(
@@ -891,6 +939,24 @@ class GatedGaussianMargPol(BaseGatedGaussian):
             recalibration=self.recalibration,
             generator_class=generator.FDomainDetFrameTwoPolGenerator,
             **self.static_params)
+
+    def _polarization_grid(self, like):
+        """Return the fixed polarization grid on ``like``'s device."""
+        tensor = _torch_tensor(like)
+        if tensor is None:
+            return self.pol
+
+        import torch
+
+        key = (tensor.device, tensor.real.dtype)
+        try:
+            return self._torch_polarization_grids[key]
+        except KeyError:
+            grid = torch.as_tensor(
+                self.pol, device=tensor.device, dtype=tensor.real.dtype
+            )
+            self._torch_polarization_grids[key] = grid
+            return grid
 
     def get_waveforms(self):
         if self._current_wfs is not None:
@@ -962,8 +1028,8 @@ class GatedGaussianMargPol(BaseGatedGaussian):
             hp.resize(len(invpsd))
             ht = hp.to_timeseries()
             f_low = int((self._f_lower[det]+1)/hp.delta_f)
-            sample_freqs = hp.sample_frequencies[f_low:].numpy()
-            f_idx = numpy.where(sample_freqs <= meco_f)[0][-1]
+            sample_freqs = hp.sample_frequencies[f_low:]
+            f_idx = _last_index_at_or_below(sample_freqs, meco_f)
             # find time corresponding to meco frequency
             t_from_freq = time_from_frequencyseries(
                 hp[f_low:], sample_frequencies=sample_freqs)
@@ -1012,10 +1078,24 @@ class GatedGaussianMargPol(BaseGatedGaussian):
             # get the antenna patterns
             if det not in self.dets:
                 self.dets[det] = Detector(det)
-            # calculate tc in frame
-            tc = self.dets[det].arrival_time(ref_tc, ra, dec, refframe)
-            # evaluate antenna pattern
-            fp, fc = self.dets[det].antenna_pattern(ra, dec, self.pol, tc)
+            polarization = self._polarization_grid(hp)
+            waveform_tensor = _torch_tensor(hp)
+            if waveform_tensor is None:
+                waveform_tensor = _torch_tensor(hc)
+            if waveform_tensor is not None:
+                from . import relbin_torch
+
+                fp, fc, tc = relbin_torch.detector_response_at_arrival(
+                    self.dets[det], ref_tc, ra, dec, polarization,
+                    refframe, waveform_tensor)
+            else:
+                # calculate tc in frame
+                tc = self.dets[det].arrival_time(
+                    ref_tc, ra, dec, refframe)
+                # evaluate antenna pattern
+                fp, fc = self.dets[det].antenna_pattern(
+                    ra, dec, polarization, tc
+                )
             start_index, end_index = self.gate_indices(det)
             norm = self.det_lognorm(det, start_index, end_index)
             # we always filter the entire segment starting from kmin, since the
@@ -1032,15 +1112,15 @@ class GatedGaussianMargPol(BaseGatedGaussian):
             hp = hp*invpsd
             hc = hc*invpsd
             # get the various gated inner products
-            hpd = hp[slc].inner(gated_d[slc]).real  # <hp, d>
-            hcd = hc[slc].inner(gated_d[slc]).real  # <hc, d>
-            dhp = d[slc].inner(gated_hp[slc]).real  # <d, hp>
-            dhc = d[slc].inner(gated_hc[slc]).real  # <d, hc>
-            hphp = hp[slc].inner(gated_hp[slc]).real  # <hp, hp>
-            hchc = hc[slc].inner(gated_hc[slc]).real  # <hc, hc>
-            hphc = hp[slc].inner(gated_hc[slc]).real  # <hp, hc>
-            hchp = hc[slc].inner(gated_hp[slc]).real  # <hc, hp>
-            dd = d[slc].inner(gated_d[slc]).real  # <d, d>
+            hpd = _real_inner(hp[slc], gated_d[slc])  # <hp, d>
+            hcd = _real_inner(hc[slc], gated_d[slc])  # <hc, d>
+            dhp = _real_inner(d[slc], gated_hp[slc])  # <d, hp>
+            dhc = _real_inner(d[slc], gated_hc[slc])  # <d, hc>
+            hphp = _real_inner(hp[slc], gated_hp[slc])  # <hp, hp>
+            hchc = _real_inner(hc[slc], gated_hc[slc])  # <hc, hc>
+            hphc = _real_inner(hp[slc], gated_hc[slc])  # <hp, hc>
+            hchp = _real_inner(hc[slc], gated_hp[slc])  # <hc, hp>
+            dd = _real_inner(d[slc], gated_d[slc])  # <d, d>
             # since the antenna patterns are real,
             # <h, d>/2 + <d, h>/2 = fp*(<hp, d>/2 + <d, hp>/2)
             #                     + fc*(<hc, d>/2 + <d, hc>/2)
@@ -1054,11 +1134,27 @@ class GatedGaussianMargPol(BaseGatedGaussian):
             loglr += norm + 2*invpsd.delta_f*(hd - hh)
             lognl += -2 * invpsd.delta_f * dd
         # store the maxl polarization
-        idx = loglr.argmax()
+        loglr_tensor = _torch_tensor(loglr)
+        if loglr_tensor is not None:
+            import torch
+
+            idx = int(torch.argmax(loglr_tensor).item())
+            maxl_logl = float((loglr_tensor[idx] + lognl).item())
+            sample_count = loglr_tensor.new_tensor(len(self.pol))
+            marglogl = (
+                torch.logsumexp(loglr_tensor, dim=0)
+                + lognl - torch.log(sample_count)
+            )
+            marglogl = float(marglogl.item())
+        else:
+            idx = loglr.argmax()
+            maxl_logl = loglr[idx] + lognl
+            marglogl = (
+                special.logsumexp(loglr)
+                + lognl - numpy.log(len(self.pol))
+            )
         setattr(self._current_stats, 'maxl_polarization', self.pol[idx])
-        setattr(self._current_stats, 'maxl_logl', loglr[idx] + lognl)
-        # compute the marginalized log likelihood
-        marglogl = special.logsumexp(loglr) + lognl - numpy.log(len(self.pol))
+        setattr(self._current_stats, 'maxl_logl', maxl_logl)
         return float(marglogl)
 
     @property

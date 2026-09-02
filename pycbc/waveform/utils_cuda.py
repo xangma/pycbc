@@ -22,8 +22,11 @@
 #
 # =============================================================================
 #
-"""This module contains the CUDA-specific code for
-   convenience utilities for manipulating waveforms
+"""CUDA-specific waveform utilities (legacy).
+
+Torch users should prefer the torch scheme/backends, which provide equivalent
+functionality in `waveform/utils_torch.py`. This module is only used when the
+CUDA scheme is explicitly selected.
 """
 from pycbc.types import FrequencySeries
 from mako.template import Template

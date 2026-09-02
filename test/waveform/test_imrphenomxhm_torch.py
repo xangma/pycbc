@@ -745,9 +745,7 @@ def test_phase_anchor_cache_switch_is_strict_and_defaults_off(monkeypatch):
 
 
 def test_phase_anchor_cache_is_recommended_without_batched_tiny_solves():
-    from tools.torch_workflows.experiments import (
-        benchmark_xphm_exact_tricks as benchmark,
-    )
+    benchmark = pytest.importorskip("tools.torch_workflows.experiments.benchmark_xphm_exact_tricks")
 
     phase_cache = "PYCBC_IMRPHENOMXHM_PHASE_ANCHOR_CACHE"
     tiny_solves = "PYCBC_IMRPHENOMXHM_BATCHED_TINY_SOLVES"

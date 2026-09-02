@@ -25,7 +25,94 @@ def call_model(params):
     )
 
 
+def _torch_tensor(value):
+    """Return the tensor backing a Torch/PyCBC value, if present."""
+    if type(value).__module__.split(".", 1)[0] == "torch":
+        return value
+    tensor = getattr(value, "tensor", None)
+    if tensor is None:
+        tensor = getattr(getattr(value, "_data", None), "tensor", None)
+    return tensor
+
+
+def _torch_selected(value, indices):
+    """Select values while preserving a PyCBC Torch wrapper when present."""
+    tensor = _torch_tensor(value)
+    selected = tensor[indices.to(device=tensor.device)]
+    data = getattr(value, "_data", None)
+    if getattr(data, "tensor", None) is tensor and hasattr(value, "_return"):
+        return value._return(type(data)(selected))
+    if getattr(value, "tensor", None) is tensor and hasattr(value, "_wrap"):
+        return value._wrap(selected)
+    return selected
+
+
+def _resample_equal_torch(samples, logwt, seed):
+    """Systematically resample when any input is Torch-backed."""
+    sample_tensors = {key: _torch_tensor(value)
+                      for key, value in samples.items()}
+    logwt_tensor = _torch_tensor(logwt)
+    reference = next(
+        (tensor for tensor in sample_tensors.values() if tensor is not None),
+        logwt_tensor,
+    )
+    if reference is None:
+        return None
+
+    import torch
+
+    for tensor in sample_tensors.values():
+        if tensor is not None and tensor.device != reference.device:
+            raise ValueError("Torch samples must be on the same device")
+    if logwt_tensor is None:
+        logwt_tensor = torch.as_tensor(logwt, device=reference.device)
+    elif logwt_tensor.device != reference.device:
+        raise ValueError("Torch samples and log weights must share a device")
+    if logwt_tensor.is_complex():
+        raise TypeError("resampling log weights must be real")
+    if not logwt_tensor.is_floating_point():
+        dtype = (
+            reference.dtype
+            if reference.is_floating_point()
+            else torch.get_default_dtype()
+        )
+        logwt_tensor = logwt_tensor.to(dtype=dtype)
+    elif reference.device.type == "mps" and logwt_tensor.dtype == torch.float64:
+        logwt_tensor = logwt_tensor.to(dtype=torch.float32)
+
+    weights = torch.softmax(logwt_tensor, dim=0)
+    size = len(weights)
+    positions = (
+        torch.rand((), device=reference.device, dtype=weights.dtype)
+        + torch.arange(size, device=reference.device, dtype=weights.dtype)
+    ) / size
+    cumulative_sum = torch.cumsum(weights, dim=0)
+    cumulative_sum = cumulative_sum / cumulative_sum[-1]
+    indices = torch.searchsorted(cumulative_sum, positions, right=True)
+
+    generator = torch.Generator(device=reference.device)
+    generator.manual_seed(int(seed))
+    indices = indices[
+        torch.randperm(size, device=reference.device, generator=generator)
+    ]
+
+    host_indices = None
+    selected = {}
+    for key, values in samples.items():
+        if sample_tensors[key] is not None:
+            selected[key] = _torch_selected(values, indices)
+        else:
+            if host_indices is None:
+                host_indices = indices.detach().cpu().numpy()
+            selected[key] = values[host_indices]
+    return selected
+
+
 def resample_equal(samples, logwt, seed=0):
+    torch_result = _resample_equal_torch(samples, logwt, seed)
+    if torch_result is not None:
+        return torch_result
+
     weights = numpy.exp(logwt - logsumexp(logwt))
     N = len(weights)
     positions = (numpy.random.random() + numpy.arange(N)) / N

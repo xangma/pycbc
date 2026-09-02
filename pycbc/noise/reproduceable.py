@@ -25,6 +25,17 @@ import numpy, pycbc.psd
 from pycbc.types import TimeSeries, complex_same_precision_as
 from numpy.random import RandomState
 
+import pycbc
+from pycbc import scheme
+try:
+    import torch
+    from pycbc.types.array_torch import TorchArrayData
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover - torch optional
+    torch = None
+    TorchArrayData = None
+    _HAVE_TORCH = False
+
 # This constant need to be constant to be able to recover identical results.
 BLOCK_SAMPLES = 1638400
 
@@ -48,6 +59,45 @@ def block(seed, sample_rate):
     variance = sample_rate / 2
     return rng.normal(size=num, scale=variance**0.5)
 
+
+def _block_bounds(start, end, sample_rate):
+    """Return the inclusive noise-block range and its duration."""
+    block_dur = BLOCK_SAMPLES / sample_rate
+    start_block = int(numpy.floor(start / block_dur))
+    end_block = int(numpy.floor(end / block_dur))
+
+    # The data evenly divides so the last block would be superfluous.
+    if end % block_dur == 0:
+        end_block -= 1
+    return start_block, end_block, block_dur
+
+
+def _torch_normal(start, end, sample_rate, seed):
+    """Generate reproducible white noise directly on a Torch device."""
+    device = scheme.mgr.state.torch_device
+    dtype = torch.float32 if device.type == "mps" else torch.float64
+    start_block, end_block, block_dur = _block_bounds(
+        start, end, sample_rate
+    )
+    seed_offset = int(RandomState(seed).randint(-2**50, 2**50))
+    scale = (sample_rate / 2) ** 0.5
+
+    blocks = []
+    for block_index in range(start_block, end_block + 1):
+        generator = torch.Generator(device=device)
+        generator.manual_seed((block_index + seed_offset) % 2**32)
+        blocks.append(torch.randn(
+            BLOCK_SAMPLES, dtype=dtype, device=device,
+            generator=generator,
+        ) * scale)
+
+    data = torch.cat(blocks)
+    noise = TimeSeries(
+        TorchArrayData(data), delta_t=1.0 / sample_rate,
+        epoch=start_block * block_dur, copy=False,
+    )
+    return noise.time_slice(start, end)
+
 def normal(start, end, sample_rate=16384, seed=0):
     """ Generate data with a white Gaussian (normal) distribution
 
@@ -67,20 +117,29 @@ def normal(start, end, sample_rate=16384, seed=0):
     --------
     noise : TimeSeries
         A TimeSeries containing gaussian noise
+
+    Notes
+    -----
+    NumPy and Torch schemes use different random number generators, so their
+    seeded samples are not identical. Both implementations reproduce samples
+    exactly across repeated and overlapping requests within the same backend.
     """
-    # This is reproduceable because we used fixed seeds from known values
-    block_dur = BLOCK_SAMPLES / sample_rate
-    s = int(numpy.floor(start / block_dur))
-    e = int(numpy.floor(end / block_dur))
+    if _HAVE_TORCH and isinstance(scheme.mgr.state, scheme.TorchScheme):
+        return _torch_normal(start, end, sample_rate, seed)
 
-    # The data evenly divides so the last block would be superfluous
-    if end % block_dur == 0:
-        e -= 1
-
-    sv = RandomState(seed).randint(-2**50, 2**50)
-    data = numpy.concatenate([block(i + sv, sample_rate)
-                              for i in numpy.arange(s, e + 1, 1)])
-    ts = TimeSeries(data, delta_t=1.0 / sample_rate, epoch=(s * block_dur))
+    # This is reproducible because fixed block seeds derive from known values.
+    start_block, end_block, block_dur = _block_bounds(
+        start, end, sample_rate
+    )
+    seed_offset = int(RandomState(seed).randint(-2**50, 2**50))
+    data = numpy.concatenate([
+        block(block_index + seed_offset, sample_rate)
+        for block_index in range(start_block, end_block + 1)
+    ])
+    ts = TimeSeries(
+        data, delta_t=1.0 / sample_rate,
+        epoch=start_block * block_dur,
+    )
     return ts.time_slice(start, end)
 
 def colored_noise(psd, start_time, end_time,
@@ -116,6 +175,7 @@ def colored_noise(psd, start_time, end_time,
     noise : TimeSeries
         A TimeSeries containing gaussian noise colored by the given psd.
     """
+    use_torch = _HAVE_TORCH and isinstance(getattr(psd, "_data", None), TorchArrayData)
     psd = psd.copy()
 
     flen = int(sample_rate / psd.delta_f) // 2 + 1
@@ -123,12 +183,21 @@ def colored_noise(psd, start_time, end_time,
     psd.resize(flen)
 
     # Want to avoid zeroes in PSD.
-    max_val = psd.max()
-    for i in range(len(psd)):
-        if i >= (oldlen-1):
-            psd.data[i] = psd[oldlen - 2]
-        if psd[i] == 0:
-            psd.data[i] = max_val
+    if use_torch:
+        psd_tensor = psd._data.tensor
+        max_val = psd_tensor.max()
+        if oldlen > 1 and oldlen - 1 < len(psd):
+            psd_tensor[oldlen - 1:] = psd_tensor[oldlen - 2]
+        psd_tensor.copy_(torch.where(
+            psd_tensor == 0, max_val, psd_tensor
+        ))
+    else:
+        max_val = psd.max()
+        for i in range(len(psd)):
+            if i >= (oldlen-1):
+                psd.data[i] = psd[oldlen - 2]
+            if psd[i] == 0:
+                psd.data[i] = max_val
 
     fil_len = int(filter_duration * sample_rate)
     wn_dur = int(end_time - start_time) + 2 * filter_duration
@@ -171,6 +240,24 @@ def colored_noise(psd, start_time, end_time,
                          end_time + filter_duration,
                          seed=seed,
                          sample_rate=sample_rate)
+    if use_torch:
+        # ``normal`` constructs Torch storage under a Torch scheme. Cast it
+        # directly on-device instead of copying it through NumPy, and retain
+        # the block-derived epoch needed by the final time slice.
+        target = asd._data.tensor
+        if isinstance(getattr(white_noise, "_data", None), TorchArrayData):
+            tensor = white_noise._data.tensor.to(
+                device=target.device, dtype=target.real.dtype
+            )
+        else:  # Defensive support for a Torch PSD used outside its scheme.
+            tensor = torch.as_tensor(
+                white_noise.numpy(), device=target.device,
+                dtype=target.real.dtype,
+            )
+        white_noise = TimeSeries(
+            TorchArrayData(tensor), delta_t=white_noise.delta_t,
+            epoch=white_noise.start_time, copy=False,
+        )
     white_noise = white_noise.to_frequencyseries()
     # Here we color. Do not want to duplicate memory here though so use '*='
     white_noise *= asd*scale
