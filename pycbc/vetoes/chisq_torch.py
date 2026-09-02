@@ -509,6 +509,23 @@ def _accelerator_phase_reuse_eligible(corr, pts, bins):
     )
 
 
+_CHISQ_BIN_DEVICE_CACHE = {}
+
+
+def _get_device_bin_edges(bins, device):
+    """Return pre-allocated torch.int32 device tensors for bin starts and ends."""
+    key = (tuple(bins) if not isinstance(bins, tuple) else bins, device)
+    cached = _CHISQ_BIN_DEVICE_CACHE.get(key)
+    if cached is not None:
+        return cached
+    bin_starts = torch.as_tensor(bins[:-1], device=device, dtype=torch.int32)
+    bin_ends = torch.as_tensor(bins[1:], device=device, dtype=torch.int32)
+    if len(_CHISQ_BIN_DEVICE_CACHE) > 64:
+        _CHISQ_BIN_DEVICE_CACHE.clear()
+    _CHISQ_BIN_DEVICE_CACHE[key] = (bin_starts, bin_ends)
+    return bin_starts, bin_ends
+
+
 def _accelerator_batched_bin_sums(corr, pts, bins):
     """Sum accelerator bins with batched (P x K) phase matrix or fused Triton operations."""
     length = corr.shape[-1]
@@ -525,8 +542,7 @@ def _accelerator_batched_bin_sums(corr, pts, bins):
         P = pts.numel()
         B = len(bins) - 1
         two_pi_over_N = float(2.0 * np.pi / length)
-        bin_starts = torch.as_tensor(bins[:-1], device=corr.device, dtype=torch.int32)
-        bin_ends = torch.as_tensor(bins[1:], device=corr.device, dtype=torch.int32)
+        bin_starts, bin_ends = _get_device_bin_edges(bins, corr.device)
         pts_f64 = pts.to(torch.float64)
         corr_re = corr.real.contiguous()
         corr_im = corr.imag.contiguous()
