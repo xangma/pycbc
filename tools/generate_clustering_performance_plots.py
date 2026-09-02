@@ -56,10 +56,10 @@ def setup_style():
 
 def _load_benchmark_data(artifacts_dir: Path):
     candidate_files = [
-        artifacts_dir / "len_matched_filter_symm_benchmark.json",
         artifacts_dir / "matched_filter_symm_benchmark.json",
-        Path("artifacts/len_matched_filter_symm_benchmark.json"),
+        artifacts_dir / "len_matched_filter_symm_benchmark.json",
         Path("artifacts/matched_filter_symm_benchmark.json"),
+        Path("artifacts/len_matched_filter_symm_benchmark.json"),
     ]
     for c in candidate_files:
         if c.exists():

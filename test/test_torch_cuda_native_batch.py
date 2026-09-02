@@ -274,9 +274,9 @@ def test_cuda_native_batch_correlation_rejects_unsafe_tensor_contracts(
             zs = [Array(np.full(64, 19 - 7j, dtype=np.complex64)) for _ in range(3)]
             # Force non-uniform addresses
             t0 = torch.empty(64, dtype=torch.complex64, device="cuda")
-            _pad = torch.empty(13, dtype=torch.float32, device="cuda")
+            torch.empty(13, dtype=torch.float32, device="cuda")
             t1 = torch.empty(64, dtype=torch.complex64, device="cuda")
-            _pad2 = torch.empty(27, dtype=torch.float32, device="cuda")
+            torch.empty(27, dtype=torch.float32, device="cuda")
             t2 = torch.empty(64, dtype=torch.complex64, device="cuda")
             xs[0]._data._set_tensor(t0)
             xs[1]._data._set_tensor(t1)

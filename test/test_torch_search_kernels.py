@@ -702,7 +702,9 @@ def test_threshold_engine_native_cpu_path_is_zero_copy_and_results_are_stable(
     overwritten = np.array([0, 1, 0, 4], dtype=np.complex64)
     native_inputs = []
 
-    def fake_native(series, slen, values, locs, threshold, window, segsize):
+    def fake_native(
+        series, slen, values, locs, threshold, window, segsize, *args
+    ):
         native_inputs.append(
             (series.__array_interface__["data"][0], series.copy())
         )
@@ -746,7 +748,9 @@ def test_threshold_engine_native_cpu_input_tracks_resize_and_storage_changes(
 
     native_inputs = []
 
-    def fake_native(series, slen, values, locs, threshold, window, segsize):
+    def fake_native(
+        series, slen, values, locs, threshold, window, segsize, *args
+    ):
         native_inputs.append(
             (series.__array_interface__["data"][0], series.copy())
         )
