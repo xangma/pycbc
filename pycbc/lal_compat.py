@@ -48,6 +48,76 @@ def require_lal(feature="this operation"):
     return _lal
 
 
+def _fallback_spin_minus_two_spherical_harmonic(
+    theta, phi, spin_weight, ell, emm
+):
+    """Evaluate the bounded scalar harmonic surface used without LAL."""
+    try:
+        spin_weight = operator.index(spin_weight)
+        ell = operator.index(ell)
+        emm = operator.index(emm)
+    except TypeError as exc:
+        raise TypeError("spin weight, ell, and m must be integers") from exc
+    if spin_weight != -2 or not 2 <= ell <= 4 or abs(emm) > ell:
+        raise LALDependencyError(
+            "spin-weighted spherical harmonics without core 'lal' support "
+            "only scalar spin -2 modes with ell 2 through 4"
+        )
+
+    theta = float(theta)
+    phi = float(phi)
+    wigner_m = -spin_weight
+    prefactor = (-1) ** spin_weight * math.sqrt(
+        (2 * ell + 1)
+        / (4 * math.pi)
+        * math.factorial(ell + wigner_m)
+        * math.factorial(ell - wigner_m)
+        * math.factorial(ell + emm)
+        * math.factorial(ell - emm)
+    )
+    cos_half = math.cos(0.5 * theta)
+    sin_half = math.sin(0.5 * theta)
+    amplitude = 0.0
+    for index in range(2 * ell + 1):
+        denominator_indices = (
+            ell + wigner_m - index,
+            index,
+            emm - wigner_m + index,
+            ell - emm - index,
+        )
+        if min(denominator_indices) < 0:
+            continue
+        denominator = math.prod(
+            math.factorial(value) for value in denominator_indices
+        )
+        coefficient = (
+            (-1) ** (emm - wigner_m + index)
+            * prefactor
+            / denominator
+        )
+        cos_power = 2 * ell + wigner_m - emm - 2 * index
+        sin_power = emm - wigner_m + 2 * index
+        amplitude += (
+            coefficient
+            * cos_half**cos_power
+            * sin_half**sin_power
+        )
+
+    phase = emm * phi
+    return amplitude * complex(math.cos(phase), math.sin(phase))
+
+
+def SpinWeightedSphericalHarmonic(theta, phi, spin_weight, ell, emm):
+    """Use LAL's scalar harmonic, or the bounded native spin -2 fallback."""
+    if _lal is not None:
+        return _lal.SpinWeightedSphericalHarmonic(
+            theta, phi, spin_weight, ell, emm
+        )
+    return _fallback_spin_minus_two_spherical_harmonic(
+        theta, phi, spin_weight, ell, emm
+    )
+
+
 _MISSING = object()
 
 
@@ -391,6 +461,7 @@ __all__ = [
     "LAL_AVAILABLE",
     "LALDependencyError",
     "LIGOTimeGPS",
+    "SpinWeightedSphericalHarmonic",
     "require_lal",
     *_FALLBACK_CONSTANTS,
 ]

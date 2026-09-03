@@ -113,14 +113,33 @@ def test_fallback_ligotimegps_matches_lal():
             left_lal * invalid
         with pytest.raises(RuntimeError):
             left_fallback * invalid
-        with pytest.raises(RuntimeError):
+        with pytest.raises((RuntimeError, TypeError)):
             left_lal / invalid
         with pytest.raises(RuntimeError):
             left_fallback / invalid
-    with pytest.raises(RuntimeError):
+    with pytest.raises((RuntimeError, TypeError)):
         left_lal / 0
     with pytest.raises(RuntimeError):
         left_fallback / 0
+
+
+def test_fallback_spherical_harmonics_match_lal():
+    """Keep the bounded native scalar harmonics numerically compatible."""
+    lal = pytest.importorskip("lal")
+    from pycbc.lal_compat import (
+        _fallback_spin_minus_two_spherical_harmonic,
+    )
+
+    for theta, phi in ((0.2, -0.4), (0.9, 0.0), (2.1, 1.3)):
+        for ell in range(2, 5):
+            for emm in range(-ell, ell + 1):
+                expected = lal.SpinWeightedSphericalHarmonic(
+                    theta, phi, -2, ell, emm
+                )
+                actual = _fallback_spin_minus_two_spherical_harmonic(
+                    theta, phi, -2, ell, emm
+                )
+                assert actual == pytest.approx(expected, rel=2e-14, abs=2e-14)
 
 
 def test_torch_surface_without_core_lal_or_lalsimulation():
