@@ -222,4 +222,3 @@ def test_torch_self_inner_and_abs_arg_max():
     finally:
         del ctx
         scheme.Scheme._single = None
-
