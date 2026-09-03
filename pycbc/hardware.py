@@ -322,4 +322,3 @@ def get_optimal_1d_fft_threads(transform_size, requested_threads=None):
         return max(1, min(requested_threads, cores_in_node))
 
     return requested_threads
-

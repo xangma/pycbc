@@ -286,6 +286,7 @@ def qplane(qplane_tile_dict, fseries, return_complex=False):
         plane = _qseries_batch(
             fseries, q, qplane_tile_dict[q],
             return_complex=return_complex
+        )
         if return_complex:
             tile_maxima = torch.abs(plane).amax(dim=1)
         else:
