@@ -891,34 +891,22 @@ def get_fd_waveform_batch(approximant, **params):
     )
 
 
-def get_fd_waveform_from_td(**params):
-    """ Return time domain version of fourier domain approximant.
+def _get_fd_waveform_from_td(
+    params,
+    *,
+    duration_estimator,
+    duration_increase,
+):
+    """Apply the common padded and tapered TD-to-FD transform."""
+    duration_increase = float(duration_increase)
+    if not numpy.isfinite(duration_increase) or duration_increase <= 1.0:
+        raise ValueError("duration increase must be finite and greater than 1")
 
-    This returns a frequency domain version of a fourier domain approximant,
-    with padding and tapering at the start of the waveform.
-
-    Parameters
-    ----------
-    params: dict
-        The parameters defining the waveform to generator.
-        See `get_td_waveform`.
-
-    Returns
-    -------
-    hp: pycbc.types.FrequencySeries
-        Plus polarization time series
-    hc: pycbc.types.FrequencySeries
-        Cross polarization time series
-    """
     nparams = params.copy()
-    if not 'taper_method' in params:
-        # determine the duration to use for an automatic tapering choice.
-        # If taper method specified, assume they have set f_lower as they
-        # want exactly.
-        full_duration = duration = get_waveform_filter_length_in_time(**params)
-
-        while full_duration < duration * 1.5:
-            full_duration = get_waveform_filter_length_in_time(**nparams)
+    if 'taper_method' not in params:
+        full_duration = duration = duration_estimator(**params)
+        while full_duration < duration * duration_increase:
+            full_duration = duration_estimator(**nparams)
             nparams['f_lower'] -= 1
 
     if 'f_ref' not in nparams and 'f_lower' in nparams:
@@ -931,7 +919,8 @@ def get_fd_waveform_from_td(**params):
     try:
         f_end = get_waveform_end_frequency(**params)
         delta_t = (0.5 / pnutils.nearest_larger_binary_number(f_end))
-    except:
+    except (AttributeError, KeyError, OverflowError, RuntimeError, TypeError,
+            ValueError):
         delta_t = 1.0 / 2048
 
     nparams['delta_t'] = delta_t
@@ -966,6 +955,20 @@ def get_fd_waveform_from_td(**params):
     hp = hp.to_frequencyseries().cyclic_time_shift(hp.start_time)
     hc = hc.to_frequencyseries().cyclic_time_shift(hc.start_time)
     return hp, hc
+
+
+def get_fd_waveform_from_td(**params):
+    """Return a frequency-domain version of a time-domain approximant.
+
+    The leading inspiral is extended and tapered before padding and Fourier
+    transformation.
+    """
+    return _get_fd_waveform_from_td(
+        params,
+        duration_estimator=get_waveform_filter_length_in_time,
+        duration_increase=1.5,
+    )
+
 
 def get_fd_det_waveform(template=None, **kwargs):
     """Return a frequency domain gravitational waveform.
