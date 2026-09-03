@@ -83,10 +83,12 @@ or if you include it in a python package, :ref:`PyCBC can directly detect it! <w
 Torch-native waveform ports (torch scheme)
 ===========================================
 PyCBC currently registers Torch-native frequency-domain and arbitrary-frequency
-sequence interfaces for five TaylorF2-family approximants.
+sequence interfaces for six TaylorF2-family approximants.
 
 The registered approximants are ``TaylorF2``, ``TaylorF2NLTides``,
-``TaylorF2RedSpin``, ``TaylorF2RedSpinTidal``, and ``TaylorF2Ecc``.
+``TaylorF2RedSpin``, ``TaylorF2RedSpinTidal``, ``TaylorF2Ecc``, and
+``SpinTaylorF2``. ``SpinTaylorF2`` is predicate-guarded, and unsupported
+parameters retain the standard fallback behavior.
 
 Regular-grid rows marked ``LAL reference`` are compared with the existing LAL
 implementation. Sequence rows marked ``native extension`` have no equivalent

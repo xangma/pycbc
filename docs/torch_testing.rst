@@ -51,7 +51,8 @@ covered by:
      test/waveform/test_taylorf2_torch.py \
      test/waveform/test_taylorf2ecc_torch.py \
      test/waveform/test_taylorf2nltides_torch.py \
-     test/waveform/test_taylorf2redspin_torch.py
+     test/waveform/test_taylorf2redspin_torch.py \
+     test/waveform/test_spintaylorf2_wrapper_torch.py
 
 TaylorF2 batching, inference reductions, relative-binning batches, and detector
 projection have focused nodes of their own:

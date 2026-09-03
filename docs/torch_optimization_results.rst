@@ -19,8 +19,8 @@ The evidence on this page applies only to code present in this branch:
   work;
 * shared Torch waveform infrastructure;
 * the registered ``TaylorF2``, ``TaylorF2NLTides``, ``TaylorF2RedSpin``,
-  ``TaylorF2RedSpinTidal``, and ``TaylorF2Ecc`` FD and FD sequence interfaces;
-  and
+  ``TaylorF2RedSpinTidal``, ``TaylorF2Ecc``, and ``SpinTaylorF2`` FD and FD
+  sequence interfaces; and
 * inference reductions, relative-binning batches, and vectorized
   detector/network response.
 
