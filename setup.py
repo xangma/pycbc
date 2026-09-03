@@ -277,6 +277,8 @@ setup(
         ) + [
             '_imrphenomxhm_mode32_native.cpp',
             '_imrphenomxhm_mode44_native.cpp',
+            '_imrphenomxp_msa_native.cpp',
+            'seobnr_native_ode.cpp',
         ],
     },
     ext_modules = ext,
