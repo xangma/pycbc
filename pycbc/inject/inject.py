@@ -975,7 +975,7 @@ class IncoherentFromFileHDFInjectionSet(_HDFInjectionSet):
         if inj.filename.endswith('.gwf'):
             try:
                 channel = inj.channel
-            except AttributeError as _err:
+            except AttributeError:
                 # Py3.XX: uncomment the "from _err" when we drop 2.7
                 raise ValueError("Must provide a channel for "
                                  "frame files") #from _err
@@ -992,7 +992,7 @@ class IncoherentFromFileHDFInjectionSet(_HDFInjectionSet):
         """
         try:
             ref_point = inj.ref_point
-        except AttributeError as _err:
+        except AttributeError:
             # Py3.XX: uncomment the "from _err" when we drop 2.7
             raise ValueError("Must provide a ref_point for {} injections"
                              .format(self.injtype))  #from _err

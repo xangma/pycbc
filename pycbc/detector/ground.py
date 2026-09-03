@@ -39,7 +39,6 @@ from astropy.coordinates.matrix_utilities import rotation_matrix
 from astropy.units.si import sday, meter
 
 import pycbc.scheme as _scheme
-import pycbc.libutils
 from pycbc.types import TimeSeries
 from pycbc.types.config import InterpolatingConfigParser
 from pycbc.time import gmst_accurate
