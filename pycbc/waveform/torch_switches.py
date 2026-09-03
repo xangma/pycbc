@@ -2,7 +2,7 @@
 
 Allows a single global switch (``PYCBC_TORCH_NATIVE_PORTS`` or
 ``PYCBC_TORCH_NATIVE``) to enable/disable all torch-native ports while still
-honouring per-component flags such as ``PYCBC_SPINTAYLORF2_NATIVE``.
+honouring per-component flags such as ``PYCBC_EXAMPLE_NATIVE``.
 Component-specific variables take precedence; if they are unset, the global
 flag is used; otherwise the provided default is returned.
 """
@@ -41,7 +41,7 @@ def torch_native_enabled(component_flag: str, *, default: bool = False) -> bool:
     ----------
     component_flag : str
         Environment variable specific to the component, e.g.
-        ``PYCBC_SPINTAYLORF2_NATIVE``.
+        ``PYCBC_EXAMPLE_NATIVE``.
     default : bool, optional
         Fallback if neither the component flag nor a global flag is set.
 
