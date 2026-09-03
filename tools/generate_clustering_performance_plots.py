@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 """Generate publication-quality performance comparison plots for clustering.
 
-Produces 4 high-resolution plots:
+Produces 3 high-resolution plots:
   1. docs/images/clustering_cuda_fusion_speedup.png
      End-to-End Matched Filtering & Symmetric Clustering Performance.
   2. docs/images/clustering_stage_breakdown.png
      GPU Stage Breakdown of Matched Filtering.
   3. docs/images/clustering_findchirp_scaling.png
      FindChirp Trigger Clustering Scaling across CPU & GPU backends.
-  4. docs/images/clustering_coinc_monotonic_deque.png
-     Sparse Event Time Clustering: O(K) Monotonic Deque vs Segment Tree.
 """
 
 from __future__ import annotations
@@ -345,47 +343,6 @@ def plot_findchirp_scaling(output_dir: Path):
     print(f"Saved: {plot_path}")
 
 
-def plot_coinc_monotonic_deque(output_dir: Path):
-    """Plot 4: Coincidence / Event clustering O(K) Monotonic Deque scaling."""
-    fig, ax = plt.subplots(figsize=(9, 5.5), dpi=300)
-
-    events_k = [1000, 5000, 20000, 50000, 100000, 500000]
-
-    # Execution time in milliseconds
-    deque_c = [0.028, 0.075, 0.280, 4.861, 6.312, 18.715]
-    cython_nested = [0.011, 0.022, 0.110, 26.504, 55.127, 246.504]
-    torch_segtree_cpu = [1.69, 5.42, 28.50, 72.10, 103.0, 216.8]
-
-    ax.plot(
-        events_k, deque_c, marker="o", linewidth=2.5, color=ACCENT,
-        label="Monotonic Deque (Strict O(K) Linear Time)"
-    )
-    ax.plot(
-        events_k, cython_nested, marker="s", linewidth=2.0, color=PRIMARY,
-        linestyle="--", label="Cython Nested Search (Degrades to O(K*W))"
-    )
-    ax.plot(
-        events_k, torch_segtree_cpu, marker="^", linewidth=1.8,
-        color=SECONDARY, linestyle=":",
-        label="Torch Segment Tree CPU O(K log K)"
-    )
-
-    ax.set_xlabel("Number of Input Events $K$")
-    ax.set_ylabel("Clustering Latency (ms) [Log Scale]")
-    ax.set_title("Transient Event Clustering (`coinc.cluster_over_time`)")
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.legend(
-        frameon=True, facecolor="white", edgecolor=GRID_COLOR, loc="upper left"
-    )
-
-    plt.tight_layout()
-    plot_path = output_dir / "clustering_coinc_monotonic_deque.png"
-    plt.savefig(plot_path, dpi=300)
-    plt.close()
-    print(f"Saved: {plot_path}")
-
-
 def main():
     setup_style()
     parser = argparse.ArgumentParser(
@@ -404,7 +361,6 @@ def main():
     plot_matched_filter_symm_comparison(args.output_dir, args.artifacts_dir)
     plot_stage_breakdown(args.output_dir)
     plot_findchirp_scaling(args.output_dir)
-    plot_coinc_monotonic_deque(args.output_dir)
     print("All performance plots generated successfully in docs/images/")
 
 

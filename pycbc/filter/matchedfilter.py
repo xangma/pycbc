@@ -328,7 +328,7 @@ class MatchedFilterControl(object):
                 self._cuda_graphs = {}
             if graph_key not in self._cuda_graphs:
                 self.capture_cuda_graph_symm(segnum, window, template_norm)
-            
+
             graph_entry = self._cuda_graphs.get(graph_key)
             if graph_entry is not None:
                 g, g_thresh_sq = graph_entry
@@ -2552,24 +2552,27 @@ class LiveBatchMatchedFilter(object):
 
         self.power_matrices = {}
         self._psd_cache = {}
-        for mid, tgroup in zip(self.mids, self.tgroups):
-            try:
-                p_list = []
-                for htilde in tgroup:
-                    arr = getattr(htilde, 'data', htilde)
-                    if hasattr(arr, 'numpy'):
-                        arr = arr.numpy()
-                    else:
-                        arr = numpy.asarray(arr)
-                    if numpy.iscomplexobj(arr):
-                        power = (arr.real ** 2 + arr.imag ** 2).astype(numpy.float32)
-                    else:
-                        power = (arr ** 2).astype(numpy.float32)
-                    p_list.append(power)
-                if p_list:
-                    self.power_matrices[mid] = numpy.stack(p_list, axis=0)
-            except Exception:
-                pass
+        if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.TorchScheme):
+            for mid, tgroup in zip(self.mids, self.tgroups):
+                try:
+                    p_list = []
+                    for htilde in tgroup:
+                        arr = getattr(htilde, 'data', htilde)
+                        if hasattr(arr, 'numpy'):
+                            arr = arr.numpy()
+                        else:
+                            arr = numpy.asarray(arr)
+                        if numpy.iscomplexobj(arr):
+                            power = (arr.real ** 2 + arr.imag ** 2).astype(
+                                numpy.float32
+                            )
+                        else:
+                            power = (arr ** 2).astype(numpy.float32)
+                        p_list.append(power)
+                    if p_list:
+                        self.power_matrices[mid] = numpy.stack(p_list, axis=0)
+                except Exception:
+                    pass
 
     def set_data(self, data):
         """Set the data reader object to use"""

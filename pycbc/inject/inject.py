@@ -32,21 +32,15 @@ import logging
 from abc import ABCMeta, abstractmethod
 
 import lal
-try:
-    from igwn_ligolw import utils as ligolw_utils, ligolw, lsctables
-except ImportError:
-    ligolw_utils = None
-    ligolw = None
-    lsctables = None
+from igwn_ligolw import utils as ligolw_utils, ligolw, lsctables
 
 from pycbc import waveform, frame, libutils
-from pycbc import scheme as _scheme
 from pycbc.opt import LimitedSizeDict
 from pycbc.waveform import (get_td_waveform, fd_det,
                             get_td_det_waveform_from_fd_det)
 from pycbc.waveform import utils as wfutils
 from pycbc.waveform import ringdown_td_approximants
-from pycbc.types import float64, float32, load_timeseries
+from pycbc.types import float64, float32, TimeSeries, load_timeseries
 from pycbc.detector import Detector
 from pycbc.conversions import tau0_from_mass1_mass2
 from pycbc.filter import resample_to_delta_t
@@ -61,38 +55,6 @@ injection_func_map = {
     np.dtype(float32): lambda *args: sim.SimAddInjectionREAL4TimeSeries(*args),
     np.dtype(float64): lambda *args: sim.SimAddInjectionREAL8TimeSeries(*args),
 }
-
-
-class _InjectionAdder:
-    """Add time series while retaining the destination's active backend."""
-
-    def __init__(self, strain):
-        self.strain = strain
-        self.using_torch = isinstance(
-            _scheme.mgr.state,
-            getattr(_scheme, "TorchScheme", ()),
-        )
-        if self.using_torch:
-            from pycbc.inject.inject_torch import add_injection
-            self._torch_add = add_injection
-            self._lalstrain = None
-            self._lal_add = None
-        else:
-            self._torch_add = None
-            self._lalstrain = strain.lal()
-            self._lal_add = injection_func_map[strain.dtype]
-
-    def add(self, signal):
-        """Add one signal to the destination."""
-        if self.using_torch:
-            self._torch_add(self.strain, signal)
-        else:
-            self._lal_add(self._lalstrain, signal.lal(), None)
-
-    def finish(self):
-        """Copy a host LAL destination back; Torch additions are in place."""
-        if not self.using_torch:
-            self.strain.data[:] = self._lalstrain.data.data[:]
 
 # Map parameter names used in pycbc to names used in the sim_inspiral
 # table, if they are different
@@ -263,10 +225,13 @@ class _XMLInjectionSet(object):
             raise TypeError("Strain dtype must be float32 or float64, not " \
                     + str(strain.dtype))
 
-        adder = _InjectionAdder(strain)
+        lalstrain = strain.lal()
         earth_travel_time = lal.REARTH_SI / lal.C_SI
         t0 = float(strain.start_time) - earth_travel_time
         t1 = float(strain.end_time) + earth_travel_time
+
+        # pick lalsimulation injection function
+        add_injection = injection_func_map[strain.dtype]
 
         delta_t = strain.delta_t
         if injection_sample_rate is not None:
@@ -295,13 +260,14 @@ class _XMLInjectionSet(object):
                 continue
 
             signal = signal.astype(strain.dtype)
-            adder.add(signal)
+            signal_lal = signal.lal()
+            add_injection(lalstrain, signal_lal, None)
             injection_parameters.append(inj)
             if inj_filter_rejector is not None:
                 sid = inj.simulation_id
                 inj_filter_rejector.generate_short_inj_from_inj(signal, sid)
 
-        adder.finish()
+        strain.data[:] = lalstrain.data.data[:]
 
         injected = copy.copy(self)
         injected.table = lsctables.SimInspiralTable()
@@ -636,7 +602,11 @@ class CBCHDFInjectionSet(_HDFInjectionSet):
             t1 = float(strain.end_time) + earth_travel_time
 
 
-        adder = _InjectionAdder(strain) if generate_injections else None
+        if generate_injections:
+            lalstrain = strain.lal()
+
+            # pick lalsimulation injection function
+            add_injection = injection_func_map[strain.dtype]
 
         delta_t = strain.delta_t
         if injection_sample_rate is not None:
@@ -680,10 +650,11 @@ class CBCHDFInjectionSet(_HDFInjectionSet):
 
 
             if generate_injections:
-                adder.add(signal)
+                signal_lal = signal.lal()
+                add_injection(lalstrain, signal_lal, None)
 
         if generate_injections:
-            adder.finish()
+            strain.data[:] = lalstrain.data.data[:]
 
         injected = copy.copy(self)
         injected.table = injections[np.array(injected_ids).astype(int)]
@@ -825,7 +796,10 @@ class RingdownHDFInjectionSet(_HDFInjectionSet):
             raise TypeError("Strain dtype must be float32 or float64, not " \
                     + str(strain.dtype))
 
-        adder = _InjectionAdder(strain)
+        lalstrain = strain.lal()
+
+        # pick lalsimulation injection function
+        add_injection = injection_func_map[strain.dtype]
 
         delta_t = strain.delta_t
         if injection_sample_rate is not None:
@@ -841,9 +815,10 @@ class RingdownHDFInjectionSet(_HDFInjectionSet):
                 distance_scale=distance_scale)
             signal = resample_to_delta_t(signal, strain.delta_t, method='ldas')
             signal = signal.astype(strain.dtype)
-            adder.add(signal)
+            signal_lal = signal.lal()
+            add_injection(lalstrain, signal_lal, None)
 
-        adder.finish()
+            strain.data[:] = lalstrain.data.data[:]
 
     def make_strain_from_inj_object(self, inj, delta_t, detector_name,
                                     distance_scale=1):

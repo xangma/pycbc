@@ -511,4 +511,3 @@ def test_cpu_batch_peak_and_threshold_avoids_float64(monkeypatch):
     np.testing.assert_array_equal(surv, [3])
     np.testing.assert_array_equal(p_idx, [5])
     np.testing.assert_allclose(p_val, [6.0 + 8.0j])
-

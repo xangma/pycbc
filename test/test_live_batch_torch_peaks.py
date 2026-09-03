@@ -512,32 +512,51 @@ def test_live_batch_cpu_storage_keeps_legacy_peak_path(monkeypatch):
 def test_live_batch_power_matrices_init():
     template_count = 4
     template_size = 16
-    templates = []
-    for index in range(template_count):
-        arr = np.arange(template_size, dtype=np.complex64) * (index + 1)
-        template = FrequencySeries(arr, delta_f=0.25)
-        template.id = 10 + index
-        template.params = np.array(
-            [(20.0 + index,)], dtype=[("mass1", np.float32)]
-        )[0]
-        template.sigmasq = lambda _psd: 1.0
-        templates.append(template)
+    with scheme.TorchScheme("cpu"):
+        templates = []
+        for index in range(template_count):
+            arr = np.arange(template_size, dtype=np.complex64) * (index + 1)
+            template = FrequencySeries(arr, delta_f=0.25)
+            template.id = 10 + index
+            template.params = np.array(
+                [(20.0 + index,)], dtype=[("mass1", np.float32)]
+            )[0]
+            template.sigmasq = lambda _psd: 1.0
+            templates.append(template)
+
+        batch = matchedfilter.LiveBatchMatchedFilter(
+            templates,
+            snr_threshold=0.0,
+            chisq_bins=0,
+            sg_chisq=types.SimpleNamespace(),
+        )
+
+        mid = batch.mids[0]
+        assert mid in batch.power_matrices
+        pm = batch.power_matrices[mid]
+        assert pm.shape == (template_count, template_size)
+        assert pm.dtype == np.float32
+        for index in range(template_count):
+            expected_power = np.abs(templates[index].numpy()) ** 2
+            np.testing.assert_allclose(pm[index], expected_power, rtol=1e-5)
+        assert batch._psd_cache == {}
+
+
+def test_live_batch_power_matrices_not_built_for_numpy():
+    template = FrequencySeries(np.ones(16, dtype=np.complex64), delta_f=0.25)
+    template.id = 10
+    template.params = np.array(
+        [(20.0,)], dtype=[("mass1", np.float32)]
+    )[0]
 
     batch = matchedfilter.LiveBatchMatchedFilter(
-        templates,
+        [template],
         snr_threshold=0.0,
         chisq_bins=0,
         sg_chisq=types.SimpleNamespace(),
     )
 
-    mid = batch.mids[0]
-    assert mid in batch.power_matrices
-    pm = batch.power_matrices[mid]
-    assert pm.shape == (template_count, template_size)
-    assert pm.dtype == np.float32
-    for index in range(template_count):
-        expected_power = np.abs(templates[index].numpy()) ** 2
-        np.testing.assert_allclose(pm[index], expected_power, rtol=1e-5)
+    assert batch.power_matrices == {}
     assert batch._psd_cache == {}
 
 
@@ -969,4 +988,3 @@ def test_live_batch_async_streams_double_buffering_pipeline(monkeypatch):
         result1, veto1 = batch._process_batch()
         assert batch.block_id == 2
         assert batch._async_prefetched is None
-

@@ -1,13 +1,25 @@
 """ Generation of sine-Gaussian bursty type things
 """
 
-import pycbc.types
-import numpy
 import functools
+from math import pi
+
+import numpy
+
+import pycbc.scheme as _scheme
+import pycbc.types
+
 
 @functools.lru_cache(maxsize=128)
 def cached_arange(kmax, delta_f):
     return numpy.arange(0, kmax) * delta_f
+
+
+@functools.lru_cache(maxsize=128)
+def _cached_torch_arange(kmax, delta_f, device, dtype):
+    import torch
+
+    return torch.arange(kmax, device=device, dtype=dtype) * delta_f
 
 
 def fd_sine_gaussian(amp, quality, central_frequency, fmin, fmax, delta_f):
@@ -41,11 +53,30 @@ def fd_sine_gaussian(amp, quality, central_frequency, fmin, fmax, delta_f):
     kmin = int(round(fmin / delta_f))
     kmax = int(round(fmax / delta_f))
 
-    pi = numpy.pi
     tau = (quality / (2 * pi * central_frequency))
     quality_sq = quality**2
 
-    f = cached_arange(kmax, delta_f)
+    using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
+    if using_torch:
+        import torch
+
+        device = _scheme.mgr.state.torch_device
+        dtype = torch.float32 if device.type == "mps" else torch.float64
+        f = _cached_torch_arange(
+            kmax,
+            float(delta_f),
+            device,
+            dtype,
+        )
+        complex_dtype = (
+            torch.complex64 if dtype == torch.float32 else torch.complex128
+        )
+        v = torch.zeros(kmax, dtype=complex_dtype, device=device)
+        exponential = torch.exp
+    else:
+        f = cached_arange(kmax, delta_f)
+        v = numpy.zeros(kmax, dtype=numpy.complex128)
+        exponential = numpy.exp
 
     # exp(exp_term1) and exp(exp_term2) are often 0 (at double-precision
     # level) but still slow to compute. Want to shortcut this by not
@@ -57,10 +88,6 @@ def fd_sine_gaussian(amp, quality, central_frequency, fmin, fmax, delta_f):
     # We first figure out which points we need to compute amplitudes for
     exp_term_cutoff = -50
 
-    v = numpy.zeros(kmax, dtype=numpy.complex128)
-    indices = numpy.zeros(kmax, dtype=bool)
-    # Only consider points larger than kmin
-    indices[kmin:] = 1
     # Find frequencies at which first term is equal to exp_term_cutoff
     low_freq_first_term = (
         central_frequency - (-exp_term_cutoff)**0.5 / (tau * pi)
@@ -76,14 +103,14 @@ def fd_sine_gaussian(amp, quality, central_frequency, fmin, fmax, delta_f):
     )
 
     exp_term_1 = -(
-        tau * pi * 
+        tau * pi *
         (f[low_freq_first_idx:high_freq_first_idx] - central_frequency)
     )**2.0
 
     A_term = amp * (pi**0.5) / 2 * tau
 
     v[low_freq_first_idx:high_freq_first_idx] = (
-        A_term * numpy.exp(exp_term_1)
+        A_term * exponential(exp_term_1)
     )
     # If the first term is already less than e**50 don't need the second
     # term at all ... It's often the case that the second term is not needed.
@@ -91,7 +118,11 @@ def fd_sine_gaussian(amp, quality, central_frequency, fmin, fmax, delta_f):
         exp_term_2 = (
             -quality_sq * f[kmin:high_freq_second_idx] / central_frequency
         )
-        v[kmin:high_freq_second_idx] *= (1 + numpy.exp(exp_term_2))
+        v[kmin:high_freq_second_idx] *= (1 + exponential(exp_term_2))
+
+    if using_torch:
+        from pycbc.types.array_torch import TorchArrayData
+
+        v = TorchArrayData(v)
 
     return pycbc.types.FrequencySeries(v, delta_f=delta_f, copy=False)
-

@@ -1,5 +1,3 @@
-import importlib.util
-from pathlib import Path
 import sys
 import types
 
@@ -31,13 +29,12 @@ from pycbc.psd import (
     welch,
 )
 from pycbc.strain import recalibrate
-from pycbc.strain.strain import StrainBuffer, detect_loud_glitches, gate_data
+from pycbc.strain.strain import detect_loud_glitches, gate_data
 from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
 import pycbc.vetoes.autochisq as autochisq
 import pycbc.vetoes.bank_chisq as bank_chisq
 import pycbc.vetoes.chisq as chisq
-import pycbc.vetoes.sgchisq as sgchisq
 
 
 torch = pytest.importorskip("torch")
@@ -102,166 +99,6 @@ def torch_device_ctx(request):
 def _relative_l2(a, b):
     diff = a - b
     return np.linalg.norm(diff) / np.linalg.norm(b)
-
-
-def _load_inference_model_module(name):
-    """Load a model module without inference's optional dependencies."""
-    module_path = (
-        Path(pycbc.__file__).parent / "inference" / "models" / f"{name}.py"
-    )
-    if not module_path.is_file():
-        return None
-    spec = importlib.util.spec_from_file_location(
-        f"_pycbc_inference_{name}_torch_test", module_path
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
-_INFERENCE_DATA_UTILS = _load_inference_model_module("data_utils")
-
-
-_INFERENCE_RELBIN_TORCH = _load_inference_model_module("relbin_torch")
-
-
-_INFERENCE_TOOLS = _load_inference_model_module("tools")
-
-
-def _native_scalar_single_template_model(
-        dtype=np.complex128, detectors=("H1",)):
-    """Build the minimum real-detector model needed by the scalar path."""
-    try:
-        from pycbc.inference.models import single_template
-    except Exception:
-        single_template = None
-    if single_template is None:
-        return None
-    epoch = 1126259462.0
-    delta_t = 1.0 / 128.0
-def _stub_live_batch_veto_calculators(
-        chisq_values, dof_values, sg_values, torch_backed):
-    """Build exact standard calculators with deterministic one-point output."""
-    state = {"index": 0}
-    power = object.__new__(chisq.SingleDetPowerChisq)
-    sg_veto = object.__new__(sgchisq.SingleDetSGChisq)
-
-    def wrap(value, dtype):
-        values = np.array([value], dtype=dtype)
-        return Array(values) if torch_backed else values
-
-    def power_values(*_args):
-        index = state["index"]
-        return (
-            wrap(chisq_values[index], np.float32),
-            wrap(dof_values[index], np.int64),
-        )
-
-    def sg_veto_values(*_args):
-        index = state["index"]
-        state["index"] += 1
-        value = sg_values[index]
-        return None if value is None else wrap(value, np.float32)
-
-    power.values = power_values
-    sg_veto.values = sg_veto_values
-    return power, sg_veto
-
-
-def _stub_live_batch_veto_inputs(snr_values):
-    results = {
-        "snr": np.asarray(snr_values, dtype=np.float32),
-        "template_id": np.arange(len(snr_values), dtype=np.uint64),
-    }
-    veto_info = []
-    for index in range(len(snr_values)):
-        template = types.SimpleNamespace(cout=object())
-        strain = types.SimpleNamespace(psd=object())
-        veto_info.append((
-            np.array([1 + 0j], dtype=np.complex64),
-            1.0,
-            index,
-            template,
-            strain,
-        ))
-    return results, veto_info
-
-
-def _stub_live_batch_veto_filter(power, sg_veto, threshold=None):
-    batch = object.__new__(matchedfilter.LiveBatchMatchedFilter)
-    batch.power_chisq = power
-    batch.sg_chisq = sg_veto
-    batch.newsnr_threshold = threshold
-    return batch
-
-
-def _ringdown_parameters():
-    return {
-        "lmns": ["221", "331", "201"],
-        "amp220": 1.2,
-        "phi220": 0.4,
-        "f_220": 250.0,
-        "tau_220": 0.02,
-        "amp330": 0.35,
-        "phi330": -0.3,
-        "f_330": 410.0,
-        "tau_330": 0.012,
-        "amp200": 0.15,
-        "phi200": 0.8,
-        "f_200": 180.0,
-        "tau_200": 0.018,
-        "inclination": 0.7,
-        "azimuthal": 0.2,
-    }
-
-
-def _assert_ringdown_close(actual, expected, device):
-    dtype = torch.float32 if device == "mps" else torch.float64
-    if np.iscomplexobj(expected):
-        dtype = torch.complex64 if device == "mps" else torch.complex128
-    tolerances = (
-        {"rtol": 3e-5, "atol": 1e-6}
-        if device == "mps"
-        else {"rtol": 1e-12, "atol": 1e-14}
-    )
-    torch.testing.assert_close(
-        actual.detach().cpu(),
-        torch.as_tensor(expected, dtype=dtype),
-        **tolerances,
-    )
-
-
-def _make_strain_buffer(data, sample_rate, reduced_pad):
-    """Build only the state needed by ``overwhitened_data``."""
-    delta_f = 1.0
-    initial_len = sample_rate + 2 * reduced_pad
-    assert len(data) == initial_len
-
-    psdt = FrequencySeries(
-        np.ones(initial_len // 2 + 1),
-        delta_f=sample_rate / initial_len,
-    )
-    psd = FrequencySeries(
-        np.ones(sample_rate // 2 + 1),
-        delta_f=delta_f,
-    )
-    psd.psdt = psdt
-
-    buffer = object.__new__(StrainBuffer)
-    buffer.strain = TimeSeries(data, delta_t=1 / sample_rate, epoch=100)
-    buffer.sample_rate = sample_rate
-    buffer.reduced_pad = reduced_pad
-    buffer.trim_padding = 0
-    buffer.segments = {}
-    buffer.psds = {delta_f: psd}
-    return buffer
-
-
-_DIRECT_SPACE_PSD_MODELS = tuple(
-    f"analytical_psd_{detector}_tdi_{channel}"
-    for detector in ("lisa", "tianqin", "taiji")
-    for channel in ("XYZ", "AE", "T")
-)
 
 
 _DIRECT_SPACE_CURVES = (
@@ -2187,6 +2024,35 @@ def test_zeros_pinned_and_to_cuda_async_pipeline():
         assert raw_transferred.device.type == "cuda"
 
 
+def test_live_batch_cuda_graph_flag_from_environment(monkeypatch):
+    template = FrequencySeries(np.ones(33, dtype=np.complex64), delta_f=0.25)
+    template.id = 1
+    template.params = np.array(
+        [(10.0,)], dtype=[("mass1", np.float32)]
+    )[0]
+
+    monkeypatch.delenv("PYCBC_ENABLE_CUDA_GRAPHS", raising=False)
+    batch = matchedfilter.LiveBatchMatchedFilter(
+        [template],
+        snr_threshold=5.0,
+        chisq_bins=None,
+        sg_chisq=None,
+        maxelements=64,
+    )
+    assert batch.enable_cuda_graphs is False
+    assert batch._cuda_graphs == {}
+
+    monkeypatch.setenv("PYCBC_ENABLE_CUDA_GRAPHS", "1")
+    batch = matchedfilter.LiveBatchMatchedFilter(
+        [template],
+        snr_threshold=5.0,
+        chisq_bins=None,
+        sg_chisq=None,
+        maxelements=64,
+    )
+    assert batch.enable_cuda_graphs is True
+
+
 @pytest.mark.parametrize("enable_cuda_graphs", (True, False))
 def test_live_batch_matched_filter_cuda_graphs_pipeline(torch_device_ctx, enable_cuda_graphs):
     ctx, device = torch_device_ctx
@@ -2263,4 +2129,3 @@ def test_live_batch_matched_filter_cuda_graphs_pipeline(torch_device_ctx, enable
             replays = entry.get("replays", getattr(entry["graph"], "replay_count", 0))
             assert replays == 1
             np.testing.assert_allclose(res1["snr"], res2["snr"])
-

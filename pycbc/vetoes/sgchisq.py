@@ -52,8 +52,11 @@ def _cached_gpu_sg_tile(
         if device_index is not None
         else torch.device(device_type)
     )
-    tile_slice = torch.as_tensor(
-        tile[kmin:kmax], device=device, dtype=complex_dtype
+    tile_tensor = _torch_tensor(tile)
+    if tile_tensor is None:
+        raise TypeError("Torch sine-Gaussian tile has non-Torch storage")
+    tile_slice = tile_tensor[kmin:kmax].to(
+        device=device, dtype=complex_dtype
     )
     return tile_slice, kmin, kmax, fhigh
 

@@ -23,6 +23,7 @@
 #
 import logging
 from pycbc.types import Array, zeros, real_same_precision_as, TimeSeries
+from pycbc.filter import overlap_cplx, matched_filter_core
 try:
     from pycbc.waveform.bank import FilterBank
 except Exception:

@@ -1,3 +1,5 @@
+import types
+
 import numpy as np
 import pytest
 
@@ -5,6 +7,7 @@ import pycbc
 from pycbc import scheme
 from pycbc.types import Array, FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
+from pycbc.vetoes import sgchisq
 from pycbc.vetoes.chisq import (
     SingleDetPowerChisq,
     SingleDetSkyMaxPowerChisq,
@@ -124,6 +127,80 @@ def test_power_chisq_threshold_output_stays_on_torch(
         actual_values, expected, rtol=2e-5, atol=2e-5
     )
     np.testing.assert_array_equal(actual_dof, expected_dof)
+
+
+def test_sine_gaussian_chisq_stays_on_torch(monkeypatch):
+    rng = np.random.default_rng(681)
+    series_length = 513
+    strain_values = (
+        rng.normal(size=series_length)
+        + 1j * rng.normal(size=series_length)
+    ).astype(np.complex64)
+    template_values = np.zeros(series_length, dtype=np.complex64)
+    psd_values = (1.0 + rng.random(series_length)).astype(np.float32)
+    snr_values = np.array([12 + 2j, 3 + 0j, 10 - 1j], dtype=np.complex64)
+    bchisq_values = np.array([2.0, 50.0, 5.0], dtype=np.float32)
+    dof_values = np.full(3, 4.0, dtype=np.float32)
+    index_values = np.array([17, 29, 53], dtype=np.int32)
+    template_hash = 681
+
+    def make_calculator():
+        calculator = object.__new__(sgchisq.SingleDetSGChisq)
+        calculator.do = True
+        calculator.snr_threshold = 5.0
+        calculator.params = {template_hash: "8-20,12-40"}
+        calculator.cached_chisq_bins = lambda _template, _psd: np.array(
+            [20, 60, 100, 140], dtype=np.int32
+        )
+        return calculator
+
+    def make_series():
+        strain = FrequencySeries(strain_values, delta_f=1, epoch=0.125)
+        template = FrequencySeries(template_values, delta_f=1, epoch=0.125)
+        template.params = types.SimpleNamespace(template_hash=template_hash)
+        template.f_lower = 20.0
+        psd = FrequencySeries(psd_values, delta_f=1, epoch=0.125)
+        return strain, template, psd
+
+    strain, template, psd = make_series()
+    expected = make_calculator().values(
+        strain,
+        template,
+        psd,
+        snr_values,
+        0.75,
+        bchisq_values,
+        dof_values,
+        index_values,
+    )
+
+    sgchisq._cached_gpu_sg_tile.cache_clear()
+    with scheme.TorchScheme("cpu"):
+        strain, template, psd = make_series()
+        with monkeypatch.context() as patch:
+            patch.setattr(
+                TorchArrayData,
+                "numpy",
+                lambda _self: (_ for _ in ()).throw(
+                    AssertionError("sine-Gaussian chisq copied data to host")
+                ),
+            )
+            actual = make_calculator().values(
+                strain,
+                template,
+                psd,
+                Array(snr_values),
+                0.75,
+                Array(bchisq_values),
+                Array(dof_values),
+                Array(index_values),
+            )
+
+        assert isinstance(actual._data, TorchArrayData)
+        assert actual._data.tensor.device.type == "cpu"
+        actual_values = actual._data.tensor.detach().cpu().numpy()
+
+    np.testing.assert_allclose(actual_values, expected, rtol=3e-5, atol=3e-5)
 
 
 @pytest.mark.parametrize("threshold", [None, 4.0])
