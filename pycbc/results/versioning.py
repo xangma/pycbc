@@ -19,11 +19,12 @@ import subprocess
 import urllib.parse
 
 import pycbc.version
-from pycbc.libutils import import_optional
+from pycbc.libutils import defer_lalsimulation_import, import_optional
 
-lal = import_optional('lal')
-lalframe = import_optional('lalframe')
-lalsimulation = import_optional('lalsimulation')
+_defer_lalsuite = defer_lalsimulation_import()
+lal = import_optional('lal', defer=_defer_lalsuite)
+lalframe = import_optional('lalframe', defer=_defer_lalsuite)
+lalsimulation = import_optional('lalsimulation', defer=_defer_lalsuite)
 
 
 logger = logging.getLogger('pycbc.results.versioning')

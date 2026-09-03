@@ -33,15 +33,12 @@ from abc import (ABCMeta, abstractmethod)
 from . import waveform
 from .waveform import (FailedWaveformError)
 from . import ringdown
-from . import supernovae
 from . import waveform_modes
 from pycbc.types import TimeSeries, FrequencySeries
 from pycbc.waveform import parameters
 from pycbc.waveform.utils import apply_fseries_time_shift, \
                                  ceilpow2, apply_fd_time_shift
-from pycbc.detector import Detector
 from pycbc.pool import use_mpi
-from pycbc import strain
 from numpy import pi
 
 
@@ -174,6 +171,8 @@ def _detector_time_offset(detector, reference_time, ra, dec, reference_frame):
     if reference_frame == getattr(detector, 'name', None):
         return 0.0
     if hasattr(detector, 'time_delay_from_detector'):
+        from pycbc.detector import Detector
+
         return detector.time_delay_from_detector(
             Detector(reference_frame), ra, dec, reference_time
         )
@@ -617,6 +616,8 @@ class TDomainSupernovaeGenerator(BaseGenerator):
     using a set of Principal Components provided in a .hdf file.
     """
     def __init__(self, variable_args=(), **frozen_params):
+        from . import supernovae
+
         super(TDomainSupernovaeGenerator,
               self).__init__(supernovae.get_corecollapse_bounce,
            variable_args=variable_args, **frozen_params)
@@ -709,6 +710,8 @@ class BaseFDomainDetFrameGenerator(metaclass=ABCMeta):
         # if detectors are provided, convert to detector type; also ensure that
         # location variables are specified
         if detectors is not None:
+            from pycbc.detector import Detector
+
             self.detectors = {det: Detector(det) for det in detectors}
             missing_args = [arg for arg in self.location_args if not
                 (arg in self.current_params or arg in self.variable_args)]
@@ -969,10 +972,12 @@ class FDomainDetFrameGenerator(BaseFDomainDetFrameGenerator):
                                          copy=False)
             h['RF'] = hp
         if self.gates is not None:
+            from pycbc.strain import apply_gates_to_fd
+
             # resize all to nearest power of 2
             for d in h.values():
                 d.resize(ceilpow2(len(d)-1) + 1)
-            h = strain.apply_gates_to_fd(h, self.gates)
+            h = apply_gates_to_fd(h, self.gates)
         return h
 
     @staticmethod
@@ -1108,6 +1113,8 @@ class FDomainDetFrameTwoPolGenerator(BaseFDomainDetFrameGenerator):
                                          copy=False)
             h['RF'] = (hp, hc)
         if self.gates is not None:
+            from pycbc.strain import apply_gates_to_fd
+
             # resize all to nearest power of 2
             hps = {}
             hcs = {}
@@ -1118,8 +1125,8 @@ class FDomainDetFrameTwoPolGenerator(BaseFDomainDetFrameGenerator):
                 hc.resize(ceilpow2(len(hc)-1) + 1)
                 hps[det] = hp
                 hcs[det] = hc
-            hps = strain.apply_gates_to_fd(hps, self.gates)
-            hcs = strain.apply_gates_to_fd(hps, self.gates)
+            hps = apply_gates_to_fd(hps, self.gates)
+            hcs = apply_gates_to_fd(hps, self.gates)
             h = {det: (hps[det], hcs[det]) for det in h}
         return h
 
@@ -1534,6 +1541,8 @@ class FDomainDetFrameModesGenerator(BaseFDomainDetFrameGenerator):
                                               copy=False)
                 h['RF'][mode] = (ulm, vlm)
             if self.gates is not None:
+                from pycbc.strain import apply_gates_to_fd
+
                 # resize all to nearest power of 2
                 ulms = {}
                 vlms = {}
@@ -1543,8 +1552,8 @@ class FDomainDetFrameModesGenerator(BaseFDomainDetFrameGenerator):
                     vlm.resize(ceilpow2(len(vlm)-1) + 1)
                     ulms[det] = ulm
                     vlms[det] = vlm
-                ulms = strain.apply_gates_to_fd(ulms, self.gates)
-                vlms = strain.apply_gates_to_fd(ulms, self.gates)
+                ulms = apply_gates_to_fd(ulms, self.gates)
+                vlms = apply_gates_to_fd(ulms, self.gates)
                 for det in ulms:
                     h[det][mode] = (ulms[det], vlms[det])
         return h
@@ -1663,7 +1672,7 @@ def get_td_generator(approximant, modes=False):
             return TDomainMassSpinRingdownGenerator
         return TDomainFreqTauRingdownGenerator
 
-    if approximant in supernovae.supernovae_td_approximants:
+    if approximant == 'CoreCollapseBounce':
         return TDomainSupernovaeGenerator
 
     raise ValueError("No time-domain generator found for "
