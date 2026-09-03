@@ -425,11 +425,22 @@ def _crosses_zero(coefficients, start, stop):
 
     if degree == 5:
         # Preserve the 2019 model's published LAL behavior. CrossZeroP5 uses
-        # this GSL companion orientation and indexes its packed roots
-        # asymmetrically. In particular, two checks use one root's imaginary
-        # part and the following root's real part. XO4a inherits the resulting
-        # occasional quintic-to-quartic fallback, so mirror those indices here
-        # rather than replacing them with a mathematically corrected test.
+        # GSL's real-companion ordering: ascending real part, with the positive
+        # member of each conjugate pair first. Torch does not guarantee an
+        # eigenvalue order, so impose GSL's order before reproducing the legacy
+        # packed-root indexing below. In particular, two checks use one root's
+        # imaginary part and the following root's real part. XO4a inherits the
+        # resulting occasional quintic-to-quartic fallback, so mirror those
+        # indices here rather than replacing them with a mathematically
+        # corrected test.
+        root_order = sorted(
+            range(degree),
+            key=lambda index: (
+                float(roots[index].real),
+                -float(roots[index].imag),
+            ),
+        )
+        roots = roots[torch.tensor(root_order, dtype=torch.long)]
         packed = torch.stack((roots.real, roots.imag), dim=1).reshape(-1)
         threshold = 1.0e-15
         checks = (

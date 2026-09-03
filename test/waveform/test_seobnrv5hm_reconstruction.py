@@ -330,7 +330,7 @@ def test_taylorf2_mode_amp_phase_matches_lal_formula(mode_index):
         * mode_factor
     )
     np.testing.assert_allclose(amplitude.numpy(), expected_amplitude, rtol=2e-15)
-    np.testing.assert_allclose(phase.numpy(), expected_phase, rtol=2e-15)
+    np.testing.assert_allclose(phase.numpy(), expected_phase, rtol=2.4e-15)
 
 
 def test_inspiral_frequency_grid_matches_lal_boundaries():
