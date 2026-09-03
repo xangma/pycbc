@@ -14,6 +14,7 @@ import pytest
 
 import pycbc
 from pycbc import scheme
+from pycbc.events import coinc
 from pycbc.types import Array, FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
 
@@ -22,6 +23,80 @@ torch = pytest.importorskip("torch")
 
 if not pycbc.HAVE_TORCH:
     pytest.skip("PyCBC built without torch support", allow_module_level=True)
+
+
+@pytest.mark.parametrize("method", ("python", "cython"))
+def test_cluster_over_time_stays_on_torch_device(monkeypatch, method):
+    host_stat = np.array(
+        [5.0, 2.0, 7.0, 7.0, -1.0, 4.0, 8.0, 3.0]
+    )
+    host_time = np.array(
+        [4.0, 0.0, 1.0, 1.25, 8.0, 4.25, 7.75, 12.0]
+    )
+    expected = coinc.cluster_over_time(
+        host_stat, host_time, window=0.5, method=method
+    )
+
+    def reject_host_path(*_args, **_kwargs):
+        raise AssertionError("clustering used the NumPy/Cython path")
+
+    def reject_host_transfer(*_args, **_kwargs):
+        raise AssertionError("clustering copied or synchronized Torch data")
+
+    with scheme.TorchScheme("cpu"):
+        torch_stat = Array(host_stat)
+        torch_time = Array(host_time)
+        monkeypatch.setattr(coinc, "timecluster_cython", reject_host_path)
+        monkeypatch.setattr(TorchArrayData, "numpy", reject_host_transfer)
+        monkeypatch.setattr(torch.Tensor, "cpu", reject_host_transfer)
+        monkeypatch.setattr(torch.Tensor, "item", reject_host_transfer)
+        actual = coinc.cluster_over_time(
+            torch_stat, torch_time, window=0.5, method=method
+        )
+
+    assert isinstance(actual, Array)
+    assert actual._data.tensor.device.type == "cpu"
+    assert actual._data.tensor.dtype == torch.int64
+    np.testing.assert_array_equal(
+        actual._data.tensor.detach().numpy(), expected
+    )
+
+
+def test_cluster_over_time_raw_torch_nan_and_validation():
+    times = torch.tensor([0.0, 0.1, 0.2, 2.0], dtype=torch.float64)
+    cases = (
+        ([1.0, np.nan, 3.0, 4.0], [1, 3], [2, 3]),
+        ([np.nan, 4.0, 3.0, 2.0], [0, 3], [0, 3]),
+        ([1.0, 2.0, np.nan, np.nan], [2, 3], [1, 3]),
+    )
+    for statistics, python_expected, cython_expected in cases:
+        stat = torch.tensor(statistics, dtype=torch.float64)
+        for method, expected in (
+            ("python", python_expected),
+            ("cython", cython_expected),
+        ):
+            actual = coinc.cluster_over_time(
+                stat, times, window=0.5, method=method
+            )
+            assert isinstance(actual, torch.Tensor)
+            np.testing.assert_array_equal(actual.numpy(), expected)
+
+    empty = coinc.cluster_over_time(
+        torch.empty(0, dtype=torch.float64),
+        torch.empty(0, dtype=torch.float64),
+        window=0.5,
+    )
+    assert isinstance(empty, torch.Tensor)
+    assert empty.dtype == torch.int64
+    assert empty.numel() == 0
+
+    with pytest.raises(NotImplementedError):
+        coinc.cluster_over_time(
+            torch.tensor([1.0]),
+            torch.tensor([0.0]),
+            window=0.5,
+            argmax=lambda value: value.argmax(),
+        )
 
 
 def test_correlators_write_multiplication_directly_to_output(monkeypatch):
