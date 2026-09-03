@@ -832,31 +832,41 @@ def get_fd_waveform_batch(approximant, **params):
 
     This interface is intentionally separate from :func:`get_fd_waveform` so
     that passing vector-valued parameters cannot change the scalar API's
-    return type.  The initial implementation supports TaylorF2 under an active
+    return type. Supported implementations run under an active
     :class:`pycbc.scheme.TorchScheme`.
 
     Parameters
     ----------
     approximant : str
-        The waveform model.  Currently only ``"TaylorF2"`` is supported.
+        The waveform model. Currently ``"TaylorF2"``, ``"IMRPhenomD"``, and
+        ``"IMRPhenomXAS"`` are supported.
     **params
-        TaylorF2 parameters.  Physical parameters may be scalars or
+        Waveform parameters. Physical parameters may be scalars or
         one-dimensional batches; scalars are broadcast to the batch size.
 
     Returns
     -------
-    pycbc.waveform.taylorf2_torch.TaylorF2FDBatch
-        Batched polarizations and their frequency-grid metadata.
+    object
+        The native implementation's batched waveform result.
     """
-    if approximant != "TaylorF2":
-        raise ValueError(
-            "get_fd_waveform_batch currently supports only TaylorF2; "
-            f"got {approximant!r}"
-        )
+    if approximant == "TaylorF2":
+        from pycbc.waveform.taylorf2_torch import taylorf2_fd_batch
 
-    from pycbc.waveform.taylorf2_torch import taylorf2_fd_batch
+        return taylorf2_fd_batch(**params)
+    if approximant == "IMRPhenomD":
+        from pycbc.waveform.imrphenomd_torch import imrphenomd_fd_batch
 
-    return taylorf2_fd_batch(**params)
+        return imrphenomd_fd_batch(**params)
+    if approximant == "IMRPhenomXAS":
+        from pycbc.waveform.imrphenomxas_torch import imrphenomxas_fd_batch
+
+        return imrphenomxas_fd_batch(**params)
+
+    supported = "TaylorF2, IMRPhenomD, and IMRPhenomXAS"
+    raise ValueError(
+        "get_fd_waveform_batch supports only "
+        f"{supported}; got {approximant!r}"
+    )
 
 
 def get_fd_waveform_from_td(**params):

@@ -272,6 +272,9 @@ setup(
         'pycbc.workflow': find_files('pycbc/workflow'),
         'pycbc.results': find_files('pycbc/results'),
         'pycbc.neutron_stars': find_files('pycbc/neutron_stars'),
+        'pycbc.waveform': find_files(
+            'pycbc/waveform/data', relpath='pycbc/waveform'
+        ),
     },
     ext_modules = ext,
     python_requires='>=3.11',

@@ -1,5 +1,7 @@
 """Contract tests for the explicit Torch TaylorF2 batch API."""
 
+from importlib import import_module
+
 import numpy as np
 import pytest
 
@@ -342,6 +344,46 @@ def test_unsupported_approximant_and_scheme_are_explicit_errors():
     _activate(_scheme.CPUScheme)
     with pytest.raises(RuntimeError, match="Torch"):
         get_fd_waveform_batch("TaylorF2", **_params())
+
+
+@pytest.mark.parametrize(
+    ("approximant", "module_name", "generator_name"),
+    [
+        (
+            "IMRPhenomD",
+            "pycbc.waveform.imrphenomd_torch",
+            "imrphenomd_fd_batch",
+        ),
+        (
+            "IMRPhenomXAS",
+            "pycbc.waveform.imrphenomxas_torch",
+            "imrphenomxas_fd_batch",
+        ),
+    ],
+)
+def test_aligned_spin_batch_dispatch(
+    approximant, module_name, generator_name, monkeypatch
+):
+    implementation = import_module(module_name)
+    sentinel = object()
+    seen = {}
+
+    def generate(**params):
+        seen.update(params)
+        return sentinel
+
+    monkeypatch.setattr(implementation, generator_name, generate)
+    result = get_fd_waveform_batch(
+        approximant,
+        mass1=[30.0, 35.0],
+        mass2=20.0,
+        delta_f=1.0,
+        f_lower=20.0,
+    )
+
+    assert result is sentinel
+    assert seen["mass1"] == [30.0, 35.0]
+    assert seen["mass2"] == 20.0
 
 
 def test_distance_gradient_matches_inverse_distance_scaling():

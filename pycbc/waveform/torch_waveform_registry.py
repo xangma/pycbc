@@ -55,6 +55,10 @@ def _fd_sequence_port(
     component_flag,
     module,
     stem,
+    *,
+    default_supported=None,
+    fd_supported=None,
+    sequence_supported=None,
 ):
     """Build the common FD plus arbitrary-frequency registry entry."""
     return TorchNativeWaveform(
@@ -62,10 +66,13 @@ def _fd_sequence_port(
         component_flag=component_flag,
         module=module,
         default_enabled=True,
+        default_supported=default_supported,
         fd_generator=f"{stem}_fd_torch",
-        fd_supported=f"{stem}_native_supported",
+        fd_supported=fd_supported or f"{stem}_native_supported",
         sequence_generator=f"{stem}_fd_sequence_torch",
-        sequence_supported=f"{stem}_sequence_native_supported",
+        sequence_supported=(
+            sequence_supported or f"{stem}_sequence_native_supported"
+        ),
     )
 
 
@@ -99,6 +106,126 @@ _PORTS = (
         "PYCBC_TAYLORF2ECC_NATIVE",
         "taylorf2ecc_torch",
         "taylorf2ecc",
+    ),
+    _fd_sequence_port(
+        "IMRPhenomA",
+        "PYCBC_IMRPHENOMA_NATIVE",
+        "imrphenomab_torch",
+        "imrphenomab",
+        default_supported="imrphenomab_default_native_supported",
+    ),
+    _fd_sequence_port(
+        "IMRPhenomB",
+        "PYCBC_IMRPHENOMB_NATIVE",
+        "imrphenomab_torch",
+        "imrphenomab",
+        default_supported="imrphenomab_default_native_supported",
+    ),
+    _fd_sequence_port(
+        "IMRPhenomC",
+        "PYCBC_IMRPHENOMC_NATIVE",
+        "imrphenomc_torch",
+        "imrphenomc",
+        default_supported="imrphenomc_default_native_supported",
+    ),
+    _fd_sequence_port(
+        "IMRPhenomD",
+        "PYCBC_IMRPHENOMD_NATIVE",
+        "imrphenomd_torch",
+        "imrphenomd",
+    ),
+    _fd_sequence_port(
+        "IMRPhenomD_NRTidal",
+        "PYCBC_IMRPHENOMD_NATIVE",
+        "imrphenomd_torch",
+        "imrphenomd",
+    ),
+    _fd_sequence_port(
+        "IMRPhenomD_NRTidalv2",
+        "PYCBC_IMRPHENOMD_NATIVE",
+        "imrphenomd_torch",
+        "imrphenomd",
+    ),
+    _fd_sequence_port(
+        "IMRPhenomNSBH",
+        "PYCBC_IMRPHENOMNSBH_NATIVE",
+        "imrphenomnsbh_torch",
+        "imrphenomnsbh",
+    ),
+    _fd_sequence_port(
+        "IMRPhenomXAS",
+        "PYCBC_IMRPHENOMXAS_NATIVE",
+        "imrphenomxas_torch",
+        "imrphenomxas",
+    ),
+    _fd_sequence_port(
+        "IMRPhenomXAS_NRTidalv2",
+        "PYCBC_IMRPHENOMXAS_NATIVE",
+        "imrphenomxas_torch",
+        "imrphenomxas",
+    ),
+    _fd_sequence_port(
+        "IMRPhenomXAS_NRTidalv3",
+        "PYCBC_IMRPHENOMXAS_NATIVE",
+        "imrphenomxas_torch",
+        "imrphenomxas",
+    ),
+    TorchNativeWaveform(
+        approximant="IMRPhenomT",
+        component_flag="PYCBC_IMRPHENOMT_NATIVE",
+        module="imrphenomt_torch",
+        td_generator="imrphenomt_td_torch",
+        td_supported="imrphenomt_native_supported",
+    ),
+    _fd_sequence_port(
+        "SEOBNRv4_ROM",
+        "PYCBC_SEOBNRV4_NATIVE",
+        "seobnrv4_torch",
+        "seobnrv4",
+        fd_supported="seobnrv4_rom_native_supported",
+        sequence_supported="seobnrv4_rom_sequence_native_supported",
+    ),
+    _fd_sequence_port(
+        "SEOBNRv4_ROM_NRTidal",
+        "PYCBC_SEOBNRV4_NATIVE",
+        "seobnrv4_torch",
+        "seobnrv4",
+        fd_supported="seobnrv4_rom_native_supported",
+        sequence_supported="seobnrv4_rom_sequence_native_supported",
+    ),
+    _fd_sequence_port(
+        "SEOBNRv4_ROM_NRTidalv2",
+        "PYCBC_SEOBNRV4_NATIVE",
+        "seobnrv4_torch",
+        "seobnrv4",
+        fd_supported="seobnrv4_rom_native_supported",
+        sequence_supported="seobnrv4_rom_sequence_native_supported",
+    ),
+    _fd_sequence_port(
+        "SEOBNRv4_ROM_NRTidalv2_NSBH",
+        "PYCBC_SEOBNRV4_NATIVE",
+        "seobnrv4_torch",
+        "seobnrv4",
+        fd_supported="seobnrv4_rom_native_supported",
+        sequence_supported="seobnrv4_rom_sequence_native_supported",
+    ),
+    _fd_sequence_port(
+        "SEOBNRv4T_surrogate",
+        "PYCBC_SEOBNRV4T_SURROGATE_NATIVE",
+        "seobnrv4t_surrogate_torch",
+        "seobnrv4t_surrogate",
+    ),
+    _fd_sequence_port(
+        "SEOBNRv5_ROM",
+        "PYCBC_SEOBNRV5_NATIVE",
+        "seobnrv5_torch",
+        "seobnrv5",
+    ),
+    _fd_sequence_port(
+        "SEOBNRv5_ROM_NRTidalv3",
+        "PYCBC_SEOBNRV5_NATIVE",
+        "seobnrv5_torch",
+        "seobnrv5",
     ),
 )
 

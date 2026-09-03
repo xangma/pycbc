@@ -1,0 +1,347 @@
+# Copyright (C) 2025
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 3 of the License, or (at your
+# option) any later version.
+
+"""Fundamental quasinormal-mode frequencies used by SEOBNRv4.
+
+The tabulated data and natural-cubic interpolation mirror the fundamental
+(n = 0) real-frequency path in XLALSimIMREOBGenerateQNMFreqV2fromFinal.
+Keeping the subset needed by the native SEOBNRv4 ROM evaluators local avoids
+an indirect lalsimulation call and preserves the rounding of the original
+tables.
+"""
+
+import math
+from functools import lru_cache
+
+import numpy as np
+
+
+# Coefficients of the SEOBNRv4 final-spin fit from Table I of
+# Barausse et al., ApJ 825 L19 (2016). These values and the implementation
+# below follow XLALSimIMREOBFinalMassSpin's aligned-spin SEOBNRv4 branch.
+_FINAL_SPIN_COEFFS = (
+    (-5.977230835551017, 3.39221, 4.48865, -5.77101, -13.0459),
+    (35.1278, -72.9336, -86.0036, 93.7371, 200.975),
+    (-146.822, 387.184, 447.009, -467.383, -884.339),
+    (223.911, -648.502, -697.177, 753.738, 1166.89),
+)
+
+# fmt: off
+_SPIN_GRID = np.array(
+    [
+        -0.9996, -0.9995, -0.9994, -0.9992, -0.999, -0.9989,
+        -0.9988, -0.9987, -0.9986, -0.9985, -0.998, -0.9975,
+        -0.997, -0.996, -0.995, -0.994, -0.992, -0.99,
+        -0.988, -0.986, -0.984, -0.982, -0.98, -0.975,
+        -0.97, -0.96, -0.95, -0.94, -0.92, -0.9,
+        -0.88, -0.86, -0.84, -0.82, -0.8, -0.78,
+        -0.76, -0.74, -0.72, -0.7, -0.65, -0.6,
+        -0.55, -0.5, -0.45, -0.4, -0.35, -0.3,
+        -0.25, -0.2, -0.15, -0.1, -0.05, 0,
+        0.05, 0.1, 0.15, 0.2, 0.25, 0.3,
+        0.35, 0.4, 0.45, 0.5, 0.55, 0.6,
+        0.65, 0.7, 0.72, 0.74, 0.76, 0.78,
+        0.8, 0.82, 0.84, 0.86, 0.88, 0.9,
+        0.92, 0.94, 0.95, 0.96, 0.97, 0.975,
+        0.98, 0.982, 0.984, 0.986, 0.988, 0.99,
+        0.992, 0.994, 0.995, 0.996, 0.997, 0.9975,
+        0.998, 0.9985, 0.9986, 0.9987, 0.9988, 0.9989,
+        0.999, 0.9992, 0.9994, 0.9995, 0.9996,
+    ],
+    dtype=np.float64,
+)
+
+_REAL_OMEGA = {
+    (2, 2): np.array(
+        [
+            0.270228, 0.276562, 0.280636, 0.285234, 0.287548, 0.288282,
+            0.288845, 0.289287, 0.289639, 0.289924, 0.290781, 0.291189,
+            0.291418, 0.291658, 0.291785, 0.29187, 0.291998, 0.292111,
+            0.292221, 0.292331, 0.292441, 0.292552, 0.292664, 0.292943,
+            0.293223, 0.293787, 0.294354, 0.294925, 0.296077, 0.297244,
+            0.298426, 0.299624, 0.300837, 0.302067, 0.303313, 0.304577,
+            0.305857, 0.307156, 0.308473, 0.309808, 0.313232, 0.316784,
+            0.320473, 0.324307, 0.328299, 0.332458, 0.336798, 0.341333,
+            0.346079, 0.351053, 0.356275, 0.361768, 0.367557, 0.373672,
+            0.380146, 0.387018, 0.394333, 0.402145, 0.410518, 0.419527,
+            0.429264, 0.439842, 0.451402, 0.464123, 0.478235, 0.494045,
+            0.511969, 0.5326, 0.541794, 0.55163, 0.562201, 0.573616,
+            0.586017, 0.59958, 0.614539, 0.631206, 0.650018, 0.671614,
+            0.696995, 0.727875, 0.74632, 0.767674, 0.793208, 0.808235,
+            0.825429, 0.8331, 0.841343, 0.850272, 0.860046, 0.870893,
+            0.883162, 0.897446, 0.905664, 0.914902, 0.925581, 0.931689,
+            0.938524, 0.946385, 0.948123, 0.949929, 0.951813, 0.953784,
+            0.955854, 0.960358, 0.965514, 0.968438, 0.97169,
+        ],
+        dtype=np.float64,
+    ),
+    (2, 1): np.array(
+        [
+            0.336609, 0.339386, 0.340852, 0.342219, 0.342818, 0.343002,
+            0.343143, 0.343254, 0.343344, 0.343417, 0.343641, 0.343748,
+            0.343804, 0.343853, 0.343871, 0.343879, 0.343886, 0.343891,
+            0.343896, 0.343902, 0.343909, 0.343915, 0.343922, 0.343941,
+            0.34396, 0.344002, 0.344049, 0.344101, 0.34422, 0.344359,
+            0.344517, 0.344696, 0.344896, 0.345115, 0.345356, 0.345617,
+            0.345899, 0.346201, 0.346525, 0.34687, 0.347824, 0.348911,
+            0.350132, 0.351491, 0.35299, 0.354633, 0.356423, 0.358366,
+            0.360469, 0.362738, 0.365183, 0.367812, 0.370637, 0.373672,
+            0.376931, 0.380432, 0.384197, 0.388248, 0.392615, 0.39733,
+            0.402436, 0.407979, 0.41402, 0.420632, 0.427909, 0.435968,
+            0.444968, 0.455121, 0.459569, 0.464271, 0.469259, 0.474564,
+            0.480231, 0.486308, 0.492859, 0.499965, 0.507729, 0.516291,
+            0.525845, 0.536673, 0.542693, 0.549213, 0.556329, 0.560146,
+            0.564155, 0.565814, 0.567505, 0.569227, 0.570976, 0.572749,
+            0.574535, 0.576322, 0.577208, 0.578084, 0.578948, 0.579374,
+            0.579795, 0.580212, 0.580295, 0.580377, 0.58046, 0.580541,
+            0.580623, 0.580784, 0.580942, 0.581018, 0.581093,
+        ],
+        dtype=np.float64,
+    ),
+    (3, 3): np.array(
+        [
+            0.445768, 0.452799, 0.456948, 0.460943, 0.462462, 0.462842,
+            0.463095, 0.463269, 0.463394, 0.463488, 0.463746, 0.463886,
+            0.463989, 0.464144, 0.464267, 0.464374, 0.464572, 0.464763,
+            0.464952, 0.46514, 0.465329, 0.465518, 0.465707, 0.466182,
+            0.466657, 0.467612, 0.468573, 0.46954, 0.471491, 0.473465,
+            0.475464, 0.477487, 0.479535, 0.481609, 0.483709, 0.485837,
+            0.487991, 0.490174, 0.492386, 0.494627, 0.500363, 0.5063,
+            0.512449, 0.518826, 0.525445, 0.532323, 0.539479, 0.546934,
+            0.55471, 0.562834, 0.571335, 0.580244, 0.5896, 0.599443,
+            0.609823, 0.620796, 0.632425, 0.644787, 0.657972, 0.672086,
+            0.68726, 0.70365, 0.721455, 0.740921, 0.762369, 0.786223,
+            0.813057, 0.843687, 0.857254, 0.871717, 0.887201, 0.90386,
+            0.921885, 0.941521, 0.963088, 0.987016, 1.01391, 1.04464,
+            1.08058, 1.1241, 1.14998, 1.17986, 1.21547, 1.23637,
+            1.26023, 1.27086, 1.28227, 1.29462, 1.30812, 1.32308,
+            1.33999, 1.35965, 1.37094, 1.38363, 1.39829, 1.40666,
+            1.41603, 1.42679, 1.42917, 1.43164, 1.43422, 1.43692,
+            1.43975, 1.44591, 1.45295, 1.45695, 1.46139,
+        ],
+        dtype=np.float64,
+    ),
+    (4, 4): np.array(
+        [
+            0.603485, 0.613847, 0.619636, 0.623952, 0.624219, 0.623894,
+            0.623504, 0.623122, 0.62278, 0.622487, 0.621648, 0.621375,
+            0.621309, 0.621365, 0.621483, 0.621613, 0.621877, 0.622141,
+            0.622404, 0.622667, 0.62293, 0.623194, 0.623458, 0.624119,
+            0.624781, 0.626113, 0.627452, 0.628799, 0.631518, 0.634269,
+            0.637054, 0.639872, 0.642726, 0.645615, 0.648541, 0.651503,
+            0.654504, 0.657544, 0.660623, 0.663743, 0.671728, 0.679989,
+            0.688543, 0.697411, 0.706611, 0.716168, 0.726107, 0.736455,
+            0.747243, 0.758508, 0.770286, 0.782624, 0.795569, 0.809178,
+            0.823517, 0.83866, 0.854693, 0.871718, 0.889853, 0.909242,
+            0.930054, 0.9525, 0.976839, 1.0034, 1.03259, 1.06498,
+            1.10131, 1.14265, 1.16092, 1.18036, 1.20114, 1.22345,
+            1.24755, 1.27374, 1.30245, 1.33422, 1.36984, 1.41042,
+            1.45773, 1.51478, 1.54862, 1.58759, 1.6339, 1.66102,
+            1.69194, 1.7057, 1.72045, 1.73641, 1.75384, 1.77314,
+            1.79492, 1.82022, 1.83474, 1.85104, 1.86985, 1.8806,
+            1.8926, 1.9064, 1.90945, 1.91261, 1.91592, 1.91937,
+            1.92299, 1.93088, 1.93989, 1.945, 1.95068,
+        ],
+        dtype=np.float64,
+    ),
+    (5, 5): np.array(
+        [
+            0.752532, 0.769133, 0.779179, 0.78709, 0.786149, 0.784329,
+            0.782338, 0.780485, 0.778903, 0.777615, 0.774286, 0.773282,
+            0.772966, 0.77289, 0.772999, 0.773149, 0.773476, 0.77381,
+            0.774145, 0.77448, 0.774816, 0.775152, 0.775488, 0.776331,
+            0.777176, 0.778874, 0.780582, 0.782299, 0.785766, 0.789274,
+            0.792825, 0.79642, 0.800059, 0.803743, 0.807474, 0.811253,
+            0.81508, 0.818956, 0.822883, 0.826863, 0.837046, 0.847582,
+            0.858493, 0.869802, 0.881536, 0.893724, 0.906398, 0.919594,
+            0.93335, 0.947712, 0.962728, 0.978454, 0.994953, 1.0123,
+            1.03056, 1.04985, 1.07027, 1.09194, 1.11502, 1.13968,
+            1.16614, 1.19467, 1.22558, 1.25928, 1.29631, 1.33734,
+            1.38332, 1.43555, 1.45861, 1.48313, 1.50932, 1.53742,
+            1.56774, 1.60067, 1.63671, 1.67655, 1.72115, 1.77188,
+            1.83092, 1.90197, 1.94403, 1.99239, 2.04977, 2.08333,
+            2.12154, 2.13852, 2.15673, 2.17641, 2.1979, 2.22168,
+            2.24849, 2.27961, 2.29746, 2.31749, 2.34058, 2.35377,
+            2.3685, 2.38542, 2.38915, 2.39303, 2.39708, 2.40131,
+            2.40575, 2.41541, 2.42645, 2.43271, 2.43967,
+        ],
+        dtype=np.float64,
+    ),
+}
+# fmt: on
+
+
+@lru_cache(maxsize=None)
+def _natural_cubic_coefficients(mode):
+    """Return interval coefficients for a natural cubic spline."""
+
+    values = _REAL_OMEGA[mode]
+    widths = np.diff(_SPIN_GRID)
+    interval_count = widths.size
+
+    rhs = np.zeros(interval_count + 1)
+    rhs[1:interval_count] = 3.0 * (
+        (values[2:] - values[1:-1]) / widths[1:]
+        - (values[1:-1] - values[:-2]) / widths[:-1]
+    )
+
+    diagonal = np.ones(interval_count + 1)
+    upper = np.zeros(interval_count + 1)
+    solution = np.zeros(interval_count + 1)
+    for index in range(1, interval_count):
+        diagonal[index] = (
+            2.0 * (_SPIN_GRID[index + 1] - _SPIN_GRID[index - 1])
+            - widths[index - 1] * upper[index - 1]
+        )
+        upper[index] = widths[index] / diagonal[index]
+        solution[index] = (
+            rhs[index] - widths[index - 1] * solution[index - 1]
+        ) / diagonal[index]
+
+    quadratic = np.zeros(interval_count + 1)
+    linear = np.empty(interval_count)
+    cubic = np.empty(interval_count)
+    for index in range(interval_count - 1, -1, -1):
+        quadratic[index] = solution[index] - upper[index] * quadratic[index + 1]
+        linear[index] = (values[index + 1] - values[index]) / widths[index] - widths[
+            index
+        ] * (quadratic[index + 1] + 2.0 * quadratic[index]) / 3.0
+        cubic[index] = (quadratic[index + 1] - quadratic[index]) / (3.0 * widths[index])
+
+    return linear, quadratic[:-1], cubic
+
+
+def fundamental_qnm_omega(final_spin, ell, emm):
+    """Return M_final * omega for an SEOBNRv4 fundamental QNM."""
+
+    sign = -1.0 if emm < 0 else 1.0
+    mode = (ell, abs(emm))
+    try:
+        values = _REAL_OMEGA[mode]
+    except KeyError as exc:
+        raise ValueError(f"unsupported SEOBNRv4 QNM mode {ell, emm}") from exc
+
+    interpolation_spin = sign * float(final_spin)
+    if not np.isfinite(interpolation_spin):
+        raise ValueError("final spin must be finite")
+    interpolation_spin = float(
+        np.clip(interpolation_spin, _SPIN_GRID[0], _SPIN_GRID[-1])
+    )
+
+    index = int(np.searchsorted(_SPIN_GRID, interpolation_spin, side="right") - 1)
+    index = min(max(index, 0), len(_SPIN_GRID) - 2)
+    offset = interpolation_spin - _SPIN_GRID[index]
+    linear, quadratic, cubic = _natural_cubic_coefficients(mode)
+    omega = (
+        values[index]
+        + linear[index] * offset
+        + quadratic[index] * offset**2
+        + cubic[index] * offset**3
+    )
+    return sign * float(omega)
+
+
+def _kerr_isco_radius(spin):
+    """Return the equatorial Kerr ISCO radius in units of the BH mass."""
+
+    if abs(spin) > 1.0:
+        raise ValueError("dimensionless spin must lie in [-1, 1]")
+    z1 = 1.0 + (1.0 - spin * spin) ** (1.0 / 3.0) * (
+        (1.0 + spin) ** (1.0 / 3.0) + (1.0 - spin) ** (1.0 / 3.0)
+    )
+    z2 = math.sqrt(3.0 * spin * spin + z1 * z1)
+    root = math.sqrt((3.0 - z1) * (3.0 + z1 + 2.0 * z2))
+    return 3.0 + z2 - math.copysign(root, spin if spin else 1.0)
+
+
+def _kerr_isco_energy(radius):
+    return math.sqrt(1.0 - 2.0 / (3.0 * radius))
+
+
+def _kerr_isco_angular_momentum(radius):
+    return 2.0 / (3.0 * math.sqrt(3.0)) * (
+        1.0 + 2.0 * math.sqrt(3.0 * radius - 2.0)
+    )
+
+
+def seobnrv4_final_mass_spin(mass1, mass2, spin1z, spin2z):
+    """Return the SEOBNRv4 remnant mass (solar masses) and spin.
+
+    This is a direct scalar port of the aligned-spin SEOBNRv4 branch of
+    ``XLALSimIMREOBFinalMassSpin``.
+    """
+
+    if mass1 <= 0.0 or mass2 <= 0.0:
+        raise ValueError("component masses must be positive")
+    if abs(spin1z) > 1.0 or abs(spin2z) > 1.0:
+        raise ValueError("dimensionless component spins must lie in [-1, 1]")
+    if mass1 < mass2:
+        mass1, mass2 = mass2, mass1
+        spin1z, spin2z = spin2z, spin1z
+
+    total_mass = mass1 + mass2
+    eta = mass1 * mass2 / total_mass**2
+    inverse_q = mass2 / mass1
+    inverse_q2 = inverse_q * inverse_q
+    one_plus_inverse_q = 1.0 + inverse_q
+
+    aligned_total = (spin1z + spin2z * inverse_q2) / (
+        one_plus_inverse_q**2
+    )
+    effective_spin = (spin1z + spin2z * inverse_q2) / (1.0 + inverse_q2)
+    isco_radius = _kerr_isco_radius(aligned_total)
+    isco_energy = _kerr_isco_energy(isco_radius)
+    final_mass_fraction = 1.0 - (
+        (1.0 - isco_energy) * eta
+        + 16.0
+        * eta**2
+        * (
+            0.00258
+            - 0.0773 / (effective_spin - 1.6939)
+            - 0.25 * (1.0 - isco_energy)
+        )
+    )
+
+    spin1 = mass1**2 * spin1z
+    spin2 = mass2**2 * spin2z
+    spin_effective = (
+        (1.0 + 0.474046 * inverse_q) * spin1
+        + (1.0 + 0.474046 / inverse_q) * spin2
+    ) / total_mass**2
+    spin_total = (spin1 + spin2) / total_mass**2
+    isco_radius = _kerr_isco_radius(spin_effective)
+    isco_energy = _kerr_isco_energy(isco_radius)
+    isco_angular_momentum = _kerr_isco_angular_momentum(isco_radius)
+    physical_spin = spin_total + eta * (
+        isco_angular_momentum - 2.0 * spin_total * (isco_energy - 1.0)
+    )
+    fitted_spin = sum(
+        eta ** (row + 2)
+        * sum(
+            coefficient * spin_effective**power
+            for power, coefficient in enumerate(coefficients)
+        )
+        for row, coefficients in enumerate(_FINAL_SPIN_COEFFS)
+    )
+    return final_mass_fraction * total_mass, physical_spin + fitted_spin
+
+
+def seobnrv4_qnm_omega(mass1, mass2, spin1z, spin2z, ell, emm):
+    """Return ``M_total * omega_QNM`` for an SEOBNRv4 remnant."""
+
+    final_mass, final_spin = seobnrv4_final_mass_spin(
+        mass1, mass2, spin1z, spin2z
+    )
+    final_mass_omega = fundamental_qnm_omega(final_spin, ell, emm)
+    return final_mass_omega * (mass1 + mass2) / final_mass
+
+
+__all__ = [
+    "fundamental_qnm_omega",
+    "seobnrv4_final_mass_spin",
+    "seobnrv4_qnm_omega",
+]
