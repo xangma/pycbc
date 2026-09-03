@@ -36,6 +36,98 @@ from pycbc.types import (
     complex_same_precision_as, real_same_precision_as
 )
 from pycbc.constants import PI
+import pycbc.scheme as _scheme
+
+
+def _is_torch_series(series):
+    """Return whether ``series`` has Torch-backed PyCBC storage."""
+    return hasattr(getattr(series, "_data", None), "tensor")
+
+
+def _torch_kaiser_window(data, length, beta):
+    """Return SciPy's periodic Kaiser window on ``data``'s device.
+
+    ``torch.kaiser_window`` is not implemented by the MPS backend.  The
+    analytic definition is small and keeps taper construction device-native
+    on every Torch backend supported by PyCBC.
+    """
+    import torch
+
+    dtype = data.real.dtype
+    if length <= 1:
+        return torch.ones(length, dtype=dtype, device=data.device)
+
+    position = torch.arange(length, dtype=dtype, device=data.device)
+    radius = 2 * position / length - 1
+    argument = float(beta) * torch.sqrt(
+        torch.clamp(1 - radius * radius, min=0)
+    )
+    normalization = torch.i0(
+        torch.as_tensor(float(beta), dtype=dtype, device=data.device)
+    )
+    return torch.i0(argument) / normalization
+
+
+def scheme_cast_series(series):
+    """Move a waveform series to the active Torch device when necessary.
+
+    CPU/LAL waveform generators may be used as fallbacks by the Torch scheme.
+    This helper keeps that conversion in one place and avoids an intermediate
+    ``series.numpy()`` copy. Native Torch outputs already on the requested
+    device are returned unchanged.
+    """
+    if not isinstance(_scheme.mgr.state, _scheme.TorchScheme):
+        return series
+
+    import torch
+    from pycbc.types.array_torch import TorchArrayData
+
+    target_device = _scheme.mgr.state.torch_device
+    data = series
+    copy = True
+    if hasattr(series._data, "tensor"):
+        tensor = series._data.tensor
+        same_device = (
+            tensor.device.type == target_device.type
+            and (
+                target_device.index is None
+                or tensor.device.index == target_device.index
+            )
+        )
+        needs_mps_cast = target_device.type == "mps" and tensor.dtype in (
+            torch.float64,
+            torch.complex128,
+        )
+        if same_device and not needs_mps_cast:
+            return series
+        target_dtype = tensor.dtype
+        if needs_mps_cast:
+            target_dtype = (
+                torch.complex64 if tensor.is_complex() else torch.float32
+            )
+        data = TorchArrayData(
+            tensor.to(device=target_device, dtype=target_dtype)
+        )
+        copy = False
+    elif target_device.type == "mps" and series.dtype in (
+        numpy.dtype(numpy.float64),
+        numpy.dtype(numpy.complex128),
+    ):
+        target_dtype = (
+            numpy.complex64 if series.kind == "complex" else numpy.float32
+        )
+        host_data = series._data
+        if hasattr(host_data, "get"):
+            host_data = host_data.get()
+        data = numpy.asarray(host_data, dtype=target_dtype)
+
+    if isinstance(series, TimeSeries):
+        return TimeSeries(data, delta_t=series.delta_t,
+                          epoch=series.start_time, copy=copy)
+    if isinstance(series, FrequencySeries):
+        return FrequencySeries(data, delta_f=series.delta_f,
+                               epoch=series.epoch, copy=copy)
+    raise TypeError("Expected a TimeSeries or FrequencySeries")
 
 def ceilpow2(n):
     """convenience function to determine a power-of-2 upper frequency limit"""
@@ -385,9 +477,24 @@ def td_taper(out, start, end, beta=8, side='left'):
     out = out.copy()
     width = end - start
     winlen = 2 * int(width / out.delta_t)
-    window = Array(signal.get_window(('kaiser', beta), winlen))
     xmin = int((start - out.start_time) / out.delta_t)
     xmax = xmin + winlen//2
+    if _is_torch_series(out):
+        data = out._data.tensor
+        window = _torch_kaiser_window(data, winlen, beta)
+        if side == 'left':
+            data[xmin:xmax] *= window[:winlen//2]
+            if xmin > 0:
+                data[:xmin].zero_()
+        elif side == 'right':
+            data[xmin:xmax] *= window[winlen//2:]
+            if xmax < len(out):
+                data[xmax:].zero_()
+        else:
+            raise ValueError("unrecognized side argument {}".format(side))
+        return out
+
+    window = Array(signal.get_window(('kaiser', beta), winlen))
     if side == 'left':
         out[xmin:xmax] *= window[:winlen//2]
         if xmin > 0:
@@ -429,9 +536,22 @@ def fd_taper(out, start, end, beta=8, side='left'):
     out = out.copy()
     width = end - start
     winlen = 2 * int(width / out.delta_f)
-    window = Array(signal.get_window(('kaiser', beta), winlen))
     kmin = int(start / out.delta_f)
     kmax = kmin + winlen//2
+    if _is_torch_series(out):
+        data = out._data.tensor
+        window = _torch_kaiser_window(data, winlen, beta)
+        if side == 'left':
+            data[kmin:kmax] *= window[:winlen//2]
+            data[:kmin].zero_()
+        elif side == 'right':
+            data[kmin:kmax] *= window[winlen//2:]
+            data[kmax:].zero_()
+        else:
+            raise ValueError("unrecognized side argument {}".format(side))
+        return out
+
+    window = Array(signal.get_window(('kaiser', beta), winlen))
     if side == 'left':
         out[kmin:kmax] *= window[:winlen//2]
         out[:kmin] *= 0.
