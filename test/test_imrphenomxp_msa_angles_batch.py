@@ -126,7 +126,7 @@ def test_imrphenomxphm_fd_batch_parity():
         }
 
         hp_batch, hc_batch = pycbc.waveform.get_fd_waveform_batch(
-            "IMRPhenomXPHM", **params_batch
+            **params_batch
         )
         assert hp_batch.shape[0] == B
         assert hc_batch.shape[0] == B

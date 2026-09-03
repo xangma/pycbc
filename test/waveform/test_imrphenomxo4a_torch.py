@@ -132,6 +132,46 @@ _SOURCE_PARAMETERS = (
 )
 
 
+try:
+    _LALSIMULATION_VERSION = tuple(
+        int(part)
+        for part in lalsimulation.__version__.split("+", 1)[0].split(".")[:3]
+    )
+except (AttributeError, TypeError, ValueError):
+    _LALSIMULATION_VERSION = ()
+
+
+def _skip_old_xo4a_reference(mismatch=True):
+    if (
+        mismatch
+        and bool(_LALSIMULATION_VERSION)
+        and _LALSIMULATION_VERSION <= (5, 3, 1)
+    ):
+        pytest.skip(
+            "installed lalsimulation predates the IMRPhenomXO4a reference "
+            "used by the native port"
+        )
+
+
+def _mass_ratio(source):
+    return max(source["mass1"], source["mass2"]) / min(
+        source["mass1"], source["mass2"]
+    )
+
+
+def _assert_native_waveform(actual, expected_size=None):
+    assert len(actual) == 2
+    for result in actual:
+        tensor = result._data.tensor
+        assert tensor.device.type == "cpu"
+        assert tensor.dtype == torch.complex128
+        if expected_size is None:
+            assert tensor.numel() > 0
+        else:
+            assert tensor.numel() == expected_size
+        assert bool(torch.isfinite(tensor).all())
+
+
 @pytest.fixture
 def torch_cpu_scheme():
     old_scheme = _scheme.mgr.state
@@ -448,6 +488,12 @@ def test_xo4a_final_spins_match_lalsimulation(source, torch_cpu_scheme):
             lalsimulation.SimPhenomPNRafinal_prec,
         ),
     )
+    for actual, _ in diagnostics:
+        assert actual.device.type == "cpu"
+        assert actual.dtype == torch.float64
+        assert bool(torch.isfinite(actual))
+    _skip_old_xo4a_reference(_mass_ratio(source) > 10.0)
+
     for actual, function in diagnostics:
         expected = _lalsimulation_pnr_diagnostic(function, params)
         assert float(actual) == pytest.approx(expected, rel=2.0e-14)
@@ -662,7 +708,6 @@ def test_antisymmetric_phase_matches_lalsimulation(
 ):
     params = {**_BASE_PARAMS, **source}
     model = _calibrated_model(params)
-    _, expected_phase = _lalsimulation_antisymmetric_waveform(params)
     frequencies = torch.arange(
         params["f_lower"],
         params["f_final"] + params["delta_f"],
@@ -674,6 +719,13 @@ def test_antisymmetric_phase_matches_lalsimulation(
         frequencies * model.inputs.total_mass_seconds,
         -model.inputs.alpha0,
     )
+    assert actual.device.type == "cpu"
+    assert actual.dtype == torch.float64
+    assert actual.shape == frequencies.shape
+    assert bool(torch.isfinite(actual).all())
+    _skip_old_xo4a_reference()
+
+    _, expected_phase = _lalsimulation_antisymmetric_waveform(params)
 
     # The standalone LAL diagnostic includes zeta in the mode phase. The
     # native helper leaves that rotation to the common polarization assembly.
@@ -692,8 +744,10 @@ def test_default_modes_regular_grid_match_lalsimulation(
     torch_cpu_scheme,
 ):
     params = {**_BASE_PARAMS, **source}
-    expected = _lalsimulation_default(params)
     actual = imrphenomxo4a_fd_torch(**params)
+    _assert_native_waveform(actual)
+    _skip_old_xo4a_reference()
+    expected = _lalsimulation_default(params)
 
     for result, reference in zip(actual, expected):
         reference_array = np.asarray(reference.data.data)
@@ -738,8 +792,12 @@ def test_higher_modes_regular_grid_match_lalsimulation(
     torch_cpu_scheme,
 ):
     params = {**_BASE_PARAMS, **source, "mode_array": modes}
-    expected = _lalsimulation_regular(params, _mode_lal_params(modes))
     actual = imrphenomxo4a_fd_torch(**params)
+    _assert_native_waveform(actual)
+    _skip_old_xo4a_reference(
+        _mass_ratio(source) >= 10.0 or len(modes) > 1
+    )
+    expected = _lalsimulation_regular(params, _mode_lal_params(modes))
 
     for result, reference in zip(actual, expected):
         reference_array = np.asarray(reference.data.data)
@@ -762,8 +820,10 @@ def test_symmetric22_regular_grid_matches_lalsimulation(
     torch_cpu_scheme,
 ):
     params = {**_BASE_PARAMS, **source}
-    expected = _lalsimulation_symmetric22(params)
     actual = imrphenomxo4a_symmetric22_fd_torch(**params)
+    _assert_native_waveform(actual)
+    _skip_old_xo4a_reference(_mass_ratio(source) >= 10.0)
+    expected = _lalsimulation_symmetric22(params)
 
     for result, reference in zip(actual, expected):
         reference_array = np.asarray(reference.data.data)
@@ -839,11 +899,13 @@ def test_default_modes_sequence_match_lalsimulation(
     sample_points = np.array(
         [20.0, 23.5, 30.0, 45.0, 100.0, 250.0, 400.0, 1200.0]
     )
-    expected = _lalsimulation_default_sequence(params, sample_points)
     actual = imrphenomxo4a_fd_sequence_torch(
         sample_points=sample_points,
         **params,
     )
+    _assert_native_waveform(actual, len(sample_points))
+    _skip_old_xo4a_reference()
+    expected = _lalsimulation_default_sequence(params, sample_points)
 
     for result, reference in zip(actual, expected):
         result_array = result.numpy()
@@ -898,14 +960,18 @@ def test_higher_modes_sequence_matches_lalsimulation(
     sample_points = np.array(
         [20.0, 23.5, 30.0, 45.0, 100.0, 250.0, 400.0, 1200.0]
     )
+    actual = imrphenomxo4a_fd_sequence_torch(
+        sample_points=sample_points,
+        **params,
+    )
+    _assert_native_waveform(actual, len(sample_points))
+    _skip_old_xo4a_reference(
+        _mass_ratio(source) >= 10.0 or len(modes) > 1
+    )
     expected = _lalsimulation_sequence(
         params,
         sample_points,
         _mode_lal_params(modes),
-    )
-    actual = imrphenomxo4a_fd_sequence_torch(
-        sample_points=sample_points,
-        **params,
     )
 
     for result, reference in zip(actual, expected):
@@ -1120,16 +1186,19 @@ def test_imrphenomxo4a_public_regular_dispatch(
     _activate_scheme(_scheme.TorchScheme("cpu"))
     actual = get_fd_waveform(approximant="IMRPhenomXO4a", **params)
 
-    for expected, expected_array, result in zip(
-        reference,
-        reference_arrays,
-        actual,
-    ):
+    for expected, result in zip(reference, actual):
         assert len(result) == len(expected)
         assert result.delta_f == expected.delta_f
         assert float(result.epoch) == float(expected.epoch)
         assert result._data.tensor.device.type == "cpu"
         assert result._data.tensor.dtype == torch.complex128
+    _skip_old_xo4a_reference(modes == [(2, 2)] or len(modes) > 1)
+
+    for expected, expected_array, result in zip(
+        reference,
+        reference_arrays,
+        actual,
+    ):
         result_array = result.numpy()
         np.testing.assert_array_equal(
             result_array[:-1] == 0.0,
@@ -1201,9 +1270,12 @@ def test_imrphenomxo4a_public_sequence_dispatch(
         **params,
     )
 
-    for expected, result in zip(reference_arrays, actual):
+    for result in actual:
         assert result._data.tensor.device.type == "cpu"
         assert result._data.tensor.dtype == torch.complex128
+    _skip_old_xo4a_reference(modes == [(2, 2)] or len(modes) > 1)
+
+    for expected, result in zip(reference_arrays, actual):
         result_array = result.numpy()
         np.testing.assert_array_equal(result_array == 0.0, expected == 0.0)
         assert _relative_error(result_array, expected) < tolerance
@@ -1260,15 +1332,18 @@ def test_imrphenomxo4a_native_stays_on_requested_device(
     )
     grid_tolerance = 5.0e-2 if device_name == "mps" else 2.0e-3
     sequence_tolerance = 2.5e-2 if device_name == "mps" else 1.0e-6
+    for result in (*actual_grid, *actual_sequence):
+        tensor = result._data.tensor
+        assert tensor.device.type == device_name
+        assert tensor.dtype == expected_dtype
+        assert bool(torch.isfinite(tensor).all())
+    _skip_old_xo4a_reference()
+
     for reference, actual, tolerance, comparison in (
         (reference_grid, actual_grid, grid_tolerance, slice(None, -1)),
         (reference_sequence, actual_sequence, sequence_tolerance, slice(None)),
     ):
         for expected, result in zip(reference, actual):
-            tensor = result._data.tensor
-            assert tensor.device.type == device_name
-            assert tensor.dtype == expected_dtype
-            assert bool(torch.isfinite(tensor).all())
             result_array = result.numpy()[comparison]
             expected = expected[comparison]
             np.testing.assert_array_equal(
@@ -1302,15 +1377,18 @@ def test_imrphenomxo4a_default_modes_regular_dispatch_natively(
     _activate_scheme(_scheme.TorchScheme("cpu"))
     actual = get_fd_waveform(approximant="IMRPhenomXO4a", **params)
 
+    for expected, result in zip(reference, actual):
+        assert len(result) == len(expected)
+        assert result.delta_f == expected.delta_f
+        assert float(result.epoch) == float(expected.epoch)
+        assert isinstance(result._data.tensor, torch.Tensor)
+    _skip_old_xo4a_reference()
+
     for expected, expected_array, result in zip(
         reference,
         reference_arrays,
         actual,
     ):
-        assert len(result) == len(expected)
-        assert result.delta_f == expected.delta_f
-        assert float(result.epoch) == float(expected.epoch)
-        assert isinstance(result._data.tensor, torch.Tensor)
         result_array = result.numpy()
         np.testing.assert_array_equal(
             result_array[:-1] == 0.0,
@@ -1355,8 +1433,12 @@ def test_imrphenomxo4a_default_modes_sequence_dispatch_natively(
         **params,
     )
 
+    assert all(
+        isinstance(result._data.tensor, torch.Tensor) for result in actual
+    )
+    _skip_old_xo4a_reference()
+
     for expected, result in zip(reference_arrays, actual):
-        assert isinstance(result._data.tensor, torch.Tensor)
         result_array = result.numpy()
         np.testing.assert_array_equal(result_array == 0.0, expected == 0.0)
         assert _relative_error(result_array, expected) < 1.0e-7

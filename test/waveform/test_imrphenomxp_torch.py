@@ -73,6 +73,51 @@ _NATIVE_FLAG_ENVS = (
 )
 
 
+def _lalsimulation_version(module):
+    try:
+        return tuple(
+            int(part)
+            for part in module.__version__.split("+", 1)[0].split(".")[:3]
+        )
+    except (AttributeError, TypeError, ValueError):
+        return ()
+
+
+def _old_lalsimulation_reference(module):
+    version = _lalsimulation_version(module)
+    return bool(version) and version <= (5, 3, 1)
+
+
+def _skip_old_xp_reference(module, model_flags):
+    if (
+        _old_lalsimulation_reference(module)
+        and model_flags.get("phenom_x_prec_version") in (102, 223, 300)
+    ):
+        pytest.skip(
+            "installed lalsimulation predates the IMRPhenomXP reference "
+            "used by the native port"
+        )
+
+
+def _lal_fd_approximant_available(approximant):
+    import pycbc.waveform.waveform as waveform_module
+
+    return approximant in waveform_module._lalsim_fd_approximants
+
+
+def _assert_native_waveform(actual, expected_size=None):
+    assert len(actual) == 2
+    for result in actual:
+        tensor = result._data.tensor
+        assert tensor.device.type == "cpu"
+        assert tensor.dtype == torch.complex128
+        if expected_size is None:
+            assert tensor.numel() > 0
+        else:
+            assert tensor.numel() == expected_size
+        assert bool(torch.isfinite(tensor).all())
+
+
 def _clear_native_flags(monkeypatch):
     """Remove every native flag so the registry default applies."""
     for name in _NATIVE_FLAG_ENVS:
@@ -398,7 +443,34 @@ def test_imrphenomxp_torch_matches_lalsimulation(
     preserve_scheme,
 ):
     pytest.importorskip("lal")
-    pytest.importorskip("lalsimulation")
+    lalsimulation = pytest.importorskip("lalsimulation")
+    import pycbc.waveform.waveform as waveform_mod
+
+    lal_generator = waveform_mod.lalsimulation.SimInspiralChooseFDWaveform
+
+    def reject_lal(*_args, **_kwargs):
+        raise AssertionError("native IMRPhenomXP called lalsimulation")
+
+    monkeypatch.setattr(
+        waveform_mod.lalsimulation,
+        "SimInspiralChooseFDWaveform",
+        reject_lal,
+    )
+    _clear_native_flags(monkeypatch)
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    actual = get_fd_waveform(
+        approximant="IMRPhenomXP",
+        **model_flags,
+        **params,
+    )
+    _assert_native_waveform(actual)
+    _skip_old_xp_reference(lalsimulation, model_flags)
+
+    monkeypatch.setattr(
+        waveform_mod.lalsimulation,
+        "SimInspiralChooseFDWaveform",
+        lal_generator,
+    )
     monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "0")
     _activate_scheme(_scheme.CPUScheme())
     reference = get_fd_waveform(
@@ -407,14 +479,6 @@ def test_imrphenomxp_torch_matches_lalsimulation(
         **params,
     )
     reference_arrays = tuple(series.numpy().copy() for series in reference)
-
-    _clear_native_flags(monkeypatch)
-    _activate_scheme(_scheme.TorchScheme("cpu"))
-    actual = get_fd_waveform(
-        approximant="IMRPhenomXP",
-        **model_flags,
-        **params,
-    )
     tolerance = (
         2.0e-12
         if model_flags.get("phenom_x_prec_version") == 102
@@ -452,7 +516,7 @@ def test_imrphenomxp_sequence_matches_lalsimulation(
     preserve_scheme,
 ):
     pytest.importorskip("lal")
-    pytest.importorskip("lalsimulation")
+    lalsimulation = pytest.importorskip("lalsimulation")
     params = dict(
         mass1=12.0,
         mass2=35.0,
@@ -474,17 +538,9 @@ def test_imrphenomxp_sequence_matches_lalsimulation(
         eccentricity_order=4,
     )
     sample_points = [17.3, 22.0, 150.0, 400.0, 850.0, 1000.0]
-    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "0")
-    _activate_scheme(_scheme.CPUScheme())
-    reference = get_fd_waveform_sequence(
-        approximant="IMRPhenomXP",
-        sample_points=sample_points,
-        **model_flags,
-        **params,
-    )
-    reference_arrays = tuple(array.numpy().copy() for array in reference)
-
     import pycbc.waveform.waveform as waveform_mod
+
+    lal_sequence = waveform_mod.lalsimulation.SimInspiralChooseFDWaveformSequence
 
     def reject_lal(*_args, **_kwargs):
         raise AssertionError("native IMRPhenomXP sequence called lalsimulation")
@@ -502,6 +558,23 @@ def test_imrphenomxp_sequence_matches_lalsimulation(
         **model_flags,
         **params,
     )
+    _assert_native_waveform(actual, len(sample_points))
+    _skip_old_xp_reference(lalsimulation, model_flags)
+
+    monkeypatch.setattr(
+        waveform_mod.lalsimulation,
+        "SimInspiralChooseFDWaveformSequence",
+        lal_sequence,
+    )
+    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference = get_fd_waveform_sequence(
+        approximant="IMRPhenomXP",
+        sample_points=sample_points,
+        **model_flags,
+        **params,
+    )
+    reference_arrays = tuple(array.numpy().copy() for array in reference)
 
     for expected, result in zip(reference_arrays, actual):
         assert result._data.tensor.device.type == "cpu"
@@ -558,7 +631,7 @@ def test_imrphenomxp_public_native_dispatch_avoids_lalsimulation(
     preserve_scheme,
 ):
     pytest.importorskip("lal")
-    pytest.importorskip("lalsimulation")
+    lalsimulation = pytest.importorskip("lalsimulation")
     params = dict(
         mass1=35.0,
         mass2=22.0,
@@ -608,8 +681,11 @@ def test_imrphenomxp_public_native_dispatch_avoids_lalsimulation(
         **params,
     )
 
-    for expected, result in zip(reference_arrays, actual):
+    for result in actual:
         assert result._data.tensor.device.type == "cpu"
+    _skip_old_xp_reference(lalsimulation, model_flags)
+
+    for expected, result in zip(reference_arrays, actual):
         assert _relative_error(result.numpy(), expected) < 5.0e-12
 
 
@@ -672,7 +748,7 @@ def test_imrphenomxp_native_stays_on_requested_device(
         pytest.skip("Torch CUDA device is unavailable")
 
     pytest.importorskip("lal")
-    pytest.importorskip("lalsimulation")
+    lalsimulation = pytest.importorskip("lalsimulation")
     params = dict(
         mass1=35.0,
         mass2=20.0,
@@ -708,9 +784,12 @@ def test_imrphenomxp_native_stays_on_requested_device(
 
     expected_dtype = torch.complex64 if device_name == "mps" else torch.complex128
     tolerance = 4.0e-3 if device_name == "mps" else 2.0e-12
-    for expected, result in zip(reference_arrays, actual):
+    for result in actual:
         assert result._data.tensor.device.type == device_name
         assert result._data.tensor.dtype == expected_dtype
+    _skip_old_xp_reference(lalsimulation, model_flags)
+
+    for expected, result in zip(reference_arrays, actual):
         result_array = result.numpy()
         np.testing.assert_array_equal(result_array == 0.0, expected == 0.0)
         assert _relative_error(result_array, expected) < tolerance
@@ -729,7 +808,7 @@ def test_imrphenomxp_nrtidal_matches_lalsimulation(
     preserve_scheme,
 ):
     pytest.importorskip("lal")
-    pytest.importorskip("lalsimulation")
+    lalsimulation = pytest.importorskip("lalsimulation")
     params = {
         **_TIDAL_PARAMS,
         "phase_order": 0,
@@ -738,17 +817,9 @@ def test_imrphenomxp_nrtidal_matches_lalsimulation(
         "tidal_order": 0,
         "eccentricity_order": 4,
     }
-    monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
-    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "0")
-    _activate_scheme(_scheme.CPUScheme())
-    reference = get_fd_waveform(
-        approximant=approximant,
-        **model_flags,
-        **params,
-    )
-    reference_arrays = tuple(series.numpy().copy() for series in reference)
-
     import pycbc.waveform.waveform as waveform_mod
+
+    lal_generator = waveform_mod.lalsimulation.SimInspiralChooseFDWaveform
 
     def unexpected_lal(*_args, **_kwargs):
         raise AssertionError(f"native {approximant} called lalsimulation")
@@ -765,6 +836,25 @@ def test_imrphenomxp_nrtidal_matches_lalsimulation(
         **model_flags,
         **params,
     )
+    _assert_native_waveform(actual)
+    if not _lal_fd_approximant_available(approximant):
+        pytest.skip(f"installed lalsimulation does not provide {approximant}")
+    _skip_old_xp_reference(lalsimulation, model_flags)
+
+    monkeypatch.setattr(
+        waveform_mod.lalsimulation,
+        "SimInspiralChooseFDWaveform",
+        lal_generator,
+    )
+    monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
+    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference = get_fd_waveform(
+        approximant=approximant,
+        **model_flags,
+        **params,
+    )
+    reference_arrays = tuple(series.numpy().copy() for series in reference)
 
     for expected, expected_array, result in zip(
         reference,
@@ -792,7 +882,7 @@ def test_imrphenomxp_nrtidal_sequence_matches_lalsimulation(
     preserve_scheme,
 ):
     pytest.importorskip("lal")
-    pytest.importorskip("lalsimulation")
+    lalsimulation = pytest.importorskip("lalsimulation")
     params = {
         **_tidal_sequence_params(),
         "phase_order": 0,
@@ -801,18 +891,9 @@ def test_imrphenomxp_nrtidal_sequence_matches_lalsimulation(
         "tidal_order": 0,
         "eccentricity_order": 4,
     }
-    monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
-    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "0")
-    _activate_scheme(_scheme.CPUScheme())
-    reference = get_fd_waveform_sequence(
-        approximant=approximant,
-        sample_points=_TIDAL_SAMPLE_POINTS,
-        **model_flags,
-        **params,
-    )
-    reference_arrays = tuple(array.numpy().copy() for array in reference)
-
     import pycbc.waveform.waveform as waveform_mod
+
+    lal_sequence = waveform_mod.lalsimulation.SimInspiralChooseFDWaveformSequence
 
     def unexpected_lal(*_args, **_kwargs):
         raise AssertionError(f"native {approximant} sequence called lalsimulation")
@@ -830,6 +911,26 @@ def test_imrphenomxp_nrtidal_sequence_matches_lalsimulation(
         **model_flags,
         **params,
     )
+    _assert_native_waveform(actual, len(_TIDAL_SAMPLE_POINTS))
+    if not _lal_fd_approximant_available(approximant):
+        pytest.skip(f"installed lalsimulation does not provide {approximant}")
+    _skip_old_xp_reference(lalsimulation, model_flags)
+
+    monkeypatch.setattr(
+        waveform_mod.lalsimulation,
+        "SimInspiralChooseFDWaveformSequence",
+        lal_sequence,
+    )
+    monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
+    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "0")
+    _activate_scheme(_scheme.CPUScheme())
+    reference = get_fd_waveform_sequence(
+        approximant=approximant,
+        sample_points=_TIDAL_SAMPLE_POINTS,
+        **model_flags,
+        **params,
+    )
+    reference_arrays = tuple(array.numpy().copy() for array in reference)
 
     for expected, result in zip(reference_arrays, actual):
         assert result._data.tensor.device.type == "cpu"
@@ -981,10 +1082,12 @@ def test_imrphenomxp_nrtidal_stays_on_requested_device(
     pytest.importorskip("lal")
     pytest.importorskip("lalsimulation")
     params = {**_TIDAL_PARAMS, "f_final": 1024.0}
-    monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "0")
-    _activate_scheme(_scheme.CPUScheme())
-    reference, _ = get_fd_waveform(approximant=approximant, **params)
-    reference_array = reference.numpy().copy()
+    reference_array = None
+    if _lal_fd_approximant_available(approximant):
+        monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "0")
+        _activate_scheme(_scheme.CPUScheme())
+        reference, _ = get_fd_waveform(approximant=approximant, **params)
+        reference_array = reference.numpy().copy()
 
     monkeypatch.setenv("PYCBC_IMRPHENOMXP_NATIVE", "1")
     _activate_scheme(_scheme.TorchScheme(device_name))
@@ -993,6 +1096,8 @@ def test_imrphenomxp_nrtidal_stays_on_requested_device(
     expected_dtype = torch.complex64 if device_name == "mps" else torch.complex128
     assert actual._data.tensor.device.type == device_name
     assert actual._data.tensor.dtype == expected_dtype
+    if reference_array is None:
+        pytest.skip(f"installed lalsimulation does not provide {approximant}")
     # LAL's XPHM multibanding can leave the final requested bins zero. The
     # native path deliberately evaluates the full grid, as does native XPHM.
     # Compare their common support; MPS performs the long BNS phase in float32.

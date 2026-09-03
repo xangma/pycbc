@@ -156,6 +156,41 @@ _COPRECESSING_FIT_NAMES = (
 )
 
 
+try:
+    _LALSIMULATION_VERSION = tuple(
+        int(part)
+        for part in lalsimulation.__version__.split("+", 1)[0].split(".")[:3]
+    )
+except (AttributeError, TypeError, ValueError):
+    _LALSIMULATION_VERSION = ()
+
+
+def _skip_old_pnr_reference(feature):
+    if (
+        bool(_LALSIMULATION_VERSION)
+        and _LALSIMULATION_VERSION <= (5, 3, 1)
+    ):
+        pytest.skip(
+            f"installed lalsimulation predates the {feature} reference "
+            "used by the native port"
+        )
+
+
+def _require_coprecessing_fit_api():
+    missing = [
+        f"SimIMRPhenomXCP_{name}_l2m2"
+        for name in _COPRECESSING_FIT_NAMES
+        if not callable(
+            getattr(lalsimulation, f"SimIMRPhenomXCP_{name}_l2m2", None)
+        )
+    ]
+    if missing:
+        pytest.skip(
+            "installed lalsimulation does not expose the private XPNR "
+            "coprecessing-fit API"
+        )
+
+
 def _lal_dict(*, tuned_coprecessing=False, final_spin_mod=None):
     params = lal.CreateDict()
     if tuned_coprecessing:
@@ -450,6 +485,12 @@ def test_pnr_final_spin_model7_matches_lalsimulation():
         chi_tot_perp,
         beta_ringdown,
     )
+    assert actual.device == batched[0].device
+    assert actual.dtype == batched[0].dtype
+    assert actual.shape == eta.shape
+    assert bool(torch.isfinite(actual).all())
+    _skip_old_pnr_reference("XPNR final-spin model 7")
+
     params = _lal_dict(tuned_coprecessing=True, final_spin_mod=7)
     expected = np.array(
         [
@@ -463,8 +504,6 @@ def test_pnr_final_spin_model7_matches_lalsimulation():
         ]
     )
 
-    assert actual.device == batched[0].device
-    assert actual.dtype == batched[0].dtype
     np.testing.assert_allclose(actual.numpy(), expected, rtol=2.0e-14, atol=2.0e-15)
 
 
@@ -876,6 +915,29 @@ def test_generate_pnr_spintaylor_angles_matches_lalsimulation(source):
     f_min = 20.0
     f_max = 512.0
     f_ref = 30.0
+    actual = generate_pnr_spintaylor_angles(
+        mass1,
+        mass2,
+        tuple(spins[:3]),
+        tuple(spins[3:]),
+        inclination,
+        delta_f,
+        f_min,
+        f_max,
+        f_ref,
+        dtype=torch.float64,
+    )
+    assert actual.frequencies.ndim == 1
+    assert actual.frequencies.numel() > 0
+    for values in (actual.frequencies, actual.alpha, actual.beta, actual.gamma):
+        assert values.device == actual.frequencies.device
+        assert values.dtype == torch.float64
+        assert values.shape == actual.frequencies.shape
+        assert bool(torch.isfinite(values).all())
+    assert bool(torch.isfinite(actual.alpha_reference))
+    assert bool(torch.isfinite(actual.gamma_reference))
+    _skip_old_pnr_reference("XPNR prec-version 330 angles")
+
     lal_params = lal.CreateDict()
     lalsimulation.SimInspiralWaveformParamsInsertPhenomXPrecVersion(
         lal_params,
@@ -897,21 +959,6 @@ def test_generate_pnr_spintaylor_angles_matches_lalsimulation(source):
         lal_params,
     )
 
-    actual = generate_pnr_spintaylor_angles(
-        mass1,
-        mass2,
-        tuple(spins[:3]),
-        tuple(spins[3:]),
-        inclination,
-        delta_f,
-        f_min,
-        f_max,
-        f_ref,
-        dtype=torch.float64,
-    )
-
-    assert actual.frequencies.dtype == torch.float64
-    assert actual.alpha.device == actual.frequencies.device
     np.testing.assert_allclose(actual.frequencies.numpy(), expected[3].data)
     for values, reference in zip(
         (actual.alpha, actual.beta, actual.gamma),
@@ -1508,6 +1555,15 @@ def test_pnr_beta_and_gamma_match_lalsimulation(source):
 
 @pytest.mark.parametrize("mass_ratio", [1.0, 8.5, 10.0, 12.0, 15.0, 20.0, 21.0])
 def test_pnr_coprecessing_window_matches_lalsimulation(mass_ratio):
+    actual = pnr_coprecessing_window(mass_ratio)
+    assert actual.device.type == "cpu"
+    assert actual.dtype == torch.float64
+    assert actual.ndim == 0
+    assert bool(torch.isfinite(actual))
+    assert 0.0 <= actual.item() <= 1.0
+    if 8.0 < mass_ratio < 20.0:
+        _skip_old_pnr_reference("XPNR coprecessing window")
+
     spins = (0.2, 0.1, 0.3, -0.1, 0.05, -0.2)
     expected = lalsimulation.SimPhenomPNRwindow(
         mass_ratio * 30.0 * lal.MSUN_SI,
@@ -1515,10 +1571,6 @@ def test_pnr_coprecessing_window_matches_lalsimulation(mass_ratio):
         *spins,
         _lal_dict(tuned_coprecessing=True),
     )
-
-    actual = pnr_coprecessing_window(mass_ratio)
-
-    assert actual.dtype == torch.float64
     assert actual.item() == pytest.approx(expected, rel=2.0e-15, abs=2.0e-15)
 
 
@@ -1531,6 +1583,12 @@ def test_pnr_coprecessing_fits_match_lalsimulation():
         tuple(getattr(actual, name.lower()) for name in _COPRECESSING_FIT_NAMES),
         dim=-1,
     )
+    assert actual_values.device == theta.device
+    assert actual_values.dtype == theta.dtype
+    assert actual_values.shape == (theta.numel(), len(_COPRECESSING_FIT_NAMES))
+    assert bool(torch.isfinite(actual_values).all())
+    _require_coprecessing_fit_api()
+
     expected = np.asarray(
         [
             [
@@ -1548,9 +1606,6 @@ def test_pnr_coprecessing_fits_match_lalsimulation():
             )
         ]
     )
-
-    assert actual_values.device == theta.device
-    assert actual_values.dtype == theta.dtype
     np.testing.assert_allclose(
         actual_values.numpy(),
         expected,
@@ -1580,6 +1635,26 @@ def test_build_pnr_coprecessing_deviations_matches_lalsimulation(prec_version):
         single_spin,
         prec_version=prec_version,
     )
+    actual_fits = torch.stack(
+        tuple(
+            getattr(actual.fits, name.lower())
+            for name in _COPRECESSING_FIT_NAMES
+        ),
+        dim=-1,
+    )
+    assert actual_fits.device == mass_ratio.device
+    assert actual_fits.dtype == mass_ratio.dtype
+    assert actual_fits.shape == (
+        mass_ratio.numel(),
+        len(_COPRECESSING_FIT_NAMES),
+    )
+    assert bool(torch.isfinite(actual_fits).all())
+    assert bool(torch.isfinite(actual.strength).all())
+    window = torch.tensor([1.0, 0.5, 0.0], dtype=torch.float64)
+    expected_strength = window * spin * torch.sqrt(1.0 - cosine * cosine)
+    torch.testing.assert_close(actual.strength, expected_strength)
+    _require_coprecessing_fit_api()
+
     if prec_version == 330:
         fitted_eta = torch.where(
             eta >= 0.09876,
@@ -1611,17 +1686,6 @@ def test_build_pnr_coprecessing_deviations_matches_lalsimulation(prec_version):
             )
         ]
     )
-    actual_fits = torch.stack(
-        tuple(
-            getattr(actual.fits, name.lower())
-            for name in _COPRECESSING_FIT_NAMES
-        ),
-        dim=-1,
-    )
-    window = torch.tensor([1.0, 0.5, 0.0], dtype=torch.float64)
-    expected_strength = window * spin * torch.sqrt(1.0 - cosine * cosine)
-
-    torch.testing.assert_close(actual.strength, expected_strength)
     np.testing.assert_allclose(
         actual_fits.numpy(),
         expected_fits,

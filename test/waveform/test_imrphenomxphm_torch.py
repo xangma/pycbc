@@ -58,6 +58,17 @@ _NATIVE_FLAG_ENVS = (
 )
 
 
+def _old_lalsimulation_reference(module):
+    try:
+        version = tuple(
+            int(part)
+            for part in module.__version__.split("+", 1)[0].split(".")[:3]
+        )
+    except (AttributeError, TypeError, ValueError):
+        version = ()
+    return bool(version) and version <= (5, 3, 1)
+
+
 def _clear_native_flags(monkeypatch):
     """Remove every native flag so the registry default applies."""
     for name in _NATIVE_FLAG_ENVS:
@@ -133,7 +144,7 @@ def test_imrphenomxphm_sequence_matches_lalsimulation(
     preserve_scheme,
 ):
     pytest.importorskip("lal")
-    pytest.importorskip("lalsimulation")
+    lalsimulation = pytest.importorskip("lalsimulation")
     monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
     monkeypatch.setenv("PYCBC_IMRPHENOMXPHM_NATIVE", "0")
     _activate_scheme(_scheme.CPUScheme())
@@ -164,9 +175,19 @@ def test_imrphenomxphm_sequence_matches_lalsimulation(
         **_SEQUENCE_PARAMS,
     )
 
-    for expected, result in zip(reference_arrays, actual):
+    for result in actual:
         assert result._data.tensor.device.type == "cpu"
         assert result._data.tensor.dtype == torch.complex128
+    if (
+        model_flags == _MSA_FLAGS
+        and _old_lalsimulation_reference(lalsimulation)
+    ):
+        pytest.skip(
+            "installed lalsimulation predates the IMRPhenomXPHM "
+            "MSA final-spin-0 sequence reference used by the native port"
+        )
+
+    for expected, result in zip(reference_arrays, actual):
         result_array = result.numpy()
         np.testing.assert_array_equal(result_array == 0.0, expected == 0.0)
         assert _relative_error(result_array, expected) < 5.0e-5
@@ -415,6 +436,10 @@ def test_imrphenomxphm_phase_anchor_cache_is_request_local_and_bitwise(
     import pycbc.waveform.imrphenomxhm_torch as xhm_torch
     import pycbc.waveform.imrphenomxphm_torch as xphm_torch
 
+    _activate_scheme(_scheme.TorchScheme("cpu"))
+    if not xhm_torch._plain_request_runtime_supported():
+        pytest.skip("carrier-phase cache is unavailable on this Torch runtime")
+
     params = dict(
         **_SEQUENCE_PARAMS,
         approximant="IMRPhenomXPHM",
@@ -422,7 +447,6 @@ def test_imrphenomxphm_phase_anchor_cache_is_request_local_and_bitwise(
         f_lower=20.0,
         f_final=512.0,
     )
-    _activate_scheme(_scheme.TorchScheme("cpu"))
     monkeypatch.setenv(xphm_torch._INTRINSIC_CACHE_ENV, "0")
     monkeypatch.setenv(xas_torch._PHASE_PLAN_ENV, "1")
     monkeypatch.setenv(xas_torch._SCALAR_REGION_DISPATCH_ENV, "1")
@@ -507,6 +531,9 @@ def test_phase_anchor_cache_eager_exact_matrix_with_tiny_solves_off(
     import pycbc.waveform.imrphenomxphm_torch as xphm_torch
 
     _activate_scheme(_scheme.TorchScheme("cpu"))
+    if not xhm_torch._plain_request_runtime_supported():
+        pytest.skip("carrier-phase cache is unavailable on this Torch runtime")
+
     monkeypatch.setenv(xhm_torch._BATCHED_TINY_SOLVES_ENV, "0")
     monkeypatch.setenv(
         "PYCBC_IMRPHENOMXHM_FIXED_SCHEMA_AMPLITUDE_TRIPLET",
