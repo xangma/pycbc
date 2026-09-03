@@ -5,7 +5,7 @@
 # Software Foundation; either version 3 of the License, or (at your option) any
 # later version.
 
-"""Foundation tests for the Torch-native waveform registry."""
+"""Focused registry tests for the Torch-native TaylorF2 family."""
 
 from importlib import import_module
 from types import SimpleNamespace
@@ -17,16 +17,50 @@ pytest.importorskip("torch")
 from pycbc.waveform import torch_waveform_registry as registry
 
 
-def test_registry_starts_empty():
-    assert dict(registry.TORCH_NATIVE_WAVEFORMS) == {}
-    for interface in ("td", "td_modes", "fd", "fd_modes", "sequence"):
-        assert registry.native_approximants(interface) == ()
+_EXPECTED_PORTS = {
+    "TaylorF2": ("PYCBC_TAYLORF2_NATIVE", "taylorf2_torch"),
+    "TaylorF2NLTides": (
+        "PYCBC_TAYLORF2NLTIDES_NATIVE",
+        "taylorf2nltides_torch",
+    ),
+    "TaylorF2RedSpin": (
+        "PYCBC_TAYLORF2REDSPIN_NATIVE",
+        "taylorf2redspin_torch",
+    ),
+    "TaylorF2RedSpinTidal": (
+        "PYCBC_TAYLORF2REDSPINTIDAL_NATIVE",
+        "taylorf2redspin_torch",
+    ),
+    "TaylorF2Ecc": ("PYCBC_TAYLORF2ECC_NATIVE", "taylorf2ecc_torch"),
+    "SpinTaylorF2": (
+        "PYCBC_SPINTAYLORF2_NATIVE",
+        "spintaylorf2_torch",
+    ),
+}
+
+
+def test_registry_contains_taylorf2_family():
+    expected = set(_EXPECTED_PORTS)
+    assert expected <= set(registry.TORCH_NATIVE_WAVEFORMS)
+    assert expected <= set(registry.native_approximants("fd"))
+    assert expected <= set(registry.native_approximants("sequence"))
 
 
 def test_registered_modules_are_importable():
-    """Keep later registry additions tied to code present in the same PR."""
-    for port in registry.TORCH_NATIVE_WAVEFORMS.values():
-        import_module(f"pycbc.waveform.{port.module}")
+    """Keep registry additions tied to callable code present in this PR."""
+    for approximant in _EXPECTED_PORTS:
+        port = registry.TORCH_NATIVE_WAVEFORMS[approximant]
+        expected_flag, expected_module = _EXPECTED_PORTS[approximant]
+        assert port.component_flag == expected_flag
+        assert port.module == expected_module
+        implementation = import_module(f"pycbc.waveform.{port.module}")
+        for interface in ("fd", "sequence"):
+            generator = getattr(port, f"{interface}_generator")
+            supported = getattr(port, f"{interface}_supported")
+            assert callable(getattr(implementation, generator))
+            assert callable(getattr(implementation, supported))
+        if port.default_supported is not None:
+            assert callable(getattr(implementation, port.default_supported))
 
 
 def test_unregistered_dispatch_uses_lal_fallback():

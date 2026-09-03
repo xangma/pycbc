@@ -20,14 +20,20 @@ import numpy
 from numpy import sqrt, double, complex128
 from math import pow, log, cos, sin, acos, atan2
 
-from pycuda.elementwise import ElementwiseKernel
+import pycbc.scheme as _scheme
+
+try:
+    from pycuda.elementwise import ElementwiseKernel
+    _HAVE_PYCUDA = True
+except ImportError:  # pragma: no cover - optional dependency
+    _HAVE_PYCUDA = False
 
 from pycbc.libutils import pkg_config_header_strings
 from pycbc.types import FrequencySeries, zeros
 from pycbc.waveform.utils import ceilpow2
 from pycbc.constants import MTSUN_SI, PC_SI, PI, MRSUN_SI, GAMMA
 
-preamble = f"""
+preamble = """
 #include <cuComplex.h>
 #include <math.h>
 """
@@ -228,39 +234,48 @@ spintaylorf2_text = """
 
 """
 
-spintaylorf2_kernel = ElementwiseKernel("""pycuda::complex<double> *htildeP,
-                                           pycuda::complex<double> *htildeC,
-                                           int kmin, int phase_order,
-                                           int amplitude_order, double delta_f, double PI,
-                                           double piM, double pfaN,
-                                           double pfa2, double pfa3,
-                                           double pfa4, double pfa5,
-                                           double pfl5, double pfa6,
-                                           double pfl6, double pfa7,
-                                           double FTaN, double FTa2,
-                                           double FTa3, double FTa4,
-                                           double FTa5, double FTa6,
-                                           double FTl6, double FTa7,
-                                           double dETaN, double dETa1,
-                                           double dETa2, double dETa3,
-                                           double amp0, double tC, double phi0,
-                                           double kappa, double prec_fac0,
-                                           double alpha_ref, double zeta_ref,
-                                           double dtdv2, double dtdv3,
-                                           double dtdv4, double dtdv5,
-                                           double RE_SBfac0, double RE_SBfac1,
-                                           double RE_SBfac2, double RE_SBfac3,
-                                           double RE_SBfac4, double IM_SBfac0,
-                                           double IM_SBfac1, double IM_SBfac2,
-                                           double IM_SBfac3, double IM_SBfac4,
-                                           double psiJ_P, double psiJ_C,
-                                           double gamma0""",
-                    spintaylorf2_text, "spintaylorf2_kernel",
-                    preamble=preamble, options=pkg_config_header_strings([]))
+if _HAVE_PYCUDA:
+    spintaylorf2_kernel = ElementwiseKernel("""pycuda::complex<double> *htildeP,
+                                               pycuda::complex<double> *htildeC,
+                                               int kmin, int phase_order,
+                                               int amplitude_order, double delta_f, double PI,
+                                               double piM, double pfaN,
+                                               double pfa2, double pfa3,
+                                               double pfa4, double pfa5,
+                                               double pfl5, double pfa6,
+                                               double pfl6, double pfa7,
+                                               double FTaN, double FTa2,
+                                               double FTa3, double FTa4,
+                                               double FTa5, double FTa6,
+                                               double FTl6, double FTa7,
+                                               double dETaN, double dETa1,
+                                               double dETa2, double dETa3,
+                                               double amp0, double tC, double phi0,
+                                               double kappa, double prec_fac0,
+                                               double alpha_ref, double zeta_ref,
+                                               double dtdv2, double dtdv3,
+                                               double dtdv4, double dtdv5,
+                                               double RE_SBfac0, double RE_SBfac1,
+                                               double RE_SBfac2, double RE_SBfac3,
+                                               double RE_SBfac4, double IM_SBfac0,
+                                               double IM_SBfac1, double IM_SBfac2,
+                                               double IM_SBfac3, double IM_SBfac4,
+                                               double psiJ_P, double psiJ_C,
+                                               double gamma0""",
+                        spintaylorf2_text, "spintaylorf2_kernel",
+                        preamble=preamble, options=pkg_config_header_strings([]))
 
 def spintaylorf2(**kwds):
     """ Return a SpinTaylorF2 waveform using CUDA to generate the phase and amplitude
     """
+    # Direct Torch calls use the native evaluator. Public dispatch applies the
+    # feature flag and sends unsupported parameter combinations to LAL first.
+    if isinstance(_scheme.mgr.state, _scheme.TorchScheme):
+        from .spintaylorf2_torch import spintaylorf2_torch
+        return spintaylorf2_torch(**kwds)
+
+    if not _HAVE_PYCUDA:
+        raise RuntimeError("PyCUDA not available; use torch scheme or install PyCUDA for CUDA path.")
     #####Pull out the input arguments#####
     f_lower = double(kwds['f_lower'])
     delta_f = double(kwds['delta_f'])
