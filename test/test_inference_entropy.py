@@ -84,6 +84,26 @@ def test_torch_histogram_pdf_matches_numpy(values, hist_range):
     np.testing.assert_allclose(actual.numpy(), expected, equal_nan=True)
 
 
+def test_torch_histogram_pdf_uses_device_supported_operations(monkeypatch):
+    torch = pytest.importorskip("torch")
+    samples = torch.tensor(
+        [-2.0, -1.0, -0.5, 0.0, 0.5, 1.0, 2.0],
+        dtype=torch.float64,
+    )
+
+    def reject_torch_histogram(*_args, **_kwargs):
+        raise AssertionError("CUDA-incompatible torch.histogram was called")
+
+    monkeypatch.setattr(torch, "histogram", reject_torch_histogram)
+    actual = entropy.compute_pdf(samples, "hist", 4, -1.0, 1.0)
+    expected = np.histogram(
+        samples.tolist(), bins=4, range=(-1.0, 1.0), density=True
+    )[0]
+
+    assert actual.device == samples.device
+    np.testing.assert_allclose(actual.tolist(), expected)
+
+
 def test_torch_kde_evaluation_matches_scipy():
     torch = pytest.importorskip("torch")
     values = np.array([-1.2, -0.4, 0.1, 0.5, 1.7])

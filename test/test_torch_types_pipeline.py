@@ -2215,6 +2215,9 @@ def test_histogram_information_metrics_stay_on_torch_device(
                 inference_entropy.numpy, "histogram", reject_host_or_scipy
             )
             patch.setattr(
+                torch, "histogram", reject_host_or_scipy
+            )
+            patch.setattr(
                 inference_entropy.stats, "entropy", reject_host_or_scipy
             )
             pdf = inference_entropy.compute_pdf(
@@ -2472,10 +2475,13 @@ def test_count_posterior_probabilities_stay_on_torch_device(
         assert isinstance(actual, Array)
         assert isinstance(actual._data, TorchArrayData)
         assert actual._data.tensor.device.type == device
+        tolerance = 3e-6 if device == "mps" else 2e-7
         np.testing.assert_allclose(
             actual._data.tensor.detach().cpu().numpy(),
             expected,
-            rtol=3e-6 if device == "mps" else 2e-13,
+            # The input Bayes factors are float32, so their exponentials only
+            # carry float32 precision even when the quadrature is float64.
+            rtol=tolerance,
             atol=0.0,
         )
 

@@ -96,14 +96,62 @@ def _torch_histogram_pdf(samples, bins, hist_range):
         return None
     if samples.is_complex():
         raise TypeError("histogram samples must be real")
+    if bins < 1:
+        raise ValueError("`bins` must be positive, when an integer")
     if not samples.is_floating_point():
         samples = samples.to(dtype=torch.get_default_dtype())
+
+    # ``torch.histogram`` is not implemented by CUDA. Build the same
+    # equal-width histogram from operations shared by all Torch devices.
+    # Histogram binning is non-differentiable, so keep the result detached as
+    # it is for ``torch.histogram`` and ``numpy.histogram``.
+    samples = samples.detach().reshape(-1)
     if hist_range is not None:
-        hist_range = tuple(float(bound) for bound in hist_range)
-    pdf, _ = torch.histogram(
-        samples, bins=bins, range=hist_range, density=True
+        first_edge, last_edge = (
+            torch.as_tensor(
+                bound, dtype=samples.dtype, device=samples.device
+            ).detach()
+            for bound in hist_range
+        )
+        if not bool(torch.isfinite(first_edge)) or not bool(
+                torch.isfinite(last_edge)):
+            raise ValueError("supplied range is not finite")
+        if not bool(first_edge < last_edge):
+            raise ValueError("max must be larger than min in range parameter")
+    elif samples.numel():
+        first_edge = samples.min()
+        last_edge = samples.max()
+        if not bool(torch.isfinite(first_edge)) or not bool(
+                torch.isfinite(last_edge)):
+            raise ValueError(
+                f"autodetected range of [{first_edge}, {last_edge}] "
+                "is not finite"
+            )
+        equal_edges = first_edge == last_edge
+        first_edge = torch.where(
+            equal_edges, first_edge - 0.5, first_edge
+        )
+        last_edge = torch.where(
+            equal_edges, last_edge + 0.5, last_edge
+        )
+    else:
+        first_edge = samples.new_tensor(0.0)
+        last_edge = samples.new_tensor(1.0)
+
+    interior_edges = first_edge + (last_edge - first_edge) * (
+        torch.arange(
+            1, bins, dtype=samples.dtype, device=samples.device
+        ) / bins
     )
-    return pdf
+    bin_indices = torch.bucketize(samples, interior_edges, right=True)
+    in_range = (samples >= first_edge) & (samples <= last_edge)
+    bin_indices = bin_indices[in_range]
+    counts = samples.new_zeros(bins)
+    counts.scatter_add_(
+        0, bin_indices, samples.new_ones(bin_indices.shape)
+    )
+    bin_width = (last_edge - first_edge) / bins
+    return counts / (counts.sum() * bin_width)
 
 
 def _torch_kde_evaluate(samples, points, bandwidth,
