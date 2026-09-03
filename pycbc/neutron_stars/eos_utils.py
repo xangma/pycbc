@@ -21,7 +21,7 @@ import os.path
 import numpy as np
 from scipy.interpolate import interp1d
 from . import NS_SEQUENCES, NS_DATA_DIRECTORY
-from .pg_isso_solver import PG_ISSO_solver
+from .pg_isso_solver import PG_ISSO_solver, _torch_values
 
 from pycbc.libutils import import_optional
 #  Imports needed if we implement the lalsimulation EOS interface
@@ -30,6 +30,40 @@ from pycbc.libutils import import_optional
 # )
 
 lalsim = import_optional('lalsimulation')
+
+
+def _torch_linear_interp(torch, values, ns_sequence, column, extrapolate):
+    """Interpolate one EOS column without moving Tensor inputs to the host."""
+    x = torch.as_tensor(
+        ns_sequence[:, 0], device=values.device, dtype=values.dtype
+    ).contiguous()
+    y = torch.as_tensor(
+        ns_sequence[:, column], device=values.device, dtype=values.dtype
+    ).contiguous()
+    flat_values = values.reshape(-1).contiguous()
+    upper = torch.searchsorted(x, flat_values, right=False)
+    upper = upper.clamp(1, x.numel() - 1)
+    lower = upper - 1
+    x0 = x[lower]
+    result = y[lower] + (
+        (flat_values - x0) * (y[upper] - y[lower]) / (x[upper] - x0)
+    )
+    if not extrapolate:
+        outside = (flat_values < x[0]) | (flat_values > x[-1])
+        if bool(torch.any(outside)):
+            raise ValueError(
+                "A neutron-star mass is outside the interpolation range"
+            )
+    return result.reshape(values.shape)
+
+
+def _get_lalsim_eos_names():
+    """Return LALSimulation EOS names without making it a hard dependency."""
+    try:
+        import lalsimulation
+    except ImportError:
+        return ()
+    return lalsimulation.SimNeutronStarEOSNames
 
 
 def load_ns_sequence(eos_name):
@@ -83,12 +117,18 @@ def interp_grav_mass_to_baryon_mass(ns_g_mass, ns_sequence, extrapolate=False):
         masses), NS compactness (dimensionless)
     extrapolate : boolean, optional
         Invoke extrapolation in scipy.interpolate.interp1d.
-        Default is False (so ValueError is raised for ns_g_mass out of bounds)
+        Default is False (so ValueError is raised for ns_g_mass out of bounds).
 
     Returns
     ----------
     float
     """
+    torch, values = _torch_values(ns_g_mass)
+    if torch is not None:
+        return _torch_linear_interp(
+            torch, values[0], ns_sequence, 1, extrapolate
+        )
+
     x = ns_sequence[:, 0]
     y = ns_sequence[:, 1]
     fill_value = "extrapolate" if extrapolate else np.nan
@@ -111,12 +151,18 @@ def interp_grav_mass_to_compactness(ns_g_mass, ns_sequence, extrapolate=False):
         masses), NS compactness (dimensionless)
     extrapolate : boolean, optional
         Invoke extrapolation in scipy.interpolate.interp1d.
-        Default is False (so ValueError is raised for ns_g_mass out of bounds)
+        Default is False (so ValueError is raised for ns_g_mass out of bounds).
 
     Returns
     ----------
     float
     """
+    torch, values = _torch_values(ns_g_mass)
+    if torch is not None:
+        return _torch_linear_interp(
+            torch, values[0], ns_sequence, 2, extrapolate
+        )
+
     x = ns_sequence[:, 0]
     y = ns_sequence[:, 2]
     fill_value = "extrapolate" if extrapolate else np.nan
@@ -147,8 +193,34 @@ def initialize_eos(ns_mass, eos, extrapolate=False):
     ns_b_mass : float
         Baryonic mass of the neutron star.
     """
-    if isinstance(ns_mass, np.ndarray):
-        input_is_array = True
+    torch, values = _torch_values(ns_mass)
+    if torch is not None:
+        ns_mass = values[0]
+        if eos in NS_SEQUENCES:
+            ns_seq, ns_max = load_ns_sequence(eos)
+            if bool(torch.any(ns_mass > ns_max)):
+                raise ValueError(
+                    f'Maximum NS mass for {eos} is {ns_max}'
+                )
+            ns_compactness = interp_grav_mass_to_compactness(
+                ns_mass, ns_seq, extrapolate=extrapolate
+            )
+            ns_b_mass = interp_grav_mass_to_baryon_mass(
+                ns_mass, ns_seq, extrapolate=extrapolate
+            )
+            return ns_compactness, ns_b_mass
+
+        lalsim_eos_names = _get_lalsim_eos_names()
+        if eos in lalsim_eos_names:
+            raise NotImplementedError(
+                'LALSimulation EOS interface not yet implemented!'
+            )
+        raise NotImplementedError(
+            f'{eos} is not implemented! Available are: '
+            f'{NS_SEQUENCES + list(lalsim_eos_names)}'
+        )
+
+    input_is_array = isinstance(ns_mass, np.ndarray)
     if eos in NS_SEQUENCES:
         ns_seq, ns_max = load_ns_sequence(eos)
         # Never extrapolate beyond the maximum NS mass allowed by the EOS
@@ -167,18 +239,16 @@ def initialize_eos(ns_mass, eos, extrapolate=False):
             ns_mass, ns_seq, extrapolate=extrapolate)
         ns_b_mass = interp_grav_mass_to_baryon_mass(
             ns_mass, ns_seq, extrapolate=extrapolate)
-    elif eos in lalsim.SimNeutronStarEOSNames:
-        #from pycbc.constants import MSUN_SI, G_SI, C_SI
-        #eos_obj = lalsim.SimNeutronStarEOSByName(eos)
-        #eos_fam = lalsim.CreateSimNeutronStarFamily(eos_obj)
-        #r_ns = lalsim.SimNeutronStarRadius(ns_mass * MSUN_SI, eos_obj)
-        #ns_compactness = G_SI * ns_mass * MSUN_SI / (r_ns * C_SI**2)
-        raise NotImplementedError(
-            'LALSimulation EOS interface not yet implemented!')
+
     else:
+        lalsim_eos_names = _get_lalsim_eos_names()
+        if eos in lalsim_eos_names:
+            # The LALSimulation EOS interface is not yet implemented here.
+            raise NotImplementedError(
+                'LALSimulation EOS interface not yet implemented!')
         raise NotImplementedError(
             f'{eos} is not implemented! Available are: '
-            f'{NS_SEQUENCES + list(lalsim.SimNeutronStarEOSNames)}')
+            f'{NS_SEQUENCES + list(lalsim_eos_names)}')
     return (ns_compactness, ns_b_mass)
 
 
@@ -205,6 +275,26 @@ def foucart18(
     bh_spin_pol : {float, array}
         The tilt angle of the BH spin.
     """
+    torch, values = _torch_values(
+        eta, ns_compactness, ns_b_mass, bh_spin_mag, bh_spin_pol
+    )
+    if torch is not None:
+        eta, ns_compactness, ns_b_mass, bh_spin_mag, bh_spin_pol = values
+        isso = PG_ISSO_solver(bh_spin_mag, bh_spin_pol)
+        alpha = 0.406
+        beta = 0.139
+        gamma = 0.255
+        delta = 1.761
+        fit = (
+            alpha / eta ** (1 / 3) * (1 - 2 * ns_compactness)
+            - beta * ns_compactness / eta * isso
+            + gamma
+        )
+        positive_fit = torch.where(
+            fit > 0.0, fit, torch.zeros_like(fit)
+        )
+        return ns_b_mass * positive_fit**delta
+
     isso = PG_ISSO_solver(bh_spin_mag, bh_spin_pol)
     # Fit parameters and tidal correction
     alpha = 0.406

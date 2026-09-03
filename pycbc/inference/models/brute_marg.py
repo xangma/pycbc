@@ -24,9 +24,60 @@ from pycbc.pool import BroadcastPool as Pool
 from scipy.special import logsumexp
 
 from .gaussian_noise import BaseGaussianNoise
-from .tools import draw_sample
+from .tools import _torch_tensor, draw_sample
+
+
+def _stack_likelihood_values(values):
+    """Stack likelihood scalars without detaching Torch values."""
+    tensors = [_torch_tensor(value) for value in values]
+    target = next((tensor for tensor in tensors if tensor is not None), None)
+    if target is None:
+        return numpy.asarray(values)
+
+    import torch
+
+    return torch.stack([
+        tensor.to(device=target.device, dtype=target.dtype)
+        if tensor is not None else
+        torch.as_tensor(value, device=target.device, dtype=target.dtype)
+        for value, tensor in zip(values, tensors)
+    ])
+
+
+def _argmax_index(values):
+    """Return a host index after reducing on the input backend."""
+    tensor = _torch_tensor(values)
+    if tensor is not None:
+        import torch
+
+        return int(torch.argmax(tensor).item())
+    return int(numpy.argmax(values))
+
+
+def _host_scalar(value):
+    """Convert one scalar result to its public host representation."""
+    tensor = _torch_tensor(value)
+    if tensor is not None:
+        return tensor.item()
+    if isinstance(value, numpy.generic):
+        return value.item()
+    return value
+
+
+def _logmeanexp(values):
+    """Marginalize a likelihood vector on its existing backend."""
+    tensor = _torch_tensor(values)
+    if tensor is not None:
+        import torch
+
+        result = torch.logsumexp(tensor, dim=0) - math.log(tensor.shape[0])
+        return result.item()
+    return float(logsumexp(values) - numpy.log(len(values)))
+
 
 _model = None
+
+
 class likelihood_wrapper(object):
     def __init__(self, model):
         global _model
@@ -37,6 +88,7 @@ class likelihood_wrapper(object):
         _model.update(**params)
         loglr = _model.loglr
         return loglr, _model.current_stats
+
 
 class BruteParallelGaussianMarginalize(BaseGaussianNoise):
     name = "brute_parallel_gaussian_marginalize"
@@ -78,22 +130,26 @@ class BruteParallelGaussianMarginalize(BaseGaussianNoise):
                 pref['coa_phase'] = p
                 params.append(pref)
             vals = list(self.pool.map(self.call, params))
-            loglr = numpy.array([v[0] for v in vals])
+            loglr = _stack_likelihood_values([v[0] for v in vals])
             # get the maxl values
             if 'maxl_loglr' not in self.model._extra_stats:
                 maxl_loglrs = loglr
             else:
-                maxl_loglrs = numpy.array([v[1]['maxl_loglr'] for v in vals])
-            maxidx = maxl_loglrs.argmax()
+                maxl_loglrs = _stack_likelihood_values(
+                    [v[1]['maxl_loglr'] for v in vals]
+                )
+            maxidx = _argmax_index(maxl_loglrs)
             maxstats = vals[maxidx][1]
             maxphase = self.phase[maxidx]
             # set the stats
             for stat in maxstats:
                 setattr(self._current_stats, stat, maxstats[stat])
             self._current_stats.maxl_phase = maxphase
-            self._current_stats.maxl_loglr = maxl_loglrs[maxidx]
+            self._current_stats.maxl_loglr = _host_scalar(
+                maxl_loglrs[maxidx]
+            )
             # calculate the marginal loglr and return
-            return logsumexp(loglr) - numpy.log(len(self.phase))
+            return _logmeanexp(loglr)
 
 
 class BruteLISASkyModesMarginalize(BaseGaussianNoise):
@@ -148,19 +204,20 @@ class BruteLISASkyModesMarginalize(BaseGaussianNoise):
             params.append(pref)
 
         vals = list(self.mapfunc(self.call, params))
-        loglr = numpy.array([v[0] for v in vals])
+        loglr = _stack_likelihood_values([v[0] for v in vals])
 
         if self.reconstruct_sky_points:
             return loglr
 
-        max_llr_idx = loglr.argmax()
-        max_llr = loglr[max_llr_idx]
-        marg_lrfac = sum([math.exp(llr - max_llr) for llr in loglr])
-        marg_llr = max_llr + math.log(marg_lrfac/self.num_sky_modes)
+        marg_llr = _logmeanexp(loglr)
 
         # set the stats
         for sym_num in range(self.num_sky_modes):
-            setattr(self._current_stats, f'llr_mode_{sym_num}', loglr[sym_num])
+            setattr(
+                self._current_stats,
+                f'llr_mode_{sym_num}',
+                _host_scalar(loglr[sym_num]),
+            )
 
         return marg_llr
 

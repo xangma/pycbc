@@ -736,11 +736,11 @@ with ctx:
                 idx[ifo] = ind
                 snr[ifo] = snrv * norm
                 # Initialize the cache for power chi^2
-                power_chisq_arrays[ifo] = np.full(
-                    wraparound_dict[ifo], np.nan, dtype=np.float32
+                power_chisq_arrays[ifo] = coh.create_coherent_cache(
+                    snr_dict[ifo], np.nan, np.float32
                 )
-                power_chisq_dof_arrays[ifo] = np.zeros(
-                    wraparound_dict[ifo], dtype=np.int32
+                power_chisq_dof_arrays[ifo] = coh.create_coherent_cache(
+                    snr_dict[ifo], 0, np.int32
                 )
                 del snr_ts, norm, corr, ind, snrv
 
@@ -904,8 +904,16 @@ with ctx:
                             )
                             # Apply cut to remove points with left or right
                             # polarized coherent SNR below threshold
-                            l_above = rho_coh_l > args.coinc_threshold
-                            r_above = rho_coh_r > args.coinc_threshold
+                            l_above = coh.compare_coherent_values(
+                                rho_coh_l,
+                                args.coinc_threshold,
+                                np.greater,
+                            )
+                            r_above = coh.compare_coherent_values(
+                                rho_coh_r,
+                                args.coinc_threshold,
+                                np.greater,
+                            )
                             lr_above = l_above & r_above
                             rho_coh_l = rho_coh_l[lr_above]
                             rho_coh_r = rho_coh_r[lr_above]
@@ -923,23 +931,22 @@ with ctx:
                             rho_coinc_r = rho_coinc_r[lr_above]
                             # Point by point, track the larger of the two
                             # and store its information
-                            max_idx = np.argmax([rho_coh_l, rho_coh_r], axis=0)
-                            rho_coh = np.where(
-                                max_idx == 0, rho_coh_l, rho_coh_r
+                            select_left = coh.compare_coherent_values(
+                                rho_coh_l, rho_coh_r, np.greater_equal
                             )
-                            coinc_idx = np.where(
-                                max_idx == 0, coinc_idx_l, coinc_idx_r
+                            rho_coh = coh.select_coherent_values(
+                                rho_coh_l, rho_coh_r, select_left
                             )
-                            coinc_triggers = {
-                                ifo: np.where(
-                                    max_idx == 0,
-                                    coinc_triggers_l[ifo],
-                                    coinc_triggers_r[ifo],
-                                )
-                                for ifo in coinc_triggers_l
-                            }
-                            rho_coinc = np.where(
-                                max_idx == 0, rho_coinc_l, rho_coinc_r
+                            coinc_idx = coh.select_coherent_values(
+                                coinc_idx_l, coinc_idx_r, select_left
+                            )
+                            coinc_triggers = coh.select_coherent_triggers(
+                                coinc_triggers_l,
+                                coinc_triggers_r,
+                                select_left,
+                            )
+                            rho_coinc = coh.select_coherent_values(
+                                rho_coinc_l, rho_coinc_r, select_left
                             )
                         else:
                             project = coh.get_projection_matrix(
@@ -1023,11 +1030,10 @@ with ctx:
                             # Figure out which new indices we need to calculate
                             # the chi^2 for
                             needed_idx = coinc_idx_det_frame[ifo]
-                            unavailable_mask = np.isnan(
-                                power_chisq_arrays[ifo][needed_idx]
+                            new_needed_idx = coh.unavailable_coherent_indices(
+                                power_chisq_arrays[ifo], needed_idx
                             )
-                            if unavailable_mask.any():
-                                new_needed_idx = needed_idx[unavailable_mask]
+                            if len(new_needed_idx):
                                 new_chisq, new_chisq_dof = power_chisq.values(
                                     corr_dict[ifo],
                                     snr_dict[ifo][new_needed_idx] / norm_dict[ifo],
@@ -1036,12 +1042,20 @@ with ctx:
                                     new_needed_idx + stilde[ifo].analyze.start,
                                     template,
                                 )
-                                power_chisq_arrays[ifo][new_needed_idx] = new_chisq
-                                power_chisq_dof_arrays[ifo][new_needed_idx] = new_chisq_dof
+                                coh.update_coherent_cache(
+                                    power_chisq_arrays[ifo],
+                                    new_needed_idx,
+                                    new_chisq,
+                                )
+                                coh.update_coherent_cache(
+                                    power_chisq_dof_arrays[ifo],
+                                    new_needed_idx,
+                                    new_chisq_dof,
+                                )
                                 del new_chisq, new_chisq_dof, new_needed_idx
                             chisq[ifo] = power_chisq_arrays[ifo][needed_idx]
                             chisq_dof[ifo] = power_chisq_dof_arrays[ifo][needed_idx]
-                            del needed_idx, unavailable_mask
+                            del needed_idx
                         # Calculate network chisq value
                         network_chisq_dict = coh.network_chisq(
                             chisq, chisq_dof, coherent_ifo_trigs

@@ -40,7 +40,7 @@ def apply_fseries_time_shift(htilde, dt, kmin=0, copy=True):
     if not isinstance(dt, torch.Tensor):
         dt_value = float(dt)
     else:
-        dt_value = float(dt.item()) if dt.numel() == 1 else dt
+        dt_value = dt.to(device=data.device, dtype=data.real.dtype)
 
     kmax = data.shape[-1]
     if kmax > kmin:
@@ -64,3 +64,60 @@ def apply_fseries_time_shift(htilde, dt, kmin=0, copy=True):
             copy=False,
         )
     return htilde
+
+
+def fused_detector_strain_fd_torch(
+    hp_tensor, hc_tensor, fp_list, fc_list, dt_list, delta_f, kmin=0
+):
+    """Compute detector projection and time shifts in one operation.
+
+    Returns a complex tensor with shape
+    ``(detectors, *sample_shape, frequencies)``. Scalar detector responses
+    omit ``sample_shape``.
+    """
+    device = hp_tensor.device
+    real_dtype = hp_tensor.real.dtype
+    ndet = len(fp_list)
+    if ndet == 0 or len(fc_list) != ndet or len(dt_list) != ndet:
+        raise ValueError(
+            "fplus, fcross, and time-shift values must have the same "
+            "non-zero detector count"
+        )
+
+    detector_values = [
+        torch.as_tensor(value, device=device, dtype=real_dtype)
+        for values in (fp_list, fc_list, dt_list)
+        for value in values
+    ]
+    try:
+        detector_values = torch.broadcast_tensors(*detector_values)
+    except RuntimeError as exc:
+        raise ValueError(
+            "Detector responses and time shifts do not have compatible "
+            "sample shapes"
+        ) from exc
+    fp = torch.stack(detector_values[:ndet], dim=0)
+    fc = torch.stack(detector_values[ndet:2 * ndet], dim=0)
+    dt = torch.stack(detector_values[2 * ndet:], dim=0)
+
+    # The first axis identifies detectors; every remaining axis identifies
+    # samples.  The final singleton is always the frequency axis, even when a
+    # sample dimension happens to equal the number of frequency bins.
+    fp = fp.unsqueeze(-1)
+    fc = fc.unsqueeze(-1)
+    dt = dt.unsqueeze(-1)
+
+    kmax = hp_tensor.shape[-1]
+    out = fp * hp_tensor + fc * hc_tensor
+
+    if kmax <= kmin:
+        return out
+
+    indices = _get_freq_grid(kmin, kmax, device, real_dtype)
+    theta = (-2.0 * math.pi * float(delta_f) * dt) * indices
+    shift = torch.complex(torch.cos(theta), torch.sin(theta))
+
+    if kmin == 0:
+        return out * shift
+
+    return torch.cat((out[..., :kmin], out[..., kmin:] * shift), dim=-1)

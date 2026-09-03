@@ -120,5 +120,5 @@ separate from the scalar dispatcher, so vector inputs cannot change
 ``batch.first_bins`` and ``batch.end_bins`` give each row's exact non-zero
 frequency support; ``batch.delta_f`` and ``batch.epoch`` describe the common
 grid. Scalars and length-one vectors broadcast to the common batch size, while
-inconsistent vector lengths are rejected. Focused validation is provided by
-``test/waveform/test_taylorf2_batch.py``.
+inconsistent vector lengths are rejected. See :doc:`torch_parity` and
+:doc:`torch_testing` for focused validation commands.

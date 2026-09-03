@@ -50,5 +50,4 @@ def fstimeshift(freqseries, phi, kmin, kmax):
     # FIXME: Convert to ElementwiseKernel and use kmin and max in that.
     idx = xp.arange(len(freqseries))
     phase_shift = xp.exp(phi * idx)
-    freqseries[:] = freqseries[:] * phase_shift 
-
+    freqseries[:] = freqseries[:] * phase_shift

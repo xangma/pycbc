@@ -21,9 +21,143 @@ from pycbc import events
 from pycbc.events.coinc import mean_if_greater_than_zero as coinc_meanigz
 from pycbc.events import triggers
 from pycbc.io.hdf import HFile
+from pycbc.population._torch import (
+    result as _torch_fgmc_result,
+    tensors as _torch_fgmc_tensors,
+)
+
+
+def _torch_log_rho_bg(trigs, counts, bins):
+    """Evaluate a histogram background density entirely with Torch."""
+    tensors = _torch_fgmc_tensors(trigs, counts, bins)
+    if tensors is None:
+        return None
+
+    import torch
+
+    trig_values, count_values, bin_values = tensors
+    trig_values = torch.atleast_1d(trig_values)
+    if len(trig_values) == 0:
+        empty = trig_values.new_empty((0,))
+        return (
+            _torch_fgmc_result(trigs, empty),
+            _torch_fgmc_result(trigs, empty.clone()),
+        )
+
+    assert torch.all(trig_values >= torch.min(bin_values)), (
+        "can't have triggers below bin lower limit"
+    )
+    bin_max = torch.max(bin_values)
+    loud = trig_values >= bin_max
+    total = torch.sum(count_values) + torch.any(loud).to(count_values.dtype)
+
+    indices = torch.searchsorted(
+        bin_values, trig_values.contiguous(), right=True
+    ) - 1
+    indices = torch.clamp(indices, 0, count_values.numel() - 1)
+    selected_counts = count_values[indices]
+    selected_counts = torch.where(
+        selected_counts == 0,
+        torch.ones_like(selected_counts),
+        selected_counts,
+    )
+    widths = bin_values[indices + 1] - bin_values[indices]
+    regular_log_rho = (
+        torch.log(selected_counts) - torch.log(widths) - torch.log(total)
+    )
+
+    loud_width = torch.max(trig_values) - bin_values[-1]
+    loud_width = torch.where(
+        torch.any(loud), loud_width, torch.ones_like(loud_width)
+    )
+    loud_log_rho = -torch.log(total) - torch.log(loud_width)
+    log_rhos = torch.where(loud, loud_log_rho, regular_log_rho)
+    fracerr = torch.where(
+        loud,
+        torch.ones_like(selected_counts),
+        torch.rsqrt(selected_counts),
+    )
+    return (
+        _torch_fgmc_result(trigs, log_rhos),
+        _torch_fgmc_result(trigs, fracerr),
+    )
+
+
+def _torch_log_rho_fg(trigs, injstats, bins):
+    """Evaluate an injection-histogram density entirely with Torch."""
+    tensors = _torch_fgmc_tensors(trigs, injstats, bins)
+    if tensors is None:
+        return None
+
+    import torch
+
+    trig_values, injection_values, bin_values = tensors
+    trig_values = torch.atleast_1d(trig_values)
+    if len(trig_values) == 0:
+        return _torch_fgmc_result(trigs, trig_values.new_empty((0,)))
+
+    assert torch.min(trig_values) >= torch.min(bin_values)
+    bin_max = torch.max(bin_values)
+    if torch.any(trig_values >= bin_max):
+        print('Replacing stat values lying above highest bin')
+        print(str(float(bin_max)))
+        trig_values = torch.where(
+            trig_values >= bin_max,
+            bin_max - 1e-6,
+            trig_values,
+        )
+    assert torch.max(trig_values) < torch.max(bin_values)
+
+    bin_count = bin_values.numel() - 1
+    injection_values = injection_values.reshape(-1)
+    indices = torch.searchsorted(
+        bin_values, injection_values.contiguous(), right=True
+    ) - 1
+    valid = (
+        (injection_values >= bin_values[0])
+        & (injection_values <= bin_values[-1])
+    )
+    indices = torch.clamp(indices, 0, bin_count - 1)
+    counts = torch.zeros(
+        bin_count,
+        dtype=trig_values.dtype,
+        device=trig_values.device,
+    )
+    counts.scatter_add_(0, indices, valid.to(dtype=counts.dtype))
+
+    density = counts / torch.diff(bin_values) / torch.sum(counts)
+    fracerr = torch.pow(counts, -0.5)
+    trig_indices = torch.searchsorted(
+        bin_values, trig_values.contiguous()
+    ) - 1
+    return (
+        _torch_fgmc_result(trigs, torch.log(density[trig_indices])),
+        _torch_fgmc_result(trigs, fracerr[trig_indices]),
+    )
 
 
 def filter_bin_lo_hi(values, lo, hi):
+    """Return the strict interior mask for a pair of bin edges.
+
+    Tensor-backed inputs return a raw Boolean tensor because PyCBC ``Array``
+    does not support a Boolean storage dtype.
+    """
+    tensors = _torch_fgmc_tensors(values, lo, hi)
+    if tensors is not None:
+        import torch
+
+        value_tensor, lo_tensor, hi_tensor = tensors
+        signed_product = (value_tensor - lo_tensor) * (
+            hi_tensor - value_tensor
+        )
+        edge = signed_product == 0
+        if bool(torch.any(edge)):
+            raise RuntimeError(
+                'Edge case! Bin edges', lo, hi,
+                'value(s)', value_tensor[edge]
+            )
+        return signed_product > 0
+
     in_bin = np.sign((values - lo) * (hi - values))
     if np.any(in_bin == 0):
         raise RuntimeError('Edge case! Bin edges', lo, hi,
@@ -98,6 +232,10 @@ def log_rho_bg(trigs, counts, bins):
     log of background PDF at the zerolag statistic values,
     fractional uncertainty due to Poisson count (set to 100% for empty bins)
     """
+    torch_result = _torch_log_rho_bg(trigs, counts, bins)
+    if torch_result is not None:
+        return torch_result
+
     trigs = np.atleast_1d(trigs)
     if len(trigs) == 0:  # corner case
         return np.array([]), np.array([])
@@ -135,6 +273,17 @@ def log_rho_bg(trigs, counts, bins):
 
 def log_rho_fg_analytic(trigs, rhomin):
     # PDF of a rho^-4 distribution defined above the threshold rhomin
+    tensors = _torch_fgmc_tensors(trigs, rhomin)
+    if tensors is not None:
+        import torch
+
+        trig_values, rho_min = tensors
+        values = (
+            torch.log(trig_values.new_tensor(3.0))
+            + 3.0 * torch.log(rho_min)
+            - 4.0 * torch.log(trig_values)
+        )
+        return _torch_fgmc_result(trigs, values)
     return np.log(3.) + 3. * np.log(rhomin) - 4 * np.log(trigs)
 
 
@@ -148,6 +297,10 @@ def log_rho_fg(trigs, injstats, bins):
     log of signal PDF at the zerolag statistic values,
     fractional uncertainty from Poisson count
     """
+    torch_result = _torch_log_rho_fg(trigs, injstats, bins)
+    if torch_result is not None:
+        return torch_result
+
     trigs = np.atleast_1d(trigs)
     if len(trigs) == 0:  # corner case
         return np.array([])

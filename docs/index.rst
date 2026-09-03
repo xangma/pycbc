@@ -70,10 +70,12 @@ library and application suite.
 
    extend
    devs
+   torch_testing
+   torch_parity
+   torch_workflows
+   torch_optimization_results
+   torch_performance
 
-.. toctree::
-   :hidden:
-   :maxdepth: 1
 
 .. card:: Core Library Examples
     :link:  tutorials

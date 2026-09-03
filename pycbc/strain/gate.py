@@ -16,8 +16,106 @@
 """ Functions for applying gates to data.
 """
 
+import numpy
 from scipy import linalg
-from . import strain
+import pycbc
+try:
+    import torch
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover
+    torch = None
+    _HAVE_TORCH = False
+
+
+def _torch_solve_toeplitz(c, b):
+    """Solve a Hermitian Toeplitz system without leaving a Torch device.
+
+    This is a vectorized Torch adaptation of the public-domain Levinson
+    recursion used by :func:`scipy.linalg.solve_toeplitz`. It retains the
+    O(n**2) time and O(n) memory behavior needed for practical paint gates.
+    """
+    if c.ndim != 1 or b.ndim != 1 or c.shape[0] != b.shape[0]:
+        raise ValueError("Incompatible dimensions.")
+    if c.device != b.device:
+        raise ValueError("Toeplitz inputs must be on the same device.")
+    if not (c.is_floating_point() or c.is_complex()):
+        raise TypeError("Toeplitz coefficients must be floating point.")
+    if not (b.is_floating_point() or b.is_complex()):
+        raise TypeError("Toeplitz right-hand side must be floating point.")
+    if not torch.is_nonzero(torch.isfinite(c).all()):
+        raise ValueError("Toeplitz coefficients contain non-finite values.")
+    if not torch.is_nonzero(torch.isfinite(b).all()):
+        raise ValueError("Toeplitz right-hand side contains non-finite values.")
+
+    n = b.shape[0]
+    if n == 0:
+        return torch.empty_like(b)
+
+    # SciPy performs the recursion in double precision. MPS only supports
+    # float32 here, although paint gating itself currently needs complex FFTs
+    # and is therefore unavailable on that backend.
+    is_complex = c.is_complex() or b.is_complex()
+    if c.device.type == "mps":
+        dtype = torch.complex64 if is_complex else torch.float32
+    else:
+        dtype = torch.complex128 if is_complex else torch.float64
+    c = c.to(dtype=dtype)
+    b = b.to(dtype=dtype)
+
+    # scipy.linalg.solve_toeplitz(c, b) assumes the first row is conj(c).
+    a = torch.cat((c[1:].conj().flip(0), c))
+    x = torch.zeros_like(b)
+    g = torch.zeros_like(b)
+    h = torch.zeros_like(b)
+
+    singular = a[n - 1] == 0
+    diagonal = torch.where(
+        singular, torch.ones_like(a[n - 1]), a[n - 1]
+    )
+    x[0] = b[0] / diagonal
+    if n == 1:
+        if torch.is_nonzero(singular):
+            raise linalg.LinAlgError("Singular principal minor")
+        return x
+
+    g[0] = a[n - 2] / diagonal
+    h[0] = a[n] / diagonal
+    for m in range(1, n):
+        upper = a[n:n + m]
+        x_num = -b[m] + torch.sum(upper.flip(0) * x[:m])
+        x_den = -a[n - 1] + torch.sum(upper * g[:m])
+        x_den_zero = x_den == 0
+        singular = singular | x_den_zero
+        safe_x_den = torch.where(
+            x_den_zero, torch.ones_like(x_den), x_den
+        )
+        x[m] = x_num / safe_x_den
+        x[:m] = x[:m] - x[m] * g[:m].flip(0)
+        if m == n - 1:
+            break
+
+        lower = a[n - m - 1:n - 1]
+        g_num = -a[n - m - 2] + torch.sum(lower * g[:m])
+        h_num = -a[n + m] + torch.sum(upper.flip(0) * h[:m])
+        g_den = -a[n - 1] + torch.sum(lower * h[:m].flip(0))
+        g_den_zero = g_den == 0
+        singular = singular | g_den_zero
+        safe_g_den = torch.where(
+            g_den_zero, torch.ones_like(g_den), g_den
+        )
+        g[m] = g_num / safe_g_den
+        h[m] = h_num / safe_x_den
+
+        # Both reflected updates must use the workspace values from before
+        # either assignment.
+        old_g = g[:m].clone()
+        old_h = h[:m].clone()
+        g[:m] = old_g - g[m] * old_h.flip(0)
+        h[:m] = old_h - h[m] * old_g.flip(0)
+
+    if torch.is_nonzero(singular):
+        raise linalg.LinAlgError("Singular principal minor")
+    return x
 
 
 def _gates_from_cli(opts, gate_opt):
@@ -57,6 +155,69 @@ def psd_gates_from_cli(opts):
     return _gates_from_cli(opts, 'psd_gate')
 
 
+def gate_data(data, gate_params):
+    """Apply Tukey-tapered gating windows to a time series."""
+    def inverted_tukey(length, padding, use_torch=False, device=None,
+                       dtype=None):
+        middle_length = length - 2 * padding
+        if middle_length < 0:
+            raise ValueError("No zeros left after applying padding.")
+        if use_torch:
+            taper = 0.5 * (
+                1.0 + torch.cos(
+                    torch.pi
+                    * torch.arange(padding, device=device, dtype=dtype)
+                    / padding
+                )
+            )
+            return torch.cat(
+                (
+                    taper,
+                    torch.zeros(middle_length, device=device, dtype=dtype),
+                    taper.flip(0),
+                )
+            )
+        taper = 0.5 * (
+            1.0 + numpy.cos(numpy.pi * numpy.arange(padding) / padding)
+        )
+        return numpy.concatenate(
+            (taper, numpy.zeros(middle_length), taper[::-1])
+        )
+
+    use_torch = (
+        _HAVE_TORCH
+        and hasattr(data, "_data")
+        and hasattr(data._data, "tensor")
+    )
+    sample_rate = 1.0 / data.delta_t
+    storage = data._data.tensor if use_torch else data.data
+
+    for glitch_time, glitch_width, pad_width in gate_params:
+        start = (
+            glitch_time - glitch_width - pad_width - data.start_time
+        )
+        end = glitch_time + glitch_width + pad_width - data.start_time
+        if start > data.duration or end < 0.0:
+            continue
+        window_samples = int(
+            2 * sample_rate * (glitch_width + pad_width)
+        )
+        pad_samples = int(sample_rate * pad_width)
+        window = inverted_tukey(
+            window_samples,
+            pad_samples,
+            use_torch,
+            device=storage.device if use_torch else None,
+            dtype=storage.dtype if use_torch else None,
+        )
+        offset = int(start * sample_rate)
+        idx1 = max(0, -offset)
+        idx2 = min(len(window), len(data) - offset)
+        storage[idx1 + offset:idx2 + offset] *= window[idx1:idx2]
+
+    return data
+
+
 def apply_gates_to_td(strain_dict, gates):
     """Applies the given dictionary of gates to the given dictionary of
     strain.
@@ -78,7 +239,7 @@ def apply_gates_to_td(strain_dict, gates):
     # copy data to new dictionary
     outdict = dict(strain_dict.items())
     for ifo in gates:
-        outdict[ifo] = strain.gate_data(outdict[ifo], gates[ifo])
+        outdict[ifo] = gate_data(outdict[ifo], gates[ifo])
     return outdict
 
 
@@ -170,13 +331,23 @@ def gate_and_paint(data, lindex, rindex, invpsd, copy=True):
         data = data.copy()
     data[lindex:rindex] = 0
     # get the over-whitened gated data
+    # If torch-backed, stay on device for intermediate steps
+    use_torch = _HAVE_TORCH and hasattr(invpsd, "_data") and hasattr(invpsd._data, "tensor")
     tdfilter = invpsd.astype('complex').to_timeseries() * invpsd.delta_t
     owhgated_data = (data.to_frequencyseries() * invpsd).to_timeseries()
 
     # remove the projection into the null space
-    proj = linalg.solve_toeplitz(tdfilter[:(rindex - lindex)],
-                                 owhgated_data[lindex:rindex])
-    data[lindex:rindex] -= proj
+    if use_torch:
+        hole_length = rindex - lindex
+        proj = _torch_solve_toeplitz(
+            tdfilter._data.tensor[:hole_length],
+            owhgated_data._data.tensor[lindex:rindex],
+        ).to(dtype=data._data.tensor.dtype)
+        data._data.tensor[lindex:rindex].sub_(proj)
+    else:
+        proj = linalg.solve_toeplitz(tdfilter[:(rindex - lindex)],
+                                     owhgated_data[lindex:rindex])
+        data[lindex:rindex] -= proj
     return data
 
 def invert_covariance(invpsd, lindex, rindex):

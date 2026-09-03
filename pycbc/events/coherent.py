@@ -28,8 +28,155 @@ import logging
 import numpy as np
 
 from .eventmgr_cython import get_coinc_indexes_cython_twodet_twocoinc
+from pycbc.types import Array
 
 logger = logging.getLogger('pycbc.events.coherent')
+
+
+def _torch_array(tensor):
+    """Wrap a Torch tensor as a PyCBC Array without a host copy."""
+    from pycbc.types.array_torch import TorchArrayData
+
+    return Array(TorchArrayData(tensor), copy=False)
+
+
+def _torch_cache_tensors(cache, indices):
+    """Return a device cache and compatible integer indices, when possible."""
+    from pycbc import scheme
+
+    if scheme.current_prefix() != "torch":
+        return None
+
+    import torch
+    from pycbc.types.array_torch import (
+        TorchArrayData,
+        _device_matches_active,
+    )
+
+    cache_data = cache._data if isinstance(cache, Array) else cache
+    if not isinstance(cache_data, TorchArrayData):
+        return None
+    cache_tensor = cache_data.tensor
+    if not _device_matches_active(cache_tensor):
+        return None
+
+    index_data = indices._data if isinstance(indices, Array) else indices
+    if isinstance(index_data, TorchArrayData):
+        index_tensor = index_data.tensor
+    elif isinstance(index_data, torch.Tensor):
+        index_tensor = index_data
+    else:
+        try:
+            host_indices = np.asarray(index_data)
+        except (TypeError, ValueError):
+            return None
+        if host_indices.dtype.kind not in "iu" or host_indices.ndim != 1:
+            return None
+        index_tensor = torch.as_tensor(host_indices)
+
+    valid_dtypes = {
+        torch.uint8,
+        torch.int8,
+        torch.int16,
+        torch.int32,
+        torch.int64,
+    }
+    uint32_t = getattr(torch, "uint32", None)
+    if uint32_t is not None:
+        valid_dtypes.add(uint32_t)
+
+    if index_tensor.dtype not in valid_dtypes or index_tensor.ndim != 1:
+        return None
+    return cache_tensor, index_tensor.to(
+        device=cache_tensor.device, dtype=torch.int64
+    )
+
+
+def create_coherent_cache(reference, fill_value, dtype):
+    """Allocate a coherent-trigger cache beside its reference array."""
+    from pycbc import scheme
+
+    data = reference._data if isinstance(reference, Array) else reference
+    if scheme.current_prefix() == "torch":
+        import torch
+        from pycbc.types.array_torch import (
+            TorchArrayData,
+            _device_matches_active,
+        )
+
+        if (
+            isinstance(data, TorchArrayData)
+            and _device_matches_active(data.tensor)
+        ):
+            torch_dtype = torch.from_numpy(
+                np.empty(0, dtype=np.dtype(dtype))
+            ).dtype
+            return _torch_array(
+                torch.full(
+                    (len(reference),),
+                    fill_value,
+                    dtype=torch_dtype,
+                    device=data.tensor.device,
+                )
+            )
+
+    return np.full(len(reference), fill_value, dtype=dtype)
+
+
+def unavailable_coherent_indices(cache, indices):
+    """Return cache indices whose floating-point values are still NaN."""
+    tensors = _torch_cache_tensors(cache, indices)
+    if tensors is not None:
+        import torch
+
+        cache_tensor, index_tensor = tensors
+        if not cache_tensor.is_floating_point():
+            raise TypeError("coherent cache availability requires real values")
+        return _torch_array(
+            index_tensor[torch.isnan(cache_tensor[index_tensor])]
+        )
+
+    if isinstance(cache, Array):
+        raise TypeError("Torch coherent cache requires device indices")
+    if isinstance(indices, Array):
+        indices = indices.numpy()
+    indices = np.asarray(indices)
+    return indices[np.isnan(cache[indices])]
+
+
+def update_coherent_cache(cache, indices, values):
+    """Scatter newly calculated values into a coherent-trigger cache."""
+    tensors = _torch_cache_tensors(cache, indices)
+    if tensors is not None:
+        import torch
+        from pycbc.types.array_torch import TorchArrayData
+
+        cache_tensor, index_tensor = tensors
+        value_data = values._data if isinstance(values, Array) else values
+        if isinstance(value_data, TorchArrayData):
+            value_tensor = value_data.tensor.to(
+                device=cache_tensor.device, dtype=cache_tensor.dtype
+            )
+        elif isinstance(value_data, torch.Tensor):
+            value_tensor = value_data.to(
+                device=cache_tensor.device, dtype=cache_tensor.dtype
+            )
+        else:
+            value_tensor = torch.as_tensor(
+                value_data,
+                device=cache_tensor.device,
+                dtype=cache_tensor.dtype,
+            )
+        cache_tensor[index_tensor] = value_tensor
+        return
+
+    if isinstance(cache, Array):
+        raise TypeError("Torch coherent cache requires device indices")
+    if isinstance(indices, Array):
+        indices = indices.numpy()
+    if isinstance(values, Array):
+        values = values.numpy()
+    cache[indices] = values
 
 
 def get_coinc_indexes(idx_dict, time_delay_idx, min_nifos, wraparound_dict):

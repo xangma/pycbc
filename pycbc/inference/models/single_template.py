@@ -19,13 +19,200 @@
 import logging
 import numpy
 import itertools
+import numbers
+from functools import lru_cache
 
 from pycbc import filter as pyfilter
+from pycbc.types import TimeSeries
 from pycbc.waveform import get_fd_waveform
 from pycbc.detector import Detector
+from pycbc.detector.ground import (
+    _DETECTOR_BUILTIN_METHODS,
+    _scalar_antenna_pattern_and_time_delay,
+)
 
 from .gaussian_noise import BaseGaussianNoise
-from .tools import DistMarg
+from .tools import DistMarg, _torch_tensor
+
+
+(
+    _DETECTOR_ANTENNA_PATTERN,
+    _DETECTOR_TIME_DELAY_FROM_EARTH_CENTER,
+    _DETECTOR_TIME_DELAY_FROM_LOCATION,
+    _DETECTOR_GMST_ESTIMATE,
+    _DETECTOR_SET_GMST_REFERENCE,
+) = _DETECTOR_BUILTIN_METHODS
+
+
+def _host_scalar_extrinsics(parameters):
+    """Return whether projection parameters are ordinary host scalars.
+
+    Scalar inference evaluates one point at a time.  Sending those values
+    through the generic Torch vector/autograd kernels adds many tiny tensor
+    operations without moving the interpolated SNR series off device.  Keep
+    tensors and parameter grids on that generic path so batching and gradients
+    retain their existing semantics.
+    """
+    names = (
+        'ra', 'dec', 'tc', 'polarization', 'inclination', 'distance'
+    )
+    if 'coa_phase' in parameters:
+        names += ('coa_phase',)
+    return all(
+        _torch_tensor(parameters[name]) is None
+        and numpy.ndim(parameters[name]) == 0
+        for name in names
+    )
+
+
+@lru_cache(maxsize=32)
+def _plain_host_scalar_types(value_types):
+    """Classify the stable type signature of scalar extrinsics."""
+    return all(
+        issubclass(value_type, (numbers.Number, numpy.number))
+        for value_type in value_types
+    )
+
+
+def _plain_host_scalar_extrinsics(parameters):
+    """Cheaply recognize the common non-tensor scalar parameter set.
+
+    Only the types are cached.  Tensor values, dtypes, devices and autograd
+    state therefore remain visible whenever a caller changes parameters.
+    """
+    names = (
+        'ra', 'dec', 'tc', 'polarization', 'inclination', 'distance'
+    )
+    if 'coa_phase' in parameters:
+        names += ('coa_phase',)
+    return _plain_host_scalar_types(
+        tuple(type(parameters[name]) for name in names)
+    )
+
+
+def _torch_cpu_native_scalar_likelihood_eligible(
+        model, host_storage, plain_host_scalars, skip_vector,
+        sh_tensors=None):
+    """Whether one scalar likelihood can finish with native CPU scalars.
+
+    The public, non-marginalized scalar likelihood already returns a Python
+    float. For the ordinary complex128 Torch-CPU storage case, finishing
+    the final real scalar reduction through NumPy avoids tiny Torch kernels
+    and an extra tensor conversion. Keep every dynamic, differentiable,
+    lower-precision, overridden, or accelerator configuration on the
+    established Torch path.
+    """
+    if (
+        type(model) is not SingleTemplate
+        or host_storage
+        or not plain_host_scalars
+        or skip_vector
+    ):
+        return False
+    if getattr(
+        getattr(model, 'marginalize_loglr', None), '__func__', None
+    ) is not DistMarg.marginalize_loglr:
+        return False
+    vector_params = getattr(model, 'marginalize_vector_params', None)
+    if (
+        getattr(model, 'marginalize_phase', None) is not False
+        or getattr(model, 'marginalize_distance', None) is not False
+        or getattr(model, 'distance_marginalization', None) is not False
+        or getattr(model, 'distance_interpolator', False) is not None
+        or type(vector_params) is not dict
+        or vector_params
+        or getattr(model, 'reconstruct_phase', None) is not False
+        or getattr(model, 'reconstruct_distance', None) is not False
+        or getattr(model, 'reconstruct_vector', None) is not False
+    ):
+        return False
+    if not model.sh:
+        return False
+
+    import torch
+    from pycbc.types.timeseries import _torch_has_autograd_state
+
+    for ifo, series in model.sh.items():
+        tensor = (
+            _torch_tensor(series)
+            if sh_tensors is None else sh_tensors.get(ifo)
+        )
+        if (
+            type(series) is not TimeSeries
+            or type(model.det.get(ifo)) is not Detector
+            or tensor is None
+            or tensor.device.type != 'cpu'
+            or tensor.layout != torch.strided
+            or tensor.dtype != torch.complex128
+            or tensor.ndim != 1
+            or not tensor.is_contiguous()
+            or tensor.is_conj()
+            or tensor.is_neg()
+            or _torch_has_autograd_state(tensor, torch)
+            or type(model.hh.get(ifo)) not in (float, numpy.float64)
+        ):
+            return False
+    return True
+
+
+def _torch_cpu_scalar_detector_projection(detector, parameters):
+    """Return one exact built-in scalar detector projection, if eligible.
+
+    ``SingleTemplate`` ordinarily asks a detector separately for its antenna
+    response and geocentric delay, repeating the same GMST and sky
+    trigonometry.  The common Torch-CPU scalar likelihood can share those
+    terms, but only when every method and float64 geometry involved is the
+    stock built-in implementation.  ``None`` leaves subclasses, instance or
+    class overrides, unusual scalar types, and mutable custom geometries on
+    the established public calls.
+    """
+    if type(detector) is not Detector:
+        return None
+    if (
+        Detector.antenna_pattern is not _DETECTOR_ANTENNA_PATTERN
+        or (
+            Detector.time_delay_from_earth_center
+            is not _DETECTOR_TIME_DELAY_FROM_EARTH_CENTER
+        )
+        or (
+            Detector.time_delay_from_location
+            is not _DETECTOR_TIME_DELAY_FROM_LOCATION
+        )
+        or Detector.gmst_estimate is not _DETECTOR_GMST_ESTIMATE
+        or Detector.set_gmst_reference is not _DETECTOR_SET_GMST_REFERENCE
+        or any(name in detector.__dict__ for name in (
+            'antenna_pattern', 'time_delay_from_earth_center',
+            'time_delay_from_location', 'gmst_estimate',
+            'set_gmst_reference',
+        ))
+    ):
+        return None
+
+    values = tuple(parameters[name] for name in ('ra', 'dec', 'tc'))
+    if any(
+        type(value) not in (float, numpy.float64)
+        or not numpy.isfinite(value)
+        for value in values
+    ):
+        return None
+    info = getattr(detector, 'info', None)
+    if (
+        type(info) is not dict
+        or type(detector.response) is not numpy.ndarray
+        or detector.response.shape != (3, 3)
+        or detector.response.dtype != numpy.float64
+        or detector.response is not info.get('response')
+        or type(detector.location) is not numpy.ndarray
+        or detector.location.shape != (3,)
+        or detector.location.dtype != numpy.float64
+        or detector.location is not info.get('location')
+        or type(detector.reference_time) not in (float, numpy.float64)
+        or not numpy.isfinite(detector.reference_time)
+    ):
+        return None
+    return _scalar_antenna_pattern_and_time_delay(
+        detector, values[0], values[1], values[2]
+    )
 
 
 class SingleTemplate(DistMarg, BaseGaussianNoise):
@@ -84,10 +271,10 @@ class SingleTemplate(DistMarg, BaseGaussianNoise):
         if 'inclination' in p:
             _ = p.pop('inclination')
 
+        flen = int(round(sample_rate / df) / 2 + 1)
         hp, _ = get_fd_waveform(delta_f=df, distance=1, inclination=0, **p)
 
         # Extend template to high sample rate
-        flen = int(round(sample_rate / df) / 2 + 1)
         hp.resize(flen)
 
         # Calculate high sample rate SNR time series
@@ -114,6 +301,14 @@ class SingleTemplate(DistMarg, BaseGaussianNoise):
                 hp, psd=self.psds[ifo],
                 low_frequency_cutoff=flow,
                 high_frequency_cutoff=fhigh)
+
+        # The matched-filter series keep their storage backend for this
+        # model's lifetime.  Classify it once so the legacy NumPy likelihood
+        # does not repeatedly inspect every extrinsic parameter for Torch
+        # tensors at every grid point.
+        self._sh_storage_is_host = all(
+            _torch_tensor(series) is None for series in self.sh.values()
+        )
 
         self.waveform = hp
         self.htfs = {}  # Waveform phase / distance transformation factors
@@ -183,7 +378,31 @@ class SingleTemplate(DistMarg, BaseGaussianNoise):
                 loglr += - h1h2.real # This is -0.5 * re(<h1|h2> + <h2|h1>)
         return loglr + self.lognl
 
-    def _loglr(self):
+    def batch_loglr(self, **params):
+        """Evaluate independent extrinsic-parameter points as one batch.
+
+        Array-valued parameters are broadcast by the detector response and
+        time-series interpolation kernels.  Unlike the established vector
+        marginalization path, the leading parameter grid is retained in the
+        returned likelihood-ratio array.  NumPy-backed models return a NumPy
+        array and Torch-backed models keep the result on their Torch device.
+
+        Vector- and distance-marginalized models have an additional sample
+        dimension whose meaning would be ambiguous with a caller-provided
+        batch, so those configurations are rejected for now.  Analytic phase
+        marginalization remains pointwise and is supported.
+        """
+        if self.marginalize_vector_params or self.marginalize_distance:
+            raise ValueError(
+                "batch_loglr does not support vector or distance "
+                "marginalization"
+            )
+        if not params:
+            raise ValueError("batch_loglr requires parameter arrays")
+        self.update(**params)
+        return self._loglr(skip_vector=True)
+
+    def _loglr(self, skip_vector=False):
         r"""Computes the log likelihood ratio
 
         Returns
@@ -194,34 +413,145 @@ class SingleTemplate(DistMarg, BaseGaussianNoise):
         # calculate <d-h|d-h> = <h|h> - 2<h|d> + <d|d> up to a constant
         p = self.current_params
 
-        phase = 1
-        if 'coa_phase' in p:
-            phase = numpy.exp(-1.0j * 2 * p['coa_phase'])
-
         sh_total = hh_total = 0
 
-        ic = numpy.cos(p['inclination'])
-        ip = 0.5 * (1.0 + ic * ic)
-        pol_phase = numpy.exp(-2.0j * p['polarization'])
-
-        self.snr_draw(snrs=self.snr)
+        if not skip_vector:
+            self.snr_draw(snrs=self.snr)
+        host_storage = getattr(self, '_sh_storage_is_host', None)
+        sh_tensors = None
+        if host_storage is None:
+            # Lightweight models used by callers and tests may not have run
+            # ``__init__``.  Preserve their dynamic storage behavior.
+            sh_tensors = {
+                ifo: _torch_tensor(series)
+                for ifo, series in self.sh.items()
+            }
+            host_storage = all(
+                tensor is None for tensor in sh_tensors.values()
+            )
+        elif not host_storage:
+            # Unwrap each PyCBC series exactly once per likelihood call.  The
+            # resulting tensors are reused only within this call, so storage
+            # replacement, dtype/device changes and autograd state are all
+            # re-observed on the next evaluation.
+            sh_tensors = {
+                ifo: _torch_tensor(series)
+                for ifo, series in self.sh.items()
+            }
+        plain_host_scalars = _plain_host_scalar_extrinsics(p)
+        plain_host_fast_path = host_storage and plain_host_scalars
+        host_scalar_extrinsics = (
+            plain_host_scalars or _host_scalar_extrinsics(p)
+        )
+        native_scalar_likelihood = (
+            _torch_cpu_native_scalar_likelihood_eligible(
+                self, host_storage, plain_host_scalars, skip_vector,
+                sh_tensors=sh_tensors,
+            )
+        )
+        host_projection_terms = None
 
         for ifo in self.sh:
-            dt = self.det[ifo].time_delay_from_earth_center(p['ra'], p['dec'],
-                                                            p['tc'])
-            self.dts[ifo] = p['tc'] + dt
+            sh_series_tensor = (
+                None if host_storage else sh_tensors[ifo]
+            )
+            # MPS keeps the generic complex64 path: multiplying its split
+            # complex PyCBC representation by a NumPy complex scalar can
+            # discard the imaginary component.
+            use_host_scalar_extrinsics = (
+                host_scalar_extrinsics
+                and (
+                    sh_series_tensor is None
+                    or sh_series_tensor.device.type != 'mps'
+                )
+            )
+            scalar_projection = None
+            if native_scalar_likelihood:
+                scalar_projection = _torch_cpu_scalar_detector_projection(
+                    self.det[ifo], p
+                )
+            if scalar_projection is not None:
+                fp, fc, dt = scalar_projection
+            elif (
+                sh_series_tensor is not None
+                and not use_host_scalar_extrinsics
+            ):
+                from .relbin_torch import detector_response
 
-            fp, fc = self.det[ifo].antenna_pattern(p['ra'], p['dec'],
-                                                   0, p['tc'])
-            f = (fp + 1.0j * fc) * pol_phase
+                fp, fc, dt = detector_response(
+                    self.det[ifo], p['ra'], p['dec'], p['tc'],
+                    sh_series_tensor)
+            else:
+                dt = self.det[ifo].time_delay_from_earth_center(
+                    p['ra'], p['dec'], p['tc'])
+                fp, fc = self.det[ifo].antenna_pattern(
+                    p['ra'], p['dec'], 0, p['tc'])
+            dt_tensor = (
+                None
+                if plain_host_fast_path or scalar_projection is not None
+                else _torch_tensor(dt)
+            )
+            if dt_tensor is not None:
+                # Convert explicitly at the model boundary. NumPy 2 rejects
+                # array + Torch tensor, while relying on Torch's reflected
+                # addition raises a NumPy deprecation warning.
+                import torch
 
-            # Note, this includes complex conjugation already
-            # as our stored inner products were hp* x data
-            htf = (f.real * ip + 1.0j * f.imag * ic) / p['distance'] * phase
-            self.htfs[ifo] = htf
+                tc = torch.as_tensor(
+                    p['tc'], device=dt_tensor.device, dtype=dt_tensor.dtype
+                )
+                self.dts[ifo] = dt_tensor + tc
+            else:
+                self.dts[ifo] = p['tc'] + dt
+
             sh = self.sh[ifo].at_time(self.dts[ifo], interpolate='quadratic')
+            sh_tensor = (
+                sh
+                if native_scalar_likelihood
+                else None if plain_host_fast_path else _torch_tensor(sh)
+            )
+            if sh_tensor is not None and not use_host_scalar_extrinsics:
+                from .relbin_torch import dominant_mode_template_factor
+
+                htf = dominant_mode_template_factor(
+                    fp, fc, p['polarization'], p['inclination'],
+                    p.get('coa_phase', 0.0), p['distance'], sh_tensor)
+            else:
+                if host_projection_terms is None:
+                    phase = 1
+                    if 'coa_phase' in p:
+                        phase = numpy.exp(-1.0j * 2 * p['coa_phase'])
+                    ic = numpy.cos(p['inclination'])
+                    ip = 0.5 * (1.0 + ic * ic)
+                    pol_phase = numpy.exp(-2.0j * p['polarization'])
+                    host_projection_terms = phase, ic, ip, pol_phase
+                else:
+                    phase, ic, ip, pol_phase = host_projection_terms
+                f = (fp + 1.0j * fc) * pol_phase
+                # This includes complex conjugation already because the
+                # stored inner products were hp* x data.
+                htf = (
+                    (f.real * ip + 1.0j * f.imag * ic)
+                    / p['distance'] * phase
+                )
+            self.htfs[ifo] = htf
             sh_total += sh * htf
             hh_total += self.hh[ifo] * abs(htf) ** 2.0
 
-        loglr = self.marginalize_loglr(sh_total, hh_total)
+        if native_scalar_likelihood:
+            # Retain Torch's established complex multiplication and
+            # accumulation. Only the final real-valued scalar reduction moves
+            # through the owning interpolation result's NumPy view, avoiding
+            # two more tiny Torch kernels. The final NumPy/Python arithmetic
+            # may differ from the Torch reduction by a few ULPs.
+            return float(
+                sh_total.numpy()[()].real - 0.5 * hh_total
+            )
+
+        if skip_vector:
+            loglr = self.marginalize_loglr(
+                sh_total, hh_total, skip_vector=True
+            )
+        else:
+            loglr = self.marginalize_loglr(sh_total, hh_total)
         return loglr

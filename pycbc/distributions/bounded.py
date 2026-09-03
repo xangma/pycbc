@@ -25,6 +25,39 @@ from pycbc import VARARGS_DELIM
 
 logger = logging.getLogger('pycbc.distributions.bounded')
 
+
+def _torch_module_and_reference(values):
+    """Return Torch and the first raw tensor in ``values``, if present."""
+    for value in values:
+        torch = boundaries._torch_module_for(value)
+        if torch is not None:
+            return torch, value
+    return None, None
+
+
+def _torch_as_tensor(value, reference):
+    """Create a scalar on a parameter tensor's device and floating dtype."""
+    torch = boundaries._torch_module_for(reference)
+    dtype = (
+        reference.dtype
+        if reference.is_floating_point()
+        else torch.get_default_dtype()
+    )
+    return torch.as_tensor(value, dtype=dtype, device=reference.device)
+
+
+def _torch_where(params, condition, value, outside):
+    """Apply a bounded-distribution mask without leaving a Torch device."""
+    torch, reference = _torch_module_and_reference(params.values())
+    if torch is None:
+        return None
+    if not isinstance(value, torch.Tensor):
+        value = _torch_as_tensor(value, reference)
+    if not isinstance(outside, torch.Tensor):
+        outside = _torch_as_tensor(outside, value)
+    return torch.where(condition, value, outside)
+
+
 #
 #   Distributions for priors
 #
@@ -240,8 +273,13 @@ class BoundedDist(object):
 
     def __contains__(self, params):
         try:
-            return all(self._bounds[p].contains_conditioned(params[p])
-                       for p in self._params)
+            result = None
+            for param in self._params:
+                contained = self._bounds[param].contains_conditioned(
+                    params[param]
+                )
+                result = contained if result is None else result & contained
+            return True if result is None else result
         except KeyError:
             raise ValueError("must provide all parameters [%s]" %(
                 ', '.join(self._params)))

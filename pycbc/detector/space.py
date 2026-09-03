@@ -11,6 +11,7 @@ This module provides utilities for simulating the GW response of space-based
 observatories.
 """
 from abc import ABC, abstractmethod
+from contextlib import nullcontext
 from pycbc.coordinates.space import TIME_OFFSET_20_DEGREES
 from pycbc.types import TimeSeries
 import numpy
@@ -66,6 +67,102 @@ def apply_polarization(hp, hc, polarization):
     hc_ssb = hp*sphi + hc*cphi
 
     return hp_ssb, hc_ssb
+
+
+def _searchsorted_time(series, value, side):
+    """Search a regularly sampled time grid without materializing it."""
+    if side not in ("left", "right"):
+        raise ValueError(f"Invalid search side: {side}")
+
+    start = float(series.start_time)
+    delta_t = float(series.delta_t)
+    value = float(value)
+    low = 0
+    high = len(series)
+    while low < high:
+        middle = (low + high) // 2
+        sample_time = numpy.float64(middle) * delta_t + start
+        before = sample_time < value
+        equal_on_right = side == "right" and sample_time == value
+        if before or equal_on_right:
+            low = middle + 1
+        else:
+            high = middle
+    return low
+
+
+def _regular_sample_times_numpy(series):
+    """Build a regular sample-time grid directly on the host."""
+    return (
+        float(series.start_time)
+        + numpy.arange(len(series), dtype=numpy.float64)
+        * float(series.delta_t)
+    )
+
+
+def _torch_to_cupy(tensor, cupy):
+    """Share a Torch CUDA tensor with CuPy through DLPack."""
+    if hasattr(cupy, "from_dlpack"):
+        return cupy.from_dlpack(tensor)
+    return cupy.fromDlpack(tensor.__dlpack__())
+
+
+def _fastlisa_waveform(hp, hc, use_gpu):
+    """Format polarizations for FastLISAResponse without a GPU round trip."""
+    if not use_gpu:
+        return hp.numpy() + 1j * hc.numpy()
+
+    import cupy
+
+    hp_tensor = getattr(getattr(hp, "_data", None), "tensor", None)
+    hc_tensor = getattr(getattr(hc, "_data", None), "tensor", None)
+    if (
+        hp_tensor is not None
+        and hc_tensor is not None
+        and hp_tensor.is_cuda
+        and hc_tensor.is_cuda
+        and hp_tensor.device == hc_tensor.device
+    ):
+        waveform = (hp_tensor + 1j * hc_tensor).detach()
+        return _torch_to_cupy(waveform, cupy)
+
+    return cupy.asarray(hp.numpy() + 1j * hc.numpy())
+
+
+def _fastlisa_device_context(device_id):
+    """Select the CuPy device shared with Torch, if one is active."""
+    if device_id is None:
+        return nullcontext()
+
+    import cupy
+    return cupy.cuda.Device(device_id)
+
+
+def _fastlisa_time_series(values, delta_t, epoch):
+    """Wrap a FastLISAResponse result for the active processing scheme."""
+    from pycbc import scheme
+
+    state = scheme.mgr.state
+    if (
+        getattr(state, "prefix", None) == "torch"
+        and hasattr(values, "__cuda_array_interface__")
+        and hasattr(values, "__dlpack__")
+    ):
+        import torch
+        from pycbc.types.array_torch import TorchArrayData
+
+        tensor = torch.utils.dlpack.from_dlpack(values)
+        if tensor.device != state.torch_device:
+            tensor = tensor.to(state.torch_device)
+        return TimeSeries(
+            TorchArrayData(tensor),
+            delta_t=delta_t,
+            epoch=epoch,
+            copy=False,
+        )
+
+    return TimeSeries(values, delta_t=delta_t, epoch=epoch)
+
 
 def check_signal_times(hp, hc, orbit_start_time, orbit_end_time,
                        offset=TIME_OFFSET_20_DEGREES, pad_data=False, t0=1e4):
@@ -130,7 +227,9 @@ def check_signal_times(hp, hc, orbit_start_time, orbit_end_time,
         logging.warning('Time of signal end is greater than end of orbital ' +
                         f'data. Cutting signal at {orbit_end_time}.')
         # cut off data succeeding orbit end time
-        end_idx = numpy.argwhere(hp.sample_times.numpy() <= orbit_end_time)[-1][0]
+        end_idx = _searchsorted_time(hp, orbit_end_time, "right") - 1
+        if end_idx < 0:
+            raise IndexError("Signal starts after the orbital data ends")
         hp = hp[:end_idx]
         hc = hc[:end_idx]
 
@@ -138,7 +237,9 @@ def check_signal_times(hp, hc, orbit_start_time, orbit_end_time,
         logging.warning('Time of signal start is less than start of orbital ' +
                         f'data. Cutting signal at {orbit_start_time}.')
         # cut off data preceding orbit start time
-        start_idx = numpy.argwhere(hp.sample_times.numpy() >= orbit_start_time)[0][0]
+        start_idx = _searchsorted_time(hp, orbit_start_time, "left")
+        if start_idx == len(hp):
+            raise IndexError("Signal ends before the orbital data starts")
         hp = hp[start_idx:]
         hc = hc[start_idx:]
 
@@ -280,6 +381,7 @@ class _LDC_detector(AbsSpaceDet):
         self.dt = None
         self.sample_times = None
         self.start_time = None
+        self._cupy_device_id = None
 
         # pre- and post-processing
         self.pad_data = False
@@ -444,7 +546,7 @@ class _LDC_detector(AbsSpaceDet):
                                     self.orbits_end_time, offset=self.offset,
                                     pad_data=self.pad_data, t0=self.t0)
         self.start_time = hp.start_time - self.offset
-        self.sample_times = hp.sample_times.numpy()
+        self.sample_times = _regular_sample_times_numpy(hp)
 
         # apply polarization
         hp, hc = apply_polarization(hp, hc, polarization)
@@ -750,7 +852,7 @@ class _FLR_detector(AbsSpaceDet):
                                     self.orbits_end_time, offset=self.offset,
                                     pad_data=self.pad_data, t0=self.t0)
         self.start_time = hp.start_time - self.offset
-        self.sample_times = hp.sample_times.numpy()
+        self.sample_times = _regular_sample_times_numpy(hp)
         
         # apply polarization
         hp, hc = apply_polarization(hp, hc, polarization)
@@ -758,34 +860,29 @@ class _FLR_detector(AbsSpaceDet):
         # interpolate orbital data to signal sample times
         self.orbits.configure(t_arr=self.sample_times)
 
-        # format wf to hp + i*hc
-        hp = hp.numpy()
-        hc = hc.numpy()
-        wf = hp + 1j*hc
-
         if use_gpu is None:
             use_gpu = self.use_gpu
 
-        # convert to cupy if needed
-        if use_gpu:
-            import cupy
-            wf = cupy.asarray(wf)
+        # format wf to hp + i*hc, sharing CUDA storage when possible
+        wf = _fastlisa_waveform(hp, hc, use_gpu)
 
-        if self.tdi_init is None:
-            # initialize the class
-            self.tdi_init = pyResponseTDI(1/self.dt, len(wf),
-                                          orbits=self.orbits,
-                                          use_gpu=use_gpu)
-        else:
-            # update params in the initialized class
-            self.tdi_init.sampling_frequency = 1/self.dt
-            self.tdi_init.num_pts = len(wf)
-            self.tdi_init.orbits = self.orbits
-            self.tdi_init.use_gpu = use_gpu
+        self._cupy_device_id = int(wf.device.id) if use_gpu else None
+        with _fastlisa_device_context(self._cupy_device_id):
+            if self.tdi_init is None:
+                # initialize the class
+                self.tdi_init = pyResponseTDI(1/self.dt, len(wf),
+                                              orbits=self.orbits,
+                                              use_gpu=use_gpu)
+            else:
+                # update params in the initialized class
+                self.tdi_init.sampling_frequency = 1/self.dt
+                self.tdi_init.num_pts = len(wf)
+                self.tdi_init.orbits = self.orbits
+                self.tdi_init.use_gpu = use_gpu
 
-        # project the signal
-        self.tdi_init.get_projections(wf, lamb, beta, t0=self.t0)
-        wf_proj = self.tdi_init.y_gw
+            # project the signal
+            self.tdi_init.get_projections(wf, lamb, beta, t0=self.t0)
+            wf_proj = self.tdi_init.y_gw
 
         return wf_proj
 
@@ -887,14 +984,16 @@ class _FLR_detector(AbsSpaceDet):
             raise ValueError('TDI channels must be one of: XYZ, AET, AE')
 
         # generate the TDI channels
-        tdi_obs = self.tdi_init.get_tdi_delays()
+        with _fastlisa_device_context(self._cupy_device_id):
+            tdi_obs = self.tdi_init.get_tdi_delays()
 
         # processing
         tdi_dict = {}
         for i, chan in enumerate(tdi_chan):
             # save as TimeSeries
-            tdi_dict[f'LISA_{chan}'] = TimeSeries(tdi_obs[i], delta_t=self.dt,
-                                           epoch=self.start_time)
+            tdi_dict[f'LISA_{chan}'] = _fastlisa_time_series(
+                tdi_obs[i], delta_t=self.dt, epoch=self.start_time
+            )
 
         tdi_dict = cut_channels(tdi_dict, remove_garbage=self.remove_garbage, 
                                 t0=self.t0)

@@ -228,6 +228,9 @@ pycbc.opt.verify_optimization_options(opt, parser)
 
 pycbc.init_logging(opt.verbose)
 
+# Strain conditioning below runs in the default CPU context and may use FFTs.
+# Configure that context here, then configure the requested processing context
+# again after entering it.
 fft.from_cli(opt)
 inj_filter_rejector = pycbc.inject.InjFilterRejector.from_cli(opt)
 ctx = scheme.from_cli(opt)
@@ -306,21 +309,11 @@ def template_triggers(t_num):
     return out_vals_all, tparam
 
 with ctx:
-    if opt.fft_backends == 'fftw':
-
-        # The following FFTW specific options needed to wait until
-        # we were inside the scheme context.
-
-        # Import system wisdom.
-        if opt.fftw_import_system_wisdom:
-            fft.fftw.import_sys_wisdom()
-
-        # Read specified user-provided wisdom files
-        if opt.fftw_input_float_wisdom_file is not None:
-            fft.fftw.import_single_wisdom_from_filename(opt.fftw_input_float_wisdom_file)
-
-        if opt.fftw_input_double_wisdom_file is not None:
-            fft.fftw.import_double_wisdom_from_filename(opt.fftw_input_double_wisdom_file)
+    # FFT backend options are scheme-local, so configure them only after the
+    # requested processing context is active.  Torch's retained CPU route also
+    # consumes FFTW wisdom, independent of the --fft-backends preference list.
+    fft.from_cli(opt)
+    fft.import_wisdom_from_cli(opt)
 
     flow = opt.low_frequency_cutoff
     flen = strain_segments.freq_len
@@ -507,11 +500,6 @@ event_mgr.save_performance(ncores, len(segments), len(bank), run_time, tsetup)
 logging.info("Writing out triggers")
 event_mgr.write_events(opt.output)
 
-if opt.fft_backends == 'fftw':
-    if opt.fftw_output_float_wisdom_file:
-        fft.fftw.export_single_wisdom_to_filename(opt.fftw_output_float_wisdom_file)
-
-    if opt.fftw_output_double_wisdom_file:
-        fft.fftw.export_double_wisdom_to_filename(opt.fftw_output_double_wisdom_file)
+fft.export_wisdom_from_cli(opt)
 
 logging.info("Finished")

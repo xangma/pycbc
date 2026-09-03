@@ -4146,6 +4146,8 @@ class TorchArrayData:
         try:
             index_tensor = index_tensor.to(dtype=torch.int64)
             size = source.shape[dimension]
+            if torch.any((index_tensor < -size) | (index_tensor >= size)):
+                raise IndexError("index is out of bounds")
             if size:
                 index_tensor = torch.where(
                     index_tensor < 0, index_tensor + size, index_tensor

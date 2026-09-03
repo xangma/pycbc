@@ -28,7 +28,14 @@ from pycbc.detector import Detector
 from .gaussian_noise import (BaseGaussianNoise,
                              create_waveform_generator,
                              GaussianNoise, catch_waveform_error)
-from .tools import marginalize_likelihood, DistMarg
+from .tools import (
+    DistMarg,
+    _fused_inner_hd_hh,
+    _inner,
+    _real_inner,
+    _torch_tensor,
+    marginalize_likelihood,
+)
 
 
 class MarginalizedPhaseGaussianNoise(GaussianNoise):
@@ -170,20 +177,35 @@ class MarginalizedPhaseGaussianNoise(GaussianNoise):
                 hh_i = 0.
                 hd_i = 0j
             else:
-                # whiten the waveform
-                h[self._kmin[det]:kmax] *= \
-                    self._weight[det][self._kmin[det]:kmax]
-                # calculate inner products
-                hh_i = h[self._kmin[det]:kmax].inner(
-                    h[self._kmin[det]:kmax]).real
-                hd_i = h[self._kmin[det]:kmax].inner(
-                    self._whitened_data[det][self._kmin[det]:kmax])
+                slc = slice(self._kmin[det], kmax)
+                hd_i, hh_i = _fused_inner_hd_hh(
+                    h[slc],
+                    self._whitened_data[det][slc],
+                    weight=self._weight[det][slc],
+                )
             # store
             setattr(self._current_stats, '{}_optimal_snrsq'.format(det), hh_i)
             hh += hh_i
             hd += hd_i
-        self._current_stats.maxl_phase = numpy.angle(hd)
+        hd_tensor = _torch_tensor(hd)
+        self._current_stats.maxl_phase = (
+            hd_tensor.angle() if hd_tensor is not None else numpy.angle(hd)
+        )
         return marginalize_likelihood(hd, hh, phase=True)
+
+    def _batched_loglr(self, *args, **params):
+        r"""Computes the phase-marginalized log likelihood ratio for a batch of
+        parameter samples using ``NetworkGeometry`` and ``_fused_inner_hd_hh``.
+        """
+        from .gaussian_noise import _batched_waveform_inner_products
+
+        params = self._parse_batched_params(*args, **params)
+        total_hd, total_hh, _, _ = _batched_waveform_inner_products(
+            self, params, zero_phase=True
+        )
+        return marginalize_likelihood(
+            total_hd, total_hh, phase=True, skip_vector=True
+        )
 
 
 class MarginalizedTime(DistMarg, BaseGaussianNoise):
@@ -318,9 +340,9 @@ class MarginalizedTime(DistMarg, BaseGaussianNoise):
                                  high_frequency_cutoff=self._f_upper[det],
                                  h_norm=1)
 
-            hphp[det] = hp[slc].inner(hp[slc]).real
-            hchc[det] = hc[slc].inner(hc[slc]).real
-            hphc[det] = hp[slc].inner(hc[slc]).real
+            hphp[det] = _real_inner(hp[slc], hp[slc])
+            hchc[det] = _real_inner(hc[slc], hc[slc])
+            hphc[det] = _real_inner(hp[slc], hc[slc])
 
             snr_proxy = ((cplx_hpd[det] / hphp[det] ** 0.5).squared_norm() +
                          (cplx_hcd[det] / hchc[det] ** 0.5).squared_norm())
@@ -333,20 +355,66 @@ class MarginalizedTime(DistMarg, BaseGaussianNoise):
         ra = params['ra']
         dec = params['dec']
         ref_tc = params['tc']
+        pol = params['polarization']
+
+        if (
+            (not self.precalc_antenna_factors)
+            and refframe == 'geocentric'
+            and getattr(self, 'network_geometry', None) is not None
+        ):
+            fp_net, fc_net, delay_net = (
+                self.network_geometry.antenna_pattern_and_time_delay(
+                    ra, dec, pol, ref_tc
+                )
+            )
+            fp_dict = self.network_geometry.to_dict(fp_net)
+            fc_dict = self.network_geometry.to_dict(fc_net)
+            delay_dict = self.network_geometry.to_dict(delay_net)
+        else:
+            fp_dict = {}
+            fc_dict = {}
+            delay_dict = {}
+
         for det in wfs:
-            if det not in self.dets:
-                self.dets[det] = Detector(det)
-            tc = self.dets[det].arrival_time(ref_tc, ra, dec, refframe)
             if self.precalc_antenna_factors:
+                if det not in self.dets:
+                    self.dets[det] = Detector(det)
+                tc = self.dets[det].arrival_time(
+                    ref_tc, ra, dec, refframe)
                 fp, fc, dt = self.get_precalc_antenna_factors(det)
-                pol_phase = numpy.exp(-2.0j * params['polarization'])
-                f = (fp + 1.0j * fc) * pol_phase
-                fp = f.real
-                fc = f.imag
+                if _torch_tensor(cplx_hpd[det]) is not None:
+                    from . import relbin_torch
+
+                    pol_phase = relbin_torch.polarization_phase(
+                        pol, cplx_hpd[det])
+                    fp, fc = relbin_torch.polarized_antenna_response(
+                        fp, fc, pol_phase, cplx_hpd[det])
+                else:
+                    pol_phase = numpy.exp(-2.0j * pol)
+                    f = (fp + 1.0j * fc) * pol_phase
+                    fp = f.real
+                    fc = f.imag
+            elif det in fp_dict:
+                fp = fp_dict[det]
+                fc = fc_dict[det]
+                tc = ref_tc + delay_dict[det]
             else:
-                fp, fc = self.dets[det].antenna_pattern(
-                                        ra, dec,
-                                        params['polarization'], tc)
+                if det not in self.dets:
+                    self.dets[det] = Detector(det)
+                matched_tensor = _torch_tensor(cplx_hpd[det])
+                if matched_tensor is not None:
+                    from . import relbin_torch
+
+                    fp, fc, tc = (
+                        relbin_torch.detector_response_at_arrival(
+                            self.dets[det], ref_tc, ra, dec,
+                            pol, refframe,
+                            matched_tensor))
+                else:
+                    tc = self.dets[det].arrival_time(
+                        ref_tc, ra, dec, refframe)
+                    fp, fc = self.dets[det].antenna_pattern(
+                        ra, dec, pol, tc)
 
             cplx_hd = fp * cplx_hpd[det].at_time(tc,
                                                  interpolate='quadratic')
@@ -465,12 +533,47 @@ class MarginalizedPolarization(DistMarg, BaseGaussianNoise):
         ra = params['ra']
         dec = params['dec']
         ref_tc = params['tc']
+        pol = params['polarization']
+
+        if (
+            refframe == 'geocentric'
+            and getattr(self, 'network_geometry', None) is not None
+        ):
+            fp_net, fc_net, delay_net = (
+                self.network_geometry.antenna_pattern_and_time_delay(
+                    ra, dec, pol, ref_tc
+                )
+            )
+            fp_dict = self.network_geometry.to_dict(fp_net)
+            fc_dict = self.network_geometry.to_dict(fc_net)
+            delay_dict = self.network_geometry.to_dict(delay_net)
+        else:
+            fp_dict = {}
+            fc_dict = {}
+            delay_dict = {}
+
         for det, (hp, hc) in wfs.items():
-            if det not in self.dets:
-                self.dets[det] = Detector(det)
-            tc = self.dets[det].arrival_time(ref_tc, ra, dec, refframe)
-            fp, fc = self.dets[det].antenna_pattern(ra, dec,
-                                    params['polarization'], tc)
+            if det in fp_dict:
+                fp = fp_dict[det]
+                fc = fc_dict[det]
+                tc = ref_tc + delay_dict[det]
+            else:
+                if det not in self.dets:
+                    self.dets[det] = Detector(det)
+                waveform_tensor = _torch_tensor(hp)
+                if waveform_tensor is None:
+                    waveform_tensor = _torch_tensor(hc)
+                if waveform_tensor is not None:
+                    from . import relbin_torch
+
+                    fp, fc, tc = relbin_torch.detector_response_at_arrival(
+                        self.dets[det], ref_tc, ra, dec,
+                        pol, refframe, waveform_tensor)
+                else:
+                    tc = self.dets[det].arrival_time(
+                        ref_tc, ra, dec, refframe)
+                    fp, fc = self.dets[det].antenna_pattern(
+                        ra, dec, pol, tc)
 
             # the kmax of the waveforms may be different than internal kmax
             kmax = min(max(len(hp), len(hc)), self._kmax[det])
@@ -483,21 +586,21 @@ class MarginalizedPolarization(DistMarg, BaseGaussianNoise):
             # h = fp * hp + hc * hc
             # <h, d> = fp * <hp,d> + fc * <hc,d>
             # the inner products
-            cplx_hpd = hp[slc].inner(self._whitened_data[det][slc])  # <hp, d>
-            cplx_hcd = hc[slc].inner(self._whitened_data[det][slc])  # <hc, d>
+            cplx_hpd = _inner(hp[slc], self._whitened_data[det][slc])
+            cplx_hcd = _inner(hc[slc], self._whitened_data[det][slc])
 
             cplx_hd = fp * cplx_hpd + fc * cplx_hcd
 
             # <h, h> = <fp * hp + fc * hc, fp * hp + fc * hc>
             # = Real(fpfp * <hp,hp> + fcfc * <hc,hc> + \
             #  fphc * (<hp, hc> + <hc, hp>))
-            hphp = hp[slc].inner(hp[slc]).real  # < hp, hp>
-            hchc = hc[slc].inner(hc[slc]).real  # <hc, hc>
+            hphp = _real_inner(hp[slc], hp[slc])
+            hchc = _real_inner(hc[slc], hc[slc])
 
             # Below could be combined, but too tired to figure out
             # if there should be a sign applied if so
-            hphc = hp[slc].inner(hc[slc]).real  # <hp, hc>
-            hchp = hc[slc].inner(hp[slc]).real  # <hc, hp>
+            hphc = _real_inner(hp[slc], hc[slc])
+            hchp = _real_inner(hc[slc], hp[slc])
 
             hh = fp * fp * hphp + fc * fc * hchc + fp * fc * (hphc + hchp)
             # store
@@ -609,10 +712,60 @@ class MarginalizedHMPolPhase(BaseGaussianNoise):
         phase = phase.reshape(coa_phase_samples, polarization_samples)
         self.phase = phase.T.flatten()
         self._phase_fac = {}
+        self._torch_marginalization_grids = {}
+        self._torch_phase_fac = {}
         self.dets = {}
 
-    def phase_fac(self, m):
+    def _marginalization_grids(self, like):
+        """Return fixed polarization and phase grids on ``like``'s device."""
+        tensor = _torch_tensor(like)
+        if tensor is None:
+            return self.pol, self.phase
+
+        import torch
+
+        key = (tensor.device, tensor.real.dtype)
+        try:
+            return self._torch_marginalization_grids[key]
+        except KeyError:
+            grids = tuple(
+                torch.as_tensor(
+                    values,
+                    device=tensor.device,
+                    dtype=tensor.real.dtype,
+                )
+                for values in (self.pol, self.phase)
+            )
+            self._torch_marginalization_grids[key] = grids
+            return grids
+
+    def phase_fac(self, m, phase=None):
         r"""The phase :math:`\exp[i m \phi]`."""
+        use_default_phase = phase is None
+        if use_default_phase:
+            phase = self.phase
+        phase_tensor = _torch_tensor(phase)
+        if phase_tensor is not None:
+            import torch
+
+            if phase_tensor.requires_grad:
+                return torch.exp(1.0j * m * phase_tensor)
+            is_fixed_grid = any(
+                phase_tensor is grids[1]
+                for grids in self._torch_marginalization_grids.values()
+            )
+            if not is_fixed_grid:
+                return torch.exp(1.0j * m * phase_tensor)
+            key = (m, phase_tensor.device, phase_tensor.dtype)
+            try:
+                return self._torch_phase_fac[key]
+            except KeyError:
+                factor = torch.exp(1.0j * m * phase_tensor)
+                self._torch_phase_fac[key] = factor
+                return factor
+
+        if not use_default_phase:
+            return numpy.exp(1.0j * m * numpy.asarray(phase))
         try:
             return self._phase_fac[m]
         except KeyError:
@@ -667,11 +820,42 @@ class MarginalizedHMPolPhase(BaseGaussianNoise):
         ra = params['ra']
         dec = params['dec']
         ref_tc = params['tc']
+        first_mode = next(
+            iter(next(iter(wfs.values())).values()), (None, None)
+        )[0]
+        pol, phase = self._marginalization_grids(first_mode)
+
+        if (
+            refframe == 'geocentric'
+            and getattr(self, 'network_geometry', None) is not None
+        ):
+            delay_net = self.network_geometry.time_delay_from_earth_center(
+                ra, dec, ref_tc
+            )
+            delay_dict = self.network_geometry.to_dict(delay_net)
+        else:
+            delay_dict = {}
+
         for det, modes in wfs.items():
-            if det not in self.dets:
-                self.dets[det] = Detector(det)
-            tc = self.dets[det].arrival_time(ref_tc, ra, dec, refframe)
-            fp, fc = self.dets[det].antenna_pattern(ra, dec, self.pol, tc)
+            if det in delay_dict:
+                tc = ref_tc + delay_dict[det]
+                detector = self.network_geometry[det]
+                fp, fc = detector.antenna_pattern(ra, dec, pol, tc)
+            else:
+                if det not in self.dets:
+                    self.dets[det] = Detector(det)
+                waveform_tensor = _torch_tensor(first_mode)
+                if waveform_tensor is not None:
+                    from . import relbin_torch
+
+                    fp, fc, tc = relbin_torch.detector_response_at_arrival(
+                        self.dets[det], ref_tc, ra, dec, pol, refframe,
+                        waveform_tensor)
+                else:
+                    tc = self.dets[det].arrival_time(
+                        ref_tc, ra, dec, refframe)
+                    fp, fc = self.dets[det].antenna_pattern(
+                        ra, dec, pol, tc)
 
             # loop over modes and prepare the waveform modes
             # we will sum up zetalm = glm <ulm, d> + i glm <vlm, d>
@@ -692,9 +876,13 @@ class MarginalizedHMPolPhase(BaseGaussianNoise):
 
                 # the inner products
                 # <ulm, d>
-                ulmd = ulm[slc].inner(self._whitened_data[det][slc]).real
+                ulmd = _real_inner(
+                    ulm[slc], self._whitened_data[det][slc]
+                )
                 # <vlm, d>
-                vlmd = vlm[slc].inner(self._whitened_data[det][slc]).real
+                vlmd = _real_inner(
+                    vlm[slc], self._whitened_data[det][slc]
+                )
 
                 # add inclination, and pack into a complex number
                 import lal
@@ -728,10 +916,10 @@ class MarginalizedHMPolPhase(BaseGaussianNoise):
                 s = slms[m]
                 rprime = rlms[mprime]
                 sprime = slms[mprime]
-                rr_m[mprime, m] = r[slc].inner(rprime[slc]).real
-                ss_m[mprime, m] = s[slc].inner(sprime[slc]).real
-                rs_m[mprime, m] = s[slc].inner(rprime[slc]).real
-                sr_m[mprime, m] = r[slc].inner(sprime[slc]).real
+                rr_m[mprime, m] = _real_inner(r[slc], rprime[slc])
+                ss_m[mprime, m] = _real_inner(s[slc], sprime[slc])
+                rs_m[mprime, m] = _real_inner(s[slc], rprime[slc])
+                sr_m[mprime, m] = _real_inner(r[slc], sprime[slc])
                 # store the conjugate for easy retrieval later
                 rr_m[m, mprime] = rr_m[mprime, m]
                 ss_m[m, mprime] = ss_m[mprime, m]
@@ -744,7 +932,7 @@ class MarginalizedHMPolPhase(BaseGaussianNoise):
             hchc = 0.
             hphc = 0.
             for m, zeta in zetas.items():
-                phase_coeff = self.phase_fac(m)
+                phase_coeff = self.phase_fac(m, phase)
 
                 # <h+, d> = (exp[i m phi] * zeta).real()
                 # <hx, d> = -(exp[i m phi] * zeta).imag()
@@ -757,7 +945,7 @@ class MarginalizedHMPolPhase(BaseGaussianNoise):
                 sinm = phase_coeff.imag
 
                 for mprime in zetas:
-                    pcprime = self.phase_fac(mprime)
+                    pcprime = self.phase_fac(mprime, phase)
 
                     cosmprime = pcprime.real
                     sinmprime = pcprime.imag
@@ -799,10 +987,20 @@ class MarginalizedHMPolPhase(BaseGaussianNoise):
         if return_unmarginalized:
             return self.pol, self.phase, lr, hds, hhs
 
-        lr_total = special.logsumexp(lr) - numpy.log(self.nsamples)
+        lr_tensor = _torch_tensor(lr)
+        if lr_tensor is not None:
+            import torch
+
+            lr_total = torch.logsumexp(lr_tensor, dim=0) - torch.log(
+                lr_tensor.new_tensor(self.nsamples)
+            )
+            idx = int(torch.argmax(lr_tensor).item())
+            lr_total = float(lr_total.item())
+        else:
+            lr_total = special.logsumexp(lr) - numpy.log(self.nsamples)
+            idx = lr.argmax()
 
         # store the maxl values
-        idx = lr.argmax()
         setattr(self._current_stats, 'maxl_polarization', self.pol[idx])
         setattr(self._current_stats, 'maxl_phase', self.phase[idx])
         return float(lr_total)

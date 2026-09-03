@@ -27,8 +27,11 @@ have burned in.
 """
 
 
-import logging
 from abc import ABCMeta, abstractmethod
+import logging
+import math
+import warnings
+
 import numpy
 from scipy.stats import ks_2samp
 
@@ -47,6 +50,119 @@ NOT_BURNED_IN_ITER = -1
 #
 # =============================================================================
 #
+
+
+def _torch_array(values):
+    """Return a real Torch tensor without importing Torch eagerly."""
+    if type(values).__module__.split(".", 1)[0] != "torch":
+        return None
+
+    import torch
+
+    if not isinstance(values, torch.Tensor):
+        return None
+    if values.is_complex():
+        raise TypeError("burn-in values must be real")
+    return values
+
+
+def _ks_2samp_probability(statistic, n1, n2):
+    """Return SciPy's two-sided ``method='auto'`` KS probability.
+
+    Only the scalar statistic and sample sizes are needed to evaluate the
+    probability. This lets Torch callers keep the samples themselves on their
+    current device.
+    """
+    use_asymptotic = max(n1, n2) > 10000
+    if not use_asymptotic:
+        try:
+            from scipy.stats._stats_py import _attempt_exact_2kssamp
+        except ImportError:
+            # Older supported SciPy releases did not expose the exact helper.
+            use_asymptotic = True
+        else:
+            success, _, probability = _attempt_exact_2kssamp(
+                n1, n2, math.gcd(n1, n2), statistic, "two-sided"
+            )
+            if success:
+                return float(numpy.clip(probability, 0.0, 1.0))
+            use_asymptotic = True
+            warnings.warn(
+                "ks_2samp: Exact calculation unsuccessful. Switching to "
+                "method=asymp.",
+                RuntimeWarning,
+                stacklevel=3,
+            )
+
+    if use_asymptotic:
+        from scipy.stats import distributions
+
+        effective_n = float(n1) * float(n2) / (n1 + n2)
+        if hasattr(distributions, "kstwo"):
+            probability = distributions.kstwo.sf(
+                statistic, numpy.round(effective_n)
+            )
+        else:
+            probability = distributions.kstwobign.sf(
+                effective_n ** 0.5 * statistic
+            )
+        return float(numpy.clip(probability, 0.0, 1.0))
+
+    raise AssertionError("unreachable KS probability branch")
+
+
+def _torch_ks_2samp_pvalue(samples1, samples2):
+    """Return a KS p-value when either sample is a Torch tensor.
+
+    Sorting and empirical-CDF evaluation remain on the tensor device. The
+    final integer KS distance is synchronized to evaluate its scalar p-value
+    with SciPy's exact/asymptotic machinery.
+    """
+    tensor1 = _torch_array(samples1)
+    tensor2 = _torch_array(samples2)
+    if tensor1 is None and tensor2 is None:
+        return None
+
+    import torch
+
+    reference = tensor1 if tensor1 is not None else tensor2
+    if tensor1 is None:
+        tensor1 = torch.as_tensor(samples1, device=reference.device)
+    if tensor2 is None:
+        tensor2 = torch.as_tensor(samples2, device=reference.device)
+    if tensor1.device != tensor2.device:
+        raise ValueError("KS samples must be on the same Torch device")
+    if tensor1.is_complex() or tensor2.is_complex():
+        raise TypeError("burn-in values must be real")
+    if tensor1.ndim != 1 or tensor2.ndim != 1:
+        raise ValueError("Torch KS samples must be one-dimensional")
+
+    n1 = tensor1.numel()
+    n2 = tensor2.numel()
+    if n1 == 0 or n2 == 0:
+        return float("nan")
+    if ((tensor1.is_floating_point() and torch.isnan(tensor1).any()) or
+            (tensor2.is_floating_point() and torch.isnan(tensor2).any())):
+        return float("nan")
+
+    if tensor1.dtype == torch.bool:
+        tensor1 = tensor1.to(dtype=torch.uint8)
+    if tensor2.dtype == torch.bool:
+        tensor2 = tensor2.to(dtype=torch.uint8)
+    sorted1 = torch.sort(tensor1).values
+    sorted2 = torch.sort(tensor2).values
+    cdf1_at_1 = torch.searchsorted(sorted1, sorted1, right=True)
+    cdf2_at_1 = torch.searchsorted(sorted2, sorted1, right=True)
+    cdf1_at_2 = torch.searchsorted(sorted1, sorted2, right=True)
+    cdf2_at_2 = torch.searchsorted(sorted2, sorted2, right=True)
+    numerator_at_1 = cdf1_at_1 * n2 - cdf2_at_1 * n1
+    numerator_at_2 = cdf1_at_2 * n2 - cdf2_at_2 * n1
+    distance_numerator = torch.maximum(
+        torch.max(torch.abs(numerator_at_1)),
+        torch.max(torch.abs(numerator_at_2)),
+    ).item()
+    statistic = distance_numerator / (n1 * n2)
+    return _ks_2samp_probability(statistic, n1, n2)
 
 
 def ks_test(samples1, samples2, threshold=0.9):
@@ -78,7 +194,9 @@ def ks_test(samples1, samples2, threshold=0.9):
     for param in samples1:
         s1 = samples1[param]
         s2 = samples2[param]
-        _, p_value = ks_2samp(s1, s2)
+        p_value = _torch_ks_2samp_pvalue(s1, s2)
+        if p_value is None:
+            _, p_value = ks_2samp(s1, s2)
         is_the_same[param] = p_value > threshold
     return is_the_same
 
@@ -88,23 +206,39 @@ def max_posterior(lnps_per_walker, dim):
 
     Parameters
     ----------
-    lnps_per_walker : 2D array
+    lnps_per_walker : 2D array or torch.Tensor
         Array of values that are proportional to the log posterior values. Must
-        have shape ``nwalkers x niterations``.
+        have shape ``nwalkers x niterations``. Torch inputs remain on their
+        current device and produce Torch outputs.
     dim : int
         The dimension of the parameter space.
 
     Returns
     -------
-    burn_in_idx : array of int
+    burn_in_idx : array of int or torch.Tensor
         The burn in indices of each walker. If a walker is not burned in, its
-        index will be be equal to the length of the chain.
-    is_burned_in : array of bool
+        index will be ``NOT_BURNED_IN_ITER``.
+    is_burned_in : array of bool or torch.Tensor
         Whether or not a walker is burned in.
     """
     if len(lnps_per_walker.shape) != 2:
         raise ValueError("lnps_per_walker must have shape "
                          "nwalkers x niterations")
+    tensor = _torch_array(lnps_per_walker)
+    if tensor is not None:
+        import torch
+
+        criteria = tensor.max() - dim / 2.0
+        passed = tensor >= criteria
+        is_burned_in = passed.any(dim=1)
+        first_passed = passed.to(dtype=torch.int64).argmax(dim=1)
+        burn_in_idx = torch.where(
+            is_burned_in,
+            first_passed,
+            torch.full_like(first_passed, NOT_BURNED_IN_ITER),
+        )
+        return burn_in_idx, is_burned_in
+
     # find the value to compare against
     max_p = lnps_per_walker.max()
     criteria = max_p - dim/2.
@@ -129,19 +263,32 @@ def posterior_step(logposts, dim):
 
     Parameters
     ----------
-    logposts : array
+    logposts : array or torch.Tensor
         1D array of values that are proportional to the log posterior values.
+        Torch inputs remain on their current device and produce a scalar Torch
+        result.
     dim : int
         The dimension of the parameter space.
 
     Returns
     -------
-    int
+    int or torch.Tensor
         The index of the last time the logpost made a jump > dim/2. If that
         never happened, returns 0.
     """
     if logposts.ndim > 1:
         raise ValueError("logposts must be a 1D array")
+    tensor = _torch_array(logposts)
+    if tensor is not None:
+        import torch
+
+        indices = torch.nonzero(
+            torch.diff(tensor) >= dim / 2.0, as_tuple=False
+        ).flatten()
+        if indices.numel():
+            return indices[-1] + 1
+        return torch.zeros((), device=tensor.device, dtype=torch.int64)
+
     criteria = dim/2.
     dp = numpy.diff(logposts)
     indices = numpy.where(dp >= criteria)[0]

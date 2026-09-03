@@ -22,15 +22,10 @@
 # =============================================================================
 #
 """
-This module contains a few helper functions designed to make writing PyCBC
-unit tests easier, while still allowing the tests to be run on CPU and CUDA
-
-All tests starting with 'test_' in the test subdirectory of pycbc are run
-whenever the command 'python setup.py test' is given.  That command will
-attempt to call each test, passing it the argument '-s <scheme>' where
-scheme is each of 'cpu', 'cuda' in turn. Unit tests
-designed to validate code that should run under multiple schemes should accept
-each of these options, rerunning the same tests under each successive scheme.
+This module contains helpers for running PyCBC unit tests on the CPU, CUDA,
+and Torch schemes. Pytest selects a test scheme with ``PYCBC_TEST_SCHEME``;
+standalone test scripts may instead use ``-s/--scheme``. ``PYCBC_SCHEME`` is
+still honoured when no test-specific selection is present.
 
 This will usually be done by putting something like:
 
@@ -47,15 +42,12 @@ and those properties of any instance can then be used by later tests defined
 in the class; for example, beginning a block with 'with self.context:' to
 ensure the appropriate context manager is used for that scheme.
 
-Some other unit tests may be for features or sub-packages that are not GPU
-capable, and cannot be meaningfully tested on the GPU.  Those tests, after
-importing pycbc.test.utils, should instead just call:
+Tests for CPU-only features should instead call:
 
    parse_args_cpu_only('MyFeature')
 
-This call is needed because the tests must still be able to accept the arguments
-specifying a GPU environment (since setup.py does not know which tests are GPU
-capable and which are not) but when called with a GPU scheme will exit immediately.
+Under pytest this skips the module when a non-CPU scheme is active. A
+standalone script exits successfully instead.
 
 Both functions take a single string as an argument.  That string is used to customize
 the heading of all of the tests (according to feature and scheme) to make the output
@@ -63,88 +55,100 @@ of running all of the unit tests somewhat easier to parse when they are all run 
 once.
 """
 
+import os
 import pycbc
-import sys
-import optparse
 from sys import exit as _exit
 from optparse import OptionParser
-from pycbc.scheme import CPUScheme, CUDAScheme
+import pycbc.scheme as _scheme_module
+from pycbc.scheme import CPUScheme, CUDAScheme, TorchScheme
 from numpy import float32, float64, complex64, complex128
 from pycbc.types import Array
 
 
-def _check_scheme_all(option, opt_str, scheme, parser):
-    if scheme=='cuda' and not pycbc.HAVE_CUDA:
-        raise optparse.OptionValueError("CUDA not found")
-    if scheme=='torch' and not getattr(pycbc, 'HAVE_TORCH', False):
-        raise optparse.OptionValueError("Torch not found")
-
-    setattr (parser.values, option.dest, scheme)
-
-
-def _filter_scheme_args(argv):
-    valid_args = []
-    it = iter(argv)
-    for arg in it:
-        if arg in ('--scheme', '-s', '--device-num', '-d'):
-            valid_args.append(arg)
-            try:
-                valid_args.append(next(it))
-            except StopIteration:
-                pass
-        elif arg.startswith('--scheme=') or arg.startswith('--device-num='):
-            valid_args.append(arg)
-    return valid_args
+def _parse_test_options(parser):
+    """Parse standalone-test options without consuming pytest's arguments."""
+    if "PYTEST_VERSION" in os.environ:
+        return parser.parse_args([])
+    return parser.parse_args()
 
 
 def parse_args_all_schemes(feature_str):
     _parser = OptionParser()
-    _parser.add_option('--scheme','-s', action='callback', type = 'choice',
-                       choices = ('cpu','cuda','torch'),
-                       default = 'cpu', dest = 'scheme', callback = _check_scheme_all,
-                       help = 'specifies processing scheme, can be cpu [default], cuda, torch')
+    _parser.add_option('--scheme','-s', action='store', type='string',
+                       default=None, dest='scheme',
+                       help='specifies processing scheme: cpu [default], cuda, or torch[:device]')
     _parser.add_option('--device-num','-d', action='store', type = 'int',
                        dest = 'devicenum', default=0,
                        help = 'specifies a GPU device to use for CUDA, 0 by default')
-    (_opt_list, _args) = _parser.parse_args(args=_filter_scheme_args(sys.argv[1:]))
+    (_opt_list, _args) = _parse_test_options(_parser)
 
     # Changing the optvalues to a dict makes them easier to read
     _options = vars(_opt_list)
 
-    _scheme = _options['scheme']
+    test_scheme_spec = os.getenv("PYCBC_TEST_SCHEME")
+    scheme_spec = (
+        _options['scheme']
+        or test_scheme_spec
+        or os.getenv("PYCBC_SCHEME", "cpu")
+    )
+    scheme_name, _, device_spec = scheme_spec.partition(':')
 
-    if _scheme == 'cpu':
-        _context = CPUScheme()
-    elif _scheme == 'cuda':
+    # PyCBC creates the environment-selected scheme while importing
+    # ``pycbc.scheme``. Reuse it during pytest collection; constructing a
+    # second global GPU context makes independently collected test modules
+    # conflict with Scheme's single-context guard.
+    if _options['scheme'] is None and test_scheme_spec is None:
+        _context = _scheme_module.default_context
+    elif scheme_name == 'cuda':
+        if not getattr(pycbc, "HAVE_CUDA", False):
+            _parser.error("CUDA not found")
         _context = CUDAScheme(device_num=_options['devicenum'])
-    elif _scheme == 'torch':
-        from pycbc.scheme import TorchScheme
-        _context = TorchScheme()
+    elif scheme_name == 'torch':
+        if not getattr(pycbc, "HAVE_TORCH", False):
+            _parser.error("Torch not found")
+        _context = TorchScheme(device=device_spec or None)
+    elif scheme_name == 'cpu':
+        _context = CPUScheme()
+    else:
+        _parser.error(f"({scheme_name}) is not a valid scheme type.")
 
-    _scheme_dict = { 'cpu': 'CPU', 'cuda': 'CUDA', 'torch': 'Torch'}
+    _scheme = scheme_name
+    _scheme_dict = { 'cpu': 'CPU', 'cuda': 'CUDA', 'torch': 'TORCH'}
 
     print(72*'=')
-    print("Running {0} unit tests for {1}:".format(_scheme_dict[_scheme],feature_str))
+    name_for_print = _scheme_dict[_scheme]
+    if device_spec:
+        name_for_print += f" ({device_spec})"
+    print("Running {0} unit tests for {1}:".format(name_for_print,feature_str))
 
     return [_scheme,_context]
 
-def _check_scheme_cpu(option, opt_str, scheme, parser):
-    if scheme=='cuda':
-        exit(0)
-
-    setattr (parser.values, option.dest, scheme)
-
-
 def parse_args_cpu_only(feature_str):
     _parser = OptionParser()
-    _parser.add_option('--scheme','-s', action='callback', type = 'choice',
-                       choices = ('cpu','cuda'),
-                       default = 'cpu', dest = 'scheme', callback = _check_scheme_cpu,
-                       help = 'specifies processing scheme, can be cpu [default], cuda')
+    _parser.add_option('--scheme','-s', action='store', type='string',
+                       default=None, dest='scheme',
+                       help='specifies processing scheme: cpu [default], cuda, or torch[:device]')
     _parser.add_option('--device-num','-d', action='store', type = 'int',
                        dest = 'devicenum', default=0,
                        help = 'specifies a GPU device to use for CUDA, 0 by default')
-    (_opt_list, _args) = _parser.parse_args(args=_filter_scheme_args(sys.argv[1:]))
+    (_opt_list, _args) = _parse_test_options(_parser)
+
+    scheme_spec = (
+        _opt_list.scheme
+        or os.getenv("PYCBC_TEST_SCHEME")
+        or os.getenv("PYCBC_SCHEME", "cpu")
+    )
+    scheme_name = scheme_spec.partition(':')[0]
+    if scheme_name not in ('cpu', 'cuda', 'torch'):
+        _parser.error(f"({scheme_name}) is not a valid scheme type.")
+    if scheme_name != 'cpu':
+        if "PYTEST_VERSION" in os.environ:
+            import pytest
+            pytest.skip(
+                f"{feature_str} tests are CPU-only (active scheme: {scheme_spec})",
+                allow_module_level=True,
+            )
+        _exit(0)
 
     # In this case, the only reason we parsed the arguments was to exit if we were given
     # a GPU scheme.  So if we get here we're on the CPU, and should print out our message

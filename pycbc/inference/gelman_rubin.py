@@ -19,6 +19,105 @@ diagnostic statistic.
 import numpy
 
 
+def _torch_chains(chains):
+    """Return real Torch chains without importing Torch eagerly."""
+    is_tensor = type(chains).__module__.split(".", 1)[0] == "torch"
+    is_tensor_list = isinstance(chains, (list, tuple)) and any(
+        type(chain).__module__.split(".", 1)[0] == "torch"
+        for chain in chains
+    )
+    if not (is_tensor or is_tensor_list):
+        return None
+
+    import torch
+
+    if isinstance(chains, torch.Tensor):
+        tensor = chains
+        if tensor.is_complex():
+            raise TypeError("Gelman-Rubin chains must be real")
+        if not tensor.is_floating_point():
+            tensor = tensor.to(dtype=torch.get_default_dtype())
+        return tensor
+
+    reference = next(
+        chain for chain in chains if isinstance(chain, torch.Tensor)
+    )
+    dtype = (
+        reference.dtype
+        if reference.is_floating_point()
+        else torch.get_default_dtype()
+    )
+    if any(
+            chain.is_complex()
+            if isinstance(chain, torch.Tensor)
+            else numpy.iscomplexobj(chain)
+            for chain in chains):
+        raise TypeError("Gelman-Rubin chains must be real")
+    return torch.stack([
+        torch.as_tensor(chain, device=reference.device, dtype=dtype)
+        for chain in chains
+    ])
+
+
+def _torch_sample_covariance(rows):
+    """Return row-wise sample covariance, matching ``numpy.cov``."""
+    centered = rows - rows.mean(dim=-1, keepdim=True)
+    return centered @ centered.transpose(-1, -2) / (rows.shape[-1] - 1)
+
+
+def _torch_gelman_rubin(chains, auto_burn_in):
+    """Torch implementation of the univariate Gelman-Rubin estimator."""
+    import torch
+
+    if auto_burn_in:
+        niterations = chains.shape[2]
+        chains = chains[:, :, niterations // 2 + 1:]
+
+    nchains, _, niterations = chains.shape
+    chains_covs = _torch_sample_covariance(chains)
+    w = chains_covs.mean(dim=0)
+
+    means = chains.mean(dim=2).transpose(0, 1)
+    b = niterations * _torch_sample_covariance(means)
+    w_diag = torch.diagonal(w)
+    b_diag = torch.diagonal(b)
+
+    var = torch.diagonal(chains_covs, dim1=-2, dim2=-1).transpose(0, 1)
+    mu_hat = means.mean(dim=1)
+    s = var.var(dim=1, correction=0)
+
+    v = (
+        (niterations - 1.0) * w_diag / niterations
+        + (1.0 + 1.0 / nchains) * b_diag / niterations
+    )
+    k = 2.0 * b_diag**2 / (nchains - 1)
+    centered_var = var - var.mean(dim=1, keepdim=True)
+    centered_means = means - means.mean(dim=1, keepdim=True)
+    centered_means_squared = means**2 - (means**2).mean(
+        dim=1, keepdim=True
+    )
+    mid_term = (
+        centered_var * centered_means_squared
+    ).sum(dim=1) / (nchains - 1)
+    end_term = (
+        centered_var * centered_means
+    ).sum(dim=1) / (nchains - 1)
+    wb = niterations / nchains * (mid_term - 2.0 * mu_hat * end_term)
+
+    var_v = (
+        (niterations - 1.0) ** 2 * s
+        + (1.0 + 1.0 / nchains) ** 2 * k
+        + 2.0 * (niterations - 1.0) * (1.0 + 1.0 / nchains) * wb
+    ) / niterations**2
+    dof = 2.0 * v**2 / var_v
+    df_adj = (dof + 3.0) / (dof + 1.0)
+    r2_estimate = (
+        (niterations - 1.0) / niterations
+        + (1.0 + 1.0 / nchains) / niterations * (b_diag / w_diag)
+    )
+    return torch.sqrt(r2_estimate * df_adj)
+
+
 def walk(chains, start, end, step):
     """ Calculates Gelman-Rubin conervergence statistic along chains of data.
     This function will advance along the chains and calculate the
@@ -26,9 +125,10 @@ def walk(chains, start, end, step):
 
     Parameters
     ----------
-    chains : iterable
-        An iterable of numpy.array instances that contain the samples
-        for each chain. Each chain has shape (nparameters, niterations).
+    chains : iterable or torch.Tensor
+        An iterable of arrays, or a Torch tensor, containing the samples for
+        each chain. Each chain has shape (nparameters, niterations). Torch
+        inputs remain on their current device and produce Torch outputs.
     start : float
         Start index of blocks to calculate all statistics.
     end : float
@@ -38,14 +138,37 @@ def walk(chains, start, end, step):
 
     Returns
     -------
-    starts : numpy.array
+    starts : numpy.array or torch.Tensor
         1-D array of start indexes of calculations.
-    ends : numpy.array
+    ends : numpy.array or torch.Tensor
         1-D array of end indexes of caluclations.
-    stats : numpy.array
+    stats : numpy.array or torch.Tensor
         Array with convergence statistic. It has
         shape (nparameters, ncalculations).
     """
+
+    tensor = _torch_chains(chains)
+    if tensor is not None:
+        import torch
+
+        _, nparameters, _ = tensor.shape
+        end_values = list(range(start, end, step))
+        ends = torch.tensor(
+            end_values, device=tensor.device, dtype=torch.int64
+        )
+        starts = torch.full(
+            (len(end_values),), start,
+            device=tensor.device, dtype=torch.int64,
+        )
+        values = [
+            _torch_gelman_rubin(tensor[:, :, :e], True)
+            for e in end_values
+        ]
+        stats = (
+            torch.stack(values, dim=1)
+            if values else tensor.new_empty((nparameters, 0))
+        )
+        return starts, ends, stats
 
     # get number of chains, parameters, and iterations
     chains = numpy.array(chains)
@@ -77,18 +200,23 @@ def gelman_rubin(chains, auto_burn_in=True):
 
     Parameters
     ----------
-    chains : iterable
-        An iterable of numpy.array instances that contain the samples
-        for each chain. Each chain has shape (nparameters, niterations).
+    chains : iterable or torch.Tensor
+        An iterable of arrays, or a Torch tensor, containing the samples for
+        each chain. Each chain has shape (nparameters, niterations). Torch
+        inputs remain on their current device and produce a Torch output.
     auto_burn_in : bool
         If True, then only use later half of samples provided.
 
     Returns
     -------
-    psrf : numpy.array
-        A numpy.array of shape (nparameters) that has the point estimates of
-        the potential scale reduction factor.
+    psrf : numpy.array or torch.Tensor
+        An array of shape (nparameters) that has the point estimates of the
+        potential scale reduction factor.
     """
+
+    tensor = _torch_chains(chains)
+    if tensor is not None:
+        return _torch_gelman_rubin(tensor, auto_burn_in)
 
     # remove first half of samples
     # this will have shape (nchains, nparameters, niterations)

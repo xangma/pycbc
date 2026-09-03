@@ -29,8 +29,74 @@ import shlex
 import logging
 import numpy
 from pycbc import transforms
-from pycbc.workflow import WorkflowConfigParser
+from pycbc.workflow.configuration import WorkflowConfigParser
 from .base import BaseModel
+from .tools import _add_values, _torch_tensor
+
+
+def _marginalization_vector_length(values):
+    """Return the number of marginalized points without copying to host."""
+    tensor = _torch_tensor(values)
+    if tensor is not None:
+        return tensor.shape[0] if tensor.ndim else 1
+    return len(values) if isinstance(values, numpy.ndarray) else 1
+
+
+def _marginalization_value(values, index):
+    """Select a marginalized value while preserving Torch storage."""
+    tensor = _torch_tensor(values)
+    if tensor is not None:
+        if not tensor.ndim:
+            return tensor
+        if _torch_tensor(index) is not None:
+            index = index.to(device=tensor.device)
+        return tensor[index]
+    if isinstance(index, numpy.ndarray):
+        index = index.item()
+    elif _torch_tensor(index) is not None:
+        index = index.item()
+    return values[index] if isinstance(values, numpy.ndarray) else values
+
+
+def _maximum_snr_index(sh, hh):
+    """Return the maximum-SNR marginalized index on the input backend."""
+    sh_tensor = _torch_tensor(sh)
+    hh_tensor = _torch_tensor(hh)
+    if sh_tensor is None and hh_tensor is None:
+        return numpy.argmax(numpy.abs(sh) / hh**0.5)
+
+    import torch
+
+    template = sh_tensor if sh_tensor is not None else hh_tensor
+    if sh_tensor is None:
+        sh_tensor = torch.as_tensor(sh, device=template.device)
+    if hh_tensor is None:
+        hh_tensor = torch.as_tensor(
+            hh, device=template.device, dtype=sh_tensor.real.dtype
+        )
+    return torch.argmax(torch.abs(sh_tensor) / torch.sqrt(hh_tensor))
+
+
+def _stack_marginalization_values(values, template):
+    """Stack per-point likelihood terms without detaching Torch values."""
+    template_tensor = _torch_tensor(template)
+    value_tensor = next(
+        (_torch_tensor(value) for value in values
+         if _torch_tensor(value) is not None),
+        None,
+    )
+    if template_tensor is None and value_tensor is None:
+        return numpy.asarray(values)
+
+    import torch
+
+    target = template_tensor if template_tensor is not None else value_tensor
+    return torch.stack([
+        tensor.to(device=target.device, dtype=target.dtype)
+        if (tensor := _torch_tensor(value)) is not None
+        else torch.as_tensor(value, device=target.device, dtype=target.dtype)
+        for value in values
+    ])
 
 #
 # =============================================================================
@@ -702,10 +768,7 @@ class JointPrimaryMarginalizedModel(HierarchicalModel):
         # set logr, otherwise it will store (sh, hh)
         setattr(self.primary_model._current_stats, 'loglr',
                 self.primary_model.marginalize_loglr(sh_primary, hh_primary))
-        if isinstance(sh_primary, numpy.ndarray):
-            nums = len(sh_primary)
-        else:
-            nums = 1
+        nums = _marginalization_vector_length(sh_primary)
 
         margin_params = {}
         if self.static_margin_params_in_other_models:
@@ -717,15 +780,11 @@ class JointPrimaryMarginalizedModel(HierarchicalModel):
             # inclination has a very strong degeneracy, change of inclination
             # will change best match distance, so change the amplitude of
             # waveform. Using SNR will cancel out the effect of amplitude.err
-            i_max_extrinsic = numpy.argmax(
-                numpy.abs(sh_primary) / hh_primary**0.5)
+            i_max_extrinsic = _maximum_snr_index(sh_primary, hh_primary)
             for p in self.primary_model.marginalized_params_name:
-                if isinstance(self.primary_model.current_params[p],
-                              numpy.ndarray):
-                    margin_params[p] = \
-                        self.primary_model.current_params[p][i_max_extrinsic]
-                else:
-                    margin_params[p] = self.primary_model.current_params[p]
+                margin_params[p] = _marginalization_value(
+                    self.primary_model.current_params[p], i_max_extrinsic
+                )
         else:
             for key, value in self.primary_model.current_params.items():
                 # add marginalize_vector_params
@@ -734,8 +793,14 @@ class JointPrimaryMarginalizedModel(HierarchicalModel):
 
         # add likelihood contribution from other_models, we
         # calculate sh/hh for each marginalized parameter point
-        sh_others = numpy.full(nums, 0 + 0.0j)
-        hh_others = numpy.zeros(nums)
+        if (_torch_tensor(sh_primary) is None
+                and _torch_tensor(hh_primary) is None):
+            # Preserve the legacy NumPy accumulation dtypes exactly.
+            sh_others = numpy.full(nums, 0 + 0.0j)
+            hh_others = numpy.zeros(nums)
+        else:
+            sh_others = None
+            hh_others = None
 
         # update parameters in other_models
         for _, other_model in enumerate(self.other_models):
@@ -743,24 +808,32 @@ class JointPrimaryMarginalizedModel(HierarchicalModel):
             # may have its own static parameters
             current_params_other = other_model.current_params.copy()
             if not self.static_margin_params_in_other_models:
+                sh_values = []
+                hh_values = []
                 for i in range(nums):
                     current_params_other.update(
-                        {key: value[i] if isinstance(value, numpy.ndarray)
-                         else value for key, value in margin_params.items()})
+                        {key: _marginalization_value(value, i)
+                         for key, value in margin_params.items()})
                     other_model.update(**current_params_other)
                     other_model.return_sh_hh = True
                     sh_other, hh_other = other_model.loglr
-                    sh_others[i] += sh_other
-                    hh_others[i] += hh_other
+                    sh_values.append(sh_other)
+                    hh_values.append(hh_other)
                     other_model.return_sh_hh = False
                     # set logr, otherwise it will store (sh, hh)
                     setattr(other_model._current_stats, 'loglr',
                             other_model.marginalize_loglr(sh_other, hh_other))
+                sh_others = _add_values(
+                    sh_others,
+                    _stack_marginalization_values(sh_values, sh_primary),
+                )
+                hh_others = _add_values(
+                    hh_others,
+                    _stack_marginalization_values(hh_values, hh_primary),
+                )
             else:
                 # use one margin point set to approximate all the others
-                current_params_other.update(
-                    {key: value[0] if isinstance(value, numpy.ndarray)
-                     else value for key, value in margin_params.items()})
+                current_params_other.update(margin_params)
                 other_model.update(**current_params_other)
                 other_model.return_sh_hh = True
                 sh_other, hh_other = other_model.loglr
@@ -768,15 +841,26 @@ class JointPrimaryMarginalizedModel(HierarchicalModel):
                 # set logr, otherwise it will store (sh, hh)
                 setattr(other_model._current_stats, 'loglr',
                         other_model.marginalize_loglr(sh_other, hh_other))
-                sh_others += sh_other
-                hh_others += hh_other
+                sh_others = _add_values(sh_others, sh_other)
+                hh_others = _add_values(hh_others, hh_other)
+
+        if sh_others is None:
+            sh_others = 0.0j
+        if hh_others is None:
+            hh_others = 0.0
 
         if nums == 1:
             # the type of the original sh/hh_others are numpy.array,
             # might not the same as sh/hh_primary during reconstruct,
             # during reconstruct of distance, sh/hh_others need to be scalar
-            sh_others = sh_others[0]
-            hh_others = hh_others[0]
+            if isinstance(sh_others, numpy.ndarray) or (
+                    (tensor := _torch_tensor(sh_others)) is not None
+                    and tensor.ndim):
+                sh_others = _marginalization_value(sh_others, 0)
+            if isinstance(hh_others, numpy.ndarray) or (
+                    (tensor := _torch_tensor(hh_others)) is not None
+                    and tensor.ndim):
+                hh_others = _marginalization_value(hh_others, 0)
         sh_total = sh_primary + sh_others
         hh_total = hh_primary + hh_others
 

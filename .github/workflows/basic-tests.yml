@@ -37,12 +37,11 @@ jobs:
     - if: ${{ steps.cache-lal-aux-data.outputs.cache-hit != 'true' }}
       name: Download LAL auxiliary data files
       run: |
-        mkdir ~/lal_aux_data
-        pushd ~/lal_aux_data
-        curl --show-error --silent \
+        mkdir -p ~/lal_aux_data
+        curl --fail --location --retry 3 --show-error --silent \
+          --output-dir ~/lal_aux_data \
           --remote-name https://zenodo.org/records/14999310/files/SEOBNRv4ROM_v2.0.hdf5 \
           --remote-name https://zenodo.org/records/14999310/files/SEOBNRv4ROM_v3.0.hdf5
-        popd
 
     - name: Cache example GW data
       id: cache-example-gw-data
@@ -66,6 +65,28 @@ jobs:
       run: |
         export LAL_DATA_PATH=$HOME/lal_aux_data
         pixi run -e ${{matrix.test-type}} test-${{matrix.test-type}}
+
+    - name: run CPU Torch test suite
+      if: matrix.test-type == 'unittest' && matrix.python-version == '3.12'
+      env:
+        PYCBC_TEST_SCHEME: torch
+      run: |
+        export LAL_DATA_PATH=$HOME/lal_aux_data
+        pixi run -e unittest test-unittest -q \
+          test/test_inference_burn_in_torch.py \
+          test/test_inference_model_base_torch.py \
+          test/test_inference_time_marginalization_torch.py \
+          test/test_inference_wp3_optimizations.py \
+          test/test_torch_generator.py \
+          test/test_live_snr_optimizer_torch.py \
+          test/test_torch_inference_pipeline.py::test_kde_priors_stay_on_torch_device \
+          test/test_torch_inference_pipeline.py::test_relative_binning_summaries_stay_on_device \
+          test/test_torch_numpy_interop.py::test_numpy_take_along_axis_contract_and_uint32 \
+          test/test_torch_numpy_interop.py::test_coherent_chisq_cache_stays_on_torch_device \
+          test/test_torch_types_pipeline.py::test_single_template_torch_cpu_native_scalar_likelihood_matches \
+          test/test_torch_types_pipeline.py::test_lalsim_injection_adder_stays_on_torch_device \
+          test/test_detector.py::TestDetector::test_antenna_pattern_and_time_delay_torch \
+          test/test_detector.py::TestDetector::test_network_geometry
 
     - name: check help messages work
       if: matrix.test-type == 'unittest'

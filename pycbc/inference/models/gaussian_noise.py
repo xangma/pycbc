@@ -25,17 +25,18 @@ import numpy
 from pycbc import filter as pyfilter
 from pycbc.waveform import (NoWaveformError, FailedWaveformError)
 from pycbc.waveform import generator
-from pycbc.types import FrequencySeries
+from pycbc.types import FrequencySeries, TimeSeries, real_same_precision_as, zeros
 from pycbc.strain import gates_from_cli
 from pycbc.strain.calibration import Recalibrate
 from pycbc.inject import InjectionSet
 from pycbc.io import FieldArray
 from pycbc.types.optparse import MultiDetOptionAction
 
-from .base import ModelStats
+from .base import ModelStats, _public_stat_value
 from .base_data import BaseDataModel
 from .data_utils import (data_opts_from_config, data_from_cli,
                          fd_data_from_strain_dict, gate_overwhitened_data)
+from .tools import _fused_inner_hd_hh, _torch_tensor
 
 
 def catch_waveform_error(method):
@@ -216,6 +217,16 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
         # attribute for storing the current waveforms
         self._current_wfs = None
 
+        # Initialize NetworkGeometry when detectors are present
+        if len(self._data) >= 1:
+            try:
+                from pycbc.detector import NetworkGeometry
+                self.network_geometry = NetworkGeometry(list(self._data.keys()))
+            except Exception:
+                self.network_geometry = None
+        else:
+            self.network_geometry = None
+
     @property
     def high_frequency_cutoff(self):
         """The high frequency cutoff of the inner product."""
@@ -280,8 +291,15 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
         for det, d in self._data.items():
             if psds is None:
                 # No psd means assume white PSD
-                p = FrequencySeries(numpy.ones(int(self._N[det]/2+1)),
-                                    delta_f=d.delta_f)
+                p = FrequencySeries(
+                    zeros(
+                        int(self._N[det] / 2 + 1),
+                        dtype=real_same_precision_as(d),
+                    ),
+                    delta_f=d.delta_f,
+                    copy=False,
+                )
+                p.fill(1.)
             else:
                 # copy for storage
                 p = psds[det].copy()
@@ -290,7 +308,11 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
             # only set weight in band we will analyze
             kmin = self._kmin[det]
             kmax = self._kmax[det]
-            invp = FrequencySeries(numpy.zeros(len(p)), delta_f=p.delta_f)
+            invp = FrequencySeries(
+                zeros(len(p), dtype=p.dtype),
+                delta_f=p.delta_f,
+                copy=False,
+            )
             invp[kmin:kmax] = 1./p[kmin:kmax]
             self._invpsds[det] = invp
             self._weight[det] = numpy.sqrt(4 * invp.delta_f * invp)
@@ -452,6 +474,65 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
         # since the loglr has fewer terms, we'll call that, then just add
         # back the noise term that canceled in the log likelihood ratio
         return self.loglr + self.lognl
+
+    def _parse_batched_params(self, *args, **params):
+        """Parse positional or keyword batched parameter arguments."""
+        if args:
+            if len(args) == 1 and isinstance(args[0], dict):
+                p = dict(args[0])
+                p.update(params)
+                params = p
+            elif len(args) == 1 and hasattr(args[0], 'dtype') and args[0].dtype.names:
+                p = {name: args[0][name] for name in args[0].dtype.names}
+                p.update(params)
+                params = p
+            elif len(args) == 1 and hasattr(args[0], '_fields'):
+                p = {name: getattr(args[0], name) for name in args[0]._fields}
+                p.update(params)
+                params = p
+            else:
+                raise ValueError("Unexpected positional arguments for batched evaluation")
+        return params
+
+    def batched_loglikelihood(self, *args, **params):
+        r"""Computes the log likelihood of a batch of parameter samples,
+
+        .. math::
+
+            \log p(d|\Theta_j, h) = \log \mathcal{L}(\Theta_j) + \log p(d|n),
+
+        for each sample :math:`\Theta_j` in the batch.
+
+        Parameters
+        ----------
+        *args : dict or structured array, optional
+            A single positional mapping or structured array of parameter values.
+        **params : dict
+            Detector-frame parameter names mapped to scalars or one-
+            dimensional arrays or tensors of samples. The supported batched
+            parameters are ``tc``, ``ra``, ``dec``, and ``polarization``.
+            Radiation-frame waveform parameters must be scalar.
+
+        Returns
+        -------
+        logl : numpy.ndarray or torch.Tensor
+            The log likelihood values evaluated across the batch.
+        """
+        return self._batched_loglr(*args, **params) + self.lognl
+
+    def batched_loglr(self, *args, **params):
+        """Evaluate a batch over detector-frame extrinsic parameters.
+
+        Batched ``tc``, ``ra``, ``dec``, and ``polarization`` values are
+        supported. Radiation-frame waveform parameters must be scalar.
+        """
+        return self._batched_loglr(*args, **params)
+
+    def _batched_loglr(self, *args, **params):
+        """Computes the log likelihood ratio for a batch of parameter samples.
+        Must be implemented by subclasses.
+        """
+        raise NotImplementedError("Batched loglr not implemented for this model.")
 
     def write_metadata(self, fp, group=None):
         """Adds writing the psds, analyzed detectors, and lognl.
@@ -996,8 +1077,10 @@ class GaussianNoise(BaseGaussianNoise):
 
         Returns
         -------
-        float
-            The value of the log likelihood ratio.
+        float or torch.Tensor
+            The scalar log likelihood ratio. Torch-backed calculations retain
+            a device-resident scalar tensor so likelihood composition and
+            cached access remain differentiable.
         """
         wfs = self.get_waveforms()
         lr = 0.
@@ -1011,12 +1094,11 @@ class GaussianNoise(BaseGaussianNoise):
                 hh = 0.
             else:
                 slc = slice(self._kmin[det], kmax)
-                # whiten the waveform
-                h[self._kmin[det]:kmax] *= self._weight[det][slc]
-
-                # the inner products
-                cplx_hd = h[slc].inner(self._whitened_data[det][slc])  # <h, d>
-                hh = h[slc].inner(h[slc]).real  # < h, h>
+                cplx_hd, hh = _fused_inner_hd_hh(
+                    h[slc],
+                    self._whitened_data[det][slc],
+                    weight=self._weight[det][slc],
+                )
             cplx_loglr = cplx_hd - 0.5 * hh
             # store
             setattr(self._current_stats, '{}_optimal_snrsq'.format(det), hh)
@@ -1026,7 +1108,7 @@ class GaussianNoise(BaseGaussianNoise):
         # also store the loglikelihood, to ensure it is populated in the
         # current stats even if loglikelihood is never called
         self._current_stats.loglikelihood = lr + self.lognl
-        return float(lr)
+        return float(lr) if numpy.isscalar(lr) else lr
 
     def det_cplx_loglr(self, det):
         """Returns the complex log likelihood ratio in the given detector.
@@ -1043,12 +1125,19 @@ class GaussianNoise(BaseGaussianNoise):
         """
         # try to get it from current stats
         try:
-            return getattr(self._current_stats, '{}_cplx_loglr'.format(det))
+            value = getattr(
+                self._current_stats, '{}_cplx_loglr'.format(det)
+            )
         except AttributeError:
-            # hasn't been calculated yet; call loglr to do so
-            self._loglr()
+            # Populate through the cached public property. Calling ``_loglr``
+            # directly would leave ``current_stats.loglr`` unset, so a later
+            # ``self.loglr`` access could regenerate and re-weight waveforms.
+            _ = self.loglr
             # now try returning again
-            return getattr(self._current_stats, '{}_cplx_loglr'.format(det))
+            value = getattr(
+                self._current_stats, '{}_cplx_loglr'.format(det)
+            )
+        return _public_stat_value(value)
 
     def det_optimal_snrsq(self, det):
         """Returns the opitmal SNR squared in the given detector.
@@ -1065,12 +1154,390 @@ class GaussianNoise(BaseGaussianNoise):
         """
         # try to get it from current stats
         try:
-            return getattr(self._current_stats, '{}_optimal_snrsq'.format(det))
+            value = getattr(
+                self._current_stats, '{}_optimal_snrsq'.format(det)
+            )
         except AttributeError:
-            # hasn't been calculated yet; call loglr to do so
-            self._loglr()
+            # Populate through the cached public property; see the complex
+            # detector-stat accessor above.
+            _ = self.loglr
             # now try returning again
-            return getattr(self._current_stats, '{}_optimal_snrsq'.format(det))
+            value = getattr(
+                self._current_stats, '{}_optimal_snrsq'.format(det)
+            )
+        return _public_stat_value(value)
+
+    def _batched_loglr(self, *args, **params):
+        r"""Computes the log likelihood ratio for a batch of parameter samples,
+
+        .. math::
+
+            \log \mathcal{L}(\Theta_j) = \sum_i \left[
+                \left<h_i(\Theta_j)|d_i\right> -
+                \frac{1}{2}\left<h_i(\Theta_j)|h_i(\Theta_j)\right> \right],
+
+        simultaneously for all samples :math:`j` using ``NetworkGeometry`` and
+        fused inner products ``_fused_inner_hd_hh``.
+
+        Parameters
+        ----------
+        *args : dict or structured array, optional
+            A single positional mapping or structured array of parameter values.
+        **params : dict
+            Detector-frame parameter names mapped to scalars or one-
+            dimensional arrays or tensors of samples. Radiation-frame
+            waveform parameters must be scalar.
+
+        Returns
+        -------
+        loglr : numpy.ndarray or torch.Tensor
+            The log likelihood ratio values evaluated across the batch.
+        """
+        params = self._parse_batched_params(*args, **params)
+        total_hd, total_hh, _, _ = _batched_waveform_inner_products(
+            self, params, zero_phase=False
+        )
+        return total_hd.real - 0.5 * total_hh
+
+
+def _batched_value_shape(value):
+    """Return a parameter value's shape without moving Torch data to host."""
+    tensor = _torch_tensor(value)
+    return tuple(tensor.shape) if tensor is not None else numpy.shape(value)
+
+
+def _detector_frame_batch_size(generator, supplied_params, full_params):
+    """Validate detector-frame-only batching and return its sample count."""
+    location_args = set(generator.location_args)
+    unsupported = sorted(
+        name
+        for name, value in supplied_params.items()
+        if name not in location_args and _batched_value_shape(value)
+    )
+    if unsupported:
+        raise ValueError(
+            "Batched radiation-frame waveform parameters are not supported; "
+            "only tc, ra, dec, and polarization may be batched. Got: "
+            + ", ".join(unsupported)
+        )
+
+    lengths = {}
+    for name in location_args:
+        if name not in full_params:
+            continue
+        shape = _batched_value_shape(full_params[name])
+        if len(shape) > 1:
+            raise ValueError(
+                f"Batched detector-frame parameter {name!r} must be scalar "
+                "or one-dimensional"
+            )
+        if shape:
+            lengths[name] = shape[0]
+
+    batch_size = max(lengths.values(), default=1)
+    if batch_size < 1:
+        raise ValueError("Batched detector-frame parameters cannot be empty")
+    mismatched = {
+        name: length
+        for name, length in lengths.items()
+        if length not in (1, batch_size)
+    }
+    if mismatched:
+        detail = ", ".join(
+            f"{name}={length}" for name, length in sorted(mismatched.items())
+        )
+        raise ValueError(
+            "Batched detector-frame parameter lengths must be one or the "
+            f"common batch length {batch_size}; got {detail}"
+        )
+    return batch_size
+
+
+def _batched_waveform_inner_products(model, params, zero_phase=False):
+    """Evaluate batched waveform frequency-domain projections and inner products
+    across all detectors in a single pass using NetworkGeometry and
+    _fused_inner_hd_hh.
+    """
+    full_params = dict(model.static_params) if model.static_params else {}
+    full_params.update(params)
+
+    gen = (
+        model.waveform_generator
+        if hasattr(model, 'waveform_generator')
+        else None
+    )
+    has_rframe = (
+        gen is not None
+        and hasattr(gen, 'rframe_generator')
+        and hasattr(gen, 'location_args')
+    )
+
+    if has_rframe:
+        batch_size = _detector_frame_batch_size(
+            gen, params, full_params
+        )
+        rfparams = {
+            param: full_params[param]
+            for param in full_params
+            if param not in gen.location_args
+        }
+        if zero_phase:
+            rfparams['coa_phase'] = 0.0
+        hp, hc = gen.rframe_generator.generate(**rfparams)
+        from pycbc.waveform.utils import (
+            scheme_cast_series as _scheme_cast_series
+        )
+        hp = _scheme_cast_series(hp)
+        hc = _scheme_cast_series(hc)
+        if isinstance(hp, TimeSeries):
+            df = full_params.get(
+                'delta_f', gen.current_params.get('delta_f', hp.delta_f)
+            )
+            hp = hp.to_frequencyseries(delta_f=df)
+            hc = hc.to_frequencyseries(delta_f=df)
+            tshift = 1.0 / df - abs(hp._epoch)
+        else:
+            tshift = 0.0
+
+        epoch = getattr(gen, '_epoch', float(getattr(hp, '_epoch', 0.0)))
+        delta_f = hp.delta_f
+
+        ra = full_params.get('ra', 0.0)
+        dec = full_params.get('dec', 0.0)
+        pol = full_params.get('polarization', 0.0)
+        ref_tc = full_params.get('tc', 0.0)
+        refframe = full_params.get('tc_ref_frame', 'geocentric')
+
+        total_hd = None
+        total_hh = None
+        det_hd = {}
+        det_hh = {}
+        delay_dict = None
+        if (
+            refframe == 'geocentric'
+            and getattr(model, 'network_geometry', None) is not None
+        ):
+            delays = model.network_geometry.time_delay_from_earth_center(
+                ra, dec, ref_tc
+            )
+            delay_dict = model.network_geometry.to_dict(delays)
+
+        for detname in model._data:
+            if getattr(model, 'network_geometry', None) is not None:
+                det = model.network_geometry[detname]
+            else:
+                from pycbc.detector import Detector
+                det = Detector(detname)
+            if delay_dict is not None:
+                tc = ref_tc + delay_dict[detname]
+            else:
+                tc = det.arrival_time(ref_tc, ra, dec, refframe)
+            fp, fc = det.antenna_pattern(ra, dec, pol, tc)
+            dt = tc + tshift - epoch
+
+            hp_tensor = _torch_tensor(hp)
+            hc_tensor = _torch_tensor(hc)
+            fp_tensor = _torch_tensor(fp)
+            fc_tensor = _torch_tensor(fc)
+            dt_tensor = _torch_tensor(dt)
+
+            tensors = (
+                hp_tensor, hc_tensor, fp_tensor, fc_tensor, dt_tensor
+            )
+            if any(tensor is not None for tensor in tensors):
+                import torch
+
+                like = next(t for t in tensors if t is not None)
+                device = like.device
+                real_dtype = like.real.dtype
+                complex_dtype = (
+                    torch.complex128
+                    if real_dtype == torch.float64
+                    else torch.complex64
+                )
+
+                def _to_tensor(x, dev, dt):
+                    if hasattr(x, '_data') and hasattr(x._data, 'tensor'):
+                        return x._data.tensor.to(device=dev, dtype=dt)
+                    if hasattr(x, 'numpy') and callable(x.numpy):
+                        arr = x.numpy()
+                    elif (
+                        hasattr(x, 'data')
+                        and not isinstance(x.data, memoryview)
+                    ):
+                        arr = numpy.asarray(x.data)
+                    else:
+                        arr = numpy.asarray(x)
+                    return torch.as_tensor(arr, device=dev, dtype=dt)
+
+                hp_t = (
+                    hp_tensor
+                    if hp_tensor is not None
+                    else _to_tensor(hp, device, complex_dtype)
+                )
+                if hc_tensor is None:
+                    hc_t = _to_tensor(hc, device, complex_dtype)
+                else:
+                    hc_t = hc_tensor.to(
+                        device=device, dtype=complex_dtype
+                    )
+
+                if hp_t.ndim != 1 or hc_t.ndim != 1:
+                    raise ValueError(
+                        "batched likelihood waveform parameters must be "
+                        "scalar; only detector-frame extrinsics may be "
+                        "batched"
+                    )
+
+                def _sample_column(value, name):
+                    value_tensor = _torch_tensor(value)
+                    if value_tensor is None:
+                        value_tensor = torch.as_tensor(
+                            value, device=device, dtype=real_dtype
+                        )
+                    else:
+                        value_tensor = value_tensor.to(
+                            device=device, dtype=real_dtype
+                        )
+                    if value_tensor.ndim == 0:
+                        value_tensor = value_tensor.expand(batch_size)
+                    elif (
+                        value_tensor.ndim == 1
+                        and value_tensor.shape[0] == 1
+                    ):
+                        value_tensor = value_tensor.expand(batch_size)
+                    elif (
+                        value_tensor.ndim != 1
+                        or value_tensor.shape[0] != batch_size
+                    ):
+                        raise ValueError(
+                            f"Batched detector-frame parameter {name!r} "
+                            f"must be scalar or have length {batch_size}"
+                        )
+                    return value_tensor.unsqueeze(-1)
+
+                fp_t = _sample_column(fp, 'fplus')
+                fc_t = _sample_column(fc, 'fcross')
+                dt_t = _sample_column(dt, 'tc')
+
+                n_freq = hp_t.shape[-1]
+                freqs = (
+                    torch.arange(
+                        n_freq, device=device, dtype=real_dtype
+                    ) * delta_f
+                )
+
+                phase = -2.0 * torch.pi * freqs * dt_t
+                shift = torch.complex(torch.cos(phase), torch.sin(phase))
+                h_det = (fp_t * hp_t + fc_t * hc_t) * shift
+                if model.recalibration and detname in model.recalibration:
+                    h_det = model.recalibration[detname].map_to_adjust(
+                        h_det, **full_params
+                    )
+            else:
+                def _numpy_data(value):
+                    data = getattr(value, 'data', None)
+                    if data is None or isinstance(data, memoryview):
+                        data = value
+                    return numpy.asarray(data)
+
+                hp_arr = _numpy_data(hp)
+                hc_arr = _numpy_data(hc)
+                if hp_arr.ndim != 1 or hc_arr.ndim != 1:
+                    raise ValueError(
+                        "batched likelihood waveform parameters must be "
+                        "scalar; only detector-frame extrinsics may be "
+                        "batched"
+                    )
+                n_freq = hp_arr.shape[-1]
+                freqs = numpy.arange(n_freq) * delta_f
+
+                def _sample_column(value, name):
+                    value_array = numpy.asarray(value)
+                    if value_array.ndim == 0:
+                        value_array = numpy.broadcast_to(
+                            value_array, (batch_size,)
+                        )
+                    elif value_array.ndim == 1 and value_array.shape[0] == 1:
+                        value_array = numpy.broadcast_to(
+                            value_array, (batch_size,)
+                        )
+                    elif (
+                        value_array.ndim != 1
+                        or value_array.shape[0] != batch_size
+                    ):
+                        raise ValueError(
+                            f"Batched detector-frame parameter {name!r} "
+                            f"must be scalar or have length {batch_size}"
+                        )
+                    return value_array[:, None]
+
+                fp_arr = _sample_column(fp, 'fplus')
+                fc_arr = _sample_column(fc, 'fcross')
+                dt_arr = _sample_column(dt, 'tc')
+                phase = -2.0 * numpy.pi * freqs * dt_arr
+                shift = numpy.exp(1j * phase)
+                h_det = (fp_arr * hp_arr + fc_arr * hc_arr) * shift
+                if model.recalibration and detname in model.recalibration:
+                    h_det = model.recalibration[detname].map_to_adjust(
+                        h_det, **full_params
+                    )
+
+            kmax = min(h_det.shape[-1], model._kmax[detname])
+            kmin = model._kmin[detname]
+            if kmin >= kmax:
+                if _torch_tensor(h_det) is not None:
+                    import torch
+
+                    cplx_hd = torch.zeros(
+                        h_det.shape[:-1], dtype=complex_dtype, device=device
+                    )
+                    hh = torch.zeros(
+                        h_det.shape[:-1], dtype=real_dtype, device=device
+                    )
+                else:
+                    cplx_hd = numpy.zeros(h_det.shape[:-1], dtype=complex)
+                    hh = numpy.zeros(h_det.shape[:-1], dtype=float)
+            else:
+                slc = slice(kmin, kmax)
+                w_slc = model._weight[detname][slc]
+                d_slc = model._whitened_data[detname][slc]
+                cplx_hd, hh = _fused_inner_hd_hh(
+                    h_det[..., slc], d_slc, weight=w_slc
+                )
+
+            det_hd[detname] = cplx_hd
+            det_hh[detname] = hh
+            total_hd = cplx_hd if total_hd is None else total_hd + cplx_hd
+            total_hh = hh if total_hh is None else total_hh + hh
+
+        return total_hd, total_hh, det_hd, det_hh
+    else:
+        if gen is not None:
+            wfs = gen.generate(**full_params)
+        else:
+            wfs = model.get_waveforms()
+
+        total_hd = None
+        total_hh = None
+        det_hd = {}
+        det_hh = {}
+        for detname, h in wfs.items():
+            kmax = min(h.shape[-1] if hasattr(h, 'shape') else len(h), model._kmax[detname])
+            kmin = model._kmin[detname]
+            if kmin >= kmax:
+                cplx_hd = 0j
+                hh = 0.0
+            else:
+                slc = slice(kmin, kmax)
+                w_slc = model._weight[detname][slc]
+                d_slc = model._whitened_data[detname][slc]
+                cplx_hd, hh = _fused_inner_hd_hh(h[..., slc], d_slc, weight=w_slc)
+            det_hd[detname] = cplx_hd
+            det_hh[detname] = hh
+            total_hd = cplx_hd if total_hd is None else total_hd + cplx_hd
+            total_hh = hh if total_hh is None else total_hh + hh
+        return total_hd, total_hh, det_hd, det_hh
 
 
 #

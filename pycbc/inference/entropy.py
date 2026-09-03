@@ -2,8 +2,170 @@
 Kullback-Leibler divergence.
 """
 
+import operator
+
 import numpy
 from scipy import stats
+
+
+def _torch_entropy(pk, qk=None, base=numpy.e):
+    """Compute entropy for Torch PDFs without importing Torch eagerly."""
+    values = (pk,) if qk is None else (pk, qk)
+    if not any(
+            type(value).__module__.split('.', 1)[0] == 'torch'
+            for value in values):
+        return None
+
+    import torch
+
+    reference = next(
+        value for value in values if isinstance(value, torch.Tensor)
+    )
+    reference_dtype = (
+        reference.dtype if reference.is_floating_point()
+        else torch.get_default_dtype()
+    )
+    tensors = []
+    for value in values:
+        tensor = (
+            value if isinstance(value, torch.Tensor) else torch.as_tensor(
+                value, device=reference.device, dtype=reference_dtype
+            )
+        )
+        if tensor.is_complex():
+            raise TypeError("probability densities must be real")
+        if not tensor.is_floating_point():
+            tensor = tensor.to(dtype=torch.get_default_dtype())
+        tensors.append(tensor)
+
+    if base is not None and base <= 0:
+        raise ValueError("`base` must be a positive number or `None`.")
+
+    pk = tensors[0]
+    pk = pk / pk.sum(dim=0, keepdim=True)
+    if qk is None:
+        positive = pk > 0
+        safe_pk = torch.where(positive, pk, torch.ones_like(pk))
+        terms = torch.where(
+            positive, -pk * torch.log(safe_pk), torch.zeros_like(pk)
+        )
+        terms = torch.where(
+            pk < 0, torch.full_like(pk, -torch.inf), terms
+        )
+        terms = torch.where(
+            torch.isnan(pk), torch.full_like(pk, torch.nan), terms
+        )
+    else:
+        pk, qk = torch.broadcast_tensors(pk, tensors[1])
+        qk = qk / qk.sum(dim=0, keepdim=True)
+        positive = (pk > 0) & (qk > 0)
+        safe_pk = torch.where(positive, pk, torch.ones_like(pk))
+        safe_qk = torch.where(positive, qk, torch.ones_like(qk))
+        terms = torch.full_like(pk, torch.inf)
+        terms = torch.where(
+            positive, pk * torch.log(safe_pk / safe_qk), terms
+        )
+        terms = torch.where(
+            (pk == 0) & (qk >= 0), torch.zeros_like(terms), terms
+        )
+        terms = torch.where(
+            torch.isnan(pk) | torch.isnan(qk),
+            torch.full_like(terms, torch.nan), terms,
+        )
+
+    result = terms.sum(dim=0)
+    if base is not None:
+        result = result / torch.log(result.new_tensor(base))
+    return result
+
+
+def _torch_histogram_pdf(samples, bins, hist_range):
+    """Return an on-device equal-width histogram PDF when supported."""
+    if type(samples).__module__.split('.', 1)[0] != 'torch':
+        return None
+
+    try:
+        bins = operator.index(bins)
+    except TypeError:
+        # NumPy's named/adaptive bin estimators remain the legacy path.
+        return None
+
+    import torch
+
+    if not isinstance(samples, torch.Tensor):
+        return None
+    if samples.is_complex():
+        raise TypeError("histogram samples must be real")
+    if not samples.is_floating_point():
+        samples = samples.to(dtype=torch.get_default_dtype())
+    if hist_range is not None:
+        hist_range = tuple(float(bound) for bound in hist_range)
+    pdf, _ = torch.histogram(
+        samples, bins=bins, range=hist_range, density=True
+    )
+    return pdf
+
+
+def _torch_kde_evaluate(samples, points, bandwidth,
+                        max_elements=2_000_000):
+    """Evaluate a one-dimensional Gaussian KDE in bounded-size chunks."""
+    import torch
+
+    chunk_size = max(1, max_elements // samples.numel())
+    normalization = bandwidth * torch.sqrt(
+        bandwidth.new_tensor(2.0 * numpy.pi)
+    )
+    densities = []
+    for start in range(0, points.numel(), chunk_size):
+        point_chunk = points[start:start + chunk_size]
+        scaled = (
+            point_chunk[:, None] - samples[None, :]
+        ) / bandwidth
+        densities.append(
+            torch.exp(-0.5 * scaled.square()).mean(dim=1) / normalization
+        )
+    return torch.cat(densities)
+
+
+def _torch_kde_pdf(samples):
+    """Sample and evaluate a one-dimensional Scott-bandwidth Torch KDE."""
+    if type(samples).__module__.split('.', 1)[0] != 'torch':
+        return None
+
+    import torch
+
+    if not isinstance(samples, torch.Tensor):
+        return None
+    if samples.ndim != 1:
+        raise ValueError("KDE samples must be one-dimensional")
+    if samples.is_complex():
+        raise TypeError("KDE samples must be real")
+    if not samples.is_floating_point():
+        samples = samples.to(dtype=torch.get_default_dtype())
+    if samples.numel() < 2:
+        raise ValueError("KDE requires multiple samples")
+    if not bool(torch.isfinite(samples).all()):
+        raise ValueError("KDE samples must be finite")
+
+    # scipy.stats.gaussian_kde uses Scott's rule and the unbiased sample
+    # covariance by default. In one dimension this reduces to a scalar
+    # bandwidth of std(samples) * n ** (-1/5).
+    scott_factor = samples.new_tensor(samples.numel() ** (-1.0 / 5.0))
+    bandwidth = samples.std(unbiased=True) * scott_factor
+    if not bool(torch.isfinite(bandwidth)) or not bool(bandwidth > 0):
+        raise numpy.linalg.LinAlgError(
+            "KDE covariance is singular; samples must have nonzero variance"
+        )
+
+    npts = max(10_000, samples.numel())
+    indices = torch.randint(
+        samples.numel(), (npts,), device=samples.device
+    )
+    noise = torch.randn(
+        npts, device=samples.device, dtype=samples.dtype
+    )
+    points = samples[indices] + bandwidth * noise
+    return _torch_kde_evaluate(samples, points, bandwidth)
 
 
 def check_hist_params(samples, hist_min, hist_max, hist_bins):
@@ -66,7 +228,7 @@ def compute_pdf(samples, method, bins, hist_min, hist_max):
 
     Parameters
     ----------
-    samples : numpy.array
+    samples : numpy.array or torch.Tensor
         Set of samples to calculate the pdf.
     method : str
         Method to calculate the pdf. Options are 'kde' for the Kernel Density
@@ -88,20 +250,26 @@ def compute_pdf(samples, method, bins, hist_min, hist_max):
 
     Returns
     -------
-    pdf : numpy.array
-        Discrete probability distribution calculated from samples.
+    pdf : numpy.array or torch.Tensor
+        Discrete probability distribution calculated from samples. Torch
+        samples using one-dimensional KDE or an integer number of histogram
+        bins stay on-device.
     """
 
     if method == 'kde':
-        samples_kde = stats.gaussian_kde(samples)
-        npts = 10000 if len(samples) <= 10000 else len(samples)
-        draw = samples_kde.resample(npts)
-        pdf = samples_kde.evaluate(draw)
+        pdf = _torch_kde_pdf(samples)
+        if pdf is None:
+            samples_kde = stats.gaussian_kde(samples)
+            npts = 10000 if len(samples) <= 10000 else len(samples)
+            draw = samples_kde.resample(npts)
+            pdf = samples_kde.evaluate(draw)
     elif method == 'hist':
         hist_range, hist_bins = check_hist_params(samples, hist_min,
                                                   hist_max, bins)
-        pdf, _ = numpy.histogram(samples, bins=hist_bins,
-                                 range=hist_range, density=True)
+        pdf = _torch_histogram_pdf(samples, hist_bins, hist_range)
+        if pdf is None:
+            pdf, _ = numpy.histogram(samples, bins=hist_bins,
+                                     range=hist_range, density=True)
     else:
         raise ValueError('Method not recognized.')
 
@@ -114,18 +282,22 @@ def entropy(pdf1, base=numpy.e):
 
     Parameters
     ----------
-    pdf1 : numpy.array
-        Probability density function.
+    pdf1 : numpy.array or torch.Tensor
+        Probability density function. Torch inputs are evaluated on their
+        current device.
     base : {numpy.e, numpy.float64}, optional
         The logarithmic base to use (choose base 2 for information measured
         in bits, default is nats).
 
     Returns
     -------
-    numpy.float64
-        The information entropy value.
+    numpy.float64 or torch.Tensor
+        The information entropy value. A Torch input returns a Torch tensor.
     """
 
+    torch_result = _torch_entropy(pdf1, base=base)
+    if torch_result is not None:
+        return torch_result
     return stats.entropy(pdf1, base=base)
 
 
@@ -136,12 +308,16 @@ def kl(samples1, samples2, pdf1=False, pdf2=False, kde=False,
 
     Parameters
     ----------
-    samples1 : numpy.array
+    samples1 : numpy.array or torch.Tensor
         Samples or probability density function (for the latter must also set
-        `pdf1=True`).
-    samples2 : numpy.array
+        `pdf1=True`). One-dimensional Torch KDE samples and Torch histogram
+        samples with integer `bins` stay on-device; direct Torch PDFs always
+        stay on-device.
+    samples2 : numpy.array or torch.Tensor
         Samples or probability density function (for the latter must also set
-        `pdf2=True`).
+        `pdf2=True`). One-dimensional Torch KDE samples and Torch histogram
+        samples with integer `bins` stay on-device; direct Torch PDFs always
+        stay on-device.
     pdf1 : bool
         Set to `True` if `samples1` is a probability density funtion already.
     pdf2 : bool
@@ -169,12 +345,19 @@ def kl(samples1, samples2, pdf1=False, pdf2=False, kde=False,
 
     Returns
     -------
-    numpy.float64
-        The Kullback-Leibler divergence value.
+    numpy.float64 or torch.Tensor
+        The Kullback-Leibler divergence value. Direct Torch PDF inputs and
+        one-dimensional Torch KDE or integer-bin histogram samples return a
+        Torch tensor.
     """
     if pdf1 and pdf2 and kde:
         raise ValueError('KDE can only be used when at least one of pdf1 or '
                          'pdf2 is False.')
+
+    if pdf1 and pdf2:
+        torch_result = _torch_entropy(samples1, samples2, base=base)
+        if torch_result is not None:
+            return torch_result
 
     sample_groups = {'P': (samples1, pdf1), 'Q': (samples2, pdf2)}
     pdfs = {}
@@ -186,6 +369,9 @@ def kl(samples1, samples2, pdf1=False, pdf2=False, kde=False,
             method = 'kde' if kde else 'hist'
             pdfs[n] = compute_pdf(samples, method, bins, hist_min, hist_max)
 
+    torch_result = _torch_entropy(pdfs['P'], pdfs['Q'], base=base)
+    if torch_result is not None:
+        return torch_result
     return stats.entropy(pdfs['P'], qk=pdfs['Q'], base=base)
 
 
@@ -196,9 +382,9 @@ def js(samples1, samples2, kde=False, bins=None, hist_min=None, hist_max=None,
 
     Parameters
     ----------
-    samples1 : numpy.array
+    samples1 : numpy.array or torch.Tensor
         Samples.
-    samples2 : numpy.array
+    samples2 : numpy.array or torch.Tensor
         Samples.
     kde : bool
         Set to `True` to estimate the probability density function using
@@ -222,8 +408,10 @@ def js(samples1, samples2, kde=False, bins=None, hist_min=None, hist_max=None,
 
     Returns
     -------
-    numpy.float64
-        The Jensen-Shannon divergence value.
+    numpy.float64 or torch.Tensor
+        The Jensen-Shannon divergence value. One-dimensional Torch KDE or
+        integer-bin histogram samples return a Torch tensor on the input
+        device.
     """
 
     sample_groups = {'P': samples1, 'Q': samples2}

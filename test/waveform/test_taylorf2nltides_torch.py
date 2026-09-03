@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 
 torch = pytest.importorskip("torch")
+lal = pytest.importorskip("lal")
+lalsimulation = pytest.importorskip("lalsimulation")
 
 from pycbc import scheme as _scheme
 from pycbc.waveform import get_fd_waveform, get_fd_waveform_sequence
