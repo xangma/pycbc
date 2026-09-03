@@ -74,16 +74,13 @@ class _PNPhasingSeries:
         if type(like).__module__.split(".", 1)[0] == "torch":
             import torch
 
-            shape = (_MAX_PN_ORDER,) + tuple(like.shape)
-            self.v = torch.zeros(
-                shape, device=like.device, dtype=like.dtype
-            )
-            self.vlogv = torch.zeros(
-                shape, device=like.device, dtype=like.dtype
-            )
-            self.vlogvsq = torch.zeros(
-                shape, device=like.device, dtype=like.dtype
-            )
+            # Assemble tensor coefficients as independent values. Mutating
+            # views of one stacked tensor while later terms still reference
+            # those views invalidates Torch's saved autograd versions.
+            zero = torch.zeros_like(like)
+            self.v = [zero for _ in range(_MAX_PN_ORDER)]
+            self.vlogv = [zero for _ in range(_MAX_PN_ORDER)]
+            self.vlogvsq = [zero for _ in range(_MAX_PN_ORDER)]
         else:
             self.v = _np.zeros(_MAX_PN_ORDER, dtype=_np.float64)
             self.vlogv = _np.zeros(_MAX_PN_ORDER, dtype=_np.float64)
@@ -108,6 +105,28 @@ class _TaylorF2Inputs:
     device: object
     real_dtype: object
     complex_dtype: object
+
+
+@dataclass(frozen=True)
+class TaylorF2FDBatch:
+    """Padded TaylorF2 frequency-domain polarizations and row metadata.
+
+    ``hplus`` and ``hcross`` have shape ``(batch, frequency)``.  Samples in
+    row ``i`` are non-zero only in ``[first_bins[i], end_bins[i])``; padding
+    outside that interval is exactly zero.  Iteration yields the two
+    polarizations so callers may continue to use ``hplus, hcross = result``.
+    """
+
+    hplus: object
+    hcross: object
+    delta_f: float
+    epoch: float
+    first_bins: object
+    end_bins: object
+
+    def __iter__(self):
+        yield self.hplus
+        yield self.hcross
 
 
 # ---- Non-spinning phasing pieces (numeric coefficients copied verbatim) ----
@@ -444,6 +463,30 @@ def taylorf2_aligned_phasing(
         qm_def2,
     )
     _apply_tidal_terms(pfa, mass1, mass2, lambda1, lambda2, tidal_order)
+
+    # Stack tensor-valued coefficient lists only after their functional
+    # assembly, preserving autograd through all physical parameters.
+    if isinstance(pfa.v, list):
+        import torch
+
+        def stack_coefficients(values):
+            return torch.stack(
+                [
+                    torch.broadcast_to(
+                        torch.as_tensor(
+                            value,
+                            device=mass1.device,
+                            dtype=mass1.dtype,
+                        ),
+                        mass1.shape,
+                    )
+                    for value in values
+                ]
+            )
+
+        pfa.v = stack_coefficients(pfa.v)
+        pfa.vlogv = stack_coefficients(pfa.vlogv)
+        pfa.vlogvsq = stack_coefficients(pfa.vlogvsq)
 
     # Final global scaling
     pfa.v = pfa.v * pfaN
@@ -993,4 +1036,620 @@ def taylorf2_fd_sequence_torch(**params):
     return (
         PyCBCArray(TorchArrayData(plus), copy=False),
         PyCBCArray(TorchArrayData(cross), copy=False),
+    )
+
+
+_BATCH_PARAMETER_DEFAULTS = {
+    "spin1z": 0.0,
+    "spin2z": 0.0,
+    "distance": 1.0,
+    "inclination": 0.0,
+    "coa_phase": 0.0,
+    "long_asc_nodes": 0.0,
+    "f_ref": 0.0,
+    "f_final": 0.0,
+    "lambda1": 0.0,
+    "lambda2": 0.0,
+    "dquad_mon1": 0.0,
+    "dquad_mon2": 0.0,
+    **dict.fromkeys(_DCHI_KEYS, 0.0),
+}
+
+_BATCH_ZERO_ONLY_PARAMETERS = (
+    "spin1x",
+    "spin1y",
+    "spin2x",
+    "spin2y",
+    "eccentricity",
+    "mean_per_ano",
+    "frame_axis",
+    "modes_choice",
+    "side_bands",
+    *_UNSUPPORTED_NON_GR_KEYS,
+)
+
+_BATCH_DISCRETE_PARAMETERS = {
+    "phase_order": (-1, _PHASE_ORDERS),
+    "spin_order": (-1, _SPIN_ORDERS),
+    "tidal_order": (-1, _TIDAL_ORDERS),
+    "amplitude_order": (-1, frozenset((-1, 0))),
+    "eccentricity_order": (-1, frozenset((-1,))),
+}
+
+
+def _batch_unwrap(value):
+    """Return the underlying numeric object without a NumPy round trip."""
+
+    value = getattr(value, "_data", value)
+    return getattr(value, "tensor", value)
+
+
+def _batch_tensor(value, name, torch, device, dtype):
+    """Convert one scalar-or-vector batch argument to the active device."""
+
+    value = _batch_unwrap(value)
+    if isinstance(value, torch.Tensor):
+        source = value
+        nonreal = source.dtype == torch.bool or source.is_complex()
+    else:
+        try:
+            source = _np.asarray(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"TaylorF2 batch parameter {name!r} must be numeric"
+            ) from exc
+        nonreal = source.dtype.kind in ("b", "c")
+    if nonreal:
+        raise ValueError(
+            f"TaylorF2 batch parameter {name!r} must be real-valued"
+        )
+    try:
+        result = torch.as_tensor(source, device=device, dtype=dtype)
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise ValueError(
+            f"TaylorF2 batch parameter {name!r} must be numeric"
+        ) from exc
+    if result.ndim > 1:
+        raise ValueError(
+            f"TaylorF2 batch parameter {name!r} must be scalar or 1-D"
+        )
+    if result.ndim == 1 and result.numel() == 0:
+        raise ValueError(
+            f"TaylorF2 batch parameter {name!r} must not be empty"
+        )
+    return result
+
+
+def _batch_shared_scalar(params, name, default, torch):
+    """Read a shared scalar without accepting singleton vectors."""
+
+    value = _batch_unwrap(params.get(name, default))
+    if isinstance(value, torch.Tensor):
+        source = value
+        nonreal = source.dtype == torch.bool or source.is_complex()
+        if source.ndim != 0 or nonreal:
+            raise ValueError(
+                f"TaylorF2 batch parameter {name!r} must be a real scalar"
+            )
+        if source.requires_grad:
+            raise ValueError(
+                f"TaylorF2 batch parameter {name!r} cannot require gradients"
+            )
+        numeric = float(source.item())
+    else:
+        try:
+            source = _np.asarray(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"TaylorF2 batch parameter {name!r} must be a scalar"
+            ) from exc
+        nonreal = source.dtype.kind in ("b", "c")
+        if source.ndim != 0 or nonreal:
+            raise ValueError(
+                f"TaylorF2 batch parameter {name!r} must be a real scalar"
+            )
+        try:
+            numeric = float(source)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(
+                f"TaylorF2 batch parameter {name!r} must be a scalar"
+            ) from exc
+    if not math.isfinite(numeric):
+        raise ValueError(
+            f"TaylorF2 batch parameter {name!r} must be finite"
+        )
+    return numeric
+
+
+def _batch_shared_order(params, name, default, allowed, torch):
+    """Read a shared, exactly integer-valued PN order flag."""
+
+    numeric = _batch_shared_scalar(
+        params,
+        name,
+        default,
+        torch,
+    )
+    order = int(numeric)
+    if numeric != order or order not in allowed:
+        choices = ", ".join(str(item) for item in sorted(allowed))
+        raise ValueError(
+            f"TaylorF2 batch parameter {name!r} must be one of {choices}"
+        )
+    return order
+
+
+def _batch_validate(checks):
+    """Validate row predicates with one device-to-host synchronization."""
+
+    import torch
+
+    checks = tuple(checks)
+    invalid_locations = (
+        torch.nonzero(
+            torch.stack([~condition for condition, _message in checks]),
+            as_tuple=False,
+        )
+        .detach()
+        .cpu()
+        .tolist()
+    )
+    if invalid_locations:
+        first_check = min(location[0] for location in invalid_locations)
+        bad_rows = [
+            row
+            for check, row in invalid_locations
+            if check == first_check
+        ]
+        raise ValueError(
+            f"{checks[first_check][1]}; invalid rows: {bad_rows}"
+        )
+
+
+def _batch_require(condition, message):
+    """Raise a row-oriented validation error when ``condition`` is false."""
+
+    _batch_validate(((condition, message),))
+
+
+def _batch_eos_q_from_lambda(lambda_tidal, torch):
+    """Tensor form of :func:`_eos_q_from_lambda`."""
+
+    # Clamp before taking the logarithm so inactive black-hole rows do not
+    # inject NaNs into the autograd graph evaluated by ``torch.where``.
+    x = torch.log(torch.clamp(lambda_tidal, min=0.5))
+    polynomial = 0.1940 + x * (
+        0.0936 + x * (0.0474 + x * (-0.00421 + x * 0.000123))
+    )
+    return torch.where(
+        lambda_tidal < 0.5,
+        torch.ones_like(lambda_tidal),
+        torch.exp(polynomial),
+    )
+
+
+def _batch_contact_frequency(
+    mass1,
+    mass2,
+    lambda1,
+    lambda2,
+    torch,
+):
+    """Tensor form of :func:`_contact_frequency` plus a validity mask."""
+
+    def compactness(lambda_tidal):
+        positive = lambda_tidal > 1.0e-15
+        log_lambda = torch.log(torch.clamp(lambda_tidal, min=1.0e-15))
+        fitted = 0.371 - 0.0391 * log_lambda + 0.001056 * log_lambda**2
+        fitted = torch.minimum(fitted, torch.full_like(fitted, 0.5))
+        value = torch.where(positive, fitted, torch.full_like(fitted, 0.5))
+        return value, (~positive) | (fitted > 0.0)
+
+    compactness1, valid1 = compactness(lambda1)
+    compactness2, valid2 = compactness(lambda2)
+    # The clamped denominator is used only to keep invalid rows numerically
+    # defined until the caller can report their row indices.
+    radius1 = lal.MRSUN_SI * mass1 / torch.clamp(compactness1, min=1.0e-30)
+    radius2 = lal.MRSUN_SI * mass2 / torch.clamp(compactness2, min=1.0e-30)
+    radius_seconds = (radius1 + radius2) / lal.C_SI
+    total_mass_seconds = (mass1 + mass2) * lal.MTSUN_SI
+    frequency = torch.sqrt(total_mass_seconds / radius_seconds**3) / math.pi
+    return frequency, valid1 & valid2 & torch.isfinite(frequency)
+
+
+def taylorf2_fd_batch(**params):
+    """Generate an explicit batch of aligned-spin TaylorF2 waveforms.
+
+    Physical inputs may be scalars or one-dimensional values. Scalars and
+    length-one vectors broadcast to the common batch length; other vector
+    lengths must agree. ``delta_f`` and all PN order flags are shared scalars.
+    Per-row ``f_lower`` and ``f_final`` determine the exact zero-padded output
+    support. Continuous Torch inputs retain their autograd connection.
+
+    Unlike the scalar waveform dispatcher, this API never falls back to LAL
+    and never interprets a vector as an implicit request for generic batching.
+    """
+
+    import torch
+
+    state = _scheme.mgr.state
+    if not isinstance(state, _scheme.TorchScheme):
+        raise RuntimeError(
+            "TaylorF2 batch generation requires an active TorchScheme"
+        )
+    device = state.torch_device
+    real_dtype = torch.float32 if device.type == "mps" else torch.float64
+    complex_dtype = (
+        torch.complex64
+        if real_dtype == torch.float32
+        else torch.complex128
+    )
+
+    allowed_keys = {
+        "mass1",
+        "mass2",
+        "delta_f",
+        "f_lower",
+        "approximant",
+        "mode_array",
+        "numrel_data",
+        *_BATCH_PARAMETER_DEFAULTS,
+        *_BATCH_ZERO_ONLY_PARAMETERS,
+        *_BATCH_DISCRETE_PARAMETERS,
+        *_UNSUPPORTED_TIDAL_KEYS,
+    }
+    unknown = sorted(set(params) - allowed_keys)
+    if unknown:
+        raise ValueError(
+            "TaylorF2 batch parameters are not supported: "
+            + ", ".join(unknown)
+        )
+    approximant = params.get("approximant")
+    if approximant not in (None, "TaylorF2"):
+        raise ValueError("TaylorF2 batch generation supports only TaylorF2")
+    required = ("mass1", "mass2", "delta_f", "f_lower")
+    missing = [name for name in required if name not in params]
+    if missing:
+        raise ValueError(
+            "TaylorF2 batch generation requires: " + ", ".join(missing)
+        )
+    if params.get("mode_array") is not None:
+        raise ValueError("TaylorF2 batch mode_array is not supported")
+    if params.get("numrel_data", ""):
+        raise ValueError("TaylorF2 batch numrel_data is not supported")
+    unsupported_tidal = [
+        key
+        for key in _UNSUPPORTED_TIDAL_KEYS
+        if params.get(key) is not None
+    ]
+    if unsupported_tidal:
+        raise ValueError(
+            "TaylorF2 batch tidal parameters are not supported: "
+            + ", ".join(unsupported_tidal)
+        )
+
+    delta_f = _batch_shared_scalar(
+        params,
+        "delta_f",
+        None,
+        torch,
+    )
+    if delta_f <= 0.0:
+        raise ValueError("TaylorF2 batch delta_f must be positive")
+    orders = {
+        name: _batch_shared_order(
+            params,
+            name,
+            default,
+            allowed,
+            torch,
+        )
+        for name, (default, allowed) in _BATCH_DISCRETE_PARAMETERS.items()
+    }
+
+    numeric = {}
+    default_tensors = {}
+    defaults = {
+        "mass1": None,
+        "mass2": None,
+        "f_lower": None,
+        **_BATCH_PARAMETER_DEFAULTS,
+        **dict.fromkeys(_BATCH_ZERO_ONLY_PARAMETERS, 0.0),
+    }
+    for name, default in defaults.items():
+        if name in params:
+            numeric[name] = _batch_tensor(
+                params[name],
+                name,
+                torch,
+                device,
+                real_dtype,
+            )
+        else:
+            if default not in default_tensors:
+                default_tensors[default] = _batch_tensor(
+                    default,
+                    name,
+                    torch,
+                    device,
+                    real_dtype,
+                )
+            numeric[name] = default_tensors[default]
+
+    lengths = {
+        name: value.numel()
+        for name, value in numeric.items()
+        if value.ndim == 1
+    }
+    batch_size = max(lengths.values(), default=1)
+    mismatched = {
+        name: length
+        for name, length in lengths.items()
+        if length not in (1, batch_size)
+    }
+    if mismatched:
+        detail = ", ".join(
+            f"{name}={length}" for name, length in sorted(mismatched.items())
+        )
+        raise ValueError(
+            "TaylorF2 batch vector lengths must be one or the common batch "
+            f"length {batch_size}; got {detail}"
+        )
+    for name, value in numeric.items():
+        if value.ndim == 0:
+            numeric[name] = value.expand(batch_size)
+        elif value.numel() == 1 and batch_size != 1:
+            numeric[name] = value.expand(batch_size)
+
+    mass1 = numeric["mass1"]
+    mass2 = numeric["mass2"]
+    f_lower = numeric["f_lower"]
+    f_final = numeric["f_final"]
+    input_checks = [
+        (
+            torch.isfinite(value),
+            f"TaylorF2 batch parameter {name!r} must be finite",
+        )
+        for name, value in numeric.items()
+    ]
+    input_checks.extend(
+        (
+            numeric[name] == 0.0,
+            f"TaylorF2 batch parameter {name!r} is not supported",
+        )
+        for name in _BATCH_ZERO_ONLY_PARAMETERS
+    )
+    input_checks.extend(
+        (
+            condition,
+            message,
+        )
+        for condition, message in (
+            (mass1 > 0.0, "TaylorF2 batch mass1 must be positive"),
+            (mass2 > 0.0, "TaylorF2 batch mass2 must be positive"),
+            (
+                numeric["distance"] > 0.0,
+                "TaylorF2 batch distance must be positive",
+            ),
+            (f_lower > 0.0, "TaylorF2 batch f_lower must be positive"),
+            (
+                f_final >= 0.0,
+                "TaylorF2 batch f_final must be non-negative",
+            ),
+        )
+    )
+    for name in ("f_ref", "lambda1", "lambda2"):
+        input_checks.append(
+            (
+                numeric[name] >= 0.0,
+                f"TaylorF2 batch {name} must be non-negative",
+            )
+        )
+    _batch_validate(input_checks)
+
+    for name in ("f_lower", "f_final"):
+        if numeric[name].requires_grad:
+            raise ValueError(
+                f"TaylorF2 batch {name} defines discrete support and cannot "
+                "require gradients"
+            )
+
+    total_mass = mass1 + mass2
+    eta = mass1 * mass2 / total_mass**2
+    derived_checks = [
+        (
+            torch.isfinite(total_mass) & torch.isfinite(eta) & (eta > 0.0),
+            "TaylorF2 batch masses give invalid total mass or mass ratio",
+        )
+    ]
+    if device.type == "mps":
+        minimum_phase_mf = _MPS_MIN_EQUAL_MASS_PHASE_MF * (
+            0.25 / eta
+        ) ** (3.0 / 5.0)
+        phase_frequency = torch.where(
+            numeric["f_ref"] > 0.0,
+            torch.minimum(f_lower, numeric["f_ref"]),
+            f_lower,
+        )
+        phase_mf = total_mass * lal.MTSUN_SI * phase_frequency
+        derived_checks.append(
+            (
+                phase_mf >= minimum_phase_mf,
+                "TaylorF2 batch frequencies are below the accurate MPS "
+                "range",
+            )
+        )
+    _batch_validate(derived_checks)
+
+    lambda1 = numeric["lambda1"]
+    lambda2 = numeric["lambda2"]
+    dquad1 = numeric["dquad_mon1"]
+    dquad2 = numeric["dquad_mon2"]
+    dquad1 = torch.where(
+        (lambda1 > 0.0) & (dquad1 == 0.0),
+        _batch_eos_q_from_lambda(lambda1, torch) - 1.0,
+        dquad1,
+    )
+    dquad2 = torch.where(
+        (lambda2 > 0.0) & (dquad2 == 0.0),
+        _batch_eos_q_from_lambda(lambda2, torch) - 1.0,
+        dquad2,
+    )
+    _batch_require(
+        torch.isfinite(dquad1) & torch.isfinite(dquad2),
+        "TaylorF2 batch inferred quadrupoles must be finite",
+    )
+
+    phasing = taylorf2_aligned_phasing(
+        mass1,
+        mass2,
+        numeric["spin1z"],
+        numeric["spin2z"],
+        spin_order=orders["spin_order"],
+        tidal_order=orders["tidal_order"],
+        dchi={key: numeric[key] for key in _DCHI_KEYS},
+        qm_def1=dquad1,
+        qm_def2=dquad2,
+        lambda1=lambda1,
+        lambda2=lambda2,
+    )
+    phase_order = orders["phase_order"]
+    if phase_order != -1:
+        order_mask = torch.ones(
+            _MAX_PN_ORDER,
+            1,
+            dtype=real_dtype,
+            device=device,
+        )
+        order_mask[phase_order + 1:8] = 0.0
+        phasing.v = phasing.v * order_mask
+        phasing.vlogv = phasing.vlogv * order_mask
+        phasing.vlogvsq = phasing.vlogvsq * order_mask
+
+    pi_mass = math.pi * total_mass * lal.MTSUN_SI
+    f_isco = 1.0 / (6.0**1.5 * pi_mass)
+    use_default_cutoff = f_final == 0.0
+    if orders["tidal_order"] == 0:
+        default_cutoff = f_isco
+    else:
+        contact, valid_contact = _batch_contact_frequency(
+            mass1,
+            mass2,
+            lambda1,
+            lambda2,
+            torch,
+        )
+        _batch_require(
+            (~use_default_cutoff) | valid_contact,
+            "TaylorF2 batch tidal deformability gives invalid compactness",
+        )
+        default_cutoff = torch.minimum(f_isco, contact)
+    f_max = torch.where(use_default_cutoff, default_cutoff, f_final)
+    _batch_require(
+        torch.isfinite(f_max) & (f_max > f_lower),
+        "TaylorF2 batch ending frequency must exceed f_lower",
+    )
+
+    first_bins = torch.ceil(f_lower / delta_f).to(torch.int64)
+    end_bins = torch.floor(f_max / delta_f).to(torch.int64) + 1
+    _batch_require(
+        first_bins < end_bins,
+        "TaylorF2 batch frequency range contains no sampled bins",
+    )
+    first_active = int(torch.min(first_bins).item())
+    output_length = int(torch.max(end_bins).item())
+    bin_numbers = torch.arange(
+        first_active,
+        output_length,
+        dtype=real_dtype,
+        device=device,
+    )
+    frequencies = bin_numbers[None, :] * delta_f
+
+    coeff = phasing.v.unsqueeze(-1)
+    coeff_log = phasing.vlogv.unsqueeze(-1)
+    coeff_log_sq = phasing.vlogvsq.unsqueeze(-1)
+    velocity = torch.pow(pi_mass[:, None] * frequencies, 1.0 / 3.0)
+    phase = _evaluate_phase_polynomial(
+        velocity,
+        coeff,
+        coeff_log,
+        coeff_log_sq,
+    )
+    reference_velocity = torch.pow(
+        pi_mass * torch.where(
+            numeric["f_ref"] > 0.0,
+            numeric["f_ref"],
+            torch.ones_like(numeric["f_ref"]),
+        ),
+        1.0 / 3.0,
+    )
+    reference_phase = _evaluate_phase_polynomial(
+        reference_velocity[:, None],
+        coeff,
+        coeff_log,
+        coeff_log_sq,
+    ).squeeze(-1)
+    reference_phase = torch.where(
+        numeric["f_ref"] > 0.0,
+        reference_phase,
+        torch.zeros_like(reference_phase),
+    )
+    epoch = -1.0 / delta_f
+    phase = (
+        phase
+        + 2.0 * math.pi * epoch * frequencies
+        - 2.0 * numeric["coa_phase"][:, None]
+        - reference_phase[:, None]
+    )
+    distance_metres = numeric["distance"] * 1.0e6 * lal.PC_SI
+    amplitude0 = (
+        -4.0
+        * mass1
+        * mass2
+        / distance_metres
+        * lal.MRSUN_SI
+        * lal.MTSUN_SI
+        * math.sqrt(math.pi / 12.0)
+    )
+    amplitude = (
+        amplitude0[:, None]
+        * torch.sqrt(5.0 / (32.0 * eta))[:, None]
+        * torch.pow(velocity, -3.5)
+    )
+    phase_factor = torch.exp(
+        -(phase - math.pi / 4.0).to(complex_dtype) * 1j
+    )
+    samples = amplitude.to(complex_dtype) * phase_factor
+
+    cos_inclination = torch.cos(numeric["inclination"])
+    plus0 = samples * (0.5 * (1.0 + cos_inclination**2))[:, None]
+    cross0 = samples * (-1j * cos_inclination)[:, None]
+    cos_nodes = torch.cos(2.0 * numeric["long_asc_nodes"])[:, None]
+    sin_nodes = torch.sin(2.0 * numeric["long_asc_nodes"])[:, None]
+    plus = cos_nodes * plus0 + sin_nodes * cross0
+    cross = cos_nodes * cross0 - sin_nodes * plus0
+
+    support = (
+        bin_numbers[None, :] >= first_bins[:, None]
+    ) & (bin_numbers[None, :] < end_bins[:, None])
+    plus = torch.where(support, plus, torch.zeros_like(plus))
+    cross = torch.where(support, cross, torch.zeros_like(cross))
+    if first_active:
+        prefix = torch.zeros(
+            batch_size,
+            first_active,
+            dtype=complex_dtype,
+            device=device,
+        )
+        plus = torch.cat((prefix, plus), dim=1)
+        cross = torch.cat((prefix, cross), dim=1)
+
+    return TaylorF2FDBatch(
+        hplus=plus,
+        hcross=cross,
+        delta_f=delta_f,
+        epoch=epoch,
+        first_bins=first_bins,
+        end_bins=end_bins,
     )

@@ -25,6 +25,57 @@ from pycbc.neutron_stars import load_ns_sequence
 logger = logging.getLogger('pycbc.tmpltbank.coord_utils')
 
 
+def _torch_coordinate_values(*values):
+    """Return coordinate inputs on the device of their first Torch value."""
+    candidates = []
+    for value in values:
+        if type(value).__module__.split(".", 1)[0] == "torch":
+            candidates.append(value)
+        elif isinstance(value, (list, tuple)):
+            candidates.extend(
+                item for item in value
+                if type(item).__module__.split(".", 1)[0] == "torch"
+            )
+
+    if not candidates:
+        return None, values
+
+    import torch
+
+    candidates = [
+        value for value in candidates if isinstance(value, torch.Tensor)
+    ]
+    if not candidates:
+        return None, values
+
+    reference = candidates[0]
+    dtype = reference.dtype
+    if not (dtype.is_floating_point or dtype.is_complex):
+        dtype = torch.get_default_dtype()
+
+    converted = []
+    for value in values:
+        if isinstance(value, torch.Tensor):
+            converted.append(value.to(device=reference.device, dtype=dtype))
+        elif (
+            isinstance(value, (list, tuple))
+            and any(isinstance(item, torch.Tensor) for item in value)
+        ):
+            converted.append(torch.stack([
+                item.to(device=reference.device, dtype=dtype)
+                if isinstance(item, torch.Tensor)
+                else torch.as_tensor(
+                    item, device=reference.device, dtype=dtype
+                )
+                for item in value
+            ]))
+        else:
+            converted.append(torch.as_tensor(
+                value, device=reference.device, dtype=dtype
+            ))
+    return torch, tuple(converted)
+
+
 def estimate_mass_range(numPoints, massRangeParams, metricParams, fUpper,\
                         covary=True):
     """
@@ -423,7 +474,7 @@ def get_mu_params(lambdas, metricParams, fUpper):
 
     Parameters
     -----------
-    lambdas : list of floats or numpy.arrays
+    lambdas : list of floats, numpy.ndarray, or torch.Tensor
         Position of the system(s) in the lambda coefficients
     metricParams : metricParameters instance
         Structure holding all the options for construction of the metric
@@ -437,9 +488,22 @@ def get_mu_params(lambdas, metricParams, fUpper):
 
     Returns
     --------
-    mus : list of floats or numpy.arrays
+    mus : numpy.ndarray or torch.Tensor
         Position of the system(s) in the mu coordinate system
     """
+    evecs = metricParams.evecs[fUpper]
+    evals = metricParams.evals[fUpper]
+
+    torch, values = _torch_coordinate_values(lambdas, evecs, evals)
+    if torch is not None:
+        lambdas, evecs, evals = values
+        resize_needed = lambdas.ndim == 1
+        if resize_needed:
+            lambdas = lambdas[:, None]
+        mus = evecs.T @ lambdas
+        mus = mus * torch.sqrt(evals)[:, None]
+        return mus.flatten() if resize_needed else mus
+
     lambdas = numpy.asarray(lambdas)
     # If original inputs were floats we need to make this a 2D array
     if len(lambdas.shape) == 1:
@@ -447,9 +511,6 @@ def get_mu_params(lambdas, metricParams, fUpper):
         lambdas = lambdas[:,None]
     else:
         resize_needed = False
-
-    evecs = metricParams.evecs[fUpper]
-    evals = metricParams.evals[fUpper]
 
     evecs = numpy.asarray(evecs)
 
@@ -468,17 +529,26 @@ def get_covaried_params(mus, evecsCV):
 
     Parameters
     -----------
-    mus : list of floats or numpy.arrays
+    mus : list of floats, numpy.ndarray, or torch.Tensor
         Position of the system(s) in the mu coordinate system
-    evecsCV : numpy.matrix
+    evecsCV : numpy.ndarray or torch.Tensor
         This matrix is used to perform the rotation to the xi_i
         coordinate system.
 
     Returns
     --------
-    xis : list of floats or numpy.arrays
+    xis : numpy.ndarray or torch.Tensor
         Position of the system(s) in the xi coordinate system
     """
+    torch, values = _torch_coordinate_values(mus, evecsCV)
+    if torch is not None:
+        mus, evecsCV = values
+        resize_needed = mus.ndim == 1
+        if resize_needed:
+            mus = mus[:, None]
+        xis = evecsCV.T @ mus
+        return xis.flatten() if resize_needed else xis
+
     mus = numpy.asarray(mus)
     # If original inputs were floats we need to make this a 2D array
     if len(mus.shape) == 1:
@@ -501,12 +571,12 @@ def rotate_vector(evecs, old_vector, rescale_factor, index):
 
     Parameters
     -----------
-    evecs : numpy.matrix
+    evecs : numpy.ndarray or torch.Tensor
         Matrix of the eigenvectors of the metric in lambda_i coordinates. Used
         to rotate to a Cartesian coordinate system.
-    old_vector : list of floats or numpy.arrays
+    old_vector : list of floats, numpy.ndarray, or torch.Tensor
         The position of the system(s) in the original coordinates
-    rescale_factor : float
+    rescale_factor : float or torch.Tensor
         Scaling factor to apply to resulting position(s)
     index : int
         The index of the final coordinate system that is being computed. Ie.
@@ -514,9 +584,16 @@ def rotate_vector(evecs, old_vector, rescale_factor, index):
 
     Returns
     --------
-    positions : float or numpy.array
+    positions : float, numpy.ndarray, or torch.Tensor
         Position of the point(s) in the resulting coordinate.
     """
+    torch, values = _torch_coordinate_values(
+        evecs, old_vector, rescale_factor
+    )
+    if torch is not None:
+        evecs, old_vector, rescale_factor = values
+        return (evecs[:, index] * rescale_factor) @ old_vector
+
     temp = 0
     for i in range(len(evecs)):
         temp += (evecs[i,index] * rescale_factor) * old_vector[i]
@@ -742,24 +819,60 @@ def return_nearest_cutoff(name, mass_dict, freqs):
         Name of the cutoff formula to be approximated
     mass_dict : Dictionary where the keys are used to call the functions
         returned by tmpltbank.named_frequency_cutoffs. The values can be
-        numpy arrays or single values.
-    freqs : list of floats
+        numpy arrays, torch tensors, or single values. The legacy keys ``m1``,
+        ``m2``, ``s1z``, and ``s2z`` are also accepted.
+    freqs : list of floats or torch.Tensor
         A list of frequencies (must be sorted ascending)
 
     Returns
     -------
-    numpy.array
+    numpy.array or torch.Tensor
         The frequencies closest to the cutoff for each value of totmass.
     """
+    params = dict(mass_dict)
+    aliases = {
+        "m1": "mass1",
+        "m2": "mass2",
+        "s1z": "spin1z",
+        "s2z": "spin2z",
+    }
+    for legacy, canonical in aliases.items():
+        if canonical not in params and legacy in params:
+            params[canonical] = params[legacy]
+
     # A bypass for the redundant case
     if len(freqs) == 1:
-        return numpy.zeros(len(mass_dict['m1']), dtype=float) + freqs[0]
+        torch, values = _torch_coordinate_values(params["mass1"], freqs)
+        if torch is not None:
+            mass1, freqs = values
+            length = mass1.shape[0] if mass1.ndim else 1
+            return freqs.reshape(-1)[0].expand(length).clone()
+
+        try:
+            length = len(params["mass1"])
+        except TypeError:
+            length = 1
+        return numpy.zeros(length, dtype=float) + freqs[0]
+
     cutoff_fns = pnutils.named_frequency_cutoffs
     if name not in cutoff_fns.keys():
         err_msg = "%s not recognized as a valid cutoff frequency choice." %name
         err_msg += "Recognized choices: " + " ".join(cutoff_fns.keys())
         raise ValueError(err_msg)
-    f_cutoff = cutoff_fns[name](mass_dict)
+
+    coordinate_keys = [
+        key for key in ("mass1", "mass2", "spin1z", "spin2z")
+        if key in params
+    ]
+    torch, values = _torch_coordinate_values(
+        *(params[key] for key in coordinate_keys), freqs
+    )
+    if torch is not None:
+        for key, value in zip(coordinate_keys, values[:-1]):
+            params[key] = value
+        freqs = values[-1]
+
+    f_cutoff = cutoff_fns[name](params)
     return find_closest_calculated_frequencies(f_cutoff, freqs)
 
 def find_closest_calculated_frequencies(input_freqs, metric_freqs):
@@ -769,18 +882,47 @@ def find_closest_calculated_frequencies(input_freqs, metric_freqs):
 
     Parameters
     -----------
-    input_freqs : numpy.array or float
+    input_freqs : numpy.array, torch.Tensor, or float
         The frequency(ies) that you want to find the closest value in
         metric_freqs
-    metric_freqs : numpy.array
+    metric_freqs : numpy.array or torch.Tensor
         The list of frequencies calculated by the metric
 
     Returns
     --------
-    output_freqs : numpy.array or float
+    output_freqs : numpy.array or torch.Tensor
         The list of closest values to input_freqs for which the metric was
         computed
     """
+    torch, values = _torch_coordinate_values(input_freqs, metric_freqs)
+    if torch is not None:
+        input_freqs, metric_freqs = values
+        if input_freqs.ndim == 0:
+            input_freqs = input_freqs.reshape(1)
+        if metric_freqs.ndim == 0:
+            metric_freqs = metric_freqs.reshape(1)
+
+        ref_ev = torch.zeros_like(input_freqs)
+        if len(metric_freqs) == 1:
+            ref_ev[:] = metric_freqs[0]
+            return ref_ev
+
+        for i in range(len(metric_freqs)):
+            if i == 0:
+                midpoint = (metric_freqs[0] + metric_freqs[1]) / 2.0
+                logic_arr = input_freqs < midpoint
+            elif i == len(metric_freqs) - 1:
+                midpoint = (metric_freqs[-2] + metric_freqs[-1]) / 2.0
+                logic_arr = input_freqs > midpoint
+            else:
+                lower = (metric_freqs[i - 1] + metric_freqs[i]) / 2.0
+                upper = (metric_freqs[i] + metric_freqs[i + 1]) / 2.0
+                logic_arr = torch.logical_and(
+                    input_freqs > lower, input_freqs < upper
+                )
+            ref_ev[logic_arr] = metric_freqs[i]
+        return ref_ev
+
     try:
         refEv = numpy.zeros(len(input_freqs),dtype=float)
     except TypeError:
