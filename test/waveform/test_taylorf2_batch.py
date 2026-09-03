@@ -359,6 +359,11 @@ def test_unsupported_approximant_and_scheme_are_explicit_errors():
             "pycbc.waveform.imrphenomxas_torch",
             "imrphenomxas_fd_batch",
         ),
+        (
+            "IMRPhenomXHM",
+            "pycbc.waveform.imrphenomxhm_torch",
+            "imrphenomxhm_fd_batch",
+        ),
     ],
 )
 def test_aligned_spin_batch_dispatch(

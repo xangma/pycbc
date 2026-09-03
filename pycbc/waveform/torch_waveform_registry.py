@@ -58,6 +58,8 @@ def _fd_sequence_port(
     *,
     default_supported=None,
     fd_supported=None,
+    fd_modes_generator=None,
+    fd_modes_supported=None,
     sequence_supported=None,
 ):
     """Build the common FD plus arbitrary-frequency registry entry."""
@@ -69,6 +71,8 @@ def _fd_sequence_port(
         default_supported=default_supported,
         fd_generator=f"{stem}_fd_torch",
         fd_supported=fd_supported or f"{stem}_native_supported",
+        fd_modes_generator=fd_modes_generator,
+        fd_modes_supported=fd_modes_supported,
         sequence_generator=f"{stem}_fd_sequence_torch",
         sequence_supported=(
             sequence_supported or f"{stem}_sequence_native_supported"
@@ -170,12 +174,38 @@ _PORTS = (
         "imrphenomxas_torch",
         "imrphenomxas",
     ),
+    _fd_sequence_port(
+        "IMRPhenomXHM",
+        "PYCBC_IMRPHENOMXHM_NATIVE",
+        "imrphenomxhm_torch",
+        "imrphenomxhm",
+        fd_supported="imrphenomxhm_fd_native_supported",
+        fd_modes_generator="imrphenomxhm_modes_torch",
+        fd_modes_supported="imrphenomxhm_modes_native_supported",
+    ),
+    _fd_sequence_port(
+        "IMRPhenomHM",
+        "PYCBC_IMRPHENOMHM_NATIVE",
+        "imrphenomhm_torch",
+        "imrphenomhm",
+        fd_modes_generator="imrphenomhm_modes_torch",
+        fd_modes_supported="imrphenomhm_modes_native_supported",
+    ),
     TorchNativeWaveform(
         approximant="IMRPhenomT",
         component_flag="PYCBC_IMRPHENOMT_NATIVE",
         module="imrphenomt_torch",
         td_generator="imrphenomt_td_torch",
         td_supported="imrphenomt_native_supported",
+    ),
+    TorchNativeWaveform(
+        approximant="IMRPhenomTHM",
+        component_flag="PYCBC_IMRPHENOMTHM_NATIVE",
+        module="imrphenomthm_torch",
+        default_enabled=True,
+        default_supported="imrphenomthm_default_native_supported",
+        td_generator="imrphenomthm_td_torch",
+        td_supported="imrphenomthm_native_supported",
     ),
     _fd_sequence_port(
         "SEOBNRv4_ROM",
@@ -216,10 +246,22 @@ _PORTS = (
         "seobnrv4t_surrogate",
     ),
     _fd_sequence_port(
+        "SEOBNRv4HM_ROM",
+        "PYCBC_SEOBNRV4HM_NATIVE",
+        "seobnrv4hm_torch",
+        "seobnrv4hm",
+    ),
+    _fd_sequence_port(
         "SEOBNRv5_ROM",
         "PYCBC_SEOBNRV5_NATIVE",
         "seobnrv5_torch",
         "seobnrv5",
+    ),
+    _fd_sequence_port(
+        "SEOBNRv5HM_ROM",
+        "PYCBC_SEOBNRV5HM_NATIVE",
+        "seobnrv5hm_torch",
+        "seobnrv5hm",
     ),
     _fd_sequence_port(
         "SEOBNRv5_ROM_NRTidalv3",

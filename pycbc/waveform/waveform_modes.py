@@ -415,6 +415,72 @@ def get_imrphenomxh_modes(**params):
     return hlms
 
 
+def get_imrphenomhm_modes(**params):
+    """Generate ``IMRPhenomHM`` frequency-domain modes with LAL."""
+    import lalsimulation as ls
+
+    requested = params.get("mode_array")
+    if requested is None:
+        requested = default_modes("IMRPhenomHM")
+    requested = list(dict.fromkeys(tuple(mode) for mode in requested))
+    if not requested:
+        return {}
+
+    families = list(
+        dict.fromkeys((ell, abs(emm)) for ell, emm in requested)
+    )
+    lal_params = dict(params)
+    lal_params["mode_array"] = families
+    laldict = _check_lal_pars(lal_params)
+    bounds = lal.CreateREAL8Vector(2)
+    bounds.data[:] = (
+        float(params["f_lower"]),
+        float(params.get("f_final", 0.0)),
+    )
+    node = ls.SimIMRPhenomHMGethlmModes(
+        bounds,
+        float(pnutils.solar_mass_to_kg(params["mass1"])),
+        float(pnutils.solar_mass_to_kg(params["mass2"])),
+        float(params["spin1x"]),
+        float(params["spin1y"]),
+        float(params["spin1z"]),
+        float(params["spin2x"]),
+        float(params["spin2y"]),
+        float(params["spin2z"]),
+        float(params["coa_phase"]),
+        float(params["delta_f"]),
+        float(params["f_ref"]),
+        laldict,
+    )
+
+    positive_modes = {}
+    while node:
+        positive_modes[node.l, node.m] = FrequencySeries(
+            _lal_output_for_active_scheme(node.mode.data.data),
+            delta_f=node.mode.deltaF,
+            epoch=node.mode.epoch,
+        )
+        node = node.next
+
+    total_mass = float(params["mass1"]) + float(params["mass2"])
+    amplitude_scale = (
+        total_mass
+        * lal.MRSUN_SI
+        * total_mass
+        * lal.MTSUN_SI
+        / pnutils.megaparsecs_to_meters(float(params["distance"]))
+    )
+    modes = {}
+    for ell, emm in requested:
+        hlm = amplitude_scale * positive_modes[ell, abs(emm)]
+        if emm < 0:
+            hlm *= (-1) ** ell
+        ulm = 0.5 * hlm
+        vlm = (0.5j if emm > 0 else -0.5j) * hlm
+        modes[ell, emm] = (ulm, vlm)
+    return modes
+
+
 _mode_waveform_td = {'EOBNRv2': get_lalsimulation_modes,
                      'EOBNRv2HM': get_lalsimulation_modes,
                      'IMRPhenomTPHM': get_lalsimulation_modes,
@@ -433,7 +499,10 @@ _mode_waveform_td = {'EOBNRv2': get_lalsimulation_modes,
                      'TaylorT3': get_lalsimulation_modes,
                      'TaylorT4': get_lalsimulation_modes,
                      }
-_mode_waveform_fd = {'IMRPhenomXHM': get_imrphenomxh_modes}
+_mode_waveform_fd = {
+    'IMRPhenomXHM': get_imrphenomxh_modes,
+    'IMRPhenomHM': get_imrphenomhm_modes,
+}
 # 'IMRPhenomXPHM':get_imrphenomhm_modes needs to be implemented
 # LAL function do not split strain mode by mode
 

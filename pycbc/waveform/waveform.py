@@ -838,8 +838,8 @@ def get_fd_waveform_batch(approximant, **params):
     Parameters
     ----------
     approximant : str
-        The waveform model. Currently ``"TaylorF2"``, ``"IMRPhenomD"``, and
-        ``"IMRPhenomXAS"`` are supported.
+        The waveform model. Currently ``"TaylorF2"``, ``"IMRPhenomD"``,
+        ``"IMRPhenomXAS"``, and ``"IMRPhenomXHM"`` are supported.
     **params
         Waveform parameters. Physical parameters may be scalars or
         one-dimensional batches; scalars are broadcast to the batch size.
@@ -861,8 +861,12 @@ def get_fd_waveform_batch(approximant, **params):
         from pycbc.waveform.imrphenomxas_torch import imrphenomxas_fd_batch
 
         return imrphenomxas_fd_batch(**params)
+    if approximant == "IMRPhenomXHM":
+        from pycbc.waveform.imrphenomxhm_torch import imrphenomxhm_fd_batch
 
-    supported = "TaylorF2, IMRPhenomD, and IMRPhenomXAS"
+        return imrphenomxhm_fd_batch(**params)
+
+    supported = "TaylorF2, IMRPhenomD, IMRPhenomXAS, and IMRPhenomXHM"
     raise ValueError(
         "get_fd_waveform_batch supports only "
         f"{supported}; got {approximant!r}"
