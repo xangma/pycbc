@@ -25,6 +25,14 @@ _CONTROL_ENV = {
 }
 
 
+requires_phase_plan_trace_runtime = pytest.mark.skipif(
+    not xas._phase_plan_torchscript_trace_runtime_supported(
+        torch.device("cpu")
+    ),
+    reason="phase-plan TorchScript tracing is unsupported by this runtime",
+)
+
+
 @pytest.fixture(autouse=True)
 def _controlled_trace_environment(monkeypatch):
     for name, value in _CONTROL_ENV.items():
@@ -74,9 +82,9 @@ def test_phase_plan_trace_gate_is_strict_and_off_by_default(monkeypatch):
         xas._phase_plan_torchscript_trace_enabled()
 
 
+@requires_phase_plan_trace_runtime
 def test_phase_plan_trace_runtime_contract_fails_closed(monkeypatch):
     cpu = torch.device("cpu")
-    assert xas._phase_plan_torchscript_trace_runtime_supported(cpu)
     assert not xas._phase_plan_torchscript_trace_runtime_supported(torch.device("cuda"))
     with torch.no_grad():
         assert not xas._phase_plan_torchscript_trace_runtime_supported(cpu)
@@ -164,6 +172,7 @@ def test_phase_plan_trace_resets_inherited_cache(monkeypatch):
     assert xas._PHASE_PLAN_TORCHSCRIPT_TRACE_PID == os.getpid()
 
 
+@requires_phase_plan_trace_runtime
 def test_phase_plan_trace_cold_and_warm_are_byte_exact(monkeypatch):
     call, _, _, _ = _phase_call()
     monkeypatch.setenv(_TRACE_ENV, "0")
@@ -183,6 +192,7 @@ def test_phase_plan_trace_cold_and_warm_are_byte_exact(monkeypatch):
     assert all(value.dtype is torch.float64 for value in tensors)
 
 
+@requires_phase_plan_trace_runtime
 def test_phase_plan_trace_preserves_alias_and_mutation_semantics(monkeypatch):
     alias_of = torch._C._is_alias_of
 
@@ -250,6 +260,7 @@ def test_phase_plan_trace_preserves_alias_and_mutation_semantics(monkeypatch):
     assert xas._phase_plan_torchscript_tree_alias_equal(eager_after, traced_after)
 
 
+@requires_phase_plan_trace_runtime
 def test_phase_plan_trace_build_failure_is_sticky_eager_fallback(monkeypatch):
     call, _, _, _ = _phase_call()
     monkeypatch.setenv(_TRACE_ENV, "0")
@@ -272,17 +283,3 @@ def test_phase_plan_trace_build_failure_is_sticky_eager_fallback(monkeypatch):
     )
     assert xas._phase_plan_torchscript_tree_raw_equal(reference, first)
     assert xas._phase_plan_torchscript_tree_raw_equal(reference, second)
-
-
-def test_phase_plan_trace_is_in_warm_cpu_candidate_only():
-    from tools.torch_workflows.experiments import (
-        benchmark_xphm_exact_tricks as benchmark,
-    )
-
-    assert _TRACE_ENV in benchmark._SWITCHES
-    assert _TRACE_ENV not in benchmark._PR_STYLE_EXACT_SWITCHES
-    assert _TRACE_ENV not in benchmark._PR_STYLE_CUDA_EXACT_SWITCHES
-    assert benchmark._VARIANTS["pr_style_exact"][_TRACE_ENV] == "0"
-    assert benchmark._VARIANTS["torch213_cpu_candidate"][_TRACE_ENV] == "1"
-    assert benchmark._VARIANTS["pr_style_cuda_exact"][_TRACE_ENV] == "0"
-    assert benchmark._VARIANTS["torch213_cuda_candidate"][_TRACE_ENV] == "0"

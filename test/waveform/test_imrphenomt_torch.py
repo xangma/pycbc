@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 torch = pytest.importorskip("torch")
+lalsimulation = pytest.importorskip("lalsimulation")
 
 from pycbc import scheme as _scheme  # noqa: E402
 from pycbc.waveform import get_td_waveform  # noqa: E402
@@ -62,6 +63,15 @@ _ROOT_ROUNDOFF_CASE = {
     "f_lower": 21.89255446964404,
     "f_ref": 28.46032081053725,
 }
+
+try:
+    _LALSIMULATION_VERSION = tuple(
+        int(part)
+        for part in lalsimulation.__version__.split("+", 1)[0].split(".")[:3]
+    )
+except (AttributeError, TypeError, ValueError):
+    _LALSIMULATION_VERSION = ()
+
 
 @pytest.fixture
 def preserve_scheme():
@@ -154,6 +164,14 @@ def test_imrphenomt_waveform_matches_lalsuite(parameters, preserve_scheme):
         assert _normalized_correlation(expected_array, result_array) > 0.99994
 
 
+@pytest.mark.skipif(
+    bool(_LALSIMULATION_VERSION)
+    and _LALSIMULATION_VERSION <= (5, 3, 1),
+    reason=(
+        "lalsimulation <= 5.3.1 uses the older IMRPhenomT branch for this "
+        "ill-conditioned root"
+    ),
+)
 def test_imrphenomt_ill_conditioned_root_matches_lalsuite(preserve_scheme):
     """Cover the GSL coefficient rounding that selects the Brent branch."""
 

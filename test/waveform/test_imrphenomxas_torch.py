@@ -65,6 +65,30 @@ def _clear_native_flags(monkeypatch):
         monkeypatch.delenv(name, raising=False)
 
 
+def _lal_fd_reference_available(approximant):
+    from pycbc.waveform import waveform as waveform_module
+
+    return approximant in waveform_module._lalsim_fd_approximants
+
+
+def _require_lal_fd_reference(approximant):
+    if not _lal_fd_reference_available(approximant):
+        pytest.skip(
+            f"installed lalsimulation lacks the {approximant} approximant"
+        )
+
+
+def _activate_fd_reference_scheme(approximant, monkeypatch):
+    _clear_native_flags(monkeypatch)
+    if _lal_fd_reference_available(approximant):
+        monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
+        monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "0")
+        _activate_scheme(_scheme.CPUScheme())
+    else:
+        monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "1")
+        _activate_scheme(_scheme.TorchScheme("cpu"))
+
+
 @pytest.mark.parametrize("device_name", ("cpu", "mps", "cuda"))
 def test_phenomx_coefficient_table_masters_are_cached_but_public_copies_are_owned(
     device_name,
@@ -1339,6 +1363,7 @@ def test_imrphenomxas_matches_lal(
 def test_imrphenomxas_nrtidal_matches_lal(
     approximant, params, monkeypatch, preserve_scheme
 ):
+    _require_lal_fd_reference(approximant)
     monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
     monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "0")
     _activate_scheme(_scheme.CPUScheme())
@@ -1434,8 +1459,7 @@ def test_imrphenomxas_nrtidal_dispatch_does_not_call_lal(
         "amplitude_order": "3",
         "eccentricity_order": 4,
     }
-    monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "0")
-    _activate_scheme(_scheme.CPUScheme())
+    _activate_fd_reference_scheme(approximant, monkeypatch)
     reference = get_fd_waveform(approximant=approximant, **params)
     reference_arrays = tuple(series.numpy().copy() for series in reference)
 
@@ -1648,8 +1672,7 @@ def test_imrphenomxas_stays_on_requested_device(
     if device_name == "cuda" and not torch.cuda.is_available():
         pytest.skip("Torch CUDA device is unavailable")
 
-    monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "0")
-    _activate_scheme(_scheme.CPUScheme())
+    _activate_fd_reference_scheme(approximant, monkeypatch)
     reference, _ = get_fd_waveform(approximant=approximant, **params)
     reference_array = reference.numpy().copy()
 
@@ -1748,6 +1771,7 @@ def test_imrphenomxas_sequence_matches_lal(
 def test_imrphenomxas_nrtidal_sequence_matches_lal(
     approximant, params, sample_points, monkeypatch, preserve_scheme
 ):
+    _require_lal_fd_reference(approximant)
     params = _sequence_params(params)
     monkeypatch.setenv("PYCBC_TORCH_NATIVE_PORTS", "0")
     monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "0")
@@ -1809,8 +1833,7 @@ def test_imrphenomxas_sequence_public_dispatch_does_not_call_lal(
     preserve_scheme,
 ):
     params = _sequence_params(params)
-    monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "0")
-    _activate_scheme(_scheme.CPUScheme())
+    _activate_fd_reference_scheme(approximant, monkeypatch)
     reference = get_fd_waveform_sequence(
         approximant=approximant,
         sample_points=sample_points,
@@ -2001,8 +2024,7 @@ def test_imrphenomxas_sequence_stays_on_requested_device(
         pytest.skip("Torch CUDA device is unavailable")
 
     params = _sequence_params(params)
-    monkeypatch.setenv("PYCBC_IMRPHENOMXAS_NATIVE", "0")
-    _activate_scheme(_scheme.CPUScheme())
+    _activate_fd_reference_scheme(approximant, monkeypatch)
     reference, _ = get_fd_waveform_sequence(
         approximant=approximant,
         sample_points=sample_points,

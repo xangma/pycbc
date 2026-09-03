@@ -30,6 +30,10 @@ from pycbc.waveform.nrtidal_torch import (  # noqa: E402
 
 _MASSES = (1.4, 1.2)
 _LAMBDAS = (400.0, 800.0)
+_LAL_NRTIDALV3 = getattr(lalsimulation, "NRTidalv3_V", None)
+_LAL_HAS_NRTIDALV3_MERGER_FREQUENCY = callable(
+    getattr(lalsimulation, "SimNRTunedTidesMergerFrequency_v3", None)
+)
 
 
 @pytest.mark.parametrize(
@@ -86,6 +90,10 @@ def test_nrtidal_scalar_fits_match_lal():
         (_MASSES, _LAMBDAS, (0.15, -0.08)),
         (_MASSES[::-1], _LAMBDAS[::-1], (-0.08, 0.15)),
     ],
+)
+@pytest.mark.skipif(
+    not _LAL_HAS_NRTIDALV3_MERGER_FREQUENCY,
+    reason="installed lalsimulation lacks the NRTidalv3 merger-frequency API",
 )
 def test_nrtidal_v3_merger_frequency_matches_lal(masses, lambdas, spins):
     mass1, mass2 = masses
@@ -165,11 +173,17 @@ def test_nrtidal_higher_order_spin_fits_match_lal():
     np.testing.assert_allclose(actual, expected, rtol=1.0e-14, atol=0.0)
 
 
-_LAL_NRTIDALV3 = getattr(lalsimulation, "NRTidalv3_V", None)
 _NRTIDAL_VERSIONS = [
     (1, getattr(lalsimulation, "NRTidal_V", 1)),
     (2, getattr(lalsimulation, "NRTidalv2_V", 2)),
-] + ([(3, _LAL_NRTIDALV3)] if _LAL_NRTIDALV3 is not None else [])
+] + (
+    [(3, _LAL_NRTIDALV3)]
+    if (
+        _LAL_NRTIDALV3 is not None
+        and _LAL_HAS_NRTIDALV3_MERGER_FREQUENCY
+    )
+    else []
+)
 
 
 @pytest.mark.parametrize(
@@ -208,19 +222,27 @@ def test_nrtidal_frequency_corrections_match_lal(version, lal_version):
     phase = lal.CreateREAL8Vector(len(frequencies))
     amplitude = lal.CreateREAL8Vector(len(frequencies))
     taper = lal.CreateREAL8Vector(len(frequencies))
-    status = lalsimulation.SimNRTunedTidesFDTidalPhaseFrequencySeries(
-        phase,
-        amplitude,
-        taper,
-        frequency_vector,
-        mass1 * lal.MSUN_SI,
-        mass2 * lal.MSUN_SI,
-        lambda1,
-        lambda2,
-        spin1z,
-        spin2z,
-        lal_version,
-    )
+    try:
+        status = lalsimulation.SimNRTunedTidesFDTidalPhaseFrequencySeries(
+            phase,
+            amplitude,
+            taper,
+            frequency_vector,
+            mass1 * lal.MSUN_SI,
+            mass2 * lal.MSUN_SI,
+            lambda1,
+            lambda2,
+            spin1z,
+            spin2z,
+            lal_version,
+        )
+    except TypeError as exc:
+        if "takes at most 9 arguments" not in str(exc):
+            raise
+        pytest.skip(
+            "installed lalsimulation has the legacy 9-argument "
+            "NRTidal frequency-series binding"
+        )
     assert status == 0
 
     torch_frequencies = torch.as_tensor(frequencies, dtype=torch.float64)
