@@ -47,8 +47,7 @@ unit-test environment:
      test/waveform/test_taylorf2_torch.py \
      test/waveform/test_taylorf2ecc_torch.py \
      test/waveform/test_taylorf2nltides_torch.py \
-     test/waveform/test_taylorf2redspin_torch.py \
-     test/waveform/test_spintaylorf2_wrapper_torch.py
+     test/waveform/test_taylorf2redspin_torch.py
 
 Run the TaylorF2 batch, inference, and detector comparisons with:
 
