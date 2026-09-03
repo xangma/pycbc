@@ -10,7 +10,7 @@ Supported workflow scope
 ========================
 
 The current branch covers the Torch search stack, shared waveform
-infrastructure, the six TaylorF2-family registry entries documented in
+infrastructure, the five TaylorF2-family registry entries documented in
 :doc:`waveform`, and the supported inference and detector paths. Workflows must
 not request a Torch-native waveform outside that registry and then treat a
 fallback as native coverage.
@@ -62,8 +62,7 @@ The registered waveform ports are checked with:
      test/waveform/test_taylorf2_torch.py \
      test/waveform/test_taylorf2ecc_torch.py \
      test/waveform/test_taylorf2nltides_torch.py \
-     test/waveform/test_taylorf2redspin_torch.py \
-     test/waveform/test_spintaylorf2_wrapper_torch.py
+     test/waveform/test_taylorf2redspin_torch.py
 
 TaylorF2 batching, inference, and detector integration has a focused selection:
 
