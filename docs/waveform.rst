@@ -79,6 +79,52 @@ or if you include it in a python package, :ref:`PyCBC can directly detect it! <w
    :include-source:
 
 
+===========================================
+Torch-native waveform ports (torch scheme)
+===========================================
+PyCBC currently registers Torch-native frequency-domain and arbitrary-frequency
+sequence interfaces for six TaylorF2-family approximants.
+
+The registered approximants are ``TaylorF2``, ``TaylorF2NLTides``,
+``TaylorF2RedSpin``, ``TaylorF2RedSpinTidal``, ``TaylorF2Ecc``, and
+``SpinTaylorF2``. ``SpinTaylorF2`` is predicate-guarded, and unsupported
+parameters retain the standard fallback behavior.
+
+Regular-grid rows marked ``LAL reference`` are compared with the existing LAL
+implementation. Sequence rows marked ``native extension`` have no equivalent
+LAL public interface. Those extensions accept their documented arbitrary-
+frequency contract and are validated against analytic or regular-grid behavior
+rather than a nonexistent LAL sequence result.
+
+The global ``PYCBC_TORCH_NATIVE_PORTS`` switch and the per-approximant component
+flags can override native selection. A per-component setting takes precedence.
+Setting a component flag to ``0`` forces the established fallback where one
+exists; it does not create a fallback for a native-only sequence interface.
+
+Under ``TorchScheme``, supported regular-grid and sequence results use Torch-
+backed PyCBC series on the selected device. Scalar coefficient preparation and
+public Python control flow do not imply end-to-end autograd. Device-specific
+predicates remain authoritative, including accuracy guards for devices that do
+not provide the required double-precision kernels.
+
+TaylorF2 also provides an explicit native batch interface. It is deliberately
+separate from the scalar dispatcher, so vector inputs cannot change
+``get_fd_waveform`` return types::
+
+    with pycbc.scheme.TorchScheme("cpu"):
+        batch = pycbc.waveform.get_fd_waveform_batch(
+            "TaylorF2",
+            mass1=[1.4, 1.5], mass2=1.3,
+            f_lower=[20.0, 24.0], f_final=128.0, delta_f=1.0,
+        )
+
+``batch.hplus`` and ``batch.hcross`` are padded two-dimensional Torch tensors.
+``batch.first_bins`` and ``batch.end_bins`` give each row's exact non-zero
+frequency support; ``batch.delta_f`` and ``batch.epoch`` describe the common
+grid. Scalars and length-one vectors broadcast to the common batch size, while
+inconsistent vector lengths are rejected. Focused validation is provided by
+``test/waveform/test_taylorf2_batch.py``.
+
 Torch-native waveform decompression
 ===================================
 

@@ -816,6 +816,38 @@ get_fd_waveform.__doc__ = get_fd_waveform.__doc__.format(
            include_label=False))
 
 
+def get_fd_waveform_batch(approximant, **params):
+    """Generate an explicit batch of native frequency-domain waveforms.
+
+    This interface is intentionally separate from :func:`get_fd_waveform` so
+    that passing vector-valued parameters cannot change the scalar API's
+    return type.  The initial implementation supports TaylorF2 under an active
+    :class:`pycbc.scheme.TorchScheme`.
+
+    Parameters
+    ----------
+    approximant : str
+        The waveform model.  Currently only ``"TaylorF2"`` is supported.
+    **params
+        TaylorF2 parameters.  Physical parameters may be scalars or
+        one-dimensional batches; scalars are broadcast to the batch size.
+
+    Returns
+    -------
+    pycbc.waveform.taylorf2_torch.TaylorF2FDBatch
+        Batched polarizations and their frequency-grid metadata.
+    """
+    if approximant != "TaylorF2":
+        raise ValueError(
+            "get_fd_waveform_batch currently supports only TaylorF2; "
+            f"got {approximant!r}"
+        )
+
+    from pycbc.waveform.taylorf2_torch import taylorf2_fd_batch
+
+    return taylorf2_fd_batch(**params)
+
+
 def get_fd_waveform_from_td(**params):
     """ Return time domain version of fourier domain approximant.
 
@@ -1596,7 +1628,8 @@ def get_waveform_filter_length_in_time(approximant, template=None, **kwargs):
         return None
 
 __all__ = ["get_td_waveform", "get_td_det_waveform_from_fd_det",
-           "get_fd_waveform", "get_fd_waveform_sequence",
+           "get_fd_waveform", "get_fd_waveform_batch",
+           "get_fd_waveform_sequence",
            "get_fd_det_waveform", "get_fd_det_waveform_sequence",
            "get_fd_waveform_from_td",
            "print_td_approximants", "print_fd_approximants",
