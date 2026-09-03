@@ -24,8 +24,8 @@ Current waveform boundary
 
 The current public Torch waveform registry contains FD and FD-sequence entries
 for ``TaylorF2``, ``TaylorF2NLTides``, ``TaylorF2RedSpin``,
-``TaylorF2RedSpinTidal``, ``TaylorF2Ecc``, and ``SpinTaylorF2``. Their supported
-interfaces and selection behavior are described in :doc:`waveform`.
+``TaylorF2RedSpinTidal``, and ``TaylorF2Ecc``. Their supported interfaces and
+selection behavior are described in :doc:`waveform`.
 
 Regular-grid ports with a standard LAL path compare the supported Torch route
 against that reference. A sequence interface marked ``native extension`` has
