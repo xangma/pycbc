@@ -511,7 +511,10 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
             Detector-frame parameter names mapped to scalars or one-
             dimensional arrays or tensors of samples. The supported batched
             parameters are ``tc``, ``ra``, ``dec``, and ``polarization``.
-            Radiation-frame waveform parameters must be scalar.
+            Radiation-frame waveform parameters must be scalar. Batched
+            evaluation requires common detector frequency grids and does not
+            currently support template recalibration or waveform gates.
+            Absolute GPS-time arrays or tensors must use 64-bit precision.
 
         Returns
         -------
@@ -1186,7 +1189,10 @@ class GaussianNoise(BaseGaussianNoise):
         **params : dict
             Detector-frame parameter names mapped to scalars or one-
             dimensional arrays or tensors of samples. Radiation-frame
-            waveform parameters must be scalar.
+            waveform parameters must be scalar. Batched evaluation requires
+            common detector frequency grids and does not currently support
+            template recalibration or waveform gates. Absolute GPS-time arrays
+            or tensors must use 64-bit precision.
 
         Returns
         -------
@@ -1266,11 +1272,50 @@ def _batched_waveform_inner_products(model, params, zero_phase=False):
         if hasattr(model, 'waveform_generator')
         else None
     )
+    if not getattr(model, 'all_ifodata_same_rate_length', True):
+        raise NotImplementedError(
+            "Batched likelihood evaluation requires all detectors to use "
+            "the same sample rate and segment length"
+        )
+    if isinstance(gen, dict):
+        raise NotImplementedError(
+            "Batched likelihood evaluation does not support per-detector "
+            "waveform generators"
+        )
+
+    recalibration = getattr(model, 'recalibration', None)
+    if not recalibration and gen is not None:
+        recalibration = getattr(gen, 'recalib', None)
+    gates = getattr(model, 'gates', None)
+    if not gates and gen is not None:
+        gates = getattr(gen, 'gates', None)
+    if recalibration:
+        raise NotImplementedError(
+            "Batched likelihood evaluation does not support template "
+            "recalibration"
+        )
+    if gates:
+        raise NotImplementedError(
+            "Batched likelihood evaluation does not support waveform gates"
+        )
+
     has_rframe = (
         gen is not None
         and hasattr(gen, 'rframe_generator')
         and hasattr(gen, 'location_args')
     )
+
+    if not has_rframe:
+        shaped_params = sorted(
+            name for name, value in params.items()
+            if _batched_value_shape(value)
+        )
+        if shaped_params:
+            raise NotImplementedError(
+                "Batched likelihood parameters require a radiation-frame "
+                "waveform generator with an explicit detector-frame "
+                "contract. Got: " + ", ".join(shaped_params)
+            )
 
     if has_rframe:
         batch_size = _detector_frame_batch_size(
@@ -1307,6 +1352,7 @@ def _batched_waveform_inner_products(model, params, zero_phase=False):
         pol = full_params.get('polarization', 0.0)
         ref_tc = full_params.get('tc', 0.0)
         refframe = full_params.get('tc_ref_frame', 'geocentric')
+        generator._validate_absolute_time_precision(ref_tc, epoch)
 
         total_hd = None
         total_hh = None
@@ -1329,11 +1375,15 @@ def _batched_waveform_inner_products(model, params, zero_phase=False):
                 from pycbc.detector import Detector
                 det = Detector(detname)
             if delay_dict is not None:
-                tc = ref_tc + delay_dict[detname]
+                offset = delay_dict[detname]
             else:
-                tc = det.arrival_time(ref_tc, ra, dec, refframe)
+                offset = generator._detector_time_offset(
+                    det, ref_tc, ra, dec, refframe
+                )
+            tc, dt = generator._arrival_time_and_shift(
+                ref_tc, offset, epoch, tshift
+            )
             fp, fc = det.antenna_pattern(ra, dec, pol, tc)
-            dt = tc + tshift - epoch
 
             hp_tensor = _torch_tensor(hp)
             hc_tensor = _torch_tensor(hc)

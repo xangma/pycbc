@@ -32,15 +32,43 @@ def _get_freq_grid(kmin, kmax, device, dtype):
 
 
 def apply_fseries_time_shift(htilde, dt, kmin=0, copy=True):
-    """Shift a uniformly sampled frequency-domain waveform in time."""
+    """Shift a uniformly sampled frequency-domain waveform in time.
+
+    A non-scalar ``dt`` is aligned with the waveform's sample axes; the final
+    data axis is always frequency. It cannot introduce a sample axis into a
+    one-dimensional ``FrequencySeries``.
+    """
     data = htilde._data.tensor
     if copy:
         data = data.clone()
 
-    if not isinstance(dt, torch.Tensor):
-        dt_value = float(dt)
-    else:
+    if isinstance(dt, torch.Tensor):
         dt_value = dt.to(device=data.device, dtype=data.real.dtype)
+    else:
+        try:
+            dt_value = float(dt)
+        except (TypeError, ValueError):
+            dt_value = torch.as_tensor(
+                dt, device=data.device, dtype=data.real.dtype
+            )
+
+    if isinstance(dt_value, torch.Tensor) and dt_value.ndim:
+        sample_shape = data.shape[:-1]
+        try:
+            broadcast_shape = torch.broadcast_shapes(
+                tuple(dt_value.shape), tuple(sample_shape)
+            )
+        except RuntimeError as exc:
+            raise ValueError(
+                "A batched time shift must broadcast across the waveform "
+                "sample axes"
+            ) from exc
+        if tuple(broadcast_shape) != tuple(sample_shape):
+            raise ValueError(
+                "A batched time shift cannot introduce sample axes into a "
+                "FrequencySeries"
+            )
+        dt_value = dt_value.unsqueeze(-1)
 
     kmax = data.shape[-1]
     if kmax > kmin:

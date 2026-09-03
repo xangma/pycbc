@@ -119,6 +119,78 @@ def test_freq_grid_cache_and_apply_fseries_time_shift(torch_ctx):
         assert torch.allclose(shifted._data.tensor, ref, atol=1e-14)
 
 
+def test_apply_fseries_time_shift_uses_explicit_batch_axis(torch_ctx):
+    from pycbc.waveform.utils_torch import apply_fseries_time_shift
+
+    with torch_ctx:
+        # Deliberately make batch size equal the number of frequency bins.
+        batch_size = n_freq = 4
+        raw = torch.ones(
+            (batch_size, n_freq), dtype=torch.complex128
+        )
+        series = FrequencySeries(
+            TorchArrayData(raw.clone()), delta_f=0.5, epoch=0.0, copy=False
+        )
+        dt = torch.linspace(0.01, 0.04, batch_size, dtype=torch.float64)
+
+        shifted = apply_fseries_time_shift(
+            series, dt, copy=False
+        )._data.tensor
+        frequencies = torch.arange(n_freq, dtype=torch.float64) * 0.5
+        expected = raw * torch.exp(
+            -2j * torch.pi * dt[:, None] * frequencies
+        )
+        torch.testing.assert_close(shifted, expected)
+
+
+def test_apply_fseries_time_shift_rejects_new_batch_axis(torch_ctx):
+    from pycbc.waveform.utils_torch import apply_fseries_time_shift
+
+    with torch_ctx:
+        series = FrequencySeries(
+            TorchArrayData(torch.ones(4, dtype=torch.complex128)),
+            delta_f=0.5,
+            epoch=0.0,
+            copy=False,
+        )
+        with pytest.raises(ValueError, match="cannot introduce sample axes"):
+            apply_fseries_time_shift(
+                series, torch.linspace(0.01, 0.04, 4), copy=False
+            )
+
+
+def test_arrival_time_is_centered_before_float32_cast():
+    from pycbc.waveform.generator import _arrival_time_and_shift
+
+    epoch = 1126259460.0
+    reference_time = 1126259462.125
+    offset = torch.tensor(0.003, dtype=torch.float32)
+
+    arrival, relative = _arrival_time_and_shift(
+        reference_time, offset, epoch
+    )
+
+    assert arrival.dtype == torch.float64
+    assert relative.dtype == torch.float64
+    torch.testing.assert_close(
+        relative,
+        torch.tensor(2.128, dtype=torch.float64),
+        rtol=0.0,
+        atol=1e-8,
+    )
+
+
+def test_large_float32_time_is_rejected_with_relative_epoch():
+    from pycbc.waveform.generator import _arrival_time_and_shift
+
+    with pytest.raises(ValueError, match="must use torch.float64"):
+        _arrival_time_and_shift(
+            torch.tensor(1126259462.0, dtype=torch.float32),
+            0.003,
+            epoch=0.0,
+        )
+
+
 def test_fused_detector_strain_fd_torch(torch_ctx):
     from pycbc.waveform.utils_torch import fused_detector_strain_fd_torch
 
@@ -211,11 +283,35 @@ def test_fdomain_det_frame_generator_preserves_projection_gradients(
         (result.real.sum() + result.imag.sum()).backward()
 
         assert result.device == tc.device
-        assert detector.antenna_time_value is detector.arrival_time_value
+        torch.testing.assert_close(
+            detector.antenna_time_value,
+            detector.arrival_time_value,
+        )
         for value in (tc, ra, dec, polarization):
             assert value.grad is not None
             assert torch.isfinite(value.grad)
             assert value.grad != 0.0
+
+
+def test_fdomain_det_frame_generator_rejects_batched_location_args(
+        monkeypatch, torch_ctx):
+    generator = _load_generator_module(monkeypatch)
+
+    with torch_ctx:
+        detgen = generator.FDomainDetFrameGenerator(
+            StaticTorchRFrameGenerator,
+            epoch=0.0,
+            detectors=None,
+            variable_args=['tc'],
+            delta_f=0.25,
+        )
+        with pytest.raises(ValueError, match="does not return a batch container"):
+            detgen.generate(tc=torch.tensor([1.0, 2.0]))
+        with pytest.raises(ValueError, match="tc_ref_frame"):
+            detgen.generate(
+                tc=1.0,
+                tc_ref_frame=np.asarray(['H1', 'L1']),
+            )
 
 
 def test_fdomain_det_frame_generator_multi_detector_torch(monkeypatch, torch_ctx):

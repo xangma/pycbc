@@ -26,6 +26,7 @@ This modules provides classes for generating waveforms.
 """
 import os
 import logging
+import numpy
 
 from abc import (ABCMeta, abstractmethod)
 
@@ -46,6 +47,150 @@ from numpy import pi
 
 # utility functions/class
 failed_counter = 0
+
+
+_LOW_PRECISION_ABSOLUTE_TIME = 2 ** 24
+
+
+def _torch_value(value):
+    """Return ``value`` when it is a Torch tensor without importing Torch."""
+    if type(value).__module__.split('.', 1)[0] == 'torch':
+        return value
+    return None
+
+
+def _validate_absolute_time_precision(reference_time, epoch):
+    """Reject absolute times whose fractional part is already unrecoverable."""
+    tensor = _torch_value(reference_time)
+    if tensor is not None:
+        import torch
+
+        large_absolute_time = abs(float(epoch)) >= (
+            _LOW_PRECISION_ABSOLUTE_TIME
+        )
+        if not large_absolute_time and tensor.numel():
+            large_absolute_time = bool(
+                torch.any(
+                    tensor.detach().abs() >= _LOW_PRECISION_ABSOLUTE_TIME
+                ).item()
+            )
+        if large_absolute_time and tensor.dtype != torch.float64:
+            raise ValueError(
+                "Absolute GPS time tensors must use torch.float64; lower "
+                "precision dtypes cannot represent detector arrival times"
+            )
+        return large_absolute_time
+
+    array = numpy.asarray(reference_time)
+    large_absolute_time = abs(float(epoch)) >= _LOW_PRECISION_ABSOLUTE_TIME
+    if not large_absolute_time and array.size:
+        if array.ndim == 0:
+            large_absolute_time = (
+                abs(float(reference_time)) >= _LOW_PRECISION_ABSOLUTE_TIME
+            )
+        elif numpy.issubdtype(array.dtype, numpy.number):
+            large_absolute_time = bool(
+                numpy.any(numpy.abs(array) >= _LOW_PRECISION_ABSOLUTE_TIME)
+            )
+    if (
+        large_absolute_time
+        and numpy.issubdtype(array.dtype, numpy.floating)
+        and array.dtype.itemsize < numpy.dtype(numpy.float64).itemsize
+    ):
+        raise ValueError(
+            "Absolute GPS time arrays must use float64; lower precision "
+            "dtypes cannot represent detector arrival times"
+        )
+    return large_absolute_time
+
+
+def _arrival_time_and_shift(reference_time, offset, epoch, extra_shift=0.0):
+    """Return a precise arrival time and its shift relative to ``epoch``.
+
+    The large absolute time is kept in float64 while the phase shift is
+    centered before it is cast to a waveform's lower-precision device dtype.
+    """
+    large_absolute_time = _validate_absolute_time_precision(
+        reference_time, epoch
+    )
+    reference_tensor = _torch_value(reference_time)
+    offset_tensor = _torch_value(offset)
+    if reference_tensor is None and offset_tensor is None:
+        arrival_time = reference_time + offset
+        relative_shift = (
+            (reference_time - epoch) + offset + extra_shift
+        )
+        return arrival_time, relative_shift
+
+    import torch
+
+    anchor = offset_tensor if offset_tensor is not None else reference_tensor
+    if large_absolute_time and anchor.device.type == 'mps':
+        raise ValueError(
+            "Differentiable absolute GPS arrival times require float64, "
+            "which is not supported on MPS"
+        )
+    work_dtype = torch.float64 if large_absolute_time else anchor.dtype
+    if not torch.is_floating_point(anchor):
+        work_dtype = torch.get_default_dtype()
+
+    if reference_tensor is None:
+        reference_on_device = torch.as_tensor(
+            reference_time, device=anchor.device, dtype=work_dtype
+        )
+        centered_reference = torch.as_tensor(
+            numpy.asarray(reference_time, dtype=numpy.float64) - float(epoch),
+            device=anchor.device,
+            dtype=work_dtype,
+        )
+    else:
+        reference_on_device = reference_tensor.to(
+            device=anchor.device, dtype=work_dtype
+        )
+        centered_reference = (
+            reference_tensor
+            - torch.as_tensor(
+                epoch,
+                device=reference_tensor.device,
+                dtype=reference_tensor.dtype,
+            )
+        ).to(device=anchor.device, dtype=work_dtype)
+
+    offset_on_device = torch.as_tensor(
+        offset, device=anchor.device, dtype=work_dtype
+    )
+    arrival_time = reference_on_device + offset_on_device
+    relative_shift = centered_reference + offset_on_device + extra_shift
+    return arrival_time, relative_shift
+
+
+def _detector_time_offset(detector, reference_time, ra, dec, reference_frame):
+    """Return a detector arrival offset without adding it to absolute GPS."""
+    if reference_frame == 'geocentric' and hasattr(
+            detector, 'time_delay_from_earth_center'):
+        return detector.time_delay_from_earth_center(
+            ra, dec, reference_time
+        )
+    if reference_frame == getattr(detector, 'name', None):
+        return 0.0
+    if hasattr(detector, 'time_delay_from_detector'):
+        return detector.time_delay_from_detector(
+            Detector(reference_frame), ra, dec, reference_time
+        )
+
+    # Lightweight detector doubles historically only implemented
+    # ``arrival_time``. Preserve that compatibility for scalar tests/users.
+    return detector.arrival_time(
+        reference_time, ra, dec, reference_frame
+    ) - reference_time
+
+
+def _has_sample_axis(value):
+    """Return whether a parameter value has a non-scalar shape."""
+    tensor = _torch_value(value)
+    if tensor is not None:
+        return tensor.ndim != 0
+    return bool(numpy.shape(value))
 
 
 def _scheme_cast_series(series):
@@ -698,12 +843,31 @@ class FDomainDetFrameGenerator(BaseFDomainDetFrameGenerator):
         """Generates a waveform, applies a time shift and the detector response
         function from the given kwargs.
         """
+        next_params = self.current_params.copy()
+        next_params.update(kwargs)
+        batched_location_args = sorted(
+            name for name in self.location_args | {'tc_ref_frame'}
+            if name in next_params and _has_sample_axis(next_params[name])
+        )
+        if batched_location_args:
+            raise ValueError(
+                "FDomainDetFrameGenerator.generate does not return a batch "
+                "container; detector-frame parameters must be scalar. Got: "
+                + ", ".join(batched_location_args)
+            )
+        if 'tc' in next_params:
+            _validate_absolute_time_precision(next_params['tc'], self._epoch)
         self.current_params.update(kwargs)
         rfparams = {param: self.current_params[param]
             for param in kwargs if param not in self.location_args}
         hp, hc = self.rframe_generator.generate(**rfparams)
         hp = _scheme_cast_series(hp)
         hc = _scheme_cast_series(hc)
+        if len(hp.shape) != 1 or len(hc.shape) != 1:
+            raise ValueError(
+                "FDomainDetFrameGenerator.generate does not return a batch "
+                "container; radiation-frame waveforms must be one-dimensional"
+            )
         if isinstance(hp, TimeSeries):
             df = self.current_params['delta_f']
             hp = hp.to_frequencyseries(delta_f=df)
@@ -739,11 +903,16 @@ class FDomainDetFrameGenerator(BaseFDomainDetFrameGenerator):
                 dt_list = []
                 det_list = []
                 for detname, det in self.detectors.items():
-                    tc = det.arrival_time(ref_tc, ra, dec, refframe)
+                    offset = _detector_time_offset(
+                        det, ref_tc, ra, dec, refframe
+                    )
+                    tc, dt = _arrival_time_and_shift(
+                        ref_tc, offset, self._epoch, tshift
+                    )
                     fp, fc = det.antenna_pattern(ra, dec, pol, tc)
                     fp_list.append(fp)
                     fc_list.append(fc)
-                    dt_list.append(tc + tshift - self._epoch)
+                    dt_list.append(dt)
                     det_list.append(detname)
 
                 strains = fused_detector_strain_fd_torch(
@@ -763,7 +932,12 @@ class FDomainDetFrameGenerator(BaseFDomainDetFrameGenerator):
                     h[detname] = series
             else:
                 for detname, det in self.detectors.items():
-                    tc = det.arrival_time(ref_tc, ra, dec, refframe)
+                    offset = _detector_time_offset(
+                        det, ref_tc, ra, dec, refframe
+                    )
+                    tc, _ = _arrival_time_and_shift(
+                        ref_tc, offset, self._epoch, tshift
+                    )
                     # Evaluate the detector tensor at the arrival time.  The
                     # sidereal response changes between the reference and
                     # detector-frame times, even though the difference is

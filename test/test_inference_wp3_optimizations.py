@@ -561,6 +561,7 @@ class TestWP2MultiDetectorBatchedLikelihood(unittest.TestCase):
             static_params={},
             waveform_generator=generator,
             network_geometry=Geometry(),
+            all_ifodata_same_rate_length=True,
             _data={'H1': None},
             _kmin={'H1': 0},
             _kmax={'H1': n_freq},
@@ -569,6 +570,7 @@ class TestWP2MultiDetectorBatchedLikelihood(unittest.TestCase):
                 'H1': np.ones(n_freq, dtype=np.complex128)
             },
             recalibration={},
+            gates=None,
         )
         model._batched_loglr = types.MethodType(
             GaussianNoise._batched_loglr, model
@@ -641,6 +643,74 @@ class TestWP2MultiDetectorBatchedLikelihood(unittest.TestCase):
                 dec=np.asarray([0.1, 0.2, 0.3]),
                 polarization=0.2,
                 tc=1126259462.0,
+            )
+
+    def test_batched_likelihood_rejects_mixed_detector_grids(self):
+        model, _ = self._minimal_numpy_batch_model(4)
+        model.all_ifodata_same_rate_length = False
+        model.waveform_generator = {'H1': model.waveform_generator}
+
+        with self.assertRaisesRegex(
+                NotImplementedError, "same sample rate and segment length"):
+            model._batched_loglr(
+                ra=np.asarray([0.2, 0.3]),
+                dec=0.1,
+                polarization=0.2,
+                tc=2.0,
+            )
+
+    def test_batched_likelihood_rejects_calibration_and_gates(self):
+        for attribute, value, message in (
+            ('recalibration', {'H1': object()}, 'template recalibration'),
+            ('gates', {'H1': [(1.0, 0.1)]}, 'waveform gates'),
+        ):
+            with self.subTest(attribute=attribute):
+                model, _ = self._minimal_numpy_batch_model(4)
+                setattr(model, attribute, value)
+                with self.assertRaisesRegex(NotImplementedError, message):
+                    model._batched_loglr(
+                        ra=np.asarray([0.2, 0.3]),
+                        dec=0.1,
+                        polarization=0.2,
+                        tc=2.0,
+                    )
+
+    def test_batched_likelihood_rejects_fallback_generator_batches(self):
+        model, _ = self._minimal_numpy_batch_model(4)
+        model.waveform_generator = types.SimpleNamespace(
+            generate=lambda **_params: {}
+        )
+
+        with self.assertRaisesRegex(
+                NotImplementedError, "explicit detector-frame contract"):
+            model._batched_loglr(
+                mass1=np.asarray([1.3, 1.4]),
+                tc=np.asarray([2.0, 2.1]),
+            )
+
+    def test_batched_likelihood_rejects_float32_absolute_gps_time(self):
+        values = torch.linspace(0.1, 0.2, 2, dtype=torch.float32)
+        tc = torch.full(
+            (2,), 1126259462.0, dtype=torch.float32
+        )
+
+        with self.assertRaisesRegex(ValueError, "must use torch.float64"):
+            self.model.batched_loglikelihood(
+                ra=values,
+                dec=values,
+                polarization=values,
+                tc=tc,
+            )
+
+        model, _ = self._minimal_numpy_batch_model(4)
+        with self.assertRaisesRegex(ValueError, "arrays must use float64"):
+            model._batched_loglr(
+                ra=np.asarray([0.2, 0.3]),
+                dec=0.1,
+                polarization=0.2,
+                tc=np.asarray(
+                    [1126259462.0, 1126259462.1], dtype=np.float32
+                ),
             )
 
     def test_marginalized_phase_batched_loglr_numpy(self):
