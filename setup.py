@@ -274,7 +274,10 @@ setup(
         'pycbc.neutron_stars': find_files('pycbc/neutron_stars'),
         'pycbc.waveform': find_files(
             'pycbc/waveform/data', relpath='pycbc/waveform'
-        ),
+        ) + [
+            '_imrphenomxhm_mode32_native.cpp',
+            '_imrphenomxhm_mode44_native.cpp',
+        ],
     },
     ext_modules = ext,
     python_requires='>=3.11',
