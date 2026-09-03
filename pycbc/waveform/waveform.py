@@ -310,6 +310,7 @@ def _spintaylor_aligned_prec_swapper(**p):
     p['approximant'] = orig_approximant
     return hp, hc
 
+
 def _lalsim_fd_waveform(**p):
     using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
     if using_torch:
@@ -319,6 +320,8 @@ def _lalsim_fd_waveform(**p):
         )
         if native_waveform is not None:
             return native_waveform
+        if p.get("approximant") in ("SEOBNRv4", "SEOBNRv4P"):
+            return get_fd_waveform_from_td(**p)
     # SEOBNRv4PHM is implemented by LAL in the time domain. Keep the public
     # FD API available by using the established CPU TD-to-FD reference path.
     if p.get("approximant") == "SEOBNRv4PHM":

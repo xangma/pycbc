@@ -1037,12 +1037,12 @@ def test_seobnr_public_fd_dispatch_uses_native_td_conversion(
             "PYCBC_SEOBNRV4P_NATIVE",
             "seobnrv4p_fd_torch",
             {key: value for key, value in PARAMS.items() if key != "delta_f"},
-            {"mode_array": ((2, 2), (3, 3))},
+            {"mode_array": [(2, 2), (3, 3)]},
         ),
     ),
     ids=("aligned-v4", "precessing-v4p"),
 )
-def test_seobnr_fd_retains_cpu_lal_fallback(
+def test_seobnr_fd_retains_td_to_fd_fallback(
     monkeypatch,
     native_enabled,
     use_unsupported,
@@ -1053,14 +1053,33 @@ def test_seobnr_fd_retains_cpu_lal_fallback(
     unsupported,
 ):
     """Disabled and unsupported EOB FD requests must retain fallback."""
+    import torch
+
+    from pycbc.types import FrequencySeries
+    from pycbc.types.array_torch import TorchArrayData
     from pycbc.waveform import seobnrv4phm_torch, waveform
+
+    fallback_calls = []
+    expected = []
 
     def unexpected_native(**_params):
         raise AssertionError("fallback request reached native SEOBNRv4 FD")
 
-    def recording_cpu_conversion(**_params):
-        assert isinstance(_scheme.mgr.state, _scheme.CPUScheme)
-        raise RuntimeError("CPU TD-to-FD fallback reached")
+    def recording_td_conversion(**call_params):
+        assert _scheme.mgr.state is active_scheme
+        fallback_calls.append(call_params)
+        result = tuple(
+            FrequencySeries(
+                TorchArrayData(
+                    torch.arange(4, dtype=torch.float64).to(torch.complex128)
+                ),
+                delta_f=call_params["delta_f"],
+                copy=False,
+            )
+            for _ in range(2)
+        )
+        expected.extend(result)
+        return result
 
     old_scheme = _scheme.mgr.state
     old_single = _scheme.Scheme._single
@@ -1076,23 +1095,27 @@ def test_seobnr_fd_retains_cpu_lal_fallback(
     monkeypatch.setattr(
         waveform,
         "get_fd_waveform_from_td",
-        recording_cpu_conversion,
+        recording_td_conversion,
     )
+    active_scheme = _scheme.TorchScheme()
     try:
         _scheme.Scheme._single = None
-        _scheme.mgr.state = _scheme.TorchScheme()
-        with pytest.raises(
-            RuntimeError,
-            match="CPU TD-to-FD fallback reached",
-        ):
-            get_fd_waveform(
-                approximant=approximant,
-                delta_f=0.25,
-                **dict(
-                    params,
-                    **(unsupported if use_unsupported else {}),
-                ),
-            )
+        _scheme.mgr.state = active_scheme
+        actual = get_fd_waveform(
+            approximant=approximant,
+            delta_f=0.25,
+            **dict(
+                params,
+                **(unsupported if use_unsupported else {}),
+            ),
+        )
+        assert _scheme.mgr.state is active_scheme
+        assert len(fallback_calls) == 1
+        assert all(got is want for got, want in zip(actual, expected))
+        assert all(
+            series._data.tensor.device == active_scheme.torch_device
+            for series in actual
+        )
     finally:
         _scheme.mgr.state = old_scheme
         _scheme.Scheme._single = old_single
