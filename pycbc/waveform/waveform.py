@@ -319,6 +319,12 @@ def _lalsim_fd_waveform(**p):
         )
         if native_waveform is not None:
             return native_waveform
+    # SEOBNRv4PHM is implemented by LAL in the time domain. Keep the public
+    # FD API available by using the established CPU TD-to-FD reference path.
+    if p.get("approximant") == "SEOBNRv4PHM":
+        from .seobnrv4phm_torch import seobnrv4phm_fd_from_td
+
+        return seobnrv4phm_fd_from_td(use_torch=False, **p)
     lal_pars = _check_lal_pars(p)
     hp1, hc1 = lalsimulation.SimInspiralChooseFDWaveform(
                float(pnutils.solar_mass_to_kg(p['mass1'])),
@@ -839,7 +845,8 @@ def get_fd_waveform_batch(approximant, **params):
     ----------
     approximant : str
         The waveform model. Currently ``"TaylorF2"``, ``"IMRPhenomD"``,
-        ``"IMRPhenomXAS"``, and ``"IMRPhenomXHM"`` are supported.
+        ``"IMRPhenomXAS"``, ``"IMRPhenomXP"``, ``"IMRPhenomXHM"``, and
+        ``"IMRPhenomXPHM"`` are supported.
     **params
         Waveform parameters. Physical parameters may be scalars or
         one-dimensional batches; scalars are broadcast to the batch size.
@@ -861,12 +868,23 @@ def get_fd_waveform_batch(approximant, **params):
         from pycbc.waveform.imrphenomxas_torch import imrphenomxas_fd_batch
 
         return imrphenomxas_fd_batch(**params)
+    if approximant == "IMRPhenomXP":
+        from pycbc.waveform.imrphenomxp_torch import imrphenomxp_fd_batch
+
+        return imrphenomxp_fd_batch(**params)
     if approximant == "IMRPhenomXHM":
         from pycbc.waveform.imrphenomxhm_torch import imrphenomxhm_fd_batch
 
         return imrphenomxhm_fd_batch(**params)
+    if approximant == "IMRPhenomXPHM":
+        from pycbc.waveform.imrphenomxphm_torch import imrphenomxphm_fd_batch
 
-    supported = "TaylorF2, IMRPhenomD, IMRPhenomXAS, and IMRPhenomXHM"
+        return imrphenomxphm_fd_batch(**params)
+
+    supported = (
+        "TaylorF2, IMRPhenomD, IMRPhenomXAS, IMRPhenomXP, IMRPhenomXHM, "
+        "and IMRPhenomXPHM"
+    )
     raise ValueError(
         "get_fd_waveform_batch supports only "
         f"{supported}; got {approximant!r}"

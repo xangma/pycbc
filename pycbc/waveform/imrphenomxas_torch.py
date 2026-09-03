@@ -50,7 +50,7 @@ import struct
 import sys
 import threading
 import warnings
-from typing import Any, NamedTuple, Protocol
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from pycbc import lal_compat as lal
 import numpy as _np
@@ -77,11 +77,8 @@ from .nrtidal_torch import (
     nrtidal_version,
 )
 
-class PNRCoprecessingDeviations(Protocol):
-    """Shape of an optional downstream co-precessing correction bundle."""
-
-    strength: Any
-    fits: Any
+if TYPE_CHECKING:
+    from .imrphenomxpnr_torch import PNRCoprecessingDeviations
 
 Array = Any
 Float = Any
