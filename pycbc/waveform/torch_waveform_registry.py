@@ -55,9 +55,6 @@ def _fd_sequence_port(
     component_flag,
     module,
     stem,
-    *,
-    fd_generator=None,
-    default_supported=None,
 ):
     """Build the common FD plus arbitrary-frequency registry entry."""
     return TorchNativeWaveform(
@@ -65,8 +62,7 @@ def _fd_sequence_port(
         component_flag=component_flag,
         module=module,
         default_enabled=True,
-        default_supported=default_supported,
-        fd_generator=fd_generator or f"{stem}_fd_torch",
+        fd_generator=f"{stem}_fd_torch",
         fd_supported=f"{stem}_native_supported",
         sequence_generator=f"{stem}_fd_sequence_torch",
         sequence_supported=f"{stem}_sequence_native_supported",
@@ -103,14 +99,6 @@ _PORTS = (
         "PYCBC_TAYLORF2ECC_NATIVE",
         "taylorf2ecc_torch",
         "taylorf2ecc",
-    ),
-    _fd_sequence_port(
-        "SpinTaylorF2",
-        "PYCBC_SPINTAYLORF2_NATIVE",
-        "spintaylorf2_torch",
-        "spintaylorf2",
-        fd_generator="spintaylorf2_torch",
-        default_supported="spintaylorf2_default_native_supported",
     ),
 )
 

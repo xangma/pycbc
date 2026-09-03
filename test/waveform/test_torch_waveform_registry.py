@@ -32,10 +32,6 @@ _EXPECTED_PORTS = {
         "taylorf2redspin_torch",
     ),
     "TaylorF2Ecc": ("PYCBC_TAYLORF2ECC_NATIVE", "taylorf2ecc_torch"),
-    "SpinTaylorF2": (
-        "PYCBC_SPINTAYLORF2_NATIVE",
-        "spintaylorf2_torch",
-    ),
 }
 
 
