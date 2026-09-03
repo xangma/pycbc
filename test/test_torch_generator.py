@@ -180,6 +180,42 @@ def test_arrival_time_is_centered_before_float32_cast():
     )
 
 
+def test_fdomain_det_frame_generator_centers_numpy_large_gps_shift(
+        monkeypatch):
+    generator = _load_generator_module(monkeypatch)
+
+    class OffsetDetector:
+        name = 'H1'
+
+        @staticmethod
+        def time_delay_from_earth_center(ra, dec, tc):
+            return 0.003
+
+        @staticmethod
+        def antenna_pattern(ra, dec, polarization, tc):
+            return 1.0, 0.0
+
+    epoch = 1126259460.0
+    reference_time = 1126259462.125
+    detgen = generator.FDomainDetFrameGenerator(
+        StaticRFrameGenerator,
+        epoch=epoch,
+        detectors=['H1'],
+        variable_args=['tc', 'ra', 'dec', 'polarization'],
+        delta_f=0.25,
+    )
+    detgen.detectors = {'H1': OffsetDetector()}
+
+    actual = detgen.generate(
+        tc=reference_time, ra=1.0, dec=-0.5, polarization=0.2
+    )['H1']
+    dt = (reference_time - epoch) + 0.003
+    frequencies = np.arange(len(actual)) * actual.delta_f
+    expected = np.exp(-2j * np.pi * dt * frequencies)
+
+    np.testing.assert_allclose(actual.numpy(), expected, rtol=0.0, atol=1e-12)
+
+
 def test_large_float32_time_is_rejected_with_relative_epoch():
     from pycbc.waveform.generator import _arrival_time_and_shift
 

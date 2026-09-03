@@ -488,7 +488,9 @@ class TestWP2MultiDetectorBatchedLikelihood(unittest.TestCase):
         dict_logl = self.model.batched_loglikelihood({'ra': ra, 'dec': dec, 'polarization': pol, 'tc': tc})
         np.testing.assert_allclose(dict_logl, batched_logl)
 
-        # Compare against single point sequential evaluations
+        # Compare against single point sequential evaluations. The absolute GPS
+        # times intentionally exercise the same centered detector-delay phase in
+        # both the batched and scalar generator paths.
         ref_lr = []
         ref_logl = []
         for i in range(n_samples):
