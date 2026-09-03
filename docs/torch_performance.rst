@@ -71,7 +71,7 @@ Accepted scope
 
 Search measurements may cover the supported Torch array, FFT, filter,
 matched-filter, and live-batch paths. Waveform measurements are limited to the
-five registered TaylorF2-family ports listed by the generated table in
+six registered TaylorF2-family ports listed by the generated table in
 :doc:`waveform`. Measurements may additionally cover supported inference
 reductions, relative-binning batches, and detector/network response.
 
