@@ -28,7 +28,7 @@ waveforms.
 
 import os
 import numpy
-import lal
+from pycbc import lal_compat as lal
 from pycbc.types import TimeSeries, FrequencySeries, zeros, Array
 from pycbc.types import real_same_precision_as, complex_same_precision_as
 import pycbc.scheme as _scheme
@@ -373,32 +373,43 @@ def _lalsim_sgburst_waveform(**p):
 
     return hp, hc
 
-# Populate waveform approximants from lalsimulation if the library is
-# available
-try:
-    import lalsimulation
-    for approx_enum in range(0, lalsimulation.NumApproximants):
-        if lalsimulation.SimInspiralImplementedTDApproximants(approx_enum):
-            approx_name = lalsimulation.GetStringFromApproximant(approx_enum)
-            _lalsim_enum[approx_name] = approx_enum
-            _lalsim_td_approximants[approx_name] = _lalsim_td_waveform
+# Populate waveform approximants from LALSimulation unless the process has
+# explicitly selected native Torch ports. The scheme is not entered until
+# after command-line imports, so the native-port environment switch is the
+# import-time signal for this LAL-free path.
+_defer_lalsimulation = libutils.defer_lalsimulation_import()
+if _defer_lalsimulation:
+    _lalsimulation_available = False
+    lalsimulation = libutils.import_optional('lalsimulation', defer=True)
+else:
+    try:
+        import lalsimulation
+        _lalsimulation_available = True
+        for approx_enum in range(0, lalsimulation.NumApproximants):
+            if lalsimulation.SimInspiralImplementedTDApproximants(approx_enum):
+                approx_name = lalsimulation.GetStringFromApproximant(approx_enum)
+                _lalsim_enum[approx_name] = approx_enum
+                _lalsim_td_approximants[approx_name] = _lalsim_td_waveform
 
-    for approx_enum in range(0, lalsimulation.NumApproximants):
-        if lalsimulation.SimInspiralImplementedFDApproximants(approx_enum):
-            approx_name = lalsimulation.GetStringFromApproximant(approx_enum)
-            _lalsim_enum[approx_name] = approx_enum
-            _lalsim_fd_approximants[approx_name] = _lalsim_fd_waveform
+        for approx_enum in range(0, lalsimulation.NumApproximants):
+            if lalsimulation.SimInspiralImplementedFDApproximants(approx_enum):
+                approx_name = lalsimulation.GetStringFromApproximant(approx_enum)
+                _lalsim_enum[approx_name] = approx_enum
+                _lalsim_fd_approximants[approx_name] = _lalsim_fd_waveform
 
-    # sine-Gaussian burst
-    for approx_enum in range(0, lalsimulation.NumApproximants):
-        if lalsimulation.SimInspiralImplementedFDApproximants(approx_enum):
-            approx_name = lalsimulation.GetStringFromApproximant(approx_enum)
-            _lalsim_enum[approx_name] = approx_enum
-            _lalsim_sgburst_approximants[approx_name] = \
-                _lalsim_sgburst_waveform
+        # sine-Gaussian burst
+        for approx_enum in range(0, lalsimulation.NumApproximants):
+            if lalsimulation.SimInspiralImplementedFDApproximants(approx_enum):
+                approx_name = lalsimulation.GetStringFromApproximant(approx_enum)
+                _lalsim_enum[approx_name] = approx_enum
+                _lalsim_sgburst_approximants[approx_name] = \
+                    _lalsim_sgburst_waveform
 
-except ImportError:
-    lalsimulation = libutils.import_optional('lalsimulation')
+    except ImportError:
+        _lalsimulation_available = False
+        # The failed import above is sufficient evidence that the optional
+        # dependency is absent. Do not immediately probe it a second time.
+        lalsimulation = libutils.import_optional('lalsimulation', defer=True)
 
 cpu_sgburst = _lalsim_sgburst_approximants
 cpu_td = dict(_lalsim_td_approximants.items())

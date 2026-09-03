@@ -9,10 +9,15 @@ import json
 import copy
 from multiprocessing.dummy import threading
 
-import lal
-from igwn_ligolw import ligolw
-from igwn_ligolw import lsctables
-from igwn_ligolw import utils as ligolw_utils
+from pycbc import lal_compat as lal
+try:
+    from igwn_ligolw import ligolw
+    from igwn_ligolw import lsctables
+    from igwn_ligolw import utils as ligolw_utils
+except ImportError:
+    ligolw = None
+    lsctables = None
+    ligolw_utils = None
 
 import pycbc
 from pycbc import version as pycbc_version

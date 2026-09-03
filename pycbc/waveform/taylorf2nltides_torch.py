@@ -14,7 +14,7 @@
 
 import math
 
-import lal
+from pycbc import lal_compat as lal
 
 from .taylorf2_torch import (
     _as_order,

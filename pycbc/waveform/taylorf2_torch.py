@@ -28,7 +28,7 @@ import math
 from dataclasses import dataclass
 
 import numpy as _np
-import lal
+from pycbc import lal_compat as lal
 
 import pycbc.scheme as _scheme
 

@@ -21,11 +21,9 @@ import os as _os
 import h5py
 from pycbc.types.array import Array, _convert, _regular_grid, zeros, _noreal
 import numpy as _numpy
+from pycbc import lal_compat as _lal
 from pycbc.types.utils import determine_epoch
 from pycbc.types import float64
-from pycbc.libutils import import_optional
-
-_lal = import_optional('lal')
 
 class FrequencySeries(Array):
     """Models a frequency series consisting of uniformly sampled scalar values.
@@ -323,20 +321,21 @@ class FrequencySeries(Array):
             If frequency series is stored in GPU memory.
         """
 
+        lal = _lal.require_lal("FrequencySeries.lal() conversion")
         lal_data = None
         if self._epoch is None:
-            ep = _lal.LIGOTimeGPS(0,0)
+            ep = lal.LIGOTimeGPS(0,0)
         else:
             ep = _lal.LIGOTimeGPS(self._epoch)
 
         if self._data.dtype == _numpy.float32:
-            lal_data = _lal.CreateREAL4FrequencySeries("",ep,0,self.delta_f,_lal.SecondUnit,len(self))
+            lal_data = lal.CreateREAL4FrequencySeries("",ep,0,self.delta_f,lal.SecondUnit,len(self))
         elif self._data.dtype == _numpy.float64:
-            lal_data = _lal.CreateREAL8FrequencySeries("",ep,0,self.delta_f,_lal.SecondUnit,len(self))
+            lal_data = lal.CreateREAL8FrequencySeries("",ep,0,self.delta_f,lal.SecondUnit,len(self))
         elif self._data.dtype == _numpy.complex64:
-            lal_data = _lal.CreateCOMPLEX8FrequencySeries("",ep,0,self.delta_f,_lal.SecondUnit,len(self))
+            lal_data = lal.CreateCOMPLEX8FrequencySeries("",ep,0,self.delta_f,lal.SecondUnit,len(self))
         elif self._data.dtype == _numpy.complex128:
-            lal_data = _lal.CreateCOMPLEX16FrequencySeries("",ep,0,self.delta_f,_lal.SecondUnit,len(self))
+            lal_data = lal.CreateCOMPLEX16FrequencySeries("",ep,0,self.delta_f,lal.SecondUnit,len(self))
 
         lal_data.data.data[:] = self.numpy()
 

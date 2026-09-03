@@ -14,13 +14,16 @@ import logging
 import numpy
 
 from pycbc.types import Array
-from pycbc.detector import Detector
+from pycbc import lal_compat as _lal
 
 logger = logging.getLogger('pycbc.events.coinc_rate')
 
 
-def _detector_class(feature=None):
-    """Load detector geometry."""
+def _detector_class(feature):
+    """Load detector geometry only for operations that require it."""
+    _lal.require_lal(feature)
+    from pycbc.detector import Detector
+
     return Detector
 
 

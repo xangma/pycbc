@@ -22,7 +22,9 @@ from pycbc.constants import MTSUN_SI, PI
 import pycbc.libutils
 
 lal = pycbc.libutils.import_optional('lal')
-lalsimulation = pycbc.libutils.import_optional('lalsimulation')
+lalsimulation = pycbc.libutils.import_optional(
+    'lalsimulation', defer=pycbc.libutils.defer_lalsimulation_import()
+)
 
 logger = logging.getLogger('pycbc.tmpltbank.lambda_mapping')
 

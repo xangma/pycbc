@@ -32,8 +32,8 @@ import time as timemod
 import threading
 
 import pycbc.pnutils
-from pycbc.detector import Detector, ppdets
 from pycbc import conversions as conv
+from pycbc import lal_compat as _lal
 
 from . import stat as pycbcstat
 from .eventmgr_cython import coincbuffer_expireelements
@@ -47,10 +47,19 @@ from .eventmgr_cython import timecluster_cython
 logger = logging.getLogger('pycbc.events.coinc')
 
 
-def _detector(name, feature=None):
-    """Construct a detector."""
+def _detector(name, feature):
+    """Construct a detector only after checking the optional dependency."""
+    _lal.require_lal(feature)
+    from pycbc.detector import Detector
+
     return Detector(name)
 
+
+def ppdets(ifos, separator=', '):
+    """Pretty-print detector names without importing detector geometry."""
+    if ifos:
+        return separator.join(sorted(ifos))
+    return 'no detectors'
 
 
 def background_bin_from_string(background_bins, data):

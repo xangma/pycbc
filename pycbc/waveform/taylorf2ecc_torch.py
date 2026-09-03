@@ -24,7 +24,7 @@ frequency-dependent evaluation is performed on the active Torch device.
 
 import math
 
-import lal
+from pycbc import lal_compat as lal
 
 import pycbc.scheme as _scheme
 

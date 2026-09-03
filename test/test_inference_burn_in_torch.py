@@ -1,7 +1,7 @@
 import sys
 import types
 
-import lal
+from pycbc import lal_compat as lal
 import numpy as np
 import pytest
 from scipy.stats import ks_2samp

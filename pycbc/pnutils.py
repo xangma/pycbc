@@ -35,7 +35,9 @@ from pycbc.constants import MSUN_SI, PI, MTSUN_SI, PC_SI
 
 logger = logging.getLogger("pycbc.pnutils")
 
-lalsim = libutils.import_optional("lalsimulation")
+lalsim = libutils.import_optional(
+    'lalsimulation', defer=libutils.defer_lalsimulation_import()
+)
 
 def nearest_larger_binary_number(input_len):
     """Return the nearest binary number larger than input_len."""

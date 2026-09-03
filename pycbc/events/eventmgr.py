@@ -34,7 +34,7 @@ import h5py
 
 from pycbc.types import Array
 from pycbc.scheme import schemed
-from pycbc.detector import Detector
+from pycbc import lal_compat as _lal
 
 from . import coinc, ranking
 
@@ -1161,6 +1161,9 @@ class EventManagerMultiDet(EventManagerMultiDetBase):
               float(self.opt.sample_rate[ifo1]) + self.opt.gps_start_time[ifo1]
             end_times2 = curr_tev_dict2[:curr_tev_size2]['time_index'] /\
               float(self.opt.sample_rate[ifo2]) + self.opt.gps_start_time[ifo2]
+            _lal.require_lal("multi-detector event coincidence timing")
+            from pycbc.detector import Detector
+
             light_travel_time = Detector(ifo1).light_travel_time_to_detector(
                                                                 Detector(ifo2))
             coinc_window = coinc_window + light_travel_time

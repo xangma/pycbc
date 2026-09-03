@@ -33,7 +33,7 @@ import logging
 import numpy as np
 from numpy import cos, sin
 
-import lal
+from pycbc import lal_compat as lal
 from astropy import constants, coordinates, units
 from astropy.coordinates.matrix_utilities import rotation_matrix
 from astropy.units.si import sday, meter
@@ -632,21 +632,45 @@ def load_detector_config(config_files):
         method(det.upper(), *args, **kwds)
 
 
-# prepopulate using detectors hardcoded into lalsuite
-for pref, name in get_available_lal_detectors():
-    lalsim = pycbc.libutils.import_optional('lalsimulation')
-    lal_det = lalsim.DetectorPrefixToLALDetector(pref).frDetector
-    add_detector_on_earth(pref,
-                          lal_det.vertexLongitudeRadians,
-                          lal_det.vertexLatitudeRadians,
-                          height=lal_det.vertexElevation,
-                          xangle=lal_det.xArmAzimuthRadians,
-                          yangle=lal_det.yArmAzimuthRadians,
-                          xlength=lal_det.xArmMidpoint * 2,
-                          ylength=lal_det.yArmMidpoint * 2,
-                          xaltitude=lal_det.xArmAltitudeRadians,
-                          yaltitude=lal_det.yArmAltitudeRadians,
-                          )
+# Prepopulate from detector geometry hardcoded in LAL. CachedDetectors contains
+# the same FrDetector records returned by lalsimulation's prefix lookup, while
+# avoiding an eager dependency on the optional lalsimulation package.
+if lal.LAL_AVAILABLE:
+    for detector in lal.CachedDetectors:
+        lal_det = detector.frDetector
+        pref = lal_det.prefix
+        add_detector_on_earth(pref,
+                              lal_det.vertexLongitudeRadians,
+                              lal_det.vertexLatitudeRadians,
+                              height=lal_det.vertexElevation,
+                              xangle=lal_det.xArmAzimuthRadians,
+                              yangle=lal_det.yArmAzimuthRadians,
+                              xlength=lal_det.xArmMidpoint * 2,
+                              ylength=lal_det.yArmMidpoint * 2,
+                              xaltitude=lal_det.xArmAltitudeRadians,
+                              yaltitude=lal_det.yArmAltitudeRadians,
+                              )
+else:
+    _FALLBACK_GROUND_DETECTORS = {
+        'H1': (-2.08405676917, 0.81079526383, 142.554, 5.65487724844,
+               4.08408092164, 4000.0, 4000.0, -0.0006195, 0.0000125),
+        'L1': (-1.58430937078, 0.53342313506, -6.574, 4.40317772346,
+               2.83238139666, 4000.0, 4000.0, -0.0003121, -0.0006107),
+        'V1': (0.18333805213, 0.76151183998, 51.884, 0.33916285222,
+               5.05155183261, 3000.0, 3000.0, 0.0, 0.0),
+        'K1': (2.396441015, 0.635506589, 414.18, 0.4948887,
+               5.20727768, 3000.0, 3000.0, 0.00314159, 0.00366519),
+        'I1': (1.3340348737, 0.2476562085, 460.0, 2.1991148575,
+               0.6283185307, 4000.0, 4000.0, 0.0, 0.0),
+    }
+    for pref, (lon, lat, h, xa, ya, xl, yl, xalt, yalt) in (
+        _FALLBACK_GROUND_DETECTORS.items()
+    ):
+        add_detector_on_earth(
+            pref, lon, lat, height=h, xangle=xa, yangle=ya,
+            xlength=xl, ylength=yl, xaltitude=xalt, yaltitude=yalt
+        )
+
 # autoload detector config files
 if 'PYCBC_DETECTOR_CONFIG' in os.environ:
     load_detector_config(os.environ['PYCBC_DETECTOR_CONFIG'].split(':'))

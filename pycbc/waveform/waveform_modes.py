@@ -17,7 +17,7 @@
 """
 
 from string import Formatter
-import lal
+from pycbc import lal_compat as lal
 
 from pycbc import pnutils
 from pycbc import scheme as _scheme

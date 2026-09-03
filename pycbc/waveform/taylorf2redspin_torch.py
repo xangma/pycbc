@@ -21,7 +21,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-import lal
+from pycbc import lal_compat as lal
 import torch
 
 import pycbc.scheme as _scheme

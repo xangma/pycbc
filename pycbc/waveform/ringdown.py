@@ -25,11 +25,11 @@
 """Generate ringdown templates in the time and frequency domain.
 """
 
+from pycbc import lal_compat as lal
 import numpy
 
 from pycbc.libutils import import_optional
 pykerr = import_optional('pykerr')
-lal = import_optional('lal')
 import pycbc.scheme as _scheme
 from pycbc.types import (TimeSeries, FrequencySeries, float64, complex128,
                          zeros)

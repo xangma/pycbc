@@ -30,7 +30,7 @@ noise spectrum.
 from pycbc import libutils
 from pycbc.types import TimeSeries, FrequencySeries, zeros, complex_same_precision_as
 import pycbc
-import lal
+from pycbc import lal_compat as lal
 import numpy.random
 
 try:
@@ -42,7 +42,9 @@ except Exception:  # pragma: no cover - torch optional
     TorchArrayData = None
     _HAVE_TORCH = False
 
-lalsimulation = libutils.import_optional('lalsimulation')
+lalsimulation = libutils.import_optional(
+    'lalsimulation', defer=libutils.defer_lalsimulation_import()
+)
 
 def frequency_noise_from_psd(psd, seed=None):
     """Create noise with a given psd.

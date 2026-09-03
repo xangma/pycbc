@@ -23,6 +23,7 @@
 """
 from math import sqrt, log
 import warnings
+from pycbc import lal_compat as lal
 import numpy
 import pycbc.pnutils
 import pycbc.scheme as _scheme
@@ -40,8 +41,9 @@ from pycbc.constants import PI, GAMMA, MTSUN_SI, PC_SI, MRSUN_SI
 from pycbc.libutils import import_optional
 from pycbc.waveform.torch_switches import torch_native_enabled
 
-lal = import_optional('lal')
-lalsimulation = import_optional('lalsimulation')
+lalsimulation = import_optional(
+    'lalsimulation', defer=pycbc.libutils.defer_lalsimulation_import()
+)
 
 def findchirp_chirptime(m1, m2, fLower, porder):
     # variables used to compute chirp time
