@@ -17,6 +17,7 @@ from pycbc import scheme  # noqa: E402
 from pycbc.types import FrequencySeries, TimeSeries  # noqa: E402
 from pycbc.types.array_torch import TorchArrayData  # noqa: E402
 from pycbc.waveform import ringdown  # noqa: E402
+from pycbc.waveform import ringdown_torch  # noqa: E402
 
 if not pycbc.HAVE_TORCH:
     pytest.skip("PyCBC built without torch support", allow_module_level=True)
@@ -84,6 +85,27 @@ def _reject_numpy_exp(*_args, **_kwargs):
 
 def _reject_lal_harmonic(*_args, **_kwargs):
     raise AssertionError("ringdown evaluated harmonics with LAL")
+
+
+def test_public_primitive_dispatches_to_torch_backend(
+    torch_device_ctx, monkeypatch
+):
+    ctx, _ = torch_device_ctx
+    expected = object(), object()
+
+    def fake_damped_sinusoid(*args, **kwargs):
+        assert args == (100.0, 0.1, 1.0, 0.0, [0.0])
+        assert kwargs["m"] == 2
+        return expected
+
+    monkeypatch.setattr(
+        ringdown_torch, "td_damped_sinusoid", fake_damped_sinusoid
+    )
+    with ctx:
+        actual = ringdown.td_damped_sinusoid(
+            100.0, 0.1, 1.0, 0.0, [0.0]
+        )
+    assert actual == expected
 
 
 def test_td_ringdown_torch_matches_cpu_without_host_transfer(

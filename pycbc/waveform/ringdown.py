@@ -50,51 +50,12 @@ two_pi = 2 * numpy.pi
 pi_sq = numpy.pi * numpy.pi
 
 
-def _torch_device_and_dtype():
-    """Return the active Torch device and real dtype, if any."""
-    state = _scheme.mgr.state
-    if not isinstance(state, _scheme.TorchScheme):
-        return None, None
-
-    import torch
-
-    dtype = (
-        torch.float32
-        if state.torch_device.type == 'mps'
-        else torch.float64
-    )
-    return state.torch_device, dtype
-
-
-def _torch_vector(values):
-    """Move an evaluation grid to the active Torch device."""
-    device, dtype = _torch_device_and_dtype()
-    if device is None:
+def _torch_backend():
+    """Return the lazily imported Torch ringdown backend when active."""
+    if _scheme.current_prefix() != 'torch':
         return None
-
-    import torch
-
-    if hasattr(values, '_data') and hasattr(values._data, 'tensor'):
-        values = values._data.tensor
-    elif hasattr(values, 'tensor'):
-        values = values.tensor
-    return torch.as_tensor(values, dtype=dtype, device=device)
-
-
-def _torch_zeros(length, complex_output=False):
-    """Create ringdown storage on the active Torch device."""
-    device, dtype = _torch_device_and_dtype()
-    if device is None:
-        return None
-
-    import torch
-    from pycbc.types.array_torch import TorchArrayData
-
-    if complex_output:
-        dtype = (
-            torch.complex64 if dtype == torch.float32 else torch.complex128
-        )
-    return TorchArrayData(torch.zeros(length, dtype=dtype, device=device))
+    from pycbc.waveform import ringdown_torch
+    return ringdown_torch
 
 
 # Input parameters ############################################################
@@ -394,6 +355,12 @@ def td_output_vector(freqs, damping_times, taper=False,
     """Return an empty TimeSeries with the appropriate size to fit all
     the quasi-normal modes present in freqs, damping_times
     """
+    backend = _torch_backend()
+    if backend is not None:
+        return backend.td_output_vector(
+            freqs, damping_times, taper=taper,
+            delta_t=delta_t, t_final=t_final)
+
     if not delta_t:
         delta_t = lm_deltat(freqs, damping_times)
     if not t_final:
@@ -405,14 +372,8 @@ def td_output_vector(freqs, damping_times, taper=False,
         max_tau = max(damping_times.values()) if \
                   isinstance(damping_times, dict) else damping_times
         kmax += int(max_tau/delta_t)
-    torch_data = _torch_zeros(kmax)
-    if torch_data is None:
-        outplus = TimeSeries(zeros(kmax, dtype=float64), delta_t=delta_t)
-        outcross = TimeSeries(zeros(kmax, dtype=float64), delta_t=delta_t)
-    else:
-        outplus = TimeSeries(torch_data, delta_t=delta_t, copy=False)
-        outcross = TimeSeries(
-            _torch_zeros(kmax), delta_t=delta_t, copy=False)
+    outplus = TimeSeries(zeros(kmax, dtype=float64), delta_t=delta_t)
+    outcross = TimeSeries(zeros(kmax, dtype=float64), delta_t=delta_t)
     if taper:
         # Change epoch of output vector if tapering will be applied
         start = - max_tau
@@ -426,24 +387,20 @@ def fd_output_vector(freqs, damping_times, delta_f=None, f_final=None):
     """Return an empty FrequencySeries with the appropriate size to fit all
     the quasi-normal modes present in freqs, damping_times
     """
+    backend = _torch_backend()
+    if backend is not None:
+        return backend.fd_output_vector(
+            freqs, damping_times, delta_f=delta_f, f_final=f_final)
+
     if not delta_f:
         delta_f = lm_deltaf(damping_times)
     if not f_final:
         f_final = lm_ffinal(freqs, damping_times)
     kmax = int(f_final / delta_f) + 1
-    torch_data = _torch_zeros(kmax, complex_output=True)
-    if torch_data is None:
-        outplus = FrequencySeries(
-            zeros(kmax, dtype=complex128), delta_f=delta_f)
-        outcross = FrequencySeries(
-            zeros(kmax, dtype=complex128), delta_f=delta_f)
-    else:
-        outplus = FrequencySeries(torch_data, delta_f=delta_f, copy=False)
-        outcross = FrequencySeries(
-            _torch_zeros(kmax, complex_output=True),
-            delta_f=delta_f,
-            copy=False,
-        )
+    outplus = FrequencySeries(
+        zeros(kmax, dtype=complex128), delta_f=delta_f)
+    outcross = FrequencySeries(
+        zeros(kmax, dtype=complex128), delta_f=delta_f)
     return outplus, outcross
 
 
@@ -523,34 +480,6 @@ def spher_harms(harmonics='spherical', l=None, m=None, n=0,
         raise ValueError("harmonics must be either spherical, spheroidal, "
                          "or arbitrary")
     return xlm, xlnm
-
-
-def _spher_harms_for_grid(grid, **kwargs):
-    """Evaluate spherical harmonics beside a Torch waveform grid."""
-
-    torch_device, _ = _torch_device_and_dtype()
-    if (
-        kwargs.get('harmonics', 'spherical') != 'spherical'
-        or torch_device is None
-    ):
-        return spher_harms(**kwargs)
-
-    from pycbc.waveform._spherical_harmonics_torch import (
-        spin_weighted_spherical_harmonic,
-    )
-
-    common = dict(
-        theta=kwargs.get('inclination', 0.),
-        phi=kwargs.get('azimuthal', 0.),
-        spin_weight=-2,
-        ell=kwargs['l'],
-        dtype=grid.dtype,
-        device=grid.device,
-    )
-    return (
-        spin_weighted_spherical_harmonic(emm=kwargs['m'], **common),
-        spin_weighted_spherical_harmonic(emm=-kwargs['m'], **common),
-    )
 
 
 def Kerr_factor(final_mass, distance):
@@ -671,18 +600,17 @@ def td_damped_sinusoid(f_0, tau, amp, phi, times,
     hcross : numpy.ndarray or torch.Tensor
         The cross polarization.
     """
-    torch_times = _torch_vector(times)
-    if torch_times is not None:
-        import torch
+    backend = _torch_backend()
+    if backend is not None:
+        return backend.td_damped_sinusoid(
+            f_0, tau, amp, phi, times, l=l, m=m, n=n,
+            inclination=inclination, azimuthal=azimuthal,
+            dphi=dphi, dbeta=dbeta, harmonics=harmonics,
+            final_spin=final_spin, pol=pol, polnm=polnm)
 
-        times = torch_times
-        exponential = torch.exp
-    else:
-        exponential = numpy.exp
-
-    # evaluate the harmonics on the same device as the waveform grid
-    xlm, xlnm = _spher_harms_for_grid(
-        times, harmonics=harmonics, l=l, m=m, n=n,
+    # evaluate the harmonics
+    xlm, xlnm = spher_harms(
+        harmonics=harmonics, l=l, m=m, n=n,
         inclination=inclination, azimuthal=azimuthal,
         spin=final_spin, pol=pol, polnm=polnm)
 
@@ -691,17 +619,14 @@ def td_damped_sinusoid(f_0, tau, amp, phi, times,
     # when h_{l-m} = (-1)^l h_{lm}^*; that implies that
     # phi_{l-m} = - phi_{lm} and A_{l-m} = (-1)^l A_{lm}
     omegalm = two_pi * f_0 * times
-    if torch_times is not None:
-        damping = torch.where(times < 0, 10*times/tau, -times/tau)
-    else:
-        damping = -times/tau
-        # check for negative times
-        mask = times < 0
-        if mask.any():
-            damping[mask] = 10*times[mask]/tau
+    damping = -times/tau
+    # check for negative times
+    mask = times < 0
+    if mask.any():
+        damping[mask] = 10*times[mask]/tau
     if m == 0:
         # no -m, just calculate
-        hlm = xlm * amp * exponential(damping + 1j*(omegalm + phi))
+        hlm = xlm * amp * numpy.exp(damping + 1j*(omegalm + phi))
     else:
         # amplitude
         if dbeta == 0:
@@ -712,8 +637,8 @@ def td_damped_sinusoid(f_0, tau, amp, phi, times,
             alnm = 2**0.5 * amp * numpy.sin(beta)
         # phase
         phinm = l*pi + dphi - phi
-        hlm = xlm * alm * exponential(damping + 1j*(omegalm + phi)) \
-            + xlnm * alnm * exponential(damping - 1j*(omegalm - phinm))
+        hlm = xlm * alm * numpy.exp(damping + 1j*(omegalm + phi)) \
+            + xlnm * alnm * numpy.exp(damping - 1j*(omegalm - phinm))
     return hlm.real, hlm.imag
 
 
@@ -783,22 +708,21 @@ def fd_damped_sinusoid(f_0, tau, amp, phi, freqs, t_0=0.,
     hctilde : numpy.ndarray or torch.Tensor
         The cross polarization.
     """
-    torch_freqs = _torch_vector(freqs)
-    if torch_freqs is not None:
-        import torch
-
-        freqs = torch_freqs
-        exponential = torch.exp
-    else:
-        exponential = numpy.exp
+    backend = _torch_backend()
+    if backend is not None:
+        return backend.fd_damped_sinusoid(
+            f_0, tau, amp, phi, freqs, t_0=t_0, l=l, m=m, n=n,
+            inclination=inclination, azimuthal=azimuthal,
+            harmonics=harmonics, final_spin=final_spin,
+            pol=pol, polnm=polnm)
 
     # evaluate the harmonics
     if inclination is None:
         inclination = 0.
     if azimuthal is None:
         azimuthal = 0.
-    xlm, xlnm = _spher_harms_for_grid(
-        freqs, harmonics=harmonics, l=l, m=m, n=n,
+    xlm, xlnm = spher_harms(
+        harmonics=harmonics, l=l, m=m, n=n,
         inclination=inclination, azimuthal=azimuthal,
         spin=final_spin, pol=pol, polnm=polnm)
     # we'll assume circular polarization
@@ -808,7 +732,7 @@ def fd_damped_sinusoid(f_0, tau, amp, phi, freqs, t_0=0.,
         (4 * pi_sq * (freqs*freqs - f_0*f_0) * tau*tau)
     norm = amp * tau / denominator
     if t_0 != 0:
-        time_shift = exponential(-1j * two_pi * freqs * t_0)
+        time_shift = numpy.exp(-1j * two_pi * freqs * t_0)
         norm *= time_shift
     A1 = (1 + 2j * pi * freqs * tau)
     A2 = two_pi * f_0 * tau
@@ -851,6 +775,12 @@ def multimode_base(input_params, domain, freq_tau_approximant=False):
         The cross phase of a ringdown with the lm modes specified and
         n overtones in the chosen domain (time or frequency).
     """
+    backend = _torch_backend()
+    if backend is not None:
+        return backend.multimode_base(
+            input_params, domain,
+            freq_tau_approximant=freq_tau_approximant)
+
     input_params['lmns'] = format_lmns(input_params['lmns'])
     amps, phis, dbetas, dphis = lm_amps_phases(**input_params)
     pols, polnms = lm_arbitrary_harmonics(**input_params)
@@ -890,35 +820,14 @@ def multimode_base(input_params, domain, freq_tau_approximant=False):
         outplus, outcross = td_output_vector(freqs, taus,
                             input_params['taper'], input_params['delta_t'],
                             input_params['t_final'])
-        torch_device, torch_dtype = _torch_device_and_dtype()
-        if torch_device is None:
-            sample_times = outplus.sample_times.numpy()
-        else:
-            import torch
-
-            sample_times = torch.arange(
-                len(outplus),
-                device=torch_device,
-                dtype=torch_dtype,
-            ) * outplus.delta_t + float(outplus.start_time)
+        sample_times = outplus.sample_times.numpy()
     elif domain == 'fd':
         outplus, outcross = fd_output_vector(freqs, taus,
                             input_params['delta_f'],
                             input_params['f_final'])
         f_lower = input_params['f_lower'] or 0.
         kmin = int(f_lower / outplus.delta_f)
-        torch_device, torch_dtype = _torch_device_and_dtype()
-        if torch_device is None:
-            sample_freqs = outplus.sample_frequencies.numpy()[kmin:]
-        else:
-            import torch
-
-            sample_freqs = torch.arange(
-                kmin,
-                len(outplus),
-                device=torch_device,
-                dtype=torch_dtype,
-            ) * outplus.delta_f
+        sample_freqs = outplus.sample_frequencies.numpy()[kmin:]
     else:
         raise ValueError('unrecognised domain argument {}; '
                          'must be either fd or td'.format(domain))
