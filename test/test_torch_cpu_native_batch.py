@@ -329,6 +329,66 @@ def test_native_batch_correlation_dynamic_ad_y_uses_torch(monkeypatch):
             np.testing.assert_array_equal(output.numpy(), truth)
 
 
+@pytest.mark.parametrize("native_enabled", [False, True])
+@pytest.mark.parametrize("reverse_rows", [False, True])
+def test_batch_correlation_dynamic_ad_y_preserves_outputs(
+    monkeypatch, native_enabled, reverse_rows
+):
+    from pycbc.filter import matchedfilter_cpu, matchedfilter_torch
+
+    _enable_native_correlation(monkeypatch)
+    monkeypatch.setenv(CORRELATION_GATE, str(int(native_enabled)))
+    calls = []
+    native = matchedfilter_cpu._batch_correlate
+
+    def observed_native(*args):
+        calls.append(True)
+        native(*args)
+
+    monkeypatch.setattr(matchedfilter_cpu, "_batch_correlate", observed_native)
+    with scheme.TorchScheme("cpu"):
+        size = 64
+        x_mem = Array(_complex_values(2, size, seed=6163).reshape(-1))
+        z_mem = Array(np.full(2 * size, 19 - 7j, dtype=np.complex64))
+        order = (1, 0) if reverse_rows else (0, 1)
+        xs = [x_mem[i * size:(i + 1) * size] for i in order]
+        zs = [z_mem[i * size:(i + 1) * size] for i in order]
+        batch = BatchCorrelator(xs, zs, size)
+        # Descending row addresses deterministically select the copied-output
+        # fallback; ascending rows exercise the packed out= path.
+        for arrays in (xs, zs):
+            stride = matchedfilter_torch._find_uniform_stride(
+                tuple(array._data.tensor for array in arrays), size
+            )
+            assert stride == (None if reverse_rows else size)
+
+        y = Array(_complex_values(1, size, seed=6164)[0])
+        batch.execute(y)
+        assert len(calls) == int(native_enabled)
+        tensors = tuple(z._data.tensor for z in zs)
+        snapshots = tuple(tensor.clone() for tensor in tensors)
+        versions = tuple(tensor._version for tensor in tensors)
+
+        ad_y = Array(_complex_values(1, size, seed=6165)[0])
+        ad_y._data.tensor.requires_grad_(True)
+        with pytest.raises(RuntimeError, match="automatic differentiation"):
+            batch.execute(ad_y)
+        assert len(calls) == int(native_enabled)
+        for tensor, snapshot, version in zip(tensors, snapshots, versions):
+            assert torch.equal(tensor, snapshot)
+            assert tensor._version == version
+            assert not tensor.requires_grad
+            assert tensor.grad_fn is None
+
+        expected = (_legacy_correlation(batch, y) if native_enabled
+                    else _torch_correlation(batch, y))
+        batch.execute(y)
+        assert len(calls) == 2 * int(native_enabled)
+        for tensor, truth in zip(tensors, expected):
+            torch.testing.assert_close(tensor, torch.as_tensor(truth),
+                                       rtol=0, atol=0)
+
+
 def test_native_batch_correlation_does_not_change_single_batch(monkeypatch):
     from pycbc.filter import matchedfilter_cpu
 

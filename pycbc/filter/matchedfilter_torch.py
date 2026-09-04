@@ -1142,7 +1142,7 @@ def batch_correlate_execute(self, y):
             if all(isinstance(t, torch.Tensor) for t in all_tensors):
                 target_device = y_sub.device
                 if (
-                    not _has_dynamic_autograd_state(all_tensors)
+                    not _has_dynamic_autograd_state((*all_tensors, y_sub))
                     and all(
                         t.device == target_device
                         and t.dtype == y_sub.dtype
