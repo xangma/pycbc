@@ -191,12 +191,11 @@ def timeslide_durations(start1, start2, end1, end2, timeslide_offsets):
 
 def _torch_coinc_backend(*values):
     """Load the Torch coincidence backend only for Torch-backed inputs."""
-    for value in values:
-        data = getattr(value, "_data", None)
-        if getattr(data, "tensor", None) is not None or \
-                value.__class__.__module__.split(".", 1)[0] == "torch":
-            from . import coinc_torch
-            return coinc_torch
+    from pycbc.types.backend import is_backend
+
+    if any(is_backend(value, "torch") for value in values):
+        from . import coinc_torch
+        return coinc_torch
     return None
 
 

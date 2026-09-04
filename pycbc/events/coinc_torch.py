@@ -12,15 +12,13 @@ import torch
 
 from pycbc.types import Array
 from pycbc.types.array_torch import TorchArrayData
+from pycbc.types.backend import backend_array, is_backend
 
 
 def _as_torch_tensor(value):
     """Return the tensor stored by a PyCBC array or a raw Torch tensor."""
-    data = getattr(value, "_data", value)
-    tensor = getattr(data, "tensor", None)
-    if tensor is not None:
-        return tensor
-    return value if isinstance(value, torch.Tensor) else None
+    return backend_array(value, "torch") if is_backend(value, "torch") \
+        else None
 
 
 def _wrap_coincidence_result(t1, t2, *values):
