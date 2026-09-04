@@ -439,11 +439,11 @@ def test_phasing_tensor_subclass_preserves_values_and_gradients():
     )
     for name in ("v", "vlogv", "vlogvsq"):
         torch.testing.assert_close(
-            getattr(actual, name), getattr(reference, name), check_type=False
+            getattr(actual, name), getattr(reference, name)
         )
     actual_grads = torch.autograd.grad(actual.v.sum(), (mass, spin))
     expected_grads = torch.autograd.grad(reference.v.sum(), (mass, spin))
     for actual_grad, expected_grad in zip(actual_grads, expected_grads):
         assert torch.isfinite(actual_grad).all()
         assert torch.count_nonzero(actual_grad) == actual_grad.numel()
-        torch.testing.assert_close(actual_grad, expected_grad, check_type=False)
+        torch.testing.assert_close(actual_grad, expected_grad)
