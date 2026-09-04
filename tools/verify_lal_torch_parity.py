@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 
 
-def run_lal_torch_parity_suite(device: str = "cuda:0"):
+def run_lal_torch_parity_suite():
     import lal
     import lalsimulation
     import pycbc
@@ -50,7 +50,7 @@ def run_lal_torch_parity_suite(device: str = "cuda:0"):
     # Representative detector antenna response
     fp, fc = 0.8, 0.6
 
-    # Test parameter matrix covering all physical corners
+    # Representative BNS and low-mass BBH cases
     test_cases = [
         # --- TaylorF2 ---
         {
@@ -111,14 +111,20 @@ def run_lal_torch_parity_suite(device: str = "cuda:0"):
             match_strain_cuda, _ = mf.match(h_lal_fs, h_tcuda_fs, psd=psd, low_frequency_cutoff=f_low)
             diff_cuda = np.max(np.abs(h_lal_np - h_tcuda_np)) / max(1e-30, np.max(np.abs(h_lal_np)))
         else:
-            match_strain_cuda = match_strain_cpu
-            diff_cuda = diff_cpu
+            match_strain_cuda = None
+            diff_cuda = None
 
-        passed = (match_strain_cpu >= 0.99999) and (match_strain_cuda >= 0.99999)
+        passed = (match_strain_cpu >= 0.99999) and (
+            match_strain_cuda is None or match_strain_cuda >= 0.99999
+        )
         status = "PASSED" if passed else "FAILED"
 
-        max_err = max(diff_cpu, diff_cuda)
-        print(f" {name[:52]:<52} | {match_strain_cpu:>19.7f}  | {match_strain_cuda:>20.7f}  | {max_err:>11.2e}  | [{status}]")
+        max_err = max(diff_cpu, diff_cuda) if have_cuda else diff_cpu
+        cuda_result = f"{match_strain_cuda:.7f}" if have_cuda else "SKIPPED"
+        print(
+            f" {name[:52]:<52} | {match_strain_cpu:>19.7f}  | "
+            f"{cuda_result:>20}  | {max_err:>11.2e}  | [{status}]"
+        )
 
         results.append({
             "name": name,
@@ -131,6 +137,8 @@ def run_lal_torch_parity_suite(device: str = "cuda:0"):
         })
 
     print("=" * 115)
+    if not have_cuda:
+        print(" CUDA unavailable: results qualify Torch CPU only.")
     all_passed = all(r["passed"] for r in results)
     print(f" OVERALL LAL vs TORCH PARITY: {'100% PASSED (Match >= 0.99999 Across All Waveforms)' if all_passed else 'SOME FAILED'}")
     print("=" * 115)
