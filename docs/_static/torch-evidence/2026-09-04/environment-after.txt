@@ -1,0 +1,30 @@
+Fri Sep  4 09:22:47 PM UTC 2026
+Fri Sep  4 22:22:47 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 610.57.04              KMD Version: 610.57.04     CUDA UMD Version: 13.3     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 4090        On  |   00000000:41:00.0  On |                  Off |
+|  0%   55C    P2             85W /  480W |    2507MiB /  24564MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A           28575      G   /usr/lib/xorg/Xorg                      619MiB |
+|    0   N/A  N/A           29014      G   xfwm4                                     8MiB |
+|    0   N/A  N/A           29494      G   ...nstallation/ubuntu12_32/steam         13MiB |
+|    0   N/A  N/A           30687      G   ./steamwebhelper                          9MiB |
+|    0   N/A  N/A           30744      G   ...on/ubuntu12_64/steamwebhelper        514MiB |
+|    0   N/A  N/A         1787087      C   ...d-linux-cuda/bin/llama-server        436MiB |
+|    0   N/A  N/A         1787088      C   ...d-linux-cuda/bin/llama-server        434MiB |
+|    0   N/A  N/A         1787205      C   /usr/bin/sunshine                       386MiB |
++-----------------------------------------------------------------------------------------+
+3340a8d32e60335e8cedc0522197f302616d32886857f2cad4c8ed9ffca5bb4a  /home/xangma/pycbc-torch-finish-20260904/performance/live-batch-cpu-cuda-t1.json
+fe598ceaf798793f08b28770d69bfb618b2722cd5bc9a0e0c412198a8bd3e4dc  /home/xangma/pycbc-torch-finish-20260904/performance/live-batch-cpu-t4.json
