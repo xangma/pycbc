@@ -96,6 +96,21 @@ def torch_device_ctx(request):
         scheme.Scheme._single = None
 
 
+def test_fir_filters_stay_on_device(torch_ctx):
+    t = np.arange(0, 1, 1 / 1024.0)
+    sig = np.sin(2 * np.pi * 10 * t) + 0.5 * np.sin(2 * np.pi * 200 * t)
+
+    with torch_ctx:
+        ts = TimeSeries(sig, delta_t=1 / 1024.0)
+        lp = resample.lowpass_fir(ts, 50, 128, beta=5.0)
+        hp = resample.highpass_fir(ts, 50, 128, beta=5.0)
+
+    for out in (lp, hp):
+        assert isinstance(out._data.tensor, torch.Tensor)
+        assert out._data.tensor.device.type == "cpu"
+        assert len(out) == len(ts)
+
+
 def _relative_l2(a, b):
     diff = a - b
     return np.linalg.norm(diff) / np.linalg.norm(b)

@@ -352,15 +352,6 @@ def _batch_tensor_contract(tensor, size):
     )
 
 
-def _batch_buffers_are_disjoint(x_tensors, y_tensor, z_tensors, size):
-    """Reject every output alias and parallel output/output overlap."""
-    input_spans = [
-        _logical_storage_span(tensor, size)
-        for tensor in (*x_tensors, y_tensor)
-    ]
-    return _batch_outputs_are_disjoint(input_spans, z_tensors, size)
-
-
 def _batch_outputs_are_disjoint(input_spans, z_tensors, size):
     """Reject output/input and output/output logical-span overlap."""
     output_spans = [
