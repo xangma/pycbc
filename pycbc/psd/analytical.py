@@ -59,7 +59,7 @@ _psd_list = sorted(_psd_list)
 # import behavior.
 try:
     from pycbc.psd.analytical_torch import TORCH_ANALYTICAL_PSD_MODELS
-except ImportError:  # pragma: no cover - Torch is an optional dependency
+except (ImportError, OSError):  # pragma: no cover - optional Torch runtime
     _torch_psd_list = []
 else:
     _torch_psd_list = sorted(TORCH_ANALYTICAL_PSD_MODELS)

@@ -237,7 +237,7 @@ except ImportError:
 try:
     import torch  # noqa: F401
     HAVE_TORCH = True
-except ImportError:
+except (ImportError, OSError):
     HAVE_TORCH = False
 
 # Check for MKL capability
