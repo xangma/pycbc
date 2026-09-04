@@ -64,6 +64,7 @@ once.
 """
 
 import pycbc
+import os
 import sys
 import optparse
 from sys import exit as _exit
@@ -98,15 +99,29 @@ def _filter_scheme_args(argv):
 
 
 def parse_args_all_schemes(feature_str):
+    # The environment selects only tests which opt into scheme dispatch.
+    # CPU-only tests intentionally keep their existing CPU configuration.
+    arguments = _filter_scheme_args(sys.argv[1:])
+    explicit_scheme = any(
+        arg in ('--scheme', '-s') or arg.startswith('--scheme=')
+        for arg in arguments
+    )
+    requested = ('cpu' if explicit_scheme else
+                 os.environ.get('PYCBC_TEST_SCHEME', 'cpu'))
+    scheme_name, separator, device = requested.partition(':')
+    if scheme_name not in ('cpu', 'cuda', 'torch') or (
+        separator and (scheme_name != 'torch' or not device)
+    ):
+        raise ValueError(f'Invalid PYCBC_TEST_SCHEME: {requested!r}')
     _parser = OptionParser()
     _parser.add_option('--scheme','-s', action='callback', type = 'choice',
                        choices = ('cpu','cuda','torch'),
-                       default = 'cpu', dest = 'scheme', callback = _check_scheme_all,
+                       default = scheme_name, dest = 'scheme', callback = _check_scheme_all,
                        help = 'specifies processing scheme, can be cpu [default], cuda, torch')
     _parser.add_option('--device-num','-d', action='store', type = 'int',
                        dest = 'devicenum', default=0,
                        help = 'specifies a GPU device to use for CUDA, 0 by default')
-    (_opt_list, _args) = _parser.parse_args(args=_filter_scheme_args(sys.argv[1:]))
+    (_opt_list, _args) = _parser.parse_args(args=arguments)
 
     # Changing the optvalues to a dict makes them easier to read
     _options = vars(_opt_list)
@@ -119,7 +134,7 @@ def parse_args_all_schemes(feature_str):
         _context = CUDAScheme(device_num=_options['devicenum'])
     elif _scheme == 'torch':
         from pycbc.scheme import TorchScheme
-        _context = TorchScheme()
+        _context = TorchScheme(device=device or 'cpu')
 
     _scheme_dict = { 'cpu': 'CPU', 'cuda': 'CUDA', 'torch': 'Torch'}
 
