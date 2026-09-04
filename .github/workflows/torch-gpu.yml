@@ -51,18 +51,20 @@ jobs:
             selectors=(
               test/test_decompress.py
               test/test_array_torch_reductions.py
+              test/test_torch_backend_protocol.py
               test/test_torch_backend_coercion.py
               test/test_torch_context_conversion.py
               test/test_torch_batched_fft.py
               test/test_torch_p1200087_psd.py
               test/test_torch_timeseries_at_time.py
               test/test_torch_versioned_data_psd.py
+              test/test_torch_search_kernels.py
+              test/test_torch_chisq_cpu_optimization.py
               test/test_live_batch_torch_fft_integration.py
-              test/test_live_batch_torch_peaks.py::test_torch_batch_peak_and_threshold_gpu_unit
-              test/test_live_batch_torch_peaks.py::test_live_batch_ondevice_peaks_integration
+              test/test_live_batch_torch_peaks.py
               test/test_torch_cuda_native_batch.py
               test/test_torch_cpu_native_batch.py::test_native_batch_rechecks_inplace_tensor_metadata
-              test/test_torch_filter_pipeline.py::test_live_batch_matched_filter_cuda_graphs_pipeline
+              test/test_torch_filter_pipeline.py
               test/test_matched_filter_symm.py
               test/test_nltides_torch.py
               test/test_spatmplt_torch.py

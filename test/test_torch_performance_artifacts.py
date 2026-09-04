@@ -189,7 +189,9 @@ def test_live_parity_rejects_nonfinite_values(field, value, side):
         1: {"branch_standard": reference, "torch_cpu": candidate},
     })
 
-    comparison = result["batch_1"]["comparisons"]["torch_cpu_vs_branch_standard"]
+    comparison = result["batch_1"]["comparisons"][
+        "torch_cpu_vs_branch_standard"
+    ]
     assert comparison["finite_values"] is False
     assert comparison["passed"] is False
     assert result["all_passed_globally"] is False
@@ -234,7 +236,9 @@ def test_live_orchestrator_exit_preserves_diagnostic_artifact(
     def child(**kwargs):
         record = _trigger_parity_record()
         record.update(route=kwargs["route"], batch=kwargs["batch"])
-        for name in ("python", "pycbc_version", "numpy_version", "torch_version"):
+        for name in (
+            "python", "pycbc_version", "numpy_version", "torch_version",
+        ):
             record[name] = "test"
         for name in (
             "throughput_wps_summary", "latency_block_ms_summary",
@@ -253,7 +257,8 @@ def test_live_orchestrator_exit_preserves_diagnostic_artifact(
         lambda path: {"revision": "test", "dirty": False},
     )
     monkeypatch.setattr(
-        live_batch, "runtime_metadata", lambda: {"hardware": {}, "software": {}},
+        live_batch, "runtime_metadata",
+        lambda: {"hardware": {}, "software": {}},
     )
     if parity_passes:
         live_batch._orchestrate(args)

@@ -117,6 +117,13 @@ run on the repository's GPU host. A retained green run qualifies only the
 resolved Python, Torch, driver, CUDA runtime, GPU, and source revision recorded
 by that job.
 
+Development validation on ``len`` used Torch ``2.13.0+cu130`` with CUDA 13.0.
+Those results do not qualify the CUDA workflow's Torch ``2.13.0+cu126`` with
+CUDA 12.6; retain qualification of that exact environment separately. The GPU
+selection includes the complete backend-protocol, search-kernel, filter-pipeline,
+live-batch peak, and chi-squared optimization test files so their CUDA cases run
+alongside CPU references. Explicit CPU-only tests in those files remain on CPU.
+
 Focused functional groups
 -------------------------
 
