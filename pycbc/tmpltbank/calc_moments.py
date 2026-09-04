@@ -22,149 +22,6 @@ from pycbc.tmpltbank.lambda_mapping import generate_mapping
 logger = logging.getLogger('pycbc.tmpltbank.calc_moments')
 
 
-def _get_moments_torch(metricParams, vary_fmax=False, vary_density=None):
-    """Calculate metric moments on an active CPU or CUDA Torch device.
-
-    The metric construction that consumes these moments is NumPy based, so
-    only the final scalar reductions cross back to the host.  MPS is left on
-    the legacy path because these cancellation-sensitive integrals require
-    float64, which MPS does not support.
-    """
-    from pycbc import scheme
-
-    state = scheme.mgr.state
-    if not isinstance(state, scheme.TorchScheme):
-        return None
-
-    import torch
-    from pycbc.types.array_torch import (
-        TorchArrayData,
-        _device_matches_active,
-    )
-
-    psd_data = metricParams.psd._data
-    if not isinstance(psd_data, TorchArrayData):
-        return None
-
-    psd_tensor = psd_data.tensor
-    if (
-        psd_tensor.device.type not in ("cpu", "cuda")
-        or not _device_matches_active(psd_tensor)
-        or not psd_tensor.dtype.is_floating_point
-        or psd_tensor.ndim != 1
-        or len(psd_tensor) < 2
-    ):
-        return None
-
-    # The legacy interpolation advances its output grid by repeated scalar
-    # additions.  For non-binary deltaF values, that roundoff affects which
-    # source interval owns a boundary sample.  Reproduce its frequency/index
-    # metadata on the host, but gather and interpolate the PSD on the device.
-    source_f = (
-        numpy.arange(len(psd_tensor), dtype=float) * metricParams.deltaF
-    )
-    new_f = []
-    lower_indices = []
-    frequency_differences = []
-    interval_widths = []
-    current_f = source_f[0]
-    for i in range(len(source_f) - 1):
-        f_low = source_f[i]
-        f_high = source_f[i + 1]
-        while current_f <= f_high:
-            new_f.append(current_f)
-            lower_indices.append(i)
-            frequency_differences.append(current_f - f_low)
-            interval_widths.append(f_high - f_low)
-            current_f += metricParams.deltaF
-
-    device = psd_tensor.device
-    lower_indices = torch.as_tensor(
-        lower_indices, dtype=torch.int64, device=device
-    )
-    frequency_differences = torch.as_tensor(
-        frequency_differences, dtype=torch.float64, device=device
-    )
-    interval_widths = torch.as_tensor(
-        interval_widths, dtype=torch.float64, device=device
-    )
-    psd_f = torch.as_tensor(new_f, dtype=torch.float64, device=device)
-
-    # The legacy path promotes scalar PSD samples to Python float64 while
-    # interpolating.  Preserve that precision without leaving the device.
-    source_amp = psd_tensor.to(dtype=torch.float64)
-    lower_amp = source_amp[lower_indices]
-    gradient = (
-        source_amp[lower_indices + 1] - lower_amp
-    ) / interval_widths
-    psd_amp = lower_amp + frequency_differences * gradient
-    psd_x = psd_f / metricParams.f0
-    deltax = psd_x[1] - psd_x[0]
-
-    mask = (psd_f > metricParams.fLow) & (psd_f < metricParams.fUpper)
-    psdf_red = psd_f[mask]
-    psdx_red = psd_x[mask]
-    base = (
-        psdx_red.pow(-7.0 / 3.0)
-        * deltax
-        / psd_amp[mask]
-    )
-
-    cutoffs = [metricParams.fUpper]
-    if vary_fmax:
-        cutoffs.extend(numpy.arange(
-            metricParams.fLow + vary_density,
-            metricParams.fUpper,
-            vary_density,
-        ))
-
-    def reduce_components(components, norm=None):
-        reductions = []
-        for cutoff in cutoffs:
-            if cutoff == metricParams.fUpper:
-                selected = components
-            else:
-                selected = components[psdf_red < cutoff]
-            reductions.append(torch.sum(selected, dtype=torch.float64))
-
-        # This is the intentional Torch-to-NumPy boundary: consumers build
-        # small NumPy metric matrices from these scalar dictionaries.
-        values = torch.stack(reductions).detach().cpu().tolist()
-        moment = {}
-        for cutoff, value in zip(cutoffs, values):
-            if norm is not None:
-                value /= norm[cutoff]
-            moment[cutoff] = value
-        return moment
-
-    i7 = reduce_components(base)
-    moments = {"I7": i7}
-
-    for i in range(-7, 18):
-        components = base * psdx_red.pow((-i + 7) / 3.0)
-        moments[f"J{i}"] = reduce_components(components, norm=i7)
-
-    logx = torch.log((psdx_red * metricParams.f0).pow(1.0 / 3.0))
-    for power, prefix in (
-        (1, "log"),
-        (2, "loglog"),
-        (3, "logloglog"),
-        (4, "loglogloglog"),
-    ):
-        log_factor = logx if power == 1 else logx.pow(power)
-        for i in range(-1, 18):
-            components = (
-                base
-                * log_factor
-                * psdx_red.pow((-i + 7) / 3.0)
-            )
-            moments[f"{prefix}{i}"] = reduce_components(
-                components, norm=i7
-            )
-
-    return moments
-
-
 def determine_eigen_directions(metricParams, preserveMoments=False,
                                vary_fmax=False, vary_density=None):
     """
@@ -366,15 +223,6 @@ def get_moments(metricParams, vary_fmax=False, vary_density=None):
     # NOTE: Unless the TaylorR2F4 metric is used the log^3 and log^4 terms are
     # not needed. As this calculation is not too slow compared to bank
     # placement we just do this anyway.
-
-    moments = _get_moments_torch(
-        metricParams,
-        vary_fmax=vary_fmax,
-        vary_density=vary_density,
-    )
-    if moments is not None:
-        metricParams.moments = moments
-        return
 
     psd_amp = metricParams.psd.data
     psd_f = numpy.arange(len(psd_amp), dtype=float) * metricParams.deltaF
@@ -687,3 +535,4 @@ def calculate_metric_comp(gs, unmax_metric, i, j, Js, logJs, loglogJs,
         unmax_metric[-1, mapping['LogLogLambda%d'%j]] = gamma0j
         unmax_metric[mapping['LogLogLambda%d'%i],mapping['LogLogLambda%d'%j]] =\
             gammaij
+
