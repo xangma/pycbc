@@ -9,9 +9,17 @@ torch = pytest.importorskip("torch")
 from pycbc.inference.models import relbin_torch  # noqa: E402
 
 
+@pytest.fixture(params=("cpu", "cuda"), autouse=True)
+def torch_device(request):
+    if request.param == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA is unavailable")
+    with torch.device(request.param):
+        yield torch.device(request.param)
+
+
 @pytest.fixture
-def summary_data():
-    generator = torch.Generator().manual_seed(8182)
+def summary_data(torch_device):
+    generator = torch.Generator(device=torch_device).manual_seed(8182)
     frequency_count = 129
     frequencies = torch.linspace(
         20.0, 500.0, frequency_count, dtype=torch.float64
@@ -80,6 +88,7 @@ def test_batched_likelihood_matches_scalar_evaluation(summary_data):
 
     assert actual[0].shape == (sample_count,)
     assert actual[1].shape == (sample_count,)
+    assert all(value.device == summary_data["hp"].device for value in actual)
     torch.testing.assert_close(actual[0], expected[0])
     torch.testing.assert_close(actual[1], expected[1])
 
@@ -134,8 +143,9 @@ def test_earth_rotation_response_matches_public_detector_geometry():
     )))
 
     for result, reference in zip(actual, expected):
+        assert result.device == like.device
         numpy.testing.assert_allclose(
-            result.detach().numpy(), reference, rtol=2e-12, atol=2e-12
+            result.detach().cpu().numpy(), reference, rtol=2e-12, atol=2e-12
         )
     assert not torch.equal(actual[0][0], actual[0][-1])
 
@@ -158,5 +168,7 @@ def test_summary_product_keeps_batch_dimensions():
     )
     assert a0.shape == (batch_count, len(bins))
     assert a1.shape == (batch_count, len(bins))
+    assert a0.device == first.device
+    assert a1.device == first.device
     (a0.real.sum() + a1.imag.sum()).backward()
     assert first.grad is not None
