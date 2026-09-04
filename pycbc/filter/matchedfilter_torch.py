@@ -239,13 +239,15 @@ def _cpu_native_static_eligible(x, y, z):
     """Whether fixed buffers satisfy the Cython correlation ABI."""
     tensors = (x, y, z)
     if not all(
-        tensor.device.type == "cpu"
+        type(tensor) is torch.Tensor
+        and tensor.device.type == "cpu"
         and tensor.dtype == torch.complex64
         and tensor.layout == torch.strided
         and tensor.ndim == 1
         and tensor.is_contiguous()
         and not tensor.is_conj()
         and not tensor.is_neg()
+        and not _is_inference_tensor(tensor)
         and not _has_autograd_state(tensor)
         for tensor in tensors
     ):
@@ -530,34 +532,9 @@ class _CPUNativeBatchCorrelationState:
     def execute(self, batch, y):
         """Run with this call's eligible live data tensor, or decline it."""
         try:
-            batch_xs = getattr(batch, "_xs", getattr(batch, "xs", None))
-            batch_zs = getattr(batch, "_zs", getattr(batch, "zs", None))
-            if (
-                os.getpid() != self._pid
-                or threading.get_ident() != self._thread_id
-                or int(batch.size) != self._size
-                or int(batch.num_vectors) != self._num_vectors
-                or getattr(batch, "_epoch", 0) != self._epoch
-                or batch_xs is None
-                or batch_zs is None
-                or not _same_array_tensors(
-                    batch_xs,
-                    self._x_arrays,
-                    self._x_tensors,
-                    self._x_pointers,
-                )
-                or not _same_array_tensors(
-                    batch_zs,
-                    self._z_arrays,
-                    self._z_tensors,
-                    self._z_pointers,
-                )
-                or not _cpu_native_batch_runtime_is_stable(
-                    self._openmp_runtime
-                )
-                or _has_dynamic_autograd_state(self._x_tensors)
-                or _has_dynamic_autograd_state(self._z_tensors)
-            ):
+            # Tensor metadata can change in place without changing identity
+            # or data_ptr. Recheck the entire ABI, including shape and stride.
+            if not self.can_execute(batch):
                 return False
             y_tensor = getattr(getattr(y, "_data", None), "tensor", None)
             if (
@@ -779,27 +756,7 @@ class _CUDANativeBatchCorrelationState:
 
     def execute(self, batch, y):
         try:
-            if (
-                os.getpid() != self._pid
-                or threading.get_ident() != self._thread_id
-                or int(batch.size) != self._size
-                or int(batch.num_vectors) != self._num_vectors
-                or getattr(batch, "_epoch", 0) != self._epoch
-                or not _CPUNativeBatchCorrelationState._same_array_tensors(
-                    batch.xs,
-                    self._x_arrays,
-                    self._x_tensors,
-                    self._x_pointers,
-                )
-                or not _CPUNativeBatchCorrelationState._same_array_tensors(
-                    batch.zs,
-                    self._z_arrays,
-                    self._z_tensors,
-                    self._z_pointers,
-                )
-                or _has_dynamic_autograd_state(self._x_tensors)
-                or _has_dynamic_autograd_state(self._z_tensors)
-            ):
+            if not self.can_execute(batch):
                 return False
             y_tensor = getattr(getattr(y, "_data", None), "tensor", None)
             if (
@@ -1087,7 +1044,15 @@ class TorchCorrelator(_BaseCorrelator):
     def correlate(self):
         """Execute the Torch route, reusing its safe lazy conjugate view."""
         conjugated_x = self._conjugated_x
-        if conjugated_x is None or self.x is not self._conjugate_source:
+        if (
+            conjugated_x is None
+            or self.x is not self._conjugate_source
+            or self.x.data_ptr() != conjugated_x.data_ptr()
+            or self.x.shape != conjugated_x.shape
+            or self.x.stride() != conjugated_x.stride()
+            or self.x.dtype != conjugated_x.dtype
+            or self.x.device != conjugated_x.device
+        ):
             # Attribute replacement is outside the reusable-correlator
             # contract, but retaining a fresh view here preserves the prior
             # fallback semantics for dynamic AD and defensive callers.
@@ -1099,7 +1064,16 @@ class TorchCorrelator(_BaseCorrelator):
     def _correlate_cpu_native(self):
         """Execute the selected native route, rechecking mutable state."""
         function, x_view, y_view, z_view, _ = self._cpu_native
-        if _has_dynamic_autograd_state((self.x, self.y, self.z)):
+        tensors = (self.x, self.y, self.z)
+        views = (x_view, y_view, z_view)
+        if (
+            not _cpu_native_static_eligible(*tensors)
+            or any(
+                tensor.data_ptr() != view.__array_interface__["data"][0]
+                or tuple(tensor.shape) != view.shape
+                for tensor, view in zip(tensors, views)
+            )
+        ):
             return self._correlate_torch()
         function(x_view, y_view, z_view)
         torch.autograd.graph.increment_version(self.z)

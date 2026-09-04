@@ -220,6 +220,70 @@ def test_torch_route_defers_numpy_views_and_reuses_lazy_conjugate(monkeypatch):
     assert conjugate_calls == [x._data.tensor, replacement]
 
 
+@pytest.mark.parametrize("target", ("x", "y", "z"))
+@pytest.mark.parametrize("drift", ("stride", "pointer", "length"))
+def test_reusable_native_correlator_rechecks_cached_views(
+    monkeypatch, target, drift
+):
+    from pycbc.filter import matchedfilter_cpu, matchedfilter_torch
+
+    with scheme.TorchScheme("cpu"):
+        size = 64
+        arrays = _arrays(size=2 * size)
+        for array in arrays:
+            array._data.tensor.as_strided_((size,), (1,))
+        monkeypatch.setattr(
+            matchedfilter_torch,
+            "_cpu_native_dispatch_is_beneficial",
+            lambda length, runtime: True,
+        )
+
+        def fail_native(*args):
+            raise AssertionError("changed tensor metadata used cached NumPy view")
+
+        monkeypatch.setattr(matchedfilter_cpu, "_correlate", fail_native)
+        correlator = matchedfilter_torch.TorchCorrelator(*arrays)
+        tensor = getattr(correlator, target)
+        if drift == "stride":
+            pointer = tensor.data_ptr()
+            tensor.as_strided_((size,), (2,))
+            assert tensor.data_ptr() == pointer
+        elif drift == "pointer":
+            replacement = tensor.clone().add_(1 + 2j)
+            tensor.set_(replacement)
+        else:
+            # All three lengths change together, leaving a valid Torch call.
+            for current in (correlator.x, correlator.y, correlator.z):
+                current.as_strided_((size // 2,), (1,))
+        expected = torch.conj(correlator.x) * correlator.y
+        correlator.correlate()
+
+        torch.testing.assert_close(correlator.z, expected)
+
+
+def test_reusable_torch_correlator_refreshes_inplace_metadata(monkeypatch):
+    from pycbc.filter import matchedfilter_torch
+
+    with scheme.TorchScheme("cpu"):
+        size = 64
+        x, y, z = _arrays(size=2 * size)
+        for array in (x, y, z):
+            array._data.tensor.as_strided_((size,), (1,))
+        monkeypatch.setattr(
+            matchedfilter_torch,
+            "_cpu_native_dispatch_is_beneficial",
+            lambda length, runtime: False,
+        )
+        correlator = matchedfilter_torch.TorchCorrelator(x, y, z)
+        cached_conjugate = correlator._conjugated_x
+        correlator.x.as_strided_((size,), (2,))
+        assert correlator.x.data_ptr() == cached_conjugate.data_ptr()
+        expected = torch.conj(correlator.x) * correlator.y
+        correlator.correlate()
+
+        torch.testing.assert_close(correlator.z, expected)
+
+
 def test_reusable_correlator_rechecks_reverse_ad_at_execution(monkeypatch):
     from pycbc.filter import matchedfilter_cpu, matchedfilter_torch
 

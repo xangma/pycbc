@@ -242,6 +242,55 @@ def test_native_batch_correlation_drift_fails_closed(monkeypatch, drift):
             assert torch.equal(output._data.tensor[: batch.size], truth)
 
 
+@pytest.mark.parametrize("device", ("cpu", "cuda"))
+@pytest.mark.parametrize("target", ("x", "y", "z"))
+@pytest.mark.parametrize("drift", ("stride", "rank", "length", "autograd"))
+def test_native_batch_rechecks_inplace_tensor_metadata(
+    monkeypatch, device, target, drift
+):
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA is unavailable")
+    _enable_native_correlation(monkeypatch)
+    monkeypatch.setenv("PYCBC_TORCH_CUDA_NATIVE_BATCH_CORRELATE", "1")
+    size, total = 64, 128
+    with scheme.TorchScheme(device):
+        batch, y = _make_batch(rows=3, size=size, total=total)
+        # CUDA's packed output requires rows in one allocation.
+        z_memory = zeros(batch.num_vectors * total, dtype=np.complex64)
+        batch.zs[:] = [
+            z_memory[row * total:(row + 1) * total]
+            for row in range(batch.num_vectors)
+        ]
+        batch.execute(y)
+        state = getattr(batch, f"_torch_{device}_native_batch_state")
+        tensor = {
+            "x": batch.xs[0]._data.tensor,
+            "y": y._data.tensor,
+            "z": batch.zs[0]._data.tensor,
+        }[target]
+        pointer = tensor.data_ptr()
+        if drift == "stride":
+            tensor.as_strided_((size,), (2,))
+        elif drift == "rank":
+            tensor.as_strided_((2, size), (size, 1))
+        elif drift == "length":
+            tensor.as_strided_((size - 1,), (1,))
+        else:
+            tensor.requires_grad_(True)
+        assert tensor.data_ptr() == pointer
+        before = [z._data.tensor.detach().clone() for z in batch.zs]
+
+        assert state.execute(batch, y) is False
+        for output, unchanged in zip(batch.zs, before):
+            assert torch.equal(output._data.tensor, unchanged)
+
+        if drift == "stride":
+            expected = _torch_correlation(batch, y)
+            batch.execute(y)
+            for output, truth in zip(batch.zs, expected):
+                torch.testing.assert_close(output._data.tensor[:size], truth)
+
+
 def test_native_batch_correlation_accepts_dynamic_y_and_recovers(monkeypatch):
     from pycbc.filter import matchedfilter_cpu
 
