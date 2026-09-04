@@ -27,6 +27,7 @@ from pycbc import cosmology
 from pycbc.io import record
 from pycbc.waveform import parameters
 from pycbc.boundaries import Bounds
+from pycbc.types.backend import torch_module_for as _torch_module_for
 from pycbc import VARARGS_DELIM
 from pycbc.pnutils import jframe_to_l0frame
 
@@ -127,16 +128,6 @@ _TORCH_EXPRESSION_COSMOLOGY = {
     "redshift",
     "redshift_from_comoving_volume",
 }
-
-
-def _torch_module_for(value):
-    """Return Torch for raw tensor inputs without importing it eagerly."""
-    if type(value).__module__.split(".", 1)[0] != "torch":
-        return None
-
-    import torch
-
-    return torch if isinstance(value, torch.Tensor) else None
 
 
 def _torch_expression_context(maps, input_names):

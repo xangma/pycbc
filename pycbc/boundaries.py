@@ -29,41 +29,10 @@ cyclic boundaries or reflected boundaries.
 
 import numpy
 import logging
-import sys
-from functools import lru_cache
+
+from pycbc.types.backend import torch_module_for as _torch_module_for
 
 logger = logging.getLogger('pycbc.boundaries')
-
-
-@lru_cache(maxsize=32)
-def _torch_module_for_type(value_type):
-    """Classify a value type without repeatedly importing Torch.
-
-    Most boundary applications see the same handful of scalar and tensor
-    types.  Cache only that stable type decision: values, devices, dtypes and
-    autograd state remain entirely outside the cache.  Looking in
-    ``sys.modules`` also recognizes user-defined Tensor subclasses once Torch
-    is loaded while preserving lazy imports for ordinary host values.
-    """
-    torch = sys.modules.get("torch")
-    if torch is None and value_type.__module__.split(".", 1)[0] != "torch":
-        return None
-
-    if torch is None:
-        import torch
-
-    return torch if issubclass(value_type, torch.Tensor) else None
-
-
-def _torch_module_for(value):
-    """Return Torch for a raw tensor input without importing it eagerly."""
-    value_type = type(value)
-    try:
-        return _torch_module_for_type(value_type)
-    except TypeError:
-        # A custom metaclass can make its class object unhashable. Preserve
-        # the uncached boundary behavior for those uncommon value types.
-        return _torch_module_for_type.__wrapped__(value_type)
 
 
 def _reflect_tensor(value, bounds, torch=None):

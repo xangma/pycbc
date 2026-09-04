@@ -30,33 +30,9 @@ cartesian and spherical coordinates.
 import logging
 import numpy
 
+from pycbc.types.backend import coerce_torch_values as _torch_values
+
 logger = logging.getLogger('pycbc.coordinates.base')
-
-
-def _torch_values(*values):
-    """Return mixed coordinate inputs as tensors when Torch is in use."""
-    if not any(type(value).__module__.split(".", 1)[0] == "torch"
-               for value in values):
-        return None, values
-
-    import torch
-
-    tensors = [value for value in values
-               if isinstance(value, torch.Tensor)]
-    if not tensors:
-        return None, values
-
-    reference = tensors[0]
-    dtype = reference.dtype
-    if not (dtype.is_floating_point or dtype.is_complex):
-        dtype = torch.get_default_dtype()
-    converted = tuple(
-        value.to(device=reference.device, dtype=dtype)
-        if isinstance(value, torch.Tensor)
-        else torch.as_tensor(value, device=reference.device, dtype=dtype)
-        for value in values
-    )
-    return torch, converted
 
 
 def cartesian_to_spherical_rho(x, y, z):
