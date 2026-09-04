@@ -42,6 +42,16 @@ def test_conversions_backend_accepts_public_torch_storage():
     torch.testing.assert_close(result, expected)
 
 
+def test_hypertriangle_checks_shapes_of_tensor_subclasses():
+    class TensorSubclass(torch.Tensor):
+        pass
+
+    first = torch.tensor([0.2, 0.8]).as_subclass(TensorSubclass)
+    second = torch.tensor([0.4]).as_subclass(TensorSubclass)
+    with pytest.raises(AssertionError, match="same number of elements"):
+        conversions.hypertriangle(first, second)
+
+
 @pytest.mark.parametrize("device", ["cpu", "cuda", "mps"])
 def test_public_storage_constructor_preserves_views_and_gradients(device):
     if device == "cuda" and not torch.cuda.is_available():
@@ -72,7 +82,8 @@ def test_public_storage_constructor_preserves_numpy_and_rejects_wrong_scheme():
     with scheme.CPUScheme():
         assert wrap_backend_array(values) is values
         assert backend_matches_scheme(values)
-        assert backend_array(Array(wrap_backend_array(values), copy=False)) is values
+        array = Array(wrap_backend_array(values), copy=False)
+        assert backend_array(array) is values
         assert not backend_matches_scheme(torch.zeros(2))
         with pytest.raises(TypeError, match="Cannot avoid a copy"):
             Array(wrap_backend_array(torch.zeros(2)), copy=False)

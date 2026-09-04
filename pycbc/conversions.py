@@ -152,10 +152,9 @@ def hypertriangle(*params, bounds=(0, 1)):
     array
         The mapped parameters. Output values are in ascending order.
     """
-    has_torch = any(
-        type(param).__module__.split(".", 1)[0] == "torch"
-        for param in params
-    )
+    from pycbc.types.backend import is_backend
+
+    has_torch = any(is_backend(param, "torch") for param in params)
     if has_torch:
         shapes = [
             tuple(param.shape) if hasattr(param, "shape")
@@ -1373,13 +1372,14 @@ def remnant_mass_from_mass1_mass2_cartesian_spin_eos(
         The remnant mass in solar masses
     """
     from .coordinates.base import cartesian_to_spherical
+    from pycbc.types.backend import torch_module_for
 
     spin1_a, _, spin1_polar = cartesian_to_spherical(spin1x, spin1y, spin1z)
     if swap_companions:
         spin2_a, _, spin2_polar = cartesian_to_spherical(
             spin2x, spin2y, spin2z
         )
-    elif type(spin1_a).__module__.split(".", 1)[0] == "torch":
+    elif torch_module_for(spin1_a) is not None:
         import torch
 
         spin2_a = torch.zeros_like(spin1_a)

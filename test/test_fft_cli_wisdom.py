@@ -117,7 +117,9 @@ def test_live_preserves_manual_wisdom_order_and_export_rank(
     cache = RecordingCache()
     native = RecordingFFTW()
     monkeypatch.setattr(parser_support, "_load_wisdom_cache", lambda: cache)
-    monkeypatch.setattr(parser_support, "_load_fftw_for_wisdom", lambda: native)
+    monkeypatch.setattr(
+        parser_support, "_load_fftw_for_wisdom", lambda: native
+    )
     monkeypatch.setattr(pycbc.fft, "fftw", native)
     opt = SimpleNamespace(
         fftw_import_system_wisdom=True,
@@ -160,7 +162,9 @@ def test_live_exports_pending_automatic_wisdom(
     cache = RecordingCache(pending=True)
     native = RecordingFFTW()
     monkeypatch.setattr(parser_support, "_load_wisdom_cache", lambda: cache)
-    monkeypatch.setattr(parser_support, "_load_fftw_for_wisdom", lambda: native)
+    monkeypatch.setattr(
+        parser_support, "_load_fftw_for_wisdom", lambda: native
+    )
 
     exec(
         live_wisdom_code[1],

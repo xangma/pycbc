@@ -8,30 +8,24 @@ from scipy.interpolate import interp1d
 import pycbc
 import pycbc.psd
 from pycbc.types import Array, TimeSeries
+from pycbc.types.backend import backend_array, is_backend, wrap_backend_array
 
 try:
     import torch
-    from pycbc.types.array_torch import TorchArrayData
     _HAVE_TORCH = pycbc.HAVE_TORCH
 except Exception:  # pragma: no cover - torch optional
     torch = None
-    TorchArrayData = None
     _HAVE_TORCH = False
 
 
 def _is_torch_backed(value):
     """Return whether ``value`` stores data in the Torch backend."""
-    if not _HAVE_TORCH:
-        return False
-    data = getattr(value, "_data", value)
-    return isinstance(data, (TorchArrayData, torch.Tensor))
+    return _HAVE_TORCH and is_backend(value, "torch")
 
 
 def _as_torch_tensor(value, device=None, dtype=None):
     """Unwrap PyCBC Torch storage without copying it through the host."""
-    data = getattr(value, "_data", value)
-    if isinstance(data, TorchArrayData):
-        data = data.tensor
+    data = backend_array(value)
     return torch.as_tensor(data, device=device, dtype=dtype)
 
 
@@ -166,7 +160,7 @@ def _torch_replace_outliers(short_ms):
 
 def _torch_interpolate_positions(series, positions):
     """Linearly interpolate uniform ``series`` at fractional indices."""
-    values = series._data.tensor
+    values = backend_array(series, "torch")
     positions = _as_torch_tensor(
         positions, device=values.device, dtype=values.real.dtype
     )
@@ -183,7 +177,7 @@ def _torch_interpolate_positions(series, positions):
     fraction = safe_positions - lower.to(safe_positions.dtype)
     interpolated = values[lower] + (values[upper] - values[lower]) * fraction
     output[valid] = interpolated[valid]
-    return Array(TorchArrayData(output.reshape(original_shape)), copy=False)
+    return Array(wrap_backend_array(output.reshape(original_shape)), copy=False)
 
 
 def create_full_filt(freqs, filt, plong, srate, psd_duration):
@@ -400,9 +394,9 @@ def calc_filt_psd_variation(strain, segment, short_segment, psd_long_segment,
                            seg_stride=int(psd_stride * strain.sample_rate),
                            avg_method=psd_avg_method)
         if use_torch:
-            astrain = astrain._data.tensor
+            astrain = backend_array(astrain, "torch")
             plong_delta_f = plong.delta_f
-            plong = plong._data.tensor
+            plong = backend_array(plong, "torch")
             freqs = torch.arange(
                 plong.numel(), dtype=plong.dtype, device=plong.device
             ) * plong_delta_f
@@ -431,7 +425,7 @@ def calc_filt_psd_variation(strain, segment, short_segment, psd_long_segment,
     # Package up the time series to return
     if use_torch:
         psd_var = TimeSeries(
-            TorchArrayData(torch.cat(psd_var_list)), delta_t=step,
+            wrap_backend_array(torch.cat(psd_var_list)), delta_t=step,
             epoch=start_time + strain_crop + segment, copy=False
         )
     else:
@@ -530,7 +524,7 @@ def live_create_filter(psd_estimated,
 
     # Extract the psd frequencies to create a representative filter.
     if _is_torch_backed(psd_estimated):
-        plong = psd_estimated._data.tensor
+        plong = backend_array(psd_estimated, "torch")
         filt = _torch_bandpass_response(
             plong, sample_rate, low_freq, high_freq, psd_duration
         )
@@ -599,7 +593,9 @@ def live_calc_psd_variation(strain,
 
     if _is_torch_backed(astrain):
         # Convolve and perform both averaging passes on the strain device.
-        wstrain = _torch_fftconvolve_same(astrain._data.tensor, full_filt)
+        wstrain = _torch_fftconvolve_same(
+            backend_array(astrain, "torch"), full_filt
+        )
         trim_samples = int(data_trim * sample_rate)
         wstrain = wstrain[trim_samples:-trim_samples]
 
@@ -629,7 +625,7 @@ def live_calc_psd_variation(strain,
             short_ms.dtype
         )
         return TimeSeries(
-            TorchArrayData(m_s), delta_t=1.0,
+            wrap_backend_array(m_s), delta_t=1.0,
             epoch=strain.end_time - increment - (data_trim * 2),
             copy=False,
         )

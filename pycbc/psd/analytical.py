@@ -23,6 +23,7 @@ space-borne ones, see `pycbc.psd.analytical_space` module.
 import numbers
 from pycbc import scheme as _scheme
 from pycbc.types import FrequencySeries
+from pycbc.types.backend import wrap_backend_array
 from pycbc.psd.analytical_space import (
     analytical_psd_lisa_tdi_XYZ, analytical_psd_lisa_tdi_AE,
     analytical_psd_lisa_tdi_T, sh_transformed_psd_lisa_tdi_XYZ,
@@ -249,7 +250,6 @@ def flat_unity(length, delta_f, low_freq_cutoff):
     state = _scheme.mgr.state
     if isinstance(state, _scheme.TorchScheme):
         import torch
-        from pycbc.types.array_torch import TorchArrayData
 
         dtype = (
             torch.float32
@@ -259,7 +259,7 @@ def flat_unity(length, delta_f, low_freq_cutoff):
         values = torch.ones(length, dtype=dtype, device=state.torch_device)
         values[:int(low_freq_cutoff / delta_f)] = 0
         return FrequencySeries(
-            TorchArrayData(values),
+            wrap_backend_array(values),
             delta_f=delta_f,
             copy=False,
         )
