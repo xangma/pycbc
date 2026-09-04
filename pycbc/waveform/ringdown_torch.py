@@ -12,6 +12,7 @@ import numpy
 import pycbc.scheme as _scheme
 from pycbc.types import FrequencySeries, TimeSeries
 from pycbc.types.array_torch import TorchArrayData
+from pycbc.types.backend import backend_array
 from pycbc.waveform import ringdown as _common
 
 
@@ -32,10 +33,9 @@ def _vector(values):
     import torch
 
     device, dtype = _device_and_dtype()
-    if hasattr(values, '_data') and hasattr(values._data, 'tensor'):
-        values = values._data.tensor
-    elif hasattr(values, 'tensor'):
-        values = values.tensor
+    native = backend_array(values, "torch")
+    if native is not None:
+        values = native
     return torch.as_tensor(values, dtype=dtype, device=device)
 
 
@@ -240,14 +240,14 @@ def multimode_base(input_params, domain, freq_tau_approximant=False):
             hplus, hcross = td_damped_sinusoid(
                 freqs[lmn], taus[lmn], amps[lmn], phis[lmn], sample_grid,
                 dphi=dphis[lmn], dbeta=dbetas[lmn], **common)
-            outplus._data += hplus
-            outcross._data += hcross
+            backend_array(outplus, "torch").add_(hplus)
+            backend_array(outcross, "torch").add_(hcross)
         else:
             hplus, hcross = fd_damped_sinusoid(
                 freqs[lmn], taus[lmn], amps[lmn], phis[lmn], sample_grid,
                 t_0=input_params['t_0'], **common)
-            outplus._data[start:] += hplus
-            outcross._data[start:] += hcross
+            backend_array(outplus, "torch")[start:].add_(hplus)
+            backend_array(outcross, "torch")[start:].add_(hcross)
     return norm * outplus, norm * outcross
 
 
