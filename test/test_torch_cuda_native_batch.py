@@ -84,14 +84,19 @@ def _standard_peak_values_reference(rows, segment):
     peaks = np.empty(len(rows), dtype=np.complex64)
     for row_index, row in enumerate(rows):
         values = row[start:stop]
-        magmax = 0.0
+        magmax = np.float32(0.0)
         best = 0
-        for i, val in enumerate(values):
-            # double precision squared magnitude matching legacy scan semantics
-            mag = float(val.real) * float(val.real) + float(val.imag) * float(val.imag)
-            if mag > magmax:
-                magmax = mag
-                best = i
+        with np.errstate(over="ignore", invalid="ignore"):
+            for i, val in enumerate(values):
+                # The compiled complex64 kernels evaluate these operations in
+                # float before assigning the result to their double variable.
+                mag = np.float32(
+                    np.float32(val.real) * np.float32(val.real)
+                    + np.float32(val.imag) * np.float32(val.imag)
+                )
+                if mag > magmax:
+                    magmax = mag
+                    best = i
         indices[row_index] = best
         peaks[row_index] = values[best]
     return indices, peaks
@@ -130,6 +135,10 @@ def test_cuda_native_batch_correlation_is_zero_copy_exact_and_reusable(monkeypat
 
         state = getattr(batch, "_torch_cuda_native_batch_state", None)
         assert state is not None
+        assert state.can_execute(batch)
+        assert state._z_pointers == tuple(
+            z._data.tensor.data_ptr() for z in batch.zs
+        )
         assert state._packed_x.data_ptr() == batch.xs[0]._data.tensor.data_ptr()
         assert state._packed_z.data_ptr() == batch.zs[0]._data.tensor.data_ptr()
         assert state._packed_x.shape == (4, size)
