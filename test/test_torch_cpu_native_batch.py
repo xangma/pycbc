@@ -255,12 +255,17 @@ def test_native_batch_rechecks_inplace_tensor_metadata(
     size, total = 64, 128
     with scheme.TorchScheme(device):
         batch, y = _make_batch(rows=3, size=size, total=total)
-        # CUDA's packed output requires rows in one allocation.
-        z_memory = zeros(batch.num_vectors * total, dtype=np.complex64)
-        batch.zs[:] = [
-            z_memory[row * total:(row + 1) * total]
-            for row in range(batch.num_vectors)
-        ]
+        # Pack both sides so native admission does not depend on the allocator
+        # placing separate template allocations at uniformly spaced addresses.
+        for arrays in (batch.xs, batch.zs):
+            memory = zeros(batch.num_vectors * total, dtype=np.complex64)
+            packed = [
+                memory[row * total:(row + 1) * total]
+                for row in range(batch.num_vectors)
+            ]
+            for source, target_array in zip(arrays, packed):
+                target_array._data.tensor.copy_(source._data.tensor)
+            arrays[:] = packed
         batch.execute(y)
         state = getattr(batch, f"_torch_{device}_native_batch_state")
         tensor = {
