@@ -1418,3 +1418,45 @@ def test_matched_filter_ifft_overwrites_uninitialized_output(monkeypatch):
         assert allocations[0]._data is actual._data
         np.testing.assert_array_equal(actual.numpy(), expected.numpy())
         assert np.isfinite(actual.numpy()).all()
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("storage_kind", ["protocol", "tensor_subclass"])
+def test_search_public_storage_preserves_device_and_gradients(device, storage_kind):
+    from pycbc.events import cuts, ranking, single, veto
+    from pycbc.types.backend import backend_array
+
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA is unavailable")
+
+    class PublicStorage:
+        backend = "torch"
+
+        def __init__(self, tensor):
+            self.backend_array = tensor
+
+    class ExternalTensor(torch.Tensor):
+        pass
+
+    source = torch.tensor([8.0, 12.0, 16.0], dtype=torch.float64,
+                          device=device, requires_grad=True)
+    reduced_chisq = torch.tensor([1.0, 2.0, 4.0], dtype=torch.float64,
+                                device=device)
+    if storage_kind == "protocol":
+        values = PublicStorage(source)
+        chisq = PublicStorage(reduced_chisq)
+        tensor = source
+    else:
+        tensor = source.as_subclass(ExternalTensor)
+        values = tensor
+        chisq = reduced_chisq.as_subclass(ExternalTensor)
+    with scheme.TorchScheme(device):
+        for accessor in (cuts._torch_cut_tensor, single._torch_tensor,
+                         veto._torch_veto_tensor):
+            assert accessor(values) is tensor
+        result = backend_array(ranking.newsnr(values, chisq))
+        expected_weight = ((1 + reduced_chisq ** 3) / 2) ** (-1 / 6)
+        torch.testing.assert_close(result, source * expected_weight)
+        assert result.device == source.device
+        result.sum().backward()
+        torch.testing.assert_close(source.grad, expected_weight)

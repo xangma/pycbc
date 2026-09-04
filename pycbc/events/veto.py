@@ -1,6 +1,9 @@
 """ This module contains utilities to manipulate trigger lists based on
 segment.
 """
+from pycbc.types.backend import (
+    backend_array, wrap_backend_array,
+)
 import logging
 import numpy
 try:
@@ -21,18 +24,8 @@ def _ligolw_modules(feature=None):
 
 
 def _torch_veto_tensor(value):
-    """Return the underlying Torch tensor, if ``value`` has one."""
-    data = value._data if isinstance(value, Array) else value
-    tensor = getattr(data, "tensor", None)
-    if tensor is not None:
-        return tensor
-
-    if value.__class__.__module__.split(".", 1)[0] != "torch":
-        return None
-
-    import torch
-
-    return value if isinstance(value, torch.Tensor) else None
+    """Return existing Torch storage without importing the optional backend."""
+    return backend_array(value, "torch")
 
 
 def _wrap_torch_veto_result(inputs, tensor):
@@ -40,9 +33,8 @@ def _wrap_torch_veto_result(inputs, tensor):
     if not any(isinstance(value, Array) for value in inputs):
         return tensor
 
-    from pycbc.types.array_torch import TorchArrayData
 
-    return Array(TorchArrayData(tensor), copy=False)
+    return Array(wrap_backend_array(tensor), copy=False)
 
 
 def _torch_veto_vectors(times, start, end):

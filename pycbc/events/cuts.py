@@ -26,6 +26,9 @@
 This module contains functions for reading in command line options and
 applying cuts to triggers or templates in the offline search
 """
+from pycbc.types.backend import (
+    backend_array, wrap_backend_array,
+)
 import logging
 import copy
 import numpy as np
@@ -69,18 +72,8 @@ ineq_choices = list(ineq_functions.keys())
 
 
 def _torch_cut_tensor(value):
-    """Return the Torch tensor backing a cut value, when present."""
-    data = value._data if isinstance(value, Array) else value
-    tensor = getattr(data, "tensor", None)
-    if tensor is not None:
-        return tensor
-
-    if value.__class__.__module__.split(".", 1)[0] != "torch":
-        return None
-
-    import torch
-
-    return value if isinstance(value, torch.Tensor) else None
+    """Return existing Torch storage without importing the optional backend."""
+    return backend_array(value, "torch")
 
 
 def _torch_trigger_cut_state(triggers):
@@ -154,9 +147,8 @@ def _wrap_torch_cut_indices(indices, wrap_array):
     if not wrap_array:
         return indices
 
-    from pycbc.types.array_torch import TorchArrayData
 
-    return Array(TorchArrayData(indices), copy=False)
+    return Array(wrap_backend_array(indices), copy=False)
 
 
 def insert_cuts_option_group(parser):

@@ -9,6 +9,9 @@
     and signal coincidences.
 """
 
+from pycbc.types.backend import (
+    backend_array, backend_matches_scheme, is_backend, wrap_backend_array,
+)
 import itertools
 import logging
 import numpy
@@ -34,17 +37,13 @@ def _torch_rate_tensors(*values, coerce_host=False):
         return None
 
     import torch
-    from pycbc.types.array_torch import (
-        TorchArrayData,
-        _device_matches_active,
-    )
 
     data = [
-        value._data if isinstance(value, Array) else value
+        backend_array(value)
         for value in values
     ]
     torch_data = [
-        value for value in data if isinstance(value, TorchArrayData)
+        value for value in data if is_backend(value, "torch")
     ]
     if not torch_data or (
         not coerce_host
@@ -52,20 +51,20 @@ def _torch_rate_tensors(*values, coerce_host=False):
     ):
         return None
 
-    first = torch_data[0].tensor
+    first = torch_data[0]
     if not (
-        all(_device_matches_active(value.tensor) for value in torch_data)
-        and all(value.tensor.device == first.device for value in torch_data)
-        and all(value.tensor.shape == first.shape for value in torch_data)
-        and all(value.tensor.dtype == first.dtype for value in torch_data)
-        and all(value.dtype.kind == "f" for value in torch_data)
+        all(backend_matches_scheme(value) for value in torch_data)
+        and all(value.device == first.device for value in torch_data)
+        and all(value.shape == first.shape for value in torch_data)
+        and all(value.dtype == first.dtype for value in torch_data)
+        and all(value.is_floating_point() for value in torch_data)
     ):
         return None
 
     tensors = []
     for value in data:
-        if isinstance(value, TorchArrayData):
-            tensors.append(value.tensor)
+        if is_backend(value, "torch"):
+            tensors.append(value)
             continue
         if isinstance(value, Array):
             return None
@@ -91,7 +90,6 @@ def _torch_combination_noise(values, allowed_area, *, rates_are_logs):
         return None
 
     import torch
-    from pycbc.types.array_torch import TorchArrayData
 
     stacked = torch.stack(tensors)
     if not rates_are_logs:
@@ -104,7 +102,7 @@ def _torch_combination_noise(values, allowed_area, *, rates_are_logs):
         )
     )
     values = log_rate if rates_are_logs else torch.exp(log_rate)
-    return Array(TorchArrayData(values), copy=False)
+    return Array(wrap_backend_array(values), copy=False)
 
 
 def multiifo_noise_lograte(log_rates, slop):

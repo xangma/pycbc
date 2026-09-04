@@ -1,5 +1,8 @@
 """ utilities for assigning FAR to single detector triggers
 """
+from pycbc.types.backend import (
+    backend_array,
+)
 import logging
 import copy
 import threading
@@ -16,19 +19,8 @@ logger = logging.getLogger('pycbc.events.single')
 
 
 def _torch_tensor(value):
-    """Return an existing Torch tensor without staging host data."""
-    try:
-        import torch
-        from pycbc.types.array_torch import TorchArrayData
-    except ImportError:
-        return None
-
-    value = getattr(value, '_data', value)
-    if isinstance(value, TorchArrayData):
-        return value.tensor
-    if isinstance(value, torch.Tensor):
-        return value
-    return None
+    """Return existing Torch storage without importing the optional backend."""
+    return backend_array(value, "torch")
 
 
 def _torch_vectors(*values):
@@ -229,7 +221,6 @@ class LiveSingle(object):
 
         for ifo in ifos:
             # Check which option(s) are needed for each IFO and if they exist:
-
             # Notes for the logic here:
             # args.sngl_ifar_est_dist.default_set is True if single value has
             # been set to be the same for all values

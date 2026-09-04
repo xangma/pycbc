@@ -1,6 +1,9 @@
 """ This module contains functions for calculating single-ifo ranking
 statistic values
 """
+from pycbc.types.backend import (
+    backend_array, backend_matches_scheme, is_backend, wrap_backend_array,
+)
 import logging
 import numpy
 
@@ -24,8 +27,6 @@ def effsnr(snr, reduced_x2, fac=250.,
         snr, reduced_x2, coerce_host=True
     )
     if tensors is not None:
-        from pycbc.types.array_torch import TorchArrayData
-
         dtype = _torch_ranking_dtype(tensors[0])
         snr_t, rchisq_t = (value.to(dtype=dtype) for value in tensors)
         values = (
@@ -33,7 +34,7 @@ def effsnr(snr, reduced_x2, fac=250.,
             / (1.0 + snr_t ** 2 / fac) ** 0.25
             / rchisq_t ** 0.25
         )
-        return Array(TorchArrayData(values), copy=False)
+        return Array(wrap_backend_array(values), copy=False)
 
     snr = numpy.array(snr, ndmin=1, dtype=numpy.float64)
     rchisq = numpy.array(reduced_x2, ndmin=1, dtype=numpy.float64)
@@ -55,14 +56,13 @@ def _torch_newsnr(snr, reduced_x2, q, n):
         return None
 
     import torch
-    from pycbc.types.array_torch import TorchArrayData
 
     dtype = _torch_ranking_dtype(tensors[0])
     nsnr = tensors[0].to(dtype=dtype)
     rchisq = tensors[1].to(dtype=dtype)
     reweight = (0.5 * (1.0 + rchisq ** (q / n))) ** (-1.0 / q)
     values = torch.where(rchisq > 1.0, nsnr * reweight, nsnr)
-    return Array(TorchArrayData(values), copy=False)
+    return Array(wrap_backend_array(values), copy=False)
 
 
 def _torch_ranking_tensors(*values, coerce_host=False):
@@ -75,17 +75,13 @@ def _torch_ranking_tensors(*values, coerce_host=False):
         return None
 
     import torch
-    from pycbc.types.array_torch import (
-        TorchArrayData,
-        _device_matches_active,
-    )
 
     data = [
-        value._data if isinstance(value, Array) else value
+        backend_array(value)
         for value in values
     ]
     torch_data = [
-        value for value in data if isinstance(value, TorchArrayData)
+        value for value in data if is_backend(value, "torch")
     ]
     if not torch_data or (
         not coerce_host
@@ -93,20 +89,20 @@ def _torch_ranking_tensors(*values, coerce_host=False):
     ):
         return None
 
-    first = torch_data[0].tensor
+    first = torch_data[0]
     if not (
-        all(_device_matches_active(value.tensor) for value in torch_data)
-        and all(value.tensor.device == first.device for value in torch_data)
-        and all(value.tensor.shape == first.shape for value in torch_data)
-        and all(value.tensor.dtype == first.dtype for value in torch_data)
-        and all(value.dtype.kind == "f" for value in torch_data)
+        all(backend_matches_scheme(value) for value in torch_data)
+        and all(value.device == first.device for value in torch_data)
+        and all(value.shape == first.shape for value in torch_data)
+        and all(value.dtype == first.dtype for value in torch_data)
+        and all(value.is_floating_point() for value in torch_data)
     ):
         return None
 
     tensors = []
     for value in data:
-        if isinstance(value, TorchArrayData):
-            tensors.append(value.tensor)
+        if is_backend(value, "torch"):
+            tensors.append(value)
             continue
         if isinstance(value, Array):
             return None
@@ -172,14 +168,12 @@ def newsnr_sgveto(snr, brchisq, sgchisq, **kwargs):
         snr, brchisq, sgchisq, coerce_host=True
     )
     if tensors is not None:
-        from pycbc.types.array_torch import TorchArrayData
-
         values = _torch_newsnr_sgveto(
             *tensors,
             kwargs.get("q", 6.0),
             kwargs.get("n", 2.0),
         )
-        return Array(TorchArrayData(values), copy=False)
+        return Array(wrap_backend_array(values), copy=False)
 
     nsnr = numpy.array(
         newsnr(
@@ -209,7 +203,6 @@ def newsnr_sgveto_psdvar(snr, brchisq, sgchisq, psd_var_val,
     )
     if tensors is not None:
         import torch
-        from pycbc.types.array_torch import TorchArrayData
 
         snr_t, brchisq_t, sgchisq_t, psd_var_t = tensors
         psd_var_t = torch.where(
@@ -224,7 +217,7 @@ def newsnr_sgveto_psdvar(snr, brchisq, sgchisq, psd_var_val,
             kwargs.get("q", 6.0),
             kwargs.get("n", 2.0),
         )
-        return Array(TorchArrayData(values), copy=False)
+        return Array(wrap_backend_array(values), copy=False)
 
     # If PSD var is lower than the 'minimum usually expected value' stop this
     # being used in the statistic. This low value might arise because a
@@ -262,7 +255,6 @@ def newsnr_sgveto_psdvar_threshold(snr, brchisq, sgchisq, psd_var_val,
     )
     if tensors is not None:
         import torch
-        from pycbc.types.array_torch import TorchArrayData
 
         snr_t, brchisq_t, sgchisq_t, psd_var_t = tensors
         bounded_psd = torch.where(
@@ -282,7 +274,7 @@ def newsnr_sgveto_psdvar_threshold(snr, brchisq, sgchisq, psd_var_val,
             | (psd_var_t > psd_var_val_threshold)
         )
         values = torch.where(rejected, torch.ones_like(values), values)
-        return Array(TorchArrayData(values), copy=False)
+        return Array(wrap_backend_array(values), copy=False)
 
     nsnr = newsnr_sgveto_psdvar(
         snr,
@@ -313,7 +305,6 @@ def newsnr_sgveto_psdvar_scaled(snr, brchisq, sgchisq, psd_var_val,
     )
     if tensors is not None:
         import torch
-        from pycbc.types.array_torch import TorchArrayData
 
         snr_t, brchisq_t, sgchisq_t, psd_var_t = tensors
         values = _torch_newsnr_sgveto(
@@ -329,7 +320,7 @@ def newsnr_sgveto_psdvar_scaled(snr, brchisq, sgchisq, psd_var_val,
             psd_var_t,
         )
         values = values / bounded_psd ** scaling
-        return Array(TorchArrayData(values), copy=False)
+        return Array(wrap_backend_array(values), copy=False)
 
     nsnr = numpy.array(
         newsnr_sgveto(
@@ -362,7 +353,6 @@ def newsnr_sgveto_psdvar_scaled_threshold(snr, bchisq, sgchisq, psd_var_val,
     )
     if tensors is not None:
         import torch
-        from pycbc.types.array_torch import TorchArrayData
 
         snr_t, bchisq_t, sgchisq_t, psd_var_t = tensors
         min_expected = kwargs.get("min_expected_psdvar", 0.65)
@@ -384,7 +374,7 @@ def newsnr_sgveto_psdvar_scaled_threshold(snr, bchisq, sgchisq, psd_var_val,
             torch.ones_like(values),
             values,
         )
-        return Array(TorchArrayData(values), copy=False)
+        return Array(wrap_backend_array(values), copy=False)
 
     nsnr = newsnr_sgveto_psdvar_scaled(
         snr,

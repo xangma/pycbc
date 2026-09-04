@@ -21,6 +21,9 @@
 #
 # =============================================================================
 #
+from pycbc.types.backend import (
+    backend_array, wrap_backend_array,
+)
 import numpy, logging, math, pycbc.fft
 
 from pycbc.types import (
@@ -39,7 +42,7 @@ BACKEND_PREFIX="pycbc.vetoes.chisq_"
 
 def _torch_tensor(value):
     """Return the tensor stored by a Torch-backed PyCBC array, if any."""
-    return getattr(getattr(value, "_data", None), "tensor", None)
+    return backend_array(value, "torch")
 
 
 def _as_torch_tensor(value, reference, dtype=None):
@@ -58,9 +61,8 @@ def _as_torch_tensor(value, reference, dtype=None):
 
 def _torch_array(tensor):
     """Wrap a tensor as a PyCBC Array without a host copy."""
-    from pycbc.types.array_torch import TorchArrayData
 
-    return Array(TorchArrayData(tensor), copy=False)
+    return Array(wrap_backend_array(tensor), copy=False)
 
 
 def _chisq_zeros(corr, length):
@@ -116,7 +118,7 @@ def _torch_multiply_and_add(array, other, factor):
     """Call the Torch backend with a device scalar coefficient."""
     from pycbc.types import array_torch
 
-    data = array_torch.multiply_and_add(array, other._data, factor)
+    data = array_torch.multiply_and_add(array, wrap_backend_array(other), factor)
     return array._return(data)
 
 def power_chisq_bins_from_sigmasq_series(sigmasq_series, num_bins, kmin, kmax):
@@ -705,7 +707,7 @@ class SingleDetSkyMaxPowerChisq(SingleDetPowerChisq):
                             above_local_indices,
                         )
                         if torch_backed:
-                            chisq.append(curr_chisq._data.tensor)
+                            chisq.append(backend_array(curr_chisq, "torch"))
                         else:
                             chisq.append(curr_chisq[0])
                     if torch_backed:

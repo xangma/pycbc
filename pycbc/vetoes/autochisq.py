@@ -13,6 +13,9 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
+from pycbc.types.backend import (
+    backend_array, is_backend, wrap_backend_array,
+)
 from pycbc.filter import make_frequency_series
 from pycbc.filter import  matched_filter_core
 from pycbc.types import Array
@@ -28,16 +31,15 @@ def _torch_autochisq(
         maxvalued):
     """Evaluate all requested auto-chi-squared values on a Torch device."""
     import torch
-    from pycbc.types.array_torch import TorchArrayData
 
-    sn_tensor = sn._data.tensor
-    corr_tensor = corr_sn._data.tensor
-    hauto_tensor = hautocorr._data.tensor
+    sn_tensor = backend_array(sn, "torch")
+    corr_tensor = backend_array(corr_sn, "torch")
+    hauto_tensor = backend_array(hautocorr, "torch")
     device = sn_tensor.device
 
     if isinstance(indices, Array):
         _convert_to_scheme(indices)
-        index_tensor = indices._data.tensor.to(device=device, dtype=torch.long)
+        index_tensor = backend_array(indices, "torch").to(device=device, dtype=torch.long)
     else:
         index_tensor = torch.as_tensor(
             indices, device=device, dtype=torch.long
@@ -85,7 +87,7 @@ def _torch_autochisq(
         values = values.amax(dim=1)
     else:
         values = values.sum(dim=1)
-    return Array(TorchArrayData(values), copy=False)
+    return Array(wrap_backend_array(values), copy=False)
 
 
 def autochisq_from_precomputed(sn, corr_sn, hautocorr, indices,
@@ -154,7 +156,7 @@ def autochisq_from_precomputed(sn, corr_sn, hautocorr, indices,
 
     for array in (sn, corr_sn, hautocorr):
         _convert_to_scheme(array)
-    if all(hasattr(array._data, "tensor")
+    if all(is_backend(array, "torch")
            for array in (sn, corr_sn, hautocorr)):
         achisq = _torch_autochisq(
             sn, corr_sn, hautocorr, indices, achisq_idx_list,

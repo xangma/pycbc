@@ -22,6 +22,9 @@
 # =============================================================================
 #
 
+from pycbc.types.backend import (
+    backend_array, is_backend, wrap_backend_array,
+)
 import numpy as np
 
 from scipy.signal import zpk2sos, sosfilt
@@ -30,10 +33,8 @@ from pycbc.types import TimeSeries
 
 try:
     import torch
-    from pycbc.types.array_torch import TorchArrayData
 except Exception:  # pragma: no cover - torch is optional
     torch = None
-    TorchArrayData = None
 
 
 # Bound the temporary state used by the parallel Torch recurrence.
@@ -207,13 +208,11 @@ def filter_zpk(timeseries, z, p, k):
     # get second-order sections
     sos = zpk2sos(z_zd, p_zd, k_zd)
 
-    torch_input = TorchArrayData is not None and isinstance(
-        getattr(timeseries, "_data", None), TorchArrayData
-    )
+    torch_input = torch is not None and is_backend(timeseries, "torch")
     if torch_input:
-        filtered_data = _torch_sosfilt(sos, timeseries._data.tensor)
+        filtered_data = _torch_sosfilt(sos, backend_array(timeseries, "torch"))
         return TimeSeries(
-            TorchArrayData(filtered_data),
+            wrap_backend_array(filtered_data),
             delta_t=timeseries.delta_t,
             epoch=timeseries._epoch,
             copy=False,

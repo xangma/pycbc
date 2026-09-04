@@ -25,6 +25,9 @@
 This module contains functions for calculating coincident ranking statistic
 values.
 """
+from pycbc.types.backend import (
+    wrap_backend_array,
+)
 import logging
 from hashlib import sha1
 from datetime import datetime as dt
@@ -340,7 +343,6 @@ class QuadratureSumStatistic(Stat):
         if tensors is not None:
             import torch
             from pycbc.types import Array
-            from pycbc.types.array_torch import TorchArrayData
 
             stacked = torch.stack(tensors)
             values = torch.sqrt(torch.sum(stacked.square(), dim=0))
@@ -349,7 +351,7 @@ class QuadratureSumStatistic(Stat):
                 torch.zeros_like(values),
                 values,
             )
-            return Array(TorchArrayData(values), copy=False)
+            return Array(wrap_backend_array(values), copy=False)
 
         cstat = sum(sngl[1] ** 2. for sngl in sngls_list) ** 0.5
         # For single-detector "cuts" the single ranking is set to -1
@@ -392,7 +394,6 @@ class QuadratureSumStatistic(Stat):
         if tensors is not None:
             import torch
             from pycbc.types import Array
-            from pycbc.types.array_torch import TorchArrayData
 
             stacked = torch.stack(tensors)
             threshold = torch.as_tensor(
@@ -405,7 +406,7 @@ class QuadratureSumStatistic(Stat):
                     0,
                 )
             )
-            return Array(TorchArrayData(values), copy=False)
+            return Array(wrap_backend_array(values), copy=False)
 
         s0 = thresh ** 2. - sum(sngl[1] ** 2. for sngl in s)
         s0[s0 < 0] = 0
@@ -572,7 +573,6 @@ class PhaseTDStatistic(QuadratureSumStatistic):
         # Read histogram for each ifo, to use if that ifo has smallest SNR in
         # the coinc
         for ifo in self.hist_ifos:
-
             # renormalise to PDF
             self.weights[ifo] = \
                 (weights[ifo] / (weights[ifo].sum() * bin_volume))

@@ -48,6 +48,9 @@ ks_stat, ks_pval = KS_test('exponential', snrs, alpha, thresh)
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General
 # Public License for more details.
 
+from pycbc.types.backend import (
+    backend_array, backend_matches_scheme, is_backend, wrap_backend_array,
+)
 import logging
 import numpy
 from scipy.stats import kstest
@@ -67,20 +70,14 @@ def _torch_fit_tensors(*values):
         return None
 
     import torch
-    from pycbc.types.array_torch import (
-        TorchArrayData,
-        _device_matches_active,
-    )
 
     data = [
-        value._data if isinstance(value, Array) else value
+        backend_array(value)
         for value in values
     ]
     torch_data = []
     for value in data:
-        if isinstance(value, TorchArrayData):
-            torch_data.append(value.tensor)
-        elif isinstance(value, torch.Tensor):
+        if is_backend(value, "torch"):
             torch_data.append(value)
     if not torch_data:
         return None
@@ -88,11 +85,11 @@ def _torch_fit_tensors(*values):
     first = torch_data[0]
     if not (
         first.is_floating_point()
-        and _device_matches_active(first)
+        and backend_matches_scheme(first)
         and all(
             value.is_floating_point()
             and value.device == first.device
-            and _device_matches_active(value)
+            and backend_matches_scheme(value)
             for value in torch_data
         )
     ):
@@ -100,9 +97,7 @@ def _torch_fit_tensors(*values):
 
     tensors = []
     for value in data:
-        if isinstance(value, TorchArrayData):
-            tensors.append(value.tensor.to(dtype=first.dtype))
-        elif isinstance(value, torch.Tensor):
+        if is_backend(value, "torch"):
             tensors.append(value.to(dtype=first.dtype))
         elif isinstance(value, Array):
             return None
@@ -127,9 +122,7 @@ def _torch_fit_tensors(*values):
 def _torch_fit_result(input_value, tensor):
     """Wrap a Torch fit vector when its public input was a PyCBC Array."""
     if isinstance(input_value, Array):
-        from pycbc.types.array_torch import TorchArrayData
-
-        return Array(TorchArrayData(tensor), copy=False)
+        return Array(wrap_backend_array(tensor), copy=False)
     return tensor
 
 

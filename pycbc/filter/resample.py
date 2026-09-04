@@ -21,6 +21,9 @@
 #
 # =============================================================================
 #
+from pycbc.types.backend import (
+    backend_array, is_backend, wrap_backend_array,
+)
 import functools
 import operator
 
@@ -41,12 +44,10 @@ import pycbc
 
 try:
     import torch
-    from pycbc.types.array_torch import TorchArrayData
     from .zpk import _torch_sosfilt
     _HAVE_TORCH = pycbc.HAVE_TORCH
 except Exception:  # pragma: no cover - torch optional
     torch = None
-    TorchArrayData = None
     _torch_sosfilt = None
     _HAVE_TORCH = False
 
@@ -141,10 +142,10 @@ def _torch_butterworth_resample(timeseries, delta_t):
     ):
         raise RuntimeError("Invalid argument")
 
-    data = timeseries._data.tensor
+    data = backend_array(timeseries, "torch")
     if factor == 1:
         return TimeSeries(
-            TorchArrayData(data.clone()),
+            wrap_backend_array(data.clone()),
             delta_t=delta_t,
             epoch=timeseries._epoch,
             copy=False,
@@ -164,7 +165,7 @@ def _torch_butterworth_resample(timeseries, delta_t):
     output_length = data.numel() // factor
     data = data[: output_length * factor : factor].clone()
     return TimeSeries(
-        TorchArrayData(data),
+        wrap_backend_array(data),
         delta_t=delta_t,
         epoch=timeseries._epoch,
         copy=False,
@@ -193,11 +194,11 @@ def _torch_butterworth_filter(
         cutoff *= (1 / numpy.sqrt(amplitude) - 1) ** exponent
 
     data = _torch_zero_phase_sos(
-        timeseries._data.tensor,
+        backend_array(timeseries, "torch"),
         _butterworth_sos(cutoff, filter_order, highpass),
     )
     return TimeSeries(
-        TorchArrayData(data),
+        wrap_backend_array(data),
         delta_t=timeseries.delta_t,
         epoch=timeseries._epoch,
         copy=False,
@@ -238,13 +239,13 @@ def _torch_lfilter_work_dtype(signal):
 
 def _torch_lfilter(coefficients, timeseries):
     """Apply a causal FIR filter to a Torch-backed time series on device."""
-    signal = timeseries._data.tensor
+    signal = backend_array(timeseries, "torch")
     output_dtype = signal.dtype
     work_dtype = _torch_lfilter_work_dtype(signal)
     work_signal = signal.to(dtype=work_dtype)
-    coefficient_data = getattr(coefficients, "_data", coefficients)
-    if isinstance(coefficient_data, TorchArrayData):
-        coefficient_data = coefficient_data.tensor
+    coefficient_data = backend_array(coefficients)
+    if is_backend(coefficient_data, "torch"):
+        coefficient_data = backend_array(coefficient_data, "torch")
     elif isinstance(coefficient_data, numpy.ndarray):
         coefficient_data = numpy.ascontiguousarray(coefficient_data)
 
@@ -286,7 +287,7 @@ def _torch_lfilter(coefficients, timeseries):
     output = output.to(dtype=output_dtype)
 
     return TimeSeries(
-        TorchArrayData(output), delta_t=timeseries.delta_t,
+        wrap_backend_array(output), delta_t=timeseries.delta_t,
         epoch=timeseries.start_time, copy=False
     )
 
@@ -306,9 +307,7 @@ def lfilter(coefficients, timeseries):
     tseries : pycbc.types.TimeSeries
         filtered array
     """
-    torch_input = _HAVE_TORCH and isinstance(
-        getattr(timeseries, "_data", None), TorchArrayData
-    )
+    torch_input = _HAVE_TORCH and is_backend(timeseries, "torch")
     if torch_input:
         return _torch_lfilter(coefficients, timeseries)
 
@@ -451,9 +450,7 @@ def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
     if timeseries.kind != 'real':
         raise TypeError("Time series must be real")
 
-    torch_input = _HAVE_TORCH and isinstance(
-        getattr(timeseries, "_data", None), TorchArrayData
-    )
+    torch_input = _HAVE_TORCH and is_backend(timeseries, "torch")
     if timeseries.sample_rate_close(1.0 / delta_t):
         return timeseries * 1
 
@@ -619,8 +616,7 @@ def highpass(timeseries, frequency, filter_order=8, attenuation=0.1):
     if timeseries.kind != 'real':
         raise TypeError("Time series must be real")
 
-    if _HAVE_TORCH and isinstance(
-            getattr(timeseries, "_data", None), TorchArrayData):
+    if _HAVE_TORCH and is_backend(timeseries, "torch"):
         return _torch_butterworth_filter(
             timeseries,
             frequency,
@@ -671,8 +667,7 @@ def lowpass(timeseries, frequency, filter_order=8, attenuation=0.1):
     if timeseries.kind != 'real':
         raise TypeError("Time series must be real")
 
-    if _HAVE_TORCH and isinstance(
-            getattr(timeseries, "_data", None), TorchArrayData):
+    if _HAVE_TORCH and is_backend(timeseries, "torch"):
         return _torch_butterworth_filter(
             timeseries,
             frequency,

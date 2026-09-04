@@ -26,29 +26,28 @@ This modules provides functions for calculating the autocorrelation function
 and length of a data series.
 """
 
+from pycbc.types.backend import (
+    backend_array, is_backend, wrap_backend_array,
+)
 import numpy
 import pycbc
 from pycbc.filter.matchedfilter import correlate
 from pycbc.types import FrequencySeries, TimeSeries, zeros
 try:
     import torch
-    from pycbc.types.array_torch import TorchArrayData
     _HAVE_TORCH = pycbc.HAVE_TORCH
 except Exception:  # pragma: no cover - torch optional
     torch = None
-    TorchArrayData = None
     _HAVE_TORCH = False
 
 
 def _is_torch_array(value):
-    return _HAVE_TORCH and isinstance(
-        getattr(value, "_data", None), TorchArrayData
-    )
+    return _HAVE_TORCH and is_backend(value, "torch")
 
 
 def _torch_acf(data, delta_t, unbiased):
     """Calculate an ACF without copying a Torch TimeSeries to NumPy."""
-    source = data._data.tensor
+    source = backend_array(data, "torch")
     dtype = torch.float32 if source.device.type == "mps" else torch.float64
     y = source.to(dtype=dtype)
     y = y - y.mean()
@@ -61,7 +60,7 @@ def _torch_acf(data, delta_t, unbiased):
     ypad[:ny_orig] = y
 
     fdata = TimeSeries(
-        TorchArrayData(ypad), delta_t=delta_t, copy=False
+        wrap_backend_array(ypad), delta_t=delta_t, copy=False
     ).to_frequencyseries()
     cdata = FrequencySeries(
         zeros(len(fdata), dtype=fdata.dtype),
@@ -70,7 +69,7 @@ def _torch_acf(data, delta_t, unbiased):
     correlate(fdata, fdata, cdata)
     acf = cdata.to_timeseries()[:ny_orig]
 
-    acf_tensor = acf._data.tensor
+    acf_tensor = backend_array(acf, "torch")
     if unbiased:
         counts = torch.arange(
             ny_orig, 0, -1, dtype=dtype, device=source.device
@@ -89,7 +88,6 @@ def calculate_acf(data, delta_t=1.0, unbiased=False):
     ACF can be estimated using
 
     .. math::
-
         \hat{R}(k) = \frac{1}{n \sigma^{2}} \sum_{t=1}^{n-k} \left( X_{t} - \mu \right) \left( X_{t+k} - \mu \right)
 
     Where :math:`\hat{R}(k)` is the ACF, :math:`X_{t}` is the data series at
@@ -166,16 +164,12 @@ def calculate_acl(data, m=5, dtype=int):
 
     Given a normalized autocorrelation function :math:`\rho[i]` (by normalized,
     we mean that :math:`\rho[0] = 1`), the ACL :math:`\tau` is:
-
     .. math::
-
         \tau = 1 + 2 \sum_{i=1}^{K} \rho[i].
 
     The number of samples used :math:`K` is found by using the first point
     such that:
-
     .. math::
-
         m \tau[K] \leq K,
 
     where :math:`m` is a tuneable parameter (default = 5). If no such point
@@ -183,7 +177,6 @@ def calculate_acl(data, m=5, dtype=int):
     case ``inf`` is returned.
 
     This algorithm for computing the ACL is taken from:
-
     N. Madras and A.D. Sokal, J. Stat. Phys. 50, 109 (1988).
 
     Parameters
@@ -216,7 +209,7 @@ def calculate_acl(data, m=5, dtype=int):
     acf = calculate_acf(data)
 
     if _is_torch_array(acf):
-        acf_tensor = acf._data.tensor
+        acf_tensor = backend_array(acf, "torch")
         cacf = 2 * torch.cumsum(acf_tensor, dim=0) - 1
         win = m * cacf <= torch.arange(
             len(cacf), device=acf_tensor.device

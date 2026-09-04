@@ -26,6 +26,7 @@ This modules provides functions for matched filtering along with associated
 utilities.
 """
 
+from pycbc.types.backend import backend_array, wrap_backend_array
 import logging
 from math import sqrt
 import os
@@ -559,14 +560,12 @@ class MatchedFilterControl(object):
 
 def _torch_data_tensor(value):
     """Return the tensor backing a Torch PyCBC array, if present."""
-    data = getattr(value, "_data", value)
-    return getattr(data, "tensor", None)
+    return backend_array(value, "torch")
 
 
-def _array_from_torch_tensor(tensor, source):
+def _array_from_torch_tensor(tensor):
     """Wrap a result tensor like a PyCBC array without copying it."""
-    data = getattr(source, "_data", source)
-    return Array(data._wrap(tensor), copy=False)
+    return Array(wrap_backend_array(tensor), copy=False)
 
 
 def _sky_max_threshold_locations(
@@ -809,7 +808,7 @@ def compute_max_snr_over_sky_loc_stat(hplus, hcross, hphccorr,
         out.non_zero_locs = locs
         return out
     elif hplus_tensor is not None:
-        return _array_from_torch_tensor(det_stat, hplus)
+        return _array_from_torch_tensor(det_stat)
     else:
         return Array(det_stat, copy=False)
 
@@ -855,8 +854,8 @@ def compute_u_val_for_sky_loc_stat(hplus, hcross, hphccorr,
         u[normal] = (-b[normal] + sq_root[normal]) / (2 * a[normal])
         coa_phase = torch.angle(hplus_tensor * u + hcross_tensor)
         return (
-            _array_from_torch_tensor(u, hplus),
-            _array_from_torch_tensor(coa_phase, hplus),
+            _array_from_torch_tensor(u),
+            _array_from_torch_tensor(coa_phase),
         )
 
     # Sanity checking in func. above should already have identified any points
@@ -1037,7 +1036,7 @@ def compute_max_snr_over_sky_loc_stat_no_phase(hplus, hcross, hphccorr,
         out.non_zero_locs = locs
         return out
     elif hplus_tensor is not None:
-        return _array_from_torch_tensor(det_stat, hplus)
+        return _array_from_torch_tensor(det_stat)
     else:
         return Array(det_stat, copy=False)
 
@@ -1075,8 +1074,8 @@ def compute_u_val_for_sky_loc_stat_no_phase(hplus, hcross, hphccorr,
             len(u_val), dtype=torch.float32, device=u_val.device
         )
         return (
-            _array_from_torch_tensor(u_val, hplus),
-            _array_from_torch_tensor(coa_phase, hplus),
+            _array_from_torch_tensor(u_val),
+            _array_from_torch_tensor(coa_phase),
         )
 
     rhoplusre=numpy.real(hplus)
@@ -1850,7 +1849,6 @@ def _try_torch_cpu_native_batch_peak_values(
         ):
             return None
 
-        owner_data = output._data
         owner_tensor = tensor
         pointer = tensor.data_ptr()
         version = tensor._version
@@ -1867,8 +1865,7 @@ def _try_torch_cpu_native_batch_peak_values(
         if (
             os.getpid() != pid
             or threading.get_ident() != thread_id
-            or getattr(output, "_data", None) is not owner_data
-            or getattr(owner_data, "tensor", None) is not owner_tensor
+            or backend_array(output, "torch") is not owner_tensor
             or owner_tensor.data_ptr() != pointer
             or owner_tensor._version != version
             or not matchedfilter_torch._batch_tensor_contract(
@@ -1892,8 +1889,7 @@ def _try_torch_cpu_native_batch_peak_values(
         if (
             os.getpid() != pid
             or threading.get_ident() != thread_id
-            or getattr(output, "_data", None) is not owner_data
-            or getattr(owner_data, "tensor", None) is not owner_tensor
+            or backend_array(output, "torch") is not owner_tensor
             or owner_tensor.data_ptr() != pointer
             or owner_tensor._version != version
         ):
@@ -2016,7 +2012,7 @@ def _torch_batch_peak_and_threshold_gpu(*args, **kwargs):
     if not isinstance(pycbc.scheme.mgr.state, pycbc.scheme.TorchScheme):
         return None
 
-    tensor = getattr(getattr(output, "_data", None), "tensor", None)
+    tensor = backend_array(output, "torch")
     if tensor is None or tensor.ndim != 1:
         return None
 
@@ -2056,7 +2052,7 @@ def _torch_batch_peak_values(output, template_count, template_size, segment):
     if not isinstance(pycbc.scheme.mgr.state, pycbc.scheme.TorchScheme):
         return None
 
-    tensor = getattr(getattr(output, "_data", None), "tensor", None)
+    tensor = backend_array(output, "torch")
     if tensor is None or tensor.ndim != 1:
         return None
 
@@ -2127,7 +2123,7 @@ def _cpu_batch_peak_values(output, template_count, template_size, segment):
     if segment.step not in (None, 1):
         return None
 
-    raw = getattr(output, "_data", output)
+    raw = backend_array(output)
     if not isinstance(raw, numpy.ndarray):
         return None
     if raw.dtype != numpy.complex64:
@@ -2231,8 +2227,8 @@ def _materialize_torch_veto_results(veto_values):
     sg_values = []
     device = None
     for chisq, dof, sg_chisq in veto_values:
-        chisq_tensor = getattr(getattr(chisq, "_data", None), "tensor", None)
-        dof_tensor = getattr(getattr(dof, "_data", None), "tensor", None)
+        chisq_tensor = backend_array(chisq, "torch")
+        dof_tensor = backend_array(dof, "torch")
         if (
             chisq_tensor is None
             or dof_tensor is None
@@ -2251,9 +2247,7 @@ def _materialize_torch_veto_results(veto_values):
         if sg_chisq is None:
             sg_tensor = torch.zeros_like(chisq_tensor)
         else:
-            sg_tensor = getattr(
-                getattr(sg_chisq, "_data", None), "tensor", None
-            )
+            sg_tensor = backend_array(sg_chisq, "torch")
             if (
                 sg_tensor is None
                 or tuple(sg_tensor.shape) != (1,)
@@ -2311,8 +2305,8 @@ def _is_cuda_scheme(templates=None):
         pass
     if templates and len(templates) > 0:
         t0 = templates[0]
-        data = getattr(t0, "_data", getattr(t0, "data", None))
-        tensor = getattr(data, "tensor", None)
+        data = backend_array(t0)
+        tensor = backend_array(t0, "torch")
         if tensor is not None and (
             getattr(tensor, "is_cuda", False)
             or getattr(getattr(tensor, "device", None), "type", None) == "cuda"
@@ -2325,7 +2319,6 @@ def _is_cuda_scheme(templates=None):
 
 
 class LiveBatchMatchedFilter(object):
-
     """Calculate SNR and signal consistency tests in a batched progression"""
 
     def __init__(self, templates, snr_threshold, chisq_bins, sg_chisq,
@@ -2630,18 +2623,12 @@ class LiveBatchMatchedFilter(object):
         ):
             return None
 
-        stilde_raw = getattr(stilde, "_data", stilde)
-        stilde_tensor = getattr(stilde_raw, "tensor", None)
-        if stilde_tensor is None and isinstance(stilde_raw, torch.Tensor):
-            stilde_tensor = stilde_raw
+        stilde_tensor = backend_array(stilde, "torch")
 
         if stilde_tensor is None or stilde_tensor.device.type != "cuda":
             return None
 
-        out_raw = getattr(self.out_mem[mid], "_data", self.out_mem[mid])
-        out_tensor = getattr(out_raw, "tensor", None)
-        if out_tensor is None and isinstance(out_raw, torch.Tensor):
-            out_tensor = out_raw
+        out_tensor = backend_array(self.out_mem[mid], "torch")
 
         if out_tensor is None or out_tensor.device != stilde_tensor.device:
             return None
@@ -2803,12 +2790,9 @@ class LiveBatchMatchedFilter(object):
             psize = self.chunk_tsamples[self.block_id]
             mid = self.mids[self.block_id]
 
-            out_raw = getattr(self.out_mem[mid], "_data", self.out_mem[mid])
-            out_tensor = getattr(out_raw, "tensor", None)
+            out_tensor = backend_array(self.out_mem[mid], "torch")
             try:
                 import torch
-                if out_tensor is None and isinstance(out_raw, torch.Tensor):
-                    out_tensor = out_raw
             except ImportError:
                 torch = None
 
@@ -2840,10 +2824,7 @@ class LiveBatchMatchedFilter(object):
                         self._compute_stream.wait_event(event)
                 else:
                     stilde = self.data.overwhitened_data(tgroup[0].delta_f)
-                    stilde_raw = getattr(stilde, "_data", stilde)
-                    stilde_t = getattr(stilde_raw, "tensor", None)
-                    if stilde_t is None and isinstance(stilde_raw, torch.Tensor):
-                        stilde_t = stilde_raw
+                    stilde_t = backend_array(stilde, "torch")
                     if stilde_t is not None and stilde_t.device.type == "cpu":
                         if not stilde_t.is_pinned():
                             stilde_pinned = stilde_t.pin_memory()
@@ -2855,13 +2836,11 @@ class LiveBatchMatchedFilter(object):
                             )
                             self._transfer_event.record(self._transfer_stream)
                         self._compute_stream.wait_event(self._transfer_event)
-                        if hasattr(stilde, "_data"):
-                            from pycbc.types.array_torch import TorchArrayData
-                            stilde._data = TorchArrayData(stilde_gpu)
+                        if isinstance(stilde, Array):
+                            stilde = stilde._return(wrap_backend_array(stilde_gpu))
                         elif hasattr(stilde, "delta_f"):
-                            from pycbc.types.array_torch import TorchArrayData
                             stilde = FrequencySeries(
-                                TorchArrayData(stilde_gpu),
+                                wrap_backend_array(stilde_gpu),
                                 delta_f=stilde.delta_f,
                                 epoch=getattr(stilde, "_epoch", 0),
                                 copy=False,
@@ -2875,10 +2854,7 @@ class LiveBatchMatchedFilter(object):
                     try:
                         next_tgroup = self.tgroups[next_block_id]
                         next_stilde = self.data.overwhitened_data(next_tgroup[0].delta_f)
-                        next_stilde_raw = getattr(next_stilde, "_data", next_stilde)
-                        next_stilde_t = getattr(next_stilde_raw, "tensor", None)
-                        if next_stilde_t is None and isinstance(next_stilde_raw, torch.Tensor):
-                            next_stilde_t = next_stilde_raw
+                        next_stilde_t = backend_array(next_stilde, "torch")
                         if next_stilde_t is not None and next_stilde_t.device.type == "cpu":
                             if not next_stilde_t.is_pinned():
                                 next_pinned = next_stilde_t.pin_memory()
@@ -2890,18 +2866,19 @@ class LiveBatchMatchedFilter(object):
                                     device=out_tensor.device, non_blocking=True
                                 )
                                 next_event.record(self._transfer_stream)
-                            if hasattr(next_stilde, "_data"):
-                                from pycbc.types.array_torch import TorchArrayData
-                                next_stilde._data = TorchArrayData(next_stilde_gpu)
-                                next_stilde_dev = next_stilde
+                            if isinstance(next_stilde, Array):
+                                next_stilde_dev = next_stilde._return(
+                                    wrap_backend_array(next_stilde_gpu)
+                                )
                             elif hasattr(next_stilde, "delta_f"):
-                                from pycbc.types.array_torch import TorchArrayData
                                 next_stilde_dev = FrequencySeries(
-                                    TorchArrayData(next_stilde_gpu),
+                                    wrap_backend_array(next_stilde_gpu),
                                     delta_f=next_stilde.delta_f,
                                     epoch=getattr(next_stilde, "_epoch", 0),
                                     copy=False,
                                 )
+                            else:
+                                next_stilde_dev = next_stilde_gpu
                             self._async_prefetched = (
                                 next_block_id,
                                 next_stilde_dev,
@@ -2965,9 +2942,7 @@ class LiveBatchMatchedFilter(object):
 
         ondevice_result = None
         if batch_peaks is None:
-            out_tensor = getattr(
-                getattr(self.out_mem[mid], "_data", None), "tensor", None
-            )
+            out_tensor = backend_array(self.out_mem[mid], "torch")
             if (
                 out_tensor is not None
                 and _torch_ondevice_peaks_enabled(out_tensor.device.type)
@@ -3251,7 +3226,7 @@ def _count_louder_background(background, window, threshold):
     if nsamples == 0:
         return 0, 0
 
-    tensor = getattr(getattr(background, '_data', None), 'tensor', None)
+    tensor = backend_array(background, "torch")
     if tensor is not None:
         peaks = tensor[:nsamples * window].reshape(
             nsamples, window
@@ -3840,8 +3815,8 @@ def optimized_match(
     )
     mask = slice(kmin, kmax)
 
-    htilde_tensor = getattr(getattr(htilde, '_data', None), 'tensor', None)
-    stilde_tensor = getattr(getattr(stilde, '_data', None), 'tensor', None)
+    htilde_tensor = backend_array(htilde, "torch")
+    stilde_tensor = backend_array(stilde, "torch")
     if htilde_tensor is not None and stilde_tensor is not None:
         import torch
 
@@ -3849,11 +3824,11 @@ def optimized_match(
         # every waveform-sized objective and reduction remains on-device.
         waveform_1 = htilde_tensor[mask]
         waveform_2 = stilde_tensor[mask]
-        frequencies = stilde.sample_frequencies._data.tensor[mask]
+        frequencies = backend_array(stilde.sample_frequencies, "torch")[mask]
         if psd is None:
             psd_arr = torch.ones_like(waveform_1)
         else:
-            psd_tensor = getattr(getattr(psd, '_data', None), 'tensor', None)
+            psd_tensor = backend_array(psd, "torch")
             if psd_tensor is None:
                 psd_tensor = torch.as_tensor(
                     psd.numpy(), device=waveform_1.device

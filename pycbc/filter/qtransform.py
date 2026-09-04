@@ -30,6 +30,9 @@ the q-transform of that time series. Torch-backed inputs dispatch to the
 device-native implementation in :mod:`pycbc.filter.qtransform_torch`.
 """
 
+from pycbc.types.backend import (
+    is_backend,
+)
 import numpy
 from numpy import ceil, log, exp
 from pycbc.types.timeseries import FrequencySeries, TimeSeries
@@ -64,7 +67,7 @@ def qplane(qplane_tile_dict, fseries, return_complex=False):
         The two-dimensional q-transform. Torch-backed inputs return a tensor
         on the input device.
     """
-    if hasattr(fseries._data, "tensor"):
+    if is_backend(fseries, "torch"):
         from pycbc.filter.qtransform_torch import qplane as torch_qplane
 
         return torch_qplane(
@@ -211,7 +214,7 @@ def qseries(fseries, Q, f0, return_complex=False):
         A 'TimeSeries' of the normalized energy from the Q-transform of
         this tile against the data.
     """
-    if hasattr(fseries._data, "tensor"):
+    if is_backend(fseries, "torch"):
         from pycbc.filter.qtransform_torch import qseries as torch_qseries
 
         return torch_qseries(fseries, Q, f0, return_complex=return_complex)
