@@ -16,6 +16,15 @@ from pycbc.coordinates import base as coordinates
 torch = pytest.importorskip("torch")
 
 
+@pytest.fixture(params=("cpu", "cuda"), autouse=True)
+def torch_device(request):
+    if request.param == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA is unavailable")
+    # Scope tensor factories to this case; retain the CPU reference cases.
+    with torch.device(request.param):
+        yield torch.device(request.param)
+
+
 def test_boundary_conditioning_preserves_tensor_and_gradient():
     values = torch.tensor(
         [-10.0, -4.0, -1.0, 0.25, 1.0, 3.0, 8.0],
@@ -106,6 +115,7 @@ def test_log_and_custom_transforms_preserve_tensors_and_gradients():
 
     results = (logx, x_roundtrip, logitp, p_roundtrip, combined, jacobian)
     assert all(isinstance(result, torch.Tensor) for result in results)
+    assert all(result.device == x.device for result in results)
     torch.testing.assert_close(x_roundtrip, x)
     torch.testing.assert_close(p_roundtrip, p)
     torch.testing.assert_close(combined, torch.sin(x) + torch.sqrt(q))
