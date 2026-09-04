@@ -291,11 +291,10 @@ class CPUScheme(Scheme):
         Scheme.__enter__(self)
         # CPUScheme loads libgomp globally below.  If MKL keeps its default
         # Intel OpenMP layer, threaded DFTI calls can silently return corrupt
-        # data once libgomp (including Torch's copy) is present.  Select MKL's
-        # compatible GNU layer before the first threaded transform.
+        # data once libgomp (including Torch's copy) is present. Default to
+        # the compatible GNU layer, preserving explicit process settings.
         if pycbc.HAVE_MKL:
-            if os.environ.get("MKL_THREADING_LAYER") != "GNU":
-                os.environ["MKL_THREADING_LAYER"] = "GNU"
+            os.environ.setdefault("MKL_THREADING_LAYER", "GNU")
         try:
             self._libgomp = _resolve_libgomp()
         except Exception:

@@ -61,9 +61,18 @@ except NameError:
     _ALLOWED_SCALARS = [int, float, complex] + _ALLOWED_DTYPES
 
 def _convert_to_scheme(ary):
-    if ary._scheme is _scheme.mgr.state:
+    state = _scheme.mgr.state
+    if ary._scheme is state:
         return
-    if not isinstance(ary._scheme, _scheme.mgr.state.__class__):
+    if isinstance(ary._scheme, _scheme.TorchScheme) and isinstance(
+            state, _scheme.TorchScheme):
+        if not _scheme_matches_base_array(ary._data):
+            # Tensor-to-tensor transfers preserve autograd, including when
+            # successive Torch contexts select different devices.
+            ary._data = _to_device(ary._data)
+            ary._saved = None
+        ary._scheme = state
+    elif not isinstance(ary._scheme, state.__class__):
         converted_array = Array(ary, dtype=ary._data.dtype)
         ary._data = converted_array._data
         ary._saved = None
@@ -296,6 +305,8 @@ class Array(object):
                 self._data = _to_device(initial_array) # pylint:disable=assignment-from-no-return
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        for array in _array_function_arrays((inputs, kwargs)):
+            _convert_to_scheme(array)
         active_scheme = _scheme.mgr.state
         backend_ufunc = None
         if self._scheme is active_scheme:
@@ -410,6 +421,8 @@ class Array(object):
         ):
             active_scheme = _scheme.mgr.state
             arrays = list(_array_function_arrays((args, kwargs)))
+            for array in arrays:
+                _convert_to_scheme(array)
             backend_function = getattr(
                 self._data, "numpy_array_function", None
             )
@@ -2098,6 +2111,11 @@ def _regular_grid(length, spacing, offset=None):
         import torch
         from pycbc.types.array_torch import TorchArrayData
 
+        if state.torch_device.type == 'mps' and offset is not None:
+            raise TypeError(
+                "Absolute sample times require float64, which MPS does not "
+                "support. Use a CPU or CUDA scheme for sample_times."
+            )
         dtype = torch.float32 if state.torch_device.type == 'mps' \
             else torch.float64
         values = torch.arange(

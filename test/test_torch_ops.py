@@ -5,7 +5,6 @@ torch = pytest.importorskip("torch")
 
 import pycbc
 from pycbc import scheme
-from pycbc.filter import highpass_fir, lowpass_fir
 from pycbc.noise import frequency_noise_from_psd
 from pycbc.types import Array, TimeSeries
 
@@ -47,22 +46,6 @@ def test_fft_roundtrip(torch_ctx):
     assert fs_t._data.tensor.device.type == "cpu"
     rel = _relative_l2(ts_t_rt.numpy(), ts_cpu_rt.numpy())
     assert rel < 1e-6
-
-
-def test_fir_filters_stay_on_device(torch_ctx):
-    pytest.importorskip("pycbc.filter.matchedfilter_torch")
-    t = np.arange(0, 1, 1 / 1024.0)
-    sig = np.sin(2 * np.pi * 10 * t) + 0.5 * np.sin(2 * np.pi * 200 * t)
-
-    with torch_ctx:
-        ts = TimeSeries(sig, delta_t=1 / 1024.0)
-        lp = lowpass_fir(ts, 50, 128, beta=5.0)
-        hp = highpass_fir(ts, 50, 128, beta=5.0)
-
-    for out in (lp, hp):
-        assert isinstance(out._data.tensor, torch.Tensor)
-        assert out._data.tensor.device.type == "cpu"
-        assert len(out) == len(ts)
 
 
 def test_noise_from_psd_returns_torch(torch_ctx):

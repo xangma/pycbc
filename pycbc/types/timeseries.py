@@ -666,6 +666,9 @@ class TimeSeries(Array):
 
     def get_sample_times(self):
         """Return an Array containing the sample times.
+
+        Absolute times require float64 precision. An active Torch MPS
+        scheme raises TypeError because that device cannot represent them.
         """
         epoch = None if self._epoch is None else float(self._epoch)
         return _regular_grid(len(self), self._delta_t, offset=epoch)

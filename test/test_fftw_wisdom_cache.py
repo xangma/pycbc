@@ -1,5 +1,6 @@
 """Tests for the bounded automatic FFTW wisdom cache."""
 
+import logging
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -147,6 +148,7 @@ def test_failed_immediate_export_is_retried_by_cli_lifecycle(
 def test_corrupt_cache_falls_back_to_bounded_measurement(
     caplog, tmp_path, stable_fingerprint
 ):
+    caplog.set_level(logging.WARNING, logger=wisdom_cache.logger.name)
     wisdom_cache.configure_from_cli(_options(tmp_path))
     _, seed_entry = _prepare(FakeFFTW())
     seed_entry.path.write_bytes(b"corrupt")
