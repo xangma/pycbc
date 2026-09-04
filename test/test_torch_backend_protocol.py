@@ -7,10 +7,11 @@ torch = pytest.importorskip("torch")
 
 from pycbc import scheme  # noqa: E402
 from pycbc import conversions  # noqa: E402
-from pycbc.types import Array  # noqa: E402
+from pycbc.types import Array, TimeSeries  # noqa: E402
 from pycbc.types.array_torch import TorchArrayData  # noqa: E402
 from pycbc.types.backend import (  # noqa: E402
-    backend_array, backend_name, is_backend,
+    backend_array, backend_name, is_backend, wrap_backend_array,
+    backend_matches_scheme,
 )
 
 
@@ -39,3 +40,39 @@ def test_conversions_backend_accepts_public_torch_storage():
     assert isinstance(result, torch.Tensor)
     expected = conversions.primary_mass(tensor, 5.0)
     torch.testing.assert_close(result, expected)
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda", "mps"])
+def test_public_storage_constructor_preserves_views_and_gradients(device):
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA is unavailable")
+    if device == "mps" and not torch.backends.mps.is_available():
+        pytest.skip("MPS is unavailable")
+    source = torch.arange(8, dtype=torch.float32, device=device,
+                          requires_grad=True)
+    tensor = source[::2]
+    with scheme.TorchScheme(device):
+        assert backend_matches_scheme(tensor)
+        series = TimeSeries(wrap_backend_array(tensor), delta_t=0.25,
+                            epoch=123, copy=False)
+        assert backend_array(series) is tensor
+        assert series.delta_t == 0.25
+        assert float(series.start_time) == 123
+        backend_array(series).sum().backward()
+        torch.testing.assert_close(source.grad[::2], torch.ones_like(tensor))
+        torch.testing.assert_close(source.grad[1::2], torch.zeros_like(tensor))
+        if device != "cpu":
+            assert not backend_matches_scheme(torch.zeros(2))
+            with pytest.raises(TypeError, match="Cannot avoid a copy"):
+                Array(wrap_backend_array(torch.zeros(2)), copy=False)
+
+
+def test_public_storage_constructor_preserves_numpy_and_rejects_wrong_scheme():
+    values = numpy.arange(3, dtype=numpy.float64)
+    with scheme.CPUScheme():
+        assert wrap_backend_array(values) is values
+        assert backend_matches_scheme(values)
+        assert backend_array(Array(wrap_backend_array(values), copy=False)) is values
+        assert not backend_matches_scheme(torch.zeros(2))
+        with pytest.raises(TypeError, match="Cannot avoid a copy"):
+            Array(wrap_backend_array(torch.zeros(2)), copy=False)

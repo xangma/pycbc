@@ -77,6 +77,27 @@ def backend_array(value, name=None):
     return accessor() if callable(accessor) else accessor
 
 
+def wrap_backend_array(value):
+    """Adapt native storage for a PyCBC Array or Series constructor.
+
+    This is the inverse of :func:`backend_array`: Torch tensors receive the
+    backend's NumPy-compatible storage wrapper; other native arrays pass
+    through unchanged. No data is copied, moved or detached. Constructors
+    still enforce the active scheme, supported dtype and series metadata.
+    """
+    storage = backend_array(value)
+    if torch_module_for(storage) is not None:
+        from .array_torch import TorchArrayData
+        return TorchArrayData(storage)
+    return storage
+
+
+def backend_matches_scheme(value):
+    """Whether storage can be used without a copy in the active scheme."""
+    from .array import _scheme_matches_base_array
+    return _scheme_matches_base_array(wrap_backend_array(value))
+
+
 def coerce_torch_values(*values):
     """Coerce mixed inputs to the first tensor's device and dtype.
 
