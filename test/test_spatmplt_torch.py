@@ -8,7 +8,10 @@ torch = pytest.importorskip("torch")
 from pycbc import scheme
 from pycbc.types import FrequencySeries, zeros
 from pycbc.types.array_torch import TorchArrayData
-from pycbc.types.backend import backend_array, wrap_backend_array
+from pycbc.types.backend import (  # noqa: E402
+    backend_array,
+    wrap_backend_array,
+)
 import pycbc.waveform.spa_tmplt as spa_tmplt_module
 from pycbc.waveform.spa_tmplt import (
     spa_distance,
