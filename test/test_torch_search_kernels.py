@@ -1460,3 +1460,39 @@ def test_search_public_storage_preserves_device_and_gradients(device, storage_ki
         assert result.device == source.device
         result.sum().backward()
         torch.testing.assert_close(source.grad, expected_weight)
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_strain_overwhitening_preserves_storage_contract(device, monkeypatch):
+    from types import SimpleNamespace
+    from pycbc.strain.strain import StrainBuffer
+    from pycbc.types.backend import backend_array, wrap_backend_array
+
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA is unavailable")
+    source = torch.linspace(0.0, 1.0, 64, dtype=torch.float64,
+                            device=device, requires_grad=True)
+    expected = torch.fft.rfft(source[-32:]) / 64.0
+    with scheme.TorchScheme(device):
+        strain = TimeSeries(wrap_backend_array(source), delta_t=1 / 32,
+                            epoch=123.0, copy=False)
+        psd = FrequencySeries(np.full(17, 2.0), delta_f=1.0)
+        psd.psdt = psd
+        buffer = SimpleNamespace(strain=strain, segments={}, sample_rate=32,
+                                 reduced_pad=0, psds={1.0: psd})
+
+        def reject_host_transfer(*args, **kwargs):
+            raise AssertionError("strain overwhitening copied to the host")
+
+        monkeypatch.setattr(Array, "numpy", reject_host_transfer)
+        result = StrainBuffer.overwhitened_data(buffer, 1.0)
+        tensor = backend_array(result, "torch")
+        torch.testing.assert_close(tensor, expected)
+        assert result.delta_f == 1.0
+        assert float(result.epoch) == 124.0
+        assert result.psd is psd
+        assert StrainBuffer.overwhitened_data(buffer, 1.0) is result
+        tensor.abs().square().sum().backward()
+        assert source.grad is not None
+        assert torch.isfinite(source.grad).all()
+        assert source.grad[-32:].abs().sum() > 0
