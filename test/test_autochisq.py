@@ -11,6 +11,12 @@ from utils import parse_args_all_schemes, simple_exit
 
 _scheme, _context = parse_args_all_schemes("Auto Chi-squared Veto")
 
+if _scheme == "torch":
+    try:
+        import torch  # noqa: F401
+    except Exception as exc:  # pragma: no cover
+        simple_exit(f"torch not available: {exc}")
+
 
 class TestAutochisquare(unittest.TestCase):
     def setUp(self):
@@ -191,4 +197,3 @@ suite.addTest(unittest.TestLoader().loadTestsFromTestCase(TestAutochisquare))
 if __name__ == '__main__':
     results = unittest.TextTestRunner(verbosity=2).run(suite)
     simple_exit(results)
-

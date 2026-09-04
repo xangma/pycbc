@@ -49,17 +49,227 @@ ks_stat, ks_pval = KS_test('exponential', snrs, alpha, thresh)
 # Public License for more details.
 
 import logging
+
 import numpy
 from scipy.stats import kstest
 
-logger = logging.getLogger('pycbc.events.trigger_fits')
+from pycbc.types import Array
+from pycbc.types.backend import (
+    backend_array,
+    backend_matches_scheme,
+    is_backend,
+    wrap_backend_array,
+)
+
+logger = logging.getLogger("pycbc.events.trigger_fits")
+
+
+def _torch_fit_tensors(*values):
+    """Return compatible Torch tensors for trigger-fit arithmetic."""
+    if not values:
+        return None
+
+    from pycbc import scheme
+
+    if scheme.current_prefix() != "torch":
+        return None
+
+    import torch
+
+    data = [backend_array(value) for value in values]
+    torch_data = []
+    for value in data:
+        if is_backend(value, "torch"):
+            torch_data.append(value)
+    if not torch_data:
+        return None
+
+    first = torch_data[0]
+    if not (
+        first.is_floating_point()
+        and backend_matches_scheme(first)
+        and all(
+            value.is_floating_point()
+            and value.device == first.device
+            and backend_matches_scheme(value)
+            for value in torch_data
+        )
+    ):
+        return None
+
+    tensors = []
+    for value in data:
+        if is_backend(value, "torch"):
+            tensors.append(value.to(dtype=first.dtype))
+        elif isinstance(value, Array):
+            return None
+        else:
+            try:
+                host = numpy.asarray(value)
+                if host.dtype.kind not in "fiu":
+                    return None
+                tensors.append(
+                    torch.as_tensor(
+                        host,
+                        dtype=first.dtype,
+                        device=first.device,
+                    )
+                )
+            except (TypeError, ValueError, RuntimeError):
+                return None
+
+    return tuple(tensors)
+
+
+def _torch_fit_result(input_value, tensor):
+    """Wrap a Torch fit vector when its public input was a PyCBC Array."""
+    if isinstance(input_value, Array):
+        return Array(wrap_backend_array(tensor), copy=False)
+    return tensor
+
+
+def _torch_fitalpha(distr, vals, thresh, weights):
+    """Evaluate a maximum-likelihood slope entirely with Torch."""
+    import torch
+
+    average = torch.sum(vals * weights) / torch.sum(weights)
+    if distr == "exponential":
+        return 1.0 / (average - thresh)
+    if distr == "rayleigh":
+        square_average = torch.sum(vals.square() * weights) / torch.sum(weights)
+        return 2.0 / (square_average - thresh.square())
+    if distr == "power":
+        log_average = torch.sum(torch.log(vals / thresh) * weights)
+        log_average = log_average / torch.sum(weights)
+        return log_average.reciprocal() + 1.0
+    raise KeyError(distr)
+
+
+def _torch_fit_values(distr, xvals, alpha, thresh, *, cumulative):
+    """Evaluate a fitted density or reverse CDF with Torch."""
+    import torch
+
+    below_threshold = xvals < thresh
+    fit_xvals = torch.where(below_threshold, thresh, xvals)
+    if cumulative:
+        if distr == "exponential":
+            values = torch.exp(-alpha * (fit_xvals - thresh))
+        elif distr == "rayleigh":
+            values = torch.exp(-alpha * (fit_xvals.square() - thresh.square()) / 2.0)
+        elif distr == "power":
+            values = fit_xvals ** (1.0 - alpha) * thresh ** (alpha - 1.0)
+        else:
+            raise KeyError(distr)
+    elif distr == "exponential":
+        values = alpha * torch.exp(-alpha * (fit_xvals - thresh))
+    elif distr == "rayleigh":
+        values = (
+            alpha
+            * fit_xvals
+            * torch.exp(-alpha * (fit_xvals.square() - thresh.square()) / 2.0)
+        )
+    elif distr == "power":
+        values = (alpha - 1.0) * fit_xvals ** (-alpha) * thresh ** (alpha - 1.0)
+    else:
+        raise KeyError(distr)
+
+    return torch.where(below_threshold, torch.zeros_like(values), values)
+
+
+def _ks_test_result(statistic, probability, location, sign):
+    """Build the richest KS result supported by the installed SciPy."""
+    try:
+        from scipy.stats._stats_py import KstestResult
+    except ImportError:
+        return statistic, probability
+    return KstestResult(
+        statistic,
+        probability,
+        statistic_location=location,
+        statistic_sign=sign,
+    )
+
+
+def _torch_ks_test(distr, vals, alpha, thresh):
+    """Evaluate a one-sample, two-sided KS test on a Torch device."""
+    torch_inputs = [vals, alpha]
+    if thresh is not None:
+        torch_inputs.append(thresh)
+    tensors = _torch_fit_tensors(*torch_inputs)
+    if tensors is None or tensors[0].ndim != 1:
+        return None
+
+    import torch
+    from scipy.stats import distributions
+
+    vals_t, alpha_t = tensors[:2]
+    if alpha_t.numel() != 1:
+        return None
+
+    sample_size = vals_t.numel()
+    if thresh is None:
+        if sample_size == 0:
+            raise ValueError("min() arg is an empty sequence")
+        thresh_t = torch.min(vals_t)
+    else:
+        thresh_t = tensors[2]
+        if thresh_t.numel() != 1:
+            return None
+        vals_t = vals_t[vals_t >= thresh_t]
+        sample_size = vals_t.numel()
+
+    if sample_size == 0 or torch.isnan(vals_t).any().item():
+        nan = float("nan")
+        return _ks_test_result(nan, nan, nan, nan)
+
+    sorted_vals = torch.sort(vals_t).values
+    reverse_cdf = _torch_fit_values(
+        distr,
+        sorted_vals,
+        alpha_t,
+        thresh_t,
+        cumulative=True,
+    )
+    cdf = 1.0 - reverse_cdf
+    if torch.isnan(cdf).any().item():
+        nan = float("nan")
+        return _ks_test_result(nan, nan, nan, nan)
+
+    # SciPy forms its empirical CDF in float64 even when the fitted CDF was
+    # evaluated from float32 inputs. MPS does not support float64 tensors.
+    work_dtype = torch.float64 if sorted_vals.device.type != "mps" else cdf.dtype
+    cdf = cdf.to(dtype=work_dtype)
+    ranks = torch.arange(
+        sample_size,
+        dtype=work_dtype,
+        device=sorted_vals.device,
+    )
+    dplus_values = (ranks + 1.0) / sample_size - cdf
+    dminus_values = cdf - ranks / sample_size
+    dplus, dplus_index = torch.max(dplus_values, dim=0)
+    dminus, dminus_index = torch.max(dminus_values, dim=0)
+    if (dplus > dminus).item():
+        statistic_t = dplus
+        location_index = dplus_index
+        sign = 1
+    else:
+        statistic_t = dminus
+        location_index = dminus_index
+        sign = -1
+
+    statistic = float(statistic_t.item())
+    location = float(sorted_vals[location_index].item())
+    probability = distributions.kstwo.sf(statistic, sample_size)
+    probability = float(numpy.clip(probability, 0.0, 1.0))
+    return _ks_test_result(statistic, probability, location, sign)
+
 
 def exponential_fitalpha(vals, thresh, w):
     """
     Maximum likelihood estimator for the fit factor for
     an exponential decrease model
     """
-    return 1. / (numpy.average(vals, weights=w) - thresh)
+    return 1.0 / (numpy.average(vals, weights=w) - thresh)
 
 
 def rayleigh_fitalpha(vals, thresh, w):
@@ -67,7 +277,7 @@ def rayleigh_fitalpha(vals, thresh, w):
     Maximum likelihood estimator for the fit factor for
     a Rayleigh distribution of events
     """
-    return 2. / (numpy.average(vals ** 2., weights=w) - thresh ** 2.)
+    return 2.0 / (numpy.average(vals**2.0, weights=w) - thresh**2.0)
 
 
 def power_fitalpha(vals, thresh, w):
@@ -75,21 +285,22 @@ def power_fitalpha(vals, thresh, w):
     Maximum likelihood estimator for the fit factor for
     a power law model
     """
-    return numpy.average(numpy.log(vals/thresh), weights=w) ** -1. + 1.
+    return numpy.average(numpy.log(vals / thresh), weights=w) ** -1.0 + 1.0
 
 
 fitalpha_dict = {
-    'exponential' : exponential_fitalpha,
-    'rayleigh'    : rayleigh_fitalpha,
-    'power'       : power_fitalpha
+    "exponential": exponential_fitalpha,
+    "rayleigh": rayleigh_fitalpha,
+    "power": power_fitalpha,
 }
 
 # measurement standard deviation = (-d^2 log L/d alpha^2)^(-1/2)
 fitstd_dict = {
-    'exponential' : lambda weights, alpha : alpha / sum(weights) ** 0.5,
-    'rayleigh'    : lambda weights, alpha : alpha / sum(weights) ** 0.5,
-    'power'       : lambda weights, alpha : (alpha - 1.) / sum(weights) ** 0.5
+    "exponential": lambda weights, alpha: alpha / sum(weights) ** 0.5,
+    "rayleigh": lambda weights, alpha: alpha / sum(weights) ** 0.5,
+    "power": lambda weights, alpha: (alpha - 1.0) / sum(weights) ** 0.5,
 }
+
 
 def fit_above_thresh(distr, vals, thresh=None, weights=None):
     """
@@ -121,6 +332,41 @@ def fit_above_thresh(distr, vals, thresh=None, weights=None):
     sigma_alpha : float
         Standard error in fitted value
     """
+    torch_inputs = [vals]
+    if thresh is not None:
+        torch_inputs.append(thresh)
+    if weights is not None:
+        torch_inputs.append(weights)
+    tensors = _torch_fit_tensors(*torch_inputs)
+    if tensors is not None:
+        import torch
+
+        vals_t = tensors[0]
+        tensor_index = 1
+        if thresh is None:
+            thresh_t = torch.min(vals_t)
+            above_thresh = torch.ones_like(vals_t, dtype=torch.bool)
+        else:
+            thresh_t = tensors[tensor_index]
+            tensor_index += 1
+            above_thresh = vals_t >= thresh_t
+            vals_t = vals_t[above_thresh]
+            if vals_t.numel() == 0:
+                return -1.0, -1.0
+
+        weights_t = tensors[tensor_index] if weights is not None else None
+        if weights_t is not None:
+            weights_t = weights_t[above_thresh]
+        else:
+            weights_t = torch.ones_like(vals_t)
+
+        alpha = _torch_fitalpha(distr, vals_t, thresh_t, weights_t)
+        if distr == "power":
+            sigma_alpha = (alpha - 1.0) / torch.sqrt(torch.sum(weights_t))
+        else:
+            sigma_alpha = alpha / torch.sqrt(torch.sum(weights_t))
+        return alpha, sigma_alpha
+
     vals = numpy.array(vals)
     if thresh is None:
         thresh = min(vals)
@@ -129,9 +375,12 @@ def fit_above_thresh(distr, vals, thresh=None, weights=None):
         above_thresh = vals >= thresh
         if numpy.count_nonzero(above_thresh) == 0:
             # Nothing is above threshold - warn and return -1
-            logger.warning("No values are above the threshold, %.2f, "
-                           "maximum is %.2f.", thresh, vals.max())
-            return -1., -1.
+            logger.warning(
+                "No values are above the threshold, %.2f, maximum is %.2f.",
+                thresh,
+                vals.max(),
+            )
+            return -1.0, -1.0
 
         vals = vals[above_thresh]
 
@@ -151,11 +400,11 @@ def fit_above_thresh(distr, vals, thresh=None, weights=None):
 # a: slope parameter of the fit
 # t: lower threshold stat value
 fitfn_dict = {
-    'exponential' : lambda x, a, t : a * numpy.exp(-a * (x - t)),
-    'rayleigh' : lambda x, a, t : (a * x * \
-                                   numpy.exp(-a * (x ** 2 - t ** 2) / 2.)),
-    'power' : lambda x, a, t : (a - 1.) * x ** (-a) * t ** (a - 1.)
+    "exponential": lambda x, a, t: a * numpy.exp(-a * (x - t)),
+    "rayleigh": lambda x, a, t: (a * x * numpy.exp(-a * (x**2 - t**2) / 2.0)),
+    "power": lambda x, a, t: (a - 1.0) * x ** (-a) * t ** (a - 1.0),
 }
+
 
 def fit_fn(distr, xvals, alpha, thresh):
     """
@@ -177,18 +426,24 @@ def fit_fn(distr, xvals, alpha, thresh):
     fit : array of floats
         Fitted function at the requested xvals
     """
+    tensors = _torch_fit_tensors(xvals, alpha, thresh)
+    if tensors is not None:
+        fit = _torch_fit_values(distr, *tensors, cumulative=False)
+        return _torch_fit_result(xvals, fit)
+
     xvals = numpy.array(xvals)
     fit = fitfn_dict[distr](xvals, alpha, thresh)
     # set fitted values below threshold to 0
-    numpy.putmask(fit, xvals < thresh, 0.)
+    numpy.putmask(fit, xvals < thresh, 0.0)
     return fit
 
 
 cum_fndict = {
-    'exponential' : lambda x, alpha, t : numpy.exp(-alpha * (x - t)),
-    'rayleigh' : lambda x, alpha, t : numpy.exp(-alpha * (x ** 2. - t ** 2.) / 2.),
-    'power' : lambda x, alpha, t : x ** (1. - alpha) * t ** (alpha - 1.)
+    "exponential": lambda x, alpha, t: numpy.exp(-alpha * (x - t)),
+    "rayleigh": lambda x, alpha, t: numpy.exp(-alpha * (x**2.0 - t**2.0) / 2.0),
+    "power": lambda x, alpha, t: x ** (1.0 - alpha) * t ** (alpha - 1.0),
 }
+
 
 def cum_fit(distr, xvals, alpha, thresh):
     """
@@ -210,17 +465,31 @@ def cum_fit(distr, xvals, alpha, thresh):
     cum_fit : array of floats
         Reverse CDF of fitted function at the requested xvals
     """
+    tensors = _torch_fit_tensors(xvals, alpha, thresh)
+    if tensors is not None:
+        values = _torch_fit_values(distr, *tensors, cumulative=True)
+        return _torch_fit_result(xvals, values)
+
     xvals = numpy.array(xvals)
     cum_fit = cum_fndict[distr](xvals, alpha, thresh)
     # set fitted values below threshold to 0
-    numpy.putmask(cum_fit, xvals < thresh, 0.)
+    numpy.putmask(cum_fit, xvals < thresh, 0.0)
     return cum_fit
+
 
 def tail_threshold(vals, N=1000):
     """Determine a threshold above which there are N louder values"""
+    tensors = _torch_fit_tensors(vals)
+    if tensors is not None and tensors[0].ndim == 1:
+        vals_t = tensors[0]
+        if len(vals_t) < N:
+            raise RuntimeError("Not enough input values to determine threshold")
+        sorted_vals = vals_t.sort().values
+        return sorted_vals[-N if N else 0]
+
     vals = numpy.array(vals)
     if len(vals) < N:
-        raise RuntimeError('Not enough input values to determine threshold')
+        raise RuntimeError("Not enough input values to determine threshold")
     vals.sort()
     return min(vals[-N:])
 
@@ -253,13 +522,19 @@ def KS_test(distr, vals, alpha, thresh=None):
     p-value : float
         p-value, assumed to be two-tailed
     """
+    torch_result = _torch_ks_test(distr, vals, alpha, thresh)
+    if torch_result is not None:
+        return torch_result
+
     vals = numpy.array(vals)
     if thresh is None:
         thresh = min(vals)
     else:
         vals = vals[vals >= thresh]
+
     def cdf_fn(x):
         return 1 - cum_fndict[distr](x, alpha, thresh)
+
     return kstest(vals, cdf_fn)
 
 
@@ -288,7 +563,7 @@ def which_bin(par, minpar, maxpar, nbins, log=False):
     binind : int
         Bin index
     """
-    assert (par >= minpar and par <= maxpar)
+    assert par >= minpar and par <= maxpar
     if log:
         par, minpar, maxpar = numpy.log(par), numpy.log(minpar), numpy.log(maxpar)
     # par lies some fraction of the way between min and max
@@ -304,4 +579,3 @@ def which_bin(par, minpar, maxpar, nbins, log=False):
     if par == maxpar:
         binind = nbins - 1
     return binind
-

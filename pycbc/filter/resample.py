@@ -22,15 +22,44 @@
 # =============================================================================
 #
 import functools
+import operator
+
 import lal
 import numpy
 import scipy.signal
-from pycbc.types import TimeSeries, Array, zeros, FrequencySeries, real_same_precision_as
-from pycbc.types import complex_same_precision_as
-from pycbc.fft import ifft, fft
 
-_resample_func = {numpy.dtype('float32'): lal.ResampleREAL4TimeSeries,
-                 numpy.dtype('float64'): lal.ResampleREAL8TimeSeries}
+import pycbc
+from pycbc.fft import fft, ifft
+from pycbc.types import (
+    Array,
+    FrequencySeries,
+    TimeSeries,
+    complex_same_precision_as,
+    real_same_precision_as,
+    zeros,
+)
+from pycbc.types.backend import (
+    backend_array,
+    is_backend,
+    wrap_backend_array,
+)
+
+try:
+    import torch
+
+    from .zpk import _torch_sosfilt
+
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover - torch optional
+    torch = None
+    _torch_sosfilt = None
+    _HAVE_TORCH = False
+
+_resample_func = {
+    numpy.dtype("float32"): lal.ResampleREAL4TimeSeries,
+    numpy.dtype("float64"): lal.ResampleREAL8TimeSeries,
+}
+
 
 @functools.lru_cache(maxsize=20)
 def cached_firwin(*args, **kwargs):
@@ -38,6 +67,139 @@ def cached_firwin(*args, **kwargs):
     This is mostly done for PyCBC Live, which rapidly and repeatedly resamples data.
     """
     return scipy.signal.firwin(*args, **kwargs)
+
+
+@functools.lru_cache(maxsize=20)
+def _butterworth_resample_sos(resample_factor):
+    """Construct the second-order sections used by LAL's resampler."""
+
+    filter_order = 20
+    nyquist_amplitude = 0.1
+    cutoff = numpy.tan(numpy.pi * 0.5 / resample_factor)
+    cutoff *= (1 / numpy.sqrt(nyquist_amplitude) - 1) ** (-0.5 / filter_order)
+    return _butterworth_sos(cutoff, filter_order, highpass=False)
+
+
+@functools.lru_cache(maxsize=100)
+def _butterworth_sos(cutoff, filter_order, highpass):
+    """Construct LAL's transformed-frequency Butterworth sections."""
+
+    sections = []
+    for index in range(filter_order // 2):
+        theta = numpy.pi * (index + 0.5) / filter_order
+        pole_real = cutoff * numpy.cos(theta)
+        pole_imag = cutoff * numpy.sin(theta)
+        pole = ((1 - pole_imag) + 1j * pole_real) / ((1 + pole_imag) - 1j * pole_real)
+        gain = (1 if highpass else cutoff**2) / (pole_real**2 + (1 + pole_imag) ** 2)
+        sections.append(
+            [
+                gain,
+                (-2 if highpass else 2) * gain,
+                gain,
+                1,
+                -2 * pole.real,
+                abs(pole) ** 2,
+            ]
+        )
+
+    if filter_order % 2:
+        pole = (1 - cutoff) / (1 + cutoff)
+        gain = (1 if highpass else cutoff) / (1 + cutoff)
+        sections.append(
+            [
+                gain,
+                (-1 if highpass else 1) * gain,
+                0,
+                1,
+                -pole,
+                0,
+            ]
+        )
+    return numpy.asarray(sections)
+
+
+def _torch_zero_phase_sos(data, sections):
+    """Apply LAL's section-by-section forward/reverse filtering."""
+
+    for section in sections:
+        section = section[numpy.newaxis, :]
+        data = _torch_sosfilt(section, data)
+        data = _torch_sosfilt(section, data.flip(0)).flip(0)
+    return data
+
+
+def _torch_butterworth_resample(timeseries, delta_t):
+    """Reproduce LAL's Butterworth resampler on the active Torch device."""
+
+    ratio = delta_t / timeseries.delta_t
+    factor = int(numpy.floor(ratio + 0.5))
+    if (
+        factor < 1
+        or abs(delta_t - factor * timeseries.delta_t) > 1e-3 * timeseries.delta_t
+        or factor & (factor - 1)
+    ):
+        raise RuntimeError("Invalid argument")
+
+    data = backend_array(timeseries, "torch")
+    if factor == 1:
+        return TimeSeries(
+            wrap_backend_array(data.clone()),
+            delta_t=delta_t,
+            epoch=timeseries._epoch,
+            copy=False,
+        )
+
+    # LAL constructs each pole pair in the transformed-frequency plane,
+    # maps it bilinearly to one digital section, then filters forward and
+    # backward before advancing to the next pair. Calling the device scan one
+    # section at a time preserves both that boundary behavior and REAL4's
+    # per-pass rounding.
+    data = _torch_zero_phase_sos(data, _butterworth_resample_sos(factor))
+
+    # LAL truncates the input length before decimation. Cloning releases the
+    # full filtered allocation instead of retaining it through a strided view.
+    output_length = data.numel() // factor
+    data = data[: output_length * factor : factor].clone()
+    return TimeSeries(
+        wrap_backend_array(data),
+        delta_t=delta_t,
+        epoch=timeseries._epoch,
+        copy=False,
+    )
+
+
+def _torch_butterworth_filter(
+    timeseries, frequency, filter_order, attenuation, highpass
+):
+    """Apply LAL's high- or low-pass Butterworth filter on device."""
+
+    try:
+        filter_order = operator.index(filter_order)
+    except TypeError as exc:
+        raise TypeError("filter_order must be an integer") from exc
+
+    normalized_frequency = float(frequency) * timeseries.delta_t
+    if not 0 < normalized_frequency < 0.5 or filter_order <= 0:
+        raise RuntimeError("Internal function call failed: Invalid argument")
+
+    cutoff = numpy.tan(numpy.pi * normalized_frequency)
+    amplitude = float(1 - attenuation)
+    if 0 < amplitude < 1:
+        exponent = 0.5 / filter_order
+        if not highpass:
+            exponent *= -1
+        cutoff *= (1 / numpy.sqrt(amplitude) - 1) ** exponent
+
+    data = _torch_zero_phase_sos(
+        backend_array(timeseries, "torch"),
+        _butterworth_sos(cutoff, filter_order, highpass),
+    )
+    return TimeSeries(
+        wrap_backend_array(data),
+        delta_t=timeseries.delta_t,
+        epoch=timeseries._epoch,
+        copy=False,
+    )
 
 
 # Change to True in front-end if you want this function to use caching
@@ -51,33 +213,115 @@ LFILTER_UNIQUE_ID_1 = 651273657
 LFILTER_UNIQUE_ID_2 = 154687641
 LFILTER_UNIQUE_ID_3 = 548946442
 
+# Bound temporary Torch FFT allocations while keeping the number of device
+# launches modest for long time series.
+_TORCH_LFILTER_TARGET_BLOCK_SIZE = 2**18
+
+
+def _torch_lfilter_work_dtype(signal):
+    """Return the dtype used for Torch FFT convolution.
+
+    Single-precision CUDA FFT roundoff is large enough to survive the
+    conditioning pipeline and exceed PyCBC's pointwise parity gate.  Use
+    double-precision CUDA intermediates while preserving the public dtype.
+    CPU and MPS keep their existing precision and performance.
+    """
+    if signal.device.type != "cuda":
+        return signal.dtype
+    return {
+        torch.float32: torch.float64,
+        torch.complex64: torch.complex128,
+    }.get(signal.dtype, signal.dtype)
+
+
+def _torch_lfilter(coefficients, timeseries):
+    """Apply a causal FIR filter to a Torch-backed time series on device."""
+    signal = backend_array(timeseries, "torch")
+    output_dtype = signal.dtype
+    work_dtype = _torch_lfilter_work_dtype(signal)
+    work_signal = signal.to(dtype=work_dtype)
+    coefficient_data = backend_array(coefficients)
+    if is_backend(coefficient_data, "torch"):
+        coefficient_data = backend_array(coefficient_data, "torch")
+    elif isinstance(coefficient_data, numpy.ndarray):
+        coefficient_data = numpy.ascontiguousarray(coefficient_data)
+
+    coefficient_tensor = torch.as_tensor(
+        coefficient_data, device=signal.device, dtype=work_dtype
+    )
+    if coefficient_tensor.ndim != 1:
+        raise ValueError("Filter coefficients must be one-dimensional")
+    if coefficient_tensor.numel() == 0:
+        raise ValueError("Filter coefficients cannot be empty")
+
+    signal_length = work_signal.numel()
+    coefficient_length = coefficient_tensor.numel()
+    target_block_length = min(signal_length, _TORCH_LFILTER_TARGET_BLOCK_SIZE)
+    convolution_length = target_block_length + coefficient_length - 1
+    fft_length = 1 << (convolution_length - 1).bit_length()
+    block_length = fft_length - coefficient_length + 1
+
+    output = torch.zeros_like(work_signal)
+    if work_signal.is_complex():
+        response = torch.fft.fft(coefficient_tensor, n=fft_length)
+        transform = torch.fft.fft
+        inverse_transform = torch.fft.ifft
+    else:
+        response = torch.fft.rfft(coefficient_tensor, n=fft_length)
+        transform = torch.fft.rfft
+        inverse_transform = torch.fft.irfft
+
+    for start in range(0, signal_length, block_length):
+        block = work_signal[start : start + block_length]
+        filtered = inverse_transform(
+            transform(block, n=fft_length) * response, n=fft_length
+        )
+        output_length = min(fft_length, signal_length - start)
+        output[start : start + output_length] += filtered[:output_length]
+
+    output = output.to(dtype=output_dtype)
+
+    return TimeSeries(
+        wrap_backend_array(output),
+        delta_t=timeseries.delta_t,
+        epoch=timeseries.start_time,
+        copy=False,
+    )
+
+
 def lfilter(coefficients, timeseries):
-    """ Apply filter coefficients to a time series
+    """Apply filter coefficients to a time series
 
     Parameters
     ----------
-    coefficients: numpy.ndarray
+    coefficients : numpy.ndarray
         Filter coefficients to apply
-    timeseries: numpy.ndarray
+    timeseries : pycbc.types.TimeSeries
         Time series to be filtered.
 
     Returns
     -------
-    tseries: numpy.ndarray
+    tseries : pycbc.types.TimeSeries
         filtered array
     """
-    from pycbc.filter import correlate
+    torch_input = _HAVE_TORCH and is_backend(timeseries, "torch")
+    if torch_input:
+        return _torch_lfilter(coefficients, timeseries)
+
     fillen = len(coefficients)
+    from pycbc.filter import correlate
 
     # If there aren't many points just use the default scipy method
     if len(timeseries) < 2**7:
         series = scipy.signal.lfilter(coefficients, 1.0, timeseries)
-        return TimeSeries(series,
-                          epoch=timeseries.start_time,
-                          delta_t=timeseries.delta_t)
+        return TimeSeries(
+            series, epoch=timeseries.start_time, delta_t=timeseries.delta_t
+        )
     elif (len(timeseries) < fillen * 10) or (len(timeseries) < 2**18):
-        from pycbc.strain.strain import create_memory_and_engine_for_class_based_fft
-        from pycbc.strain.strain import execute_cached_fft
+        from pycbc.strain.strain import (
+            create_memory_and_engine_for_class_based_fft,
+            execute_cached_fft,
+        )
 
         cseries = (Array(coefficients[::-1] * 1)).astype(timeseries.dtype)
         cseries.resize(len(timeseries))
@@ -100,21 +344,24 @@ def lfilter(coefficients, timeseries):
             npoints = len(cseries)
             # NOTE: This function is cached!
             ifftouts = create_memory_and_engine_for_class_based_fft(
-                npoints,
-                timeseries.dtype,
-                ifft=True,
-                uid=LFILTER_UNIQUE_ID_1
+                npoints, timeseries.dtype, ifft=True, uid=LFILTER_UNIQUE_ID_1
             )
 
             # FFT contents of cseries into cfreq
-            cfreq = execute_cached_fft(cseries, uid=LFILTER_UNIQUE_ID_2,
-                                       copy_output=False,
-                                       normalize_by_rate=False)
+            cfreq = execute_cached_fft(
+                cseries,
+                uid=LFILTER_UNIQUE_ID_2,
+                copy_output=False,
+                normalize_by_rate=False,
+            )
 
             # FFT contents of timeseries into tfreq
-            tfreq = execute_cached_fft(timeseries, uid=LFILTER_UNIQUE_ID_3,
-                                       copy_output=False,
-                                       normalize_by_rate=False)
+            tfreq = execute_cached_fft(
+                timeseries,
+                uid=LFILTER_UNIQUE_ID_3,
+                copy_output=False,
+                normalize_by_rate=False,
+            )
 
             cout, out, fft_class = ifftouts
 
@@ -123,18 +370,22 @@ def lfilter(coefficients, timeseries):
             # IFFT correlation output into out
             fft_class.execute()
 
-        return TimeSeries(out.numpy()  / len(out), epoch=timeseries.start_time,
-                          delta_t=timeseries.delta_t)
+        return TimeSeries(
+            out.numpy() / len(out),
+            epoch=timeseries.start_time,
+            delta_t=timeseries.delta_t,
+        )
     else:
         # recursively perform which saves a bit on memory usage
         # but must keep within recursion limit
         chunksize = max(fillen * 5, len(timeseries) // 2)
         part1 = lfilter(coefficients, timeseries[0:chunksize])
-        part2 = lfilter(coefficients, timeseries[chunksize - fillen:])
+        part2 = lfilter(coefficients, timeseries[chunksize - fillen :])
         out = timeseries.copy()
-        out[:len(part1)] = part1
-        out[len(part1):] = part2[fillen:]
+        out[: len(part1)] = part1
+        out[len(part1) :] = part2[fillen:]
         return out
+
 
 def fir_zero_filter(coeff, timeseries):
     """Filter the timeseries with a set of FIR coefficients
@@ -152,19 +403,22 @@ def fir_zero_filter(coeff, timeseries):
         Return the filtered timeseries, which has been properly shifted to account
     for the FIR filter delay and the corrupted regions zeroed out.
     """
-    # apply the filter
+    # ``lfilter`` dispatches to the blocked Torch FIR implementation for
+    # device-backed inputs. Reusing it here preserves linear-convolution
+    # semantics and supports both real and complex time series.
     series = lfilter(coeff, timeseries)
 
     # reverse the time shift caused by the filter,
     # corruption regions contain zeros
     # If the number of filter coefficients is odd, the central point *should*
     # be included in the output so we only zero out a region of len(coeff) - 1
-    series[:(len(coeff) // 2) * 2] = 0
-    series.roll(-len(coeff)//2)
+    series[: (len(coeff) // 2) * 2] = 0
+    series.roll(-len(coeff) // 2)
     return series
 
-def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
-    """Resmple the time_series to delta_t
+
+def resample_to_delta_t(timeseries, delta_t, method="butterworth"):
+    """Resample the time series to ``delta_t``.
 
     Resamples the TimeSeries instance time_series to the given time step,
     delta_t. Only powers of two and real valued time series are supported
@@ -177,6 +431,8 @@ def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
         The time series to be resampled
     delta_t: float
         The desired time step
+    method: {"butterworth", "ldas"}
+        Low-pass filter to apply before decimation.
 
     Returns
     -------
@@ -195,38 +451,56 @@ def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
 
     >>> h_plus_sampled = resample_to_delta_t(h_plus, 1.0/2048)
     """
-    if not isinstance(timeseries,TimeSeries):
+    if not isinstance(timeseries, TimeSeries):
         raise TypeError("Can only resample time series")
 
-    if timeseries.kind != 'real':
+    if timeseries.kind != "real":
         raise TypeError("Time series must be real")
 
+    torch_input = _HAVE_TORCH and is_backend(timeseries, "torch")
     if timeseries.sample_rate_close(1.0 / delta_t):
         return timeseries * 1
 
-    if method == 'butterworth':
-        lal_data = timeseries.lal()
-        _resample_func[timeseries.dtype](lal_data, delta_t)
-        data = lal_data.data.data
+    if method == "butterworth":
+        if torch_input:
+            ts = _torch_butterworth_resample(timeseries, delta_t)
+        else:
+            lal_data = timeseries.lal()
+            _resample_func[timeseries.dtype](lal_data, delta_t)
+            data = lal_data.data.data
+            ts = TimeSeries(
+                data,
+                delta_t=delta_t,
+                epoch=timeseries.start_time,
+                copy=True,
+            )
 
-    elif method == 'ldas':
+        # Preserve the metadata contract of the historical shared return path.
+        ts.corrupted_samples = 10
+        return ts
+
+    elif method == "ldas":
         factor = int(round(delta_t / timeseries.delta_t))
         numtaps = factor * 20 + 1
 
         # The kaiser window has been testing using the LDAS implementation
         # and is in the same configuration as used in the original lalinspiral
-        filter_coefficients = cached_firwin(numtaps, 1.0 / factor,
-                                            window=('kaiser', 5))
+        filter_coefficients = cached_firwin(numtaps, 1.0 / factor, window=("kaiser", 5))
 
         # apply the filter and decimate
         data = fir_zero_filter(filter_coefficients, timeseries)[::factor]
 
     else:
-        raise ValueError('Invalid resampling method: %s' % method)
+        raise ValueError("Invalid resampling method: %s" % method)
 
-    ts = TimeSeries(data, delta_t = delta_t,
-                      dtype=timeseries.dtype,
-                      epoch=timeseries._epoch)
+    if torch_input:
+        # ``data`` is already a Torch-backed, decimated TimeSeries. Retain its
+        # device storage instead of copying it through NumPy and back.
+        ts = TimeSeries(data, delta_t=delta_t, epoch=timeseries._epoch, copy=False)
+    else:
+        ts = TimeSeries(
+            data, delta_t=delta_t, dtype=timeseries.dtype, epoch=timeseries._epoch
+        )
 
     # From the construction of the LDAS FIR filter there will be 10 corrupted samples
     # explanation here https://lscsoft.docs.ligo.org/lalsuite/lal/group___resample_time_series__c.html
@@ -234,14 +508,18 @@ def resample_to_delta_t(timeseries, delta_t, method='butterworth'):
     return ts
 
 
-_highpass_func = {numpy.dtype('float32'): lal.HighPassREAL4TimeSeries,
-                 numpy.dtype('float64'): lal.HighPassREAL8TimeSeries}
-_lowpass_func = {numpy.dtype('float32'): lal.LowPassREAL4TimeSeries,
-                 numpy.dtype('float64'): lal.LowPassREAL8TimeSeries}
+_highpass_func = {
+    numpy.dtype("float32"): lal.HighPassREAL4TimeSeries,
+    numpy.dtype("float64"): lal.HighPassREAL8TimeSeries,
+}
+_lowpass_func = {
+    numpy.dtype("float32"): lal.LowPassREAL4TimeSeries,
+    numpy.dtype("float64"): lal.LowPassREAL8TimeSeries,
+}
 
 
 def notch_fir(timeseries, f1, f2, order, beta=5.0):
-    """ notch filter the time series using an FIR filtered generated from
+    """notch filter the time series using an FIR filtered generated from
     the ideal response passed through a time-domain kaiser window (beta = 5.0)
 
     The suppression of the notch filter is related to the bandwidth and
@@ -267,11 +545,12 @@ def notch_fir(timeseries, f1, f2, order, beta=5.0):
     """
     k1 = f1 / float((int(1.0 / timeseries.delta_t) / 2))
     k2 = f2 / float((int(1.0 / timeseries.delta_t) / 2))
-    coeff = cached_firwin(order * 2 + 1, [k1, k2], window=('kaiser', beta))
+    coeff = cached_firwin(order * 2 + 1, [k1, k2], window=("kaiser", beta))
     return fir_zero_filter(coeff, timeseries)
 
+
 def lowpass_fir(timeseries, frequency, order, beta=5.0):
-    """ Lowpass filter the time series using an FIR filtered generated from
+    """Lowpass filter the time series using an FIR filtered generated from
     the ideal response passed through a kaiser window (beta = 5.0)
 
     Parameters
@@ -286,11 +565,12 @@ def lowpass_fir(timeseries, frequency, order, beta=5.0):
         Beta parameter of the kaiser window that sets the side lobe attenuation.
     """
     k = frequency / float((int(1.0 / timeseries.delta_t) / 2))
-    coeff = cached_firwin(order * 2 + 1, k, window=('kaiser', beta))
+    coeff = cached_firwin(order * 2 + 1, k, window=("kaiser", beta))
     return fir_zero_filter(coeff, timeseries)
 
+
 def highpass_fir(timeseries, frequency, order, beta=5.0):
-    """ Highpass filter the time series using an FIR filtered generated from
+    """Highpass filter the time series using an FIR filtered generated from
     the ideal response passed through a kaiser window (beta = 5.0)
 
     Parameters
@@ -305,8 +585,9 @@ def highpass_fir(timeseries, frequency, order, beta=5.0):
         Beta parameter of the kaiser window that sets the side lobe attenuation.
     """
     k = frequency / float((int(1.0 / timeseries.delta_t) / 2))
-    coeff = cached_firwin(order * 2 + 1, k, window=('kaiser', beta), pass_zero=False)
+    coeff = cached_firwin(order * 2 + 1, k, window=("kaiser", beta), pass_zero=False)
     return fir_zero_filter(coeff, timeseries)
+
 
 def highpass(timeseries, frequency, filter_order=8, attenuation=0.1):
     """Return a new timeseries that is highpassed.
@@ -341,15 +622,28 @@ def highpass(timeseries, frequency, filter_order=8, attenuation=0.1):
     if not isinstance(timeseries, TimeSeries):
         raise TypeError("Can only resample time series")
 
-    if timeseries.kind != 'real':
+    if timeseries.kind != "real":
         raise TypeError("Time series must be real")
 
-    lal_data = timeseries.lal()
-    _highpass_func[timeseries.dtype](lal_data, frequency,
-                                     1-attenuation, filter_order)
+    if _HAVE_TORCH and is_backend(timeseries, "torch"):
+        return _torch_butterworth_filter(
+            timeseries,
+            frequency,
+            filter_order,
+            attenuation,
+            highpass=True,
+        )
 
-    return TimeSeries(lal_data.data.data, delta_t = lal_data.deltaT,
-                      dtype=timeseries.dtype, epoch=timeseries._epoch)
+    lal_data = timeseries.lal()
+    _highpass_func[timeseries.dtype](lal_data, frequency, 1 - attenuation, filter_order)
+
+    return TimeSeries(
+        lal_data.data.data,
+        delta_t=lal_data.deltaT,
+        dtype=timeseries.dtype,
+        epoch=timeseries._epoch,
+    )
+
 
 def lowpass(timeseries, frequency, filter_order=8, attenuation=0.1):
     """Return a new timeseries that is lowpassed.
@@ -383,18 +677,30 @@ def lowpass(timeseries, frequency, filter_order=8, attenuation=0.1):
     if not isinstance(timeseries, TimeSeries):
         raise TypeError("Can only resample time series")
 
-    if timeseries.kind != 'real':
+    if timeseries.kind != "real":
         raise TypeError("Time series must be real")
 
+    if _HAVE_TORCH and is_backend(timeseries, "torch"):
+        return _torch_butterworth_filter(
+            timeseries,
+            frequency,
+            filter_order,
+            attenuation,
+            highpass=False,
+        )
+
     lal_data = timeseries.lal()
-    _lowpass_func[timeseries.dtype](lal_data, frequency,
-                                    1-attenuation, filter_order)
+    _lowpass_func[timeseries.dtype](lal_data, frequency, 1 - attenuation, filter_order)
 
-    return TimeSeries(lal_data.data.data, delta_t = lal_data.deltaT,
-                      dtype=timeseries.dtype, epoch=timeseries._epoch)
+    return TimeSeries(
+        lal_data.data.data,
+        delta_t=lal_data.deltaT,
+        dtype=timeseries.dtype,
+        epoch=timeseries._epoch,
+    )
 
 
-def interpolate_complex_frequency(series, delta_f, zeros_offset=0, side='right'):
+def interpolate_complex_frequency(series, delta_f, zeros_offset=0, side="right"):
     """Interpolate complex frequency series to desired delta_f.
 
     Return a new complex frequency series that has been interpolated to the
@@ -416,29 +722,40 @@ def interpolate_complex_frequency(series, delta_f, zeros_offset=0, side='right')
     interpolated series : FrequencySeries
         A new FrequencySeries that has been interpolated.
     """
-    new_n = int( (len(series)-1) * series.delta_f / delta_f + 1)
-    old_N = int( (len(series)-1) * 2 )
-    new_N = int( (new_n - 1) * 2 )
-    time_series = TimeSeries(zeros(old_N), delta_t =1.0/(series.delta_f*old_N),
-                             dtype=real_same_precision_as(series))
+    new_n = int((len(series) - 1) * series.delta_f / delta_f + 1)
+    old_N = int((len(series) - 1) * 2)
+    new_N = int((new_n - 1) * 2)
+    time_series = TimeSeries(
+        zeros(old_N),
+        delta_t=1.0 / (series.delta_f * old_N),
+        dtype=real_same_precision_as(series),
+    )
 
     ifft(series, time_series)
 
     time_series.roll(-zeros_offset)
     time_series.resize(new_N)
 
-    if side == 'left':
+    if side == "left":
         time_series.roll(zeros_offset + new_N - old_N)
-    elif side == 'right':
+    elif side == "right":
         time_series.roll(zeros_offset)
 
-    out_series = FrequencySeries(zeros(new_n), epoch=series.epoch,
-                           delta_f=delta_f, dtype=series.dtype)
+    out_series = FrequencySeries(
+        zeros(new_n), epoch=series.epoch, delta_f=delta_f, dtype=series.dtype
+    )
     fft(time_series, out_series)
 
     return out_series
 
-__all__ = ['resample_to_delta_t', 'highpass', 'lowpass',
-           'interpolate_complex_frequency', 'highpass_fir',
-           'lowpass_fir', 'notch_fir', 'fir_zero_filter']
 
+__all__ = [
+    "resample_to_delta_t",
+    "highpass",
+    "lowpass",
+    "interpolate_complex_frequency",
+    "highpass_fir",
+    "lowpass_fir",
+    "notch_fir",
+    "fir_zero_filter",
+]

@@ -22,6 +22,7 @@ objects allocated by the torch scheme.
 """
 
 import ctypes
+import functools
 import os
 import platform
 import threading
@@ -79,7 +80,7 @@ _TORCH_FFT_PREFERRED_CPU_SIZES = (
 _MKL_DIRECT_PLATFORM_SUPPORTED = (
     platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"}
 )
-_MKL_DIRECT_IFFT_SIZES = frozenset({32768})
+_MKL_DIRECT_IFFT_SIZES = frozenset({32768, 65536, 131072, 262144, 524288, 1048576})
 _TRUE_ENV_VALUES = {"1", "true", "yes", "on"}
 _FALSE_ENV_VALUES = {"0", "false", "no", "off"}
 _TORCH_IS_INFERENCE = getattr(torch, "is_inference", None)
@@ -151,6 +152,7 @@ class _MKLCPUDirectIFFTPlan:
         self._target_ptr = target.data_ptr()
         self._size = size
         self._nthreads = nthreads
+        self._torch_threads = torch.get_num_threads()
 
         free_descriptor = mkl.lib.DftiFreeDescriptor
         free_descriptor.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
@@ -226,7 +228,8 @@ class _MKLCPUDirectIFFTPlan:
         # reusable matched-filter plan.
         return (
             getattr(self, "_pid", os.getpid()) == os.getpid()
-            and torch.get_num_threads() == self._nthreads
+            and torch.get_num_threads()
+            == getattr(self, "_torch_threads", self._nthreads)
             and source is self._source
             and target is self._target
             and source.data_ptr() == self._source_ptr
@@ -962,11 +965,16 @@ def _can_use_mkl_cpu_ifft(fftobj):
 def _setup_mkl_cpu_ifft_plan(fftobj):
     fftobj._mkl_plan = None
     if _can_use_mkl_cpu_ifft(fftobj):
+        from pycbc.hardware import get_optimal_1d_fft_threads
+
+        optimal_threads = get_optimal_1d_fft_threads(
+            fftobj.size, torch.get_num_threads()
+        )
         fftobj._mkl_plan = _create_mkl_cpu_ifft_plan(
             fftobj.size,
             fftobj.invec._data.tensor,
             fftobj.outvec._data.tensor,
-            nthreads=torch.get_num_threads(),
+            nthreads=optimal_threads,
         )
 
 
@@ -1429,6 +1437,7 @@ class IFFT(_BaseIFFT):
             self._promoted_batch_plan = None
         _setup_mkl_cpu_ifft_plan(self)
         if self._mkl_plan is None:
+            self._mkl_fast_execute = None
             _setup_fftw_cpu_plan(self, forward=False)
         else:
             # Avoid allocating the promoted complex128 workspace on the
@@ -1436,14 +1445,23 @@ class IFFT(_BaseIFFT):
             # bound tensor, execute() constructs that conservative fallback
             # lazily before touching the replacement storage.
             self._fftw_plan = None
+            fin = getattr(getattr(self.invec, "_data", None), "tensor", None)
+            fout = getattr(getattr(self.outvec, "_data", None), "tensor", None)
+            if fin is not None and fout is not None:
+                self._mkl_fast_execute = functools.partial(
+                    self._mkl_plan.execute, fin, fout
+                )
+            else:
+                self._mkl_fast_execute = None
 
     def execute(self):
         if self.nbatch > 1:
             if not _execute_fftw_cpu_batch_plan(self, forward=False):
                 _execute_batched_ifft(self)
             return
-        if _execute_mkl_cpu_ifft_plan(self):
-            return
+        if self._mkl_fast_execute is not None:
+            if _execute_mkl_cpu_ifft_plan(self):
+                return
         fin = getattr(getattr(self.invec, "_data", None), "tensor", None)
         if self._fftw_plan is None and fin is not None and fin.device.type == "cpu":
             _setup_fftw_cpu_plan(self, forward=False)

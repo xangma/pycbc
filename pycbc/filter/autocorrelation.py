@@ -27,8 +27,62 @@ and length of a data series.
 """
 
 import numpy
+
+import pycbc
 from pycbc.filter.matchedfilter import correlate
 from pycbc.types import FrequencySeries, TimeSeries, zeros
+from pycbc.types.backend import (
+    backend_array,
+    is_backend,
+    wrap_backend_array,
+)
+
+try:
+    import torch
+
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except Exception:  # pragma: no cover - torch optional
+    torch = None
+    _HAVE_TORCH = False
+
+
+def _is_torch_array(value):
+    return _HAVE_TORCH and is_backend(value, "torch")
+
+
+def _torch_acf(data, delta_t, unbiased):
+    """Calculate an ACF without copying a Torch TimeSeries to NumPy."""
+    source = backend_array(data, "torch")
+    dtype = torch.float32 if source.device.type == "mps" else torch.float64
+    y = source.to(dtype=dtype)
+    y = y - y.mean()
+    ny_orig = len(y)
+
+    npad = 1
+    while npad < 2 * ny_orig:
+        npad <<= 1
+    ypad = torch.zeros(npad, dtype=dtype, device=source.device)
+    ypad[:ny_orig] = y
+
+    fdata = TimeSeries(
+        wrap_backend_array(ypad), delta_t=delta_t, copy=False
+    ).to_frequencyseries()
+    cdata = FrequencySeries(
+        zeros(len(fdata), dtype=fdata.dtype),
+        delta_f=fdata.delta_f,
+        copy=False,
+    )
+    correlate(fdata, fdata, cdata)
+    acf = cdata.to_timeseries()[:ny_orig]
+
+    acf_tensor = backend_array(acf, "torch")
+    if unbiased:
+        counts = torch.arange(ny_orig, 0, -1, dtype=dtype, device=source.device)
+        acf_tensor.div_(y.var(unbiased=False) * counts)
+    else:
+        acf_tensor.div_(acf_tensor[0].clone())
+    return TimeSeries(acf, delta_t=delta_t)
+
 
 def calculate_acf(data, delta_t=1.0, unbiased=False):
     r"""Calculates the one-sided autocorrelation function.
@@ -63,6 +117,9 @@ def calculate_acf(data, delta_t=1.0, unbiased=False):
         one-sided ACF. Else acf is a numpy.array.
     """
 
+    if isinstance(data, TimeSeries) and _is_torch_array(data):
+        return _torch_acf(data, data.delta_t, unbiased)
+
     # if given a TimeSeries instance then get numpy.array
     if isinstance(data, TimeSeries):
         y = data.numpy()
@@ -75,7 +132,7 @@ def calculate_acf(data, delta_t=1.0, unbiased=False):
     ny_orig = len(y)
 
     npad = 1
-    while npad < 2*ny_orig:
+    while npad < 2 * ny_orig:
         npad = npad << 1
     ypad = numpy.zeros(npad)
     ypad[:ny_orig] = y
@@ -85,8 +142,9 @@ def calculate_acf(data, delta_t=1.0, unbiased=False):
 
     # correlate
     # do not need to give the congjugate since correlate function does it
-    cdata = FrequencySeries(zeros(len(fdata), dtype=fdata.dtype),
-                           delta_f=fdata.delta_f, copy=False)
+    cdata = FrequencySeries(
+        zeros(len(fdata), dtype=fdata.dtype), delta_f=fdata.delta_f, copy=False
+    )
     correlate(fdata, fdata, cdata)
 
     # IFFT correlated data to get unnormalized autocovariance time series
@@ -96,7 +154,7 @@ def calculate_acf(data, delta_t=1.0, unbiased=False):
     # normalize the autocovariance
     # note that dividing by acf[0] is the same as ( y.var() * len(acf) )
     if unbiased:
-        acf /= ( y.var() * numpy.arange(len(acf), 0, -1) )
+        acf /= y.var() * numpy.arange(len(acf), 0, -1)
     else:
         acf /= acf[0]
 
@@ -129,7 +187,6 @@ def calculate_acl(data, m=5, dtype=int):
     case ``inf`` is returned.
 
     This algorithm for computing the ACL is taken from:
-
     N. Madras and A.D. Sokal, J. Stat. Phys. 50, 109 (1988).
 
     Parameters
@@ -161,12 +218,24 @@ def calculate_acl(data, m=5, dtype=int):
     # calculate ACF that is normalized by the zero-lag value
     acf = calculate_acf(data)
 
-    cacf = 2 * acf.numpy().cumsum() - 1
-    win = m * cacf <= numpy.arange(len(cacf))
-    if win.any():
-        acl = cacf[numpy.where(win)[0][0]]
-        if dtype == int:
-            acl = int(numpy.ceil(acl))
+    if _is_torch_array(acf):
+        acf_tensor = backend_array(acf, "torch")
+        cacf = 2 * torch.cumsum(acf_tensor, dim=0) - 1
+        win = m * cacf <= torch.arange(len(cacf), device=acf_tensor.device)
+        win_indices = torch.nonzero(win, as_tuple=False).flatten()
+        if win_indices.numel():
+            acl = cacf[win_indices[0]].item()
+        else:
+            acl = numpy.inf
     else:
-        acl = numpy.inf
+        cacf = 2 * acf.numpy().cumsum() - 1
+        win = m * cacf <= numpy.arange(len(cacf))
+        if win.any():
+            acl = cacf[numpy.where(win)[0][0]]
+        else:
+            acl = numpy.inf
+
+    if acl != numpy.inf:
+        if dtype is int:
+            acl = int(numpy.ceil(acl))
     return acl
