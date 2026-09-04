@@ -7,7 +7,8 @@ Torch performance evidence
 This page defines the benchmark and provenance contract for Torch changes.
 Scientific parity and route qualification are prerequisites; a faster result
 that used different scientific work, an unintended fallback, or the wrong
-device is rejected.
+device is rejected. Capability and fallback boundaries are documented
+separately in :ref:`torch-scheme`.
 
 Evidence vocabulary
 -------------------
@@ -32,11 +33,11 @@ Required or proposed evidence
    A benchmark cell, plot, or acceptance check that must be collected. It is a
    protocol requirement, not a measured result.
 
-Historical binary plots from the implementation branch are intentionally not
-carried by this evidence-only layer because their source JSON and CI run
-manifests are unavailable. Consequently, this branch publishes no measured
-performance claim. See :ref:`torch-optimization-results` for the publication
-status and evidence required before adding a result.
+Historical binary plots are intentionally not published here because their
+source JSON and CI run manifests are unavailable. Consequently, this
+documentation makes no measured performance claim. See
+:ref:`torch-optimization-results` for the publication status and evidence
+required before adding a result.
 
 Comparison cells
 ----------------

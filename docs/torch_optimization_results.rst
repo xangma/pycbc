@@ -3,10 +3,9 @@
 Torch performance evidence status
 =================================
 
-This evidence-only branch contains no published performance result. Historical
-PNG files from the implementation branch were deliberately omitted because no
-raw per-sample artifact, environment manifest, or retained CI provenance was
-available to verify them.
+This documentation contains no published performance result. Historical PNG
+files were deliberately omitted because no raw per-sample artifact,
+environment manifest, or retained CI provenance was available to verify them.
 
 An image without those sources is not evidence for a speedup, regression,
 crossover point, support guarantee, or optimization promotion. The distinction
@@ -25,7 +24,7 @@ corresponding sealed artifact and provenance.
    :widths: 36 22 42
 
    * - File
-     - Status in this branch
+     - Current status
      - Minimum source evidence
    * - ``torch_live_batch_scaling.png``
      - Not published

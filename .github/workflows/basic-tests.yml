@@ -37,12 +37,11 @@ jobs:
     - if: ${{ steps.cache-lal-aux-data.outputs.cache-hit != 'true' }}
       name: Download LAL auxiliary data files
       run: |
-        mkdir ~/lal_aux_data
-        pushd ~/lal_aux_data
-        curl --show-error --silent \
+        mkdir -p ~/lal_aux_data
+        curl --fail --location --retry 3 --show-error --silent \
+          --output-dir ~/lal_aux_data \
           --remote-name https://zenodo.org/records/14999310/files/SEOBNRv4ROM_v2.0.hdf5 \
           --remote-name https://zenodo.org/records/14999310/files/SEOBNRv4ROM_v3.0.hdf5
-        popd
 
     - name: Cache example GW data
       id: cache-example-gw-data
@@ -66,6 +65,59 @@ jobs:
       run: |
         export LAL_DATA_PATH=$HOME/lal_aux_data
         pixi run -e ${{matrix.test-type}} test-${{matrix.test-type}}
+
+    - name: run focused CPU Torch test suite
+      if: matrix.test-type == 'unittest'
+      env:
+        PYCBC_TEST_SCHEME: torch
+      run: |
+        export LAL_DATA_PATH=$HOME/lal_aux_data
+        pixi run -e unittest test-unittest -q \
+          test/test_scheme_runtime.py \
+          test/test_torch_optional.py \
+          test/test_array_torch_reductions.py \
+          test/test_torch_backend_protocol.py \
+          test/test_torch_ops.py \
+          test/test_torch_batched_fft.py \
+          test/test_torch_p1200087_psd.py \
+          test/test_torch_timeseries_at_time.py \
+          test/test_torch_versioned_data_psd.py \
+          test/test_cpu_batch_peaks.py \
+          test/test_torch_cpu_native_batch.py \
+          test/test_torch_search_kernels.py \
+          test/test_chisq_torch.py \
+          test/test_torch_chisq_cpu_optimization.py \
+          test/test_torch_chisq_sparse_dispatch.py \
+          test/test_torch_filter_pipeline.py \
+          test/test_torch_matchedfilter_cpu_optimization.py \
+          test/test_live_batch_torch_fft_integration.py \
+          test/test_live_batch_torch_peaks.py \
+          test/test_matched_filter_symm.py \
+          test/test_nltides_torch.py \
+          test/test_spatmplt_torch.py \
+          test/test_decompress.py \
+          test/waveform/test_spa_tmplt_sequence_torch.py \
+          test/waveform/test_spherical_harmonics_torch.py \
+          test/waveform/test_torch_waveform_registry.py \
+          test/waveform/test_torch_ringdown.py \
+          test/waveform/test_torch_waveform_modes.py \
+          test/waveform/test_torch_waveform_utils.py \
+          test/waveform/test_taylorf2_torch.py \
+          test/waveform/test_taylorf2ecc_torch.py \
+          test/waveform/test_taylorf2nltides_torch.py \
+          test/waveform/test_taylorf2redspin_torch.py \
+          test/waveform/test_taylorf2_batch.py \
+          test/test_torch_domain_compat.py \
+          test/test_torch_prior_compat.py \
+          test/test_detector_torch_geometry.py \
+          test/test_torch_inference_core.py \
+          test/test_torch_inference_tools.py \
+          test/test_torch_waveform_generator.py \
+          test/test_torch_gaussian_noise.py \
+          test/test_torch_relative_binning.py \
+          test/test_torch_marginalized_gaussian.py \
+          test/test_torch_inference_cli.py \
+          test/test_torch_performance_artifacts.py
 
     - name: check help messages work
       if: matrix.test-type == 'unittest'

@@ -113,8 +113,8 @@ existing dispatcher/reference when the approximant and sequence interface
 provide one. If no equivalent independent sequence implementation exists,
 compare with analytic identities and a compatible regular-grid call while
 testing requested-frequency order, duplicate frequencies, support boundaries,
-empty input, dtype, and device. The waveform registry and its focused tests are
-the authority for detailed routing.
+empty input, dtype, and device. The waveform registry, :doc:`waveform`, and its
+focused tests are the authority for detailed routing.
 
 The ``TaylorF2`` batch API additionally checks scalar and length-one broadcast,
 inconsistent lengths, row padding, ``first_bins``/``end_bins``, common grid

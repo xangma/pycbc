@@ -24,7 +24,7 @@ Validation stages
        is not eligible?
      - Public capability/fallback entry, predicates, dtype/device boundaries,
        and an explicit unsupported result where no fallback exists.
-     - Implementation contract and focused tests.
+     - :ref:`torch-scheme` and focused tests.
    * - Focused parity
      - Does the route preserve scientific values and public metadata?
      - Independent reference or justified invariant, explicit error metric,
@@ -94,10 +94,10 @@ Reviewers should be able to answer these questions from tests and artifacts:
 * Is fallback scientifically equivalent, and is it visible in logs/metrics?
 * Does plan, allocator, compiler, graph, or thread state leak to later calls?
 
-This standalone branch does not add or broaden any runtime capability.
-Implementation-stack registries, support predicates, and focused tests remain
-authoritative. Existing CPU generation followed by a device copy is a fallback,
-not native evidence, regardless of the final output device.
+The capability matrix in :ref:`torch-scheme`, implementation registries,
+support predicates, and focused tests define the supported boundary. Existing
+host generation followed by a device copy is a fallback, not native evidence,
+regardless of the final output device.
 
 Device-specific workflow
 ------------------------
@@ -153,9 +153,9 @@ Before regenerating plots:
    :ref:`torch-performance`; and
 #. publish raw artifacts with the images and review every changed caption.
 
-No generated plot is checked into this evidence-only branch. The expected
-output inventory in :ref:`torch-optimization-results` remains unpublished
-until each image has a traceable raw artifact and CI or runner provenance.
+No generated performance plot is published by this layer. The expected output
+inventory in :ref:`torch-optimization-results` remains unpublished until each
+image has a traceable raw artifact and CI or runner provenance.
 
 Failure triage
 --------------

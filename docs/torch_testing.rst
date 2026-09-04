@@ -1,15 +1,37 @@
 .. _torch-testing:
 
-Testing Torch performance evidence
-==================================
+Testing Torch changes
+=====================
 
 Torch validation is layered: focused numerical and route tests, composed
 module tests, real-device qualification, parity artifacts, and only then
-performance measurements. A benchmark does not replace tests, and a device
-skip is not a pass.
+performance measurements. A benchmark does not replace correctness tests, and
+a device skip is not a pass for that device.
 
-Evidence-layer tests
---------------------
+Scheme selection in tests
+-------------------------
+
+The focused CI selections set the test-only ``PYCBC_TEST_SCHEME`` variable:
+
+.. code-block:: console
+
+   PYCBC_TEST_SCHEME=torch python -m pytest -q TEST_PATHS
+   PYCBC_TEST_SCHEME=torch:cuda python -m pytest -q TEST_PATHS
+
+This is separate from the runtime default ``PYCBC_SCHEME`` described in
+:ref:`torch-scheme`. A test that supports device selection must either consume
+``PYCBC_TEST_SCHEME`` through its fixture or construct the intended
+``TorchScheme`` explicitly. Merely setting the variable does not prove that a
+legacy test exercised Torch; route and output-device assertions remain
+required.
+
+Tests should clear unrelated Torch feature variables so a developer's shell
+does not change route selection. A device-specific test must skip clearly when
+that physical device is unavailable and must never count that skip as
+qualification.
+
+Evidence-tool tests
+-------------------
 
 The pure artifact tests do not require a Torch device or execute PyCBC's
 scientific runtime. They validate the schema, percentile and bootstrap
@@ -21,7 +43,8 @@ allocated/reserved-memory metadata:
 
    python -m pytest -q test/test_torch_performance_artifacts.py
 
-Run configuration and documentation checks with the repository environment:
+Run syntax, configuration, and documentation checks with the repository
+environment:
 
 .. code-block:: console
 
@@ -31,18 +54,19 @@ Run configuration and documentation checks with the repository environment:
      tools/generate_torch_performance_plots.py \
      tools/torch_parity/compare.py \
      tools/torch_parity/generate.py
+   bash -n tools/torch_parity/run_matrix.sh
+   python -m json.tool tools/torch_parity/policy.json >/dev/null
    pixi run -e docs test-docs
 
 These checks establish that the evidence machinery is internally consistent.
-They do not establish a PyCBC speedup or scientific parity for an optimized
-route.
+They do not establish a speedup, scientific parity, or accelerator residency.
 
 Checked-in CI matrix
 --------------------
 
 This table describes workflows in this source tree, not a universal support
-statement. Exact versions and hardware from a completed job are the evidence
-for that run.
+statement. Exact versions, hardware, routes, and test results from a completed
+job are the evidence for that run.
 
 .. list-table::
    :header-rows: 1
@@ -55,47 +79,51 @@ for that run.
    * - General Linux tests
      - 3.11, 3.12, 3.13
      - CPU
-     - Broad PyCBC coverage. This evidence branch adds no general CPU Torch
-       selector, so the lane alone does not qualify Torch performance.
+     - Broad PyCBC coverage, followed in unit-test jobs by a focused Torch CPU
+       selection with ``PYCBC_TEST_SCHEME=torch``.
    * - General macOS tests
      - 3.11, 3.12, 3.13
      - CPU
-     - Broad macOS coverage; it is not a dedicated MPS lane.
+     - Broad macOS coverage; it is not a dedicated MPS-device lane.
    * - Trusted Torch GPU
-     - Environment-resolved
+     - Workflow environment
      - Self-hosted Linux CUDA
-     - Weekly on the default branch and manually dispatched. It installs the
-       exact Torch/CUDA wheel declared in the workflow, verifies CUDA
-       availability, and runs the focused CUDA regression set.
+     - Weekly on the default branch and manually dispatched. It requests the
+       exact Torch/CUDA wheel declared in the workflow, verifies real CUDA
+       availability, and runs the focused CUDA regression selection.
    * - MPS
      - Not dedicated
      - Apple MPS
-     - No checked-in workflow qualifies MPS automatically.
+     - Conditional tests can run where MPS is available, but no checked-in
+       workflow qualifies MPS automatically.
 
-The self-hosted job is scheduled and manual rather than a pull-request gate.
-It is restricted to trusted revisions so untrusted pull-request code is not
+The self-hosted CUDA job is scheduled and manual rather than a pull-request
+gate. It is limited to trusted revisions so untrusted pull-request code is not
 run on the repository's GPU host. A retained green run qualifies only the
-resolved Python, Torch, driver, CUDA, device, and source revision recorded by
-that job.
+resolved Python, Torch, driver, CUDA runtime, GPU, and source revision recorded
+by that job.
 
-Focused functional prerequisites
---------------------------------
+Focused functional groups
+-------------------------
 
-Before measuring a route, run the smallest applicable correctness group from
-the implementation stack. The PR4 baseline used by this evidence branch
-contains these CPU-capable Torch groups:
+The CPU workflow keeps the stack's focused runtime, array, FFT, filter, search,
+decompression, and native-waveform tests together. Representative paths are:
 
 .. code-block:: console
 
    python -m pytest -q \
+     test/test_scheme_runtime.py \
+     test/test_torch_optional.py \
      test/test_array_torch_reductions.py \
+     test/test_torch_backend_protocol.py \
      test/test_torch_batched_fft.py \
-     test/test_matched_filter_symm.py \
+     test/test_torch_filter_pipeline.py \
      test/test_live_batch_torch_fft_integration.py \
      test/test_live_batch_torch_peaks.py \
-     test/test_torch_filter_pipeline.py
+     test/test_decompress.py
 
-Waveform registry and native-family coverage is available in:
+The native waveform registry, supported TaylorF2-family ports, and batch
+contract are checked with:
 
 .. code-block:: console
 
@@ -107,24 +135,35 @@ Waveform registry and native-family coverage is available in:
      test/waveform/test_taylorf2redspin_torch.py \
      test/waveform/test_taylorf2_batch.py
 
-The trusted CUDA workflow additionally selects the CUDA-native batch,
-threshold, chi-squared, live-batch peak, FFT-integration, and CUDA-graph tests
-that exist at this branch's PR4 base. It also runs the pure artifact tests.
-Inference, detector, and waveform-decompression tests from the original PR5
-implementation are intentionally not selected by this standalone evidence
-branch.
+The slim domain, detector-geometry, and inference layers use focused tests that
+match their public boundaries:
 
-Exact test paths can evolve. The workflow file and current source tree remain
-authoritative; do not copy a stale command into performance provenance.
+.. code-block:: console
+
+   PYCBC_TEST_SCHEME=torch python -m pytest -q \
+     test/test_torch_domain_compat.py \
+     test/test_torch_prior_compat.py \
+     test/test_detector_torch_geometry.py \
+     test/test_torch_inference_core.py \
+     test/test_torch_inference_tools.py \
+     test/test_torch_waveform_generator.py \
+     test/test_torch_gaussian_noise.py \
+     test/test_torch_relative_binning.py \
+     test/test_torch_marginalized_gaussian.py \
+     test/test_torch_inference_cli.py
+
+The checked-in workflow files are authoritative when paths evolve. Before a
+performance run, execute the smallest relevant focused group, then every
+project suite affected by the changed public path.
 
 Parity matrix
 -------------
 
 The scripts under ``tools/torch_parity`` generate deterministic CPU and Torch
 artifacts, compare them with policy-scoped tolerances, and preserve manifests.
-The matrix runner deliberately requires two clean, identified worktrees,
-separate Python interpreters, a dependency fingerprint, and a sealed deployment
-manifest. It refuses to manufacture either provenance input.
+The matrix runner requires two clean, identified worktrees, separate Python
+interpreters, a dependency fingerprint, and a sealed deployment manifest. It
+refuses to manufacture missing provenance.
 
 A prepared campaign can be launched with:
 
@@ -138,15 +177,15 @@ A prepared campaign can be launched with:
    DEPLOYMENT_FILE=/path/to/deployment.json \
    tools/torch_parity/run_matrix.sh
 
-Preserve ``launch.json``, every generated NPZ/JSON pair, comparison report,
+Preserve ``launch.json``, every generated NPZ/JSON pair, the comparison report,
 and the matrix log. A skipped CUDA cell must remain visible as a skip and must
 not be presented as device qualification.
 
 What each optimization test must prove
 --------------------------------------
 
-Every defaults-off or newly promoted route from
-:ref:`torch-optimizations` needs:
+Every default-off or newly promoted route from :ref:`torch-optimizations`
+needs:
 
 .. list-table::
    :header-rows: 1
@@ -186,12 +225,17 @@ CPU
 CUDA
    Require the requested device index, synchronize asynchronous work around
    timed regions, exercise optimized eligibility and fallback separately, and
-   record the exact Torch/driver/runtime stack.
+   record the exact Torch, driver, runtime, and GPU stack.
 
 MPS
    Require a real available MPS device, use supported dtypes and explicit
    tolerances, and report staged CPU work. A skip elsewhere does not provide
    MPS coverage.
+
+Waveform fallback
+   Assert whether the native registry or an established host implementation
+   ran. A final tensor on the requested device is insufficient to prove native
+   generation.
 
 For every performance run, preserve machine-readable test and parity output
 beside the raw timing artifact. Count pass, fail, expected-unsupported, and

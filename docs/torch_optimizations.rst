@@ -55,7 +55,7 @@ has precedence over the listed default.
 “On” means the route is considered. The registered support predicate can
 still reject a parameter set, dtype, device, or interface and select an
 existing route. The implementation's registered support predicate remains
-authoritative.
+authoritative; user-facing capability boundaries are in :ref:`torch-scheme`.
 
 FFT, precision, and batch sizing
 --------------------------------

@@ -7,6 +7,10 @@ on:
     - cron: "17 5 * * 1"
   workflow_dispatch:
     inputs:
+      scheme:
+        description: "Torch scheme to run (for example, torch:cuda or torch:cuda:1)"
+        required: false
+        default: "torch:cuda"
       tests:
         description: "One pytest path or node ID; blank runs the CUDA regression set"
         required: false
@@ -53,6 +57,7 @@ jobs:
 
       - name: Run torch GPU tests
         env:
+          PYCBC_TEST_SCHEME: ${{ inputs.scheme || 'torch:cuda' }}
           TEST_SELECTOR: ${{ inputs.tests }}
           PYTORCH_INDEX_URL: https://download.pytorch.org/whl/cu126
           PYTORCH_VERSION: "2.13.0"
@@ -65,15 +70,40 @@ jobs:
               --index-url "${PYTORCH_INDEX_URL}"
             python -c "import torch; assert torch.version.cuda == \"12.6\", torch.version.cuda; assert torch.cuda.is_available(); print(torch.__version__, torch.version.cuda, torch.cuda.get_device_name())"
             selectors=(
-              test/test_threshold.py
-              test/test_chisq.py
+              test/test_decompress.py
+              test/test_array_torch_reductions.py
               test/test_torch_batched_fft.py
+              test/test_torch_p1200087_psd.py
+              test/test_torch_timeseries_at_time.py
+              test/test_torch_versioned_data_psd.py
               test/test_live_batch_torch_fft_integration.py
               test/test_live_batch_torch_peaks.py::test_torch_batch_peak_and_threshold_gpu_unit
               test/test_live_batch_torch_peaks.py::test_live_batch_ondevice_peaks_integration
               test/test_torch_cuda_native_batch.py
               test/test_torch_filter_pipeline.py::test_live_batch_matched_filter_cuda_graphs_pipeline
-              test/test_torch_performance_artifacts.py
+              test/test_matched_filter_symm.py
+              test/test_nltides_torch.py
+              test/test_spatmplt_torch.py
+              test/waveform/test_spa_tmplt_sequence_torch.py
+              test/waveform/test_spherical_harmonics_torch.py
+              test/waveform/test_torch_waveform_registry.py
+              test/waveform/test_torch_ringdown.py
+              test/waveform/test_torch_waveform_modes.py
+              test/waveform/test_torch_waveform_utils.py
+              test/waveform/test_taylorf2_torch.py
+              test/waveform/test_taylorf2ecc_torch.py
+              test/waveform/test_taylorf2nltides_torch.py
+              test/waveform/test_taylorf2redspin_torch.py
+              test/waveform/test_taylorf2_batch.py
+              test/test_torch_domain_compat.py
+              test/test_torch_prior_compat.py
+              test/test_detector_torch_geometry.py
+              test/test_torch_inference_core.py
+              test/test_torch_inference_tools.py
+              test/test_torch_waveform_generator.py
+              test/test_torch_gaussian_noise.py
+              test/test_torch_relative_binning.py
+              test/test_torch_marginalized_gaussian.py
             )
             if [[ -n "${TEST_SELECTOR}" ]]; then
               selectors=("${TEST_SELECTOR}")

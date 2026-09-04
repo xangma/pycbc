@@ -62,6 +62,7 @@ library and application suite.
    searches
    inference
    apps
+   torch
 
 .. toctree::
    :caption: Dev Guides
