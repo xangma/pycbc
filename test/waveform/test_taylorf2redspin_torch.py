@@ -71,6 +71,7 @@ def _assert_waveform_close(reference, actual, tolerance=2.0e-11):
             assert relative_error < tolerance
 
 
+@pytest.mark.parametrize("delta_f", [0.25, 0.3])
 @pytest.mark.parametrize(
     ("approximant", "extra"),
     [
@@ -98,6 +99,7 @@ def _assert_waveform_close(reference, actual, tolerance=2.0e-11):
 def test_taylorf2redspin_matches_lalsimulation(
     approximant,
     extra,
+    delta_f,
     monkeypatch,
     preserve_scheme,
 ):
@@ -106,7 +108,7 @@ def test_taylorf2redspin_matches_lalsimulation(
         mass2=7.8,
         spin1z=0.45,
         spin2z=-0.27,
-        delta_f=0.25,
+        delta_f=delta_f,
         f_lower=23.1,
         f_ref=41.7,
         distance=321.0,
@@ -119,6 +121,9 @@ def test_taylorf2redspin_matches_lalsimulation(
     monkeypatch.setenv(_native_flag(approximant), "0")
     _activate_scheme(_scheme.CPUScheme())
     reference = get_fd_waveform(approximant=approximant, **params)
+    if delta_f == 0.3:
+        # This spacing distinguishes the GPS-rounded phase shift from -1/df.
+        assert float(reference[0].epoch) != -1.0 / delta_f
 
     _clear_native_flags(monkeypatch)
     _activate_scheme(_scheme.TorchScheme("cpu"))

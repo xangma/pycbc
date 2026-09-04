@@ -14,7 +14,7 @@
 
 import math
 
-import lal
+from pycbc.constants import MTSUN_SI
 
 from .taylorf2_torch import (
     _as_order,
@@ -121,7 +121,7 @@ def _nonlinear_tide_phase(frequencies, inputs, params):
     )
     coefficient = 50.0 * 2.0 ** (2.0 / 3.0) / 3072.0
     coefficient *= (
-        1.0 / (chirp_mass * lal.MTSUN_SI * 100.0 * math.pi)
+        1.0 / (chirp_mass * MTSUN_SI * 100.0 * math.pi)
     ) ** (10.0 / 3.0)
 
     phase1 = _body_phase(
@@ -168,7 +168,7 @@ def taylorf2nltides_fd_torch(**params):
             "TaylorF2NLTides delta_f and f_lower must be positive"
         )
 
-    pi_mass = math.pi * (inputs.mass1 + inputs.mass2) * lal.MTSUN_SI
+    pi_mass = math.pi * (inputs.mass1 + inputs.mass2) * MTSUN_SI
     f_max = f_final or 1.0 / (6.0**1.5 * pi_mass)
     if f_max <= f_lower:
         raise ValueError(

@@ -21,10 +21,11 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-import lal
+from lal import LIGOTimeGPS
 import torch
 
 import pycbc.scheme as _scheme
+from pycbc.constants import C_SI, GAMMA, MTSUN_SI, PC_SI, PI as _PI
 from pycbc.types import Array as PyCBCArray
 from pycbc.types import FrequencySeries
 from pycbc.types.array_torch import TorchArrayData
@@ -61,7 +62,6 @@ def _is_nonzero(value) -> bool:
 
 _APPROXIMANTS = {"TaylorF2RedSpin", "TaylorF2RedSpinTidal"}
 _PN_ORDERS = frozenset((-1, 0, 1, 2, 3, 4, 5, 6, 7))
-_PI = lal.PI
 
 
 def _as_order(value):
@@ -255,7 +255,7 @@ def _validated_inputs(params, *, sequence=False) -> _Inputs:
         chi=chi,
         lambda1=lambda1,
         lambda2=lambda2,
-        distance_m=distance * 1.0e6 * lal.PC_SI,
+        distance_m=distance * 1.0e6 * PC_SI,
         inclination=inclination,
         coa_phase=coa_phase,
         long_asc_nodes=long_asc_nodes,
@@ -310,7 +310,7 @@ def _coefficients(inputs: _Inputs) -> _Coefficients:
     psi6 = (
         11583231236531.0 / 4694215680.0
         - 640.0 * pi2 / 3.0
-        - 6848.0 * lal.GAMMA / 21.0
+        - 6848.0 * GAMMA / 21.0
         + (-5162.983708047263 + 2255.0 * pi2 / 12.0) * eta
         + 76055.0 * eta2 / 1728.0
         - 127825.0 * eta3 / 1296.0
@@ -424,7 +424,7 @@ def _coefficients(inputs: _Inputs) -> _Coefficients:
 
 
 def _isco_frequency(inputs: _Inputs) -> float:
-    pi_mass = _PI * inputs.total_mass * lal.MTSUN_SI
+    pi_mass = _PI * inputs.total_mass * MTSUN_SI
     return 1.0 / (6.0**1.5 * pi_mass)
 
 
@@ -436,7 +436,7 @@ def _model_samples(
     time_shift=0.0,
 ) -> torch.Tensor:
     """Evaluate the inclination-independent waveform on-device."""
-    pi_mass = _PI * inputs.total_mass * lal.MTSUN_SI
+    pi_mass = _PI * inputs.total_mass * MTSUN_SI
     v3 = pi_mass * frequencies
     velocity = torch.pow(v3, 1.0 / 3.0)
     v2 = velocity * velocity
@@ -467,9 +467,9 @@ def _model_samples(
         )
 
     amplitude0 = (
-        -pow(inputs.total_mass * lal.MTSUN_SI, 5.0 / 6.0)
+        -pow(inputs.total_mass * MTSUN_SI, 5.0 / 6.0)
         * math.sqrt(5.0 * inputs.eta / 24.0)
-        / (math.cbrt(_PI * _PI) * inputs.distance_m / lal.C_SI)
+        / (math.cbrt(_PI * _PI) * inputs.distance_m / C_SI)
     )
     amplitude = amplitude0 * torch.pow(frequencies, -7.0 / 6.0) * (
         1.0
@@ -480,7 +480,7 @@ def _model_samples(
         + (
             coefficients.alpha6
             + coefficients.alpha6_log
-            * (lal.GAMMA + math.log(4.0) + log_velocity)
+            * (GAMMA + math.log(4.0) + log_velocity)
         )
         * v6
         + coefficients.alpha7 * v7
@@ -533,7 +533,9 @@ def taylorf2redspin_fd_torch(**params):
         dtype=inputs.complex_dtype,
         device=inputs.device,
     )
-    epoch = float(lal.LIGOTimeGPS(-1.0 / delta_f))
+    # LAL rounds this shift to GPS nanoseconds before evaluating the phase.
+    # FrequencySeries stores numeric epochs without that quantization.
+    epoch = float(LIGOTimeGPS(-1.0 / delta_f))
     if first_bin < length:
         frequencies = (
             torch.arange(

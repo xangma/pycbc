@@ -24,9 +24,8 @@ frequency-dependent evaluation is performed on the active Torch device.
 
 import math
 
-import lal
-
 import pycbc.scheme as _scheme
+from pycbc.constants import GAMMA, MTSUN_SI
 
 from .taylorf2_torch import (
     _as_order,
@@ -190,7 +189,7 @@ def _eccentric_phase_bracket(
     if order >= 6:
         coeff_v6 = (
             -436.03153867072577087 / 1.32658535116800000
-            + 53.6803271 / 1.9782000 * lal.GAMMA
+            + 53.6803271 / 1.9782000 * GAMMA
             + 157.22503703 / 3.25555200 * math.pi**2
             + (
                 2991.72861614477 / 6.89135247360
@@ -217,7 +216,7 @@ def _eccentric_phase_bracket(
         )
         coeff_v06 = (
             265.31900578691 / 1.68991764480
-            - 33.17 / 1.26 * lal.GAMMA
+            - 33.17 / 1.26 * GAMMA
             + 12.2833 / 1.0368 * math.pi**2
             + (91.55185261 / 5.48674560 - 3.977 / 1.152 * math.pi**2) * eta
             - 5.732473 / 1.306368 * eta2
@@ -289,7 +288,7 @@ def _eccentric_phase_scalar(
     if order == -1:
         order = 6
 
-    pi_mass = math.pi * total_mass * lal.MTSUN_SI
+    pi_mass = math.pi * total_mass * MTSUN_SI
     velocity = (pi_mass * frequency) ** (1.0 / 3.0)
     velocity0 = (pi_mass * f_ecc) ** (1.0 / 3.0)
     phase = _eccentric_phase_bracket(
@@ -398,7 +397,7 @@ def _taylorf2ecc_samples(
 
     total_mass = inputs.mass1 + inputs.mass2
     eta = inputs.mass1 * inputs.mass2 / total_mass**2
-    pi_mass = math.pi * total_mass * lal.MTSUN_SI
+    pi_mass = math.pi * total_mass * MTSUN_SI
     velocity = torch.pow(pi_mass * frequencies, 1.0 / 3.0)
     velocity0 = torch.pow(
         torch.as_tensor(
@@ -511,7 +510,7 @@ def taylorf2ecc_fd_torch(**params):
     if delta_f <= 0.0 or f_lower <= 0.0:
         raise ValueError("TaylorF2Ecc delta_f and f_lower must be positive")
 
-    pi_mass = math.pi * (inputs.mass1 + inputs.mass2) * lal.MTSUN_SI
+    pi_mass = math.pi * (inputs.mass1 + inputs.mass2) * MTSUN_SI
     f_isco = 1.0 / (6.0**1.5 * pi_mass)
     if f_final == 0.0:
         if inputs.tidal_order == 0:

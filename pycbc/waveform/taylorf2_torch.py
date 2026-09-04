@@ -28,9 +28,9 @@ import math
 from dataclasses import dataclass
 
 import numpy as _np
-import lal
 
 import pycbc.scheme as _scheme
+from pycbc.constants import C_SI, GAMMA, MRSUN_SI, MTSUN_SI, PC_SI, PI
 
 
 # Keep the same maximum order used by PNPhasingSeries in LAL (0..15)
@@ -136,7 +136,7 @@ def _f2_2pn(eta):
 
 
 def _f2_3pn(_eta):
-    return -16.0 * lal.PI
+    return -16.0 * PI
 
 
 def _f2_4pn(eta):
@@ -144,11 +144,11 @@ def _f2_4pn(eta):
 
 
 def _f2_5pn(eta):
-    return 5.0 / 9.0 * (772.9 / 8.4 - 13.0 * eta) * lal.PI
+    return 5.0 / 9.0 * (772.9 / 8.4 - 13.0 * eta) * PI
 
 
 def _f2_5pn_log(eta):
-    return 5.0 / 3.0 * (772.9 / 8.4 - 13.0 * eta) * lal.PI
+    return 5.0 / 3.0 * (772.9 / 8.4 - 13.0 * eta) * PI
 
 
 def _f2_6pn_log(_eta):
@@ -158,9 +158,9 @@ def _f2_6pn_log(_eta):
 def _f2_6pn(eta):
     return (
         11583.231236531 / 4.694215680
-        - 640.0 / 3.0 * lal.PI * lal.PI
-        - 684.8 / 2.1 * lal.GAMMA
-        + eta * (-15737.765635 / 3.048192 + 225.5 / 1.2 * lal.PI * lal.PI)
+        - 640.0 / 3.0 * PI * PI
+        - 684.8 / 2.1 * GAMMA
+        + eta * (-15737.765635 / 3.048192 + 225.5 / 1.2 * PI * PI)
         + eta * eta * 76.055 / 1.728
         - eta * eta * eta * 127.825 / 1.296
         + _f2_6pn_log(eta) * math.log(4.0)
@@ -168,7 +168,7 @@ def _f2_6pn(eta):
 
 
 def _f2_7pn(eta):
-    return lal.PI * (
+    return PI * (
         770.96675 / 2.54016 + 378.515 / 1.512 * eta - 740.45 / 7.56 * eta * eta
     )
 
@@ -187,7 +187,7 @@ def _f2_5pn_so(m_by_m):
 
 
 def _f2_6pn_so(m_by_m):
-    return lal.PI * m_by_m * (1490.0 / 3.0 + m_by_m * 260.0)
+    return PI * m_by_m * (1490.0 / 3.0 + m_by_m * 260.0)
 
 
 def _f2_7pn_so(m_by_m, eta):
@@ -261,7 +261,7 @@ def _f2_12pn_tidal(m_by_m):
 
 def _f2_13pn_tidal(m_by_m):
     m4 = m_by_m**4
-    return m4 * 24.0 * (12.0 - 11.0 * m_by_m) * lal.PI
+    return m4 * 24.0 * (12.0 - 11.0 * m_by_m) * PI
 
 
 def _f2_14pn_tidal(m_by_m):
@@ -288,7 +288,7 @@ def _f2_15pn_tidal(m_by_m):
     return (
         m4
         * (1.0 / 28.0)
-        * lal.PI
+        * PI
         * (27719.0 - 22415.0 * m_by_m + 7598.0 * m2 - 10520.0 * m3)
     )
 
@@ -656,7 +656,7 @@ def _native_device_supported(params, *, sequence):
     minimum_phase_mf = _MPS_MIN_EQUAL_MASS_PHASE_MF * (
         0.25 / symmetric_mass_ratio
     ) ** (3.0 / 5.0)
-    phase_mf = total_mass * lal.MTSUN_SI * phase_frequency
+    phase_mf = total_mass * MTSUN_SI * phase_frequency
     return math.isfinite(phase_mf) and phase_mf >= minimum_phase_mf
 
 
@@ -697,15 +697,15 @@ def _radius_from_lambda(mass, lambda_tidal):
         compactness = min(compactness, 0.5)
         if compactness < 0.0:
             raise ValueError("tidal deformability gives an invalid compactness")
-    return lal.MRSUN_SI * mass / compactness
+    return MRSUN_SI * mass / compactness
 
 
 def _contact_frequency(mass1, mass2, lambda1, lambda2):
     """Return the LAL TaylorF2 contact frequency in hertz."""
     radius1 = _radius_from_lambda(mass1, lambda1)
     radius2 = _radius_from_lambda(mass2, lambda2)
-    radius_seconds = (radius1 + radius2) / lal.C_SI
-    total_mass_seconds = (mass1 + mass2) * lal.MTSUN_SI
+    radius_seconds = (radius1 + radius2) / C_SI
+    total_mass_seconds = (mass1 + mass2) * MTSUN_SI
     return math.sqrt(total_mass_seconds / radius_seconds**3) / math.pi
 
 
@@ -854,7 +854,7 @@ def _taylorf2_samples(inputs, frequencies, time_shift=0.0):
     mass2 = inputs.mass2
     total_mass = mass1 + mass2
     eta = mass1 * mass2 / total_mass**2
-    pi_mass = math.pi * total_mass * lal.MTSUN_SI
+    pi_mass = math.pi * total_mass * MTSUN_SI
     phasing = inputs.phasing
     real_dtype = inputs.real_dtype
     device = inputs.device
@@ -897,14 +897,14 @@ def _taylorf2_samples(inputs, frequencies, time_shift=0.0):
         - 2.0 * inputs.coa_phase
         - reference_phase
     )
-    distance_metres = inputs.distance * 1.0e6 * lal.PC_SI
+    distance_metres = inputs.distance * 1.0e6 * PC_SI
     amplitude0 = (
         -4.0
         * mass1
         * mass2
         / distance_metres
-        * lal.MRSUN_SI
-        * lal.MTSUN_SI
+        * MRSUN_SI
+        * MTSUN_SI
         * math.sqrt(math.pi / 12.0)
     )
     amplitude = (
@@ -949,7 +949,7 @@ def taylorf2_fd_torch(**params):
 
     mass1 = inputs.mass1
     mass2 = inputs.mass2
-    pi_mass = math.pi * (mass1 + mass2) * lal.MTSUN_SI
+    pi_mass = math.pi * (mass1 + mass2) * MTSUN_SI
     f_isco = 1.0 / (6.0**1.5 * pi_mass)
     if f_final == 0.0:
         if inputs.tidal_order == 0:
@@ -1252,10 +1252,10 @@ def _batch_contact_frequency(
     compactness2, valid2 = compactness(lambda2)
     # The clamped denominator is used only to keep invalid rows numerically
     # defined until the caller can report their row indices.
-    radius1 = lal.MRSUN_SI * mass1 / torch.clamp(compactness1, min=1.0e-30)
-    radius2 = lal.MRSUN_SI * mass2 / torch.clamp(compactness2, min=1.0e-30)
-    radius_seconds = (radius1 + radius2) / lal.C_SI
-    total_mass_seconds = (mass1 + mass2) * lal.MTSUN_SI
+    radius1 = MRSUN_SI * mass1 / torch.clamp(compactness1, min=1.0e-30)
+    radius2 = MRSUN_SI * mass2 / torch.clamp(compactness2, min=1.0e-30)
+    radius_seconds = (radius1 + radius2) / C_SI
+    total_mass_seconds = (mass1 + mass2) * MTSUN_SI
     frequency = torch.sqrt(total_mass_seconds / radius_seconds**3) / math.pi
     return frequency, valid1 & valid2 & torch.isfinite(frequency)
 
@@ -1474,7 +1474,7 @@ def taylorf2_fd_batch(**params):
             torch.minimum(f_lower, numeric["f_ref"]),
             f_lower,
         )
-        phase_mf = total_mass * lal.MTSUN_SI * phase_frequency
+        phase_mf = total_mass * MTSUN_SI * phase_frequency
         derived_checks.append(
             (
                 phase_mf >= minimum_phase_mf,
@@ -1529,7 +1529,7 @@ def taylorf2_fd_batch(**params):
         phasing.vlogv = phasing.vlogv * order_mask
         phasing.vlogvsq = phasing.vlogvsq * order_mask
 
-    pi_mass = math.pi * total_mass * lal.MTSUN_SI
+    pi_mass = math.pi * total_mass * MTSUN_SI
     f_isco = 1.0 / (6.0**1.5 * pi_mass)
     use_default_cutoff = f_final == 0.0
     if orders["tidal_order"] == 0:
@@ -1605,14 +1605,14 @@ def taylorf2_fd_batch(**params):
         - 2.0 * numeric["coa_phase"][:, None]
         - reference_phase[:, None]
     )
-    distance_metres = numeric["distance"] * 1.0e6 * lal.PC_SI
+    distance_metres = numeric["distance"] * 1.0e6 * PC_SI
     amplitude0 = (
         -4.0
         * mass1
         * mass2
         / distance_metres
-        * lal.MRSUN_SI
-        * lal.MTSUN_SI
+        * MRSUN_SI
+        * MTSUN_SI
         * math.sqrt(math.pi / 12.0)
     )
     amplitude = (
