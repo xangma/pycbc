@@ -670,6 +670,7 @@ class _CUDANativeBatchCorrelationState:
         self._x_tensors = x_tensors
         self._z_tensors = z_tensors
         self._x_pointers = tuple(t.data_ptr() for t in x_tensors)
+        self._z_pointers = tuple(t.data_ptr() for t in z_tensors)
         self._z_spans = tuple(
             _logical_storage_span(tensor, size) for tensor in z_tensors
         )
@@ -798,7 +799,10 @@ def standard_peak_tensor(values):
     if values.ndim != 2 or values.shape[1] == 0:
         raise ValueError("values must be a non-empty 2D tensor")
     device = values.device
-    if device.type in ("cpu", "mps"):
+    if device.type in ("cpu", "mps") or values.dtype in (
+        torch.complex64,
+        torch.float32,
+    ):
         if values.is_complex():
             sq_mag = torch.view_as_real(values).square().sum(dim=-1)
         else:
@@ -813,8 +817,8 @@ def standard_peak_tensor(values):
             )
         else:
             sq_mag = values.to(torch.float64).square()
-    clean_mag = torch.nan_to_num(sq_mag, nan=0.0)
-    indices = torch.argmax(clean_mag, dim=-1)
+    sq_mag.nan_to_num_(nan=0.0, posinf=float("inf"), neginf=float("-inf"))
+    indices = torch.argmax(sq_mag, dim=-1)
     peaks = values[torch.arange(values.shape[0], device=values.device), indices]
     return indices, peaks
 
@@ -1071,13 +1075,13 @@ def batch_correlate_execute(self, y):
             if all(isinstance(t, torch.Tensor) for t in all_tensors):
                 target_device = y_sub.device
                 if (
-                    all(
+                    not _has_dynamic_autograd_state(all_tensors)
+                    and all(
                         t.device == target_device
                         and t.dtype == y_sub.dtype
                         and t.layout == torch.strided
                         and not t.is_conj()
                         and not t.is_neg()
-                        and not _has_autograd_state(t)
                         for t in all_tensors
                     )
                 ):
