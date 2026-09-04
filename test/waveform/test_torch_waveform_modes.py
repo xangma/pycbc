@@ -110,9 +110,9 @@ def test_interpolated_lal_waveform_is_torch_backed(torch_cpu_ctx):
     assert torch.isfinite(hc._data.tensor).all()
 
 
-def test_unimplemented_filter_is_not_advertised(torch_cpu_ctx):
+def test_native_filter_is_advertised(torch_cpu_ctx):
     with torch_cpu_ctx:
-        assert "SPAtmplt" not in filter_approximants()
+        assert "SPAtmplt" in filter_approximants()
 
 
 def test_lal_sgburst_fallback_is_torch_backed(torch_cpu_ctx):

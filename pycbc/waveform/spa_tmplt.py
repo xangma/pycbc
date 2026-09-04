@@ -19,21 +19,34 @@
 #  MA  02111-1307  USA
 
 """This module contains functions for generating common SPA template precalculated
-   vectors.
+vectors.
 """
-from math import sqrt, log
+
 import warnings
+from math import log, sqrt
+
 import numpy
 
 import pycbc.pnutils
-from pycbc.scheme import schemed
-from pycbc.types import FrequencySeries, Array, complex64, float32, zeros
-from pycbc.waveform.utils import ceilpow2
-from pycbc.constants import PI, GAMMA, MTSUN_SI, PC_SI, MRSUN_SI
+import pycbc.scheme as _scheme
+from pycbc.constants import GAMMA, MRSUN_SI, MTSUN_SI, PC_SI, PI
 from pycbc.libutils import import_optional
+from pycbc.scheme import schemed
+from pycbc.types import (
+    Array,
+    FrequencySeries,
+    complex64,
+    float32,
+    float64,
+    zeros,
+)
+from pycbc.types.backend import backend_array
+from pycbc.waveform.torch_switches import torch_native_enabled
+from pycbc.waveform.utils import ceilpow2
 
-lal = import_optional('lal')
-lalsimulation = import_optional('lalsimulation')
+lal = import_optional("lal")
+lalsimulation = import_optional("lalsimulation")
+
 
 def findchirp_chirptime(m1, m2, fLower, porder):
     # variables used to compute chirp time
@@ -41,21 +54,28 @@ def findchirp_chirptime(m1, m2, fLower, porder):
     m2 = float(m2)
     m = m1 + m2
     eta = m1 * m2 / m / m
-    c0T = c2T = c3T = c4T = c5T = c6T = c6LogT = c7T = 0.
+    c0T = c2T = c3T = c4T = c5T = c6T = c6LogT = c7T = 0.0
 
     # All implemented option
     if porder == -1:
         porder = 7
 
     if porder >= 7:
-        c7T = PI * (14809.0 * eta * eta / 378.0 - 75703.0 * eta / 756.0 - 15419335.0 / 127008.0)
+        c7T = PI * (
+            14809.0 * eta * eta / 378.0 - 75703.0 * eta / 756.0 - 15419335.0 / 127008.0
+        )
 
     if porder >= 6:
-        c6T = GAMMA * 6848.0 / 105.0 - 10052469856691.0 / 23471078400.0 +\
-            PI * PI * 128.0 / 3.0 + \
-            eta * (3147553127.0 / 3048192.0 - PI * PI * 451.0 / 12.0) -\
-            eta * eta * 15211.0 / 1728.0 + eta * eta * eta * 25565.0 / 1296.0 +\
-            eta * eta * eta * 25565.0 / 1296.0 + numpy.log(4.0) * 6848.0 / 105.0
+        c6T = (
+            GAMMA * 6848.0 / 105.0
+            - 10052469856691.0 / 23471078400.0
+            + PI * PI * 128.0 / 3.0
+            + eta * (3147553127.0 / 3048192.0 - PI * PI * 451.0 / 12.0)
+            - eta * eta * 15211.0 / 1728.0
+            + eta * eta * eta * 25565.0 / 1296.0
+            + eta * eta * eta * 25565.0 / 1296.0
+            + numpy.log(4.0) * 6848.0 / 105.0
+        )
         c6LogT = 6848.0 / 105.0
 
     if porder >= 5:
@@ -68,7 +88,7 @@ def findchirp_chirptime(m1, m2, fLower, porder):
         c0T = 5.0 * m * MTSUN_SI / (256.0 * eta)
 
     # This is the PN parameter v evaluated at the lower freq. cutoff
-    xT = pow (PI * m * MTSUN_SI * fLower, 1.0 / 3.0)
+    xT = pow(PI * m * MTSUN_SI * fLower, 1.0 / 3.0)
     x2T = xT * xT
     x3T = xT * x2T
     x4T = x2T * x2T
@@ -83,8 +103,19 @@ def findchirp_chirptime(m1, m2, fLower, porder):
 
     # This formula works for any PN order, because
     # higher order coeffs will be set to zero.
-    return c0T * (1 + c2T * x2T + c3T * x3T + c4T * x4T + c5T * x5T +
-                  (c6T + c6LogT * numpy.log(xT)) * x6T + c7T * x7T) / x8T
+    return (
+        c0T
+        * (
+            1
+            + c2T * x2T
+            + c3T * x3T
+            + c4T * x4T
+            + c5T * x5T
+            + (c6T + c6LogT * numpy.log(xT)) * x6T
+            + c7T * x7T
+        )
+        / x8T
+    )
 
 
 def spa_length_in_time(**kwds):
@@ -93,10 +124,10 @@ def spa_length_in_time(**kwds):
     based on the masses, PN order, and low-frequency
     cut-off.
     """
-    m1 = kwds['mass1']
-    m2 = kwds['mass2']
-    flow = kwds['f_lower']
-    porder = int(kwds['phase_order'])
+    m1 = kwds["mass1"]
+    m2 = kwds["mass2"]
+    flow = kwds["f_lower"]
+    porder = int(kwds["phase_order"])
 
     # For now, we call the swig-wrapped function below in
     # lalinspiral.  Eventually would be nice to replace this
@@ -105,53 +136,95 @@ def spa_length_in_time(**kwds):
 
 
 def spa_amplitude_factor(**kwds):
-    m1 = kwds['mass1']
-    m2 = kwds['mass2']
+    m1 = kwds["mass1"]
+    m2 = kwds["mass2"]
 
     _, eta = pycbc.pnutils.mass1_mass2_to_mchirp_eta(m1, m2)
 
-    FTaN = 32. * eta * eta / 5.
-    dETaN = 2. * -eta / 2.
+    FTaN = 32.0 * eta * eta / 5.0
+    dETaN = 2.0 * -eta / 2.0
 
     M = m1 + m2
 
     m_sec = M * MTSUN_SI
     piM = PI * m_sec
 
-    amp0 = 4. * m1 * m2 / (1e6 * PC_SI) * MRSUN_SI * MTSUN_SI * sqrt(PI / 12.)
+    amp0 = 4.0 * m1 * m2 / (1e6 * PC_SI) * MRSUN_SI * MTSUN_SI * sqrt(PI / 12.0)
 
-    fac = numpy.sqrt(-dETaN / FTaN) * amp0 * (piM ** (-7./6.))
+    fac = numpy.sqrt(-dETaN / FTaN) * amp0 * (piM ** (-7.0 / 6.0))
     return -fac
 
 
 _prec = None
+_torch_prec = {}
+
+
 def spa_tmplt_precondition(length, delta_f, kmin=0):
     """Return the amplitude portion of the TaylorF2 approximant, used to precondition
     the strain data. The result is cached, and so should not be modified, only read.
     """
+    if isinstance(_scheme.mgr.state, _scheme.TorchScheme):
+        import torch
+
+        device = _scheme.mgr.state.torch_device
+        key = str(device)
+        required_length = kmin + length
+        prec = _torch_prec.get(key)
+        if prec is None or prec.delta_f != delta_f or len(prec) < required_length:
+            # MPS does not support float64 tensors. Other Torch devices use
+            # float64 for the power before matching the historical float32
+            # preconditioner, just as the NumPy implementation does.
+            work_dtype = torch.float32 if device.type == "mps" else torch.float64
+            frequencies = torch.arange(
+                1,
+                required_length + 1,
+                device=device,
+                dtype=work_dtype,
+            ) * float(delta_f)
+            values = frequencies.pow(-7.0 / 6.0).to(torch.float32)
+            data = zeros(required_length, dtype=float32)
+            backend_array(data, "torch").copy_(values)
+            prec = FrequencySeries(data, delta_f=delta_f, copy=False)
+            _torch_prec[key] = prec
+        return prec[kmin : kmin + length]
+
     global _prec
-    if _prec is None or _prec.delta_f != delta_f or len(_prec) < length:
-        v = numpy.arange(0, (kmin + length*2), 1.) * delta_f
-        v = numpy.power(v[1:len(v)], -7./6.)
+    if _prec is None or _prec.delta_f != delta_f or len(_prec) < kmin + length:
+        v = numpy.arange(0, (kmin + length * 2), 1.0) * delta_f
+        v = numpy.power(v[1 : len(v)], -7.0 / 6.0)
         _prec = FrequencySeries(v, delta_f=delta_f, dtype=float32)
-    return _prec[kmin:kmin + length]
+    return _prec[kmin : kmin + length]
 
 
 def spa_tmplt_norm(psd, length, delta_f, f_lower):
     amp = spa_tmplt_precondition(length, delta_f)
     k_min = int(f_lower / delta_f)
-    sigma = (amp[k_min:length].numpy() ** 2. / psd[k_min:length].numpy())
+
+    if isinstance(_scheme.mgr.state, _scheme.TorchScheme):
+        amp_data = backend_array(amp[k_min:length], "torch")
+        # Slicing converts a CPU-created PSD to the active Torch scheme when
+        # necessary, while preserving an already resident device tensor.
+        psd_data = backend_array(psd[k_min:length], "torch")
+        sigma = amp_data.square() / psd_data
+        dtype = float32 if sigma.device.type == "mps" else float64
+        norm_vec = zeros(length, dtype=dtype)
+        backend_array(norm_vec, "torch")[k_min:length] = sigma.cumsum(dim=0) * (
+            4.0 * float(delta_f)
+        )
+        return norm_vec
+
+    sigma = amp[k_min:length].numpy() ** 2.0 / psd[k_min:length].numpy()
     norm_vec = numpy.zeros(length)
-    norm_vec[k_min:length] = sigma.cumsum() * 4. * delta_f
+    norm_vec[k_min:length] = sigma.cumsum() * 4.0 * delta_f
     return norm_vec
 
 
 def spa_tmplt_end(**kwds):
-    return pycbc.pnutils.f_SchwarzISCO(kwds['mass1'] + kwds['mass2'])
+    return pycbc.pnutils.f_SchwarzISCO(kwds["mass1"] + kwds["mass2"])
 
 
 def spa_distance(psd, mass1, mass2, lower_frequency_cutoff, snr=8):
-    """ Return the distance at a given snr (default=8) of the SPA TaylorF2
+    """Return the distance at a given snr (default=8) of the SPA TaylorF2
     template.
     """
     kend = int(spa_tmplt_end(mass1=mass1, mass2=mass2) / psd.delta_f)
@@ -163,50 +236,107 @@ def spa_distance(psd, mass1, mass2, lower_frequency_cutoff, snr=8):
     return sqrt(norm1[kend] * norm2) / snr
 
 
+def _cpu_sequence_frequencies(sample_points):
+    """Normalize arbitrary-frequency samples for the legacy Cython kernel."""
+    if isinstance(sample_points, Array):
+        sample_points = sample_points.numpy()
+    frequencies = numpy.asarray(sample_points, dtype=numpy.float32)
+    if frequencies.ndim != 1 or frequencies.size == 0:
+        raise ValueError("SPAtmplt sample_points must be a non-empty vector")
+    if not numpy.all(numpy.isfinite(frequencies)):
+        raise ValueError("SPAtmplt sample_points must be finite")
+    if numpy.any(frequencies <= 0.0):
+        raise ValueError("SPAtmplt sample_points must be positive")
+    return numpy.ascontiguousarray(frequencies)
+
+
 @schemed("pycbc.waveform.spa_tmplt_")
-def spa_tmplt_engine(htilde, kmin, phase_order, delta_f, piM, pfaN,
-                     pfa2, pfa3, pfa4, pfa5, pfl5,
-                     pfa6, pfl6, pfa7, amp_factor):
-    """ Calculate the spa tmplt phase
-    """
+def spa_tmplt_engine(
+    htilde,
+    kmin,
+    phase_order,
+    delta_f,
+    piM,
+    pfaN,
+    pfa2,
+    pfa3,
+    pfa4,
+    pfa5,
+    pfl5,
+    pfa6,
+    pfl6,
+    pfa7,
+    amp_factor,
+):
+    """Calculate the spa tmplt phase"""
     err_msg = "This function is a stub that should be overridden using the "
     err_msg += "scheme. You shouldn't be seeing this error!"
     raise ValueError(err_msg)
 
 
 def spa_tmplt(**kwds):
-    """ Generate a minimal TaylorF2 approximant with optimizations for the sin/cos
-    """
-    distance = kwds['distance']
-    mass1 = kwds['mass1']
-    mass2 = kwds['mass2']
-    s1z = kwds['spin1z']
-    s2z = kwds['spin2z']
-    phase_order = int(kwds['phase_order'])
-    #amplitude_order = int(kwds['amplitude_order'])
-    spin_order = int(kwds['spin_order'])
+    """Generate a minimal TaylorF2 approximant with optimizations for the sin/cos"""
+    distance = kwds["distance"]
+    mass1 = kwds["mass1"]
+    mass2 = kwds["mass2"]
+    s1z = kwds["spin1z"]
+    s2z = kwds["spin2z"]
+    phase_order = int(kwds["phase_order"])
+    # amplitude_order = int(kwds['amplitude_order'])
+    spin_order = int(kwds["spin_order"])
 
-    if 'out' in kwds:
-        out = kwds['out']
+    if "out" in kwds:
+        out = kwds["out"]
     else:
         out = None
 
     amp_factor = spa_amplitude_factor(mass1=mass1, mass2=mass2) / distance
 
-    lal_pars = lal.CreateDict()
+    # Calculate the PN terms. Under TorchScheme the native port is the default
+    # and avoids lalsimulation (matches XLALSimInspiralPNPhasing_F2; reference:
+    # lalsimulation/lib/LALSimInspiralPNCoefficients.c lines 955-1109).
+    using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
+    use_native_phasing = using_torch and torch_native_enabled(
+        "PYCBC_TAYLORF2_NATIVE", default=True
+    )
+
+    if use_native_phasing:
+        from .taylorf2_torch import taylorf2_aligned_phasing
+
+        phasing = taylorf2_aligned_phasing(
+            float(mass1),
+            float(mass2),
+            float(s1z),
+            float(s2z),
+            spin_order=spin_order,
+            tidal_order=int(kwds.get("tidal_order", -1)),
+            dchi={},
+            qm_def1=0.0,
+            qm_def2=0.0,
+            lambda1=0.0,
+            lambda2=0.0,
+        )
+    else:
+        lal_pars = lal.CreateDict()
+        if phase_order != -1:
+            lalsimulation.SimInspiralWaveformParamsInsertPNPhaseOrder(
+                lal_pars, phase_order
+            )
+        if spin_order != -1:
+            lalsimulation.SimInspiralWaveformParamsInsertPNSpinOrder(
+                lal_pars, spin_order
+            )
+        phasing = lalsimulation.SimInspiralTaylorF2AlignedPhasing(
+            float(mass1), float(mass2), float(s1z), float(s2z), lal_pars
+        )
+
+    # The synthesis kernels accept phase_order for API compatibility but do
+    # not apply it themselves.  Truncate the point-particle/spin coefficients
+    # for both native and LAL phasing sources before extracting their scalars.
     if phase_order != -1:
-        lalsimulation.SimInspiralWaveformParamsInsertPNPhaseOrder(
-            lal_pars, phase_order)
-
-    if spin_order != -1:
-        lalsimulation.SimInspiralWaveformParamsInsertPNSpinOrder(
-            lal_pars, spin_order)
-
-    # Calculate the PN terms
-    phasing = lalsimulation.SimInspiralTaylorF2AlignedPhasing(
-                                    float(mass1), float(mass2),
-                                    float(s1z), float(s2z),
-                                    lal_pars)
+        phasing.v[phase_order + 1 : 8] = 0.0
+        phasing.vlogv[phase_order + 1 : 8] = 0.0
+        phasing.vlogvsq[phase_order + 1 : 8] = 0.0
 
     pfaN = phasing.v[0]
     pfa2 = phasing.v[2] / pfaN
@@ -221,33 +351,39 @@ def spa_tmplt(**kwds):
 
     piM = PI * (mass1 + mass2) * MTSUN_SI
 
-    if 'sample_points' not in kwds:
-        f_lower = kwds['f_lower']
-        delta_f = kwds['delta_f']
+    if "sample_points" not in kwds:
+        f_lower = kwds["f_lower"]
+        delta_f = kwds["delta_f"]
         kmin = int(f_lower / float(delta_f))
 
         # Get max frequency one way or another
         # f_final is assigned default value 0 in parameters.py
-        if 'f_final' in kwds and kwds['f_final'] > 0.:
-            fstop = kwds['f_final']
-        elif 'f_upper' in kwds:
-            fstop = kwds['f_upper']
-            warnings.warn('f_upper is deprecated in favour of f_final!',
-                          DeprecationWarning)
+        if "f_final" in kwds and kwds["f_final"] > 0.0:
+            fstop = kwds["f_final"]
+        elif "f_upper" in kwds:
+            fstop = kwds["f_upper"]
+            warnings.warn(
+                "f_upper is deprecated in favour of f_final!",
+                DeprecationWarning,
+                stacklevel=1,
+            )
         else:
             # Schwarzschild ISCO frequency
-            vISCO = 1. / sqrt(6.)
+            vISCO = 1.0 / sqrt(6.0)
             fstop = vISCO * vISCO * vISCO / piM
         if fstop <= f_lower:
-            raise ValueError("cannot generate waveform! f_lower >= f_final"
-                             f" ({f_lower}, {fstop})")
+            raise ValueError(
+                f"cannot generate waveform! f_lower >= f_final ({f_lower}, {fstop})"
+            )
 
         kmax = int(fstop / delta_f)
         f_max = ceilpow2(fstop)
         n = int(f_max / delta_f) + 1
 
         if not out:
-            htilde = FrequencySeries(zeros(n, dtype=numpy.complex64), delta_f=delta_f, copy=False)
+            htilde = FrequencySeries(
+                zeros(n, dtype=numpy.complex64), delta_f=delta_f, copy=False
+            )
         else:
             if type(out) is not Array:
                 raise TypeError("Output must be an instance of Array")
@@ -257,15 +393,64 @@ def spa_tmplt(**kwds):
                 raise TypeError("Output array is the wrong dtype")
             htilde = FrequencySeries(out, delta_f=delta_f, copy=False)
 
-        spa_tmplt_engine(htilde[kmin:kmax], kmin, phase_order,
-                         delta_f, piM, pfaN,
-                         pfa2, pfa3, pfa4, pfa5, pfl5,
-                         pfa6, pfl6, pfa7, amp_factor)
+        spa_tmplt_engine(
+            htilde[kmin:kmax],
+            kmin,
+            phase_order,
+            delta_f,
+            piM,
+            pfaN,
+            pfa2,
+            pfa3,
+            pfa4,
+            pfa5,
+            pfl5,
+            pfa6,
+            pfl6,
+            pfa7,
+            amp_factor,
+        )
     else:
-        from .spa_tmplt_cpu import spa_tmplt_inline_sequence
-        htilde = numpy.empty(len(kwds['sample_points']), dtype=numpy.complex64)
-        spa_tmplt_inline_sequence(
-            piM, pfaN, pfa2, pfa3, pfa4, pfa5, pfl5, pfa6, pfl6, pfa7,
-            amp_factor, kwds['sample_points'], htilde)
+        sample_points = kwds["sample_points"]
+        use_native_sequence = using_torch and torch_native_enabled(
+            "PYCBC_SPATPLT_NATIVE", default=True
+        )
+        if use_native_sequence:
+            from .spa_tmplt_torch import spa_tmplt_sequence
+
+            htilde = spa_tmplt_sequence(
+                sample_points,
+                piM,
+                pfaN,
+                pfa2,
+                pfa3,
+                pfa4,
+                pfa5,
+                pfl5,
+                pfa6,
+                pfl6,
+                pfa7,
+                amp_factor,
+            )
+        else:
+            from .spa_tmplt_cpu import spa_tmplt_inline_sequence
+
+            sample_points = _cpu_sequence_frequencies(sample_points)
+            htilde = numpy.empty(len(sample_points), dtype=numpy.complex64)
+            spa_tmplt_inline_sequence(
+                piM,
+                pfaN,
+                pfa2,
+                pfa3,
+                pfa4,
+                pfa5,
+                pfl5,
+                pfa6,
+                pfl6,
+                pfa7,
+                amp_factor,
+                sample_points,
+                htilde,
+            )
 
     return htilde

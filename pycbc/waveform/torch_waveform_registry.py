@@ -49,7 +49,57 @@ class TorchNativeWaveform:
     sequence_supported: Optional[str] = None
 
 
-_PORTS = ()
+def _fd_sequence_port(
+    approximant,
+    component_flag,
+    module,
+    stem,
+):
+    """Build the common FD plus arbitrary-frequency registry entry."""
+    return TorchNativeWaveform(
+        approximant=approximant,
+        component_flag=component_flag,
+        module=module,
+        default_enabled=True,
+        fd_generator=f"{stem}_fd_torch",
+        fd_supported=f"{stem}_native_supported",
+        sequence_generator=f"{stem}_fd_sequence_torch",
+        sequence_supported=f"{stem}_sequence_native_supported",
+    )
+
+
+_PORTS = (
+    _fd_sequence_port(
+        "TaylorF2",
+        "PYCBC_TAYLORF2_NATIVE",
+        "taylorf2_torch",
+        "taylorf2",
+    ),
+    _fd_sequence_port(
+        "TaylorF2NLTides",
+        "PYCBC_TAYLORF2NLTIDES_NATIVE",
+        "taylorf2nltides_torch",
+        "taylorf2nltides",
+    ),
+    _fd_sequence_port(
+        "TaylorF2RedSpin",
+        "PYCBC_TAYLORF2REDSPIN_NATIVE",
+        "taylorf2redspin_torch",
+        "taylorf2redspin",
+    ),
+    _fd_sequence_port(
+        "TaylorF2RedSpinTidal",
+        "PYCBC_TAYLORF2REDSPINTIDAL_NATIVE",
+        "taylorf2redspin_torch",
+        "taylorf2redspin",
+    ),
+    _fd_sequence_port(
+        "TaylorF2Ecc",
+        "PYCBC_TAYLORF2ECC_NATIVE",
+        "taylorf2ecc_torch",
+        "taylorf2ecc",
+    ),
+)
 
 
 def _declared_interfaces(port):

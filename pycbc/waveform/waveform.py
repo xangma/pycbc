@@ -141,6 +141,30 @@ def _check_lal_pars(p):
         lalsimulation.SimInspiralWaveformParamsInsertTidalLambda2(
             lal_pars, p["lambda2"]
         )
+    if p["nl_tides_a1"] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNLTidesA1(
+            lal_pars, p["nl_tides_a1"]
+        )
+    if p["nl_tides_n1"] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNLTidesN1(
+            lal_pars, p["nl_tides_n1"]
+        )
+    if p["nl_tides_f1"] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNLTidesF1(
+            lal_pars, p["nl_tides_f1"]
+        )
+    if p["nl_tides_a2"] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNLTidesA2(
+            lal_pars, p["nl_tides_a2"]
+        )
+    if p["nl_tides_n2"] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNLTidesN2(
+            lal_pars, p["nl_tides_n2"]
+        )
+    if p["nl_tides_f2"] is not None:
+        lalsimulation.SimInspiralWaveformParamsInsertNLTidesF2(
+            lal_pars, p["nl_tides_f2"]
+        )
     if p["lambda_octu1"] is not None:
         lalsimulation.SimInspiralWaveformParamsInsertTidalOctupolarLambda1(
             lal_pars, p["lambda_octu1"]
@@ -912,6 +936,38 @@ get_fd_waveform.__doc__ = get_fd_waveform.__doc__.format(
 )
 
 
+def get_fd_waveform_batch(approximant, **params):
+    """Generate an explicit batch of native frequency-domain waveforms.
+
+    This interface is intentionally separate from :func:`get_fd_waveform` so
+    that passing vector-valued parameters cannot change the scalar API's
+    return type.  The initial implementation supports TaylorF2 under an active
+    :class:`pycbc.scheme.TorchScheme`.
+
+    Parameters
+    ----------
+    approximant : str
+        The waveform model.  Currently only ``"TaylorF2"`` is supported.
+    **params
+        TaylorF2 parameters.  Physical parameters may be scalars or
+        one-dimensional batches; scalars are broadcast to the batch size.
+
+    Returns
+    -------
+    pycbc.waveform.taylorf2_torch.TaylorF2FDBatch
+        Batched polarizations and their frequency-grid metadata.
+    """
+    if approximant != "TaylorF2":
+        raise ValueError(
+            "get_fd_waveform_batch currently supports only TaylorF2; "
+            f"got {approximant!r}"
+        )
+
+    from pycbc.waveform.taylorf2_torch import taylorf2_fd_batch
+
+    return taylorf2_fd_batch(**params)
+
+
 def get_fd_waveform_from_td(**params):
     """Return time domain version of fourier domain approximant.
 
@@ -1294,7 +1350,7 @@ filter_wav.update(
         _scheme.CPUScheme: _inspiral_fd_filters,
         _scheme.CUDAScheme: _cuda_fd_filters,
         _scheme.CUPYScheme: _cupy_fd_filters,
-        _scheme.TorchScheme: {},
+        _scheme.TorchScheme: _inspiral_fd_filters,
     }
 )
 
@@ -1743,6 +1799,7 @@ __all__ = [
     "get_td_waveform",
     "get_td_det_waveform_from_fd_det",
     "get_fd_waveform",
+    "get_fd_waveform_batch",
     "get_fd_waveform_sequence",
     "get_fd_det_waveform",
     "get_fd_det_waveform_sequence",
