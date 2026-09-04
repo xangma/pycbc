@@ -1150,6 +1150,49 @@ def test_cpu_single_point_bin_sums_improves_reduction_precision():
     assert actual_error < conventional_error
 
 
+@pytest.mark.parametrize("dtype", (np.complex64, np.complex128))
+@pytest.mark.parametrize("entrypoint", ("shift_sum", "power_chisq"))
+@pytest.mark.parametrize("point_count", (0, 1))
+def test_empty_correlation_requires_empty_points(
+    monkeypatch, dtype, entrypoint, point_count,
+):
+    from pycbc.vetoes import chisq_torch
+
+    def fail_native(*args, **kwargs):
+        raise AssertionError("empty correlation reached native chi-squared")
+
+    monkeypatch.setattr(chisq_torch, "_cpu_native_point_chisq", fail_native)
+    monkeypatch.setattr(
+        chisq_torch, "_cpu_native_single_point_chisq", fail_native
+    )
+    with scheme.TorchScheme("cpu"):
+        correlation = Array(np.empty(0, dtype=dtype))
+        points = np.zeros(point_count, dtype=np.int64)
+        snr = Array(np.ones(point_count, dtype=dtype))
+        bins = (0, 0)
+        assert not chisq_torch._cpu_native_corr_eligible(
+            correlation._data.tensor, bins
+        )
+
+        def evaluate():
+            if entrypoint == "shift_sum":
+                return chisq_torch.shift_sum(correlation, points, bins)
+            return chisq_torch.power_chisq_at_points_from_precomputed(
+                correlation, snr, 1.0, bins, points
+            )
+
+        if point_count:
+            with pytest.raises(ValueError, match="at least one sample"):
+                evaluate()
+        else:
+            result = evaluate()
+            assert result._data.tensor.numel() == 0
+            assert result._data.tensor.device.type == "cpu"
+            assert (
+                result._data.tensor.dtype == correlation._data.tensor.real.dtype
+            )
+
+
 def test_empty_power_chisq_skips_shift_sum(monkeypatch):
     from pycbc.vetoes import chisq_torch
 

@@ -173,7 +173,7 @@ def _cpu_native_corr_eligible(corr, bin_edges):
         and len(bin_edges) >= 2
         # The Cython ABI declares these lengths as signed ``int`` and bin
         # edges as ``uint32_t``.  Reject values that would narrow silently.
-        and corr.numel() <= _CPU_NATIVE_INT_MAX
+        and 0 < corr.numel() <= _CPU_NATIVE_INT_MAX
         and len(bin_edges) - 1 <= _CPU_NATIVE_INT_MAX
         and 0 <= bin_edges[0] <= bin_edges[-1] <= corr.numel()
         and bin_edges[-1] <= _CPU_NATIVE_UINT_MAX
@@ -653,6 +653,8 @@ def shift_sum(corr, points, bins):
     if pts.numel() == 0:
         empty = torch.empty(0, device=device, dtype=corr._data.tensor.real.dtype)
         return Array(TorchArrayData(empty), copy=False)
+    if N == 0:
+        raise ValueError("correlation must contain at least one sample")
     bin_edges = tuple(int(edge) for edge in bins)
     nbins = len(bin_edges) - 1
 
@@ -727,6 +729,8 @@ def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
             0, device=device, dtype=corr._data.tensor.real.dtype
         )
         return Array(TorchArrayData(empty), copy=False)
+    if corr._data.tensor.numel() == 0:
+        raise ValueError("correlation must contain at least one sample")
 
     num_bins = len(bins) - 1
     bin_edges = tuple(int(edge) for edge in bins)
