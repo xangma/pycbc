@@ -738,6 +738,35 @@ def test_power_chisq_bins_stay_on_device(torch_device_ctx, monkeypatch):
     np.testing.assert_array_equal(actual, expected)
 
 
+@pytest.mark.parametrize("interface", ["tensor", "backend_protocol"])
+def test_power_chisq_bins_accepts_public_backend_storage(
+        torch_device_ctx, monkeypatch, interface):
+    ctx, device = torch_device_ctx
+
+    def reject_numpy(*_args, **_kwargs):
+        raise AssertionError("chi-squared bin search left Torch")
+
+    with ctx:
+        tensor = torch.tensor(
+            [0, 0, 1, 2, 2, 4, 8, 8], dtype=torch.float32, device=device,
+        )
+        values = tensor
+        if interface == "backend_protocol":
+            values = types.SimpleNamespace(
+                backend="torch", backend_array=tensor,
+            )
+        with monkeypatch.context() as patch:
+            patch.setattr(torch.Tensor, "numpy", reject_numpy)
+            patch.setattr(chisq.numpy, "searchsorted", reject_numpy)
+            actual = chisq.power_chisq_bins_from_sigmasq_series(
+                values, num_bins=4, kmin=2, kmax=7,
+            )
+
+    np.testing.assert_array_equal(actual, [2, 5, 6, 6, 7])
+    assert actual.dtype == np.int64
+    assert tensor.device.type == device
+
+
 def test_power_chisq_dof_stays_on_device(torch_device_ctx, monkeypatch):
     ctx, device = torch_device_ctx
     values = np.array([2.0, 3.0, 5.0], dtype=np.float32)

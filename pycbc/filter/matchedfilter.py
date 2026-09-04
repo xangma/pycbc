@@ -2836,6 +2836,7 @@ class LiveBatchMatchedFilter(object):
                             )
                             self._transfer_event.record(self._transfer_stream)
                         self._compute_stream.wait_event(self._transfer_event)
+                        stilde_psd = stilde.psd
                         if isinstance(stilde, Array):
                             stilde = stilde._return(wrap_backend_array(stilde_gpu))
                         elif hasattr(stilde, "delta_f"):
@@ -2847,6 +2848,9 @@ class LiveBatchMatchedFilter(object):
                             )
                         else:
                             stilde = stilde_gpu
+                        # Series reconstruction preserves sampling metadata,
+                        # but the PSD is attached separately by the data reader.
+                        stilde.psd = stilde_psd
 
                 # Pipelined prefetch for the next block (double buffering)
                 next_block_id = self.block_id + 1
@@ -2879,6 +2883,7 @@ class LiveBatchMatchedFilter(object):
                                 )
                             else:
                                 next_stilde_dev = next_stilde_gpu
+                            next_stilde_dev.psd = next_stilde.psd
                             self._async_prefetched = (
                                 next_block_id,
                                 next_stilde_dev,

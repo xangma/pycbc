@@ -879,7 +879,9 @@ def test_live_batch_async_streams_flag_initialization(monkeypatch):
     assert batch3.enable_async_streams is True
 
 
-def test_live_batch_async_streams_double_buffering_pipeline(monkeypatch):
+@pytest.mark.parametrize("series_kind", ["frequencyseries", "backend_protocol"])
+def test_live_batch_async_streams_double_buffering_pipeline(
+        monkeypatch, series_kind):
     class FakeStream:
         def __init__(self, device=None):
             self.device = device
@@ -963,18 +965,36 @@ def test_live_batch_async_streams_double_buffering_pipeline(monkeypatch):
         batch.chunk_tsamples = [8, 8]
         batch.mids = [mid1, mid2]
         batch.out_mem = {mid1: out1, mid2: out2}
+        received_stildes = []
         batch.corr = [
-            types.SimpleNamespace(execute=lambda _data: None),
-            types.SimpleNamespace(execute=lambda _data: None),
+            types.SimpleNamespace(execute=received_stildes.append),
+            types.SimpleNamespace(execute=received_stildes.append),
         ]
         batch.ifts = {
             mid1: types.SimpleNamespace(execute=lambda: None),
             mid2: types.SimpleNamespace(execute=lambda: None),
         }
 
-        dummy_stilde = FrequencySeries(np.zeros(16, dtype=np.complex64), delta_f=0.25)
-        dummy_stilde.psd = object()
-        batch.data.overwhitened_data = lambda _delta_f: dummy_stilde
+        host_stildes = []
+        host_tensors = []
+        host_storage = []
+        psds = [object(), object()]
+        epochs = [100.25, 200.5]
+        for psd, epoch in zip(psds, epochs):
+            host = FrequencySeries(
+                np.zeros(16, dtype=np.complex64), delta_f=0.25, epoch=epoch,
+            )
+            host.psd = psd
+            if series_kind == "backend_protocol":
+                host = types.SimpleNamespace(
+                    backend="torch", backend_array=host.backend_array,
+                    delta_f=host.delta_f, _epoch=host.epoch, psd=psd,
+                )
+            host_stildes.append(host)
+            host_tensors.append(host.backend_array)
+            host_storage.append(getattr(host, "_data", host.backend_array))
+        source_stildes = iter(host_stildes)
+        batch.data.overwhitened_data = lambda _delta_f: next(source_stildes)
 
         # Process block 0 -> should prefetch block 1
         result0, veto0 = batch._process_batch()
@@ -983,8 +1003,22 @@ def test_live_batch_async_streams_double_buffering_pipeline(monkeypatch):
         assert batch._async_prefetched is not None
         assert batch._async_prefetched[0] == 1
         assert len(pinned_tensors) >= 1
+        prefetched_stilde = batch._async_prefetched[1]
+        assert received_stildes[0].psd is psds[0]
+        assert prefetched_stilde.psd is psds[1]
 
         # Process block 1 -> should consume prefetched block 1
         result1, veto1 = batch._process_batch()
         assert batch.block_id == 2
         assert batch._async_prefetched is None
+        assert received_stildes[1] is prefetched_stilde
+        for index, migrated in enumerate(received_stildes):
+            host = host_stildes[index]
+            assert isinstance(migrated, FrequencySeries)
+            assert migrated is not host
+            assert migrated.psd is host.psd is psds[index]
+            assert migrated.delta_f == host.delta_f == 0.25
+            assert migrated.epoch == host._epoch == epochs[index]
+            assert host.backend_array is host_tensors[index]
+            assert host.backend_array.device.type == "cpu"
+            assert getattr(host, "_data", host.backend_array) is host_storage[index]

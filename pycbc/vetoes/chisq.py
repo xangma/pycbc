@@ -143,7 +143,7 @@ def power_chisq_bins_from_sigmasq_series(sigmasq_series, num_bins, kmin, kmax):
     bins: List of ints
         A list of the edges of the chisq bins is returned.
     """
-    tensor = getattr(getattr(sigmasq_series, "_data", None), "tensor", None)
+    tensor = backend_array(sigmasq_series, "torch")
     if tensor is not None:
         import torch
 
