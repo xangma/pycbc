@@ -35,6 +35,7 @@ from pycbc.waveform import (get_fd_waveform_sequence,
                             get_fd_det_waveform_sequence, fd_det_sequence)
 from pycbc.detector import Detector
 from pycbc.types import Array, TimeSeries
+from pycbc.types.backend import wrap_backend_array
 
 from .gaussian_noise import (BaseGaussianNoise, catch_waveform_error)
 from pycbc.waveform import FailedWaveformError
@@ -82,10 +83,8 @@ def _time_series_from_values(values, delta_t, epoch):
     if tensor is None:
         return TimeSeries(values, delta_t=delta_t, epoch=epoch)
 
-    from pycbc.types.array_torch import TorchArrayData
-
     return TimeSeries(
-        TorchArrayData(tensor), delta_t=delta_t, epoch=epoch, copy=False)
+        wrap_backend_array(tensor), delta_t=delta_t, epoch=epoch, copy=False)
 
 
 def _prepare_reference_data(

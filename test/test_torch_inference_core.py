@@ -1,7 +1,5 @@
 """Focused tests for Torch-aware inference model primitives."""
 
-from types import SimpleNamespace
-
 import pytest
 
 
@@ -10,6 +8,10 @@ torch = pytest.importorskip("torch")
 from pycbc.inference.models import base as model_base  # noqa: E402
 from pycbc.inference.models.base_data import BaseDataModel  # noqa: E402
 from pycbc.inference.models.data_utils import check_for_nans  # noqa: E402
+
+
+class _UserTensor(torch.Tensor):
+    """A tensor subclass declared outside the torch package."""
 
 
 class _Prior:
@@ -54,8 +56,11 @@ class _DataModel(BaseDataModel):
         return self.current_params["x"].new_tensor(-1.0)
 
 
-def test_model_statistics_stay_on_device_and_keep_gradients(monkeypatch):
+@pytest.mark.parametrize("tensor_subclass", [False, True])
+def test_model_statistics_stay_on_device_and_keep_gradients(
+        monkeypatch, tensor_subclass):
     x = torch.tensor(0.25, dtype=torch.float64, requires_grad=True)
+    value = x.as_subclass(_UserTensor) if tensor_subclass else x
     finite = _Model(("x",), prior=_Prior())
     no_prior = _Model(("x",))
     invalid = _Model(("x",), prior=_Prior(invalid=True))
@@ -64,7 +69,7 @@ def test_model_statistics_stay_on_device_and_keep_gradients(monkeypatch):
         ("x",), data={}, prior=_Prior(invalid=True)
     )
     for model in (finite, no_prior, invalid, data_model, invalid_data):
-        model.update(x=x)
+        model.update(x=value)
 
     def reject_numpy(*_args, **_kwargs):
         raise AssertionError("model statistic evaluation left Torch")
@@ -96,8 +101,10 @@ def test_model_statistics_stay_on_device_and_keep_gradients(monkeypatch):
 
 
 class _TorchSeries:
+    backend = "torch"
+
     def __init__(self, values):
-        self._data = SimpleNamespace(tensor=values)
+        self.backend_array = values
 
     def numpy(self):
         raise AssertionError("Torch NaN validation copied data to NumPy")
@@ -110,3 +117,28 @@ def test_nan_validation_uses_the_device_tensor():
     check_for_nans({"H1": finite})
     with pytest.raises(ValueError, match="NaN found in strain from L1"):
         check_for_nans({"L1": contains_nan})
+
+
+@pytest.mark.parametrize("tensor_subclass", [False, True])
+def test_scalar_helpers_use_public_backend_storage(
+        monkeypatch, tensor_subclass):
+    x = torch.tensor(0.25, dtype=torch.float64, requires_grad=True)
+    value = (
+        x.as_subclass(_UserTensor) if tensor_subclass else _TorchSeries(x)
+    )
+    statistic = model_base._replace_nan_with_neginf(value)
+    assert not model_base._is_neginf_scalar(value)
+    assert model_base._is_neginf_scalar(
+        _TorchSeries(x.new_full((), -torch.inf))
+    )
+    prior = model_base._NoPrior()(x=value)
+    torch.testing.assert_close(prior, x.new_zeros(()))
+
+    sampling = model_base.SamplingTransforms((), (), (), [])
+    monkeypatch.setattr(
+        model_base.transforms, "compute_jacobian", lambda *a, **kw: value
+    )
+    logjacobian = sampling.logjacobian(x=value)
+    torch.testing.assert_close(logjacobian, x.log())
+    (statistic + logjacobian).backward()
+    torch.testing.assert_close(x.grad, x.new_tensor(5.0))

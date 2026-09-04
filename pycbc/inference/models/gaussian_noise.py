@@ -1446,8 +1446,9 @@ def _batched_waveform_inner_products(model, params, zero_phase=False):
                 )
 
                 def _to_tensor(x, dev, dt):
-                    if hasattr(x, '_data') and hasattr(x._data, 'tensor'):
-                        return x._data.tensor.to(device=dev, dtype=dt)
+                    tensor = _torch_tensor(x)
+                    if tensor is not None:
+                        return tensor.to(device=dev, dtype=dt)
                     if hasattr(x, 'numpy') and callable(x.numpy):
                         arr = x.numpy()
                     elif (

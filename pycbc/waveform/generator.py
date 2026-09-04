@@ -36,6 +36,7 @@ from . import ringdown
 from . import supernovae
 from . import waveform_modes
 from pycbc.types import TimeSeries, FrequencySeries
+from pycbc.types.backend import backend_array, is_backend, wrap_backend_array
 from pycbc.waveform import parameters
 from pycbc.waveform.utils import apply_fseries_time_shift, \
                                  ceilpow2, apply_fd_time_shift
@@ -53,10 +54,8 @@ _LOW_PRECISION_ABSOLUTE_TIME = 2 ** 24
 
 
 def _torch_value(value):
-    """Return ``value`` when it is a Torch tensor without importing Torch."""
-    if type(value).__module__.split('.', 1)[0] == 'torch':
-        return value
-    return None
+    """Return Torch storage through the public backend protocol."""
+    return backend_array(value, "torch")
 
 
 def _validate_absolute_time_precision(reference_time, epoch):
@@ -157,7 +156,8 @@ def _arrival_time_and_shift(reference_time, offset, epoch, extra_shift=0.0):
         ).to(device=anchor.device, dtype=work_dtype)
 
     offset_on_device = torch.as_tensor(
-        offset, device=anchor.device, dtype=work_dtype
+        offset_tensor if offset_tensor is not None else offset,
+        device=anchor.device, dtype=work_dtype,
     )
     arrival_time = reference_on_device + offset_on_device
     relative_shift = centered_reference + offset_on_device + extra_shift
@@ -209,7 +209,7 @@ def _has_sample_axis(value):
 
 def _scheme_cast_series(series):
     """Move a waveform series to the active Torch device when required."""
-    if not hasattr(series, "_data"):
+    if not isinstance(series, (TimeSeries, FrequencySeries)):
         return series
 
     from pycbc import scheme
@@ -218,9 +218,7 @@ def _scheme_cast_series(series):
     if torch_scheme is None or not isinstance(scheme.mgr.state, torch_scheme):
         return series
 
-    from pycbc.types.array_torch import TorchArrayData
-
-    if isinstance(series._data, TorchArrayData):
+    if is_backend(series, "torch"):
         return series
 
     import torch
@@ -228,13 +226,13 @@ def _scheme_cast_series(series):
     tensor = torch.as_tensor(series.numpy(), device=scheme.mgr.state.device)
     if isinstance(series, TimeSeries):
         return TimeSeries(
-            TorchArrayData(tensor),
+            wrap_backend_array(tensor),
             delta_t=series.delta_t,
             epoch=series.start_time,
             copy=False,
         )
     return FrequencySeries(
-        TorchArrayData(tensor),
+        wrap_backend_array(tensor),
         delta_f=series.delta_f,
         epoch=series.epoch,
         copy=False,
@@ -901,8 +899,8 @@ class FDomainDetFrameGenerator(BaseFDomainDetFrameGenerator):
             pol = self.current_params['polarization']
             refframe = self.current_params.get('tc_ref_frame', 'geocentric')
 
-            hp_tensor = getattr(getattr(hp, "_data", None), "tensor", None)
-            hc_tensor = getattr(getattr(hc, "_data", None), "tensor", None)
+            hp_tensor = backend_array(hp, "torch")
+            hc_tensor = backend_array(hc, "torch")
             use_torch_fused = (
                 hp_tensor is not None
                 and hc_tensor is not None
@@ -910,7 +908,6 @@ class FDomainDetFrameGenerator(BaseFDomainDetFrameGenerator):
 
             if use_torch_fused:
                 from .utils_torch import fused_detector_strain_fd_torch
-                from pycbc.types.array_torch import TorchArrayData
 
                 fp_list = []
                 fc_list = []
@@ -934,7 +931,7 @@ class FDomainDetFrameGenerator(BaseFDomainDetFrameGenerator):
                 )
                 for i, detname in enumerate(det_list):
                     series = FrequencySeries(
-                        TorchArrayData(strains[i]),
+                        wrap_backend_array(strains[i]),
                         delta_f=hp.delta_f,
                         epoch=self._epoch,
                         copy=False,

@@ -31,6 +31,7 @@ from abc import (ABCMeta, abstractmethod)
 from configparser import NoSectionError
 from pycbc import (transforms, distributions)
 from pycbc.io import FieldArray
+from pycbc.types.backend import backend_array
 
 
 #
@@ -44,12 +45,7 @@ from pycbc.io import FieldArray
 
 def _torch_tensor(value):
     """Return the tensor backing a Torch/PyCBC value, if present."""
-    if type(value).__module__.split('.', 1)[0] == 'torch':
-        return value
-    tensor = getattr(value, 'tensor', None)
-    if tensor is None:
-        tensor = getattr(getattr(value, '_data', None), 'tensor', None)
-    return tensor
+    return backend_array(value, "torch")
 
 
 def _replace_nan_with_neginf(value):
@@ -229,8 +225,9 @@ class SamplingTransforms(object):
         jacobian = transforms.compute_jacobian(
             params, self.sampling_transforms, inverse=True
         )
-        if type(jacobian).__module__.split(".", 1)[0] == "torch":
-            return jacobian.abs().log()
+        tensor = _torch_tensor(jacobian)
+        if tensor is not None:
+            return tensor.abs().log()
         return numpy.log(abs(jacobian))
 
     def apply(self, samples, inverse=False):

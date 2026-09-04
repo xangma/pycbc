@@ -34,6 +34,7 @@ from pycbc.strain import (gates_from_cli, psd_gates_from_cli,
                           apply_gates_to_td, apply_gates_to_fd,
                           verify_strain_options_multi_ifo)
 from pycbc import dq
+from pycbc.types.backend import backend_array
 
 
 def strain_from_cli_multi_ifos(*args, **kwargs):
@@ -293,7 +294,7 @@ def check_for_nans(strain_dict):
         :py:class:`pycbc.types.timeseries.TimeSeries`.
     """
     for det, ts in strain_dict.items():
-        tensor = getattr(getattr(ts, "_data", None), "tensor", None)
+        tensor = backend_array(ts, "torch")
         if tensor is not None:
             has_nans = tensor.isnan().any().item()
         else:

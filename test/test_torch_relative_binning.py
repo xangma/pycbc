@@ -172,3 +172,24 @@ def test_summary_product_keeps_batch_dimensions():
     assert a1.device == first.device
     (a0.real.sum() + a1.imag.sum()).backward()
     assert first.grad is not None
+
+
+def test_time_series_wrapper_preserves_storage_and_metadata(torch_device):
+    from pycbc import scheme
+    from pycbc.inference.models.relbin import _time_series_from_values
+    from pycbc.types.backend import backend_array
+
+    values = torch.ones(8, dtype=torch.float64, requires_grad=True)
+    context = scheme.TorchScheme(str(torch_device))
+    try:
+        with context:
+            series = _time_series_from_values(values, 0.25, 123.5)
+            tensor = backend_array(series, "torch")
+            assert tensor is values
+            assert series.delta_t == 0.25
+            assert float(series.start_time) == 123.5
+            tensor.square().sum().backward()
+        torch.testing.assert_close(values.grad, 2.0 * torch.ones_like(values))
+    finally:
+        del context
+        scheme.Scheme._single = None

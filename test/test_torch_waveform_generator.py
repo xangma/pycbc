@@ -167,6 +167,41 @@ def test_arrival_time_is_centered_before_float32_offsets_are_applied():
     )
 
 
+@pytest.mark.parametrize("tensor_subclass", [False, True])
+def test_arrival_time_accepts_public_backend_values(tensor_subclass):
+    from pycbc.waveform.generator import _arrival_time_and_shift
+
+    class UserTensor(torch.Tensor):
+        pass
+
+    class BackendValue:
+        backend = "torch"
+
+        def __init__(self, tensor):
+            self.backend_array = tensor
+
+    def wrap(tensor):
+        if tensor_subclass:
+            return tensor.as_subclass(UserTensor)
+        return BackendValue(tensor)
+
+    epoch = 1126259460.0
+    reference = torch.tensor(
+        epoch + 2.125, dtype=torch.float64, requires_grad=True
+    )
+    offset = torch.tensor(0.003, dtype=torch.float32, requires_grad=True)
+    arrival, relative = _arrival_time_and_shift(
+        wrap(reference), wrap(offset), epoch
+    )
+    torch.testing.assert_close(arrival, reference + offset.double())
+    torch.testing.assert_close(
+        relative, reference - epoch + offset.double()
+    )
+    relative.backward()
+    torch.testing.assert_close(reference.grad, torch.ones_like(reference))
+    torch.testing.assert_close(offset.grad, torch.ones_like(offset))
+
+
 def test_detector_projection_preserves_parameter_gradients(
         monkeypatch, torch_context):
     generator = _load_generator(monkeypatch)
