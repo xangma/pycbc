@@ -565,6 +565,23 @@ class Array(object):
     def shape(self):
         return self._data.shape
 
+    @property
+    def backend(self):
+        """Name of the array library that owns this object's storage."""
+        declared = getattr(self._data, "backend", None)
+        if declared is not None:
+            return declared
+        module = type(self._data).__module__.partition(".")[0]
+        return module if module in ("numpy", "cupy", "torch") else None
+
+    @property
+    def backend_array(self):
+        """Return the native array owned by the active storage backend."""
+        accessor = getattr(self._data, "backend_array", None)
+        if accessor is None:
+            return self._data
+        return accessor() if callable(accessor) else accessor
+
     @_convert
     def reshape(self, *shape, order='C', copy=None):
         """Return a reshaped plain :class:`Array`.

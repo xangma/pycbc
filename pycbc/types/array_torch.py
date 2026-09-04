@@ -612,6 +612,7 @@ class TorchArrayData:
 
     __slots__ = ("tensor", "dtype")
     __array_priority__ = 100.0
+    backend = "torch"
 
     def __init__(self, tensor):
         if not isinstance(tensor, torch.Tensor):
@@ -630,6 +631,11 @@ class TorchArrayData:
     @property
     def device(self):
         return self.tensor.device
+
+    @property
+    def backend_array(self):
+        """Return storage through the public PyCBC backend protocol."""
+        return self.tensor
 
     def _wrap(self, tensor):
         return TorchArrayData(tensor)

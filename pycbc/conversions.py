@@ -42,8 +42,6 @@ lalsim = libutils.import_optional('lalsimulation')
 
 logger = logging.getLogger('pycbc.conversions')
 
-_torch_qnm_spline_cache = {}
-
 #
 # =============================================================================
 #
@@ -51,76 +49,25 @@ _torch_qnm_spline_cache = {}
 #
 # =============================================================================
 #
+
+
 def _torch_values(*values):
-    """Return broadcast Torch inputs without importing Torch eagerly."""
-    if not any(
-            type(value).__module__.split(".", 1)[0] == "torch"
-            for value in values):
+    """Dispatch tensor broadcasting to the optional Torch backend."""
+    from pycbc.types.backend import is_backend
+
+    if not any(is_backend(value, "torch") for value in values):
         return None, values
 
-    import torch
+    from pycbc.conversions_torch import broadcast_values
 
-    tensors = [value for value in values
-               if isinstance(value, torch.Tensor)]
-    if not tensors:
-        return None, values
-
-    reference = tensors[0]
-    dtype = reference.dtype
-    if not (dtype.is_floating_point or dtype.is_complex):
-        dtype = torch.get_default_dtype()
-    converted = tuple(
-        value.to(device=reference.device, dtype=dtype)
-        if isinstance(value, torch.Tensor)
-        else torch.as_tensor(value, device=reference.device, dtype=dtype)
-        for value in values
-    )
-    return torch, torch.broadcast_tensors(*converted)
+    return broadcast_values(*values)
 
 
 def _torch_qnm_spline(torch, spin, l, m, n, reim):
-    """Evaluate a cached pykerr QNM spline without moving ``spin`` to CPU."""
-    try:
-        l = operator.index(l)
-        m = operator.index(m)
-        n = operator.index(n)
-    except TypeError as exc:
-        raise TypeError(
-            "Torch QNM mode indices must be scalar integers"
-        ) from exc
+    """Dispatch QNM interpolation to the Torch conversion backend."""
+    from pycbc.conversions_torch import qnm_spline
 
-    max_spin = pykerr.qnm.MAX_SPIN
-    if bool(torch.any(torch.abs(spin) > max_spin)):
-        raise ValueError(f"|spin| must be < {max_spin}")
-
-    key = (reim, l, abs(m), n, spin.device.type,
-           spin.device.index, spin.dtype)
-    try:
-        knots, coefficients = _torch_qnm_spline_cache[key]
-    except KeyError:
-        if reim == 're':
-            cache = pykerr.qnm._reomega_splines
-        else:
-            cache = pykerr.qnm._imomega_splines
-        spline = pykerr.qnm._getspline(
-            'omega', reim, l, m, n, cache
-        )
-        knots = torch.as_tensor(
-            spline.x, dtype=spin.dtype, device=spin.device
-        )
-        coefficients = torch.as_tensor(
-            spline.c, dtype=spin.dtype, device=spin.device
-        )
-        _torch_qnm_spline_cache[key] = knots, coefficients
-
-    points = spin.contiguous()
-    indices = torch.searchsorted(knots, points) - 1
-    indices = indices.clamp(0, knots.numel() - 2)
-    offset = points - knots[indices]
-    coeff = coefficients[:, indices]
-    return (
-        (coeff[0] * offset + coeff[1]) * offset + coeff[2]
-    ) * offset + coeff[3]
+    return qnm_spline(pykerr, spin, l, m, n, reim)
 
 
 def ensurearray(*args):
@@ -452,11 +399,10 @@ _mass2_from_mchirp_mass1_numpy = numpy.vectorize(
 
 
 def _torch_real_cuberoot(torch, value):
-    """Return the real cube root without evaluating a singular zero power."""
-    nonzero = value != 0
-    magnitude = torch.where(nonzero, torch.abs(value), torch.ones_like(value))
-    result = torch.sign(value) * magnitude.pow(1. / 3.)
-    return torch.where(nonzero, result, torch.zeros_like(result))
+    """Dispatch real cube-root evaluation to the Torch backend."""
+    from pycbc.conversions_torch import real_cuberoot
+
+    return real_cuberoot(value)
 
 
 def mass2_from_mchirp_mass1(mchirp, mass1):
