@@ -35,6 +35,7 @@ from pycbc.types import (
     float64,
     zeros,
 )
+from pycbc.types.backend import backend_array
 from pycbc.waveform.utils import ceilpow2
 from pycbc.constants import PI, GAMMA, MTSUN_SI, PC_SI, MRSUN_SI
 from pycbc.libutils import import_optional
@@ -166,7 +167,7 @@ def spa_tmplt_precondition(length, delta_f, kmin=0):
             ) * float(delta_f)
             values = frequencies.pow(-7.0 / 6.0).to(torch.float32)
             data = zeros(required_length, dtype=float32)
-            data._data.tensor.copy_(values)
+            backend_array(data, "torch").copy_(values)
             prec = FrequencySeries(data, delta_f=delta_f, copy=False)
             _torch_prec[key] = prec
         return prec[kmin:kmin + length]
@@ -188,14 +189,14 @@ def spa_tmplt_norm(psd, length, delta_f, f_lower):
     k_min = int(f_lower / delta_f)
 
     if isinstance(_scheme.mgr.state, _scheme.TorchScheme):
-        amp_data = amp[k_min:length]._data.tensor
+        amp_data = backend_array(amp[k_min:length], "torch")
         # Slicing converts a CPU-created PSD to the active Torch scheme when
         # necessary, while preserving an already resident device tensor.
-        psd_data = psd[k_min:length]._data.tensor
+        psd_data = backend_array(psd[k_min:length], "torch")
         sigma = amp_data.square() / psd_data
         dtype = float32 if sigma.device.type == "mps" else float64
         norm_vec = zeros(length, dtype=dtype)
-        norm_vec._data.tensor[k_min:length] = (
+        backend_array(norm_vec, "torch")[k_min:length] = (
             sigma.cumsum(dim=0) * (4.0 * float(delta_f))
         )
         return norm_vec

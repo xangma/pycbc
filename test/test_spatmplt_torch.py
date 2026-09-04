@@ -8,6 +8,7 @@ torch = pytest.importorskip("torch")
 from pycbc import scheme
 from pycbc.types import FrequencySeries, zeros
 from pycbc.types.array_torch import TorchArrayData
+from pycbc.types.backend import backend_array, wrap_backend_array
 import pycbc.waveform.spa_tmplt as spa_tmplt_module
 from pycbc.waveform.spa_tmplt import (
     spa_distance,
@@ -183,3 +184,36 @@ def test_spatmplt_norm_stays_on_torch_device(monkeypatch, device):
         atol=1e-7,
     )
     assert torch_distance == pytest.approx(cpu_distance, rel=2e-5)
+
+
+@pytest.mark.parametrize("device", _torch_devices())
+def test_spatmplt_norm_preserves_psd_gradients(monkeypatch, device):
+    length, delta_f, f_lower = 17, 0.25, 1.0
+    k_min = int(f_lower / delta_f)
+    monkeypatch.setattr(spa_tmplt_module, "_torch_prec", {})
+    values = torch.linspace(1.0, 4.0, length, dtype=torch.float32,
+                            device=device, requires_grad=True)
+    scheme.Scheme._single = None
+    try:
+        with scheme.TorchScheme(device):
+            psd = FrequencySeries(wrap_backend_array(values),
+                                  delta_f=delta_f, copy=False)
+            norm = spa_tmplt_norm(psd, length, delta_f, f_lower)
+            result = backend_array(norm, "torch")
+            assert result.device.type == device
+            expected_dtype = (torch.float32 if device == "mps"
+                              else torch.float64)
+            assert result.dtype == expected_dtype
+            assert torch.count_nonzero(result[:k_min]) == 0
+            gradient, = torch.autograd.grad(result.sum(), values)
+    finally:
+        scheme.Scheme._single = None
+
+    # Each PSD sample contributes to every subsequent cumulative-norm entry.
+    amplitude = ((np.arange(1, length + 1) * delta_f)**(-7.0 / 6.0))
+    amplitude = torch.as_tensor(amplitude.astype(np.float32), device=device)
+    multiplicity = torch.arange(length, 0, -1, device=device)
+    expected = -4.0 * delta_f * multiplicity * amplitude.square()
+    expected = expected / values.detach().square()
+    expected[:k_min] = 0.0
+    torch.testing.assert_close(gradient, expected, rtol=2e-5, atol=1e-7)
