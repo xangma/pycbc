@@ -40,6 +40,7 @@ from astropy.units.si import sday, meter
 
 import pycbc.libutils
 from pycbc.types import TimeSeries
+from pycbc.types.backend import is_backend
 from pycbc.types.config import InterpolatingConfigParser
 from pycbc.time import gmst_accurate
 
@@ -47,6 +48,122 @@ logger = logging.getLogger('pycbc.detector')
 
 # Response functions are modelled after those in lalsuite and as also
 # presented in https://arxiv.org/pdf/gr-qc/0008066.pdf
+
+
+def _scalar_antenna_pattern_and_time_delay(
+        detector, right_ascension, declination, t_gps):
+    """Return the built-in tensor response and geocentric delay together.
+
+    This private helper is for the tightly guarded scalar inference path. It
+    evaluates the same long-wavelength, zero-polarization expressions as
+    :meth:`Detector.antenna_pattern` and
+    :meth:`Detector.time_delay_from_earth_center`, but shares their GMST and
+    trigonometric terms. The explicit scalar operations retain the public
+    methods' object-dot accumulation order so their float64 results remain
+    bit-for-bit identical.
+    """
+    gha = detector.gmst_estimate(t_gps) - right_ascension
+    cosgha = cos(gha)
+    singha = sin(gha)
+    cosdec = cos(declination)
+    sindec = sin(declination)
+
+    # ``Detector.antenna_pattern(..., polarization=0)`` basis vectors.
+    x0 = -singha
+    x1 = -cosgha
+    x2 = np.float64(0.0)
+    y0 = -cosgha * sindec
+    y1 = singha * sindec
+    y2 = cosdec
+
+    response = detector.response
+    dx0 = ((response[0, 0] * x0 + response[0, 1] * x1)
+           + response[0, 2] * x2)
+    dx1 = ((response[1, 0] * x0 + response[1, 1] * x1)
+           + response[1, 2] * x2)
+    dx2 = ((response[2, 0] * x0 + response[2, 1] * x1)
+           + response[2, 2] * x2)
+    dy0 = ((response[0, 0] * y0 + response[0, 1] * y1)
+           + response[0, 2] * y2)
+    dy1 = ((response[1, 0] * y0 + response[1, 1] * y1)
+           + response[1, 2] * y2)
+    dy2 = ((response[2, 0] * y0 + response[2, 1] * y1)
+           + response[2, 2] * y2)
+
+    fplus = (((x0 * dx0 - y0 * dy0) + (x1 * dx1 - y1 * dy1))
+             + (x2 * dx2 - y2 * dy2))
+    fcross = (((x0 * dy0 + y0 * dx0) + (x1 * dy1 + y1 * dx1))
+              + (x2 * dy2 + y2 * dx2))
+
+    e0 = cosdec * cosgha
+    e1 = -cosdec * singha
+    e2 = sindec
+    location = detector.location
+    delay_dot = (((-location[0]) * e0 + (-location[1]) * e1)
+                 + (-location[2]) * e2)
+    delay = np.float64(delay_dot) / constants.c.value
+    return fplus, fcross, delay
+
+
+def _torch_backend(values):
+    """Return the lazily imported Torch detector backend when needed."""
+    if not any(is_backend(value, "torch") for value in values):
+        # Tensor subclasses can declare their defining module outside Torch,
+        # so retain ``isinstance`` support without importing the optional
+        # dependency merely to inspect non-Torch inputs.
+        import sys
+
+        torch = sys.modules.get("torch")
+        if torch is None or not any(
+            isinstance(value, torch.Tensor) for value in values
+        ):
+            return None
+    from pycbc.detector import ground_torch
+    return ground_torch
+
+
+def _numpy_network_antenna_pattern_and_time_delay(
+    detector_locations,
+    responses,
+    right_ascension,
+    declination,
+    polarization,
+    gmst,
+):
+    """Evaluate tensor responses and geocentric delays for a detector set."""
+    gha = gmst - right_ascension
+    cosgha = np.cos(gha)
+    singha = np.sin(gha)
+    cosdec = np.cos(declination)
+    sindec = np.sin(declination)
+    cospsi = np.cos(polarization)
+    sinpsi = np.sin(polarization)
+
+    x = np.array([
+        -cospsi * singha - sinpsi * cosgha * sindec,
+        -cospsi * cosgha + sinpsi * singha * sindec,
+        sinpsi * cosdec + np.zeros_like(gha),
+    ])
+    y = np.array([
+        sinpsi * singha - cospsi * cosgha * sindec,
+        sinpsi * cosgha + cospsi * singha * sindec,
+        cospsi * cosdec + np.zeros_like(gha),
+    ])
+
+    dx = np.einsum("dij,j...->di...", responses, x)
+    dy = np.einsum("dij,j...->di...", responses, y)
+    fplus = np.sum(x * dx - y * dy, axis=1)
+    fcross = np.sum(x * dy + y * dx, axis=1)
+
+    ehat = np.array([
+        cosdec * cosgha,
+        -cosdec * singha,
+        sindec + np.zeros_like(gha),
+    ])
+    delay = -np.einsum(
+        "dj,j...->d...", detector_locations, ehat
+    ) / constants.c.value
+    return fplus, fcross, delay
 
 def get_available_detectors():
     """ List the available detectors """
@@ -149,6 +266,10 @@ def single_arm_frequency_response(f, n, arm_length):
     signal delay. This is relevant where the long-wavelength
     approximation no longer applies)
     """
+    backend = _torch_backend((f, n, arm_length))
+    if backend is not None:
+        return backend.single_arm_frequency_response(f, n, arm_length)
+
     n = np.clip(n, -0.999, 0.999)
     phase = arm_length / constants.c.value * 2.0j * np.pi * f
     a = 1.0 / 4.0 / phase
@@ -233,7 +354,7 @@ class Detector(object):
             The response matrix applied to it, with the same shape.
         """
         v = np.array(np.broadcast_arrays(v0, v1, v2))
-        return v, resp.dot(v)
+        return v, np.tensordot(resp, v, axes=(1, 0))
 
     def __init__(self, detector_name, reference_time=1126259462.0):
         """ Create class representing a gravitational-wave detector
@@ -331,24 +452,39 @@ class Detector(object):
 
         Parameters
         ----------
-        right_ascension: float or numpy.ndarray
+        right_ascension: float, numpy.ndarray, or torch.Tensor
             The right ascension of the source
-        declination: float or numpy.ndarray
+        declination: float, numpy.ndarray, or torch.Tensor
             The declination of the source
-        polarization: float or numpy.ndarray
+        polarization: float, numpy.ndarray, or torch.Tensor
             The polarization angle of the source
         polarization_type: string flag: Tensor, Vector or Scalar
             The gravitational wave polarizations. Default: 'Tensor'
 
         Returns
         -------
-        fplus(default) or fx or fb : float or numpy.ndarray
+        fplus(default) or fx or fb : float, numpy.ndarray, or torch.Tensor
             The plus or vector-x or breathing polarization factor for this sky location / orientation
-        fcross(default) or fy or fl : float or numpy.ndarray
+        fcross(default) or fy or fl : float, numpy.ndarray, or torch.Tensor
             The cross or vector-y or longitudnal polarization factor for this sky location / orientation
         """
         if isinstance(t_gps, lal.LIGOTimeGPS):
             t_gps = float(t_gps)
+
+        backend = _torch_backend((
+            right_ascension, declination, polarization, frequency, t_gps
+        ))
+        if backend is not None:
+            return backend.antenna_pattern(
+                self,
+                right_ascension,
+                declination,
+                polarization,
+                t_gps,
+                frequency=frequency,
+                polarization_type=polarization_type,
+            )
+
         gha = self.gmst_estimate(t_gps) - right_ascension
 
         cosgha = cos(gha)
@@ -423,6 +559,104 @@ class Detector(object):
                 fl = (z * dz).sum()
             return fb, fl
 
+    def antenna_pattern_and_time_delay(
+        self, right_ascension, declination, polarization, t_gps
+    ):
+        """Return antenna pattern and geocentric delay together.
+
+        Parameters
+        ----------
+        right_ascension : float, numpy.ndarray, or torch.Tensor
+            The right ascension of the source.
+        declination : float, numpy.ndarray, or torch.Tensor
+            The declination of the source.
+        polarization : float, numpy.ndarray, or torch.Tensor
+            The polarization angle of the source.
+        t_gps : float, lal.LIGOTimeGPS, numpy.ndarray, or torch.Tensor
+            The GPS time.
+
+        Returns
+        -------
+        fplus : float, numpy.ndarray, or torch.Tensor
+            Plus polarization antenna response.
+        fcross : float, numpy.ndarray, or torch.Tensor
+            Cross polarization antenna response.
+        delay : float, numpy.ndarray, or torch.Tensor
+            Geocentric time delay.
+        """
+        if isinstance(t_gps, lal.LIGOTimeGPS):
+            t_gps = float(t_gps)
+
+        backend = _torch_backend((
+            right_ascension, declination, polarization, t_gps
+        ))
+        if backend is not None:
+            return backend.antenna_pattern_and_time_delay(
+                self,
+                right_ascension,
+                declination,
+                polarization,
+                t_gps,
+            )
+
+        is_scalar = (
+            np.ndim(right_ascension) == 0
+            and np.ndim(declination) == 0
+            and np.ndim(polarization) == 0
+            and np.ndim(t_gps) == 0
+        )
+        if is_scalar:
+            fp0, fc0, delay = _scalar_antenna_pattern_and_time_delay(
+                self, right_ascension, declination, t_gps
+            )
+            if polarization == 0 or polarization == 0.0:
+                return fp0, fc0, delay
+            cos2psi = np.cos(2.0 * polarization)
+            sin2psi = np.sin(2.0 * polarization)
+            fplus = cos2psi * fp0 + sin2psi * fc0
+            fcross = -sin2psi * fp0 + cos2psi * fc0
+            return fplus, fcross, delay
+
+        right_ascension, declination, polarization, t_gps = (
+            np.broadcast_arrays(
+                right_ascension, declination, polarization, t_gps
+            )
+        )
+        gha = self.gmst_estimate(t_gps) - right_ascension
+        cosgha = np.cos(gha)
+        singha = np.sin(gha)
+        cosdec = np.cos(declination)
+        sindec = np.sin(declination)
+        cospsi = np.cos(polarization)
+        sinpsi = np.sin(polarization)
+
+        x0 = -cospsi * singha - sinpsi * cosgha * sindec
+        x1 = -cospsi * cosgha + sinpsi * singha * sindec
+        x2 = sinpsi * cosdec
+        y0 = sinpsi * singha - cospsi * cosgha * sindec
+        y1 = sinpsi * cosgha + cospsi * singha * sindec
+        y2 = cospsi * cosdec
+
+        x = np.array(np.broadcast_arrays(x0, x1, x2))
+        y = np.array(np.broadcast_arrays(y0, y1, y2))
+        dx = np.tensordot(self.response, x, axes=(1, 0))
+        dy = np.tensordot(self.response, y, axes=(1, 0))
+        fplus = (x * dx - y * dy).sum(axis=0).astype(np.float64)
+        fcross = (x * dy + y * dx).sum(axis=0).astype(np.float64)
+
+        e0 = cosdec * cosgha
+        e1 = -cosdec * singha
+        e2 = sindec
+        projection = (
+            -self.location[0] * e0
+            - self.location[1] * e1
+            - self.location[2] * e2
+        )
+        delay = (projection / constants.c.value).astype(np.float64)
+        return fplus, fcross, delay
+
+    antenna_pattern_and_delay = antenna_pattern_and_time_delay
+
     def time_delay_from_earth_center(self, right_ascension, declination, t_gps):
         """Return the time delay from the earth center
         """
@@ -443,18 +677,31 @@ class Detector(object):
         ----------
         other_location : numpy.ndarray of coordinates
             A detector instance.
-        right_ascension : float
+        right_ascension : float, numpy.ndarray, or torch.Tensor
             The right ascension (in rad) of the signal.
-        declination : float
+        declination : float, numpy.ndarray, or torch.Tensor
             The declination (in rad) of the signal.
-        t_gps : float
+        t_gps : float, numpy.ndarray, or torch.Tensor
             The GPS time (in s) of the signal.
 
         Returns
         -------
-        float
+        float, numpy.ndarray, or torch.Tensor
             The arrival time difference between the detectors.
         """
+        if isinstance(t_gps, lal.LIGOTimeGPS):
+            t_gps = float(t_gps)
+
+        backend = _torch_backend((right_ascension, declination, t_gps))
+        if backend is not None:
+            return backend.time_delay_from_location(
+                self,
+                other_location,
+                right_ascension,
+                declination,
+                t_gps,
+            )
+
         ra_angle = self.gmst_estimate(t_gps) - right_ascension
         cosd = cos(declination)
 
@@ -501,11 +748,11 @@ class Detector(object):
         
         Parameters
         ----------
-        ref_tc : {float, lal.LIGOTimeGPS}
+        ref_tc : {float, lal.LIGOTimeGPS, torch.Tensor}
             The coalescence time to convert, defined in ref_frame
-        ra : float
+        ra : float or torch.Tensor
             Right ascension.
-        dec : float
+        dec : float or torch.Tensor
             Declination.
         ref_frame : str (optional)
             The detector to convert from, in which ref_tc is sampled. Default
@@ -513,7 +760,7 @@ class Detector(object):
             
         Returns
         -------
-        float : 
+        float or torch.Tensor :
             The coalescence time converted to the current detector frame.
         """
         if ref_frame == 'geocentric':
@@ -677,6 +924,13 @@ class Detector(object):
         eff_dist: float
             The effective distance of the source
         """
+        values = (distance, ra, dec, pol, time, inclination)
+        backend = _torch_backend(values)
+        if backend is not None:
+            return backend.effective_distance(
+                self, distance, ra, dec, pol, time, inclination
+            )
+
         fp, fc = self.antenna_pattern(ra, dec, pol, time)
         ic = np.cos(inclination)
         ip = 0.5 * (1. + ic * ic)
@@ -723,8 +977,149 @@ def ppdets(ifos, separator=', '):
         return separator.join(sorted(ifos))
     return 'no detectors'
 
+
+class NetworkGeometry(object):
+    """Vectorized multi-detector network geometry helper.
+
+    GMST, sidereal angles, and spatial projection trigonometry are computed
+    once for the network. Detector responses and locations are then
+    contracted together across the detector dimension.
+
+    Parameters
+    ----------
+    detectors : iterable of str or Detector
+        Detector names or instances in the network.
+    reference_time : float, optional
+        Reference GPS time for GMST estimation.
+    """
+
+    def __init__(self, detectors, reference_time=1126259462.0):
+        self.detectors = [
+            detector if isinstance(detector, Detector) else Detector(
+                detector, reference_time=reference_time
+            )
+            for detector in detectors
+        ]
+        self.detector_names = [detector.name for detector in self.detectors]
+        self.reference_time = reference_time
+        self.sday = float(sday.si.scale) if reference_time is not None else None
+        self.gmst_reference = (
+            gmst_accurate(reference_time)
+            if reference_time is not None else None
+        )
+        self.responses = np.stack([
+            detector.response for detector in self.detectors
+        ])
+        self.locations = np.stack([
+            detector.location for detector in self.detectors
+        ])
+
+    def __len__(self):
+        return len(self.detectors)
+
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            for detector in self.detectors:
+                if detector.name == key:
+                    return detector
+            raise KeyError(
+                f"Detector {key} not found in network {self.detector_names}"
+            )
+        return self.detectors[key]
+
+    def set_gmst_reference(self):
+        """Set the GMST value used for reference-time interpolation."""
+        if self.reference_time is not None:
+            self.sday = float(sday.si.scale)
+            self.gmst_reference = gmst_accurate(self.reference_time)
+        else:
+            raise RuntimeError(
+                "Can't get accurate sidereal time without GPS reference time!"
+            )
+
+    def gmst_estimate(self, gps_time):
+        """Estimate GMST for one or more GPS times."""
+        if self.reference_time is None:
+            return gmst_accurate(gps_time)
+        if self.gmst_reference is None:
+            self.set_gmst_reference()
+        dphase = (gps_time - self.reference_time) / self.sday * (2.0 * np.pi)
+        return (self.gmst_reference + dphase) % (2.0 * np.pi)
+
+    def antenna_pattern_and_time_delay(
+        self, right_ascension, declination, polarization, t_gps
+    ):
+        """Return antenna responses and delays for every detector.
+
+        Results have shape ``(detectors, ...)``, where the trailing dimensions
+        are the broadcast shape of the sky coordinates and GPS times.
+        """
+        if isinstance(t_gps, lal.LIGOTimeGPS):
+            t_gps = float(t_gps)
+
+        backend = _torch_backend((
+            right_ascension, declination, polarization, t_gps
+        ))
+        if backend is not None:
+            return backend.network_antenna_pattern_and_time_delay(
+                self,
+                right_ascension,
+                declination,
+                polarization,
+                t_gps,
+            )
+
+        gmst = self.gmst_estimate(t_gps)
+        right_ascension, declination, polarization, gmst = (
+            np.broadcast_arrays(
+                right_ascension, declination, polarization, gmst
+            )
+        )
+        return _numpy_network_antenna_pattern_and_time_delay(
+            self.locations,
+            self.responses,
+            right_ascension,
+            declination,
+            polarization,
+            gmst,
+        )
+
+    def antenna_pattern(
+        self, right_ascension, declination, polarization, t_gps
+    ):
+        """Return plus and cross antenna responses for every detector."""
+        fplus, fcross, _ = self.antenna_pattern_and_time_delay(
+            right_ascension, declination, polarization, t_gps
+        )
+        return fplus, fcross
+
+    def time_delay_from_earth_center(
+        self, right_ascension, declination, t_gps
+    ):
+        """Return geocentric time delays for every detector."""
+        _, _, delay = self.antenna_pattern_and_time_delay(
+            right_ascension, declination, 0.0, t_gps
+        )
+        return delay
+
+    def response_and_delay(
+        self, right_ascension, declination, polarization, t_gps
+    ):
+        """Alias for :meth:`antenna_pattern_and_time_delay`."""
+        return self.antenna_pattern_and_time_delay(
+            right_ascension, declination, polarization, t_gps
+        )
+
+    def to_dict(self, values):
+        """Map an array's detector axis to detector names."""
+        return {
+            name: values[index]
+            for index, name in enumerate(self.detector_names)
+        }
+
 __all__ = [
     'Detector',
+    'NetworkGeometry',
     'get_available_detectors',
     'get_available_lal_detectors',
     'add_detector_on_earth',
