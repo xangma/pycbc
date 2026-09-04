@@ -2838,7 +2838,9 @@ class LiveBatchMatchedFilter(object):
                         self._compute_stream.wait_event(self._transfer_event)
                         stilde_psd = stilde.psd
                         if isinstance(stilde, Array):
-                            stilde = stilde._return(wrap_backend_array(stilde_gpu))
+                            stilde = stilde._return(
+                                wrap_backend_array(stilde_gpu)
+                            )
                         elif hasattr(stilde, "delta_f"):
                             stilde = FrequencySeries(
                                 wrap_backend_array(stilde_gpu),
@@ -2849,7 +2851,7 @@ class LiveBatchMatchedFilter(object):
                         else:
                             stilde = stilde_gpu
                         # Series reconstruction preserves sampling metadata,
-                        # but the PSD is attached separately by the data reader.
+                        # but the data reader attaches the PSD separately.
                         stilde.psd = stilde_psd
 
                 # Pipelined prefetch for the next block (double buffering)

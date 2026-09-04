@@ -879,7 +879,9 @@ def test_live_batch_async_streams_flag_initialization(monkeypatch):
     assert batch3.enable_async_streams is True
 
 
-@pytest.mark.parametrize("series_kind", ["frequencyseries", "backend_protocol"])
+@pytest.mark.parametrize(
+    "series_kind", ["frequencyseries", "backend_protocol"]
+)
 def test_live_batch_async_streams_double_buffering_pipeline(
         monkeypatch, series_kind):
     class FakeStream:
@@ -1021,4 +1023,5 @@ def test_live_batch_async_streams_double_buffering_pipeline(
             assert migrated.epoch == host._epoch == epochs[index]
             assert host.backend_array is host_tensors[index]
             assert host.backend_array.device.type == "cpu"
-            assert getattr(host, "_data", host.backend_array) is host_storage[index]
+            actual_storage = getattr(host, "_data", host.backend_array)
+            assert actual_storage is host_storage[index]

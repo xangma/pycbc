@@ -33,7 +33,6 @@ def _wrap_torch_veto_result(inputs, tensor):
     if not any(isinstance(value, Array) for value in inputs):
         return tensor
 
-
     return Array(wrap_backend_array(tensor), copy=False)
 
 

@@ -1189,7 +1189,8 @@ def test_empty_correlation_requires_empty_points(
             assert result._data.tensor.numel() == 0
             assert result._data.tensor.device.type == "cpu"
             assert (
-                result._data.tensor.dtype == correlation._data.tensor.real.dtype
+                result._data.tensor.dtype
+                == correlation._data.tensor.real.dtype
             )
 
 

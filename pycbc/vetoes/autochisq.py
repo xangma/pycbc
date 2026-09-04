@@ -39,7 +39,9 @@ def _torch_autochisq(
 
     if isinstance(indices, Array):
         _convert_to_scheme(indices)
-        index_tensor = backend_array(indices, "torch").to(device=device, dtype=torch.long)
+        index_tensor = backend_array(indices, "torch").to(
+            device=device, dtype=torch.long
+        )
     else:
         index_tensor = torch.as_tensor(
             indices, device=device, dtype=torch.long

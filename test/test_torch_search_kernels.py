@@ -1422,7 +1422,9 @@ def test_matched_filter_ifft_overwrites_uninitialized_output(monkeypatch):
 
 @pytest.mark.parametrize("device", ["cpu", "cuda"])
 @pytest.mark.parametrize("storage_kind", ["protocol", "tensor_subclass"])
-def test_search_public_storage_preserves_device_and_gradients(device, storage_kind):
+def test_search_public_storage_preserves_device_and_gradients(
+    device, storage_kind,
+):
     from pycbc.events import cuts, ranking, single, veto
     from pycbc.types.backend import backend_array
 
@@ -1440,8 +1442,9 @@ def test_search_public_storage_preserves_device_and_gradients(device, storage_ki
 
     source = torch.tensor([8.0, 12.0, 16.0], dtype=torch.float64,
                           device=device, requires_grad=True)
-    reduced_chisq = torch.tensor([1.0, 2.0, 4.0], dtype=torch.float64,
-                                device=device)
+    reduced_chisq = torch.tensor(
+        [1.0, 2.0, 4.0], dtype=torch.float64, device=device
+    )
     if storage_kind == "protocol":
         values = PublicStorage(source)
         chisq = PublicStorage(reduced_chisq)

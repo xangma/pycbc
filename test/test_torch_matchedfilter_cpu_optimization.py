@@ -239,7 +239,9 @@ def test_reusable_native_correlator_rechecks_cached_views(
         )
 
         def fail_native(*args):
-            raise AssertionError("changed tensor metadata used cached NumPy view")
+            raise AssertionError(
+                "changed tensor metadata used cached NumPy view"
+            )
 
         monkeypatch.setattr(matchedfilter_cpu, "_correlate", fail_native)
         correlator = matchedfilter_torch.TorchCorrelator(*arrays)

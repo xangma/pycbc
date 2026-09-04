@@ -147,7 +147,6 @@ def _wrap_torch_cut_indices(indices, wrap_array):
     if not wrap_array:
         return indices
 
-
     return Array(wrap_backend_array(indices), copy=False)
 
 

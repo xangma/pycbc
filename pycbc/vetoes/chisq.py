@@ -118,7 +118,9 @@ def _torch_multiply_and_add(array, other, factor):
     """Call the Torch backend with a device scalar coefficient."""
     from pycbc.types import array_torch
 
-    data = array_torch.multiply_and_add(array, wrap_backend_array(other), factor)
+    data = array_torch.multiply_and_add(
+        array, wrap_backend_array(other), factor
+    )
     return array._return(data)
 
 def power_chisq_bins_from_sigmasq_series(sigmasq_series, num_bins, kmin, kmax):

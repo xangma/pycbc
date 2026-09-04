@@ -1976,15 +1976,16 @@ class StrainBuffer(pycbc.frame.DataBuffer):
                         torch.fft.rfft(backend_array(overwhite2))
                         * overwhite2.delta_t
                     )
-                    fseries_trimmed = FrequencySeries(wrap_backend_array(fseries_tensor),
-                                                      delta_f=overwhite2.delta_f,
-                                                      epoch=overwhite2.start_time,
-                                                      copy=False)
+                    fseries_trimmed = FrequencySeries(
+                        wrap_backend_array(fseries_tensor),
+                        delta_f=overwhite2.delta_f,
+                        epoch=overwhite2.start_time, copy=False
+                    )
                 else:
-                    fseries_trimmed = FrequencySeries(wrap_backend_array(fseries_tensor),
-                                                      delta_f=delta_f,
-                                                      epoch=fseries.epoch,
-                                                      copy=False)
+                    fseries_trimmed = FrequencySeries(
+                        wrap_backend_array(fseries_tensor), delta_f=delta_f,
+                        epoch=fseries.epoch, copy=False
+                    )
                 fseries_trimmed.psd = psd
                 self.segments[delta_f] = fseries_trimmed
 
