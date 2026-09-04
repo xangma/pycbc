@@ -251,8 +251,11 @@ def test_qtransform_cuda_promotes_single_precision_fft(monkeypatch):
     data, dt = _make_signal(np.float32)
 
     with scheme.CPUScheme():
-        source = TimeSeries(data, delta_t=dt)
-        expected_times, expected_freqs, expected_plane = source.qtransform(
+        # Compare the same float32 samples promoted before the forward FFT.
+        # The legacy CPU float32 FFT would add its own rounding error before
+        # the Q tiles are normalized by their median energy.
+        reference = TimeSeries(data.astype(np.float64), delta_t=dt)
+        expected_times, expected_freqs, expected_plane = reference.qtransform(
             delta_t=4 * dt,
             delta_f=1.0,
             frange=(20, 120),
