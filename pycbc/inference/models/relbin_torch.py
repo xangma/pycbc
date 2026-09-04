@@ -330,21 +330,6 @@ def dominant_mode_projection(fp, fc, polarization, inclination, like):
     return torch.complex(fp * plus, fc * cosi)
 
 
-def dominant_mode_template_factor(
-        fp, fc, polarization, inclination, coa_phase, distance, like):
-    """Build a full dominant-mode extrinsic factor beside a Torch sample."""
-    like = _torch_tensor(like)
-    if like is None:
-        raise TypeError("a Torch-backed likelihood sample is required")
-
-    projection = dominant_mode_projection(
-        fp, fc, polarization, inclination, like)
-    angle = _as_tensor(coa_phase, like, like.real.dtype)
-    phase = torch.polar(torch.ones_like(angle), -2.0 * angle)
-    distance = _as_tensor(distance, like, like.real.dtype)
-    return projection * phase / distance
-
-
 def _complex_cumsum(value, dim=-1):
     """Cumulatively sum complex values on devices without complex cumsum."""
     if torch.is_complex(value):
@@ -630,83 +615,6 @@ def likelihood_parts_v(freqs, fp, fc, dtc, hp, hc, h00,
     shift = torch.complex(torch.cos(phase), torch.sin(phase))
     ratio = shift * (fp * hp + fc * hc) / h00
     return _summaries(ratio, a0, a1, b0, b1)
-
-
-def batched_likelihood_parts(freqs, fp, fc, dtc, hp, hc, h00,
-                             a0, a1, b0, b1, *, use_vmap=False):
-    """Evaluate relative-binning likelihood parts across N sample points.
-
-    Supports both broadcasted 3D tensor evaluation and torch.vmap
-    vectorization.
-
-    Parameters
-    ----------
-    freqs : torch.Tensor
-        Frequency grid (F,).
-    fp, fc, dtc : torch.Tensor
-        Sample parameter tensors of shape (N,) or (B, N).
-    hp, hc, h00 : torch.Tensor
-        Waveform frequency series of shape (F,), (N, F), or (B, N, F).
-    a0, a1, b0, b1 : torch.Tensor
-        Summary bin coefficients.
-    use_vmap : bool, optional
-        If True, evaluates the batch via torch.vmap vectorization.
-        If False (default), evaluates via broadcasted tensor operations.
-
-
-    Returns
-    -------
-    filt : torch.Tensor
-        Linearized data inner product of shape (N,) or (B, N).
-    norm : torch.Tensor
-        Linearized waveform norm of shape (N,) or (B, N).
-    """
-    if use_vmap:
-        hp = _torch_tensor(hp)
-        if hp is None:
-            raise TypeError("a Torch-backed waveform is required")
-        real_dtype = hp.real.dtype
-        hc = _as_tensor(hc, hp, hp.dtype)
-        h00 = _as_tensor(h00, hp, hp.dtype)
-        fp = _as_tensor(fp, hp, real_dtype)
-        fc = _as_tensor(fc, hp, real_dtype)
-        dtc = _as_tensor(dtc, hp, real_dtype)
-        sample_shape = tuple(fp.shape)
-        if tuple(fc.shape) != sample_shape or tuple(dtc.shape) != sample_shape:
-            raise ValueError("fp, fc, and dtc must have matching sample shapes")
-        if not sample_shape:
-            return likelihood_parts(
-                freqs, fp, fc, dtc, hp, hc, h00, a0, a1, b0, b1
-            )
-
-        def waveform_rows(value, name):
-            if value.ndim == 1:
-                return value, None
-            if tuple(value.shape[:-1]) != sample_shape:
-                expected = (*sample_shape, "F")
-                raise ValueError(
-                    f"{name} must have shape (F,) or {expected}"
-                )
-            return value.reshape(-1, value.shape[-1]), 0
-
-        hp_rows, hp_dim = waveform_rows(hp, "hp")
-        hc_rows, hc_dim = waveform_rows(hc, "hc")
-        h00_rows, h00_dim = waveform_rows(h00, "h00")
-        v_fn = torch.vmap(
-            lambda p, c, t, hp_row, hc_row, h00_row: likelihood_parts(
-                freqs, p, c, t, hp_row, hc_row, h00_row,
-                a0, a1, b0, b1,
-            ),
-            in_dims=(0, 0, 0, hp_dim, hc_dim, h00_dim),
-        )
-        filt, norm = v_fn(
-            fp.reshape(-1), fc.reshape(-1), dtc.reshape(-1),
-            hp_rows, hc_rows, h00_rows,
-        )
-        return filt.reshape(sample_shape), norm.reshape(sample_shape)
-    return likelihood_parts(
-        freqs, fp, fc, dtc, hp, hc, h00, a0, a1, b0, b1
-    )
 
 
 def likelihood_parts_vector(freqs, fp, fc, dtc, hp, hc, h00,

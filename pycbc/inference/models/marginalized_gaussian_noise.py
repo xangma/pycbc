@@ -191,7 +191,7 @@ class MarginalizedPhaseGaussianNoise(GaussianNoise):
         self._current_stats.maxl_phase = (
             hd_tensor.angle() if hd_tensor is not None else numpy.angle(hd)
         )
-        return marginalize_likelihood(hd, hh, phase=True)
+        return marginalize_likelihood(hd, hh, phase=True, skip_vector=True)
 
     def _batched_loglr(self, *args, **params):
         r"""Computes the phase-marginalized log likelihood ratio for a batch of

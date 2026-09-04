@@ -513,7 +513,8 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
             parameters are ``tc``, ``ra``, ``dec``, and ``polarization``.
             Radiation-frame waveform parameters must be scalar. Batched
             evaluation requires common detector frequency grids and does not
-            currently support template recalibration or waveform gates.
+            currently support sampling or waveform transforms, template
+            recalibration, or waveform gates.
             Absolute GPS-time arrays or tensors must use 64-bit precision.
 
         Returns
@@ -521,15 +522,42 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
         logl : numpy.ndarray or torch.Tensor
             The log likelihood values evaluated across the batch.
         """
-        return self._batched_loglr(*args, **params) + self.lognl
+        return self.batched_loglr(*args, **params) + self.lognl
 
     def batched_loglr(self, *args, **params):
         """Evaluate a batch over detector-frame extrinsic parameters.
 
         Batched ``tc``, ``ra``, ``dec``, and ``polarization`` values are
         supported. Radiation-frame waveform parameters must be scalar.
+        Sampling and waveform transforms are not supported. A waveform
+        generation failure returns one negative infinity per sample, subject
+        to the same ``ignore_failed_waveforms`` policy as scalar evaluation.
         """
-        return self._batched_loglr(*args, **params)
+        params = self._parse_batched_params(*args, **params)
+        try:
+            return self._batched_loglr(**params)
+        except NoWaveformError:
+            pass
+        except NotImplementedError:
+            raise
+        except (RuntimeError, FailedWaveformError):
+            if not self.ignore_failed_waveforms:
+                raise
+
+        full_params = dict(self.static_params)
+        full_params.update(params)
+        generator = self.waveform_generator
+        batch_size = (
+            _detector_frame_batch_size(generator, params, full_params)
+            if hasattr(generator, 'location_args') else 1
+        )
+        # Prefer the data's device, as for the ordinary likelihood, and keep
+        # the scalar model state untouched by this independent batch call.
+        for value in (*self._data.values(), *full_params.values()):
+            tensor = _torch_tensor(value)
+            if tensor is not None:
+                return tensor.real.new_full((batch_size,), -numpy.inf)
+        return numpy.full(batch_size, -numpy.inf)
 
     def _batched_loglr(self, *args, **params):
         """Computes the log likelihood ratio for a batch of parameter samples.
@@ -1264,6 +1292,12 @@ def _batched_waveform_inner_products(model, params, zero_phase=False):
     across all detectors in a single pass using NetworkGeometry and
     _fused_inner_hd_hh.
     """
+    if (getattr(model, 'sampling_transforms', None) is not None
+            or getattr(model, 'waveform_transforms', None)):
+        raise NotImplementedError(
+            "Batched likelihood evaluation does not support sampling or "
+            "waveform transforms; use scalar model evaluation"
+        )
     full_params = dict(model.static_params) if model.static_params else {}
     full_params.update(params)
 

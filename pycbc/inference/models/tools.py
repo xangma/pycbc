@@ -1212,12 +1212,6 @@ def setup_distance_marg_interpolant(dist_marg,
     return interp_wrapper
 
 
-def _torch_bspline_basis(values, knots, degree):
-    """Return active B-spline coefficient indices and basis values."""
-    from pycbc.inference.models import tools_torch
-    return tools_torch._bspline_basis(values, knots, degree)
-
-
 def _torch_rect_bivariate_spline_evaluator(interp):
     """Create a device-native evaluator for a SciPy bivariate spline."""
     evaluator = [None]

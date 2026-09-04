@@ -168,3 +168,171 @@ def test_detector_frame_batch_contract_accepts_torch_parameters():
     invalid = dict(supplied, mass1=torch.ones(4))
     with pytest.raises(ValueError, match="radiation-frame waveform"):
         _detector_frame_batch_size(generator, invalid, invalid)
+
+
+@pytest.fixture(params=["numpy", "cpu", "cuda"])
+def real_model(request):
+    """Use real TaylorF2 waveforms, detector geometry, and data containers."""
+    from pycbc import scheme
+    from pycbc.inference.models.marginalized_gaussian_noise import (
+        MarginalizedPhaseGaussianNoise,
+    )
+
+    backend = request.param
+    if backend == "numpy":
+        context = scheme.CPUScheme()
+    else:
+        torch = pytest.importorskip("torch")
+        if backend == "cuda" and not torch.cuda.is_available():
+            pytest.skip("CUDA is unavailable")
+        context = scheme.TorchScheme(backend)
+    try:
+        with context:
+            data = {
+                det: FrequencySeries(
+                    numpy.full(129, 1e-23 + 1e-23j),
+                    delta_f=2.0, epoch=1126259460.0,
+                )
+                for det in ("H1", "L1")
+            }
+            psds = {
+                det: FrequencySeries(numpy.full(129, 1e-46), delta_f=2.0)
+                for det in data
+            }
+            static = dict(
+                approximant="TaylorF2", mass1=30.0, mass2=20.0,
+                distance=500.0, inclination=0.4, f_lower=20.0,
+                coa_phase=0.2,
+            )
+            params = {
+                name: numpy.asarray(values, dtype=numpy.float64)
+                for name, values in dict(
+                    tc=[1126259462.0, 1126259462.001],
+                    ra=[1.1, 1.2], dec=[-0.3, -0.2],
+                    polarization=[0.2, 0.4],
+                ).items()
+            }
+            if backend != "numpy":
+                params = {
+                    name: torch.tensor(
+                        value, dtype=torch.float64, device=backend,
+                        requires_grad=(name == "ra"),
+                    )
+                    for name, value in params.items()
+                }
+            models = [
+                cls(tuple(params), data, {"H1": 20.0, "L1": 24.0},
+                    psds=psds, static_params=static)
+                for cls in (GaussianNoise, MarginalizedPhaseGaussianNoise)
+            ]
+            yield models, params, backend
+    finally:
+        del context
+        scheme.Scheme._single = None
+
+
+def test_real_batch_matches_scalar_likelihood_and_gradients(real_model):
+    models, params, backend = real_model
+    for model in models:
+        expected = []
+        for index in range(2):
+            model.update(**{name: value[index]
+                            for name, value in params.items()})
+            expected.append(model.loglr)
+        old_params = model._current_params
+        old_stats = model._current_stats
+        actual = model.batched_loglr(**params)
+        assert model._current_params is old_params
+        assert model._current_stats is old_stats
+        if backend == "numpy":
+            numpy.testing.assert_allclose(actual, expected, atol=1e-9)
+            numpy.testing.assert_allclose(
+                model.batched_loglikelihood(**params), actual + model.lognl
+            )
+            continue
+
+        import torch
+
+        assert actual.device == params["ra"].device
+        torch.testing.assert_close(actual, torch.stack(expected), atol=1e-9,
+                                   rtol=1e-10)
+        torch.testing.assert_close(
+            model.batched_loglikelihood(**params), actual + model.lognl
+        )
+        gradient = torch.autograd.grad(actual.sum(), params["ra"])[0]
+        scalar_gradient = torch.autograd.grad(
+            torch.stack(expected).sum(), params["ra"]
+        )[0]
+        torch.testing.assert_close(gradient, scalar_gradient)
+        # An independent numerical derivative detects finite but wrong
+        # gradients, including loss of parameter dependence inside projection.
+        step = 1e-5
+        finite_difference = []
+        for index in range(2):
+            sample = {name: value[index].detach().item()
+                      for name, value in params.items()}
+            values = []
+            for offset in (-step, step):
+                model.update(**dict(sample, ra=sample["ra"] + offset))
+                values.append(float(model.loglr))
+            finite_difference.append((values[1] - values[0]) / (2 * step))
+        torch.testing.assert_close(
+            gradient, gradient.new_tensor(finite_difference),
+            rtol=1e-5, atol=1e-5,
+        )
+
+
+@pytest.mark.parametrize("failure", ["no_waveform", "failed", "runtime"])
+@pytest.mark.parametrize("ignore_failed", [False, True])
+def test_real_batch_waveform_failure_matches_scalar_policy(
+        real_model, monkeypatch, failure, ignore_failed):
+    from pycbc.waveform import NoWaveformError, FailedWaveformError
+
+    models, params, backend = real_model
+    error_type = {
+        "no_waveform": NoWaveformError,
+        "failed": FailedWaveformError,
+        "runtime": RuntimeError,
+    }[failure]
+
+    def fail(**_params):
+        raise error_type("waveform generation failed")
+
+    for model in models:
+        model.ignore_failed_waveforms = ignore_failed
+        monkeypatch.setattr(model.waveform_generator.rframe_generator,
+                            "generate", fail)
+        model.update(**{name: value[0] for name, value in params.items()})
+        if failure != "no_waveform" and not ignore_failed:
+            with pytest.raises(error_type):
+                _ = model.loglr
+            with pytest.raises(error_type):
+                model.batched_loglr(**params)
+            continue
+        assert model.loglr == -numpy.inf
+        old_stats = model._current_stats
+        actual = model.batched_loglr(**params)
+        assert actual.shape == (2,)
+        assert model._current_stats is old_stats
+        if backend == "numpy":
+            assert numpy.isneginf(actual).all()
+            assert numpy.isneginf(model.batched_loglikelihood(**params)).all()
+        else:
+            import torch
+
+            assert actual.device == params["ra"].device
+            assert torch.isneginf(actual).all()
+            assert torch.isneginf(model.batched_loglikelihood(**params)).all()
+
+
+@pytest.mark.parametrize("attribute", ["sampling_transforms",
+                                       "waveform_transforms"])
+def test_real_batch_rejects_configured_transforms(real_model, attribute):
+    models, params, _ = real_model
+    for model in models:
+        setattr(model, attribute, [object()])
+        # Unsupported configurations must remain errors even when waveform
+        # failures would normally be interpreted as zero likelihood.
+        model.ignore_failed_waveforms = True
+        with pytest.raises(NotImplementedError, match="transforms"):
+            model.batched_loglr(**params)
