@@ -15,15 +15,22 @@ The focused CI selections set the test-only ``PYCBC_TEST_SCHEME`` variable:
 
 .. code-block:: console
 
-   PYCBC_TEST_SCHEME=torch python -m pytest -q TEST_PATHS
+   PYCBC_TEST_SCHEME=torch:cpu python -m pytest -q TEST_PATHS
    PYCBC_TEST_SCHEME=torch:cuda python -m pytest -q TEST_PATHS
 
 This is separate from the runtime default ``PYCBC_SCHEME`` described in
-:ref:`torch-scheme`. A test that supports device selection must either consume
-``PYCBC_TEST_SCHEME`` through its fixture or construct the intended
-``TorchScheme`` explicitly. Merely setting the variable does not prove that a
-legacy test exercised Torch; route and output-device assertions remain
-required.
+:ref:`torch-scheme`. ``parse_args_all_schemes`` in ``test/utils.py`` reads this
+variable as its default, including the complete Torch device name. An explicit
+``--scheme`` argument takes precedence. CPU-only test helpers continue to run
+on CPU. Tests with their own explicit Torch contexts or device fixtures retain
+those choices; the variable does not override them.
+
+Domain-compatibility and relative-binning tests now have separately collected
+CPU and CUDA cases, as do the detector and prior tests. The CUDA workflow runs
+both CPU reference cases and CUDA cases and prints their identifiers and skip
+reasons. Other selected tests may still have explicitly CPU-only contexts.
+The lane therefore qualifies the CUDA cases it actually executes, not every
+test in each selected file. Route and output-device assertions remain required.
 
 Tests should clear unrelated Torch feature variables so a developer's shell
 does not change route selection. A device-specific test must skip clearly when
@@ -41,7 +48,13 @@ allocated/reserved-memory metadata:
 
 .. code-block:: console
 
-   python -m pytest -q test/test_torch_performance_artifacts.py
+   python -m pytest -q test/test_torch_performance_artifacts.py \
+     test/test_torch_parity_artifacts.py
+
+The parity negative controls reject empty records/corpora, any nonfinite
+values, NumPy fallback when Torch storage was requested, and a mismatched CUDA
+device index. A returned Torch tensor establishes output placement only; it
+does not establish that every intermediate was resident on that device.
 
 Run syntax, configuration, and documentation checks with the repository
 environment:
@@ -80,7 +93,7 @@ job are the evidence for that run.
      - 3.11, 3.12, 3.13
      - CPU
      - Broad PyCBC coverage, followed in unit-test jobs by a focused Torch CPU
-       selection with ``PYCBC_TEST_SCHEME=torch``.
+       selection with ``PYCBC_TEST_SCHEME=torch:cpu``.
    * - General macOS tests
      - 3.11, 3.12, 3.13
      - CPU
@@ -90,7 +103,8 @@ job are the evidence for that run.
      - Self-hosted Linux CUDA
      - Weekly on the default branch and manually dispatched. It requests the
        exact Torch/CUDA wheel declared in the workflow, verifies real CUDA
-       availability, and runs the focused CUDA regression selection.
+       availability, and runs CUDA regressions alongside CPU reference cases.
+       Manual custom selectors qualify only the cases selected.
    * - MPS
      - Not dedicated
      - Apple MPS
@@ -179,7 +193,14 @@ A prepared campaign can be launched with:
 
 Preserve ``launch.json``, every generated NPZ/JSON pair, the comparison report,
 and the matrix log. A skipped CUDA cell must remain visible as a skip and must
-not be presented as device qualification.
+not be presented as device qualification. The runner reports
+``matrix_result=PASS_CPU_ONLY`` when CUDA was unavailable.
+
+The matrix's current waveform corpus has one 35+28 solar-mass TaylorF2 case.
+It does not supersede ``tools/verify_lal_torch_parity.py``, which retains three
+BNS/low-mass TaylorF2 cases and PSD-weighted strain-match checks. Keep both
+suites until those cases and acceptance criteria have been migrated. Neither
+suite alone establishes parity across the entire physical parameter space.
 
 What each optimization test must prove
 --------------------------------------

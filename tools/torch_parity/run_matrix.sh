@@ -451,7 +451,11 @@ if [[ "$cuda_available" == "1" ]]; then
 fi
 
 if [[ "$status" == "0" ]]; then
-    echo "matrix_result=PASS"
+    if [[ "$cuda_available" == "1" ]]; then
+        echo "matrix_result=PASS"
+    else
+        echo "matrix_result=PASS_CPU_ONLY"
+    fi
 else
     echo "matrix_result=FAIL"
 fi

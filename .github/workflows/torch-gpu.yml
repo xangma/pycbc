@@ -7,10 +7,6 @@ on:
     - cron: "17 5 * * 1"
   workflow_dispatch:
     inputs:
-      scheme:
-        description: "Torch scheme to run (for example, torch:cuda or torch:cuda:1)"
-        required: false
-        default: "torch:cuda"
       tests:
         description: "One pytest path or node ID; blank runs the CUDA regression set"
         required: false
@@ -39,30 +35,13 @@ jobs:
         with:
           pixi-version: latest
 
-      - name: Cache LAL auxiliary data files
-        id: cache-lal-aux-data
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
-        with:
-          key: lal-aux-data
-          path: ~/lal_aux_data
-
-      - if: ${{ steps.cache-lal-aux-data.outputs.cache-hit != 'true' }}
-        name: Download LAL auxiliary data files
-        run: |
-          mkdir -p ~/lal_aux_data
-          curl --fail --location --retry 3 --show-error --silent \
-            --output-dir ~/lal_aux_data \
-            --remote-name https://zenodo.org/records/14999310/files/SEOBNRv4ROM_v2.0.hdf5 \
-            --remote-name https://zenodo.org/records/14999310/files/SEOBNRv4ROM_v3.0.hdf5
-
-      - name: Run torch GPU tests
+      - name: Run CUDA regressions and CPU reference cases
         env:
-          PYCBC_TEST_SCHEME: ${{ inputs.scheme || 'torch:cuda' }}
+          PYCBC_TEST_SCHEME: torch:cuda
           TEST_SELECTOR: ${{ inputs.tests }}
           PYTORCH_INDEX_URL: https://download.pytorch.org/whl/cu126
           PYTORCH_VERSION: "2.13.0"
         run: |
-          export LAL_DATA_PATH=$HOME/lal_aux_data${LAL_DATA_PATH:+:$LAL_DATA_PATH}
           pixi run -e unittest bash -euo pipefail -c '
             python -m ensurepip --upgrade
             python -m pip install --upgrade --force-reinstall \
@@ -108,5 +87,5 @@ jobs:
             if [[ -n "${TEST_SELECTOR}" ]]; then
               selectors=("${TEST_SELECTOR}")
             fi
-            python -m pytest -q "${selectors[@]}"
+            python -m pytest -v -ra "${selectors[@]}"
           '

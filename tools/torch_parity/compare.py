@@ -54,8 +54,13 @@ def _settings_for(name, profile):
 def _relative_l2(reference, candidate, finite):
     ref = reference[finite].astype(np.complex128, copy=False)
     cand = candidate[finite].astype(np.complex128, copy=False)
-    error = float(np.linalg.norm(cand - ref))
-    scale = float(np.linalg.norm(ref))
+    # Scale before subtraction and squaring so very small strain amplitudes
+    # cannot underflow into a false zero error (nor large values overflow).
+    magnitude = max(float(np.max(np.abs(ref))), float(np.max(np.abs(cand))))
+    if magnitude == 0.0:
+        return 0.0
+    error = float(np.linalg.norm(cand / magnitude - ref / magnitude))
+    scale = float(np.linalg.norm(ref / magnitude))
     if scale == 0.0:
         return 0.0 if error == 0.0 else float("inf")
     return error / scale
@@ -66,7 +71,8 @@ def _compare_record(name, reference, candidate, ref_meta, cand_meta, settings):
     for key in STRUCTURE_KEYS:
         if ref_meta.get(key) != cand_meta.get(key):
             failures.append(
-                f"metadata {key}: {cand_meta.get(key)!r} != {ref_meta.get(key)!r}"
+                f"metadata {key}: {cand_meta.get(key)!r} != "
+                f"{ref_meta.get(key)!r}"
             )
 
     if reference.shape != candidate.shape:
@@ -79,8 +85,12 @@ def _compare_record(name, reference, candidate, ref_meta, cand_meta, settings):
 
     ref_finite = np.isfinite(reference)
     cand_finite = np.isfinite(candidate)
-    if not np.array_equal(ref_finite, cand_finite):
-        failures.append("finite/non-finite pattern differs")
+    if not reference.size:
+        failures.append("empty record cannot establish parity")
+    if not ref_finite.all() or not cand_finite.all():
+        failures.append(
+            "parity corpus requires finite reference and candidate values"
+        )
     finite = ref_finite & cand_finite
 
     if settings.get("zero_pattern", False):
@@ -105,7 +115,7 @@ def _compare_record(name, reference, candidate, ref_meta, cand_meta, settings):
         max_abs = max_rel = relative_l2 = 0.0
 
     l2_limit = float(settings["relative_l2"])
-    if relative_l2 > l2_limit:
+    if not np.isfinite(relative_l2) or relative_l2 > l2_limit:
         failures.append(
             f"relative L2 {relative_l2:.6e} exceeds {l2_limit:.6e}"
         )
@@ -118,7 +128,7 @@ def _compare_record(name, reference, candidate, ref_meta, cand_meta, settings):
             reference,
             rtol=rtol,
             atol=atol,
-            equal_nan=True,
+            equal_nan=False,
         ):
             failures.append(f"allclose failed (rtol={rtol:g}, atol={atol:g})")
 
@@ -140,7 +150,9 @@ def main():
     try:
         profile = policy["profiles"][args.profile]
     except KeyError as exc:
-        raise ValueError(f"unknown comparison profile {args.profile!r}") from exc
+        raise ValueError(
+            f"unknown comparison profile {args.profile!r}"
+        ) from exc
 
     ref_json_path, ref_npz_path = _paths(args.reference)
     cand_json_path, cand_npz_path = _paths(args.candidate)
@@ -152,10 +164,16 @@ def main():
     ref_names = set(ref_records)
     cand_names = set(cand_records)
     global_failures = []
+    if not ref_names or not cand_names:
+        global_failures.append(
+            "parity corpus must contain at least one record"
+        )
     if ref_names != cand_names:
         missing = sorted(ref_names - cand_names)
         extra = sorted(cand_names - ref_names)
-        global_failures.append(f"record sets differ; missing={missing}, extra={extra}")
+        global_failures.append(
+            f"record sets differ; missing={missing}, extra={extra}"
+        )
 
     results = {}
     with np.load(ref_npz_path, allow_pickle=False) as ref_arrays, np.load(

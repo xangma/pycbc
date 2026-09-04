@@ -69,7 +69,7 @@ jobs:
     - name: run focused CPU Torch test suite
       if: matrix.test-type == 'unittest'
       env:
-        PYCBC_TEST_SCHEME: torch
+        PYCBC_TEST_SCHEME: torch:cpu
       run: |
         export LAL_DATA_PATH=$HOME/lal_aux_data
         pixi run -e unittest test-unittest -q \
@@ -118,6 +118,9 @@ jobs:
           test/test_torch_marginalized_gaussian.py \
           test/test_torch_inference_cli.py \
           test/test_torch_performance_artifacts.py
+        pixi run -e unittest test-unittest -q \
+          test/test_torch_parity_artifacts.py \
+          test/test_scheme_selection.py
 
     - name: check help messages work
       if: matrix.test-type == 'unittest'

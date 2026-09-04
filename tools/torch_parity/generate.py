@@ -62,7 +62,14 @@ def _epoch_metadata(value):
 
 
 def _tensor_from(value):
-    return getattr(getattr(value, "_data", None), "tensor", None)
+    tensor = getattr(getattr(value, "_data", None), "tensor", None)
+    if tensor is not None:
+        return tensor
+    try:
+        import torch
+    except ImportError:
+        return None
+    return value if isinstance(value, torch.Tensor) else None
 
 
 def _to_numpy(value):
@@ -71,12 +78,6 @@ def _to_numpy(value):
         return tensor.detach().cpu().numpy().copy()
     if hasattr(value, "numpy"):
         return np.asarray(value.numpy()).copy()
-    try:
-        import torch
-    except ImportError:
-        torch = None
-    if torch is not None and isinstance(value, torch.Tensor):
-        return value.detach().cpu().numpy().copy()
     return np.asarray(value).copy()
 
 
@@ -84,24 +85,30 @@ def _scalar(value):
     tensor = _tensor_from(value)
     if tensor is not None:
         return float(tensor.detach().cpu().item())
-    try:
-        import torch
-    except ImportError:
-        torch = None
-    if torch is not None and isinstance(value, torch.Tensor):
-        return float(value.detach().cpu().item())
     return float(value)
 
 
 def _capture(name, value, arrays, records, expected_device=None):
     tensor = _tensor_from(value)
     if tensor is None:
+        if expected_device is not None:
+            raise AssertionError(
+                f"{name} uses host storage, expected Torch on "
+                f"{expected_device}"
+            )
         storage = "numpy"
     else:
         storage = f"torch:{tensor.device}"
         if expected_device is not None:
-            expected_type = expected_device.split(":", 1)[0]
-            if tensor.device.type != expected_type:
+            import torch
+            expected = torch.device(expected_device)
+            if expected.type == "cuda" and expected.index is None:
+                expected = torch.device("cuda", torch.cuda.current_device())
+            elif expected.type == "mps" and expected.index is None:
+                expected = torch.device("mps", 0)
+            elif expected.type == "cpu":
+                expected = torch.device("cpu")
+            if tensor.device != expected:
                 raise AssertionError(
                     f"{name} is on {tensor.device}, expected {expected_device}"
                 )
