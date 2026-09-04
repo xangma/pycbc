@@ -31,6 +31,7 @@ import numpy as _np
 
 import pycbc.scheme as _scheme
 from pycbc.constants import C_SI, GAMMA, MRSUN_SI, MTSUN_SI, PC_SI, PI
+from pycbc.types.backend import torch_module_for
 
 
 # Keep the same maximum order used by PNPhasingSeries in LAL (0..15)
@@ -71,9 +72,8 @@ class _PNPhasingSeries:
     """Lightweight stand-in for LAL PNPhasingSeries."""
 
     def __init__(self, like=None):
-        if type(like).__module__.split(".", 1)[0] == "torch":
-            import torch
-
+        torch = torch_module_for(like)
+        if torch is not None:
             # Assemble tensor coefficients as independent values. Mutating
             # views of one stacked tensor while later terms still reference
             # those views invalidates Torch's saved autograd versions.

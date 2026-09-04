@@ -422,3 +422,28 @@ def test_mass_spin_and_phase_gradients_pass_gradcheck():
         assert parameter.grad is not None
         assert torch.isfinite(parameter.grad).all()
         assert torch.count_nonzero(parameter.grad) == parameter.numel()
+
+
+def test_phasing_tensor_subclass_preserves_values_and_gradients():
+    from pycbc.waveform.taylorf2_torch import taylorf2_aligned_phasing
+
+    class PhysicalTensor(torch.Tensor):
+        pass
+
+    mass = torch.tensor([1.4, 1.8], dtype=torch.float64, requires_grad=True)
+    spin = torch.tensor([0.02, -0.1], dtype=torch.float64, requires_grad=True)
+    reference = taylorf2_aligned_phasing(mass, 1.2, spin, 0.05)
+    actual = taylorf2_aligned_phasing(
+        mass.as_subclass(PhysicalTensor), 1.2,
+        spin.as_subclass(PhysicalTensor), 0.05,
+    )
+    for name in ("v", "vlogv", "vlogvsq"):
+        torch.testing.assert_close(
+            getattr(actual, name), getattr(reference, name), check_type=False
+        )
+    actual_grads = torch.autograd.grad(actual.v.sum(), (mass, spin))
+    expected_grads = torch.autograd.grad(reference.v.sum(), (mass, spin))
+    for actual_grad, expected_grad in zip(actual_grads, expected_grads):
+        assert torch.isfinite(actual_grad).all()
+        assert torch.count_nonzero(actual_grad) == actual_grad.numel()
+        torch.testing.assert_close(actual_grad, expected_grad, check_type=False)
