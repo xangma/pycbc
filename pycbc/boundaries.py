@@ -31,7 +31,24 @@ import logging
 
 import numpy
 
+from pycbc.types.backend import torch_module_for as _torch_module_for
+
 logger = logging.getLogger("pycbc.boundaries")
+
+
+def _reflect_tensor(value, bounds, torch=None):
+    """Apply ``bounds``' reflection rules to a Torch tensor."""
+    if torch is None:
+        torch = _torch_module_for(value)
+    if bounds.reflected == "well":
+        width = bounds._max - bounds._min
+        offset = torch.remainder(value - bounds._min, 2 * width)
+        return bounds._min + width - torch.abs(offset - width)
+    if bounds.reflected == "min":
+        return torch.where(value < bounds._min, 2 * bounds._min - value, value)
+    if bounds.reflected == "max":
+        return torch.where(value > bounds._max, 2 * bounds._max - value, value)
+    return value
 
 
 class _Bound(float):
@@ -411,7 +428,11 @@ class Bounds(object):
         retval = value
         if self._cyclic:
             retval = apply_cyclic(value, self)
-        retval = self._reflect(retval)
+        torch = _torch_module_for(retval)
+        if torch is not None:
+            retval = _reflect_tensor(retval, self, torch=torch)
+        else:
+            retval = self._reflect(retval)
         if isinstance(retval, numpy.ndarray) and retval.size == 1:
             try:
                 retval = retval[0]
@@ -435,4 +456,4 @@ class Bounds(object):
             Whether or not the value is within the bounds after the boundary
             conditions are applied.
         """
-        return self.apply_conditions(value) in self
+        return self.__contains__(self.apply_conditions(value))
