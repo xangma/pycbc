@@ -178,7 +178,7 @@ extras_require = {
         'scikit-cuda',
     ],
     'torch': [
-        'torch',
+        'torch>=2.6,<2.14',
     ],
     'igwn': [
         'ciecplib>=0.7.0',

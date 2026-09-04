@@ -210,7 +210,7 @@ VARARGS_DELIM = '+'
 # Torch and CPUScheme both load GNU OpenMP, while MKL otherwise selects its
 # Intel OpenMP layer.  Mixing those runtimes can silently corrupt threaded
 # DFTI output, so require MKL's compatible layer before either runtime loads.
-os.environ.setdefault("MKL_THREADING_LAYER", "GNU")
+os.environ["MKL_THREADING_LAYER"] = "GNU"
 
 try:
     #check if pycuda is installed
@@ -233,19 +233,21 @@ try:
 except ImportError:
     HAVE_CUDA = False
 
-# Check for PyTorch capability
+# Detect PyTorch without importing it.  Importing Torch loads its OpenMP
+# runtime, which is too large and invasive a side effect for ``import pycbc``.
 try:
-    import torch  # noqa: F401
-    HAVE_TORCH = True
-except (ImportError, OSError):
+    HAVE_TORCH = importlib.util.find_spec("torch") is not None
+except (AttributeError, ImportError, OSError, ValueError):
     HAVE_TORCH = False
 
-# Check for MKL capability
+# Probe MKL directly: importing ``pycbc.fft.mkl`` initializes every FFT
+# backend and would defeat the deferred Torch import above.
 try:
-    import pycbc.fft.mkl  # noqa: F401
-    HAVE_MKL=True
+    from .libutils import get_ctypes_library as _get_ctypes_library
+    _mkl_runtime = _get_ctypes_library("mkl_rt", [])
+    HAVE_MKL = _mkl_runtime is not None
 except (ImportError, OSError):
-    HAVE_MKL=False
+    HAVE_MKL = False
 
 # Check for openmp suppport, currently we pressume it exists, unless on
 # platforms (mac) that are silly and don't use the standard gcc.

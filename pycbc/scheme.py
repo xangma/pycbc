@@ -187,8 +187,15 @@ class TorchScheme(Scheme):
                 "Install PyTorch to use the Torch processing scheme."
             )
 
-        import torch
+        try:
+            import torch
+        except Exception as exc:
+            raise RuntimeError(
+                "PyTorch was found but could not be imported; install a "
+                "working PyTorch package to use the Torch processing scheme."
+            ) from exc
 
+        self._torch = torch
         self.device_spec = "cpu" if device in (None, "") else device
         self.torch_device = torch.device(self.device_spec)
 
@@ -215,22 +222,58 @@ class TorchScheme(Scheme):
                     f"num_threads must be positive, got {num_threads}"
                 )
         self.num_threads = num_threads
-        self._prev_num_threads = None
+        self._thread_state = None
+
+    def _restore_thread_state(self):
+        """Restore thread settings saved by the current context entry."""
+        state = self._thread_state
+        self._thread_state = None
+        if state is None:
+            return
+
+        torch_threads, openmp_runtime, openmp_threads = state
+        try:
+            self._torch.set_num_threads(torch_threads)
+        finally:
+            if openmp_runtime is not None:
+                openmp_runtime.omp_set_num_threads(openmp_threads)
 
     def __enter__(self):
         super().__enter__()
-        if self.device.type == "cpu" and self.num_threads is not None:
-            import torch
-            self._prev_num_threads = torch.get_num_threads()
-            torch.set_num_threads(self.num_threads)
+        try:
+            if self.device.type == "cpu" and self.num_threads is not None:
+                torch_threads = self._torch.get_num_threads()
+                openmp_runtime = None
+                openmp_threads = None
+                try:
+                    runtime = _resolve_libgomp()
+                    if runtime is not None:
+                        openmp_threads = runtime.omp_get_max_threads()
+                        openmp_runtime = runtime
+                except Exception:
+                    pass
+
+                self._thread_state = (
+                    torch_threads,
+                    openmp_runtime,
+                    openmp_threads,
+                )
+                self._torch.set_num_threads(self.num_threads)
+                if openmp_runtime is not None:
+                    openmp_runtime.omp_set_num_threads(self.num_threads)
+        except Exception:
+            try:
+                self._restore_thread_state()
+            finally:
+                super().__exit__(None, None, None)
+            raise
         return self
 
     def __exit__(self, type, value, traceback):
-        if self._prev_num_threads is not None:
-            import torch
-            torch.set_num_threads(self._prev_num_threads)
-            self._prev_num_threads = None
-        super().__exit__(type, value, traceback)
+        try:
+            self._restore_thread_state()
+        finally:
+            super().__exit__(type, value, traceback)
 
 
 class CPUScheme(Scheme):
@@ -315,6 +358,13 @@ def _parse_torch_scheme_extra(extra):
     if extra.startswith("cpu:") and extra[4:].isdigit():
         return "cpu", int(extra[4:])
     return extra, None
+
+
+def _torch_device_from_cli(device, device_id):
+    """Apply the shared CLI device ID to an unindexed Torch accelerator."""
+    if device in ("cuda", "mps"):
+        return f"{device}:{device_id}"
+    return device
 
 
 class DefaultScheme(_default_scheme_class):
@@ -457,6 +507,7 @@ def from_cli(opt):
         ctx = CUDAScheme(opt.processing_device_id)
     elif name == "torch":
         dev, numt = _parse_torch_scheme_extra(extra)
+        dev = _torch_device_from_cli(dev, opt.processing_device_id)
         ctx = TorchScheme(device=dev, num_threads=numt)
         logger.info(
             "Running with Torch support on device %s", ctx.torch_device
