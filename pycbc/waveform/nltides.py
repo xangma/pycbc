@@ -9,9 +9,10 @@ from pycbc.constants import PI
 
 def _torch_backend(value=None):
     """Return the lazily imported Torch backend when one is required."""
-    value_module = getattr(type(value), "__module__", "").partition(".")[0]
-    if value is not None and value_module != "torch":
-        return None
+    if value is not None:
+        from pycbc.types.backend import is_backend
+        if not is_backend(value, "torch"):
+            return None
     if value is None and _scheme.current_prefix() != "torch":
         return None
     from pycbc.waveform import nltides_torch

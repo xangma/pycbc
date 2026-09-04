@@ -45,10 +45,11 @@ def nonlinear_tidal_spa(**kwds):
     from pycbc import waveform
     from pycbc.types import Array
     from pycbc.types.array_torch import TorchArrayData
+    from pycbc.types.backend import backend_array
 
     kwds.pop('approximant')
     hp, hc = waveform.get_fd_waveform(approximant="TaylorF2", **kwds)
-    tensor = hp._data.tensor
+    tensor = backend_array(hp, "torch")
     frequencies = torch.arange(
         len(hp), dtype=tensor.real.dtype, device=tensor.device
     ) * hp.delta_f
