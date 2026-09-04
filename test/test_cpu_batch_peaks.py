@@ -139,11 +139,27 @@ def test_cpu_live_batch_peak_reduction_parity(monkeypatch):
     assert calls == {"correlate": 1, "ifft": 1}
     assert batch.block_id == 1
 
-    np.testing.assert_array_equal(result["template_id"], [11, 12, 13])
-    np.testing.assert_array_equal(result["mass1"], [21, 22, 23])
+    # Derive the survivors from the scalar implementation under test.  In
+    # particular, its compiled complex argmax defines how non-finite samples
+    # are handled; this test verifies that the batched path preserves that
+    # behavior instead of imposing a separate NaN policy.
+    survivor_indices = [
+        index for index, (_peak_index, peak) in enumerate(legacy_peaks)
+        if not (abs(peak) < batch.snr_threshold)
+    ]
+
+    np.testing.assert_array_equal(
+        result["template_id"],
+        [templates[index].id for index in survivor_indices],
+    )
+    np.testing.assert_array_equal(
+        result["mass1"],
+        [templates[index].params["mass1"] for index in survivor_indices],
+    )
 
     expected_peaks = np.asarray(
-        [peak for _index, peak in legacy_peaks[1:]], dtype=np.complex64
+        [legacy_peaks[index][1] for index in survivor_indices],
+        dtype=np.complex64,
     )
     np.testing.assert_allclose(
         result["snr"], np.abs(expected_peaks), equal_nan=True
@@ -151,18 +167,19 @@ def test_cpu_live_batch_peak_reduction_parity(monkeypatch):
     np.testing.assert_allclose(
         result["coa_phase"], np.angle(expected_peaks), equal_nan=True
     )
-    expected_indices = [index for index, _peak in legacy_peaks[1:]]
+    expected_indices = [
+        legacy_peaks[index][0] for index in survivor_indices
+    ]
     np.testing.assert_array_equal(
         result["end_time"], 100 + np.asarray(expected_indices)
     )
-    np.testing.assert_array_equal(result["sigmasq"], [1, 1, 1])
+    np.testing.assert_array_equal(
+        result["sigmasq"], np.ones(len(survivor_indices))
+    )
     assert [info[2] for info in veto_info] == [
         3 + index for index in expected_indices
     ]
     assert all(info[0].dtype == np.dtype(np.complex128) for info in veto_info)
-    assert veto_info[0][0][0] == 3
-    if np.isnan(legacy_peaks[2][1]):
-        assert np.isnan(veto_info[1][0][0])
-    else:
-        assert veto_info[1][0][0] == legacy_peaks[2][1]
-    assert veto_info[2][0][0] == -4j
+    np.testing.assert_allclose(
+        [info[0][0] for info in veto_info], expected_peaks, equal_nan=True
+    )
