@@ -1,6 +1,8 @@
 """Pure-Python checks for Torch performance evidence tooling."""
 
 import json
+import math
+from copy import deepcopy
 
 import pytest
 
@@ -144,6 +146,126 @@ def test_orchestrator_defaults_to_public_production_routes():
     assert parsed.routes == list(live_batch.DEFAULT_ROUTES)
     assert parsed.include_experimental_routes is False
     assert parsed.call_surface == "public"
+
+
+def _trigger_parity_record():
+    return {
+        "output_l2": 10.0,
+        "block_triggers": [{
+            "num_triggers": 1,
+            "template_ids": [1000],
+            "veto_count": None,
+            "end_times": [1000000001.0],
+            "snrs": [8.0],
+            "coa_phases": [0.2],
+            "sigmasqs": [1.0],
+        }],
+    }
+
+
+@pytest.mark.parametrize(
+    "field",
+    ("end_times", "snrs", "coa_phases", "sigmasqs", "output_l2",
+     "num_triggers", "template_ids", "veto_count"),
+)
+@pytest.mark.parametrize("value", (math.nan, math.inf, -math.inf))
+@pytest.mark.parametrize("side", ("reference", "candidate", "both"))
+def test_live_parity_rejects_nonfinite_values(field, value, side):
+    reference = _trigger_parity_record()
+    candidate = deepcopy(reference)
+    selected = {
+        "reference": [reference], "candidate": [candidate],
+        "both": [reference, candidate],
+    }[side]
+    for record in selected:
+        if field == "output_l2":
+            record[field] = value
+        elif field in ("num_triggers", "veto_count"):
+            record["block_triggers"][0][field] = value
+        else:
+            record["block_triggers"][0][field][0] = value
+
+    result = live_batch._verify_parity({
+        1: {"branch_standard": reference, "torch_cpu": candidate},
+    })
+
+    comparison = result["batch_1"]["comparisons"]["torch_cpu_vs_branch_standard"]
+    assert comparison["finite_values"] is False
+    assert comparison["passed"] is False
+    assert result["all_passed_globally"] is False
+
+
+@pytest.mark.parametrize("overflow", (False, True))
+def test_live_parity_phase_wrap_rejects_overflow(overflow):
+    reference = _trigger_parity_record()
+    candidate = deepcopy(reference)
+    if overflow:
+        reference["block_triggers"][0]["coa_phases"] = [1.5e308]
+        candidate["block_triggers"][0]["coa_phases"] = [-1.5e308]
+    else:
+        candidate["block_triggers"][0]["coa_phases"][0] += 2 * math.pi
+
+    result = live_batch._verify_parity({
+        1: {"branch_standard": reference, "torch_cpu": candidate},
+    })
+
+    assert result["all_passed_globally"] is (not overflow)
+
+
+@pytest.mark.parametrize("parity_passes", (False, True))
+def test_live_orchestrator_exit_preserves_diagnostic_artifact(
+    tmp_path, monkeypatch, parity_passes,
+):
+    source = tmp_path / "source"
+    (source / "pycbc").mkdir(parents=True)
+    (source / "pycbc" / "__init__.py").write_text("")
+    artifact = tmp_path / "result.json"
+    args = live_batch._parser().parse_args([
+        "orchestrate", "--root", str(source), "--python", "/unused/python",
+        "--output", str(artifact), "--routes", "branch_standard", "torch_cpu",
+        "--batches", "1", "--replicates", "3", "--samples", "3",
+    ])
+
+    def summary(values, *, unit, **kwargs):
+        return _legacy_summary(list(values), unit=unit) | {
+            name: 1.0 for name in ("p50", "p95", "p99", "mean", "p25", "p75")
+        }
+
+    def child(**kwargs):
+        record = _trigger_parity_record()
+        record.update(route=kwargs["route"], batch=kwargs["batch"])
+        for name in ("python", "pycbc_version", "numpy_version", "torch_version"):
+            record[name] = "test"
+        for name in (
+            "throughput_wps_summary", "latency_block_ms_summary",
+            "latency_iteration_ms_summary", "latency_per_waveform_ms_summary",
+            "cold_latency_block_ms_summary",
+        ):
+            record[name] = summary([1.0] * 3, unit="test")
+        if not parity_passes and kwargs["route"] == "torch_cpu":
+            record["block_triggers"][0]["snrs"] = [9.0]
+        return record
+
+    monkeypatch.setattr(live_batch, "_run_child", child)
+    monkeypatch.setattr(live_batch, "sample_summary", summary)
+    monkeypatch.setattr(
+        live_batch, "source_identity",
+        lambda path: {"revision": "test", "dirty": False},
+    )
+    monkeypatch.setattr(
+        live_batch, "runtime_metadata", lambda: {"hardware": {}, "software": {}},
+    )
+    if parity_passes:
+        live_batch._orchestrate(args)
+    else:
+        with pytest.raises(SystemExit) as exc:
+            live_batch._orchestrate(args)
+        assert exc.value.code == 1
+
+    payload = json.loads(artifact.read_text())
+    assert payload["parity_analysis"]["all_passed_globally"] is parity_passes
+    assert len(payload["records"]) == 6
+    assert payload["content_sha256"]
 
 
 def test_production_artifact_parser_preserves_scope_samples_and_uncertainty():

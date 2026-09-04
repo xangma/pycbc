@@ -229,6 +229,11 @@ records parity and route definitions, captures available runtime and peak CUDA
 allocated/reserved-memory metadata, and seals schema-v3 JSON with a content
 hash.
 
+Parity checks reject nonfinite trigger fields and output norms. A failed
+comparison makes the benchmark exit unsuccessfully while retaining its artifact
+for diagnosis. These checks compare trigger data and aggregate output norms;
+equal norms do not establish pointwise waveform equivalence.
+
 Start a campaign with explicit source-set, interpreter, and new output path:
 
 .. code-block:: console

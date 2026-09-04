@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import platform
 import subprocess
@@ -753,8 +754,10 @@ def _counterbalanced(routes: list[str], replicate: int, cell_index: int) -> list
 
 
 def _verify_parity(records_by_batch: dict[int, dict[str, dict]]) -> dict:
-    """Verify trigger parity and waveform parity across selected routes."""
-    import numpy as np
+    """Compare triggers and aggregate output norms across selected routes.
+
+    Equal output norms do not establish pointwise waveform equivalence.
+    """
 
     parity_results = {}
     all_passed_globally = True
@@ -792,6 +795,22 @@ def _verify_parity(records_by_batch: dict[int, dict[str, dict]]) -> dict:
             max_sigmasq_rel_diff = 0.0
             veto_count_match = True
             sequence_length_match = True
+            sequence_fields = ("end_times", "snrs", "coa_phases", "sigmasqs")
+            finite_values = all(
+                math.isfinite(value) for value in (ref_output_l2, output_l2)
+            ) and all(
+                math.isfinite(value)
+                for blocks in (ref_triggers, triggers)
+                for block in blocks
+                for value in (
+                    block["num_triggers"],
+                    # The public API does not expose a veto count.
+                    0 if block["veto_count"] is None else block["veto_count"],
+                    *block["template_ids"],
+                    *(value for field in sequence_fields
+                      for value in block[field]),
+                )
+            )
 
             for b in range(min(len(ref_triggers), len(triggers))):
                 ref_b = ref_triggers[b]
@@ -804,7 +823,6 @@ def _verify_parity(records_by_batch: dict[int, dict[str, dict]]) -> dict:
                 if ref_b["veto_count"] != test_b["veto_count"]:
                     veto_count_match = False
 
-                sequence_fields = ("end_times", "snrs", "coa_phases", "sigmasqs")
                 if any(
                     len(ref_b[field]) != len(test_b[field]) for field in sequence_fields
                 ):
@@ -814,18 +832,25 @@ def _verify_parity(records_by_batch: dict[int, dict[str, dict]]) -> dict:
                 for ref_et, test_et in zip(
                     ref_b["end_times"], test_b["end_times"], strict=False
                 ):
-                    if abs(ref_et - test_et) > 1e-4:
+                    difference = abs(ref_et - test_et)
+                    if not math.isfinite(difference) or difference > 1e-4:
                         end_time_match = False
 
                 for ref_s, test_s in zip(ref_b["snrs"], test_b["snrs"], strict=False):
                     diff = abs(ref_s - test_s)
+                    if not math.isfinite(diff):
+                        diff = math.inf
                     if diff > max_snr_diff:
                         max_snr_diff = diff
 
                 for ref_p, test_p in zip(
                     ref_b["coa_phases"], test_b["coa_phases"], strict=False
                 ):
-                    p_diff = abs((ref_p - test_p + np.pi) % (2.0 * np.pi) - np.pi)
+                    phase_delta = ref_p - test_p
+                    p_diff = (
+                        abs((phase_delta + math.pi) % (2.0 * math.pi) - math.pi)
+                        if math.isfinite(phase_delta) else math.inf
+                    )
                     if p_diff > max_phase_diff:
                         max_phase_diff = p_diff
 
@@ -835,13 +860,18 @@ def _verify_parity(records_by_batch: dict[int, dict[str, dict]]) -> dict:
                     sigma_diff = abs(ref_sigma - test_sigma) / max(
                         abs(ref_sigma), 1e-12
                     )
+                    if not math.isfinite(sigma_diff):
+                        sigma_diff = math.inf
                     if sigma_diff > max_sigmasq_rel_diff:
                         max_sigmasq_rel_diff = sigma_diff
 
             rel_l2_diff = abs(output_l2 - ref_output_l2) / max(ref_output_l2, 1e-12)
+            if not math.isfinite(rel_l2_diff):
+                rel_l2_diff = math.inf
 
             passed = (
-                block_count_match
+                finite_values
+                and block_count_match
                 and trigger_count_match
                 and template_id_match
                 and end_time_match
@@ -858,6 +888,7 @@ def _verify_parity(records_by_batch: dict[int, dict[str, dict]]) -> dict:
                 all_passed_globally = False
 
             batch_parity["comparisons"][f"{route}_vs_{ref_route}"] = {
+                "finite_values": finite_values,
                 "block_count_match": block_count_match,
                 "trigger_count_match": trigger_count_match,
                 "template_id_match": template_id_match,
@@ -1388,10 +1419,17 @@ def _orchestrate(args: argparse.Namespace) -> None:
                 print(
                     f"    - {replicate_name}/{comp_name}: "
                     f"SNR max delta={comp['max_snr_diff']:.2e}, "
-                    f"Rel L2 diff={comp['relative_output_l2_diff']:.2e}, "
+                    "Relative output-norm difference="
+                    f"{comp['relative_output_l2_diff']:.2e}, "
                     f"Triggers match={comp['trigger_count_match']}"
                 )
     print("=" * 132)
+    if not parity_analysis["all_passed_globally"]:
+        print(
+            f"Benchmark parity failed; diagnostic artifact retained at {output_path}",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
 
 
 def _parser() -> argparse.ArgumentParser:
