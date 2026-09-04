@@ -147,7 +147,9 @@ def test_tapers_preserve_sample_gradients(torch_cpu_ctx, side, series_type):
     samples = torch.linspace(1.0, 2.0, 64, dtype=torch.float64,
                              requires_grad=True)
     with torch_cpu_ctx:
-        source = series_type(wrap_backend_array(samples), copy=False, **options)
+        source = series_type(
+            wrap_backend_array(samples), copy=False, **options
+        )
         actual = taper(source, 2, 6, side=side)
         gradient, = torch.autograd.grad(backend_array(actual).sum(), samples)
         assert backend_array(source) is samples
@@ -155,5 +157,7 @@ def test_tapers_preserve_sample_gradients(torch_cpu_ctx, side, series_type):
         assert getattr(actual, delta_name) == getattr(source, delta_name)
     torch.testing.assert_close(gradient, torch.as_tensor(reference.numpy()),
                                rtol=1e-14, atol=1e-14)
-    torch.testing.assert_close(samples.detach(),
-                               torch.linspace(1.0, 2.0, 64, dtype=torch.float64))
+    torch.testing.assert_close(
+        samples.detach(),
+        torch.linspace(1.0, 2.0, 64, dtype=torch.float64),
+    )
