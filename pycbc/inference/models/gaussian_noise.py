@@ -13,29 +13,33 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-"""This module provides model classes that assume the noise is Gaussian.
-"""
+"""This module provides model classes that assume the noise is Gaussian."""
 
 import logging
 import shlex
 from abc import ABCMeta
 from functools import wraps
+
 import numpy
 
 from pycbc import filter as pyfilter
-from pycbc.waveform import (NoWaveformError, FailedWaveformError)
-from pycbc.waveform import generator
-from pycbc.types import FrequencySeries
-from pycbc.strain import gates_from_cli
-from pycbc.strain.calibration import Recalibrate
 from pycbc.inject import InjectionSet
 from pycbc.io import FieldArray
+from pycbc.strain import gates_from_cli
+from pycbc.strain.calibration import Recalibrate
+from pycbc.types import FrequencySeries, TimeSeries, real_same_precision_as, zeros
 from pycbc.types.optparse import MultiDetOptionAction
+from pycbc.waveform import FailedWaveformError, NoWaveformError, generator
 
-from .base import ModelStats
+from .base import ModelStats, _public_stat_value
 from .base_data import BaseDataModel
-from .data_utils import (data_opts_from_config, data_from_cli,
-                         fd_data_from_strain_dict, gate_overwhitened_data)
+from .data_utils import (
+    data_from_cli,
+    data_opts_from_config,
+    fd_data_from_strain_dict,
+    gate_overwhitened_data,
+)
+from .tools import _fused_inner_hd_hh, _torch_tensor
 
 
 def catch_waveform_error(method):
@@ -51,6 +55,7 @@ def catch_waveform_error(method):
 
     This requires the model to have a `_nowaveform_handler` method.
     """
+
     # the functools.wroaps decorator preserves the original method's name
     # and docstring
     @wraps(method)
@@ -69,6 +74,7 @@ def catch_waveform_error(method):
             else:
                 raise e
         return retval
+
     return method_wrapper
 
 
@@ -134,16 +140,27 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
         model to raise a ``FailedWaveformError``.
     """
 
-    def __init__(self, variable_params, data, low_frequency_cutoff, psds=None,
-                 high_frequency_cutoff=None, normalize=False,
-                 static_params=None, ignore_failed_waveforms=False,
-                 no_save_data=False,
-                 **kwargs):
+    def __init__(
+        self,
+        variable_params,
+        data,
+        low_frequency_cutoff,
+        psds=None,
+        high_frequency_cutoff=None,
+        normalize=False,
+        static_params=None,
+        ignore_failed_waveforms=False,
+        no_save_data=False,
+        **kwargs,
+    ):
         # set up the boiler-plate attributes
-        super(BaseGaussianNoise, self).__init__(variable_params, data,
-                                                static_params=static_params,
-                                                no_save_data=no_save_data,
-                                                **kwargs)
+        super(BaseGaussianNoise, self).__init__(
+            variable_params,
+            data,
+            static_params=static_params,
+            no_save_data=no_save_data,
+            **kwargs,
+        )
         self.ignore_failed_waveforms = ignore_failed_waveforms
         self.no_save_data = no_save_data
         # check if low frequency cutoff has been provided for every IFO with
@@ -159,7 +176,8 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
                     "every detector in the `[model]` section, where "
                     "`{DETECTOR} is the name of the detector,"
                     "or provide a single low-frequency-cutoff option"
-                    "which will be used for all detectors")
+                    "which will be used for all detectors"
+                )
 
         # check that the data sets all have the same delta fs and delta ts
         dts = numpy.array([d.delta_t for d in self.data.values()])
@@ -170,12 +188,13 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
             self.all_ifodata_same_rate_length = False
             logging.info(
                 "You are using different data segment lengths or "
-                "sampling rates for different IFOs")
+                "sampling rates for different IFOs"
+            )
 
         # store the number of samples in the time domain
         self._N = {}
-        for (det, d) in self._data.items():
-            self._N[det] = int(1./(d.delta_f*d.delta_t))
+        for det, d in self._data.items():
+            self._N[det] = int(1.0 / (d.delta_f * d.delta_t))
 
         # set lower/upper frequency cutoff
         if high_frequency_cutoff is None:
@@ -187,10 +206,10 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
         self._kmin = {}
         self._kmax = {}
 
-        for (det, d) in self._data.items():
-            kmin, kmax = pyfilter.get_cutoff_indices(self._f_lower[det],
-                                                     self._f_upper[det],
-                                                     d.delta_f, self._N[det])
+        for det, d in self._data.items():
+            kmin, kmax = pyfilter.get_cutoff_indices(
+                self._f_lower[det], self._f_upper[det], d.delta_f, self._N[det]
+            )
             self._kmin[det] = kmin
             self._kmax[det] = kmax
 
@@ -215,6 +234,17 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
 
         # attribute for storing the current waveforms
         self._current_wfs = None
+
+        # Initialize NetworkGeometry when detectors are present
+        if len(self._data) >= 1:
+            try:
+                from pycbc.detector import NetworkGeometry
+
+                self.network_geometry = NetworkGeometry(list(self._data.keys()))
+            except Exception:
+                self.network_geometry = None
+        else:
+            self.network_geometry = None
 
     @property
     def high_frequency_cutoff(self):
@@ -280,8 +310,15 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
         for det, d in self._data.items():
             if psds is None:
                 # No psd means assume white PSD
-                p = FrequencySeries(numpy.ones(int(self._N[det]/2+1)),
-                                    delta_f=d.delta_f)
+                p = FrequencySeries(
+                    zeros(
+                        int(self._N[det] / 2 + 1),
+                        dtype=real_same_precision_as(d),
+                    ),
+                    delta_f=d.delta_f,
+                    copy=False,
+                )
+                p.fill(1.0)
             else:
                 # copy for storage
                 p = psds[det].copy()
@@ -290,8 +327,12 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
             # only set weight in band we will analyze
             kmin = self._kmin[det]
             kmax = self._kmax[det]
-            invp = FrequencySeries(numpy.zeros(len(p)), delta_f=p.delta_f)
-            invp[kmin:kmax] = 1./p[kmin:kmax]
+            invp = FrequencySeries(
+                zeros(len(p), dtype=p.dtype),
+                delta_f=p.delta_f,
+                copy=False,
+            )
+            invp[kmin:kmax] = 1.0 / p[kmin:kmax]
             self._invpsds[det] = invp
             self._weight[det] = numpy.sqrt(4 * invp.delta_f * invp)
             self._whitened_data[det] = d.copy()
@@ -354,7 +395,7 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
         If ``self.normalize`` is False, will just return 0.
         """
         if not self.normalize:
-            return 0.
+            return 0.0
         try:
             return self._lognorm[det]
         except KeyError:
@@ -363,21 +404,21 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
             dt = self._whitened_data[det].delta_t
             kmin = self._kmin[det]
             kmax = self._kmax[det]
-            lognorm = -float(self._N[det]*numpy.log(numpy.pi*self._N[det]*dt)/2.
-                             + numpy.log(p[kmin:kmax]).sum())
+            lognorm = -float(
+                self._N[det] * numpy.log(numpy.pi * self._N[det] * dt) / 2.0
+                + numpy.log(p[kmin:kmax]).sum()
+            )
             self._lognorm[det] = lognorm
             return self._lognorm[det]
 
     @property
     def normalize(self):
-        """Determines if the loglikelihood includes the normalization term.
-        """
+        """Determines if the loglikelihood includes the normalization term."""
         return self._normalize
 
     @normalize.setter
     def normalize(self, normalize):
-        """Clears the current stats if the normalization state is changed.
-        """
+        """Clears the current stats if the normalization state is changed."""
         if normalize != self._normalize:
             self._current_stats = ModelStats()
             self._lognorm.clear()
@@ -453,6 +494,104 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
         # back the noise term that canceled in the log likelihood ratio
         return self.loglr + self.lognl
 
+    def _parse_batched_params(self, *args, **params):
+        """Parse positional or keyword batched parameter arguments."""
+        if args:
+            if len(args) == 1 and isinstance(args[0], dict):
+                p = dict(args[0])
+                p.update(params)
+                params = p
+            elif len(args) == 1 and hasattr(args[0], "dtype") and args[0].dtype.names:
+                p = {name: args[0][name] for name in args[0].dtype.names}
+                p.update(params)
+                params = p
+            elif len(args) == 1 and hasattr(args[0], "_fields"):
+                p = {name: getattr(args[0], name) for name in args[0]._fields}
+                p.update(params)
+                params = p
+            else:
+                raise ValueError(
+                    "Unexpected positional arguments for batched evaluation"
+                )
+        return params
+
+    def batched_loglikelihood(self, *args, **params):
+        r"""Computes the log likelihood of a batch of parameter samples,
+
+        .. math::
+
+            \log p(d|\Theta_j, h) = \log \mathcal{L}(\Theta_j) + \log p(d|n),
+
+        for each sample :math:`\Theta_j` in the batch.
+
+        Parameters
+        ----------
+        *args : dict or structured array, optional
+            A single positional mapping or structured array of parameter values.
+        **params : dict
+            Detector-frame parameter names mapped to scalars or one-
+            dimensional arrays or tensors of samples. The supported batched
+            parameters are ``tc``, ``ra``, ``dec``, and ``polarization``.
+            Radiation-frame waveform parameters must be scalar. Batched
+            evaluation requires common detector frequency grids and does not
+            currently support sampling or waveform transforms, template
+            recalibration, or waveform gates.
+            Absolute GPS-time arrays or tensors must use 64-bit precision.
+
+        Returns
+        -------
+        logl : numpy.ndarray or torch.Tensor
+            The log likelihood values evaluated across the batch.
+        """
+        return self.batched_loglr(*args, **params) + self.lognl
+
+    def batched_loglr(self, *args, **params):
+        """Evaluate a batch over detector-frame extrinsic parameters.
+
+        Batched ``tc``, ``ra``, ``dec``, and ``polarization`` values are
+        supported. Radiation-frame waveform parameters must be scalar.
+        Sampling and waveform transforms are not supported. A waveform
+        generation failure returns one negative infinity per sample, subject
+        to the same ``ignore_failed_waveforms`` policy as scalar evaluation.
+        """
+        params = self._parse_batched_params(*args, **params)
+        try:
+            return self._batched_loglr(**params)
+        except NoWaveformError:
+            pass
+        except NotImplementedError:
+            raise
+        except (RuntimeError, FailedWaveformError):
+            if not self.ignore_failed_waveforms:
+                raise
+
+        full_params = dict(self.static_params)
+        full_params.update(params)
+        generator = self.waveform_generator
+        batch_size = (
+            _detector_frame_batch_size(generator, params, full_params)
+            if hasattr(generator, "location_args")
+            else 1
+        )
+        # Prefer the data's device, as for the ordinary likelihood, and keep
+        # the scalar model state untouched by this independent batch call.
+        for value in (*self._data.values(), *full_params.values()):
+            tensor = _torch_tensor(value)
+            if tensor is not None:
+                import torch
+
+                dtype = tensor.real.dtype
+                if not dtype.is_floating_point:
+                    dtype = torch.get_default_dtype()
+                return tensor.new_full((batch_size,), -numpy.inf, dtype=dtype)
+        return numpy.full(batch_size, -numpy.inf)
+
+    def _batched_loglr(self, *args, **params):
+        """Computes the log likelihood ratio for a batch of parameter samples.
+        Must be implemented by subclasses.
+        """
+        raise NotImplementedError("Batched loglr not implemented for this model.")
+
     def write_metadata(self, fp, group=None):
         """Adds writing the psds, analyzed detectors, and lognl.
 
@@ -482,35 +621,34 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
         super().write_metadata(fp, group=group)
         attrs = fp.getattrs(group=group)
         # write the analyzed detectors and times
-        attrs['analyzed_detectors'] = self.detectors
+        attrs["analyzed_detectors"] = self.detectors
         for det, data in self.data.items():
-            key = '{}_analysis_segment'.format(det)
+            key = "{}_analysis_segment".format(det)
             attrs[key] = [float(data.start_time), float(data.end_time)]
         if self._psds is not None and not self.no_save_data:
             fp.write_psd(self._psds, group=group)
         # write the times used for psd estimation (if they were provided)
         for det in self.psd_segments:
-            key = '{}_psd_segment'.format(det)
+            key = "{}_psd_segment".format(det)
             attrs[key] = list(map(float, self.psd_segments[det]))
         # save the frequency cutoffs
         for det in self.detectors:
-            attrs['{}_likelihood_low_freq'.format(det)] = self._f_lower[det]
+            attrs["{}_likelihood_low_freq".format(det)] = self._f_lower[det]
             if self._f_upper[det] is not None:
-                attrs['{}_likelihood_high_freq'.format(det)] = \
-                    self._f_upper[det]
+                attrs["{}_likelihood_high_freq".format(det)] = self._f_upper[det]
         # write the lognl to the samples group attrs
         sampattrs = fp.getattrs(group=fp.samples_group)
         # if a group is specified, prepend the lognl names with it
-        if group is None or group == '/':
-            prefix = ''
+        if group is None or group == "/":
+            prefix = ""
         else:
-            prefix = group.replace('/', '__')
-            if not prefix.endswith('__'):
-                prefix += '__'
-        sampattrs['{}lognl'.format(prefix)] = self.lognl
+            prefix = group.replace("/", "__")
+            if not prefix.endswith("__"):
+                prefix += "__"
+        sampattrs["{}lognl".format(prefix)] = self.lognl
         # also save the lognl in each detector
         for det in self.detectors:
-            sampattrs['{}{}_lognl'.format(prefix, det)] = self.det_lognl(det)
+            sampattrs["{}{}_lognl".format(prefix, det)] = self.det_lognl(det)
 
     @staticmethod
     def _fd_data_from_strain_dict(opts, strain_dict, psd_strain_dict):
@@ -527,11 +665,11 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
         """
         raise NotImplementedError(
             f"A waveform could not be generated, but this model does not know "
-            f"how to handle that. The parameters were: {self.current_params}.")
+            f"how to handle that. The parameters were: {self.current_params}."
+        )
 
     @classmethod
-    def from_config(cls, cp, data_section='data', data=None, psds=None,
-                    **kwargs):
+    def from_config(cls, cp, data_section="data", data=None, psds=None, **kwargs):
         r"""Initializes an instance of this class from the given config file.
 
         In addition to ``[model]``, a ``data_section`` (default ``[data]``)
@@ -584,8 +722,8 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
             provided keyword will override what is in the config file.
         """
         # get the injection file, to replace any FROM_INJECTION settings
-        if 'injection-file' in cp.options('data'):
-            injection_file = cp.get('data', 'injection-file')
+        if "injection-file" in cp.options("data"):
+            injection_file = cp.get("data", "injection-file")
         else:
             injection_file = None
         # update any values that are to be retrieved from the injection
@@ -593,79 +731,88 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
         get_values_from_injection(cp, injection_file, update_cp=True)
         args = cls._init_args_from_config(cp)
         # add the injection file
-        args['injection_file'] = injection_file
+        args["injection_file"] = injection_file
         # check if normalize is set
-        if cp.has_option('model', 'normalize'):
-            args['normalize'] = True
-        if cp.has_option('model', 'ignore-failed-waveforms'):
-            args['ignore_failed_waveforms'] = True
-        if cp.has_option('model', 'det-frame-waveform'):
-            args['det_frame_waveform'] = True
-        if cp.has_option('model', 'no-save-data'):
-            args['no_save_data'] = True
+        if cp.has_option("model", "normalize"):
+            args["normalize"] = True
+        if cp.has_option("model", "ignore-failed-waveforms"):
+            args["ignore_failed_waveforms"] = True
+        if cp.has_option("model", "det-frame-waveform"):
+            args["det_frame_waveform"] = True
+        if cp.has_option("model", "no-save-data"):
+            args["no_save_data"] = True
         # set inverse spectrum to truncate if not set
-        if cp.has_option(data_section, 'invpsd-trunc-which-spectrum'):
-            cp.set(data_section, 'invpsd-trunc-which-spectrum', 'invpsd')
+        if cp.has_option(data_section, "invpsd-trunc-which-spectrum"):
+            cp.set(data_section, "invpsd-trunc-which-spectrum", "invpsd")
         # get any other keyword arguments provided in the model section
         ignore_args = [
-            'name',
-            'normalize',
-            'ignore-failed-waveforms',
-            'no-save-data',
-            'det-frame-waveform'
+            "name",
+            "normalize",
+            "ignore-failed-waveforms",
+            "no-save-data",
+            "det-frame-waveform",
         ]
         for option in cp.options("model"):
             if option in ("low-frequency-cutoff", "high-frequency-cutoff"):
                 ignore_args.append(option)
-                name = option.replace('-', '_')
-                args[name] = cp.get_cli_option('model', name,
-                                               nargs='+', type=float,
-                                               action=MultiDetOptionAction)
+                name = option.replace("-", "_")
+                args[name] = cp.get_cli_option(
+                    "model", name, nargs="+", type=float, action=MultiDetOptionAction
+                )
 
-        if 'low_frequency_cutoff' not in args:
-            raise ValueError("low-frequency-cutoff must be provided in the"
-                             " model section, but is not found!")
+        if "low_frequency_cutoff" not in args:
+            raise ValueError(
+                "low-frequency-cutoff must be provided in the"
+                " model section, but is not found!"
+            )
 
         # data args
-        bool_args = ['check-for-valid-times', 'shift-psd-times-to-valid',
-                     'err-on-missing-detectors']
-        data_args = {arg.replace('-', '_'): True for arg in bool_args
-                     if cp.has_option('model', arg)}
+        bool_args = [
+            "check-for-valid-times",
+            "shift-psd-times-to-valid",
+            "err-on-missing-detectors",
+        ]
+        data_args = {
+            arg.replace("-", "_"): True
+            for arg in bool_args
+            if cp.has_option("model", arg)
+        }
         ignore_args += bool_args
         # load the data
-        opts = data_opts_from_config(cp, data_section,
-                                     args['low_frequency_cutoff'])
+        opts = data_opts_from_config(cp, data_section, args["low_frequency_cutoff"])
         if data is None or psds is None:
             strain_dict, psd_strain_dict = data_from_cli(opts, **data_args)
             # convert to frequency domain and get psds
             stilde_dict, psds = cls._fd_data_from_strain_dict(
-                opts, strain_dict, psd_strain_dict)
+                opts, strain_dict, psd_strain_dict
+            )
             # save the psd data segments if the psd was estimated from data
             if opts.psd_estimation:
                 _tdict = psd_strain_dict or strain_dict
                 for det in psds:
-                    psds[det].psd_segment = (_tdict[det].start_time,
-                                             _tdict[det].end_time)
+                    psds[det].psd_segment = (
+                        _tdict[det].start_time,
+                        _tdict[det].end_time,
+                    )
             # gate overwhitened if desired
             if opts.gate_overwhitened and opts.gate is not None:
-                stilde_dict = gate_overwhitened_data(
-                    stilde_dict, psds, opts.gate)
+                stilde_dict = gate_overwhitened_data(stilde_dict, psds, opts.gate)
             data = stilde_dict
-        args.update({'data': data, 'psds': psds})
+        args.update({"data": data, "psds": psds})
         # any extra args
-        args.update(cls.extra_args_from_config(cp, "model",
-                                               skip_args=ignore_args))
+        args.update(cls.extra_args_from_config(cp, "model", skip_args=ignore_args))
         # get ifo-specific instances of calibration model
-        if cp.has_section('calibration'):
+        if cp.has_section("calibration"):
             logging.info("Initializing calibration model")
             recalib = {
-                ifo: Recalibrate.from_config(cp, ifo, section='calibration')
-                for ifo in opts.instruments}
-            args['recalibration'] = recalib
+                ifo: Recalibrate.from_config(cp, ifo, section="calibration")
+                for ifo in opts.instruments
+            }
+            args["recalibration"] = recalib
         # get gates for templates
         gates = gates_from_cli(opts)
         if gates:
-            args['gates'] = gates
+            args["gates"] = gates
         args.update(kwargs)
         return cls(**args)
 
@@ -880,16 +1027,32 @@ class GaussianNoise(BaseGaussianNoise):
     logprior: 0.92
 
     """
-    name = 'gaussian_noise'
 
-    def __init__(self, variable_params, data, low_frequency_cutoff, psds=None,
-                 high_frequency_cutoff=None, normalize=False,
-                 static_params=None, det_frame_waveform=False, **kwargs):
+    name = "gaussian_noise"
+
+    def __init__(
+        self,
+        variable_params,
+        data,
+        low_frequency_cutoff,
+        psds=None,
+        high_frequency_cutoff=None,
+        normalize=False,
+        static_params=None,
+        det_frame_waveform=False,
+        **kwargs,
+    ):
         # set up the boiler-plate attributes
         super(GaussianNoise, self).__init__(
-            variable_params, data, low_frequency_cutoff, psds=psds,
-            high_frequency_cutoff=high_frequency_cutoff, normalize=normalize,
-            static_params=static_params, **kwargs)
+            variable_params,
+            data,
+            low_frequency_cutoff,
+            psds=psds,
+            high_frequency_cutoff=high_frequency_cutoff,
+            normalize=normalize,
+            static_params=static_params,
+            **kwargs,
+        )
         # Determine if all data have the same sampling rate and segment length
         if det_frame_waveform:
             generator_class = generator.FDomainDirectDetFrameGenerator
@@ -898,52 +1061,57 @@ class GaussianNoise(BaseGaussianNoise):
         if self.all_ifodata_same_rate_length:
             # create a waveform generator for all ifos
             self.waveform_generator = create_waveform_generator(
-                self.variable_params, self.data,
+                self.variable_params,
+                self.data,
                 generator_class=generator_class,
                 waveform_transforms=self.waveform_transforms,
                 recalibration=self.recalibration,
-                gates=self.gates, **self.static_params)
+                gates=self.gates,
+                **self.static_params,
+            )
         else:
             # create a waveform generator for each ifo respestively
             self.waveform_generator = {}
             for det in self.data:
                 self.waveform_generator[det] = create_waveform_generator(
-                    self.variable_params, {det: self.data[det]},
+                    self.variable_params,
+                    {det: self.data[det]},
                     generator_class=generator_class,
                     waveform_transforms=self.waveform_transforms,
                     recalibration=self.recalibration,
-                    gates=self.gates, **self.static_params)
+                    gates=self.gates,
+                    **self.static_params,
+                )
 
     @property
     def _extra_stats(self):
         """Adds ``loglr``, plus ``cplx_loglr`` and ``optimal_snrsq`` in each
         detector."""
-        return ['loglr'] + \
-               ['{}_cplx_loglr'.format(det) for det in self._data] + \
-               ['{}_optimal_snrsq'.format(det) for det in self._data]
+        return (
+            ["loglr"]
+            + ["{}_cplx_loglr".format(det) for det in self._data]
+            + ["{}_optimal_snrsq".format(det) for det in self._data]
+        )
 
     def _nowaveform_handler(self):
-        """Convenience function to set loglr values if no waveform generated.
-        """
+        """Convenience function to set loglr values if no waveform generated."""
         for det in self._data:
-            setattr(self._current_stats, 'loglikelihood', -numpy.inf)
-            setattr(self._current_stats, '{}_cplx_loglr'.format(det),
-                    -numpy.inf)
+            self._current_stats.loglikelihood = -numpy.inf
+            setattr(self._current_stats, "{}_cplx_loglr".format(det), -numpy.inf)
             # snr can't be < 0 by definition, so return 0
-            setattr(self._current_stats, '{}_optimal_snrsq'.format(det), 0.)
+            setattr(self._current_stats, "{}_optimal_snrsq".format(det), 0.0)
         return -numpy.inf
 
     @property
     def multi_signal_support(self):
-        """ The list of classes that this model supports in a multi-signal
+        """The list of classes that this model supports in a multi-signal
         likelihood
         """
         return [type(self)]
 
     @catch_waveform_error
     def multi_loglikelihood(self, models):
-        """ Calculate a multi-model (signal) likelihood
-        """
+        """Calculate a multi-model (signal) likelihood"""
         # Generate the waveforms for each submodel
         wfs = []
         for m in models + [self]:
@@ -996,11 +1164,13 @@ class GaussianNoise(BaseGaussianNoise):
 
         Returns
         -------
-        float
-            The value of the log likelihood ratio.
+        float or torch.Tensor
+            The scalar log likelihood ratio. Torch-backed calculations retain
+            a device-resident scalar tensor so likelihood composition and
+            cached access remain differentiable.
         """
         wfs = self.get_waveforms()
-        lr = 0.
+        lr = 0.0
         for det, h in wfs.items():
             # the kmax of the waveforms may be different than internal kmax
             kmax = min(len(h), self._kmax[det])
@@ -1008,25 +1178,23 @@ class GaussianNoise(BaseGaussianNoise):
                 # if the waveform terminates before the filtering low frequency
                 # cutoff, then the loglr is just 0 for this detector
                 cplx_hd = 0j
-                hh = 0.
+                hh = 0.0
             else:
                 slc = slice(self._kmin[det], kmax)
-                # whiten the waveform
-                h[self._kmin[det]:kmax] *= self._weight[det][slc]
-
-                # the inner products
-                cplx_hd = h[slc].inner(self._whitened_data[det][slc])  # <h, d>
-                hh = h[slc].inner(h[slc]).real  # < h, h>
+                cplx_hd, hh = _fused_inner_hd_hh(
+                    h[slc],
+                    self._whitened_data[det][slc],
+                    weight=self._weight[det][slc],
+                )
             cplx_loglr = cplx_hd - 0.5 * hh
             # store
-            setattr(self._current_stats, '{}_optimal_snrsq'.format(det), hh)
-            setattr(self._current_stats, '{}_cplx_loglr'.format(det),
-                    cplx_loglr)
+            setattr(self._current_stats, "{}_optimal_snrsq".format(det), hh)
+            setattr(self._current_stats, "{}_cplx_loglr".format(det), cplx_loglr)
             lr += cplx_loglr.real
         # also store the loglikelihood, to ensure it is populated in the
         # current stats even if loglikelihood is never called
         self._current_stats.loglikelihood = lr + self.lognl
-        return float(lr)
+        return float(lr) if numpy.isscalar(lr) else lr
 
     def det_cplx_loglr(self, det):
         """Returns the complex log likelihood ratio in the given detector.
@@ -1043,12 +1211,15 @@ class GaussianNoise(BaseGaussianNoise):
         """
         # try to get it from current stats
         try:
-            return getattr(self._current_stats, '{}_cplx_loglr'.format(det))
+            value = getattr(self._current_stats, "{}_cplx_loglr".format(det))
         except AttributeError:
-            # hasn't been calculated yet; call loglr to do so
-            self._loglr()
+            # Populate through the cached public property. Calling ``_loglr``
+            # directly would leave ``current_stats.loglr`` unset, so a later
+            # ``self.loglr`` access could regenerate and re-weight waveforms.
+            _ = self.loglr
             # now try returning again
-            return getattr(self._current_stats, '{}_cplx_loglr'.format(det))
+            value = getattr(self._current_stats, "{}_cplx_loglr".format(det))
+        return _public_stat_value(value)
 
     def det_optimal_snrsq(self, det):
         """Returns the opitmal SNR squared in the given detector.
@@ -1065,12 +1236,407 @@ class GaussianNoise(BaseGaussianNoise):
         """
         # try to get it from current stats
         try:
-            return getattr(self._current_stats, '{}_optimal_snrsq'.format(det))
+            value = getattr(self._current_stats, "{}_optimal_snrsq".format(det))
         except AttributeError:
-            # hasn't been calculated yet; call loglr to do so
-            self._loglr()
+            # Populate through the cached public property; see the complex
+            # detector-stat accessor above.
+            _ = self.loglr
             # now try returning again
-            return getattr(self._current_stats, '{}_optimal_snrsq'.format(det))
+            value = getattr(self._current_stats, "{}_optimal_snrsq".format(det))
+        return _public_stat_value(value)
+
+    def _batched_loglr(self, *args, **params):
+        r"""Computes the log likelihood ratio for a batch of parameter samples,
+
+        .. math::
+
+            \log \mathcal{L}(\Theta_j) = \sum_i \left[
+                \left<h_i(\Theta_j)|d_i\right> -
+                \frac{1}{2}\left<h_i(\Theta_j)|h_i(\Theta_j)\right> \right],
+
+        simultaneously for all samples :math:`j` using ``NetworkGeometry`` and
+        fused inner products ``_fused_inner_hd_hh``.
+
+        Parameters
+        ----------
+        *args : dict or structured array, optional
+            A single positional mapping or structured array of parameter values.
+        **params : dict
+            Detector-frame parameter names mapped to scalars or one-
+            dimensional arrays or tensors of samples. Radiation-frame
+            waveform parameters must be scalar. Batched evaluation requires
+            common detector frequency grids and does not currently support
+            template recalibration or waveform gates. Absolute GPS-time arrays
+            or tensors must use 64-bit precision.
+
+        Returns
+        -------
+        loglr : numpy.ndarray or torch.Tensor
+            The log likelihood ratio values evaluated across the batch.
+        """
+        params = self._parse_batched_params(*args, **params)
+        total_hd, total_hh, _, _ = _batched_waveform_inner_products(
+            self, params, zero_phase=False
+        )
+        return total_hd.real - 0.5 * total_hh
+
+
+def _batched_value_shape(value):
+    """Return a parameter value's shape without moving Torch data to host."""
+    tensor = _torch_tensor(value)
+    return tuple(tensor.shape) if tensor is not None else numpy.shape(value)
+
+
+def _detector_frame_batch_size(generator, supplied_params, full_params):
+    """Validate detector-frame-only batching and return its sample count."""
+    location_args = set(generator.location_args)
+    unsupported = sorted(
+        name
+        for name, value in supplied_params.items()
+        if name not in location_args and _batched_value_shape(value)
+    )
+    if unsupported:
+        raise ValueError(
+            "Batched radiation-frame waveform parameters are not supported; "
+            "only tc, ra, dec, and polarization may be batched. Got: "
+            + ", ".join(unsupported)
+        )
+
+    lengths = {}
+    for name in location_args:
+        if name not in full_params:
+            continue
+        shape = _batched_value_shape(full_params[name])
+        if len(shape) > 1:
+            raise ValueError(
+                f"Batched detector-frame parameter {name!r} must be scalar "
+                "or one-dimensional"
+            )
+        if shape:
+            lengths[name] = shape[0]
+
+    batch_size = max(lengths.values(), default=1)
+    if batch_size < 1:
+        raise ValueError("Batched detector-frame parameters cannot be empty")
+    mismatched = {
+        name: length
+        for name, length in lengths.items()
+        if length not in (1, batch_size)
+    }
+    if mismatched:
+        detail = ", ".join(
+            f"{name}={length}" for name, length in sorted(mismatched.items())
+        )
+        raise ValueError(
+            "Batched detector-frame parameter lengths must be one or the "
+            f"common batch length {batch_size}; got {detail}"
+        )
+    return batch_size
+
+
+def _batched_waveform_inner_products(model, params, zero_phase=False):
+    """Evaluate batched waveform frequency-domain projections and inner products
+    across all detectors in a single pass using NetworkGeometry and
+    _fused_inner_hd_hh.
+    """
+    if getattr(model, "sampling_transforms", None) is not None or getattr(
+        model, "waveform_transforms", None
+    ):
+        raise NotImplementedError(
+            "Batched likelihood evaluation does not support sampling or "
+            "waveform transforms; use scalar model evaluation"
+        )
+    full_params = dict(model.static_params) if model.static_params else {}
+    full_params.update(params)
+
+    gen = model.waveform_generator if hasattr(model, "waveform_generator") else None
+    if not getattr(model, "all_ifodata_same_rate_length", True):
+        raise NotImplementedError(
+            "Batched likelihood evaluation requires all detectors to use "
+            "the same sample rate and segment length"
+        )
+    if isinstance(gen, dict):
+        raise NotImplementedError(
+            "Batched likelihood evaluation does not support per-detector "
+            "waveform generators"
+        )
+
+    recalibration = getattr(model, "recalibration", None)
+    if not recalibration and gen is not None:
+        recalibration = getattr(gen, "recalib", None)
+    gates = getattr(model, "gates", None)
+    if not gates and gen is not None:
+        gates = getattr(gen, "gates", None)
+    if recalibration:
+        raise NotImplementedError(
+            "Batched likelihood evaluation does not support template recalibration"
+        )
+    if gates:
+        raise NotImplementedError(
+            "Batched likelihood evaluation does not support waveform gates"
+        )
+
+    has_rframe = (
+        gen is not None
+        and hasattr(gen, "rframe_generator")
+        and hasattr(gen, "location_args")
+    )
+
+    if not has_rframe:
+        shaped_params = sorted(
+            name for name, value in params.items() if _batched_value_shape(value)
+        )
+        if shaped_params:
+            raise NotImplementedError(
+                "Batched likelihood parameters require a radiation-frame "
+                "waveform generator with an explicit detector-frame "
+                "contract. Got: " + ", ".join(shaped_params)
+            )
+
+    if has_rframe:
+        batch_size = _detector_frame_batch_size(gen, params, full_params)
+        rfparams = {
+            param: full_params[param]
+            for param in full_params
+            if param not in gen.location_args
+        }
+        if zero_phase:
+            rfparams["coa_phase"] = 0.0
+        hp, hc = gen.rframe_generator.generate(**rfparams)
+        from pycbc.waveform.utils import scheme_cast_series as _scheme_cast_series
+
+        hp = _scheme_cast_series(hp)
+        hc = _scheme_cast_series(hc)
+        if isinstance(hp, TimeSeries):
+            df = full_params.get(
+                "delta_f", gen.current_params.get("delta_f", hp.delta_f)
+            )
+            hp = hp.to_frequencyseries(delta_f=df)
+            hc = hc.to_frequencyseries(delta_f=df)
+            tshift = 1.0 / df - abs(hp._epoch)
+        else:
+            tshift = 0.0
+
+        epoch = getattr(gen, "_epoch", float(getattr(hp, "_epoch", 0.0)))
+        delta_f = hp.delta_f
+
+        ra = full_params.get("ra", 0.0)
+        dec = full_params.get("dec", 0.0)
+        pol = full_params.get("polarization", 0.0)
+        ref_tc = full_params.get("tc", 0.0)
+        refframe = full_params.get("tc_ref_frame", "geocentric")
+        generator._validate_absolute_time_precision(ref_tc, epoch)
+
+        total_hd = None
+        total_hh = None
+        det_hd = {}
+        det_hh = {}
+        delay_dict = None
+        if (
+            refframe == "geocentric"
+            and getattr(model, "network_geometry", None) is not None
+        ):
+            delays = model.network_geometry.time_delay_from_earth_center(
+                ra, dec, ref_tc
+            )
+            delay_dict = model.network_geometry.to_dict(delays)
+
+        for detname in model._data:
+            if getattr(model, "network_geometry", None) is not None:
+                det = model.network_geometry[detname]
+            else:
+                from pycbc.detector import Detector
+
+                det = Detector(detname)
+            if delay_dict is not None:
+                offset = delay_dict[detname]
+            else:
+                offset = generator._detector_time_offset(det, ref_tc, ra, dec, refframe)
+            tc, dt = generator._arrival_time_and_shift(ref_tc, offset, epoch, tshift)
+            fp, fc = det.antenna_pattern(ra, dec, pol, tc)
+
+            hp_tensor = _torch_tensor(hp)
+            hc_tensor = _torch_tensor(hc)
+            fp_tensor = _torch_tensor(fp)
+            fc_tensor = _torch_tensor(fc)
+            dt_tensor = _torch_tensor(dt)
+
+            tensors = (hp_tensor, hc_tensor, fp_tensor, fc_tensor, dt_tensor)
+            if any(tensor is not None for tensor in tensors):
+                import torch
+
+                like = next(t for t in tensors if t is not None)
+                device = like.device
+                real_dtype = like.real.dtype
+                complex_dtype = (
+                    torch.complex128 if real_dtype == torch.float64 else torch.complex64
+                )
+
+                def _to_tensor(x, dev, dt):
+                    tensor = _torch_tensor(x)
+                    if tensor is not None:
+                        return tensor.to(device=dev, dtype=dt)
+                    if hasattr(x, "numpy") and callable(x.numpy):
+                        arr = x.numpy()
+                    elif hasattr(x, "data") and not isinstance(x.data, memoryview):
+                        arr = numpy.asarray(x.data)
+                    else:
+                        arr = numpy.asarray(x)
+                    return torch.as_tensor(arr, device=dev, dtype=dt)
+
+                hp_t = (
+                    hp_tensor
+                    if hp_tensor is not None
+                    else _to_tensor(hp, device, complex_dtype)
+                )
+                if hc_tensor is None:
+                    hc_t = _to_tensor(hc, device, complex_dtype)
+                else:
+                    hc_t = hc_tensor.to(device=device, dtype=complex_dtype)
+
+                if hp_t.ndim != 1 or hc_t.ndim != 1:
+                    raise ValueError(
+                        "batched likelihood waveform parameters must be "
+                        "scalar; only detector-frame extrinsics may be "
+                        "batched"
+                    )
+
+                # Called immediately below for this detector; the helper
+                # never escapes this iteration or changes these captures.
+                def _sample_column(value, name):
+                    value_tensor = _torch_tensor(value)
+                    if value_tensor is None:
+                        value_tensor = torch.as_tensor(
+                            value,
+                            device=device,  # noqa: B023
+                            dtype=real_dtype,  # noqa: B023
+                        )
+                    else:
+                        value_tensor = value_tensor.to(
+                            device=device,  # noqa: B023
+                            dtype=real_dtype,  # noqa: B023
+                        )
+                    if value_tensor.ndim == 0:
+                        value_tensor = value_tensor.expand(batch_size)
+                    elif value_tensor.ndim == 1 and value_tensor.shape[0] == 1:
+                        value_tensor = value_tensor.expand(batch_size)
+                    elif value_tensor.ndim != 1 or value_tensor.shape[0] != batch_size:
+                        raise ValueError(
+                            f"Batched detector-frame parameter {name!r} "
+                            f"must be scalar or have length {batch_size}"
+                        )
+                    return value_tensor.unsqueeze(-1)
+
+                fp_t = _sample_column(fp, "fplus")
+                fc_t = _sample_column(fc, "fcross")
+                dt_t = _sample_column(dt, "tc")
+
+                n_freq = hp_t.shape[-1]
+                freqs = torch.arange(n_freq, device=device, dtype=real_dtype) * delta_f
+
+                phase = -2.0 * torch.pi * freqs * dt_t
+                shift = torch.complex(torch.cos(phase), torch.sin(phase))
+                h_det = (fp_t * hp_t + fc_t * hc_t) * shift
+                if model.recalibration and detname in model.recalibration:
+                    h_det = model.recalibration[detname].map_to_adjust(
+                        h_det, **full_params
+                    )
+            else:
+
+                def _numpy_data(value):
+                    data = getattr(value, "data", None)
+                    if data is None or isinstance(data, memoryview):
+                        data = value
+                    return numpy.asarray(data)
+
+                hp_arr = _numpy_data(hp)
+                hc_arr = _numpy_data(hc)
+                if hp_arr.ndim != 1 or hc_arr.ndim != 1:
+                    raise ValueError(
+                        "batched likelihood waveform parameters must be "
+                        "scalar; only detector-frame extrinsics may be "
+                        "batched"
+                    )
+                n_freq = hp_arr.shape[-1]
+                freqs = numpy.arange(n_freq) * delta_f
+
+                def _sample_column(value, name):
+                    value_array = numpy.asarray(value)
+                    if value_array.ndim == 0:
+                        value_array = numpy.broadcast_to(value_array, (batch_size,))
+                    elif value_array.ndim == 1 and value_array.shape[0] == 1:
+                        value_array = numpy.broadcast_to(value_array, (batch_size,))
+                    elif value_array.ndim != 1 or value_array.shape[0] != batch_size:
+                        raise ValueError(
+                            f"Batched detector-frame parameter {name!r} "
+                            f"must be scalar or have length {batch_size}"
+                        )
+                    return value_array[:, None]
+
+                fp_arr = _sample_column(fp, "fplus")
+                fc_arr = _sample_column(fc, "fcross")
+                dt_arr = _sample_column(dt, "tc")
+                phase = -2.0 * numpy.pi * freqs * dt_arr
+                shift = numpy.exp(1j * phase)
+                h_det = (fp_arr * hp_arr + fc_arr * hc_arr) * shift
+                if model.recalibration and detname in model.recalibration:
+                    h_det = model.recalibration[detname].map_to_adjust(
+                        h_det, **full_params
+                    )
+
+            kmax = min(h_det.shape[-1], model._kmax[detname])
+            kmin = model._kmin[detname]
+            if kmin >= kmax:
+                if _torch_tensor(h_det) is not None:
+                    import torch
+
+                    cplx_hd = torch.zeros(
+                        h_det.shape[:-1], dtype=complex_dtype, device=device
+                    )
+                    hh = torch.zeros(h_det.shape[:-1], dtype=real_dtype, device=device)
+                else:
+                    cplx_hd = numpy.zeros(h_det.shape[:-1], dtype=complex)
+                    hh = numpy.zeros(h_det.shape[:-1], dtype=float)
+            else:
+                slc = slice(kmin, kmax)
+                w_slc = model._weight[detname][slc]
+                d_slc = model._whitened_data[detname][slc]
+                cplx_hd, hh = _fused_inner_hd_hh(h_det[..., slc], d_slc, weight=w_slc)
+
+            det_hd[detname] = cplx_hd
+            det_hh[detname] = hh
+            total_hd = cplx_hd if total_hd is None else total_hd + cplx_hd
+            total_hh = hh if total_hh is None else total_hh + hh
+
+        return total_hd, total_hh, det_hd, det_hh
+    else:
+        if gen is not None:
+            wfs = gen.generate(**full_params)
+        else:
+            wfs = model.get_waveforms()
+
+        total_hd = None
+        total_hh = None
+        det_hd = {}
+        det_hh = {}
+        for detname, h in wfs.items():
+            kmax = min(
+                h.shape[-1] if hasattr(h, "shape") else len(h), model._kmax[detname]
+            )
+            kmin = model._kmin[detname]
+            if kmin >= kmax:
+                cplx_hd = 0j
+                hh = 0.0
+            else:
+                slc = slice(kmin, kmax)
+                w_slc = model._weight[detname][slc]
+                d_slc = model._whitened_data[detname][slc]
+                cplx_hd, hh = _fused_inner_hd_hh(h[..., slc], d_slc, weight=w_slc)
+            det_hd[detname] = cplx_hd
+            det_hh[detname] = hh
+            total_hd = cplx_hd if total_hd is None else total_hd + cplx_hd
+            total_hh = hh if total_hh is None else total_hh + hh
+        return total_hd, total_hh, det_hd, det_hh
 
 
 #
@@ -1133,7 +1699,7 @@ def get_values_from_injection(cp, injection_file, update_cp=True):
         The parameters that were replaced, as a tuple of section name, option,
         value.
     """
-    lookfor = 'FROM_INJECTION'
+    lookfor = "FROM_INJECTION"
     # figure out what parameters need to be set
     replace_params = []
     for sec in cp.sections():
@@ -1144,7 +1710,7 @@ def get_values_from_injection(cp, injection_file, update_cp=True):
             for ii, subval in enumerate(splitvals):
                 if subval.startswith(lookfor):
                     # determine what we should retrieve from the injection
-                    subval = subval.split(':', 1)
+                    subval = subval.split(":", 1)
                     if len(subval) == 1:
                         subval = opt
                     else:
@@ -1155,15 +1721,19 @@ def get_values_from_injection(cp, injection_file, update_cp=True):
     if replace_params:
         # check that we have an injection file
         if injection_file is None:
-            raise ValueError("One or values are set to {}, but no injection "
-                             "file provided".format(lookfor))
+            raise ValueError(
+                "One or values are set to {}, but no injection file provided".format(
+                    lookfor
+                )
+            )
         # load the injection file
         inj = InjectionSet(injection_file).table.view(type=FieldArray)
         # make sure there's only one injection provided
         if inj.size > 1:
-            raise ValueError("One or more values are set to {}, but more than "
-                             "one injection exists in the injection file."
-                             .format(lookfor))
+            raise ValueError(
+                "One or more values are set to {}, but more than "
+                "one injection exists in the injection file.".format(lookfor)
+            )
     # get the injection values to replace
     for ii, (sec, opt, splitvals, replace_this) in enumerate(replace_params):
         # replace the value in the shlex-splitted string with the value
@@ -1180,23 +1750,27 @@ def get_values_from_injection(cp, injection_file, update_cp=True):
         # following can just be replaced by:
         # replace_val = shlex.join(splitvals)
         for jj, arg in enumerate(splitvals):
-            if ' ' in arg:
+            if " " in arg:
                 arg = "'" + arg + "'"
                 splitvals[jj] = arg
-        replace_val = ' '.join(splitvals)
+        replace_val = " ".join(splitvals)
         replace_params[ii] = (sec, opt, replace_val)
     # replace in the config file
     if update_cp:
-        for (sec, opt, replace_val) in replace_params:
+        for sec, opt, replace_val in replace_params:
             cp.set(sec, opt, replace_val)
     return replace_params
 
 
 def create_waveform_generator(
-        variable_params, data, waveform_transforms=None,
-        recalibration=None, gates=None,
-        generator_class=generator.FDomainDetFrameGenerator,
-        **static_params):
+    variable_params,
+    data,
+    waveform_transforms=None,
+    recalibration=None,
+    gates=None,
+    generator_class=generator.FDomainDetFrameGenerator,
+    **static_params,
+):
     r"""Creates a waveform generator for use with a model.
 
     Parameters
@@ -1233,19 +1807,18 @@ def create_waveform_generator(
     # of the waveform transforms, so we'll add them to the list of
     # parameters
     if waveform_transforms is not None:
-        wfoutputs = set.union(*[t.outputs
-                                for t in waveform_transforms])
+        wfoutputs = set.union(*[t.outputs for t in waveform_transforms])
     else:
         wfoutputs = set()
     variable_params = list(variable_params) + list(wfoutputs)
     # figure out what generator to use based on the approximant
     try:
-        approximant = static_params['approximant']
+        approximant = static_params["approximant"]
     except KeyError:
         raise ValueError("no approximant provided in the static args")
 
-    dm = static_params.get('preferred_domain', None)
-    if isinstance(dm, str) and dm.lower() == 'none':
+    dm = static_params.get("preferred_domain", None)
+    if isinstance(dm, str) and dm.lower() == "none":
         dm = None
 
     gen_function = generator_class.select_rframe_generator(approximant, dm)
@@ -1258,14 +1831,21 @@ def create_waveform_generator(
             delta_t = d.delta_t
             start_time = d.start_time
         else:
-            if not all([d.delta_f == delta_f, d.delta_t == delta_t,
-                        d.start_time == start_time]):
-                raise ValueError("data must all have the same delta_t, "
-                                 "delta_f, and start_time")
+            if not all(
+                [d.delta_f == delta_f, d.delta_t == delta_t, d.start_time == start_time]
+            ):
+                raise ValueError(
+                    "data must all have the same delta_t, delta_f, and start_time"
+                )
     waveform_generator = generator_class(
-        gen_function, epoch=start_time,
-        variable_args=variable_params, detectors=list(data.keys()),
-        delta_f=delta_f, delta_t=delta_t,
-        recalib=recalibration, gates=gates,
-        **static_params)
+        gen_function,
+        epoch=start_time,
+        variable_args=variable_params,
+        detectors=list(data.keys()),
+        delta_f=delta_f,
+        delta_t=delta_t,
+        recalib=recalibration,
+        gates=gates,
+        **static_params,
+    )
     return waveform_generator
