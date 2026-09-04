@@ -15,15 +15,47 @@
 """
 This modules provides classes for evaluating distributions with bounds.
 """
+
 import logging
 import warnings
 from configparser import Error
+
 import numpy
 
-from pycbc import boundaries
-from pycbc import VARARGS_DELIM
+from pycbc import VARARGS_DELIM, boundaries
 
-logger = logging.getLogger('pycbc.distributions.bounded')
+logger = logging.getLogger("pycbc.distributions.bounded")
+
+
+def _torch_module_and_reference(values):
+    """Return Torch and the first raw tensor in ``values``, if present."""
+    for value in values:
+        torch = boundaries._torch_module_for(value)
+        if torch is not None:
+            return torch, value
+    return None, None
+
+
+def _torch_as_tensor(value, reference):
+    """Create a scalar on a parameter tensor's device and floating dtype."""
+    torch = boundaries._torch_module_for(reference)
+    dtype = (
+        reference.dtype if reference.is_floating_point() else torch.get_default_dtype()
+    )
+    return torch.as_tensor(value, dtype=dtype, device=reference.device)
+
+
+def _torch_where(params, condition, value, outside):
+    """Apply a bounded-distribution mask without leaving a Torch device."""
+    torch, reference = _torch_module_and_reference(params.values())
+    if torch is None:
+        return None
+    if not isinstance(value, torch.Tensor):
+        value = _torch_as_tensor(value, reference)
+    if not isinstance(outside, torch.Tensor):
+        outside = _torch_as_tensor(outside, value)
+    return torch.where(condition, value, outside)
+
 
 #
 #   Distributions for priors
@@ -84,40 +116,41 @@ def get_param_bounds_from_config(cp, section, tag, param):
         representing the bounds. Otherwise, `None`.
     """
     try:
-        minbnd = float(cp.get_opt_tag(section, 'min-'+param, tag))
+        minbnd = float(cp.get_opt_tag(section, "min-" + param, tag))
     except Error:
         minbnd = None
     try:
-        maxbnd = float(cp.get_opt_tag(section, 'max-'+param, tag))
+        maxbnd = float(cp.get_opt_tag(section, "max-" + param, tag))
     except Error:
         maxbnd = None
     if minbnd is None and maxbnd is None:
         bnds = None
     elif minbnd is None or maxbnd is None:
-        raise ValueError("if specifying bounds for %s, " %(param) +
-            "you must provide both a minimum and a maximum")
+        raise ValueError(
+            "if specifying bounds for %s, " % (param)
+            + "you must provide both a minimum and a maximum"
+        )
     else:
-        bndargs = {'min_bound': minbnd, 'max_bound': maxbnd}
+        bndargs = {"min_bound": minbnd, "max_bound": maxbnd}
         # try to get  any other conditions, if provided
         try:
-            minbtype = cp.get_opt_tag(section, 'btype-min-{}'.format(param),
-                                      tag)
+            minbtype = cp.get_opt_tag(section, "btype-min-{}".format(param), tag)
         except Error:
-            minbtype = 'closed'
+            minbtype = "closed"
         try:
-            maxbtype = cp.get_opt_tag(section, 'btype-max-{}'.format(param),
-                                      tag)
+            maxbtype = cp.get_opt_tag(section, "btype-max-{}".format(param), tag)
         except Error:
-            maxbtype = 'open'
-        bndargs.update({'btype_min': minbtype, 'btype_max': maxbtype})
-        cyclic = cp.has_option_tag(section, 'cyclic-{}'.format(param), tag)
-        bndargs.update({'cyclic': cyclic})
+            maxbtype = "open"
+        bndargs.update({"btype_min": minbtype, "btype_max": maxbtype})
+        cyclic = cp.has_option_tag(section, "cyclic-{}".format(param), tag)
+        bndargs.update({"cyclic": cyclic})
         bnds = boundaries.Bounds(**bndargs)
     return bnds
 
 
-def bounded_from_config(cls, cp, section, variable_args,
-        bounds_required=False, additional_opts=None):
+def bounded_from_config(
+    cls, cp, section, variable_args, bounds_required=False, additional_opts=None
+):
     """Returns a bounded distribution based on a configuration file. The
     parameters for the distribution are retrieved from the section titled
     "[`section`-`variable_args`]" in the config file.
@@ -159,26 +192,26 @@ def bounded_from_config(cls, cp, section, variable_args,
         additional_opts = {}
 
     # list of args that are used to construct distribution
-    special_args = ["name"] + \
-        ['min-{}'.format(arg) for arg in variable_args] + \
-        ['max-{}'.format(arg) for arg in variable_args] + \
-        ['btype-min-{}'.format(arg) for arg in variable_args] + \
-        ['btype-max-{}'.format(arg) for arg in variable_args] + \
-        ['cyclic-{}'.format(arg) for arg in variable_args] + \
-        list(additional_opts.keys())
+    special_args = (
+        ["name"]
+        + ["min-{}".format(arg) for arg in variable_args]
+        + ["max-{}".format(arg) for arg in variable_args]
+        + ["btype-min-{}".format(arg) for arg in variable_args]
+        + ["btype-max-{}".format(arg) for arg in variable_args]
+        + ["cyclic-{}".format(arg) for arg in variable_args]
+        + list(additional_opts.keys())
+    )
 
     # get a dict with bounds as value
     dist_args = {}
     for param in variable_args:
         bounds = get_param_bounds_from_config(cp, section, tag, param)
         if bounds_required and bounds is None:
-            raise ValueError("min and/or max missing for parameter %s"%(
-                param))
+            raise ValueError("min and/or max missing for parameter %s" % (param))
         dist_args[param] = bounds
 
     # add any additional options that user put in that section
     for key in cp.options("-".join([section, tag])):
-
         # ignore options that are already included
         if key in special_args:
             continue
@@ -191,7 +224,7 @@ def bounded_from_config(cls, cp, section, variable_args,
             pass
 
         # add option
-        dist_args.update({key:val})
+        dist_args.update({key: val})
 
     dist_args.update(additional_opts)
 
@@ -211,20 +244,24 @@ class BoundedDist(object):
         corresponding bounds, as either tuples or a `boundaries.Bounds`
         instance.
     """
+
     def __init__(self, **params):
         # convert input bounds to Bounds class, if necessary
-        for param,bnds in params.items():
+        for param, bnds in params.items():
             if bnds is None:
                 params[param] = boundaries.Bounds()
             elif not isinstance(bnds, boundaries.Bounds):
                 params[param] = boundaries.Bounds(bnds[0], bnds[1])
             # warn the user about reflected boundaries
             if isinstance(bnds, boundaries.Bounds) and (
-                    bnds.min.name == 'reflected' or
-                    bnds.max.name == 'reflected'):
-                warnings.warn("Param {} has one or more ".format(param) +
-                              "reflected boundaries. Reflected boundaries "
-                              "can cause issues when used in an MCMC.")
+                bnds.min.name == "reflected" or bnds.max.name == "reflected"
+            ):
+                warnings.warn(
+                    "Param {} has one or more ".format(param)
+                    + "reflected boundaries. Reflected boundaries "
+                    "can cause issues when used in an MCMC.",
+                    stacklevel=1,
+                )
         self._bounds = params
         self._params = sorted(list(params.keys()))
 
@@ -240,11 +277,15 @@ class BoundedDist(object):
 
     def __contains__(self, params):
         try:
-            return all(self._bounds[p].contains_conditioned(params[p])
-                       for p in self._params)
-        except KeyError:
-            raise ValueError("must provide all parameters [%s]" %(
-                ', '.join(self._params)))
+            result = None
+            for param in self._params:
+                contained = self._bounds[param].contains_conditioned(params[param])
+                result = contained if result is None else result & contained
+            return True if result is None else result
+        except KeyError as exc:
+            raise ValueError(
+                "must provide all parameters [%s]" % (", ".join(self._params))
+            ) from exc
 
     def apply_boundary_conditions(self, **kwargs):
         r"""Applies any boundary conditions to the given values (e.g., applying
@@ -266,8 +307,13 @@ class BoundedDist(object):
         dict
             A dictionary of the parameter names and the conditioned values.
         """
-        return dict([[p, self._bounds[p].apply_conditions(val)]
-                     for p,val in kwargs.items() if p in self._bounds])
+        return dict(
+            [
+                [p, self._bounds[p].apply_conditions(val)]
+                for p, val in kwargs.items()
+                if p in self._bounds
+            ]
+        )
 
     def pdf(self, **kwargs):
         """Returns the pdf at the given values. The keyword arguments must
@@ -302,7 +348,7 @@ class BoundedDist(object):
     __call__ = logpdf
 
     def _cdfinv_param(self, param, value):
-        """Return the cdfinv for a single given parameter """
+        """Return the cdfinv for a single given parameter"""
         raise NotImplementedError("inverse cdf not set")
 
     def cdfinv(self, **kwds):
@@ -355,5 +401,6 @@ class BoundedDist(object):
         BoundedDist
             A distribution instance from the pycbc.distribution subpackage.
         """
-        return bounded_from_config(cls, cp, section, variable_args,
-                                    bounds_required=bounds_required)
+        return bounded_from_config(
+            cls, cp, section, variable_args, bounds_required=bounds_required
+        )

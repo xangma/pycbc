@@ -30,16 +30,18 @@ Any other distance measure is explicitly named; e.g., ``comoving_distance``.
 """
 
 import logging
-import numpy
-from scipy import interpolate
+
 import astropy.cosmology
+import numpy
 from astropy import units
 from astropy.cosmology import CosmologyError, parameters
+from scipy import interpolate
+
 import pycbc.conversions
 
-logger = logging.getLogger('pycbc.cosmology')
+logger = logging.getLogger("pycbc.cosmology")
 
-DEFAULT_COSMOLOGY = 'Planck15'
+DEFAULT_COSMOLOGY = "Planck15"
 
 
 def get_cosmology(cosmology=None, **kwargs):
@@ -88,8 +90,10 @@ def get_cosmology(cosmology=None, **kwargs):
 
     """
     if kwargs and cosmology is not None:
-        raise ValueError("if providing custom cosmological parameters, do "
-                         "not provide a `cosmology` argument")
+        raise ValueError(
+            "if providing custom cosmological parameters, do "
+            "not provide a `cosmology` argument"
+        )
     if isinstance(cosmology, astropy.cosmology.FlatLambdaCDM):
         # just return
         return cosmology
@@ -104,7 +108,7 @@ def get_cosmology(cosmology=None, **kwargs):
     return cosmology
 
 
-def z_at_value(func, fval, unit, zmax=1000., **kwargs):
+def z_at_value(func, fval, unit, zmax=1000.0, **kwargs):
     r"""Wrapper around astropy.cosmology.z_at_value to handle numpy arrays.
 
     Getting a z for a cosmological quantity involves numerically inverting
@@ -137,16 +141,15 @@ def z_at_value(func, fval, unit, zmax=1000., **kwargs):
     if fval.size == 1 and fval.ndim == 0:
         fval = fval.reshape(1)
     zs = numpy.zeros(fval.shape, dtype=float)  # the output array
-    if 'method' not in kwargs:
+    if "method" not in kwargs:
         # workaround for https://github.com/astropy/astropy/issues/14249
         # FIXME remove when fixed in astropy/scipy
-        kwargs['method'] = 'bounded'
-    for (ii, val) in enumerate(fval):
+        kwargs["method"] = "bounded"
+    for ii, val in enumerate(fval):
         try:
-            zs[ii] = astropy.cosmology.z_at_value(func, val*unit, zmax=zmax,
-                                                  **kwargs)
+            zs[ii] = astropy.cosmology.z_at_value(func, val * unit, zmax=zmax, **kwargs)
         except CosmologyError:
-            if ii == len(zs)-1:
+            if ii == len(zs) - 1:
                 # if zs[ii] is less than but very close to zmax, let's say
                 # zs[ii] is the last element in the [zmin, zmax],
                 # `z_at_value` will also returns "CosmologyError", please
@@ -154,7 +157,7 @@ def z_at_value(func, fval, unit, zmax=1000., **kwargs):
                 # cosmology.z_at_value.html), in order to avoid bumping up
                 # zmax, just set zs equals to previous value, we assume
                 # the `func` is smooth
-                zs[ii] = zs[ii-1]
+                zs[ii] = zs[ii - 1]
             else:
                 # we'll get this if the z was larger than zmax; in that
                 # case we'll try bumping up zmax later to get a value
@@ -166,14 +169,15 @@ def z_at_value(func, fval, unit, zmax=1000., **kwargs):
         # we'll keep bumping up the maxz until we can get a result
         counter = 0  # to prevent running forever
         while replacemask.any():
-            kwargs['zmin'] = zmax
+            kwargs["zmin"] = zmax
             zmax = 10 * zmax
             idx = numpy.where(replacemask)
             for ii in idx:
                 val = fval[ii]
                 try:
                     zs[ii] = astropy.cosmology.z_at_value(
-                        func, val*unit, zmax=zmax, **kwargs)
+                        func, val * unit, zmax=zmax, **kwargs
+                    )
                     replacemask[ii] = False
                 except CosmologyError:
                     # didn't work, try on next loop
@@ -181,10 +185,12 @@ def z_at_value(func, fval, unit, zmax=1000., **kwargs):
             counter += 1
             if counter == 5:
                 # give up and warn the user
-                logger.warning("One or more values correspond to a "
-                               "redshift > {0:.1e}. The redshift for these "
-                               "have been set to inf. If you would like "
-                               "better precision, call God.".format(zmax))
+                logger.warning(
+                    "One or more values correspond to a "
+                    "redshift > {0:.1e}. The redshift for these "
+                    "have been set to inf. If you would like "
+                    "better precision, call God.".format(zmax)
+                )
                 break
     return pycbc.conversions.formatreturn(zs, input_is_array)
 
@@ -222,8 +228,10 @@ class DistToZ(object):
     up a dense grid of redshifts, then using linear interpolation to find the
     inverse function.  The interpolation uses a grid linear in z for z < 1, and
     log in z for ``default_maxz`` > z > 1. This interpolater is setup the first
-    time `get_redshift` is called.  If a distance is requested that results in
-    a z > ``default_maxz``, the class falls back to calling astropy directly.
+    time `get_redshift` is called. If a host value is requested that results
+    in a z > ``default_maxz``, the class falls back to calling Astropy
+    directly. Torch tensors outside the precomputed range fail closed rather
+    than being copied to the host.
 
     Instances of this class can be called like a function on luminosity
     distances, which will return the corresponding redshifts.
@@ -241,7 +249,8 @@ class DistToZ(object):
         select a cosmology. If none provided, will use
         :py:attr:`DEFAULT_COSMOLOGY`.
     """
-    def __init__(self, default_maxz=1000., numpoints=10000, **kwargs):
+
+    def __init__(self, default_maxz=1000.0, numpoints=10000, **kwargs):
         self.numpoints = int(numpoints)
         self.default_maxz = default_maxz
         self.cosmology = get_cosmology(**kwargs)
@@ -250,26 +259,101 @@ class DistToZ(object):
         self.nearby_d2z = None
         self.faraway_d2z = None
         self.default_maxdist = None
+        self._nearby_grid = None
+        self._faraway_grid = None
+        self._torch_grids = {}
 
     def setup_interpolant(self):
         """Initializes the z(d) interpolation."""
         # for computing nearby (z < 1) redshifts
-        zs = numpy.linspace(0., 1., num=self.numpoints)
-        ds = self.cosmology.luminosity_distance(zs).value
-        self.nearby_d2z = interpolate.interp1d(ds, zs, kind='linear',
-                                                bounds_error=False)
+        nearby_zs = numpy.linspace(0.0, 1.0, num=self.numpoints)
+        nearby_ds = self.cosmology.luminosity_distance(nearby_zs).value
+        self.nearby_d2z = interpolate.interp1d(
+            nearby_ds, nearby_zs, kind="linear", bounds_error=False
+        )
         # for computing far away (z > 1) redshifts
-        zs = numpy.logspace(0, numpy.log10(self.default_maxz),
-                            num=self.numpoints)
-        ds = self.cosmology.luminosity_distance(zs).value
-        self.faraway_d2z = interpolate.interp1d(ds, zs, kind='linear',
-                                                 bounds_error=False)
+        faraway_zs = numpy.logspace(
+            0, numpy.log10(self.default_maxz), num=self.numpoints
+        )
+        faraway_ds = self.cosmology.luminosity_distance(faraway_zs).value
+        self.faraway_d2z = interpolate.interp1d(
+            faraway_ds, faraway_zs, kind="linear", bounds_error=False
+        )
         # store the default maximum distance
-        self.default_maxdist = ds.max()
+        self.default_maxdist = float(faraway_ds.max())
+        self._nearby_grid = (nearby_ds, nearby_zs)
+        self._faraway_grid = (faraway_ds, faraway_zs)
+        self._torch_grids.clear()
+
+    def _get_torch_grids(self, torch, dist):
+        """Return interpolation grids cached on a tensor's device."""
+        if self._nearby_grid is None or self._faraway_grid is None:
+            self.setup_interpolant()
+        key = (dist.device, dist.dtype)
+        try:
+            return self._torch_grids[key]
+        except KeyError:
+            grids = tuple(
+                torch.as_tensor(values, device=dist.device, dtype=dist.dtype)
+                for grid in (self._nearby_grid, self._faraway_grid)
+                for values in grid
+            )
+            self._torch_grids[key] = grids
+            return grids
+
+    @staticmethod
+    def _torch_linear_interp(torch, x, y, values):
+        """Linearly interpolate tensor values on a monotonic grid."""
+        upper = torch.searchsorted(x, values, right=False)
+        upper = upper.clamp(1, x.numel() - 1)
+        lower = upper - 1
+        x0 = x[lower]
+        x1 = x[upper]
+        y0 = y[lower]
+        y1 = y[upper]
+        return y0 + (values - x0) * (y1 - y0) / (x1 - x0)
+
+    def _get_redshift_torch(self, torch, dist):
+        """Evaluate the precomputed inverse on a Torch device."""
+        if dist.dtype.is_complex:
+            raise TypeError("distance must be real")
+        if not dist.dtype.is_floating_point:
+            dist = dist.to(dtype=torch.get_default_dtype())
+        if not bool(torch.all(torch.isfinite(dist) & (dist >= 0))):
+            raise ValueError("distance must be finite and >= 0")
+
+        nearby_d, nearby_z, faraway_d, faraway_z = self._get_torch_grids(torch, dist)
+        if bool(torch.any(dist > faraway_d[-1])):
+            raise ValueError(
+                "Torch distances must be within the precomputed redshift "
+                f"range z <= {self.default_maxz:g}"
+            )
+
+        shape = dist.shape
+        flat_dist = dist.reshape(-1).contiguous()
+        nearby_values = flat_dist.clamp(min=nearby_d[0], max=nearby_d[-1])
+        faraway_values = flat_dist.clamp(min=faraway_d[0], max=faraway_d[-1])
+        nearby_result = self._torch_linear_interp(
+            torch, nearby_d, nearby_z, nearby_values
+        )
+        faraway_result = self._torch_linear_interp(
+            torch, faraway_d, faraway_z, faraway_values
+        )
+        result = torch.where(flat_dist <= nearby_d[-1], nearby_result, faraway_result)
+        return result.reshape(shape)
 
     def get_redshift(self, dist):
         """Returns the redshift for the given distance.
+
+        Torch tensors are interpolated on their existing device. The static
+        cosmology grids are constructed on the host once and cached per Torch
+        device and dtype. Tensor distances beyond ``default_maxz`` fail closed
+        instead of being copied to the host for Astropy inversion.
         """
+        torch, values = pycbc.conversions._torch_values(dist)
+        if torch is not None:
+            return self._get_redshift_torch(torch, values[0])
+
         dist, input_is_array = pycbc.conversions.ensurearray(dist)
         try:
             zs = self.nearby_d2z(dist)
@@ -287,10 +371,9 @@ class DistToZ(object):
         # furthest default; fall back to using astropy
         if replacemask.any():
             # well... check that the distance is positive and finite first
-            if not (dist > 0.).all() and numpy.isfinite(dist).all():
+            if not (dist > 0.0).all() and numpy.isfinite(dist).all():
                 raise ValueError("distance must be finite and > 0")
-            zs[replacemask] = _redshift(dist[replacemask],
-                                        cosmology=self.cosmology)
+            zs[replacemask] = _redshift(dist[replacemask], cosmology=self.cosmology)
         return pycbc.conversions.formatreturn(zs, input_is_array)
 
     def __call__(self, dist):
@@ -298,8 +381,7 @@ class DistToZ(object):
 
 
 # set up D(z) interpolating classes for the standard cosmologies
-_d2zs = {_c: DistToZ(cosmology=_c)
-         for _c in parameters.available}
+_d2zs = {_c: DistToZ(cosmology=_c) for _c in parameters.available}
 
 
 def redshift(distance, **kwargs):
@@ -312,8 +394,9 @@ def redshift(distance, **kwargs):
 
     Parameters
     ----------
-    distance : float
-        The luminosity distance, in Mpc.
+    distance : float, array-like, or torch.Tensor
+        The luminosity distance, in Mpc. For a predefined cosmology, Torch
+        tensors are evaluated on their existing device.
     \**kwargs :
         All other keyword args are passed to :py:func:`get_cosmology` to
         select a cosmology. If none provided, will use
@@ -321,7 +404,7 @@ def redshift(distance, **kwargs):
 
     Returns
     -------
-    float :
+    float, numpy.ndarray, or torch.Tensor :
         The redshift corresponding to the given distance.
     """
     cosmology = get_cosmology(**kwargs)
@@ -342,10 +425,12 @@ class ComovingVolInterpolator(object):
     inverting :math:`z(D)` (where :math:`D` is the luminosity distance). This
     class speeds that up by pre-interpolating :math:`D(z)`. It works by setting
     up a dense grid of redshifts, then using linear interpolation to find the
-    inverse function.  The interpolation uses a grid linear in z for z < 1, and
-    log in z for ``default_maxz`` > z > 1. This interpolater is setup the first
-    time `get_redshift` is called.  If a distance is requested that results in
-    a z > ``default_maxz``, the class falls back to calling astropy directly.
+    inverse function. The interpolation uses a grid linear in z for z < 1, and
+    log in z for ``default_maxz`` > z > 1. This interpolator is set up the
+    first time `get_value` is called. If a host value is requested outside the
+    interpolation range, the class falls back to calling Astropy directly.
+    Torch tensors are evaluated on their existing device and fail closed
+    outside the precomputed range instead of being copied to the host.
 
     Instances of this class can be called like a function on luminosity
     distances, which will return the corresponding redshifts.
@@ -367,8 +452,10 @@ class ComovingVolInterpolator(object):
         select a cosmology. If none provided, will use
         :py:attr:`DEFAULT_COSMOLOGY`.
     """
-    def __init__(self, parameter, default_maxz=10., numpoints=1000,
-                 vol_func=None, **kwargs):
+
+    def __init__(
+        self, parameter, default_maxz=10.0, numpoints=1000, vol_func=None, **kwargs
+    ):
         self.parameter = parameter
         self.numpoints = int(numpoints)
         self.default_maxz = default_maxz
@@ -378,6 +465,9 @@ class ComovingVolInterpolator(object):
         self.nearby_interp = None
         self.faraway_interp = None
         self.default_maxvol = None
+        self._nearby_grid = None
+        self._faraway_grid = None
+        self._torch_grids = {}
         if vol_func is not None:
             self.vol_func = vol_func
         else:
@@ -391,31 +481,103 @@ class ComovingVolInterpolator(object):
 
         zs = z_at_value(self.vol_func, numpy.exp(logvs), self.vol_units, maxz)
 
-        if self.parameter != 'redshift':
+        if self.parameter != "redshift":
             ys = cosmological_quantity_from_redshift(zs, self.parameter)
         else:
             ys = zs
 
-        return interpolate.interp1d(logvs, ys, kind='linear',
-                                    bounds_error=False)
+        return (
+            interpolate.interp1d(logvs, ys, kind="linear", bounds_error=False),
+            (logvs, numpy.asarray(ys, dtype=float)),
+        )
 
     def setup_interpolant(self):
         """Initializes the z(d) interpolation."""
         # get VC bounds
         # for computing nearby (z < 1) redshifts
         minz = 0.001
-        maxz = 1.
-        self.nearby_interp = self._create_interpolant(minz, maxz)
+        maxz = 1.0
+        self.nearby_interp, self._nearby_grid = self._create_interpolant(minz, maxz)
         # for computing far away (z > 1) redshifts
-        minz = 1.
+        minz = 1.0
         maxz = self.default_maxz
-        self.faraway_interp = self._create_interpolant(minz, maxz)
+        self.faraway_interp, self._faraway_grid = self._create_interpolant(minz, maxz)
         # store the default maximum volume
         self.default_maxvol = numpy.log(self.vol_func(maxz).value)
+        self._torch_grids.clear()
+
+    def _get_torch_grids(self, torch, logv):
+        """Return interpolation grids cached on a tensor's device."""
+        if self._nearby_grid is None or self._faraway_grid is None:
+            self.setup_interpolant()
+        key = (logv.device, logv.dtype)
+        try:
+            return self._torch_grids[key]
+        except KeyError:
+            grids = tuple(
+                torch.as_tensor(values, device=logv.device, dtype=logv.dtype)
+                for grid in (self._nearby_grid, self._faraway_grid)
+                for values in grid
+            )
+            self._torch_grids[key] = grids
+            return grids
+
+    @staticmethod
+    def _torch_linear_interp(torch, x, y, values):
+        """Linearly interpolate tensor values on a monotonic grid."""
+        upper = torch.searchsorted(x, values, right=False)
+        upper = upper.clamp(1, x.numel() - 1)
+        lower = upper - 1
+        x0 = x[lower]
+        x1 = x[upper]
+        y0 = y[lower]
+        y1 = y[upper]
+        return y0 + (values - x0) * (y1 - y0) / (x1 - x0)
+
+    def _get_value_from_logv_torch(self, torch, logv):
+        """Evaluate the precomputed inverse on a Torch device."""
+        if logv.dtype.is_complex:
+            raise TypeError("comoving volume must be real")
+        if not logv.dtype.is_floating_point:
+            logv = logv.to(dtype=torch.get_default_dtype())
+        if not bool(torch.all(torch.isfinite(logv))):
+            raise ValueError("comoving volume must be finite and > 0")
+
+        nearby_logv, nearby_y, faraway_logv, faraway_y = self._get_torch_grids(
+            torch, logv
+        )
+        if bool(torch.any((logv < nearby_logv[0]) | (logv > faraway_logv[-1]))):
+            raise ValueError(
+                "Torch comoving volumes must be within the precomputed "
+                f"redshift range 0.001 <= z <= {self.default_maxz:g}"
+            )
+
+        shape = logv.shape
+        flat_logv = logv.reshape(-1).contiguous()
+        nearby_values = flat_logv.clamp(min=nearby_logv[0], max=nearby_logv[-1])
+        faraway_values = flat_logv.clamp(min=faraway_logv[0], max=faraway_logv[-1])
+        nearby_result = self._torch_linear_interp(
+            torch, nearby_logv, nearby_y, nearby_values
+        )
+        faraway_result = self._torch_linear_interp(
+            torch, faraway_logv, faraway_y, faraway_values
+        )
+        result = torch.where(
+            flat_logv <= nearby_logv[-1], nearby_result, faraway_result
+        )
+        return result.reshape(shape)
 
     def get_value_from_logv(self, logv):
-        """Returns the redshift for the given distance.
+        """Return the requested quantity for a log comoving volume.
+
+        Torch tensors are interpolated on their existing device. Their values
+        must lie within the precomputed redshift range; tensor inputs never
+        fall back to the host Astropy inversion.
         """
+        torch, values = pycbc.conversions._torch_values(logv)
+        if torch is not None:
+            return self._get_value_from_logv_torch(torch, values[0])
+
         logv, input_is_array = pycbc.conversions.ensurearray(logv)
         try:
             vals = self.nearby_interp(logv)
@@ -435,16 +597,25 @@ class ComovingVolInterpolator(object):
             # well... check that the logv is finite first
             if not numpy.isfinite(logv).all():
                 raise ValueError("comoving volume must be finite and > 0")
-            zs = z_at_value(self.vol_func,
-                            numpy.exp(logv[replacemask]), self.vol_units)
-            if self.parameter == 'redshift':
+            zs = z_at_value(self.vol_func, numpy.exp(logv[replacemask]), self.vol_units)
+            if self.parameter == "redshift":
                 vals[replacemask] = zs
             else:
-                vals[replacemask] = \
-                    getattr(self.cosmology, self.parameter)(zs).value
+                vals[replacemask] = getattr(self.cosmology, self.parameter)(zs).value
         return pycbc.conversions.formatreturn(vals, input_is_array)
 
     def get_value(self, volume):
+        """Return the requested quantity for a comoving volume."""
+        torch, values = pycbc.conversions._torch_values(volume)
+        if torch is not None:
+            volume = values[0]
+            if volume.dtype.is_complex:
+                raise TypeError("comoving volume must be real")
+            if not volume.dtype.is_floating_point:
+                volume = volume.to(dtype=torch.get_default_dtype())
+            if not bool(torch.all(torch.isfinite(volume) & (volume > 0))):
+                raise ValueError("comoving volume must be finite and > 0")
+            return self._get_value_from_logv_torch(torch, torch.log(volume))
         return self.get_value_from_logv(numpy.log(volume))
 
     def __call__(self, volume):
@@ -452,11 +623,14 @@ class ComovingVolInterpolator(object):
 
 
 # set up D(z) interpolating classes for the standard cosmologies
-_v2ds = {_c: ComovingVolInterpolator('luminosity_distance', cosmology=_c)
-         for _c in parameters.available}
+_v2ds = {
+    _c: ComovingVolInterpolator("luminosity_distance", cosmology=_c)
+    for _c in parameters.available
+}
 
-_v2zs = {_c: ComovingVolInterpolator('redshift', cosmology=_c)
-         for _c in parameters.available}
+_v2zs = {
+    _c: ComovingVolInterpolator("redshift", cosmology=_c) for _c in parameters.available
+}
 
 
 def redshift_from_comoving_volume(vc, interp=True, **kwargs):
@@ -464,8 +638,10 @@ def redshift_from_comoving_volume(vc, interp=True, **kwargs):
 
     Parameters
     ----------
-    vc : float
-        The comoving volume, in units of cubed Mpc.
+    vc : float, array-like, or torch.Tensor
+        The comoving volume, in units of cubed Mpc. With interpolation
+        enabled for a predefined cosmology, Torch tensors are evaluated on
+        their existing device.
     interp : bool, optional
         If true, this will setup an interpolator between redshift and comoving
         volume the first time this function is called. This is useful when
@@ -483,7 +659,7 @@ def redshift_from_comoving_volume(vc, interp=True, **kwargs):
 
     Returns
     -------
-    float :
+    float, numpy.ndarray, or torch.Tensor :
         The redshift at the given comoving volume.
     """
     cosmology = get_cosmology(**kwargs)
@@ -502,8 +678,10 @@ def distance_from_comoving_volume(vc, interp=True, **kwargs):
 
     Parameters
     ----------
-    vc : float
-        The comoving volume, in units of cubed Mpc.
+    vc : float, array-like, or torch.Tensor
+        The comoving volume, in units of cubed Mpc. With interpolation
+        enabled for a predefined cosmology, Torch tensors are evaluated on
+        their existing device.
     interp : bool, optional
         If true, this will setup an interpolator between distance and comoving
         volume the first time this function is called. This is useful when
@@ -520,7 +698,7 @@ def distance_from_comoving_volume(vc, interp=True, **kwargs):
 
     Returns
     -------
-    float :
+    float, numpy.ndarray, or torch.Tensor :
         The luminosity distance at the given comoving volume.
     """
     cosmology = get_cosmology(**kwargs)
@@ -535,8 +713,7 @@ def distance_from_comoving_volume(vc, interp=True, **kwargs):
     return dist
 
 
-def cosmological_quantity_from_redshift(z, quantity, strip_unit=True,
-                                        **kwargs):
+def cosmological_quantity_from_redshift(z, quantity, strip_unit=True, **kwargs):
     r"""Returns the value of a cosmological quantity (e.g., age) at a redshift.
 
     Parameters
@@ -567,7 +744,9 @@ def cosmological_quantity_from_redshift(z, quantity, strip_unit=True,
     return val
 
 
-__all__ = ['redshift', 'redshift_from_comoving_volume',
-           'distance_from_comoving_volume',
-           'cosmological_quantity_from_redshift',
-           ]
+__all__ = [
+    "redshift",
+    "redshift_from_comoving_volume",
+    "distance_from_comoving_volume",
+    "cosmological_quantity_from_redshift",
+]

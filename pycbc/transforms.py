@@ -16,20 +16,290 @@
 This modules provides classes and functions for transforming parameters.
 """
 
-import os
+import ast
 import logging
+import os
+
 import numpy
 
-from pycbc import conversions
-from pycbc import coordinates
-from pycbc import cosmology
-from pycbc.io import record
-from pycbc.waveform import parameters
+from pycbc import VARARGS_DELIM, conversions, coordinates, cosmology
 from pycbc.boundaries import Bounds
-from pycbc import VARARGS_DELIM
+from pycbc.io import record
 from pycbc.pnutils import jframe_to_l0frame
+from pycbc.types.backend import torch_module_for as _torch_module_for
+from pycbc.waveform import parameters
 
-logger = logging.getLogger('pycbc.transforms')
+logger = logging.getLogger("pycbc.transforms")
+
+
+_TORCH_EXPRESSION_UNSUPPORTED = object()
+
+_TORCH_EXPRESSION_FUNCTIONS = {
+    "abs": "abs",
+    "absolute": "absolute",
+    "acos": "acos",
+    "acosh": "acosh",
+    "asin": "asin",
+    "asinh": "asinh",
+    "atan": "atan",
+    "atan2": "atan2",
+    "arctan2": "atan2",
+    "ceil": "ceil",
+    "cos": "cos",
+    "cosh": "cosh",
+    "exp": "exp",
+    "expm1": "expm1",
+    "floor": "floor",
+    "hypot": "hypot",
+    "log": "log",
+    "log10": "log10",
+    "log1p": "log1p",
+    "log2": "log2",
+    "maximum": "maximum",
+    "minimum": "minimum",
+    "sign": "sign",
+    "sin": "sin",
+    "sinh": "sinh",
+    "sqrt": "sqrt",
+    "tan": "tan",
+    "tanh": "tanh",
+}
+
+_TORCH_EXPRESSION_NODES = (
+    ast.Expression,
+    ast.BinOp,
+    ast.UnaryOp,
+    ast.Call,
+    ast.keyword,
+    ast.Name,
+    ast.Load,
+    ast.Constant,
+    ast.Add,
+    ast.Sub,
+    ast.Mult,
+    ast.Div,
+    ast.Pow,
+    ast.UAdd,
+    ast.USub,
+)
+
+_TORCH_CONSTRAINT_NODES = _TORCH_EXPRESSION_NODES + (
+    ast.Compare,
+    ast.Eq,
+    ast.NotEq,
+    ast.Lt,
+    ast.LtE,
+    ast.Gt,
+    ast.GtE,
+    ast.BitAnd,
+    ast.BitOr,
+    ast.Invert,
+)
+
+_TORCH_EXPRESSION_CONVERSIONS = {
+    "det_tc",
+    "eta_from_mass1_mass2",
+    "eta_from_q",
+    "invq_from_mass1_mass2",
+    "mass1_from_mchirp_eta",
+    "mass1_from_mchirp_q",
+    "mass1_from_mtotal_eta",
+    "mass1_from_mtotal_q",
+    "mass2_from_mchirp_eta",
+    "mass2_from_mchirp_q",
+    "mass2_from_mtotal_eta",
+    "mass2_from_mtotal_q",
+    "mchirp_from_mass1_mass2",
+    "mtotal_from_mass1_mass2",
+    "mtotal_from_mchirp_eta",
+    "primary_mass",
+    "q_from_mass1_mass2",
+    "secondary_mass",
+}
+
+_TORCH_EXPRESSION_KEYWORDS = {
+    "det_tc": {"ref_frame", "relative"},
+}
+
+_TORCH_EXPRESSION_COSMOLOGY = {
+    "distance_from_comoving_volume",
+    "redshift",
+    "redshift_from_comoving_volume",
+}
+
+
+def _torch_expression_context(maps, input_names):
+    """Build the audited expression library for raw tensor inputs."""
+    if not isinstance(maps, dict):
+        return None
+
+    reference = next(
+        (
+            maps[name]
+            for name in input_names
+            if name in maps and _torch_module_for(maps[name]) is not None
+        ),
+        None,
+    )
+    if reference is None:
+        return None
+
+    torch = _torch_module_for(reference)
+    context = {
+        name: value
+        for name, value in record._numpy_function_lib.items()
+        if isinstance(value, float)
+    }
+    context.update(
+        {
+            name: getattr(torch, torch_name)
+            for name, torch_name in _TORCH_EXPRESSION_FUNCTIONS.items()
+            if hasattr(torch, torch_name)
+        }
+    )
+    context.update(
+        {name: getattr(conversions, name) for name in _TORCH_EXPRESSION_CONVERSIONS}
+    )
+    context.update(
+        {name: getattr(cosmology, name) for name in _TORCH_EXPRESSION_COSMOLOGY}
+    )
+    context.update({name: maps[name] for name in input_names if name in maps})
+    return context
+
+
+def _evaluate_raw_torch_expression(
+    expression,
+    maps,
+    input_names,
+    code_cache,
+    allowed_nodes=_TORCH_EXPRESSION_NODES,
+):
+    """Evaluate a structurally audited expression on raw Torch tensors.
+
+    Unknown names and unsupported syntax return a sentinel so callers can
+    retain their established FieldArray/NumPy fallback.
+    """
+    context = _torch_expression_context(maps, input_names)
+    if context is None:
+        return _TORCH_EXPRESSION_UNSUPPORTED
+
+    cached = code_cache.get(expression)
+    if cached is None:
+        tree = ast.parse(expression, mode="eval")
+        string_constants = set()
+        keyword_nodes = set()
+        for call in (node for node in ast.walk(tree) if isinstance(node, ast.Call)):
+            if not isinstance(call.func, ast.Name):
+                code_cache[expression] = False
+                return _TORCH_EXPRESSION_UNSUPPORTED
+            allowed_keywords = _TORCH_EXPRESSION_KEYWORDS.get(call.func.id)
+            if call.keywords and allowed_keywords is None:
+                code_cache[expression] = False
+                return _TORCH_EXPRESSION_UNSUPPORTED
+            for keyword in call.keywords:
+                if keyword.arg not in allowed_keywords:
+                    code_cache[expression] = False
+                    return _TORCH_EXPRESSION_UNSUPPORTED
+                keyword_nodes.add(id(keyword))
+            if call.func.id in _TORCH_EXPRESSION_KEYWORDS:
+                string_constants.update(
+                    id(value)
+                    for value in (
+                        *call.args,
+                        *(keyword.value for keyword in call.keywords),
+                    )
+                    if isinstance(value, ast.Constant) and isinstance(value.value, str)
+                )
+        if any(
+            not isinstance(node, allowed_nodes)
+            or (isinstance(node, ast.keyword) and id(node) not in keyword_nodes)
+            or (
+                isinstance(node, ast.Constant)
+                and not (
+                    isinstance(node.value, (int, float))
+                    or (isinstance(node.value, str) and id(node) in string_constants)
+                )
+            )
+            or (isinstance(node, ast.Compare) and len(node.ops) != 1)
+            for node in ast.walk(tree)
+        ):
+            code_cache[expression] = False
+            return _TORCH_EXPRESSION_UNSUPPORTED
+        names = {node.id for node in ast.walk(tree) if isinstance(node, ast.Name)}
+        calls = {
+            node.func.id
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        }
+        cached = (compile(tree, "<string>", "eval"), names, calls)
+        code_cache[expression] = cached
+    elif cached is False:
+        return _TORCH_EXPRESSION_UNSUPPORTED
+
+    code, names, calls = cached
+    if not names.issubset(context) or any(
+        not callable(context[name]) for name in calls
+    ):
+        return _TORCH_EXPRESSION_UNSUPPORTED
+    return eval(code, {"__builtins__": {}}, context)
+
+
+def _components_from_mass_order(primary, secondary, mass1, mass2):
+    """Map primary/secondary values back to component-one/two order."""
+    values = (primary, secondary, mass1, mass2)
+    reference = next(
+        (value for value in values if _torch_module_for(value) is not None),
+        None,
+    )
+    if reference is not None:
+        torch = _torch_module_for(reference)
+
+        def as_tensor(value):
+            if _torch_module_for(value) is not None:
+                return value
+            return torch.as_tensor(
+                value, device=reference.device, dtype=reference.dtype
+            )
+
+        primary, secondary, mass1, mass2 = map(as_tensor, values)
+        primary_is_one = mass1 >= mass2
+        return (
+            torch.where(primary_is_one, primary, secondary),
+            torch.where(primary_is_one, secondary, primary),
+        )
+
+    primary_is_one = numpy.asarray(mass1) >= numpy.asarray(mass2)
+    if numpy.ndim(primary_is_one) == 0:
+        if primary_is_one:
+            return primary, secondary
+        return secondary, primary
+    return (
+        numpy.where(primary_is_one, primary, secondary),
+        numpy.where(primary_is_one, secondary, primary),
+    )
+
+
+def _log(value):
+    """Evaluate a logarithm with the backend of a raw tensor input."""
+    torch = _torch_module_for(value)
+    return torch.log(value) if torch is not None else numpy.log(value)
+
+
+def _exp(value):
+    """Evaluate an exponential with the backend of a raw tensor input."""
+    torch = _torch_module_for(value)
+    return torch.exp(value) if torch is not None else numpy.exp(value)
+
+
+def _all_in_bounds(value, bounds):
+    """Return whether every scalar in ``value`` lies within ``bounds``."""
+    isin = bounds.__contains__(value)
+    torch = _torch_module_for(isin)
+    if torch is not None:
+        return bool(torch.all(isin))
+    if isinstance(isin, numpy.ndarray):
+        return bool(isin.all())
+    return bool(isin)
 
 
 class BaseTransform(object):
@@ -105,8 +375,7 @@ class BaseTransform(object):
             raise TypeError("Input type must be FieldArray or dict.")
 
     @classmethod
-    def from_config(cls, cp, section, outputs,
-                    skip_opts=None, additional_opts=None):
+    def from_config(cls, cp, section, outputs, skip_opts=None, additional_opts=None):
         """Initializes a transform from the given section.
 
         Parameters
@@ -158,7 +427,7 @@ class BaseTransform(object):
         # check that the outputs matches
         if outputs - out.outputs != set() or out.outputs - outputs != set():
             raise ValueError(
-                "outputs of class do not match outputs specified " "in section"
+                "outputs of class do not match outputs specified in section"
             )
         return out
 
@@ -199,8 +468,7 @@ class CustomTransform(BaseTransform):
 
     name = "custom"
 
-    def __init__(self, input_args, output_args, transform_functions,
-                 jacobian=None):
+    def __init__(self, input_args, output_args, transform_functions, jacobian=None):
         if isinstance(input_args, str):
             input_args = [input_args]
         if isinstance(output_args, str):
@@ -209,10 +477,24 @@ class CustomTransform(BaseTransform):
         self.outputs = set(output_args)
         self.transform_functions = transform_functions
         self._jacobian = jacobian
+        self._torch_code_cache = {}
         # we'll create a scratch FieldArray space to do transforms on
         # we'll default to length 1; this will be changed if a map is passed
         # with more than one value in it
         self._createscratch()
+
+    def _torch_expression_context(self, maps):
+        """Build a conservative expression library for raw tensor inputs."""
+        return _torch_expression_context(maps, self.inputs)
+
+    def _evaluate_torch_expression(self, expression, maps):
+        """Evaluate an audited expression without staging tensors on host."""
+        return _evaluate_raw_torch_expression(
+            expression,
+            maps,
+            self.inputs,
+            self._torch_code_cache,
+        )
 
     def _createscratch(self, shape=1):
         """Creates a scratch FieldArray to use for transforms."""
@@ -267,6 +549,15 @@ class CustomTransform(BaseTransform):
         """
         if self.transform_functions is None:
             raise NotImplementedError("no transform function(s) provided")
+        out = {}
+        for param, expression in self.transform_functions.items():
+            value = self._evaluate_torch_expression(expression, maps)
+            if value is _TORCH_EXPRESSION_UNSUPPORTED:
+                break
+            out[param] = value
+        else:
+            return self.format_output(maps, out)
+
         # copy values to scratch
         self._copytoscratch(maps)
         # ensure that we return the same data type in each dict
@@ -281,6 +572,10 @@ class CustomTransform(BaseTransform):
     def jacobian(self, maps):
         if self._jacobian is None:
             raise NotImplementedError("no jacobian provided")
+        out = self._evaluate_torch_expression(self._jacobian, maps)
+        if out is not _TORCH_EXPRESSION_UNSUPPORTED:
+            return out
+
         # copy values to scratch
         self._copytoscratch(maps)
         out = self._scratch[self._jacobian]
@@ -305,8 +600,7 @@ class CustomTransform(BaseTransform):
         """
         tag = outputs
         outputs = set(outputs.split(VARARGS_DELIM))
-        inputs = map(str.strip,
-                     cp.get_opt_tag(section, "inputs", tag).split(","))
+        inputs = map(str.strip, cp.get_opt_tag(section, "inputs", tag).split(","))
         # get the functions for each output
         transform_functions = {}
         for var in outputs:
@@ -341,10 +635,10 @@ class CustomTransformMultiOutputs(CustomTransform):
 
     name = "custom_multi"
 
-    def __init__(self, input_args, output_args, transform_functions,
-                 jacobian=None):
+    def __init__(self, input_args, output_args, transform_functions, jacobian=None):
         super(CustomTransformMultiOutputs, self).__init__(
-            input_args, output_args, transform_functions, jacobian)
+            input_args, output_args, transform_functions, jacobian
+        )
 
     def transform(self, maps):
         """Applies the transform functions to the given maps object.
@@ -368,11 +662,11 @@ class CustomTransformMultiOutputs(CustomTransform):
         # func[0] is the function itself, func[1] is the index,
         # this supports multiple returning values function
         out = {
-                p: self._scratch[func[0]][func[1]][getslice] if
-                len(self._scratch[func[0]]) > 1 else
-                self._scratch[func[0]][getslice]
-                for p, func in self.transform_functions.items()
-            }
+            p: self._scratch[func[0]][func[1]][getslice]
+            if len(self._scratch[func[0]]) > 1
+            else self._scratch[func[0]][getslice]
+            for p, func in self.transform_functions.items()
+        }
         return self.format_output(maps, out)
 
     @classmethod
@@ -392,8 +686,7 @@ class CustomTransformMultiOutputs(CustomTransform):
         tag = outputs
         outputs = list(outputs.split(VARARGS_DELIM))
         all_vars = ", ".join(outputs)
-        inputs = map(str.strip,
-                     cp.get_opt_tag(section, "inputs", tag).split(","))
+        inputs = map(str.strip, cp.get_opt_tag(section, "inputs", tag).split(","))
         # get the functions for each output
         transform_functions = {}
         output_index = slice(None, None, None)
@@ -403,7 +696,7 @@ class CustomTransformMultiOutputs(CustomTransform):
                 func = cp.get_opt_tag(section, var, tag)
             except Exception:
                 func = cp.get_opt_tag(section, all_vars, tag)
-                output_index = slice(outputs.index(var), outputs.index(var)+1)
+                output_index = slice(outputs.index(var), outputs.index(var) + 1)
             transform_functions[var] = [func, output_index]
         s = "-".join([section, tag])
         if cp.has_option(s, "jacobian"):
@@ -518,7 +811,7 @@ class MchirpQToMass1Mass2(BaseTransform):
         """
         mchirp = maps[self.mchirp_param]
         q = maps[self.q_param]
-        return mchirp * ((1.0 + q) / q ** 3.0) ** (2.0 / 5)
+        return mchirp * ((1.0 + q) / q**3.0) ** (2.0 / 5)
 
     def inverse_jacobian(self, maps):
         """Returns the Jacobian for transforming mass1 and mass2 to
@@ -526,7 +819,7 @@ class MchirpQToMass1Mass2(BaseTransform):
         """
         m1 = maps[self.mass1_param]
         m2 = maps[self.mass2_param]
-        return conversions.mchirp_from_mass1_mass2(m1, m2) / m2 ** 2.0
+        return conversions.mchirp_from_mass1_mass2(m1, m2) / m2**2.0
 
 
 class MchirpEtaToMass1Mass2(BaseTransform):
@@ -716,16 +1009,31 @@ class ChirpDistanceToDistance(BaseTransform):
 
 class AlignTotalSpin(BaseTransform):
     """Converts angles from total angular momentum J frame to orbital angular
-     momentum L (waveform) frame"""
+    momentum L (waveform) frame"""
 
     name = "align_total_spin"
-    _inputs = [parameters.thetajn, parameters.spin1x, parameters.spin1y,
-               parameters.spin1z, parameters.spin2x, parameters.spin2y,
-               parameters.spin2z, parameters.mass1, parameters.mass2,
-               parameters.f_ref, "phi_ref"]
-    _outputs = [parameters.inclination, parameters.spin1x, parameters.spin1y,
-               parameters.spin1z, parameters.spin2x, parameters.spin2y,
-               parameters.spin2z]
+    _inputs = [
+        parameters.thetajn,
+        parameters.spin1x,
+        parameters.spin1y,
+        parameters.spin1z,
+        parameters.spin2x,
+        parameters.spin2y,
+        parameters.spin2z,
+        parameters.mass1,
+        parameters.mass2,
+        parameters.f_ref,
+        "phi_ref",
+    ]
+    _outputs = [
+        parameters.inclination,
+        parameters.spin1x,
+        parameters.spin1y,
+        parameters.spin1z,
+        parameters.spin2x,
+        parameters.spin2y,
+        parameters.spin2z,
+    ]
 
     def __init__(self):
         self.inputs = set(self._inputs)
@@ -744,20 +1052,30 @@ class AlignTotalSpin(BaseTransform):
         if isinstance(maps, dict):
             maps = record.FieldArray.from_kwargs(**maps)
         newfields = [n for n in self._outputs if n not in maps.fieldnames]
-        newmaps = maps.add_fields([numpy.zeros(len(maps))]*len(newfields),
-                                  names=newfields)
+        newmaps = maps.add_fields(
+            [numpy.zeros(len(maps))] * len(newfields), names=newfields
+        )
         for item in newmaps:
-            if not all(s == 0.0 for s in
-                       [item[parameters.spin1x], item[parameters.spin1y],
-                        item[parameters.spin2x], item[parameters.spin2y]]):
-
+            if not all(
+                s == 0.0
+                for s in [
+                    item[parameters.spin1x],
+                    item[parameters.spin1y],
+                    item[parameters.spin2x],
+                    item[parameters.spin2y],
+                ]
+            ):
                 # Calculate the quantities required by jframe_to_l0frame
                 s1_a, s1_az, s1_pol = coordinates.cartesian_to_spherical(
-                        item[parameters.spin1x], item[parameters.spin1y],
-                        item[parameters.spin1z])
+                    item[parameters.spin1x],
+                    item[parameters.spin1y],
+                    item[parameters.spin1z],
+                )
                 s2_a, s2_az, s2_pol = coordinates.cartesian_to_spherical(
-                        item[parameters.spin2x], item[parameters.spin2y],
-                        item[parameters.spin2z])
+                    item[parameters.spin2x],
+                    item[parameters.spin2y],
+                    item[parameters.spin2z],
+                )
 
                 out = jframe_to_l0frame(
                     item[parameters.mass1],
@@ -770,7 +1088,7 @@ class AlignTotalSpin(BaseTransform):
                     spin2_a=s2_a,
                     spin1_polar=s1_pol,
                     spin2_polar=s2_pol,
-                    spin12_deltaphi=s1_az-s2_az
+                    spin12_deltaphi=s1_az - s2_az,
                 )
 
                 for key in out:
@@ -886,11 +1204,11 @@ class SphericalSpin1ToCartesianSpin1(SphericalToCartesian):
             "removed in a future update. Please use %s instead, "
             "passing spin1x, spin1y, spin1z, spin1_a, "
             "spin1_azimuthal, spin1_polar as arguments.",
-            self.name, SphericalToCartesian.name
+            self.name,
+            SphericalToCartesian.name,
         )
         super(SphericalSpin1ToCartesianSpin1, self).__init__(
-            "spin1x", "spin1y", "spin1z", "spin1_a",
-            "spin1_azimuthal", "spin1_polar"
+            "spin1x", "spin1y", "spin1z", "spin1_a", "spin1_azimuthal", "spin1_polar"
         )
 
 
@@ -912,11 +1230,11 @@ class SphericalSpin2ToCartesianSpin2(SphericalToCartesian):
             "removed in a future update. Please use %s instead, "
             "passing spin2x, spin2y, spin2z, spin2_a, "
             "spin2_azimuthal, spin2_polar as arguments.",
-            self.name, SphericalToCartesian.name
+            self.name,
+            SphericalToCartesian.name,
         )
         super(SphericalSpin2ToCartesianSpin2, self).__init__(
-            "spin2x", "spin2y", "spin2z",
-            "spin2_a", "spin2_azimuthal", "spin2_polar"
+            "spin2x", "spin2y", "spin2z", "spin2_a", "spin2_azimuthal", "spin2_polar"
         )
 
 
@@ -1011,8 +1329,7 @@ class AlignedMassSpinToCartesianSpin(BaseTransform):
         mass2 = maps[parameters.mass2]
         spin2z = maps[parameters.spin2z]
         out = {
-            parameters.chi_eff:
-            conversions.chi_eff(mass1, mass2, spin1z, spin2z),
+            parameters.chi_eff: conversions.chi_eff(mass1, mass2, spin1z, spin2z),
             "chi_a": conversions.chi_a(mass1, mass2, spin1z, spin2z),
         }
         return self.format_output(maps, out)
@@ -1022,8 +1339,7 @@ class PrecessionMassSpinToCartesianSpin(BaseTransform):
     """Converts mass-weighted spins to cartesian x-y plane spins."""
 
     name = "precession_mass_spin_to_cartesian_spin"
-    _inputs = [parameters.mass1, parameters.mass2,
-               "xi1", "xi2", "phi_a", "phi_s"]
+    _inputs = [parameters.mass1, parameters.mass2, "xi1", "xi2", "phi_a", "phi_s"]
     _outputs = [
         parameters.mass1,
         parameters.mass2,
@@ -1076,34 +1392,19 @@ class PrecessionMassSpinToCartesianSpin(BaseTransform):
             m_p, m_s, xi_s, maps["phi_a"], maps["phi_s"]
         )
 
-        # map parameters from primary/secondary to indices
-        out = {}
-        if isinstance(m_p, numpy.ndarray):
-            mass1, mass2 = map(numpy.array, [maps["mass1"], maps["mass2"]])
-            mask_mass1_gte_mass2 = mass1 >= mass2
-            mask_mass1_lt_mass2 = mass1 < mass2
-            out[parameters.spin1x] = numpy.concatenate(
-                (spinx_p[mask_mass1_gte_mass2], spinx_s[mask_mass1_lt_mass2])
-            )
-            out[parameters.spin1y] = numpy.concatenate(
-                (spiny_p[mask_mass1_gte_mass2], spiny_s[mask_mass1_lt_mass2])
-            )
-            out[parameters.spin2x] = numpy.concatenate(
-                (spinx_p[mask_mass1_lt_mass2], spinx_s[mask_mass1_gte_mass2])
-            )
-            out[parameters.spin2y] = numpy.concatenate(
-                (spinx_p[mask_mass1_lt_mass2], spinx_s[mask_mass1_gte_mass2])
-            )
-        elif maps["mass1"] > maps["mass2"]:
-            out[parameters.spin1x] = spinx_p
-            out[parameters.spin1y] = spiny_p
-            out[parameters.spin2x] = spinx_s
-            out[parameters.spin2y] = spiny_s
-        else:
-            out[parameters.spin1x] = spinx_s
-            out[parameters.spin1y] = spiny_s
-            out[parameters.spin2x] = spinx_p
-            out[parameters.spin2y] = spiny_p
+        # map parameters from primary/secondary to component indices
+        spin1x, spin2x = _components_from_mass_order(
+            spinx_p, spinx_s, maps["mass1"], maps["mass2"]
+        )
+        spin1y, spin2y = _components_from_mass_order(
+            spiny_p, spiny_s, maps["mass1"], maps["mass2"]
+        )
+        out = {
+            parameters.spin1x: spin1x,
+            parameters.spin1y: spin1y,
+            parameters.spin2x: spin2x,
+            parameters.spin2y: spin2y,
+        }
 
         return self.format_output(maps, out)
 
@@ -1155,25 +1456,13 @@ class PrecessionMassSpinToCartesianSpin(BaseTransform):
             maps[parameters.spin2y],
         )
 
-        # map parameters from primary/secondary to indices
-        if isinstance(xi1, numpy.ndarray):
-            mass1, mass2 = map(
-                numpy.array, [maps[parameters.mass1], maps[parameters.mass2]]
-            )
-            mask_mass1_gte_mass2 = mass1 >= mass2
-            mask_mass1_lt_mass2 = mass1 < mass2
-            out["xi1"] = numpy.concatenate(
-                (xi1[mask_mass1_gte_mass2], xi2[mask_mass1_lt_mass2])
-            )
-            out["xi2"] = numpy.concatenate(
-                (xi1[mask_mass1_gte_mass2], xi2[mask_mass1_lt_mass2])
-            )
-        elif maps["mass1"] > maps["mass2"]:
-            out["xi1"] = xi1
-            out["xi2"] = xi2
-        else:
-            out["xi1"] = xi2
-            out["xi2"] = xi1
+        # map parameters from primary/secondary to component indices
+        out["xi1"], out["xi2"] = _components_from_mass_order(
+            xi1,
+            xi2,
+            maps[parameters.mass1],
+            maps[parameters.mass2],
+        )
 
         return self.format_output(maps, out)
 
@@ -1316,6 +1605,7 @@ class LambdaFromTOVFile(BaseTransform):
         dtype = [(fname, float) for fname in file_columns]
         data = numpy.loadtxt(self._mass_lambda_file, dtype=dtype)
         self._data = data
+        self._torch_data_cache = {}
         super(LambdaFromTOVFile, self).__init__()
 
     @property
@@ -1379,6 +1669,69 @@ class LambdaFromTOVFile(BaseTransform):
             lambdav = numpy.interp(m_src, mass_data, lambda_data)
         return lambdav
 
+    def _torch_tov_data(self, reference):
+        """Return the static interpolation table on ``reference``'s device."""
+        torch = _torch_module_for(reference)
+        dtype = (
+            reference.dtype
+            if reference.dtype.is_floating_point
+            else torch.get_default_dtype()
+        )
+        key = (reference.device.type, reference.device.index, dtype)
+        try:
+            return self._torch_data_cache[key]
+        except KeyError:
+            pass
+
+        tables = (
+            torch.as_tensor(
+                numpy.asarray(self.mass_data).reshape(-1),
+                device=reference.device,
+                dtype=dtype,
+            ).contiguous(),
+            torch.as_tensor(
+                numpy.asarray(self.lambda_data).reshape(-1),
+                device=reference.device,
+                dtype=dtype,
+            ).contiguous(),
+        )
+        self._torch_data_cache[key] = tables
+        return tables
+
+    def _lambda_from_tov_torch(self, m_src):
+        """Interpolate Lambda without moving tensor masses to the host."""
+        torch = _torch_module_for(m_src)
+        if m_src.dtype.is_complex:
+            raise TypeError("mass must be real")
+        mass_data, lambda_data = self._torch_tov_data(m_src)
+        values = m_src.to(dtype=mass_data.dtype)
+        shape = values.shape
+        values = values.reshape(-1).contiguous()
+
+        if mass_data.numel() == 1:
+            result = torch.where(
+                values > mass_data[0],
+                torch.zeros_like(values),
+                lambda_data[0],
+            )
+            return result.reshape(shape)
+
+        upper = torch.searchsorted(mass_data, values).clamp(
+            min=1, max=mass_data.numel() - 1
+        )
+        mass_left = mass_data[upper - 1]
+        mass_right = mass_data[upper]
+        lambda_left = lambda_data[upper - 1]
+        lambda_right = lambda_data[upper]
+        result = lambda_left + (
+            (values - mass_left)
+            * (lambda_right - lambda_left)
+            / (mass_right - mass_left)
+        )
+        result = torch.where(values < mass_data[0], lambda_data[0], result)
+        result = torch.where(values > mass_data[-1], torch.zeros_like(result), result)
+        return result.reshape(shape)
+
     def transform(self, maps):
         """Computes the transformation of mass to Lambda.
 
@@ -1412,11 +1765,15 @@ class LambdaFromTOVFile(BaseTransform):
             shift = 1.0 / (1.0 + cosmology.redshift(abs(d)))
         else:
             shift = 1.0
-        out = {
-            self._lambda_param: self.lambda_from_tov_data(
+        torch, values = conversions._torch_values(m, shift)
+        if torch is not None:
+            m_src = values[0] * values[1]
+            lambdav = self._lambda_from_tov_torch(m_src)
+        else:
+            lambdav = self.lambda_from_tov_data(
                 m * shift, self._data["mass"], self._data["lambda"]
             )
-        }
+        out = {self._lambda_param: lambdav}
         return self.format_output(maps, out)
 
     @classmethod
@@ -1568,26 +1925,37 @@ class GEOToSSB(BaseTransform):
     name = "geo_to_ssb"
 
     default_params_name = {
-        'default_tc_geo': parameters.tc,
-        'default_longitude_geo': parameters.ra,
-        'default_latitude_geo': parameters.dec,
-        'default_polarization_geo': parameters.polarization,
-        'default_tc_ssb': parameters.tc,
-        'default_longitude_ssb': parameters.eclipticlongitude,
-        'default_latitude_ssb': parameters.eclipticlatitude,
-        'default_polarization_ssb': parameters.polarization
+        "default_tc_geo": parameters.tc,
+        "default_longitude_geo": parameters.ra,
+        "default_latitude_geo": parameters.dec,
+        "default_polarization_geo": parameters.polarization,
+        "default_tc_ssb": parameters.tc,
+        "default_longitude_ssb": parameters.eclipticlongitude,
+        "default_latitude_ssb": parameters.eclipticlatitude,
+        "default_polarization_ssb": parameters.polarization,
     }
 
     def __init__(
-        self, tc_geo_param=None, longitude_geo_param=None,
-        latitude_geo_param=None, polarization_geo_param=None,
-        tc_ssb_param=None, longitude_ssb_param=None,
-        latitude_ssb_param=None, polarization_ssb_param=None
+        self,
+        tc_geo_param=None,
+        longitude_geo_param=None,
+        latitude_geo_param=None,
+        polarization_geo_param=None,
+        tc_ssb_param=None,
+        longitude_ssb_param=None,
+        latitude_ssb_param=None,
+        polarization_ssb_param=None,
     ):
-        params = [tc_geo_param, longitude_geo_param,
-                  latitude_geo_param, polarization_geo_param,
-                  tc_ssb_param, longitude_ssb_param,
-                  latitude_ssb_param, polarization_ssb_param]
+        params = [
+            tc_geo_param,
+            longitude_geo_param,
+            latitude_geo_param,
+            polarization_geo_param,
+            tc_ssb_param,
+            longitude_ssb_param,
+            latitude_ssb_param,
+            polarization_ssb_param,
+        ]
 
         for index in range(len(params)):
             if params[index] is None:
@@ -1602,10 +1970,18 @@ class GEOToSSB(BaseTransform):
         self.longitude_ssb_param = params[5]
         self.latitude_ssb_param = params[6]
         self.polarization_ssb_param = params[7]
-        self._inputs = [self.tc_geo_param, self.longitude_geo_param,
-                        self.latitude_geo_param, self.polarization_geo_param]
-        self._outputs = [self.tc_ssb_param, self.longitude_ssb_param,
-                         self.latitude_ssb_param, self.polarization_ssb_param]
+        self._inputs = [
+            self.tc_geo_param,
+            self.longitude_geo_param,
+            self.latitude_geo_param,
+            self.polarization_geo_param,
+        ]
+        self._outputs = [
+            self.tc_ssb_param,
+            self.longitude_ssb_param,
+            self.latitude_ssb_param,
+            self.polarization_ssb_param,
+        ]
 
         super(GEOToSSB, self).__init__()
 
@@ -1625,12 +2001,17 @@ class GEOToSSB(BaseTransform):
             of transformed values.
         """
         out = {}
-        out[self.tc_ssb_param], out[self.longitude_ssb_param], \
-            out[self.latitude_ssb_param], out[self.polarization_ssb_param] = \
-            coordinates.geo_to_ssb(
-                maps[self.tc_geo_param], maps[self.longitude_geo_param],
-                maps[self.latitude_geo_param], maps[self.polarization_geo_param]
-                )
+        (
+            out[self.tc_ssb_param],
+            out[self.longitude_ssb_param],
+            out[self.latitude_ssb_param],
+            out[self.polarization_ssb_param],
+        ) = coordinates.geo_to_ssb(
+            maps[self.tc_geo_param],
+            maps[self.longitude_geo_param],
+            maps[self.latitude_geo_param],
+            maps[self.polarization_geo_param],
+        )
         return self.format_output(maps, out)
 
     def inverse_transform(self, maps):
@@ -1649,12 +2030,17 @@ class GEOToSSB(BaseTransform):
             of transformed values.
         """
         out = {}
-        out[self.tc_geo_param], out[self.longitude_geo_param], \
-            out[self.latitude_geo_param], out[self.polarization_geo_param] = \
-            coordinates.ssb_to_geo(
-                maps[self.tc_ssb_param], maps[self.longitude_ssb_param],
-                maps[self.latitude_ssb_param], maps[self.polarization_ssb_param]
-                )
+        (
+            out[self.tc_geo_param],
+            out[self.longitude_geo_param],
+            out[self.latitude_geo_param],
+            out[self.polarization_geo_param],
+        ) = coordinates.ssb_to_geo(
+            maps[self.tc_ssb_param],
+            maps[self.longitude_ssb_param],
+            maps[self.latitude_ssb_param],
+            maps[self.polarization_ssb_param],
+        )
         return self.format_output(maps, out)
 
     @classmethod
@@ -1665,31 +2051,33 @@ class GEOToSSB(BaseTransform):
 
         # get custom variable names
         variables = {
-            'tc-geo': cls.default_params_name['default_tc_geo'],
-            'longitude-geo': cls.default_params_name['default_longitude_geo'],
-            'latitude-geo': cls.default_params_name['default_latitude_geo'],
-            'polarization-geo': cls.default_params_name[
-                                    'default_polarization_geo'],
-            'tc-ssb': cls.default_params_name['default_tc_ssb'],
-            'longitude-ssb': cls.default_params_name['default_longitude_ssb'],
-            'latitude-ssb': cls.default_params_name['default_latitude_ssb'],
-            'polarization-ssb': cls.default_params_name[
-                                    'default_polarization_ssb']
+            "tc-geo": cls.default_params_name["default_tc_geo"],
+            "longitude-geo": cls.default_params_name["default_longitude_geo"],
+            "latitude-geo": cls.default_params_name["default_latitude_geo"],
+            "polarization-geo": cls.default_params_name["default_polarization_geo"],
+            "tc-ssb": cls.default_params_name["default_tc_ssb"],
+            "longitude-ssb": cls.default_params_name["default_longitude_ssb"],
+            "latitude-ssb": cls.default_params_name["default_latitude_ssb"],
+            "polarization-ssb": cls.default_params_name["default_polarization_ssb"],
         }
         for param_name in variables.keys():
-            name_underline = param_name.replace('-', '_')
+            name_underline = param_name.replace("-", "_")
             if cp.has_option("-".join([section, outputs]), param_name):
                 skip_opts.append(param_name)
                 additional_opts.update(
-                    {name_underline+'_param': cp.get_opt_tag(
-                     section, param_name, tag)})
+                    {
+                        name_underline + "_param": cp.get_opt_tag(
+                            section, param_name, tag
+                        )
+                    }
+                )
             else:
                 additional_opts.update(
-                    {name_underline+'_param': variables[param_name]})
+                    {name_underline + "_param": variables[param_name]}
+                )
 
         return super(GEOToSSB, cls).from_config(
-            cp, section, outputs, skip_opts=skip_opts,
-            additional_opts=additional_opts
+            cp, section, outputs, skip_opts=skip_opts, additional_opts=additional_opts
         )
 
 
@@ -1700,26 +2088,37 @@ class LISAToSSB(BaseTransform):
     name = "lisa_to_ssb"
 
     default_params_name = {
-        'default_tc_lisa': parameters.tc,
-        'default_longitude_lisa': parameters.eclipticlongitude,
-        'default_latitude_lisa': parameters.eclipticlatitude,
-        'default_polarization_lisa': parameters.polarization,
-        'default_tc_ssb': parameters.tc,
-        'default_longitude_ssb': parameters.eclipticlongitude,
-        'default_latitude_ssb': parameters.eclipticlatitude,
-        'default_polarization_ssb': parameters.polarization
+        "default_tc_lisa": parameters.tc,
+        "default_longitude_lisa": parameters.eclipticlongitude,
+        "default_latitude_lisa": parameters.eclipticlatitude,
+        "default_polarization_lisa": parameters.polarization,
+        "default_tc_ssb": parameters.tc,
+        "default_longitude_ssb": parameters.eclipticlongitude,
+        "default_latitude_ssb": parameters.eclipticlatitude,
+        "default_polarization_ssb": parameters.polarization,
     }
 
     def __init__(
-        self, tc_lisa_param=None, longitude_lisa_param=None,
-        latitude_lisa_param=None, polarization_lisa_param=None,
-        tc_ssb_param=None, longitude_ssb_param=None,
-        latitude_ssb_param=None, polarization_ssb_param=None
+        self,
+        tc_lisa_param=None,
+        longitude_lisa_param=None,
+        latitude_lisa_param=None,
+        polarization_lisa_param=None,
+        tc_ssb_param=None,
+        longitude_ssb_param=None,
+        latitude_ssb_param=None,
+        polarization_ssb_param=None,
     ):
-        params = [tc_lisa_param, longitude_lisa_param,
-                  latitude_lisa_param, polarization_lisa_param,
-                  tc_ssb_param, longitude_ssb_param,
-                  latitude_ssb_param, polarization_ssb_param]
+        params = [
+            tc_lisa_param,
+            longitude_lisa_param,
+            latitude_lisa_param,
+            polarization_lisa_param,
+            tc_ssb_param,
+            longitude_ssb_param,
+            latitude_ssb_param,
+            polarization_ssb_param,
+        ]
         for index in range(len(params)):
             if params[index] is None:
                 key = list(self.default_params_name.keys())[index]
@@ -1733,10 +2132,18 @@ class LISAToSSB(BaseTransform):
         self.longitude_ssb_param = params[5]
         self.latitude_ssb_param = params[6]
         self.polarization_ssb_param = params[7]
-        self._inputs = [self.tc_lisa_param, self.longitude_lisa_param,
-                        self.latitude_lisa_param, self.polarization_lisa_param]
-        self._outputs = [self.tc_ssb_param, self.longitude_ssb_param,
-                         self.latitude_ssb_param, self.polarization_ssb_param]
+        self._inputs = [
+            self.tc_lisa_param,
+            self.longitude_lisa_param,
+            self.latitude_lisa_param,
+            self.polarization_lisa_param,
+        ]
+        self._outputs = [
+            self.tc_ssb_param,
+            self.longitude_ssb_param,
+            self.latitude_ssb_param,
+            self.polarization_ssb_param,
+        ]
         super(LISAToSSB, self).__init__()
 
     def transform(self, maps):
@@ -1755,12 +2162,17 @@ class LISAToSSB(BaseTransform):
             of transformed values.
         """
         out = {}
-        out[self.tc_ssb_param], out[self.longitude_ssb_param], \
-            out[self.latitude_ssb_param], out[self.polarization_ssb_param] = \
-            coordinates.lisa_to_ssb(
-                maps[self.tc_lisa_param], maps[self.longitude_lisa_param],
-                maps[self.latitude_lisa_param], maps[self.polarization_lisa_param]
-                )
+        (
+            out[self.tc_ssb_param],
+            out[self.longitude_ssb_param],
+            out[self.latitude_ssb_param],
+            out[self.polarization_ssb_param],
+        ) = coordinates.lisa_to_ssb(
+            maps[self.tc_lisa_param],
+            maps[self.longitude_lisa_param],
+            maps[self.latitude_lisa_param],
+            maps[self.polarization_lisa_param],
+        )
         return self.format_output(maps, out)
 
     def inverse_transform(self, maps):
@@ -1779,13 +2191,17 @@ class LISAToSSB(BaseTransform):
             of transformed values.
         """
         out = {}
-        out[self.tc_lisa_param], out[self.longitude_lisa_param], \
-            out[self.latitude_lisa_param], \
-            out[self.polarization_lisa_param] = \
-            coordinates.ssb_to_lisa(
-                maps[self.tc_ssb_param], maps[self.longitude_ssb_param],
-                maps[self.latitude_ssb_param], maps[self.polarization_ssb_param]
-                )
+        (
+            out[self.tc_lisa_param],
+            out[self.longitude_lisa_param],
+            out[self.latitude_lisa_param],
+            out[self.polarization_lisa_param],
+        ) = coordinates.ssb_to_lisa(
+            maps[self.tc_ssb_param],
+            maps[self.longitude_ssb_param],
+            maps[self.latitude_ssb_param],
+            maps[self.polarization_ssb_param],
+        )
         return self.format_output(maps, out)
 
     @classmethod
@@ -1796,32 +2212,33 @@ class LISAToSSB(BaseTransform):
 
         # get custom variable names
         variables = {
-            'tc-lisa': cls.default_params_name['default_tc_lisa'],
-            'longitude-lisa': cls.default_params_name[
-                                    'default_longitude_lisa'],
-            'latitude-lisa': cls.default_params_name['default_latitude_lisa'],
-            'polarization-lisa': cls.default_params_name[
-                                    'default_polarization_lisa'],
-            'tc-ssb': cls.default_params_name['default_tc_ssb'],
-            'longitude-ssb': cls.default_params_name['default_longitude_ssb'],
-            'latitude-ssb': cls.default_params_name['default_latitude_ssb'],
-            'polarization-ssb': cls.default_params_name[
-                                    'default_polarization_ssb']
+            "tc-lisa": cls.default_params_name["default_tc_lisa"],
+            "longitude-lisa": cls.default_params_name["default_longitude_lisa"],
+            "latitude-lisa": cls.default_params_name["default_latitude_lisa"],
+            "polarization-lisa": cls.default_params_name["default_polarization_lisa"],
+            "tc-ssb": cls.default_params_name["default_tc_ssb"],
+            "longitude-ssb": cls.default_params_name["default_longitude_ssb"],
+            "latitude-ssb": cls.default_params_name["default_latitude_ssb"],
+            "polarization-ssb": cls.default_params_name["default_polarization_ssb"],
         }
         for param_name in variables.keys():
-            name_underline = param_name.replace('-', '_')
+            name_underline = param_name.replace("-", "_")
             if cp.has_option("-".join([section, outputs]), param_name):
                 skip_opts.append(param_name)
                 additional_opts.update(
-                    {name_underline+'_param': cp.get_opt_tag(
-                     section, param_name, tag)})
+                    {
+                        name_underline + "_param": cp.get_opt_tag(
+                            section, param_name, tag
+                        )
+                    }
+                )
             else:
                 additional_opts.update(
-                    {name_underline+'_param': variables[param_name]})
+                    {name_underline + "_param": variables[param_name]}
+                )
 
         return super(LISAToSSB, cls).from_config(
-            cp, section, outputs, skip_opts=skip_opts,
-            additional_opts=additional_opts
+            cp, section, outputs, skip_opts=skip_opts, additional_opts=additional_opts
         )
 
 
@@ -1832,26 +2249,37 @@ class LISAToGEO(BaseTransform):
     name = "lisa_to_geo"
 
     default_params_name = {
-        'default_tc_lisa': parameters.tc,
-        'default_longitude_lisa': parameters.eclipticlongitude,
-        'default_latitude_lisa': parameters.eclipticlatitude,
-        'default_polarization_lisa': parameters.polarization,
-        'default_tc_geo': parameters.tc,
-        'default_longitude_geo': parameters.ra,
-        'default_latitude_geo': parameters.dec,
-        'default_polarization_geo': parameters.polarization
+        "default_tc_lisa": parameters.tc,
+        "default_longitude_lisa": parameters.eclipticlongitude,
+        "default_latitude_lisa": parameters.eclipticlatitude,
+        "default_polarization_lisa": parameters.polarization,
+        "default_tc_geo": parameters.tc,
+        "default_longitude_geo": parameters.ra,
+        "default_latitude_geo": parameters.dec,
+        "default_polarization_geo": parameters.polarization,
     }
 
     def __init__(
-        self, tc_lisa_param=None, longitude_lisa_param=None,
-        latitude_lisa_param=None, polarization_lisa_param=None,
-        tc_geo_param=None, longitude_geo_param=None,
-        latitude_geo_param=None, polarization_geo_param=None
+        self,
+        tc_lisa_param=None,
+        longitude_lisa_param=None,
+        latitude_lisa_param=None,
+        polarization_lisa_param=None,
+        tc_geo_param=None,
+        longitude_geo_param=None,
+        latitude_geo_param=None,
+        polarization_geo_param=None,
     ):
-        params = [tc_lisa_param, longitude_lisa_param,
-                  latitude_lisa_param, polarization_lisa_param,
-                  tc_geo_param, longitude_geo_param,
-                  latitude_geo_param, polarization_geo_param]
+        params = [
+            tc_lisa_param,
+            longitude_lisa_param,
+            latitude_lisa_param,
+            polarization_lisa_param,
+            tc_geo_param,
+            longitude_geo_param,
+            latitude_geo_param,
+            polarization_geo_param,
+        ]
         for index in range(len(params)):
             if params[index] is None:
                 key = list(self.default_params_name.keys())[index]
@@ -1865,10 +2293,18 @@ class LISAToGEO(BaseTransform):
         self.longitude_geo_param = params[5]
         self.latitude_geo_param = params[6]
         self.polarization_geo_param = params[7]
-        self._inputs = [self.tc_lisa_param, self.longitude_lisa_param,
-                        self.latitude_lisa_param, self.polarization_lisa_param]
-        self._outputs = [self.tc_geo_param, self.longitude_geo_param,
-                         self.latitude_geo_param, self.polarization_geo_param]
+        self._inputs = [
+            self.tc_lisa_param,
+            self.longitude_lisa_param,
+            self.latitude_lisa_param,
+            self.polarization_lisa_param,
+        ]
+        self._outputs = [
+            self.tc_geo_param,
+            self.longitude_geo_param,
+            self.latitude_geo_param,
+            self.polarization_geo_param,
+        ]
         super(LISAToGEO, self).__init__()
 
     def transform(self, maps):
@@ -1887,12 +2323,17 @@ class LISAToGEO(BaseTransform):
             of transformed values.
         """
         out = {}
-        out[self.tc_geo_param], out[self.longitude_geo_param], \
-            out[self.latitude_geo_param], out[self.polarization_geo_param] = \
-            coordinates.lisa_to_geo(
-                maps[self.tc_lisa_param], maps[self.longitude_lisa_param],
-                maps[self.latitude_lisa_param], maps[self.polarization_lisa_param]
-                )
+        (
+            out[self.tc_geo_param],
+            out[self.longitude_geo_param],
+            out[self.latitude_geo_param],
+            out[self.polarization_geo_param],
+        ) = coordinates.lisa_to_geo(
+            maps[self.tc_lisa_param],
+            maps[self.longitude_lisa_param],
+            maps[self.latitude_lisa_param],
+            maps[self.polarization_lisa_param],
+        )
         return self.format_output(maps, out)
 
     def inverse_transform(self, maps):
@@ -1911,13 +2352,17 @@ class LISAToGEO(BaseTransform):
             of transformed values.
         """
         out = {}
-        out[self.tc_lisa_param], out[self.longitude_lisa_param], \
-            out[self.latitude_lisa_param], \
-            out[self.polarization_lisa_param] = \
-            coordinates.geo_to_lisa(
-                maps[self.tc_geo_param], maps[self.longitude_geo_param],
-                maps[self.latitude_geo_param], maps[self.polarization_geo_param]
-                )
+        (
+            out[self.tc_lisa_param],
+            out[self.longitude_lisa_param],
+            out[self.latitude_lisa_param],
+            out[self.polarization_lisa_param],
+        ) = coordinates.geo_to_lisa(
+            maps[self.tc_geo_param],
+            maps[self.longitude_geo_param],
+            maps[self.latitude_geo_param],
+            maps[self.polarization_geo_param],
+        )
         return self.format_output(maps, out)
 
     @classmethod
@@ -1928,32 +2373,33 @@ class LISAToGEO(BaseTransform):
 
         # get custom variable names
         variables = {
-            'tc-lisa': cls.default_params_name['default_tc_lisa'],
-            'longitude-lisa': cls.default_params_name[
-                                    'default_longitude_lisa'],
-            'latitude-lisa': cls.default_params_name['default_latitude_lisa'],
-            'polarization-lisa': cls.default_params_name[
-                                    'default_polarization_lisa'],
-            'tc-geo': cls.default_params_name['default_tc_geo'],
-            'longitude-geo': cls.default_params_name['default_longitude_geo'],
-            'latitude-geo': cls.default_params_name['default_latitude_geo'],
-            'polarization-geo': cls.default_params_name[
-                                    'default_polarization_geo']
+            "tc-lisa": cls.default_params_name["default_tc_lisa"],
+            "longitude-lisa": cls.default_params_name["default_longitude_lisa"],
+            "latitude-lisa": cls.default_params_name["default_latitude_lisa"],
+            "polarization-lisa": cls.default_params_name["default_polarization_lisa"],
+            "tc-geo": cls.default_params_name["default_tc_geo"],
+            "longitude-geo": cls.default_params_name["default_longitude_geo"],
+            "latitude-geo": cls.default_params_name["default_latitude_geo"],
+            "polarization-geo": cls.default_params_name["default_polarization_geo"],
         }
         for param_name in variables.keys():
-            name_underline = param_name.replace('-', '_')
+            name_underline = param_name.replace("-", "_")
             if cp.has_option("-".join([section, outputs]), param_name):
                 skip_opts.append(param_name)
                 additional_opts.update(
-                    {name_underline+'_param': cp.get_opt_tag(
-                     section, param_name, tag)})
+                    {
+                        name_underline + "_param": cp.get_opt_tag(
+                            section, param_name, tag
+                        )
+                    }
+                )
             else:
                 additional_opts.update(
-                    {name_underline+'_param': variables[param_name]})
+                    {name_underline + "_param": variables[param_name]}
+                )
 
         return super(LISAToGEO, cls).from_config(
-            cp, section, outputs, skip_opts=skip_opts,
-            additional_opts=additional_opts
+            cp, section, outputs, skip_opts=skip_opts, additional_opts=additional_opts
         )
 
 
@@ -2004,7 +2450,7 @@ class Log(BaseTransform):
             with the original variable name and value(s).
         """
         x = maps[self._inputvar]
-        out = {self._outputvar: numpy.log(x)}
+        out = {self._outputvar: _log(x)}
         return self.format_output(maps, out)
 
     def inverse_transform(self, maps):
@@ -2023,7 +2469,7 @@ class Log(BaseTransform):
             with the original variable name and value(s).
         """
         y = maps[self._outputvar]
-        out = {self._inputvar: numpy.exp(y)}
+        out = {self._inputvar: _exp(y)}
         return self.format_output(maps, out)
 
     def jacobian(self, maps):
@@ -2070,7 +2516,7 @@ class Log(BaseTransform):
             The value of the jacobian at the given point(s).
         """
         x = maps[self._outputvar]
-        return numpy.exp(x)
+        return _exp(x)
 
 
 class Logit(BaseTransform):
@@ -2099,8 +2545,7 @@ class Logit(BaseTransform):
         self._outputvar = outputvar
         self._inputs = [inputvar]
         self._outputs = [outputvar]
-        self._bounds = Bounds(domain[0], domain[1],
-                              btype_min="open", btype_max="open")
+        self._bounds = Bounds(domain[0], domain[1], btype_min="open", btype_max="open")
         # shortcuts for quick access later
         self._a = domain[0]
         self._b = domain[1]
@@ -2148,7 +2593,7 @@ class Logit(BaseTransform):
         float
             The logit of x.
         """
-        return numpy.log(x - a) - numpy.log(b - x)
+        return _log(x - a) - _log(b - x)
 
     @staticmethod
     def logistic(x, a=0.0, b=1.0):
@@ -2179,7 +2624,7 @@ class Logit(BaseTransform):
         float
             The logistic of x.
         """
-        expx = numpy.exp(x)
+        expx = _exp(x)
         return (a + b * expx) / (1.0 + expx)
 
     def transform(self, maps):
@@ -2201,10 +2646,7 @@ class Logit(BaseTransform):
         """
         x = maps[self._inputvar]
         # check that x is in bounds
-        isin = self._bounds.__contains__(x)
-        if isinstance(isin, numpy.ndarray):
-            isin = isin.all()
-        if not isin:
+        if not _all_in_bounds(x, self._bounds):
             raise ValueError("one or more values are not in bounds")
         out = {self._outputvar: self.logit(x, self._a, self._b)}
         return self.format_output(maps, out)
@@ -2254,11 +2696,8 @@ class Logit(BaseTransform):
         """
         x = maps[self._inputvar]
         # check that x is in bounds
-        isin = self._bounds.__contains__(x)
-        if isinstance(isin, numpy.ndarray) and not isin.all():
+        if not _all_in_bounds(x, self._bounds):
             raise ValueError("one or more values are not in bounds")
-        elif not isin:
-            raise ValueError("{} is not in bounds".format(x))
         return (self._b - self._a) / ((x - self._a) * (self._b - x))
 
     def inverse_jacobian(self, maps):
@@ -2284,12 +2723,11 @@ class Logit(BaseTransform):
             The value of the jacobian at the given point(s).
         """
         x = maps[self._outputvar]
-        expx = numpy.exp(x)
+        expx = _exp(x)
         return expx * (self._b - self._a) / (1.0 + expx) ** 2.0
 
     @classmethod
-    def from_config(cls, cp, section, outputs,
-                    skip_opts=None, additional_opts=None):
+    def from_config(cls, cp, section, outputs, skip_opts=None, additional_opts=None):
         """Initializes a Logit transform from the given section.
 
         The section must specify an input and output variable name. The domain
@@ -2350,8 +2788,9 @@ class Logit(BaseTransform):
             b = None
         if a is None and b is not None or b is None and a is not None:
             raise ValueError(
-                "if providing a min(max)-{}, must also provide "
-                "a max(min)-{}".format(inputvar, inputvar)
+                "if providing a min(max)-{}, must also provide a max(min)-{}".format(
+                    inputvar, inputvar
+                )
             )
         elif a is not None:
             additional_opts.update({"domain": (float(a), float(b))})
@@ -2476,11 +2915,11 @@ class CartesianSpin1ToSphericalSpin1(CartesianToSpherical):
             "removed in a future update. Please use %s instead, "
             "passing spin1x, spin1y, spin1z, spin1_a, "
             "spin1_azimuthal, spin1_polar as arguments.",
-            self.name, CartesianToSpherical.name
+            self.name,
+            CartesianToSpherical.name,
         )
         super(CartesianSpin1ToSphericalSpin1, self).__init__(
-            "spin1x", "spin1y", "spin1z",
-            "spin1_a", "spin1_azimuthal", "spin1_polar"
+            "spin1x", "spin1y", "spin1z", "spin1_a", "spin1_azimuthal", "spin1_polar"
         )
 
 
@@ -2500,11 +2939,11 @@ class CartesianSpin2ToSphericalSpin2(CartesianToSpherical):
             "removed in a future update. Please use %s instead, "
             "passing spin2x, spin2y, spin2z, spin2_a, "
             "spin2_azimuthal, spin2_polar as arguments.",
-            self.name, CartesianToSpherical.name
+            self.name,
+            CartesianToSpherical.name,
         )
         super(CartesianSpin2ToSphericalSpin2, self).__init__(
-            "spin2x", "spin2y", "spin2z",
-            "spin2_a", "spin2_azimuthal", "spin2_polar"
+            "spin2x", "spin2y", "spin2z", "spin2_a", "spin2_azimuthal", "spin2_polar"
         )
 
 
@@ -2556,15 +2995,26 @@ class SSBToGEO(GEOToSSB):
     inverse_transform = inverse.transform
 
     def __init__(
-        self, tc_geo_param=None, longitude_geo_param=None,
-        latitude_geo_param=None, polarization_geo_param=None,
-        tc_ssb_param=None, longitude_ssb_param=None,
-        latitude_ssb_param=None, polarization_ssb_param=None
+        self,
+        tc_geo_param=None,
+        longitude_geo_param=None,
+        latitude_geo_param=None,
+        polarization_geo_param=None,
+        tc_ssb_param=None,
+        longitude_ssb_param=None,
+        latitude_ssb_param=None,
+        polarization_ssb_param=None,
     ):
-        params = [tc_geo_param, longitude_geo_param,
-                  latitude_geo_param, polarization_geo_param,
-                  tc_ssb_param, longitude_ssb_param,
-                  latitude_ssb_param, polarization_ssb_param]
+        params = [
+            tc_geo_param,
+            longitude_geo_param,
+            latitude_geo_param,
+            polarization_geo_param,
+            tc_ssb_param,
+            longitude_ssb_param,
+            latitude_ssb_param,
+            polarization_ssb_param,
+        ]
         for index in range(len(params)):
             if params[index] is None:
                 key = list(self.default_params_name.keys())[index]
@@ -2578,10 +3028,18 @@ class SSBToGEO(GEOToSSB):
         self.longitude_ssb_param = params[5]
         self.latitude_ssb_param = params[6]
         self.polarization_ssb_param = params[7]
-        self._inputs = [self.tc_ssb_param, self.longitude_ssb_param,
-                        self.latitude_ssb_param, self.polarization_ssb_param]
-        self._outputs = [self.tc_geo_param, self.longitude_geo_param,
-                         self.latitude_geo_param, self.polarization_geo_param]
+        self._inputs = [
+            self.tc_ssb_param,
+            self.longitude_ssb_param,
+            self.latitude_ssb_param,
+            self.polarization_ssb_param,
+        ]
+        self._outputs = [
+            self.tc_geo_param,
+            self.longitude_geo_param,
+            self.latitude_geo_param,
+            self.polarization_geo_param,
+        ]
 
 
 class SSBToLISA(LISAToSSB):
@@ -2593,15 +3051,26 @@ class SSBToLISA(LISAToSSB):
     inverse_transform = inverse.transform
 
     def __init__(
-        self, tc_lisa_param=None, longitude_lisa_param=None,
-        latitude_lisa_param=None, polarization_lisa_param=None,
-        tc_ssb_param=None, longitude_ssb_param=None,
-        latitude_ssb_param=None, polarization_ssb_param=None
+        self,
+        tc_lisa_param=None,
+        longitude_lisa_param=None,
+        latitude_lisa_param=None,
+        polarization_lisa_param=None,
+        tc_ssb_param=None,
+        longitude_ssb_param=None,
+        latitude_ssb_param=None,
+        polarization_ssb_param=None,
     ):
-        params = [tc_lisa_param, longitude_lisa_param,
-                  latitude_lisa_param, polarization_lisa_param,
-                  tc_ssb_param, longitude_ssb_param,
-                  latitude_ssb_param, polarization_ssb_param]
+        params = [
+            tc_lisa_param,
+            longitude_lisa_param,
+            latitude_lisa_param,
+            polarization_lisa_param,
+            tc_ssb_param,
+            longitude_ssb_param,
+            latitude_ssb_param,
+            polarization_ssb_param,
+        ]
         for index in range(len(params)):
             if params[index] is None:
                 key = list(self.default_params_name.keys())[index]
@@ -2615,10 +3084,18 @@ class SSBToLISA(LISAToSSB):
         self.longitude_ssb_param = params[5]
         self.latitude_ssb_param = params[6]
         self.polarization_ssb_param = params[7]
-        self._inputs = [self.tc_ssb_param, self.longitude_ssb_param,
-                        self.latitude_ssb_param, self.polarization_ssb_param]
-        self._outputs = [self.tc_lisa_param, self.longitude_lisa_param,
-                         self.latitude_lisa_param, self.polarization_lisa_param]
+        self._inputs = [
+            self.tc_ssb_param,
+            self.longitude_ssb_param,
+            self.latitude_ssb_param,
+            self.polarization_ssb_param,
+        ]
+        self._outputs = [
+            self.tc_lisa_param,
+            self.longitude_lisa_param,
+            self.latitude_lisa_param,
+            self.polarization_lisa_param,
+        ]
 
 
 class GEOToLISA(LISAToGEO):
@@ -2630,15 +3107,26 @@ class GEOToLISA(LISAToGEO):
     inverse_transform = inverse.transform
 
     def __init__(
-        self, tc_lisa_param=None, longitude_lisa_param=None,
-        latitude_lisa_param=None, polarization_lisa_param=None,
-        tc_geo_param=None, longitude_geo_param=None,
-        latitude_geo_param=None, polarization_geo_param=None
+        self,
+        tc_lisa_param=None,
+        longitude_lisa_param=None,
+        latitude_lisa_param=None,
+        polarization_lisa_param=None,
+        tc_geo_param=None,
+        longitude_geo_param=None,
+        latitude_geo_param=None,
+        polarization_geo_param=None,
     ):
-        params = [tc_lisa_param, longitude_lisa_param,
-                  latitude_lisa_param, polarization_lisa_param,
-                  tc_geo_param, longitude_geo_param,
-                  latitude_geo_param, polarization_geo_param]
+        params = [
+            tc_lisa_param,
+            longitude_lisa_param,
+            latitude_lisa_param,
+            polarization_lisa_param,
+            tc_geo_param,
+            longitude_geo_param,
+            latitude_geo_param,
+            polarization_geo_param,
+        ]
         for index in range(len(params)):
             if params[index] is None:
                 key = list(self.default_params_name.keys())[index]
@@ -2652,10 +3140,18 @@ class GEOToLISA(LISAToGEO):
         self.longitude_geo_param = params[5]
         self.latitude_geo_param = params[6]
         self.polarization_geo_param = params[7]
-        self._inputs = [self.tc_geo_param, self.longitude_geo_param,
-                        self.latitude_geo_param, self.polarization_geo_param]
-        self._outputs = [self.tc_lisa_param, self.longitude_lisa_param,
-                         self.latitude_lisa_param, self.polarization_lisa_param]
+        self._inputs = [
+            self.tc_geo_param,
+            self.longitude_geo_param,
+            self.latitude_geo_param,
+            self.polarization_geo_param,
+        ]
+        self._outputs = [
+            self.tc_lisa_param,
+            self.longitude_lisa_param,
+            self.latitude_lisa_param,
+            self.polarization_lisa_param,
+        ]
 
 
 class Exponent(Log):
@@ -2717,8 +3213,7 @@ class Logistic(Logit):
         return self._bounds
 
     @classmethod
-    def from_config(cls, cp, section, outputs,
-                    skip_opts=None, additional_opts=None):
+    def from_config(cls, cp, section, outputs, skip_opts=None, additional_opts=None):
         """Initializes a Logistic transform from the given section.
 
         The section must specify an input and output variable name. The
@@ -2779,8 +3274,9 @@ class Logistic(Logit):
             b = None
         if a is None and b is not None or b is None and a is not None:
             raise ValueError(
-                "if providing a min(max)-{}, must also provide "
-                "a max(min)-{}".format(outputvar, outputvar)
+                "if providing a min(max)-{}, must also provide a max(min)-{}".format(
+                    outputvar, outputvar
+                )
             )
         elif a is not None:
             additional_opts.update({"codomain": (float(a), float(b))})
@@ -2907,8 +3403,7 @@ common_cbc_inverse_transforms.extend(
     ]
 )
 
-common_cbc_transforms = common_cbc_forward_transforms \
-                        + common_cbc_inverse_transforms
+common_cbc_transforms = common_cbc_forward_transforms + common_cbc_inverse_transforms
 
 
 def get_common_cbc_transforms(requested_params, variable_args, valid_params=None):
@@ -2959,8 +3454,9 @@ def get_common_cbc_transforms(requested_params, variable_args, valid_params=None
     # calculated from base parameters
     from_base_c = []
     for converter in common_cbc_inverse_transforms:
-        if converter.outputs.issubset(variable_args) or \
-           converter.outputs.isdisjoint(requested_params):
+        if converter.outputs.issubset(variable_args) or converter.outputs.isdisjoint(
+            requested_params
+        ):
             continue
         intersect = converter.outputs.intersection(requested_params)
         if (
@@ -3070,7 +3566,7 @@ def order_transforms(transforms):
         out without error.
     """
     # get a set of all inputs and all outputs
-    outputs = set().union(*[set(t.outputs)-set(t.inputs) for t in transforms])
+    outputs = set().union(*[set(t.outputs) - set(t.inputs) for t in transforms])
     out = []
     remaining = [t for t in transforms]
     while remaining:

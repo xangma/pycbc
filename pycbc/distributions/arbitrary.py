@@ -16,15 +16,18 @@
 This modules provides classes for evaluating arbitrary distributions from
 a file.
 """
+
 import logging
+
 import numpy
 import scipy.stats
 
-from pycbc.distributions import bounded
 import pycbc.transforms
+from pycbc.distributions import bounded
 from pycbc.io.hdf import HFile
 
-logger = logging.getLogger('pycbc.distributions.arbitrary')
+logger = logging.getLogger("pycbc.distributions.arbitrary")
+
 
 class Arbitrary(bounded.BoundedDist):
     r"""A distribution constructed from a set of parameter values using a kde.
@@ -44,7 +47,8 @@ class Arbitrary(bounded.BoundedDist):
         a single kde will be produced with dimension equal to the number of
         parameters.
     """
-    name = 'arbitrary'
+
+    name = "arbitrary"
 
     def __init__(self, bounds=None, bandwidth="scott", **kwargs):
         # initialize the bounds
@@ -54,15 +58,16 @@ class Arbitrary(bounded.BoundedDist):
         super(Arbitrary, self).__init__(**bounds)
         # check that all parameters specified in bounds have samples
         if set(self.params) != set(kwargs.keys()):
-            raise ValueError("Must provide samples for all parameters given "
-                             "in the bounds dictionary")
+            raise ValueError(
+                "Must provide samples for all parameters given in the bounds dictionary"
+            )
         # if bounds are provided use logit transform to move the points
         # to +/- inifinity
         self._transforms = {}
         self._tparams = {}
-        for param,bnds in self.bounds.items():
+        for param, bnds in self.bounds.items():
             if numpy.isfinite(bnds[1] - bnds[0]):
-                tparam = 'logit'+param
+                tparam = "logit" + param
                 samples = kwargs[param]
                 t = pycbc.transforms.Logit(param, tparam, domain=bnds)
                 self._transforms[tparam] = t
@@ -74,10 +79,10 @@ class Arbitrary(bounded.BoundedDist):
                 # transform the sample points
                 kwargs[param] = t.transform({param: samples})[tparam]
             elif not (~numpy.isfinite(bnds[0]) and ~numpy.isfinite(bnds[1])):
-                raise ValueError("if specifying bounds, both bounds must "
-                                 "be finite")
+                raise ValueError("if specifying bounds, both bounds must be finite")
         # build the kde
         self._kde = self.get_kde_from_arrays(*[kwargs[p] for p in self.params])
+        self._torch_kde_cache = {}
         self.set_bandwidth(bandwidth)
 
     @property
@@ -95,11 +100,13 @@ class Arbitrary(bounded.BoundedDist):
         """
         for p in self._params:
             if p not in kwargs.keys():
-                raise ValueError('Missing parameter {} to construct pdf.'
-                                 .format(p))
+                raise ValueError("Missing parameter {} to construct pdf.".format(p))
+        torch_logpdf = self._torch_logpdf(kwargs)
+        if torch_logpdf is not None:
+            return torch_logpdf.exp()
         if kwargs in self:
             # transform into the kde space
-            jacobian = 1.
+            jacobian = 1.0
             for param, tparam in self._tparams.items():
                 t = self._transforms[tparam]
                 try:
@@ -108,7 +115,7 @@ class Arbitrary(bounded.BoundedDist):
                     # can get a value error if the value is exactly == to
                     # the bounds, in which case, just return 0.
                     if kwargs[param] in self.bounds[param]:
-                        return 0.
+                        return 0.0
                     else:
                         raise ValueError(e)
                 kwargs[param] = samples[tparam]
@@ -118,27 +125,167 @@ class Arbitrary(bounded.BoundedDist):
                 # p = J * p', where J is the Jacobian of going from p to p'
                 jacobian *= t.jacobian(samples)
             # for scipy < 0.15.0, gaussian_kde.pdf = gaussian_kde.evaluate
-            this_pdf = jacobian * self._kde.evaluate([kwargs[p]
-                                                      for p in self._params])
+            this_pdf = jacobian * self._kde.evaluate([kwargs[p] for p in self._params])
             if len(this_pdf) == 1:
-                return float(this_pdf)
+                return this_pdf.item()
             else:
                 return this_pdf
         else:
-            return 0.
+            return 0.0
 
     def _logpdf(self, **kwargs):
         """Returns the log of the pdf at the given values. The keyword
         arguments must contain all of parameters in self's params.
         Unrecognized arguments are ignored.
         """
+        for p in self._params:
+            if p not in kwargs.keys():
+                raise ValueError("Missing parameter {} to construct pdf.".format(p))
+        torch_logpdf = self._torch_logpdf(kwargs)
+        if torch_logpdf is not None:
+            return torch_logpdf
         if kwargs not in self:
             return -numpy.inf
         else:
             return numpy.log(self._pdf(**kwargs))
 
+    def _torch_kde_tensors(self, reference):
+        """Return cached KDE constants on ``reference``'s device."""
+        torch = bounded._torch_module_and_reference([reference])[0]
+        key = (reference.device.type, reference.device.index, reference.dtype)
+        try:
+            return self._torch_kde_cache[key]
+        except KeyError:
+            pass
+
+        dataset = torch.as_tensor(
+            self._kde.dataset.T,
+            device=reference.device,
+            dtype=reference.dtype,
+        )
+        inv_cov = torch.as_tensor(
+            self._kde.inv_cov,
+            device=reference.device,
+            dtype=reference.dtype,
+        )
+        weights = torch.as_tensor(
+            self._kde.weights,
+            device=reference.device,
+            dtype=reference.dtype,
+        )
+        log_det = getattr(self._kde, "log_det", None)
+        if log_det is None:
+            _, log_det = numpy.linalg.slogdet(2.0 * numpy.pi * self._kde.covariance)
+        log_det = torch.as_tensor(
+            log_det, device=reference.device, dtype=reference.dtype
+        )
+        dataset_inv = dataset @ inv_cov
+        cached = (
+            dataset,
+            inv_cov,
+            (dataset_inv * dataset).sum(dim=1),
+            weights.log(),
+            log_det,
+        )
+        self._torch_kde_cache[key] = cached
+        return cached
+
+    def _torch_logpdf(self, kwargs):
+        """Evaluate the fitted SciPy KDE without leaving a Torch device."""
+        torch, reference = bounded._torch_module_and_reference(
+            kwargs[p] for p in self._params
+        )
+        if torch is None:
+            return None
+        dtype = reference.dtype
+        if not dtype.is_floating_point:
+            dtype = torch.get_default_dtype()
+        values = [
+            value.to(device=reference.device, dtype=dtype)
+            if isinstance(value, torch.Tensor)
+            else torch.as_tensor(value, device=reference.device, dtype=dtype)
+            for value in (kwargs[p] for p in self._params)
+        ]
+        values = torch.broadcast_tensors(*values)
+        params = dict(zip(self._params, values, strict=True))
+
+        condition = torch.ones_like(values[0], dtype=torch.bool)
+        contained = self.__contains__(params)
+        if isinstance(contained, torch.Tensor):
+            condition = condition & contained
+        else:
+            condition = condition & bool(contained)
+        for value in values:
+            condition = condition & torch.isfinite(value)
+        for param in self._tparams:
+            transform = self._transforms[self._tparams[param]]
+            condition = condition & (params[param] > transform._a)
+            condition = condition & (params[param] < transform._b)
+
+        transformed = []
+        log_jacobian = torch.zeros_like(values[0])
+        for param in self._params:
+            value = params[param]
+            try:
+                transform = self._transforms[self._tparams[param]]
+            except KeyError:
+                safe_value = torch.where(condition, value, 0.0)
+                transformed.append(safe_value)
+            else:
+                midpoint = 0.5 * (transform._a + transform._b)
+                safe_value = torch.where(condition, value, midpoint)
+                left = safe_value - transform._a
+                right = transform._b - safe_value
+                transformed.append(left.log() - right.log())
+                log_jacobian = (
+                    log_jacobian
+                    + torch.as_tensor(
+                        transform._b - transform._a,
+                        device=reference.device,
+                        dtype=dtype,
+                    ).log()
+                    - left.log()
+                    - right.log()
+                )
+
+        points = torch.stack(transformed, dim=-1)
+        output_shape = points.shape[:-1]
+        points = points.reshape(-1, len(self._params))
+        dataset, inv_cov, dataset_quad, log_weights, log_det = self._torch_kde_tensors(
+            points
+        )
+
+        if points.shape[0] == 0:
+            log_density = torch.empty(
+                output_shape, device=reference.device, dtype=dtype
+            )
+        else:
+            # Bound the temporary point-by-sample matrix for large batches.
+            point_chunk = max(1, 4_000_000 // max(dataset.shape[0], 1))
+            log_densities = []
+            for start in range(0, points.shape[0], point_chunk):
+                point = points[start : start + point_chunk]
+                point_inv = point @ inv_cov
+                energy = (
+                    (point_inv * point).sum(dim=1, keepdim=True)
+                    + dataset_quad.unsqueeze(0)
+                    - 2.0 * (point_inv @ dataset.T)
+                ).clamp_min(0.0)
+                log_densities.append(
+                    torch.logsumexp(log_weights.unsqueeze(0) - 0.5 * energy, dim=1)
+                    - 0.5 * log_det
+                )
+            log_density = torch.cat(log_densities).reshape(output_shape)
+        log_density = log_density + log_jacobian
+        return torch.where(
+            condition,
+            log_density,
+            torch.full_like(log_density, -torch.inf),
+        )
+
     def set_bandwidth(self, set_bw="scott"):
         self._kde.set_bandwidth(set_bw)
+        self._torch_kde_cache = {}
 
     def rvs(self, size=1, param=None):
         """Gives a set of random values drawn from the kde.
@@ -166,14 +313,13 @@ class Arbitrary(bounded.BoundedDist):
         size = int(size)
         arr = numpy.zeros(size, dtype=dtype)
         draws = self._kde.resample(size)
-        draws = {param: draws[ii,:] for ii,param in enumerate(self.params)}
-        for (param,_) in dtype:
+        draws = {param: draws[ii, :] for ii, param in enumerate(self.params)}
+        for param, _ in dtype:
             try:
                 # transform back to param space
                 tparam = self._tparams[param]
                 tdraws = {tparam: draws[param]}
-                draws[param] = self._transforms[tparam].inverse_transform(
-                    tdraws)[param]
+                draws[param] = self._transforms[tparam].inverse_transform(tdraws)[param]
             except KeyError:
                 pass
             arr[param] = draws[param]
@@ -195,8 +341,10 @@ class Arbitrary(bounded.BoundedDist):
         """Raises a NotImplementedError; to load from a config file, use
         `FromFile`.
         """
-        raise NotImplementedError("This class does not support loading from a "
-                                  "config file. Use `FromFile` instead.")
+        raise NotImplementedError(
+            "This class does not support loading from a "
+            "config file. Use `FromFile` instead."
+        )
 
 
 class FromFile(Arbitrary):
@@ -233,10 +381,12 @@ class FromFile(Arbitrary):
     kde :
         The kde obtained from the values in the file.
     """
-    name = 'fromfile'
+
+    name = "fromfile"
+
     def __init__(self, filename=None, datagroup=None, **params):
         if filename is None:
-            raise ValueError('A file must be specified for this distribution.')
+            raise ValueError("A file must be specified for this distribution.")
         self._filename = filename
         self.datagroup = datagroup
         # Get the parameter names to pass to get_kde_from_file
@@ -245,13 +395,11 @@ class FromFile(Arbitrary):
         else:
             ps = list(params.keys())
         param_vals, bw = self.get_arrays_from_file(filename, params=ps)
-        super(FromFile, self).__init__(bounds=params, bandwidth=bw,
-                                       **param_vals)
+        super(FromFile, self).__init__(bounds=params, bandwidth=bw, **param_vals)
 
     @property
     def filename(self):
-        """str: The path to the file containing values for the parameter(s).
-        """
+        """str: The path to the file containing values for the parameter(s)."""
         return self._filename
 
     def get_arrays_from_file(self, params_file, params=None):
@@ -271,9 +419,9 @@ class FromFile(Arbitrary):
             A dictionary of the parameters mapping `param_name -> array`.
         """
         try:
-            f = HFile(params_file, 'r')
+            f = HFile(params_file, "r")
         except:
-            raise ValueError('File not found.')
+            raise ValueError("File not found.") from None
         if self.datagroup is not None:
             get = f[self.datagroup]
         else:
@@ -283,8 +431,7 @@ class FromFile(Arbitrary):
                 params = [params]
             for p in params:
                 if p not in get.keys():
-                    raise ValueError('Parameter {} is not in {}'
-                                     .format(p, params_file))
+                    raise ValueError("Parameter {} is not in {}".format(p, params_file))
         else:
             params = [str(k) for k in get.keys()]
         params_values = {p: get[p][()] for p in params}
@@ -333,7 +480,9 @@ class FromFile(Arbitrary):
         BoundedDist
             A distribution instance from the pycbc.inference.prior module.
         """
-        return bounded.bounded_from_config(cls, cp, section, variable_args,
-                                           bounds_required=False)
+        return bounded.bounded_from_config(
+            cls, cp, section, variable_args, bounds_required=False
+        )
 
-__all__ = ['Arbitrary', 'FromFile']
+
+__all__ = ["Arbitrary", "FromFile"]

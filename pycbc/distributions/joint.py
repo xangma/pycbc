@@ -12,14 +12,16 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-""" This module provides classes to describe joint distributions
-"""
+"""This module provides classes to describe joint distributions"""
+
 import logging
+
 import numpy
 
+from pycbc import boundaries
 from pycbc.io.record import FieldArray
 
-logger = logging.getLogger('pycbc.distributions.joint')
+logger = logging.getLogger("pycbc.distributions.joint")
 
 
 class JointDistribution(object):
@@ -73,10 +75,10 @@ class JointDistribution(object):
     >>> print(prior_eval(mass1=20, mass2=1))
 
     """
-    name = 'joint'
+
+    name = "joint"
 
     def __init__(self, variable_args, *distributions, **kwargs):
-
         # store the names of the parameters defined in the distributions
         self.variable_args = tuple(variable_args)
 
@@ -85,8 +87,9 @@ class JointDistribution(object):
 
         # store the constraints on the parameters defined inside the
         # distributions list
-        self._constraints = kwargs["constraints"] \
-                                  if "constraints" in kwargs.keys() else []
+        self._constraints = (
+            kwargs["constraints"] if "constraints" in kwargs.keys() else []
+        )
 
         # store kwargs
         self.kwargs = kwargs
@@ -100,20 +103,25 @@ class JointDistribution(object):
         varset = set(self.variable_args)
         missing_params = distparams - varset
         if missing_params:
-            raise ValueError("provided variable_args do not include "
-                "parameters %s" %(','.join(missing_params)) + " which are "
-                "required by the provided distributions")
+            raise ValueError(
+                "provided variable_args do not include "
+                "parameters %s" % (",".join(missing_params)) + " which are "
+                "required by the provided distributions"
+            )
         extra_params = varset - distparams
         if extra_params:
-            raise ValueError("variable_args %s " %(','.join(extra_params)) +
-                "are not in any of the provided distributions")
+            raise ValueError(
+                "variable_args %s " % (",".join(extra_params))
+                + "are not in any of the provided distributions"
+            )
 
         # if there are constraints then find the renormalization factor
         # since a constraint will cut out part of the space
         # do this by random sampling the full space and find the percent
         # of samples rejected
-        n_test_samples = kwargs["n_test_samples"] \
-                             if "n_test_samples" in kwargs else int(1e6)
+        n_test_samples = (
+            kwargs["n_test_samples"] if "n_test_samples" in kwargs else int(1e6)
+        )
         if self._constraints:
             logger.info("Renormalizing distribution for constraints")
 
@@ -132,9 +140,11 @@ class JointDistribution(object):
             # the fraction of acceptances in random sampling of entire space
             self._pdf_scale = result.sum() / float(n_test_samples)
             if self._pdf_scale == 0.0:
-                raise ValueError("None of the random draws for pdf "
+                raise ValueError(
+                    "None of the random draws for pdf "
                     "renormalization satisfied the constraints. "
-                    " You can try increasing the 'n_test_samples' keyword.")
+                    " You can try increasing the 'n_test_samples' keyword."
+                )
 
         else:
             self._pdf_scale = 1.0
@@ -164,6 +174,17 @@ class JointDistribution(object):
         return params
 
     @staticmethod
+    def _torch_module_and_reference(params):
+        """Return Torch and the first raw tensor parameter, if present."""
+        if not isinstance(params, dict):
+            return None, None
+        for value in params.values():
+            torch = boundaries._torch_module_for(value)
+            if torch is not None:
+                return torch, value
+        return None, None
+
+    @staticmethod
     def _return_atomic(params):
         """Determines if an array or atomic value should be returned given a
         set of input params.
@@ -180,8 +201,10 @@ class JointDistribution(object):
             as atomic types or not.
         """
         if isinstance(params, dict):
-            return not any(isinstance(val, numpy.ndarray)
-                           for val in params.values())
+            torch, _ = JointDistribution._torch_module_and_reference(params)
+            return torch is None and not any(
+                isinstance(val, numpy.ndarray) for val in params.values()
+            )
         elif isinstance(params, numpy.record):
             return True
         elif isinstance(params, numpy.ndarray):
@@ -190,8 +213,9 @@ class JointDistribution(object):
         elif isinstance(params, FieldArray):
             return False
         else:
-            raise ValueError("params must be either dict, FieldArray, "
-                             "record, or structured array")
+            raise ValueError(
+                "params must be either dict, FieldArray, record, or structured array"
+            )
 
     @staticmethod
     def _ensure_fieldarray(params):
@@ -211,15 +235,15 @@ class JointDistribution(object):
         if isinstance(params, dict):
             return FieldArray.from_kwargs(**params)
         elif isinstance(params, numpy.record):
-            return FieldArray.from_records(tuple(params),
-                                           names=params.dtype.names)
+            return FieldArray.from_records(tuple(params), names=params.dtype.names)
         elif isinstance(params, numpy.ndarray):
             return params.view(type=FieldArray)
         elif isinstance(params, FieldArray):
             return params
         else:
-            raise ValueError("params must be either dict, FieldArray, "
-                             "record, or structured array")
+            raise ValueError(
+                "params must be either dict, FieldArray, record, or structured array"
+            )
 
     def within_constraints(self, params):
         """Evaluates whether the given parameters satisfy the constraints.
@@ -236,6 +260,31 @@ class JointDistribution(object):
             of the parameters are arrays, will return an array of booleans.
             Otherwise, a boolean.
         """
+        torch, reference = self._torch_module_and_reference(params)
+        if torch is not None:
+            result = torch.ones((), dtype=torch.bool, device=reference.device)
+            for constraint in self._constraints:
+                try:
+                    constraint_result = constraint(params)
+                except (TypeError, ValueError) as exc:
+                    raise TypeError(
+                        "tensor-valued joint distributions require "
+                        "constraints that evaluate raw Torch tensors"
+                    ) from exc
+                if not isinstance(constraint_result, torch.Tensor):
+                    if not numpy.isscalar(constraint_result):
+                        raise TypeError(
+                            "a constraint returned host array data for "
+                            "tensor-valued parameters"
+                        )
+                    constraint_result = torch.as_tensor(
+                        constraint_result, device=reference.device
+                    )
+                result = torch.logical_and(
+                    result, constraint_result.to(dtype=torch.bool)
+                )
+            return result
+
         params = self._ensure_fieldarray(params)
         return_atomic = self._return_atomic(params)
         # convert params to a field array if it isn't one
@@ -264,6 +313,29 @@ class JointDistribution(object):
             Otherwise, a boolean.
         """
         params = self.apply_boundary_conditions(**params)
+        torch, reference = self._torch_module_and_reference(params)
+        if torch is not None:
+            result = torch.ones((), dtype=torch.bool, device=reference.device)
+            for dist in self.distributions:
+                data = {name: params[name] for name in dist.params}
+                contained = dist.__contains__(data)
+                if not isinstance(contained, torch.Tensor):
+                    if not numpy.isscalar(contained):
+                        raise TypeError(
+                            "a component distribution returned host array "
+                            "data for tensor-valued parameters"
+                        )
+                    contained = torch.as_tensor(contained, device=reference.device)
+                elif contained.device != reference.device:
+                    raise ValueError(
+                        "component distributions returned tensors on different devices"
+                    )
+                result = torch.logical_and(
+                    result,
+                    contained.to(dtype=torch.bool),
+                )
+            return torch.logical_and(result, self.within_constraints(params))
+
         result = True
         for dist in self.distributions:
             param_names = dist.params
@@ -279,8 +351,35 @@ class JointDistribution(object):
         return result
 
     def __call__(self, **params):
-        """Evaluate joint distribution for parameters.
-        """
+        """Evaluate joint distribution for parameters."""
+        torch, reference = self._torch_module_and_reference(params)
+        if torch is not None:
+            isin = self.within_constraints(params) if self._constraints else None
+            dtype = (
+                reference.dtype
+                if reference.is_floating_point()
+                else torch.get_default_dtype()
+            )
+            logp = torch.zeros((), dtype=dtype, device=reference.device)
+            for distribution in self.distributions:
+                value = distribution(**params)
+                if isinstance(value, numpy.ndarray):
+                    raise TypeError(
+                        "a component distribution returned a NumPy array "
+                        "for tensor-valued parameters"
+                    )
+                if not isinstance(value, torch.Tensor):
+                    value = torch.as_tensor(value, dtype=dtype, device=reference.device)
+                logp = logp + value
+            logp = logp - self._logpdf_scale
+            if isin is not None:
+                logp = torch.where(
+                    isin,
+                    logp,
+                    torch.full_like(logp, -torch.inf),
+                )
+            return logp
+
         return_atomic = self._return_atomic(params)
         # check if statisfies constraints
         if len(self._constraints) != 0:
@@ -308,8 +407,7 @@ class JointDistribution(object):
         return logp - self._logpdf_scale
 
     def rvs(self, size=1):
-        """ Rejection samples the parameter space.
-        """
+        """Rejection samples the parameter space."""
         # create output FieldArray
         dtype = [(arg, float) for arg in self.variable_args]
         out = FieldArray(size, dtype=dtype)
@@ -331,28 +429,26 @@ class JointDistribution(object):
             nkeep = keep.sum()
             kmin = size - remaining
             kmax = min(nkeep, remaining)
-            out[kmin:kmin+kmax] = scratch[keep][:kmax]
+            out[kmin : kmin + kmax] = scratch[keep][:kmax]
             remaining = max(0, remaining - nkeep)
             # to try to speed up next go around, we'll increase the draw
             # size by the fraction of values that were kept, but cap at 1e6
-            ndraw = int(min(1e6, ndraw * numpy.ceil(ndraw / (nkeep + 1.))))
+            ndraw = int(min(1e6, ndraw * numpy.ceil(ndraw / (nkeep + 1.0))))
         return out
 
     @property
     def well_reflected(self):
-        """ Get list of which parameters are well reflected
-        """
+        """Get list of which parameters are well reflected"""
         reflect = []
         bounds = self.bounds
         for param in bounds:
-            if bounds[param].reflected == 'well':
+            if bounds[param].reflected == "well":
                 reflect.append(param)
         return reflect
 
     @property
     def cyclic(self):
-        """ Get list of which parameters are cyclic
-        """
+        """Get list of which parameters are cyclic"""
         cyclic = []
         bounds = self.bounds
         for param in bounds:
@@ -362,16 +458,15 @@ class JointDistribution(object):
 
     @property
     def bounds(self):
-        """ Get the dict of boundaries
-        """
+        """Get the dict of boundaries"""
         bnds = {}
         for dist in self.distributions:
-            if hasattr(dist, 'bounds'):
+            if hasattr(dist, "bounds"):
                 bnds.update(dist.bounds)
         return bnds
 
     def cdfinv(self, **original):
-        """ Apply the inverse cdf to the array of values [0, 1]. Every
+        """Apply the inverse cdf to the array of values [0, 1]. Every
         variable parameter must be given as a keyword argument.
         """
         updated = {}

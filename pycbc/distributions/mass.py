@@ -16,16 +16,16 @@
 """This modules provides classes for evaluating distributions for mchirp and
 q (i.e., mass ratio) from uniform component mass.
 """
-import logging
-import numpy
 
-from scipy.interpolate import interp1d
+import logging
+
+import numpy
+from scipy.interpolate import CubicSpline, interp1d
 from scipy.special import hyp2f1
 
-from pycbc.distributions import power_law
-from pycbc.distributions import bounded
+from pycbc.distributions import bounded, power_law
 
-logger = logging.getLogger('pycbc.distributions.mass')
+logger = logging.getLogger("pycbc.distributions.mass")
 
 
 class MchirpfromUniformMass1Mass2(power_law.UniformPowerLaw):
@@ -136,15 +136,25 @@ class QfromUniformMass1Mass2(bounded.BoundedDist):
 
     """
 
-    name = 'q_from_uniform_mass1_mass2'
+    name = "q_from_uniform_mass1_mass2"
 
     def __init__(self, **params):
         super(QfromUniformMass1Mass2, self).__init__(**params)
         self._norm = 1.0
         self._lognorm = 0.0
+        self._cdfinv_tables = {}
         for p in self._params:
-            self._norm /= self._cdf_param(p, self._bounds[p][1]) - \
-                self._cdf_param(p, self._bounds[p][0])
+            self._norm /= self._cdf_param(p, self._bounds[p][1]) - self._cdf_param(
+                p, self._bounds[p][0]
+            )
+            q_array = numpy.linspace(
+                self._bounds[p][0], self._bounds[p][1], num=1000, endpoint=True
+            )
+            cdf_array = self._cdf_param(p, q_array)
+            coefficients = CubicSpline(
+                cdf_array, q_array, bc_type="not-a-knot", extrapolate=False
+            ).c
+            self._cdfinv_tables[p] = (cdf_array, q_array, coefficients)
         self._lognorm = numpy.log(self._norm)
 
     @property
@@ -164,12 +174,17 @@ class QfromUniformMass1Mass2(bounded.BoundedDist):
         """
         for p in self._params:
             if p not in kwargs.keys():
-                raise ValueError(
-                    'Missing parameter {} to construct pdf.'.format(p))
+                raise ValueError("Missing parameter {} to construct pdf.".format(p))
+        torch, _ = bounded._torch_module_and_reference(kwargs.values())
+        if torch is not None:
+            return torch.exp(self._logpdf(**kwargs))
         if kwargs in self:
-            pdf = self._norm * \
-                numpy.prod([(1.+kwargs[p])**(2./5)/kwargs[p]**(6./5)
-                            for p in self._params])
+            pdf = self._norm * numpy.prod(
+                [
+                    (1.0 + kwargs[p]) ** (2.0 / 5) / kwargs[p] ** (6.0 / 5)
+                    for p in self._params
+                ]
+            )
             return float(pdf)
         else:
             return 0.0
@@ -181,9 +196,23 @@ class QfromUniformMass1Mass2(bounded.BoundedDist):
         """
         for p in self._params:
             if p not in kwargs.keys():
-                raise ValueError(
-                    'Missing parameter {} to construct logpdf.'.format(p))
-        if kwargs in self:
+                raise ValueError("Missing parameter {} to construct logpdf.".format(p))
+        contained = self.__contains__(kwargs)
+        torch, reference = bounded._torch_module_and_reference(kwargs.values())
+        if torch is not None:
+            one = bounded._torch_as_tensor(1.0, reference)
+            log_pdf = bounded._torch_as_tensor(self._lognorm, reference)
+            for param in self._params:
+                value = kwargs[param]
+                if not isinstance(value, torch.Tensor):
+                    value = bounded._torch_as_tensor(value, reference)
+                safe_value = torch.where(contained, value, one)
+                log_pdf = log_pdf + (
+                    (2.0 / 5.0) * torch.log1p(safe_value)
+                    - (6.0 / 5.0) * torch.log(safe_value)
+                )
+            return bounded._torch_where(kwargs, contained, log_pdf, -numpy.inf)
+        if contained:
             return numpy.log(self._pdf(**kwargs))
         else:
             return -numpy.inf
@@ -199,31 +228,53 @@ class QfromUniformMass1Mass2(bounded.BoundedDist):
                            2  1 \   0.8     |        /
         """
         if param in self._params:
-            return -5. * value**(-1./5) * hyp2f1(-2./5, -1./5, 4./5, -value)
+            return (
+                -5.0 * value ** (-1.0 / 5) * hyp2f1(-2.0 / 5, -1.0 / 5, 4.0 / 5, -value)
+            )
         else:
-            raise ValueError('{} is not contructed yet.'.format(param))
+            raise ValueError("{} is not contructed yet.".format(param))
 
     def _cdfinv_param(self, param, value):
         """Return the inverse cdf to map the unit interval to parameter bounds.
         Note that value should be uniform in [0,1]."""
-        if (numpy.array(value) < 0).any() or (numpy.array(value) > 1).any():
-            raise ValueError(
-                'q_from_uniform_m1_m2 cdfinv requires input in [0,1].')
-        if param in self._params:
-            lower_bound = self._bounds[param][0]
-            upper_bound = self._bounds[param][1]
-            q_array = numpy.linspace(
-                lower_bound, upper_bound, num=1000, endpoint=True)
-            q_invcdf_interp = interp1d(self._cdf_param(param, q_array),
-                                       q_array, kind='cubic',
-                                       bounds_error=True)
+        if param not in self._params:
+            raise ValueError("{} is not contructed yet.".format(param))
+        torch, reference = bounded._torch_module_and_reference((value,))
+        cdf_array, q_array, coefficients = self._cdfinv_tables[param]
+        message = "q_from_uniform_m1_m2 cdfinv requires input in [0,1]."
+        if torch is not None:
+            if reference.is_complex():
+                raise TypeError(message)
+            if not reference.is_floating_point():
+                reference = reference.to(dtype=torch.get_default_dtype())
+            invalid = (reference < 0) | (reference > 1)
+            if bool(torch.any(invalid)):
+                raise ValueError(message)
+            knots = torch.as_tensor(
+                cdf_array, dtype=reference.dtype, device=reference.device
+            )
+            coeffs = torch.as_tensor(
+                coefficients,
+                dtype=reference.dtype,
+                device=reference.device,
+            )
+            target = (knots[-1] - knots[0]) * reference + knots[0]
+            target = torch.clamp(target, min=knots[0], max=knots[-1])
+            indices = torch.searchsorted(knots, target, right=True) - 1
+            indices = indices.clamp(0, knots.numel() - 2)
+            delta = target - knots[indices]
+            return (
+                (coeffs[0, indices] * delta + coeffs[1, indices]) * delta
+                + coeffs[2, indices]
+            ) * delta + coeffs[3, indices]
 
-            return q_invcdf_interp(
-                (self._cdf_param(param, upper_bound) -
-                 self._cdf_param(param, lower_bound)) * value +
-                self._cdf_param(param, lower_bound))
-        else:
-            raise ValueError('{} is not contructed yet.'.format(param))
+        value = numpy.asarray(value)
+        if (value < 0).any() or (value > 1).any():
+            raise ValueError(message)
+        target = (cdf_array[-1] - cdf_array[0]) * value + cdf_array[0]
+        target = numpy.clip(target, cdf_array[0], cdf_array[-1])
+        q_invcdf_interp = interp1d(cdf_array, q_array, kind="cubic", bounds_error=True)
+        return q_invcdf_interp(target)
 
     def rvs(self, size=1, param=None):
         """Gives a set of random values drawn from this distribution.
@@ -249,7 +300,7 @@ class QfromUniformMass1Mass2(bounded.BoundedDist):
         else:
             dtype = [(p, float) for p in self.params]
         arr = numpy.zeros(size, dtype=dtype)
-        for (p, _) in dtype:
+        for p, _ in dtype:
             uniformcdfvalue = numpy.random.uniform(0, 1, size=size)
             arr[p] = self._cdfinv_param(p, uniformcdfvalue)
         return arr
@@ -290,7 +341,8 @@ class QfromUniformMass1Mass2(bounded.BoundedDist):
         module.
         """
         return super(QfromUniformMass1Mass2, cls).from_config(
-            cp, section, variable_args, bounds_required=True)
+            cp, section, variable_args, bounds_required=True
+        )
 
 
 __all__ = ["MchirpfromUniformMass1Mass2", "QfromUniformMass1Mass2"]
