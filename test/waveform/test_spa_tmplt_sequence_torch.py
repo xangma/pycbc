@@ -129,7 +129,7 @@ def test_spa_sequence_matches_cpu_and_stays_on_device(
 def test_spa_sequence_full_native_path_avoids_lalsimulation(
     monkeypatch, torch_device
 ):
-    params = dict(CASES[1])
+    params = dict(CASES[1], phase_order=4)
     expected = _cpu_reference(monkeypatch, params)
 
     monkeypatch.delenv("PYCBC_SPATPLT_NATIVE")

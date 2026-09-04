@@ -783,6 +783,8 @@ def test_taylorf2_unsupported_amplitude_uses_lal_fallback(monkeypatch, preserve_
         ({"mode_array": [(2, 2)]}, False),
         ({"dalpha1": 0.1}, False),
         ({"lambda1": -1.0}, False),
+        ({"phase_order": 2.5}, False),
+        ({"tidal_order": 12.5}, False),
     ],
 )
 def test_taylorf2_native_support_boundary(params, expected):

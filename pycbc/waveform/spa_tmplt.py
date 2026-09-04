@@ -303,6 +303,14 @@ def spa_tmplt(**kwds):
                                         float(s1z), float(s2z),
                                         lal_pars)
 
+    # The synthesis kernels accept phase_order for API compatibility but do
+    # not apply it themselves.  Truncate the point-particle/spin coefficients
+    # for both native and LAL phasing sources before extracting their scalars.
+    if phase_order != -1:
+        phasing.v[phase_order + 1:8] = 0.0
+        phasing.vlogv[phase_order + 1:8] = 0.0
+        phasing.vlogvsq[phase_order + 1:8] = 0.0
+
     pfaN = phasing.v[0]
     pfa2 = phasing.v[2] / pfaN
     pfa3 = phasing.v[3] / pfaN

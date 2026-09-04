@@ -309,6 +309,7 @@ def test_taylorf2ecc_unsupported_options_use_lal(
         ({}, True),
         ({"eccentricity": 0.2}, True),
         ({"eccentricity_order": 6}, True),
+        ({"eccentricity_order": 3.5}, False),
         ({"eccentricity": -0.1}, False),
         ({"eccentricity": 1.0}, False),
         ({"eccentricity_order": 7}, False),

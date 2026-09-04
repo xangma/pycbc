@@ -533,9 +533,12 @@ _UNSUPPORTED_NON_GR_KEYS = (
 def _as_order(value):
     """Normalize the integer-valued LAL order flags without raising."""
     try:
-        return int(value)
+        numeric = float(value)
     except (TypeError, ValueError, OverflowError):
         return None
+    if not math.isfinite(numeric) or not numeric.is_integer():
+        return None
+    return int(numeric)
 
 
 def _is_nonzero(value):
