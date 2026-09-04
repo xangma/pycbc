@@ -4,6 +4,7 @@ import pytest
 from pycbc import scheme
 from pycbc.waveform import get_fd_waveform
 from pycbc.waveform import nltides
+from pycbc.waveform import nltides_torch
 
 
 _NLTIDE_PARAMS = dict(
@@ -88,6 +89,21 @@ def test_nltides_torch_phase_matches_numpy(dtype, monkeypatch):
     )
 
 
+def test_nltides_torch_phase_preserves_autograd():
+    torch = pytest.importorskip("torch")
+    frequencies = (
+        torch.arange(513, dtype=torch.float64) * 0.5
+    ).requires_grad_()
+
+    phase = nltides.nltides_fourier_phase_difference(
+        frequencies, 0.5, 50.0, 1.0e-10, 1.0, 1.4, 1.3
+    )
+    phase.sum().backward()
+
+    assert frequencies.grad is not None
+    assert torch.isfinite(frequencies.grad).all()
+
+
 @pytest.mark.parametrize("device", ("cpu", "cuda", "mps"))
 def test_taylorf2nl_correction_stays_on_torch_device(
     device, monkeypatch, preserve_scheme
@@ -129,7 +145,7 @@ def test_taylorf2nl_correction_stays_on_torch_device(
     )
 
     phase_inputs = []
-    phase_function = nltides.nltides_fourier_phase_difference
+    phase_function = nltides_torch.nltides_fourier_phase_difference
 
     def recording_phase(frequencies, *args):
         phase_inputs.append(frequencies)
@@ -141,7 +157,9 @@ def test_taylorf2nl_correction_stays_on_torch_device(
     with monkeypatch.context() as patch:
         patch.setattr(nltides, "numpy", _reject_numpy_backend())
         patch.setattr(
-            nltides, "nltides_fourier_phase_difference", recording_phase
+            nltides_torch,
+            "nltides_fourier_phase_difference",
+            recording_phase,
         )
         patch.setattr(TorchArrayData, "numpy", reject_host_transfer)
         actual = get_fd_waveform(
