@@ -51,6 +51,8 @@ jobs:
             selectors=(
               test/test_decompress.py
               test/test_array_torch_reductions.py
+              test/test_torch_backend_coercion.py
+              test/test_torch_context_conversion.py
               test/test_torch_batched_fft.py
               test/test_torch_p1200087_psd.py
               test/test_torch_timeseries_at_time.py
@@ -75,6 +77,7 @@ jobs:
               test/waveform/test_taylorf2redspin_torch.py
               test/waveform/test_taylorf2_batch.py
               test/test_torch_domain_compat.py
+              test/test_torch_domain_protocol.py
               test/test_torch_prior_compat.py
               test/test_detector_torch_geometry.py
               test/test_torch_inference_core.py

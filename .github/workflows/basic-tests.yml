@@ -77,6 +77,8 @@ jobs:
           test/test_torch_optional.py \
           test/test_array_torch_reductions.py \
           test/test_torch_backend_protocol.py \
+          test/test_torch_backend_coercion.py \
+          test/test_torch_context_conversion.py \
           test/test_torch_ops.py \
           test/test_torch_batched_fft.py \
           test/test_torch_p1200087_psd.py \
@@ -108,6 +110,7 @@ jobs:
           test/waveform/test_taylorf2redspin_torch.py \
           test/waveform/test_taylorf2_batch.py \
           test/test_torch_domain_compat.py \
+          test/test_torch_domain_protocol.py \
           test/test_torch_prior_compat.py \
           test/test_detector_torch_geometry.py \
           test/test_torch_inference_core.py \
