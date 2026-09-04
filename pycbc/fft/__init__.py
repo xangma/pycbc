@@ -15,11 +15,11 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 from .parser_support import (
-    export_wisdom_from_cli,
-    from_cli,
-    import_wisdom_from_cli,
-    insert_fft_option_group,
-    verify_fft_options,
+    export_wisdom_from_cli as export_wisdom_from_cli,
+    from_cli as from_cli,
+    import_wisdom_from_cli as import_wisdom_from_cli,
+    insert_fft_option_group as insert_fft_option_group,
+    verify_fft_options as verify_fft_options,
 )
 from .func_api import fft, ifft
 from .class_api import FFT, IFFT

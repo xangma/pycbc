@@ -1,13 +1,14 @@
 """Tests for the shared FFTW command-line wisdom helpers."""
 
 import argparse
+import ast
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 import pycbc.fft
-from pycbc.fft import parser_support
-from pycbc.fft import fftw
+from pycbc.fft import fftw, parser_support
 
 
 BACKEND_SHAPES = ([], ["fftw"], ["torch"])
@@ -34,6 +35,9 @@ class RecordingFFTW:
     def export_double_wisdom_to_filename(self, filename):
         self.calls.append(("export_double", filename))
 
+    def set_planning_limit(self, limit):
+        self.calls.append(("planning_limit", limit))
+
 
 class RecordingCache:
     """Automatic-cache stand-in used to check parser lifecycle wiring."""
@@ -51,6 +55,144 @@ class RecordingCache:
 
     def export_pending(self, fftw):
         self.calls.append(("export", fftw))
+
+
+@pytest.fixture(scope="module")
+def live_wisdom_code():
+    """Execute the real CLI lifecycle without starting MPI or data services."""
+    path = Path(__file__).resolve().parents[1] / "bin" / "pycbc_live"
+    tree = ast.parse(path.read_text(), filename=str(path))
+    startup = [
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Try)
+        and any(
+            isinstance(child, ast.Call)
+            and isinstance(child.func, ast.Attribute)
+            and child.func.attr == "set_planning_limit"
+            for child in ast.walk(node)
+        )
+    ]
+    shutdown = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.If)
+        and ast.unparse(node.test) == "evnt.rank == 1"
+    ]
+    assert len(startup) == len(shutdown) == 1
+    return tuple(
+        compile(ast.Module(body=nodes, type_ignores=[]), str(path), "exec")
+        for nodes in (startup, shutdown)
+    )
+
+
+@pytest.mark.parametrize("enabled", (False, True))
+def test_live_initializes_automatic_wisdom_cache(
+    monkeypatch, live_wisdom_code, enabled
+):
+    cache = RecordingCache()
+    loads = []
+    monkeypatch.setattr(parser_support, "_load_wisdom_cache", lambda: cache)
+    monkeypatch.setattr(
+        parser_support, "_load_fftw_for_wisdom", lambda: loads.append("fftw")
+    )
+    opt = SimpleNamespace(
+        fftw_wisdom_cache=enabled,
+        fftw_import_system_wisdom=False,
+        fftw_input_float_wisdom_file=None,
+        fftw_input_double_wisdom_file=None,
+        fftw_planning_limit=None,
+    )
+
+    exec(live_wisdom_code[0], {"args": opt, "fft": pycbc.fft})
+
+    assert cache.calls == [("configure", opt)]
+    assert loads == []
+
+
+@pytest.mark.parametrize("rank", (0, 1, 2))
+def test_live_preserves_manual_wisdom_order_and_export_rank(
+    monkeypatch, live_wisdom_code, rank
+):
+    cache = RecordingCache()
+    native = RecordingFFTW()
+    monkeypatch.setattr(parser_support, "_load_wisdom_cache", lambda: cache)
+    monkeypatch.setattr(parser_support, "_load_fftw_for_wisdom", lambda: native)
+    monkeypatch.setattr(pycbc.fft, "fftw", native)
+    opt = SimpleNamespace(
+        fftw_import_system_wisdom=True,
+        fftw_input_float_wisdom_file="input.float",
+        fftw_input_double_wisdom_file="input.double",
+        fftw_output_float_wisdom_file="output.float",
+        fftw_output_double_wisdom_file="output.double",
+        fftw_planning_limit=3,
+    )
+    namespace = {
+        "args": opt,
+        "fft": pycbc.fft,
+        "evnt": SimpleNamespace(rank=rank),
+    }
+
+    for block in live_wisdom_code:
+        exec(block, namespace)
+
+    expected = [
+        ("import_system",),
+        ("import_float", "input.float"),
+        ("import_double", "input.double"),
+        ("planning_limit", 3),
+    ]
+    if rank == 1:
+        expected += [
+            ("export_float", "output.float"),
+            ("export_double", "output.double"),
+        ]
+    assert native.calls == expected
+    assert cache.calls == [("configure", opt)] + (
+        [("pending",)] if rank == 1 else []
+    )
+
+
+@pytest.mark.parametrize("rank", (0, 1, 2))
+def test_live_exports_pending_automatic_wisdom(
+    monkeypatch, live_wisdom_code, rank
+):
+    cache = RecordingCache(pending=True)
+    native = RecordingFFTW()
+    monkeypatch.setattr(parser_support, "_load_wisdom_cache", lambda: cache)
+    monkeypatch.setattr(parser_support, "_load_fftw_for_wisdom", lambda: native)
+
+    exec(
+        live_wisdom_code[1],
+        {
+            "args": SimpleNamespace(),
+            "fft": pycbc.fft,
+            "evnt": SimpleNamespace(rank=rank),
+        },
+    )
+
+    assert cache.calls == (
+        [("pending",), ("export", native)] if rank == 1 else []
+    )
+    assert native.calls == []
+
+
+def test_export_wisdom_skips_empty_manual_filenames(monkeypatch):
+    cache = RecordingCache()
+    loads = []
+    monkeypatch.setattr(parser_support, "_load_wisdom_cache", lambda: cache)
+    monkeypatch.setattr(
+        parser_support, "_load_fftw_for_wisdom", lambda: loads.append("fftw")
+    )
+
+    parser_support.export_wisdom_from_cli(
+        SimpleNamespace(
+            fftw_output_float_wisdom_file="",
+            fftw_output_double_wisdom_file="",
+        )
+    )
+
+    assert loads == []
 
 
 @pytest.mark.parametrize("fft_backends", BACKEND_SHAPES)

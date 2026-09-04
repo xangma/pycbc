@@ -74,17 +74,13 @@ def export_wisdom_from_cli(opt):
 
     wisdom_cache = _load_wisdom_cache()
     automatic_wisdom = wisdom_cache.has_pending_export()
-    if (
-        float_wisdom is None
-        and double_wisdom is None
-        and not automatic_wisdom
-    ):
+    if not float_wisdom and not double_wisdom and not automatic_wisdom:
         return
 
     fftw = _load_fftw_for_wisdom()
-    if float_wisdom is not None:
+    if float_wisdom:
         fftw.export_single_wisdom_to_filename(float_wisdom)
-    if double_wisdom is not None:
+    if double_wisdom:
         fftw.export_double_wisdom_to_filename(double_wisdom)
     if automatic_wisdom:
         wisdom_cache.export_pending(fftw)
