@@ -77,4 +77,14 @@ or if you include it in a python package, :ref:`PyCBC can directly detect it! <w
 
 .. plot:: ../examples/waveform/add_waveform.py
    :include-source:
-   
+
+
+Torch-native waveform decompression
+===================================
+
+Under :class:`pycbc.scheme.TorchScheme`,
+:func:`pycbc.waveform.compress.fd_decompress` uses native Torch
+interpolation for the ``inline_linear``, ``inline_quadratic``,
+``inline_cubic``, and ``inline_quartic`` modes. Automatically
+allocated output follows the active Torch device and input precision.
+Interpolation modes provided by SciPy remain host-side.

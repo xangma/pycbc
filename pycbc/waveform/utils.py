@@ -22,36 +22,115 @@
 #
 # =============================================================================
 #
-"""This module contains convenience utilities for manipulating waveforms
-"""
+"""This module contains convenience utilities for manipulating waveforms"""
 
 from math import frexp
-import numpy
 
+import numpy
 from scipy import signal
 
+import pycbc.scheme as _scheme
+from pycbc.constants import PI
 from pycbc.scheme import schemed
 from pycbc.types import (
-    TimeSeries, FrequencySeries, Array,
-    complex_same_precision_as, real_same_precision_as
+    Array,
+    FrequencySeries,
+    TimeSeries,
+    complex_same_precision_as,
+    real_same_precision_as,
 )
-from pycbc.constants import PI
+from pycbc.types.backend import backend_array, wrap_backend_array
+
+
+def _torch_kaiser_window(data, length, beta):
+    """Return SciPy's periodic Kaiser window on ``data``'s device.
+
+    ``torch.kaiser_window`` is not implemented by the MPS backend.  The
+    analytic definition is small and keeps taper construction device-native
+    on every Torch backend supported by PyCBC.
+    """
+    import torch
+
+    dtype = data.real.dtype
+    if length <= 1:
+        return torch.ones(length, dtype=dtype, device=data.device)
+
+    position = torch.arange(length, dtype=dtype, device=data.device)
+    radius = 2 * position / length - 1
+    argument = float(beta) * torch.sqrt(torch.clamp(1 - radius * radius, min=0))
+    normalization = torch.i0(
+        torch.as_tensor(float(beta), dtype=dtype, device=data.device)
+    )
+    return torch.i0(argument) / normalization
+
+
+def scheme_cast_series(series):
+    """Move a waveform series to the active Torch device when necessary.
+
+    CPU/LAL waveform generators may be used as fallbacks by the Torch scheme.
+    This helper keeps that conversion in one place and avoids an intermediate
+    ``series.numpy()`` copy. Native Torch outputs already on the requested
+    device are returned unchanged.
+    """
+    if not isinstance(_scheme.mgr.state, _scheme.TorchScheme):
+        return series
+
+    import torch
+
+    target_device = _scheme.mgr.state.torch_device
+    data = series
+    copy = True
+    tensor = backend_array(series, "torch")
+    if tensor is not None:
+        same_device = tensor.device.type == target_device.type and (
+            target_device.index is None or tensor.device.index == target_device.index
+        )
+        needs_mps_cast = target_device.type == "mps" and tensor.dtype in (
+            torch.float64,
+            torch.complex128,
+        )
+        if same_device and not needs_mps_cast:
+            return series
+        target_dtype = tensor.dtype
+        if needs_mps_cast:
+            target_dtype = torch.complex64 if tensor.is_complex() else torch.float32
+        data = wrap_backend_array(tensor.to(device=target_device, dtype=target_dtype))
+        copy = False
+    elif target_device.type == "mps" and series.dtype in (
+        numpy.dtype(numpy.float64),
+        numpy.dtype(numpy.complex128),
+    ):
+        target_dtype = numpy.complex64 if series.kind == "complex" else numpy.float32
+        host_data = backend_array(series)
+        if hasattr(host_data, "get"):
+            host_data = host_data.get()
+        data = numpy.asarray(host_data, dtype=target_dtype)
+
+    if isinstance(series, TimeSeries):
+        return TimeSeries(
+            data, delta_t=series.delta_t, epoch=series.start_time, copy=copy
+        )
+    if isinstance(series, FrequencySeries):
+        return FrequencySeries(
+            data, delta_f=series.delta_f, epoch=series.epoch, copy=copy
+        )
+    raise TypeError("Expected a TimeSeries or FrequencySeries")
+
 
 def ceilpow2(n):
     """convenience function to determine a power-of-2 upper frequency limit"""
-    signif,exponent = frexp(n)
-    if (signif < 0):
-        return 1;
-    if (signif == 0.5):
-        exponent -= 1;
-    return (1) << exponent;
+    signif, exponent = frexp(n)
+    if signif < 0:
+        return 1
+    if signif == 0.5:
+        exponent -= 1
+    return (1) << exponent
 
 
-def coalign_waveforms(h1, h2, psd=None,
-                      low_frequency_cutoff=None,
-                      high_frequency_cutoff=None,
-                      resize=True):
-    """ Return two time series which are aligned in time and phase.
+def coalign_waveforms(
+    h1, h2, psd=None, low_frequency_cutoff=None, high_frequency_cutoff=None, resize=True
+):
+    """Return two time series which are aligned in time and phase.
 
     The alignment is only to the nearest sample point and all changes to the
     phase are made to the first input waveform. Waveforms should not be split
@@ -82,6 +161,7 @@ def coalign_waveforms(h1, h2, psd=None,
         The resized (if necessary) waveform to align with h1.
     """
     from pycbc.filter import matched_filter
+
     mlen = ceilpow2(max(len(h1), len(h2)))
 
     h1 = h1.copy()
@@ -91,20 +171,26 @@ def coalign_waveforms(h1, h2, psd=None,
         h1.resize(mlen)
         h2.resize(mlen)
     elif len(h1) != len(h2) or len(h2) % 2 != 0:
-        raise ValueError("Time series must be the same size and even if you do "
-                         "not allow resizing")
+        raise ValueError(
+            "Time series must be the same size and even if you do not allow resizing"
+        )
 
-    snr = matched_filter(h1, h2, psd=psd,
-                         low_frequency_cutoff=low_frequency_cutoff,
-                         high_frequency_cutoff=high_frequency_cutoff)
+    snr = matched_filter(
+        h1,
+        h2,
+        psd=psd,
+        low_frequency_cutoff=low_frequency_cutoff,
+        high_frequency_cutoff=high_frequency_cutoff,
+    )
 
-    _, l =  snr.abs_max_loc()
-    rotation =  snr[l] / abs(snr[l])
+    _, peak_index = snr.abs_max_loc()
+    rotation = snr[peak_index] / abs(snr[peak_index])
     h1 = (h1.to_frequencyseries() * rotation).to_timeseries()
-    h1.roll(l)
+    h1.roll(peak_index)
 
     h1 = TimeSeries(h1, delta_t=h2.delta_t, epoch=h2.start_time)
     return h1, h2
+
 
 def phase_from_frequencyseries(htilde, remove_start_phase=True):
     """Returns the phase from the given frequency-domain waveform. This assumes
@@ -123,12 +209,11 @@ def phase_from_frequencyseries(htilde, remove_start_phase=True):
     FrequencySeries
         The phase of the waveform as a function of frequency.
     """
-    p = numpy.unwrap(numpy.angle(htilde.data)).astype(
-            real_same_precision_as(htilde))
+    p = numpy.unwrap(numpy.angle(htilde.data)).astype(real_same_precision_as(htilde))
     if remove_start_phase:
         p += -p[0]
-    return FrequencySeries(p, delta_f=htilde.delta_f, epoch=htilde.epoch,
-        copy=False)
+    return FrequencySeries(p, delta_f=htilde.delta_f, epoch=htilde.epoch, copy=False)
+
 
 def amplitude_from_frequencyseries(htilde):
     """Returns the amplitude of the given frequency-domain waveform as a
@@ -145,11 +230,12 @@ def amplitude_from_frequencyseries(htilde):
         The amplitude of the waveform as a function of frequency.
     """
     amp = abs(htilde.data).astype(real_same_precision_as(htilde))
-    return FrequencySeries(amp, delta_f=htilde.delta_f, epoch=htilde.epoch,
-        copy=False)
+    return FrequencySeries(amp, delta_f=htilde.delta_f, epoch=htilde.epoch, copy=False)
 
-def time_from_frequencyseries(htilde, sample_frequencies=None,
-        discont_threshold=0.99*numpy.pi):
+
+def time_from_frequencyseries(
+    htilde, sample_frequencies=None, discont_threshold=0.99 * numpy.pi
+):
     """Computes time as a function of frequency from the given
     frequency-domain waveform. This assumes the stationary phase
     approximation. Any frequencies lower than the first non-zero value in
@@ -187,18 +273,22 @@ def time_from_frequencyseries(htilde, sample_frequencies=None,
         sample_frequencies = htilde.sample_frequencies.numpy()
     phase = phase_from_frequencyseries(htilde).data
     dphi = numpy.diff(phase)
-    time = -dphi / (2.*numpy.pi*numpy.diff(sample_frequencies))
+    time = -dphi / (2.0 * numpy.pi * numpy.diff(sample_frequencies))
     nzidx = numpy.nonzero(abs(htilde.data))[0]
     kmin, kmax = nzidx[0], nzidx[-2]
     # exclude everything after a discontinuity
     discont_idx = numpy.where(abs(dphi[kmin:]) >= discont_threshold)[0]
     if discont_idx.size != 0:
-        kmax = min(kmax, kmin + discont_idx[0]-1)
+        kmax = min(kmax, kmin + discont_idx[0] - 1)
     time[:kmin] = time[kmin]
     time[kmax:] = time[kmax]
-    return FrequencySeries(time.astype(real_same_precision_as(htilde)),
-        delta_f=htilde.delta_f, epoch=htilde.epoch,
-        copy=False)
+    return FrequencySeries(
+        time.astype(real_same_precision_as(htilde)),
+        delta_f=htilde.delta_f,
+        epoch=htilde.epoch,
+        copy=False,
+    )
+
 
 def phase_from_polarizations(h_plus, h_cross, remove_start_phase=True):
     """Return gravitational wave phase
@@ -230,11 +320,12 @@ def phase_from_polarizations(h_plus, h_cross, remove_start_phase=True):
 
     """
     p = numpy.unwrap(numpy.arctan2(h_cross.data, h_plus.data)).astype(
-        real_same_precision_as(h_plus))
+        real_same_precision_as(h_plus)
+    )
     if remove_start_phase:
         p += -p[0]
-    return TimeSeries(p, delta_t=h_plus.delta_t, epoch=h_plus.start_time,
-        copy=False)
+    return TimeSeries(p, delta_t=h_plus.delta_t, epoch=h_plus.start_time, copy=False)
+
 
 def amplitude_from_polarizations(h_plus, h_cross):
     """Return gravitational wave amplitude
@@ -266,6 +357,7 @@ def amplitude_from_polarizations(h_plus, h_cross):
     """
     amp = (h_plus.squared_norm() + h_cross.squared_norm()) ** (0.5)
     return TimeSeries(amp, delta_t=h_plus.delta_t, epoch=h_plus.start_time)
+
 
 def frequency_from_polarizations(h_plus, h_cross):
     """Return gravitational wave frequency
@@ -299,10 +391,13 @@ def frequency_from_polarizations(h_plus, h_cross):
 
     """
     phase = phase_from_polarizations(h_plus, h_cross)
-    freq = numpy.diff(phase) / ( 2 * PI * phase.delta_t )
+    freq = numpy.diff(phase) / (2 * PI * phase.delta_t)
     start_time = phase.start_time + phase.delta_t / 2
-    return TimeSeries(freq.astype(real_same_precision_as(h_plus)),
-        delta_t=phase.delta_t, epoch=start_time)
+    return TimeSeries(
+        freq.astype(real_same_precision_as(h_plus)),
+        delta_t=phase.delta_t,
+        epoch=start_time,
+    )
 
 
 @schemed("pycbc.waveform.utils_")
@@ -310,6 +405,7 @@ def apply_fseries_time_shift(htilde, dt, kmin=0, copy=True):
     """Shifts a frequency domain waveform in time. The waveform is assumed to
     be sampled at equal frequency intervals.
     """
+
 
 def apply_fd_time_shift(htilde, shifttime, kmin=0, fseries=None, copy=True):
     """Shifts a frequency domain waveform in time. The shift applied is
@@ -338,24 +434,27 @@ def apply_fd_time_shift(htilde, shifttime, kmin=0, fseries=None, copy=True):
         the same as htilde.
     """
     dt = float(shifttime - htilde.epoch)
-    if dt == 0.:
+    if dt == 0.0:
         # no shift to apply, just copy if desired
         if copy:
-            htilde = 1. * htilde
+            htilde = 1.0 * htilde
     elif isinstance(htilde, FrequencySeries):
         # FrequencySeries means equally sampled in frequency, use faster shifting
         htilde = apply_fseries_time_shift(htilde, dt, kmin=kmin, copy=copy)
     else:
         if fseries is None:
             fseries = htilde.sample_frequencies.numpy()
-        shift = Array(numpy.exp(-2j*numpy.pi*dt*fseries),
-                    dtype=complex_same_precision_as(htilde))
+        shift = Array(
+            numpy.exp(-2j * numpy.pi * dt * fseries),
+            dtype=complex_same_precision_as(htilde),
+        )
         if copy:
-            htilde = 1. * htilde
+            htilde = 1.0 * htilde
         htilde *= shift
     return htilde
 
-def td_taper(out, start, end, beta=8, side='left'):
+
+def td_taper(out, start, end, beta=8, side="left"):
     """Applies a taper to the given TimeSeries.
 
     A half-kaiser window is used for the roll-off.
@@ -385,22 +484,38 @@ def td_taper(out, start, end, beta=8, side='left'):
     out = out.copy()
     width = end - start
     winlen = 2 * int(width / out.delta_t)
-    window = Array(signal.get_window(('kaiser', beta), winlen))
     xmin = int((start - out.start_time) / out.delta_t)
-    xmax = xmin + winlen//2
-    if side == 'left':
-        out[xmin:xmax] *= window[:winlen//2]
+    xmax = xmin + winlen // 2
+    data = backend_array(out, "torch")
+    if data is not None:
+        window = _torch_kaiser_window(data, winlen, beta)
+        if side == "left":
+            data[xmin:xmax] *= window[: winlen // 2]
+            if xmin > 0:
+                data[:xmin].zero_()
+        elif side == "right":
+            data[xmin:xmax] *= window[winlen // 2 :]
+            if xmax < len(out):
+                data[xmax:].zero_()
+        else:
+            raise ValueError("unrecognized side argument {}".format(side))
+        return out
+
+    window = Array(signal.get_window(("kaiser", beta), winlen))
+    if side == "left":
+        out[xmin:xmax] *= window[: winlen // 2]
         if xmin > 0:
             out[:xmin].clear()
-    elif side == 'right':
-        out[xmin:xmax] *= window[winlen//2:]
+    elif side == "right":
+        out[xmin:xmax] *= window[winlen // 2 :]
         if xmax < len(out):
             out[xmax:].clear()
     else:
         raise ValueError("unrecognized side argument {}".format(side))
     return out
 
-def fd_taper(out, start, end, beta=8, side='left'):
+
+def fd_taper(out, start, end, beta=8, side="left"):
     """Applies a taper to the given FrequencySeries.
 
     A half-kaiser window is used for the roll-off.
@@ -429,22 +544,36 @@ def fd_taper(out, start, end, beta=8, side='left'):
     out = out.copy()
     width = end - start
     winlen = 2 * int(width / out.delta_f)
-    window = Array(signal.get_window(('kaiser', beta), winlen))
     kmin = int(start / out.delta_f)
-    kmax = kmin + winlen//2
-    if side == 'left':
-        out[kmin:kmax] *= window[:winlen//2]
-        out[:kmin] *= 0.
-    elif side == 'right':
-        out[kmin:kmax] *= window[winlen//2:]
-        out[kmax:] *= 0.
+    kmax = kmin + winlen // 2
+    data = backend_array(out, "torch")
+    if data is not None:
+        window = _torch_kaiser_window(data, winlen, beta)
+        if side == "left":
+            data[kmin:kmax] *= window[: winlen // 2]
+            data[:kmin].zero_()
+        elif side == "right":
+            data[kmin:kmax] *= window[winlen // 2 :]
+            data[kmax:].zero_()
+        else:
+            raise ValueError("unrecognized side argument {}".format(side))
+        return out
+
+    window = Array(signal.get_window(("kaiser", beta), winlen))
+    if side == "left":
+        out[kmin:kmax] *= window[: winlen // 2]
+        out[:kmin] *= 0.0
+    elif side == "right":
+        out[kmin:kmax] *= window[winlen // 2 :]
+        out[kmax:] *= 0.0
     else:
         raise ValueError("unrecognized side argument {}".format(side))
     return out
 
 
-def fd_to_td(htilde, delta_t=None, left_window=None, right_window=None,
-          left_beta=8, right_beta=8):
+def fd_to_td(
+    htilde, delta_t=None, left_window=None, right_window=None, left_beta=8, right_beta=8
+):
     """Converts a FD waveform to TD.
 
     A window can optionally be applied using ``fd_taper`` to the left or right
@@ -475,10 +604,10 @@ def fd_to_td(htilde, delta_t=None, left_window=None, right_window=None,
     """
     if left_window is not None:
         start, end = left_window
-        htilde = fd_taper(htilde, start, end, side='left', beta=left_beta)
+        htilde = fd_taper(htilde, start, end, side="left", beta=left_beta)
     if right_window is not None:
         start, end = right_window
-        htilde = fd_taper(htilde, start, end, side='right', beta=right_beta)
+        htilde = fd_taper(htilde, start, end, side="right", beta=right_beta)
     return htilde.to_timeseries(delta_t=delta_t)
 
 
@@ -507,12 +636,12 @@ def redshift_waveform(srch, z, tref=0):
     isfs = isinstance(srch, FrequencySeries)
     if isfs:
         redshifted = srch.to_timeseries()
-        redshifted *= 1+z
+        redshifted *= 1 + z
     else:
-        redshifted = (1+z) * srch
-    redshifted._delta_t *= 1+z
+        redshifted = (1 + z) * srch
+    redshifted._delta_t *= 1 + z
     # find the location of tref in the original time series
-    tindex = (tref - srch.start_time)/srch.delta_t
+    tindex = (tref - srch.start_time) / srch.delta_t
     # find what it's been stretched to and subtract that off from the start
     # time so as to keep the reference time in the same spot
     tnew = tindex * redshifted.delta_t + redshifted.start_time
