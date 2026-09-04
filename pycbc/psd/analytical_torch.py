@@ -6,9 +6,7 @@
 # option) any later version.
 """Torch kernels for analytical ground-detector PSD models."""
 
-import importlib.util
 import math
-import os
 
 import lal
 import numpy
@@ -753,7 +751,7 @@ def _aligo_thermal(frequencies):
 def _read_data_file_asd(psd_name):
     """Resolve and read one of LALSimulation's versioned ASD tables."""
     filename = _VERSIONED_DATA_FILES[psd_name]
-    path = _resolve_data_file(filename)
+    path = lal.FileResolvePath(filename)
     if path is None:
         raise RuntimeError(
             f"Unable to resolve LALSimulation PSD data file {filename}"
@@ -798,40 +796,6 @@ def _read_data_file_asd(psd_name):
         numpy.ascontiguousarray(table[:, 0]),
         numpy.ascontiguousarray(table[:, 1]),
     )
-
-
-def _resolve_data_file(filename):
-    """Resolve LAL data without making core LAL a Torch dependency.
-
-    The real resolver remains authoritative when LAL is installed.  Without
-    it, reproduce the useful public search surface: the current directory,
-    ``LAL_DATA_PATH`` entries, and data shipped in the ``lalapps`` wheel.
-    """
-    if hasattr(lal, "FileResolvePath"):
-        return lal.FileResolvePath(filename)
-
-    candidates = [filename]
-    candidates.extend(
-        os.path.join(directory, filename)
-        for directory in os.environ.get("LAL_DATA_PATH", "").split(
-            os.pathsep
-        )
-        if directory
-    )
-    try:
-        spec = importlib.util.find_spec("lalapps")
-    except (ImportError, ModuleNotFoundError, ValueError):
-        spec = None
-    if spec is not None and spec.submodule_search_locations is not None:
-        candidates.extend(
-            os.path.join(directory, "data", filename)
-            for directory in spec.submodule_search_locations
-        )
-
-    for candidate in candidates:
-        if os.path.isfile(candidate):
-            return candidate
-    return None
 
 
 def _data_file_psd(psd_name, length, delta_f, low_freq_cutoff, device):
