@@ -915,6 +915,46 @@ class TorchThresholdCluster(_BaseThresholdCluster):
             self._magnitude = None
             self._magnitude_component = None
 
+    def prepare_symmetric_cuda_graph(self, window):
+        """Allocate the fixed scratch used by CUDA-graph clustering."""
+        if not _TRITON_AVAILABLE or not self.series.is_cuda:
+            return False
+        sample_count = self.series.numel()
+        block_count = (sample_count + window - 1) // window
+        if self._triton_block_max is None or \
+                self._triton_scratch_nb != block_count:
+            self._triton_scratch_nb = block_count
+            self._triton_block_max = torch.empty(
+                block_count, device=self.series.device, dtype=torch.float32
+            )
+            self._triton_block_idx = torch.empty(
+                block_count, device=self.series.device, dtype=torch.int64
+            )
+            self._triton_keep = torch.empty(
+                block_count, device=self.series.device, dtype=torch.bool
+            )
+        return True
+
+    def symmetric_cuda_graph_step(self, window, threshold_squared):
+        """Record or run one symmetric clustering step using fixed scratch."""
+        _triton_symmetric_block_reduce(
+            self.series,
+            window,
+            out_max=self._triton_block_max,
+            out_idx=self._triton_block_idx,
+        )
+        _symmetric_cluster_mask(
+            self._triton_block_max,
+            threshold_squared,
+            out=self._triton_keep,
+        )
+
+    def symmetric_cuda_graph_result(self):
+        """Return the current CUDA-graph survivors as device-backed arrays."""
+        kept_idx = self._triton_block_idx[self._triton_keep]
+        kept_vals = self.series[kept_idx]
+        return _array_from_tensor(kept_vals), _array_from_tensor(kept_idx)
+
     def _can_use_native_cpu(self):
         """Whether the zero-copy CPU clustering fast path is safe."""
         return (

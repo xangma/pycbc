@@ -323,24 +323,14 @@ class MatchedFilterControl(object):
             and getattr(clusterer.series, "is_cuda", False)
         )
         if use_cuda_graph:
-            graph_key = (segnum, window)
-            if not hasattr(self, "_cuda_graphs"):
-                self._cuda_graphs = {}
-            if graph_key not in self._cuda_graphs:
-                self.capture_cuda_graph_symm(segnum, window, template_norm)
-
-            graph_entry = self._cuda_graphs.get(graph_key)
-            if graph_entry is not None:
-                g, g_thresh_sq = graph_entry
-                g_thresh_sq.fill_(float(thresh_val * thresh_val))
-                g.replay()
-                kept_idx = clusterer._triton_block_idx[clusterer._triton_keep]
-                if kept_idx.numel() == 0:
+            from .matchedfilter_torch import replay_symmetric_cuda_graph
+            graph_result = replay_symmetric_cuda_graph(
+                self, segnum, window, template_norm, thresh_val
+            )
+            if graph_result is not None:
+                snrv, idx = graph_result
+                if len(idx) == 0:
                     return [], [], [], [], []
-                kept_vals = clusterer.series[kept_idx]
-                from pycbc.events.threshold_torch import _array_from_tensor
-                idx = _array_from_tensor(kept_idx)
-                snrv = _array_from_tensor(kept_vals)
                 logger.info("%d points above threshold", len(idx))
                 snr = TimeSeries(self.snr_mem, epoch=epoch, delta_t=self.delta_t, copy=False)
                 corr = FrequencySeries(self.corr_mem, delta_f=self.delta_f, copy=False)
@@ -360,83 +350,15 @@ class MatchedFilterControl(object):
         return snr, norm, corr, idx, snrv
 
     def capture_cuda_graph_symm(self, segnum, window, template_norm=1.0):
-        """Pre-record a CUDA Graph for static correlation, IFFT, and Triton reduction."""
+        """Ask the Torch backend to pre-record symmetric filtering."""
         clusterer = self.threshold_and_clusterers[segnum]
-        if not (hasattr(clusterer, "series") and getattr(clusterer.series, "is_cuda", False)):
+        if not (hasattr(clusterer, "series") and
+                getattr(clusterer.series, "is_cuda", False)):
             return False
-        import torch
-        from pycbc.events.threshold_torch import (
-            _triton_symmetric_block_reduce,
-            _symmetric_cluster_mask,
-            _TRITON_AVAILABLE,
+        from .matchedfilter_torch import capture_symmetric_cuda_graph
+        return capture_symmetric_cuda_graph(
+            self, segnum, window, template_norm
         )
-        if not _TRITON_AVAILABLE:
-            return False
-
-        slen = clusterer.series.numel()
-        nb = (slen + window - 1) // window
-        if clusterer._triton_block_max is None or clusterer._triton_scratch_nb != nb:
-            clusterer._triton_scratch_nb = nb
-            clusterer._triton_block_max = torch.empty(
-                nb, device=clusterer.series.device, dtype=torch.float32
-            )
-            clusterer._triton_block_idx = torch.empty(
-                nb, device=clusterer.series.device, dtype=torch.int64
-            )
-            clusterer._triton_keep = torch.empty(
-                nb, device=clusterer.series.device, dtype=torch.bool
-            )
-
-        norm = (4.0 * self.delta_f) / sqrt(template_norm)
-        thresh_val = float(self.snr_threshold / norm)
-        g_thresh_sq = torch.tensor(
-            thresh_val * thresh_val,
-            device=clusterer.series.device,
-            dtype=torch.float32,
-        )
-
-        correlator = self.correlators[segnum]
-        ifft = self.ifft
-
-        s = torch.cuda.Stream()
-        s.wait_stream(torch.cuda.current_stream())
-        with torch.cuda.stream(s):
-            for _ in range(3):
-                correlator.correlate()
-                ifft.execute()
-                _triton_symmetric_block_reduce(
-                    clusterer.series,
-                    window,
-                    out_max=clusterer._triton_block_max,
-                    out_idx=clusterer._triton_block_idx,
-                )
-                _symmetric_cluster_mask(
-                    clusterer._triton_block_max,
-                    g_thresh_sq,
-                    out=clusterer._triton_keep,
-                )
-            g = torch.cuda.CUDAGraph()
-            with torch.cuda.graph(g):
-                correlator.correlate()
-                ifft.execute()
-                _triton_symmetric_block_reduce(
-                    clusterer.series,
-                    window,
-                    out_max=clusterer._triton_block_max,
-                    out_idx=clusterer._triton_block_idx,
-                )
-                _symmetric_cluster_mask(
-                    clusterer._triton_block_max,
-                    g_thresh_sq,
-                    out=clusterer._triton_keep,
-                )
-        torch.cuda.current_stream().wait_stream(s)
-
-        if not hasattr(self, "_cuda_graphs"):
-            self._cuda_graphs = {}
-        self._cuda_graphs[(segnum, window)] = (g, g_thresh_sq)
-        self._cuda_graph_enabled = True
-        return True
 
     def full_matched_filter_and_cluster_fc(self, segnum, template_norm, window, epoch=None):
         """ Returns the complex snr timeseries, normalization of the complex snr,

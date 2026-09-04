@@ -99,6 +99,79 @@ def test_cluster_over_time_raw_torch_nan_and_validation():
         )
 
 
+def test_coincidence_torch_backend_public_dispatch():
+    """Torch public APIs retain parity after moving to their backend module."""
+    time1 = np.array([0.0, 0.6, 1.2, 2.5], dtype=np.float64)
+    time2 = np.array([0.1, 0.8, 1.1, 3.0], dtype=np.float64)
+    expected = coinc.time_coincidence(time1, time2, 0.25)
+    actual = coinc.time_coincidence(
+        torch.as_tensor(time1), torch.as_tensor(time2), 0.25
+    )
+    for torch_value, numpy_value in zip(actual, expected):
+        assert isinstance(torch_value, torch.Tensor)
+        np.testing.assert_array_equal(torch_value.numpy(), numpy_value)
+
+    stat = np.array([2.0, 7.0, 4.0, 8.0], dtype=np.float64)
+    slide_ids = np.array([0, 0, 1, 1], dtype=np.int32)
+    expected = coinc.cluster_coincs(
+        stat, time1, time2, slide_ids, 1.0, 0.5
+    )
+    actual = coinc.cluster_coincs(
+        torch.as_tensor(stat),
+        torch.as_tensor(time1),
+        torch.as_tensor(time2),
+        torch.as_tensor(slide_ids),
+        1.0,
+        0.5,
+    )
+    assert isinstance(actual, torch.Tensor)
+    np.testing.assert_array_equal(actual.numpy(), expected)
+
+    detector_times = (
+        time1 + 10.0,
+        time2 + 10.0,
+        np.array([-1.0, 10.7, 11.0, 12.9], dtype=np.float64),
+    )
+    expected = coinc.cluster_coincs_multiifo(
+        stat, detector_times, slide_ids, 1.0, 0.5
+    )
+    actual = coinc.cluster_coincs_multiifo(
+        torch.as_tensor(stat),
+        tuple(torch.as_tensor(value) for value in detector_times),
+        torch.as_tensor(slide_ids),
+        1.0,
+        0.5,
+    )
+    assert isinstance(actual, torch.Tensor)
+    np.testing.assert_array_equal(actual.numpy(), expected)
+
+
+def test_cuda_graph_capture_delegates_to_torch_backend(monkeypatch):
+    """The generic control exposes only the backend delegation point."""
+    from pycbc.filter import matchedfilter_torch
+    from pycbc.filter.matchedfilter import MatchedFilterControl
+
+    marker = object()
+    calls = []
+
+    def capture(control, segnum, window, template_norm):
+        calls.append((control, segnum, window, template_norm))
+        return marker
+
+    monkeypatch.setattr(
+        matchedfilter_torch, "capture_symmetric_cuda_graph", capture
+    )
+    control = object.__new__(MatchedFilterControl)
+    control.threshold_and_clusterers = [
+        SimpleNamespace(series=SimpleNamespace(is_cuda=True))
+    ]
+
+    result = control.capture_cuda_graph_symm(0, 64, 2.0)
+
+    assert result is marker
+    assert calls == [(control, 0, 64, 2.0)]
+
+
 def test_correlators_write_multiplication_directly_to_output(monkeypatch):
     from pycbc.filter import matchedfilter_torch
 

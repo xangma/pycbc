@@ -20,6 +20,7 @@ Torch backend for matched filtering primitives.
 
 import ctypes
 import functools
+from math import sqrt
 import os
 import threading
 
@@ -94,6 +95,72 @@ _ASYNC_STREAMS_GATE = "PYCBC_TORCH_ASYNC_STREAMS"
 _TRUE_ENV_VALUES = {"1", "true", "yes", "on"}
 _FALSE_ENV_VALUES = {"0", "false", "no", "off"}
 _TORCH_IS_INFERENCE = getattr(torch, "is_inference", None)
+
+
+def capture_symmetric_cuda_graph(
+        control, segnum, window, template_norm=1.0):
+    """Capture correlation, IFFT, and symmetric clustering as one graph."""
+    clusterer = control.threshold_and_clusterers[segnum]
+    if not hasattr(clusterer, "prepare_symmetric_cuda_graph") or not \
+            clusterer.prepare_symmetric_cuda_graph(window):
+        return False
+
+    norm = (4.0 * control.delta_f) / sqrt(template_norm)
+    threshold = float(control.snr_threshold / norm)
+    graph_threshold_squared = torch.tensor(
+        threshold * threshold,
+        device=clusterer.series.device,
+        dtype=torch.float32,
+    )
+    correlator = control.correlators[segnum]
+    inverse_fft = control.ifft
+
+    stream = torch.cuda.Stream()
+    stream.wait_stream(torch.cuda.current_stream())
+    with torch.cuda.stream(stream):
+        for _ in range(3):
+            correlator.correlate()
+            inverse_fft.execute()
+            clusterer.symmetric_cuda_graph_step(
+                window, graph_threshold_squared
+            )
+        graph = torch.cuda.CUDAGraph()
+        with torch.cuda.graph(graph):
+            correlator.correlate()
+            inverse_fft.execute()
+            clusterer.symmetric_cuda_graph_step(
+                window, graph_threshold_squared
+            )
+    torch.cuda.current_stream().wait_stream(stream)
+
+    if not hasattr(control, "_cuda_graphs"):
+        control._cuda_graphs = {}
+    control._cuda_graphs[(segnum, window)] = (
+        graph, graph_threshold_squared
+    )
+    control._cuda_graph_enabled = True
+    return True
+
+
+def replay_symmetric_cuda_graph(
+        control, segnum, window, template_norm, threshold):
+    """Replay a captured graph and return values and indices, if supported."""
+    graph_key = (segnum, window)
+    if not hasattr(control, "_cuda_graphs"):
+        control._cuda_graphs = {}
+    if graph_key not in control._cuda_graphs:
+        capture_symmetric_cuda_graph(
+            control, segnum, window, template_norm
+        )
+
+    graph_entry = control._cuda_graphs.get(graph_key)
+    if graph_entry is None:
+        return None
+    graph, graph_threshold_squared = graph_entry
+    graph_threshold_squared.fill_(float(threshold * threshold))
+    graph.replay()
+    clusterer = control.threshold_and_clusterers[segnum]
+    return clusterer.symmetric_cuda_graph_result()
 
 
 def _torch_inference_mode_context():
