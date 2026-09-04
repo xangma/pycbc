@@ -760,6 +760,15 @@ class _CUDANativeBatchCorrelationState:
                 if y_tensor.numel() == self._size
                 else y_tensor[: self._size]
             )
+            if self._is_stacked_x:
+                # The source tensors may also be mutated through NumPy aliases,
+                # which do not advance Torch version counters.  Refresh copied
+                # storage unconditionally while retaining its allocation.
+                torch.stack(
+                    [t[: self._size] for t in self._x_tensors],
+                    dim=0,
+                    out=self._packed_x,
+                )
             torch.mul(
                 self._conj_packed_x,
                 y_sub,
@@ -1089,6 +1098,7 @@ def batch_correlate_execute(self, y):
                     z_stride = _find_uniform_stride(z_tensors, size)
                     epoch = getattr(self, "_epoch", 0)
                     cached_conj_x = getattr(self, "_cached_conj_packed_x", None)
+                    cached_packed_x = getattr(self, "_cached_packed_x", None)
                     cached_epoch = getattr(self, "_cached_conj_packed_x_epoch", -1)
 
                     current_ptrs = tuple(t.data_ptr() for t in x_tensors)
@@ -1098,6 +1108,7 @@ def batch_correlate_execute(self, y):
                         cached_conj_x is None
                         or cached_epoch != epoch
                         or cached_ptrs != current_ptrs
+                        or (x_stride is None and cached_packed_x is None)
                     ):
                         if x_stride is not None:
                             packed_x = x_tensors[0].as_strided(
@@ -1105,16 +1116,31 @@ def batch_correlate_execute(self, y):
                                 stride=(x_stride, 1),
                             )
                             cached_conj_x = torch.conj(packed_x)
+                            cached_packed_x = None
                         elif num_vectors <= 1024:
-                            stacked_x = torch.stack(
-                                [t[:size] for t in x_tensors], dim=0
-                            ).contiguous()
-                            cached_conj_x = torch.conj(stacked_x)
+                            cached_packed_x = torch.empty(
+                                (num_vectors, size),
+                                dtype=x_tensors[0].dtype,
+                                device=target_device,
+                            )
+                            cached_conj_x = torch.conj(cached_packed_x)
                         else:
                             cached_conj_x = None
+                            cached_packed_x = None
                         self._cached_conj_packed_x = cached_conj_x
+                        self._cached_packed_x = cached_packed_x
                         self._cached_conj_packed_x_epoch = epoch
                         self._cached_conj_packed_x_ptrs = current_ptrs
+
+                    if x_stride is None and cached_packed_x is not None:
+                        # Writes through Array.numpy() share CPU storage but do
+                        # not increment Tensor._version, so copied rows must be
+                        # refreshed on every execution.
+                        torch.stack(
+                            [t[:size] for t in x_tensors],
+                            dim=0,
+                            out=cached_packed_x,
+                        )
 
                     if cached_conj_x is not None and z_stride is not None:
                         packed_z = z_tensors[0].as_strided(

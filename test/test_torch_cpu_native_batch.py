@@ -1231,6 +1231,45 @@ def test_torch_batch_correlation_2d_packed_layout_default(monkeypatch):
             assert torch.equal(output._data.tensor, truth)
 
 
+def test_torch_batch_nonuniform_cache_tracks_in_place_mutation(monkeypatch):
+    from pycbc.filter import matchedfilter_torch
+
+    monkeypatch.delenv(CORRELATION_GATE, raising=False)
+    with scheme.TorchScheme("cpu"):
+        rows, size = 3, 64
+        x_values = _complex_values(rows, size, seed=8251)
+        x_mem = zeros(4 * size, dtype=np.complex64)
+        offsets = (0, size, 3 * size)
+        xs = []
+        for offset, values in zip(offsets, x_values):
+            x = x_mem[offset:offset + size]
+            x._data.tensor.copy_(torch.from_numpy(values))
+            xs.append(x)
+        y = Array(_complex_values(1, size, seed=8252)[0])
+        z_mem = zeros(rows * size, dtype=np.complex64)
+        zs = [z_mem[i * size:(i + 1) * size] for i in range(rows)]
+        batch = BatchCorrelator(xs, zs, size)
+        x_tensors = tuple(x._data.tensor for x in batch.xs)
+        assert matchedfilter_torch._find_uniform_stride(
+            x_tensors, batch.size
+        ) is None
+
+        batch.execute(y)
+        batch.xs[1]._data.tensor.mul_(2.0 - 0.5j)
+        expected = _torch_correlation(batch, y)
+        batch.execute(y)
+
+        for output, truth in zip(batch.zs, expected):
+            assert torch.equal(output._data.tensor, truth)
+
+        batch.xs[1].numpy()[:] *= -0.25 + 1.5j
+        expected = _torch_correlation(batch, y)
+        batch.execute(y)
+
+        for output, truth in zip(batch.zs, expected):
+            assert torch.equal(output._data.tensor, truth)
+
+
 def test_mkl_direct_ifft_plan_multithreaded_support(monkeypatch):
     from pycbc.fft import torchfft
 

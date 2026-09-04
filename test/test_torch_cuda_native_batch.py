@@ -161,6 +161,41 @@ def test_cuda_native_batch_correlation_is_zero_copy_exact_and_reusable(monkeypat
             assert output._data.tensor._version == versions[index] + 1
 
 
+def test_cuda_native_batch_correlation_refreshes_nonuniform_inputs(monkeypatch):
+    from pycbc.filter import matchedfilter_torch
+
+    _enable_native_correlation(monkeypatch)
+    rows, size = 3, 64
+    with scheme.TorchScheme("cuda"):
+        x_values = _complex_values(rows, size, seed=7141)
+        x_mem = zeros(4 * size, dtype=np.complex64)
+        offsets = (0, size, 3 * size)
+        xs = []
+        for offset, values in zip(offsets, x_values):
+            x = x_mem[offset:offset + size]
+            x._data.tensor.copy_(torch.from_numpy(values))
+            xs.append(x)
+        y = Array(_complex_values(1, size, seed=7142)[0])
+        z_mem = zeros(rows * size, dtype=np.complex64)
+        zs = [z_mem[i * size:(i + 1) * size] for i in range(rows)]
+        batch = BatchCorrelator(xs, zs, size)
+
+        assert matchedfilter_torch._find_uniform_stride(
+            tuple(x._data.tensor for x in xs), size
+        ) is None
+        batch.execute(y)
+        state = batch._torch_cuda_native_batch_state
+        assert state._is_stacked_x
+
+        batch.xs[1]._data.tensor.mul_(2 - 0.5j)
+        expected = _torch_correlation(batch, y)
+        batch.execute(y)
+
+        assert batch._torch_cuda_native_batch_state is state
+        for output, truth in zip(batch.zs, expected):
+            assert torch.equal(output._data.tensor, truth)
+
+
 @pytest.mark.parametrize(
     "drift",
     ("x_rebind", "z_rebind", "pid", "thread"),
