@@ -1463,6 +1463,38 @@ def test_search_public_storage_preserves_device_and_gradients(device, storage_ki
 
 
 @pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("storage_kind", ["protocol", "tensor"])
+def test_event_thresholds_accept_public_backend_storage(
+    device, storage_kind, monkeypatch,
+):
+    from pycbc.events import eventmgr
+
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA is unavailable")
+
+    def storage(values):
+        tensor = torch.tensor(values, dtype=torch.float32, device=device)
+        if storage_kind == "protocol":
+            return SimpleNamespace(backend="torch", backend_array=tensor)
+        return tensor
+
+    def reject_host_fallback(*args, **kwargs):
+        raise AssertionError("Torch threshold used the host input path")
+
+    monkeypatch.setattr(eventmgr, "threshold_real_numpy", reject_host_fallback)
+    with scheme.TorchScheme(device):
+        locations, values = eventmgr.threshold_real(
+            storage([0.0, 1.0, 3.0, -2.0, 5.0]), 2.0
+        )
+        np.testing.assert_array_equal(locations, [2, 4])
+        np.testing.assert_array_equal(values, [3.0, 5.0])
+        positions = eventmgr.findchirp_cluster_over_window(
+            storage([0.0, 1.0, 5.0]), storage([1.0, 3.0, 4.0]), 2
+        )
+        np.testing.assert_array_equal(positions, [1, 2])
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
 def test_strain_overwhitening_preserves_storage_contract(device, monkeypatch):
     from types import SimpleNamespace
     from pycbc.strain.strain import StrainBuffer

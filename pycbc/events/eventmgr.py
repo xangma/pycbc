@@ -33,6 +33,7 @@ import numpy
 import h5py
 
 from pycbc.types import Array
+from pycbc.types.backend import backend_array
 from pycbc.scheme import schemed
 from pycbc.detector import Detector
 
@@ -76,8 +77,7 @@ def threshold_real(series, value):
     downstream clustering consumes those sparse candidates on the CPU.  The
     full input series remains on its Torch device.
     """
-    arr = series.data
-    tensor = getattr(arr, "tensor", None)
+    tensor = backend_array(series, "torch")
     if tensor is None:
         return threshold_real_numpy(series, value)
 
@@ -151,18 +151,23 @@ class _BaseThresholdCluster(object):
 
 def _torch_tensor(value):
     """Return the tensor backing a Torch PyCBC object, if present."""
-    data = getattr(value, "_data", value)
-    return getattr(data, "tensor", None)
+    return backend_array(value, "torch")
 
 
 def _torch_cluster_positions(times, values, window_length):
     """Return device survivor positions when either input is Torch-backed."""
-    if _torch_tensor(times) is None and _torch_tensor(values) is None:
+    time_tensor = _torch_tensor(times)
+    value_tensor = _torch_tensor(values)
+    if time_tensor is None and value_tensor is None:
         return None
 
     from .threshold_torch import _findchirp_cluster_positions
 
-    return _findchirp_cluster_positions(times, values, window_length)
+    return _findchirp_cluster_positions(
+        times if time_tensor is None else time_tensor,
+        values if value_tensor is None else value_tensor,
+        window_length,
+    )
 
 
 def findchirp_cluster_over_window(times, values, window_length):
@@ -242,10 +247,11 @@ def cluster_reduce(idx, snr, window_size):
 
 def threshold_and_cluster_findchirp(series, value, window):
     """Threshold and FindChirp-cluster, retaining Torch candidates on-device."""
-    if _torch_tensor(series) is not None:
+    tensor = _torch_tensor(series)
+    if tensor is not None:
         from .threshold_torch import threshold_and_cluster_findchirp as impl
 
-        return impl(series, value, window)
+        return impl(tensor, value, window)
 
     idx, snr = threshold(series, value)
     return cluster_reduce(idx, snr, window)
@@ -253,12 +259,13 @@ def threshold_and_cluster_findchirp(series, value, window):
 
 def threshold_real_and_cluster_findchirp(series, value, window):
     """Real-valued counterpart of :func:`threshold_and_cluster_findchirp`."""
-    if _torch_tensor(series) is not None:
+    tensor = _torch_tensor(series)
+    if tensor is not None:
         from .threshold_torch import (
             threshold_real_and_cluster_findchirp as impl,
         )
 
-        return impl(series, value, window)
+        return impl(tensor, value, window)
 
     idx, snr = threshold_real(series, value)
     return cluster_reduce(idx, snr, window)

@@ -8,6 +8,7 @@ import numpy
 
 import pycbc.scheme as _scheme
 import pycbc.types
+from pycbc.types.backend import wrap_backend_array
 
 
 @functools.lru_cache(maxsize=128)
@@ -120,9 +121,6 @@ def fd_sine_gaussian(amp, quality, central_frequency, fmin, fmax, delta_f):
         )
         v[kmin:high_freq_second_idx] *= (1 + exponential(exp_term_2))
 
-    if using_torch:
-        from pycbc.types.array_torch import TorchArrayData
-
-        v = TorchArrayData(v)
-
-    return pycbc.types.FrequencySeries(v, delta_f=delta_f, copy=False)
+    return pycbc.types.FrequencySeries(
+        wrap_backend_array(v), delta_f=delta_f, copy=False
+    )
