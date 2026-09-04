@@ -74,6 +74,7 @@ jobs:
         export LAL_DATA_PATH=$HOME/lal_aux_data
         pixi run -e unittest test-unittest -q \
           test/test_scheme_runtime.py \
+          test/test_fft_cli_wisdom.py \
           test/test_torch_optional.py \
           test/test_array_torch_reductions.py \
           test/test_torch_backend_protocol.py \
@@ -84,6 +85,7 @@ jobs:
           test/test_torch_p1200087_psd.py \
           test/test_torch_timeseries_at_time.py \
           test/test_torch_versioned_data_psd.py \
+          test/test_torch_psd_protocol.py \
           test/test_cpu_batch_peaks.py \
           test/test_torch_cpu_native_batch.py \
           test/test_torch_search_kernels.py \
