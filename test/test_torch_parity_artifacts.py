@@ -46,6 +46,19 @@ def test_extreme_magnitudes_do_not_hide_relative_error(magnitude):
     assert result["metrics"]["relative_l2"] == pytest.approx(2.0)
 
 
+@pytest.mark.parametrize("sign", (1, -1))
+def test_finite_complex_components_with_overflowing_magnitude(sign):
+    reference = np.array([complex(1.5e308, 1.5e308)])
+    with np.errstate(over="ignore", invalid="ignore"):
+        result = compare._compare_record(
+            "extreme_complex", reference, sign * reference, {}, {}, SETTINGS,
+        )
+    assert result["passed"] == (sign == 1)
+    assert result["metrics"]["relative_l2"] == pytest.approx(1 - sign)
+    if sign == -1:
+        assert "nonfinite computed error metric" in result["failures"]
+
+
 def test_empty_corpus_fails_cli(tmp_path, monkeypatch):
     for label in ("reference", "candidate"):
         (tmp_path / f"{label}.json").write_text(json.dumps({

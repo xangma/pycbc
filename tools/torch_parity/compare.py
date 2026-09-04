@@ -56,11 +56,22 @@ def _relative_l2(reference, candidate, finite):
     cand = candidate[finite].astype(np.complex128, copy=False)
     # Scale before subtraction and squaring so very small strain amplitudes
     # cannot underflow into a false zero error (nor large values overflow).
-    magnitude = max(float(np.max(np.abs(ref))), float(np.max(np.abs(cand))))
+    # A finite complex value can have an unrepresentable absolute magnitude.
+    # Scale its real/imaginary components before taking any complex norms.
+    magnitude = max(
+        float(np.max(np.abs(component)))
+        for component in (ref.real, ref.imag, cand.real, cand.imag)
+    )
+    if not np.isfinite(magnitude):
+        return float("inf")
     if magnitude == 0.0:
         return 0.0
-    error = float(np.linalg.norm(cand / magnitude - ref / magnitude))
-    scale = float(np.linalg.norm(ref / magnitude))
+    ref_scaled = ref.real / magnitude + 1j * (ref.imag / magnitude)
+    cand_scaled = cand.real / magnitude + 1j * (cand.imag / magnitude)
+    error = float(np.linalg.norm(cand_scaled - ref_scaled))
+    scale = float(np.linalg.norm(ref_scaled))
+    if not np.isfinite(error) or not np.isfinite(scale):
+        return float("inf")
     if scale == 0.0:
         return 0.0 if error == 0.0 else float("inf")
     return error / scale
@@ -113,6 +124,9 @@ def _compare_record(name, reference, candidate, ref_meta, cand_meta, settings):
         relative_l2 = _relative_l2(reference, candidate, finite)
     else:
         max_abs = max_rel = relative_l2 = 0.0
+
+    if not all(np.isfinite(value) for value in (max_abs, max_rel, relative_l2)):
+        failures.append("nonfinite computed error metric")
 
     l2_limit = float(settings["relative_l2"])
     if not np.isfinite(relative_l2) or relative_l2 > l2_limit:
