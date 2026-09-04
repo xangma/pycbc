@@ -125,7 +125,7 @@ def test_log_and_custom_transforms_preserve_tensors_and_gradients():
     assert all(bool(torch.isfinite(value.grad).all()) for value in (x, p, q))
 
 
-def test_custom_transform_keeps_documented_numpy_fallback():
+def test_custom_transform_keeps_documented_numpy_fallback(torch_device):
     custom = transforms.CustomTransform(
         ["value"], ["output"], {"output": "host_only(value, 'square')"}
     )
@@ -134,6 +134,12 @@ def test_custom_transform_keeps_documented_numpy_fallback():
     )
 
     value = torch.tensor(2.0)
+    if torch_device.type == "cuda":
+        # Unsupported expressions use the host FieldArray fallback, which
+        # cannot convert CUDA tensors to NumPy implicitly.
+        with pytest.raises(TypeError, match="convert.*tensor to numpy"):
+            custom.transform({"value": value})
+        return
     output = custom.transform({"value": value})
 
     assert output["value"] is value
