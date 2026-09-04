@@ -12,6 +12,8 @@ from types import SimpleNamespace
 
 import pytest
 
+pytest.importorskip("torch")
+
 from pycbc.waveform import torch_waveform_registry as registry
 
 
