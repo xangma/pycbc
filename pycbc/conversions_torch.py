@@ -4,7 +4,7 @@ import operator
 
 import torch
 
-from pycbc.types.backend import backend_array, is_backend
+from pycbc.types.backend import coerce_torch_values
 
 
 _qnm_spline_cache = {}
@@ -12,26 +12,9 @@ _qnm_spline_cache = {}
 
 def broadcast_values(*values):
     """Broadcast conversion inputs on the device of their first tensor."""
-    converted_values = tuple(
-        backend_array(value, "torch")
-        if is_backend(value, "torch") else value
-        for value in values
-    )
-    tensors = [value for value in converted_values
-               if isinstance(value, torch.Tensor)]
-    if not tensors:
+    module, converted = coerce_torch_values(*values)
+    if module is None:
         return None, values
-
-    reference = tensors[0]
-    dtype = reference.dtype
-    if not (dtype.is_floating_point or dtype.is_complex):
-        dtype = torch.get_default_dtype()
-    converted = tuple(
-        value.to(device=reference.device, dtype=dtype)
-        if isinstance(value, torch.Tensor)
-        else torch.as_tensor(value, device=reference.device, dtype=dtype)
-        for value in converted_values
-    )
     return torch, torch.broadcast_tensors(*converted)
 
 
