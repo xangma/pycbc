@@ -116,7 +116,8 @@ def parse_args_all_schemes(feature_str):
     _parser = OptionParser()
     _parser.add_option('--scheme','-s', action='callback', type = 'choice',
                        choices = ('cpu','cuda','torch'),
-                       default = scheme_name, dest = 'scheme', callback = _check_scheme_all,
+                       default=scheme_name, dest='scheme',
+                       callback=_check_scheme_all,
                        help = 'specifies processing scheme, can be cpu [default], cuda, torch')
     _parser.add_option('--device-num','-d', action='store', type = 'int',
                        dest = 'devicenum', default=0,

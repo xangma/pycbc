@@ -40,7 +40,8 @@ def test_pycbc_defaults_mkl_threading_without_overriding_user(explicit):
             "-c",
             (
                 "import os; import pycbc; "
-                f"assert os.environ['MKL_THREADING_LAYER'] == {explicit or 'GNU'!r}"
+                "assert os.environ['MKL_THREADING_LAYER'] == "
+                f"{explicit or 'GNU'!r}"
             ),
         ],
         check=True,
@@ -49,7 +50,8 @@ def test_pycbc_defaults_mkl_threading_without_overriding_user(explicit):
 
 
 @pytest.mark.parametrize("explicit", (None, "INTEL", "SEQUENTIAL", "GNU"))
-def test_cpu_scheme_preserves_mkl_threading_configuration(monkeypatch, explicit):
+def test_cpu_scheme_preserves_mkl_threading_configuration(
+        monkeypatch, explicit):
     monkeypatch.delenv("MKL_THREADING_LAYER", raising=False)
     if explicit is not None:
         monkeypatch.setenv("MKL_THREADING_LAYER", explicit)

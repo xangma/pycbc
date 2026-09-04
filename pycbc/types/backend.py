@@ -85,8 +85,8 @@ def coerce_torch_values(*values):
     and floating dtypes are retained. Tensor conversions preserve autograd.
     Shapes are unchanged: callers choose their own broadcasting policy.
 
-    Return ``(None, values)`` unchanged when there are no tensor inputs, without
-    importing Torch. Otherwise return ``(torch, converted_values)``.
+    Return ``(None, values)`` unchanged when there are no tensor inputs,
+    without importing Torch. Otherwise return ``(torch, converted_values)``.
     """
     storage = tuple(backend_array(value, "torch")
                     if is_backend(value, "torch") else value

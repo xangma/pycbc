@@ -813,7 +813,9 @@ def _to_device(array):
     device = _torch_device()
     torch_dtype = _ensure_supported(device, _torch_dtype(array.dtype))
     if isinstance(array, TorchArrayData):
-        return TorchArrayData(array.tensor.to(device=device, dtype=torch_dtype))
+        return TorchArrayData(
+            array.tensor.to(device=device, dtype=torch_dtype)
+        )
     tensor = torch.tensor(np.ascontiguousarray(array), device=device, dtype=torch_dtype)
     return TorchArrayData(tensor)
 

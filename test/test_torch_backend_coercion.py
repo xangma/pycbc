@@ -99,7 +99,9 @@ def test_type_cache_and_unhashable_metaclass():
     classify.cache_clear()
     assert backend.torch_module_for(torch.tensor(1)) is torch
     before = classify.cache_info()
-    assert backend.torch_module_for(torch.tensor(1., requires_grad=True)) is torch
+    assert backend.torch_module_for(
+        torch.tensor(1., requires_grad=True)
+    ) is torch
     assert classify.cache_info().hits == before.hits + 1
 
     class UnhashableType(type):
