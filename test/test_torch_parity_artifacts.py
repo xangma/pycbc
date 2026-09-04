@@ -106,7 +106,8 @@ def test_capture_accepts_actual_mps_tensor(requested):
 
 
 @pytest.mark.parametrize("requested", ("cuda:1", "cuda"))
-def test_capture_checks_cuda_index_without_cuda_hardware(monkeypatch, requested):
+def test_capture_checks_cuda_index_without_cuda_hardware(
+        monkeypatch, requested):
     torch = pytest.importorskip("torch")
     monkeypatch.setattr(torch.cuda, "current_device", lambda: 1)
     tensor = SimpleNamespace(device=torch.device("cuda:0"))
