@@ -494,8 +494,9 @@ def inverse_spectrum_truncation(psd, max_filter_len, which_spectrum='invasd',
 
     if use_torch:
         psd_out = 1. / torch.abs(backend_array(psd_trunc, "torch"))
-        return FrequencySeries(wrap_backend_array(psd_out), delta_f=psd.delta_f,
-                               epoch=psd.epoch, copy=False)
+        return FrequencySeries(
+            wrap_backend_array(psd_out), delta_f=psd.delta_f,
+            epoch=psd.epoch, copy=False)
     psd_out = 1. / abs(psd_trunc)
 
     return psd_out

@@ -177,7 +177,8 @@ def _torch_interpolate_positions(series, positions):
     fraction = safe_positions - lower.to(safe_positions.dtype)
     interpolated = values[lower] + (values[upper] - values[lower]) * fraction
     output[valid] = interpolated[valid]
-    return Array(wrap_backend_array(output.reshape(original_shape)), copy=False)
+    return Array(wrap_backend_array(output.reshape(original_shape)),
+                 copy=False)
 
 
 def create_full_filt(freqs, filt, plong, srate, psd_duration):
