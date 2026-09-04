@@ -14,7 +14,23 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-from .parser_support import insert_fft_option_group, verify_fft_options, from_cli
-from .func_api import fft, ifft
-from .class_api import FFT, IFFT
 from .backend_support import get_backend_names
+from .class_api import FFT as FFT
+from .class_api import IFFT as IFFT
+from .func_api import fft as fft
+from .func_api import ifft as ifft
+from .parser_support import (
+    export_wisdom_from_cli as export_wisdom_from_cli,
+)
+from .parser_support import (
+    from_cli as from_cli,
+)
+from .parser_support import (
+    import_wisdom_from_cli as import_wisdom_from_cli,
+)
+from .parser_support import (
+    insert_fft_option_group as insert_fft_option_group,
+)
+from .parser_support import (
+    verify_fft_options as verify_fft_options,
+)

@@ -64,6 +64,8 @@ once.
 """
 
 import pycbc
+import os
+import sys
 import optparse
 from sys import exit as _exit
 from optparse import OptionParser
@@ -75,20 +77,52 @@ from pycbc.types import Array
 def _check_scheme_all(option, opt_str, scheme, parser):
     if scheme=='cuda' and not pycbc.HAVE_CUDA:
         raise optparse.OptionValueError("CUDA not found")
+    if scheme=='torch' and not getattr(pycbc, 'HAVE_TORCH', False):
+        raise optparse.OptionValueError("Torch not found")
 
     setattr (parser.values, option.dest, scheme)
 
 
+def _filter_scheme_args(argv):
+    valid_args = []
+    it = iter(argv)
+    for arg in it:
+        if arg in ('--scheme', '-s', '--device-num', '-d'):
+            valid_args.append(arg)
+            try:
+                valid_args.append(next(it))
+            except StopIteration:
+                pass
+        elif arg.startswith('--scheme=') or arg.startswith('--device-num='):
+            valid_args.append(arg)
+    return valid_args
+
+
 def parse_args_all_schemes(feature_str):
+    # The environment selects only tests which opt into scheme dispatch.
+    # CPU-only tests intentionally keep their existing CPU configuration.
+    arguments = _filter_scheme_args(sys.argv[1:])
+    explicit_scheme = any(
+        arg in ('--scheme', '-s') or arg.startswith('--scheme=')
+        for arg in arguments
+    )
+    requested = ('cpu' if explicit_scheme else
+                 os.environ.get('PYCBC_TEST_SCHEME', 'cpu'))
+    scheme_name, separator, device = requested.partition(':')
+    if scheme_name not in ('cpu', 'cuda', 'torch') or (
+        separator and (scheme_name != 'torch' or not device)
+    ):
+        raise ValueError(f'Invalid PYCBC_TEST_SCHEME: {requested!r}')
     _parser = OptionParser()
     _parser.add_option('--scheme','-s', action='callback', type = 'choice',
-                       choices = ('cpu','cuda'),
-                       default = 'cpu', dest = 'scheme', callback = _check_scheme_all,
-                       help = 'specifies processing scheme, can be cpu [default], cuda')
+                       choices = ('cpu','cuda','torch'),
+                       default=scheme_name, dest='scheme',
+                       callback=_check_scheme_all,
+                       help = 'specifies processing scheme, can be cpu [default], cuda, torch')
     _parser.add_option('--device-num','-d', action='store', type = 'int',
                        dest = 'devicenum', default=0,
                        help = 'specifies a GPU device to use for CUDA, 0 by default')
-    (_opt_list, _args) = _parser.parse_args()
+    (_opt_list, _args) = _parser.parse_args(args=arguments)
 
     # Changing the optvalues to a dict makes them easier to read
     _options = vars(_opt_list)
@@ -97,10 +131,13 @@ def parse_args_all_schemes(feature_str):
 
     if _scheme == 'cpu':
         _context = CPUScheme()
-    if _scheme == 'cuda':
+    elif _scheme == 'cuda':
         _context = CUDAScheme(device_num=_options['devicenum'])
+    elif _scheme == 'torch':
+        from pycbc.scheme import TorchScheme
+        _context = TorchScheme(device=device or 'cpu')
 
-    _scheme_dict = { 'cpu': 'CPU', 'cuda': 'CUDA'}
+    _scheme_dict = { 'cpu': 'CPU', 'cuda': 'CUDA', 'torch': 'Torch'}
 
     print(72*'=')
     print("Running {0} unit tests for {1}:".format(_scheme_dict[_scheme],feature_str))
@@ -123,7 +160,7 @@ def parse_args_cpu_only(feature_str):
     _parser.add_option('--device-num','-d', action='store', type = 'int',
                        dest = 'devicenum', default=0,
                        help = 'specifies a GPU device to use for CUDA, 0 by default')
-    (_opt_list, _args) = _parser.parse_args()
+    (_opt_list, _args) = _parser.parse_args(args=_filter_scheme_args(sys.argv[1:]))
 
     # In this case, the only reason we parsed the arguments was to exit if we were given
     # a GPU scheme.  So if we get here we're on the CPU, and should print out our message

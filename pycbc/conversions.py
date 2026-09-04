@@ -29,23 +29,18 @@ one parameter given a set of inputs.
 """
 
 import copy
-import numpy
 import logging
+import operator
 
+import numpy
 
-from pycbc.detector import Detector
-import pycbc.cosmology
-from pycbc import neutron_stars as ns
-from pycbc.constants import YRJUL_SI, MSUN_SI, MTSUN_SI, C_SI, G_SI, PI
+from pycbc import libutils
+from pycbc.constants import C_SI, G_SI, MSUN_SI, MTSUN_SI, PI, YRJUL_SI
 
-from .coordinates import (
-    spherical_to_cartesian as _spherical_to_cartesian,
-    cartesian_to_spherical as _cartesian_to_spherical)
+pykerr = libutils.import_optional("pykerr")
+lalsim = libutils.import_optional("lalsimulation")
 
-pykerr = pycbc.libutils.import_optional('pykerr')
-lalsim = pycbc.libutils.import_optional('lalsimulation')
-
-logger = logging.getLogger('pycbc.conversions')
+logger = logging.getLogger("pycbc.conversions")
 
 #
 # =============================================================================
@@ -54,11 +49,32 @@ logger = logging.getLogger('pycbc.conversions')
 #
 # =============================================================================
 #
-def ensurearray(*args):
-    """Apply numpy's broadcast rules to the given arguments.
 
-    This will ensure that all of the arguments are numpy arrays and that they
-    all have the same shape. See ``numpy.broadcast_arrays`` for more details.
+
+def _torch_values(*values):
+    """Dispatch tensor broadcasting to the optional Torch backend."""
+    from pycbc.types.backend import is_backend
+
+    if not any(is_backend(value, "torch") for value in values):
+        return None, values
+
+    from pycbc.conversions_torch import broadcast_values
+
+    return broadcast_values(*values)
+
+
+def _torch_qnm_spline(torch, spin, ell, m, n, reim):
+    """Dispatch QNM interpolation to the Torch conversion backend."""
+    from pycbc.conversions_torch import qnm_spline
+
+    return qnm_spline(pykerr, spin, ell, m, n, reim)
+
+
+def ensurearray(*args):
+    """Apply array broadcast rules to the given arguments.
+
+    NumPy inputs use ``numpy.broadcast_arrays``. If any argument is a Torch
+    tensor, all arguments are broadcast as tensors on that tensor's device.
 
     It also returns a boolean indicating whether any of the inputs were
     originally arrays.
@@ -72,10 +88,16 @@ def ensurearray(*args):
     -------
     list :
         A list with length ``N+1`` where ``N`` is the number of given
-        arguments. The first N values are the input arguments as ``ndarrays``s.
-        The last value is a boolean indicating whether any of the
-        inputs was an array.
+        arguments. The first N values are the broadcast inputs. The last value
+        is a boolean indicating whether any input was an array or tensor.
     """
+    torch, values = _torch_values(*args)
+    if torch is not None:
+        input_is_array = any(
+            isinstance(arg, (numpy.ndarray, torch.Tensor)) for arg in args
+        )
+        return (*values, input_is_array)
+
     input_is_array = any(isinstance(arg, numpy.ndarray) for arg in args)
     args = list(numpy.broadcast_arrays(*args))
     args.append(input_is_array)
@@ -83,11 +105,13 @@ def ensurearray(*args):
 
 
 def formatreturn(arg, input_is_array=False):
-    """If the given argument is a numpy array with shape (1,), just returns
-    that value."""
-    if not input_is_array and arg.size == 1:
+    """Return a scalar for a scalar input and preserve array-like results."""
+    torch, _ = _torch_values(arg)
+    size = arg.numel() if torch is not None else arg.size
+    if not input_is_array and size == 1:
         arg = arg.item()
     return arg
+
 
 #
 # =============================================================================
@@ -97,8 +121,9 @@ def formatreturn(arg, input_is_array=False):
 # =============================================================================
 #
 
+
 def sec_to_year(sec):
-    """ Converts number of seconds to number of years """
+    """Converts number of seconds to number of years"""
     return sec / YRJUL_SI
 
 
@@ -129,20 +154,56 @@ def hypertriangle(*params, bounds=(0, 1)):
     array
         The mapped parameters. Output values are in ascending order.
     """
+    from pycbc.types.backend import is_backend
+
+    has_torch = any(is_backend(param, "torch") for param in params)
+    if has_torch:
+        shapes = [
+            tuple(param.shape) if hasattr(param, "shape") else numpy.shape(param)
+            for param in params
+        ]
+        assert all(shape == shapes[0] for shape in shapes), (
+            "All inputs must have the same number of elements"
+        )
+
+    torch, values = _torch_values(*params)
+    if torch is not None:
+        stacked = torch.stack(values)
+        lower = torch.as_tensor(bounds[0], device=stacked.device, dtype=stacked.dtype)
+        upper = torch.as_tensor(bounds[1], device=stacked.device, dtype=stacked.dtype)
+        assert bool(torch.all((stacked >= lower) & (stacked <= upper))), (
+            "Input parameters lie outside of given bounds"
+        )
+
+        scaled_params = (stacked - lower) / (upper - lower)
+        num_params = len(params)
+        idx = torch.arange(num_params, device=stacked.device, dtype=stacked.dtype)
+        exponent = 1 / (num_params - idx)
+        exponent = exponent.reshape((num_params,) + (1,) * (stacked.ndim - 1))
+        out_scaled_params = 1 - torch.cumprod(
+            torch.pow(1 - scaled_params, exponent), dim=0
+        )
+        out_params = out_scaled_params * (upper - lower) + lower
+        if stacked.ndim == 1:
+            return list(out_params.unbind())
+        return out_params
+
     # check inputs all have the same shape
     ref_shape = numpy.shape(params[0])
-    assert numpy.all([numpy.shape(params[i]) == ref_shape for i in range(len(params))]), \
-        "All inputs must have the same number of elements"
+    assert numpy.all(
+        [numpy.shape(params[i]) == ref_shape for i in range(len(params))]
+    ), "All inputs must have the same number of elements"
 
     # map to numpy array
     params, input_is_array = ensurearray(params)
 
     # check all values lie within bounds
-    assert numpy.all(params >= bounds[0]) and numpy.all(params <= bounds[1]), \
+    assert numpy.all(params >= bounds[0]) and numpy.all(params <= bounds[1]), (
         "Input parameters lie outside of given bounds"
+    )
 
     # rescale the parameters to the unit hypercube
-    scaled_params = (params - bounds[0])/(bounds[1] - bounds[0])
+    scaled_params = (params - bounds[0]) / (bounds[1] - bounds[0])
 
     # hypertriangulate
     try:
@@ -153,7 +214,7 @@ def hypertriangle(*params, bounds=(0, 1)):
     idx = numpy.repeat(numpy.arange(K), repeats=num_pts)
     scaled_params.resize(K, num_pts)
     idx.resize(K, num_pts)
-    fac = numpy.power(1 - scaled_params, 1/(K - idx))
+    fac = numpy.power(1 - scaled_params, 1 / (K - idx))
     out_scaled_params = 1 - numpy.cumprod(fac, axis=0)
 
     # rescale to prior bounds
@@ -161,6 +222,7 @@ def hypertriangle(*params, bounds=(0, 1)):
     if num_pts == 1:
         out_params = [out_params[i][0] for i in range(K)]
     return out_params
+
 
 #
 # =============================================================================
@@ -171,6 +233,10 @@ def hypertriangle(*params, bounds=(0, 1)):
 #
 def primary_mass(mass1, mass2):
     """Returns the larger of mass1 and mass2 (p = primary)."""
+    torch, values = _torch_values(mass1, mass2)
+    if torch is not None:
+        return torch.maximum(*values)
+
     mass1, mass2, input_is_array = ensurearray(mass1, mass2)
     if mass1.shape != mass2.shape:
         raise ValueError("mass1 and mass2 must have same shape")
@@ -182,6 +248,10 @@ def primary_mass(mass1, mass2):
 
 def secondary_mass(mass1, mass2):
     """Returns the smaller of mass1 and mass2 (s = secondary)."""
+    torch, values = _torch_values(mass1, mass2)
+    if torch is not None:
+        return torch.minimum(*values)
+
     mass1, mass2, input_is_array = ensurearray(mass1, mass2)
     if mass1.shape != mass2.shape:
         raise ValueError("mass1 and mass2 must have same shape")
@@ -208,15 +278,17 @@ def invq_from_mass1_mass2(mass1, mass2):
 
 def eta_from_mass1_mass2(mass1, mass2):
     """Returns the symmetric mass ratio from mass1 and mass2."""
-    return mass1*mass2 / (mass1 + mass2)**2.
+    return mass1 * mass2 / (mass1 + mass2) ** 2.0
 
 
 def mchirp_from_mass1_mass2(mass1, mass2):
     """Returns the chirp mass from mass1 and mass2."""
-    return eta_from_mass1_mass2(mass1, mass2)**(3./5) * (mass1 + mass2)
+    return eta_from_mass1_mass2(mass1, mass2) ** (3.0 / 5) * (mass1 + mass2)
 
 
-def eccmchirp_from_mass1_mass2_eccentricity(mass1, mass2, eccentricity, method='spa_phase'):
+def eccmchirp_from_mass1_mass2_eccentricity(
+    mass1, mass2, eccentricity, method="spa_phase"
+):
     """Returns the effective eccentric chirp mass from mass1, mass2 and eccentricity
 
     Parameters
@@ -237,7 +309,9 @@ def eccmchirp_from_mass1_mass2_eccentricity(mass1, mass2, eccentricity, method='
     if method not in allowed_methods:
         raise ValueError("method must be one of {}".format(allowed_methods))
     mchirp = mchirp_from_mass1_mass2(mass1, mass2)
-    mchirp_eccentric = eccmchirp_from_mchirp_eccentricity(mchirp, eccentricity, method=method)
+    mchirp_eccentric = eccmchirp_from_mchirp_eccentricity(
+        mchirp, eccentricity, method=method
+    )
     return mchirp_eccentric
 
 
@@ -248,7 +322,7 @@ def mass1_from_mtotal_q(mtotal, q):
     (heavier) mass. If q < 1, the returned mass will be the secondary
     (lighter) mass.
     """
-    return q*mtotal / (1. + q)
+    return q * mtotal / (1.0 + q)
 
 
 def mass2_from_mtotal_q(mtotal, q):
@@ -258,39 +332,36 @@ def mass2_from_mtotal_q(mtotal, q):
     (lighter) mass. If q < 1, the returned mass will be the primary (heavier)
     mass.
     """
-    return mtotal / (1. + q)
+    return mtotal / (1.0 + q)
 
 
 def mass1_from_mtotal_eta(mtotal, eta):
     """Returns the primary mass from the total mass and symmetric mass
     ratio.
     """
-    return 0.5 * mtotal * (1.0 + (1.0 - 4.0 * eta)**0.5)
+    return 0.5 * mtotal * (1.0 + (1.0 - 4.0 * eta) ** 0.5)
 
 
 def mass2_from_mtotal_eta(mtotal, eta):
     """Returns the secondary mass from the total mass and symmetric mass
     ratio.
     """
-    return 0.5 * mtotal * (1.0 - (1.0 - 4.0 * eta)**0.5)
+    return 0.5 * mtotal * (1.0 - (1.0 - 4.0 * eta) ** 0.5)
 
 
 def mtotal_from_mchirp_eta(mchirp, eta):
-    """Returns the total mass from the chirp mass and symmetric mass ratio.
-    """
-    return mchirp / eta**(3./5.)
+    """Returns the total mass from the chirp mass and symmetric mass ratio."""
+    return mchirp / eta ** (3.0 / 5.0)
 
 
 def mass1_from_mchirp_eta(mchirp, eta):
-    """Returns the primary mass from the chirp mass and symmetric mass ratio.
-    """
+    """Returns the primary mass from the chirp mass and symmetric mass ratio."""
     mtotal = mtotal_from_mchirp_eta(mchirp, eta)
     return mass1_from_mtotal_eta(mtotal, eta)
 
 
 def mass2_from_mchirp_eta(mchirp, eta):
-    """Returns the primary mass from the chirp mass and symmetric mass ratio.
-    """
+    """Returns the primary mass from the chirp mass and symmetric mass ratio."""
     mtotal = mtotal_from_mchirp_eta(mchirp, eta)
     return mass2_from_mtotal_eta(mtotal, eta)
 
@@ -317,11 +388,85 @@ def _mass2_from_mchirp_mass1(mchirp, mass1):
     real_root = roots[(abs(roots - roots.real)).argmin()]
     return real_root.real
 
-mass2_from_mchirp_mass1 = numpy.vectorize(_mass2_from_mchirp_mass1)
+
+_mass2_from_mchirp_mass1_numpy = numpy.vectorize(_mass2_from_mchirp_mass1)
 
 
-def _mass_from_knownmass_eta(known_mass, eta, known_is_secondary=False,
-                            force_real=True):
+def _torch_real_cuberoot(torch, value):
+    """Dispatch real cube-root evaluation to the Torch backend."""
+    from pycbc.conversions_torch import real_cuberoot
+
+    return real_cuberoot(value)
+
+
+def mass2_from_mchirp_mass1(mchirp, mass1):
+    r"""Return the secondary mass from chirp mass and primary mass.
+
+    Tensor inputs use a device-resident analytic solution of the cubic. The
+    solution is refined in the logarithm of the dimensionless mass ratio to
+    avoid cancellation for very unequal masses. Non-Tensor inputs retain the
+    historical vectorized :func:`numpy.roots` implementation.
+    """
+    torch, values = _torch_values(mchirp, mass1)
+    if torch is None:
+        return _mass2_from_mchirp_mass1_numpy(mchirp, mass1)
+
+    mchirp, mass1 = values
+    if mchirp.dtype.is_complex or mass1.dtype.is_complex:
+        raise TypeError("component masses and chirp mass must be real")
+    if bool(torch.any(mchirp < 0)) or bool(torch.any(mass1 <= 0)):
+        raise ValueError("chirp mass must be nonnegative and mass1 positive")
+
+    zero_chirp = mchirp == 0
+    safe_chirp = torch.where(zero_chirp, torch.ones_like(mchirp), mchirp)
+    chirp_ratio = safe_chirp / mass1
+    cubic_scale = chirp_ratio.pow(5)
+    half_scale = cubic_scale / 2
+    discriminant = half_scale.square() - (cubic_scale / 3).pow(3)
+
+    three_real_roots = discriminant < 0
+    cardano_discriminant = torch.where(
+        three_real_roots, torch.ones_like(discriminant), discriminant
+    )
+    cardano_half_scale = torch.where(
+        three_real_roots, torch.ones_like(half_scale), half_scale
+    )
+    sqrt_discriminant = torch.sqrt(cardano_discriminant)
+    cardano = _torch_real_cuberoot(
+        torch, cardano_half_scale + sqrt_discriminant
+    ) + _torch_real_cuberoot(torch, cardano_half_scale - sqrt_discriminant)
+
+    trigonometric_scale = torch.where(
+        three_real_roots, cubic_scale, torch.ones_like(cubic_scale)
+    )
+    cosine_argument = torch.where(
+        three_real_roots,
+        torch.clamp(1.5 * torch.sqrt(3 / trigonometric_scale), -1, 1),
+        torch.zeros_like(trigonometric_scale),
+    )
+    trigonometric = (
+        2
+        * torch.sqrt(trigonometric_scale / 3)
+        * torch.cos(torch.acos(cosine_argument) / 3)
+    )
+    mass_ratio = torch.where(three_real_roots, trigonometric, cardano)
+
+    # One Newton step in log(q) removes the cancellation error in Cardano's
+    # formula for q << 1 while remaining well scaled for q >> 1.
+    log_ratio = torch.log(mass_ratio)
+    residual = (
+        3 * log_ratio
+        - torch.logaddexp(torch.zeros_like(log_ratio), log_ratio)
+        - 5 * torch.log(chirp_ratio)
+    )
+    log_ratio = log_ratio - residual / (3 - torch.sigmoid(log_ratio))
+    result = mass1 * torch.exp(log_ratio)
+    return torch.where(zero_chirp, torch.zeros_like(result), result)
+
+
+def _mass_from_knownmass_eta(
+    known_mass, eta, known_is_secondary=False, force_real=True
+):
     r"""Returns the other component mass given one of the component masses
     and the symmetric mass ratio.
 
@@ -354,7 +499,7 @@ def _mass_from_knownmass_eta(known_mass, eta, known_is_secondary=False,
     float
         The other component mass.
     """
-    roots = numpy.roots([eta, (2*eta - 1) * known_mass, eta * known_mass**2.])
+    roots = numpy.roots([eta, (2 * eta - 1) * known_mass, eta * known_mass**2.0])
     if force_real:
         roots = numpy.real(roots)
     if known_is_secondary:
@@ -362,23 +507,89 @@ def _mass_from_knownmass_eta(known_mass, eta, known_is_secondary=False,
     else:
         return roots[roots.argmin()]
 
-mass_from_knownmass_eta = numpy.vectorize(_mass_from_knownmass_eta)
+
+_mass_from_knownmass_eta_numpy = numpy.vectorize(_mass_from_knownmass_eta)
+
+
+def mass_from_knownmass_eta(known_mass, eta, known_is_secondary=False, force_real=True):
+    r"""Return the other component mass from one mass and ``eta``.
+
+    Tensor inputs use the analytic quadratic roots on their existing device.
+    Non-Tensor inputs retain the historical vectorized :func:`numpy.roots`
+    behavior.
+    """
+    torch, values = _torch_values(known_mass, eta)
+    if torch is None:
+        return _mass_from_knownmass_eta_numpy(
+            known_mass,
+            eta,
+            known_is_secondary=known_is_secondary,
+            force_real=force_real,
+        )
+
+    known_mass, eta = values
+    if known_mass.dtype.is_complex or eta.dtype.is_complex:
+        raise TypeError("component masses and eta must be real")
+
+    zero_eta = eta == 0
+    safe_eta = torch.where(zero_eta, torch.ones_like(eta), eta)
+    discriminant = 1 - 4 * safe_eta
+
+    if force_real:
+        real_roots = discriminant >= 0
+        sqrt_discriminant = torch.sqrt(
+            torch.where(real_roots, discriminant, torch.ones_like(discriminant))
+        )
+        numerator = 1 - 2 * safe_eta + sqrt_discriminant
+        root_a = known_mass * numerator / (2 * safe_eta)
+        root_b = known_mass * (2 * safe_eta) / numerator
+        repeated_root = known_mass * (1 - 2 * safe_eta) / (2 * safe_eta)
+        root_a = torch.where(real_roots, root_a, repeated_root)
+        root_b = torch.where(real_roots, root_b, repeated_root)
+    else:
+        complex_dtype = (
+            torch.complex64
+            if known_mass.dtype in (torch.float16, torch.bfloat16, torch.float32)
+            else torch.complex128
+        )
+        complex_mass = known_mass.to(dtype=complex_dtype)
+        complex_eta = safe_eta.to(dtype=complex_dtype)
+        sqrt_discriminant = torch.sqrt(1 - 4 * complex_eta)
+        root_a = (
+            complex_mass * (1 - 2 * complex_eta + sqrt_discriminant) / (2 * complex_eta)
+        )
+        root_b = (
+            complex_mass * (1 - 2 * complex_eta - sqrt_discriminant) / (2 * complex_eta)
+        )
+
+    root_a_is_larger = (
+        (root_a.real > root_b.real)
+        | ((root_a.real == root_b.real) & (root_a.imag > root_b.imag))
+        if root_a.dtype.is_complex
+        else root_a > root_b
+    )
+    larger = torch.where(root_a_is_larger, root_a, root_b)
+    smaller = torch.where(root_a_is_larger, root_b, root_a)
+    result = larger if known_is_secondary else smaller
+    return torch.where(zero_eta, torch.zeros_like(result), result)
 
 
 def mass2_from_mass1_eta(mass1, eta, force_real=True):
     """Returns the secondary mass from the primary mass and symmetric mass
     ratio.
     """
-    return mass_from_knownmass_eta(mass1, eta, known_is_secondary=False,
-                                   force_real=force_real)
+    return mass_from_knownmass_eta(
+        mass1, eta, known_is_secondary=False, force_real=force_real
+    )
 
 
 def mass1_from_mass2_eta(mass2, eta, force_real=True):
     """Returns the primary mass from the secondary mass and symmetric mass
     ratio.
     """
-    return mass_from_knownmass_eta(mass2, eta, known_is_secondary=True,
-                                   force_real=force_real)
+    return mass_from_knownmass_eta(
+        mass2, eta, known_is_secondary=True, force_real=force_real
+    )
 
 
 def eta_from_q(q):
@@ -391,31 +602,31 @@ def eta_from_q(q):
 
     Note that the mass ratio may be either < 1 or > 1.
     """
-    return q / (1. + q)**2
+    return q / (1.0 + q) ** 2
 
 
 def mass1_from_mchirp_q(mchirp, q):
     """Returns the primary mass from the given chirp mass and mass ratio."""
-    mass1 = q**(2./5.) * (1.0 + q)**(1./5.) * mchirp
+    mass1 = q ** (2.0 / 5.0) * (1.0 + q) ** (1.0 / 5.0) * mchirp
     return mass1
 
 
 def mass2_from_mchirp_q(mchirp, q):
     """Returns the secondary mass from the given chirp mass and mass ratio."""
-    mass2 = q**(-3./5.) * (1.0 + q)**(1./5.) * mchirp
+    mass2 = q ** (-3.0 / 5.0) * (1.0 + q) ** (1.0 / 5.0) * mchirp
     return mass2
 
 
 def _a0(f_lower):
     """Used in calculating chirp times: see Cokelaer, arxiv.org:0706.4437
-       appendix 1, also lalinspiral/python/sbank/tau0tau3.py.
+    appendix 1, also lalinspiral/python/sbank/tau0tau3.py.
     """
-    return 5. / (256. * (numpy.pi * f_lower)**(8./3.))
+    return 5.0 / (256.0 * (numpy.pi * f_lower) ** (8.0 / 3.0))
 
 
 def _a3(f_lower):
     """Another parameter used for chirp times"""
-    return numpy.pi / (8. * (numpy.pi * f_lower)**(5./3.))
+    return numpy.pi / (8.0 * (numpy.pi * f_lower) ** (5.0 / 3.0))
 
 
 def tau0_from_mtotal_eta(mtotal, eta, f_lower):
@@ -425,16 +636,15 @@ def tau0_from_mtotal_eta(mtotal, eta, f_lower):
     # convert to seconds
     mtotal = mtotal * MTSUN_SI
     # formulae from arxiv.org:0706.4437
-    return _a0(f_lower) / (mtotal**(5./3.) * eta)
+    return _a0(f_lower) / (mtotal ** (5.0 / 3.0) * eta)
 
 
 def tau0_from_mchirp(mchirp, f_lower):
-    r"""Returns :math:`\tau_0` from the chirp mass and the given frequency.
-    """
+    r"""Returns :math:`\tau_0` from the chirp mass and the given frequency."""
     # convert to seconds
     mchirp = mchirp * MTSUN_SI
     # formulae from arxiv.org:0706.4437
-    return _a0(f_lower) / mchirp ** (5./3.)
+    return _a0(f_lower) / mchirp ** (5.0 / 3.0)
 
 
 def tau3_from_mtotal_eta(mtotal, eta, f_lower):
@@ -444,35 +654,31 @@ def tau3_from_mtotal_eta(mtotal, eta, f_lower):
     # convert to seconds
     mtotal = mtotal * MTSUN_SI
     # formulae from arxiv.org:0706.4437
-    return _a3(f_lower) / (mtotal**(2./3.) * eta)
+    return _a3(f_lower) / (mtotal ** (2.0 / 3.0) * eta)
 
 
 def tau0_from_mass1_mass2(mass1, mass2, f_lower):
-    r"""Returns :math:`\tau_0` from the component masses and given frequency.
-    """
+    r"""Returns :math:`\tau_0` from the component masses and given frequency."""
     mtotal = mass1 + mass2
     eta = eta_from_mass1_mass2(mass1, mass2)
     return tau0_from_mtotal_eta(mtotal, eta, f_lower)
 
 
 def tau3_from_mass1_mass2(mass1, mass2, f_lower):
-    r"""Returns :math:`\tau_3` from the component masses and given frequency.
-    """
+    r"""Returns :math:`\tau_3` from the component masses and given frequency."""
     mtotal = mass1 + mass2
     eta = eta_from_mass1_mass2(mass1, mass2)
     return tau3_from_mtotal_eta(mtotal, eta, f_lower)
 
 
 def mchirp_from_tau0(tau0, f_lower):
-    r"""Returns chirp mass from :math:`\tau_0` and the given frequency.
-    """
-    mchirp = (_a0(f_lower) / tau0) ** (3./5.)  # in seconds
+    r"""Returns chirp mass from :math:`\tau_0` and the given frequency."""
+    mchirp = (_a0(f_lower) / tau0) ** (3.0 / 5.0)  # in seconds
     # convert back to solar mass units
     return mchirp / MTSUN_SI
 
 
-def mtotal_from_tau0_tau3(tau0, tau3, f_lower,
-                          in_seconds=False):
+def mtotal_from_tau0_tau3(tau0, tau3, f_lower, in_seconds=False):
     r"""Returns total mass from :math:`\tau_0, \tau_3`."""
     mtotal = (tau3 / _a3(f_lower)) / (tau0 / _a0(f_lower))
     if not in_seconds:
@@ -483,9 +689,8 @@ def mtotal_from_tau0_tau3(tau0, tau3, f_lower,
 
 def eta_from_tau0_tau3(tau0, tau3, f_lower):
     r"""Returns symmetric mass ratio from :math:`\tau_0, \tau_3`."""
-    mtotal = mtotal_from_tau0_tau3(tau0, tau3, f_lower,
-                                   in_seconds=True)
-    eta = mtotal**(-2./3.) * (_a3(f_lower) / tau3)
+    mtotal = mtotal_from_tau0_tau3(tau0, tau3, f_lower, in_seconds=True)
+    eta = mtotal ** (-2.0 / 3.0) * (_a3(f_lower) / tau3)
     return eta
 
 
@@ -542,7 +747,7 @@ def eccmchirp_from_mchirp_eccentricity(mchirp, eccentricity, method="spa_phase")
     e2 = eccentricity * eccentricity
 
     if method == "spa_phase":
-        Emchirp =  mchirp / (1.0 - 157.0 / 24.0 * e2)**(3.0 / 5.0)
+        Emchirp = mchirp / (1.0 - 157.0 / 24.0 * e2) ** (3.0 / 5.0)
 
     elif method == "fit":
         # Constants from Table 1 of https://arxiv.org/abs/2107.14736
@@ -564,16 +769,17 @@ def eccmchirp_from_mchirp_eccentricity(mchirp, eccentricity, method="spa_phase")
         # Calculate coefficients (Eq 9)
         alpha = xi * mchirp + delta
 
-        beta = mchirp2 * ( Xi_beta  +
-                           mchirp2 * ( Delta_beta  +
-                           mchirp2 * ( kappa_beta  +
-                           mchirp2 * zeta_beta )))
-        gamma = mchirp2 * ( Xi_gamma +
-                            mchirp2 * ( Delta_gamma +
-                            mchirp2 * ( kappa_gamma  +
-                            mchirp2 * zeta_gamma )))
+        beta = mchirp2 * (
+            Xi_beta
+            + mchirp2 * (Delta_beta + mchirp2 * (kappa_beta + mchirp2 * zeta_beta))
+        )
+        gamma = mchirp2 * (
+            Xi_gamma
+            + mchirp2 * (Delta_gamma + mchirp2 * (kappa_gamma + mchirp2 * zeta_gamma))
+        )
         Emchirp = mchirp * (1 + e2 * (alpha + e2 * (beta + e2 * gamma)))
     return formatreturn(Emchirp, input_is_array)
+
 
 def mchirp_from_eccmchirp_eccentricity(eccmchirp, eccentricity, method="spa_phase"):
     """Return the chirp mass from the effective eccentric chirp mass and eccentricity.
@@ -612,7 +818,7 @@ def mchirp_from_eccmchirp_eccentricity(eccmchirp, eccentricity, method="spa_phas
     e2 = eccentricity * eccentricity
 
     if method == "spa_phase":
-        m = eccmchirp * ( 1 - 157/24 * e2 )**(3/5)
+        m = eccmchirp * (1 - 157 / 24 * e2) ** (3 / 5)
 
     elif method == "fit":
         # Constants from Table 1 of https://arxiv.org/abs/2107.14736
@@ -631,122 +837,185 @@ def mchirp_from_eccmchirp_eccentricity(eccmchirp, eccentricity, method="spa_phas
         # Initial guess using the quadratic approximation
         A = xi * e2
         B = 1 + delta * e2
-        C = - eccmchirp
-        m = numpy.where(A > 0, (-B + numpy.sqrt(B**2 - 4*A*C)) / (2*A), eccmchirp)
+        C = -eccmchirp
+        m = numpy.where(A > 0, (-B + numpy.sqrt(B**2 - 4 * A * C)) / (2 * A), eccmchirp)
 
         for _ in range(5):
             m2 = m * m
             alpha = xi * m + delta
-            beta = m2 * ( Xi_beta + m2 * ( Delta_beta +
-                                    m2 * ( kappa_beta +
-                                    m2 * zeta_beta )))
-            gamma = m2 * ( Xi_gamma +
-                                m2 * ( Delta_gamma +
-                                m2 * ( kappa_gamma  +
-                                m2 * zeta_gamma )))
-            f = m * (1 + e2 * (alpha + e2 * ( beta + e2 *gamma ))) - Emchirp
+            beta = m2 * (
+                Xi_beta + m2 * (Delta_beta + m2 * (kappa_beta + m2 * zeta_beta))
+            )
+            gamma = m2 * (
+                Xi_gamma + m2 * (Delta_gamma + m2 * (kappa_gamma + m2 * zeta_gamma))
+            )
+            f = m * (1 + e2 * (alpha + e2 * (beta + e2 * gamma))) - eccmchirp
             d_alpha = xi
-            d_beta = m * ( 2 * Xi_beta + m2 * ( 4 * Delta_beta +
-                                                m2 *( 6 * kappa_beta +
-                                                m2 * 8 * zeta_beta )))
-            d_gamma = m * ( 2 * Xi_gamma + m2 * ( 4 * Delta_gamma +
-                                           m2 * ( 6 * kappa_gamma +
-                                           m2 * 8 * zeta_gamma )))
-            df = (1 + e2 * (alpha  + e2 * ( beta + e2 * gamma )) +
-                 m * e2 * (d_alpha + e2 * ( d_beta + e2 * d_gamma )))
+            d_beta = m * (
+                2 * Xi_beta
+                + m2 * (4 * Delta_beta + m2 * (6 * kappa_beta + m2 * 8 * zeta_beta))
+            )
+            d_gamma = m * (
+                2 * Xi_gamma
+                + m2 * (4 * Delta_gamma + m2 * (6 * kappa_gamma + m2 * 8 * zeta_gamma))
+            )
+            df = (
+                1
+                + e2 * (alpha + e2 * (beta + e2 * gamma))
+                + m * e2 * (d_alpha + e2 * (d_beta + e2 * d_gamma))
+            )
             m = m - f / df
 
     return formatreturn(m, input_is_array)
 
+
 def lambda_tilde(mass1, mass2, lambda1, lambda2):
-    """ The effective lambda parameter
+    """The effective lambda parameter
 
     The mass-weighted dominant effective lambda parameter defined in
     https://journals.aps.org/prd/pdf/10.1103/PhysRevD.91.043002
     """
+    torch, values = _torch_values(mass1, mass2, lambda1, lambda2)
+    if torch is not None:
+        m1, m2, lambda1, lambda2 = values
+        lsum = lambda1 + lambda2
+        ldiff = torch.where(m1 < m2, lambda2 - lambda1, lambda1 - lambda2)
+        eta = torch.clamp(eta_from_mass1_mass2(m1, m2), max=0.25)
+        p1 = lsum * (1 + 7.0 * eta - 31 * eta**2.0)
+        p2 = torch.sqrt(1 - 4 * eta) * (1 + 9 * eta - 11 * eta**2.0) * ldiff
+        return 8.0 / 13.0 * (p1 + p2)
+
     m1, m2, lambda1, lambda2, input_is_array = ensurearray(
-        mass1, mass2, lambda1, lambda2)
+        mass1, mass2, lambda1, lambda2
+    )
     lsum = lambda1 + lambda2
     ldiff, _ = ensurearray(lambda1 - lambda2)
     mask = m1 < m2
     ldiff[mask] = -ldiff[mask]
     eta = eta_from_mass1_mass2(m1, m2)
-    eta[eta > 0.25] = 0.25 # Account for numerical error, 0.25 is the max
-    p1 = (lsum) * (1 + 7. * eta - 31 * eta ** 2.0)
-    p2 = (1 - 4 * eta)**0.5 * (1 + 9 * eta - 11 * eta ** 2.0) * (ldiff)
+    # Account for numerical error; 0.25 is the physical maximum. Using
+    # minimum rather than indexed assignment also supports scalar inputs.
+    eta = numpy.minimum(eta, 0.25)
+    p1 = (lsum) * (1 + 7.0 * eta - 31 * eta**2.0)
+    p2 = (1 - 4 * eta) ** 0.5 * (1 + 9 * eta - 11 * eta**2.0) * (ldiff)
     return formatreturn(8.0 / 13.0 * (p1 + p2), input_is_array)
 
+
 def delta_lambda_tilde(mass1, mass2, lambda1, lambda2):
-    """ Delta lambda tilde parameter defined as
+    """Delta lambda tilde parameter defined as
     equation 15 in
     https://journals.aps.org/prd/pdf/10.1103/PhysRevD.91.043002
     """
+    torch, values = _torch_values(mass1, mass2, lambda1, lambda2)
+    if torch is not None:
+        m1, m2, lambda1, lambda2 = values
+        lsum = lambda1 + lambda2
+        ldiff = torch.where(m1 < m2, lambda2 - lambda1, lambda1 - lambda2)
+        eta = eta_from_mass1_mass2(m1, m2)
+        p1 = (
+            torch.sqrt(1 - 4 * eta)
+            * (1 - (13272 / 1319) * eta + (8944 / 1319) * eta**2)
+            * lsum
+        )
+        p2 = (
+            1 - (15910 / 1319) * eta + (32850 / 1319) * eta**2 + (3380 / 1319) * eta**3
+        ) * ldiff
+        return 1 / 2 * (p1 + p2)
+
     m1, m2, lambda1, lambda2, input_is_array = ensurearray(
-        mass1, mass2, lambda1, lambda2)
+        mass1, mass2, lambda1, lambda2
+    )
     lsum = lambda1 + lambda2
     ldiff, _ = ensurearray(lambda1 - lambda2)
     mask = m1 < m2
     ldiff[mask] = -ldiff[mask]
     eta = eta_from_mass1_mass2(m1, m2)
-    p1 = numpy.sqrt(1 - 4 * eta) * (
-        1 - (13272 / 1319) * eta +
-        (8944 / 1319) * eta ** 2
-    ) * lsum
+    p1 = (
+        numpy.sqrt(1 - 4 * eta)
+        * (1 - (13272 / 1319) * eta + (8944 / 1319) * eta**2)
+        * lsum
+    )
     p2 = (
-        1 - (15910 / 1319) * eta +
-        (32850 / 1319) * eta ** 2 +
-        (3380 / 1319) * eta ** 3
+        1 - (15910 / 1319) * eta + (32850 / 1319) * eta**2 + (3380 / 1319) * eta**3
     ) * ldiff
     return formatreturn(1 / 2 * (p1 + p2), input_is_array)
 
-def lambda1_from_delta_lambda_tilde_lambda_tilde(delta_lambda_tilde,
-                                                 lambda_tilde,
-                                                 mass1,
-                                                 mass2):
-    """ Returns lambda1 parameter by using delta lambda tilde,
+
+def lambda1_from_delta_lambda_tilde_lambda_tilde(
+    delta_lambda_tilde, lambda_tilde, mass1, mass2
+):
+    """Returns lambda1 parameter by using delta lambda tilde,
     lambda tilde, mass1, and mass2.
     """
+    torch, values = _torch_values(mass1, mass2, delta_lambda_tilde, lambda_tilde)
+    if torch is not None:
+        m1, m2, delta_lambda_tilde, lambda_tilde = values
+        eta = eta_from_mass1_mass2(m1, m2)
+        sqrt_term = torch.sqrt(1 - 4 * eta)
+        p1 = 1 + 7.0 * eta - 31 * eta**2.0
+        p2 = sqrt_term * (1 + 9 * eta - 11 * eta**2.0)
+        p3 = sqrt_term * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
+        p4 = 1 - (15910 / 1319) * eta + (32850 / 1319) * eta**2 + (3380 / 1319) * eta**3
+        amp = 1 / ((p1 * p4) - (p2 * p3))
+        l_tilde_lambda1 = 13 / 16 * (p3 - p4) * lambda_tilde
+        l_delta_tilde_lambda1 = (p1 - p2) * delta_lambda_tilde
+        return amp * (l_delta_tilde_lambda1 - l_tilde_lambda1)
+
     m1, m2, delta_lambda_tilde, lambda_tilde, input_is_array = ensurearray(
-        mass1, mass2, delta_lambda_tilde, lambda_tilde)
+        mass1, mass2, delta_lambda_tilde, lambda_tilde
+    )
     eta = eta_from_mass1_mass2(m1, m2)
-    p1 = 1 + 7.0*eta - 31*eta**2.0
-    p2 = (1 - 4*eta)**0.5 * (1 + 9*eta - 11*eta**2.0)
-    p3 = (1 - 4*eta)**0.5 * (1 - 13272/1319*eta + 8944/1319*eta**2)
-    p4 = 1 - (15910/1319)*eta + (32850/1319)*eta**2 + (3380/1319)*eta**3
-    amp = 1/((p1*p4)-(p2*p3))
-    l_tilde_lambda1 = 13/16 * (p3-p4) * lambda_tilde
-    l_delta_tilde_lambda1 = (p1-p2) * delta_lambda_tilde
+    p1 = 1 + 7.0 * eta - 31 * eta**2.0
+    p2 = (1 - 4 * eta) ** 0.5 * (1 + 9 * eta - 11 * eta**2.0)
+    p3 = (1 - 4 * eta) ** 0.5 * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
+    p4 = 1 - (15910 / 1319) * eta + (32850 / 1319) * eta**2 + (3380 / 1319) * eta**3
+    amp = 1 / ((p1 * p4) - (p2 * p3))
+    l_tilde_lambda1 = 13 / 16 * (p3 - p4) * lambda_tilde
+    l_delta_tilde_lambda1 = (p1 - p2) * delta_lambda_tilde
     lambda1 = formatreturn(
-        amp * (l_delta_tilde_lambda1 - l_tilde_lambda1),
-        input_is_array
+        amp * (l_delta_tilde_lambda1 - l_tilde_lambda1), input_is_array
     )
     return lambda1
 
+
 def lambda2_from_delta_lambda_tilde_lambda_tilde(
-        delta_lambda_tilde,
-        lambda_tilde,
-        mass1,
-        mass2):
-    """ Returns lambda2 parameter by using delta lambda tilde,
+    delta_lambda_tilde, lambda_tilde, mass1, mass2
+):
+    """Returns lambda2 parameter by using delta lambda tilde,
     lambda tilde, mass1, and mass2.
     """
+    torch, values = _torch_values(mass1, mass2, delta_lambda_tilde, lambda_tilde)
+    if torch is not None:
+        m1, m2, delta_lambda_tilde, lambda_tilde = values
+        eta = eta_from_mass1_mass2(m1, m2)
+        sqrt_term = torch.sqrt(1 - 4 * eta)
+        p1 = 1 + 7.0 * eta - 31 * eta**2.0
+        p2 = sqrt_term * (1 + 9 * eta - 11 * eta**2.0)
+        p3 = sqrt_term * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
+        p4 = 1 - (15910 / 1319) * eta + (32850 / 1319) * eta**2 + (3380 / 1319) * eta**3
+        amp = 1 / ((p1 * p4) - (p2 * p3))
+        l_tilde_lambda2 = 13 / 16 * (p3 + p4) * lambda_tilde
+        l_delta_tilde_lambda2 = (p1 + p2) * delta_lambda_tilde
+        return amp * (l_tilde_lambda2 - l_delta_tilde_lambda2)
+
     m1, m2, delta_lambda_tilde, lambda_tilde, input_is_array = ensurearray(
-        mass1, mass2, delta_lambda_tilde, lambda_tilde)
+        mass1, mass2, delta_lambda_tilde, lambda_tilde
+    )
     eta = eta_from_mass1_mass2(m1, m2)
-    p1 = 1 + 7.0*eta - 31*eta**2.0
-    p2 = (1 - 4*eta)**0.5 * (1 + 9*eta - 11*eta**2.0)
-    p3 = (1 - 4*eta)**0.5 * (1 - 13272/1319*eta + 8944/1319*eta**2)
-    p4 = 1 - (15910/1319)*eta + (32850/1319)*eta**2 + (3380/1319)*eta**3
-    amp = 1/((p1*p4)-(p2*p3))
-    l_tilde_lambda2 = 13/16 * (p3+p4) * lambda_tilde
-    l_delta_tilde_lambda2 = (p1+p2) * delta_lambda_tilde
+    p1 = 1 + 7.0 * eta - 31 * eta**2.0
+    p2 = (1 - 4 * eta) ** 0.5 * (1 + 9 * eta - 11 * eta**2.0)
+    p3 = (1 - 4 * eta) ** 0.5 * (1 - 13272 / 1319 * eta + 8944 / 1319 * eta**2)
+    p4 = 1 - (15910 / 1319) * eta + (32850 / 1319) * eta**2 + (3380 / 1319) * eta**3
+    amp = 1 / ((p1 * p4) - (p2 * p3))
+    l_tilde_lambda2 = 13 / 16 * (p3 + p4) * lambda_tilde
+    l_delta_tilde_lambda2 = (p1 + p2) * delta_lambda_tilde
     lambda2 = formatreturn(
-        amp * (l_tilde_lambda2 - l_delta_tilde_lambda2),
-        input_is_array
+        amp * (l_tilde_lambda2 - l_delta_tilde_lambda2), input_is_array
     )
     return lambda2
 
-def lambda_from_mass_tov_file(mass, tov_file, distance=0.):
+
+def lambda_from_mass_tov_file(mass, tov_file, distance=0.0):
     """Return the lambda parameter(s) corresponding to the input mass(es)
     interpolating from the mass-Lambda data for a particular EOS read in from
     an ASCII file.
@@ -754,7 +1023,48 @@ def lambda_from_mass_tov_file(mass, tov_file, distance=0.):
     data = numpy.loadtxt(tov_file)
     mass_from_file = data[:, 0]
     lambda_from_file = data[:, 1]
-    mass_src = mass/(1.0 + pycbc.cosmology.redshift(distance))
+    from pycbc import cosmology
+
+    torch, values = _torch_values(mass, distance)
+    if torch is not None:
+        mass, distance = values
+        if mass.is_complex() or distance.is_complex():
+            raise TypeError("mass and distance must be real-valued")
+
+        mass_src = mass / (1.0 + cosmology.redshift(distance))
+        mass_knots = torch.as_tensor(
+            mass_from_file,
+            device=mass.device,
+            dtype=mass.dtype,
+        ).contiguous()
+        lambda_knots = torch.as_tensor(
+            lambda_from_file,
+            device=mass.device,
+            dtype=mass.dtype,
+        ).contiguous()
+        values = mass_src.reshape(-1).contiguous()
+
+        if mass_knots.numel() == 1:
+            return torch.full_like(mass_src, lambda_knots[0])
+
+        upper = torch.searchsorted(mass_knots, values).clamp(
+            min=1, max=mass_knots.numel() - 1
+        )
+        mass_left = mass_knots[upper - 1]
+        mass_right = mass_knots[upper]
+        lambda_left = lambda_knots[upper - 1]
+        lambda_right = lambda_knots[upper]
+        result = lambda_left + (
+            (values - mass_left)
+            * (lambda_right - lambda_left)
+            / (mass_right - mass_left)
+        )
+        result = torch.where(values <= mass_knots[0], lambda_knots[0], result)
+        result = torch.where(values >= mass_knots[-1], lambda_knots[-1], result)
+        result = torch.where(torch.isnan(values), values, result)
+        return result.reshape(mass_src.shape)
+
+    mass_src = mass / (1.0 + cosmology.redshift(distance))
     lambdav = numpy.interp(mass_src, mass_from_file, lambda_from_file)
     return lambdav
 
@@ -785,7 +1095,18 @@ def ensure_obj1_is_primary(mass1, mass2, *params):
     # Check params are 2N
     if len(params) % 2 != 0:
         raise ValueError("params must be 2N floats or arrays")
-    input_properties, input_is_array = ensurearray((mass1, mass2)+params)
+
+    torch, input_properties = _torch_values(mass1, mass2, *params)
+    if torch is not None:
+        swap = input_properties[0] < input_properties[1]
+        output_properties = []
+        for i in range(0, len(input_properties), 2):
+            primary = torch.where(swap, input_properties[i + 1], input_properties[i])
+            secondary = torch.where(swap, input_properties[i], input_properties[i + 1])
+            output_properties.extend((primary, secondary))
+        return output_properties
+
+    input_properties, input_is_array = ensurearray((mass1, mass2) + params)
     # Check inputs are all the same length
     shapes = [par.shape for par in input_properties]
     if len(set(shapes)) != 1:
@@ -798,9 +1119,9 @@ def ensure_obj1_is_primary(mass1, mass2, *params):
         # primary (p)
         p = copy.copy(input_properties[i])
         # secondary (s)
-        s = copy.copy(input_properties[i+1])
+        s = copy.copy(input_properties[i + 1])
         # Swap
-        p[mask] = input_properties[i+1][mask]
+        p[mask] = input_properties[i + 1][mask]
         s[mask] = input_properties[i][mask]
         # Format and include in output object
         output_properties.append(formatreturn(p, input_is_array))
@@ -810,9 +1131,17 @@ def ensure_obj1_is_primary(mass1, mass2, *params):
 
 
 def remnant_mass_from_mass1_mass2_spherical_spin_eos(
-        mass1, mass2, spin1_a=0.0, spin1_polar=0.0, eos='2H',
-        spin2_a=0.0, spin2_polar=0.0, swap_companions=False,
-        ns_bh_mass_boundary=None, extrapolate=False):
+    mass1,
+    mass2,
+    spin1_a=0.0,
+    spin1_polar=0.0,
+    eos="2H",
+    spin2_a=0.0,
+    spin2_polar=0.0,
+    swap_companions=False,
+    ns_bh_mass_boundary=None,
+    extrapolate=False,
+):
     """
     Function that determines the remnant disk mass of an NS-BH system
     using the fit to numerical-relativity results discussed in
@@ -859,23 +1188,88 @@ def remnant_mass_from_mass1_mass2_spherical_spin_eos(
     remnant_mass: float
         The remnant mass in solar masses
     """
-    mass1, mass2, spin1_a, spin1_polar, spin2_a, spin2_polar, \
-        input_is_array = \
+    from pycbc import neutron_stars as ns
+
+    torch_inputs = (mass1, mass2, spin1_a, spin1_polar, spin2_a, spin2_polar)
+    if ns_bh_mass_boundary is None:
+        torch, values = _torch_values(*torch_inputs)
+        boundary = None
+    else:
+        torch, all_values = _torch_values(*torch_inputs, ns_bh_mass_boundary)
+        if torch is not None:
+            values = all_values[:-1]
+            boundary = all_values[-1]
+        else:
+            boundary = ns_bh_mass_boundary
+
+    if torch is not None:
+        mass1, mass2, spin1_a, spin1_polar, spin2_a, spin2_polar = values
+        if any(value.is_complex() for value in values):
+            raise TypeError("Neutron-star remnant inputs must be real-valued")
+        if not bool(torch.all((spin1_a >= 0) & (spin2_a >= 0))):
+            raise AssertionError("Spin magnitude MUST be null or positive")
+
+        if swap_companions:
+            swap = mass1 < mass2
+            mass1, mass2 = (
+                torch.where(swap, mass2, mass1),
+                torch.where(swap, mass1, mass2),
+            )
+            spin1_a, spin2_a = (
+                torch.where(swap, spin2_a, spin1_a),
+                torch.where(swap, spin1_a, spin2_a),
+            )
+            spin1_polar, spin2_polar = (
+                torch.where(swap, spin2_polar, spin1_polar),
+                torch.where(swap, spin1_polar, spin2_polar),
+            )
+        elif bool(torch.any(mass2 > mass1)):
+            raise ValueError("Require mass1 >= mass2")
+
+        eta = eta_from_mass1_mass2(mass1, mass2)
+        flat_mass2 = mass2.reshape(-1)
+        if boundary is None:
+            mask = torch.ones_like(flat_mass2, dtype=torch.bool)
+        else:
+            mask = flat_mass2 <= boundary.reshape(-1)
+        flat_eta = eta.reshape(-1)
+        flat_spin1_a = spin1_a.reshape(-1)
+        flat_spin1_polar = spin1_polar.reshape(-1)
+        ns_compactness, ns_b_mass = ns.initialize_eos(
+            flat_mass2[mask], eos, extrapolate=extrapolate
+        )
+        active_remnant = ns.foucart18(
+            flat_eta[mask],
+            ns_compactness,
+            ns_b_mass,
+            flat_spin1_a[mask],
+            flat_spin1_polar[mask],
+        )
+        remnant_mass = torch.zeros_like(flat_mass2).masked_scatter(
+            mask, active_remnant.reshape(-1)
+        )
+        return remnant_mass.reshape(mass2.shape)
+
+    mass1, mass2, spin1_a, spin1_polar, spin2_a, spin2_polar, input_is_array = (
         ensurearray(mass1, mass2, spin1_a, spin1_polar, spin2_a, spin2_polar)
-    assert numpy.all(spin1_a >= 0) and numpy.all(spin2_a >= 0), \
+    )
+    assert numpy.all(spin1_a >= 0) and numpy.all(spin2_a >= 0), (
         "Spin magnitude MUST be null or positive"
+    )
     # mass1 must be greater than mass2: swap the properties of 1 and 2 or fail
     if swap_companions:
-        mass1, mass2, spin1_a, spin2_a, spin1_polar, spin2_polar = \
-            ensure_obj1_is_primary(mass1, mass2, spin1_a, spin2_a,
-                                   spin1_polar, spin2_polar)
+        mass1, mass2, spin1_a, spin2_a, spin1_polar, spin2_polar = (
+            ensure_obj1_is_primary(
+                mass1, mass2, spin1_a, spin2_a, spin1_polar, spin2_polar
+            )
+        )
     else:
         try:
             if any(mass2 > mass1) and input_is_array:
-                raise ValueError(f'Require mass1 >= mass2')
+                raise ValueError("Require mass1 >= mass2")
         except TypeError:
             if mass2 > mass1 and not input_is_array:
-                raise ValueError(f'Require mass1 >= mass2. {mass1} < {mass2}')
+                raise ValueError(f"Require mass1 >= mass2. {mass1} < {mass2}") from None
     eta = eta_from_mass1_mass2(mass1, mass2)
     # If a maximum NS mass is not provided, accept all values and
     # let the EOS handle this (in ns.initialize_eos)
@@ -886,18 +1280,29 @@ def remnant_mass_from_mass1_mass2_spherical_spin_eos(
         mask = mass2 <= ns_bh_mass_boundary
     # ...and return 0's otherwise
     remnant_mass = numpy.zeros(ensurearray(mass2)[0].size)
-    ns_compactness, ns_b_mass = ns.initialize_eos(mass2[mask], eos,
-                                                  extrapolate=extrapolate)
+    ns_compactness, ns_b_mass = ns.initialize_eos(
+        mass2[mask], eos, extrapolate=extrapolate
+    )
     remnant_mass[mask] = ns.foucart18(
-            eta[mask], ns_compactness, ns_b_mass,
-            spin1_a[mask], spin1_polar[mask])
+        eta[mask], ns_compactness, ns_b_mass, spin1_a[mask], spin1_polar[mask]
+    )
     return formatreturn(remnant_mass, input_is_array)
 
 
 def remnant_mass_from_mass1_mass2_cartesian_spin_eos(
-        mass1, mass2, spin1x=0.0, spin1y=0.0, spin1z=0.0, eos='2H',
-        spin2x=0.0, spin2y=0.0, spin2z=0.0, swap_companions=False,
-        ns_bh_mass_boundary=None, extrapolate=False):
+    mass1,
+    mass2,
+    spin1x=0.0,
+    spin1y=0.0,
+    spin1z=0.0,
+    eos="2H",
+    spin2x=0.0,
+    spin2y=0.0,
+    spin2z=0.0,
+    swap_companions=False,
+    ns_bh_mass_boundary=None,
+    extrapolate=False,
+):
     """
     Function that determines the remnant disk mass of an NS-BH system
     using the fit to numerical-relativity results discussed in
@@ -948,19 +1353,34 @@ def remnant_mass_from_mass1_mass2_cartesian_spin_eos(
     remnant_mass: float
         The remnant mass in solar masses
     """
-    spin1_a, _, spin1_polar = _cartesian_to_spherical(spin1x, spin1y, spin1z)
+    from pycbc.types.backend import torch_module_for
+
+    from .coordinates.base import cartesian_to_spherical
+
+    spin1_a, _, spin1_polar = cartesian_to_spherical(spin1x, spin1y, spin1z)
     if swap_companions:
-        spin2_a, _, spin2_polar = _cartesian_to_spherical(spin2x,
-                                                          spin2y, spin2z)
+        spin2_a, _, spin2_polar = cartesian_to_spherical(spin2x, spin2y, spin2z)
+    elif torch_module_for(spin1_a) is not None:
+        import torch
+
+        spin2_a = torch.zeros_like(spin1_a)
+        spin2_polar = torch.zeros_like(spin1_a)
     else:
         size = ensurearray(spin1_a)[0].size
         spin2_a = numpy.zeros(size)
         spin2_polar = numpy.zeros(size)
     return remnant_mass_from_mass1_mass2_spherical_spin_eos(
-        mass1, mass2, spin1_a=spin1_a, spin1_polar=spin1_polar, eos=eos,
-        spin2_a=spin2_a, spin2_polar=spin2_polar,
+        mass1,
+        mass2,
+        spin1_a=spin1_a,
+        spin1_polar=spin1_polar,
+        eos=eos,
+        spin2_a=spin2_a,
+        spin2_polar=spin2_polar,
         swap_companions=swap_companions,
-        ns_bh_mass_boundary=ns_bh_mass_boundary, extrapolate=extrapolate)
+        ns_bh_mass_boundary=ns_bh_mass_boundary,
+        extrapolate=extrapolate,
+    )
 
 
 #
@@ -976,7 +1396,7 @@ def chi_eff(mass1, mass2, spin1z, spin2z):
 
 
 def chi_a(mass1, mass2, spin1z, spin2z):
-    """ Returns the aligned mass-weighted spin difference from mass1, mass2,
+    """Returns the aligned mass-weighted spin difference from mass1, mass2,
     spin1z, and spin2z.
     """
     return (spin2z * mass2 - spin1z * mass1) / (mass2 + mass1)
@@ -992,45 +1412,69 @@ def chi_p(mass1, mass2, spin1x, spin1y, spin2x, spin2y):
 
 
 def phi_a(mass1, mass2, spin1x, spin1y, spin2x, spin2y):
-    """ Returns the angle between the in-plane perpendicular spins."""
-    phi1 = phi_from_spinx_spiny(primary_spin(mass1, mass2, spin1x, spin2x),
-                                primary_spin(mass1, mass2, spin1y, spin2y))
-    phi2 = phi_from_spinx_spiny(secondary_spin(mass1, mass2, spin1x, spin2x),
-                                secondary_spin(mass1, mass2, spin1y, spin2y))
+    """Returns the angle between the in-plane perpendicular spins."""
+    phi1 = phi_from_spinx_spiny(
+        primary_spin(mass1, mass2, spin1x, spin2x),
+        primary_spin(mass1, mass2, spin1y, spin2y),
+    )
+    phi2 = phi_from_spinx_spiny(
+        secondary_spin(mass1, mass2, spin1x, spin2x),
+        secondary_spin(mass1, mass2, spin1y, spin2y),
+    )
     return (phi1 - phi2) % (2 * numpy.pi)
 
 
 def phi_s(spin1x, spin1y, spin2x, spin2y):
-    """ Returns the sum of the in-plane perpendicular spins."""
+    """Returns the sum of the in-plane perpendicular spins."""
     phi1 = phi_from_spinx_spiny(spin1x, spin1y)
     phi2 = phi_from_spinx_spiny(spin2x, spin2y)
     return (phi1 + phi2) % (2 * numpy.pi)
 
 
-def chi_eff_from_spherical(mass1, mass2, spin1_a, spin1_polar,
-                           spin2_a, spin2_polar):
+def chi_eff_from_spherical(mass1, mass2, spin1_a, spin1_polar, spin2_a, spin2_polar):
     """Returns the effective spin using spins in spherical coordinates."""
+    torch, values = _torch_values(
+        mass1, mass2, spin1_a, spin1_polar, spin2_a, spin2_polar
+    )
+    if torch is not None:
+        mass1, mass2, spin1_a, spin1_polar, spin2_a, spin2_polar = values
+        spin1z = spin1_a * torch.cos(spin1_polar)
+        spin2z = spin2_a * torch.cos(spin2_polar)
+        return chi_eff(mass1, mass2, spin1z, spin2z)
+
     spin1z = spin1_a * numpy.cos(spin1_polar)
     spin2z = spin2_a * numpy.cos(spin2_polar)
     return chi_eff(mass1, mass2, spin1z, spin2z)
 
 
-def chi_p_from_spherical(mass1, mass2, spin1_a, spin1_azimuthal, spin1_polar,
-                         spin2_a, spin2_azimuthal, spin2_polar):
+def chi_p_from_spherical(
+    mass1,
+    mass2,
+    spin1_a,
+    spin1_azimuthal,
+    spin1_polar,
+    spin2_a,
+    spin2_azimuthal,
+    spin2_polar,
+):
     """Returns the effective precession spin using spins in spherical
     coordinates.
     """
-    spin1x, spin1y, _ = _spherical_to_cartesian(
-        spin1_a, spin1_azimuthal, spin1_polar)
-    spin2x, spin2y, _ = _spherical_to_cartesian(
-        spin2_a, spin2_azimuthal, spin2_polar)
+    from .coordinates.base import spherical_to_cartesian
+
+    spin1x, spin1y, _ = spherical_to_cartesian(spin1_a, spin1_azimuthal, spin1_polar)
+    spin2x, spin2y, _ = spherical_to_cartesian(spin2_a, spin2_azimuthal, spin2_polar)
     return chi_p(mass1, mass2, spin1x, spin1y, spin2x, spin2y)
 
 
 def primary_spin(mass1, mass2, spin1, spin2):
     """Returns the dimensionless spin of the primary mass."""
-    mass1, mass2, spin1, spin2, input_is_array = ensurearray(
-        mass1, mass2, spin1, spin2)
+    torch, values = _torch_values(mass1, mass2, spin1, spin2)
+    if torch is not None:
+        mass1, mass2, spin1, spin2 = values
+        return torch.where(mass1 < mass2, spin2, spin1)
+
+    mass1, mass2, spin1, spin2, input_is_array = ensurearray(mass1, mass2, spin1, spin2)
     sp = copy.copy(spin1)
     mask = mass1 < mass2
     sp[mask] = spin2[mask]
@@ -1039,8 +1483,12 @@ def primary_spin(mass1, mass2, spin1, spin2):
 
 def secondary_spin(mass1, mass2, spin1, spin2):
     """Returns the dimensionless spin of the secondary mass."""
-    mass1, mass2, spin1, spin2, input_is_array = ensurearray(
-        mass1, mass2, spin1, spin2)
+    torch, values = _torch_values(mass1, mass2, spin1, spin2)
+    if torch is not None:
+        mass1, mass2, spin1, spin2 = values
+        return torch.where(mass1 < mass2, spin1, spin2)
+
+    mass1, mass2, spin1, spin2, input_is_array = ensurearray(mass1, mass2, spin1, spin2)
     ss = copy.copy(spin2)
     mask = mass1 < mass2
     ss[mask] = spin1[mask]
@@ -1048,16 +1496,14 @@ def secondary_spin(mass1, mass2, spin1, spin2):
 
 
 def primary_xi(mass1, mass2, spin1x, spin1y, spin2x, spin2y):
-    """Returns the effective precession spin argument for the larger mass.
-    """
+    """Returns the effective precession spin argument for the larger mass."""
     spinx = primary_spin(mass1, mass2, spin1x, spin2x)
     spiny = primary_spin(mass1, mass2, spin1y, spin2y)
     return chi_perp_from_spinx_spiny(spinx, spiny)
 
 
 def secondary_xi(mass1, mass2, spin1x, spin1y, spin2x, spin2y):
-    """Returns the effective precession spin argument for the smaller mass.
-    """
+    """Returns the effective precession spin argument for the smaller mass."""
     spinx = secondary_spin(mass1, mass2, spin1x, spin2x)
     spiny = secondary_spin(mass1, mass2, spin1y, spin2y)
     return xi2_from_mass1_mass2_spin2x_spin2y(mass1, mass2, spinx, spiny)
@@ -1081,8 +1527,12 @@ def xi2_from_mass1_mass2_spin2x_spin2y(mass1, mass2, spin2x, spin2y):
 
 
 def chi_perp_from_spinx_spiny(spinx, spiny):
-    """Returns the in-plane spin from the x/y components of the spin.
-    """
+    """Returns the in-plane spin from the x/y components of the spin."""
+    torch, values = _torch_values(spinx, spiny)
+    if torch is not None:
+        spinx, spiny = values
+        return torch.sqrt(spinx**2 + spiny**2)
+
     return numpy.sqrt(spinx**2 + spiny**2)
 
 
@@ -1097,8 +1547,11 @@ def chi_perp_from_mass1_mass2_xi2(mass1, mass2, xi2):
 
 
 def chi_p_from_xi1_xi2(xi1, xi2):
-    """Returns effective precession spin from xi1 and xi2.
-    """
+    """Returns effective precession spin from xi1 and xi2."""
+    torch, values = _torch_values(xi1, xi2)
+    if torch is not None:
+        return torch.maximum(*values)
+
     xi1, xi2, input_is_array = ensurearray(xi1, xi2)
     chi_p = copy.copy(xi1)
     mask = xi1 < xi2
@@ -1121,49 +1574,75 @@ def phi2_from_phi_a_phi_s(phi_a, phi_s):
 
 
 def phi_from_spinx_spiny(spinx, spiny):
-    """Returns the angle between the x-component axis and the in-plane spin.
-    """
+    """Returns the angle between the x-component axis and the in-plane spin."""
+    torch, values = _torch_values(spinx, spiny)
+    if torch is not None:
+        spinx, spiny = values
+        phi = torch.atan2(spiny, spinx)
+        two_pi = torch.as_tensor(2 * numpy.pi, device=phi.device, dtype=phi.dtype)
+        return torch.remainder(phi, two_pi)
+
     phi = numpy.arctan2(spiny, spinx)
     return phi % (2 * numpy.pi)
 
 
 def spin1z_from_mass1_mass2_chi_eff_chi_a(mass1, mass2, chi_eff, chi_a):
-    """Returns spin1z.
-    """
+    """Returns spin1z."""
     return (mass1 + mass2) / (2.0 * mass1) * (chi_eff - chi_a)
 
 
 def spin2z_from_mass1_mass2_chi_eff_chi_a(mass1, mass2, chi_eff, chi_a):
-    """Returns spin2z.
-    """
+    """Returns spin2z."""
     return (mass1 + mass2) / (2.0 * mass2) * (chi_eff + chi_a)
 
 
 def spin1x_from_xi1_phi_a_phi_s(xi1, phi_a, phi_s):
-    """Returns x-component spin for primary mass.
-    """
+    """Returns x-component spin for primary mass."""
+    torch, values = _torch_values(xi1, phi_a, phi_s)
+    if torch is not None:
+        xi1, phi_a, phi_s = values
+        phi1 = phi1_from_phi_a_phi_s(phi_a, phi_s)
+        return xi1 * torch.cos(phi1)
+
     phi1 = phi1_from_phi_a_phi_s(phi_a, phi_s)
     return xi1 * numpy.cos(phi1)
 
 
 def spin1y_from_xi1_phi_a_phi_s(xi1, phi_a, phi_s):
-    """Returns y-component spin for primary mass.
-    """
+    """Returns y-component spin for primary mass."""
+    torch, values = _torch_values(xi1, phi_a, phi_s)
+    if torch is not None:
+        xi1, phi_a, phi_s = values
+        phi1 = phi1_from_phi_a_phi_s(phi_s, phi_a)
+        return xi1 * torch.sin(phi1)
+
     phi1 = phi1_from_phi_a_phi_s(phi_s, phi_a)
     return xi1 * numpy.sin(phi1)
 
 
 def spin2x_from_mass1_mass2_xi2_phi_a_phi_s(mass1, mass2, xi2, phi_a, phi_s):
-    """Returns x-component spin for secondary mass.
-    """
+    """Returns x-component spin for secondary mass."""
+    torch, values = _torch_values(mass1, mass2, xi2, phi_a, phi_s)
+    if torch is not None:
+        mass1, mass2, xi2, phi_a, phi_s = values
+        chi_perp = chi_perp_from_mass1_mass2_xi2(mass1, mass2, xi2)
+        phi2 = phi2_from_phi_a_phi_s(phi_a, phi_s)
+        return chi_perp * torch.cos(phi2)
+
     chi_perp = chi_perp_from_mass1_mass2_xi2(mass1, mass2, xi2)
     phi2 = phi2_from_phi_a_phi_s(phi_a, phi_s)
     return chi_perp * numpy.cos(phi2)
 
 
 def spin2y_from_mass1_mass2_xi2_phi_a_phi_s(mass1, mass2, xi2, phi_a, phi_s):
-    """Returns y-component spin for secondary mass.
-    """
+    """Returns y-component spin for secondary mass."""
+    torch, values = _torch_values(mass1, mass2, xi2, phi_a, phi_s)
+    if torch is not None:
+        mass1, mass2, xi2, phi_a, phi_s = values
+        chi_perp = chi_perp_from_mass1_mass2_xi2(mass1, mass2, xi2)
+        phi2 = phi2_from_phi_a_phi_s(phi_a, phi_s)
+        return chi_perp * torch.sin(phi2)
+
     chi_perp = chi_perp_from_mass1_mass2_xi2(mass1, mass2, xi2)
     phi2 = phi2_from_phi_a_phi_s(phi_a, phi_s)
     return chi_perp * numpy.sin(phi2)
@@ -1181,13 +1660,20 @@ def dquadmon_from_lambda(lambdav):
 
     Where :math:`\bar{Q}` (dimensionless) is the reduced quadrupole moment.
     """
-    ll = numpy.log(lambdav)
-    ai = .194
-    bi = .0936
+    torch, values = _torch_values(lambdav)
+    if torch is not None:
+        (lambdav,) = values
+        ll = torch.log(lambdav)
+    else:
+        ll = numpy.log(lambdav)
+    ai = 0.194
+    bi = 0.0936
     ci = 0.0474
     di = -4.21 * 10**-3.0
     ei = 1.23 * 10**-4.0
-    ln_quad_moment = ai + bi*ll + ci*ll**2.0 + di*ll**3.0 + ei*ll**4.0
+    ln_quad_moment = ai + bi * ll + ci * ll**2.0 + di * ll**3.0 + ei * ll**4.0
+    if torch is not None:
+        return torch.exp(ln_quad_moment) - 1
     return numpy.exp(ln_quad_moment) - 1
 
 
@@ -1207,7 +1693,7 @@ def spin_from_pulsar_freq(mass, radius, freq):
     """
     omega = 2 * numpy.pi * freq
     mt = mass * MTSUN_SI
-    mominert = (2/5.) * mt * (radius * 1000 / C_SI)**2
+    mominert = (2 / 5.0) * mt * (radius * 1000 / C_SI) ** 2
     return mominert * omega / mt**2
 
 
@@ -1219,19 +1705,19 @@ def spin_from_pulsar_freq(mass, radius, freq):
 # =============================================================================
 #
 def chirp_distance(dist, mchirp, ref_mass=1.4):
-    """Returns the chirp distance given the luminosity distance and chirp mass.
-    """
-    return dist * (2.**(-1./5) * ref_mass / mchirp)**(5./6)
+    """Returns the chirp distance given the luminosity distance and chirp mass."""
+    return dist * (2.0 ** (-1.0 / 5) * ref_mass / mchirp) ** (5.0 / 6)
 
 
 def distance_from_chirp_distance_mchirp(chirp_distance, mchirp, ref_mass=1.4):
-    """Returns the luminosity distance given a chirp distance and chirp mass.
-    """
-    return chirp_distance * (2.**(-1./5) * ref_mass / mchirp)**(-5./6)
+    """Returns the luminosity distance given a chirp distance and chirp mass."""
+    return chirp_distance * (2.0 ** (-1.0 / 5) * ref_mass / mchirp) ** (-5.0 / 6)
 
 
 _detector_cache = {}
-def det_tc(detector_name, ra, dec, tc, ref_frame='geocentric', relative=False):
+
+
+def det_tc(detector_name, ra, dec, tc, ref_frame="geocentric", relative=False):
     """Returns the coalescence time of a signal in the given detector.
 
     Parameters
@@ -1253,31 +1739,37 @@ def det_tc(detector_name, ra, dec, tc, ref_frame='geocentric', relative=False):
     float :
         The GPS time of the coalescence in detector `detector_name`.
     """
+    from pycbc.detector import Detector
+
     ref_time = tc
     if relative:
         tc = 0
 
     if ref_frame == detector_name:
         return tc
-    if detector_name == 'geocentric':
+    if detector_name == "geocentric":
         refdet = Detector(ref_frame)
         return tc - refdet.time_delay_from_earth_center(ra, dec, ref_time)
     if detector_name not in _detector_cache:
         _detector_cache[detector_name] = Detector(detector_name)
     detector = _detector_cache[detector_name]
-    if ref_frame == 'geocentric':
+    if ref_frame == "geocentric":
         return tc + detector.time_delay_from_earth_center(ra, dec, ref_time)
     else:
         other = Detector(ref_frame)
         return tc + detector.time_delay_from_detector(other, ra, dec, ref_time)
 
+
 def optimal_orientation_from_detector(detector_name, tc):
-    """ Low-level function to be called from _optimal_dec_from_detector
+    """Low-level function to be called from _optimal_dec_from_detector
     and _optimal_ra_from_detector"""
+
+    from pycbc.detector import Detector
 
     d = Detector(detector_name)
     ra, dec = d.optimal_orientation(tc)
     return ra, dec
+
 
 def optimal_dec_from_detector(detector_name, tc):
     """For a given detector and GPS time, return the optimal orientation
@@ -1297,6 +1789,7 @@ def optimal_dec_from_detector(detector_name, tc):
         The declination of the signal, in radians.
     """
     return optimal_orientation_from_detector(detector_name, tc)[1]
+
 
 def optimal_ra_from_detector(detector_name, tc):
     """For a given detector and GPS time, return the optimal orientation
@@ -1338,16 +1831,24 @@ def snr_from_loglr(loglr):
     array or float
         The SNRs computed from the log likelihood ratios.
     """
+    torch, values = _torch_values(loglr)
+    if torch is not None:
+        (loglr,) = values
+        valid = loglr >= 0
+        safe_loglr = torch.where(valid, loglr, torch.zeros_like(loglr))
+        return torch.where(valid, torch.sqrt(2 * safe_loglr), torch.zeros_like(loglr))
+
     singleval = isinstance(loglr, float)
     if singleval:
         loglr = numpy.array([loglr])
     # temporarily quiet sqrt(-1) warnings
     with numpy.errstate(invalid="ignore"):
-        snrs = numpy.sqrt(2*loglr)
-    snrs[numpy.isnan(snrs)] = 0.
+        snrs = numpy.sqrt(2 * loglr)
+    snrs[numpy.isnan(snrs)] = 0.0
     if singleval:
         snrs = snrs[0]
     return snrs
+
 
 #
 # =============================================================================
@@ -1358,7 +1859,14 @@ def snr_from_loglr(loglr):
 #
 
 
-def get_lm_f0tau(mass, spin, l, m, n=0, which='both'):
+def get_lm_f0tau(
+    mass,
+    spin,
+    l,  # noqa: E741 - preserve the public mode keyword
+    m,
+    n=0,
+    which="both",
+):
     """Return the f0 and the tau for one or more overtones of an l, m mode.
 
     Parameters
@@ -1386,20 +1894,58 @@ def get_lm_f0tau(mass, spin, l, m, n=0, which='both'):
     tau : float or array
         Returned if ``which`` is 'both' or 'tau'.
         The damping time of the QNM(s), in seconds.
+
+    Notes
+    -----
+    For Torch inputs, ``l``, ``m``, and ``n`` must be scalar integers.
     """
+    torch, values = _torch_values(mass, spin)
+    if torch is not None:
+        mass, spin = values
+        getf0 = which == "both" or which == "f0"
+        gettau = which == "both" or which == "tau"
+        out = []
+        mtsun = torch.as_tensor(pykerr.qnm.MTSUN, dtype=mass.dtype, device=mass.device)
+        if getf0:
+            reomega = _torch_qnm_spline(torch, spin, l, m, n, "re")
+            if operator.index(m) < 0:
+                reomega = -reomega
+            pi = torch.as_tensor(numpy.pi, dtype=mass.dtype, device=mass.device)
+            out.append(reomega / (2 * pi * mass * mtsun))
+        if gettau:
+            imomega = _torch_qnm_spline(torch, spin, l, m, n, "im")
+            out.append(-mass * mtsun / imomega)
+        if not (getf0 and gettau):
+            out = out[0]
+        return out
+
     # convert to arrays
-    mass, spin, l, m, n, input_is_array = ensurearray(
-        mass, spin, l, m, n)
+    (
+        mass,
+        spin,
+        l,  # noqa: E741 - retain the public mode parameter
+        m,
+        n,
+        input_is_array,
+    ) = ensurearray(mass, spin, l, m, n)
     # we'll ravel the arrays so we can evaluate each parameter combination
     # one at a a time
-    getf0 = which == 'both' or which == 'f0'
-    gettau = which == 'both' or which == 'tau'
+    getf0 = which == "both" or which == "f0"
+    gettau = which == "both" or which == "tau"
     out = []
     if getf0:
-        f0s = pykerr.qnmfreq(mass, spin, l, m, n)
+        f0s = numpy.empty(mass.shape, dtype=float)
+        for index in numpy.ndindex(mass.shape):
+            f0s[index] = pykerr.qnmfreq(
+                mass[index], spin[index], l[index], m[index], n[index]
+            )
         out.append(formatreturn(f0s, input_is_array))
     if gettau:
-        taus = pykerr.qnmtau(mass, spin, l, m, n)
+        taus = numpy.empty(mass.shape, dtype=float)
+        for index in numpy.ndindex(mass.shape):
+            taus[index] = pykerr.qnmtau(
+                mass[index], spin[index], l[index], m[index], n[index]
+            )
         out.append(formatreturn(taus, input_is_array))
     if not (getf0 and gettau):
         out = out[0]
@@ -1435,7 +1981,7 @@ def get_lm_f0tau_allmodes(mass, spin, modes):
     """
     f0, tau = {}, {}
     for lmn in modes:
-        key = '{}{}{}'
+        key = "{}{}{}"
         l, m, nmodes = int(lmn[0]), int(lmn[1]), int(lmn[2])
         for n in range(nmodes):
             tmp_f0, tmp_tau = get_lm_f0tau(mass, spin, l, m, n)
@@ -1466,7 +2012,7 @@ def freq_from_final_mass_spin(final_mass, final_spin, l=2, m=2, n=0):
     float or array
         The frequency of the QNM(s), in Hz.
     """
-    return get_lm_f0tau(final_mass, final_spin, l, m, n=n, which='f0')
+    return get_lm_f0tau(final_mass, final_spin, l, m, n=n, which="f0")
 
 
 def tau_from_final_mass_spin(final_mass, final_spin, l=2, m=2, n=0):
@@ -1491,7 +2037,7 @@ def tau_from_final_mass_spin(final_mass, final_spin, l=2, m=2, n=0):
     float or array
         The damping time of the QNM(s), in seconds.
     """
-    return get_lm_f0tau(final_mass, final_spin, l, m, n=n, which='tau')
+    return get_lm_f0tau(final_mass, final_spin, l, m, n=n, which="tau")
 
 
 # The following are from Table VIII, IX, X of Berti et al.,
@@ -1503,14 +2049,14 @@ _berti_spin_constants = {
     (2, 1): (-0.3, 2.3561, -0.2277),
     (3, 3): (0.9, 2.343, -0.4810),
     (4, 4): (1.1929, 3.1191, -0.4825),
-    }
+}
 
 _berti_mass_constants = {
     (2, 2): (1.5251, -1.1568, 0.1292),
     (2, 1): (0.6, -0.2339, 0.4175),
     (3, 3): (1.8956, -1.3043, 0.1818),
     (4, 4): (2.3, -1.5056, 0.2244),
-    }
+}
 
 
 def final_spin_from_f0_tau(f0, tau, l=2, m=2):
@@ -1538,9 +2084,16 @@ def final_spin_from_f0_tau(f0, tau, l=2, m=2):
         and damping times give an unphysical result, ``numpy.nan`` will be
         returned.
     """
-    f0, tau, input_is_array = ensurearray(f0, tau)
     # from Berti et al. 2006
-    a, b, c = _berti_spin_constants[l,m]
+    a, b, c = _berti_spin_constants[l, m]
+    torch, values = _torch_values(f0, tau)
+    if torch is not None:
+        f0, tau = values
+        pi = torch.as_tensor(numpy.pi, dtype=f0.dtype, device=f0.device)
+        quality = f0 * tau * pi
+        return 1.0 - torch.pow((quality - a) / b, 1.0 / c)
+
+    f0, tau, input_is_array = ensurearray(f0, tau)
     origshape = f0.shape
     # flatten inputs for storing results
     f0 = f0.ravel()
@@ -1549,7 +2102,7 @@ def final_spin_from_f0_tau(f0, tau, l=2, m=2):
     for ii in range(spins.size):
         Q = f0[ii] * tau[ii] * numpy.pi
         try:
-            s = 1. - ((Q-a)/b)**(1./c)
+            s = 1.0 - ((Q - a) / b) ** (1.0 / c)
         except ValueError:
             s = numpy.nan
         spins[ii] = s
@@ -1584,9 +2137,18 @@ def final_mass_from_f0_tau(f0, tau, l=2, m=2):
         returned.
     """
     # from Berti et al. 2006
+    a, b, c = _berti_mass_constants[l, m]
+    torch, values = _torch_values(f0, tau)
+    if torch is not None:
+        f0, tau = values
+        spin = final_spin_from_f0_tau(f0, tau, l=l, m=m)
+        pi = torch.as_tensor(numpy.pi, dtype=f0.dtype, device=f0.device)
+        mtsun = torch.as_tensor(MTSUN_SI, dtype=f0.dtype, device=f0.device)
+        return (a + b * torch.pow(1.0 - spin, c)) / (2 * pi * f0 * mtsun)
+
     spin = final_spin_from_f0_tau(f0, tau, l=l, m=m)
-    a, b, c = _berti_mass_constants[l,m]
-    return (a + b*(1-spin)**c)/(2*numpy.pi*f0*MTSUN_SI)
+    return (a + b * (1 - spin) ** c) / (2 * numpy.pi * f0 * MTSUN_SI)
+
 
 def freqlmn_from_other_lmn(f0, tau, current_l, current_m, new_l, new_m):
     """Returns the QNM frequency (in Hz) of a chosen new (l,m) mode from the
@@ -1615,6 +2177,16 @@ def freqlmn_from_other_lmn(f0, tau, current_l, current_m, new_l, new_m):
         correspond to an unphysical Kerr black hole mass and/or spin,
         ``numpy.nan`` will be returned.
     """
+    torch, values = _torch_values(f0, tau)
+    if torch is not None:
+        f0, tau = values
+        mass = final_mass_from_f0_tau(f0, tau, l=current_l, m=current_m)
+        spin = final_spin_from_f0_tau(f0, tau, l=current_l, m=current_m)
+        nan = torch.full_like(mass, torch.nan)
+        mass = torch.where(mass < 0, nan, mass)
+        spin = torch.where(torch.abs(spin) > 0.9996, nan, spin)
+        return freq_from_final_mass_spin(mass, spin, l=new_l, m=new_m)
+
     mass = final_mass_from_f0_tau(f0, tau, l=current_l, m=current_m)
     spin = final_spin_from_f0_tau(f0, tau, l=current_l, m=current_m)
     mass, spin, input_is_array = ensurearray(mass, spin)
@@ -1653,6 +2225,16 @@ def taulmn_from_other_lmn(f0, tau, current_l, current_m, new_l, new_m):
         correspond to an unphysical Kerr black hole mass and/or spin,
         ``numpy.nan`` will be returned.
     """
+    torch, values = _torch_values(f0, tau)
+    if torch is not None:
+        f0, tau = values
+        mass = final_mass_from_f0_tau(f0, tau, l=current_l, m=current_m)
+        spin = final_spin_from_f0_tau(f0, tau, l=current_l, m=current_m)
+        nan = torch.full_like(mass, torch.nan)
+        mass = torch.where(mass < 0, nan, mass)
+        spin = torch.where(torch.abs(spin) > 0.9996, nan, spin)
+        return tau_from_final_mass_spin(mass, spin, l=new_l, m=new_m)
+
     mass = final_mass_from_f0_tau(f0, tau, l=current_l, m=current_m)
     spin = final_spin_from_f0_tau(f0, tau, l=current_l, m=current_m)
     mass, spin, input_is_array = ensurearray(mass, spin)
@@ -1663,9 +2245,19 @@ def taulmn_from_other_lmn(f0, tau, current_l, current_m, new_l, new_m):
     new_tau = tau_from_final_mass_spin(mass, spin, l=new_l, m=new_m)
     return formatreturn(new_tau, input_is_array)
 
-def get_final_from_initial(mass1, mass2, spin1x=0., spin1y=0., spin1z=0.,
-                           spin2x=0., spin2y=0., spin2z=0.,
-                           approximant='SEOBNRv4PHM', f_ref=-1):
+
+def get_final_from_initial(
+    mass1,
+    mass2,
+    spin1x=0.0,
+    spin1y=0.0,
+    spin1z=0.0,
+    spin2x=0.0,
+    spin2y=0.0,
+    spin2z=0.0,
+    approximant="SEOBNRv4PHM",
+    f_ref=-1,
+):
     """Estimates the final mass and spin from the given initial parameters.
 
     This uses the fits used by either the NRSur7dq4 or EOBNR models for
@@ -1724,40 +2316,58 @@ def get_final_from_initial(mass1, mass2, spin1x=0., spin1y=0., spin1z=0.,
         m2 = float(mass2[ii])
         spin1 = list(map(float, [spin1x[ii], spin1y[ii], spin1z[ii]]))
         spin2 = list(map(float, [spin2x[ii], spin2y[ii], spin2z[ii]]))
-        if approximant == 'NRSur7dq4':
+        if approximant == "NRSur7dq4":
             from lalsimulation import nrfits
+
             try:
-                res = nrfits.eval_nrfit(m1*MSUN_SI,
-                                        m2*MSUN_SI,
-                                        spin1, spin2, 'NRSur7dq4Remnant',
-                                        ['FinalMass', 'FinalSpin'],
-                                        f_ref=f_ref)
+                res = nrfits.eval_nrfit(
+                    m1 * MSUN_SI,
+                    m2 * MSUN_SI,
+                    spin1,
+                    spin2,
+                    "NRSur7dq4Remnant",
+                    ["FinalMass", "FinalSpin"],
+                    f_ref=f_ref,
+                )
             except RuntimeError:
                 continue
-            final_mass[ii] = res['FinalMass'][0] / MSUN_SI
-            sf = res['FinalSpin']
-            final_spin[ii] = (sf**2).sum()**0.5
+            final_mass[ii] = res["FinalMass"][0] / MSUN_SI
+            sf = res["FinalSpin"]
+            final_spin[ii] = (sf**2).sum() ** 0.5
             if sf[-1] < 0:
                 final_spin[ii] *= -1
-        elif approximant == 'SEOBNRv4':
+        elif approximant == "SEOBNRv4":
             _, fm, fs = lalsim.SimIMREOBFinalMassSpin(
-                m1, m2, spin1, spin2, getattr(lalsim, approximant))
+                m1, m2, spin1, spin2, getattr(lalsim, approximant)
+            )
             final_mass[ii] = fm * (m1 + m2)
             final_spin[ii] = fs
         else:
             _, fm, fs = lalsim.SimIMREOBFinalMassSpinPrec(
-                m1, m2, spin1, spin2, getattr(lalsim, approximant))
+                m1, m2, spin1, spin2, getattr(lalsim, approximant)
+            )
             final_mass[ii] = fm * (m1 + m2)
             final_spin[ii] = fs
     final_mass = final_mass.reshape(origshape)
     final_spin = final_spin.reshape(origshape)
-    return (formatreturn(final_mass, input_is_array),
-            formatreturn(final_spin, input_is_array))
+    return (
+        formatreturn(final_mass, input_is_array),
+        formatreturn(final_spin, input_is_array),
+    )
 
 
-def final_mass_from_initial(mass1, mass2, spin1x=0., spin1y=0., spin1z=0.,
-                            spin2x=0., spin2y=0., spin2z=0.,
-                            approximant='SEOBNRv4PHM', f_ref=-1):
+def final_mass_from_initial(
+    mass1,
+    mass2,
+    spin1x=0.0,
+    spin1y=0.0,
+    spin1z=0.0,
+    spin2x=0.0,
+    spin2y=0.0,
+    spin2z=0.0,
+    approximant="SEOBNRv4PHM",
+    f_ref=-1,
+):
     """Estimates the final mass from the given initial parameters.
 
     This uses the fits used by either the NRSur7dq4 or EOBNR models for
@@ -1800,14 +2410,32 @@ def final_mass_from_initial(mass1, mass2, spin1x=0., spin1y=0., spin1z=0.,
     float
         The final mass, in solar masses.
     """
-    return get_final_from_initial(mass1, mass2, spin1x, spin1y, spin1z,
-                                  spin2x, spin2y, spin2z, approximant,
-                                  f_ref=f_ref)[0]
+    return get_final_from_initial(
+        mass1,
+        mass2,
+        spin1x,
+        spin1y,
+        spin1z,
+        spin2x,
+        spin2y,
+        spin2z,
+        approximant,
+        f_ref=f_ref,
+    )[0]
 
 
-def final_spin_from_initial(mass1, mass2, spin1x=0., spin1y=0., spin1z=0.,
-                            spin2x=0., spin2y=0., spin2z=0.,
-                            approximant='SEOBNRv4PHM', f_ref=-1):
+def final_spin_from_initial(
+    mass1,
+    mass2,
+    spin1x=0.0,
+    spin1y=0.0,
+    spin1z=0.0,
+    spin2x=0.0,
+    spin2y=0.0,
+    spin2z=0.0,
+    approximant="SEOBNRv4PHM",
+    f_ref=-1,
+):
     """Estimates the final spin from the given initial parameters.
 
     This uses the fits used by either the NRSur7dq4 or EOBNR models for
@@ -1850,9 +2478,18 @@ def final_spin_from_initial(mass1, mass2, spin1x=0., spin1y=0., spin1z=0.,
     float
         The dimensionless final spin.
     """
-    return get_final_from_initial(mass1, mass2, spin1x, spin1y, spin1z,
-                                  spin2x, spin2y, spin2z, approximant,
-                                  f_ref=f_ref)[1]
+    return get_final_from_initial(
+        mass1,
+        mass2,
+        spin1x,
+        spin1y,
+        spin1z,
+        spin2x,
+        spin2y,
+        spin2z,
+        approximant,
+        f_ref=f_ref,
+    )[1]
 
 
 #
@@ -1863,8 +2500,9 @@ def final_spin_from_initial(mass1, mass2, spin1x=0., spin1y=0., spin1z=0.,
 # =============================================================================
 #
 
+
 def velocity_to_frequency(v, M):
-    """ Calculate the gravitational-wave frequency from the
+    """Calculate the gravitational-wave frequency from the
     total mass and invariant velocity.
 
     Parameters
@@ -1879,10 +2517,11 @@ def velocity_to_frequency(v, M):
     f : float
         Gravitational-wave frequency
     """
-    return v**(3.0) / (M * MTSUN_SI * PI)
+    return v ** (3.0) / (M * MTSUN_SI * PI)
+
 
 def frequency_to_velocity(f, M):
-    """ Calculate the invariant velocity from the total
+    """Calculate the invariant velocity from the total
     mass and gravitational-wave frequency.
 
     Parameters
@@ -1897,7 +2536,7 @@ def frequency_to_velocity(f, M):
     v : float or numpy.array
         Invariant velocity
     """
-    return (PI * M * MTSUN_SI * f)**(1.0/3.0)
+    return (PI * M * MTSUN_SI * f) ** (1.0 / 3.0)
 
 
 def f_schwarzchild_isco(M):
@@ -1915,7 +2554,7 @@ def f_schwarzchild_isco(M):
     f : float or numpy.array
         Frequency in Hz
     """
-    return velocity_to_frequency((1.0/6.0)**(0.5), M)
+    return velocity_to_frequency((1.0 / 6.0) ** (0.5), M)
 
 
 #
@@ -1925,6 +2564,7 @@ def f_schwarzchild_isco(M):
 #
 # ============================================================================
 #
+
 
 def nltides_coefs(amplitude, n, m1, m2):
     """Calculate the coefficents needed to compute the
@@ -1951,6 +2591,10 @@ def nltides_coefs(amplitude, n, m1, m2):
         The constant factor needed to compute phi(f)
     """
 
+    torch, values = _torch_values(amplitude, n, m1, m2)
+    if torch is not None:
+        amplitude, n, m1, m2 = values
+
     # Use 100.0 Hz as a reference frequency
     f_ref = 100.0
 
@@ -1959,11 +2603,10 @@ def nltides_coefs(amplitude, n, m1, m2):
     mc *= MSUN_SI
 
     # Calculate constants in phasing
-    a = (96./5.) * \
-        (G_SI * PI * mc * f_ref / C_SI**3.)**(5./3.)
-    b = 6. * amplitude
-    t_of_f_factor = -1./(PI*f_ref) * b/(a*a * (n-4.))
-    phi_of_f_factor = -2.*b / (a*a * (n-3.))
+    a = (96.0 / 5.0) * (G_SI * PI * mc * f_ref / C_SI**3.0) ** (5.0 / 3.0)
+    b = 6.0 * amplitude
+    t_of_f_factor = -1.0 / (PI * f_ref) * b / (a * a * (n - 4.0))
+    phi_of_f_factor = -2.0 * b / (a * a * (n - 3.0))
 
     return f_ref, t_of_f_factor, phi_of_f_factor
 
@@ -1994,18 +2637,26 @@ def nltides_gw_phase_difference(f, f0, amplitude, n, m1, m2):
     delta_phi: float or numpy.array
         Phase in radians
     """
+    torch, values = _torch_values(f, f0, amplitude, n, m1, m2)
+    if torch is not None:
+        f, f0, amplitude, n, m1, m2 = values
+        f_ref, _, phi_of_f_factor = nltides_coefs(amplitude, n, m1, m2)
+        active_frequency = torch.where(f <= f0, f0, f)
+        return -phi_of_f_factor * (active_frequency / f_ref) ** (n - 3.0)
+
     f, f0, amplitude, n, m1, m2, input_is_array = ensurearray(
-        f, f0, amplitude, n, m1, m2)
+        f, f0, amplitude, n, m1, m2
+    )
 
     delta_phi = numpy.zeros(m1.shape)
 
     f_ref, _, phi_of_f_factor = nltides_coefs(amplitude, n, m1, m2)
 
     mask = f <= f0
-    delta_phi[mask] = - phi_of_f_factor[mask] * (f0[mask]/f_ref)**(n[mask]-3.)
+    delta_phi[mask] = -phi_of_f_factor[mask] * (f0[mask] / f_ref) ** (n[mask] - 3.0)
 
     mask = f > f0
-    delta_phi[mask] = - phi_of_f_factor[mask] * (f[mask]/f_ref)**(n[mask]-3.)
+    delta_phi[mask] = -phi_of_f_factor[mask] * (f[mask] / f_ref) ** (n[mask] - 3.0)
 
     return formatreturn(delta_phi, input_is_array)
 
@@ -2036,64 +2687,109 @@ def nltides_gw_phase_diff_isco(f_low, f0, amplitude, n, m1, m2):
     delta_phi: float or numpy.array
         Phase in radians
     """
-    f0, amplitude, n, m1, m2, input_is_array = ensurearray(
-        f0, amplitude, n, m1, m2)
+    torch, values = _torch_values(f_low, f0, amplitude, n, m1, m2)
+    if torch is not None:
+        f_low, f0, amplitude, n, m1, m2 = values
+        phi_l = nltides_gw_phase_difference(f_low, f0, amplitude, n, m1, m2)
+        f_isco = f_schwarzchild_isco(m1 + m2)
+        phi_i = nltides_gw_phase_difference(f_isco, f0, amplitude, n, m1, m2)
+        return phi_i - phi_l
+
+    f0, amplitude, n, m1, m2, input_is_array = ensurearray(f0, amplitude, n, m1, m2)
 
     f_low = numpy.zeros(m1.shape) + f_low
 
-    phi_l = nltides_gw_phase_difference(
-                f_low, f0, amplitude, n, m1, m2)
+    phi_l = nltides_gw_phase_difference(f_low, f0, amplitude, n, m1, m2)
 
-    f_isco = f_schwarzchild_isco(m1+m2)
+    f_isco = f_schwarzchild_isco(m1 + m2)
 
-    phi_i = nltides_gw_phase_difference(
-                f_isco, f0, amplitude, n, m1, m2)
+    phi_i = nltides_gw_phase_difference(f_isco, f0, amplitude, n, m1, m2)
 
     return formatreturn(phi_i - phi_l, input_is_array)
 
 
-__all__ = ['eccmchirp_from_mchirp_eccentricity',
-           'mchirp_from_eccmchirp_eccentricity',
-           'eccmchirp_from_mass1_mass2_eccentricity',
-           'dquadmon_from_lambda', 'lambda_tilde',
-           'lambda_from_mass_tov_file', 'primary_mass',
-           'secondary_mass', 'mtotal_from_mass1_mass2',
-           'q_from_mass1_mass2', 'invq_from_mass1_mass2',
-           'eta_from_mass1_mass2', 'mchirp_from_mass1_mass2',
-           'mass1_from_mtotal_q', 'mass2_from_mtotal_q',
-           'mass1_from_mtotal_eta', 'mass2_from_mtotal_eta',
-           'mtotal_from_mchirp_eta', 'mass1_from_mchirp_eta',
-           'mass2_from_mchirp_eta', 'mass2_from_mchirp_mass1',
-           'mass_from_knownmass_eta', 'mass2_from_mass1_eta',
-           'mass1_from_mass2_eta', 'eta_from_q', 'mass1_from_mchirp_q',
-           'mass2_from_mchirp_q', 'tau0_from_mtotal_eta',
-           'tau3_from_mtotal_eta', 'tau0_from_mass1_mass2',
-           'tau0_from_mchirp', 'mchirp_from_tau0',
-           'tau3_from_mass1_mass2', 'mtotal_from_tau0_tau3',
-           'eta_from_tau0_tau3', 'mass1_from_tau0_tau3',
-           'mass2_from_tau0_tau3', 'primary_spin', 'secondary_spin',
-           'chi_eff', 'chi_a', 'chi_p', 'phi_a', 'phi_s',
-           'primary_xi', 'secondary_xi',
-           'xi1_from_spin1x_spin1y', 'xi2_from_mass1_mass2_spin2x_spin2y',
-           'chi_perp_from_spinx_spiny', 'chi_perp_from_mass1_mass2_xi2',
-           'chi_p_from_xi1_xi2', 'phi_from_spinx_spiny',
-           'phi1_from_phi_a_phi_s', 'phi2_from_phi_a_phi_s',
-           'spin1z_from_mass1_mass2_chi_eff_chi_a',
-           'spin2z_from_mass1_mass2_chi_eff_chi_a',
-           'spin1x_from_xi1_phi_a_phi_s', 'spin1y_from_xi1_phi_a_phi_s',
-           'spin2x_from_mass1_mass2_xi2_phi_a_phi_s',
-           'spin2y_from_mass1_mass2_xi2_phi_a_phi_s',
-           'chirp_distance', 'det_tc', 'snr_from_loglr',
-           'freq_from_final_mass_spin', 'tau_from_final_mass_spin',
-           'final_spin_from_f0_tau', 'final_mass_from_f0_tau',
-           'final_mass_from_initial', 'final_spin_from_initial',
-           'optimal_dec_from_detector', 'optimal_ra_from_detector',
-           'chi_eff_from_spherical', 'chi_p_from_spherical',
-           'nltides_gw_phase_diff_isco', 'spin_from_pulsar_freq',
-           'freqlmn_from_other_lmn', 'taulmn_from_other_lmn',
-           'remnant_mass_from_mass1_mass2_spherical_spin_eos',
-           'remnant_mass_from_mass1_mass2_cartesian_spin_eos',
-           'lambda1_from_delta_lambda_tilde_lambda_tilde',
-           'lambda2_from_delta_lambda_tilde_lambda_tilde',
-           'delta_lambda_tilde', 'hypertriangle'
-          ]
+__all__ = [
+    "eccmchirp_from_mchirp_eccentricity",
+    "mchirp_from_eccmchirp_eccentricity",
+    "eccmchirp_from_mass1_mass2_eccentricity",
+    "dquadmon_from_lambda",
+    "lambda_tilde",
+    "lambda_from_mass_tov_file",
+    "primary_mass",
+    "secondary_mass",
+    "mtotal_from_mass1_mass2",
+    "q_from_mass1_mass2",
+    "invq_from_mass1_mass2",
+    "eta_from_mass1_mass2",
+    "mchirp_from_mass1_mass2",
+    "mass1_from_mtotal_q",
+    "mass2_from_mtotal_q",
+    "mass1_from_mtotal_eta",
+    "mass2_from_mtotal_eta",
+    "mtotal_from_mchirp_eta",
+    "mass1_from_mchirp_eta",
+    "mass2_from_mchirp_eta",
+    "mass2_from_mchirp_mass1",
+    "mass_from_knownmass_eta",
+    "mass2_from_mass1_eta",
+    "mass1_from_mass2_eta",
+    "eta_from_q",
+    "mass1_from_mchirp_q",
+    "mass2_from_mchirp_q",
+    "tau0_from_mtotal_eta",
+    "tau3_from_mtotal_eta",
+    "tau0_from_mass1_mass2",
+    "tau0_from_mchirp",
+    "mchirp_from_tau0",
+    "tau3_from_mass1_mass2",
+    "mtotal_from_tau0_tau3",
+    "eta_from_tau0_tau3",
+    "mass1_from_tau0_tau3",
+    "mass2_from_tau0_tau3",
+    "primary_spin",
+    "secondary_spin",
+    "chi_eff",
+    "chi_a",
+    "chi_p",
+    "phi_a",
+    "phi_s",
+    "primary_xi",
+    "secondary_xi",
+    "xi1_from_spin1x_spin1y",
+    "xi2_from_mass1_mass2_spin2x_spin2y",
+    "chi_perp_from_spinx_spiny",
+    "chi_perp_from_mass1_mass2_xi2",
+    "chi_p_from_xi1_xi2",
+    "phi_from_spinx_spiny",
+    "phi1_from_phi_a_phi_s",
+    "phi2_from_phi_a_phi_s",
+    "spin1z_from_mass1_mass2_chi_eff_chi_a",
+    "spin2z_from_mass1_mass2_chi_eff_chi_a",
+    "spin1x_from_xi1_phi_a_phi_s",
+    "spin1y_from_xi1_phi_a_phi_s",
+    "spin2x_from_mass1_mass2_xi2_phi_a_phi_s",
+    "spin2y_from_mass1_mass2_xi2_phi_a_phi_s",
+    "chirp_distance",
+    "det_tc",
+    "snr_from_loglr",
+    "freq_from_final_mass_spin",
+    "tau_from_final_mass_spin",
+    "final_spin_from_f0_tau",
+    "final_mass_from_f0_tau",
+    "final_mass_from_initial",
+    "final_spin_from_initial",
+    "optimal_dec_from_detector",
+    "optimal_ra_from_detector",
+    "chi_eff_from_spherical",
+    "chi_p_from_spherical",
+    "nltides_gw_phase_diff_isco",
+    "spin_from_pulsar_freq",
+    "freqlmn_from_other_lmn",
+    "taulmn_from_other_lmn",
+    "remnant_mass_from_mass1_mass2_spherical_spin_eos",
+    "remnant_mass_from_mass1_mass2_cartesian_spin_eos",
+    "lambda1_from_delta_lambda_tilde_lambda_tilde",
+    "lambda2_from_delta_lambda_tilde_lambda_tilde",
+    "delta_lambda_tilde",
+    "hypertriangle",
+]

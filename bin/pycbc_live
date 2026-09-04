@@ -1123,16 +1123,7 @@ if evnt.rank == 0 and args.enable_gracedb_upload:
 # I'm not the root, so do some actual filtering.
 with ctx:
     try:
-        # Import system wisdom.
-        if args.fftw_import_system_wisdom:
-            fft.fftw.import_sys_wisdom()
-
-        # Read specified user-provided wisdom files
-        if args.fftw_input_float_wisdom_file is not None:
-            fft.fftw.import_single_wisdom_from_filename(args.fftw_input_float_wisdom_file)
-
-        if args.fftw_input_double_wisdom_file is not None:
-            fft.fftw.import_double_wisdom_from_filename(args.fftw_input_double_wisdom_file)
+        fft.import_wisdom_from_cli(args)
 
         if args.fftw_planning_limit:
             fft.fftw.set_planning_limit(args.fftw_planning_limit)
@@ -1459,11 +1450,7 @@ with ctx:
                 logging.error('I/O error writing status JSON file!')
 
 if evnt.rank == 1:
-    if args.fftw_output_float_wisdom_file:
-        fft.fftw.export_single_wisdom_to_filename(args.fftw_output_float_wisdom_file)
-
-    if args.fftw_output_double_wisdom_file:
-        fft.fftw.export_double_wisdom_to_filename(args.fftw_output_double_wisdom_file)
+    fft.export_wisdom_from_cli(args)
 
 if args.enable_profiling is not None and evnt.rank == args.enable_profiling:
     pr.dump_stats(f'profiling_rank_{evnt.rank:03d}')

@@ -26,11 +26,69 @@ This package provides a front-end to various fast Fourier transform
 implementations within PyCBC.
 """
 
-from .backend_support import get_backend_modules, get_backend_names
-from .backend_support import set_backend, get_backend
+from .backend_support import (
+    get_backend,
+    get_backend_modules,
+    get_backend_names,
+    set_backend,
+)
 
 # Next we add all of the machinery to set backends and their options
 # from the command line.
+
+
+def _load_fftw_for_wisdom():
+    """Import FFTW only when a caller requested wisdom I/O."""
+    from importlib import import_module
+
+    return import_module(".fftw", __package__)
+
+
+def _load_wisdom_cache():
+    """Import the lightweight automatic wisdom-cache coordinator."""
+    from importlib import import_module
+
+    return import_module(".wisdom_cache", __package__)
+
+
+def import_wisdom_from_cli(opt):
+    """Import the FFTW wisdom requested by parsed command-line options."""
+    wisdom_cache = _load_wisdom_cache()
+    wisdom_cache.configure_from_cli(opt)
+    system_wisdom = getattr(opt, "fftw_import_system_wisdom", False)
+    float_wisdom = getattr(opt, "fftw_input_float_wisdom_file", None)
+    double_wisdom = getattr(opt, "fftw_input_double_wisdom_file", None)
+
+    if not system_wisdom and float_wisdom is None and double_wisdom is None:
+        return
+
+    fftw = _load_fftw_for_wisdom()
+    if system_wisdom:
+        fftw.import_sys_wisdom()
+    if float_wisdom is not None:
+        fftw.import_single_wisdom_from_filename(float_wisdom)
+    if double_wisdom is not None:
+        fftw.import_double_wisdom_from_filename(double_wisdom)
+
+
+def export_wisdom_from_cli(opt):
+    """Export the FFTW wisdom requested by parsed command-line options."""
+    float_wisdom = getattr(opt, "fftw_output_float_wisdom_file", None)
+    double_wisdom = getattr(opt, "fftw_output_double_wisdom_file", None)
+
+    wisdom_cache = _load_wisdom_cache()
+    automatic_wisdom = wisdom_cache.has_pending_export()
+    if not float_wisdom and not double_wisdom and not automatic_wisdom:
+        return
+
+    fftw = _load_fftw_for_wisdom()
+    if float_wisdom:
+        fftw.export_single_wisdom_to_filename(float_wisdom)
+    if double_wisdom:
+        fftw.export_double_wisdom_to_filename(double_wisdom)
+    if automatic_wisdom:
+        wisdom_cache.export_pending(fftw)
+
 
 def insert_fft_option_group(parser):
     """
@@ -46,22 +104,28 @@ def insert_fft_option_group(parser):
     parser : object
         OptionParser instance
     """
-    fft_group = parser.add_argument_group("Options for selecting the"
-                                          " FFT backend and controlling its performance"
-                                          " in this program.")
+    fft_group = parser.add_argument_group(
+        "Options for selecting the"
+        " FFT backend and controlling its performance"
+        " in this program."
+    )
     # We have one argument to specify the backends.  This becomes the default list used
     # if none is specified for a particular call of fft() of ifft().  Note that this
     # argument expects a *list* of inputs, as indicated by the nargs='*'.
-    fft_group.add_argument("--fft-backends",
-                      help="Preference list of the FFT backends. "
-                           "Choices are: \n" + str(get_backend_names()),
-                      nargs='*', default=[])
+    fft_group.add_argument(
+        "--fft-backends",
+        help="Preference list of the FFT backends. "
+        "Choices are: \n" + str(get_backend_names()),
+        nargs="*",
+        default=[],
+    )
 
     for backend in get_backend_modules():
         try:
             backend.insert_fft_options(fft_group)
         except AttributeError:
             pass
+
 
 def verify_fft_options(opt, parser):
     """Parses the FFT options and verifies that they are
@@ -88,10 +152,12 @@ def verify_fft_options(opt, parser):
         except AttributeError:
             pass
 
+
 # The following function is the only one that is designed
 # only to work with the active scheme.  We'd like to fix that,
 # eventually, but it's non-trivial because of how poorly MKL
 # and FFTW cooperate.
+
 
 def from_cli(opt):
     """Parses the command line options and sets the FFT backend

@@ -34,6 +34,10 @@ from utils import parse_args_all_schemes, simple_exit
 
 _scheme, _context = parse_args_all_schemes("lal() method")
 
+# Torch backend does not expose direct LAL pointer conversion; skip gracefully.
+if _scheme == "torch":
+    simple_exit("lal() conversion not supported for torch scheme; skipping.")
+
 class TestUtils(unittest.TestCase):
     def setUp(self,*args):
         self.context = _context

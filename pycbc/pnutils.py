@@ -28,12 +28,11 @@ between quantities.
 """
 
 import logging
+
 import numpy
 
-from scipy.optimize import bisect, brentq, minimize
-
 from pycbc import conversions, libutils
-from pycbc.constants import MSUN_SI, PI, MTSUN_SI, PC_SI
+from pycbc.constants import MSUN_SI, MTSUN_SI, PC_SI, PI
 
 logger = logging.getLogger("pycbc.pnutils")
 
@@ -156,11 +155,18 @@ def tau0_tau3_to_mass1_mass2(tau0, tau3, f_lower):
 
 
 def mass1_mass2_spin1z_spin2z_to_beta_sigma_gamma(mass1, mass2, spin1z, spin2z):
+    torch, values = conversions._torch_values(mass1, mass2, spin1z, spin2z)
+    if torch is not None:
+        mass1, mass2, spin1z, spin2z = values
     _, eta = mass1_mass2_to_mtotal_eta(mass1, mass2)
     # get_beta_sigma_from_aligned_spins() takes
     # the spin of the heaviest body first
-    heavy_spin = numpy.where(mass2 <= mass1, spin1z, spin2z)
-    light_spin = numpy.where(mass2 > mass1, spin1z, spin2z)
+    if torch is None:
+        heavy_spin = numpy.where(mass2 <= mass1, spin1z, spin2z)
+        light_spin = numpy.where(mass2 > mass1, spin1z, spin2z)
+    else:
+        heavy_spin = torch.where(mass2 <= mass1, spin1z, spin2z)
+        light_spin = torch.where(mass2 > mass1, spin1z, spin2z)
     beta, sigma, gamma = get_beta_sigma_from_aligned_spins(eta, heavy_spin, light_spin)
     return beta, sigma, gamma
 
@@ -261,7 +267,12 @@ def f_BKLISCO(m1, m2):
         Frequency in Hz
     """
     # q is defined to be in [0,1] for this formula
-    q = numpy.minimum(m1 / m2, m2 / m1)
+    torch, values = conversions._torch_values(m1, m2)
+    if torch is None:
+        q = numpy.minimum(m1 / m2, m2 / m1)
+    else:
+        m1, m2 = values
+        q = torch.minimum(m1 / m2, m2 / m1)
     return f_SchwarzISCO(m1 + m2) * (1 + 2.8 * q - 2.6 * q * q + 0.8 * q * q * q)
 
 
@@ -777,6 +788,8 @@ def meco_velocity(m1, m2, chi1, chi2):
             )
         )
 
+    from scipy.optimize import bisect
+
     return bisect(eprime, 0.05, 1.0)
 
 
@@ -836,6 +849,8 @@ def _dtdv_cutoff_velocity(m1, m2, chi1, chi2):
         return v * v * x + 1.0
 
     if dtdv_func(1.0) < 0.0:
+        from scipy.optimize import bisect
+
         return bisect(dtdv_func, 0.05, 1.0)
     else:
         return 1.0
@@ -858,6 +873,10 @@ def energy_coefficients(m1, m2, s1z=0, s2z=0, phase_order=-1, spin_order=-1):
     qmdef1 = 1.0
     qmdef2 = 1.0
 
+    torch, values = conversions._torch_values(m1, m2, s1z, s2z)
+    if torch is not None:
+        m1, m2, s1z, s2z = values
+
     M = m1 + m2
     dm = (m1 - m2) / M
     m1M = m1 / M
@@ -868,20 +887,23 @@ def energy_coefficients(m1, m2, s1z=0, s2z=0, phase_order=-1, spin_order=-1):
 
     _, eta = mass1_mass2_to_mchirp_eta(m1, m2)
 
-    ecof = numpy.zeros(phase_order + 1)
+    if torch is None:
+        ecof = numpy.zeros(phase_order + 1)
+    else:
+        ecof = [torch.zeros_like(M) for _ in range(phase_order + 1)]
     # Orbital terms
     if phase_order >= 0:
-        ecof[0] = 1.0
+        ecof[0] = 1.0 if torch is None else torch.ones_like(M)
     if phase_order >= 1:
-        ecof[1] = 0
+        ecof[1] = 0 if torch is None else torch.zeros_like(M)
     if phase_order >= 2:
         ecof[2] = -(1.0 / 12.0) * (9.0 + eta)
     if phase_order >= 3:
-        ecof[3] = 0
+        ecof[3] = 0 if torch is None else torch.zeros_like(M)
     if phase_order >= 4:
         ecof[4] = (-81.0 + 57.0 * eta - eta * eta) / 24.0
     if phase_order >= 5:
-        ecof[5] = 0
+        ecof[5] = 0 if torch is None else torch.zeros_like(M)
     if phase_order >= 6:
         ecof[6] = (
             -675.0 / 64.0
@@ -931,15 +953,18 @@ def energy_coefficients(m1, m2, s1z=0, s2z=0, phase_order=-1, spin_order=-1):
     if spin_order >= 7:
         ecof[7] += ESO35s1 * s1z + ESO35s2 * s2z
 
-    return ecof
+    return ecof if torch is None else torch.stack(ecof)
 
 
 def energy(v, mass1, mass2, s1z=0, s2z=0, phase_order=-1, spin_order=-1):
+    torch, values = conversions._torch_values(v, mass1, mass2, s1z, s2z)
+    if torch is not None:
+        v, mass1, mass2, s1z, s2z = values
     ecof = energy_coefficients(mass1, mass2, s1z, s2z, phase_order, spin_order)
     _, eta = mass1_mass2_to_mchirp_eta(mass1, mass2)
     amp = -(1.0 / 2.0) * eta
     e = 0.0
-    for i in numpy.arange(0, len(ecof), 1):
+    for i in range(len(ecof)):
         e += v ** (i + 2.0) * ecof[i]
 
     return e * amp
@@ -954,6 +979,8 @@ def meco2(m1, m2, s1z=0, s2z=0, phase_order=-1, spin_order=-1):
             de += v ** (i + 1.0) * ecof[i] * (i + 2)
 
         return de
+
+    from scipy.optimize import bisect
 
     return bisect(test, 0.001, 1.0)
 
@@ -982,6 +1009,8 @@ def kerr_lightring(v, chi):
 
 def kerr_lightring_velocity(chi):
     """Return the velocity at the Kerr light ring"""
+    from scipy.optimize import brentq
+
     # If chi > 0.9996, the algorithm cannot solve the function
     if chi >= 0.9996:
         return brentq(kerr_lightring, 0, 0.8, args=(0.9996))
@@ -1012,14 +1041,23 @@ def hybridEnergy(v, m1, m2, chi1, chi2, qm1, qm2):
 
     Returns
     -------
-    h_E: float
+    h_E: float or torch.Tensor
         The hybrid energy as a function of v
     """
+    torch, values = conversions._torch_values(v, m1, m2, chi1, chi2, qm1, qm2)
+    if torch is not None:
+        v, m1, m2, chi1, chi2, qm1, qm2 = values
+        sqrt = torch.sqrt
+    else:
+        m1, m2 = float(m1), float(m2)
+        sqrt = numpy.sqrt
+
     pi_sq = numpy.pi**2
     v2, v3, v4, v5, v6, v7 = v**2, v**3, v**4, v**5, v**6, v**7
     chi1_sq, chi2_sq = chi1**2, chi2**2
-    m1, m2 = float(m1), float(m2)
-    M = float(m1 + m2)
+    M = m1 + m2
+    if torch is None:
+        M = float(M)
     M_2, M_4 = M**2, M**4
     eta = m1 * m2 / M_2
     eta2, eta3 = eta**2, eta**3
@@ -1027,7 +1065,7 @@ def hybridEnergy(v, m1, m2, chi1, chi2, qm1, qm2):
     m2_2, m2_4 = m2**2, m2**4
 
     chi = (chi1 * m1 + chi2 * m2) / M
-    Kerr = -1.0 + (1.0 - 2.0 * v2 * (1.0 - chi * v3) ** (1.0 / 3.0)) / numpy.sqrt(
+    Kerr = -1.0 + (1.0 - 2.0 * v2 * (1.0 - chi * v3) ** (1.0 / 3.0)) / sqrt(
         (1.0 - chi * v3) * (1.0 + chi * v3 - 3.0 * v2 * (1 - chi * v3) ** (1.0 / 3.0))
     )
 
@@ -1125,6 +1163,8 @@ def hybrid_meco_velocity(m1, m2, chi1, chi2, qm1=None, qm2=None):
     # Set bounds at 0.1 to skip v=0 and at the lightring velocity
     chi = (chi1 * m1 + chi2 * m2) / (m1 + m2)
     vmax = kerr_lightring_velocity(chi) - 0.01
+
+    from scipy.optimize import minimize
 
     return minimize(
         hybridEnergy, 0.2, args=(m1, m2, chi1, chi2, qm1, qm2), bounds=[(0.1, vmax)]
