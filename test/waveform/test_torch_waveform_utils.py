@@ -7,6 +7,10 @@ torch = pytest.importorskip("torch")
 
 from pycbc import scheme  # noqa: E402
 from pycbc.types import FrequencySeries, TimeSeries  # noqa: E402
+from pycbc.types.backend import (  # noqa: E402
+    backend_array,
+    wrap_backend_array,
+)
 from pycbc.waveform import utils  # noqa: E402
 
 
@@ -39,6 +43,19 @@ def test_scheme_cast_series_preserves_metadata(torch_cpu_ctx, series_type):
     else:
         assert actual.epoch == source.epoch
     assert getattr(actual, delta_name) == getattr(source, delta_name)
+
+
+@pytest.mark.parametrize("series_type", (TimeSeries, FrequencySeries))
+def test_scheme_cast_preserves_resident_autograd(torch_cpu_ctx, series_type):
+    delta_name = "delta_t" if series_type is TimeSeries else "delta_f"
+    samples = torch.arange(16, dtype=torch.float64, requires_grad=True)
+    with torch_cpu_ctx:
+        source = series_type(wrap_backend_array(samples), epoch=123,
+                             copy=False, **{delta_name: 0.25})
+        actual = utils.scheme_cast_series(source)
+        assert actual is source
+        gradient, = torch.autograd.grad(backend_array(actual).sum(), samples)
+    torch.testing.assert_close(gradient, torch.ones_like(samples))
 
 
 @pytest.mark.parametrize(
@@ -117,3 +134,26 @@ def test_fd_taper_matches_cpu(torch_cpu_ctx, side):
         actual = utils.fd_taper(torch_source, 2, 6, side=side)
 
     np.testing.assert_allclose(actual.numpy(), reference.numpy(), rtol=1e-14)
+
+
+@pytest.mark.parametrize("side", ("left", "right"))
+@pytest.mark.parametrize("series_type", (TimeSeries, FrequencySeries))
+def test_tapers_preserve_sample_gradients(torch_cpu_ctx, side, series_type):
+    delta_name = "delta_t" if series_type is TimeSeries else "delta_f"
+    epoch_name = "start_time" if series_type is TimeSeries else "epoch"
+    taper = utils.td_taper if series_type is TimeSeries else utils.fd_taper
+    options = {delta_name: 0.25, "epoch": 0.0}
+    reference = taper(series_type(np.ones(64), **options), 2, 6, side=side)
+    samples = torch.linspace(1.0, 2.0, 64, dtype=torch.float64,
+                             requires_grad=True)
+    with torch_cpu_ctx:
+        source = series_type(wrap_backend_array(samples), copy=False, **options)
+        actual = taper(source, 2, 6, side=side)
+        gradient, = torch.autograd.grad(backend_array(actual).sum(), samples)
+        assert backend_array(source) is samples
+        assert getattr(actual, epoch_name) == getattr(source, epoch_name)
+        assert getattr(actual, delta_name) == getattr(source, delta_name)
+    torch.testing.assert_close(gradient, torch.as_tensor(reference.numpy()),
+                               rtol=1e-14, atol=1e-14)
+    torch.testing.assert_close(samples.detach(),
+                               torch.linspace(1.0, 2.0, 64, dtype=torch.float64))

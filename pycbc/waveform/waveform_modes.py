@@ -22,6 +22,7 @@ import lal
 from pycbc import pnutils
 from pycbc import scheme as _scheme
 from pycbc.types import (TimeSeries, FrequencySeries)
+from pycbc.types.backend import backend_array, wrap_backend_array
 from pycbc.constants import MSUN_SI, PC_SI
 from .waveform import (
     _check_lal_pars,
@@ -80,9 +81,7 @@ def sum_modes(hlms, inclination, phi):
     """
     if hlms:
         first_hlm = next(iter(hlms.values()))
-        first_tensor = getattr(
-            getattr(first_hlm, "_data", None), "tensor", None
-        )
+        first_tensor = backend_array(first_hlm, "torch")
         if isinstance(first_hlm, FrequencySeries) and first_tensor is not None:
             modes = list(hlms.keys())
             if all(
@@ -93,7 +92,6 @@ def sum_modes(hlms, inclination, phi):
                 from ._spherical_harmonics_torch import (
                     selected_spin_minus_two_spherical_harmonics,
                 )
-                from pycbc.types.array_torch import TorchArrayData
 
                 dtype = first_tensor.real.dtype
                 device = first_tensor.device
@@ -102,11 +100,11 @@ def sum_modes(hlms, inclination, phi):
                 )
                 ylm_vector = torch.stack([ylm_dict[m] for m in modes])
                 hlm_matrix = torch.stack(
-                    [hlms[m]._data.tensor for m in modes], dim=0
+                    [backend_array(hlms[m], "torch") for m in modes], dim=0
                 )
                 res_tensor = torch.matmul(ylm_vector, hlm_matrix)
                 return FrequencySeries(
-                    TorchArrayData(res_tensor),
+                    wrap_backend_array(res_tensor),
                     delta_f=first_hlm.delta_f,
                     epoch=first_hlm.epoch,
                     copy=False,

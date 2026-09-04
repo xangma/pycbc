@@ -8,6 +8,10 @@ lal = pytest.importorskip("lal")
 
 from pycbc import scheme  # noqa: E402
 from pycbc.types import FrequencySeries  # noqa: E402
+from pycbc.types.backend import (  # noqa: E402
+    backend_array,
+    wrap_backend_array,
+)
 from pycbc.waveform import (  # noqa: E402
     filter_approximants,
     get_fd_waveform,
@@ -53,6 +57,36 @@ def test_sum_modes_matches_lal_path(torch_cpu_ctx):
     np.testing.assert_allclose(
         actual.numpy(), reference.numpy(), rtol=2e-13, atol=2e-13
     )
+
+
+def test_sum_modes_preserves_metadata_and_sample_gradients(torch_cpu_ctx):
+    inclination, phi = 0.7, -0.2
+    modes = ((2, 2), (3, -2), (4, 1))
+    samples = [torch.tensor([1.0 + 2.0j, 3.0 - 1.0j],
+                            dtype=torch.complex128, requires_grad=True)
+               for _ in modes]
+    with torch_cpu_ctx:
+        supplied = {
+            mode: FrequencySeries(wrap_backend_array(value), delta_f=0.25,
+                                  epoch=123, copy=False)
+            for mode, value in zip(modes, samples)
+        }
+        result = sum_modes(supplied, inclination, phi)
+        data = backend_array(result, "torch")
+        assert data.dtype == torch.complex128
+        assert data.device.type == "cpu"
+        assert result.delta_f == 0.25
+        assert result.epoch == 123
+        gradients = torch.autograd.grad(data.real.sum(), samples)
+
+    for mode, gradient in zip(modes, gradients):
+        harmonic = lal.SpinWeightedSphericalHarmonic(
+            inclination, phi, -2, *mode
+        )
+        torch.testing.assert_close(
+            gradient, torch.full_like(gradient, harmonic.conjugate()),
+            rtol=2e-13, atol=2e-13,
+        )
 
 
 def test_get_glm_remains_lal_compatible():

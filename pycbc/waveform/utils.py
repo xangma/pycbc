@@ -35,13 +35,9 @@ from pycbc.types import (
     TimeSeries, FrequencySeries, Array,
     complex_same_precision_as, real_same_precision_as
 )
+from pycbc.types.backend import backend_array, wrap_backend_array
 from pycbc.constants import PI
 import pycbc.scheme as _scheme
-
-
-def _is_torch_series(series):
-    """Return whether ``series`` has Torch-backed PyCBC storage."""
-    return hasattr(getattr(series, "_data", None), "tensor")
 
 
 def _torch_kaiser_window(data, length, beta):
@@ -80,13 +76,12 @@ def scheme_cast_series(series):
         return series
 
     import torch
-    from pycbc.types.array_torch import TorchArrayData
 
     target_device = _scheme.mgr.state.torch_device
     data = series
     copy = True
-    if hasattr(series._data, "tensor"):
-        tensor = series._data.tensor
+    tensor = backend_array(series, "torch")
+    if tensor is not None:
         same_device = (
             tensor.device.type == target_device.type
             and (
@@ -105,7 +100,7 @@ def scheme_cast_series(series):
             target_dtype = (
                 torch.complex64 if tensor.is_complex() else torch.float32
             )
-        data = TorchArrayData(
+        data = wrap_backend_array(
             tensor.to(device=target_device, dtype=target_dtype)
         )
         copy = False
@@ -116,7 +111,7 @@ def scheme_cast_series(series):
         target_dtype = (
             numpy.complex64 if series.kind == "complex" else numpy.float32
         )
-        host_data = series._data
+        host_data = backend_array(series)
         if hasattr(host_data, "get"):
             host_data = host_data.get()
         data = numpy.asarray(host_data, dtype=target_dtype)
@@ -479,8 +474,8 @@ def td_taper(out, start, end, beta=8, side='left'):
     winlen = 2 * int(width / out.delta_t)
     xmin = int((start - out.start_time) / out.delta_t)
     xmax = xmin + winlen//2
-    if _is_torch_series(out):
-        data = out._data.tensor
+    data = backend_array(out, "torch")
+    if data is not None:
         window = _torch_kaiser_window(data, winlen, beta)
         if side == 'left':
             data[xmin:xmax] *= window[:winlen//2]
@@ -538,8 +533,8 @@ def fd_taper(out, start, end, beta=8, side='left'):
     winlen = 2 * int(width / out.delta_f)
     kmin = int(start / out.delta_f)
     kmax = kmin + winlen//2
-    if _is_torch_series(out):
-        data = out._data.tensor
+    data = backend_array(out, "torch")
+    if data is not None:
         window = _torch_kaiser_window(data, winlen, beta)
         if side == 'left':
             data[kmin:kmax] *= window[:winlen//2]
