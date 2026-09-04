@@ -61,6 +61,7 @@ jobs:
               test/test_live_batch_torch_peaks.py::test_torch_batch_peak_and_threshold_gpu_unit
               test/test_live_batch_torch_peaks.py::test_live_batch_ondevice_peaks_integration
               test/test_torch_cuda_native_batch.py
+              test/test_torch_cpu_native_batch.py::test_native_batch_rechecks_inplace_tensor_metadata
               test/test_torch_filter_pipeline.py::test_live_batch_matched_filter_cuda_graphs_pipeline
               test/test_matched_filter_symm.py
               test/test_nltides_torch.py
