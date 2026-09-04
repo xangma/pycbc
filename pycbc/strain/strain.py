@@ -23,16 +23,8 @@ import numpy
 
 from scipy.signal import kaiserord
 import pycbc
-try:
-    import torch
-    from pycbc.types.array_torch import TorchArrayData
-    _HAVE_TORCH = pycbc.HAVE_TORCH
-except Exception:  # pragma: no cover
-    torch = None
-    TorchArrayData = None
-    _HAVE_TORCH = False
-
 import pycbc.types
+from pycbc.types.backend import backend_array, is_backend, wrap_backend_array
 from pycbc.types import TimeSeries, zeros
 from pycbc.types import Array, FrequencySeries
 from pycbc.types import MultiDetOptionAppendAction, MultiDetOptionAction
@@ -56,8 +48,9 @@ logger = logging.getLogger('pycbc.strain.strain')
 
 def _hann_window_for_series(series, length):
     """Create a NumPy-compatible Hann window beside ``series``."""
-    if _HAVE_TORCH and isinstance(series._data, TorchArrayData):
-        tensor = series._data.tensor
+    tensor = backend_array(series, "torch")
+    if tensor is not None:
+        import torch
         window = torch.hann_window(
             length,
             periodic=False,
@@ -66,14 +59,15 @@ def _hann_window_for_series(series, length):
         )
         if tensor.is_complex():
             window = window.to(dtype=tensor.dtype)
-        return Array(TorchArrayData(window), copy=False)
+        return Array(wrap_backend_array(window), copy=False)
     return Array(numpy.hanning(length), dtype=series.dtype)
 
 
 def _linear_tapers_for_series(series, length):
     """Create rising and falling linear tapers beside ``series``."""
-    if _HAVE_TORCH and isinstance(series._data, TorchArrayData):
-        tensor = series._data.tensor
+    tensor = backend_array(series, "torch")
+    if tensor is not None:
+        import torch
         dtype = tensor.real.dtype
         denominator = float(length) if length else 1.0
         rising = torch.arange(
@@ -84,8 +78,8 @@ def _linear_tapers_for_series(series, length):
             rising = rising.to(dtype=tensor.dtype)
             falling = falling.to(dtype=tensor.dtype)
         return (
-            Array(TorchArrayData(rising), copy=False),
-            Array(TorchArrayData(falling), copy=False),
+            Array(wrap_backend_array(rising), copy=False),
+            Array(wrap_backend_array(falling), copy=False),
         )
 
     rising = numpy.arange(length) / float(length if length else 1)
@@ -220,7 +214,7 @@ def detect_loud_glitches(strain, psd_duration=4., psd_stride=2.,
 
     # find peaks and their times
     cluster_samples = int(cluster_window * strain.sample_rate)
-    if _HAVE_TORCH and isinstance(mag._data, TorchArrayData):
+    if is_backend(mag, "torch"):
         indices, _ = pycbc.events.threshold_real_and_cluster_findchirp(
             mag, threshold, cluster_samples
         )
@@ -1934,14 +1928,15 @@ class StrainBuffer(pycbc.frame.DataBuffer):
             e = len(self.strain)
             s = int(e - buffer_length * self.sample_rate - self.reduced_pad * 2)
 
-            use_torch = pycbc.HAVE_TORCH and hasattr(self.strain._data, "tensor")
+            strain_tensor = backend_array(self.strain, "torch")
 
-            if use_torch:
-                tensor = self.strain._data.tensor[s:e]
+            if strain_tensor is not None:
+                import torch
+                tensor = strain_tensor[s:e]
                 # Match PyCBC's FFT convention: forward transforms include
                 # delta_t, while inverse transforms include 1 / delta_t.
                 fseries_tensor = torch.fft.rfft(tensor) * self.strain.delta_t
-                fseries = FrequencySeries(TorchArrayData(fseries_tensor),
+                fseries = FrequencySeries(wrap_backend_array(fseries_tensor),
                                           delta_f=delta_f,
                                           epoch=self.strain._epoch + s*self.strain.delta_t,
                                           copy=False)
@@ -1962,13 +1957,13 @@ class StrainBuffer(pycbc.frame.DataBuffer):
                     self.psds[delta_f] = psd
 
                 psd = self.psds[delta_f]
-                fseries_tensor = fseries_tensor / psd.psdt._data.tensor
+                fseries_tensor = fseries_tensor / backend_array(psd.psdt)
                 if self.reduced_pad != 0:
                     overwhite = (
                         torch.fft.irfft(fseries_tensor)
                         / self.strain.delta_t
                     )
-                    overwhite_ts = TimeSeries(TorchArrayData(overwhite),
+                    overwhite_ts = TimeSeries(wrap_backend_array(overwhite),
                                               delta_t=self.strain.delta_t,
                                               epoch=self.strain._epoch + s*self.strain.delta_t,
                                               copy=False)
@@ -1978,15 +1973,15 @@ class StrainBuffer(pycbc.frame.DataBuffer):
                                    (overwhite2.end_time, 0., taper_window)]
                     gate_data(overwhite2, gate_params)
                     fseries_tensor = (
-                        torch.fft.rfft(overwhite2._data.tensor)
+                        torch.fft.rfft(backend_array(overwhite2))
                         * overwhite2.delta_t
                     )
-                    fseries_trimmed = FrequencySeries(TorchArrayData(fseries_tensor),
+                    fseries_trimmed = FrequencySeries(wrap_backend_array(fseries_tensor),
                                                       delta_f=overwhite2.delta_f,
                                                       epoch=overwhite2.start_time,
                                                       copy=False)
                 else:
-                    fseries_trimmed = FrequencySeries(TorchArrayData(fseries_tensor),
+                    fseries_trimmed = FrequencySeries(wrap_backend_array(fseries_tensor),
                                                       delta_f=delta_f,
                                                       epoch=fseries.epoch,
                                                       copy=False)
