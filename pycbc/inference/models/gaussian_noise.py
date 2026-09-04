@@ -556,7 +556,12 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
         for value in (*self._data.values(), *full_params.values()):
             tensor = _torch_tensor(value)
             if tensor is not None:
-                return tensor.real.new_full((batch_size,), -numpy.inf)
+                import torch
+
+                dtype = tensor.real.dtype
+                if not dtype.is_floating_point:
+                    dtype = torch.get_default_dtype()
+                return tensor.new_full((batch_size,), -numpy.inf, dtype=dtype)
         return numpy.full(batch_size, -numpy.inf)
 
     def _batched_loglr(self, *args, **params):

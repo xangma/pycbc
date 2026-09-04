@@ -336,3 +336,25 @@ def test_real_batch_rejects_configured_transforms(real_model, attribute):
         model.ignore_failed_waveforms = True
         with pytest.raises(NotImplementedError, match="transforms"):
             model.batched_loglr(**params)
+
+
+def test_batch_failure_with_integer_tensor_angles(real_model, monkeypatch):
+    torch = pytest.importorskip("torch")
+    from pycbc.waveform import NoWaveformError
+
+    models, params, backend = real_model
+    if backend != "numpy":
+        pytest.skip("Exercises tensor parameters with host-backed data")
+    params = dict(params, ra=torch.tensor([0, 1]))
+
+    def fail(**_params):
+        raise NoWaveformError("waveform generation failed")
+
+    for model in models:
+        monkeypatch.setattr(model.waveform_generator.rframe_generator,
+                            "generate", fail)
+        actual = model.batched_loglr(**params)
+        assert actual.shape == (2,)
+        assert actual.dtype == torch.get_default_dtype()
+        assert actual.device == params["ra"].device
+        assert torch.isneginf(actual).all()
