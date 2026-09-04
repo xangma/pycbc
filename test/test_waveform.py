@@ -27,7 +27,8 @@ These are the unittests for the pycbc.waveform module
 import unittest
 import numpy
 from numpy import sqrt, cos, sin
-from pycbc.scheme import CPUScheme
+from pycbc.scheme import CUDAScheme
+from pycbc.filter import overlap
 from pycbc.waveform import get_td_waveform, get_fd_waveform, get_fd_waveform_sequence
 from utils import parse_args_all_schemes, simple_exit
 from pycbc.types import Array
@@ -65,7 +66,7 @@ class TestWaveform(unittest.TestCase):
     def test_spintaylorf2GPU(self):
 
         print(type(self.context))
-        if isinstance(self.context, CPUScheme):
+        if not isinstance(self.context, CUDAScheme):
             return
 
         fl = 25
