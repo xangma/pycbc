@@ -6,6 +6,36 @@ import textwrap
 import pytest
 
 
+def test_analytical_psd_without_lalsimulation():
+    code = textwrap.dedent(
+        """
+        import sys
+        import pytest
+
+        sys.modules["lalsimulation"] = None
+        from pycbc import scheme
+        from pycbc.psd import analytical
+
+        assert analytical.get_lalsim_psd_list() == []
+        with pytest.raises(ValueError, match="not found among analytical PSD"):
+            analytical.from_string("unknown_psd", 129, 1.0, 20.0)
+
+        if "aLIGOZeroDetHighPower" in analytical.get_torch_psd_list():
+            with pytest.raises(ImportError, match="requires lalsimulation"):
+                analytical.from_string("aLIGOZeroDetHighPower", 129, 1.0, 20.0)
+            with scheme.TorchScheme("cpu"):
+                psd = analytical.from_string("aLIGOZeroDetHighPower", 129, 1.0, 20.0)
+                assert len(psd) == 129
+                assert psd.delta_f == 1.0
+                assert psd[0] == 0
+                assert psd[20] > 0
+        """
+    )
+    env = os.environ.copy()
+    env["PYCBC_SCHEME"] = "cpu"
+    subprocess.run([sys.executable, "-c", code], env=env, check=True)
+
+
 @pytest.mark.parametrize("failure", ("ImportError", "OSError"))
 def test_pycbc_defers_broken_torch_import_until_scheme_construction(failure):
     """Base import detects Torch without loading its runtime."""
