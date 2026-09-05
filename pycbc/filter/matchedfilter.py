@@ -27,13 +27,13 @@ utilities.
 """
 
 import logging
+import os
 from math import sqrt
 
 import numpy
 
 import pycbc
 import pycbc.scheme
-from pycbc import events
 from pycbc.events import ranking
 from pycbc.fft import IFFT, fft, ifft
 from pycbc.types import (
@@ -41,11 +41,14 @@ from pycbc.types import (
     FrequencySeries,
     TimeSeries,
     complex_same_precision_as,
+    empty,
     real_same_precision_as,
     zeros,
 )
+from pycbc.types.backend import backend_array, wrap_backend_array
 
 logger = logging.getLogger("pycbc.filter.matchedfilter")
+
 
 BACKEND_PREFIX = "pycbc.filter.matchedfilter_"
 
@@ -73,10 +76,17 @@ class BatchCorrelator(object):
         # keep reference to arrays
         self.xs = xs
         self.zs = zs
+        self._xs = xs
+        self._zs = zs
+        self._epoch = 0
 
         # Store each pointer as in integer array
         self.x = Array([v.ptr for v in xs], dtype=int)
         self.z = Array([v.ptr for v in zs], dtype=int)
+
+    def mark_dirty(self):
+        """Invalidate cached validation state when buffer references change."""
+        self._epoch += 1
 
     @pycbc.scheme.schemed(BACKEND_PREFIX)
     def batch_correlate_execute(self, y):
@@ -209,6 +219,8 @@ class MatchedFilterControl(object):
             self.corr_mem = zeros(self.tlen, dtype=self.dtype)
 
             if use_cluster and (cluster_function == "symmetric"):
+                from pycbc import events
+
                 self.matched_filter_and_cluster = (
                     self.full_matched_filter_and_cluster_symm
                 )
@@ -309,11 +321,36 @@ class MatchedFilterControl(object):
             The snr values at the trigger locations.
         """
         norm = (4.0 * self.delta_f) / sqrt(template_norm)
+        thresh_val = self.snr_threshold / norm
+        clusterer = self.threshold_and_clusterers[segnum]
+
+        # Fast path: CUDA Graph replay if enabled/captured
+        use_cuda_graph = (
+            getattr(self, "_cuda_graph_enabled", False)
+            or os.environ.get("PYCBC_TORCH_CUDA_GRAPH", "0") == "1"
+        ) and (
+            hasattr(clusterer, "series") and getattr(clusterer.series, "is_cuda", False)
+        )
+        if use_cuda_graph:
+            from .matchedfilter_torch import replay_symmetric_cuda_graph
+
+            graph_result = replay_symmetric_cuda_graph(
+                self, segnum, window, template_norm, thresh_val
+            )
+            if graph_result is not None:
+                snrv, idx = graph_result
+                if len(idx) == 0:
+                    return [], [], [], [], []
+                logger.info("%d points above threshold", len(idx))
+                snr = TimeSeries(
+                    self.snr_mem, epoch=epoch, delta_t=self.delta_t, copy=False
+                )
+                corr = FrequencySeries(self.corr_mem, delta_f=self.delta_f, copy=False)
+                return snr, norm, corr, idx, snrv
+
         self.correlators[segnum].correlate()
         self.ifft.execute()
-        snrv, idx = self.threshold_and_clusterers[segnum].threshold_and_cluster(
-            self.snr_threshold / norm, window
-        )
+        snrv, idx = clusterer.threshold_and_cluster(thresh_val, window)
 
         if len(idx) == 0:
             return [], [], [], [], []
@@ -323,6 +360,17 @@ class MatchedFilterControl(object):
         snr = TimeSeries(self.snr_mem, epoch=epoch, delta_t=self.delta_t, copy=False)
         corr = FrequencySeries(self.corr_mem, delta_f=self.delta_f, copy=False)
         return snr, norm, corr, idx, snrv
+
+    def capture_cuda_graph_symm(self, segnum, window, template_norm=1.0):
+        """Ask the Torch backend to pre-record symmetric filtering."""
+        clusterer = self.threshold_and_clusterers[segnum]
+        if not (
+            hasattr(clusterer, "series") and getattr(clusterer.series, "is_cuda", False)
+        ):
+            return False
+        from .matchedfilter_torch import capture_symmetric_cuda_graph
+
+        return capture_symmetric_cuda_graph(self, segnum, window, template_norm)
 
     def full_matched_filter_and_cluster_fc(
         self, segnum, template_norm, window, epoch=None
@@ -360,10 +408,13 @@ class MatchedFilterControl(object):
         norm = (4.0 * self.delta_f) / sqrt(template_norm)
         self.correlators[segnum].correlate()
         self.ifft.execute()
-        idx, snrv = events.threshold(
-            self.snr_mem[self.segments[segnum].analyze], self.snr_threshold / norm
+        from pycbc import events
+
+        idx, snrv = events.threshold_and_cluster_findchirp(
+            self.snr_mem[self.segments[segnum].analyze],
+            self.snr_threshold / norm,
+            window,
         )
-        idx, snrv = events.cluster_reduce(idx, snrv, window)
 
         if len(idx) == 0:
             return [], [], [], [], []
@@ -411,6 +462,8 @@ class MatchedFilterControl(object):
         norm = (4.0 * self.delta_f) / sqrt(template_norm)
         self.correlators[segnum].correlate()
         self.ifft.execute()
+        from pycbc import events
+
         idx, snrv = events.threshold_only(
             self.snr_mem[self.segments[segnum].analyze], self.snr_threshold / norm
         )
@@ -471,16 +524,16 @@ class MatchedFilterControl(object):
                 stilde.analyze.stop / self.downsample_factor,
             )
 
-        idx_red, snrv_red = events.threshold(
+        from pycbc import events
+
+        idx_red, _ = events.threshold_and_cluster_findchirp(
             self.snr_mem[stilde.red_analyze],
             self.snr_threshold / norm * self.upsample_threshold,
+            window / self.downsample_factor,
         )
         if len(idx_red) == 0:
             return [], None, [], [], []
 
-        idx_red, _ = events.cluster_reduce(
-            idx_red, snrv_red, window / self.downsample_factor
-        )
         logger.info("%d points above threshold at reduced resolution", len(idx_red))
 
         # The fancy upsampling is here
@@ -538,6 +591,75 @@ class MatchedFilterControl(object):
             raise ValueError("Invalid upsample method")
 
 
+def _torch_data_tensor(value):
+    """Return the tensor backing a Torch PyCBC array, if present."""
+    return backend_array(value, "torch")
+
+
+def _array_from_torch_tensor(tensor):
+    """Wrap a result tensor like a PyCBC array without copying it."""
+    return Array(wrap_backend_array(tensor), copy=False)
+
+
+def _sky_max_threshold_locations(hplus, hcross, hpnorm, hcnorm, thresh, analyse_slice):
+    """Find candidate locations for either sky-max statistic."""
+    hplus_tensor = _torch_data_tensor(hplus)
+    hcross_tensor = _torch_data_tensor(hcross)
+    if hplus_tensor is not None and hcross_tensor is not None:
+        import torch
+
+        start = analyse_slice.start
+        hp_analyse = hplus_tensor[analyse_slice]
+        hc_analyse = hcross_tensor[analyse_slice]
+        hp_thresh = torch.as_tensor(
+            thresh / (2**0.5 * hpnorm),
+            device=hp_analyse.device,
+            dtype=hp_analyse.real.dtype,
+        )
+        hc_thresh = torch.as_tensor(
+            thresh / (2**0.5 * hcnorm),
+            device=hc_analyse.device,
+            dtype=hc_analyse.real.dtype,
+        )
+        if hp_analyse.is_complex():
+            hp_sq = torch.view_as_real(hp_analyse).square().sum(dim=-1)
+        else:
+            hp_sq = hp_analyse.square()
+        if hc_analyse.is_complex():
+            hc_sq = torch.view_as_real(hc_analyse).square().sum(dim=-1)
+        else:
+            hc_sq = hc_analyse.square()
+        mask = (hp_sq > hp_thresh.square()) | (hc_sq > hc_thresh.square())
+        indices = torch.nonzero(mask, as_tuple=False).flatten() + start
+        hp_red = hplus_tensor[indices] * hpnorm
+        hc_red = hcross_tensor[indices] * hcnorm
+        if hp_red.is_complex():
+            stat = torch.view_as_real(hp_red).square().sum(dim=-1) + torch.view_as_real(
+                hc_red
+            ).square().sum(dim=-1)
+        else:
+            stat = hp_red.square() + hc_red.square()
+        return indices[stat > thresh * thresh]
+
+    from pycbc import events
+
+    idx_p, _ = events.threshold_only(hplus[analyse_slice], thresh / (2**0.5 * hpnorm))
+    # The CPU threshold backend returns a view into reusable scratch storage.
+    # Offset it immediately so the hcross call cannot overwrite these indices.
+    idx_p = idx_p + analyse_slice.start
+    idx_c, _ = events.threshold_only(hcross[analyse_slice], thresh / (2**0.5 * hcnorm))
+    idx_c = idx_c + analyse_slice.start
+
+    def _locations(indices):
+        hp_red = hplus[indices] * hpnorm
+        hc_red = hcross[indices] * hcnorm
+        stat = hp_red.real**2 + hp_red.imag**2 + hc_red.real**2 + hc_red.imag**2
+        keep = stat > thresh * thresh
+        return indices[keep]
+
+    return numpy.unique(numpy.concatenate((_locations(idx_p), _locations(idx_c))))
+
+
 def compute_max_snr_over_sky_loc_stat(
     hplus,
     hcross,
@@ -592,7 +714,10 @@ def compute_max_snr_over_sky_loc_stat(
     # Cythonized.
 
     if out is None:
-        out = zeros(len(hplus))
+        if _torch_data_tensor(hplus) is not None:
+            out = zeros(len(hplus), dtype=real_same_precision_as(hplus))
+        else:
+            out = zeros(len(hplus))
         out.non_zero_locs = numpy.array([], dtype=out.dtype)
     else:
         if not hasattr(out, "non_zero_locs"):
@@ -608,23 +733,9 @@ def compute_max_snr_over_sky_loc_stat(
     if thresh:
         # This is the statistic that always overestimates the SNR...
         # It allows some unphysical freedom that the full statistic does not
-        idx_p, _ = events.threshold_only(
-            hplus[analyse_slice], thresh / (2**0.5 * hpnorm)
+        locs = _sky_max_threshold_locations(
+            hplus, hcross, hpnorm, hcnorm, thresh, analyse_slice
         )
-        idx_c, _ = events.threshold_only(
-            hcross[analyse_slice], thresh / (2**0.5 * hcnorm)
-        )
-        idx_p = idx_p + analyse_slice.start
-        idx_c = idx_c + analyse_slice.start
-        hp_red = hplus[idx_p] * hpnorm
-        hc_red = hcross[idx_p] * hcnorm
-        stat_p = hp_red.real**2 + hp_red.imag**2 + hc_red.real**2 + hc_red.imag**2
-        locs_p = idx_p[stat_p > (thresh * thresh)]
-        hp_red = hplus[idx_c] * hpnorm
-        hc_red = hcross[idx_c] * hcnorm
-        stat_c = hp_red.real**2 + hp_red.imag**2 + hc_red.real**2 + hc_red.imag**2
-        locs_c = idx_c[stat_c > (thresh * thresh)]
-        locs = numpy.unique(numpy.concatenate((locs_p, locs_c)))
 
         hplus = hplus[locs]
         hcross = hcross[locs]
@@ -654,15 +765,32 @@ def compute_max_snr_over_sky_loc_stat(
     assert len(hplus) == len(hcross)
 
     # Now the stuff where comp. cost may be a problem
-    hplus_magsq = numpy.real(hplus) * numpy.real(hplus) + numpy.imag(
-        hplus
-    ) * numpy.imag(hplus)
-    hcross_magsq = numpy.real(hcross) * numpy.real(hcross) + numpy.imag(
-        hcross
-    ) * numpy.imag(hcross)
-    rho_pluscross = numpy.real(hplus) * numpy.real(hcross) + numpy.imag(
-        hplus
-    ) * numpy.imag(hcross)
+    hplus_tensor = _torch_data_tensor(hplus)
+    hcross_tensor = _torch_data_tensor(hcross)
+    if hplus_tensor is not None and hcross_tensor is not None:
+        import torch
+
+        hplus_real = hplus_tensor.real
+        hplus_imag = hplus_tensor.imag
+        hcross_real = hcross_tensor.real
+        hcross_imag = hcross_tensor.imag
+        if hplus_tensor.is_complex():
+            hplus_magsq = torch.view_as_real(hplus_tensor).square().sum(dim=-1)
+            hcross_magsq = torch.view_as_real(hcross_tensor).square().sum(dim=-1)
+        else:
+            hplus_magsq = hplus_tensor.square()
+            hcross_magsq = hcross_tensor.square()
+        rho_pluscross = hplus_real * hcross_real + hplus_imag * hcross_imag
+    else:
+        hplus_magsq = numpy.real(hplus) * numpy.real(hplus) + numpy.imag(
+            hplus
+        ) * numpy.imag(hplus)
+        hcross_magsq = numpy.real(hcross) * numpy.real(hcross) + numpy.imag(
+            hcross
+        ) * numpy.imag(hcross)
+        rho_pluscross = numpy.real(hplus) * numpy.real(hcross) + numpy.imag(
+            hplus
+        ) * numpy.imag(hcross)
 
     sqroot = (hplus_magsq - hcross_magsq) ** 2
     sqroot += (
@@ -671,26 +799,49 @@ def compute_max_snr_over_sky_loc_stat(
         * (hphccorr * hcross_magsq - rho_pluscross)
     )
     # Sometimes this can be less than 0 due to numeric imprecision, catch this.
-    if (sqroot < 0).any():
-        indices = numpy.arange(len(sqroot))[sqroot < 0]
-        # This should not be *much* smaller than 0 due to numeric imprecision
-        if (sqroot[indices] < -0.0001).any():
+    if hplus_tensor is not None:
+        # This should not be much smaller than zero due to numeric imprecision.
+        if torch.any(sqroot < -0.0001).item():
             err_msg = "Square root has become negative. Something wrong here!"
             raise ValueError(err_msg)
-        sqroot[indices] = 0
-    sqroot = numpy.sqrt(sqroot)
+        sqroot = torch.clamp_min(sqroot, 0)
+        sqroot = torch.sqrt(sqroot)
+    else:
+        if (sqroot < 0).any():
+            indices = numpy.arange(len(sqroot))[sqroot < 0]
+            # This should not be *much* smaller than 0 due to numeric imprecision
+            if (sqroot[indices] < -0.0001).any():
+                err_msg = "Square root has become negative. Something wrong here!"
+                raise ValueError(err_msg)
+            sqroot[indices] = 0
+        sqroot = numpy.sqrt(sqroot)
     det_stat_sq = (
         0.5
         * (hplus_magsq + hcross_magsq - 2 * rho_pluscross * hphccorr + sqroot)
         / denom
     )
 
-    det_stat = numpy.sqrt(det_stat_sq)
+    if hplus_tensor is not None:
+        det_stat = torch.sqrt(det_stat_sq)
+    else:
+        det_stat = numpy.sqrt(det_stat_sq)
 
     if thresh:
-        out.data[locs] = det_stat
+        out_tensor = _torch_data_tensor(out)
+        if out_tensor is not None:
+            if isinstance(locs, torch.Tensor):
+                locs_tensor = locs.to(device=out_tensor.device)
+            else:
+                locs_tensor = torch.as_tensor(
+                    locs, device=out_tensor.device, dtype=torch.long
+                )
+            out_tensor[locs_tensor] = det_stat.to(dtype=out_tensor.dtype)
+        else:
+            out.data[locs] = det_stat
         out.non_zero_locs = locs
         return out
+    elif hplus_tensor is not None:
+        return _array_from_torch_tensor(det_stat)
     else:
         return Array(det_stat, copy=False)
 
@@ -701,6 +852,8 @@ def compute_u_val_for_sky_loc_stat(
     """The max-over-sky location detection statistic maximizes over a phase,
     an amplitude and the ratio of F+ and Fx, encoded in a variable called u.
     Here we return the value of u for the given indices.
+
+    Torch-backed inputs return device-resident PyCBC arrays.
     """
     if indices is not None:
         hplus = hplus[indices]
@@ -710,6 +863,35 @@ def compute_u_val_for_sky_loc_stat(
         hplus = hplus * hpnorm
     if hcnorm is not None:
         hcross = hcross * hcnorm
+
+    hplus_tensor = _torch_data_tensor(hplus)
+    hcross_tensor = _torch_data_tensor(hcross)
+    if hplus_tensor is not None and hcross_tensor is not None:
+        import torch
+
+        hplus_magsq = hplus_tensor.real.square() + hplus_tensor.imag.square()
+        hcross_magsq = hcross_tensor.real.square() + hcross_tensor.imag.square()
+        rho_pluscross = (
+            hplus_tensor.real * hcross_tensor.real
+            + hplus_tensor.imag * hcross_tensor.imag
+        )
+
+        a = hphccorr * hplus_magsq - rho_pluscross
+        b = hplus_magsq - hcross_magsq
+        c = rho_pluscross - hphccorr * hcross_magsq
+        sq_root = -torch.sqrt(b * b - 4 * a * c)
+        bad_lgc = a == 0
+        dbl_bad_lgc = bad_lgc & (c == 0) & (b == 0)
+        u = torch.zeros_like(sq_root)
+        u[dbl_bad_lgc] = 1
+        u[bad_lgc & ~dbl_bad_lgc] = 1e17
+        normal = ~bad_lgc
+        u[normal] = (-b[normal] + sq_root[normal]) / (2 * a[normal])
+        coa_phase = torch.angle(hplus_tensor * u + hcross_tensor)
+        return (
+            _array_from_torch_tensor(u),
+            _array_from_torch_tensor(coa_phase),
+        )
 
     # Sanity checking in func. above should already have identified any points
     # which are bad, and should be used to construct indices for input here
@@ -808,7 +990,10 @@ def compute_max_snr_over_sky_loc_stat_no_phase(
     # Cythonized.
 
     if out is None:
-        out = zeros(len(hplus))
+        if _torch_data_tensor(hplus) is not None:
+            out = zeros(len(hplus), dtype=real_same_precision_as(hplus))
+        else:
+            out = zeros(len(hplus))
         out.non_zero_locs = numpy.array([], dtype=out.dtype)
     else:
         if not hasattr(out, "non_zero_locs"):
@@ -828,23 +1013,9 @@ def compute_max_snr_over_sky_loc_stat_no_phase(
         # For now this is copied from the max-over-phase statistic. One could
         # probably make this faster by removing the imaginary components of
         # the matched filter, as these are not used here.
-        idx_p, _ = events.threshold_only(
-            hplus[analyse_slice], thresh / (2**0.5 * hpnorm)
+        locs = _sky_max_threshold_locations(
+            hplus, hcross, hpnorm, hcnorm, thresh, analyse_slice
         )
-        idx_c, _ = events.threshold_only(
-            hcross[analyse_slice], thresh / (2**0.5 * hcnorm)
-        )
-        idx_p = idx_p + analyse_slice.start
-        idx_c = idx_c + analyse_slice.start
-        hp_red = hplus[idx_p] * hpnorm
-        hc_red = hcross[idx_p] * hcnorm
-        stat_p = hp_red.real**2 + hp_red.imag**2 + hc_red.real**2 + hc_red.imag**2
-        locs_p = idx_p[stat_p > (thresh * thresh)]
-        hp_red = hplus[idx_c] * hpnorm
-        hc_red = hcross[idx_c] * hcnorm
-        stat_c = hp_red.real**2 + hp_red.imag**2 + hc_red.real**2 + hc_red.imag**2
-        locs_c = idx_c[stat_c > (thresh * thresh)]
-        locs = numpy.unique(numpy.concatenate((locs_p, locs_c)))
 
         hplus = hplus[locs]
         hcross = hcross[locs]
@@ -874,18 +1045,42 @@ def compute_max_snr_over_sky_loc_stat_no_phase(
     assert len(hplus) == len(hcross)
 
     # Now the stuff where comp. cost may be a problem
-    hplus_magsq = numpy.real(hplus) * numpy.real(hplus)
-    hcross_magsq = numpy.real(hcross) * numpy.real(hcross)
-    rho_pluscross = numpy.real(hplus) * numpy.real(hcross)
+    hplus_tensor = _torch_data_tensor(hplus)
+    hcross_tensor = _torch_data_tensor(hcross)
+    if hplus_tensor is not None and hcross_tensor is not None:
+        import torch
+
+        hplus_magsq = hplus_tensor.real.square()
+        hcross_magsq = hcross_tensor.real.square()
+        rho_pluscross = hplus_tensor.real * hcross_tensor.real
+    else:
+        hplus_magsq = numpy.real(hplus) * numpy.real(hplus)
+        hcross_magsq = numpy.real(hcross) * numpy.real(hcross)
+        rho_pluscross = numpy.real(hplus) * numpy.real(hcross)
 
     det_stat_sq = hplus_magsq + hcross_magsq - 2 * rho_pluscross * hphccorr
 
-    det_stat = numpy.sqrt(det_stat_sq / denom)
+    if hplus_tensor is not None:
+        det_stat = torch.sqrt(det_stat_sq / denom)
+    else:
+        det_stat = numpy.sqrt(det_stat_sq / denom)
 
     if thresh:
-        out.data[locs] = det_stat
+        out_tensor = _torch_data_tensor(out)
+        if out_tensor is not None:
+            if isinstance(locs, torch.Tensor):
+                locs_tensor = locs.to(device=out_tensor.device)
+            else:
+                locs_tensor = torch.as_tensor(
+                    locs, device=out_tensor.device, dtype=torch.long
+                )
+            out_tensor[locs_tensor] = det_stat.to(dtype=out_tensor.dtype)
+        else:
+            out.data[locs] = det_stat
         out.non_zero_locs = locs
         return out
+    elif hplus_tensor is not None:
+        return _array_from_torch_tensor(det_stat)
     else:
         return Array(det_stat, copy=False)
 
@@ -897,7 +1092,7 @@ def compute_u_val_for_sky_loc_stat_no_phase(
     an amplitude and the ratio of F+ and Fx, encoded in a variable called u.
     Here we return the value of u for the given indices.
 
-
+    Torch-backed inputs return device-resident PyCBC arrays.
     """
     if indices is not None:
         hplus = hplus[indices]
@@ -907,6 +1102,25 @@ def compute_u_val_for_sky_loc_stat_no_phase(
         hplus = hplus * hpnorm
     if hcnorm is not None:
         hcross = hcross * hcnorm
+
+    hplus_tensor = _torch_data_tensor(hplus)
+    hcross_tensor = _torch_data_tensor(hcross)
+    if hplus_tensor is not None and hcross_tensor is not None:
+        import torch
+
+        rhoplusre = hplus_tensor.real
+        rhocrossre = hcross_tensor.real
+        denom = -rhocrossre + hphccorr * rhoplusre
+        u_val = torch.where(
+            denom == 0,
+            torch.full_like(denom, 1e17),
+            (-rhoplusre + hphccorr * rhocrossre) / denom,
+        )
+        coa_phase = torch.zeros(len(u_val), dtype=torch.float32, device=u_val.device)
+        return (
+            _array_from_torch_tensor(u_val),
+            _array_from_torch_tensor(coa_phase),
+        )
 
     rhoplusre = numpy.real(hplus)
     rhocrossre = numpy.real(hcross)
@@ -1065,13 +1279,16 @@ class MatchedFilterSkyMaxControl(object):
 
         snr = TimeSeries(snr, epoch=stilde.start_time, delta_t=delta_t, copy=False)
 
-        idx, snrv = events.threshold_real_numpy(snr[stilde.analyze], self.snr_threshold)
+        from pycbc import events
+
+        idx, snrv = events.threshold_real_and_cluster_findchirp(
+            snr[stilde.analyze], self.snr_threshold, window
+        )
 
         if len(idx) == 0:
             return [], 0, 0, [], [], [], [], 0, 0, 0
         logger.info("%d points above threshold", len(idx))
 
-        idx, snrv = events.cluster_reduce(idx, snrv, window)
         logger.info("%d clustered points", len(idx))
         # erased self.
         u_vals, coa_phase = self._maximized_extrinsic_params(
@@ -1139,8 +1356,9 @@ def make_frequency_series(vec):
         N = len(vec)
         n = N // 2 + 1
         delta_f = 1.0 / N / vec.delta_t
+        # The FFT backend overwrites every output element.
         vectilde = FrequencySeries(
-            zeros(n, dtype=complex_same_precision_as(vec)), delta_f=delta_f, copy=False
+            empty(n, dtype=complex_same_precision_as(vec)), delta_f=delta_f, copy=False
         )
         fft(vec, vectilde)
         return vectilde
@@ -1230,7 +1448,7 @@ def sigmasq(htilde, psd=None, low_frequency_cutoff=None, high_frequency_cutoff=N
         try:
             numpy.testing.assert_almost_equal(ht.delta_f, psd.delta_f)
         except AssertionError:
-            raise ValueError("Waveform does not have same delta_f as psd")
+            raise ValueError("Waveform does not have same delta_f as psd") from None
 
     if psd is None:
         sq = ht.inner(ht)
@@ -1376,7 +1594,8 @@ def matched_filter_core(
         qtilde = zeros(N, dtype=complex_same_precision_as(data))
 
     if out is None:
-        _q = zeros(N, dtype=complex_same_precision_as(data))
+        # The inverse FFT backend overwrites every output element.
+        _q = empty(N, dtype=complex_same_precision_as(data))
     elif (len(out) == N) and type(out) is Array and out.kind == "complex":
         _q = out
     else:
@@ -1485,6 +1704,7 @@ def matched_filter(
 
 
 _snr = None
+_snr_scheme_key = None
 
 
 def match(
@@ -1549,9 +1769,16 @@ def match(
 
     N = (len(htilde) - 1) * 2
 
-    global _snr
-    if _snr is None or _snr.dtype != htilde.dtype or len(_snr) != N:
+    global _snr, _snr_scheme_key
+    scheme_key = pycbc.scheme.current_backend_key()
+    if (
+        _snr is None
+        or _snr.dtype != htilde.dtype
+        or len(_snr) != N
+        or _snr_scheme_key != scheme_key
+    ):
         _snr = zeros(N, dtype=complex_same_precision_as(vec1))
+        _snr_scheme_key = scheme_key
     snr, _, snr_norm = matched_filter_core(
         htilde,
         stilde,
@@ -1711,6 +1938,10 @@ def quadratic_interpolate_peak(left, middle, right):
     bin_offset = 1.0 / 2.0 * (left - right) / (left - 2 * middle + right)
     peak_value = middle - 0.25 * (left - right) * bin_offset
     return bin_offset, peak_value
+
+
+# Minimum templates threshold is disabled (0) so all batch sizes use the fast
+# vectorized magnitude reduction path.
 
 
 class LiveBatchMatchedFilter(object):
@@ -2295,9 +2526,8 @@ def optimized_match(
     v2_norm=None,
     return_phase=False,
 ):
-    """Given two waveforms (as numpy arrays),
-    compute the optimized match between them, making use
-    of scipy.minimize_scalar.
+    """Given two waveforms, compute their optimized match using a
+    SciPy Brent scalar search.
 
     This function computes the same quantities as "match";
     it is more accurate and slower.
@@ -2345,22 +2575,17 @@ def optimized_match(
 
     # a first time shift to get in the nearby region;
     # then the optimization is only used to move to the
-    # correct subsample-timeshift witin (-delta_t, delta_t)
+    # correct subsample-timeshift within (-delta_t, delta_t)
     # of this
-    _, max_id, _ = match(
+    _, max_id = match(
         htilde,
         stilde,
         psd=psd,
         low_frequency_cutoff=low_frequency_cutoff,
         high_frequency_cutoff=high_frequency_cutoff,
-        return_phase=True,
     )
 
     stilde = stilde.cyclic_time_shift(-max_id * delta_t)
-
-    frequencies = stilde.sample_frequencies.numpy()
-    waveform_1 = htilde.numpy()
-    waveform_2 = stilde.numpy()
 
     N = (len(stilde) - 1) * 2
     kmin, kmax = get_cutoff_indices(
@@ -2368,25 +2593,58 @@ def optimized_match(
     )
     mask = slice(kmin, kmax)
 
-    waveform_1 = waveform_1[mask]
-    waveform_2 = waveform_2[mask]
-    frequencies = frequencies[mask]
+    htilde_tensor = backend_array(htilde, "torch")
+    stilde_tensor = backend_array(stilde, "torch")
+    if htilde_tensor is not None and stilde_tensor is not None:
+        import torch
 
-    if psd is not None:
-        psd_arr = psd.numpy()[mask]
+        # The scalar controller needs one magnitude for each decision, while
+        # every waveform-sized objective and reduction remains on-device.
+        waveform_1 = htilde_tensor[mask]
+        waveform_2 = stilde_tensor[mask]
+        frequencies = backend_array(stilde.sample_frequencies, "torch")[mask]
+        if psd is None:
+            psd_arr = torch.ones_like(waveform_1)
+        else:
+            psd_tensor = backend_array(psd, "torch")
+            if psd_tensor is None:
+                psd_tensor = torch.as_tensor(psd.numpy(), device=waveform_1.device)
+            else:
+                psd_tensor = psd_tensor.to(device=waveform_1.device)
+            psd_arr = psd_tensor[mask]
+
+        weighted_product = torch.conj(waveform_1) * waveform_2 / psd_arr
+
+        def product_offset(dt, return_phase=False):
+            offset = torch.exp(2j * torch.pi * frequencies * dt)
+            integral = torch.sum(weighted_product * offset) * delta_f
+            magnitude = 4 * torch.abs(integral)
+            if return_phase:
+                return torch.stack((magnitude, torch.angle(integral))).tolist()
+            return magnitude.item()
     else:
-        psd_arr = numpy.ones_like(waveform_1)
+        frequencies = stilde.sample_frequencies.numpy()[mask]
+        waveform_1 = htilde.numpy()[mask]
+        waveform_2 = stilde.numpy()[mask]
 
-    def product(a, b):
-        integral = numpy.sum(numpy.conj(a) * b / psd_arr) * delta_f
-        return 4 * abs(integral), numpy.angle(integral)
+        if psd is not None:
+            psd_arr = psd.numpy()[mask]
+        else:
+            psd_arr = numpy.ones_like(waveform_1)
 
-    def product_offset(dt):
-        offset = numpy.exp(2j * numpy.pi * frequencies * dt)
-        return product(waveform_1, waveform_2 * offset)
+        def product(a, b):
+            integral = numpy.sum(numpy.conj(a) * b / psd_arr) * delta_f
+            return 4 * abs(integral), numpy.angle(integral)
+
+        def product_offset(dt, return_phase=False):
+            offset = numpy.exp(2j * numpy.pi * frequencies * dt)
+            magnitude, phase = product(waveform_1, waveform_2 * offset)
+            if return_phase:
+                return magnitude, phase
+            return magnitude
 
     def to_minimize(dt):
-        return -product_offset(dt)[0]
+        return -product_offset(dt)
 
     norm_1 = (
         sigmasq(htilde, psd, low_frequency_cutoff, high_frequency_cutoff)
@@ -2401,13 +2659,15 @@ def optimized_match(
 
     norm = numpy.sqrt(norm_1 * norm_2)
 
-    res = minimize_scalar(to_minimize, method="brent", bracket=(-delta_t, delta_t))
-    m, angle = product_offset(res.x)
+    time_shift = minimize_scalar(
+        to_minimize, method="brent", bracket=(-delta_t, delta_t)
+    ).x
+    m, angle = product_offset(time_shift, return_phase=True)
 
     if return_phase:
-        return m / norm, res.x / delta_t + max_id, -angle
+        return m / norm, time_shift / delta_t + max_id, -angle
     else:
-        return m / norm, res.x / delta_t + max_id
+        return m / norm, time_shift / delta_t + max_id
 
 
 __all__ = [
