@@ -2398,65 +2398,139 @@ class StrainBuffer(pycbc.frame.DataBuffer):
             e = len(self.strain)
             s = int(e - buffer_length * self.sample_rate - self.reduced_pad * 2)
 
-            # FFT the contents of self.strain[s:e] into fseries
-            fseries = execute_cached_fft(
-                self.strain[s:e], copy_output=False, uid=STRAINBUFFER_UNIQUE_ID_1
-            )
-            fseries._epoch = self.strain._epoch + s * self.strain.delta_t
+            strain_tensor = backend_array(self.strain, "torch")
 
-            # we haven't calculated a resample psd for this delta_f
-            if delta_f not in self.psds:
-                psdt = pycbc.psd.interpolate(self.psd, fseries.delta_f)
-                psdt = pycbc.psd.inverse_spectrum_truncation(
-                    psdt,
-                    int(self.sample_rate * self.psd_inverse_length),
-                    low_frequency_cutoff=self.low_frequency_cutoff,
-                )
-                psdt._delta_f = fseries.delta_f
+            if strain_tensor is not None:
+                import torch
 
-                psd = pycbc.psd.interpolate(self.psd, delta_f)
-                psd = pycbc.psd.inverse_spectrum_truncation(
-                    psd,
-                    int(self.sample_rate * self.psd_inverse_length),
-                    low_frequency_cutoff=self.low_frequency_cutoff,
+                tensor = strain_tensor[s:e]
+                # Match PyCBC's FFT convention: forward transforms include
+                # delta_t, while inverse transforms include 1 / delta_t.
+                fseries_tensor = torch.fft.rfft(tensor) * self.strain.delta_t
+                fseries = FrequencySeries(
+                    wrap_backend_array(fseries_tensor),
+                    delta_f=delta_f,
+                    epoch=self.strain._epoch + s * self.strain.delta_t,
+                    copy=False,
                 )
 
-                psd.psdt = psdt
-                self.psds[delta_f] = psd
+                if delta_f not in self.psds:
+                    psdt = pycbc.psd.interpolate(self.psd, fseries.delta_f)
+                    psdt = pycbc.psd.inverse_spectrum_truncation(
+                        psdt,
+                        int(self.sample_rate * self.psd_inverse_length),
+                        low_frequency_cutoff=self.low_frequency_cutoff,
+                    )
+                    psdt._delta_f = fseries.delta_f
 
-            psd = self.psds[delta_f]
-            fseries /= psd.psdt
+                    psd = pycbc.psd.interpolate(self.psd, delta_f)
+                    psd = pycbc.psd.inverse_spectrum_truncation(
+                        psd,
+                        int(self.sample_rate * self.psd_inverse_length),
+                        low_frequency_cutoff=self.low_frequency_cutoff,
+                    )
 
-            # trim ends of strain
-            if self.reduced_pad != 0:
-                # IFFT the contents of fseries into overwhite
-                overwhite = execute_cached_ifft(
-                    fseries, copy_output=False, uid=STRAINBUFFER_UNIQUE_ID_2
-                )
+                    psd.psdt = psdt
+                    self.psds[delta_f] = psd
 
-                overwhite2 = overwhite[
-                    self.reduced_pad : len(overwhite) - self.reduced_pad
-                ]
-                taper_window = self.trim_padding / 2.0 / overwhite.sample_rate
-                gate_params = [
-                    (overwhite2.start_time, 0.0, taper_window),
-                    (overwhite2.end_time, 0.0, taper_window),
-                ]
-                gate_data(overwhite2, gate_params)
+                psd = self.psds[delta_f]
+                fseries_tensor = fseries_tensor / backend_array(psd.psdt)
+                if self.reduced_pad != 0:
+                    overwhite = torch.fft.irfft(fseries_tensor) / self.strain.delta_t
+                    overwhite_ts = TimeSeries(
+                        wrap_backend_array(overwhite),
+                        delta_t=self.strain.delta_t,
+                        epoch=self.strain._epoch + s * self.strain.delta_t,
+                        copy=False,
+                    )
+                    overwhite2 = overwhite_ts[
+                        self.reduced_pad : len(overwhite_ts) - self.reduced_pad
+                    ]
+                    taper_window = self.trim_padding / 2.0 / overwhite_ts.sample_rate
+                    gate_params = [
+                        (overwhite2.start_time, 0.0, taper_window),
+                        (overwhite2.end_time, 0.0, taper_window),
+                    ]
+                    gate_data(overwhite2, gate_params)
+                    fseries_tensor = (
+                        torch.fft.rfft(backend_array(overwhite2)) * overwhite2.delta_t
+                    )
+                    fseries_trimmed = FrequencySeries(
+                        wrap_backend_array(fseries_tensor),
+                        delta_f=overwhite2.delta_f,
+                        epoch=overwhite2.start_time,
+                        copy=False,
+                    )
+                else:
+                    fseries_trimmed = FrequencySeries(
+                        wrap_backend_array(fseries_tensor),
+                        delta_f=delta_f,
+                        epoch=fseries.epoch,
+                        copy=False,
+                    )
+                fseries_trimmed.psd = psd
+                self.segments[delta_f] = fseries_trimmed
 
-                # FFT the contents of overwhite2 into fseries_trimmed
-                fseries_trimmed = execute_cached_fft(
-                    overwhite2, copy_output=True, uid=STRAINBUFFER_UNIQUE_ID_3
-                )
-
-                fseries_trimmed.start_time = (
-                    fseries.start_time + self.reduced_pad * self.strain.delta_t
-                )
             else:
-                fseries_trimmed = fseries
+                # FFT the contents of self.strain[s:e] into fseries
+                fseries = execute_cached_fft(
+                    self.strain[s:e], copy_output=False, uid=STRAINBUFFER_UNIQUE_ID_1
+                )
+                fseries._epoch = self.strain._epoch + s * self.strain.delta_t
 
-            fseries_trimmed.psd = psd
-            self.segments[delta_f] = fseries_trimmed
+                # we haven't calculated a resample psd for this delta_f
+                if delta_f not in self.psds:
+                    psdt = pycbc.psd.interpolate(self.psd, fseries.delta_f)
+                    psdt = pycbc.psd.inverse_spectrum_truncation(
+                        psdt,
+                        int(self.sample_rate * self.psd_inverse_length),
+                        low_frequency_cutoff=self.low_frequency_cutoff,
+                    )
+                    psdt._delta_f = fseries.delta_f
+
+                    psd = pycbc.psd.interpolate(self.psd, delta_f)
+                    psd = pycbc.psd.inverse_spectrum_truncation(
+                        psd,
+                        int(self.sample_rate * self.psd_inverse_length),
+                        low_frequency_cutoff=self.low_frequency_cutoff,
+                    )
+
+                    psd.psdt = psdt
+                    self.psds[delta_f] = psd
+
+                psd = self.psds[delta_f]
+                fseries /= psd.psdt
+
+                # trim ends of strain
+                if self.reduced_pad != 0:
+                    # IFFT the contents of fseries into overwhite
+                    overwhite = execute_cached_ifft(
+                        fseries, copy_output=False, uid=STRAINBUFFER_UNIQUE_ID_2
+                    )
+
+                    overwhite2 = overwhite[
+                        self.reduced_pad : len(overwhite) - self.reduced_pad
+                    ]
+                    taper_window = self.trim_padding / 2.0 / overwhite.sample_rate
+                    gate_params = [
+                        (overwhite2.start_time, 0.0, taper_window),
+                        (overwhite2.end_time, 0.0, taper_window),
+                    ]
+                    gate_data(overwhite2, gate_params)
+
+                    # FFT the contents of overwhite2 into fseries_trimmed
+                    fseries_trimmed = execute_cached_fft(
+                        overwhite2, copy_output=True, uid=STRAINBUFFER_UNIQUE_ID_3
+                    )
+
+                    fseries_trimmed.start_time = (
+                        fseries.start_time + self.reduced_pad * self.strain.delta_t
+                    )
+                else:
+                    fseries_trimmed = fseries
+
+                fseries_trimmed.psd = psd
+                self.segments[delta_f] = fseries_trimmed
 
         stilde = self.segments[delta_f]
         return stilde

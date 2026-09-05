@@ -31,6 +31,59 @@ from pycbc import PYCBC_ALIGNMENT
 
 from .matchedfilter import _BaseCorrelator
 
+try:
+    import triton
+    import triton.language as tl
+
+    _HAS_TRITON = True
+except ImportError:
+    _HAS_TRITON = False
+
+
+if _HAS_TRITON:
+
+    @triton.jit
+    def _triton_batch_magsq_argmax_kernel(
+        in_ptr,
+        norms_ptr,
+        out_snr_sq_ptr,
+        out_idx_ptr,
+        B,
+        N,
+        stride_row_float,
+        BLOCK_SIZE: tl.constexpr,
+    ):
+        pid = tl.program_id(0)
+        if pid >= B:
+            return
+
+        norm_val = tl.load(norms_ptr + pid)
+        norm_sq = norm_val * norm_val
+
+        row_offset = pid * stride_row_float
+        curr_max_val = -1.0
+        curr_max_idx = 0
+
+        for offset in range(0, N, BLOCK_SIZE):
+            cols = offset + tl.arange(0, BLOCK_SIZE)
+            mask = cols < N
+            re = tl.load(in_ptr + row_offset + 2 * cols, mask=mask, other=0.0)
+            im = tl.load(in_ptr + row_offset + 2 * cols + 1, mask=mask, other=0.0)
+            mag_sq = tl.where(mask, re * re + im * im, -1.0)
+
+            tile_max = tl.max(mag_sq, axis=0)
+            tile_argmax = tl.argmax(mag_sq, axis=0)
+            tile_idx = offset + tile_argmax
+
+            if tile_max > curr_max_val:
+                curr_max_val = tile_max
+                curr_max_idx = tile_idx
+
+        max_snr_sq = curr_max_val * norm_sq
+        tl.store(out_snr_sq_ptr + pid, max_snr_sq)
+        tl.store(out_idx_ptr + pid, curr_max_idx)
+
+
 # The established Cython kernel wins once each OpenMP worker receives enough
 # elements, while Torch is faster for one-thread and over-threaded calls.  Keep
 # this deliberately conservative: these boundaries are covered by crossover
@@ -41,6 +94,7 @@ _CPU_NATIVE_ELEMENTS_PER_THREAD = 512
 _CPU_NATIVE_MAX_LENGTH = 2**32 - 1
 _CPU_NATIVE_BATCH_GATE = "PYCBC_TORCH_CPU_NATIVE_BATCH_CORRELATE"
 _CUDA_NATIVE_BATCH_GATE = "PYCBC_TORCH_CUDA_NATIVE_BATCH_CORRELATE"
+_CUDA_NATIVE_BATCH_PEAK_GATE = "PYCBC_TORCH_CUDA_NATIVE_BATCH_PEAK"
 _TRUE_ENV_VALUES = {"1", "true", "yes", "on"}
 _FALSE_ENV_VALUES = {"0", "false", "no", "off"}
 _TORCH_IS_INFERENCE = getattr(torch, "is_inference", None)
@@ -727,6 +781,180 @@ def _try_cuda_native_batch_correlate(batch, y):
         return False
     batch._torch_cuda_native_batch_state = state
     return state.execute(batch, y)
+
+
+def standard_peak_tensor(values):
+    """Peak extraction matching PyCBC legacy scan semantics.
+
+    Computes squared magnitudes and extracts peak indices and values on device.
+    """
+    if values.ndim != 2 or values.shape[1] == 0:
+        raise ValueError("values must be a non-empty 2D tensor")
+    device = values.device
+    if device.type in ("cpu", "mps") or values.dtype in (
+        torch.complex64,
+        torch.float32,
+    ):
+        if values.is_complex():
+            sq_mag = torch.view_as_real(values).square().sum(dim=-1)
+        else:
+            sq_mag = values.square()
+    else:
+        if values.is_complex():
+            sq_mag = torch.view_as_real(values).to(torch.float64).square().sum(dim=-1)
+        else:
+            sq_mag = values.to(torch.float64).square()
+    sq_mag.nan_to_num_(nan=0.0, posinf=float("inf"), neginf=float("-inf"))
+    indices = torch.argmax(sq_mag, dim=-1)
+    peaks = values[torch.arange(values.shape[0], device=values.device), indices]
+    return indices, peaks
+
+
+def _torch_batch_peak_and_threshold_gpu(
+    values, norms, snr_threshold, snr_abort_threshold=None
+):
+    """Compute squared magnitude and compare against snr_threshold on device.
+
+    Parameters
+    ----------
+    values : torch.Tensor
+        2D tensor of shape (template_count, segment_len) on CUDA/MPS.
+    norms : torch.Tensor or numpy.ndarray
+        1D array or tensor of length template_count containing template SNR
+        normalizations.
+    snr_threshold : float
+        SNR threshold to record triggers.
+    snr_abort_threshold : float, optional
+        SNR threshold above which to abort processing.
+
+    Returns
+    -------
+    survivor_indices : numpy.ndarray (int64)
+        Indices of templates that crossed snr_threshold (empty if none).
+    peak_indices : numpy.ndarray (int64)
+        Peak index within the segment for each survivor template (empty
+        if none).
+    peak_values : numpy.ndarray (complex64 or float32)
+        Complex/real peak value for each survivor template (empty if none).
+    aborted : bool
+        True if snr_abort_threshold was exceeded by any template, else False.
+    """
+    if values.ndim != 2 or values.shape[1] == 0 or values.shape[0] == 0:
+        dtype = np.complex64 if values.is_complex() else np.float32
+        return (
+            np.empty(0, dtype=np.int64),
+            np.empty(0, dtype=np.int64),
+            np.empty(0, dtype=dtype),
+            False,
+        )
+
+    device = values.device
+    float_dtype = torch.float32
+
+    if (
+        values.is_complex()
+        and values.dtype == torch.complex64
+        and _HAS_TRITON
+        and device.type == "cuda"
+        and _environment_flag(_CUDA_NATIVE_BATCH_PEAK_GATE, default=True)
+    ):
+        B, N = values.shape
+        block_size = min(triton.next_power_of_2(N), 1024)
+        if values.is_contiguous():
+            in_float = values.view(torch.float32)
+            stride_row_float = N * 2
+        elif values.stride(1) == 1:
+            try:
+                base_storage = torch.as_tensor(
+                    values.untyped_storage(), device=device
+                ).view(torch.float32)
+                in_float = base_storage[values.storage_offset() * 2 :]
+                stride_row_float = values.stride(0) * 2
+            except Exception:
+                in_float = values.contiguous().view(torch.float32)
+                stride_row_float = N * 2
+        else:
+            in_float = values.contiguous().view(torch.float32)
+            stride_row_float = N * 2
+
+        if isinstance(norms, torch.Tensor):
+            norms_f32 = norms.to(device=device, dtype=torch.float32)
+        else:
+            norms_f32 = torch.as_tensor(norms, device=device, dtype=torch.float32)
+
+        max_snr_sq = torch.empty(B, dtype=torch.float32, device=device)
+        indices = torch.empty(B, dtype=torch.int64, device=device)
+        _triton_batch_magsq_argmax_kernel[(B,)](
+            in_float,
+            norms_f32,
+            max_snr_sq,
+            indices,
+            B,
+            N,
+            stride_row_float,
+            BLOCK_SIZE=block_size,
+        )
+    else:
+        if isinstance(norms, torch.Tensor):
+            norms_t = norms.to(device=device, dtype=float_dtype)
+        else:
+            norms_t = torch.as_tensor(norms, device=device, dtype=float_dtype)
+
+        if values.is_complex():
+            sq_mag = torch.view_as_real(values).square().sum(dim=-1)
+        else:
+            sq_mag = values.square()
+
+        clean_mag = torch.nan_to_num(sq_mag, nan=0.0)
+        max_sq_mag, indices = torch.max(clean_mag, dim=-1)
+        max_snr_sq = max_sq_mag * norms_t.square()
+
+    dtype = np.complex64 if values.is_complex() else np.float32
+
+    # Single-reduction check on device: evaluates global maximum SNR to determine
+    # threshold crossing and abort conditions without redundant PCIe sync round-trips
+    max_val_t = torch.max(max_snr_sq)
+    max_val = max_val_t.item()
+
+    thresh_sq = float(snr_threshold) ** 2
+    if max_val < thresh_sq:
+        # Common fast path in >99% of search data blocks: no triggers and no abort
+        return (
+            np.empty(0, dtype=np.int64),
+            np.empty(0, dtype=np.int64),
+            np.empty(0, dtype=dtype),
+            False,
+        )
+
+    if snr_abort_threshold is not None:
+        abort_thresh_sq = float(snr_abort_threshold) ** 2
+        if max_val > abort_thresh_sq:
+            return (
+                np.empty(0, dtype=np.int64),
+                np.empty(0, dtype=np.int64),
+                np.empty(0, dtype=dtype),
+                True,
+            )
+
+    crossing_mask = max_snr_sq >= thresh_sq
+    survivor_indices_gpu = torch.nonzero(crossing_mask, as_tuple=True)[0]
+    surv_indices_within_seg = indices[survivor_indices_gpu]
+    surv_peaks = values[survivor_indices_gpu, surv_indices_within_seg]
+
+    if values.device.type == "cuda":
+        return (
+            survivor_indices_gpu.to(device="cpu", non_blocking=True).numpy(),
+            surv_indices_within_seg.to(device="cpu", non_blocking=True).numpy(),
+            surv_peaks.to(device="cpu", non_blocking=True).numpy(),
+            False,
+        )
+
+    return (
+        survivor_indices_gpu.detach().cpu().numpy(),
+        surv_indices_within_seg.detach().cpu().numpy(),
+        surv_peaks.detach().cpu().numpy(),
+        False,
+    )
 
 
 def correlate(x, y, z):

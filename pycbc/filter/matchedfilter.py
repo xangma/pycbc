@@ -34,8 +34,8 @@ import numpy
 
 import pycbc
 import pycbc.scheme
-from pycbc.events import ranking
 from pycbc.fft import IFFT, fft, ifft
+from pycbc.opt import LimitedSizeDict
 from pycbc.types import (
     Array,
     FrequencySeries,
@@ -48,6 +48,28 @@ from pycbc.types import (
 from pycbc.types.backend import backend_array, wrap_backend_array
 
 logger = logging.getLogger("pycbc.filter.matchedfilter")
+
+_TORCH_CUDA_NATIVE_BATCH_PEAK_GATE = "PYCBC_TORCH_CUDA_NATIVE_BATCH_PEAK"
+_TORCH_ONDEVICE_PEAKS_GATE = "PYCBC_TORCH_ONDEVICE_PEAKS"
+_TORCH_FEATURE_TRUE = {"1", "true", "yes", "on"}
+_TORCH_FEATURE_FALSE = {"0", "false", "no", "off"}
+_TORCH_ASYNC_STREAMS_GATE = "PYCBC_TORCH_ASYNC_STREAMS"
+
+
+def _torch_inference_mode_context():
+    """Return torch.inference_mode() or fallback to torch.no_grad()."""
+    try:
+        import torch
+
+        if hasattr(torch, "inference_mode"):
+            return torch.inference_mode()
+        if hasattr(torch, "no_grad"):
+            return torch.no_grad()
+    except (ImportError, AttributeError):
+        pass
+    from contextlib import nullcontext
+
+    return nullcontext()
 
 
 BACKEND_PREFIX = "pycbc.filter.matchedfilter_"
@@ -1940,8 +1962,339 @@ def quadratic_interpolate_peak(left, middle, right):
     return bin_offset, peak_value
 
 
+def _torch_cuda_native_batch_peak_enabled():
+    """Read the strict, default-off native Torch-CUDA peak gate."""
+    value = os.environ.get(_TORCH_CUDA_NATIVE_BATCH_PEAK_GATE)
+    if value is None:
+        return False
+    normalized = value.strip().lower()
+    if normalized in _TORCH_FEATURE_TRUE:
+        return True
+    if normalized in _TORCH_FEATURE_FALSE:
+        return False
+    choices = ", ".join(sorted(_TORCH_FEATURE_TRUE | _TORCH_FEATURE_FALSE))
+    raise ValueError(
+        f"{_TORCH_CUDA_NATIVE_BATCH_PEAK_GATE} must be one of: {choices}; got {value!r}"
+    )
+
+
+def _try_torch_cuda_native_batch_peak_values(
+    output, tensor, template_count, template_size, segment
+):
+    """Return exact standard-CUDA peaks, or request the Torch fallback."""
+    if not _torch_cuda_native_batch_peak_enabled():
+        return None
+
+    try:
+        from . import matchedfilter_torch
+
+        if template_count <= 1:
+            return None
+        total = template_count * template_size
+        if not matchedfilter_torch._cuda_batch_tensor_contract(tensor, total):
+            return None
+
+        start, stop, step = segment.indices(template_size)
+        if step != 1 or start >= stop:
+            return None
+
+        values = tensor.reshape(template_count, template_size)[:, segment]
+        if values.shape[1] == 0:
+            return None
+
+        indices, peaks = matchedfilter_torch.standard_peak_tensor(values)
+        return (
+            indices.detach().cpu().numpy(),
+            peaks.detach().cpu().numpy(),
+        )
+    except (
+        AttributeError,
+        ImportError,
+        OSError,
+        OverflowError,
+        RuntimeError,
+        TypeError,
+        ValueError,
+    ):
+        return None
+
+
+def _torch_ondevice_peaks_enabled(device_type=None):
+    """Read the PYCBC_TORCH_ONDEVICE_PEAKS environment flag."""
+    default = False
+    value = os.environ.get(_TORCH_ONDEVICE_PEAKS_GATE)
+    if value is None:
+        return default
+    normalized = value.strip().lower()
+    if normalized in _TORCH_FEATURE_TRUE:
+        return True
+    if normalized in _TORCH_FEATURE_FALSE:
+        return False
+    choices = ", ".join(sorted(_TORCH_FEATURE_TRUE | _TORCH_FEATURE_FALSE))
+    raise ValueError(
+        f"{_TORCH_ONDEVICE_PEAKS_GATE} must be one of: {choices}; got {value!r}"
+    )
+
+
+def _torch_batch_peak_and_threshold_gpu(*args, **kwargs):
+    """On-device peak extraction and thresholding on CUDA/MPS."""
+    if len(args) == 4 or (
+        len(args) >= 1 and hasattr(args[0], "ndim") and args[0].ndim == 2
+    ):
+        from . import matchedfilter_torch
+
+        return matchedfilter_torch._torch_batch_peak_and_threshold_gpu(*args, **kwargs)
+
+    output = args[0]
+    template_count = int(args[1])
+    template_size = int(args[2])
+    segment = args[3]
+    norms = args[4]
+    snr_threshold = args[5]
+    snr_abort_threshold = (
+        args[6] if len(args) > 6 else kwargs.get("snr_abort_threshold", None)
+    )
+
+    if not isinstance(pycbc.scheme.mgr.state, pycbc.scheme.TorchScheme):
+        return None
+
+    tensor = backend_array(output, "torch")
+    if tensor is None or tensor.ndim != 1:
+        return None
+
+    if not _torch_ondevice_peaks_enabled(tensor.device.type):
+        return None
+
+    if (
+        template_count < 1
+        or template_size < 1
+        or tensor.numel() != template_count * template_size
+    ):
+        return None
+
+    if segment.step not in (None, 1):
+        return None
+
+    try:
+        from . import matchedfilter_torch
+
+        values = tensor.reshape(template_count, template_size)[:, segment]
+        if values.shape[1] == 0:
+            return None
+        return matchedfilter_torch._torch_batch_peak_and_threshold_gpu(
+            values, norms, snr_threshold, snr_abort_threshold
+        )
+    except Exception:
+        return None
+
+
+def _torch_batch_peak_values(output, template_count, template_size, segment):
+    """Materialize one peak index and value per contiguous Torch output.
+
+    The batched live filter stores every template output consecutively in one
+    allocation.  Reducing that allocation at once avoids two scalar device
+    synchronizations per template while retaining the existing host-facing
+    peak contract.  ``None`` requests the legacy per-template fallback.
+    """
+    if not isinstance(pycbc.scheme.mgr.state, pycbc.scheme.TorchScheme):
+        return None
+
+    tensor = backend_array(output, "torch")
+    if tensor is None or tensor.ndim != 1:
+        return None
+
+    template_count = int(template_count)
+    template_size = int(template_size)
+    if (
+        template_count < 1
+        or template_size < 1
+        or tensor.numel() != template_count * template_size
+    ):
+        return None
+
+    if segment.step not in (None, 1):
+        return None
+
+    if tensor.device.type == "cuda":
+        native = _try_torch_cuda_native_batch_peak_values(
+            output,
+            tensor,
+            template_count,
+            template_size,
+            segment,
+        )
+        if native is not None:
+            return native
+
+    import torch
+
+    values = tensor.reshape(template_count, template_size)[:, segment]
+    if values.shape[1] == 0:
+        return None
+    if values.is_complex():
+        sq_mag = torch.view_as_real(values).square().sum(dim=-1)
+    else:
+        sq_mag = values.square()
+    indices = torch.argmax(sq_mag, dim=-1)
+    peaks = values[torch.arange(values.shape[0], device=values.device), indices]
+    return (
+        indices.detach().cpu().numpy(),
+        peaks.detach().cpu().numpy(),
+    )
+
+
+def _torch_batch_peak_magnitudes(peak_values):
+    """Materialize live-batch magnitudes with scalar-loop precision.
+
+    Peak extraction already crosses the Torch/host boundary once per batch.
+    Computing the magnitudes together lets rejected templates avoid constructing
+    one-element NumPy arrays while leaving normalization, thresholding, and all
+    template side effects in their established per-template order.
+    """
+    peak_values = numpy.asarray(peak_values)
+    if peak_values.ndim != 1:
+        return None
+
+    # NumPy's vector complex-absolute kernel can differ by one ULP from this
+    # scalar contract.  Keep the scalar operation but amortize its surrounding
+    # bookkeeping and avoid the rejected templates' one-element arrays.
+    return numpy.fromiter(
+        (abs(peak.item()) for peak in peak_values),
+        dtype=numpy.float64,
+        count=len(peak_values),
+    )
+
+
 # Minimum templates threshold is disabled (0) so all batch sizes use the fast
 # vectorized magnitude reduction path.
+_TORCH_BATCH_PEAK_THRESHOLD_MIN_TEMPLATES = 0
+
+
+def _can_batch_torch_vetoes(power_chisq, sg_chisq):
+    """Return whether the standard veto calculators can use bulk copies."""
+    if not isinstance(pycbc.scheme.mgr.state, pycbc.scheme.TorchScheme):
+        return False
+
+    # Subclasses may rely on scalar materialization occurring before the SG
+    # veto is evaluated, so only optimize the two calculators whose contracts
+    # are known here.
+    from pycbc.vetoes.chisq import SingleDetPowerChisq
+    from pycbc.vetoes.sgchisq import SingleDetSGChisq
+
+    return (
+        type(power_chisq) is SingleDetPowerChisq and type(sg_chisq) is SingleDetSGChisq
+    )
+
+
+def _materialize_torch_veto_results(veto_values):
+    """Copy standard one-trigger veto results to their public NumPy arrays.
+
+    ``None`` indicates that a calculator returned a non-standard value and
+    the caller should use the existing scalar conversion path instead.
+    """
+    import torch
+
+    if not veto_values:
+        return (
+            numpy.zeros(0, dtype=numpy.float32),
+            numpy.zeros(0, dtype=numpy.uint32),
+            numpy.zeros(0, dtype=numpy.float32),
+        )
+
+    chisq_values = []
+    dof_values = []
+    sg_values = []
+    device = None
+    for chisq, dof, sg_chisq in veto_values:
+        chisq_tensor = backend_array(chisq, "torch")
+        dof_tensor = backend_array(dof, "torch")
+        if (
+            chisq_tensor is None
+            or dof_tensor is None
+            or tuple(chisq_tensor.shape) != (1,)
+            or tuple(dof_tensor.shape) != (1,)
+            or chisq_tensor.dtype != torch.float32
+            or dof_tensor.dtype != torch.int64
+        ):
+            return None
+
+        if device is None:
+            device = chisq_tensor.device
+        if chisq_tensor.device != device or dof_tensor.device != device:
+            return None
+
+        if sg_chisq is None:
+            sg_tensor = torch.zeros_like(chisq_tensor)
+        else:
+            sg_tensor = backend_array(sg_chisq, "torch")
+            if (
+                sg_tensor is None
+                or tuple(sg_tensor.shape) != (1,)
+                or sg_tensor.dtype != torch.float32
+                or sg_tensor.device != device
+            ):
+                return None
+
+        chisq_values.append(chisq_tensor.reshape(1))
+        dof_values.append(dof_tensor.reshape(1))
+        sg_values.append(sg_tensor.reshape(1))
+
+    dof_tensor = torch.cat(dof_values)
+    float_values = torch.stack(
+        (
+            torch.cat(chisq_values),
+            torch.cat(sg_values),
+        )
+    )
+    float_values = float_values.detach().cpu().numpy()
+    dof_values = dof_tensor.detach().cpu().numpy()
+    reduced_chisq = numpy.empty(len(dof_values), dtype=numpy.float32)
+    public_dof = numpy.empty(len(dof_values), dtype=numpy.uint32)
+    for index, (chisq, dof) in enumerate(zip(float_values[0], dof_values, strict=True)):
+        # Match Array scalar access: divide Python float/int values, then cast
+        # into the float32 public result.  Besides preserving rounding, this
+        # naturally retains ZeroDivisionError when the DOF is zero.
+        reduced_chisq[index] = float(chisq) / int(dof)
+        # Scalar assignment also preserves NumPy's OverflowError for negative
+        # or out-of-range values instead of silently wrapping via ``astype``.
+        public_dof[index] = int(dof)
+    return (
+        reduced_chisq,
+        public_dof,
+        float_values[1],
+    )
+
+
+def _is_cuda_scheme(templates=None):
+    """Return whether the current scheme or templates use CUDA processing."""
+    state = getattr(pycbc.scheme.mgr, "state", None)
+    if state is not None:
+        if isinstance(state, (pycbc.scheme.CUDAScheme, pycbc.scheme.CUPYScheme)):
+            return True
+        if isinstance(state, pycbc.scheme.TorchScheme):
+            torch_dev = getattr(state, "torch_device", getattr(state, "device", None))
+            if torch_dev is not None and getattr(torch_dev, "type", None) == "cuda":
+                return True
+        if getattr(state, "prefix", None) in ("cuda", "cupy"):
+            return True
+    try:
+        if pycbc.scheme.current_prefix() in ("cuda", "cupy"):
+            return True
+    except Exception:
+        pass
+    if templates and len(templates) > 0:
+        t0 = templates[0]
+        data = backend_array(t0)
+        tensor = backend_array(t0, "torch")
+        if tensor is not None and (
+            getattr(tensor, "is_cuda", False)
+            or getattr(getattr(tensor, "device", None), "type", None) == "cuda"
+        ):
+            return True
+        device = getattr(data, "device", None)
+        if device is not None and getattr(device, "type", None) == "cuda":
+            return True
+    return False
 
 
 class LiveBatchMatchedFilter(object):
@@ -1953,10 +2306,12 @@ class LiveBatchMatchedFilter(object):
         snr_threshold,
         chisq_bins,
         sg_chisq,
-        maxelements=2**27,
+        maxelements=None,
         snr_abort_threshold=None,
         newsnr_threshold=None,
         max_triggers_in_batch=None,
+        enable_cuda_graphs=None,
+        enable_async_streams=None,
     ):
         """Create a batched matchedfilter instance
 
@@ -1971,8 +2326,11 @@ class LiveBatchMatchedFilter(object):
             function of the template bank parameters.
         sg_chisq: pycbc.vetoes.SingleDetSGChisq
             Instance of the sg_chisq class to calculate sg_chisq with.
-        maxelements: {int, 2**27}
-            Maximum size of a batched fourier transform.
+        maxelements: {int, None}, optional
+            Maximum size in elements of a batched fourier transform. If None,
+            defaults to 2**23 on CUDA (hardware-aware L2-cache resident default,
+            yielding B_tile=64 templates per chunk for N=131,072) or 2**27 on
+            CPU, or PYCBC_BATCH_MAXELEMENTS if specified in the environment.
         snr_abort_threshold: {float, None}
             If the SNR is above this threshold, do not record any triggers.
         newsnr_threshold: {float, None}
@@ -1982,11 +2340,52 @@ class LiveBatchMatchedFilter(object):
             Record X number of the loudest triggers by SNR in each MPI
             process. Signal consistency values will also only be calculated
             for these triggers.
+        enable_cuda_graphs: {bool, None}
+            Enable CUDA Graph recording and replay on CUDA devices. If None,
+            reads the PYCBC_ENABLE_CUDA_GRAPHS environment variable.
+        enable_async_streams: {bool, None}
+            Enable pipelined asynchronous stream support / double-buffering.
+            If None, reads the PYCBC_TORCH_ASYNC_STREAMS environment variable.
         """
         self.snr_threshold = snr_threshold
         self.snr_abort_threshold = snr_abort_threshold
         self.newsnr_threshold = newsnr_threshold
         self.max_triggers_in_batch = max_triggers_in_batch
+        if enable_cuda_graphs is None:
+            env_val = os.environ.get("PYCBC_ENABLE_CUDA_GRAPHS", "")
+            self.enable_cuda_graphs = env_val.strip().lower() in (
+                "1",
+                "true",
+                "yes",
+                "on",
+            )
+        else:
+            self.enable_cuda_graphs = bool(enable_cuda_graphs)
+        self._cuda_graphs = {}
+
+        if enable_async_streams is None:
+            env_val = os.environ.get(_TORCH_ASYNC_STREAMS_GATE, "")
+            self.enable_async_streams = env_val.strip().lower() in (
+                "1",
+                "true",
+                "yes",
+                "on",
+            )
+        else:
+            self.enable_async_streams = bool(enable_async_streams)
+        self._async_streams = None
+        self._async_prefetched = None
+
+        if (
+            "PYCBC_BATCH_MAXELEMENTS" in os.environ
+            and os.environ["PYCBC_BATCH_MAXELEMENTS"].strip()
+        ):
+            maxelements = int(os.environ["PYCBC_BATCH_MAXELEMENTS"].strip())
+        elif maxelements is None:
+            from pycbc.hardware import get_optimal_batch_maxelements
+
+            is_cuda = _is_cuda_scheme(templates)
+            maxelements = get_optimal_batch_maxelements(is_cuda=is_cuda)
 
         from pycbc import vetoes
 
@@ -2002,7 +2401,8 @@ class LiveBatchMatchedFilter(object):
         # Figure out how to chunk together the templates into groups to process
         _, counts = numpy.unique(durations, return_counts=True)
         tsamples = [(len(t) - 1) * 2 for t in templates]
-        grabs = maxelements / numpy.unique(tsamples)
+        unique_tsamples = numpy.unique(tsamples)
+        grabs = numpy.maximum(1, maxelements // unique_tsamples)
 
         chunks = numpy.array([])
         num = 0
@@ -2055,16 +2455,41 @@ class LiveBatchMatchedFilter(object):
             for htilde in tgroup:
                 htilde.out = self.out_mem[mid][s:e]
                 htilde.cout = self.cout_mem[mid][s:e]
+                htilde._mid = mid
+                htilde._tgroup = tgroup
                 s += psize
                 e += psize
             self.corr.append(
                 BatchCorrelator(tgroup, [t.cout for t in tgroup], len(tgroup[0]))
             )
 
+        self.power_matrices = {}
+        self._psd_cache = {}
+        if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.TorchScheme):
+            for mid, tgroup in zip(self.mids, self.tgroups, strict=False):
+                try:
+                    p_list = []
+                    for htilde in tgroup:
+                        arr = getattr(htilde, "data", htilde)
+                        if hasattr(arr, "numpy"):
+                            arr = arr.numpy()
+                        else:
+                            arr = numpy.asarray(arr)
+                        if numpy.iscomplexobj(arr):
+                            power = (arr.real**2 + arr.imag**2).astype(numpy.float32)
+                        else:
+                            power = (arr**2).astype(numpy.float32)
+                        p_list.append(power)
+                    if p_list:
+                        self.power_matrices[mid] = numpy.stack(p_list, axis=0)
+                except Exception:
+                    pass
+
     def set_data(self, data):
         """Set the data reader object to use"""
         self.data = data
         self.block_id = 0
+        self._async_prefetched = None
 
     def combine_results(self, results):
         """Combine results from different batches of filtering"""
@@ -2080,29 +2505,30 @@ class LiveBatchMatchedFilter(object):
 
     def process_all(self):
         """Process every batch group and return as single result"""
-        results = []
-        veto_info = []
-        while 1:
-            result, veto = self._process_batch()
-            if result is False:
-                return False
-            if result is None:
-                break
-            results.append(result)
-            veto_info += veto
+        with _torch_inference_mode_context():
+            results = []
+            veto_info = []
+            while 1:
+                result, veto = self._process_batch()
+                if result is False:
+                    return False
+                if result is None:
+                    break
+                results.append(result)
+                veto_info += veto
 
-        result = self.combine_results(results)
+            result = self.combine_results(results)
 
-        if self.max_triggers_in_batch:
-            sort = result["snr"].argsort()[::-1][: self.max_triggers_in_batch]
-            for key in result:
-                result[key] = result[key][sort]
+            if self.max_triggers_in_batch:
+                sort = result["snr"].argsort()[::-1][: self.max_triggers_in_batch]
+                for key in result:
+                    result[key] = result[key][sort]
 
-            tmp = veto_info
-            veto_info = [tmp[i] for i in sort]
+                tmp = veto_info
+                veto_info = [tmp[i] for i in sort]
 
-        result = self._process_vetoes(result, veto_info)
-        return result
+            result = self._process_vetoes(result, veto_info)
+            return result
 
     def _process_vetoes(self, results, veto_info):
         """Calculate signal based vetoes"""
@@ -2113,25 +2539,71 @@ class LiveBatchMatchedFilter(object):
         results["chisq_dof"] = dof
         results["sg_chisq"] = sg_chisq
 
+        if self.newsnr_threshold:
+            from pycbc.events import ranking
+
         keep = []
-        for i, (snrv, norm, l, htilde, stilde) in enumerate(veto_info):
-            correlate(htilde, stilde, htilde.cout)
-            c, d = self.power_chisq.values(
-                htilde.cout, snrv, norm, stilde.psd, [l], htilde
+        batch_torch_vetoes = _can_batch_torch_vetoes(self.power_chisq, self.sg_chisq)
+        veto_values = []
+        for i, (snrv, norm, peak_index, htilde, stilde) in enumerate(veto_info):
+            mid = getattr(htilde, "_mid", None)
+            cout_mem = self.cout_mem.get(mid) if mid is not None else None
+            is_valid = (
+                getattr(htilde, "_corr_valid", False)
+                and getattr(htilde, "_corr_stilde", None) is stilde
+                and (
+                    cout_mem is None
+                    or (
+                        getattr(cout_mem, "_active_tgroup", None)
+                        is getattr(htilde, "_tgroup", None)
+                        and getattr(cout_mem, "_active_stilde", None) is stilde
+                    )
+                )
             )
-            chisq[i] = c[0] / d[0]
-            dof[i] = d[0]
+            if not is_valid:
+                correlate(htilde, stilde, htilde.cout)
+                htilde._corr_valid = True
+                htilde._corr_stilde = stilde
+                if cout_mem is not None:
+                    cout_mem._active_tgroup = getattr(htilde, "_tgroup", None)
+                    cout_mem._active_stilde = stilde
+            c, d = self.power_chisq.values(
+                htilde.cout, snrv, norm, stilde.psd, [peak_index], htilde
+            )
+            if c is not None and d is not None:
+                if not batch_torch_vetoes:
+                    chisq[i] = c[0] / d[0]
+                    dof[i] = d[0]
 
             sgv = self.sg_chisq.values(
-                stilde, htilde, stilde.psd, snrv, norm, c, d, [l]
+                stilde, htilde, stilde.psd, snrv, norm, c, d, [peak_index]
             )
-            if sgv is not None:
+            if batch_torch_vetoes:
+                veto_values.append((c, d, sgv))
+            elif sgv is not None:
                 sg_chisq[i] = sgv[0]
 
-            if self.newsnr_threshold:
+            if self.newsnr_threshold and not batch_torch_vetoes:
                 newsnr = ranking.newsnr(results["snr"][i], chisq[i])
                 if newsnr >= self.newsnr_threshold:
                     keep.append(i)
+
+        if batch_torch_vetoes:
+            materialized = _materialize_torch_veto_results(veto_values)
+            if materialized is None:
+                for i, (c, d, sgv) in enumerate(veto_values):
+                    chisq[i] = c[0] / d[0]
+                    dof[i] = d[0]
+                    if sgv is not None:
+                        sg_chisq[i] = sgv[0]
+            else:
+                chisq[:], dof[:], sg_chisq[:] = materialized
+
+            if self.newsnr_threshold:
+                for i in range(len(veto_info)):
+                    newsnr = ranking.newsnr(results["snr"][i], chisq[i])
+                    if newsnr >= self.newsnr_threshold:
+                        keep.append(i)
 
         if self.newsnr_threshold:
             keep = numpy.array(keep, dtype=numpy.uint32)
@@ -2140,26 +2612,328 @@ class LiveBatchMatchedFilter(object):
 
         return results
 
+    def _try_cuda_graph_batch(self, block_id, mid, tgroup, psize, seg, stilde):
+        """Execute or capture CUDA Graph for this batch block."""
+        import torch
+
+        if not torch.cuda.is_available() or not callable(
+            getattr(torch.cuda, "CUDAGraph", None)
+        ):
+            return None
+
+        stilde_tensor = backend_array(stilde, "torch")
+
+        if stilde_tensor is None or stilde_tensor.device.type != "cuda":
+            return None
+
+        out_tensor = backend_array(self.out_mem[mid], "torch")
+
+        if out_tensor is None or out_tensor.device != stilde_tensor.device:
+            return None
+
+        if not hasattr(self, "_cuda_graphs"):
+            self._cuda_graphs = {}
+
+        state = self._cuda_graphs.get(block_id)
+        if state is not None:
+            if (
+                state["input_shape"] == tuple(stilde_tensor.shape)
+                and state["input_dtype"] == stilde_tensor.dtype
+                and state["psize"] == psize
+                and state["seg"] == seg
+                and state["device"] == stilde_tensor.device
+            ):
+                state["static_input"].copy_(stilde_tensor, non_blocking=True)
+                state["graph"].replay()
+                state["replays"] = state.get("replays", 0) + 1
+                cout_mem = self.cout_mem.get(mid)
+                if cout_mem is not None:
+                    cout_mem._active_tgroup = tgroup
+                    cout_mem._active_stilde = stilde
+                for h in tgroup:
+                    h._corr_valid = True
+                    h._corr_stilde = stilde
+                if "static_indices_cpu" in state:
+                    state["static_indices_cpu"].copy_(
+                        state["static_indices"], non_blocking=False
+                    )
+                    state["static_peaks_cpu"].copy_(
+                        state["static_peaks"], non_blocking=False
+                    )
+                    return (
+                        state["static_indices_cpu"].detach().cpu().numpy(),
+                        state["static_peaks_cpu"].detach().cpu().numpy(),
+                    )
+                return (
+                    state["static_indices"].detach().cpu().numpy(),
+                    state["static_peaks"].detach().cpu().numpy(),
+                )
+            else:
+                del self._cuda_graphs[block_id]
+
+        try:
+            device = stilde_tensor.device
+            static_input = torch.zeros_like(stilde_tensor)
+            static_indices = torch.zeros(len(tgroup), dtype=torch.int64, device=device)
+            static_peaks = torch.zeros(
+                len(tgroup), dtype=torch.complex64, device=device
+            )
+
+            origin = torch.cuda.current_stream(device)
+            capture_stream = torch.cuda.Stream(device=device)
+            capture_stream.wait_stream(origin)
+
+            def _step():
+                self.corr[block_id].execute(static_input)
+                self.ifts[mid].execute()
+                values = out_tensor.reshape(len(tgroup), psize)[:, seg]
+                if values.is_complex():
+                    sq_mag = torch.view_as_real(values).square().sum(dim=-1)
+                    clean_mag = torch.nan_to_num(sq_mag, nan=0.0)
+                    indices = torch.argmax(clean_mag, dim=-1)
+                else:
+                    clean_vals = torch.nan_to_num(torch.abs(values), nan=0.0)
+                    indices = torch.argmax(clean_vals, dim=-1)
+                peaks = values[
+                    torch.arange(values.shape[0], device=values.device), indices
+                ]
+                static_indices.copy_(indices)
+                static_peaks.copy_(peaks)
+
+            with torch.cuda.stream(capture_stream), torch.no_grad():
+                static_input.copy_(stilde_tensor, non_blocking=True)
+                for _ in range(3):
+                    _step()
+                capture_stream.synchronize()
+                try:
+                    mempool = (
+                        torch.cuda.graph_pool_handle()
+                        if hasattr(torch.cuda, "graph_pool_handle")
+                        else None
+                    )
+                except Exception:
+                    mempool = None
+                graph = torch.cuda.CUDAGraph()
+                if mempool is not None:
+                    try:
+                        graph_ctx = torch.cuda.graph(
+                            graph, stream=capture_stream, pool=mempool
+                        )
+                    except TypeError:
+                        graph_ctx = torch.cuda.graph(graph, stream=capture_stream)
+                else:
+                    graph_ctx = torch.cuda.graph(graph, stream=capture_stream)
+                with graph_ctx:
+                    _step()
+
+            origin.wait_stream(capture_stream)
+
+            try:
+                static_indices_cpu = torch.empty_like(
+                    static_indices, device="cpu", pin_memory=True
+                )
+                static_peaks_cpu = torch.empty_like(
+                    static_peaks, device="cpu", pin_memory=True
+                )
+            except Exception:
+                static_indices_cpu = torch.empty_like(static_indices, device="cpu")
+                static_peaks_cpu = torch.empty_like(static_peaks, device="cpu")
+
+            self._cuda_graphs[block_id] = {
+                "graph": graph,
+                "static_input": static_input,
+                "static_indices": static_indices,
+                "static_peaks": static_peaks,
+                "static_indices_cpu": static_indices_cpu,
+                "static_peaks_cpu": static_peaks_cpu,
+                "input_shape": tuple(stilde_tensor.shape),
+                "input_dtype": stilde_tensor.dtype,
+                "psize": psize,
+                "seg": seg,
+                "device": device,
+                "capture_stream": capture_stream,
+                "replays": 0,
+            }
+
+            cout_mem = self.cout_mem.get(mid)
+            if cout_mem is not None:
+                cout_mem._active_tgroup = tgroup
+                cout_mem._active_stilde = stilde
+            for h in tgroup:
+                h._corr_valid = True
+                h._corr_stilde = stilde
+
+            static_indices_cpu.copy_(static_indices, non_blocking=False)
+            static_peaks_cpu.copy_(static_peaks, non_blocking=False)
+            return (
+                static_indices_cpu.detach().cpu().numpy(),
+                static_peaks_cpu.detach().cpu().numpy(),
+            )
+        except Exception:
+            return None
+
     def _process_batch(self):
         """Process only a single batch group of data"""
-        if self.block_id == len(self.tgroups):
-            return None, None
+        with _torch_inference_mode_context():
+            if self.block_id == len(self.tgroups):
+                return None, None
 
-        tgroup = self.tgroups[self.block_id]
-        psize = self.chunk_tsamples[self.block_id]
-        mid = self.mids[self.block_id]
-        stilde = self.data.overwhitened_data(tgroup[0].delta_f)
-        psd = stilde.psd
+            tgroup = self.tgroups[self.block_id]
+            psize = self.chunk_tsamples[self.block_id]
+            mid = self.mids[self.block_id]
 
-        valid_end = int(psize - self.data.trim_padding)
-        valid_start = int(valid_end - self.data.blocksize * self.data.sample_rate)
+            out_tensor = backend_array(self.out_mem[mid], "torch")
+            try:
+                import torch
+            except ImportError:
+                torch = None
 
-        seg = slice(valid_start, valid_end)
+            is_cuda = (
+                torch is not None
+                and out_tensor is not None
+                and out_tensor.device.type == "cuda"
+                and getattr(self, "enable_async_streams", False)
+            )
 
-        self.corr[self.block_id].execute(stilde)
-        self.ifts[mid].execute()
+            current_stream = None
+            if is_cuda:
+                if getattr(self, "_async_streams", None) is None:
+                    device = out_tensor.device
+                    self._compute_stream = torch.cuda.Stream(device=device)
+                    self._transfer_stream = torch.cuda.Stream(device=device)
+                    self._transfer_event = torch.cuda.Event()
+                    self._async_streams = (self._compute_stream, self._transfer_stream)
 
-        self.block_id += 1
+                current_stream = self._compute_stream
+
+                if (
+                    getattr(self, "_async_prefetched", None) is not None
+                    and self._async_prefetched[0] == self.block_id
+                ):
+                    stilde, event = self._async_prefetched[1], self._async_prefetched[2]
+                    self._async_prefetched = None
+                    if event is not None:
+                        self._compute_stream.wait_event(event)
+                else:
+                    stilde = self.data.overwhitened_data(tgroup[0].delta_f)
+                    stilde_t = backend_array(stilde, "torch")
+                    if stilde_t is not None and stilde_t.device.type == "cpu":
+                        if not stilde_t.is_pinned():
+                            stilde_pinned = stilde_t.pin_memory()
+                        else:
+                            stilde_pinned = stilde_t
+                        with torch.cuda.stream(self._transfer_stream):
+                            stilde_gpu = stilde_pinned.to(
+                                device=out_tensor.device, non_blocking=True
+                            )
+                            self._transfer_event.record(self._transfer_stream)
+                        self._compute_stream.wait_event(self._transfer_event)
+                        stilde_psd = stilde.psd
+                        if isinstance(stilde, Array):
+                            stilde = stilde._return(wrap_backend_array(stilde_gpu))
+                        elif hasattr(stilde, "delta_f"):
+                            stilde = FrequencySeries(
+                                wrap_backend_array(stilde_gpu),
+                                delta_f=stilde.delta_f,
+                                epoch=getattr(stilde, "_epoch", 0),
+                                copy=False,
+                            )
+                        else:
+                            stilde = stilde_gpu
+                        # Series reconstruction preserves sampling metadata,
+                        # but the data reader attaches the PSD separately.
+                        stilde.psd = stilde_psd
+
+                # Pipelined prefetch for the next block (double buffering)
+                next_block_id = self.block_id + 1
+                if next_block_id < len(self.tgroups):
+                    try:
+                        next_tgroup = self.tgroups[next_block_id]
+                        next_stilde = self.data.overwhitened_data(
+                            next_tgroup[0].delta_f
+                        )
+                        next_stilde_t = backend_array(next_stilde, "torch")
+                        if (
+                            next_stilde_t is not None
+                            and next_stilde_t.device.type == "cpu"
+                        ):
+                            if not next_stilde_t.is_pinned():
+                                next_pinned = next_stilde_t.pin_memory()
+                            else:
+                                next_pinned = next_stilde_t
+                            next_event = torch.cuda.Event()
+                            with torch.cuda.stream(self._transfer_stream):
+                                next_stilde_gpu = next_pinned.to(
+                                    device=out_tensor.device, non_blocking=True
+                                )
+                                next_event.record(self._transfer_stream)
+                            if isinstance(next_stilde, Array):
+                                next_stilde_dev = next_stilde._return(
+                                    wrap_backend_array(next_stilde_gpu)
+                                )
+                            elif hasattr(next_stilde, "delta_f"):
+                                next_stilde_dev = FrequencySeries(
+                                    wrap_backend_array(next_stilde_gpu),
+                                    delta_f=next_stilde.delta_f,
+                                    epoch=getattr(next_stilde, "_epoch", 0),
+                                    copy=False,
+                                )
+                            else:
+                                next_stilde_dev = next_stilde_gpu
+                            next_stilde_dev.psd = next_stilde.psd
+                            self._async_prefetched = (
+                                next_block_id,
+                                next_stilde_dev,
+                                next_event,
+                                next_pinned,
+                            )
+                        else:
+                            self._async_prefetched = (next_block_id, next_stilde, None)
+                    except Exception:
+                        self._async_prefetched = None
+            else:
+                stilde = self.data.overwhitened_data(tgroup[0].delta_f)
+
+            from contextlib import nullcontext
+
+            stream_ctx = (
+                torch.cuda.stream(current_stream)
+                if (current_stream is not None and torch is not None)
+                else nullcontext()
+            )
+            with stream_ctx:
+                psd = stilde.psd
+
+                valid_end = int(psize - self.data.trim_padding)
+                valid_start = int(
+                    valid_end - self.data.blocksize * self.data.sample_rate
+                )
+
+                seg = slice(valid_start, valid_end)
+
+                batch_peaks = None
+                if getattr(self, "enable_cuda_graphs", False):
+                    batch_peaks = self._try_cuda_graph_batch(
+                        self.block_id, mid, tgroup, psize, seg, stilde
+                    )
+
+                if batch_peaks is None:
+                    self.corr[self.block_id].execute(stilde)
+                    self.ifts[mid].execute()
+
+                cout_mem = (
+                    getattr(self, "cout_mem", {}).get(mid, None)
+                    if hasattr(self, "cout_mem")
+                    else None
+                )
+                if cout_mem is not None:
+                    cout_mem._active_tgroup = tgroup
+                    cout_mem._active_stilde = stilde
+                for h in tgroup:
+                    h._corr_valid = True
+                    h._corr_stilde = stilde
+
+                self.block_id += 1
 
         snr = numpy.zeros(len(tgroup), dtype=numpy.complex64)
         time = numpy.zeros(len(tgroup), dtype=numpy.float64)
@@ -2175,54 +2949,277 @@ class LiveBatchMatchedFilter(object):
 
         veto_info = []
 
-        # Find the peaks in our SNR times series from the various templates
-        i = 0
-        for htilde in tgroup:
-            if hasattr(htilde, "time_offset"):
-                if "time_offset" not in result:
-                    result["time_offset"] = []
+        ondevice_result = None
+        if batch_peaks is None:
+            out_tensor = backend_array(self.out_mem[mid], "torch")
+            if (
+                out_tensor is not None
+                and _torch_ondevice_peaks_enabled(out_tensor.device.type)
+                and len(tgroup) >= _TORCH_BATCH_PEAK_THRESHOLD_MIN_TEMPLATES
+            ):
+                power_matrix = getattr(self, "power_matrices", {}).get(mid)
+                sigmasqs = None
+                norms = None
 
-            l = htilde.out[seg].abs_arg_max()
+                if power_matrix is not None:
+                    if not hasattr(self, "_psd_cache") or not isinstance(
+                        self._psd_cache, dict
+                    ):
+                        self._psd_cache = {}
+                    mid_cache = self._psd_cache.get(mid)
+                    if mid_cache is None:
+                        mid_cache = LimitedSizeDict(size_limit=32)
+                        self._psd_cache[mid] = mid_cache
 
-            sgm = htilde.sigmasq(psd)
-            norm = 4.0 * htilde.delta_f / (sgm**0.5)
+                    psd_key = id(psd)
+                    if psd_key in mid_cache:
+                        sigmasqs, norms = mid_cache[psd_key]
+                    else:
+                        try:
+                            delta_f = tgroup[0].delta_f
+                            if hasattr(psd, "numpy"):
+                                psd_arr = psd.numpy()
+                            else:
+                                psd_arr = numpy.asarray(psd)
+                            inv_psd = (4.0 * delta_f) / psd_arr.astype(numpy.float32)
+                            if len(inv_psd) > power_matrix.shape[1]:
+                                inv_psd = inv_psd[: power_matrix.shape[1]]
+                            sigmasqs = power_matrix.dot(inv_psd)
+                            norms = 4.0 * delta_f / numpy.sqrt(sigmasqs)
+                            mid_cache[psd_key] = (sigmasqs, norms)
+                        except Exception:
+                            sigmasqs = None
+                            norms = None
 
-            l += valid_start
-            snrv = numpy.array([htilde.out[l]])
+                if sigmasqs is None or norms is None:
+                    sigmasqs = numpy.fromiter(
+                        (htilde.sigmasq(psd) for htilde in tgroup),
+                        dtype=numpy.float32,
+                        count=len(tgroup),
+                    )
+                    norms = numpy.fromiter(
+                        (
+                            4.0 * htilde.delta_f / (float(sgm) ** 0.5)
+                            for htilde, sgm in zip(tgroup, sigmasqs, strict=True)
+                        ),
+                        dtype=numpy.float64,
+                        count=len(tgroup),
+                    )
 
-            # If nothing is above threshold we can exit this template
-            s = abs(snrv[0]) * norm
-            if s < self.snr_threshold:
-                continue
+                ondevice_result = _torch_batch_peak_and_threshold_gpu(
+                    self.out_mem[mid],
+                    len(tgroup),
+                    psize,
+                    seg,
+                    norms,
+                    self.snr_threshold,
+                    self.snr_abort_threshold,
+                )
 
-            time[i] += float(l - valid_start) / self.data.sample_rate
-
-            # We have an SNR so high that we will drop the entire analysis
-            # of this chunk of time!
-            if self.snr_abort_threshold is not None and s > self.snr_abort_threshold:
+        if ondevice_result is not None:
+            survivor_indices, peak_indices, peak_values, aborted = ondevice_result
+            if aborted:
+                self._async_prefetched = None
                 logger.info(
                     "We are seeing some *really* high SNRs, let's "
                     "assume they aren't signals and just give up"
                 )
                 return False, []
 
-            veto_info.append((snrv, norm, l, htilde, stilde))
+            i = 0
+            for idx_pos, template_index in enumerate(survivor_indices):
+                htilde = tgroup[template_index]
+                if hasattr(htilde, "time_offset"):
+                    if "time_offset" not in result:
+                        result["time_offset"] = []
 
-            snr[i] = snrv[0] * norm
-            sigmasq[i] = sgm
-            templates[i] = htilde.id
-            if not hasattr(htilde, "dict_params"):
-                htilde.dict_params = {}
+                peak_index = int(peak_indices[idx_pos]) + valid_start
+                peak = (
+                    peak_values[idx_pos].item()
+                    if hasattr(peak_values[idx_pos], "item")
+                    else peak_values[idx_pos]
+                )
+                snrv = numpy.array([peak])
+                norm = norms[template_index]
+                sgm = sigmasqs[template_index]
+
+                time[i] += float(peak_index - valid_start) / self.data.sample_rate
+                veto_info.append((snrv, norm, peak_index, htilde, stilde))
+
+                snr[i] = snrv[0] * norm
+                sigmasq[i] = sgm
+                templates[i] = htilde.id
+                if not hasattr(htilde, "dict_params"):
+                    htilde.dict_params = {}
+                    for key in tkeys:
+                        htilde.dict_params[key] = htilde.params[key]
+
                 for key in tkeys:
-                    htilde.dict_params[key] = htilde.params[key]
+                    result[key].append(htilde.dict_params[key])
 
-            for key in tkeys:
-                result[key].append(htilde.dict_params[key])
+                if hasattr(htilde, "time_offset"):
+                    result["time_offset"].append(htilde.time_offset)
 
-            if hasattr(htilde, "time_offset"):
-                result["time_offset"].append(htilde.time_offset)
+                i += 1
+        else:
+            if batch_peaks is None:
+                batch_peaks = _torch_batch_peak_values(
+                    self.out_mem[mid], len(tgroup), psize, seg
+                )
 
-            i += 1
+            # LiveBatch retains only one peak per template.  Materialize their
+            # magnitudes in bulk for groups above the crossover threshold.
+            batch_magnitudes = None
+            if (
+                batch_peaks is not None
+                and self.snr_abort_threshold is None
+                and len(tgroup) >= _TORCH_BATCH_PEAK_THRESHOLD_MIN_TEMPLATES
+            ):
+                batch_magnitudes = _torch_batch_peak_magnitudes(batch_peaks[1])
+
+            i = 0
+            if batch_magnitudes is not None:
+                power_matrix = getattr(self, "power_matrices", {}).get(mid)
+                sigmasqs = None
+                norms = None
+
+                if power_matrix is not None:
+                    if not hasattr(self, "_psd_cache") or not isinstance(
+                        self._psd_cache, dict
+                    ):
+                        self._psd_cache = {}
+                    mid_cache = self._psd_cache.get(mid)
+                    if mid_cache is None:
+                        mid_cache = LimitedSizeDict(size_limit=32)
+                        self._psd_cache[mid] = mid_cache
+
+                    psd_key = id(psd)
+                    if psd_key in mid_cache:
+                        sigmasqs, norms = mid_cache[psd_key]
+                    else:
+                        try:
+                            delta_f = tgroup[0].delta_f
+                            if hasattr(psd, "numpy"):
+                                psd_arr = psd.numpy()
+                            else:
+                                psd_arr = numpy.asarray(psd)
+                            inv_psd = (4.0 * delta_f) / psd_arr.astype(numpy.float32)
+                            if len(inv_psd) > power_matrix.shape[1]:
+                                inv_psd = inv_psd[: power_matrix.shape[1]]
+                            sigmasqs = power_matrix.dot(inv_psd)
+                            norms = 4.0 * delta_f / numpy.sqrt(sigmasqs)
+                            mid_cache[psd_key] = (sigmasqs, norms)
+                        except Exception:
+                            sigmasqs = None
+                            norms = None
+
+                if sigmasqs is None or norms is None:
+                    sigmasqs = numpy.fromiter(
+                        (htilde.sigmasq(psd) for htilde in tgroup),
+                        dtype=numpy.float32,
+                        count=len(tgroup),
+                    )
+                    norms = numpy.fromiter(
+                        (
+                            4.0 * htilde.delta_f / (float(sgm) ** 0.5)
+                            for htilde, sgm in zip(tgroup, sigmasqs, strict=True)
+                        ),
+                        dtype=numpy.float64,
+                        count=len(tgroup),
+                    )
+
+                snrs = batch_magnitudes * norms
+                survivor_indices = numpy.flatnonzero(~(snrs < self.snr_threshold))
+
+                peak_indices, peak_values = batch_peaks
+                for template_index in survivor_indices:
+                    htilde = tgroup[template_index]
+                    if hasattr(htilde, "time_offset"):
+                        if "time_offset" not in result:
+                            result["time_offset"] = []
+
+                    peak_index = int(peak_indices[template_index]) + valid_start
+                    peak = peak_values[template_index].item()
+                    snrv = numpy.array([peak])
+                    norm = norms[template_index]
+                    sgm = sigmasqs[template_index]
+
+                    time[i] += float(peak_index - valid_start) / self.data.sample_rate
+                    veto_info.append((snrv, norm, peak_index, htilde, stilde))
+
+                    snr[i] = snrv[0] * norm
+                    sigmasq[i] = sgm
+                    templates[i] = htilde.id
+                    if not hasattr(htilde, "dict_params"):
+                        htilde.dict_params = {}
+                        for key in tkeys:
+                            htilde.dict_params[key] = htilde.params[key]
+
+                    for key in tkeys:
+                        result[key].append(htilde.dict_params[key])
+
+                    if hasattr(htilde, "time_offset"):
+                        result["time_offset"].append(htilde.time_offset)
+
+                    i += 1
+            else:
+                for template_index, htilde in enumerate(tgroup):
+                    if hasattr(htilde, "time_offset"):
+                        if "time_offset" not in result:
+                            result["time_offset"] = []
+
+                    if batch_peaks is None:
+                        peak_index = htilde.out[seg].abs_arg_max()
+                        peak = None
+                    else:
+                        peak_indices, peak_values = batch_peaks
+                        peak_index = int(peak_indices[template_index])
+                        peak = peak_values[template_index].item()
+
+                    sgm = htilde.sigmasq(psd)
+                    norm = 4.0 * htilde.delta_f / (sgm**0.5)
+
+                    peak_index += valid_start
+                    if peak is None:
+                        peak = htilde.out[peak_index]
+                    snrv = numpy.array([peak])
+
+                    s = abs(snrv[0]) * norm
+                    if s < self.snr_threshold:
+                        continue
+
+                    time[i] += float(peak_index - valid_start) / self.data.sample_rate
+
+                    # We have an SNR so high that we will drop the entire analysis
+                    # of this chunk of time!
+                    if (
+                        self.snr_abort_threshold is not None
+                        and s > self.snr_abort_threshold
+                    ):
+                        self._async_prefetched = None
+                        logger.info(
+                            "We are seeing some *really* high SNRs, let's "
+                            "assume they aren't signals and just give up"
+                        )
+                        return False, []
+
+                    veto_info.append((snrv, norm, peak_index, htilde, stilde))
+
+                    snr[i] = snrv[0] * norm
+                    sigmasq[i] = sgm
+                    templates[i] = htilde.id
+                    if not hasattr(htilde, "dict_params"):
+                        htilde.dict_params = {}
+                        for key in tkeys:
+                            htilde.dict_params[key] = htilde.params[key]
+
+                    for key in tkeys:
+                        result[key].append(htilde.dict_params[key])
+
+                    if hasattr(htilde, "time_offset"):
+                        result["time_offset"].append(htilde.time_offset)
+
+                    i += 1
 
         result["snr"] = abs(snr[0:i])
         result["coa_phase"] = numpy.angle(snr[0:i])
@@ -2237,6 +3234,28 @@ class LiveBatchMatchedFilter(object):
             result["time_offset"] = numpy.array(result["time_offset"])
 
         return result, veto_info
+
+
+def _count_louder_background(background, window, threshold):
+    """Count background windows whose peak reaches ``threshold``.
+
+    The Torch path performs the block reduction on its current device and
+    transfers only the final count to the host.
+    """
+    nsamples = len(background) // window
+    if nsamples == 0:
+        return 0, 0
+
+    tensor = backend_array(background, "torch")
+    if tensor is not None:
+        peaks = tensor[: nsamples * window].reshape(nsamples, window).amax(dim=-1)
+        count = (peaks >= threshold).sum().item()
+    else:
+        values = background.numpy()
+        peaks = values[: nsamples * window].reshape(nsamples, window).max(axis=1)
+        count = (peaks >= threshold).sum()
+
+    return int(count), nsamples
 
 
 def followup_event_significance(
@@ -2408,13 +3427,10 @@ def followup_event_significance(
     peak_value = abs(onsrc[peak])
 
     bstart = float(snr.start_time) + length_in_time + trim_pad
-    bkg = abs(snr.time_slice(bstart, onsource_start)).numpy()
+    bkg = abs(snr.time_slice(bstart, onsource_start))
 
     window = int((onsource_end - onsource_start) * snr.sample_rate)
-    nsamples = int(len(bkg) / window)
-
-    peaks = bkg[: nsamples * window].reshape(nsamples, window).max(axis=1)
-    num_louder_bg = (peaks >= peak_value).sum()
+    num_louder_bg, nsamples = _count_louder_background(bkg, window, peak_value)
     pvalue = (1 + num_louder_bg) / float(1 + nsamples)
     pvalue_saturated = num_louder_bg == 0
 
