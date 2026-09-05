@@ -5,7 +5,7 @@ torch = pytest.importorskip("torch")
 
 import pycbc
 from pycbc import scheme
-from pycbc.types import Array
+from pycbc.types import Array, TimeSeries
 
 
 if not pycbc.HAVE_TORCH:
@@ -20,6 +20,31 @@ def torch_ctx():
     finally:
         del ctx
         scheme.Scheme._single = None
+
+
+def _relative_l2(a, b):
+    diff = a - b
+    return np.linalg.norm(diff) / np.linalg.norm(b)
+
+
+def test_fft_roundtrip(torch_ctx):
+    # Real sinusoid, power-of-two length for FFT
+    t = np.arange(0, 1, 1 / 1024.0)
+    sig = np.sin(2 * np.pi * 50 * t)
+
+    ts_cpu = TimeSeries(sig, delta_t=1 / 1024.0)
+    fs_cpu = ts_cpu.to_frequencyseries()
+    ts_cpu_rt = fs_cpu.to_timeseries()
+
+    with torch_ctx:
+        ts_t = TimeSeries(sig, delta_t=1 / 1024.0)
+        fs_t = ts_t.to_frequencyseries()
+        ts_t_rt = fs_t.to_timeseries()
+
+    assert isinstance(fs_t._data.tensor, torch.Tensor)
+    assert fs_t._data.tensor.device.type == "cpu"
+    rel = _relative_l2(ts_t_rt.numpy(), ts_cpu_rt.numpy())
+    assert rel < 1e-6
 
 
 def test_dtype_view_shares_torch_storage(torch_ctx):

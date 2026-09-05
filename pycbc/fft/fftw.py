@@ -1,5 +1,6 @@
 import ctypes
 import os
+import threading
 
 import numpy as _np
 
@@ -60,6 +61,12 @@ HAVE_FFTW_THREADED = False
 # we know whether we need to call plan_with_nthreads() again.
 _fftw_current_nthreads = 0
 
+# FFTW's planner and plan destruction APIs are not thread-safe.  This lock is
+# shared by the legacy FFTW and Torch-FFTW plan paths; it is re-entrant because
+# Torch work-plan construction calls the legacy ``plan`` helper while already
+# holding it.  Plan execution is deliberately not protected by this lock.
+_FFTW_PLANNING_LOCK = threading.RLock()
+
 # This function sets the number of threads used internally by FFTW
 # in planning. It just takes a number of threads, rather than itself
 # looking at scheme.mgr.num_threads, because it should not be called
@@ -69,23 +76,24 @@ _fftw_current_nthreads = 0
 
 def _fftw_plan_with_nthreads(nthreads):
     global _fftw_current_nthreads
-    if not HAVE_FFTW_THREADED:
-        if nthreads > 1:
-            raise ValueError(
-                "Threading is NOT enabled, but {0} > 1 threads specified".format(
-                    nthreads
+    with _FFTW_PLANNING_LOCK:
+        if not HAVE_FFTW_THREADED:
+            if nthreads > 1:
+                raise ValueError(
+                    "Threading is NOT enabled, but {0} > 1 threads specified".format(
+                        nthreads
+                    )
                 )
-            )
+            else:
+                _pycbc_current_threads = nthreads
         else:
-            _pycbc_current_threads = nthreads
-    else:
-        dplanwthr = _double_threaded_lib.fftw_plan_with_nthreads
-        fplanwthr = _float_threaded_lib.fftwf_plan_with_nthreads
-        dplanwthr.restype = None
-        fplanwthr.restype = None
-        dplanwthr(nthreads)
-        fplanwthr(nthreads)
-        _fftw_current_nthreads = nthreads
+            dplanwthr = _double_threaded_lib.fftw_plan_with_nthreads
+            fplanwthr = _float_threaded_lib.fftwf_plan_with_nthreads
+            dplanwthr.restype = None
+            fplanwthr.restype = None
+            dplanwthr(nthreads)
+            fplanwthr(nthreads)
+            _fftw_current_nthreads = nthreads
 
 
 # This is a global dict-of-dicts used when initializing threads and
@@ -98,7 +106,7 @@ _fftw_threading_libnames = {
 }
 
 
-def _init_threads(backend):
+def _init_threads_unlocked(backend):
     # This function actually sets the backend and initializes. It returns zero on
     # success and 1 if given a valid backend but that cannot be loaded.  It raises
     # an exception if called after the threading backend has already been set, or
@@ -120,7 +128,7 @@ def _init_threads(backend):
     except KeyError:
         raise ValueError(
             "Backend {0} for FFTW threading does not exist!".format(backend)
-        )
+        ) from None
     if double_threaded_libname is not None:
         try:
             # For reasons Ian doesn't understand we should not load libgomp
@@ -160,34 +168,54 @@ def _init_threads(backend):
         return 0
 
 
+def _init_threads(backend):
+    """Initialise FFTW threading without racing another native operation."""
+    with _FFTW_PLANNING_LOCK:
+        return _init_threads_unlocked(backend)
+
+
 def set_threads_backend(backend=None):
-    # This is the user facing function.  If given a backend it just
-    # calls _init_threads and lets it do the work.  If not (the default)
-    # then it cycles in order through threaded backends,
-    if backend is not None:
-        retval = _init_threads(backend)
-        # Since the user specified this backend raise an exception if the above failed
-        if retval != 0:
-            raise RuntimeError(
-                "Could not initialize FFTW threading backend {0}".format(backend)
-            )
-    else:
-        # Note that we pop() from the end, so 'pthreads'
-        # is the first thing tried
-        _backend_list = ["unthreaded", "openmp", "pthreads"]
-        while not _fftw_threaded_set:
-            _next_backend = _backend_list.pop()
-            retval = _init_threads(_next_backend)
+    with _FFTW_PLANNING_LOCK:
+        # This is the user facing function.  If given a backend it just
+        # calls _init_threads and lets it do the work.  If not (the default)
+        # then it cycles in order through threaded backends,
+        if backend is not None:
+            # FFTW's thread backend is process-global.  Command-line tools may
+            # configure the default scheme before conditioning data and then
+            # configure the selected scheme before constructing search plans.
+            # Repeating the same explicit choice is therefore a harmless
+            # no-op; changing it after initialization remains forbidden.
+            if _fftw_threaded_set:
+                if backend == _fftw_threaded_lib:
+                    return
+                raise RuntimeError(
+                    "Threading backend for FFTW already set to {0}; "
+                    "cannot be changed".format(_fftw_threaded_lib)
+                )
+            retval = _init_threads(backend)
+            # Since the user specified this backend raise an exception if the above failed
+            if retval != 0:
+                raise RuntimeError(
+                    "Could not initialize FFTW threading backend {0}".format(backend)
+                )
+        else:
+            # Note that we pop() from the end, so 'pthreads'
+            # is the first thing tried
+            _backend_list = ["unthreaded", "openmp", "pthreads"]
+            while not _fftw_threaded_set:
+                _next_backend = _backend_list.pop()
+                retval = _init_threads(_next_backend)
 
 
 # Function to import system-wide wisdom files.
 
 
 def import_sys_wisdom():
-    if not _fftw_threaded_set:
-        set_threads_backend()
-    double_lib.fftw_import_system_wisdom()
-    float_lib.fftwf_import_system_wisdom()
+    with _FFTW_PLANNING_LOCK:
+        if not _fftw_threaded_set:
+            set_threads_backend()
+        double_lib.fftw_import_system_wisdom()
+        float_lib.fftwf_import_system_wisdom()
 
 
 # We provide an interface for changing the "measure level"
@@ -215,7 +243,8 @@ def set_measure_level(mlvl):
     global _default_measurelvl
     if mlvl not in (0, 1, 2, 3):
         raise ValueError("Measure level can only be one of 0, 1, 2, or 3")
-    _default_measurelvl = mlvl
+    with _FFTW_PLANNING_LOCK:
+        _default_measurelvl = mlvl
 
 
 _flag_dict = {
@@ -238,21 +267,22 @@ def get_flag(mlvl, aligned):
 
 def wisdom_io(filename, precision, action):
     """Import or export an FFTW plan for single or double precision."""
-    if not _fftw_threaded_set:
-        set_threads_backend()
-    fmap = {
-        ("float", "import"): float_lib.fftwf_import_wisdom_from_filename,
-        ("float", "export"): float_lib.fftwf_export_wisdom_to_filename,
-        ("double", "import"): double_lib.fftw_import_wisdom_from_filename,
-        ("double", "export"): double_lib.fftw_export_wisdom_to_filename,
-    }
-    f = fmap[(precision, action)]
-    f.argtypes = [ctypes.c_char_p]
-    retval = f(filename.encode())
-    if retval == 0:
-        raise RuntimeError(
-            ("Could not {0} wisdom from file {1}").format(action, filename)
-        )
+    with _FFTW_PLANNING_LOCK:
+        if not _fftw_threaded_set:
+            set_threads_backend()
+        fmap = {
+            ("float", "import"): float_lib.fftwf_import_wisdom_from_filename,
+            ("float", "export"): float_lib.fftwf_export_wisdom_to_filename,
+            ("double", "import"): double_lib.fftw_import_wisdom_from_filename,
+            ("double", "export"): double_lib.fftw_export_wisdom_to_filename,
+        }
+        f = fmap[(precision, action)]
+        f.argtypes = [ctypes.c_char_p]
+        retval = f(filename.encode())
+        if retval == 0:
+            raise RuntimeError(
+                ("Could not {0} wisdom from file {1}").format(action, filename)
+            )
 
 
 def import_single_wisdom_from_filename(filename):
@@ -272,16 +302,17 @@ def export_double_wisdom_to_filename(filename):
 
 
 def set_planning_limit(time):
-    if not _fftw_threaded_set:
-        set_threads_backend()
+    with _FFTW_PLANNING_LOCK:
+        if not _fftw_threaded_set:
+            set_threads_backend()
 
-    f = double_lib.fftw_set_timelimit
-    f.argtypes = [ctypes.c_double]
-    f(time)
+        f = double_lib.fftw_set_timelimit
+        f.argtypes = [ctypes.c_double]
+        f(time)
 
-    f = float_lib.fftwf_set_timelimit
-    f.argtypes = [ctypes.c_double]
-    f(time)
+        f = float_lib.fftwf_set_timelimit
+        f.argtypes = [ctypes.c_double]
+        f(time)
 
 
 # Create function maps for the dtypes
@@ -312,7 +343,7 @@ execute_function = {
 }
 
 
-def plan(size, idtype, odtype, direction, mlvl, aligned, nthreads, inplace):
+def _plan(size, idtype, odtype, direction, mlvl, aligned, nthreads, inplace):
     if not _fftw_threaded_set:
         set_threads_backend()
     if nthreads != _fftw_current_nthreads:
@@ -383,6 +414,25 @@ def plan(size, idtype, odtype, direction, mlvl, aligned, nthreads, inplace):
 
     destroy.argtypes = [ctypes.c_void_p]
     return theplan, destroy
+
+
+def _destroy_plan(destroy, theplan):
+    """Destroy an FFTW plan without racing any PyCBC planner."""
+    with _FFTW_PLANNING_LOCK:
+        destroy(theplan)
+
+
+def plan(size, idtype, odtype, direction, mlvl, aligned, nthreads, inplace):
+    """Create a plan and return a destruction callback using the shared lock."""
+    with _FFTW_PLANNING_LOCK:
+        theplan, destroy = _plan(
+            size, idtype, odtype, direction, mlvl, aligned, nthreads, inplace
+        )
+
+    def locked_destroy(plan_to_destroy):
+        _destroy_plan(destroy, plan_to_destroy)
+
+    return theplan, locked_destroy
 
 
 # Note that we don't need to check whether we've set the threading backend
@@ -548,7 +598,7 @@ _plan_funcs_dict = {
 # classes.
 
 
-def _fftw_setup(fftobj):
+def _fftw_setup_unlocked(fftobj):
     n = _np.asarray([fftobj.size], dtype=_np.int32)
     inembed = _np.asarray([len(fftobj.invec)], dtype=_np.int32)
     onembed = _np.asarray([len(fftobj.outvec)], dtype=_np.int32)
@@ -603,6 +653,11 @@ def _fftw_setup(fftobj):
     del tmpin
     del tmpout
     return plan
+
+
+def _fftw_setup(fftobj):
+    with _FFTW_PLANNING_LOCK:
+        return _fftw_setup_unlocked(fftobj)
 
 
 class FFT(_BaseFFT):
