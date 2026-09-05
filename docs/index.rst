@@ -59,6 +59,7 @@ library and application suite.
    :maxdepth: 1
 
    tutorials
+   torch_runtime
    searches
    inference
    apps

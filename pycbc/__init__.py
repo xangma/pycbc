@@ -26,15 +26,14 @@
 
 import os
 import signal
-import subprocess
 import sys
 import warnings
 
 # Filter annoying Cython warnings that serve no good purpose.
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
-import importlib.machinery
-import importlib.util
+import importlib.machinery  # noqa: E402 - warning filters run first
+import importlib.util  # noqa: E402 - warning filters run first
 import logging
 import random
 import string
@@ -209,7 +208,13 @@ DYN_RANGE_FAC = 5.9029581035870565e20
 # This is used by the distributions and transforms modules
 VARARGS_DELIM = "+"
 
-# Check for optional CUDA support of the PyCBC Package
+# Check for optional components of the PyCBC Package
+# Torch and CPUScheme both load GNU OpenMP, while MKL otherwise selects its
+# Intel OpenMP layer.  Mixing those runtimes can silently corrupt threaded
+# DFTI output, so default to MKL's compatible layer before either runtime
+# loads. An explicit process configuration remains authoritative.
+os.environ.setdefault("MKL_THREADING_LAYER", "GNU")
+
 try:
     # check if pycuda is installed
     import pycuda
@@ -230,16 +235,26 @@ try:
     HAVE_CUDA = device_count > 0
     if device_count == 0:
         warnings.warn(
-            "PyCUDA imported but no CUDA device found; disabling CUDA support"
+            "PyCUDA imported but no CUDA device found; disabling CUDA support",
+            stacklevel=1,
         )
 except ImportError:
     HAVE_CUDA = False
 
-# Check for MKL capability
+# Detect PyTorch without importing it.  Importing Torch loads its OpenMP
+# runtime, which is too large and invasive a side effect for ``import pycbc``.
 try:
-    import pycbc.fft.mkl
+    HAVE_TORCH = importlib.util.find_spec("torch") is not None
+except (AttributeError, ImportError, OSError, ValueError):
+    HAVE_TORCH = False
 
-    HAVE_MKL = True
+# Probe MKL directly: importing ``pycbc.fft.mkl`` initializes every FFT
+# backend and would defeat the deferred Torch import above.
+try:
+    from .libutils import get_ctypes_library as _get_ctypes_library
+
+    _mkl_runtime = _get_ctypes_library("mkl_rt", [])
+    HAVE_MKL = _mkl_runtime is not None
 except (ImportError, OSError):
     HAVE_MKL = False
 

@@ -186,6 +186,7 @@ cmdclass = {
 }
 
 extras_require = {
+    "torch": ["torch>=2.6,<2.14"],
     "cuda": [
         "pycuda>=2015.1",
         "scikit-cuda",
