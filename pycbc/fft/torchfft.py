@@ -167,6 +167,7 @@ class _MKLCPUDirectIFFTPlan:
         self._target_ptr = target.data_ptr()
         self._size = size
         self._nthreads = nthreads
+        self._torch_threads = torch.get_num_threads()
         self._promote = promote
         self._inplace = (
             promote and nthreads == 1 and size in _MKL_PROMOTED_INPLACE_IFFT_SIZES
@@ -269,7 +270,8 @@ class _MKLCPUDirectIFFTPlan:
         # reusable matched-filter plan.
         return (
             getattr(self, "_pid", os.getpid()) == os.getpid()
-            and torch.get_num_threads() == self._nthreads
+            and torch.get_num_threads()
+            == getattr(self, "_torch_threads", self._nthreads)
             and source is self._source
             and target is self._target
             and source.data_ptr() == self._source_ptr
@@ -1006,6 +1008,11 @@ def _can_use_mkl_cpu_ifft(fftobj):
 def _setup_mkl_cpu_ifft_plan(fftobj):
     fftobj._mkl_plan = None
     if _can_use_mkl_cpu_ifft(fftobj):
+        from pycbc.hardware import get_optimal_1d_fft_threads
+
+        optimal_threads = get_optimal_1d_fft_threads(
+            fftobj.size, torch.get_num_threads()
+        )
         kwargs = {}
         promote_requested = (
             getattr(fftobj, "promote", False)
@@ -1024,7 +1031,7 @@ def _setup_mkl_cpu_ifft_plan(fftobj):
             fftobj.size,
             fftobj.invec._data.tensor,
             fftobj.outvec._data.tensor,
-            nthreads=torch.get_num_threads(),
+            nthreads=optimal_threads,
             **kwargs,
         )
 

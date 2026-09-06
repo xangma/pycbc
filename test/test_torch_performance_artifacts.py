@@ -108,11 +108,11 @@ def test_default_and_native_routes_have_isolated_feature_flags():
     )
     assert native_env["PYCBC_TORCH_CPU_NATIVE_BATCH_CORRELATE"] == "1"
     assert native_env["PYCBC_TORCH_CPU_FFTW_BATCH"] == "1"
+    assert native_env["PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK"] == "1"
     assert "PYCBC_TORCH_CUDA_NATIVE_BATCH_CORRELATE" not in native_env
 
     production = live_batch.route_configuration("torch_cpu")
     native = live_batch.route_configuration("torch_cpu_native")
-    assert "PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK" not in native["feature_flags"]
     cuda = live_batch.route_configuration("torch_cuda")
     assert production["routing_mode"] == "production_default"
     assert native["routing_mode"] == "experimental_native"
