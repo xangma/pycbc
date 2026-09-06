@@ -497,6 +497,54 @@ def test_triton_opt_in_preserves_autograd(monkeypatch, device):
 
 
 @pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_triton_opt_in_preserves_forward_autograd(monkeypatch, device):
+    from pycbc.waveform import taylorf2_triton
+
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA unavailable")
+
+    def unexpected_launch(*args, **kwargs):
+        pytest.fail("forward-mode dual inputs must use Torch")
+
+    monkeypatch.setattr(taylorf2_triton, "is_available", lambda: True)
+    monkeypatch.setattr(taylorf2_triton, "evaluate_taylorf2", unexpected_launch)
+    _activate(_scheme.TorchScheme, device)
+    distance = torch.tensor([80.0, 130.0], dtype=torch.float64, device=device)
+    direction = torch.tensor([2.0, -3.0], dtype=torch.float64, device=device)
+    with torch.autograd.forward_ad.dual_level():
+        dual_distance = torch.autograd.forward_ad.make_dual(distance, direction)
+        assert not dual_distance.requires_grad
+        params = _params(mass1=[1.4, 1.8], distance=dual_distance)
+        monkeypatch.setenv("PYCBC_TAYLORF2_TRITON", "0")
+        expected = get_fd_waveform_batch("TaylorF2", **params)
+        monkeypatch.setenv("PYCBC_TAYLORF2_TRITON", "1")
+        actual = get_fd_waveform_batch("TaylorF2", **params)
+        for name in ("hplus", "hcross"):
+            reference = torch.autograd.forward_ad.unpack_dual(
+                getattr(expected, name)
+            )
+            result = torch.autograd.forward_ad.unpack_dual(getattr(actual, name))
+            assert reference.tangent is not None
+            assert result.tangent is not None
+            assert torch.isfinite(result.tangent).all()
+            assert torch.count_nonzero(result.tangent) > 0
+            torch.testing.assert_close(
+                result.primal, reference.primal, rtol=0.0, atol=0.0
+            )
+            torch.testing.assert_close(
+                result.tangent, reference.tangent, rtol=0.0, atol=0.0
+            )
+            # Both polarizations scale as distance**-1, giving an analytic
+            # directional derivative independently of the dispatch comparison.
+            expected_tangent = (
+                -result.primal * (direction / distance)[:, None]
+            )
+            torch.testing.assert_close(
+                result.tangent, expected_tangent, rtol=2.0e-10, atol=0.0
+            )
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
 def test_triton_unavailable_preserves_torch_result(monkeypatch, device):
     from pycbc.waveform import taylorf2_triton
 
@@ -602,3 +650,53 @@ def test_triton_cuda_launch_and_full_complex_parity(monkeypatch, updates):
     with pytest.raises(ValueError, match="mass1 must be positive"):
         get_fd_waveform_batch("TaylorF2", **_params(mass1=[1.4, -1.0]))
     assert len(launches) == 1
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA unavailable")
+def test_triton_batch_exceeding_cuda_second_grid_dimension(monkeypatch):
+    from pycbc.waveform import taylorf2_triton
+
+    if not taylorf2_triton.is_available() or torch.version.hip is not None:
+        pytest.skip("Triton CUDA unavailable")
+    launches = []
+    original_run = taylorf2_triton._taylorf2_kernel.run
+
+    def record_run(*args, **kwargs):
+        result = original_run(*args, **kwargs)
+        launches.append(True)
+        return result
+
+    monkeypatch.setattr(taylorf2_triton._taylorf2_kernel, "run", record_run)
+    _activate(_scheme.TorchScheme, "cuda")
+    # One active bin keeps this launch-limit regression small (~42 MiB for
+    # both output tensors). f_final must still strictly exceed f_lower.
+    params = _params(f_lower=20.0, f_final=20.5, delta_f=1.0)
+    monkeypatch.setenv("PYCBC_TAYLORF2_TRITON", "0")
+    expected = get_fd_waveform_batch("TaylorF2", **params)
+    assert not launches
+    batch_size = 65536
+    params["mass1"] = torch.full(
+        (batch_size,), 1.4, dtype=torch.float64, device="cuda"
+    )
+    monkeypatch.setenv("PYCBC_TAYLORF2_TRITON", "1")
+    actual = get_fd_waveform_batch("TaylorF2", **params)
+    torch.cuda.synchronize()
+    assert len(launches) == 1
+    assert torch.all(actual.first_bins == 20)
+    assert torch.all(actual.end_bins == 21)
+    assert actual.delta_f == expected.delta_f
+    assert actual.epoch == expected.epoch
+    sample_rows = [0, batch_size // 2, batch_size - 1]
+    for name in ("hplus", "hcross"):
+        values = getattr(actual, name)
+        assert values.shape == (batch_size, 21)
+        assert values.dtype == torch.complex128
+        assert values.device.type == "cuda"
+        assert torch.count_nonzero(values[:, :20]) == 0
+        assert torch.count_nonzero(values[:, 20]) == batch_size
+        torch.testing.assert_close(
+            values[sample_rows],
+            getattr(expected, name).expand(len(sample_rows), -1),
+            rtol=2.0e-10,
+            atol=0.0,
+        )

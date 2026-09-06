@@ -46,8 +46,10 @@ if _HAS_TRITON:
         PI_OVER_FOUR: tl.constexpr,
         BLOCK: tl.constexpr,
     ):
-        row = tl.program_id(1)
-        bins = tl.program_id(0) * BLOCK + tl.arange(0, BLOCK)
+        blocks_per_row = tl.cdiv(LENGTH, BLOCK)
+        program = tl.program_id(0).to(tl.int64)
+        row = program // blocks_per_row
+        bins = (program % blocks_per_row) * BLOCK + tl.arange(0, BLOCK)
         in_output = bins < LENGTH
         first = tl.load(first_bins_ptr + row)
         end = tl.load(end_bins_ptr + row)
@@ -113,7 +115,7 @@ if _HAS_TRITON:
         rotated_cross_imag = cos_nodes * cross_imag - sin_nodes * plus_imag
 
         # Complex128 tensors are exposed as interleaved float64 storage.
-        output_offset = 2 * (row * LENGTH + bins)
+        output_offset = 2 * (row.to(tl.int64) * LENGTH + bins.to(tl.int64))
         tl.store(
             plus_ptr + output_offset,
             tl.where(active, rotated_plus_real, 0.0),
@@ -182,7 +184,7 @@ def evaluate_taylorf2(
     cross = torch.empty_like(plus)
     block = 128
     with torch.cuda.device(pi_mass.device):
-        _taylorf2_kernel[(triton.cdiv(output_length, block), batch_size)](
+        _taylorf2_kernel[(triton.cdiv(output_length, block) * batch_size,)](
             torch.view_as_real(plus),
             torch.view_as_real(cross),
             coeff.contiguous(),

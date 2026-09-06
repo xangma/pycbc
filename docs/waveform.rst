@@ -130,6 +130,15 @@ grid. Scalars and length-one vectors broadcast to the common batch size, while
 inconsistent vector lengths are rejected. Focused validation is provided by
 ``test/waveform/test_taylorf2_batch.py``.
 
+For CUDA batches, ``PYCBC_TAYLORF2_TRITON=1`` enables an optional fused Triton
+frequency-grid evaluator. It retains double-precision complex output and the
+same physical validation, phasing coefficients, polarizations, and row support.
+This flag defaults to ``0`` and is read on each batch call. CPU, MPS, ROCm,
+missing Triton, and inputs carrying reverse- or forward-mode gradients use the
+Torch evaluator. An eligible Triton compilation or launch failure is reported
+to the caller. The first eligible call can include compilation; benchmark both
+startup cost and warmed public calls for the intended batch and grid sizes.
+
 Torch-native waveform decompression
 ===================================
 

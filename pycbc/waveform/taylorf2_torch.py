@@ -1228,8 +1228,8 @@ def taylorf2_fd_batch(**params):
     support. Continuous Torch inputs retain their autograd connection.
 
     ``PYCBC_TAYLORF2_TRITON=1`` opts into fused CUDA evaluation when Triton
-    is installed and no physical input requires gradients. Other calls use
-    the ordinary Torch implementation.
+    is installed and no physical input carries reverse- or forward-mode
+    gradients. Other calls use the ordinary Torch implementation.
 
     Unlike the scalar waveform dispatcher, this API never falls back to LAL
     and never interprets a vector as an implicit request for generic batching.
@@ -1550,7 +1550,11 @@ def taylorf2_fd_batch(**params):
         os.environ.get("PYCBC_TAYLORF2_TRITON", "0") == "1"
         and device.type == "cuda"
         and torch.version.hip is None
-        and not any(value.requires_grad for value in numeric.values())
+        and not any(
+            value.requires_grad
+            or torch.autograd.forward_ad.unpack_dual(value).tangent is not None
+            for value in numeric.values()
+        )
     ):
         from . import taylorf2_triton
 

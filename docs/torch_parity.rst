@@ -119,6 +119,11 @@ focused tests are the authority for detailed routing.
 The ``TaylorF2`` batch API additionally checks scalar and length-one broadcast,
 inconsistent lengths, row padding, ``first_bins``/``end_bins``, common grid
 metadata, batch ordering, and the output tensors' device.
+Its optional Triton CUDA evaluator must also preserve both complex
+polarizations, non-grid-aligned cutoffs, reference phase, PN/spin/tidal options,
+and exact zero padding. Tests observe a successful Triton kernel launch for
+eligible calls and retain Torch values and gradients for reverse- and
+forward-mode differentiation.
 
 Fallback and residency
 ----------------------

@@ -57,6 +57,14 @@ still reject a parameter set, dtype, device, or interface and select an
 existing route. The implementation's registered support predicate remains
 authoritative; user-facing capability boundaries are in :ref:`torch-scheme`.
 
+The explicit ``get_fd_waveform_batch("TaylorF2", ...)`` interface separately
+supports ``PYCBC_TAYLORF2_TRITON=1`` (default ``0``). This per-call setting selects
+a fused double-precision CUDA evaluator when Triton is available and inputs
+carry no reverse- or forward-mode gradients. Other calls retain the Torch
+evaluator. The scalar registry flags above do not select this batch evaluator.
+The first eligible call may compile a kernel; measure cold and warmed public
+calls separately. Compilation and launch errors propagate to the caller.
+
 FFT, precision, and batch sizing
 --------------------------------
 
