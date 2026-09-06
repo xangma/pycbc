@@ -447,3 +447,158 @@ def test_phasing_tensor_subclass_preserves_values_and_gradients():
         assert torch.isfinite(actual_grad).all()
         assert torch.count_nonzero(actual_grad) == actual_grad.numel()
         torch.testing.assert_close(actual_grad, expected_grad)
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_triton_opt_in_preserves_autograd(monkeypatch, device):
+    from pycbc.waveform import taylorf2_triton
+
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA unavailable")
+
+    def unexpected_launch(*args, **kwargs):
+        pytest.fail("gradient-bearing inputs must use Torch")
+
+    monkeypatch.setattr(taylorf2_triton, "is_available", lambda: True)
+    monkeypatch.setattr(taylorf2_triton, "evaluate_taylorf2", unexpected_launch)
+    _activate(_scheme.TorchScheme, device)
+    values = {
+        name: torch.tensor(data, dtype=torch.float64, device=device,
+                           requires_grad=True)
+        for name, data in {
+            "mass1": [1.4, 1.8],
+            "spin1z": [0.02, -0.1],
+            "coa_phase": [0.2, 0.7],
+            "distance": [100.0, 150.0],
+        }.items()
+    }
+
+    def evaluate(flag):
+        monkeypatch.setenv("PYCBC_TAYLORF2_TRITON", flag)
+        result = get_fd_waveform_batch("TaylorF2", **_params(**values))
+        loss = (result.hplus.real + 0.3 * result.hcross.imag).sum() * 1e22
+        gradients = torch.autograd.grad(loss, tuple(values.values()))
+        return result, gradients
+
+    expected, expected_gradients = evaluate("0")
+    actual, actual_gradients = evaluate("1")
+    for name in ("hplus", "hcross"):
+        torch.testing.assert_close(
+            getattr(actual, name), getattr(expected, name), rtol=0.0, atol=0.0
+        )
+    for actual_gradient, expected_gradient in zip(
+        actual_gradients, expected_gradients, strict=True
+    ):
+        assert torch.isfinite(actual_gradient).all()
+        assert torch.count_nonzero(actual_gradient) == actual_gradient.numel()
+        torch.testing.assert_close(
+            actual_gradient, expected_gradient, rtol=0.0, atol=0.0
+        )
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+def test_triton_unavailable_preserves_torch_result(monkeypatch, device):
+    from pycbc.waveform import taylorf2_triton
+
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA unavailable")
+
+    def unexpected_launch(*args, **kwargs):
+        pytest.fail("unavailable Triton must use Torch")
+
+    monkeypatch.setattr(taylorf2_triton, "is_available", lambda: False)
+    monkeypatch.setattr(taylorf2_triton, "evaluate_taylorf2", unexpected_launch)
+    _activate(_scheme.TorchScheme, device)
+    params = _params(mass1=[1.4, 1.8], f_lower=[20.25, 30.0])
+    monkeypatch.setenv("PYCBC_TAYLORF2_TRITON", "0")
+    expected = get_fd_waveform_batch("TaylorF2", **params)
+    monkeypatch.setenv("PYCBC_TAYLORF2_TRITON", "1")
+    actual = get_fd_waveform_batch("TaylorF2", **params)
+    for name in ("hplus", "hcross", "first_bins", "end_bins"):
+        assert torch.equal(getattr(actual, name), getattr(expected, name))
+    assert actual.delta_f == expected.delta_f
+    assert actual.epoch == expected.epoch
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA unavailable")
+@pytest.mark.parametrize(
+    "updates",
+    [
+        {
+            "delta_f": 0.3,
+            "f_lower": [20.25, 31.1],
+            "f_final": [128.2, 91.7],
+            "f_ref": [0.0, 29.1],
+        },
+        {
+            "delta_f": 0.5,
+            "f_lower": [20.25, 22.1],
+            "f_final": 0.0,
+            "f_ref": [30.0, 25.0],
+            "lambda1": [800.0, 300.0],
+            "lambda2": [700.0, 100.0],
+            "dquad_mon1": [0.0, 2.2],
+            "dquad_mon2": [0.0, 1.5],
+            "dchi3": [0.0, 0.02],
+            "dchi6l": [-0.01, 0.0],
+            "phase_order": 4,
+            "spin_order": 5,
+            "tidal_order": 15,
+        },
+    ],
+    ids=["uneven-grid-cutoffs-and-reference", "pn-spin-tides-default-cutoff"],
+)
+def test_triton_cuda_launch_and_full_complex_parity(monkeypatch, updates):
+    from pycbc.waveform import taylorf2_triton
+
+    if not taylorf2_triton.is_available() or torch.version.hip is not None:
+        pytest.skip("Triton CUDA unavailable")
+    launches = []
+    original_run = taylorf2_triton._taylorf2_kernel.run
+
+    def record_run(*args, **kwargs):
+        result = original_run(*args, **kwargs)
+        launches.append(True)
+        return result
+
+    monkeypatch.setattr(taylorf2_triton._taylorf2_kernel, "run", record_run)
+    params = _params(
+        mass1=[1.4, 2.0],
+        mass2=[1.3, 1.6],
+        spin1z=[0.02, 0.1],
+        spin2z=[-0.01, -0.04],
+        distance=[100.0, 150.0],
+        inclination=[0.8, 0.3],
+        coa_phase=[0.2, 0.7],
+        long_asc_nodes=[0.37, 0.11],
+        **updates,
+    )
+    _activate(_scheme.TorchScheme, "cuda")
+    monkeypatch.setenv("PYCBC_TAYLORF2_TRITON", "0")
+    expected = get_fd_waveform_batch("TaylorF2", **params)
+    assert not launches
+    monkeypatch.setenv("PYCBC_TAYLORF2_TRITON", "1")
+    actual = get_fd_waveform_batch("TaylorF2", **params)
+    torch.cuda.synchronize()
+    assert len(launches) == 1
+    assert actual.delta_f == expected.delta_f
+    assert actual.epoch == expected.epoch
+    for name in ("first_bins", "end_bins"):
+        assert torch.equal(getattr(actual, name), getattr(expected, name))
+    for name in ("hplus", "hcross"):
+        actual_values = getattr(actual, name)
+        expected_values = getattr(expected, name)
+        assert actual_values.dtype == torch.complex128
+        assert actual_values.device.type == "cuda"
+        torch.testing.assert_close(
+            actual_values, expected_values, rtol=2.0e-10, atol=0.0
+        )
+        relative_error = torch.linalg.vector_norm(
+            actual_values - expected_values, dim=1
+        ) / torch.linalg.vector_norm(expected_values, dim=1)
+        assert torch.all(relative_error < 1.0e-11)
+    _assert_padding_is_exact(actual)
+
+    with pytest.raises(ValueError, match="mass1 must be positive"):
+        get_fd_waveform_batch("TaylorF2", **_params(mass1=[1.4, -1.0]))
+    assert len(launches) == 1

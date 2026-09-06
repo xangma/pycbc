@@ -25,6 +25,7 @@ the active Torch device.
 """
 
 import math
+import os
 from dataclasses import dataclass
 
 import numpy as _np
@@ -1226,6 +1227,10 @@ def taylorf2_fd_batch(**params):
     Per-row ``f_lower`` and ``f_final`` determine the exact zero-padded output
     support. Continuous Torch inputs retain their autograd connection.
 
+    ``PYCBC_TAYLORF2_TRITON=1`` opts into fused CUDA evaluation when Triton
+    is installed and no physical input requires gradients. Other calls use
+    the ordinary Torch implementation.
+
     Unlike the scalar waveform dispatcher, this API never falls back to LAL
     and never interprets a vector as an implicit request for generic batching.
     """
@@ -1502,24 +1507,9 @@ def taylorf2_fd_batch(**params):
     )
     first_active = int(torch.min(first_bins).item())
     output_length = int(torch.max(end_bins).item())
-    bin_numbers = torch.arange(
-        first_active,
-        output_length,
-        dtype=real_dtype,
-        device=device,
-    )
-    frequencies = bin_numbers[None, :] * delta_f
-
     coeff = phasing.v.unsqueeze(-1)
     coeff_log = phasing.vlogv.unsqueeze(-1)
     coeff_log_sq = phasing.vlogvsq.unsqueeze(-1)
-    velocity = torch.pow(pi_mass[:, None] * frequencies, 1.0 / 3.0)
-    phase = _evaluate_phase_polynomial(
-        velocity,
-        coeff,
-        coeff_log,
-        coeff_log_sq,
-    )
     reference_velocity = torch.pow(
         pi_mass
         * torch.where(
@@ -1541,12 +1531,6 @@ def taylorf2_fd_batch(**params):
         torch.zeros_like(reference_phase),
     )
     epoch = -1.0 / delta_f
-    phase = (
-        phase
-        + 2.0 * math.pi * epoch * frequencies
-        - 2.0 * numeric["coa_phase"][:, None]
-        - reference_phase[:, None]
-    )
     distance_metres = numeric["distance"] * 1.0e6 * PC_SI
     amplitude0 = (
         -4.0
@@ -1557,21 +1541,73 @@ def taylorf2_fd_batch(**params):
         * MTSUN_SI
         * math.sqrt(math.pi / 12.0)
     )
-    amplitude = (
-        amplitude0[:, None]
-        * torch.sqrt(5.0 / (32.0 * eta))[:, None]
-        * torch.pow(velocity, -3.5)
+    amplitude_factor = amplitude0 * torch.sqrt(5.0 / (32.0 * eta))
+    cos_inclination = torch.cos(numeric["inclination"])
+    cos_nodes = torch.cos(2.0 * numeric["long_asc_nodes"])
+    sin_nodes = torch.sin(2.0 * numeric["long_asc_nodes"])
+
+    if (
+        os.environ.get("PYCBC_TAYLORF2_TRITON", "0") == "1"
+        and device.type == "cuda"
+        and torch.version.hip is None
+        and not any(value.requires_grad for value in numeric.values())
+    ):
+        from . import taylorf2_triton
+
+        if taylorf2_triton.is_available():
+            plus, cross = taylorf2_triton.evaluate_taylorf2(
+                phasing.v,
+                phasing.vlogv,
+                phasing.vlogvsq,
+                pi_mass,
+                reference_phase,
+                amplitude_factor,
+                numeric["coa_phase"],
+                cos_inclination,
+                cos_nodes,
+                sin_nodes,
+                first_bins,
+                end_bins,
+                delta_f,
+                output_length,
+            )
+            return TaylorF2FDBatch(
+                hplus=plus,
+                hcross=cross,
+                delta_f=delta_f,
+                epoch=epoch,
+                first_bins=first_bins,
+                end_bins=end_bins,
+            )
+
+    bin_numbers = torch.arange(
+        first_active,
+        output_length,
+        dtype=real_dtype,
+        device=device,
     )
+    frequencies = bin_numbers[None, :] * delta_f
+    velocity = torch.pow(pi_mass[:, None] * frequencies, 1.0 / 3.0)
+    phase = _evaluate_phase_polynomial(
+        velocity,
+        coeff,
+        coeff_log,
+        coeff_log_sq,
+    )
+    phase = (
+        phase
+        + 2.0 * math.pi * epoch * frequencies
+        - 2.0 * numeric["coa_phase"][:, None]
+        - reference_phase[:, None]
+    )
+    amplitude = amplitude_factor[:, None] * torch.pow(velocity, -3.5)
     phase_factor = torch.exp(-(phase - math.pi / 4.0).to(complex_dtype) * 1j)
     samples = amplitude.to(complex_dtype) * phase_factor
 
-    cos_inclination = torch.cos(numeric["inclination"])
     plus0 = samples * (0.5 * (1.0 + cos_inclination**2))[:, None]
     cross0 = samples * (-1j * cos_inclination)[:, None]
-    cos_nodes = torch.cos(2.0 * numeric["long_asc_nodes"])[:, None]
-    sin_nodes = torch.sin(2.0 * numeric["long_asc_nodes"])[:, None]
-    plus = cos_nodes * plus0 + sin_nodes * cross0
-    cross = cos_nodes * cross0 - sin_nodes * plus0
+    plus = cos_nodes[:, None] * plus0 + sin_nodes[:, None] * cross0
+    cross = cos_nodes[:, None] * cross0 - sin_nodes[:, None] * plus0
 
     support = (bin_numbers[None, :] >= first_bins[:, None]) & (
         bin_numbers[None, :] < end_bins[:, None]
