@@ -80,11 +80,11 @@ FFT, precision, and batch sizing
    * - ``PYCBC_TORCH_CPU_MKL_IFFT``
      - On
      - Considers eligible single-transform Torch CPU IFFT plans on Linux x86-64:
-       direct ``complex64`` at 32768 samples, or promoted ``complex128`` work
-       at 1048576, 2097152 and 4194304 samples with one Torch thread. Public
-       input/output remain ``complex64``; the 2097152-sample plan uses one
-       private in-place workspace. Ineligible calls retain the established
-       FFT route.
+       direct ``complex64`` at power-of-two sizes from 32768 through 524288,
+       or promoted ``complex128`` work at 1048576, 2097152 and 4194304 samples
+       with one Torch thread. Public input/output remain ``complex64``; the
+       2097152-sample plan uses one private in-place workspace. Ineligible
+       calls retain the established FFT route.
    * - ``PYCBC_TORCH_DIRECT_BATCH_IFFT``
      - CUDA: on; CPU/MPS: off
      - Considers direct batched inverse FFT for eligible ``complex64`` batches
@@ -126,6 +126,9 @@ Filtering, thresholding, and execution
    * - ``PYCBC_TORCH_CUDA_NATIVE_BATCH_CORRELATE``
      - Off
      - Requests the experimental native CUDA batched-correlation route.
+   * - ``PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK``
+     - Off
+     - Requests native CPU batched peak extraction.
    * - ``PYCBC_TORCH_CUDA_NATIVE_BATCH_PEAK``
      - Context-dependent when unset
      - Eligible Triton batch threshold reduction treats unset as enabled; the
