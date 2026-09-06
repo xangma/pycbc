@@ -1,0 +1,521 @@
+{
+  "sha": "607bce53ead14f12af32552a5b2441d3bc667267",
+  "clean": true,
+  "status": "ok",
+  "root": "/home/xangma/pycbc-torch-benchmark-20260906/main",
+  "python": "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+  "python_version": "3.11.9 | packaged by conda-forge | (main, Apr 19 2024, 18:36:13) [GCC 12.3.0]",
+  "host": "len",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+  "pid": 135068,
+  "argv": [
+    "/home/xangma/pycbc-torch-benchmark-20260906/harness/inference/benchmark.py",
+    "--root",
+    "/home/xangma/pycbc-torch-benchmark-20260906/main",
+    "--output",
+    "/home/xangma/pycbc-torch-benchmark-20260906/supplement/inference",
+    "--mode",
+    "worker",
+    "--model",
+    "relative",
+    "--route",
+    "torch_cpu",
+    "--threads",
+    "1",
+    "--replicate",
+    "1",
+    "--rtol",
+    "2e-07",
+    "--atol",
+    "2e-05"
+  ],
+  "harness_sha256": "a020efba4665e2c2211b3acf9c831dc5c3df2f73276d7dd6f379ebc234530cba",
+  "threads": 1,
+  "thread_environment": {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1"
+  },
+  "route": "torch_cpu",
+  "replicate": 1,
+  "model": "relative",
+  "case_sha256": "5e6d4aff615505b084c7023ce63f2f1cc26bc22561414efdfa78b04b8714e1d0",
+  "data_sha256": "d57147fa4d96eb0cf8a42c0b16f9b08d92565f49919f5f089477e935a1c46f32",
+  "group_samples": [
+    {
+      "group": 0,
+      "total_ns": 35197155,
+      "evaluations": 16,
+      "ns_per_evaluation": 2199822.1875,
+      "loglikelihoods": [
+        -64219.651187640724,
+        -64221.56437531532,
+        -64223.49347985585,
+        -64219.374600101735,
+        -64220.79527433722,
+        -64223.564841115745,
+        -64223.25059504022,
+        -64218.724193928414,
+        -64218.83129388007,
+        -64228.74072427691,
+        -64219.7642587544,
+        -64218.36576973861,
+        -64220.584499506775,
+        -64220.137671075405,
+        -64221.758538985545,
+        -64221.15624036031
+      ]
+    },
+    {
+      "group": 1,
+      "total_ns": 35045730,
+      "evaluations": 16,
+      "ns_per_evaluation": 2190358.125,
+      "loglikelihoods": [
+        -64220.96645676471,
+        -64219.91314102269,
+        -64219.41531701968,
+        -64221.32536873087,
+        -64220.2083121429,
+        -64221.78611164808,
+        -64220.638499607594,
+        -64221.64766810906,
+        -64223.04999751763,
+        -64220.14170215462,
+        -64224.9353141531,
+        -64222.24649751716,
+        -64223.821582072866,
+        -64219.960567531,
+        -64220.41787706166,
+        -64222.92590688493
+      ]
+    },
+    {
+      "group": 2,
+      "total_ns": 35117215,
+      "evaluations": 16,
+      "ns_per_evaluation": 2194825.9375,
+      "loglikelihoods": [
+        -64219.14778806554,
+        -64220.99977630434,
+        -64231.31821959593,
+        -64223.454336060015,
+        -64224.00307275905,
+        -64223.02914828595,
+        -64222.78647558493,
+        -64222.154787216954,
+        -64222.75675854219,
+        -64220.67163122371,
+        -64222.41151526776,
+        -64224.813608867975,
+        -64219.22864389616,
+        -64220.71520518139,
+        -64219.26583605977,
+        -64221.500145097096
+      ]
+    },
+    {
+      "group": 3,
+      "total_ns": 35148764,
+      "evaluations": 16,
+      "ns_per_evaluation": 2196797.75,
+      "loglikelihoods": [
+        -64223.83705504678,
+        -64219.81621170573,
+        -64230.8039084685,
+        -64225.30416173401,
+        -64225.49032232134,
+        -64221.19146561589,
+        -64221.407473440995,
+        -64220.410042509,
+        -64218.863056037946,
+        -64226.481608567796,
+        -64219.83942955397,
+        -64221.85446184231,
+        -64218.74715241486,
+        -64223.231799229856,
+        -64222.51230755686,
+        -64224.57320212411
+      ]
+    },
+    {
+      "group": 4,
+      "total_ns": 35418012,
+      "evaluations": 16,
+      "ns_per_evaluation": 2213625.75,
+      "loglikelihoods": [
+        -64218.79533187489,
+        -64219.37610549199,
+        -64220.02631807997,
+        -64220.189943100755,
+        -64218.857969441975,
+        -64221.92535066518,
+        -64221.33290182818,
+        -64228.88061940031,
+        -64220.89145159776,
+        -64220.7637065447,
+        -64221.1455928366,
+        -64222.710184657626,
+        -64222.44037708136,
+        -64222.178146919774,
+        -64219.929986192845,
+        -64220.448992062724
+      ]
+    }
+  ],
+  "parity": [
+    {
+      "params": {
+        "mass1": 10.001641931343988,
+        "mass2": 7.99105692797258,
+        "distance": 499.0116342219007,
+        "inclination": 0.39865853631892584,
+        "coa_phase": 0.19823987040254315,
+        "ra": 1.1010768935555826,
+        "dec": -0.2998075517452942,
+        "polarization": 0.19766274578976142,
+        "tc": 1126259475.6000621
+      },
+      "actual": {
+        "loglikelihood": -64220.89990778829,
+        "loglr": 30.78572826193988
+      },
+      "expected": {
+        "loglikelihood": -64220.89990778829,
+        "loglr": 30.785728261935603
+      },
+      "absolute_errors": {
+        "loglikelihood": 0.0,
+        "loglr": 4.277467269275803e-12
+      },
+      "passed": true
+    },
+    {
+      "params": {
+        "mass1": 10.012248780223056,
+        "mass2": 7.990935567183732,
+        "distance": 501.699735798326,
+        "inclination": 0.3983623752767839,
+        "coa_phase": 0.20539781668029752,
+        "ra": 1.1013469277715036,
+        "dec": -0.3008894411116439,
+        "polarization": 0.20045395235148772,
+        "tc": 1126259475.5997026
+      },
+      "actual": {
+        "loglikelihood": -64218.77111991371,
+        "loglr": 32.91451613651785
+      },
+      "expected": {
+        "loglikelihood": -64218.77111991371,
+        "loglr": 32.9145161365154
+      },
+      "absolute_errors": {
+        "loglikelihood": 0.0,
+        "loglr": 2.4442670110147446e-12
+      },
+      "passed": true
+    },
+    {
+      "params": {
+        "mass1": 10.007818017324013,
+        "mass2": 8.00181346403217,
+        "distance": 498.9001174163729,
+        "inclination": 0.40264414315420505,
+        "coa_phase": 0.20156327801674068,
+        "ra": 1.102759499159257,
+        "dec": -0.2978601497584003,
+        "polarization": 0.19962808153751946,
+        "tc": 1126259475.5997162
+      },
+      "actual": {
+        "loglikelihood": -64220.74539634099,
+        "loglr": 30.940239709234575
+      },
+      "expected": {
+        "loglikelihood": -64220.74539634099,
+        "loglr": 30.940239709234866
+      },
+      "absolute_errors": {
+        "loglikelihood": 0.0,
+        "loglr": 2.913225216616411e-13
+      },
+      "passed": true
+    },
+    {
+      "params": {
+        "mass1": 9.99300520920184,
+        "mass2": 7.98630733824817,
+        "distance": 499.24847707470957,
+        "inclination": 0.3998220548960467,
+        "coa_phase": 0.2031590166430038,
+        "ra": 1.1003200520360266,
+        "dec": -0.2996954043679542,
+        "polarization": 0.20366294243555969,
+        "tc": 1126259475.5998611
+      },
+      "actual": {
+        "loglikelihood": -64222.532216097155,
+        "loglr": 29.153419953073552
+      },
+      "expected": {
+        "loglikelihood": -64222.53221609716,
+        "loglr": 29.15341995306693
+      },
+      "absolute_errors": {
+        "loglikelihood": 7.275957614183426e-12,
+        "loglr": 6.622258297284134e-12
+      },
+      "passed": true
+    },
+    {
+      "params": {
+        "mass1": 9.99967501531378,
+        "mass2": 7.998351582910207,
+        "distance": 498.89934479788263,
+        "inclination": 0.4013713955028801,
+        "coa_phase": 0.20567402398003237,
+        "ra": 1.1003574990710767,
+        "dec": -0.30109757080063004,
+        "polarization": 0.1988706592479189,
+        "tc": 1126259475.6002126
+      },
+      "actual": {
+        "loglikelihood": -64221.251854255985,
+        "loglr": 30.43378179423962
+      },
+      "expected": {
+        "loglikelihood": -64221.25185425599,
+        "loglr": 30.433781794235045
+      },
+      "absolute_errors": {
+        "loglikelihood": 7.275957614183426e-12,
+        "loglr": 4.575895218295045e-12
+      },
+      "passed": true
+    },
+    {
+      "params": {
+        "mass1": 9.998444414086048,
+        "mass2": 7.9895398553481245,
+        "distance": 499.3001135850865,
+        "inclination": 0.4020797874455108,
+        "coa_phase": 0.20187101937301133,
+        "ra": 1.102968191192559,
+        "dec": -0.3012348150741865,
+        "polarization": 0.20245142002746,
+        "tc": 1126259475.6002505
+      },
+      "actual": {
+        "loglikelihood": -64223.530251155134,
+        "loglr": 28.15538489509614
+      },
+      "expected": {
+        "loglikelihood": -64223.53025115514,
+        "loglr": 28.15538489508979
+      },
+      "absolute_errors": {
+        "loglikelihood": 7.275957614183426e-12,
+        "loglr": 6.352252057695296e-12
+      },
+      "passed": true
+    },
+    {
+      "params": {
+        "mass1": 9.999042034917272,
+        "mass2": 7.985138608259976,
+        "distance": 500.3447835989926,
+        "inclination": 0.4016652126272504,
+        "coa_phase": 0.19589429500956107,
+        "ra": 1.1027219201973357,
+        "dec": -0.29888167120907755,
+        "polarization": 0.20059254485263564,
+        "tc": 1126259475.6002586
+      },
+      "actual": {
+        "loglikelihood": -64225.19223314394,
+        "loglr": 26.493402906287486
+      },
+      "expected": {
+        "loglikelihood": -64225.19223314394,
+        "loglr": 26.493402906283514
+      },
+      "absolute_errors": {
+        "loglikelihood": 0.0,
+        "loglr": 3.97193389289896e-12
+      },
+      "passed": true
+    },
+    {
+      "params": {
+        "mass1": 10.00243861425557,
+        "mass2": 7.988168092738088,
+        "distance": 498.20885428241144,
+        "inclination": 0.3994539180636155,
+        "coa_phase": 0.2016493167728541,
+        "ra": 1.1010874993078636,
+        "dec": -0.3029480378571395,
+        "polarization": 0.19672412065676412,
+        "tc": 1126259475.5998502
+      },
+      "actual": {
+        "loglikelihood": -64219.893402947775,
+        "loglr": 31.792233102449927
+      },
+      "expected": {
+        "loglikelihood": -64219.89340294778,
+        "loglr": 31.792233102445252
+      },
+      "absolute_errors": {
+        "loglikelihood": 7.275957614183426e-12,
+        "loglr": 4.675371201301459e-12
+      },
+      "passed": true
+    },
+    {
+      "params": {
+        "mass1": 9.99216150029571,
+        "mass2": 7.992220802438422,
+        "distance": 501.6976720041844,
+        "inclination": 0.4008095015660677,
+        "coa_phase": 0.20382573100052306,
+        "ra": 1.1027945030033177,
+        "dec": -0.3024659792775601,
+        "polarization": 0.20268751349679537,
+        "tc": 1126259475.599976
+      },
+      "actual": {
+        "loglikelihood": -64222.114408949186,
+        "loglr": 29.571227101038843
+      },
+      "expected": {
+        "loglikelihood": -64222.11440894919,
+        "loglr": 29.571227101033713
+      },
+      "absolute_errors": {
+        "loglikelihood": 7.275957614183426e-12,
+        "loglr": 5.130118552187923e-12
+      },
+      "passed": true
+    },
+    {
+      "params": {
+        "mass1": 9.997043658015075,
+        "mass2": 7.991019151250187,
+        "distance": 498.93265583926774,
+        "inclination": 0.3986772766838139,
+        "coa_phase": 0.19784533089107018,
+        "ra": 1.1024842142224227,
+        "dec": -0.29796519198742755,
+        "polarization": 0.19947154458929098,
+        "tc": 1126259475.6000872
+      },
+      "actual": {
+        "loglikelihood": -64221.86807521833,
+        "loglr": 29.81756083189876
+      },
+      "expected": {
+        "loglikelihood": -64221.868075218335,
+        "loglr": 29.81756083189356
+      },
+      "absolute_errors": {
+        "loglikelihood": 7.275957614183426e-12,
+        "loglr": 5.201172825763933e-12
+      },
+      "passed": true
+    },
+    {
+      "params": {
+        "mass1": 10.005628558742611,
+        "mass2": 7.99860150344189,
+        "distance": 500.67283099198653,
+        "inclination": 0.4026318042852208,
+        "coa_phase": 0.19954186753812317,
+        "ra": 1.1027517838209273,
+        "dec": -0.29706288211400017,
+        "polarization": 0.19844966168862488,
+        "tc": 1126259475.600299
+      },
+      "actual": {
+        "loglikelihood": -64221.61611635224,
+        "loglr": 30.069519697990266
+      },
+      "expected": {
+        "loglikelihood": -64221.61611635224,
+        "loglr": 30.06951969798739
+      },
+      "absolute_errors": {
+        "loglikelihood": 0.0,
+        "loglr": 2.8776980798284058e-12
+      },
+      "passed": true
+    },
+    {
+      "params": {
+        "mass1": 9.989390082387128,
+        "mass2": 7.9967478238512335,
+        "distance": 500.4280489677714,
+        "inclination": 0.39998433087255286,
+        "coa_phase": 0.20318202277964204,
+        "ra": 1.0995188324418914,
+        "dec": -0.3028504061524716,
+        "polarization": 0.1999674332260497,
+        "tc": 1126259475.600135
+      },
+      "actual": {
+        "loglikelihood": -64222.84612728185,
+        "loglr": 28.83950876837308
+      },
+      "expected": {
+        "loglikelihood": -64222.84612728186,
+        "loglr": 28.839508768369292
+      },
+      "absolute_errors": {
+        "loglikelihood": 7.275957614183426e-12,
+        "loglr": 3.787192781601334e-12
+      },
+      "passed": true
+    }
+  ],
+  "timing_boundary": "Public model.update(**varied_parameters) + float(model.loglikelihood); CUDA synchronized before/after every timed group. Includes waveform generation, projection, likelihood reduction and host scalar return. Excludes setup, parity and warmup.",
+  "imports_ns": 4564234624,
+  "numpy_version": "1.26.4",
+  "threadpools": "threadpoolctl unavailable",
+  "torch_version": "2.13.0+cu130",
+  "cuda_build": "13.0",
+  "cold_scheme_ns": 22462547,
+  "torch_threads": 1,
+  "torch_interop_threads": 1,
+  "cold_model_setup_ns": 796862301,
+  "cold_first_update_likelihood_ns": 6098296,
+  "cold_loglikelihood": -64222.092583836995,
+  "likelihood_result": {
+    "type": "builtins.float",
+    "device": "cpu"
+  },
+  "model_class": "pycbc.inference.models.relbin.Relative",
+  "data_storage": {
+    "H1": {
+      "type": "pycbc.types.array_torch.TorchArrayData",
+      "device": "cpu",
+      "dtype": "complex128"
+    },
+    "L1": {
+      "type": "pycbc.types.array_torch.TorchArrayData",
+      "device": "cpu",
+      "dtype": "complex128"
+    }
+  },
+  "relative_bins": {
+    "H1": 314,
+    "L1": 314
+  },
+  "parity_tolerance": {
+    "rtol": 2e-07,
+    "atol": 2e-05
+  },
+  "final_sha": "607bce53ead14f12af32552a5b2441d3bc667267",
+  "final_status": ""
+}

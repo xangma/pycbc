@@ -1,0 +1,9 @@
+error: Repository lacks these prerequisite commits:
+error: 40e94792b3edf59f39b18b65102b28a4f74433a7 
+fatal: remote transport reported error
+Traceback (most recent call last):
+  File "/home/xangma/pycbc-torch-benchmark-20260906/prepare.py", line 25, in <module>
+    subprocess.run(['git', 'clone', '--quiet', '--no-checkout', str(BUNDLE), str(repo)], check=True)
+  File "/usr/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['git', 'clone', '--quiet', '--no-checkout', '/home/xangma/pycbc-torch-format-20260906/final/candidate.bundle', '/home/xangma/pycbc-torch-benchmark-20260906/main']' returned non-zero exit status 128.

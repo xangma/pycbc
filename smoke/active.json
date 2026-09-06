@@ -1,0 +1,26 @@
+{
+  "label": "inference-relative-cuda",
+  "command": [
+    "taskset",
+    "-c",
+    "8-11",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-benchmark-20260906/harness/inference/benchmark.py",
+    "--root",
+    "/home/xangma/pycbc-torch-benchmark-20260906/main",
+    "--output",
+    "/home/xangma/pycbc-torch-benchmark-20260906/smoke/inference",
+    "--mode",
+    "worker",
+    "--model",
+    "relative",
+    "--route",
+    "cuda",
+    "--threads",
+    "1",
+    "--replicate",
+    "0"
+  ],
+  "started_utc": "2026-09-06T09:14:34.614285+00:00",
+  "pid": 3991114
+}

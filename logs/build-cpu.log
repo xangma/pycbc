@@ -1,0 +1,113 @@
+/home/xangma/pycbc-torch-split-20260905/venv/lib/python3.11/site-packages/setuptools/_distutils/extension.py:134: UserWarning: Unknown Extension options: 'compiler_directives'
+  warnings.warn(msg)
+running build_ext
+/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/Cython/Compiler/Main.py:381: FutureWarning: Cython directive 'language_level' not set, using '3str' for now (Py3). This has changed from earlier releases! File: /home/xangma/pycbc-torch-benchmark-20260906/cpu/pycbc/types/array_cpu.pyx
+  tree = Parsing.p_module(s, pxd, full_module_name)
+/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/Cython/Compiler/Main.py:381: FutureWarning: Cython directive 'language_level' not set, using '3str' for now (Py3). This has changed from earlier releases! File: /home/xangma/pycbc-torch-benchmark-20260906/cpu/pycbc/waveform/spa_tmplt_cpu.pyx
+  tree = Parsing.p_module(s, pxd, full_module_name)
+/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/Cython/Compiler/Main.py:381: FutureWarning: Cython directive 'language_level' not set, using '3str' for now (Py3). This has changed from earlier releases! File: /home/xangma/pycbc-torch-benchmark-20260906/cpu/pycbc/filter/matchedfilter_cpu.pyx
+  tree = Parsing.p_module(s, pxd, full_module_name)
+/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/Cython/Compiler/Main.py:381: FutureWarning: Cython directive 'language_level' not set, using '3str' for now (Py3). This has changed from earlier releases! File: /home/xangma/pycbc-torch-benchmark-20260906/cpu/pycbc/waveform/utils_cpu.pyx
+  tree = Parsing.p_module(s, pxd, full_module_name)
+Compiling pycbc/types/array_cpu.pyx because it changed.
+[1/1] Cythonizing pycbc/types/array_cpu.pyx
+Compiling pycbc/waveform/spa_tmplt_cpu.pyx because it changed.
+[1/1] Cythonizing pycbc/waveform/spa_tmplt_cpu.pyx
+Compiling pycbc/waveform/utils_cpu.pyx because it changed.
+[1/1] Cythonizing pycbc/waveform/utils_cpu.pyx
+Compiling pycbc/filter/matchedfilter_cpu.pyx because it changed.
+[1/1] Cythonizing pycbc/filter/matchedfilter_cpu.pyx
+building 'pycbc.waveform.utils_cpu' extension
+creating build
+creating build/temp.linux-x86_64-cpython-311
+creating build/temp.linux-x86_64-cpython-311/pycbc
+building 'pycbc.waveform.spa_tmplt_cpu' extension
+creating build/temp.linux-x86_64-cpython-311/pycbc/waveform
+creating build/temp.linux-x86_64-cpython-311/pycbc/waveform
+gcc -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -I/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/numpy/core/include -I/home/xangma/pycbc-torch-split-20260905/venv/include -I/home/xangma/miniconda3/envs/pycbc3g/include/python3.11 -c pycbc/waveform/spa_tmplt_cpu.cpp -o build/temp.linux-x86_64-cpython-311/pycbc/waveform/spa_tmplt_cpu.o -O3 -w -ffast-math -ffinite-math-only -msse4.2 -fopenmp
+gcc -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -I/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/numpy/core/include -I/home/xangma/pycbc-torch-split-20260905/venv/include -I/home/xangma/miniconda3/envs/pycbc3g/include/python3.11 -c pycbc/waveform/utils_cpu.cpp -o build/temp.linux-x86_64-cpython-311/pycbc/waveform/utils_cpu.o -O3 -w -ffast-math -ffinite-math-only -msse4.2 -fopenmp
+building 'pycbc.types.array_cpu' extension
+creating build/temp.linux-x86_64-cpython-311/pycbc/types
+gcc -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -I/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/numpy/core/include -I/home/xangma/pycbc-torch-split-20260905/venv/include -I/home/xangma/miniconda3/envs/pycbc3g/include/python3.11 -c pycbc/types/array_cpu.cpp -o build/temp.linux-x86_64-cpython-311/pycbc/types/array_cpu.o -O3 -w -ffast-math -ffinite-math-only -msse4.2 -fopenmp
+building 'pycbc.filter.matchedfilter_cpu' extension
+creating build/temp.linux-x86_64-cpython-311/pycbc/filter
+gcc -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -I/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/numpy/core/include -I/home/xangma/pycbc-torch-split-20260905/venv/include -I/home/xangma/miniconda3/envs/pycbc3g/include/python3.11 -c pycbc/filter/matchedfilter_cpu.cpp -o build/temp.linux-x86_64-cpython-311/pycbc/filter/matchedfilter_cpu.o -O3 -w -ffast-math -ffinite-math-only -msse4.2 -fopenmp
+creating build/lib.linux-x86_64-cpython-311
+creating build/lib.linux-x86_64-cpython-311/pycbc
+creating build/lib.linux-x86_64-cpython-311/pycbc/waveform
+g++ -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -shared -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib build/temp.linux-x86_64-cpython-311/pycbc/waveform/utils_cpu.o -lm -o build/lib.linux-x86_64-cpython-311/pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so -fopenmp
+/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/Cython/Compiler/Main.py:381: FutureWarning: Cython directive 'language_level' not set, using '3str' for now (Py3). This has changed from earlier releases! File: /home/xangma/pycbc-torch-benchmark-20260906/cpu/pycbc/vetoes/chisq_cpu.pyx
+  tree = Parsing.p_module(s, pxd, full_module_name)
+Compiling pycbc/vetoes/chisq_cpu.pyx because it changed.
+[1/1] Cythonizing pycbc/vetoes/chisq_cpu.pyx
+building 'pycbc.vetoes.chisq_cpu' extension
+creating build/temp.linux-x86_64-cpython-311/pycbc/vetoes
+gcc -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -I/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/numpy/core/include -I/home/xangma/pycbc-torch-split-20260905/venv/include -I/home/xangma/miniconda3/envs/pycbc3g/include/python3.11 -c pycbc/vetoes/chisq_cpu.cpp -o build/temp.linux-x86_64-cpython-311/pycbc/vetoes/chisq_cpu.o -O3 -w -ffast-math -ffinite-math-only -msse4.2 -fopenmp
+g++ -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -shared -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib build/temp.linux-x86_64-cpython-311/pycbc/waveform/spa_tmplt_cpu.o -lm -o build/lib.linux-x86_64-cpython-311/pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so -fopenmp
+/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/Cython/Compiler/Main.py:381: FutureWarning: Cython directive 'language_level' not set, using '3str' for now (Py3). This has changed from earlier releases! File: /home/xangma/pycbc-torch-benchmark-20260906/cpu/pycbc/fft/fftw_pruned_cython.pyx
+  tree = Parsing.p_module(s, pxd, full_module_name)
+Compiling pycbc/fft/fftw_pruned_cython.pyx because it changed.
+[1/1] Cythonizing pycbc/fft/fftw_pruned_cython.pyx
+building 'pycbc.fft.fftw_pruned_cython' extension
+creating build/temp.linux-x86_64-cpython-311/pycbc/fft
+gcc -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -I/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/numpy/core/include -I/home/xangma/pycbc-torch-split-20260905/venv/include -I/home/xangma/miniconda3/envs/pycbc3g/include/python3.11 -c pycbc/fft/fftw_pruned_cython.cpp -o build/temp.linux-x86_64-cpython-311/pycbc/fft/fftw_pruned_cython.o -O3 -w -ffast-math -ffinite-math-only -msse4.2 -fopenmp
+creating build/lib.linux-x86_64-cpython-311/pycbc/filter
+g++ -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -shared -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib build/temp.linux-x86_64-cpython-311/pycbc/filter/matchedfilter_cpu.o -lm -o build/lib.linux-x86_64-cpython-311/pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so -fopenmp
+/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/Cython/Compiler/Main.py:381: FutureWarning: Cython directive 'language_level' not set, using '3str' for now (Py3). This has changed from earlier releases! File: /home/xangma/pycbc-torch-benchmark-20260906/cpu/pycbc/events/eventmgr_cython.pyx
+  tree = Parsing.p_module(s, pxd, full_module_name)
+Compiling pycbc/events/eventmgr_cython.pyx because it changed.
+[1/1] Cythonizing pycbc/events/eventmgr_cython.pyx
+building 'pycbc.events.eventmgr_cython' extension
+creating build/temp.linux-x86_64-cpython-311/pycbc/events
+gcc -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -I/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/numpy/core/include -I/home/xangma/pycbc-torch-split-20260905/venv/include -I/home/xangma/miniconda3/envs/pycbc3g/include/python3.11 -c pycbc/events/eventmgr_cython.cpp -o build/temp.linux-x86_64-cpython-311/pycbc/events/eventmgr_cython.o -O3 -w -ffast-math -ffinite-math-only -msse4.2 -fopenmp
+creating build/lib.linux-x86_64-cpython-311/pycbc/types
+g++ -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -shared -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib build/temp.linux-x86_64-cpython-311/pycbc/types/array_cpu.o -lm -o build/lib.linux-x86_64-cpython-311/pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so -fopenmp
+/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/Cython/Compiler/Main.py:381: FutureWarning: Cython directive 'language_level' not set, using '3str' for now (Py3). This has changed from earlier releases! File: /home/xangma/pycbc-torch-benchmark-20260906/cpu/pycbc/events/simd_threshold_cython.pyx
+  tree = Parsing.p_module(s, pxd, full_module_name)
+Compiling pycbc/events/simd_threshold_cython.pyx because it changed.
+[1/1] Cythonizing pycbc/events/simd_threshold_cython.pyx
+building 'pycbc.events.simd_threshold_cython' extension
+gcc -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -I/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/numpy/core/include -I/home/xangma/pycbc-torch-split-20260905/venv/include -I/home/xangma/miniconda3/envs/pycbc3g/include/python3.11 -c pycbc/events/simd_threshold_cython.cpp -o build/temp.linux-x86_64-cpython-311/pycbc/events/simd_threshold_cython.o -O3 -w -ffast-math -ffinite-math-only -msse4.2 -fopenmp
+creating build/lib.linux-x86_64-cpython-311/pycbc/fft
+g++ -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -shared -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib build/temp.linux-x86_64-cpython-311/pycbc/fft/fftw_pruned_cython.o -lm -o build/lib.linux-x86_64-cpython-311/pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so -fopenmp
+/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/Cython/Compiler/Main.py:381: FutureWarning: Cython directive 'language_level' not set, using '3str' for now (Py3). This has changed from earlier releases! File: /home/xangma/pycbc-torch-benchmark-20260906/cpu/pycbc/filter/simd_correlate_cython.pyx
+  tree = Parsing.p_module(s, pxd, full_module_name)
+Compiling pycbc/filter/simd_correlate_cython.pyx because it changed.
+[1/1] Cythonizing pycbc/filter/simd_correlate_cython.pyx
+building 'pycbc.filter.simd_correlate_cython' extension
+gcc -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -I/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/numpy/core/include -I/home/xangma/pycbc-torch-split-20260905/venv/include -I/home/xangma/miniconda3/envs/pycbc3g/include/python3.11 -c pycbc/filter/simd_correlate_cython.cpp -o build/temp.linux-x86_64-cpython-311/pycbc/filter/simd_correlate_cython.o -O3 -w -ffast-math -ffinite-math-only -msse4.2 -fopenmp
+creating build/lib.linux-x86_64-cpython-311/pycbc/events
+g++ -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -shared -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib build/temp.linux-x86_64-cpython-311/pycbc/events/simd_threshold_cython.o -lm -o build/lib.linux-x86_64-cpython-311/pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so -fopenmp
+/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/Cython/Compiler/Main.py:381: FutureWarning: Cython directive 'language_level' not set, using '3str' for now (Py3). This has changed from earlier releases! File: /home/xangma/pycbc-torch-benchmark-20260906/cpu/pycbc/waveform/decompress_cpu_cython.pyx
+  tree = Parsing.p_module(s, pxd, full_module_name)
+Compiling pycbc/waveform/decompress_cpu_cython.pyx because it changed.
+[1/1] Cythonizing pycbc/waveform/decompress_cpu_cython.pyx
+building 'pycbc.waveform.decompress_cpu_cython' extension
+gcc -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -I/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/numpy/core/include -I/home/xangma/pycbc-torch-split-20260905/venv/include -I/home/xangma/miniconda3/envs/pycbc3g/include/python3.11 -c pycbc/waveform/decompress_cpu_cython.cpp -o build/temp.linux-x86_64-cpython-311/pycbc/waveform/decompress_cpu_cython.o -O3 -w -ffast-math -ffinite-math-only -msse4.2 -fopenmp
+creating build/lib.linux-x86_64-cpython-311/pycbc/vetoes
+g++ -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -shared -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib build/temp.linux-x86_64-cpython-311/pycbc/vetoes/chisq_cpu.o -lm -o build/lib.linux-x86_64-cpython-311/pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so -fopenmp
+/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/Cython/Compiler/Main.py:381: FutureWarning: Cython directive 'language_level' not set, using '3str' for now (Py3). This has changed from earlier releases! File: /home/xangma/pycbc-torch-benchmark-20260906/cpu/pycbc/inference/models/relbin_cpu.pyx
+  tree = Parsing.p_module(s, pxd, full_module_name)
+Compiling pycbc/inference/models/relbin_cpu.pyx because it changed.
+[1/1] Cythonizing pycbc/inference/models/relbin_cpu.pyx
+g++ -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -shared -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib build/temp.linux-x86_64-cpython-311/pycbc/filter/simd_correlate_cython.o -lm -o build/lib.linux-x86_64-cpython-311/pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so -fopenmp
+building 'pycbc.inference.models.relbin_cpu' extension
+creating build/temp.linux-x86_64-cpython-311/pycbc/inference
+creating build/temp.linux-x86_64-cpython-311/pycbc/inference/models
+gcc -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -I/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/numpy/core/include -I/home/xangma/pycbc-torch-split-20260905/venv/include -I/home/xangma/miniconda3/envs/pycbc3g/include/python3.11 -c pycbc/inference/models/relbin_cpu.cpp -o build/temp.linux-x86_64-cpython-311/pycbc/inference/models/relbin_cpu.o -O3 -w -ffast-math -ffinite-math-only -msse4.2 -fopenmp
+g++ -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -shared -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib build/temp.linux-x86_64-cpython-311/pycbc/waveform/decompress_cpu_cython.o -lm -o build/lib.linux-x86_64-cpython-311/pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so -fopenmp
+g++ -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -shared -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib build/temp.linux-x86_64-cpython-311/pycbc/events/eventmgr_cython.o -lm -o build/lib.linux-x86_64-cpython-311/pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so -fopenmp
+creating build/lib.linux-x86_64-cpython-311/pycbc/inference
+creating build/lib.linux-x86_64-cpython-311/pycbc/inference/models
+g++ -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -shared -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib build/temp.linux-x86_64-cpython-311/pycbc/inference/models/relbin_cpu.o -lm -o build/lib.linux-x86_64-cpython-311/pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so -fopenmp
+copying build/lib.linux-x86_64-cpython-311/pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so -> pycbc/waveform
+copying build/lib.linux-x86_64-cpython-311/pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so -> pycbc/waveform
+copying build/lib.linux-x86_64-cpython-311/pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so -> pycbc/types
+copying build/lib.linux-x86_64-cpython-311/pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so -> pycbc/filter
+copying build/lib.linux-x86_64-cpython-311/pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so -> pycbc/vetoes
+copying build/lib.linux-x86_64-cpython-311/pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so -> pycbc/fft
+copying build/lib.linux-x86_64-cpython-311/pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so -> pycbc/events
+copying build/lib.linux-x86_64-cpython-311/pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so -> pycbc/events
+copying build/lib.linux-x86_64-cpython-311/pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so -> pycbc/filter
+copying build/lib.linux-x86_64-cpython-311/pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so -> pycbc/waveform
+copying build/lib.linux-x86_64-cpython-311/pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so -> pycbc/inference/models

@@ -1,0 +1,21 @@
+{
+  "label": "inference",
+  "command": [
+    "taskset",
+    "-c",
+    "8-11",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-benchmark-20260906/harness/inference/benchmark.py",
+    "--mode",
+    "orchestrate",
+    "--root",
+    "/home/xangma/pycbc-torch-benchmark-20260906/main",
+    "--python",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "--output",
+    "/home/xangma/pycbc-torch-benchmark-20260906/supplement/inference"
+  ],
+  "cwd": "/home/xangma/pycbc-torch-benchmark-20260906/main",
+  "started_utc": "2026-09-06T09:24:24.519251+00:00",
+  "pid": 67289
+}

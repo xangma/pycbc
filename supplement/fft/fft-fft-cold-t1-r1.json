@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "label": "fft-fft-cold-t1-r1",
+  "status": "passed",
+  "scope": "Public Torch CPU IFFT; plan construction and warm execution separately",
+  "source": {
+    "root": "/home/xangma/pycbc-torch-benchmark-20260906/fft",
+    "revision": "e6073eaf1a89cfed69af53707f52321eadf129f1",
+    "tree": "f4d5b2c0d0c72e7e408d48b3d31036258de9736c",
+    "tracked_clean": true,
+    "pycbc_module": "/home/xangma/pycbc-torch-benchmark-20260906/fft/pycbc/__init__.py",
+    "torchfft_sha256": "c1cb53c4cdddc9da9aaa8fb52e3a2fb7bcdfa17c58060861fdb87c7113c455a5",
+    "harness_sha256": "f3c7297d1f37614b7879ed1c170a1f13e1fc42c6d4c48a13a7bf598b723c99c3"
+  },
+  "environment": {
+    "host": "len",
+    "pid": 4028289,
+    "python": "3.11.9 | packaged by conda-forge | (main, Apr 19 2024, 18:36:13) [GCC 12.3.0]",
+    "numpy": "1.26.4",
+    "torch": "2.13.0+cu130",
+    "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+    "affinity": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "torch_threads": 1,
+    "fftw_float_library": "/usr/lib/x86_64-linux-gnu/libfftw3f.so.3.6.10"
+  },
+  "workload": {
+    "size": 131072,
+    "batch": 1,
+    "dtype": "complex64",
+    "seed": 7101,
+    "inner": 10,
+    "warmups": 3
+  },
+  "plan": {
+    "engine_class": "pycbc.fft.torchfft.IFFT",
+    "plan_class": "_FFTWCPUDirectPlan",
+    "measure_level": 1,
+    "retained_workspace": true,
+    "aligned": true,
+    "threads": 1,
+    "construction_seconds": 2.417146079009399,
+    "untimed_dispatch": {
+      "attempts": 1,
+      "native_successes": 1,
+      "torch_fallback_calls": 0
+    },
+    "cache_route_qualified": true,
+    "expected_route_confirmed": true
+  },
+  "cache": {
+    "mode": "cold",
+    "directory": "/home/xangma/pycbc-torch-benchmark-20260906/supplement/fft/cache-r1",
+    "enabled": true,
+    "before": [],
+    "after": [
+      {
+        "name": "torch-b1-search-ifft-4d2c24f54e61b2ec8719c0a9ff8efe57422b2b1c4e5d7fd01df5297416a98bc7.wisdom",
+        "bytes": 654,
+        "sha256": "ec35836e721d08201d33bbab8d88b7a9e732e51953f1e8b4747b7ebdf54c105c"
+      }
+    ],
+    "successful_imports": 0,
+    "successful_exports": 1,
+    "confirmed": true,
+    "messages": [
+      {
+        "level": "INFO",
+        "message": "Updated automatic FFTW wisdom cache /home/xangma/pycbc-torch-benchmark-20260906/supplement/fft/cache-r1/torch-b1-search-ifft-4d2c24f54e61b2ec8719c0a9ff8efe57422b2b1c4e5d7fd01df5297416a98bc7.wisdom"
+      }
+    ]
+  },
+  "parity": {
+    "passed": true,
+    "reference": "NumPy complex128 unnormalized IFFT",
+    "max_error_relative_to_reference_peak": 1.7836670317514734e-07,
+    "relative_l2": 1.5380509424703786e-07,
+    "tolerance": 2e-06,
+    "input_preserved": true
+  },
+  "timing": {
+    "unit": "seconds_per_ifft",
+    "raw_samples": [
+      0.0005847461987286806,
+      0.0005865516024641693,
+      0.0005782399035524577,
+      0.0005814058997202665,
+      0.0005827474000398069
+    ],
+    "median": 0.0005827474000398069,
+    "minimum": 0.0005782399035524577,
+    "maximum": 0.0005865516024641693,
+    "sample_count": 5
+  }
+}

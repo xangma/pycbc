@@ -1,0 +1,318 @@
+{
+  "source": {
+    "main": "607bce53ead14f12af32552a5b2441d3bc667267",
+    "fft": "e6073eaf1a89cfed69af53707f52321eadf129f1"
+  },
+  "rows": [
+    {
+      "head": "main",
+      "cache_mode": "off",
+      "threads": 1,
+      "label": "Main \u00b7 off \u00b7 1T",
+      "statuses": [
+        "passed",
+        "passed",
+        "passed"
+      ],
+      "eligible": true,
+      "plan_ms": {
+        "replicate_values": [
+          42.58616699371487,
+          42.42173698730767,
+          42.56995604373515
+        ],
+        "median": 42.56995604373515,
+        "minimum": 42.42173698730767,
+        "maximum": 42.58616699371487
+      },
+      "execute_ms": {
+        "replicate_values": [
+          0.7440038956701756,
+          0.7297500036656857,
+          0.7304432976525277
+        ],
+        "median": 0.7304432976525277,
+        "minimum": 0.7297500036656857,
+        "maximum": 0.7440038956701756
+      },
+      "max_relative_l2": 1.6795646336616632e-07,
+      "native_successes": [
+        1,
+        1,
+        1
+      ],
+      "cache_imports": [
+        0,
+        0,
+        0
+      ],
+      "cache_exports": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "head": "fft",
+      "cache_mode": "off",
+      "threads": 1,
+      "label": "Optional \u00b7 off \u00b7 1T",
+      "statuses": [
+        "passed",
+        "passed",
+        "passed"
+      ],
+      "eligible": true,
+      "plan_ms": {
+        "replicate_values": [
+          42.23463300149888,
+          42.23453300073743,
+          42.58997400756925
+        ],
+        "median": 42.23463300149888,
+        "minimum": 42.23453300073743,
+        "maximum": 42.58997400756925
+      },
+      "execute_ms": {
+        "replicate_values": [
+          0.7509429997298867,
+          0.736971601145342,
+          0.7299214019440114
+        ],
+        "median": 0.736971601145342,
+        "minimum": 0.7299214019440114,
+        "maximum": 0.7509429997298867
+      },
+      "max_relative_l2": 1.6795646336616632e-07,
+      "native_successes": [
+        1,
+        1,
+        1
+      ],
+      "cache_imports": [
+        0,
+        0,
+        0
+      ],
+      "cache_exports": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "head": "fft",
+      "cache_mode": "cold",
+      "threads": 1,
+      "label": "Optional \u00b7 cold \u00b7 1T",
+      "statuses": [
+        "passed",
+        "passed",
+        "passed"
+      ],
+      "eligible": true,
+      "plan_ms": {
+        "replicate_values": [
+          2417.146079009399,
+          2475.412598985713,
+          2396.272969956044
+        ],
+        "median": 2417.146079009399,
+        "minimum": 2396.272969956044,
+        "maximum": 2475.412598985713
+      },
+      "execute_ms": {
+        "replicate_values": [
+          0.582747400039807,
+          0.5707025993615389,
+          0.5601587996352464
+        ],
+        "median": 0.5707025993615389,
+        "minimum": 0.5601587996352464,
+        "maximum": 0.582747400039807
+      },
+      "max_relative_l2": 1.5380509424703786e-07,
+      "native_successes": [
+        1,
+        1,
+        1
+      ],
+      "cache_imports": [
+        0,
+        0,
+        0
+      ],
+      "cache_exports": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "head": "fft",
+      "cache_mode": "warm",
+      "threads": 1,
+      "label": "Optional \u00b7 warm \u00b7 1T",
+      "statuses": [
+        "passed",
+        "passed",
+        "passed"
+      ],
+      "eligible": true,
+      "plan_ms": {
+        "replicate_values": [
+          75.16495697200298,
+          76.25941396690905,
+          76.07010699575767
+        ],
+        "median": 76.07010699575767,
+        "minimum": 75.16495697200298,
+        "maximum": 76.25941396690905
+      },
+      "execute_ms": {
+        "replicate_values": [
+          0.5624291021376848,
+          0.5728407006245106,
+          0.5689634010195732
+        ],
+        "median": 0.5689634010195732,
+        "minimum": 0.5624291021376848,
+        "maximum": 0.5728407006245106
+      },
+      "max_relative_l2": 1.5380509424703786e-07,
+      "native_successes": [
+        1,
+        1,
+        1
+      ],
+      "cache_imports": [
+        1,
+        1,
+        1
+      ],
+      "cache_exports": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "head": "main",
+      "cache_mode": "off",
+      "threads": 4,
+      "label": "Main \u00b7 off \u00b7 4T",
+      "statuses": [
+        "passed",
+        "passed",
+        "passed"
+      ],
+      "eligible": true,
+      "plan_ms": {
+        "replicate_values": [
+          0.14065601862967014,
+          0.1246450119651854,
+          0.14010502491146326
+        ],
+        "median": 0.14010502491146326,
+        "minimum": 0.1246450119651854,
+        "maximum": 0.14065601862967014
+      },
+      "execute_ms": {
+        "replicate_values": [
+          0.29705699998885393,
+          0.2961271966341883,
+          0.29959369567222893
+        ],
+        "median": 0.29705699998885393,
+        "minimum": 0.2961271966341883,
+        "maximum": 0.29959369567222893
+      },
+      "max_relative_l2": 1.6010119047625315e-07,
+      "native_successes": [
+        0,
+        0,
+        0
+      ],
+      "cache_imports": [
+        0,
+        0,
+        0
+      ],
+      "cache_exports": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "head": "fft",
+      "cache_mode": "off",
+      "threads": 4,
+      "label": "Optional \u00b7 off \u00b7 4T",
+      "statuses": [
+        "passed",
+        "passed",
+        "passed"
+      ],
+      "eligible": true,
+      "plan_ms": {
+        "replicate_values": [
+          0.12945401249453425,
+          0.13042602222412825,
+          0.1290340442210436
+        ],
+        "median": 0.12945401249453425,
+        "minimum": 0.1290340442210436,
+        "maximum": 0.13042602222412825
+      },
+      "execute_ms": {
+        "replicate_values": [
+          0.29782839701510966,
+          0.29665419715456665,
+          0.2956202020868659
+        ],
+        "median": 0.29665419715456665,
+        "minimum": 0.2956202020868659,
+        "maximum": 0.29782839701510966
+      },
+      "max_relative_l2": 1.6010119047625315e-07,
+      "native_successes": [
+        0,
+        0,
+        0
+      ],
+      "cache_imports": [
+        0,
+        0,
+        0
+      ],
+      "cache_exports": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "input_sha256": {
+    "fft-main-off-t1-r1.json": "807ca39b8746904e8d76c07ca6f2035054a3048bde58d83bdcff1cb664f3a00a",
+    "fft-main-off-t1-r2.json": "52a6d25d91234b76af334288dc657e4ec0fcf81a602504cd2ca80fe2f82b0c64",
+    "fft-main-off-t1-r3.json": "9b6de8103b17cd01dada70c72275a2edcae37d3aa7e7dff3aabd1104c44bbf6b",
+    "fft-fft-off-t1-r1.json": "f742ea63d843c3f03871c6354c1a841c6f0f53b08384ba573790b086add6ce1c",
+    "fft-fft-off-t1-r2.json": "1325066e85ead573ff62d65564ef61aab7f7a04c48573d0ce934c13f99f9405d",
+    "fft-fft-off-t1-r3.json": "9bd66e258869b07afd9ae87dbeb1f5ba7e5b21829366fe20ecc57b55583c3459",
+    "fft-fft-cold-t1-r1.json": "e812ba67dc12369b608b137d653258c0faac854de73133d42f4c91089c325127",
+    "fft-fft-cold-t1-r2.json": "887ff118bdf774ef048f5fe5d8139670f7c6fe5a6597a3c4926b5140e6531542",
+    "fft-fft-cold-t1-r3.json": "775cbdf7dc25f57c9eb60408b7d1e82a1d761b9a51f704d98acc61b19e5c0a1e",
+    "fft-fft-warm-t1-r1.json": "3b34aa773166056776148463f3f4646d02bff14eb9948616edb9bd0be5a2c168",
+    "fft-fft-warm-t1-r2.json": "9773c272da8c70c30c4bdff7c55ce04af677ddb6e36bd4e5a160e0aac2721888",
+    "fft-fft-warm-t1-r3.json": "2c2cc531ba1118521c099128afc2d63c6c8b9a92cd63e534db5e17d20b6ee94d",
+    "fft-main-off-t4-r1.json": "b96b9d805fd486432e62648d0cea43f473754bcbf1234fa9145a50e1e4fa9842",
+    "fft-main-off-t4-r2.json": "70e935c4c7238ced7fccd7f1c32bc04d2f38f09d9d6f7c61787588380ef7fa3c",
+    "fft-main-off-t4-r3.json": "6140d55b09b3fec44fbb622dcfc7833a1dfd600acc2c76eb1c7dbe4c93cc61bf",
+    "fft-fft-off-t4-r1.json": "77eb5ffdccc756d51596f06a92f4e85c9568e6828bd1fab71a2d7444a2078f9a",
+    "fft-fft-off-t4-r2.json": "3a263883311b322bb4eea8b07f784c03fb8955520d82b63caa3058434f351624",
+    "fft-fft-off-t4-r3.json": "20460efb58936280e93aa970d768ccb39ea8b6cb6c541ba05c38b66b372a260b"
+  },
+  "method": "Three independent processes; median and min/max of process medians; range is not a confidence interval",
+  "scope": "Public Torch CPU IFFT, one complex64 vector of length 131072; plan construction measured separately; four-thread path uses Torch fallback"
+}

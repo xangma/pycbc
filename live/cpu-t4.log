@@ -1,0 +1,80 @@
+================================================================================
+Starting Production Live Batch Benchmark across 3 routes
+Batch sizes: [1, 8, 32], Size: 131072, Blocks: 3
+Call surface: public
+Replicates: 3, Samples: 5, Warmups: 2
+Root: /home/xangma/pycbc-torch-benchmark-20260906/cpu
+================================================================================
+[Rep 1/3] Running batch= 1 route=branch_standard    ... done in   4.6s | Lat:   0.521 ms/blk | Tput:   1920.44 wf/s
+[Rep 1/3] Running batch= 1 route=torch_cpu          ... done in   4.7s | Lat:   1.083 ms/blk | Tput:    915.79 wf/s
+[Rep 1/3] Running batch= 1 route=torch_cpu_native   ... done in   4.7s | Lat:   0.644 ms/blk | Tput:   1543.35 wf/s
+[Rep 1/3] Running batch= 8 route=torch_cpu          ... done in   5.1s | Lat:  11.221 ms/blk | Tput:    715.87 wf/s
+[Rep 1/3] Running batch= 8 route=torch_cpu_native   ... done in   5.0s | Lat:   5.875 ms/blk | Tput:   1327.85 wf/s
+[Rep 1/3] Running batch= 8 route=branch_standard    ... done in   4.7s | Lat:   2.867 ms/blk | Tput:   2783.29 wf/s
+[Rep 1/3] Running batch=32 route=torch_cpu_native   ... done in   5.4s | Lat:  19.024 ms/blk | Tput:   1686.13 wf/s
+[Rep 1/3] Running batch=32 route=branch_standard    ... done in   5.0s | Lat:  11.784 ms/blk | Tput:   2719.62 wf/s
+[Rep 1/3] Running batch=32 route=torch_cpu          ... done in   6.0s | Lat:  42.701 ms/blk | Tput:    749.35 wf/s
+[Rep 2/3] Running batch= 1 route=branch_standard    ... done in   4.5s | Lat:   0.514 ms/blk | Tput:   1946.02 wf/s
+[Rep 2/3] Running batch= 1 route=torch_cpu_native   ... done in   4.8s | Lat:   0.642 ms/blk | Tput:   1558.70 wf/s
+[Rep 2/3] Running batch= 1 route=torch_cpu          ... done in   4.8s | Lat:   1.088 ms/blk | Tput:    910.91 wf/s
+[Rep 2/3] Running batch= 8 route=torch_cpu          ... done in   5.0s | Lat:  11.196 ms/blk | Tput:    713.04 wf/s
+[Rep 2/3] Running batch= 8 route=branch_standard    ... done in   4.7s | Lat:   2.864 ms/blk | Tput:   2777.01 wf/s
+[Rep 2/3] Running batch= 8 route=torch_cpu_native   ... done in   5.0s | Lat:   5.930 ms/blk | Tput:   1348.48 wf/s
+[Rep 2/3] Running batch=32 route=torch_cpu_native   ... done in   5.5s | Lat:  18.787 ms/blk | Tput:   1727.23 wf/s
+[Rep 2/3] Running batch=32 route=torch_cpu          ... done in   5.9s | Lat:  42.722 ms/blk | Tput:    749.93 wf/s
+[Rep 2/3] Running batch=32 route=branch_standard    ... done in   5.1s | Lat:  11.732 ms/blk | Tput:   2723.92 wf/s
+[Rep 3/3] Running batch= 1 route=torch_cpu_native   ... done in   4.7s | Lat:   0.635 ms/blk | Tput:   1571.71 wf/s
+[Rep 3/3] Running batch= 1 route=branch_standard    ... done in   4.6s | Lat:   0.512 ms/blk | Tput:   1957.77 wf/s
+[Rep 3/3] Running batch= 1 route=torch_cpu          ... done in   4.8s | Lat:   1.073 ms/blk | Tput:    933.41 wf/s
+[Rep 3/3] Running batch= 8 route=branch_standard    ... done in   4.7s | Lat:   2.849 ms/blk | Tput:   2823.67 wf/s
+[Rep 3/3] Running batch= 8 route=torch_cpu          ... done in   5.0s | Lat:  11.181 ms/blk | Tput:    716.51 wf/s
+[Rep 3/3] Running batch= 8 route=torch_cpu_native   ... done in   4.9s | Lat:   5.892 ms/blk | Tput:   1337.17 wf/s
+[Rep 3/3] Running batch=32 route=torch_cpu          ... done in   5.9s | Lat:  42.634 ms/blk | Tput:    750.02 wf/s
+[Rep 3/3] Running batch=32 route=torch_cpu_native   ... done in   5.4s | Lat:  19.043 ms/blk | Tput:   1681.41 wf/s
+[Rep 3/3] Running batch=32 route=branch_standard    ... done in   5.0s | Lat:  11.770 ms/blk | Tput:   2719.51 wf/s
+
+Successfully wrote benchmark results to /home/xangma/pycbc-torch-benchmark-20260906/live/cpu-t4.json
+
+====================================================================================================================================
+LIVE BATCH PERFORMANCE-EVIDENCE SUMMARY (N=131072; public_library_api; LiveBatchMatchedFilter.process_data)
+====================================================================================================================================
+Batch | Route                  | Routing             |      Latency p50/p95/p99 (ms) |           Tput p50 [95% CI] |      Speedup p50 [95% CI]
+------------------------------------------------------------------------------------------------------------------------------------
+    1 | branch_standard        | production_default  |    0.515/   0.533/   0.556 |   1939.9 [1920.4, 1957.8] |   1.00x [1.00, 1.00]
+    1 | torch_cpu              | production_default  |    1.080/   1.145/   1.153 |    921.7 [904.7, 933.4] |   0.48x [0.47, 0.48]
+    1 | torch_cpu_native       | experimental_native |    0.639/   0.678/   0.698 |   1560.6 [1549.6, 1571.7] |   0.80x [0.80, 0.81]
+------------------------------------------------------------------------------------------------------------------------------------
+    8 | branch_standard        | production_default  |    2.864/   3.006/   3.025 |   2783.3 [2757.1, 2848.7] |   1.00x [1.00, 1.00]
+    8 | torch_cpu              | production_default  |   11.193/  11.302/  11.336 |    714.7 [711.8, 716.6] |   0.26x [0.25, 0.26]
+    8 | torch_cpu_native       | experimental_native |    5.892/   8.097/   8.173 |   1337.2 [1202.7, 1436.4] |   0.48x [0.44, 0.52]
+------------------------------------------------------------------------------------------------------------------------------------
+   32 | branch_standard        | production_default  |   11.759/  11.883/  12.248 |   2719.6 [2715.0, 2725.5] |   1.00x [1.00, 1.00]
+   32 | torch_cpu              | production_default  |   42.696/  42.898/  43.097 |    749.9 [749.5, 750.2] |   0.28x [0.27, 0.28]
+   32 | torch_cpu_native       | experimental_native |   18.961/  20.079/  25.868 |   1685.2 [1668.5, 1727.2] |   0.62x [0.62, 0.64]
+------------------------------------------------------------------------------------------------------------------------------------
+
+LIMITATION: this artifact does not measure a full PyCBC CLI/search pipeline; see measurement.full_cli_end_to_end.
+
+PARITY VERIFICATION:
+  Batch  1: PASSED
+    - replicate_0/torch_cpu_vs_branch_standard: SNR max delta=1.91e-06, Relative output-norm difference=1.06e-11, Triggers match=True
+    - replicate_0/torch_cpu_native_vs_branch_standard: SNR max delta=1.91e-06, Relative output-norm difference=1.06e-11, Triggers match=True
+    - replicate_1/torch_cpu_native_vs_branch_standard: SNR max delta=0.00e+00, Relative output-norm difference=1.50e-11, Triggers match=True
+    - replicate_1/torch_cpu_vs_branch_standard: SNR max delta=0.00e+00, Relative output-norm difference=1.50e-11, Triggers match=True
+    - replicate_2/torch_cpu_native_vs_branch_standard: SNR max delta=0.00e+00, Relative output-norm difference=1.15e-11, Triggers match=True
+    - replicate_2/torch_cpu_vs_branch_standard: SNR max delta=0.00e+00, Relative output-norm difference=1.15e-11, Triggers match=True
+  Batch  8: PASSED
+    - replicate_0/torch_cpu_vs_branch_standard: SNR max delta=9.54e-07, Relative output-norm difference=6.78e-08, Triggers match=True
+    - replicate_0/torch_cpu_native_vs_branch_standard: SNR max delta=9.54e-07, Relative output-norm difference=1.27e-07, Triggers match=True
+    - replicate_1/torch_cpu_vs_branch_standard: SNR max delta=9.54e-07, Relative output-norm difference=6.25e-08, Triggers match=True
+    - replicate_1/torch_cpu_native_vs_branch_standard: SNR max delta=1.91e-06, Relative output-norm difference=1.25e-07, Triggers match=True
+    - replicate_2/torch_cpu_vs_branch_standard: SNR max delta=9.54e-07, Relative output-norm difference=5.88e-08, Triggers match=True
+    - replicate_2/torch_cpu_native_vs_branch_standard: SNR max delta=9.54e-07, Relative output-norm difference=1.21e-07, Triggers match=True
+  Batch 32: PASSED
+    - replicate_0/torch_cpu_native_vs_branch_standard: SNR max delta=1.91e-06, Relative output-norm difference=1.24e-07, Triggers match=True
+    - replicate_0/torch_cpu_vs_branch_standard: SNR max delta=9.54e-07, Relative output-norm difference=6.55e-08, Triggers match=True
+    - replicate_1/torch_cpu_native_vs_branch_standard: SNR max delta=1.91e-06, Relative output-norm difference=1.24e-07, Triggers match=True
+    - replicate_1/torch_cpu_vs_branch_standard: SNR max delta=9.54e-07, Relative output-norm difference=6.56e-08, Triggers match=True
+    - replicate_2/torch_cpu_vs_branch_standard: SNR max delta=9.54e-07, Relative output-norm difference=6.62e-08, Triggers match=True
+    - replicate_2/torch_cpu_native_vs_branch_standard: SNR max delta=1.91e-06, Relative output-norm difference=1.24e-07, Triggers match=True
+====================================================================================================================================
