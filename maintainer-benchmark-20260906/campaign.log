@@ -1,0 +1,45 @@
+Cloning into '/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original'...
+done.
+Note: switching to 'a4d77a6d1863c0515e8dace64c5609b63d40b51e'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+Warning: you are leaving 20 commits behind, not connected to
+any of your branches:
+
+  a4d77a6d1 Optimize Torch CPU compressed interpolation and qualify promoted MKL inverse FFTs
+  837f38d49 Preserve CUDA chi-squared phase coefficient at kernel launch
+  f2c0abe61 Account for accumulated rounding in cumulative-power regression
+  6c8215504 Preserve weak spectral power and chi-squared phase precision
+ ... and 16 more.
+
+If you want to keep them by creating a new branch, this may be a good time
+to do so with:
+
+ git branch <new-branch-name> a4d77a6d1
+
+HEAD is now at 40e94792b Try to further reduce CI failures (#5441)
+/home/xangma/pycbc-torch-split-20260905/venv/lib/python3.11/site-packages/setuptools/_distutils/extension.py:134: UserWarning: Unknown Extension options: 'compiler_directives'
+  warnings.warn(msg)
+0.0a9313
+Traceback (most recent call last):
+  File "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/campaign.py", line 87, in <module>
+    main()
+  File "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/campaign.py", line 74, in main
+    subprocess.run(command, cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, check=True)
+  File "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/home/xangma/pycbc-torch-split-20260905/venv/bin/python', '/home/xangma/pycbc-torch-maintainer-benchmark-20260906/run-case.py', '--config', '/home/xangma/pycbc-torch-maintainer-benchmark-20260906/config.json', '--case', 'torch-cuda-r1', '--mode', 'timing', '--scheme', 'torch:cuda:0:1', '--segment-length', '512', '--source', '/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6', '--bank', '/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf']' returned non-zero exit status 1.

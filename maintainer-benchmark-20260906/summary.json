@@ -1,0 +1,806 @@
+{
+  "schema_version": 1,
+  "final_corrected_reference_comparisons": "pass",
+  "scope": "Complete pycbc_inspiral, original upstream CPU versus final Torch, one host core; CUDA adds one GPU",
+  "original_source": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+  "final_source": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+  "summaries": [
+    {
+      "backend": "original-cpu",
+      "source": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+      "samples": [
+        {
+          "case": "original-cpu-r1",
+          "backend": "original-cpu",
+          "mode": "timing",
+          "scheme": "cpu:1",
+          "source": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+          "wall_seconds": 29.29989835107699,
+          "templates": 96,
+          "valid_detector_seconds": 1904.0,
+          "capacity_templates_per_host_core": 6238.383417233982,
+          "triggers": 477,
+          "peak_rss_mib": 754.75,
+          "internal_seconds": 26.497183561325073,
+          "setup_fraction": 0.5451588447267852
+        },
+        {
+          "case": "original-cpu-r2",
+          "backend": "original-cpu",
+          "mode": "timing",
+          "scheme": "cpu:1",
+          "source": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+          "wall_seconds": 29.26941716892179,
+          "templates": 96,
+          "valid_detector_seconds": 1904.0,
+          "capacity_templates_per_host_core": 6244.880072093806,
+          "triggers": 477,
+          "peak_rss_mib": 754.8671875,
+          "internal_seconds": 26.478229522705078,
+          "setup_fraction": 0.5462554056563583
+        },
+        {
+          "case": "original-cpu-r3",
+          "backend": "original-cpu",
+          "mode": "timing",
+          "scheme": "cpu:1",
+          "source": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+          "wall_seconds": 29.33310949197039,
+          "templates": 96,
+          "valid_detector_seconds": 1904.0,
+          "capacity_templates_per_host_core": 6231.320278200818,
+          "triggers": 477,
+          "peak_rss_mib": 754.8828125,
+          "internal_seconds": 26.542364835739136,
+          "setup_fraction": 0.5448859652748139
+        }
+      ],
+      "wall_seconds": {
+        "median": 29.29989835107699,
+        "minimum": 29.26941716892179,
+        "maximum": 29.33310949197039
+      },
+      "capacity_templates_per_host_core": {
+        "median": 6238.383417233982,
+        "minimum": 6231.320278200818,
+        "maximum": 6244.880072093806
+      },
+      "peak_rss_mib": {
+        "median": 754.8671875,
+        "minimum": 754.75,
+        "maximum": 754.8828125
+      },
+      "internal_seconds": {
+        "median": 26.497183561325073,
+        "minimum": 26.478229522705078,
+        "maximum": 26.542364835739136
+      },
+      "capacity_relative_to_original": 1.0
+    },
+    {
+      "backend": "torch-cpu",
+      "source": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+      "samples": [
+        {
+          "case": "torch-cpu-r1",
+          "backend": "torch-cpu",
+          "mode": "timing",
+          "scheme": "torch:cpu:1",
+          "source": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+          "wall_seconds": 44.415079580037855,
+          "templates": 96,
+          "valid_detector_seconds": 1904.0,
+          "capacity_templates_per_host_core": 4115.359056615343,
+          "triggers": 475,
+          "peak_rss_mib": 1204.6796875,
+          "internal_seconds": 39.904258489608765,
+          "setup_fraction": 0.3769036819616655
+        },
+        {
+          "case": "torch-cpu-r2",
+          "backend": "torch-cpu",
+          "mode": "timing",
+          "scheme": "torch:cpu:1",
+          "source": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+          "wall_seconds": 44.4061949190218,
+          "templates": 96,
+          "valid_detector_seconds": 1904.0,
+          "capacity_templates_per_host_core": 4116.182445564657,
+          "triggers": 475,
+          "peak_rss_mib": 1204.7578125,
+          "internal_seconds": 39.85152840614319,
+          "setup_fraction": 0.3762885573791235
+        },
+        {
+          "case": "torch-cpu-r3",
+          "backend": "torch-cpu",
+          "mode": "timing",
+          "scheme": "torch:cpu:1",
+          "source": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+          "wall_seconds": 44.45364869595505,
+          "templates": 96,
+          "valid_detector_seconds": 1904.0,
+          "capacity_templates_per_host_core": 4111.788466457917,
+          "triggers": 475,
+          "peak_rss_mib": 1203.6953125,
+          "internal_seconds": 39.94825339317322,
+          "setup_fraction": 0.3784339289568348
+        }
+      ],
+      "wall_seconds": {
+        "median": 44.415079580037855,
+        "minimum": 44.4061949190218,
+        "maximum": 44.45364869595505
+      },
+      "capacity_templates_per_host_core": {
+        "median": 4115.359056615343,
+        "minimum": 4111.788466457917,
+        "maximum": 4116.182445564657
+      },
+      "peak_rss_mib": {
+        "median": 1204.6796875,
+        "minimum": 1203.6953125,
+        "maximum": 1204.7578125
+      },
+      "internal_seconds": {
+        "median": 39.904258489608765,
+        "minimum": 39.85152840614319,
+        "maximum": 39.94825339317322
+      },
+      "capacity_relative_to_original": 0.659683572068746
+    },
+    {
+      "backend": "torch-cuda",
+      "source": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+      "samples": [
+        {
+          "case": "torch-cuda-r1",
+          "backend": "torch-cuda",
+          "mode": "timing",
+          "scheme": "torch:cuda:0",
+          "source": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+          "wall_seconds": 20.307194225024432,
+          "templates": 96,
+          "valid_detector_seconds": 1904.0,
+          "capacity_templates_per_host_core": 9000.948037161943,
+          "triggers": 475,
+          "peak_rss_mib": 1468.859375,
+          "internal_seconds": 15.678944110870361,
+          "setup_fraction": 0.8564264171099478
+        },
+        {
+          "case": "torch-cuda-r2",
+          "backend": "torch-cuda",
+          "mode": "timing",
+          "scheme": "torch:cuda:0",
+          "source": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+          "wall_seconds": 20.200899012037553,
+          "templates": 96,
+          "valid_detector_seconds": 1904.0,
+          "capacity_templates_per_host_core": 9048.310171298835,
+          "triggers": 475,
+          "peak_rss_mib": 1469.3984375,
+          "internal_seconds": 15.57155442237854,
+          "setup_fraction": 0.8568340900798176
+        },
+        {
+          "case": "torch-cuda-r3",
+          "backend": "torch-cuda",
+          "mode": "timing",
+          "scheme": "torch:cuda:0",
+          "source": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+          "wall_seconds": 20.19972917600535,
+          "templates": 96,
+          "valid_detector_seconds": 1904.0,
+          "capacity_templates_per_host_core": 9048.834190169422,
+          "triggers": 475,
+          "peak_rss_mib": 1468.85546875,
+          "internal_seconds": 15.57554006576538,
+          "setup_fraction": 0.8563683871752855
+        }
+      ],
+      "wall_seconds": {
+        "median": 20.200899012037553,
+        "minimum": 20.19972917600535,
+        "maximum": 20.307194225024432
+      },
+      "capacity_templates_per_host_core": {
+        "median": 9048.310171298835,
+        "minimum": 9000.948037161943,
+        "maximum": 9048.834190169422
+      },
+      "peak_rss_mib": {
+        "median": 1468.859375,
+        "minimum": 1468.85546875,
+        "maximum": 1469.3984375
+      },
+      "internal_seconds": {
+        "median": 15.57554006576538,
+        "minimum": 15.57155442237854,
+        "maximum": 15.678944110870361
+      },
+      "capacity_relative_to_original": 1.4504254654021793
+    }
+  ],
+  "profiles": [
+    {
+      "case": "original-cpu-cprofile",
+      "backend": "original-cpu",
+      "mode": "cprofile",
+      "scheme": "cpu:1",
+      "source": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+      "wall_seconds": 31.620811215019785,
+      "templates": 96,
+      "valid_detector_seconds": 1904.0,
+      "capacity_templates_per_host_core": 5780.496861926748,
+      "triggers": 477,
+      "peak_rss_mib": 768.8515625,
+      "internal_seconds": 26.76312565803528,
+      "setup_fraction": 0.5489956253607653,
+      "exclusive_total_seconds": 31.0557454260001,
+      "top_self_functions": [
+        {
+          "file": "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original/pycbc/fft/mkl.py",
+          "line": 189,
+          "function": "execute",
+          "self_seconds": 7.1066594610000005,
+          "cumulative_seconds": 7.1066594610000005
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original/pycbc/fft/mkl.py",
+          "line": 76,
+          "function": "create_descriptor",
+          "self_seconds": 3.3748130130000003,
+          "cumulative_seconds": 3.4160592920000004
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lalframe._lalframe.FrStreamReadREAL8TimeSeries>",
+          "self_seconds": 2.2912962930000003,
+          "cumulative_seconds": 2.2912962930000003
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lalframe._lalframe.FrStreamGetTimeSeriesType>",
+          "self_seconds": 2.18725277,
+          "cumulative_seconds": 2.18725277
+        },
+        {
+          "file": "pycbc/vetoes/chisq_cpu.pyx",
+          "line": 25,
+          "function": "__pyx_fuse_0_0point_chisq_code",
+          "self_seconds": 1.59871953,
+          "cumulative_seconds": 1.59871953
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lalframe._lalframe.FrStreamGetVectorLength>",
+          "self_seconds": 1.0964652400000001,
+          "cumulative_seconds": 1.0964652400000001
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lalframe._lalframe.FrStreamGetREAL8TimeSeriesMetadata>",
+          "self_seconds": 1.091612009,
+          "cumulative_seconds": 1.091612009
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method numpy.array>",
+          "self_seconds": 1.086594459,
+          "cumulative_seconds": 1.08906104
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original/pycbc/scheme.py",
+          "line": 243,
+          "function": "_scheming_function",
+          "self_seconds": 0.944778011,
+          "cumulative_seconds": 3.1786124410000003
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'partition' of 'numpy.ndarray' objects>",
+          "self_seconds": 0.702591909,
+          "cumulative_seconds": 0.702591909
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original/pycbc/events/threshold_cpu.py",
+          "line": 81,
+          "function": "threshold_and_cluster",
+          "self_seconds": 0.684631304,
+          "cumulative_seconds": 0.686181932
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original/pycbc/filter/matchedfilter.py",
+          "line": 243,
+          "function": "full_matched_filter_and_cluster_symm",
+          "self_seconds": 0.5468237410000001,
+          "cumulative_seconds": 8.428291979
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original/pycbc/waveform/decompress_cpu.py",
+          "line": 34,
+          "function": "inline_linear_interp",
+          "self_seconds": 0.41996552800000003,
+          "cumulative_seconds": 0.42106421800000005
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lal._lal.HighPassREAL4TimeSeries>",
+          "self_seconds": 0.40428896200000003,
+          "cumulative_seconds": 0.40428896200000003
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original/pycbc/fft/mkl.py",
+          "line": 102,
+          "function": "fft",
+          "self_seconds": 0.38426561400000003,
+          "cumulative_seconds": 2.7682712830000002
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lal._lal.HighPassREAL8TimeSeries>",
+          "self_seconds": 0.383249133,
+          "cumulative_seconds": 0.383249133
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original/pycbc/types/array.py",
+          "line": 433,
+          "function": "__pow__",
+          "self_seconds": 0.28489573300000004,
+          "cumulative_seconds": 0.28489573300000004
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original/pycbc/fft/mkl.py",
+          "line": 111,
+          "function": "ifft",
+          "self_seconds": 0.257475157,
+          "cumulative_seconds": 1.326280034
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method builtins.compile>",
+          "self_seconds": 0.257471024,
+          "cumulative_seconds": 0.257471024
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method marshal.loads>",
+          "self_seconds": 0.24634702900000002,
+          "cumulative_seconds": 0.24634702900000002
+        }
+      ]
+    },
+    {
+      "case": "original-cpu-perf",
+      "backend": "original-cpu",
+      "mode": "perf",
+      "scheme": "cpu:1",
+      "source": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+      "wall_seconds": 32.14850990008563,
+      "templates": 96,
+      "valid_detector_seconds": 1904.0,
+      "capacity_templates_per_host_core": 5685.613441122917,
+      "triggers": 477,
+      "peak_rss_mib": 754.80078125,
+      "internal_seconds": 26.905084133148193,
+      "setup_fraction": 0.5449017299378238
+    },
+    {
+      "case": "torch-cpu-cprofile",
+      "backend": "torch-cpu",
+      "mode": "cprofile",
+      "scheme": "torch:cpu:1",
+      "source": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+      "wall_seconds": 48.16096574696712,
+      "templates": 96,
+      "valid_detector_seconds": 1904.0,
+      "capacity_templates_per_host_core": 3795.2727310396717,
+      "triggers": 475,
+      "peak_rss_mib": 1228.125,
+      "internal_seconds": 40.77005696296692,
+      "setup_fraction": 0.37485523050538594,
+      "exclusive_total_seconds": 47.056250620999826,
+      "top_self_functions": [
+        {
+          "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/fft/torchfft.py",
+          "line": 271,
+          "function": "execute",
+          "self_seconds": 15.622425464,
+          "cumulative_seconds": 17.788082727000003
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/fft/mkl.py",
+          "line": 76,
+          "function": "create_descriptor",
+          "self_seconds": 2.526505857,
+          "cumulative_seconds": 2.556691171
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lalframe._lalframe.FrStreamReadREAL8TimeSeries>",
+          "self_seconds": 2.2906099970000002,
+          "cumulative_seconds": 2.2906099970000002
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'copy_' of 'torch._C.TensorBase' objects>",
+          "self_seconds": 2.203027896,
+          "cumulative_seconds": 2.203027896
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lalframe._lalframe.FrStreamGetTimeSeriesType>",
+          "self_seconds": 2.189544412,
+          "cumulative_seconds": 2.189544412
+        },
+        {
+          "file": "pycbc/vetoes/chisq_cpu.pyx",
+          "line": 25,
+          "function": "__pyx_fuse_1_0point_chisq_code",
+          "self_seconds": 1.9199247940000002,
+          "cumulative_seconds": 1.9199247940000002
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'sum' of 'torch._C.TensorBase' objects>",
+          "self_seconds": 1.45934351,
+          "cumulative_seconds": 1.45934351
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lalframe._lalframe.FrStreamGetVectorLength>",
+          "self_seconds": 1.093702315,
+          "cumulative_seconds": 1.093702315
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lalframe._lalframe.FrStreamGetREAL8TimeSeriesMetadata>",
+          "self_seconds": 1.090833713,
+          "cumulative_seconds": 1.090833713
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method numpy.array>",
+          "self_seconds": 1.0190524250000002,
+          "cumulative_seconds": 1.021515733
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method torch.sort>",
+          "self_seconds": 0.840637163,
+          "cumulative_seconds": 0.840637163
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method torch.mul>",
+          "self_seconds": 0.818308326,
+          "cumulative_seconds": 0.818308326
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/events/threshold_torch.py",
+          "line": 946,
+          "function": "_native_cpu_threshold_and_cluster",
+          "self_seconds": 0.80842459,
+          "cumulative_seconds": 0.849714783
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method torch._C._fft.fft_rfft>",
+          "self_seconds": 0.637940434,
+          "cumulative_seconds": 0.637940434
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method marshal.loads>",
+          "self_seconds": 0.474475124,
+          "cumulative_seconds": 0.474475124
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method _imp.create_dynamic>",
+          "self_seconds": 0.435357832,
+          "cumulative_seconds": 0.44076556200000006
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lal._lal.HighPassREAL4TimeSeries>",
+          "self_seconds": 0.427608898,
+          "cumulative_seconds": 0.427608898
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/waveform/decompress_torch.py",
+          "line": 107,
+          "function": "_cpu_linear_interp",
+          "self_seconds": 0.426118494,
+          "cumulative_seconds": 0.43865982200000003
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method builtins.compile>",
+          "self_seconds": 0.39262389600000003,
+          "cumulative_seconds": 0.39262389600000003
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lal._lal.HighPassREAL8TimeSeries>",
+          "self_seconds": 0.38271509200000003,
+          "cumulative_seconds": 0.38271509200000003
+        }
+      ]
+    },
+    {
+      "case": "torch-cpu-perf",
+      "backend": "torch-cpu",
+      "mode": "perf",
+      "scheme": "torch:cpu:1",
+      "source": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+      "wall_seconds": 47.1628428469412,
+      "templates": 96,
+      "valid_detector_seconds": 1904.0,
+      "capacity_templates_per_host_core": 3875.5933477800236,
+      "triggers": 475,
+      "peak_rss_mib": 1204.77734375,
+      "internal_seconds": 40.758849143981934,
+      "setup_fraction": 0.37546415429875335
+    },
+    {
+      "case": "torch-cuda-cprofile",
+      "backend": "torch-cuda",
+      "mode": "cprofile",
+      "scheme": "torch:cuda:0",
+      "source": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+      "wall_seconds": 24.000595116987824,
+      "templates": 96,
+      "valid_detector_seconds": 1904.0,
+      "capacity_templates_per_host_core": 7615.811154225253,
+      "triggers": 475,
+      "peak_rss_mib": 1495.6875,
+      "internal_seconds": 16.388739109039307,
+      "setup_fraction": 0.8275122719366842,
+      "exclusive_total_seconds": 22.78191366500019,
+      "top_self_functions": [
+        {
+          "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/fft/mkl.py",
+          "line": 76,
+          "function": "create_descriptor",
+          "self_seconds": 2.5451206390000003,
+          "cumulative_seconds": 2.576401416
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lalframe._lalframe.FrStreamReadREAL8TimeSeries>",
+          "self_seconds": 2.295344692,
+          "cumulative_seconds": 2.295344692
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lalframe._lalframe.FrStreamGetTimeSeriesType>",
+          "self_seconds": 2.184623852,
+          "cumulative_seconds": 2.184623852
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lalframe._lalframe.FrStreamGetVectorLength>",
+          "self_seconds": 1.097854586,
+          "cumulative_seconds": 1.097854586
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lalframe._lalframe.FrStreamGetREAL8TimeSeriesMetadata>",
+          "self_seconds": 1.092521507,
+          "cumulative_seconds": 1.092521507
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method numpy.array>",
+          "self_seconds": 1.027120214,
+          "cumulative_seconds": 1.029613071
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method marshal.loads>",
+          "self_seconds": 0.480571458,
+          "cumulative_seconds": 0.480571458
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method _imp.create_dynamic>",
+          "self_seconds": 0.433057811,
+          "cumulative_seconds": 0.438333267
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lal._lal.HighPassREAL4TimeSeries>",
+          "self_seconds": 0.40947544900000005,
+          "cumulative_seconds": 0.40947544900000005
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method builtins.compile>",
+          "self_seconds": 0.39821276600000005,
+          "cumulative_seconds": 0.39821276600000005
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method lal._lal.HighPassREAL8TimeSeries>",
+          "self_seconds": 0.382068819,
+          "cumulative_seconds": 0.382068819
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method torch.as_tensor>",
+          "self_seconds": 0.370398214,
+          "cumulative_seconds": 0.370398214
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'update' of '_hashlib.HASH' objects>",
+          "self_seconds": 0.348268532,
+          "cumulative_seconds": 0.348268532
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/fft/mkl.py",
+          "line": 102,
+          "function": "fft",
+          "self_seconds": 0.286021794,
+          "cumulative_seconds": 1.8770190850000001
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/types/array.py",
+          "line": 912,
+          "function": "__pow__",
+          "self_seconds": 0.264684297,
+          "cumulative_seconds": 0.264976429
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/fft/mkl.py",
+          "line": 111,
+          "function": "ifft",
+          "self_seconds": 0.24976863000000002,
+          "cumulative_seconds": 1.2660101110000002
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'partition' of 'numpy.ndarray' objects>",
+          "self_seconds": 0.21804741600000002,
+          "cumulative_seconds": 0.21804741600000002
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method builtins.exec>",
+          "self_seconds": 0.15087081300000002,
+          "cumulative_seconds": 22.797544132000002
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/scheme.py",
+          "line": 438,
+          "function": "_scheming_function",
+          "self_seconds": 0.13451057600000002,
+          "cumulative_seconds": 0.959061656
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/vetoes/chisq_torch.py",
+          "line": 563,
+          "function": "_accelerator_single_point_bin_sums",
+          "self_seconds": 0.130241156,
+          "cumulative_seconds": 0.183901213
+        }
+      ]
+    },
+    {
+      "case": "torch-cuda-perf",
+      "backend": "torch-cuda",
+      "mode": "perf",
+      "scheme": "torch:cuda:0",
+      "source": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+      "wall_seconds": 23.1420656000264,
+      "templates": 96,
+      "valid_detector_seconds": 1904.0,
+      "capacity_templates_per_host_core": 7898.344216939368,
+      "triggers": 475,
+      "peak_rss_mib": 1468.8828125,
+      "internal_seconds": 15.842392206192017,
+      "setup_fraction": 0.8547521107881827
+    }
+  ],
+  "trigger_comparison_returncode": 1,
+  "trigger_comparison_status": "fail",
+  "source_and_workload_checks": "pass",
+  "input_sha256": {
+    "runs/original-cpu-r1/receipt.json": "c34074762e2c21c6cf453e566d4d89b350882972ca30815d3f048a8a4bd89fd2",
+    "runs/original-cpu-r1/triggers.hdf": "9c40d0e42f955b08b85dabebb9ddfd6e0ca8c01d0d5fe2999a747f0d9cce5dd7",
+    "runs/torch-cpu-r1/receipt.json": "4228f8fd37b7633d84b78a581b9d95ad7f084f005134d732bdb82dc51eb50d93",
+    "runs/torch-cpu-r1/triggers.hdf": "1992d98cc8a234e485c861d04ab9022598cdbc93a67ffea1dc33623d83768393",
+    "runs/torch-cuda-r1/receipt.json": "fcb783551b7a04e422a67d6fa3a5b6dce4fcc720bc7ed7f216e89c98a20e0f22",
+    "runs/torch-cuda-r1/triggers.hdf": "0530aec5ca630f2f91042ba36693d909bcb4491e1952bd719a1d167f47b31243",
+    "runs/torch-cpu-r2/receipt.json": "0bec6c8c40c65f6111db39ea3142efbdc4155bce48826b2ee74a06e6c1fe2172",
+    "runs/torch-cpu-r2/triggers.hdf": "45c7a363d72319b929bc349c27c079c53b289abc751694fcfe6d4db2510c65b2",
+    "runs/torch-cuda-r2/receipt.json": "38af2f2d4f9083e3c4d5017aa8659a0cbaba881105aec5d4c9e116f3a1064a4a",
+    "runs/torch-cuda-r2/triggers.hdf": "99ac70b260cc1d48dd0829b6fc560da059238d0be005bc84ab8c4eaadbee6430",
+    "runs/original-cpu-r2/receipt.json": "d7fa57568d9e923583280d175e3ae790b78971bf3a743498af717ce6bc21949f",
+    "runs/original-cpu-r2/triggers.hdf": "4dfa6f8b841a6e77e8b0b1ecc18f5202ae6b611523d0996030e5dd4bce441017",
+    "runs/torch-cuda-r3/receipt.json": "6484af22cc80beb2bdc5d87573c03f8c6a9ba67ba91d9e39dc5cc2013c4f95a3",
+    "runs/torch-cuda-r3/triggers.hdf": "a499763963650971f1b959908515e6245d213bdbbac88ba520e3b65723a2d88e",
+    "runs/original-cpu-r3/receipt.json": "2dc7be84cd731c7fa229821545f0f3f3d584789a1b513acb631a5eab5448edcb",
+    "runs/original-cpu-r3/triggers.hdf": "8331ef52e37134a0bd5f4fa7fce1916136a46679a5b1ac667785736a0895a78a",
+    "runs/torch-cpu-r3/receipt.json": "685f1b828c3ef72fae1d19a496d8e1e86384ebf0ee616f4aed1dcb44203b1d52",
+    "runs/torch-cpu-r3/triggers.hdf": "85b18f5b94fd4e9cb95094b6ea7d9a7a335b7cff9cd317c4720bc9abd6226706",
+    "runs/original-cpu-cprofile/receipt.json": "f9b0a341b1f284c96ca367440f98aee606fb94d58845242618bc7da2cd527438",
+    "runs/original-cpu-cprofile/triggers.hdf": "bc78cf0df26baabb4c73e294a40d329bd6fcf1d9ae50e28d1ce3b7b3f7a59211",
+    "runs/original-cpu-cprofile/profile.pstats": "dde2581d39342fc1781d7138874d147f8fd6a1a513cd076c2e0a322f7c77f5e1",
+    "runs/original-cpu-perf/receipt.json": "78b91fc69a3f21cae67e18d8c6320e6e7c91f44438bc629bec35122bbeda2df6",
+    "runs/original-cpu-perf/triggers.hdf": "08501336fc602f26340c82043ab032926867bdf314250d4dd06e6c9a67b00520",
+    "runs/torch-cpu-cprofile/receipt.json": "8217a94627fe1538f250aa835bca601695548e646f7763c5d1fbec3e72d54c8f",
+    "runs/torch-cpu-cprofile/triggers.hdf": "4267a88bf077c8ba4bdfb013473ae0a5abfd1bef2d8aa54d2e55328a39bdcaa7",
+    "runs/torch-cpu-cprofile/profile.pstats": "866ee75a9e518ce4c5e5bb44d427806519cbe6be794b10c14983060350b84134",
+    "runs/torch-cpu-perf/receipt.json": "43e60e3c9be80fd0f33b336e5dbb88822f8e9dc5c10086358eacbb7fe2c1f7c9",
+    "runs/torch-cpu-perf/triggers.hdf": "57ab42fde1d7b195a9da48552b92c4ca32d15986c467b1ed06938053b2d844de",
+    "runs/torch-cuda-cprofile/receipt.json": "557cb0af111e552ef7fa161120cf5cf7982817cba624a0a12014937ddb0932a9",
+    "runs/torch-cuda-cprofile/triggers.hdf": "ae59f20b6056c9c09b3f4ed103b3755db6597027cece2246b25adf6aac2fa11c",
+    "runs/torch-cuda-cprofile/profile.pstats": "590e3f8656f534ecd52f3cc565c7324cad9c6b4442132da12915929973db127f",
+    "runs/torch-cuda-perf/receipt.json": "5ee8c4b86afe88064f7406093241b95412c5348aee7e4efd8f5367f2f904d8f4",
+    "runs/torch-cuda-perf/triggers.hdf": "1e92bc7681730fbabe1e1a3c35781600d20ca393bbc2ff7c5e66959abbdb42c7",
+    "source.json": "79b8c105c9070137c41bfcebd0053e5c71636364d47d18b93eb24d7cd5e00da3",
+    "config.json": "e29df1ee26ad1a513982a81b55d1f8b648126baacc7b509bc918e5c8e912d36a",
+    "corrected-plan.json": "e1818935e7a8e0fb41c89cbd8da26fa17c661133fa5fabe4f44135891b54a2cb",
+    "status.json": "a160da6dd6a59c3cebd12c6c764dcfee5549bdb6b5e3176832f698afb1f73dd3",
+    "original-trigger-comparison.json": "a248d33edece7d2e14dc75a4a023ec3b5c309b52ecb3a51a994e792cdcaa366a",
+    "campaign.py": "b75b7b0b0f90132a51e912d365c41a09cfa8cef9c256211c84e5eddb246aa51f",
+    "resume.py": "a9324a001dfb667a70532ec6130061f516b359e4a998e3e8ca739ba286c616a2",
+    "run-case.py": "243eef653386a76d1ead4b92542bc84088e882df9011faab5a8154154da9c456",
+    "compare-triggers.py": "f0af115a2bf2d3a5a85152cb1f61d9b7570a460efd6d420566c5a2b74ac8f1b5",
+    "final-trigger-validation.json": "01a74f7d249e14bc7094bb2fcbc9478d5409a8ce76421bc0616335498cfe81aa",
+    "environment.json": "f718a4a5c0ccdefe39465f31076c04e9d0b30bc9767797ea74302eca138cee11",
+    "profile-transport.json": "f1cdc69a585421749f4540578e31dd5d729d61372ac76402e3c31dd4ef51729a",
+    "package-profiles.py": "d84ed45f9ad59fa3964623f297c6ced7633c231c5bab84cc4fd9cd7089e7322b",
+    "summarize.py": "f40e5343169bb07a526158b38ab04f1259970742e4e47b2eac079148b2cfaf73",
+    "corrected-reference/receipt.json": "34767180d29d2d55b93f1723310ad46812288658891fb332f3f887ed317108c5",
+    "corrected-reference/triggers.hdf": "779657959b5edda9fc63cd6df7dfd4e62b05783b144ed264a409027c722d112c",
+    "runs/original-cpu-perf/perf.data.gz": "009ed3588e8171c902da7f7759ce5efddf3c00e4d7c68a41b417d26c7e438d1b",
+    "runs/original-cpu-perf/perf-report.txt": "af0a067ab625eacb6ddf6ae85fbeb2eb31463a27acc6561dfd7f95485e8d263e",
+    "runs/torch-cpu-perf/perf.data.gz": "e1c6c8b6abedc7ca5a13e178b5a8498003920df56c6d06b5ccc950fef3278240",
+    "runs/torch-cpu-perf/perf-report.txt": "ae4c3b53ca6efe231d7b78fd5593c5ebdf7c3f6ba83e9b0c206cecca289adf82",
+    "runs/torch-cuda-perf/perf.data.gz": "4daf32640d2435553a9bcc15c783f9b5ffaea972925181c90391297265d3ff9b",
+    "runs/torch-cuda-perf/perf-report.txt": "c798e7a9ceb774f3ad3ce00cb497944e470a852154a52d9bcc4dfb9d86c33b23"
+  }
+}

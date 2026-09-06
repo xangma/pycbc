@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/bin/pycbc_inspiral", line 233, in <module>
+    ctx = scheme.from_cli(opt)
+          ^^^^^^^^^^^^^^^^^^^^
+  File "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/scheme.py", line 549, in from_cli
+    ctx = TorchScheme(device=dev, num_threads=numt)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/scheme.py", line 215, in __init__
+    self.torch_device = torch.device(self.device_spec)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Invalid device string: 'cuda:0:1'

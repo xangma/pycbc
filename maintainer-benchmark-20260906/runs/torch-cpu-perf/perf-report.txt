@@ -1,0 +1,1642 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 8K of event 'cycles:u'
+# Event count (approx.): 109184936493
+#
+# Overhead  Command     Shared Object                                          Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+# ........  ..........  .....................................................  ...............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#
+    12.86%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cRadix4Inv_64fc
+            |
+            ---mkl_dft_def_owns_cRadix4Inv_64fc
+
+     9.76%  python      libframel-9cd69e87.so.8.43.1                           [.] Frz_inflate_fast
+            |
+            ---Frz_inflate_fast
+               Frz_inflate_codes
+               Frz_inflate_blocks
+               Frz_inflate
+               Frz_uncompress
+               FrVectExpand
+               FrVectRead
+               FrVectReadNext
+               XLALFrameUFrChanRead_FrameL_
+               |          
+               |--4.94%--0x75f5c824cd74
+               |          |          
+               |          |--3.37%--XLALFrStreamGetREAL8TimeSeries
+               |          |          XLALFrStreamReadREAL8TimeSeries
+               |          |          0x75f5c82c4675
+               |          |          cfunction_call
+               |          |          _PyObject_MakeTpCall
+               |          |          _PyEval_EvalFrameDefault
+               |          |          _PyEval_EvalFrame (inlined)
+               |          |          _PyEval_Vector
+               |          |          PyEval_EvalCode
+               |          |          run_eval_code_obj
+               |          |          run_mod
+               |          |          pyrun_file
+               |          |          _PyRun_SimpleFileObject
+               |          |          _PyRun_AnyFileObject
+               |          |          pymain_run_file_obj (inlined)
+               |          |          pymain_run_file (inlined)
+               |          |          pymain_run_python (inlined)
+               |          |          Py_RunMain
+               |          |          Py_BytesMain
+               |          |          __libc_start_call_main
+               |          |          __libc_start_main_impl (inlined)
+               |          |          _start
+               |          |          
+               |           --1.57%--XLALFrStreamGetREAL8TimeSeriesMetadata
+               |                     0x75f5c82b237d
+               |                     cfunction_call
+               |                     _PyObject_MakeTpCall
+               |                     _PyEval_EvalFrameDefault
+               |                     _PyEval_EvalFrame (inlined)
+               |                     _PyEval_Vector
+               |                     PyEval_EvalCode
+               |                     run_eval_code_obj
+               |                     run_mod
+               |                     pyrun_file
+               |                     _PyRun_SimpleFileObject
+               |                     _PyRun_AnyFileObject
+               |                     pymain_run_file_obj (inlined)
+               |                     pymain_run_file (inlined)
+               |                     pymain_run_python (inlined)
+               |                     Py_RunMain
+               |                     Py_BytesMain
+               |                     __libc_start_call_main
+               |                     __libc_start_main_impl (inlined)
+               |                     _start
+               |          
+               |--3.23%--XLALFrFileQueryChanType
+               |          0x75f5c82a6be2
+               |          cfunction_call
+               |          _PyObject_MakeTpCall
+               |          _PyEval_EvalFrameDefault
+               |          _PyEval_EvalFrame (inlined)
+               |          _PyEval_Vector
+               |          PyEval_EvalCode
+               |          run_eval_code_obj
+               |          run_mod
+               |          pyrun_file
+               |          _PyRun_SimpleFileObject
+               |          _PyRun_AnyFileObject
+               |          pymain_run_file_obj (inlined)
+               |          pymain_run_file (inlined)
+               |          pymain_run_python (inlined)
+               |          Py_RunMain
+               |          Py_BytesMain
+               |          __libc_start_call_main
+               |          __libc_start_main_impl (inlined)
+               |          _start
+               |          
+                --1.59%--XLALFrFileQueryChanVectorLength
+                          XLALFrStreamGetVectorLength
+                          0x75f5c82b8d01
+                          cfunction_call
+                          _PyObject_MakeTpCall
+                          _PyEval_EvalFrameDefault
+                          _PyEval_EvalFrame (inlined)
+                          _PyEval_Vector
+                          PyEval_EvalCode
+                          run_eval_code_obj
+                          run_mod
+                          pyrun_file
+                          _PyRun_SimpleFileObject
+                          _PyRun_AnyFileObject
+                          pymain_run_file_obj (inlined)
+                          pymain_run_file (inlined)
+                          pymain_run_python (inlined)
+                          Py_RunMain
+                          Py_BytesMain
+                          __libc_start_call_main
+                          __libc_start_main_impl (inlined)
+                          _start
+
+     9.02%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFft_BlkMerge_64fc
+            |
+            ---mkl_dft_def_owns_cFft_BlkMerge_64fc
+
+     6.65%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFft_BlkSplit_64fc
+            |
+            ---mkl_dft_def_owns_cFft_BlkSplit_64fc
+
+     6.15%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFftInv_Fact8_64fc
+            |
+            ---mkl_dft_def_owns_cFftInv_Fact8_64fc
+               mkl_dft_def_owns_cFftInv_Large_64fc
+               mkl_dft_def_ippsFFTInv_CToC_64fc
+               mkl_dft_def_ippsDFTInv_CToC_64fc
+               mkl_dft_def_xipps_inv_64fc
+               mkl_dft_def_compute_bwd_d_c2c_1d_o
+               0xffffffffffffffff
+
+     4.62%  python      chisq_cpu.cpython-311-x86_64-linux-gnu.so              [.] __pyx_fuse_1_0__pyx_pw_5pycbc_6vetoes_9chisq_cpu_25point_chisq_code(_object*, _object*, _object*)
+            |
+            ---__pyx_fuse_1_0__pyx_pw_5pycbc_6vetoes_9chisq_cpu_25point_chisq_code(_object*, _object*, _object*)
+               __pyx_FusedFunction_call(_object*, _object*, _object*)
+               _PyObject_MakeTpCall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               _PyObject_VectorcallTstate (inlined)
+               map_next
+               list_extend
+               list___init___impl (inlined)
+               list_vectorcall
+               |          
+                --4.59%--_PyEval_EvalFrameDefault
+                          _PyEval_EvalFrame (inlined)
+                          _PyEval_Vector
+                          PyEval_EvalCode
+                          run_eval_code_obj
+                          run_mod
+                          pyrun_file
+                          _PyRun_SimpleFileObject
+                          _PyRun_AnyFileObject
+                          pymain_run_file_obj (inlined)
+                          pymain_run_file (inlined)
+                          pymain_run_python (inlined)
+                          Py_RunMain
+                          Py_BytesMain
+                          __libc_start_call_main
+                          __libc_start_main_impl (inlined)
+                          _start
+
+     3.01%  python      libmkl_core.so                                         [.] mkl_serv_libm_sincospif
+            |
+            ---mkl_serv_libm_sincospif
+               setup_twiddle
+               ttl_parallel_team
+               commit
+               static_dfti_commit
+               DftiCommitDescriptor
+               DftiCommitDescriptor
+               ffi_call_unix64
+               ffi_call_int
+               _call_function_pointer (inlined)
+               _ctypes_callproc
+               PyCFuncPtr_call (inlined)
+               _PyObject_MakeTpCall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector
+               |          
+               |--1.81%--PyEval_EvalCode
+               |          run_eval_code_obj
+               |          run_mod
+               |          pyrun_file
+               |          _PyRun_SimpleFileObject
+               |          _PyRun_AnyFileObject
+               |          pymain_run_file_obj (inlined)
+               |          pymain_run_file (inlined)
+               |          pymain_run_python (inlined)
+               |          Py_RunMain
+               |          Py_BytesMain
+               |          __libc_start_call_main
+               |          __libc_start_main_impl (inlined)
+               |          _start
+               |          
+                --1.20%--_PyFunction_Vectorcall
+                          do_call_core (inlined)
+                          _PyEval_EvalFrameDefault
+                          _PyEval_EvalFrame (inlined)
+                          _PyEval_Vector
+                          PyEval_EvalCode
+                          run_eval_code_obj
+                          run_mod
+                          pyrun_file
+                          _PyRun_SimpleFileObject
+                          _PyRun_AnyFileObject
+                          pymain_run_file_obj (inlined)
+                          pymain_run_file (inlined)
+                          pymain_run_python (inlined)
+                          Py_RunMain
+                          Py_BytesMain
+                          __libc_start_call_main
+                          __libc_start_main_impl (inlined)
+                          _start
+
+     2.65%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+            |
+            ---void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+               at::TensorIteratorBase::serial_for_each(c10::function_ref<void (char**, long const*, long, long)>, at::Range) const
+               at::TensorIteratorBase::for_each(c10::function_ref<void (char**, long const*, long, long)>, long)
+               |          
+                --2.63%--0x7ffd0f46bc97
+
+     2.62%  python      libframel-9cd69e87.so.8.43.1                           [.] FrCksumGnu
+            |
+            ---FrCksumGnu
+               FrRead
+               FrReadVC
+               FrVectRead
+               FrVectReadNext
+               XLALFrameUFrChanRead_FrameL_
+               |          
+               |--1.31%--0x75f5c824cd74
+               |          |          
+               |          |--0.87%--XLALFrStreamGetREAL8TimeSeries
+               |          |          XLALFrStreamReadREAL8TimeSeries
+               |          |          0x75f5c82c4675
+               |          |          cfunction_call
+               |          |          _PyObject_MakeTpCall
+               |          |          _PyEval_EvalFrameDefault
+               |          |          _PyEval_EvalFrame (inlined)
+               |          |          _PyEval_Vector
+               |          |          PyEval_EvalCode
+               |          |          run_eval_code_obj
+               |          |          run_mod
+               |          |          pyrun_file
+               |          |          _PyRun_SimpleFileObject
+               |          |          _PyRun_AnyFileObject
+               |          |          pymain_run_file_obj (inlined)
+               |          |          pymain_run_file (inlined)
+               |          |          pymain_run_python (inlined)
+               |          |          Py_RunMain
+               |          |          Py_BytesMain
+               |          |          __libc_start_call_main
+               |          |          __libc_start_main_impl (inlined)
+               |          |          _start
+               |          |          
+               |           --0.44%--XLALFrStreamGetREAL8TimeSeriesMetadata
+               |                     0x75f5c82b237d
+               |                     cfunction_call
+               |                     _PyObject_MakeTpCall
+               |                     _PyEval_EvalFrameDefault
+               |                     _PyEval_EvalFrame (inlined)
+               |                     _PyEval_Vector
+               |                     PyEval_EvalCode
+               |                     run_eval_code_obj
+               |                     run_mod
+               |                     pyrun_file
+               |                     _PyRun_SimpleFileObject
+               |                     _PyRun_AnyFileObject
+               |                     pymain_run_file_obj (inlined)
+               |                     pymain_run_file (inlined)
+               |                     pymain_run_python (inlined)
+               |                     Py_RunMain
+               |                     Py_BytesMain
+               |                     __libc_start_call_main
+               |                     __libc_start_main_impl (inlined)
+               |                     _start
+               |          
+               |--0.87%--XLALFrFileQueryChanType
+               |          0x75f5c82a6be2
+               |          cfunction_call
+               |          _PyObject_MakeTpCall
+               |          _PyEval_EvalFrameDefault
+               |          _PyEval_EvalFrame (inlined)
+               |          _PyEval_Vector
+               |          PyEval_EvalCode
+               |          run_eval_code_obj
+               |          run_mod
+               |          pyrun_file
+               |          _PyRun_SimpleFileObject
+               |          _PyRun_AnyFileObject
+               |          pymain_run_file_obj (inlined)
+               |          pymain_run_file (inlined)
+               |          pymain_run_python (inlined)
+               |          Py_RunMain
+               |          Py_BytesMain
+               |          __libc_start_call_main
+               |          __libc_start_main_impl (inlined)
+               |          _start
+               |          
+                --0.43%--XLALFrFileQueryChanVectorLength
+                          XLALFrStreamGetVectorLength
+                          0x75f5c82b8d01
+                          cfunction_call
+                          _PyObject_MakeTpCall
+                          _PyEval_EvalFrameDefault
+                          _PyEval_EvalFrame (inlined)
+                          _PyEval_Vector
+                          PyEval_EvalCode
+                          run_eval_code_obj
+                          run_mod
+                          pyrun_file
+                          _PyRun_SimpleFileObject
+                          _PyRun_AnyFileObject
+                          pymain_run_file_obj (inlined)
+                          pymain_run_file (inlined)
+                          pymain_run_python (inlined)
+                          Py_RunMain
+                          Py_BytesMain
+                          __libc_start_call_main
+                          __libc_start_main_impl (inlined)
+                          _start
+
+     2.54%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::(anonymous namespace)::cascade_sum<false, float>(at::TensorIterator&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+            |
+            ---void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::(anonymous namespace)::cascade_sum<false, float>(at::TensorIterator&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+
+     2.52%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFftInv_Fact4_64fc
+            |
+            ---mkl_dft_def_owns_cFftInv_Fact4_64fc
+               mkl_dft_def_owns_cFftInv_Large_64fc
+               mkl_dft_def_ippsFFTInv_CToC_64fc
+               mkl_dft_def_ippsDFTInv_CToC_64fc
+               mkl_dft_def_xipps_inv_64fc
+               mkl_dft_def_compute_bwd_d_c2c_1d_o
+               0xffffffffffffffff
+
+     2.16%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+            |
+            ---void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+               at::TensorIteratorBase::serial_for_each(c10::function_ref<void (char**, long const*, long, long)>, at::Range) const
+               at::TensorIteratorBase::for_each(c10::function_ref<void (char**, long const*, long, long)>, long)
+               |          
+                --2.13%--0x7ffd0f46bc97
+
+     2.10%  python      simd_threshold_cython.cpython-311-x86_64-linux-gnu.so  [.] _max_simple(float*, float*, float*, long*, long, long)
+            |
+            ---_max_simple(float*, float*, float*, long*, long, long)
+               |          
+               |--1.75%--_windowed_max(std::complex<float>*, long, std::complex<float>*, float*, long*, long, long)
+               |          _parallel_thresh_cluster(std::complex<float>*, unsigned int, std::complex<float>*, unsigned int*, float, unsigned int, unsigned int) [clone ._omp_fn.0]
+               |          GOMP_parallel
+               |          _parallel_thresh_cluster(std::complex<float>*, unsigned int, std::complex<float>*, unsigned int*, float, unsigned int, unsigned int)
+               |          __pyx_pw_5pycbc_6events_21simd_threshold_cython_3parallel_thresh_cluster(_object*, _object* const*, long, _object*)
+               |          _PyObject_VectorcallTstate (inlined)
+               |          PyObject_Vectorcall
+               |          _PyEval_EvalFrameDefault
+               |          _PyEval_EvalFrame (inlined)
+               |          _PyEval_Vector (inlined)
+               |          _PyFunction_Vectorcall
+               |          _PyObject_VectorcallTstate (inlined)
+               |          map_next
+               |          list_extend
+               |          list___init___impl (inlined)
+               |          list_vectorcall
+               |          |          
+               |           --1.73%--_PyEval_EvalFrameDefault
+               |                     _PyEval_EvalFrame (inlined)
+               |                     _PyEval_Vector
+               |                     PyEval_EvalCode
+               |                     run_eval_code_obj
+               |                     run_mod
+               |                     pyrun_file
+               |                     _PyRun_SimpleFileObject
+               |                     _PyRun_AnyFileObject
+               |                     pymain_run_file_obj (inlined)
+               |                     pymain_run_file (inlined)
+               |                     pymain_run_python (inlined)
+               |                     Py_RunMain
+               |                     Py_BytesMain
+               |                     __libc_start_call_main
+               |                     __libc_start_main_impl (inlined)
+               |                     _start
+               |          
+                --0.35%--_parallel_thresh_cluster(std::complex<float>*, unsigned int, std::complex<float>*, unsigned int*, float, unsigned int, unsigned int) [clone ._omp_fn.0]
+                          GOMP_parallel
+                          _parallel_thresh_cluster(std::complex<float>*, unsigned int, std::complex<float>*, unsigned int*, float, unsigned int, unsigned int)
+                          __pyx_pw_5pycbc_6events_21simd_threshold_cython_3parallel_thresh_cluster(_object*, _object* const*, long, _object*)
+                          _PyObject_VectorcallTstate (inlined)
+                          PyObject_Vectorcall
+                          _PyEval_EvalFrameDefault
+                          _PyEval_EvalFrame (inlined)
+                          _PyEval_Vector (inlined)
+                          _PyFunction_Vectorcall
+                          _PyObject_VectorcallTstate (inlined)
+                          map_next
+                          list_extend
+                          list___init___impl (inlined)
+                          list_vectorcall
+                          _PyEval_EvalFrameDefault
+                          _PyEval_EvalFrame (inlined)
+                          _PyEval_Vector
+                          PyEval_EvalCode
+                          run_eval_code_obj
+                          run_mod
+                          pyrun_file
+                          _PyRun_SimpleFileObject
+                          _PyRun_AnyFileObject
+                          pymain_run_file_obj (inlined)
+                          pymain_run_file (inlined)
+                          pymain_run_python (inlined)
+                          Py_RunMain
+                          Py_BytesMain
+                          __libc_start_call_main
+                          __libc_start_main_impl (inlined)
+                          _start
+
+     1.83%  python      python3.11                                             [.] _PyEval_EvalFrameDefault
+            |          
+             --1.75%--_PyEval_EvalFrameDefault
+                       _PyEval_EvalFrame (inlined)
+                       |          
+                        --1.71%--_PyEval_Vector (inlined)
+                                  |          
+                                  |--1.16%--_PyFunction_Vectorcall
+                                  |          |          
+                                  |          |--0.47%--_PyObject_VectorcallTstate (inlined)
+                                  |          |          |          
+                                  |          |          |--0.18%--object_vacall
+                                  |          |          |          |          
+                                  |          |          |           --0.15%--PyObject_CallMethodObjArgs
+                                  |          |          |                     |          
+                                  |          |          |                      --0.14%--import_find_and_load (inlined)
+                                  |          |          |                                PyImport_ImportModuleLevelObject (inlined)
+                                  |          |          |                                |          
+                                  |          |          |                                 --0.10%--import_name (inlined)
+                                  |          |          |                                           _PyEval_EvalFrameDefault
+                                  |          |          |                                           _PyEval_EvalFrame (inlined)
+                                  |          |          |                                           _PyEval_Vector
+                                  |          |          |                                           PyEval_EvalCode
+                                  |          |          |                                           builtin_exec_impl (inlined)
+                                  |          |          |                                           builtin_exec
+                                  |          |          |                                           cfunction_vectorcall_FASTCALL_KEYWORDS
+                                  |          |          |                                           do_call_core (inlined)
+                                  |          |          |                                           _PyEval_EvalFrameDefault
+                                  |          |          |                                           _PyEval_EvalFrame (inlined)
+                                  |          |          |                                           _PyEval_Vector (inlined)
+                                  |          |          |                                           _PyFunction_Vectorcall
+                                  |          |          |                                           _PyObject_VectorcallTstate (inlined)
+                                  |          |          |                                           object_vacall
+                                  |          |          |                                           PyObject_CallMethodObjArgs
+                                  |          |          |                                           import_find_and_load (inlined)
+                                  |          |          |                                           PyImport_ImportModuleLevelObject (inlined)
+                                  |          |          |          
+                                  |          |           --0.13%--map_next
+                                  |          |                     list_extend
+                                  |          |                     list___init___impl (inlined)
+                                  |          |                     list_vectorcall
+                                  |          |                     _PyEval_EvalFrameDefault
+                                  |          |                     _PyEval_EvalFrame (inlined)
+                                  |          |                     _PyEval_Vector
+                                  |          |                     PyEval_EvalCode
+                                  |          |                     run_eval_code_obj
+                                  |          |                     run_mod
+                                  |          |                     pyrun_file
+                                  |          |                     _PyRun_SimpleFileObject
+                                  |          |                     _PyRun_AnyFileObject
+                                  |          |                     pymain_run_file_obj (inlined)
+                                  |          |                     pymain_run_file (inlined)
+                                  |          |                     pymain_run_python (inlined)
+                                  |          |                     Py_RunMain
+                                  |          |                     Py_BytesMain
+                                  |          |                     __libc_start_call_main
+                                  |          |                     __libc_start_main_impl (inlined)
+                                  |          |                     _start
+                                  |          |          
+                                  |          |--0.40%--_PyObject_FastCallDictTstate (inlined)
+                                  |          |          _PyObject_Call_Prepend (inlined)
+                                  |          |          |          
+                                  |          |           --0.36%--slot_tp_init
+                                  |          |                     type_call (inlined)
+                                  |          |                     |          
+                                  |          |                      --0.35%--_PyObject_MakeTpCall
+                                  |          |                                |          
+                                  |          |                                 --0.34%--_PyEval_EvalFrameDefault
+                                  |          |                                           _PyEval_EvalFrame (inlined)
+                                  |          |                                           _PyEval_Vector
+                                  |          |                                           |          
+                                  |          |                                           |--0.13%--_PyFunction_Vectorcall
+                                  |          |                                           |          
+                                  |          |                                            --0.11%--PyEval_EvalCode
+                                  |          |                                                      builtin_exec_impl (inlined)
+                                  |          |                                                      builtin_exec
+                                  |          |                                                      cfunction_vectorcall_FASTCALL_KEYWORDS
+                                  |          |                                                      do_call_core (inlined)
+                                  |          |                                                      _PyEval_EvalFrameDefault
+                                  |          |                                                      _PyEval_EvalFrame (inlined)
+                                  |          |                                                      _PyEval_Vector (inlined)
+                                  |          |                                                      _PyFunction_Vectorcall
+                                  |          |                                                      _PyObject_VectorcallTstate (inlined)
+                                  |          |                                                      object_vacall
+                                  |          |                                                      PyObject_CallMethodObjArgs
+                                  |          |                                                      import_find_and_load (inlined)
+                                  |          |                                                      PyImport_ImportModuleLevelObject (inlined)
+                                  |          |          
+                                  |           --0.17%--do_call_core (inlined)
+                                  |                     _PyEval_EvalFrameDefault
+                                  |                     _PyEval_EvalFrame (inlined)
+                                  |                     _PyEval_Vector (inlined)
+                                  |                     _PyFunction_Vectorcall
+                                  |          
+                                  |--0.27%--_PyFunction_Vectorcall (inlined)
+                                  |          _PyObject_VectorcallTstate (inlined)
+                                  |          |          
+                                  |           --0.22%--method_vectorcall (inlined)
+                                  |                     |          
+                                  |                      --0.10%--do_call_core (inlined)
+                                  |                                _PyEval_EvalFrameDefault
+                                  |                                _PyEval_EvalFrame (inlined)
+                                  |                                _PyEval_Vector (inlined)
+                                  |                                _PyFunction_Vectorcall
+                                  |          
+                                   --0.21%--PyEval_EvalCode
+                                             |          
+                                              --0.19%--builtin_exec_impl (inlined)
+                                                        builtin_exec
+                                                        cfunction_vectorcall_FASTCALL_KEYWORDS
+                                                        do_call_core (inlined)
+                                                        _PyEval_EvalFrameDefault
+                                                        _PyEval_EvalFrame (inlined)
+                                                        _PyEval_Vector (inlined)
+                                                        _PyFunction_Vectorcall
+                                                        _PyObject_VectorcallTstate (inlined)
+                                                        object_vacall
+                                                        PyObject_CallMethodObjArgs
+                                                        import_find_and_load (inlined)
+                                                        PyImport_ImportModuleLevelObject (inlined)
+
+     1.49%  python      libframel-9cd69e87.so.8.43.1                           [.] Frz_adler32
+            |
+            ---Frz_adler32
+               Frz_inflate_flush
+               Frz_inflate_codes
+               Frz_inflate_blocks
+               Frz_inflate
+               Frz_uncompress
+               FrVectExpand
+               FrVectRead
+               FrVectReadNext
+               XLALFrameUFrChanRead_FrameL_
+               |          
+               |--0.73%--0x75f5c824cd74
+               |          |          
+               |          |--0.48%--XLALFrStreamGetREAL8TimeSeries
+               |          |          XLALFrStreamReadREAL8TimeSeries
+               |          |          0x75f5c82c4675
+               |          |          cfunction_call
+               |          |          _PyObject_MakeTpCall
+               |          |          _PyEval_EvalFrameDefault
+               |          |          _PyEval_EvalFrame (inlined)
+               |          |          _PyEval_Vector
+               |          |          PyEval_EvalCode
+               |          |          run_eval_code_obj
+               |          |          run_mod
+               |          |          pyrun_file
+               |          |          _PyRun_SimpleFileObject
+               |          |          _PyRun_AnyFileObject
+               |          |          pymain_run_file_obj (inlined)
+               |          |          pymain_run_file (inlined)
+               |          |          pymain_run_python (inlined)
+               |          |          Py_RunMain
+               |          |          Py_BytesMain
+               |          |          __libc_start_call_main
+               |          |          __libc_start_main_impl (inlined)
+               |          |          _start
+               |          |          
+               |           --0.26%--XLALFrStreamGetREAL8TimeSeriesMetadata
+               |                     0x75f5c82b237d
+               |                     cfunction_call
+               |                     _PyObject_MakeTpCall
+               |                     _PyEval_EvalFrameDefault
+               |                     _PyEval_EvalFrame (inlined)
+               |                     _PyEval_Vector
+               |                     PyEval_EvalCode
+               |                     run_eval_code_obj
+               |                     run_mod
+               |                     pyrun_file
+               |                     _PyRun_SimpleFileObject
+               |                     _PyRun_AnyFileObject
+               |                     pymain_run_file_obj (inlined)
+               |                     pymain_run_file (inlined)
+               |                     pymain_run_python (inlined)
+               |                     Py_RunMain
+               |                     Py_BytesMain
+               |                     __libc_start_call_main
+               |                     __libc_start_main_impl (inlined)
+               |                     _start
+               |          
+               |--0.53%--XLALFrFileQueryChanType
+               |          0x75f5c82a6be2
+               |          cfunction_call
+               |          _PyObject_MakeTpCall
+               |          _PyEval_EvalFrameDefault
+               |          _PyEval_EvalFrame (inlined)
+               |          _PyEval_Vector
+               |          PyEval_EvalCode
+               |          run_eval_code_obj
+               |          run_mod
+               |          pyrun_file
+               |          _PyRun_SimpleFileObject
+               |          _PyRun_AnyFileObject
+               |          pymain_run_file_obj (inlined)
+               |          pymain_run_file (inlined)
+               |          pymain_run_python (inlined)
+               |          Py_RunMain
+               |          Py_BytesMain
+               |          __libc_start_call_main
+               |          __libc_start_main_impl (inlined)
+               |          _start
+               |          
+                --0.22%--XLALFrFileQueryChanVectorLength
+                          XLALFrStreamGetVectorLength
+                          0x75f5c82b8d01
+                          cfunction_call
+                          _PyObject_MakeTpCall
+                          _PyEval_EvalFrameDefault
+                          _PyEval_EvalFrame (inlined)
+                          _PyEval_Vector
+                          PyEval_EvalCode
+                          run_eval_code_obj
+                          run_mod
+                          pyrun_file
+                          _PyRun_SimpleFileObject
+                          _PyRun_AnyFileObject
+                          pymain_run_file_obj (inlined)
+                          pymain_run_file (inlined)
+                          pymain_run_python (inlined)
+                          Py_RunMain
+                          Py_BytesMain
+                          __libc_start_call_main
+                          __libc_start_main_impl (inlined)
+                          _start
+
+     1.15%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#16}::operator()() const::{lambda(c10::complex<float>, c10::complex<float>)#1}, at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#16}::operator()() const::{lambda(at::vec::AVX2::Vectorized<c10::complex<float> >, at::vec::AVX2::Vectorized<c10::complex<float> >)#1}> >(long, char**, long const*, long, long)
+            |
+            ---void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#16}::operator()() const::{lambda(c10::complex<float>, c10::complex<float>)#1}, at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#16}::operator()() const::{lambda(at::vec::AVX2::Vectorized<c10::complex<float> >, at::vec::AVX2::Vectorized<c10::complex<float> >)#1}> >(long, char**, long const*, long, long)
+               at::TensorIteratorBase::serial_for_each(c10::function_ref<void (char**, long const*, long, long)>, at::Range) const
+               at::TensorIteratorBase::for_each(c10::function_ref<void (char**, long const*, long, long)>, long)
+               |          
+                --1.13%--0x7ffd0f46beb7
+
+     1.04%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_zBitRev1_Blk
+            |
+            ---mkl_dft_def_owns_zBitRev1_Blk
+
+     1.03%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::AVX2::conj_kernel(at::TensorIteratorBase&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(c10::complex<float>)#1}, at::native::AVX2::conj_kernel(at::TensorIteratorBase&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(at::vec::AVX2::Vectorized<c10::complex<float> >)#1}> >(long, char**, long const*, long, long)
+            |
+            ---void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::AVX2::conj_kernel(at::TensorIteratorBase&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(c10::complex<float>)#1}, at::native::AVX2::conj_kernel(at::TensorIteratorBase&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(at::vec::AVX2::Vectorized<c10::complex<float> >)#1}> >(long, char**, long const*, long, long)
+               at::TensorIteratorBase::serial_for_each(c10::function_ref<void (char**, long const*, long, long)>, at::Range) const
+               at::TensorIteratorBase::for_each(c10::function_ref<void (char**, long const*, long, long)>, long)
+               |          
+                --1.01%--0x7ffd0f46b977
+
+     0.93%  python      libtorch_cpu.so                                        [.] void std::__introsort_loop<at::native::CompositeRandomAccessor<at::native::StridedRandomAccessor<double, long, at::native::DefaultPtrTraits>, at::native::StridedRandomAccessor<long, long, at::native::DefaultPtrTraits>, at::native::TupleInfoCPU>, long, __gnu_cxx::__ops::_Iter_comp_iter<at::native::(anonymous namespace)::KeyValueCompAsc<double> > >(at::native::CompositeRandomAccessor<at::native::StridedRandomAccessor<double, long, at::native::DefaultPtrTraits>, at::native::StridedRandomAccessor<long, long, at::native::DefaultPtrTraits>, at::native::TupleInfoCPU>, at::native::CompositeRandomAccessor<at::native::StridedRandomAccessor<double, long, at::native::DefaultPtrTraits>, at::native::StridedRandomAccessor<long, long, at::native::DefaultPtrTraits>, at::native::TupleInfoCPU>, long, __gnu_cxx::__ops::_Iter_comp_iter<at::native::(anonymous namespace)::KeyValueCompAsc<double> >)
+            |
+            ---void std::__introsort_loop<at::native::CompositeRandomAccessor<at::native::StridedRandomAccessor<double, long, at::native::DefaultPtrTraits>, at::native::StridedRandomAccessor<long, long, at::native::DefaultPtrTraits>, at::native::TupleInfoCPU>, long, __gnu_cxx::__ops::_Iter_comp_iter<at::native::(anonymous namespace)::KeyValueCompAsc<double> > >(at::native::CompositeRandomAccessor<at::native::StridedRandomAccessor<double, long, at::native::DefaultPtrTraits>, at::native::StridedRandomAccessor<long, long, at::native::DefaultPtrTraits>, at::native::TupleInfoCPU>, at::native::CompositeRandomAccessor<at::native::StridedRandomAccessor<double, long, at::native::DefaultPtrTraits>, at::native::StridedRandomAccessor<long, long, at::native::DefaultPtrTraits>, at::native::TupleInfoCPU>, long, __gnu_cxx::__ops::_Iter_comp_iter<at::native::(anonymous namespace)::KeyValueCompAsc<double> >)
+
+     0.93%  python      libmkl_core.so                                         [.] mkl_serv_libm_sin
+            |
+            ---mkl_serv_libm_sin
+               |          
+                --0.91%--mkl_dft_def_owns_initTabTwdBase_32f
+                          mkl_dft_def_ippsFFTInit_C_32fc
+                          mkl_dft_def_ippsDFTInit_C_32fc
+                          mkl_dft_def_ippsDFTInitAlloc_C_32fc
+                          mkl_dft_def_ipp_initalloc_s_c2c
+                          mkl_dft_def_commit_descriptor_core_s_c2c_1d
+                          mkl_dft_commit_node_s_c2c_1d_omp
+                          static_dfti_commit
+                          commit
+                          static_dfti_commit
+                          DftiCommitDescriptor
+                          DftiCommitDescriptor
+                          ffi_call_unix64
+                          ffi_call_int
+                          _call_function_pointer (inlined)
+                          _ctypes_callproc
+                          PyCFuncPtr_call (inlined)
+                          _PyObject_MakeTpCall
+                          _PyEval_EvalFrameDefault
+                          _PyEval_EvalFrame (inlined)
+                          _PyEval_Vector
+                          |          
+                          |--0.56%--PyEval_EvalCode
+                          |          run_eval_code_obj
+                          |          run_mod
+                          |          pyrun_file
+                          |          _PyRun_SimpleFileObject
+                          |          _PyRun_AnyFileObject
+                          |          pymain_run_file_obj (inlined)
+                          |          pymain_run_file (inlined)
+                          |          pymain_run_python (inlined)
+                          |          Py_RunMain
+                          |          Py_BytesMain
+                          |          __libc_start_call_main
+                          |          __libc_start_main_impl (inlined)
+                          |          _start
+                          |          
+                           --0.35%--_PyFunction_Vectorcall
+                                     do_call_core (inlined)
+                                     _PyEval_EvalFrameDefault
+                                     _PyEval_EvalFrame (inlined)
+                                     _PyEval_Vector
+                                     PyEval_EvalCode
+                                     run_eval_code_obj
+                                     run_mod
+                                     pyrun_file
+                                     _PyRun_SimpleFileObject
+                                     _PyRun_AnyFileObject
+                                     pymain_run_file_obj (inlined)
+                                     pymain_run_file (inlined)
+                                     pymain_run_python (inlined)
+                                     Py_RunMain
+                                     Py_BytesMain
+                                     __libc_start_call_main
+                                     __libc_start_main_impl (inlined)
+                                     _start
+
+     0.92%  python      libtorch_cpu.so                                        [.] std::array<float, 4l> at::native::(anonymous namespace)::multi_row_sum<float, 4l, at::native::(anonymous namespace)::CastLoadPolicy<float, float> >(char const*, long, long, long)
+            |
+            ---std::array<float, 4l> at::native::(anonymous namespace)::multi_row_sum<float, 4l, at::native::(anonymous namespace)::CastLoadPolicy<float, float> >(char const*, long, long, long)
+               |          
+                --0.67%--void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::(anonymous namespace)::cascade_sum<false, float>(at::TensorIterator&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+
+     0.92%  python      decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so  [.] void _decomp_main_loop<float, std::complex<float> >(int, std::complex<float>*, double, long, long, float*, float*, float*, long, long)
+            |
+            ---void _decomp_main_loop<float, std::complex<float> >(int, std::complex<float>*, double, long, long, float*, float*, float*, long, long)
+               _decomp_ccode_float(std::complex<float>*, double, long, long, float*, float*, float*, long, long)
+               __pyx_pw_5pycbc_8waveform_21decompress_cpu_cython_3decomp_ccode_float(_object*, _object* const*, long, _object*)
+               _PyObject_VectorcallTstate (inlined)
+               PyObject_Vectorcall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               do_call_core (inlined)
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall (inlined)
+               _PyObject_VectorcallTstate (inlined)
+               |          
+                --0.89%--map_next
+                          list_extend
+                          list___init___impl (inlined)
+                          list_vectorcall
+                          _PyEval_EvalFrameDefault
+                          _PyEval_EvalFrame (inlined)
+                          _PyEval_Vector
+                          PyEval_EvalCode
+                          run_eval_code_obj
+                          run_mod
+                          pyrun_file
+                          _PyRun_SimpleFileObject
+                          _PyRun_AnyFileObject
+                          pymain_run_file_obj (inlined)
+                          pymain_run_file (inlined)
+                          pymain_run_python (inlined)
+                          Py_RunMain
+                          Py_BytesMain
+                          __libc_start_call_main
+                          __libc_start_main_impl (inlined)
+                          _start
+
+     0.91%  python      libtorch_cpu.so                                        [.] void at::native::(anonymous namespace)::sort_kernel_impl<double, at::native::StridedRandomAccessor<double, long, at::native::DefaultPtrTraits>, at::native::StridedRandomAccessor<long, long, at::native::DefaultPtrTraits> >(at::native::StridedRandomAccessor<double, long, at::native::DefaultPtrTraits> const&, at::native::StridedRandomAccessor<long, long, at::native::DefaultPtrTraits> const&, long, bool, bool)
+            |
+            ---void at::native::(anonymous namespace)::sort_kernel_impl<double, at::native::StridedRandomAccessor<double, long, at::native::DefaultPtrTraits>, at::native::StridedRandomAccessor<long, long, at::native::DefaultPtrTraits> >(at::native::StridedRandomAccessor<double, long, at::native::DefaultPtrTraits> const&, at::native::StridedRandomAccessor<long, long, at::native::DefaultPtrTraits> const&, long, bool, bool)
+
+     0.75%  python      libmkl_core.so                                         [.] mkl_serv_libm_cos
+            |
+            ---mkl_serv_libm_cos
+               |          
+                --0.74%--mkl_dft_def_owns_initTabTwdBase_32f
+                          mkl_dft_def_ippsFFTInit_C_32fc
+                          mkl_dft_def_ippsDFTInit_C_32fc
+                          mkl_dft_def_ippsDFTInitAlloc_C_32fc
+                          mkl_dft_def_ipp_initalloc_s_c2c
+                          mkl_dft_def_commit_descriptor_core_s_c2c_1d
+                          mkl_dft_commit_node_s_c2c_1d_omp
+                          static_dfti_commit
+                          commit
+                          static_dfti_commit
+                          DftiCommitDescriptor
+                          DftiCommitDescriptor
+                          ffi_call_unix64
+                          ffi_call_int
+                          _call_function_pointer (inlined)
+                          _ctypes_callproc
+                          PyCFuncPtr_call (inlined)
+                          _PyObject_MakeTpCall
+                          _PyEval_EvalFrameDefault
+                          _PyEval_EvalFrame (inlined)
+                          _PyEval_Vector
+                          |          
+                          |--0.41%--PyEval_EvalCode
+                          |          run_eval_code_obj
+                          |          run_mod
+                          |          pyrun_file
+                          |          _PyRun_SimpleFileObject
+                          |          _PyRun_AnyFileObject
+                          |          pymain_run_file_obj (inlined)
+                          |          pymain_run_file (inlined)
+                          |          pymain_run_python (inlined)
+                          |          Py_RunMain
+                          |          Py_BytesMain
+                          |          __libc_start_call_main
+                          |          __libc_start_main_impl (inlined)
+                          |          _start
+                          |          
+                           --0.33%--_PyFunction_Vectorcall
+                                     do_call_core (inlined)
+                                     _PyEval_EvalFrameDefault
+                                     _PyEval_EvalFrame (inlined)
+                                     _PyEval_Vector
+                                     PyEval_EvalCode
+                                     run_eval_code_obj
+                                     run_mod
+                                     pyrun_file
+                                     _PyRun_SimpleFileObject
+                                     _PyRun_AnyFileObject
+                                     pymain_run_file_obj (inlined)
+                                     pymain_run_file (inlined)
+                                     pymain_run_python (inlined)
+                                     Py_RunMain
+                                     Py_BytesMain
+                                     __libc_start_call_main
+                                     __libc_start_main_impl (inlined)
+                                     _start
+
+     0.70%  python      python3.11                                             [.] gc_collect_main
+            |          
+            |--0.25%--gc_list_size (inlined)
+            |          gc_collect_main
+            |          |          
+            |          |--0.14%--gc_collect_with_callback
+            |          |          |          
+            |          |           --0.11%--_PyObject_GC_Link (inlined)
+            |          |                     gc_alloc (inlined)
+            |          |          
+            |           --0.11%--_PyGC_CollectNoFail (inlined)
+            |          
+             --0.18%--untrack_tuples (inlined)
+                       gc_collect_main
+                       |          
+                        --0.12%--gc_collect_with_callback
+
+     0.67%  python      python3.11                                             [.] _Py_dict_lookup
+            |          
+            |--0.53%--unicodekeys_lookup_unicode (inlined)
+            |          _Py_dict_lookup
+            |          |          
+            |          |--0.18%--PyDict_SetDefault
+            |          |          PyUnicode_InternInPlace
+            |          |          |          
+            |          |           --0.10%--r_object
+            |          |                     r_object
+            |          |                     r_object
+            |          |          
+            |           --0.13%--_PyDict_GetItem_KnownHash (inlined)
+            |                     find_name_in_mro (inlined)
+            |          
+             --0.10%--_Py_dict_lookup
+
+     0.45%  python      liblal-8f7cb511.so.20.3.2                              [.] XLALIIRFilterReverseREAL8Vector
+            |
+            ---XLALIIRFilterReverseREAL8Vector
+               XLALButterworthREAL8TimeSeries
+               XLALHighPassREAL8TimeSeries
+               0x75f6901e6585
+               cfunction_call
+               _PyObject_MakeTpCall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector
+               PyEval_EvalCode
+               run_eval_code_obj
+               run_mod
+               pyrun_file
+               _PyRun_SimpleFileObject
+               _PyRun_AnyFileObject
+               pymain_run_file_obj (inlined)
+               pymain_run_file (inlined)
+               pymain_run_python (inlined)
+               Py_RunMain
+               Py_BytesMain
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               _start
+
+     0.44%  python      liblal-8f7cb511.so.20.3.2                              [.] XLALIIRFilterReverseREAL4Vector
+            |
+            ---XLALIIRFilterReverseREAL4Vector
+               XLALButterworthREAL4TimeSeries
+               XLALHighPassREAL4TimeSeries
+               0x75f6901e6205
+               cfunction_call
+               _PyObject_MakeTpCall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector
+               PyEval_EvalCode
+               run_eval_code_obj
+               run_mod
+               pyrun_file
+               _PyRun_SimpleFileObject
+               _PyRun_AnyFileObject
+               pymain_run_file_obj (inlined)
+               pymain_run_file (inlined)
+               pymain_run_python (inlined)
+               Py_RunMain
+               Py_BytesMain
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               _start
+
+     0.43%  python      liblal-8f7cb511.so.20.3.2                              [.] XLALIIRFilterREAL4Vector
+            |
+            ---XLALIIRFilterREAL4Vector
+               XLALButterworthREAL4TimeSeries
+               XLALHighPassREAL4TimeSeries
+               0x75f6901e6205
+               cfunction_call
+               _PyObject_MakeTpCall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector
+               PyEval_EvalCode
+               run_eval_code_obj
+               run_mod
+               pyrun_file
+               _PyRun_SimpleFileObject
+               _PyRun_AnyFileObject
+               pymain_run_file_obj (inlined)
+               pymain_run_file (inlined)
+               pymain_run_python (inlined)
+               Py_RunMain
+               Py_BytesMain
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               _start
+
+     0.40%  python      liblal-8f7cb511.so.20.3.2                              [.] XLALIIRFilterREAL8Vector
+            |
+            ---XLALIIRFilterREAL8Vector
+               XLALButterworthREAL8TimeSeries
+               XLALHighPassREAL8TimeSeries
+               0x75f6901e6585
+               cfunction_call
+               _PyObject_MakeTpCall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector
+               PyEval_EvalCode
+               run_eval_code_obj
+               run_mod
+               pyrun_file
+               _PyRun_SimpleFileObject
+               _PyRun_AnyFileObject
+               pymain_run_file_obj (inlined)
+               pymain_run_file (inlined)
+               pymain_run_python (inlined)
+               Py_RunMain
+               Py_BytesMain
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               _start
+
+     0.40%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::AVX2::pow_tensor_scalar_optimized_kernel<float, double, double>(at::TensorIteratorBase&, double)::{lambda(float)#1}, at::native::AVX2::pow_tensor_scalar_optimized_kernel<float, double, double>(at::TensorIteratorBase&, double)::{lambda(at::vec::AVX2::Vectorized<float>)#2}> >(long, char**, long const*, long, long)
+            |
+            ---void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::AVX2::pow_tensor_scalar_optimized_kernel<float, double, double>(at::TensorIteratorBase&, double)::{lambda(float)#1}, at::native::AVX2::pow_tensor_scalar_optimized_kernel<float, double, double>(at::TensorIteratorBase&, double)::{lambda(at::vec::AVX2::Vectorized<float>)#2}> >(long, char**, long const*, long, long)
+               at::TensorIteratorBase::serial_for_each(c10::function_ref<void (char**, long const*, long, long)>, at::Range) const
+               at::TensorIteratorBase::for_each(c10::function_ref<void (char**, long const*, long, long)>, long)
+               0x7ffd0f46bc27
+
+     0.37%  python      python3.11                                             [.] visit_reachable
+            |          
+             --0.35%--_PyObject_IS_GC (inlined)
+                       visit_reachable
+                       |          
+                        --0.13%--func_traverse
+                                  move_unreachable (inlined)
+                                  deduce_unreachable
+                                  gc_collect_main
+
+     0.34%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] int introselect_<npy::float_tag, false, float>(float*, long*, long, long, long*, long*) [clone .isra.0]
+            |
+            ---int introselect_<npy::float_tag, false, float>(float*, long*, long, long, long*, long*) [clone .isra.0]
+               _new_sortlike
+               PyArray_Partition
+               array_partition
+               method_vectorcall_FASTCALL_KEYWORDS
+               _PyObject_VectorcallTstate (inlined)
+               PyObject_Vectorcall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               _PyObject_VectorcallTstate (inlined)
+               PyObject_Vectorcall
+               dispatcher_vectorcall
+               _PyObject_VectorcallTstate (inlined)
+               PyObject_Vectorcall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               _PyVectorcall_Call (inlined)
+               _PyObject_Call (inlined)
+               PyObject_Call
+               do_call_core (inlined)
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               _PyObject_VectorcallTstate (inlined)
+               PyObject_Vectorcall
+               dispatcher_vectorcall
+               _PyObject_VectorcallTstate (inlined)
+               PyObject_Vectorcall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector
+               PyEval_EvalCode
+               run_eval_code_obj
+               run_mod
+               pyrun_file
+               _PyRun_SimpleFileObject
+               _PyRun_AnyFileObject
+               pymain_run_file_obj (inlined)
+               pymain_run_file (inlined)
+               pymain_run_python (inlined)
+               Py_RunMain
+               Py_BytesMain
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               _start
+
+     0.33%  python      python3.11                                             [.] deduce_unreachable
+            |          
+             --0.25%--gc_reset_refs (inlined)
+                       update_refs (inlined)
+                       deduce_unreachable
+                       |          
+                        --0.23%--gc_collect_main
+                                  |          
+                                   --0.15%--gc_collect_with_callback
+                                             |          
+                                              --0.12%--_PyObject_GC_Link (inlined)
+                                                        gc_alloc (inlined)
+
+     0.31%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#15}::operator()() const::{lambda()#1}::operator()() const::{lambda()#16}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#15}::operator()() const::{lambda()#1}::operator()() const::{lambda()#16}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+            |
+            ---void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#15}::operator()() const::{lambda()#1}::operator()() const::{lambda()#16}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#15}::operator()() const::{lambda()#1}::operator()() const::{lambda()#16}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+               at::TensorIteratorBase::serial_for_each(c10::function_ref<void (char**, long const*, long, long)>, at::Range) const
+               at::TensorIteratorBase::for_each(c10::function_ref<void (char**, long const*, long, long)>, long)
+               |          
+                --0.12%--0x7ffd0f46a787
+
+     0.31%  python      libtorch_cpu.so                                        [.] mkl_serv_libm_sincospi
+            |
+            ---mkl_serv_libm_sincospi
+
+     0.30%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] handle_scalar
+            |
+            ---handle_scalar
+               PyArray_DiscoverDTypeAndShape_Recursive
+               PyArray_DiscoverDTypeAndShape_Recursive
+               PyArray_DiscoverDTypeAndShape
+               PyArray_FromAny_int
+               PyArray_CheckFromAny_int
+               _array_fromobject_generic
+               array_array
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               _PyObject_FastCallDictTstate (inlined)
+               _PyObject_Call_Prepend (inlined)
+               slot_tp_init
+               type_call (inlined)
+               _PyObject_MakeTpCall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               _PyObject_VectorcallTstate (inlined)
+               PyObject_CallOneArg (inlined)
+               property_descr_get
+               _PyObject_GenericGetAttrWithDict
+               PyObject_GenericGetAttr (inlined)
+               PyObject_GetAttr
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector
+               PyEval_EvalCode
+               run_eval_code_obj
+               run_mod
+               pyrun_file
+               _PyRun_SimpleFileObject
+               _PyRun_AnyFileObject
+               pymain_run_file_obj (inlined)
+               pymain_run_file (inlined)
+               pymain_run_python (inlined)
+               Py_RunMain
+               Py_BytesMain
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               _start
+
+     0.26%  python      libframel-9cd69e87.so.8.43.1                           [.] Frz_inflate_codes
+            |
+            ---Frz_inflate_codes
+               Frz_inflate_blocks
+               Frz_inflate
+               Frz_uncompress
+               FrVectExpand
+               FrVectRead
+               FrVectReadNext
+               XLALFrameUFrChanRead_FrameL_
+               |          
+                --0.10%--0x75f5c824cd74
+
+     0.24%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::(anonymous namespace)::cpu_cum_base_kernel<double, at::native::(anonymous namespace)::cumsum_cpu_kernel(at::Tensor const&, at::Tensor const&, long)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(double*, auto:1, double const*, auto:2, double)#1}>(at::Tensor const&, at::Tensor const&, long, at::native::(anonymous namespace)::cumsum_cpu_kernel(at::Tensor const&, at::Tensor const&, long)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(double*, auto:1, double const*, auto:2, double)#1} const&, double)::{lambda(char**, long const*, long)#1}>(at::native::(anonymous namespace)::cpu_cum_base_kernel<double, at::native::(anonymous namespace)::cumsum_cpu_kernel(at::Tensor const&, at::Tensor const&, long)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(double*, auto:1, double const*, auto:2, double)#1}>(at::Tensor const&, at::Tensor const&, long, at::native::(anonymous namespace)::cumsum_cpu_kernel(at::Tensor const&, at::Tensor const&, long)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(double*, auto:1, double const*, auto:2, double)#1} const&, double)::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+            |
+            ---void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::(anonymous namespace)::cpu_cum_base_kernel<double, at::native::(anonymous namespace)::cumsum_cpu_kernel(at::Tensor const&, at::Tensor const&, long)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(double*, auto:1, double const*, auto:2, double)#1}>(at::Tensor const&, at::Tensor const&, long, at::native::(anonymous namespace)::cumsum_cpu_kernel(at::Tensor const&, at::Tensor const&, long)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(double*, auto:1, double const*, auto:2, double)#1} const&, double)::{lambda(char**, long const*, long)#1}>(at::native::(anonymous namespace)::cpu_cum_base_kernel<double, at::native::(anonymous namespace)::cumsum_cpu_kernel(at::Tensor const&, at::Tensor const&, long)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(double*, auto:1, double const*, auto:2, double)#1}>(at::
+
+     0.23%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::fill_kernel(at::TensorIterator&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#9}::operator()() const::{lambda()#1}, at::native::(anonymous namespace)::fill_kernel(at::TensorIterator&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#9}::operator()() const::{lambda()#2}> >(long, char**, long const*, long, long)
+            |
+            ---void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::fill_kernel(at::TensorIterator&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#9}::operator()() const::{lambda()#1}, at::native::(anonymous namespace)::fill_kernel(at::TensorIterator&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#9}::operator()() const::{lambda()#2}> >(long, char**, long const*, long, long)
+               at::TensorIteratorBase::serial_for_each(c10::function_ref<void (char**, long const*, long, long)>, at::Range) const
+               at::TensorIteratorBase::for_each(c10::function_ref<void (char**, long const*, long, long)>, long)
+               0x7ffd0f46be97
+
+     0.21%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFft_BlkSplit_32fc
+            |
+            ---mkl_dft_def_owns_cFft_BlkSplit_32fc
+
+     0.19%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#14}::operator()() const::{lambda(float, float)#1}, at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#14}::operator()() const::{lambda(at::vec::AVX2::Vectorized<float>, at::vec::AVX2::Vectorized<float>)#1}> >(long, char**, long const*, long, long)
+            |
+            ---void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#14}::operator()() const::{lambda(float, float)#1}, at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#14}::operator()() const::{lambda(at::vec::AVX2::Vectorized<float>, at::vec::AVX2::Vectorized<float>)#1}> >(long, char**, long const*, long, long)
+               at::TensorIteratorBase::serial_for_each(c10::function_ref<void (char**, long const*, long, long)>, at::Range) const
+               at::TensorIteratorBase::for_each(c10::function_ref<void (char**, long const*, long, long)>, long)
+               |          
+                --0.13%--0x7ffd0f46b547
+
+     0.18%  python      libm.so.6                                              [.] __csqrtf
+            |
+            ---__csqrtf
+               npy_csqrtf
+               nc_sqrtf
+               PyUFunc_F_F
+               generic_wrapped_legacy_loop
+               try_trivial_single_output_loop
+               ufunc_generic_fastcall
+               _PyObject_VectorcallTstate (inlined)
+               object_vacall
+               PyObject_CallFunctionObjArgs
+               fast_scalar_power.constprop.0
+               array_power
+               ternary_op (inlined)
+               PyNumber_Power (inlined)
+               _PyNumber_PowerNoMod
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               do_call_core (inlined)
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               do_call_core (inlined)
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               do_call_core (inlined)
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall (inlined)
+               _PyObject_VectorcallTstate (inlined)
+               vectorcall_unbound (inlined)
+               vectorcall_maybe (inlined)
+               slot_nb_power_binary (inlined)
+               slot_nb_power
+               ternary_op (inlined)
+               PyNumber_Power (inlined)
+               _PyNumber_PowerNoMod
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector
+               PyEval_EvalCode
+               run_eval_code_obj
+               run_mod
+               pyrun_file
+               _PyRun_SimpleFileObject
+               _PyRun_AnyFileObject
+               pymain_run_file_obj (inlined)
+               pymain_run_file (inlined)
+               pymain_run_python (inlined)
+               Py_RunMain
+               Py_BytesMain
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               _start
+
+     0.18%  python      python3.11                                             [.] dict_traverse
+            |          
+             --0.11%--_PyObject_IS_GC (inlined)
+                       visit_decref (inlined)
+                       dict_traverse
+                       subtract_refs (inlined)
+                       deduce_unreachable
+
+     0.18%  python      libc.so.6                                              [.] __memmove_avx_unaligned_erms
+            |
+            ---__memcpy_avx_unaligned_erms (inlined)
+
+     0.17%  python      libframel-9cd69e87.so.8.43.1                           [.] huft_build
+            |
+            ---huft_build
+               |          
+                --0.16%--Frz_inflate_trees_dynamic
+                          Frz_inflate_blocks
+                          Frz_inflate
+                          Frz_uncompress
+                          FrVectExpand
+                          FrVectRead
+                          FrVectReadNext
+                          XLALFrameUFrChanRead_FrameL_
+
+     0.17%  python      python3.11                                             [.] _PyObject_GenericGetAttrWithDict
+     0.17%  python      python3.11                                             [.] object_dealloc
+     0.17%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::fill_kernel(at::TensorIterator&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#7}::operator()() const::{lambda()#1}, at::native::(anonymous namespace)::fill_kernel(at::TensorIterator&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#7}::operator()() const::{lambda()#2}> >(long, char**, long const*, long, long)
+            |
+            ---void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::fill_kernel(at::TensorIterator&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#7}::operator()() const::{lambda()#1}, at::native::(anonymous namespace)::fill_kernel(at::TensorIterator&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#7}::operator()() const::{lambda()#2}> >(long, char**, long const*, long, long)
+               at::TensorIteratorBase::serial_for_each(c10::function_ref<void (char**, long const*, long, long)>, at::Range) const
+               at::TensorIteratorBase::for_each(c10::function_ref<void (char**, long const*, long, long)>, long)
+               |          
+                --0.13%--0x7ffd0f46b3e7
+
+     0.16%  python      libtorch_cpu.so                                        [.] mkl_dft_def_owns_cRadix4FwdNorm_64fc
+            |
+            ---mkl_dft_def_owns_cRadix4FwdNorm_64fc
+
+     0.15%  python      libm.so.6                                              [.] __powf_fma
+     0.14%  python      [unknown]                                              [k] 0xffffffff86400ba0
+            |
+            ---0xffffffff86400ba0
+
+     0.14%  python      libframel-9cd69e87.so.8.43.1                           [.] Frz_inflate_blocks
+            |
+            ---Frz_inflate_blocks
+               Frz_inflate
+               Frz_uncompress
+               FrVectExpand
+               FrVectRead
+               FrVectReadNext
+               XLALFrameUFrChanRead_FrameL_
+
+     0.14%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] _aligned_contig_to_strided_size4
+            |
+            ---_aligned_contig_to_strided_size4
+               _new_sortlike
+               PyArray_Partition
+               array_partition
+               method_vectorcall_FASTCALL_KEYWORDS
+               _PyObject_VectorcallTstate (inlined)
+               PyObject_Vectorcall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               _PyObject_VectorcallTstate (inlined)
+               PyObject_Vectorcall
+               dispatcher_vectorcall
+               _PyObject_VectorcallTstate (inlined)
+               PyObject_Vectorcall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               _PyVectorcall_Call (inlined)
+               _PyObject_Call (inlined)
+               PyObject_Call
+               do_call_core (inlined)
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               _PyObject_VectorcallTstate (inlined)
+               PyObject_Vectorcall
+               dispatcher_vectorcall
+               _PyObject_VectorcallTstate (inlined)
+               PyObject_Vectorcall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector
+               PyEval_EvalCode
+               run_eval_code_obj
+               run_mod
+               pyrun_file
+               _PyRun_SimpleFileObject
+               _PyRun_AnyFileObject
+               pymain_run_file_obj (inlined)
+               pymain_run_file (inlined)
+               pymain_run_python (inlined)
+               Py_RunMain
+               Py_BytesMain
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               _start
+
+     0.14%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_DiscoverDTypeAndShape_Recursive
+            |
+            ---PyArray_DiscoverDTypeAndShape_Recursive
+               |          
+                --0.11%--PyArray_DiscoverDTypeAndShape_Recursive
+                          PyArray_DiscoverDTypeAndShape
+                          PyArray_FromAny_int
+                          PyArray_CheckFromAny_int
+                          _array_fromobject_generic
+                          array_array
+                          _PyEval_EvalFrameDefault
+                          _PyEval_EvalFrame (inlined)
+                          _PyEval_Vector (inlined)
+                          _PyFunction_Vectorcall
+                          _PyObject_FastCallDictTstate (inlined)
+                          _PyObject_Call_Prepend (inlined)
+                          slot_tp_init
+                          type_call (inlined)
+                          _PyObject_MakeTpCall
+                          _PyEval_EvalFrameDefault
+                          _PyEval_EvalFrame (inlined)
+                          _PyEval_Vector (inlined)
+                          _PyFunction_Vectorcall
+                          _PyObject_VectorcallTstate (inlined)
+                          PyObject_CallOneArg (inlined)
+                          property_descr_get
+                          _PyObject_GenericGetAttrWithDict
+                          PyObject_GenericGetAttr (inlined)
+                          PyObject_GetAttr
+                          _PyEval_EvalFrameDefault
+                          _PyEval_EvalFrame (inlined)
+                          _PyEval_Vector
+                          PyEval_EvalCode
+                          run_eval_code_obj
+                          run_mod
+                          pyrun_file
+                          _PyRun_SimpleFileObject
+                          _PyRun_AnyFileObject
+                          pymain_run_file_obj (inlined)
+                          pymain_run_file (inlined)
+                          pymain_run_python (inlined)
+                          Py_RunMain
+                          Py_BytesMain
+                          __libc_start_call_main
+                          __libc_start_main_impl (inlined)
+                          _start
+
+     0.13%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::div_true_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#2}::operator()() const::{lambda(float, float)#1}, at::native::(anonymous namespace)::div_true_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#2}::operator()() const::{lambda(at::vec::AVX2::Vectorized<float>, at::vec::AVX2::Vectorized<float>)#1}> >(long, char**, long const*, long, long)
+            |
+            ---void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::div_true_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#2}::operator()() const::{lambda(float, float)#1}, at::native::(anonymous namespace)::div_true_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#2}::operator()() const::{lambda(at::vec::AVX2::Vectorized<float>, at::vec::AVX2::Vectorized<float>)#1}> >(long, char**, long const*, long, long)
+               at::TensorIteratorBase::serial_for_each(c10::function_ref<void (char**, long const*, long, long)>, at::Range) const
+               at::TensorIteratorBase::for_each(c10::function_ref<void (char**, long const*, long, long)>, long)
+               0x7ffd0f46b8d7
+
+     0.13%  python      libc.so.6                                              [.] __memmove_avx_unaligned
+            |
+            ---__memcpy_avx_unaligned (inlined)
+
+     0.12%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFft_BlkMerge_32fc
+            |
+            ---mkl_dft_def_owns_cFft_BlkMerge_32fc
+
+     0.12%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cRadix4Inv_32fc
+            |
+            ---mkl_dft_def_owns_cRadix4Inv_32fc
+
+     0.12%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cRadix4Fwd_32fc
+            |
+            ---mkl_dft_def_owns_cRadix4Fwd_32fc
+
+     0.12%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_AssignFromCache_Recursive
+            |
+            ---PyArray_AssignFromCache_Recursive
+               PyArray_AssignFromCache
+               PyArray_FromAny_int
+               PyArray_CheckFromAny_int
+               _array_fromobject_generic
+               array_array
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               _PyObject_FastCallDictTstate (inlined)
+               _PyObject_Call_Prepend (inlined)
+               slot_tp_init
+               type_call (inlined)
+               _PyObject_MakeTpCall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               _PyObject_VectorcallTstate (inlined)
+               PyObject_CallOneArg (inlined)
+               property_descr_get
+               _PyObject_GenericGetAttrWithDict
+               PyObject_GenericGetAttr (inlined)
+               PyObject_GetAttr
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector
+               PyEval_EvalCode
+               run_eval_code_obj
+               run_mod
+               pyrun_file
+               _PyRun_SimpleFileObject
+               _PyRun_AnyFileObject
+               pymain_run_file_obj (inlined)
+               pymain_run_file (inlined)
+               pymain_run_python (inlined)
+               Py_RunMain
+               Py_BytesMain
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               _start
+
+     0.11%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] nc_sqrtf
+            |
+            ---nc_sqrtf
+               PyUFunc_F_F
+               generic_wrapped_legacy_loop
+               try_trivial_single_output_loop
+               ufunc_generic_fastcall
+               _PyObject_VectorcallTstate (inlined)
+               object_vacall
+               PyObject_CallFunctionObjArgs
+               fast_scalar_power.constprop.0
+               array_power
+               ternary_op (inlined)
+               PyNumber_Power (inlined)
+               _PyNumber_PowerNoMod
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               do_call_core (inlined)
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               do_call_core (inlined)
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               do_call_core (inlined)
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall (inlined)
+               _PyObject_VectorcallTstate (inlined)
+               vectorcall_unbound (inlined)
+               vectorcall_maybe (inlined)
+               slot_nb_power_binary (inlined)
+               slot_nb_power
+               ternary_op (inlined)
+               PyNumber_Power (inlined)
+               _PyNumber_PowerNoMod
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector
+               PyEval_EvalCode
+               run_eval_code_obj
+               run_mod
+               pyrun_file
+               _PyRun_SimpleFileObject
+               _PyRun_AnyFileObject
+               pymain_run_file_obj (inlined)
+               pymain_run_file (inlined)
+               pymain_run_python (inlined)
+               Py_RunMain
+               Py_BytesMain
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               _start
+
+     0.11%  python      libc.so.6                                              [.] _int_malloc
+            |
+            ---_int_malloc
+
+     0.11%  python      libtorch_cpu.so                                        [.] mkl_dft_def_owns_cRadix4Fwd_64fc
+            |
+            ---mkl_dft_def_owns_cRadix4Fwd_64fc
+
+     0.11%  python      libm.so.6                                              [.] __sincos_fma
+     0.11%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_Pack
+            |
+            ---PyArray_Pack
+               PyArray_AssignFromCache_Recursive
+               PyArray_AssignFromCache
+               PyArray_FromAny_int
+               PyArray_CheckFromAny_int
+               _array_fromobject_generic
+               array_array
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               _PyObject_FastCallDictTstate (inlined)
+               _PyObject_Call_Prepend (inlined)
+               slot_tp_init
+               type_call (inlined)
+               _PyObject_MakeTpCall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               _PyObject_VectorcallTstate (inlined)
+               PyObject_CallOneArg (inlined)
+               property_descr_get
+               _PyObject_GenericGetAttrWithDict
+               PyObject_GenericGetAttr (inlined)
+               PyObject_GetAttr
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector
+               PyEval_EvalCode
+               run_eval_code_obj
+               run_mod
+               pyrun_file
+               _PyRun_SimpleFileObject
+               _PyRun_AnyFileObject
+               pymain_run_file_obj (inlined)
+               pymain_run_file (inlined)
+               pymain_run_python (inlined)
+               Py_RunMain
+               Py_BytesMain
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               _start
+
+     0.11%  python      python3.11                                             [.] subtype_traverse
+     0.11%  python      python3.11                                             [.] PyNumber_Long
+            |
+            ---PyNumber_Long
+               LONG_setitem
+               PyArray_Pack
+               PyArray_AssignFromCache_Recursive
+               PyArray_AssignFromCache
+               PyArray_FromAny_int
+               PyArray_CheckFromAny_int
+               _array_fromobject_generic
+               array_array
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               _PyObject_FastCallDictTstate (inlined)
+               _PyObject_Call_Prepend (inlined)
+               slot_tp_init
+               type_call (inlined)
+               _PyObject_MakeTpCall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector (inlined)
+               _PyFunction_Vectorcall
+               _PyObject_VectorcallTstate (inlined)
+               PyObject_CallOneArg (inlined)
+               property_descr_get
+               _PyObject_GenericGetAttrWithDict
+               PyObject_GenericGetAttr (inlined)
+               PyObject_GetAttr
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector
+               PyEval_EvalCode
+               run_eval_code_obj
+               run_mod
+               pyrun_file
+               _PyRun_SimpleFileObject
+               _PyRun_AnyFileObject
+               pymain_run_file_obj (inlined)
+               pymain_run_file (inlined)
+               pymain_run_python (inlined)
+               Py_RunMain
+               Py_BytesMain
+               __libc_start_call_main
+               __libc_start_main_impl (inlined)
+               _start
+
+     0.10%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_initTabTwdBase_32f
+            |
+            ---mkl_dft_def_owns_initTabTwdBase_32f
+               mkl_dft_def_ippsFFTInit_C_32fc
+               mkl_dft_def_ippsDFTInit_C_32fc
+               mkl_dft_def_ippsDFTInitAlloc_C_32fc
+               mkl_dft_def_ipp_initalloc_s_c2c
+               mkl_dft_def_commit_descriptor_core_s_c2c_1d
+               mkl_dft_commit_node_s_c2c_1d_omp
+               static_dfti_commit
+               commit
+               static_dfti_commit
+               DftiCommitDescriptor
+               DftiCommitDescriptor
+               ffi_call_unix64
+               ffi_call_int
+               _call_function_pointer (inlined)
+               _ctypes_callproc
+               PyCFuncPtr_call (inlined)
+               _PyObject_MakeTpCall
+               _PyEval_EvalFrameDefault
+               _PyEval_EvalFrame (inlined)
+               _PyEval_Vector
+
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#
