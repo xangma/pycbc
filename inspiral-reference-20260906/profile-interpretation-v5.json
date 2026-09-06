@@ -1,0 +1,1028 @@
+{
+  "schema_version": 1,
+  "purpose": "Post hoc interpretation of the final precision5 same-workload profiles; no new workload execution",
+  "source_commit": "837f38d493420043e45fb1ad210a0ccf68bacbaa",
+  "comparison_contract": {
+    "normalized_cli": [
+      "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/bin/pycbc_inspiral",
+      "--verbose",
+      "--frame-files",
+      "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf",
+      "--channel-name",
+      "H1:LOSC-STRAIN",
+      "--gps-start-time",
+      "1187007048",
+      "--gps-end-time",
+      "1187009080",
+      "--trig-start-time",
+      "1187007160",
+      "--trig-end-time",
+      "1187009064",
+      "--sample-rate",
+      "4096",
+      "--low-frequency-cutoff",
+      "30",
+      "--strain-high-pass",
+      "25",
+      "--pad-data",
+      "8",
+      "--autogating-threshold",
+      "100",
+      "--autogating-cluster",
+      "5",
+      "--autogating-width",
+      "0.25",
+      "--autogating-taper",
+      "0.25",
+      "--autogating-pad",
+      "16",
+      "--autogating-max-iterations",
+      "1",
+      "--psd-estimation",
+      "median",
+      "--psd-segment-length",
+      "32",
+      "--psd-segment-stride",
+      "16",
+      "--psd-num-segments",
+      "126",
+      "--psd-inverse-length",
+      "16",
+      "--invpsd-trunc-method",
+      "hann",
+      "--invpsd-trunc-which-spectrum",
+      "invasd",
+      "--approximant",
+      "IMRPhenomD",
+      "--order",
+      "-1",
+      "--use-compressed-waveforms",
+      "--waveform-decompression-method",
+      "inline_linear",
+      "--snr-threshold",
+      "5.5",
+      "--newsnr-threshold",
+      "5",
+      "--chisq-bins",
+      "16",
+      "--cluster-window",
+      "1",
+      "--cluster-function",
+      "symmetric",
+      "--fft-backends",
+      "mkl",
+      "--bank-file",
+      "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf",
+      "--processing-scheme",
+      "<varies>",
+      "--segment-length",
+      "512",
+      "--segment-start-pad",
+      "112",
+      "--segment-end-pad",
+      "16",
+      "--output",
+      "<varies>"
+    ],
+    "common_profile_environment": {
+      "OMP_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "MKL_DYNAMIC": "FALSE",
+      "MKL_THREADING_LAYER": "GNU",
+      "OPENBLAS_NUM_THREADS": "1",
+      "NUMEXPR_NUM_THREADS": "1",
+      "VECLIB_MAXIMUM_THREADS": "1",
+      "BLIS_NUM_THREADS": "1",
+      "PYTHONHASHSEED": "0",
+      "PYTHONPATH": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5",
+      "PYTHONDONTWRITEBYTECODE": "1"
+    },
+    "common_profile_input_hashes": {
+      "/home/xangma/pycbc-torch-inspiral-reference-20260906/config.json": "e29df1ee26ad1a513982a81b55d1f8b648126baacc7b509bc918e5c8e912d36a",
+      "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf": "161820754117cd51b24a7bb672ea456cf7b2a3808e69690c23235d024b1a2916",
+      "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+      "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-case-profiling.py": "722db103e1e51929de7c1951a67ceac24be61cc6e63f33f56e21df3a11cd9362",
+      "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865"
+    },
+    "profile_calls": {
+      "templates": 96,
+      "template_segment_filters": 480,
+      "trigger_bearing_point_chisq_calls": 319
+    }
+  },
+  "unprofiled_matched": [
+    {
+      "scheme": "cpu:1",
+      "cases": [
+        "matched-precision5-cpu-l512-r1",
+        "matched-precision5-cpu-l512-r2",
+        "matched-precision5-cpu-l512-r3"
+      ],
+      "fft_samples": 2097152,
+      "templates": 96,
+      "segments_per_template": 5,
+      "valid_data_seconds": 1904,
+      "wall_seconds": {
+        "median": 32.313625084992964,
+        "min": 32.30126148002455,
+        "max": 32.3467580860015
+      },
+      "capacity_ratio_to_normal_cpu": 1.0
+    },
+    {
+      "scheme": "torch:cpu:1",
+      "cases": [
+        "matched-precision5-torch-cpu-l512-r1",
+        "matched-precision5-torch-cpu-l512-r2",
+        "matched-precision5-torch-cpu-l512-r3"
+      ],
+      "fft_samples": 2097152,
+      "templates": 96,
+      "segments_per_template": 5,
+      "valid_data_seconds": 1904,
+      "wall_seconds": {
+        "median": 80.62809046503389,
+        "min": 79.10774427303113,
+        "max": 80.72464106802363
+      },
+      "capacity_ratio_to_normal_cpu": 0.40077378614102815
+    },
+    {
+      "scheme": "torch:cuda:0",
+      "cases": [
+        "matched-precision5-torch-cuda-l512-r1",
+        "matched-precision5-torch-cuda-l512-r2",
+        "matched-precision5-torch-cuda-l512-r3"
+      ],
+      "fft_samples": 2097152,
+      "templates": 96,
+      "segments_per_template": 5,
+      "valid_data_seconds": 1904,
+      "wall_seconds": {
+        "median": 20.335830108029768,
+        "min": 20.280547540984116,
+        "max": 20.348598457989283
+      },
+      "capacity_ratio_to_normal_cpu": 1.5889995595622952
+    }
+  ],
+  "cprofile": {
+    "cpu": {
+      "case": "reference-precision5-cpu-l512-cprofile",
+      "total_self_seconds": 34.48535865000002,
+      "full_process_wall_seconds": 35.52709684101865,
+      "ownership_groups": [
+        {
+          "group": "FFT",
+          "self_seconds": 12.079184280000002,
+          "share_of_profile_self_percent": 35.0269933469287
+        },
+        {
+          "group": "correlation",
+          "self_seconds": 0.0,
+          "share_of_profile_self_percent": 0.0
+        },
+        {
+          "group": "threshold/clustering",
+          "self_seconds": 0.732984873,
+          "share_of_profile_self_percent": 2.1254958675049185
+        },
+        {
+          "group": "signal-consistency",
+          "self_seconds": 1.947300314,
+          "share_of_profile_self_percent": 5.646745141216619
+        },
+        {
+          "group": "decompression/waveforms",
+          "self_seconds": 0.458520032,
+          "share_of_profile_self_percent": 1.3296078392387547
+        },
+        {
+          "group": "conditioning/PSD",
+          "self_seconds": 0.082764137,
+          "share_of_profile_self_percent": 0.23999790125424722
+        },
+        {
+          "group": "I/O/import/setup",
+          "self_seconds": 0.830368952,
+          "share_of_profile_self_percent": 2.4078884039676356
+        },
+        {
+          "group": "remaining",
+          "self_seconds": 18.354236062000002,
+          "share_of_profile_self_percent": 53.22327149988913
+        }
+      ],
+      "internal_phase_times": [
+        {
+          "detector": "H1",
+          "run_seconds": 28.157913208007812,
+          "setup_seconds": 15.47470164299011,
+          "setup_fraction": 0.5495684828870511
+        }
+      ]
+    },
+    "torch_cpu": {
+      "case": "profile-precision5-torch-cpu-l512-cprofile",
+      "total_self_seconds": 82.85235743700034,
+      "full_process_wall_seconds": 83.95478519500466,
+      "ownership_groups": [
+        {
+          "group": "FFT",
+          "self_seconds": 28.424812606000003,
+          "share_of_profile_self_percent": 34.30778976640937
+        },
+        {
+          "group": "correlation",
+          "self_seconds": 0.005682628,
+          "share_of_profile_self_percent": 0.006858740264959879
+        },
+        {
+          "group": "threshold/clustering",
+          "self_seconds": 0.861620081,
+          "share_of_profile_self_percent": 1.039946366831102
+        },
+        {
+          "group": "signal-consistency",
+          "self_seconds": 2.006881833,
+          "share_of_profile_self_percent": 2.4222386605305832
+        },
+        {
+          "group": "decompression/waveforms",
+          "self_seconds": 11.900611123000001,
+          "share_of_profile_self_percent": 14.36363610057697
+        },
+        {
+          "group": "conditioning/PSD",
+          "self_seconds": 0.294624425,
+          "share_of_profile_self_percent": 0.3556017403898605
+        },
+        {
+          "group": "I/O/import/setup",
+          "self_seconds": 0.836163219,
+          "share_of_profile_self_percent": 1.009220793307914
+        },
+        {
+          "group": "remaining",
+          "self_seconds": 38.521961522000005,
+          "share_of_profile_self_percent": 46.49470783168924
+        }
+      ],
+      "internal_phase_times": [
+        {
+          "detector": "H1",
+          "run_seconds": 76.52242279052734,
+          "setup_seconds": 15.41504168510437,
+          "setup_fraction": 0.2014447677290817
+        }
+      ]
+    },
+    "torch_cuda": {
+      "case": "profile-precision5-torch-cuda-l512-cprofile",
+      "total_self_seconds": 22.752332701000057,
+      "full_process_wall_seconds": 23.9707644659793,
+      "ownership_groups": [
+        {
+          "group": "FFT",
+          "self_seconds": 3.135397378,
+          "share_of_profile_self_percent": 13.780553489630513
+        },
+        {
+          "group": "correlation",
+          "self_seconds": 0.0013959690000000002,
+          "share_of_profile_self_percent": 0.006135498361179666
+        },
+        {
+          "group": "threshold/clustering",
+          "self_seconds": 0.08273021200000001,
+          "share_of_profile_self_percent": 0.36361200008456224
+        },
+        {
+          "group": "signal-consistency",
+          "self_seconds": 0.223630336,
+          "share_of_profile_self_percent": 0.9828897060307628
+        },
+        {
+          "group": "decompression/waveforms",
+          "self_seconds": 0.143536819,
+          "share_of_profile_self_percent": 0.6308663858176237
+        },
+        {
+          "group": "conditioning/PSD",
+          "self_seconds": 0.09496879800000001,
+          "share_of_profile_self_percent": 0.4174024670262754
+        },
+        {
+          "group": "I/O/import/setup",
+          "self_seconds": 0.7940478110000001,
+          "share_of_profile_self_percent": 3.4899622005136224
+        },
+        {
+          "group": "remaining",
+          "self_seconds": 18.276625378000002,
+          "share_of_profile_self_percent": 80.32857825253546
+        }
+      ],
+      "internal_phase_times": [
+        {
+          "detector": "H1",
+          "run_seconds": 16.396774530410767,
+          "setup_seconds": 13.576284408569336,
+          "setup_fraction": 0.8279850639764348
+        }
+      ]
+    }
+  },
+  "measured_functions": {
+    "cpu": {
+      "decompression": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/decompress_cpu.py",
+        "line": 34,
+        "function": "inline_linear_interp",
+        "primitive_calls": 96,
+        "calls": 96,
+        "self_seconds": 0.42077141500000004,
+        "cumulative_seconds": 0.421866134
+      },
+      "ifft": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/fft/mkl.py",
+        "line": 189,
+        "function": "execute",
+        "primitive_calls": 480,
+        "calls": 480,
+        "self_seconds": 7.1034884730000005,
+        "cumulative_seconds": 7.1034884730000005
+      },
+      "threshold": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/events/threshold_cpu.py",
+        "line": 81,
+        "function": "threshold_and_cluster",
+        "primitive_calls": 480,
+        "calls": 480,
+        "self_seconds": 0.7287217930000001,
+        "cumulative_seconds": 0.7302680500000001
+      },
+      "point_chisq": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/vetoes/chisq.py",
+        "line": 225,
+        "function": "power_chisq_at_points_from_precomputed",
+        "primitive_calls": 319,
+        "calls": 319,
+        "self_seconds": 0.019310030000000002,
+        "cumulative_seconds": 1.9421881280000002
+      },
+      "matched_filter": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/filter/matchedfilter.py",
+        "line": 312,
+        "function": "full_matched_filter_and_cluster_symm",
+        "primitive_calls": 480,
+        "calls": 480,
+        "self_seconds": 0.5576943440000001,
+        "cumulative_seconds": 8.483372596
+      },
+      "frame_io_builtin_self_seconds": 6.669476801
+    },
+    "torch_cpu": {
+      "decompression": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/decompress_torch.py",
+        "line": 155,
+        "function": "inline_linear_interp",
+        "primitive_calls": 96,
+        "calls": 96,
+        "self_seconds": 1.747877587,
+        "cumulative_seconds": 26.62460962
+      },
+      "ifft": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/fft/torchfft.py",
+        "line": 1414,
+        "function": "execute",
+        "primitive_calls": 480,
+        "calls": 480,
+        "self_seconds": 0.004424162000000001,
+        "cumulative_seconds": 26.844547461
+      },
+      "threshold": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/events/threshold_torch.py",
+        "line": 1011,
+        "function": "threshold_and_cluster",
+        "primitive_calls": 480,
+        "calls": 480,
+        "self_seconds": 0.006794972000000001,
+        "cumulative_seconds": 0.896949117
+      },
+      "point_chisq": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/vetoes/chisq.py",
+        "line": 225,
+        "function": "power_chisq_at_points_from_precomputed",
+        "primitive_calls": 319,
+        "calls": 319,
+        "self_seconds": 0.003225669,
+        "cumulative_seconds": 2.029628018
+      },
+      "matched_filter": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/filter/matchedfilter.py",
+        "line": 312,
+        "function": "full_matched_filter_and_cluster_symm",
+        "primitive_calls": 480,
+        "calls": 480,
+        "self_seconds": 0.014717272000000002,
+        "cumulative_seconds": 28.669805508000003
+      },
+      "frame_io_builtin_self_seconds": 6.683462177,
+      "fftw_workplan": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/fft/torchfft.py",
+        "line": 350,
+        "function": "execute",
+        "primitive_calls": 480,
+        "calls": 480,
+        "self_seconds": 24.591436903,
+        "cumulative_seconds": 26.796339368
+      },
+      "lagrange_weights": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/decompress_torch.py",
+        "line": 40,
+        "function": "_lagrange_weights",
+        "primitive_calls": 96,
+        "calls": 96,
+        "self_seconds": 3.1386883840000004,
+        "cumulative_seconds": 5.224622040000001
+      }
+    },
+    "torch_cuda": {
+      "decompression": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/decompress_torch.py",
+        "line": 155,
+        "function": "inline_linear_interp",
+        "primitive_calls": 96,
+        "calls": 96,
+        "self_seconds": 0.002055728,
+        "cumulative_seconds": 0.334939602
+      },
+      "ifft": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/fft/torchfft.py",
+        "line": 1414,
+        "function": "execute",
+        "primitive_calls": 480,
+        "calls": 480,
+        "self_seconds": 0.003701625,
+        "cumulative_seconds": 0.038079741
+      },
+      "threshold": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/events/threshold_torch.py",
+        "line": 1011,
+        "function": "threshold_and_cluster",
+        "primitive_calls": 480,
+        "calls": 480,
+        "self_seconds": 0.065635328,
+        "cumulative_seconds": 0.692017096
+      },
+      "point_chisq": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/vetoes/chisq.py",
+        "line": 225,
+        "function": "power_chisq_at_points_from_precomputed",
+        "primitive_calls": 319,
+        "calls": 319,
+        "self_seconds": 0.00342801,
+        "cumulative_seconds": 0.604953657
+      },
+      "matched_filter": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/filter/matchedfilter.py",
+        "line": 312,
+        "function": "full_matched_filter_and_cluster_symm",
+        "primitive_calls": 480,
+        "calls": 480,
+        "self_seconds": 0.007672563,
+        "cumulative_seconds": 0.8207935890000001
+      },
+      "frame_io_builtin_self_seconds": 6.6893540730000005
+    }
+  },
+  "torch_cpu_caller_edges": [
+    {
+      "callee": {
+        "file": "~",
+        "line": 0,
+        "function": "<method 'copy_' of 'torch._C.TensorBase' objects>"
+      },
+      "caller": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/fft/torchfft.py",
+        "line": 350,
+        "function": "execute"
+      },
+      "primitive_calls": 960,
+      "calls": 960,
+      "self_seconds": 2.202509451,
+      "cumulative_seconds": 2.202509451
+    },
+    {
+      "callee": {
+        "file": "~",
+        "line": 0,
+        "function": "<method 'sum' of 'torch._C.TensorBase' objects>"
+      },
+      "caller": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/decompress_torch.py",
+        "line": 74,
+        "function": "_inline_interp"
+      },
+      "primitive_calls": 192,
+      "calls": 192,
+      "self_seconds": 6.4302999530000005,
+      "cumulative_seconds": 6.4302999530000005
+    },
+    {
+      "callee": {
+        "file": "~",
+        "line": 0,
+        "function": "<method 'sum' of 'torch._C.TensorBase' objects>"
+      },
+      "caller": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/types/array_torch.py",
+        "line": 1021,
+        "function": "squared_norm"
+      },
+      "primitive_calls": 192,
+      "calls": 192,
+      "self_seconds": 1.552713666,
+      "cumulative_seconds": 1.552713666
+    }
+  ],
+  "cpu_comparison": {
+    "cprofile_self_total_gap_seconds": 48.36699878700031,
+    "disjoint_cumulative_deltas_seconds": {
+      "decompression": 26.202743486000003,
+      "ifft": 19.741058988
+    },
+    "disjoint_delta_sum_seconds": 45.943802474,
+    "share_of_profile_self_total_gap_percent": 94.98997999923121,
+    "note": "Only the two disjoint inclusive paths are added. Their nested children are not added again. This is an attribution of this profiled pair, not a partition of unprofiled wall time."
+  },
+  "perf": {
+    "cpu": {
+      "case": "reference-precision5-cpu-l512-perf",
+      "full_process_wall_seconds": 35.14671846298734,
+      "event": "cycles:u",
+      "event_period_count_approx": 77563899995,
+      "reported_rows_percent_sum": 88.74,
+      "visible_double_fftw_dso_event_percent": 0,
+      "top_native_rows": [
+        {
+          "self_event_percent": 14.32,
+          "samples": 876,
+          "shared_object": "libframel-9cd69e87.so.8.43.1",
+          "symbol": "[.] Frz_inflate_fast"
+        },
+        {
+          "self_event_percent": 9.51,
+          "samples": 562,
+          "shared_object": "libmkl_def.so",
+          "symbol": "[.] mkl_dft_def_owns_cRadix4Inv_32fc"
+        },
+        {
+          "self_event_percent": 6.61,
+          "samples": 401,
+          "shared_object": "chisq_cpu.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "[.] __pyx_fuse_1_0__pyx_pw_5pycbc_6vetoes_9chisq_cpu_25point_chisq_code(_object*, _object*, _object*)"
+        },
+        {
+          "self_event_percent": 4.61,
+          "samples": 270,
+          "shared_object": "libmkl_def.so",
+          "symbol": "[.] mkl_dft_def_owns_cFftInv_Fact8_32fc"
+        },
+        {
+          "self_event_percent": 4.29,
+          "samples": 289,
+          "shared_object": "libmkl_core.so",
+          "symbol": "[.] mkl_serv_libm_sincospif"
+        },
+        {
+          "self_event_percent": 4.28,
+          "samples": 254,
+          "shared_object": "libmkl_def.so",
+          "symbol": "[.] mkl_dft_def_owns_cFft_BlkMerge_32fc"
+        },
+        {
+          "self_event_percent": 4.22,
+          "samples": 256,
+          "shared_object": "libmkl_core.so",
+          "symbol": "[.] mkl_serv_libm_sincospi"
+        },
+        {
+          "self_event_percent": 4.19,
+          "samples": 248,
+          "shared_object": "libmkl_def.so",
+          "symbol": "[.] mkl_dft_def_owns_cFft_BlkSplit_32fc"
+        },
+        {
+          "self_event_percent": 3.71,
+          "samples": 222,
+          "shared_object": "libframel-9cd69e87.so.8.43.1",
+          "symbol": "[.] FrCksumGnu"
+        },
+        {
+          "self_event_percent": 2.52,
+          "samples": 147,
+          "shared_object": "simd_threshold_cython.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "[.] _max_simple(float*, float*, float*, long*, long, long)"
+        },
+        {
+          "self_event_percent": 2.01,
+          "samples": 147,
+          "shared_object": "python3.11",
+          "symbol": "[.] _PyEval_EvalFrameDefault"
+        },
+        {
+          "self_event_percent": 1.98,
+          "samples": 118,
+          "shared_object": "matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "[.] __pyx_pf_5pycbc_6filter_17matchedfilter_cpu_12_correlate(_object*, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice) [clone ._omp_fn.0]"
+        },
+        {
+          "self_event_percent": 1.61,
+          "samples": 94,
+          "shared_object": "libmkl_def.so",
+          "symbol": "[.] mkl_dft_def_owns_cFftInv_Fact4_32fc"
+        },
+        {
+          "self_event_percent": 1.6,
+          "samples": 98,
+          "shared_object": "libframel-9cd69e87.so.8.43.1",
+          "symbol": "[.] Frz_adler32"
+        },
+        {
+          "self_event_percent": 1.55,
+          "samples": 91,
+          "shared_object": "libmkl_core.so",
+          "symbol": "[.] mkl_serv_libm_cos"
+        },
+        {
+          "self_event_percent": 1.48,
+          "samples": 102,
+          "shared_object": "libmkl_core.so",
+          "symbol": "[.] mkl_serv_libm_sin"
+        }
+      ],
+      "note": "Direct cycles:u event-period shares, not elapsed-time or exact sample-count shares. The export omits small rows; visible rows are not renormalized. Unresolved FFTW symbols support library ownership only."
+    },
+    "torch_cpu": {
+      "case": "profile-precision5-torch-cpu-l512-perf",
+      "full_process_wall_seconds": 84.21670856996207,
+      "event": "cycles:u",
+      "event_period_count_approx": 177349937785,
+      "reported_rows_percent_sum": 78.46,
+      "visible_double_fftw_dso_event_percent": 26.93,
+      "top_native_rows": [
+        {
+          "self_event_percent": 9.27,
+          "samples": 1235,
+          "shared_object": "libfftw3.so.3.6.10",
+          "symbol": "[.] 0x000000000002f774"
+        },
+        {
+          "self_event_percent": 7.06,
+          "samples": 1043,
+          "shared_object": "libtorch_cpu.so",
+          "symbol": "[.] std::array<double, 4l> at::native::(anonymous namespace)::multi_row_sum<double, 4l, at::native::(anonymous namespace)::CastLoadPolicy<double, double> >(char const*, long, long, long)"
+        },
+        {
+          "self_event_percent": 6.74,
+          "samples": 922,
+          "shared_object": "libfftw3.so.3.6.10",
+          "symbol": "[.] fftw_cpy2d"
+        },
+        {
+          "self_event_percent": 6.11,
+          "samples": 855,
+          "shared_object": "libframel-9cd69e87.so.8.43.1",
+          "symbol": "[.] Frz_inflate_fast"
+        },
+        {
+          "self_event_percent": 3.7,
+          "samples": 493,
+          "shared_object": "libfftw3.so.3.6.10",
+          "symbol": "[.] fftw_cpy2d_pair"
+        },
+        {
+          "self_event_percent": 2.91,
+          "samples": 414,
+          "shared_object": "chisq_cpu.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "[.] __pyx_fuse_1_0__pyx_pw_5pycbc_6vetoes_9chisq_cpu_25point_chisq_code(_object*, _object*, _object*)"
+        },
+        {
+          "self_event_percent": 2.7,
+          "samples": 399,
+          "shared_object": "libtorch_cpu.so",
+          "symbol": "[.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::(anonymous namespace)::cascade_sum<false, double>(at::TensorIterator&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)"
+        },
+        {
+          "self_event_percent": 2.6,
+          "samples": 568,
+          "shared_object": "libtorch_cpu.so",
+          "symbol": "[.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::cpu_index_kernel<double, at::native::(anonymous namespace)::index_kernel(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(char*, char*, long)#1}>(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>, at::native::(anonymous namespace)::index_kernel(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(char*, char*, long)#1} const&, bool)::{lambda(char**, long const*, long)#1}>(at::native::cpu_index_kernel<double, at::native::(anonymous namespace)::index_kernel(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(char*, char*, long)#1}>(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>, at::native::(anonymous namespace)::index_kernel(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(char*, char*, long)#1} const&, bool)::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)"
+        },
+        {
+          "self_event_percent": 2.15,
+          "samples": 289,
+          "shared_object": "libtorch_cpu.so",
+          "symbol": "[.] void at::native::(anonymous namespace)::searchsorted_cpu_contiguous<long, long>(at::Tensor&, at::Tensor const&, at::Tensor const&, bool const&, at::Tensor const&)"
+        },
+        {
+          "self_event_percent": 1.83,
+          "samples": 281,
+          "shared_object": "libmkl_core.so",
+          "symbol": "[.] mkl_serv_libm_sincospif"
+        },
+        {
+          "self_event_percent": 1.74,
+          "samples": 247,
+          "shared_object": "libtorch_cpu.so",
+          "symbol": "[.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)"
+        },
+        {
+          "self_event_percent": 1.6,
+          "samples": 219,
+          "shared_object": "libframel-9cd69e87.so.8.43.1",
+          "symbol": "[.] FrCksumGnu"
+        },
+        {
+          "self_event_percent": 1.55,
+          "samples": 251,
+          "shared_object": "libtorch_cpu.so",
+          "symbol": "[.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::(anonymous namespace)::cascade_sum<false, float>(at::TensorIterator&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)"
+        },
+        {
+          "self_event_percent": 1.43,
+          "samples": 200,
+          "shared_object": "libtorch_cpu.so",
+          "symbol": "[.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)"
+        },
+        {
+          "self_event_percent": 1.26,
+          "samples": 168,
+          "shared_object": "simd_threshold_cython.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "[.] _max_simple(float*, float*, float*, long*, long, long)"
+        },
+        {
+          "self_event_percent": 1.16,
+          "samples": 154,
+          "shared_object": "libfftw3.so.3.6.10",
+          "symbol": "[.] 0x000000000002aee0"
+        }
+      ],
+      "note": "Direct cycles:u event-period shares, not elapsed-time or exact sample-count shares. The export omits small rows; visible rows are not renormalized. Unresolved FFTW symbols support library ownership only."
+    },
+    "torch_cuda": {
+      "case": "profile-precision5-torch-cuda-l512-perf",
+      "full_process_wall_seconds": 23.140754660998937,
+      "event": "cycles:u",
+      "event_period_count_approx": 44762684998,
+      "reported_rows_percent_sum": 78.82,
+      "visible_double_fftw_dso_event_percent": 0,
+      "top_native_rows": [
+        {
+          "self_event_percent": 24.65,
+          "samples": 870,
+          "shared_object": "libframel-9cd69e87.so.8.43.1",
+          "symbol": "[.] Frz_inflate_fast"
+        },
+        {
+          "self_event_percent": 7.4,
+          "samples": 286,
+          "shared_object": "libmkl_core.so",
+          "symbol": "[.] mkl_serv_libm_sincospif"
+        },
+        {
+          "self_event_percent": 6.41,
+          "samples": 223,
+          "shared_object": "libframel-9cd69e87.so.8.43.1",
+          "symbol": "[.] FrCksumGnu"
+        },
+        {
+          "self_event_percent": 3.78,
+          "samples": 159,
+          "shared_object": "python3.11",
+          "symbol": "[.] _PyEval_EvalFrameDefault"
+        },
+        {
+          "self_event_percent": 3.17,
+          "samples": 112,
+          "shared_object": "libframel-9cd69e87.so.8.43.1",
+          "symbol": "[.] Frz_adler32"
+        },
+        {
+          "self_event_percent": 2.12,
+          "samples": 86,
+          "shared_object": "libmkl_core.so",
+          "symbol": "[.] mkl_serv_libm_sin"
+        },
+        {
+          "self_event_percent": 2.1,
+          "samples": 82,
+          "shared_object": "libcrypto.so.3",
+          "symbol": "[.] sha256_block_data_order_shaext"
+        },
+        {
+          "self_event_percent": 1.86,
+          "samples": 63,
+          "shared_object": "python3.11",
+          "symbol": "[.] gc_collect_main"
+        },
+        {
+          "self_event_percent": 1.77,
+          "samples": 60,
+          "shared_object": "libmkl_core.so",
+          "symbol": "[.] mkl_serv_libm_cos"
+        },
+        {
+          "self_event_percent": 1.38,
+          "samples": 57,
+          "shared_object": "python3.11",
+          "symbol": "[.] _Py_dict_lookup"
+        },
+        {
+          "self_event_percent": 1.15,
+          "samples": 41,
+          "shared_object": "liblal-8f7cb511.so.20.3.2",
+          "symbol": "[.] XLALIIRFilterREAL4Vector"
+        },
+        {
+          "self_event_percent": 1.04,
+          "samples": 35,
+          "shared_object": "liblal-8f7cb511.so.20.3.2",
+          "symbol": "[.] XLALIIRFilterReverseREAL8Vector"
+        },
+        {
+          "self_event_percent": 0.95,
+          "samples": 32,
+          "shared_object": "liblal-8f7cb511.so.20.3.2",
+          "symbol": "[.] XLALIIRFilterReverseREAL4Vector"
+        },
+        {
+          "self_event_percent": 0.94,
+          "samples": 33,
+          "shared_object": "liblal-8f7cb511.so.20.3.2",
+          "symbol": "[.] XLALIIRFilterREAL8Vector"
+        },
+        {
+          "self_event_percent": 0.91,
+          "samples": 33,
+          "shared_object": "python3.11",
+          "symbol": "[.] deduce_unreachable"
+        },
+        {
+          "self_event_percent": 0.84,
+          "samples": 31,
+          "shared_object": "python3.11",
+          "symbol": "[.] visit_reachable"
+        }
+      ],
+      "note": "Direct cycles:u event-period shares, not elapsed-time or exact sample-count shares. The export omits small rows; visible rows are not renormalized. Unresolved FFTW symbols support library ownership only."
+    }
+  },
+  "torch_cuda_trace": {
+    "device_event_total_seconds": 0.46880339399968274,
+    "largest_device_event": {
+      "key": "_triton_pointwise_chisq_bin_kernel",
+      "count": 149,
+      "device_type": "DeviceType.CUDA",
+      "self_cpu_time_us": 0,
+      "self_device_time_us": 291364.7190000117
+    },
+    "largest_device_event_share_percent": 62.15072730471931,
+    "top_host_rows": [
+      {
+        "key": "cudaLaunchKernel",
+        "count": 27684,
+        "device_type": "DeviceType.CPU",
+        "self_cpu_time_us": 299936.10100053996,
+        "self_device_time_us": 0.0
+      },
+      {
+        "key": "cudaStreamSynchronize",
+        "count": 5700,
+        "device_type": "DeviceType.CPU",
+        "self_cpu_time_us": 261817.94800019637,
+        "self_device_time_us": 0
+      },
+      {
+        "key": "cudaDeviceGetStreamPriorityRange",
+        "count": 1,
+        "device_type": "DeviceType.CPU",
+        "self_cpu_time_us": 122465.76999999769,
+        "self_device_time_us": 0
+      },
+      {
+        "key": "cudaMemcpyAsync",
+        "count": 9703,
+        "device_type": "DeviceType.CPU",
+        "self_cpu_time_us": 115754.91899991035,
+        "self_device_time_us": 0.0
+      },
+      {
+        "key": "aten::copy_",
+        "count": 13288,
+        "device_type": "DeviceType.CPU",
+        "self_cpu_time_us": 109007.69499979354,
+        "self_device_time_us": 24919.93699974194
+      },
+      {
+        "key": "aten::mul",
+        "count": 7649,
+        "device_type": "DeviceType.CPU",
+        "self_cpu_time_us": 106199.92799985781,
+        "self_device_time_us": 31298.82700032741
+      }
+    ],
+    "top_device_rows": [
+      {
+        "key": "_triton_pointwise_chisq_bin_kernel",
+        "count": 149,
+        "device_type": "DeviceType.CUDA",
+        "self_cpu_time_us": 0,
+        "self_device_time_us": 291364.7190000117
+      },
+      {
+        "key": "exp_kernel_kernel",
+        "count": 170,
+        "device_type": "DeviceType.CUDA",
+        "self_cpu_time_us": 0,
+        "self_device_time_us": 19143.9369999934
+      },
+      {
+        "key": "void regular_fft_factor<1024u, EPT<16u>, 8u, 0u, (padding_t)14, (twiddle_t)0, (loadstore_modifier_t)2, (layout_t)1, unsigned int, float, HostConfigPlaceholder>(kernel_arguments_t<unsigned int>)",
+        "count": 480,
+        "device_type": "DeviceType.CUDA",
+        "self_cpu_time_us": 0,
+        "self_device_time_us": 12307.561999991536
+      },
+      {
+        "key": "void at::native::vectorized_elementwise_kernel<2, at::native::BinaryFunctor<c10::complex<float>, c10::complex<float>, c10::complex<float>, at::native::binary_internal::MulFunctor<c10::complex<float> > >, std::array<char*, 3ul> >(int, at::native::BinaryFunctor<c10::complex<float>, c10::complex<float>, c10::complex<float>, at::native::binary_internal::MulFunctor<c10::complex<float> > >, std::array<char*, 3ul>)",
+        "count": 2728,
+        "device_type": "DeviceType.CUDA",
+        "self_cpu_time_us": 0,
+        "self_device_time_us": 10410.528000071645
+      },
+      {
+        "key": "void at::native::reduce_kernel<512, 1, at::native::ReduceOp<c10::complex<float>, at::native::func_wrapper_t<c10::complex<float>, at::native::sum_functor<c10::complex<float>, c10::complex<float>, c10::complex<float> >::operator()(at::TensorIterator&)::{lambda(c10::complex<float>, c10::complex<float>)#1}>, unsigned int, c10::complex<float>, 4, 4> >(at::native::ReduceOp<c10::complex<float>, at::native::func_wrapper_t<c10::complex<float>, at::native::sum_functor<c10::complex<float>, c10::complex<float>, c10::complex<float> >::operator()(at::TensorIterator&)::{lambda(c10::complex<float>, c10::complex<float>)#1}>, unsigned int, c10::complex<float>, 4, 4>)",
+        "count": 3039,
+        "device_type": "DeviceType.CUDA",
+        "self_cpu_time_us": 0,
+        "self_device_time_us": 9601.692999960855
+      },
+      {
+        "key": "void regular_fft_factor<2048u, EPT<16u>, 4u, 0u, (padding_t)14, (twiddle_t)0, (loadstore_modifier_t)2, (layout_t)1, unsigned int, float, HostConfigPlaceholder>(kernel_arguments_t<unsigned int>)",
+        "count": 480,
+        "device_type": "DeviceType.CUDA",
+        "self_cpu_time_us": 0,
+        "self_device_time_us": 8218.270999908447
+      }
+    ],
+    "note": "CUDA total includes only CUDA device-event rows, excluding CPU operator associations to prevent double counting. Device-event durations may overlap across streams; their sum is neither wall time nor utilization. CPU data covers profiler-visible operators/runtime events, not all Python/native execution.",
+    "trace_logical_sha256_from_receipt": "73ff4282322ce8ea961d93d89a9e71e344ed680ef0424db37b57986d06396028",
+    "trace_logical_path": "runs/profile-precision5-torch-cuda-l512-torchprofile/torch-profile/trace.json"
+  },
+  "source_sha256_verified_against_commit": {
+    "pycbc/fft/torchfft.py": "d8266c82aace68a4ad9a686cbd50c7b8e5ffda0522bcf3e35b58f457d7c97339",
+    "pycbc/fft/mkl.py": "8362642e359f48f17a89e0877757a29124a3c2b231e4debfa77d5520c2bb9fc3",
+    "pycbc/waveform/decompress_torch.py": "459d309f7ba733905c75ddaa8d664d5d0b3b56802aa166f8b4c230a4a30fb7af",
+    "pycbc/waveform/decompress_cpu.py": "7667f5fc0f91753853bdf3936eb6d4ed14dee425a1688f5dc3eb57ed363a8e19",
+    "pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+    "pycbc/events/threshold_torch.py": "4691b52880cd6349a550e27879d46edccf48134b7b2f2631d0f887ca711bdc01",
+    "pycbc/vetoes/chisq_torch.py": "6f61bd09869c86441b717ce28a62ba1532b24f273bce73a226268f269644cf84"
+  },
+  "input_sha256": {
+    "profiles-precision5.json": "a923fde11b4c2cc5c19d264d7265acbedb8b5672d27c4d0d6d4c905107e9f552",
+    "final-report/report.json": "11f17262ab7ec11c21cb50bdb8dd884379414a56fb22a4bbfd8ff934365f8b14",
+    "runs/reference-precision5-cpu-l512-cprofile/receipt.json": "d57d4be46f97c504ea4bc028ec953b0e871e8fb58d6fe58685f896479c5e979f",
+    "runs/reference-precision5-cpu-l512-cprofile/profile.pstats": "2487c4a8db5dfd0444cee155ab3f44b1222753e7e74835a9b2000484aa453f4a",
+    "runs/profile-precision5-torch-cpu-l512-cprofile/receipt.json": "95c67b60e6489064822ac1a2083dfb8e5b170a0d19a2f146d9596eeeb7c3675c",
+    "runs/profile-precision5-torch-cpu-l512-cprofile/profile.pstats": "ef8ee40e6ce7b52275f8796cf705c648a7d0b60b0d8dcb9383fe3663e9ca68d9",
+    "runs/profile-precision5-torch-cuda-l512-cprofile/receipt.json": "898e60ddd53c6f96eaa3e3d0805486241355af5680915a8a28eb6be4d765778c",
+    "runs/profile-precision5-torch-cuda-l512-cprofile/profile.pstats": "ab4b11cb42bf956fc9bf84505f099c32ab80d7d21ddcc594dd4abf5b93443735",
+    "runs/reference-precision5-cpu-l512-perf/perf-report.txt": "7c9365e72612b2e67ff43d28e9ffd092dc4443c063ff5109034ddfa57a788aaf",
+    "runs/reference-precision5-cpu-l512-perf/receipt.json": "959ddfe1f1c2136ff7577e4d90ad51193aafe6a1366d89efb6663b1da2a5ffd8",
+    "runs/profile-precision5-torch-cpu-l512-perf/perf-report.txt": "80f8d4beeb213eeba6572a09be01cea1bb9a2a30691c238a818ed6aeb0ead2d4",
+    "runs/profile-precision5-torch-cpu-l512-perf/receipt.json": "2a60f3c6d4bdc22707073b3919a554f83802ac1f5b79e77288b6d3cb2a094639",
+    "runs/profile-precision5-torch-cuda-l512-perf/perf-report.txt": "e09c570c672fa1c7eaaa02e1f2ccb62dcdf444e787d8941c9ae14691c40b8fb6",
+    "runs/profile-precision5-torch-cuda-l512-perf/receipt.json": "f18d83568abda89401b84e45632d48b865ff5ebcb0f41c9e19e17cdcb144796a",
+    "runs/profile-precision5-torch-cuda-l512-torchprofile/torch-profile/receipt.json": "bbba9c58e87736dbcf21fee1d022c34151e5ea1f371de2b4db1fc006ebdd9431",
+    "runs/profile-precision5-torch-cuda-l512-torchprofile/torch-profile/key-averages.json": "481b9c33cc0b548c8478f7ce9ed2c0e1740d6212c0200fc51d5d596dfdcc6dac",
+    "runs/matched-precision5-cpu-l512-r1/receipt.json": "be31a70d1f7f8d9edd9eb93c87bc9f1ed4051055ef9ce0f9f68adad7fa0537b1",
+    "runs/matched-precision5-cpu-l512-r2/receipt.json": "977f127f85091e60a82aaca943926aba112b95a738d88a35fbe0338757971ea7",
+    "runs/matched-precision5-cpu-l512-r3/receipt.json": "a2b920ec4d1a21d7ef36d8f3a665d25b458c6495ac5b78f237ecdc0612f8bae8",
+    "runs/matched-precision5-torch-cpu-l512-r1/receipt.json": "606b1f15b53952232d568377eaac3db3ad175b4d559a7e24ef32dfc65ee3faba",
+    "runs/matched-precision5-torch-cpu-l512-r2/receipt.json": "ddf794fd6f88491e0bbe4e7ef1b14931d574746f315d2959e41341bde7d2225d",
+    "runs/matched-precision5-torch-cpu-l512-r3/receipt.json": "30d8ef6733cab757371eb035c03c3c70f265b891606998c66c0da5f35cf09c47",
+    "runs/matched-precision5-torch-cuda-l512-r1/receipt.json": "04bd9e23e4d8eedddffa3bb91d232e0274c4136c371c21d9fd570a34e045f9b0",
+    "runs/matched-precision5-torch-cuda-l512-r2/receipt.json": "1a1d0a655c8434c418b5e68eeafaafab177059088100d710ab0f52a8f91961a4",
+    "runs/matched-precision5-torch-cuda-l512-r3/receipt.json": "6690ed035160ed38200f8e2b1a3a9e5d731eba7d25a830083820f91ea9361b7d"
+  },
+  "limits": [
+    "Single cProfile, perf, and CUDA operator-profile execution per scheme/mode; overhead differs from unprofiled measurements.",
+    "cProfile self time includes uninstrumented native calls; it is not a Python-bytecode time estimate.",
+    "The combined native FFT cost does not isolate precision, FFT library, plan, and memory-layout effects.",
+    "CUDA host call times are asynchronous and cannot be read as device kernel durations.",
+    "No timing or attribution is transferred from earlier, smaller component workloads."
+  ]
+}

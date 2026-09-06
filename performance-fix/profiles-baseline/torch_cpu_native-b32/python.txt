@@ -1,0 +1,53 @@
+         4830 function calls (4824 primitive calls) in 0.067 seconds
+
+   Ordered by: cumulative time
+   List reduced from 127 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.067    0.067 matchedfilter.py:2501(process_data)
+        1    0.000    0.000    0.067    0.067 matchedfilter.py:2506(process_all)
+        2    0.000    0.000    0.067    0.033 matchedfilter.py:2776(_process_batch)
+        1    0.000    0.000    0.036    0.036 matchedfilter.py:2091(_torch_batch_peak_values)
+        1    0.027    0.027    0.027    0.027 {method 'sum' of 'torch._C.TensorBase' objects}
+        1    0.000    0.000    0.027    0.027 torchfft.py:1414(execute)
+        1    0.000    0.000    0.026    0.026 torchfft.py:874(_execute_fftw_cpu_batch_plan)
+        1    0.026    0.026    0.026    0.026 torchfft.py:637(execute)
+        1    0.006    0.006    0.006    0.006 {built-in method torch.argmax}
+        1    0.000    0.000    0.004    0.004 scheme.py:432(_scheming_function)
+        1    0.000    0.000    0.004    0.004 matchedfilter_torch.py:1040(batch_correlate_execute)
+        1    0.000    0.000    0.004    0.004 matchedfilter_torch.py:529(_try_cpu_native_batch_correlate)
+        1    0.002    0.002    0.004    0.004 matchedfilter_torch.py:498(execute)
+        1    0.003    0.003    0.003    0.003 {method 'square' of 'torch._C.TensorBase' objects}
+        1    0.000    0.000    0.002    0.002 matchedfilter_torch.py:454(can_execute)
+        1    0.000    0.000    0.001    0.001 matchedfilter_torch.py:339(_batch_outputs_are_disjoint)
+       65    0.000    0.000    0.001    0.000 {built-in method builtins.any}
+        1    0.000    0.000    0.001    0.001 {built-in method builtins.all}
+       65    0.000    0.000    0.001    0.000 matchedfilter_torch.py:485(<genexpr>)
+       65    0.000    0.000    0.001    0.000 matchedfilter_torch.py:321(_batch_tensor_contract)
+     1056    0.000    0.000    0.001    0.000 matchedfilter_torch.py:343(<genexpr>)
+     1552    0.000    0.000    0.000    0.000 matchedfilter_torch.py:203(_spans_overlap)
+      528    0.000    0.000    0.000    0.000 matchedfilter_torch.py:345(<genexpr>)
+       65    0.000    0.000    0.000    0.000 matchedfilter_torch.py:174(_has_autograd_state)
+        1    0.000    0.000    0.000    0.000 torchfft.py:781(_can_use_fftw_cpu_batch)
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:2146(_torch_batch_peak_magnitudes)
+        2    0.000    0.000    0.000    0.000 matchedfilter_torch.py:352(_same_array_tensors)
+        1    0.000    0.000    0.000    0.000 {built-in method numpy.fromiter}
+       65    0.000    0.000    0.000    0.000 forward_ad.py:151(unpack_dual)
+       33    0.000    0.000    0.000    0.000 graph.py:245(increment_version)
+       33    0.000    0.000    0.000    0.000 matchedfilter.py:2162(<genexpr>)
+       65    0.000    0.000    0.000    0.000 matchedfilter_torch.py:207(_logical_storage_span)
+       65    0.000    0.000    0.000    0.000 matchedfilter_torch.py:213(_is_inference_tensor)
+      205    0.000    0.000    0.000    0.000 {method 'data_ptr' of 'torch._C.TensorBase' objects}
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:2533(_process_vetoes)
+        1    0.000    0.000    0.000    0.000 matchedfilter_torch.py:488(<listcomp>)
+       67    0.000    0.000    0.000    0.000 {built-in method torch.is_inference}
+        3    0.000    0.000    0.000    0.000 <frozen _collections_abc>:771(get)
+        3    0.000    0.000    0.000    0.000 matchedfilter.py:59(_torch_inference_mode_context)
+        1    0.000    0.000    0.000    0.000 matchedfilter_torch.py:341(<listcomp>)
+        1    0.000    0.000    0.000    0.000 {built-in method torch.arange}
+       65    0.000    0.000    0.000    0.000 <string>:1(<lambda>)
+        3    0.000    0.000    0.000    0.000 backend.py:60(backend_array)
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:2494(combine_results)
+        3    0.000    0.000    0.000    0.000 <frozen os>:674(__getitem__)
+
+

@@ -1,0 +1,1021 @@
+{
+  "capture_integrity": {
+    "chisq-capture-v4-cpu": {
+      "captured_segments": [
+        1,
+        2,
+        3
+      ],
+      "clean_source_before_after": true,
+      "input_hashes_unchanged": true,
+      "observed_filter_segments": null,
+      "returncode": 1,
+      "source_commit": "f2c0abe61e787a26f41208f489c62c877bbd5667",
+      "state": "failed",
+      "template_hash": -6051532311927781382,
+      "traceback": "Traceback (most recent call last):\n  File \"/home/xangma/pycbc-torch-inspiral-reference-20260906/capture-chisq-inputs-v4.py\", line 136, in main\n    assert len(record['captures']) == 5, len(record['captures'])\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 3\n"
+    },
+    "chisq-capture-v4b-cpu": {
+      "captured_segments": [
+        1,
+        2,
+        3
+      ],
+      "clean_source_before_after": true,
+      "input_hashes_unchanged": true,
+      "observed_filter_segments": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "returncode": 0,
+      "source_commit": "f2c0abe61e787a26f41208f489c62c877bbd5667",
+      "state": "complete",
+      "template_hash": -6051532311927781382,
+      "traceback": null
+    },
+    "chisq-capture-v4b-torch-cuda": {
+      "captured_segments": [
+        1,
+        2,
+        3
+      ],
+      "clean_source_before_after": true,
+      "input_hashes_unchanged": true,
+      "observed_filter_segments": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "returncode": 0,
+      "source_commit": "f2c0abe61e787a26f41208f489c62c877bbd5667",
+      "state": "complete",
+      "template_hash": -6051532311927781382,
+      "traceback": null
+    }
+  },
+  "coefficient_replay": {
+    "capture_count": 6,
+    "causal_control": "Same captured correlations, SNRs, normalization, bins and points; only the host scalar wrapper changes in the fused-kernel control. The Torch fallback is a separate comparison; recorded launches prove the corrected two-point cases used Triton.",
+    "constexpr_budget_violations": 0,
+    "evidence": "chisq-coefficient-v4.json",
+    "finding": "Triton narrowed the runtime Python float to fp32 before the unchanged kernel promoted phase arithmetic to float64. Passing tl.constexpr at the host call site preserves the coefficient and removes all selected budget violations.",
+    "fp32_argument": 2.996056309712003e-06,
+    "host_coefficient": 2.996056226339143e-06,
+    "limit": "The fused kernel is exercised only by the two-point segment1 row for each input origin; single-point segments2/3 take the existing fallback.",
+    "max_abs_error_all_constexpr_rows": 1.3945491716071956e-05,
+    "plain_specialization": "fp32",
+    "preserved_specialization": "constexpr",
+    "recorded_launches": [
+      {
+        "coefficient_fp32": 2.996056309712003e-06,
+        "constexpr": false,
+        "grid": [
+          2,
+          16
+        ],
+        "original_coefficient": 2.996056226339143e-06
+      },
+      {
+        "coefficient_fp32": 2.996056309712003e-06,
+        "constexpr": true,
+        "grid": [
+          2,
+          16
+        ],
+        "original_coefficient": 2.996056226339143e-06
+      },
+      {
+        "coefficient_fp32": 2.996056309712003e-06,
+        "constexpr": false,
+        "grid": [
+          2,
+          16
+        ],
+        "original_coefficient": 2.996056226339143e-06
+      },
+      {
+        "coefficient_fp32": 2.996056309712003e-06,
+        "constexpr": true,
+        "grid": [
+          2,
+          16
+        ],
+        "original_coefficient": 2.996056226339143e-06
+      }
+    ],
+    "rows": [
+      {
+        "expected": [
+          24.10927749763662,
+          27.93463648494599
+        ],
+        "launches": {
+          "constexpr_coefficient": 1,
+          "original": 1,
+          "torch_fallback": 0
+        },
+        "max_abs_error": {
+          "constexpr_coefficient": 4.042280373539597e-06,
+          "original": 0.7212396747219785,
+          "torch_fallback": 2.492104790974281e-06
+        },
+        "origin": "cpu",
+        "points": [
+          882164,
+          1800845
+        ],
+        "recorded_chisq": [
+          24.109277725219727,
+          27.93463706970215
+        ],
+        "segment": {
+          "analyze_start": 458752,
+          "analyze_stop": 2019328,
+          "cumulative_index": 2019328,
+          "epoch": 1187007429.0,
+          "filter_bin_start": 15360,
+          "filter_bin_stop": 1048576,
+          "number": 1
+        },
+        "variants": {
+          "constexpr_coefficient": [
+            24.109281539916992,
+            27.93463897705078
+          ],
+          "original": [
+            24.054105758666992,
+            28.65587615966797
+          ],
+          "torch_fallback": [
+            24.109275817871094,
+            27.93463897705078
+          ]
+        },
+        "violations": {
+          "constexpr_coefficient": 0,
+          "original": 2,
+          "torch_fallback": 0
+        }
+      },
+      {
+        "expected": [
+          45.44365364210797
+        ],
+        "launches": {
+          "constexpr_coefficient": 0,
+          "original": 0,
+          "torch_fallback": 0
+        },
+        "max_abs_error": {
+          "constexpr_coefficient": 3.2792787507673893e-06,
+          "original": 3.2792787507673893e-06,
+          "torch_fallback": 3.2792787507673893e-06
+        },
+        "origin": "cpu",
+        "points": [
+          787621
+        ],
+        "recorded_chisq": [
+          45.44365310668945
+        ],
+        "segment": {
+          "analyze_start": 458752,
+          "analyze_stop": 2019328,
+          "cumulative_index": 3579904,
+          "epoch": 1187007810.0,
+          "filter_bin_start": 15360,
+          "filter_bin_stop": 1048576,
+          "number": 2
+        },
+        "variants": {
+          "constexpr_coefficient": [
+            45.44365692138672
+          ],
+          "original": [
+            45.44365692138672
+          ],
+          "torch_fallback": [
+            45.44365692138672
+          ]
+        },
+        "violations": {
+          "constexpr_coefficient": 0,
+          "original": 0,
+          "torch_fallback": 0
+        }
+      },
+      {
+        "expected": [
+          56.83246091049525
+        ],
+        "launches": {
+          "constexpr_coefficient": 0,
+          "original": 0,
+          "torch_fallback": 0
+        },
+        "max_abs_error": {
+          "constexpr_coefficient": 1.2844387562438442e-05,
+          "original": 1.2844387562438442e-05,
+          "torch_fallback": 1.2844387562438442e-05
+        },
+        "origin": "cpu",
+        "points": [
+          1149586
+        ],
+        "recorded_chisq": [
+          56.832462310791016
+        ],
+        "segment": {
+          "analyze_start": 458752,
+          "analyze_stop": 2019328,
+          "cumulative_index": 5140480,
+          "epoch": 1187008191.0,
+          "filter_bin_start": 15360,
+          "filter_bin_stop": 1048576,
+          "number": 3
+        },
+        "variants": {
+          "constexpr_coefficient": [
+            56.83247375488281
+          ],
+          "original": [
+            56.83247375488281
+          ],
+          "torch_fallback": [
+            56.83247375488281
+          ]
+        },
+        "violations": {
+          "constexpr_coefficient": 0,
+          "original": 0,
+          "torch_fallback": 0
+        }
+      },
+      {
+        "expected": [
+          24.10929634273323,
+          27.934648289305112
+        ],
+        "launches": {
+          "constexpr_coefficient": 1,
+          "original": 1,
+          "torch_fallback": 0
+        },
+        "max_abs_error": {
+          "constexpr_coefficient": 9.99271598800533e-06,
+          "original": 0.7212374071060204,
+          "torch_fallback": 4.039186098481196e-06
+        },
+        "origin": "torch-cuda",
+        "points": [
+          882164.0,
+          1800845.0
+        ],
+        "recorded_chisq": [
+          24.054121017456055,
+          28.655885696411133
+        ],
+        "segment": {
+          "analyze_start": 458752,
+          "analyze_stop": 2019328,
+          "cumulative_index": 2019328,
+          "epoch": 1187007429.0,
+          "filter_bin_start": 15360,
+          "filter_bin_stop": 1048576,
+          "number": 1
+        },
+        "variants": {
+          "constexpr_coefficient": [
+            24.10930633544922,
+            27.93465232849121
+          ],
+          "original": [
+            24.054121017456055,
+            28.655885696411133
+          ],
+          "torch_fallback": [
+            24.109296798706055,
+            27.93465232849121
+          ]
+        },
+        "violations": {
+          "constexpr_coefficient": 0,
+          "original": 2,
+          "torch_fallback": 0
+        }
+      },
+      {
+        "expected": [
+          45.44366243613077
+        ],
+        "launches": {
+          "constexpr_coefficient": 0,
+          "original": 0,
+          "torch_fallback": 0
+        },
+        "max_abs_error": {
+          "constexpr_coefficient": 2.1146504778357667e-06,
+          "original": 2.1146504778357667e-06,
+          "torch_fallback": 2.1146504778357667e-06
+        },
+        "origin": "torch-cuda",
+        "points": [
+          787621.0
+        ],
+        "recorded_chisq": [
+          45.44366455078125
+        ],
+        "segment": {
+          "analyze_start": 458752,
+          "analyze_stop": 2019328,
+          "cumulative_index": 3579904,
+          "epoch": 1187007810.0,
+          "filter_bin_start": 15360,
+          "filter_bin_stop": 1048576,
+          "number": 2
+        },
+        "variants": {
+          "constexpr_coefficient": [
+            45.44366455078125
+          ],
+          "original": [
+            45.44366455078125
+          ],
+          "torch_fallback": [
+            45.44366455078125
+          ]
+        },
+        "violations": {
+          "constexpr_coefficient": 0,
+          "original": 0,
+          "torch_fallback": 0
+        }
+      },
+      {
+        "expected": [
+          56.832459809391096
+        ],
+        "launches": {
+          "constexpr_coefficient": 0,
+          "original": 0,
+          "torch_fallback": 0
+        },
+        "max_abs_error": {
+          "constexpr_coefficient": 1.3945491716071956e-05,
+          "original": 1.3945491716071956e-05,
+          "torch_fallback": 1.3945491716071956e-05
+        },
+        "origin": "torch-cuda",
+        "points": [
+          1149586.0
+        ],
+        "recorded_chisq": [
+          56.83247375488281
+        ],
+        "segment": {
+          "analyze_start": 458752,
+          "analyze_stop": 2019328,
+          "cumulative_index": 5140480,
+          "epoch": 1187008191.0,
+          "filter_bin_start": 15360,
+          "filter_bin_stop": 1048576,
+          "number": 3
+        },
+        "variants": {
+          "constexpr_coefficient": [
+            56.83247375488281
+          ],
+          "original": [
+            56.83247375488281
+          ],
+          "torch_fallback": [
+            56.83247375488281
+          ]
+        },
+        "violations": {
+          "constexpr_coefficient": 0,
+          "original": 0,
+          "torch_fallback": 0
+        }
+      }
+    ],
+    "selected_sample_count": 8,
+    "source_commit": "f2c0abe61e787a26f41208f489c62c877bbd5667",
+    "template_hash": -6051532311927781382,
+    "triton_version": "3.7.1",
+    "worst_segment_controls": {
+      "cpu": {
+        "expected": [
+          24.10927749763662,
+          27.93463648494599
+        ],
+        "launches": {
+          "constexpr_coefficient": 1,
+          "original": 1,
+          "torch_fallback": 0
+        },
+        "max_abs_error": {
+          "constexpr_coefficient": 4.042280373539597e-06,
+          "original": 0.7212396747219785,
+          "torch_fallback": 2.492104790974281e-06
+        },
+        "points": [
+          882164,
+          1800845
+        ],
+        "recorded_chisq": [
+          24.109277725219727,
+          27.93463706970215
+        ],
+        "violations": {
+          "constexpr_coefficient": 0,
+          "original": 2,
+          "torch_fallback": 0
+        }
+      },
+      "torch-cuda": {
+        "expected": [
+          24.10929634273323,
+          27.934648289305112
+        ],
+        "launches": {
+          "constexpr_coefficient": 1,
+          "original": 1,
+          "torch_fallback": 0
+        },
+        "max_abs_error": {
+          "constexpr_coefficient": 9.99271598800533e-06,
+          "original": 0.7212374071060204,
+          "torch_fallback": 4.039186098481196e-06
+        },
+        "points": [
+          882164.0,
+          1800845.0
+        ],
+        "recorded_chisq": [
+          24.054121017456055,
+          28.655885696411133
+        ],
+        "violations": {
+          "constexpr_coefficient": 0,
+          "original": 2,
+          "torch_fallback": 0
+        }
+      }
+    }
+  },
+  "committed_fix": "Wrap two_pi_over_N in tl.constexpr in the Python launch call. The Triton kernel definition/body, C/Cython code, native binaries, correlation storage and public output precision remain unchanged.",
+  "created_utc": "2026-09-06T18:50:22.254315+00:00",
+  "extended_regression": {
+    "coverage": "CPU and Torch CUDA, complex64/complex128, NumPy/PyCBC indices; independent direct complex128 phases for 2**21 samples and late points. Complex64 CUDA asserts actual fused Triton launch and CUDA output residency.",
+    "execution_status": "Passed as part of the final source-v5 Linux suite on clean 837f38d; full CLI parity remains a separate pending gate.",
+    "new_source_commit": "837f38d493420043e45fb1ad210a0ccf68bacbaa",
+    "path": "test/test_chisq_precision.py",
+    "tolerances": "Existing rtol 3e-6 for complex64, 3e-8 for complex128 and atol 1e-9 retained."
+  },
+  "final_source_unit_validation": {
+    "all_input_hashes_verified_locally_or_against_git": true,
+    "command": [
+      "taskset",
+      "-c",
+      "8",
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "test/test_scheme_runtime.py",
+      "test/test_scheme_selection.py",
+      "test/test_matchedfilter.py",
+      "test/test_chisq.py",
+      "test/test_psd.py",
+      "test/test_strain.py",
+      "test/test_sigmasq_series_precision.py",
+      "test/test_chisq_precision.py",
+      "test/test_strain_psd_precision.py",
+      "test/test_torch_chisq_cpu_optimization.py",
+      "test/test_torch_chisq_sparse_dispatch.py",
+      "test/test_torch_filter_pipeline.py",
+      "test/test_torch_psd_pipeline.py",
+      "test/test_torch_psd_protocol.py",
+      "test/test_torch_versioned_data_psd.py",
+      "test/test_torch_matchedfilter_cpu_optimization.py"
+    ],
+    "cwd": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5",
+    "host": "len",
+    "input_hashes_identical_before_and_after": true,
+    "limitation": "Unit validation does not clear the preserved full CLI failure or establish throughput.",
+    "log": "unit-tests-v5.log",
+    "log_sha256": "f5e59345dd7e791f865e71758b9ae8d0a40af7ffbcae133bb44977c6cd29fd05",
+    "module_count": 16,
+    "passed": true,
+    "pid": 2655277,
+    "pytest_passed": 369,
+    "pytest_reported_seconds": 24.89,
+    "pytest_skipped": 68,
+    "pytest_subtests_passed": 8,
+    "pytest_warnings": 21,
+    "receipt": "unit-tests-v5.json",
+    "receipt_sha256": "ee0f5d5b55f84ea4e89d8f9b00c7a041ede3834ddc0ec18674931732bc5ebf6f",
+    "returncode": 0,
+    "runner_wall_seconds": 27.024045472964644,
+    "source_clean_before_and_after": true,
+    "source_commit": "837f38d493420043e45fb1ad210a0ccf68bacbaa"
+  },
+  "prior_investigation": {
+    "json": "numerical-investigation-v2.json",
+    "markdown": "numerical-investigation-v2.md",
+    "prior_source_test_result": "365 passed, 68 skipped, 8 subtests applies only to f2; it is not a result for 837f38d.",
+    "source_commit": "f2c0abe61e787a26f41208f489c62c877bbd5667",
+    "status": "Initial corrected full CLI: Torch CPU passed all 475; CUDA had 475 exact identities, passing SNR/phase/sigmasq but 302 chi-squared violations, maximum 0.7212486267089844."
+  },
+  "provenance": {
+    "capture_output_sha256": {
+      "chisq-capture-v4-cpu/capture-0-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4-cpu/capture-0-chisq.npy": "c19f5684d7616beee042a28734bcaa7e1205454181ffe307ba6ec03f76886460",
+      "chisq-capture-v4-cpu/capture-0-corr.npy": "4ac0b32e8be4ed8f168d04dc2eeae8532f2157f8fab9c6ab8e2f2199f76b51b4",
+      "chisq-capture-v4-cpu/capture-0-indices.npy": "766d0e0e5d7cfb6f07cd0648b6dfe32d431577c9e456184eb8ec3a7d2ff210e4",
+      "chisq-capture-v4-cpu/capture-0-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "chisq-capture-v4-cpu/capture-0-snrv.npy": "88d98ad5a10b96fa427ae4787c92dd973e8f6d224b7f897b91cfc263b5a46043",
+      "chisq-capture-v4-cpu/capture-0-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+      "chisq-capture-v4-cpu/capture-1-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4-cpu/capture-1-chisq.npy": "1840b60a724d86161ae49bb430effe1dd4b47f94a21a58b3c6e9af98d705d7ac",
+      "chisq-capture-v4-cpu/capture-1-corr.npy": "76a090b7720939fab29a85907d687dfa8a279a895ded186d71e5c460431b20ae",
+      "chisq-capture-v4-cpu/capture-1-indices.npy": "b981fdca6390b213535d4e697b175360578a5b917d39ea68bd71ef198ed92178",
+      "chisq-capture-v4-cpu/capture-1-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "chisq-capture-v4-cpu/capture-1-snrv.npy": "26febe8f6804e4b9433003d1af0e9d1aeb2e5488b47ac769f6b03edfa6fa6e32",
+      "chisq-capture-v4-cpu/capture-1-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+      "chisq-capture-v4-cpu/capture-2-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4-cpu/capture-2-chisq.npy": "f169cc10e8a7332ab820ab15aae4acaa59fdceef042109fac314cd03df07724f",
+      "chisq-capture-v4-cpu/capture-2-corr.npy": "327e23e517dc97b9700375adaa023da2dce764a4b88cc736cc2c0a354bb88e8f",
+      "chisq-capture-v4-cpu/capture-2-indices.npy": "61e6db6a2a3e28b256852eaddc38b8660036a7192a847b89a60fbc84d4a7b21b",
+      "chisq-capture-v4-cpu/capture-2-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "chisq-capture-v4-cpu/capture-2-snrv.npy": "24f240ad44e08fd17d0b91f2283a26e3c4564db7ba97f344dbb519155df3feaf",
+      "chisq-capture-v4-cpu/capture-2-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+      "chisq-capture-v4-cpu/conditioned-strain.npy": "4de2a5395ef6a71e36a4a9f7850ce319c277915bf7c15e73a1a3718566a7f0c2",
+      "chisq-capture-v4-cpu/triggers.hdf": "69e57f6def4d2c7244b2111caa52d42528d9e0b2e3c5037bc931386a94a474d8",
+      "chisq-capture-v4b-cpu/capture-0-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4b-cpu/capture-0-chisq.npy": "c19f5684d7616beee042a28734bcaa7e1205454181ffe307ba6ec03f76886460",
+      "chisq-capture-v4b-cpu/capture-0-corr.npy": "4ac0b32e8be4ed8f168d04dc2eeae8532f2157f8fab9c6ab8e2f2199f76b51b4",
+      "chisq-capture-v4b-cpu/capture-0-indices.npy": "766d0e0e5d7cfb6f07cd0648b6dfe32d431577c9e456184eb8ec3a7d2ff210e4",
+      "chisq-capture-v4b-cpu/capture-0-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "chisq-capture-v4b-cpu/capture-0-snrv.npy": "88d98ad5a10b96fa427ae4787c92dd973e8f6d224b7f897b91cfc263b5a46043",
+      "chisq-capture-v4b-cpu/capture-0-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+      "chisq-capture-v4b-cpu/capture-1-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4b-cpu/capture-1-chisq.npy": "1840b60a724d86161ae49bb430effe1dd4b47f94a21a58b3c6e9af98d705d7ac",
+      "chisq-capture-v4b-cpu/capture-1-corr.npy": "76a090b7720939fab29a85907d687dfa8a279a895ded186d71e5c460431b20ae",
+      "chisq-capture-v4b-cpu/capture-1-indices.npy": "b981fdca6390b213535d4e697b175360578a5b917d39ea68bd71ef198ed92178",
+      "chisq-capture-v4b-cpu/capture-1-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "chisq-capture-v4b-cpu/capture-1-snrv.npy": "26febe8f6804e4b9433003d1af0e9d1aeb2e5488b47ac769f6b03edfa6fa6e32",
+      "chisq-capture-v4b-cpu/capture-1-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+      "chisq-capture-v4b-cpu/capture-2-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4b-cpu/capture-2-chisq.npy": "f169cc10e8a7332ab820ab15aae4acaa59fdceef042109fac314cd03df07724f",
+      "chisq-capture-v4b-cpu/capture-2-corr.npy": "327e23e517dc97b9700375adaa023da2dce764a4b88cc736cc2c0a354bb88e8f",
+      "chisq-capture-v4b-cpu/capture-2-indices.npy": "61e6db6a2a3e28b256852eaddc38b8660036a7192a847b89a60fbc84d4a7b21b",
+      "chisq-capture-v4b-cpu/capture-2-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "chisq-capture-v4b-cpu/capture-2-snrv.npy": "24f240ad44e08fd17d0b91f2283a26e3c4564db7ba97f344dbb519155df3feaf",
+      "chisq-capture-v4b-cpu/capture-2-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+      "chisq-capture-v4b-cpu/conditioned-strain.npy": "4de2a5395ef6a71e36a4a9f7850ce319c277915bf7c15e73a1a3718566a7f0c2",
+      "chisq-capture-v4b-cpu/triggers.hdf": "8ad4028e12428d284e517680e272bc5653b6f67b46112529ba576b7437acc9f6",
+      "chisq-capture-v4b-torch-cuda/capture-0-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4b-torch-cuda/capture-0-chisq.npy": "6ac14192e0502c02cb89fbee8778aa40978bea25068b586bea988dd5a71dff46",
+      "chisq-capture-v4b-torch-cuda/capture-0-corr.npy": "2118ff5f86e10bda1f8a7bb366c9c9df4ee23eab87a87b8f70cee2c719c2eabd",
+      "chisq-capture-v4b-torch-cuda/capture-0-indices.npy": "68e8986e259b155fcc75ee936903430e6c10ba8f7e9e0f8d614db2a805ee6077",
+      "chisq-capture-v4b-torch-cuda/capture-0-psd.npy": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf",
+      "chisq-capture-v4b-torch-cuda/capture-0-snrv.npy": "bb258a6defd26b8c10ddac9a7944f1ae8849378c3d8332d4900ddafe90bf9689",
+      "chisq-capture-v4b-torch-cuda/capture-0-template.npy": "03bbfec4d28dc14c727711b01bc2b3d651f201f76394fb75a2f9c1286717a4e7",
+      "chisq-capture-v4b-torch-cuda/capture-1-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4b-torch-cuda/capture-1-chisq.npy": "c74c31bf721669eac35da8ef02bfe15c9770ce4e6d8c6669bec3c251d750d084",
+      "chisq-capture-v4b-torch-cuda/capture-1-corr.npy": "b882cafe92a297ea27838da077334d69a7b3dded20b2ec48ae3979e7e51ac4e0",
+      "chisq-capture-v4b-torch-cuda/capture-1-indices.npy": "d5099101055c01db83748cd978a5c1a9c341915e2810c8774c29b2579e6884e9",
+      "chisq-capture-v4b-torch-cuda/capture-1-psd.npy": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf",
+      "chisq-capture-v4b-torch-cuda/capture-1-snrv.npy": "888b9bc45e6c83a504f641229d7bbadc989a7d08fe18352c1c04c639d36f4e93",
+      "chisq-capture-v4b-torch-cuda/capture-1-template.npy": "03bbfec4d28dc14c727711b01bc2b3d651f201f76394fb75a2f9c1286717a4e7",
+      "chisq-capture-v4b-torch-cuda/capture-2-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4b-torch-cuda/capture-2-chisq.npy": "b6f2a37117f5b78d0622a146c190e30c5f0782be3ae0f48b486a0633035fa379",
+      "chisq-capture-v4b-torch-cuda/capture-2-corr.npy": "9dbde7bb100a83c212a49ee41d84f788e35b4c386e4223377307f9887d944361",
+      "chisq-capture-v4b-torch-cuda/capture-2-indices.npy": "3cdc4d7ac74814e5e79382adee617ba43197d79e71c6d3c918d1254b3a8bfd27",
+      "chisq-capture-v4b-torch-cuda/capture-2-psd.npy": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf",
+      "chisq-capture-v4b-torch-cuda/capture-2-snrv.npy": "a2fb74590aab981cdbab00b0037221fd3c6b2d790ec29597f08081301b8ef972",
+      "chisq-capture-v4b-torch-cuda/capture-2-template.npy": "03bbfec4d28dc14c727711b01bc2b3d651f201f76394fb75a2f9c1286717a4e7",
+      "chisq-capture-v4b-torch-cuda/conditioned-strain.npy": "4de2a5395ef6a71e36a4a9f7850ce319c277915bf7c15e73a1a3718566a7f0c2",
+      "chisq-capture-v4b-torch-cuda/triggers.hdf": "23da3447b29366a185f5032533a1e34fda686a70ba5df047038a53b94397f58c"
+    },
+    "direct_evidence_sha256": {
+      "capture-chisq-inputs-v4.py": "24d04c434243416248645148df985cf62e19f49f5a1b6e2124d89fd0198f8070",
+      "capture-chisq-inputs-v4b.py": "01e12c2d43ca180f15a9ef97109e6363037ef93b6195b523835b0302cd28d7c8",
+      "chisq-capture-v4-cpu.log": "722a16c39613650661218ae4ea25135c3de2b04d5d14c30a7ca4a996a56ef261",
+      "chisq-capture-v4-cpu/status.json": "6b07027e0b6b29e304c8cb30d13cd72ad1d0e732fa501d071429fcc83b5ade26",
+      "chisq-capture-v4b-cpu.log": "e6106059eee9d8af106dd5825712f6222667d540284e08f059093ad3903f44d6",
+      "chisq-capture-v4b-cpu/status.json": "ee5b0a1f37df2534d6ebe4d9bd9a454cec5bb6f93d4c7a97a8696d5a029825a5",
+      "chisq-capture-v4b-torch-cuda.log": "a1c0233f793a88d11a1173d4f5940754c6810e6ae9b9eacd39809c7ace7ab5c9",
+      "chisq-capture-v4b-torch-cuda/status.json": "fa74cd7b670c86978357d8aaa8273e6536fd795af6b499a5382f251a91709d86",
+      "chisq-coefficient-v4-launch.json": "faa85a7937ef1d4df1e6b9727043ecfdd78bba12328d2583de2b3c62c9315b3f",
+      "chisq-coefficient-v4.json": "32aacedcc9c696513a8d21bf9a1cf2947e37d0eb1bcd91c20226b19def396d73",
+      "chisq-coefficient-v4.log": "9c2d05d078383e64bcd0bb54accaabef5e397e53390b7831160b3c738f9b8aae",
+      "chisq-coefficient-v4b-launch.json": "544848023025e47fa2ae4922e95dfbc79c1c5b3a3135797c0190ccf9382e34e0",
+      "chisq-coefficient-v4b.log": "1dab1f3c5221e5daf90370f8092bf4a9cc211bf29cb8f11f515f52eda8e11a1a",
+      "diagnose-chisq-coefficient-v4.py": "ee4ec20a7ab761640453b38cc380863c19c35c7bdedaef2d0033522bcace9155",
+      "diagnose-chisq-inputs.py": "f935e2430478dc24a4be6213c0152438f2c30a355e829f19bdcf8179c2a6248f",
+      "numerical-investigation-v2.json": "3ce2f92ae2301d1855fbce8595ca452bb286fcb1772b8c02c8f216f6f9be9fd4",
+      "numerical-investigation-v2.md": "2380d55662b2130bc03ddfbffa6269ffd8815b91a82cfed460c962d241d96558",
+      "run-unit-checks-v5.py": "518d539171ee96b763a2fe5a6722427a42e290bc0e474f54af96f4842ff4610b",
+      "source-precision-provenance-v5.json": "4fb0e379a2441a892d7ad48fb1e5cb84dd47864f05a4c00b9cdba5b70666e523",
+      "source-v4.json": "43caf87e57b98782caa3c0e43163e489b9e12c493b2ffc278add1d434f7b876a",
+      "source-v5.json": "db00a8b27cd8a8986aa6c55d403e1d396f89ca686f80badd0755b29847925ae8",
+      "unit-tests-v5.json": "ee0f5d5b55f84ea4e89d8f9b00c7a041ede3834ddc0ec18674931732bc5ebf6f",
+      "unit-tests-v5.log": "f5e59345dd7e791f865e71758b9ae8d0a40af7ffbcae133bb44977c6cd29fd05"
+    },
+    "recorded_before_after_manifest_checks": {
+      "chisq-capture-v4-cpu/status.json": true,
+      "chisq-capture-v4b-cpu/status.json": true,
+      "chisq-capture-v4b-torch-cuda/status.json": true,
+      "chisq-coefficient-v4.json": true,
+      "unit-tests-v5.json": true
+    },
+    "synthesis_inputs_unchanged": true,
+    "v2_preserved": true,
+    "verified_historical_git_sha256": {
+      "6c82155044d58f3344b281869d87745f71ba2285:bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+      "6c82155044d58f3344b281869d87745f71ba2285:pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+      "6c82155044d58f3344b281869d87745f71ba2285:pycbc/psd/__init__.py": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab",
+      "6c82155044d58f3344b281869d87745f71ba2285:pycbc/scheme.py": "27a0704bea2156e946e29e4437363036da21a05a8a98b403f93e605b75e9f5f0",
+      "6c82155044d58f3344b281869d87745f71ba2285:pycbc/strain/strain.py": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f",
+      "6c82155044d58f3344b281869d87745f71ba2285:pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_chisq.py": "7a7a1372b9dc90a99846f36ac6bc8bcc58c71aebd3579e1cae397635a816c2af",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_chisq_precision.py": "a14462bbb029a44f5dba6abf6e6d65564f454cbabc3803aa9e9aeb6da3cce59b",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_matchedfilter.py": "30beade448048c629c231da86c6901d0c461b5921c4facf22525c178d59fbb89",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_psd.py": "befc2c16c682fbc665570055c29320fd95c132ab78592faf7f85e461605c288c",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_scheme_runtime.py": "45ac62167a6a3c503391f56bbbfc21dd982fbb58f05448b22c3dc52b3aca02cb",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_scheme_selection.py": "2e2c754335a18fc18619d2271466948535f84c53313e0a2d96881042e3c59b36",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_sigmasq_series_precision.py": "477f041cf5dafd836e572a50c1e269438bf9bdd52a57190e9c3e88876b0bfde0",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_strain.py": "adbd2d57d2391e004f8163428ae4bd38964df5aeb2ea26e7b8350e1e46bef8ed",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_strain_psd_precision.py": "cc6380df5aad6b8b25f88cd194c9786c30e4d9eaaffe3f756ff9a129f95a8134",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_torch_chisq_cpu_optimization.py": "d92e1148de28c32d02ca8f5f717c432f2eefcac72cbafcf205b9345bf2970928",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_torch_chisq_sparse_dispatch.py": "f3034eb5fe710f01568b82ef90dc63e794af383e4b4c7b34ec081ea2098b64eb",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_torch_filter_pipeline.py": "fe864e1aa22f0a51051fc17eb31f85ba0c758643f08ef7131174ab747b67285f",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_torch_matchedfilter_cpu_optimization.py": "ebfbe3420abbffdf0a29780818bbded4c05f7ff2e210fb0a8f98b3908e0f2091",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_torch_psd_pipeline.py": "f46a04e8077a863c1fceefbf1f95299061fc9446faae99eff67e2acc427e1c79",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_torch_psd_protocol.py": "05ea81b494fd836332db164101f0f7603b72c2b06530c210088fbc99c627bcb3",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_torch_versioned_data_psd.py": "14d04001ea4ce3210668a03910fabb4a9a0aeec63876a3f9ae8bce93a0de3f6c",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:pycbc/psd/__init__.py": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:pycbc/scheme.py": "27a0704bea2156e946e29e4437363036da21a05a8a98b403f93e605b75e9f5f0",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:pycbc/strain/strain.py": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:pycbc/vetoes/chisq_torch.py": "6f61bd09869c86441b717ce28a62ba1532b24f273bce73a226268f269644cf84",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_chisq.py": "7a7a1372b9dc90a99846f36ac6bc8bcc58c71aebd3579e1cae397635a816c2af",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_chisq_precision.py": "917d98d5b2db0920f76d22d74db8152fbebfde646c2db04b2ca887d3add55be6",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_matchedfilter.py": "30beade448048c629c231da86c6901d0c461b5921c4facf22525c178d59fbb89",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_psd.py": "befc2c16c682fbc665570055c29320fd95c132ab78592faf7f85e461605c288c",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_scheme_runtime.py": "45ac62167a6a3c503391f56bbbfc21dd982fbb58f05448b22c3dc52b3aca02cb",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_scheme_selection.py": "2e2c754335a18fc18619d2271466948535f84c53313e0a2d96881042e3c59b36",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_sigmasq_series_precision.py": "a294cbbe29ea4f4120b3ef38e2c696bdc4708391c813c3356cbac310dcbc691a",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_strain.py": "adbd2d57d2391e004f8163428ae4bd38964df5aeb2ea26e7b8350e1e46bef8ed",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_strain_psd_precision.py": "cc6380df5aad6b8b25f88cd194c9786c30e4d9eaaffe3f756ff9a129f95a8134",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_torch_chisq_cpu_optimization.py": "d92e1148de28c32d02ca8f5f717c432f2eefcac72cbafcf205b9345bf2970928",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_torch_chisq_sparse_dispatch.py": "f3034eb5fe710f01568b82ef90dc63e794af383e4b4c7b34ec081ea2098b64eb",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_torch_filter_pipeline.py": "fe864e1aa22f0a51051fc17eb31f85ba0c758643f08ef7131174ab747b67285f",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_torch_matchedfilter_cpu_optimization.py": "ebfbe3420abbffdf0a29780818bbded4c05f7ff2e210fb0a8f98b3908e0f2091",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_torch_psd_pipeline.py": "f46a04e8077a863c1fceefbf1f95299061fc9446faae99eff67e2acc427e1c79",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_torch_psd_protocol.py": "05ea81b494fd836332db164101f0f7603b72c2b06530c210088fbc99c627bcb3",
+      "837f38d493420043e45fb1ad210a0ccf68bacbaa:test/test_torch_versioned_data_psd.py": "14d04001ea4ce3210668a03910fabb4a9a0aeec63876a3f9ae8bce93a0de3f6c",
+      "968bcd558117262af0d603710b054174659adb51:bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/fft/torchfft.py": "d8266c82aace68a4ad9a686cbd50c7b8e5ffda0522bcf3e35b58f457d7c97339",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/filter/matchedfilter.py": "40774107fdb566a626987dcded36dbd20f1a74c900d8d2801503209f3d7406c0",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/filter/matchedfilter_cpu.pyx": "f7fa6a9346e6a38a0bf67a2c4afeda581c74cc53c12513c8ef759c9813eb8e46",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/psd/estimate.py": "56399fd2ea312069baeaa9042f80e67b7715da3f5cbcb3653d84c79efd127209",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/scheme.py": "27a0704bea2156e946e29e4437363036da21a05a8a98b403f93e605b75e9f5f0",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/strain/strain.py": "9b7ba8b281caf0ae2601f7d581c9b3f5cf7781f9d2360269fe01200b6ea443f5",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/vetoes/chisq.py": "e3e89c87e4ed73398c79ee6acdf9b359998a6c206a95864cdcd1a03a4a2fb62f",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/vetoes/chisq_torch.py": "a2080725994d75ce4a76410df51065373cedfb39bb5ff2adac3f406bc4229447",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/waveform/decompress_torch.py": "459d309f7ba733905c75ddaa8d664d5d0b3b56802aa166f8b4c230a4a30fb7af",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:pycbc/psd/__init__.py": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:pycbc/scheme.py": "27a0704bea2156e946e29e4437363036da21a05a8a98b403f93e605b75e9f5f0",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:pycbc/strain/strain.py": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:pycbc/vetoes/chisq_torch.py": "a2080725994d75ce4a76410df51065373cedfb39bb5ff2adac3f406bc4229447",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_chisq.py": "7a7a1372b9dc90a99846f36ac6bc8bcc58c71aebd3579e1cae397635a816c2af",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_chisq_precision.py": "a14462bbb029a44f5dba6abf6e6d65564f454cbabc3803aa9e9aeb6da3cce59b",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_matchedfilter.py": "30beade448048c629c231da86c6901d0c461b5921c4facf22525c178d59fbb89",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_psd.py": "befc2c16c682fbc665570055c29320fd95c132ab78592faf7f85e461605c288c",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_scheme_runtime.py": "45ac62167a6a3c503391f56bbbfc21dd982fbb58f05448b22c3dc52b3aca02cb",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_scheme_selection.py": "2e2c754335a18fc18619d2271466948535f84c53313e0a2d96881042e3c59b36",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_sigmasq_series_precision.py": "a294cbbe29ea4f4120b3ef38e2c696bdc4708391c813c3356cbac310dcbc691a",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_strain.py": "adbd2d57d2391e004f8163428ae4bd38964df5aeb2ea26e7b8350e1e46bef8ed",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_strain_psd_precision.py": "cc6380df5aad6b8b25f88cd194c9786c30e4d9eaaffe3f756ff9a129f95a8134",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_torch_chisq_cpu_optimization.py": "d92e1148de28c32d02ca8f5f717c432f2eefcac72cbafcf205b9345bf2970928",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_torch_chisq_sparse_dispatch.py": "f3034eb5fe710f01568b82ef90dc63e794af383e4b4c7b34ec081ea2098b64eb",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_torch_filter_pipeline.py": "fe864e1aa22f0a51051fc17eb31f85ba0c758643f08ef7131174ab747b67285f",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_torch_matchedfilter_cpu_optimization.py": "ebfbe3420abbffdf0a29780818bbded4c05f7ff2e210fb0a8f98b3908e0f2091",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_torch_psd_pipeline.py": "f46a04e8077a863c1fceefbf1f95299061fc9446faae99eff67e2acc427e1c79",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_torch_psd_protocol.py": "05ea81b494fd836332db164101f0f7603b72c2b06530c210088fbc99c627bcb3",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_torch_versioned_data_psd.py": "14d04001ea4ce3210668a03910fabb4a9a0aeec63876a3f9ae8bce93a0de3f6c"
+    },
+    "verified_local_input_sha256": {
+      "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/config.json": "e29df1ee26ad1a513982a81b55d1f8b648126baacc7b509bc918e5c8e912d36a",
+      "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/run-unit-checks-v5.py": "518d539171ee96b763a2fe5a6722427a42e290bc0e474f54af96f4842ff4610b",
+      "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/source-v5.json": "db00a8b27cd8a8986aa6c55d403e1d396f89ca686f80badd0755b29847925ae8",
+      "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/unit-tests-v5.json": "ee0f5d5b55f84ea4e89d8f9b00c7a041ede3834ddc0ec18674931732bc5ebf6f",
+      "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/unit-tests-v5.log": "f5e59345dd7e791f865e71758b9ae8d0a40af7ffbcae133bb44977c6cd29fd05",
+      "/Users/xangma/repos/pycbc/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865",
+      "/Users/xangma/repos/pycbc/pycbc/events/eventmgr_cython.cpython-312-darwin.so": "4dc6c6102c89e6f954762b6e2eeb7488e5c3c4e7ce5cccabd414e6f95e931989",
+      "/Users/xangma/repos/pycbc/pycbc/events/simd_threshold_cython.cpython-312-darwin.so": "2b54d4e5c44c5d16b5397b6fe5421bd365d208ee4229c7f3c1e52fc80e90a3cb",
+      "/Users/xangma/repos/pycbc/pycbc/types/array_cpu.cpython-312-darwin.so": "02c6fec41262957c5bf1418dc047dfd1ccd11b79748561031caa613efb77e9f3",
+      "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+      "capture-chisq-inputs-v2.py": "440d5405f2d5a9706e8c771d570de45c19f020858cfbf27563a06874fb833c00",
+      "capture-chisq-inputs-v4.py": "24d04c434243416248645148df985cf62e19f49f5a1b6e2124d89fd0198f8070",
+      "capture-chisq-inputs-v4b.py": "01e12c2d43ca180f15a9ef97109e6363037ef93b6195b523835b0302cd28d7c8",
+      "capture-chisq-inputs.py": "accfdef4a6266d0bd8bbbb0ce92451d17ed8f33ed74ebac05b4ad30a0db4db8b",
+      "chisq-capture-v4-cpu/capture-0-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4-cpu/capture-0-chisq.npy": "c19f5684d7616beee042a28734bcaa7e1205454181ffe307ba6ec03f76886460",
+      "chisq-capture-v4-cpu/capture-0-corr.npy": "4ac0b32e8be4ed8f168d04dc2eeae8532f2157f8fab9c6ab8e2f2199f76b51b4",
+      "chisq-capture-v4-cpu/capture-0-indices.npy": "766d0e0e5d7cfb6f07cd0648b6dfe32d431577c9e456184eb8ec3a7d2ff210e4",
+      "chisq-capture-v4-cpu/capture-0-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "chisq-capture-v4-cpu/capture-0-snrv.npy": "88d98ad5a10b96fa427ae4787c92dd973e8f6d224b7f897b91cfc263b5a46043",
+      "chisq-capture-v4-cpu/capture-0-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+      "chisq-capture-v4-cpu/capture-1-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4-cpu/capture-1-chisq.npy": "1840b60a724d86161ae49bb430effe1dd4b47f94a21a58b3c6e9af98d705d7ac",
+      "chisq-capture-v4-cpu/capture-1-corr.npy": "76a090b7720939fab29a85907d687dfa8a279a895ded186d71e5c460431b20ae",
+      "chisq-capture-v4-cpu/capture-1-indices.npy": "b981fdca6390b213535d4e697b175360578a5b917d39ea68bd71ef198ed92178",
+      "chisq-capture-v4-cpu/capture-1-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "chisq-capture-v4-cpu/capture-1-snrv.npy": "26febe8f6804e4b9433003d1af0e9d1aeb2e5488b47ac769f6b03edfa6fa6e32",
+      "chisq-capture-v4-cpu/capture-1-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+      "chisq-capture-v4-cpu/capture-2-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4-cpu/capture-2-chisq.npy": "f169cc10e8a7332ab820ab15aae4acaa59fdceef042109fac314cd03df07724f",
+      "chisq-capture-v4-cpu/capture-2-corr.npy": "327e23e517dc97b9700375adaa023da2dce764a4b88cc736cc2c0a354bb88e8f",
+      "chisq-capture-v4-cpu/capture-2-indices.npy": "61e6db6a2a3e28b256852eaddc38b8660036a7192a847b89a60fbc84d4a7b21b",
+      "chisq-capture-v4-cpu/capture-2-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "chisq-capture-v4-cpu/capture-2-snrv.npy": "24f240ad44e08fd17d0b91f2283a26e3c4564db7ba97f344dbb519155df3feaf",
+      "chisq-capture-v4-cpu/capture-2-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+      "chisq-capture-v4-cpu/conditioned-strain.npy": "4de2a5395ef6a71e36a4a9f7850ce319c277915bf7c15e73a1a3718566a7f0c2",
+      "chisq-capture-v4b-cpu/capture-0-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4b-cpu/capture-0-chisq.npy": "c19f5684d7616beee042a28734bcaa7e1205454181ffe307ba6ec03f76886460",
+      "chisq-capture-v4b-cpu/capture-0-corr.npy": "4ac0b32e8be4ed8f168d04dc2eeae8532f2157f8fab9c6ab8e2f2199f76b51b4",
+      "chisq-capture-v4b-cpu/capture-0-indices.npy": "766d0e0e5d7cfb6f07cd0648b6dfe32d431577c9e456184eb8ec3a7d2ff210e4",
+      "chisq-capture-v4b-cpu/capture-0-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "chisq-capture-v4b-cpu/capture-0-snrv.npy": "88d98ad5a10b96fa427ae4787c92dd973e8f6d224b7f897b91cfc263b5a46043",
+      "chisq-capture-v4b-cpu/capture-0-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+      "chisq-capture-v4b-cpu/capture-1-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4b-cpu/capture-1-chisq.npy": "1840b60a724d86161ae49bb430effe1dd4b47f94a21a58b3c6e9af98d705d7ac",
+      "chisq-capture-v4b-cpu/capture-1-corr.npy": "76a090b7720939fab29a85907d687dfa8a279a895ded186d71e5c460431b20ae",
+      "chisq-capture-v4b-cpu/capture-1-indices.npy": "b981fdca6390b213535d4e697b175360578a5b917d39ea68bd71ef198ed92178",
+      "chisq-capture-v4b-cpu/capture-1-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "chisq-capture-v4b-cpu/capture-1-snrv.npy": "26febe8f6804e4b9433003d1af0e9d1aeb2e5488b47ac769f6b03edfa6fa6e32",
+      "chisq-capture-v4b-cpu/capture-1-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+      "chisq-capture-v4b-cpu/capture-2-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4b-cpu/capture-2-chisq.npy": "f169cc10e8a7332ab820ab15aae4acaa59fdceef042109fac314cd03df07724f",
+      "chisq-capture-v4b-cpu/capture-2-corr.npy": "327e23e517dc97b9700375adaa023da2dce764a4b88cc736cc2c0a354bb88e8f",
+      "chisq-capture-v4b-cpu/capture-2-indices.npy": "61e6db6a2a3e28b256852eaddc38b8660036a7192a847b89a60fbc84d4a7b21b",
+      "chisq-capture-v4b-cpu/capture-2-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "chisq-capture-v4b-cpu/capture-2-snrv.npy": "24f240ad44e08fd17d0b91f2283a26e3c4564db7ba97f344dbb519155df3feaf",
+      "chisq-capture-v4b-cpu/capture-2-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+      "chisq-capture-v4b-cpu/conditioned-strain.npy": "4de2a5395ef6a71e36a4a9f7850ce319c277915bf7c15e73a1a3718566a7f0c2",
+      "chisq-capture-v4b-cpu/status.json": "ee5b0a1f37df2534d6ebe4d9bd9a454cec5bb6f93d4c7a97a8696d5a029825a5",
+      "chisq-capture-v4b-torch-cuda/capture-0-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4b-torch-cuda/capture-0-chisq.npy": "6ac14192e0502c02cb89fbee8778aa40978bea25068b586bea988dd5a71dff46",
+      "chisq-capture-v4b-torch-cuda/capture-0-corr.npy": "2118ff5f86e10bda1f8a7bb366c9c9df4ee23eab87a87b8f70cee2c719c2eabd",
+      "chisq-capture-v4b-torch-cuda/capture-0-indices.npy": "68e8986e259b155fcc75ee936903430e6c10ba8f7e9e0f8d614db2a805ee6077",
+      "chisq-capture-v4b-torch-cuda/capture-0-psd.npy": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf",
+      "chisq-capture-v4b-torch-cuda/capture-0-snrv.npy": "bb258a6defd26b8c10ddac9a7944f1ae8849378c3d8332d4900ddafe90bf9689",
+      "chisq-capture-v4b-torch-cuda/capture-0-template.npy": "03bbfec4d28dc14c727711b01bc2b3d651f201f76394fb75a2f9c1286717a4e7",
+      "chisq-capture-v4b-torch-cuda/capture-1-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4b-torch-cuda/capture-1-chisq.npy": "c74c31bf721669eac35da8ef02bfe15c9770ce4e6d8c6669bec3c251d750d084",
+      "chisq-capture-v4b-torch-cuda/capture-1-corr.npy": "b882cafe92a297ea27838da077334d69a7b3dded20b2ec48ae3979e7e51ac4e0",
+      "chisq-capture-v4b-torch-cuda/capture-1-indices.npy": "d5099101055c01db83748cd978a5c1a9c341915e2810c8774c29b2579e6884e9",
+      "chisq-capture-v4b-torch-cuda/capture-1-psd.npy": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf",
+      "chisq-capture-v4b-torch-cuda/capture-1-snrv.npy": "888b9bc45e6c83a504f641229d7bbadc989a7d08fe18352c1c04c639d36f4e93",
+      "chisq-capture-v4b-torch-cuda/capture-1-template.npy": "03bbfec4d28dc14c727711b01bc2b3d651f201f76394fb75a2f9c1286717a4e7",
+      "chisq-capture-v4b-torch-cuda/capture-2-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+      "chisq-capture-v4b-torch-cuda/capture-2-chisq.npy": "b6f2a37117f5b78d0622a146c190e30c5f0782be3ae0f48b486a0633035fa379",
+      "chisq-capture-v4b-torch-cuda/capture-2-corr.npy": "9dbde7bb100a83c212a49ee41d84f788e35b4c386e4223377307f9887d944361",
+      "chisq-capture-v4b-torch-cuda/capture-2-indices.npy": "3cdc4d7ac74814e5e79382adee617ba43197d79e71c6d3c918d1254b3a8bfd27",
+      "chisq-capture-v4b-torch-cuda/capture-2-psd.npy": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf",
+      "chisq-capture-v4b-torch-cuda/capture-2-snrv.npy": "a2fb74590aab981cdbab00b0037221fd3c6b2d790ec29597f08081301b8ef972",
+      "chisq-capture-v4b-torch-cuda/capture-2-template.npy": "03bbfec4d28dc14c727711b01bc2b3d651f201f76394fb75a2f9c1286717a4e7",
+      "chisq-capture-v4b-torch-cuda/conditioned-strain.npy": "4de2a5395ef6a71e36a4a9f7850ce319c277915bf7c15e73a1a3718566a7f0c2",
+      "chisq-capture-v4b-torch-cuda/status.json": "fa74cd7b670c86978357d8aaa8273e6536fd795af6b499a5382f251a91709d86",
+      "chisq-captured-bin-swap-diagnostic.json": "5371f8bc3cf0c1db941ea7544ef8faa73ad010d940b0353c6c988d264c2a8791",
+      "chisq-cuda-prefix-repeatability.json": "2460675d0c5d8c13dbd0f70422c41fc729483b321f4df1e3a0f95a1c4b247ba6",
+      "chisq-identical-input-diagnostic.json": "8e3d5a33ed959d30196a228b487014e9adaeaa02a825ccd0751c6658ff153770",
+      "chisq-input-capture-cpu/capture-0-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+      "chisq-input-capture-cpu/capture-0-chisq.npy": "5df589cbf674b1957da9a588610964b45541fdff931a2b7badd7667168604266",
+      "chisq-input-capture-cpu/capture-0-corr.npy": "41b0ecd95c6b1889405110fecea9a587292758f162bb244195adf3001b11d7fe",
+      "chisq-input-capture-cpu/capture-0-indices.npy": "ee45beca5fa18b34aaa35b2740bc50e4f69d127390b91244a7ab62ff0577791a",
+      "chisq-input-capture-cpu/capture-0-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+      "chisq-input-capture-cpu/capture-0-snrv.npy": "a0952edde162b3fbfa8fbfb1a92dced4831224bc1adf70729b248e9419cf0619",
+      "chisq-input-capture-cpu/capture-0-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+      "chisq-input-capture-cpu/capture-1-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+      "chisq-input-capture-cpu/capture-1-chisq.npy": "9f4f58be845262c15a3759d96549166a02a207d5d4cc378cacf1bc6cdf8040a5",
+      "chisq-input-capture-cpu/capture-1-corr.npy": "1e2c6668d12e0371563ee588e990dc07c9e42c071dde5cd0fbff9e37db429fa1",
+      "chisq-input-capture-cpu/capture-1-indices.npy": "626cee6c6a9da6c3d4479f29d803dcd4314c970c14c21910733f37e43a5dae52",
+      "chisq-input-capture-cpu/capture-1-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+      "chisq-input-capture-cpu/capture-1-snrv.npy": "f6dda6162ef57ac5d1a4bede5100a2efc80965c49c13e2ec682ed67b32500418",
+      "chisq-input-capture-cpu/capture-1-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+      "chisq-input-capture-cpu/capture-2-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+      "chisq-input-capture-cpu/capture-2-chisq.npy": "c1003b7f6d58a14d32a34aa4bf58de4bc2bb3571897c2ac7b179c0619a6947e4",
+      "chisq-input-capture-cpu/capture-2-corr.npy": "4a7d5f6f97db335f400114c92af31ee8f4f9fc6181dcf355ba407163cae8790f",
+      "chisq-input-capture-cpu/capture-2-indices.npy": "62088e711eedeb8a604a82ba167346ec512d804bf95d1f06d0db9ffd52b9d60f",
+      "chisq-input-capture-cpu/capture-2-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+      "chisq-input-capture-cpu/capture-2-snrv.npy": "17fb70c807b9027064e19203f891eb24525b8ae36ba1850ac4ae78e88a5fc096",
+      "chisq-input-capture-cpu/capture-2-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+      "chisq-input-capture-cpu/capture-3-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+      "chisq-input-capture-cpu/capture-3-chisq.npy": "9845e45f8d23eda1bf97fdc9a508e3ab79b492882860ee59940ea620390d00fb",
+      "chisq-input-capture-cpu/capture-3-corr.npy": "80242c538323714bfa6b9b33c8999e77c3a5e5205de8e8f215ff9641c6b36354",
+      "chisq-input-capture-cpu/capture-3-indices.npy": "cb41cdf39c23c172a4ea31243f4b575bf82a35ad451640ba52c16f5cb603e7af",
+      "chisq-input-capture-cpu/capture-3-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+      "chisq-input-capture-cpu/capture-3-snrv.npy": "55e3ea6e81b96d7a3658b5e0a2684a1bb1506e3a9169f6327598f90fdb6bc6c7",
+      "chisq-input-capture-cpu/capture-3-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+      "chisq-input-capture-cpu/capture-verification.json": "918dbe385cecf9ac2cb0f7b6e70e2665178432e9fc381f5e344dc3efb1afe33a",
+      "chisq-input-capture-cpu/conditioned-strain.npy": "4de2a5395ef6a71e36a4a9f7850ce319c277915bf7c15e73a1a3718566a7f0c2",
+      "chisq-input-capture-cpu/status.json": "b9ac86bca1d82c172059b8c695aa1893e0a5cdb87ff33cbd27d79358729faacf",
+      "chisq-input-capture-cpu/triggers.hdf": "62a253054e75368e40477a8f1bc06deb6ae28869e83cbe7a6935b3d0afc8efb9",
+      "chisq-input-capture-cuda/capture-0-bins.npy": "fa1575b89aa117fd645254de511b5a0b7b72ea5400c5f08e708aa98a4e804798",
+      "chisq-input-capture-cuda/capture-0-chisq.npy": "8063109413d191f59e995a650dc93cd2446cb7537c02581c422172e3068480e9",
+      "chisq-input-capture-cuda/capture-0-corr.npy": "3350170301efc714d849e995014e489684114b12975c8d999118c9a01ac240b4",
+      "chisq-input-capture-cuda/capture-0-indices.npy": "739738d7efda186335b911604ce39f7c213d15e2c843a1fbf4d7c40609e94b50",
+      "chisq-input-capture-cuda/capture-0-psd.npy": "dacef3475235c68e04f6125cf57f6fe76e896556940596233eda30d66b59a286",
+      "chisq-input-capture-cuda/capture-0-snrv.npy": "0cc6d336dbed9cc48f575ff36bdf34cfd978ab76fcc869b9acde46b136ab8a3f",
+      "chisq-input-capture-cuda/capture-0-template.npy": "093e51ede2c3322573a3a7335e696b4741e904d72ee767e35e8391214dcf7e4e",
+      "chisq-input-capture-cuda/capture-verification.json": "d67877ed4ff9785eda48cb5fda2c994bdd40056d72b2995995e87c6e1ebd7e69",
+      "chisq-input-capture-cuda/conditioned-strain.npy": "4de2a5395ef6a71e36a4a9f7850ce319c277915bf7c15e73a1a3718566a7f0c2",
+      "chisq-input-capture-cuda/status.json": "28308e0e279988e1f777d39e7fa79c7e1bdef34796b163c0382f936aef2ea726",
+      "chisq-input-capture-cuda/triggers.hdf": "da063160bf20802a3e77593428d9211975a7645ffdcc62b380376eedaf33d142",
+      "chisq-precision-baseline-local-v2.log": "eba352af39eff4b6ff5ae717dabe410f4b95e1491b7da47b487c7eb704041e1a",
+      "chisq-precision-existing-local-v2.log": "2b54ef1d63e048465212e83a52efeac5f13d61ddb832c9caca758a2500942e86",
+      "chisq-precision-regressions-local-v2.log": "2a10f845e151be446d4971304c2d30d6582f62d880c4f0b053e216b63f272487",
+      "chisq-precision-regressions-local-v3.log": "84715beaa56bcd8e71b27483c2700c5edbd1c9fc786a43e17e92b247fd4f4e44",
+      "config.json": "e29df1ee26ad1a513982a81b55d1f8b648126baacc7b509bc918e5c8e912d36a",
+      "diagnose-captured-chisq-bins.py": "59d30a551ad927174ca144fd59c2f4dfc63c5fb9902bf8f9585345355597a72a",
+      "diagnose-chisq-coefficient-v4.py": "ee4ec20a7ab761640453b38cc380863c19c35c7bdedaef2d0033522bcace9155",
+      "diagnose-chisq-inputs.py": "f935e2430478dc24a4be6213c0152438f2c30a355e829f19bdcf8179c2a6248f",
+      "diagnose-prefix-reference.py": "b6d5e04075b93be9a60469a6375f302fe635e1e3df88c357c4204b895b540824",
+      "diagnose-snr-psd-v2.py": "ba690a320d7018cf48f27fdd5130cf4680865cdfdd23526a899e916356b91000",
+      "diagnose-snr-psd.py": "49424d202dfaa121a1929f72f73ce82be6394e7886db2c9af79c138cb20c8beb",
+      "final-qualification-parity.json": "45455fcdeb2fcf03ae8341f3ca813fd799ff6ef132c393a7117094b00561246c",
+      "inputs/bank-compressed-1e5.hdf": "161820754117cd51b24a7bb672ea456cf7b2a3808e69690c23235d024b1a2916",
+      "inspiral-source-v2.bundle": "b4d02a885ce2a22d00272057355a0a2a2b7cb9309a8903a8abf63b6b58612d0e",
+      "inspiral-source-v3.bundle": "28af18df97b32bd4d3a64a826b0b471697288002e9ca0bc9e37989be46f9489a",
+      "inspiral-source-v4.bundle": "e5fa4d40eb7e23e386d36e95a34dc76f24e66508a6e0a7aac58277daf20ba748",
+      "inspiral-source-v5.bundle": "b6f2112432ee8e0eb6878dbbe1da8fcc1f67bcd7837c61c908767e23638600fc",
+      "local-strain-psd-existing-fixed-v1.log": "97b20e710c99b5cb985fb427e792b3f94d6f1d9ce57019728f125d697a12178f",
+      "local-strain-psd-precision-baseline-v2.log": "e1540ef50b8f4b18cabbc75e797c3274783bc68c54d92c8ebfd56e75bb3cbb7d",
+      "local-strain-psd-precision-fixed-v2.log": "cdead20ee52019b8851a4770c1e0a63a657524155c8fe16f484141707a45f303",
+      "numerical-investigation-v1.json": "14ca7c602a362b91fa4a0332265f5a236874716cfc530d51b807cbc23981275a",
+      "numerical-investigation-v1.md": "ff1f511b1b64b239d5adef2a278d8b8642c8233854d2409cfa4a47c5faf28077",
+      "precision-backend-smoke-parity-v2.json": "3eca1025773c947a2b95bc326514a6ccb42b9cb2cfe5f43c4e5ca416ced6dde5",
+      "prefix-reference-diagnostic.json": "47d70f65112726b4ab928297eec3d0481e759e3de3d9525d58abec8c4d6f7583",
+      "prefix-reference-diagnostic.log": "9db54495a0b65184a82f83e8e2bbdb39e4d55641af898d207cd28cd9edaf0d2c",
+      "qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+      "repeat-cuda-chisq-bins.py": "4134611bc44be4fbc403df4414c9e91f5d466f5d86b34a0fb262c96008d76e2d",
+      "run-case.py": "243eef653386a76d1ead4b92542bc84088e882df9011faab5a8154154da9c456",
+      "run-local-chisq-precision-tests-v2.py": "9b863cd404479cd752141df907758c0277d0f4927946fc9048f5d8c3646084f0",
+      "run-local-strain-psd-precision-tests.py": "f5eff7826a76e6b360c576ad7ff56b79d49c42c735298a907d6dcda217c71522",
+      "run-snr-psd-diagnostic-v2.py": "f5790e1ef02d027b74fde4f26ce33bcb932bf654f7ac4dbe4192fa49cc2f56b8",
+      "run-snr-psd-diagnostic.py": "f3faf1c486a132837ae103c6e492b97ca9e2b8c2b109006608dd3e41b7d344f6",
+      "run-unit-checks-v3.py": "4f34cc6db9053cb377bdff443e1de570f6cd71fdd763a60c853782d8a18aecbb",
+      "run-unit-checks-v4.py": "bdc729cf02738c64e3ad2dcf5bb839e16b38dc81f4444d4c574c68847c7a6298",
+      "runs/qual-final-cpu-l512/arrays/qualification-psd-000.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+      "runs/qual-final-cpu-l512/qualification.json": "08e24769881d15d057951cf1b0249968f4047f7f07f4e1b8017982e4fd03b507",
+      "runs/qual-final-cpu-l512/receipt.json": "0e84a8c9ae1a3433f452fa563c2398f4dc3848c833e9771eb86975570a6fa955",
+      "runs/qual-final-cpu-l512/triggers.hdf": "5da088458553a20022949706d1286b6d30e2b57e911c1bad955922a91ad6387a",
+      "runs/qual-final-torch-cpu-l512/arrays/qualification-psd-000.npy": "0feb48ec2ced12ed323cfe70d011d1c94649dbfd37251ad9958768a227fec4e5",
+      "runs/qual-final-torch-cpu-l512/qualification.json": "3a05f803b4c31ae241168e5cfaa8837461d8816e996d22e158fe2addd4e3a7a3",
+      "runs/qual-final-torch-cpu-l512/receipt.json": "f0ff572675a4a6534c11d7b144165e3e0b1070cf1877da1e3102293e40b83b07",
+      "runs/qual-final-torch-cuda-l512/arrays/qualification-psd-000.npy": "dacef3475235c68e04f6125cf57f6fe76e896556940596233eda30d66b59a286",
+      "runs/qual-final-torch-cuda-l512/qualification.json": "713a33a1f1682872db54286b4e4a932c73f057eb8d28e591d34d70e45ea9022c",
+      "runs/qual-final-torch-cuda-l512/receipt.json": "f24e1ee50ab815dab437409a5c9791c66fce11fa7d143fd4ca5b7f25acdcc9a5",
+      "runs/qual-final-torch-cuda-l512/triggers.hdf": "c11bcac2b7eb95b0d1d8a81699ab7801e3b26ae00979dfddd5faab0f645fb60b",
+      "runs/qual-precision-cpu-l512/receipt.json": "e5969aac76697e86d800fa5bf8ab52bb405bf4c0d48c258b82228ba0a7259a6f",
+      "runs/qual-precision-cpu-l512/triggers.hdf": "f720656f5d2b5d3fc790ddf048c4071c60b6d2b6e66968c2c82bec88c2c64112",
+      "runs/qual-precision-torch-cpu-l512/receipt.json": "09b2cbfad822b2ab28919055d981c508ab29f2cf65b8341212a80f3b1ba0e2ea",
+      "runs/qual-precision-torch-cpu-l512/triggers.hdf": "1ef72ad54eb9810c7059f5fa5d04e9414283e9d230a6a9d257ecaa2c0b57baaa",
+      "runs/qual-precision-torch-cuda-l512/receipt.json": "b3f52bc982a6026211805890228e34b38707ca1397b84d7ed5d601b7af2576ed",
+      "runs/qual-precision-torch-cuda-l512/triggers.hdf": "ddfd323b57ff1440da42057b46eb63167d875a5800c1c13dc68ac8c3bf4de7d5",
+      "setup-source-v3.py": "c06ae30001aec37219c4569d38340a02f1cd7539a73cee06261ca5ac754f5151",
+      "setup-source-v4.py": "1bc1985a85125b040ab8cf621b2b545ea405196737b8716e08952e6883495af3",
+      "setup-source-v5.py": "aaef4d5fd7cd4bbcb378aeadc59037218d14e3b613d5a3648e787404ad088963",
+      "snr-psd-diagnostic-v1.status.json": "528e69c4cb6d2d7b72530cd2ea8e74d589a6ebe6a9bfc7538dc48de36f246012",
+      "snr-psd-diagnostic-v1/report.json": "6f63b3e4a9cd00cfaae5f0a1ea3852bfa352dfe987ef50e98b295b3295e646ab",
+      "snr-psd-diagnostic-v2.status.json": "aef163a5c6934700870701e4fa374df36c3e69fdb8fd0ac78a59d3cd56526e58",
+      "snr-psd-diagnostic-v2/data-fft-cpu-fft64_cast32.npy": "ff70f2567127b7838fbb601fab8dc4a002a6d141a016da977b071eacb9a10447",
+      "snr-psd-diagnostic-v2/data-fft-cpu-native32.npy": "6700c46d33c1318ff0c3b5f937a207d216edb79e63956f592be3784217e18661",
+      "snr-psd-diagnostic-v2/data-fft-torch-cpu-fft64_cast32.npy": "ff70f2567127b7838fbb601fab8dc4a002a6d141a016da977b071eacb9a10447",
+      "snr-psd-diagnostic-v2/data-fft-torch-cpu-native32.npy": "d6be3a134e774ac607b39b34242a276b19b0db1512a1424b627e43bc456095fb",
+      "snr-psd-diagnostic-v2/data-fft-torch-cuda-fft64_cast32.npy": "bec09e0ad0fb2de0c83a7ef79b4577483ead912ad082e9a0114b1bd7f47d88b5",
+      "snr-psd-diagnostic-v2/data-fft-torch-cuda-native32.npy": "11deca0ffb0ae553acf75ad6e9757682aab5281373b9b39fde039c04594c3630",
+      "snr-psd-diagnostic-v2/psd-cpu-all64_cast32.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "snr-psd-diagnostic-v2/psd-cpu-common_cpu_all64_cast32.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "snr-psd-diagnostic-v2/psd-cpu-native32.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+      "snr-psd-diagnostic-v2/psd-cpu-trunc64_cast32.npy": "18c798a8d3a46609fab42a9d5ef123de54933caf34dc38b57e1a27e47c23b1d1",
+      "snr-psd-diagnostic-v2/psd-torch-cpu-all64_cast32.npy": "4b083eda5f7778779ba7b5f153a0e2b3ac0d623f6cc60d9e22b300244d5ead9a",
+      "snr-psd-diagnostic-v2/psd-torch-cpu-common_cpu_all64_cast32.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "snr-psd-diagnostic-v2/psd-torch-cpu-native32.npy": "0feb48ec2ced12ed323cfe70d011d1c94649dbfd37251ad9958768a227fec4e5",
+      "snr-psd-diagnostic-v2/psd-torch-cpu-trunc64_cast32.npy": "2e09c716c840c01b7ef1fdcc11740f257dd744962b695fc38e17f32b88cd8be8",
+      "snr-psd-diagnostic-v2/psd-torch-cuda-all64_cast32.npy": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf",
+      "snr-psd-diagnostic-v2/psd-torch-cuda-common_cpu_all64_cast32.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "snr-psd-diagnostic-v2/psd-torch-cuda-native32.npy": "dacef3475235c68e04f6125cf57f6fe76e896556940596233eda30d66b59a286",
+      "snr-psd-diagnostic-v2/psd-torch-cuda-trunc64_cast32.npy": "470742e88e5224e33e6b23cec40595e2b6f2b8fc69d0e7bdb3fdf54fab0ac50b",
+      "snr-psd-diagnostic-v2/report.json": "2357ee6d6f794afafe51110d1315fef4ca3df2eb2b584df8365954800fd6db8b",
+      "source-precision-provenance-v4.json": "af7b874800d169d64d1f3cc6a9c6655b53bd5d2e3576995f78db04822d7b746d",
+      "source-precision-provenance.json": "dae1bfd9ac7a98511e7cf67cab1273234230fb017eea9eb9b517a787dab68a43",
+      "source-v2.json": "76ae6c88df55db71fcdaa9bc00f8a498fc06c75744c8869badc2d95843caa4b2",
+      "source-v3.json": "38184f10ae2286fec44225fbc4f14e47ea3249b5e207567990efcff0307cc2fb",
+      "source-v4.json": "43caf87e57b98782caa3c0e43163e489b9e12c493b2ffc278add1d434f7b876a",
+      "source-v5.json": "db00a8b27cd8a8986aa6c55d403e1d396f89ca686f80badd0755b29847925ae8",
+      "unit-tests-v3.json": "11a4a46b7ba39df5da71b7c8c8aab70b9fc41d1dcef0795785522f22cf4f4628",
+      "unit-tests-v3.log": "38f344276268bb6869b6afb05bfcb685ff168884964f25b485318af3c908410f",
+      "unit-tests-v4.json": "600ef4f5141aca0b825deff572ea1471a588de2224d2e813eb6c2a7d60e3e35c",
+      "unit-tests-v4.log": "863707faa355f8de7604edbb9128ae0f0b8c072c6117d94672e74f69e02e6e61"
+    }
+  },
+  "remaining_qualification": [
+    "Repeat full CLI qualification on this source and compare every trigger/metric under original budgets; resolve all remaining violations and unmatched triggers.",
+    "Repeat CUDA qualification, requalify compression and boundaries, retune CPU reference and collect matched timings on the final source.",
+    "No final new-source full CLI parity, throughput or capacity pass is claimed."
+  ],
+  "retained_diagnostic_failure": {
+    "cause": "Missing diagnose-chisq-inputs.py helper before replay; successful retry log retained separately as chisq-coefficient-v4b.log.",
+    "log": "chisq-coefficient-v4.log"
+  },
+  "schema_version": 3,
+  "scientific_budgets": {
+    "atol": 1e-05,
+    "max_examples": 12,
+    "phase_atol": 0.0001,
+    "rtol": 0.0001,
+    "sigmasq_rtol": 1e-05
+  },
+  "scope": "New v3 artifacts only; v2 and all earlier evidence, failures, source, tests and runners preserved. No remote operation or new experiment performed for this synthesis.",
+  "source": {
+    "baseline_commit": "968bcd558117262af0d603710b054174659adb51",
+    "corrected_blobs": {
+      "pycbc/filter/matchedfilter.py": {
+        "git_blob": "f76b2b5581e36d6e264715454ec7a7d7f920b3b5",
+        "sha256": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786"
+      },
+      "pycbc/psd/__init__.py": {
+        "git_blob": "8fccdb09a1ef235ab86fc302edf9efbcf4eef275",
+        "sha256": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab"
+      },
+      "pycbc/strain/strain.py": {
+        "git_blob": "c735b15db8c68ba9e5153e8d970fe3c7faa7dd10",
+        "sha256": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f"
+      },
+      "pycbc/vetoes/chisq.py": {
+        "git_blob": "df78834e053c182d96252649a8650623cfecad8f",
+        "sha256": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c"
+      },
+      "pycbc/vetoes/chisq_torch.py": {
+        "git_blob": "153963bdd69206117acf1d5e1b3532ccf854a813",
+        "sha256": "6f61bd09869c86441b717ce28a62ba1532b24f273bce73a226268f269644cf84"
+      },
+      "test/test_chisq_precision.py": {
+        "git_blob": "2bffa441ea526a678fd9ebfff00a5614fbcafdfc",
+        "sha256": "917d98d5b2db0920f76d22d74db8152fbebfde646c2db04b2ca887d3add55be6"
+      },
+      "test/test_sigmasq_series_precision.py": {
+        "git_blob": "b7eec751204f9825928312ecfcdb60f15eb219d4",
+        "sha256": "a294cbbe29ea4f4120b3ef38e2c696bdc4708391c813c3356cbac310dcbc691a"
+      },
+      "test/test_strain_psd_precision.py": {
+        "git_blob": "799d08a751902bc55a6aee704ebe7c32fadbecdf",
+        "sha256": "cc6380df5aad6b8b25f88cd194c9786c30e4d9eaaffe3f756ff9a129f95a8134"
+      }
+    },
+    "corrected_commit": "837f38d493420043e45fb1ad210a0ccf68bacbaa",
+    "exact_parent_diff": "diff --git a/pycbc/vetoes/chisq_torch.py b/pycbc/vetoes/chisq_torch.py\nindex 2eac033596..153963bdd6 100644\n--- a/pycbc/vetoes/chisq_torch.py\n+++ b/pycbc/vetoes/chisq_torch.py\n@@ -516,7 +516,9 @@ def _accelerator_batched_bin_sums(corr, pts, bins):\n             bin_ends,\n             out_re,\n             out_im,\n-            two_pi_over_N,\n+            # Runtime Python floats become fp32 Triton arguments. Preserve\n+            # this coefficient for the kernel's fp64 phase range reduction.\n+            tl.constexpr(two_pi_over_N),\n             out_re.stride(0),\n             out_re.stride(1),\n             BLOCK_SIZE=512,\ndiff --git a/test/test_chisq_precision.py b/test/test_chisq_precision.py\nindex ebcb2f8150..2bffa441ea 100644\n--- a/test/test_chisq_precision.py\n+++ b/test/test_chisq_precision.py\n@@ -1,4 +1,4 @@\n-\"\"\"Check CPU point chi-squared phases across long correlation vectors.\"\"\"\n+\"\"\"Check point chi-squared phases across long correlation vectors.\"\"\"\n \n import numpy as np\n import pytest\n@@ -8,9 +8,36 @@ from pycbc.types import Array, FrequencySeries\n from pycbc.vetoes.chisq import power_chisq_at_points_from_precomputed\n \n \n+@pytest.mark.parametrize(\"device\", [\"cpu\", \"torch-cuda\"])\n @pytest.mark.parametrize(\"dtype\", [np.complex64, np.complex128])\n @pytest.mark.parametrize(\"array_indices\", [False, True])\n-def test_long_cpu_point_chisq_matches_direct_phases(dtype, array_indices):\n+def test_long_point_chisq_matches_direct_phases(\n+    device, dtype, array_indices, monkeypatch\n+):\n+    triton_launches = []\n+    if device == \"torch-cuda\":\n+        torch = pytest.importorskip(\"torch\")\n+        if not torch.cuda.is_available():\n+            pytest.skip(\"CUDA not available\")\n+        if dtype == np.complex64:\n+            from pycbc.vetoes import chisq_torch\n+\n+            if not chisq_torch._HAS_TRITON:\n+                pytest.skip(\"Triton not available\")\n+            kernel = chisq_torch._triton_pointwise_chisq_bin_kernel\n+            original_launch = kernel.run\n+\n+            def record_launch(*args, **kwargs):\n+                result = original_launch(*args, **kwargs)\n+                if not kwargs.get(\"warmup\", False):\n+                    triton_launches.append(True)\n+                return result\n+\n+            monkeypatch.setattr(kernel, \"run\", record_launch)\n+        processing_scheme = scheme.TorchScheme(\"cuda\")\n+    else:\n+        processing_scheme = scheme.CPUScheme(1)\n+\n     size = 2**21\n     rng = np.random.default_rng(782)\n     values = (rng.normal(size=size) + 1j * rng.normal(size=size)).astype(dtype)\n@@ -33,12 +60,19 @@ def test_long_cpu_point_chisq_matches_direct_phases(dtype, array_indices):\n         - abs(snr.astype(np.complex128)) ** 2\n     ) * norm**2\n \n-    with scheme.CPUScheme(1):\n+    with processing_scheme:\n         correlation = FrequencySeries(values, delta_f=1 / 512)\n         indices = Array(points) if array_indices else points\n         actual = power_chisq_at_points_from_precomputed(\n             correlation, snr, norm, bins, indices\n         )\n+        if device == \"torch-cuda\":\n+            assert actual._data.tensor.device.type == \"cuda\"\n+            actual = actual.numpy()\n+\n+    if device == \"torch-cuda\" and dtype == np.complex64:\n+        # Multiple points must exercise the fused kernel, not a fallback.\n+        assert triton_launches\n \n     assert actual.dtype == (np.float32 if dtype == np.complex64 else np.float64)\n     tolerance = 3e-6 if dtype == np.complex64 else 3e-8\n",
+    "parent_commit": "f2c0abe61e787a26f41208f489c62c877bbd5667",
+    "parent_delta": [
+      "pycbc/vetoes/chisq_torch.py",
+      "test/test_chisq_precision.py"
+    ],
+    "recorded_native_hashes_unchanged": true,
+    "recorded_native_modules_sha256": {
+      "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+      "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+      "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+      "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+      "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+      "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+      "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+      "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+      "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+      "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+      "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc"
+    },
+    "triton_kernel_definition_ast_identical_to_parent": true,
+    "verification": "Eight blobs checked against source-v5.json and current local files; kernel AST compared with parent; native hashes compared between source-v4/v5 manifests."
+  },
+  "status": "CUDA host-coefficient narrowing established by captured-input replay. Final-source Linux unit suite passed, including the extended regression; full CLI parity on the new source remains pending.",
+  "updated_utc": "2026-09-06T18:54:19.701450+00:00"
+}

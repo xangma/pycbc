@@ -1,0 +1,46 @@
+{
+  "status": "replay-numerical-mismatch",
+  "scope": "Raw observational replay only; original successful executable status retained. Every H1 trigger column except chisq is bitwise identical. Captured data hashes, source, and inputs verified. Not benchmark timings or passing scientific-parity evidence.",
+  "checks": {
+    "capture-0-corr-hash": true,
+    "capture-0-snrv-hash": true,
+    "capture-0-indices-hash": true,
+    "capture-0-bins-hash": true,
+    "capture-0-chisq-hash": true,
+    "capture-0-template-hash": true,
+    "capture-0-psd-hash": true,
+    "complete": true,
+    "conditioned_strain_hash": true,
+    "inputs_unchanged": true,
+    "source_clean": true,
+    "trigger_column_bank_chisq": true,
+    "trigger_column_bank_chisq_dof": true,
+    "trigger_column_chisq": false,
+    "trigger_column_chisq_dof": true,
+    "trigger_column_coa_phase": true,
+    "trigger_column_cont_chisq": true,
+    "trigger_column_cont_chisq_dof": true,
+    "trigger_column_end_time": true,
+    "trigger_column_sg_chisq": true,
+    "trigger_column_sigmasq": true,
+    "trigger_column_snr": true,
+    "trigger_column_template_duration": true,
+    "trigger_column_template_hash": true
+  },
+  "differences": {
+    "chisq": {
+      "unequal_count": 106,
+      "max_absolute_error": 0.16762924194335938,
+      "capture_value": 27.45098876953125,
+      "original_value": 27.61861801147461,
+      "frozen_budget_violations": 60
+    }
+  },
+  "input_sha256": {
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cuda/status.json": "28308e0e279988e1f777d39e7fa79c7e1bdef34796b163c0382f936aef2ea726",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cuda/triggers.hdf": "da063160bf20802a3e77593428d9211975a7645ffdcc62b380376eedaf33d142",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/runs/qual-final-torch-cuda-l512/triggers.hdf": "c11bcac2b7eb95b0d1d8a81699ab7801e3b26ae00979dfddd5faab0f645fb60b",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/runs/qual-final-torch-cuda-l512/receipt.json": "f24e1ee50ab815dab437409a5c9791c66fce11fa7d143fd4ca5b7f25acdcc9a5",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/capture-chisq-inputs-v2.py": "440d5405f2d5a9706e8c771d570de45c19f020858cfbf27563a06874fb833c00"
+  }
+}

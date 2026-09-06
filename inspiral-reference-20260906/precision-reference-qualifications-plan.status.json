@@ -1,0 +1,43 @@
+{
+  "state": "complete",
+  "pid": 2069840,
+  "plan": "/home/xangma/pycbc-torch-inspiral-reference-20260906/precision-reference-qualifications-plan.json",
+  "plan_sha256": "2614d9c1511283d34f8e6297e67160647098c7e28a35503ce7eb67a6e128c14f",
+  "started_utc": "2026-09-06T18:26:57.767635+00:00",
+  "completed": [
+    [
+      "--case",
+      "qual-precision-cpu-l256",
+      "--mode",
+      "qualify",
+      "--scheme",
+      "cpu:1",
+      "--segment-length",
+      "256"
+    ],
+    [
+      "--case",
+      "qual-precision-cpu-l512",
+      "--mode",
+      "qualify",
+      "--scheme",
+      "cpu:1",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "qual-precision-cpu-l1024",
+      "--mode",
+      "qualify",
+      "--scheme",
+      "cpu:1",
+      "--segment-length",
+      "1024"
+    ]
+  ],
+  "current": null,
+  "child_pid": 2100068,
+  "returncode": 0,
+  "finished_utc": "2026-09-06T18:28:43.711216+00:00"
+}

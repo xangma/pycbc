@@ -1,0 +1,120 @@
+{
+  "state": "complete",
+  "pid": 2925138,
+  "host": "len",
+  "cwd": "/home/xangma/pycbc-torch-inspiral-reference-20260906",
+  "started_utc": "2026-09-06T18:58:37.526821+00:00",
+  "commands": [
+    [
+      "waveform-validation-precision5",
+      [
+        "taskset",
+        "-c",
+        "8",
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-u",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/validate-waveforms.py",
+        "--bank-metadata",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-metadata.json",
+        "--compression-receipt",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/compression-1e5.json",
+        "--source",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5",
+        "--output",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/waveform-validation-precision5.json",
+        "--qualification",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision5-cpu-l256/qualification.json",
+        "--qualification",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision5-cpu-l512/qualification.json",
+        "--qualification",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision5-cpu-l1024/qualification.json"
+      ]
+    ],
+    [
+      "boundary-injections-precision5",
+      [
+        "taskset",
+        "-c",
+        "8",
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-u",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/check-boundary-injections.py",
+        "--bank-metadata",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-metadata.json",
+        "--compression-receipt",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/compression-1e5.json",
+        "--source",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5",
+        "--output",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/boundary-injections-precision5.json",
+        "--qualification",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision5-cpu-l1024/qualification.json"
+      ]
+    ],
+    [
+      "precision5-reference-timings",
+      [
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-u",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-series-v5.py",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/precision5-reference-timings-plan.json"
+      ]
+    ]
+  ],
+  "completed": [
+    {
+      "name": "waveform-validation-precision5",
+      "returncode": 0
+    },
+    {
+      "name": "boundary-injections-precision5",
+      "returncode": 0
+    },
+    {
+      "name": "precision5-reference-timings",
+      "returncode": 0
+    }
+  ],
+  "environment": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "MKL_DYNAMIC": "FALSE",
+    "MKL_THREADING_LAYER": "GNU",
+    "OPENBLAS_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+    "BLIS_NUM_THREADS": "1",
+    "PYTHONHASHSEED": "0",
+    "PYTHONPATH": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "input_sha256": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-precision-reference-campaign-v5.py": "7e35d2ca0647e9182e02d32d30a6807854eff1887182d6d3e7864a363857a605",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5.json": "db00a8b27cd8a8986aa6c55d403e1d396f89ca686f80badd0755b29847925ae8",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-series-v5.py": "cc18586c9c3c6cc338cc77bc3798bf3b589184ccfc7015063091b9f0b5ec58de",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-case.py": "243eef653386a76d1ead4b92542bc84088e882df9011faab5a8154154da9c456",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/validate-waveforms.py": "9c761995585d27364d97960fd74f2efb3b64f7e978178f348072901b6f4489c6",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/check-boundary-injections.py": "60fbc9ab4c3a67cd038b081d5f5d1367e39ed7e4efc5a0f9b65f5337738a7b1b",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/precision5-reference-qualifications-plan.json": "2bd27aac44879995c5cb5b6382226df474a2830642ec3d82ee40ff259351e5dc",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/precision5-reference-timings-plan.json": "ac6832afeeb8a09869a2d81d8d46a5d665d90e716c3defeb4f72869d0d95a9fd",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/config.json": "e29df1ee26ad1a513982a81b55d1f8b648126baacc7b509bc918e5c8e912d36a"
+  },
+  "current_stage": "precision5-reference-timings",
+  "current": null,
+  "child_pid": 2974881,
+  "input_sha256_after": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-precision-reference-campaign-v5.py": "7e35d2ca0647e9182e02d32d30a6807854eff1887182d6d3e7864a363857a605",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5.json": "db00a8b27cd8a8986aa6c55d403e1d396f89ca686f80badd0755b29847925ae8",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-series-v5.py": "cc18586c9c3c6cc338cc77bc3798bf3b589184ccfc7015063091b9f0b5ec58de",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-case.py": "243eef653386a76d1ead4b92542bc84088e882df9011faab5a8154154da9c456",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/validate-waveforms.py": "9c761995585d27364d97960fd74f2efb3b64f7e978178f348072901b6f4489c6",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/check-boundary-injections.py": "60fbc9ab4c3a67cd038b081d5f5d1367e39ed7e4efc5a0f9b65f5337738a7b1b",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/precision5-reference-qualifications-plan.json": "2bd27aac44879995c5cb5b6382226df474a2830642ec3d82ee40ff259351e5dc",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/precision5-reference-timings-plan.json": "ac6832afeeb8a09869a2d81d8d46a5d665d90e716c3defeb4f72869d0d95a9fd",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/config.json": "e29df1ee26ad1a513982a81b55d1f8b648126baacc7b509bc918e5c8e912d36a"
+  },
+  "returncode": 0,
+  "finished_utc": "2026-09-06T19:05:45.591505+00:00"
+}

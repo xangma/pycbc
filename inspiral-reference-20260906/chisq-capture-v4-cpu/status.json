@@ -1,0 +1,367 @@
+{
+  "state": "failed",
+  "started_utc": "2026-09-06T18:39:01.943016+00:00",
+  "pid": 2393957,
+  "hostname": "len",
+  "cwd": "/home/xangma/pycbc-torch-inspiral-reference-20260906",
+  "source_info": {
+    "commit": "f2c0abe61e787a26f41208f489c62c877bbd5667",
+    "status": "",
+    "tracked_diff": ""
+  },
+  "input_sha256": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/config.json": "e29df1ee26ad1a513982a81b55d1f8b648126baacc7b509bc918e5c8e912d36a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf": "161820754117cd51b24a7bb672ea456cf7b2a3808e69690c23235d024b1a2916",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-case.py": "243eef653386a76d1ead4b92542bc84088e882df9011faab5a8154154da9c456",
+    "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4.json": "43caf87e57b98782caa3c0e43163e489b9e12c493b2ffc278add1d434f7b876a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/psd/__init__.py": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/strain/strain.py": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/test/test_chisq_precision.py": "a14462bbb029a44f5dba6abf6e6d65564f454cbabc3803aa9e9aeb6da3cce59b",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/test/test_sigmasq_series_precision.py": "a294cbbe29ea4f4120b3ef38e2c696bdc4708391c813c3356cbac310dcbc691a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/test/test_strain_psd_precision.py": "cc6380df5aad6b8b25f88cd194c9786c30e4d9eaaffe3f756ff9a129f95a8134",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/capture-chisq-inputs-v4.py": "24d04c434243416248645148df985cf62e19f49f5a1b6e2124d89fd0198f8070",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision-cpu-l512/receipt.json": "e5969aac76697e86d800fa5bf8ab52bb405bf4c0d48c258b82228ba0a7259a6f",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/vetoes/chisq_torch.py": "a2080725994d75ce4a76410df51065373cedfb39bb5ff2adac3f406bc4229447",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/scheme.py": "27a0704bea2156e946e29e4437363036da21a05a8a98b403f93e605b75e9f5f0"
+  },
+  "executable_cli": [
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/bin/pycbc_inspiral",
+    "--verbose",
+    "--frame-files",
+    "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf",
+    "--channel-name",
+    "H1:LOSC-STRAIN",
+    "--gps-start-time",
+    "1187007048",
+    "--gps-end-time",
+    "1187009080",
+    "--trig-start-time",
+    "1187007160",
+    "--trig-end-time",
+    "1187009064",
+    "--sample-rate",
+    "4096",
+    "--low-frequency-cutoff",
+    "30",
+    "--strain-high-pass",
+    "25",
+    "--pad-data",
+    "8",
+    "--autogating-threshold",
+    "100",
+    "--autogating-cluster",
+    "5",
+    "--autogating-width",
+    "0.25",
+    "--autogating-taper",
+    "0.25",
+    "--autogating-pad",
+    "16",
+    "--autogating-max-iterations",
+    "1",
+    "--psd-estimation",
+    "median",
+    "--psd-segment-length",
+    "32",
+    "--psd-segment-stride",
+    "16",
+    "--psd-num-segments",
+    "126",
+    "--psd-inverse-length",
+    "16",
+    "--invpsd-trunc-method",
+    "hann",
+    "--invpsd-trunc-which-spectrum",
+    "invasd",
+    "--approximant",
+    "IMRPhenomD",
+    "--order",
+    "-1",
+    "--use-compressed-waveforms",
+    "--waveform-decompression-method",
+    "inline_linear",
+    "--snr-threshold",
+    "5.5",
+    "--newsnr-threshold",
+    "5",
+    "--chisq-bins",
+    "16",
+    "--cluster-window",
+    "1",
+    "--cluster-function",
+    "symmetric",
+    "--fft-backends",
+    "mkl",
+    "--bank-file",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf",
+    "--processing-scheme",
+    "cpu:1",
+    "--segment-length",
+    "512",
+    "--segment-start-pad",
+    "112",
+    "--segment-end-pad",
+    "16",
+    "--output",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/triggers.hdf"
+  ],
+  "template_hash": -6051532311927781382,
+  "captures": [
+    {
+      "template_hash": -6051532311927781382,
+      "template_index": 60,
+      "segment": {
+        "number": 1,
+        "epoch": 1187007429.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 2019328,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "snr_norm": 4.146647602975895e-06,
+      "snr_threshold": null,
+      "arrays": {
+        "corr": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-0-corr.npy",
+          "sha256": "4ac0b32e8be4ed8f168d04dc2eeae8532f2157f8fab9c6ab8e2f2199f76b51b4",
+          "dtype": "complex64",
+          "shape": [
+            2097152
+          ]
+        },
+        "snrv": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-0-snrv.npy",
+          "sha256": "88d98ad5a10b96fa427ae4787c92dd973e8f6d224b7f897b91cfc263b5a46043",
+          "dtype": "complex64",
+          "shape": [
+            2
+          ]
+        },
+        "indices": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-0-indices.npy",
+          "sha256": "766d0e0e5d7cfb6f07cd0648b6dfe32d431577c9e456184eb8ec3a7d2ff210e4",
+          "dtype": "uint32",
+          "shape": [
+            2
+          ]
+        },
+        "bins": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-0-bins.npy",
+          "sha256": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+          "dtype": "int64",
+          "shape": [
+            17
+          ]
+        },
+        "chisq": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-0-chisq.npy",
+          "sha256": "c19f5684d7616beee042a28734bcaa7e1205454181ffe307ba6ec03f76886460",
+          "dtype": "float32",
+          "shape": [
+            2
+          ]
+        },
+        "template": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-0-template.npy",
+          "sha256": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+          "dtype": "complex64",
+          "shape": [
+            1048577
+          ]
+        },
+        "psd": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-0-psd.npy",
+          "sha256": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+          "dtype": "float32",
+          "shape": [
+            1048577
+          ]
+        }
+      }
+    },
+    {
+      "template_hash": -6051532311927781382,
+      "template_index": 60,
+      "segment": {
+        "number": 2,
+        "epoch": 1187007810.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 3579904,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "snr_norm": 4.146647602975895e-06,
+      "snr_threshold": null,
+      "arrays": {
+        "corr": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-1-corr.npy",
+          "sha256": "76a090b7720939fab29a85907d687dfa8a279a895ded186d71e5c460431b20ae",
+          "dtype": "complex64",
+          "shape": [
+            2097152
+          ]
+        },
+        "snrv": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-1-snrv.npy",
+          "sha256": "26febe8f6804e4b9433003d1af0e9d1aeb2e5488b47ac769f6b03edfa6fa6e32",
+          "dtype": "complex64",
+          "shape": [
+            1
+          ]
+        },
+        "indices": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-1-indices.npy",
+          "sha256": "b981fdca6390b213535d4e697b175360578a5b917d39ea68bd71ef198ed92178",
+          "dtype": "uint32",
+          "shape": [
+            1
+          ]
+        },
+        "bins": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-1-bins.npy",
+          "sha256": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+          "dtype": "int64",
+          "shape": [
+            17
+          ]
+        },
+        "chisq": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-1-chisq.npy",
+          "sha256": "1840b60a724d86161ae49bb430effe1dd4b47f94a21a58b3c6e9af98d705d7ac",
+          "dtype": "float32",
+          "shape": [
+            1
+          ]
+        },
+        "template": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-1-template.npy",
+          "sha256": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+          "dtype": "complex64",
+          "shape": [
+            1048577
+          ]
+        },
+        "psd": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-1-psd.npy",
+          "sha256": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+          "dtype": "float32",
+          "shape": [
+            1048577
+          ]
+        }
+      }
+    },
+    {
+      "template_hash": -6051532311927781382,
+      "template_index": 60,
+      "segment": {
+        "number": 3,
+        "epoch": 1187008191.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 5140480,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "snr_norm": 4.146647602975895e-06,
+      "snr_threshold": null,
+      "arrays": {
+        "corr": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-2-corr.npy",
+          "sha256": "327e23e517dc97b9700375adaa023da2dce764a4b88cc736cc2c0a354bb88e8f",
+          "dtype": "complex64",
+          "shape": [
+            2097152
+          ]
+        },
+        "snrv": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-2-snrv.npy",
+          "sha256": "24f240ad44e08fd17d0b91f2283a26e3c4564db7ba97f344dbb519155df3feaf",
+          "dtype": "complex64",
+          "shape": [
+            1
+          ]
+        },
+        "indices": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-2-indices.npy",
+          "sha256": "61e6db6a2a3e28b256852eaddc38b8660036a7192a847b89a60fbc84d4a7b21b",
+          "dtype": "uint32",
+          "shape": [
+            1
+          ]
+        },
+        "bins": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-2-bins.npy",
+          "sha256": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+          "dtype": "int64",
+          "shape": [
+            17
+          ]
+        },
+        "chisq": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-2-chisq.npy",
+          "sha256": "f169cc10e8a7332ab820ab15aae4acaa59fdceef042109fac314cd03df07724f",
+          "dtype": "float32",
+          "shape": [
+            1
+          ]
+        },
+        "template": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-2-template.npy",
+          "sha256": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+          "dtype": "complex64",
+          "shape": [
+            1048577
+          ]
+        },
+        "psd": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/capture-2-psd.npy",
+          "sha256": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+          "dtype": "float32",
+          "shape": [
+            1048577
+          ]
+        }
+      }
+    }
+  ],
+  "conditioned_strain": {
+    "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4-cpu/conditioned-strain.npy",
+    "sha256": "4de2a5395ef6a71e36a4a9f7850ce319c277915bf7c15e73a1a3718566a7f0c2",
+    "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+    "start_time": 1187007048.0,
+    "delta_t": 0.000244140625
+  },
+  "returncode": 1,
+  "traceback": "Traceback (most recent call last):\n  File \"/home/xangma/pycbc-torch-inspiral-reference-20260906/capture-chisq-inputs-v4.py\", line 136, in main\n    assert len(record['captures']) == 5, len(record['captures'])\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 3\n",
+  "finished_utc": "2026-09-06T18:39:33.879408+00:00",
+  "elapsed_wall_seconds": 31.936036633967888,
+  "input_sha256_after": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/config.json": "e29df1ee26ad1a513982a81b55d1f8b648126baacc7b509bc918e5c8e912d36a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf": "161820754117cd51b24a7bb672ea456cf7b2a3808e69690c23235d024b1a2916",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-case.py": "243eef653386a76d1ead4b92542bc84088e882df9011faab5a8154154da9c456",
+    "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4.json": "43caf87e57b98782caa3c0e43163e489b9e12c493b2ffc278add1d434f7b876a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/psd/__init__.py": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/strain/strain.py": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/test/test_chisq_precision.py": "a14462bbb029a44f5dba6abf6e6d65564f454cbabc3803aa9e9aeb6da3cce59b",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/test/test_sigmasq_series_precision.py": "a294cbbe29ea4f4120b3ef38e2c696bdc4708391c813c3356cbac310dcbc691a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/test/test_strain_psd_precision.py": "cc6380df5aad6b8b25f88cd194c9786c30e4d9eaaffe3f756ff9a129f95a8134",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/capture-chisq-inputs-v4.py": "24d04c434243416248645148df985cf62e19f49f5a1b6e2124d89fd0198f8070",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision-cpu-l512/receipt.json": "e5969aac76697e86d800fa5bf8ab52bb405bf4c0d48c258b82228ba0a7259a6f",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/vetoes/chisq_torch.py": "a2080725994d75ce4a76410df51065373cedfb39bb5ff2adac3f406bc4229447",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/scheme.py": "27a0704bea2156e946e29e4437363036da21a05a8a98b403f93e605b75e9f5f0"
+  },
+  "source_status_after": ""
+}

@@ -1,0 +1,103 @@
+{
+  "state": "complete",
+  "pid": 3230594,
+  "plan": "/home/xangma/pycbc-torch-inspiral-reference-20260906/precision5-matched-backends-plan.json",
+  "plan_sha256": "8bfd76f8dc4a1e86e4ac475ffb5273ce5eebbaea6e870597583abf0a14510765",
+  "started_utc": "2026-09-06T19:09:45.330868+00:00",
+  "completed": [
+    [
+      "--case",
+      "matched-precision5-cpu-l512-r1",
+      "--mode",
+      "timing",
+      "--scheme",
+      "cpu:1",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "matched-precision5-torch-cpu-l512-r1",
+      "--mode",
+      "timing",
+      "--scheme",
+      "torch:cpu:1",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "matched-precision5-torch-cuda-l512-r1",
+      "--mode",
+      "timing",
+      "--scheme",
+      "torch:cuda:0",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "matched-precision5-torch-cpu-l512-r2",
+      "--mode",
+      "timing",
+      "--scheme",
+      "torch:cpu:1",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "matched-precision5-torch-cuda-l512-r2",
+      "--mode",
+      "timing",
+      "--scheme",
+      "torch:cuda:0",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "matched-precision5-cpu-l512-r2",
+      "--mode",
+      "timing",
+      "--scheme",
+      "cpu:1",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "matched-precision5-torch-cuda-l512-r3",
+      "--mode",
+      "timing",
+      "--scheme",
+      "torch:cuda:0",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "matched-precision5-cpu-l512-r3",
+      "--mode",
+      "timing",
+      "--scheme",
+      "cpu:1",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "matched-precision5-torch-cpu-l512-r3",
+      "--mode",
+      "timing",
+      "--scheme",
+      "torch:cpu:1",
+      "--segment-length",
+      "512"
+    ]
+  ],
+  "current": null,
+  "child_pid": 3376373,
+  "returncode": 0,
+  "finished_utc": "2026-09-06T19:16:25.449181+00:00"
+}

@@ -1,0 +1,53 @@
+         3192126 function calls (3192120 primitive calls) in 4.088 seconds
+
+   Ordered by: cumulative time
+   List reduced from 127 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    4.088    4.088 matchedfilter.py:2501(process_data)
+        1    0.000    0.000    4.088    4.088 matchedfilter.py:2506(process_all)
+        2    0.061    0.030    4.088    2.044 matchedfilter.py:2776(_process_batch)
+        1    0.124    0.124    2.086    2.086 matchedfilter.py:2091(_torch_batch_peak_values)
+        1    1.119    1.119    1.119    1.119 {method 'sum' of 'torch._C.TensorBase' objects}
+        1    0.000    0.000    1.093    1.093 scheme.py:432(_scheming_function)
+        1    0.000    0.000    1.093    1.093 matchedfilter_torch.py:1040(batch_correlate_execute)
+        1    0.000    0.000    1.093    1.093 matchedfilter_torch.py:529(_try_cpu_native_batch_correlate)
+        1    0.057    0.057    1.093    1.093 matchedfilter_torch.py:498(execute)
+        1    0.000    0.000    1.034    1.034 matchedfilter_torch.py:454(can_execute)
+        1    0.002    0.002    1.014    1.014 matchedfilter_torch.py:339(_batch_outputs_are_disjoint)
+     2049    0.171    0.000    1.011    0.000 {built-in method builtins.any}
+        1    0.000    0.000    0.846    0.846 torchfft.py:1414(execute)
+        1    0.000    0.000    0.846    0.846 torchfft.py:874(_execute_fftw_cpu_batch_plan)
+        1    0.846    0.846    0.846    0.846 torchfft.py:637(execute)
+        1    0.656    0.656    0.656    0.656 {method 'square' of 'torch._C.TensorBase' objects}
+  1049600    0.348    0.000    0.536    0.000 matchedfilter_torch.py:343(<genexpr>)
+  1573376    0.318    0.000    0.318    0.000 matchedfilter_torch.py:203(_spans_overlap)
+   524800    0.174    0.000    0.303    0.000 matchedfilter_torch.py:345(<genexpr>)
+        1    0.186    0.186    0.186    0.186 {built-in method torch.argmax}
+        1    0.000    0.000    0.017    0.017 {built-in method builtins.all}
+     2049    0.001    0.000    0.017    0.000 matchedfilter_torch.py:485(<genexpr>)
+     2049    0.008    0.000    0.016    0.000 matchedfilter_torch.py:321(_batch_tensor_contract)
+     2049    0.002    0.000    0.004    0.000 matchedfilter_torch.py:174(_has_autograd_state)
+     2049    0.001    0.000    0.002    0.000 forward_ad.py:151(unpack_dual)
+     2049    0.001    0.000    0.002    0.000 matchedfilter_torch.py:207(_logical_storage_span)
+     2049    0.001    0.000    0.002    0.000 matchedfilter_torch.py:213(_is_inference_tensor)
+        2    0.001    0.001    0.002    0.001 matchedfilter_torch.py:352(_same_array_tensors)
+        1    0.000    0.000    0.002    0.002 matchedfilter.py:2146(_torch_batch_peak_magnitudes)
+        1    0.000    0.000    0.002    0.002 {built-in method numpy.fromiter}
+     1025    0.001    0.000    0.001    0.000 matchedfilter.py:2162(<genexpr>)
+     6157    0.001    0.000    0.001    0.000 {method 'data_ptr' of 'torch._C.TensorBase' objects}
+        1    0.000    0.000    0.001    0.001 matchedfilter_torch.py:488(<listcomp>)
+        1    0.000    0.000    0.001    0.001 matchedfilter_torch.py:341(<listcomp>)
+     1025    0.001    0.000    0.001    0.000 graph.py:245(increment_version)
+     2049    0.001    0.000    0.001    0.000 <string>:1(<lambda>)
+     2051    0.001    0.000    0.001    0.000 {built-in method torch.is_inference}
+     1025    0.001    0.000    0.001    0.000 {method 'item' of 'numpy.generic' objects}
+     1025    0.000    0.000    0.001    0.000 matchedfilter_torch.py:509(<genexpr>)
+     2055    0.001    0.000    0.001    0.000 {method 'is_contiguous' of 'torch._C.TensorBase' objects}
+     2051    0.001    0.000    0.001    0.000 {method 'is_conj' of 'torch._C.TensorBase' objects}
+     2056    0.001    0.000    0.001    0.000 {method 'numel' of 'torch._C.TensorBase' objects}
+     2051    0.000    0.000    0.000    0.000 {method 'is_neg' of 'torch._C.TensorBase' objects}
+     1025    0.000    0.000    0.000    0.000 {built-in method torch._C._increment_version}
+     2052    0.000    0.000    0.000    0.000 {built-in method __new__ of type object at 0x5aaef4562000}
+
+

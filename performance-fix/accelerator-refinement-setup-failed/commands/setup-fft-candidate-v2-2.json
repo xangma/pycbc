@@ -1,0 +1,23 @@
+{
+  "label": "setup-fft-candidate-v2-2",
+  "command": [
+    "git",
+    "-C",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/fft-candidate-v2",
+    "fetch",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/dependent-sources-v2.bundle",
+    "+refs/heads/*:refs/remotes/bundle/*"
+  ],
+  "cwd": "/home/xangma/pycbc-torch-performance-fix-20260906",
+  "host": "len",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "log_path": "/home/xangma/pycbc-torch-performance-fix-20260906/accelerator-refinement/logs/setup-fft-candidate-v2-2.log",
+  "started_utc": "2026-09-06T16:01:02.904618+00:00",
+  "pid": 2345741,
+  "stop_command": "kill -TERM -- -2345741",
+  "returncode": 0,
+  "finished_utc": "2026-09-06T16:01:03.023745+00:00",
+  "wall_seconds": 0.11900160502409562
+}

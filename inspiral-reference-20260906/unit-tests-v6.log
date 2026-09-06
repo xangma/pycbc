@@ -1,0 +1,27 @@
+...............................s........................................ [ 13%]
+........................................................................................................................................ [ 38%]
+.............................s..................................s..s.... [ 51%]
+ss........ssss....ss..s....ss..s..s..s......sss...s................sssss [ 65%]
+sss................ssssssss................ssssssss................sssss [ 78%]
+sss...s..s..s..s...s...s............s........ss..s..s..s..s..s..s....... [ 92%]
+...........................................                              [100%]
+=============================== warnings summary ===============================
+test/test_torch_chisq_cpu_optimization.py:586
+  /home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/test/test_torch_chisq_cpu_optimization.py:586: UserWarning: Sparse invariant checks are implicitly disabled. Memory errors (e.g. SEGFAULT) will occur when operating on a sparse tensor which violates the invariants, but checks incur performance overhead. To silence this warning, explicitly opt in or out. See `torch.sparse.check_sparse_tensor_invariants.__doc__` for guidance.  (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/Context.cpp:816.)
+    torch.sparse_coo_tensor(
+
+test/test_torch_decompress_cpu.py::test_unsupported_storage_keeps_torch_route[readonly_input]
+  /home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/waveform/decompress_torch.py:37: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:213.)
+    return torch.as_tensor(numpy.asarray(value), device=device, dtype=dtype)
+
+test/test_torch_decompress_cpu.py: 18 warnings
+  /home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+test/test_torch_psd_pipeline.py::test_lisa_response_psd_public_devices[cpu]
+test/test_torch_psd_pipeline.py::test_lisa_response_psd_public_devices[cuda]
+  /home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/psd/read.py:99: RuntimeWarning: divide by zero encountered in log
+    slog = numpy.log(noise_data)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+470 passed, 69 skipped, 22 warnings, 8 subtests passed in 25.98s

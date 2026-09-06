@@ -1,0 +1,548 @@
+{
+  "allocation_setup_ms": 1477.177589,
+  "batch": 32,
+  "block_triggers": [
+    {
+      "block": 0,
+      "coa_phases": [
+        5.029308522352949e-05
+      ],
+      "end_times": [
+        1000000003.765625
+      ],
+      "num_triggers": 1,
+      "sigmasqs": [
+        1.0
+      ],
+      "snrs": [
+        8.524023056030273
+      ],
+      "template_ids": [
+        1000
+      ],
+      "veto_count": null
+    },
+    {
+      "block": 1,
+      "coa_phases": [
+        -7.90746616985416e-06
+      ],
+      "end_times": [
+        1000000060.418457
+      ],
+      "num_triggers": 1,
+      "sigmasqs": [
+        1.0
+      ],
+      "snrs": [
+        10.153491020202637
+      ],
+      "template_ids": [
+        1001
+      ],
+      "veto_count": null
+    },
+    {
+      "block": 2,
+      "coa_phases": [
+        -3.666832344606519e-05
+      ],
+      "end_times": [
+        1000000117.0712891
+      ],
+      "num_triggers": 1,
+      "sigmasqs": [
+        1.0
+      ],
+      "snrs": [
+        11.750237464904785
+      ],
+      "template_ids": [
+        1002
+      ],
+      "veto_count": null
+    }
+  ],
+  "cold_block_latencies_ms": [
+    236.807706,
+    90.773246,
+    64.723419
+  ],
+  "cold_latency_block_ms_summary": {
+    "bootstrap": {
+      "confidence": 0.95,
+      "method": "percentile",
+      "resamples": 2000,
+      "seed": 7101
+    },
+    "count": 3,
+    "maximum": 236.807706,
+    "mean": 130.76812366666667,
+    "median": 90.773246,
+    "median_ci95": {
+      "high": 236.807706,
+      "low": 64.723419
+    },
+    "minimum": 64.723419,
+    "p25": 77.7483325,
+    "p50": 90.773246,
+    "p75": 163.790476,
+    "p95": 222.20425999999998,
+    "p99": 233.8870168,
+    "percentiles": {
+      "p50": 90.773246,
+      "p95": 222.20425999999998,
+      "p99": 233.8870168
+    },
+    "samples": [
+      236.807706,
+      90.773246,
+      64.723419
+    ],
+    "stddev": 92.75205193284575,
+    "unit": "ms/block"
+  },
+  "cold_sigmasq_evals": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "cold_total_ms": 392.304371,
+  "cuda_device": null,
+  "cuda_device_name": null,
+  "device": "cpu",
+  "dimensions": {
+    "bank_templates": 32,
+    "batch_templates": 32,
+    "blocks_per_iteration": 3,
+    "fft_samples": 131072,
+    "frequency_bins": 65537,
+    "waveforms_per_iteration": 96
+  },
+  "dtypes": {
+    "output": "complex64",
+    "psd": "float32",
+    "strain": "complex64",
+    "template": "complex64"
+  },
+  "injection_metadata": [
+    {
+      "block": 0,
+      "expected_snr": 8.0,
+      "injected_template_id": 1000,
+      "injected_template_idx": 0,
+      "offset_sample": 20000
+    },
+    {
+      "block": 1,
+      "expected_snr": 9.5,
+      "injected_template_id": 1001,
+      "injected_template_idx": 1,
+      "offset_sample": 21337
+    },
+    {
+      "block": 2,
+      "expected_snr": 11.0,
+      "injected_template_id": 1002,
+      "injected_template_idx": 2,
+      "offset_sample": 22674
+    }
+  ],
+  "latency_block_ms_summary": {
+    "bootstrap": {
+      "confidence": 0.95,
+      "method": "percentile",
+      "resamples": 2000,
+      "seed": 7101
+    },
+    "count": 9,
+    "maximum": 68.259997,
+    "mean": 65.30960411111111,
+    "median": 64.710164,
+    "median_ci95": {
+      "high": 66.59828,
+      "low": 64.584778
+    },
+    "minimum": 64.476653,
+    "p25": 64.657715,
+    "p50": 64.710164,
+    "p75": 65.045347,
+    "p95": 67.5953102,
+    "p99": 68.12705964,
+    "percentiles": {
+      "p50": 64.710164,
+      "p95": 67.5953102,
+      "p99": 68.12705964
+    },
+    "samples": [
+      64.782051,
+      64.584778,
+      64.671452,
+      68.259997,
+      66.59828,
+      64.710164,
+      64.657715,
+      64.476653,
+      65.045347
+    ],
+    "stddev": 1.2808373371053448,
+    "unit": "ms/block"
+  },
+  "latency_iteration_ms_summary": {
+    "bootstrap": {
+      "confidence": 0.95,
+      "method": "percentile",
+      "resamples": 2000,
+      "seed": 7101
+    },
+    "count": 3,
+    "maximum": 199.568441,
+    "mean": 195.92881233333333,
+    "median": 194.179715,
+    "median_ci95": {
+      "high": 199.568441,
+      "low": 194.038281
+    },
+    "minimum": 194.038281,
+    "p25": 194.10899799999999,
+    "p50": 194.179715,
+    "p75": 196.874078,
+    "p95": 199.02956840000002,
+    "p99": 199.46066648000001,
+    "percentiles": {
+      "p50": 194.179715,
+      "p95": 199.02956840000002,
+      "p99": 199.46066648000001
+    },
+    "samples": [
+      194.038281,
+      199.568441,
+      194.179715
+    ],
+    "stddev": 3.1528040721721604,
+    "unit": "ms/iteration"
+  },
+  "latency_per_waveform_ms_summary": {
+    "bootstrap": {
+      "confidence": 0.95,
+      "method": "percentile",
+      "resamples": 2000,
+      "seed": 7101
+    },
+    "count": 3,
+    "maximum": 2.0788379270833333,
+    "mean": 2.0409251284722223,
+    "median": 2.022705364583333,
+    "median_ci95": {
+      "high": 2.0788379270833333,
+      "low": 2.02123209375
+    },
+    "minimum": 2.02123209375,
+    "p25": 2.021968729166667,
+    "p50": 2.022705364583333,
+    "p75": 2.050771645833333,
+    "p95": 2.0732246708333335,
+    "p99": 2.077715275833333,
+    "percentiles": {
+      "p50": 2.022705364583333,
+      "p95": 2.0732246708333335,
+      "p99": 2.077715275833333
+    },
+    "samples": [
+      2.02123209375,
+      2.0788379270833333,
+      2.022705364583333
+    ],
+    "stddev": 0.03284170908512663,
+    "unit": "ms/waveform"
+  },
+  "measurement": {
+    "call_surface": "LiveBatchMatchedFilter.process_data",
+    "claim_level": "library_component",
+    "excludes": [
+      "frame or file input",
+      "PSD estimation",
+      "template-bank loading or waveform generation",
+      "workflow scheduling",
+      "full CLI startup and teardown"
+    ],
+    "includes": [
+      "data reader setup on filter",
+      "all template batch groups",
+      "result combination",
+      "configured veto post-processing"
+    ],
+    "scope": "public_library_api"
+  },
+  "num_blocks": 3,
+  "numpy_version": "1.26.4",
+  "output_l2": 1762.4353502086083,
+  "output_sha256": "7835c1f3ebe5c8065087c336297c3b25d3b4689783581781341ce0fef165c24a",
+  "peak_cuda_memory": null,
+  "peak_memory_bytes": null,
+  "pid": 963033,
+  "pycbc_version": "0.0a9313",
+  "python": "3.11.9 | packaged by conda-forge | (main, Apr 19 2024, 18:36:13) [GCC 12.3.0]",
+  "route": "torch_cpu_native",
+  "routing": {
+    "backend": "torch",
+    "device": "cpu",
+    "experimental": true,
+    "feature_flags": {
+      "PYCBC_BATCH_MAXELEMENTS": {
+        "applies_to_route": false,
+        "effective_value": "batch_templates * fft_samples",
+        "enabled": null,
+        "environment_value": null,
+        "package_default": null,
+        "selection": "constructor_argument"
+      },
+      "PYCBC_ENABLE_CUDA_GRAPHS": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_ASYNC_STREAMS": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_CPU_FFTW_BATCH": {
+        "applies_to_route": true,
+        "enabled": true,
+        "environment_value": "1",
+        "package_default": false,
+        "selection": "explicit"
+      },
+      "PYCBC_TORCH_CPU_MKL_IFFT": {
+        "applies_to_route": true,
+        "enabled": true,
+        "environment_value": null,
+        "package_default": true,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_CPU_NATIVE_BATCH_CORRELATE": {
+        "applies_to_route": true,
+        "enabled": true,
+        "environment_value": "1",
+        "package_default": false,
+        "selection": "explicit"
+      },
+      "PYCBC_TORCH_CUDA_GRAPH": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_CUDA_NATIVE_BATCH_CORRELATE": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_CUDA_NATIVE_BATCH_PEAK": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_CUDA_PROMOTED_ROWS": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_DIRECT_BATCH_IFFT": {
+        "applies_to_route": true,
+        "enabled": false,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_ONDEVICE_PEAKS": {
+        "applies_to_route": true,
+        "enabled": false,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      }
+    },
+    "label": "Torch CPU (experimental native routing)",
+    "routing_mode": "experimental_native"
+  },
+  "seed": 7101,
+  "size": 131072,
+  "snr_threshold": 5.5,
+  "source_root": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline",
+  "state": {
+    "blocks_per_iteration": 3,
+    "cold_iterations": 1,
+    "measured_warm_iterations": 3,
+    "warmup_iterations": 1
+  },
+  "threads": 1,
+  "throughput_wps_summary": {
+    "bootstrap": {
+      "confidence": 0.95,
+      "method": "percentile",
+      "resamples": 2000,
+      "seed": 7101
+    },
+    "count": 3,
+    "maximum": 494.7477348554742,
+    "mean": 490.0576977947775,
+    "median": 494.38737717788905,
+    "median_ci95": {
+      "high": 494.7477348554742,
+      "low": 481.0379813509692
+    },
+    "minimum": 481.0379813509692,
+    "p25": 487.7126792644291,
+    "p50": 494.38737717788905,
+    "p75": 494.56755601668164,
+    "p95": 494.7116990877157,
+    "p99": 494.74052770192253,
+    "percentiles": {
+      "p50": 494.38737717788905,
+      "p95": 494.7116990877157,
+      "p99": 494.74052770192253
+    },
+    "samples": [
+      494.7477348554742,
+      481.0379813509692,
+      494.38737717788905
+    ],
+    "stddev": 7.813381339661985,
+    "unit": "waveforms/second"
+  },
+  "torch_version": "2.13.0+cu130",
+  "total_sigmasq_evals": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "warm_block_latencies_ms": [
+    64.782051,
+    64.584778,
+    64.671452,
+    68.259997,
+    66.59828,
+    64.710164,
+    64.657715,
+    64.476653,
+    65.045347
+  ],
+  "warm_iteration_latencies_ms": [
+    194.038281,
+    199.568441,
+    194.179715
+  ],
+  "stderr": "",
+  "command": [
+    "taskset",
+    "-c",
+    "8-11",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/tools/bench_production_live_batch.py",
+    "child",
+    "--route",
+    "torch_cpu_native",
+    "--source-root",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/baseline",
+    "--batch",
+    "32",
+    "--size",
+    "131072",
+    "--num-blocks",
+    "3",
+    "--threads",
+    "1",
+    "--samples",
+    "3",
+    "--warmups",
+    "1",
+    "--snr-threshold",
+    "5.5",
+    "--cuda-device",
+    "0",
+    "--seed",
+    "7101",
+    "--call-surface",
+    "public"
+  ],
+  "comparison_source": {
+    "root": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline",
+    "sha": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+    "tree": "b0d5ef6e3b39bfe246b4c416528839256edadf1f",
+    "status": ""
+  },
+  "comparison_label": "torch_cpu_native-b32-t1-r3-baseline",
+  "comparison_replicate": 3,
+  "worker_wall_seconds": 5.6854168670251966
+}

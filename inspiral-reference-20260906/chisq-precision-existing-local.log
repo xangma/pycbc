@@ -1,0 +1,48 @@
+{
+  "baseline_selected_functions_from_source": null,
+  "local_native_abi": "Existing Darwin Python 3.12 extensions loaded read-only",
+  "python": "/Users/xangma/miniconda3/bin/python3.12",
+  "tests": [
+    "test/test_torch_chisq_cpu_optimization.py",
+    "test/test_torch_chisq_sparse_dispatch.py",
+    "test/test_torch_filter_pipeline.py::test_power_chisq_bins_stay_on_device",
+    "test/test_torch_filter_pipeline.py::test_power_chisq_bins_accepts_public_backend_storage"
+  ],
+  "file_sha256": {
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/run-local-chisq-precision-tests.py": "26b29e5f7db6a496da08a444459086f0ecefca801bb826820fc8db0f794bd69b",
+    "/Users/xangma/repos/pycbc/pycbc/types/array_cpu.cpython-312-darwin.so": "02c6fec41262957c5bf1418dc047dfd1ccd11b79748561031caa613efb77e9f3",
+    "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/vetoes/chisq.py": "56cfd948cac84702a77a8092b19093f3de52ee29dd1135c96b8083a00d0f54af",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_torch_chisq_cpu_optimization.py": "d92e1148de28c32d02ca8f5f717c432f2eefcac72cbafcf205b9345bf2970928",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_torch_chisq_sparse_dispatch.py": "f3034eb5fe710f01568b82ef90dc63e794af383e4b4c7b34ec081ea2098b64eb",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_torch_filter_pipeline.py": "fe864e1aa22f0a51051fc17eb31f85ba0c758643f08ef7131174ab747b67285f"
+  }
+}
+ERROR: found no collectors for /private/tmp/pycbc-torch-performance-fix-20260906/test/test_torch_filter_pipeline.py::test_power_chisq_bins_stay_on_device
+
+ERROR: found no collectors for /private/tmp/pycbc-torch-performance-fix-20260906/test/test_torch_filter_pipeline.py::test_power_chisq_bins_accepts_public_backend_storage
+
+
+==================================== ERRORS ====================================
+_____________ ERROR collecting test/test_torch_filter_pipeline.py ______________
+ImportError while importing test module '/private/tmp/pycbc-torch-performance-fix-20260906/test/test_torch_filter_pipeline.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/Users/xangma/miniconda3/lib/python3.12/importlib/__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test/test_torch_filter_pipeline.py:19: in <module>
+    from pycbc import events, scheme
+pycbc/events/__init__.py:5: in <module>
+    from .eventmgr import *
+pycbc/events/eventmgr.py:42: in <module>
+    from . import coinc, ranking
+pycbc/events/coinc.py:39: in <module>
+    from . import stat as pycbcstat
+pycbc/events/stat.py:41: in <module>
+    from .eventmgr_cython import (
+E   ModuleNotFoundError: No module named 'pycbc.events.eventmgr_cython'
+=========================== short test summary info ============================
+ERROR test/test_torch_filter_pipeline.py
+1 error in 0.09s

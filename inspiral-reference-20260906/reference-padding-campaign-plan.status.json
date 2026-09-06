@@ -1,0 +1,133 @@
+{
+  "state": "complete",
+  "pid": 3595290,
+  "plan": "/home/xangma/pycbc-torch-inspiral-reference-20260906/reference-padding-campaign-plan.json",
+  "plan_sha256": "5a97d4ac22da290721efe871a424bd23f06d47864a7651740ba219135773a928",
+  "started_utc": "2026-09-06T16:47:35.394570+00:00",
+  "completed": [
+    [
+      "--case",
+      "qual-cpu-l256-s96",
+      "--mode",
+      "qualify",
+      "--segment-length",
+      "256",
+      "--start-pad",
+      "96"
+    ],
+    [
+      "--case",
+      "qual-cpu-l512-s96",
+      "--mode",
+      "qualify",
+      "--segment-length",
+      "512",
+      "--start-pad",
+      "96"
+    ],
+    [
+      "--case",
+      "qual-cpu-l1024-s96",
+      "--mode",
+      "qualify",
+      "--segment-length",
+      "1024",
+      "--start-pad",
+      "96"
+    ],
+    [
+      "--case",
+      "tune-cpu-l256-s96-r1",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "256",
+      "--start-pad",
+      "96"
+    ],
+    [
+      "--case",
+      "tune-cpu-l512-s96-r1",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "512",
+      "--start-pad",
+      "96"
+    ],
+    [
+      "--case",
+      "tune-cpu-l1024-s96-r1",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "1024",
+      "--start-pad",
+      "96"
+    ],
+    [
+      "--case",
+      "tune-cpu-l512-s96-r2",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "512",
+      "--start-pad",
+      "96"
+    ],
+    [
+      "--case",
+      "tune-cpu-l1024-s96-r2",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "1024",
+      "--start-pad",
+      "96"
+    ],
+    [
+      "--case",
+      "tune-cpu-l256-s96-r2",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "256",
+      "--start-pad",
+      "96"
+    ],
+    [
+      "--case",
+      "tune-cpu-l1024-s96-r3",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "1024",
+      "--start-pad",
+      "96"
+    ],
+    [
+      "--case",
+      "tune-cpu-l256-s96-r3",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "256",
+      "--start-pad",
+      "96"
+    ],
+    [
+      "--case",
+      "tune-cpu-l512-s96-r3",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "512",
+      "--start-pad",
+      "96"
+    ]
+  ],
+  "current": null,
+  "child_pid": 3760852,
+  "returncode": 0,
+  "finished_utc": "2026-09-06T16:54:17.672854+00:00"
+}

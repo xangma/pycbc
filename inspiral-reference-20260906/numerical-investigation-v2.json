@@ -1,0 +1,2000 @@
+{
+  "capture_integrity": {
+    "cpu": {
+      "all_h1_trigger_columns_bitwise_identical_to_original_cpu": true,
+      "capture_count": 4,
+      "full_executable_completed": true,
+      "interpretation": "Final wrapper assertion expected five calls but only four segments had selected-template triggers. Original failed terminal status remains intact; the verified arrays support diagnostics only.",
+      "verification_status": "diagnostic-data-verified",
+      "verified_checks": 44,
+      "wrapper_returncode": 1,
+      "wrapper_state": "failed"
+    },
+    "cuda": {
+      "chisq": {
+        "capture_value": 27.45098876953125,
+        "frozen_budget_violations": 60,
+        "max_absolute_error": 0.16762924194335938,
+        "original_value": 27.61861801147461,
+        "unequal_count": 106
+      },
+      "identities_and_all_other_h1_columns_bitwise_identical": true,
+      "interpretation": "A successful capture executable is not a repeatability or scientific-parity pass.",
+      "verification_status": "replay-numerical-mismatch",
+      "wrapper_returncode": 0,
+      "wrapper_state": "complete"
+    }
+  },
+  "committed_fixes": {
+    "cumulative_power": "Accumulate in float64 on CPU and supported Torch devices, retaining public output dtype. Torch thresholds use float64 to match NumPy integer-arange promotion; MPS retains float32.",
+    "native_cpu_chisq": "Use existing point_chisq_code double real specialization with float64 shifts and accumulation. Compensate shortened pi using shifts times numpy.pi / 3.141592653. Final subtraction is double, with original public precision and correlation storage retained. No C/Cython/kernel edits.",
+    "strain_and_measured_psd": "For float32 CPU and Torch CPU/CUDA strain, promote each StrainSegments forward FFT and cast to original complex dtype. Promote measured-PSD strain before Welch, interpolation and inverse-spectrum truncation, restoring requested/default public precision. MPS behavior unchanged."
+  },
+  "created_utc": "2026-09-06T18:35:35.778416+00:00",
+  "diagnostic_evidence": {
+    "captured_bin_swap": {
+      "binning": {
+        "cpu": {
+          "methods": {
+            "numpy_float32": {
+              "bins": [
+                15360,
+                24424,
+                29157,
+                34176,
+                39319,
+                43646,
+                48332,
+                52803,
+                57901,
+                64284,
+                71154,
+                79953,
+                91080,
+                106550,
+                133454,
+                273702,
+                1048576
+              ],
+              "cumulative_total": 614652736.0,
+              "equals_recorded": true,
+              "relative_bin_power_vs_equal": [
+                -0.005377921445896661,
+                -0.005293348441354762,
+                -0.005061751269162751,
+                -0.005300763783810725,
+                -0.005256771734915566,
+                -0.005207113930954299,
+                -0.005329216367341627,
+                -0.00523001755662611,
+                -0.0050853631568906765,
+                -0.005207687871480959,
+                -0.00526243458822695,
+                -0.005244668939649699,
+                -0.005192912405254102,
+                -0.0052187458912331675,
+                0.0035002930595902093,
+                0.06976842432320796
+              ],
+              "total_relative_error": -0.005241188623114734
+            },
+            "numpy_float64": {
+              "bins": [
+                15360,
+                24451,
+                29204,
+                34237,
+                39399,
+                43747,
+                48475,
+                52973,
+                58122,
+                64598,
+                71574,
+                80491,
+                91917,
+                107871,
+                136456,
+                362757,
+                1048576
+              ],
+              "cumulative_total": 617891220.4348657,
+              "equals_recorded": false,
+              "relative_bin_power_vs_equal": [
+                -0.00011242980742065534,
+                3.286272389102507e-05,
+                -3.0320942620787328e-05,
+                6.224718160297016e-05,
+                3.8031381193626146e-05,
+                -0.000145823423299829,
+                6.720624876743742e-05,
+                6.89111592500069e-05,
+                -5.1231442131371985e-05,
+                6.213993679549112e-05,
+                -9.209067700166607e-05,
+                6.564340414882963e-05,
+                2.3876046497228742e-05,
+                -1.1134226061582098e-05,
+                2.1944803439311045e-05,
+                1.6763295018762392e-07
+              ],
+              "total_relative_error": 0.0
+            },
+            "numpy_float64_cast_float32": {
+              "bins": [
+                15360,
+                24451,
+                29204,
+                34237,
+                39399,
+                43747,
+                48475,
+                52973,
+                58122,
+                64598,
+                71574,
+                80491,
+                91917,
+                107871,
+                136456,
+                362755,
+                1048576
+              ],
+              "cumulative_total": 617891200.0,
+              "equals_recorded": false,
+              "relative_bin_power_vs_equal": [
+                -0.00011242980742065534,
+                3.286272389102507e-05,
+                -3.0320942620787328e-05,
+                6.224718160297016e-05,
+                3.8031381193626146e-05,
+                -0.000145823423299829,
+                6.720624876743742e-05,
+                6.89111592500069e-05,
+                -5.1231442131371985e-05,
+                6.213993679549112e-05,
+                -9.209067700166607e-05,
+                6.564340414882963e-05,
+                2.3876046497228742e-05,
+                -1.1134226061582098e-05,
+                2.1186887580348923e-05,
+                9.255488091497455e-07
+              ],
+              "total_relative_error": -3.3071947069807095e-08
+            }
+          },
+          "recorded_bins": [
+            15360,
+            24424,
+            29157,
+            34176,
+            39319,
+            43646,
+            48332,
+            52803,
+            57901,
+            64284,
+            71154,
+            79953,
+            91080,
+            106550,
+            133454,
+            273702,
+            1048576
+          ]
+        },
+        "cuda": {
+          "methods": {
+            "numpy_float32": {
+              "bins": [
+                15360,
+                24424,
+                29157,
+                34176,
+                39319,
+                43646,
+                48332,
+                52803,
+                57902,
+                64284,
+                71154,
+                79953,
+                91081,
+                106550,
+                133456,
+                273724,
+                1048576
+              ],
+              "cumulative_total": 614654016.0,
+              "equals_recorded": false,
+              "relative_bin_power_vs_equal": [
+                -0.005387496832754968,
+                -0.005298589457628844,
+                -0.005062555916374389,
+                -0.0052981848524298325,
+                -0.00525865345369203,
+                -0.0052082242729109,
+                -0.005329729704065422,
+                -0.005051745629521709,
+                -0.005264589373353834,
+                -0.005206351028693712,
+                -0.005260719162041294,
+                -0.005164401162365606,
+                -0.005269930439512849,
+                -0.0051728309794490945,
+                0.0034958998586740453,
+                0.06973810240612055
+              ],
+              "total_relative_error": -0.005238929635375533
+            },
+            "numpy_float64": {
+              "bins": [
+                15360,
+                24451,
+                29204,
+                34237,
+                39399,
+                43747,
+                48475,
+                52973,
+                58122,
+                64598,
+                71574,
+                80492,
+                91917,
+                107871,
+                136457,
+                362772,
+                1048576
+              ],
+              "cumulative_total": 617891104.0162657,
+              "equals_recorded": false,
+              "relative_bin_power_vs_equal": [
+                -0.00012205396824360726,
+                2.762883074902689e-05,
+                -3.080599245386395e-05,
+                6.43969303268932e-05,
+                3.621104687989707e-05,
+                -0.00014695645557616377,
+                6.684457983907599e-05,
+                6.769853669386094e-05,
+                -5.1206058823694e-05,
+                6.402762665547179e-05,
+                1.3097700277020508e-05,
+                -3.724479451749918e-05,
+                2.6405734592671593e-05,
+                1.3952820362650442e-05,
+                7.858414688310944e-06,
+                1.4504854983776738e-07
+              ],
+              "total_relative_error": 0.0
+            },
+            "numpy_float64_cast_float32": {
+              "bins": [
+                15360,
+                24451,
+                29204,
+                34237,
+                39399,
+                43747,
+                48475,
+                52973,
+                58122,
+                64598,
+                71574,
+                80492,
+                91917,
+                107871,
+                136457,
+                362773,
+                1048576
+              ],
+              "cumulative_total": 617891136.0,
+              "equals_recorded": false,
+              "relative_bin_power_vs_equal": [
+                -0.00012205396824360726,
+                2.762883074902689e-05,
+                -3.080599245386395e-05,
+                6.43969303268932e-05,
+                3.621104687989707e-05,
+                -0.00014695645557616377,
+                6.684457983907599e-05,
+                6.769853669386094e-05,
+                -5.1206058823694e-05,
+                6.402762665547179e-05,
+                1.3097700277020508e-05,
+                -3.724479451749918e-05,
+                2.6405734592671593e-05,
+                1.3952820362650442e-05,
+                8.235570439385498e-06,
+                -2.321072013478087e-07
+              ],
+              "total_relative_error": 5.17627363194606e-08
+            }
+          },
+          "recorded_bins": [
+            15360,
+            24451,
+            29204,
+            34237,
+            39399,
+            43747,
+            48475,
+            52973,
+            58122,
+            64598,
+            71574,
+            80492,
+            91917,
+            107871,
+            136457,
+            362790,
+            1048576
+          ]
+        }
+      },
+      "controlled_changes": {
+        "bin_change_with_cpu_inputs": -7.529603285978698,
+        "bin_change_with_cuda_inputs": -7.529867585439522,
+        "input_change_with_cpu_bins": 0.0016172353393955063,
+        "input_change_with_cuda_bins": 0.0013529358785717704
+      },
+      "direct_complex128_chisq": {
+        "cpu_inputs_cpu_bins": [
+          35.83482520105563
+        ],
+        "cpu_inputs_cuda_bins": [
+          28.30522191507693
+        ],
+        "cuda_inputs_cpu_bins": [
+          35.836442436395025
+        ],
+        "cuda_inputs_cuda_bins": [
+          28.306574850955503
+        ]
+      },
+      "interpretation": "At this one trigger, changing bin edges with the input arrays fixed changes chi-squared by about 7.53; changing input arrays with the edges fixed changes it by about 0.0016. Bin selection accounts for the dominant captured discrepancy. The CPU float32 cumulative sum reproduces its recorded edges and underestimates its float64 cumulative total by 0.5241%; this is evidence of reference error, not a reason to relax parity budgets.",
+      "recorded_chisq": {
+        "cpu": [
+          35.91798400878906
+        ],
+        "cuda": [
+          28.306575775146484
+        ]
+      },
+      "sample_indices": [
+        1884341
+      ],
+      "scope": "Causal diagnostic on one captured trigger; no qualification tolerances changed.",
+      "segment": {
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 5140480,
+        "epoch": 1187008191.0,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576,
+        "number": 3
+      },
+      "template_hash": 4366715446675002219
+    },
+    "cuda_prefix_repeatability": {
+      "cuda_version": "13.0",
+      "device": "NVIDIA GeForce RTX 4090",
+      "float64_cpu_reference_bins": [
+        15360,
+        24451,
+        29204,
+        34237,
+        39399,
+        43747,
+        48475,
+        52973,
+        58122,
+        64598,
+        71574,
+        80492,
+        91917,
+        107871,
+        136457,
+        362772,
+        1048576
+      ],
+      "float64_route_semantics": "torch.cumsum(power, dtype=torch.float64).to(torch.float32); thresholds and search use float32.",
+      "interpretation": "The fixed float32 power vector produced three bin-edge vectors in 100 CUDA float32 scans. Float64 accumulation followed by float32 casting produced one edge vector in 100 scans. Its penultimate edge 362778 differs from the fully float64 CPU reference edge 362772, so repeatability alone does not establish numerical accuracy or a completed fix.",
+      "repeats": 100,
+      "routes": {
+        "torch.float32": {
+          "cumulative_total_range": [
+            617890944.0,
+            617891264.0
+          ],
+          "outcomes": [
+            {
+              "bins": [
+                15360,
+                24451,
+                29204,
+                34237,
+                39399,
+                43747,
+                48475,
+                52973,
+                58122,
+                64598,
+                71574,
+                80492,
+                91917,
+                107871,
+                136457,
+                362790,
+                1048576
+              ],
+              "count": 81
+            },
+            {
+              "bins": [
+                15360,
+                24451,
+                29204,
+                34237,
+                39399,
+                43747,
+                48475,
+                52973,
+                58122,
+                64598,
+                71574,
+                80492,
+                91917,
+                107871,
+                136457,
+                362775,
+                1048576
+              ],
+              "count": 17
+            },
+            {
+              "bins": [
+                15360,
+                24451,
+                29204,
+                34237,
+                39399,
+                43747,
+                48475,
+                52973,
+                58122,
+                64598,
+                71574,
+                80492,
+                91917,
+                107871,
+                136457,
+                362805,
+                1048576
+              ],
+              "count": 2
+            }
+          ],
+          "unique_edge_vectors": 3
+        },
+        "torch.float64": {
+          "cumulative_total_range": [
+            617891136.0,
+            617891136.0
+          ],
+          "outcomes": [
+            {
+              "bins": [
+                15360,
+                24451,
+                29204,
+                34237,
+                39399,
+                43747,
+                48475,
+                52973,
+                58122,
+                64598,
+                71574,
+                80492,
+                91917,
+                107871,
+                136457,
+                362778,
+                1048576
+              ],
+              "count": 100
+            }
+          ],
+          "unique_edge_vectors": 1
+        }
+      },
+      "scope": "Repeatability diagnostic only; same fixed CUDA float32 power vector in both routes.",
+      "torch_version": "2.13.0+cu130"
+    },
+    "identical_input_chisq": {
+      "capture_count": 4,
+      "interpretation": "For these inputs, native float32 accumulation/phase evaluation is inaccurate against direct complex128. Float64 arithmetic with the original pi constant still leaves measurable error; the full-precision-pi variant agrees to about 1.2e-9, and Torch CPU with identical inputs agrees to about 1.8e-6. This does not certify all Torch campaign outputs.",
+      "max_absolute_error_vs_direct_complex128": {
+        "direct_complex128": 0.0,
+        "native_float32": 0.19185655229016874,
+        "native_float64_full_pi": 1.14563647457544e-09,
+        "native_float64_original_pi": 0.001763870723159755,
+        "torch_cpu_same_inputs": 1.7133408434233388e-06
+      },
+      "sample_count": 8,
+      "scope": "One template, four captured CPU segments, eight trigger samples; fixed captured correlation, normalization, indices and CPU bin edges. Native variants were compiled locally and do not reproduce Linux float32 results bitwise.",
+      "selected_capture": {
+        "bins": [
+          15360,
+          24424,
+          29157,
+          34176,
+          39319,
+          43646,
+          48332,
+          52803,
+          57901,
+          64284,
+          71154,
+          79953,
+          91080,
+          106550,
+          133454,
+          273702,
+          1048576
+        ],
+        "max_absolute_error_vs_direct": {
+          "direct_complex128": 0.0,
+          "native_float32": 0.08364599725946675,
+          "native_float64_full_pi": 1.14563647457544e-09,
+          "native_float64_original_pi": 0.001763870723159755,
+          "torch_cpu_same_inputs": 1.59265719190671e-06
+        },
+        "points": [
+          1884341
+        ],
+        "recorded_chisq": [
+          35.91798400878906
+        ],
+        "segment": {
+          "analyze_start": 458752,
+          "analyze_stop": 2019328,
+          "cumulative_index": 5140480,
+          "epoch": 1187008191.0,
+          "filter_bin_start": 15360,
+          "filter_bin_stop": 1048576,
+          "number": 3
+        },
+        "snr_magnitude": [
+          5.725484848022461
+        ],
+        "snr_norm": 3.5558137339407767e-06,
+        "template_hash": 4366715446675002219,
+        "variants": {
+          "direct_complex128": [
+            35.83482520105563
+          ],
+          "native_float32": [
+            35.918471198315096
+          ],
+          "native_float64_full_pi": [
+            35.834825202201266
+          ],
+          "native_float64_original_pi": [
+            35.83658907177879
+          ],
+          "torch_cpu_same_inputs": [
+            35.83482360839844
+          ]
+        }
+      },
+      "template_hash": 4366715446675002219
+    },
+    "snr_psd_v2": {
+      "cpu_all64_psd_vs_original_cpu": {
+        "max_absolute": 0.04144001007080078,
+        "max_relative_absolute": 0.0030376939221454105,
+        "relative_l2": 0.001375181925488913
+      },
+      "forward_fft_vs_same_variant_cpu": {
+        "cpu": {
+          "fft64_cast32": {
+            "max_absolute": 0.0,
+            "max_phase_radians": 0.0,
+            "max_relative_absolute": 0.0,
+            "relative_l2": 0.0
+          },
+          "native32": {
+            "max_absolute": 0.0,
+            "max_phase_radians": 0.0,
+            "max_relative_absolute": 0.0,
+            "relative_l2": 0.0
+          }
+        },
+        "torch-cpu": {
+          "fft64_cast32": {
+            "max_absolute": 0.0,
+            "max_phase_radians": 0.0,
+            "max_relative_absolute": 0.0,
+            "relative_l2": 0.0
+          },
+          "native32": {
+            "max_absolute": 6.103515625e-05,
+            "max_phase_radians": 0.00038718451378414625,
+            "max_relative_absolute": 0.0005326992068221256,
+            "relative_l2": 2.8845202764384498e-08
+          }
+        },
+        "torch-cuda": {
+          "fft64_cast32": {
+            "max_absolute": 1.8189894035458565e-12,
+            "max_phase_radians": 5.187818590278427e-08,
+            "max_relative_absolute": 6.410921614128385e-08,
+            "relative_l2": 9.027593648127315e-16
+          },
+          "native32": {
+            "max_absolute": 0.00024461699740419614,
+            "max_phase_radians": 0.05717593379647709,
+            "max_relative_absolute": 0.06315830018670376,
+            "relative_l2": 3.3589909166118203e-07
+          }
+        }
+      },
+      "limitations": [
+        "One captured template and segment; no qualification, full trigger parity or timing claim.",
+        "All trials retain native complex64 overwhitening, correlation and IFFT after explicit precision/cast changes.",
+        "Variant normalization uses direct float64 power summation, which can differ slightly from native template normalization.",
+        "PSD output remains float32; native/full-double PSD trials use each backend's own Welch and interpolation.",
+        "Comparisons above threshold inspect samples before clustering or chi-square/newSNR vetoes."
+      ],
+      "native_cpu_and_cuda_correlation_bitwise_reproduction": true,
+      "psd_vs_same_variant_cpu": {
+        "cpu": {
+          "all64_cast32": {
+            "max_absolute": 0.0,
+            "max_relative_absolute": 0.0,
+            "relative_l2": 0.0
+          },
+          "native32": {
+            "max_absolute": 0.0,
+            "max_relative_absolute": 0.0,
+            "relative_l2": 0.0
+          },
+          "trunc64_cast32": {
+            "max_absolute": 0.0,
+            "max_relative_absolute": 0.0,
+            "relative_l2": 0.0
+          }
+        },
+        "torch-cpu": {
+          "all64_cast32": {
+            "max_absolute": 0.0,
+            "max_relative_absolute": 0.0,
+            "relative_l2": 0.0
+          },
+          "native32": {
+            "max_absolute": 0.04111194610595703,
+            "max_relative_absolute": 0.0044307882689821184,
+            "relative_l2": 0.0016910702664335725
+          },
+          "trunc64_cast32": {
+            "max_absolute": 5.7220458984375e-06,
+            "max_relative_absolute": 0.004221034442451234,
+            "relative_l2": 2.896544788957261e-07
+          }
+        },
+        "torch-cuda": {
+          "all64_cast32": {
+            "max_absolute": 0.0,
+            "max_relative_absolute": 0.0,
+            "relative_l2": 0.0
+          },
+          "native32": {
+            "max_absolute": 0.08454036712646484,
+            "max_relative_absolute": 0.00710137138645854,
+            "relative_l2": 0.0030402347112471286
+          },
+          "trunc64_cast32": {
+            "max_absolute": 2.574920654296875e-05,
+            "max_relative_absolute": 0.002098596036550243,
+            "relative_l2": 1.332179107175818e-06
+          }
+        }
+      },
+      "segment": {
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 5140480,
+        "epoch": 1187008191.0,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576,
+        "number": 3
+      },
+      "selected_indices": [
+        1884341
+      ],
+      "template_hash": "4366715446675002219",
+      "unclustered_samples_above_snr_5_5_vs_same_variant_cpu": {
+        "cpu": {
+          "fft64_cast32/all64_cast32": {
+            "max_absolute_phase_difference_radians": 5.562521385183568e-18,
+            "max_absolute_snr_difference": 0.0,
+            "phase_violations": 0,
+            "sample_count": 2,
+            "snr_violations": 0
+          },
+          "fft64_cast32/native32": {
+            "max_absolute_phase_difference_radians": 1.741688411387025e-17,
+            "max_absolute_snr_difference": 0.0,
+            "phase_violations": 0,
+            "sample_count": 2,
+            "snr_violations": 0
+          },
+          "native32/native32": {
+            "max_absolute_phase_difference_radians": 1.385669923153259e-18,
+            "max_absolute_snr_difference": 0.0,
+            "phase_violations": 0,
+            "sample_count": 2,
+            "snr_violations": 0
+          }
+        },
+        "torch-cpu": {
+          "fft64_cast32/all64_cast32": {
+            "max_absolute_phase_difference_radians": 5.299111158662048e-08,
+            "max_absolute_snr_difference": 4.6543702136858656e-07,
+            "phase_violations": 0,
+            "sample_count": 2,
+            "snr_violations": 0
+          },
+          "fft64_cast32/native32": {
+            "max_absolute_phase_difference_radians": 2.3811660237464904e-06,
+            "max_absolute_snr_difference": 1.5855038340895078e-05,
+            "phase_violations": 0,
+            "sample_count": 2,
+            "snr_violations": 0
+          },
+          "native32/native32": {
+            "max_absolute_phase_difference_radians": 2.496330392759162e-06,
+            "max_absolute_snr_difference": 1.5803925613511183e-05,
+            "phase_violations": 0,
+            "sample_count": 2,
+            "snr_violations": 0
+          }
+        },
+        "torch-cuda": {
+          "fft64_cast32/all64_cast32": {
+            "max_absolute_phase_difference_radians": 7.693410499394971e-08,
+            "max_absolute_snr_difference": 1.813647022785858e-06,
+            "phase_violations": 0,
+            "sample_count": 2,
+            "snr_violations": 0
+          },
+          "fft64_cast32/native32": {
+            "max_absolute_phase_difference_radians": 6.008549512671222e-07,
+            "max_absolute_snr_difference": 4.241711077490606e-06,
+            "phase_violations": 0,
+            "sample_count": 2,
+            "snr_violations": 0
+          },
+          "native32/native32": {
+            "max_absolute_phase_difference_radians": 1.3286260304060072e-05,
+            "max_absolute_snr_difference": 0.0001895599699599515,
+            "phase_violations": 0,
+            "sample_count": 2,
+            "snr_violations": 0
+          }
+        }
+      }
+    }
+  },
+  "initial_corrected_cli_comparison": {
+    "comparison": {
+      "comparisons": [
+        {
+          "baseline": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision-cpu-l512/triggers.hdf",
+          "baseline_receipt_sha256": "e5969aac76697e86d800fa5bf8ab52bb405bf4c0d48c258b82228ba0a7259a6f",
+          "baseline_sha256": "f720656f5d2b5d3fc790ddf048c4071c60b6d2b6e66968c2c82bec88c2c64112",
+          "candidate": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision-torch-cpu-l512/triggers.hdf",
+          "candidate_receipt_sha256": "09b2cbfad822b2ab28919055d981c508ab29f2cf65b8341212a80f3b1ba0e2ea",
+          "candidate_sha256": "1ef72ad54eb9810c7059f5fa5d04e9414283e9d230a6a9d257ecaa2c0b57baaa",
+          "detectors": {
+            "H1": {
+              "baseline_count": 475,
+              "candidate_count": 475,
+              "matched_count": 475,
+              "metrics": {
+                "bank_chisq": {
+                  "baseline_value": 0.0,
+                  "budget_at_worst": 1e-05,
+                  "candidate_value": 0.0,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                },
+                "bank_chisq_dof": {
+                  "baseline_value": 0.0,
+                  "budget_at_worst": 0.0,
+                  "candidate_value": 0.0,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                },
+                "chisq": {
+                  "baseline_value": 42.14997100830078,
+                  "budget_at_worst": 0.004224998626708984,
+                  "candidate_value": 42.149986267089844,
+                  "max_absolute_error": 1.52587890625e-05,
+                  "max_relative_error": 5.067207458350269e-07,
+                  "violations": 0,
+                  "worst_identity": [
+                    -3201011114526358934,
+                    4861985160613
+                  ]
+                },
+                "chisq_dof": {
+                  "baseline_value": 16.0,
+                  "budget_at_worst": 0.0,
+                  "candidate_value": 16.0,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                },
+                "coa_phase": {
+                  "baseline_value": 2.8207619190216064,
+                  "budget_at_worst": 0.0001,
+                  "candidate_value": 2.8207616806030273,
+                  "max_absolute_error": 2.384185791015625e-07,
+                  "max_relative_error": 2.30100894481522e-06,
+                  "violations": 0,
+                  "worst_identity": [
+                    -8580970330985472509,
+                    4861984230022
+                  ]
+                },
+                "cont_chisq": {
+                  "baseline_value": 0.0,
+                  "budget_at_worst": 1e-05,
+                  "candidate_value": 0.0,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                },
+                "cont_chisq_dof": {
+                  "baseline_value": 0.0,
+                  "budget_at_worst": 0.0,
+                  "candidate_value": 0.0,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                },
+                "sg_chisq": {
+                  "baseline_value": 0.0,
+                  "budget_at_worst": 1e-05,
+                  "candidate_value": 0.0,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                },
+                "sigmasq": {
+                  "baseline_value": 2629070.5,
+                  "budget_at_worst": 26.290705000000003,
+                  "candidate_value": 2629070.5,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                },
+                "snr": {
+                  "baseline_value": 5.558018207550049,
+                  "budget_at_worst": 0.000565801820755005,
+                  "candidate_value": 5.558016777038574,
+                  "max_absolute_error": 1.430511474609375e-06,
+                  "max_relative_error": 2.589753295784788e-07,
+                  "violations": 0,
+                  "worst_identity": [
+                    -7402409573454333945,
+                    4861982157758
+                  ]
+                },
+                "template_duration": {
+                  "baseline_value": 49.27939987182617,
+                  "budget_at_worst": 0.004937939987182617,
+                  "candidate_value": 49.27939987182617,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                }
+              },
+              "unmatched": {
+                "baseline_only": {
+                  "classifications": {},
+                  "count": 0,
+                  "examples": []
+                },
+                "candidate_only": {
+                  "classifications": {},
+                  "count": 0,
+                  "examples": []
+                }
+              },
+              "valid_intervals": [
+                [
+                  1187007160.0,
+                  1187009064.0
+                ]
+              ]
+            }
+          },
+          "failures": [],
+          "review_reasons": [],
+          "sample_rate": 4096,
+          "status": "pass"
+        },
+        {
+          "baseline": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision-cpu-l512/triggers.hdf",
+          "baseline_receipt_sha256": "e5969aac76697e86d800fa5bf8ab52bb405bf4c0d48c258b82228ba0a7259a6f",
+          "baseline_sha256": "f720656f5d2b5d3fc790ddf048c4071c60b6d2b6e66968c2c82bec88c2c64112",
+          "candidate": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision-torch-cuda-l512/triggers.hdf",
+          "candidate_receipt_sha256": "b3f52bc982a6026211805890228e34b38707ca1397b84d7ed5d601b7af2576ed",
+          "candidate_sha256": "ddfd323b57ff1440da42057b46eb63167d875a5800c1c13dc68ac8c3bf4de7d5",
+          "detectors": {
+            "H1": {
+              "baseline_count": 475,
+              "candidate_count": 475,
+              "matched_count": 475,
+              "metrics": {
+                "bank_chisq": {
+                  "baseline_value": 0.0,
+                  "budget_at_worst": 1e-05,
+                  "candidate_value": 0.0,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                },
+                "bank_chisq_dof": {
+                  "baseline_value": 0.0,
+                  "budget_at_worst": 0.0,
+                  "candidate_value": 0.0,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                },
+                "chisq": {
+                  "baseline_value": 27.93463706970215,
+                  "budget_at_worst": 0.0028755885696411135,
+                  "candidate_value": 28.655885696411133,
+                  "max_absolute_error": 0.7212486267089844,
+                  "max_relative_error": 0.025169301495340402,
+                  "violations": 302,
+                  "worst_identity": [
+                    -6051532311927781382,
+                    4861984230029
+                  ]
+                },
+                "chisq_dof": {
+                  "baseline_value": 16.0,
+                  "budget_at_worst": 0.0,
+                  "candidate_value": 16.0,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                },
+                "coa_phase": {
+                  "baseline_value": 2.815258502960205,
+                  "budget_at_worst": 0.0001,
+                  "candidate_value": 2.815258741378784,
+                  "max_absolute_error": 2.384185791015625e-07,
+                  "max_relative_error": 2.8008868626311402e-05,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861984491041
+                  ]
+                },
+                "cont_chisq": {
+                  "baseline_value": 0.0,
+                  "budget_at_worst": 1e-05,
+                  "candidate_value": 0.0,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                },
+                "cont_chisq_dof": {
+                  "baseline_value": 0.0,
+                  "budget_at_worst": 0.0,
+                  "candidate_value": 0.0,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                },
+                "sg_chisq": {
+                  "baseline_value": 0.0,
+                  "budget_at_worst": 1e-05,
+                  "candidate_value": 0.0,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                },
+                "sigmasq": {
+                  "baseline_value": 2629070.5,
+                  "budget_at_worst": 26.290705000000003,
+                  "candidate_value": 2629070.5,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                },
+                "snr": {
+                  "baseline_value": 5.558018207550049,
+                  "budget_at_worst": 0.000565801820755005,
+                  "candidate_value": 5.558015823364258,
+                  "max_absolute_error": 2.384185791015625e-06,
+                  "max_relative_error": 4.323623570112831e-07,
+                  "violations": 0,
+                  "worst_identity": [
+                    -7402409573454333945,
+                    4861982157758
+                  ]
+                },
+                "template_duration": {
+                  "baseline_value": 49.27939987182617,
+                  "budget_at_worst": 0.004937939987182617,
+                  "candidate_value": 49.27939987182617,
+                  "max_absolute_error": 0.0,
+                  "max_relative_error": 0.0,
+                  "violations": 0,
+                  "worst_identity": [
+                    -9151645858255745739,
+                    4861983571672
+                  ]
+                }
+              },
+              "unmatched": {
+                "baseline_only": {
+                  "classifications": {},
+                  "count": 0,
+                  "examples": []
+                },
+                "candidate_only": {
+                  "classifications": {},
+                  "count": 0,
+                  "examples": []
+                }
+              },
+              "valid_intervals": [
+                [
+                  1187007160.0,
+                  1187009064.0
+                ]
+              ]
+            }
+          },
+          "failures": [
+            "H1/chisq: 302 numerical violations"
+          ],
+          "review_reasons": [],
+          "sample_rate": 4096,
+          "status": "fail"
+        }
+      ],
+      "schema_version": 1,
+      "scope": "Same analysis configuration only; unmatched triggers never pass.",
+      "status": "fail",
+      "tolerances": {
+        "atol": 1e-05,
+        "max_examples": 12,
+        "phase_atol": 0.0001,
+        "rtol": 0.0001,
+        "sigmasq_rtol": 1e-05
+      }
+    },
+    "evidence": "precision-backend-smoke-parity-v2.json",
+    "interpretation": "At segment length 512, all 475 trigger identities match for both backends and SNR/phase/normalization pass. Torch CPU passes every metric. CUDA still has 302 chi-squared violations, maximum absolute error 0.7212486267089844. This remains a blocker; no corrected full-CLI parity pass or performance result is claimed.",
+    "receipt_checks": {
+      "runs/qual-precision-cpu-l512/receipt.json": {
+        "clean_before_after": true,
+        "input_hashes_unchanged": true,
+        "source_commit": "f2c0abe61e787a26f41208f489c62c877bbd5667"
+      },
+      "runs/qual-precision-torch-cpu-l512/receipt.json": {
+        "clean_before_after": true,
+        "input_hashes_unchanged": true,
+        "source_commit": "f2c0abe61e787a26f41208f489c62c877bbd5667"
+      },
+      "runs/qual-precision-torch-cuda-l512/receipt.json": {
+        "clean_before_after": true,
+        "input_hashes_unchanged": true,
+        "source_commit": "f2c0abe61e787a26f41208f489c62c877bbd5667"
+      }
+    },
+    "source_commit": "f2c0abe61e787a26f41208f489c62c877bbd5667"
+  },
+  "interpretation_limits": [
+    "One captured trigger demonstrates the dominant bin effect; public float32 rounding and discrete frequency-cell placement remain.",
+    "The 100-repeat double-accumulation control retained float32 thresholds. Stable output is not proof of exact agreement with the wholly float64 reference.",
+    "Locally compiled native float32 does not reproduce Linux bitwise; controlled precision/pi comparisons isolate phase error without proving bitwise portability.",
+    "SNR/PSD v2 covers one template and segment, only two unclustered samples above 5.5, and direct float64 normalization. That point is not the campaign worst SNR/phase failure.",
+    "The old CPU reference changes. These controls establish mechanisms, not accuracy for every full-bank trigger."
+  ],
+  "prior_full_cli_qualification": {
+    "comparisons": [
+      {
+        "backend": "torch-cpu",
+        "baseline_count": 477,
+        "candidate_count": 475,
+        "failures": [
+          "H1/chisq: 469 numerical violations",
+          "H1/baseline_only: 8 unexplained triggers",
+          "H1/candidate_only: 5 unexplained triggers"
+        ],
+        "matched_count": 469,
+        "metrics": {
+          "chisq": {
+            "baseline_value": 35.91798400878906,
+            "budget_at_worst": 0.0036017984008789063,
+            "candidate_value": 28.30579376220703,
+            "max_absolute_error": 7.612190246582031,
+            "max_relative_error": 0.21193255848433315,
+            "violations": 469,
+            "worst_identity": [
+              4366715446675002219,
+              4861987434677
+            ]
+          },
+          "coa_phase": {
+            "baseline_value": 0.3408051133155823,
+            "budget_at_worst": 0.0001,
+            "candidate_value": 0.34071922302246094,
+            "max_absolute_error": 8.589029312133789e-05,
+            "max_relative_error": 0.011957914222691598,
+            "violations": 0,
+            "worst_identity": [
+              4148837371994600644,
+              4861985144158
+            ]
+          },
+          "sigmasq": {
+            "baseline_value": 10595789.0,
+            "budget_at_worst": 105.95800000000001,
+            "candidate_value": 10595800.0,
+            "max_absolute_error": 11.0,
+            "max_relative_error": 1.0381471903961947e-06,
+            "violations": 0,
+            "worst_identity": [
+              -3175783081774490059,
+              4861981674181
+            ]
+          },
+          "snr": {
+            "baseline_value": 5.67876672744751,
+            "budget_at_worst": 0.0005779246902465821,
+            "candidate_value": 5.67924690246582,
+            "max_absolute_error": 0.0004801750183105469,
+            "max_relative_error": 8.454906549353649e-05,
+            "violations": 0,
+            "worst_identity": [
+              3495669628688393759,
+              4861984560539
+            ]
+          }
+        },
+        "review_reasons": [
+          "H1/candidate_only: 1 threshold-adjacent triggers"
+        ],
+        "status": "fail",
+        "unmatched": {
+          "baseline_only": {
+            "classifications": {
+              "unexplained_mismatch": 8
+            },
+            "count": 8
+          },
+          "candidate_only": {
+            "classifications": {
+              "near_threshold_requires_review": 1,
+              "unexplained_mismatch": 5
+            },
+            "count": 6
+          }
+        },
+        "valid_intervals": [
+          [
+            1187007160.0,
+            1187009064.0
+          ]
+        ]
+      },
+      {
+        "backend": "torch-cuda",
+        "baseline_count": 477,
+        "candidate_count": 475,
+        "failures": [
+          "H1/chisq: 468 numerical violations",
+          "H1/coa_phase: 27 numerical violations",
+          "H1/snr: 19 numerical violations",
+          "H1/baseline_only: 8 unexplained triggers",
+          "H1/candidate_only: 6 unexplained triggers"
+        ],
+        "matched_count": 469,
+        "metrics": {
+          "chisq": {
+            "baseline_value": 35.91798400878906,
+            "budget_at_worst": 0.0036017984008789063,
+            "candidate_value": 28.306575775146484,
+            "max_absolute_error": 7.611408233642578,
+            "max_relative_error": 0.2119107863008147,
+            "violations": 468,
+            "worst_identity": [
+              4366715446675002219,
+              4861987434677
+            ]
+          },
+          "coa_phase": {
+            "baseline_value": 1.1353669166564941,
+            "budget_at_worst": 0.0001,
+            "candidate_value": 1.1355152130126953,
+            "max_absolute_error": 0.00014829635620117188,
+            "max_relative_error": 0.042155544956416095,
+            "violations": 27,
+            "worst_identity": [
+              4015805510226417211,
+              4861982598370
+            ]
+          },
+          "sigmasq": {
+            "baseline_value": 10595789.0,
+            "budget_at_worst": 105.95837,
+            "candidate_value": 10595837.0,
+            "max_absolute_error": 48.0,
+            "max_relative_error": 4.530081012004998e-06,
+            "violations": 0,
+            "worst_identity": [
+              -3175783081774490059,
+              4861981674181
+            ]
+          },
+          "snr": {
+            "baseline_value": 5.5282301902771,
+            "budget_at_worst": 0.00056282301902771,
+            "candidate_value": 5.527385711669922,
+            "max_absolute_error": 0.0008444786071777344,
+            "max_relative_error": 0.00015275749708522997,
+            "violations": 19,
+            "worst_identity": [
+              7190896270511713173,
+              4861984181934
+            ]
+          }
+        },
+        "review_reasons": [],
+        "status": "fail",
+        "unmatched": {
+          "baseline_only": {
+            "classifications": {
+              "unexplained_mismatch": 8
+            },
+            "count": 8
+          },
+          "candidate_only": {
+            "classifications": {
+              "unexplained_mismatch": 6
+            },
+            "count": 6
+          }
+        },
+        "valid_intervals": [
+          [
+            1187007160.0,
+            1187009064.0
+          ]
+        ]
+      }
+    ],
+    "interpretation": "Both Torch backends fail the existing budgets. Unmatched triggers remain failures or explicitly require review; proximity to a threshold is not acceptance.",
+    "status": "fail",
+    "tolerances": {
+      "atol": 1e-05,
+      "max_examples": 12,
+      "phase_atol": 0.0001,
+      "rtol": 0.0001,
+      "sigmasq_rtol": 1e-05
+    }
+  },
+  "provenance": {
+    "direct_evidence_sha256": {
+      "chisq-captured-bin-swap-diagnostic.json": "5371f8bc3cf0c1db941ea7544ef8faa73ad010d940b0353c6c988d264c2a8791",
+      "chisq-cuda-prefix-repeatability.json": "2460675d0c5d8c13dbd0f70422c41fc729483b321f4df1e3a0f95a1c4b247ba6",
+      "chisq-identical-input-diagnostic.json": "8e3d5a33ed959d30196a228b487014e9adaeaa02a825ccd0751c6658ff153770",
+      "chisq-input-capture-cpu/capture-verification.json": "918dbe385cecf9ac2cb0f7b6e70e2665178432e9fc381f5e344dc3efb1afe33a",
+      "chisq-input-capture-cpu/status.json": "b9ac86bca1d82c172059b8c695aa1893e0a5cdb87ff33cbd27d79358729faacf",
+      "chisq-input-capture-cuda/capture-verification.json": "d67877ed4ff9785eda48cb5fda2c994bdd40056d72b2995995e87c6e1ebd7e69",
+      "chisq-input-capture-cuda/status.json": "28308e0e279988e1f777d39e7fa79c7e1bdef34796b163c0382f936aef2ea726",
+      "chisq-precision-baseline-local-v2.log": "eba352af39eff4b6ff5ae717dabe410f4b95e1491b7da47b487c7eb704041e1a",
+      "chisq-precision-existing-local-v2.log": "2b54ef1d63e048465212e83a52efeac5f13d61ddb832c9caca758a2500942e86",
+      "chisq-precision-regressions-local-v2.log": "2a10f845e151be446d4971304c2d30d6582f62d880c4f0b053e216b63f272487",
+      "chisq-precision-regressions-local-v3.log": "84715beaa56bcd8e71b27483c2700c5edbd1c9fc786a43e17e92b247fd4f4e44",
+      "diagnose-prefix-reference.py": "b6d5e04075b93be9a60469a6375f302fe635e1e3df88c357c4204b895b540824",
+      "final-qualification-parity.json": "45455fcdeb2fcf03ae8341f3ca813fd799ff6ef132c393a7117094b00561246c",
+      "local-strain-psd-existing-fixed-v1.log": "97b20e710c99b5cb985fb427e792b3f94d6f1d9ce57019728f125d697a12178f",
+      "local-strain-psd-precision-baseline-v2.log": "e1540ef50b8f4b18cabbc75e797c3274783bc68c54d92c8ebfd56e75bb3cbb7d",
+      "local-strain-psd-precision-fixed-v2.log": "cdead20ee52019b8851a4770c1e0a63a657524155c8fe16f484141707a45f303",
+      "numerical-investigation-v1.json": "14ca7c602a362b91fa4a0332265f5a236874716cfc530d51b807cbc23981275a",
+      "numerical-investigation-v1.md": "ff1f511b1b64b239d5adef2a278d8b8642c8233854d2409cfa4a47c5faf28077",
+      "precision-backend-smoke-parity-v2.json": "3eca1025773c947a2b95bc326514a6ccb42b9cb2cfe5f43c4e5ca416ced6dde5",
+      "prefix-reference-diagnostic.json": "47d70f65112726b4ab928297eec3d0481e759e3de3d9525d58abec8c4d6f7583",
+      "prefix-reference-diagnostic.log": "9db54495a0b65184a82f83e8e2bbdb39e4d55641af898d207cd28cd9edaf0d2c",
+      "run-local-chisq-precision-tests-v2.py": "9b863cd404479cd752141df907758c0277d0f4927946fc9048f5d8c3646084f0",
+      "run-local-strain-psd-precision-tests.py": "f5eff7826a76e6b360c576ad7ff56b79d49c42c735298a907d6dcda217c71522",
+      "runs/qual-precision-cpu-l512/receipt.json": "e5969aac76697e86d800fa5bf8ab52bb405bf4c0d48c258b82228ba0a7259a6f",
+      "runs/qual-precision-cpu-l512/triggers.hdf": "f720656f5d2b5d3fc790ddf048c4071c60b6d2b6e66968c2c82bec88c2c64112",
+      "runs/qual-precision-torch-cpu-l512/receipt.json": "09b2cbfad822b2ab28919055d981c508ab29f2cf65b8341212a80f3b1ba0e2ea",
+      "runs/qual-precision-torch-cpu-l512/triggers.hdf": "1ef72ad54eb9810c7059f5fa5d04e9414283e9d230a6a9d257ecaa2c0b57baaa",
+      "runs/qual-precision-torch-cuda-l512/receipt.json": "b3f52bc982a6026211805890228e34b38707ca1397b84d7ed5d601b7af2576ed",
+      "runs/qual-precision-torch-cuda-l512/triggers.hdf": "ddfd323b57ff1440da42057b46eb63167d875a5800c1c13dc68ac8c3bf4de7d5",
+      "snr-psd-diagnostic-v1.status.json": "528e69c4cb6d2d7b72530cd2ea8e74d589a6ebe6a9bfc7538dc48de36f246012",
+      "snr-psd-diagnostic-v1/report.json": "6f63b3e4a9cd00cfaae5f0a1ea3852bfa352dfe987ef50e98b295b3295e646ab",
+      "snr-psd-diagnostic-v2.status.json": "aef163a5c6934700870701e4fa374df36c3e69fdb8fd0ac78a59d3cd56526e58",
+      "snr-psd-diagnostic-v2/report.json": "2357ee6d6f794afafe51110d1315fef4ca3df2eb2b584df8365954800fd6db8b",
+      "source-precision-provenance-v4.json": "af7b874800d169d64d1f3cc6a9c6655b53bd5d2e3576995f78db04822d7b746d",
+      "source-precision-provenance.json": "dae1bfd9ac7a98511e7cf67cab1273234230fb017eea9eb9b517a787dab68a43",
+      "source-v2.json": "76ae6c88df55db71fcdaa9bc00f8a498fc06c75744c8869badc2d95843caa4b2",
+      "source-v3.json": "38184f10ae2286fec44225fbc4f14e47ea3249b5e207567990efcff0307cc2fb",
+      "source-v4.json": "43caf87e57b98782caa3c0e43163e489b9e12c493b2ffc278add1d434f7b876a",
+      "unit-tests-v3.json": "11a4a46b7ba39df5da71b7c8c8aab70b9fc41d1dcef0795785522f22cf4f4628",
+      "unit-tests-v3.log": "38f344276268bb6869b6afb05bfcb685ff168884964f25b485318af3c908410f",
+      "unit-tests-v4.json": "600ef4f5141aca0b825deff572ea1471a588de2224d2e813eb6c2a7d60e3e35c",
+      "unit-tests-v4.log": "863707faa355f8de7604edbb9128ae0f0b8c072c6117d94672e74f69e02e6e61"
+    },
+    "input_sha256_verified_locally": {
+      "/Users/xangma/repos/pycbc/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865",
+      "/Users/xangma/repos/pycbc/pycbc/events/eventmgr_cython.cpython-312-darwin.so": "4dc6c6102c89e6f954762b6e2eeb7488e5c3c4e7ce5cccabd414e6f95e931989",
+      "/Users/xangma/repos/pycbc/pycbc/events/simd_threshold_cython.cpython-312-darwin.so": "2b54d4e5c44c5d16b5397b6fe5421bd365d208ee4229c7f3c1e52fc80e90a3cb",
+      "/Users/xangma/repos/pycbc/pycbc/types/array_cpu.cpython-312-darwin.so": "02c6fec41262957c5bf1418dc047dfd1ccd11b79748561031caa613efb77e9f3",
+      "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+      "capture-chisq-inputs-v2.py": "440d5405f2d5a9706e8c771d570de45c19f020858cfbf27563a06874fb833c00",
+      "capture-chisq-inputs.py": "accfdef4a6266d0bd8bbbb0ce92451d17ed8f33ed74ebac05b4ad30a0db4db8b",
+      "chisq-captured-bin-swap-diagnostic.json": "5371f8bc3cf0c1db941ea7544ef8faa73ad010d940b0353c6c988d264c2a8791",
+      "chisq-cuda-prefix-repeatability.json": "2460675d0c5d8c13dbd0f70422c41fc729483b321f4df1e3a0f95a1c4b247ba6",
+      "chisq-identical-input-diagnostic.json": "8e3d5a33ed959d30196a228b487014e9adaeaa02a825ccd0751c6658ff153770",
+      "chisq-input-capture-cpu/capture-0-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+      "chisq-input-capture-cpu/capture-0-chisq.npy": "5df589cbf674b1957da9a588610964b45541fdff931a2b7badd7667168604266",
+      "chisq-input-capture-cpu/capture-0-corr.npy": "41b0ecd95c6b1889405110fecea9a587292758f162bb244195adf3001b11d7fe",
+      "chisq-input-capture-cpu/capture-0-indices.npy": "ee45beca5fa18b34aaa35b2740bc50e4f69d127390b91244a7ab62ff0577791a",
+      "chisq-input-capture-cpu/capture-0-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+      "chisq-input-capture-cpu/capture-0-snrv.npy": "a0952edde162b3fbfa8fbfb1a92dced4831224bc1adf70729b248e9419cf0619",
+      "chisq-input-capture-cpu/capture-0-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+      "chisq-input-capture-cpu/capture-1-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+      "chisq-input-capture-cpu/capture-1-chisq.npy": "9f4f58be845262c15a3759d96549166a02a207d5d4cc378cacf1bc6cdf8040a5",
+      "chisq-input-capture-cpu/capture-1-corr.npy": "1e2c6668d12e0371563ee588e990dc07c9e42c071dde5cd0fbff9e37db429fa1",
+      "chisq-input-capture-cpu/capture-1-indices.npy": "626cee6c6a9da6c3d4479f29d803dcd4314c970c14c21910733f37e43a5dae52",
+      "chisq-input-capture-cpu/capture-1-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+      "chisq-input-capture-cpu/capture-1-snrv.npy": "f6dda6162ef57ac5d1a4bede5100a2efc80965c49c13e2ec682ed67b32500418",
+      "chisq-input-capture-cpu/capture-1-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+      "chisq-input-capture-cpu/capture-2-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+      "chisq-input-capture-cpu/capture-2-chisq.npy": "c1003b7f6d58a14d32a34aa4bf58de4bc2bb3571897c2ac7b179c0619a6947e4",
+      "chisq-input-capture-cpu/capture-2-corr.npy": "4a7d5f6f97db335f400114c92af31ee8f4f9fc6181dcf355ba407163cae8790f",
+      "chisq-input-capture-cpu/capture-2-indices.npy": "62088e711eedeb8a604a82ba167346ec512d804bf95d1f06d0db9ffd52b9d60f",
+      "chisq-input-capture-cpu/capture-2-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+      "chisq-input-capture-cpu/capture-2-snrv.npy": "17fb70c807b9027064e19203f891eb24525b8ae36ba1850ac4ae78e88a5fc096",
+      "chisq-input-capture-cpu/capture-2-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+      "chisq-input-capture-cpu/capture-3-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+      "chisq-input-capture-cpu/capture-3-chisq.npy": "9845e45f8d23eda1bf97fdc9a508e3ab79b492882860ee59940ea620390d00fb",
+      "chisq-input-capture-cpu/capture-3-corr.npy": "80242c538323714bfa6b9b33c8999e77c3a5e5205de8e8f215ff9641c6b36354",
+      "chisq-input-capture-cpu/capture-3-indices.npy": "cb41cdf39c23c172a4ea31243f4b575bf82a35ad451640ba52c16f5cb603e7af",
+      "chisq-input-capture-cpu/capture-3-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+      "chisq-input-capture-cpu/capture-3-snrv.npy": "55e3ea6e81b96d7a3658b5e0a2684a1bb1506e3a9169f6327598f90fdb6bc6c7",
+      "chisq-input-capture-cpu/capture-3-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+      "chisq-input-capture-cpu/capture-verification.json": "918dbe385cecf9ac2cb0f7b6e70e2665178432e9fc381f5e344dc3efb1afe33a",
+      "chisq-input-capture-cpu/conditioned-strain.npy": "4de2a5395ef6a71e36a4a9f7850ce319c277915bf7c15e73a1a3718566a7f0c2",
+      "chisq-input-capture-cpu/status.json": "b9ac86bca1d82c172059b8c695aa1893e0a5cdb87ff33cbd27d79358729faacf",
+      "chisq-input-capture-cpu/triggers.hdf": "62a253054e75368e40477a8f1bc06deb6ae28869e83cbe7a6935b3d0afc8efb9",
+      "chisq-input-capture-cuda/capture-0-bins.npy": "fa1575b89aa117fd645254de511b5a0b7b72ea5400c5f08e708aa98a4e804798",
+      "chisq-input-capture-cuda/capture-0-chisq.npy": "8063109413d191f59e995a650dc93cd2446cb7537c02581c422172e3068480e9",
+      "chisq-input-capture-cuda/capture-0-corr.npy": "3350170301efc714d849e995014e489684114b12975c8d999118c9a01ac240b4",
+      "chisq-input-capture-cuda/capture-0-indices.npy": "739738d7efda186335b911604ce39f7c213d15e2c843a1fbf4d7c40609e94b50",
+      "chisq-input-capture-cuda/capture-0-psd.npy": "dacef3475235c68e04f6125cf57f6fe76e896556940596233eda30d66b59a286",
+      "chisq-input-capture-cuda/capture-0-snrv.npy": "0cc6d336dbed9cc48f575ff36bdf34cfd978ab76fcc869b9acde46b136ab8a3f",
+      "chisq-input-capture-cuda/capture-0-template.npy": "093e51ede2c3322573a3a7335e696b4741e904d72ee767e35e8391214dcf7e4e",
+      "chisq-input-capture-cuda/capture-verification.json": "d67877ed4ff9785eda48cb5fda2c994bdd40056d72b2995995e87c6e1ebd7e69",
+      "chisq-input-capture-cuda/conditioned-strain.npy": "4de2a5395ef6a71e36a4a9f7850ce319c277915bf7c15e73a1a3718566a7f0c2",
+      "chisq-input-capture-cuda/status.json": "28308e0e279988e1f777d39e7fa79c7e1bdef34796b163c0382f936aef2ea726",
+      "chisq-input-capture-cuda/triggers.hdf": "da063160bf20802a3e77593428d9211975a7645ffdcc62b380376eedaf33d142",
+      "config.json": "e29df1ee26ad1a513982a81b55d1f8b648126baacc7b509bc918e5c8e912d36a",
+      "diagnose-captured-chisq-bins.py": "59d30a551ad927174ca144fd59c2f4dfc63c5fb9902bf8f9585345355597a72a",
+      "diagnose-chisq-inputs.py": "f935e2430478dc24a4be6213c0152438f2c30a355e829f19bdcf8179c2a6248f",
+      "diagnose-prefix-reference.py": "b6d5e04075b93be9a60469a6375f302fe635e1e3df88c357c4204b895b540824",
+      "diagnose-snr-psd-v2.py": "ba690a320d7018cf48f27fdd5130cf4680865cdfdd23526a899e916356b91000",
+      "diagnose-snr-psd.py": "49424d202dfaa121a1929f72f73ce82be6394e7886db2c9af79c138cb20c8beb",
+      "final-qualification-parity.json": "45455fcdeb2fcf03ae8341f3ca813fd799ff6ef132c393a7117094b00561246c",
+      "inputs/bank-compressed-1e5.hdf": "161820754117cd51b24a7bb672ea456cf7b2a3808e69690c23235d024b1a2916",
+      "inspiral-source-v2.bundle": "b4d02a885ce2a22d00272057355a0a2a2b7cb9309a8903a8abf63b6b58612d0e",
+      "inspiral-source-v3.bundle": "28af18df97b32bd4d3a64a826b0b471697288002e9ca0bc9e37989be46f9489a",
+      "inspiral-source-v4.bundle": "e5fa4d40eb7e23e386d36e95a34dc76f24e66508a6e0a7aac58277daf20ba748",
+      "qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+      "repeat-cuda-chisq-bins.py": "4134611bc44be4fbc403df4414c9e91f5d466f5d86b34a0fb262c96008d76e2d",
+      "run-case.py": "243eef653386a76d1ead4b92542bc84088e882df9011faab5a8154154da9c456",
+      "run-local-chisq-precision-tests-v2.py": "9b863cd404479cd752141df907758c0277d0f4927946fc9048f5d8c3646084f0",
+      "run-local-strain-psd-precision-tests.py": "f5eff7826a76e6b360c576ad7ff56b79d49c42c735298a907d6dcda217c71522",
+      "run-snr-psd-diagnostic-v2.py": "f5790e1ef02d027b74fde4f26ce33bcb932bf654f7ac4dbe4192fa49cc2f56b8",
+      "run-snr-psd-diagnostic.py": "f3faf1c486a132837ae103c6e492b97ca9e2b8c2b109006608dd3e41b7d344f6",
+      "run-unit-checks-v3.py": "4f34cc6db9053cb377bdff443e1de570f6cd71fdd763a60c853782d8a18aecbb",
+      "run-unit-checks-v4.py": "bdc729cf02738c64e3ad2dcf5bb839e16b38dc81f4444d4c574c68847c7a6298",
+      "runs/qual-final-cpu-l512/arrays/qualification-psd-000.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+      "runs/qual-final-cpu-l512/qualification.json": "08e24769881d15d057951cf1b0249968f4047f7f07f4e1b8017982e4fd03b507",
+      "runs/qual-final-cpu-l512/receipt.json": "0e84a8c9ae1a3433f452fa563c2398f4dc3848c833e9771eb86975570a6fa955",
+      "runs/qual-final-cpu-l512/triggers.hdf": "5da088458553a20022949706d1286b6d30e2b57e911c1bad955922a91ad6387a",
+      "runs/qual-final-torch-cpu-l512/arrays/qualification-psd-000.npy": "0feb48ec2ced12ed323cfe70d011d1c94649dbfd37251ad9958768a227fec4e5",
+      "runs/qual-final-torch-cpu-l512/qualification.json": "3a05f803b4c31ae241168e5cfaa8837461d8816e996d22e158fe2addd4e3a7a3",
+      "runs/qual-final-torch-cpu-l512/receipt.json": "f0ff572675a4a6534c11d7b144165e3e0b1070cf1877da1e3102293e40b83b07",
+      "runs/qual-final-torch-cuda-l512/arrays/qualification-psd-000.npy": "dacef3475235c68e04f6125cf57f6fe76e896556940596233eda30d66b59a286",
+      "runs/qual-final-torch-cuda-l512/qualification.json": "713a33a1f1682872db54286b4e4a932c73f057eb8d28e591d34d70e45ea9022c",
+      "runs/qual-final-torch-cuda-l512/receipt.json": "f24e1ee50ab815dab437409a5c9791c66fce11fa7d143fd4ca5b7f25acdcc9a5",
+      "runs/qual-final-torch-cuda-l512/triggers.hdf": "c11bcac2b7eb95b0d1d8a81699ab7801e3b26ae00979dfddd5faab0f645fb60b",
+      "setup-source-v3.py": "c06ae30001aec37219c4569d38340a02f1cd7539a73cee06261ca5ac754f5151",
+      "setup-source-v4.py": "1bc1985a85125b040ab8cf621b2b545ea405196737b8716e08952e6883495af3",
+      "snr-psd-diagnostic-v1.status.json": "528e69c4cb6d2d7b72530cd2ea8e74d589a6ebe6a9bfc7538dc48de36f246012",
+      "snr-psd-diagnostic-v1/report.json": "6f63b3e4a9cd00cfaae5f0a1ea3852bfa352dfe987ef50e98b295b3295e646ab",
+      "source-v2.json": "76ae6c88df55db71fcdaa9bc00f8a498fc06c75744c8869badc2d95843caa4b2",
+      "source-v3.json": "38184f10ae2286fec44225fbc4f14e47ea3249b5e207567990efcff0307cc2fb",
+      "source-v4.json": "43caf87e57b98782caa3c0e43163e489b9e12c493b2ffc278add1d434f7b876a"
+    },
+    "recorded_before_after_manifest_checks": {
+      "chisq-captured-bin-swap-diagnostic.json": true,
+      "chisq-cuda-prefix-repeatability.json": true,
+      "chisq-identical-input-diagnostic.json": true,
+      "chisq-input-capture-cpu/status.json": true,
+      "chisq-input-capture-cuda/status.json": true,
+      "prefix-reference-diagnostic.json": true,
+      "runs/qual-precision-cpu-l512/receipt.json": true,
+      "runs/qual-precision-torch-cpu-l512/receipt.json": true,
+      "runs/qual-precision-torch-cuda-l512/receipt.json": true,
+      "snr-psd-diagnostic-v1.status.json": true,
+      "snr-psd-diagnostic-v2.status.json": true,
+      "unit-tests-v3.json": true,
+      "unit-tests-v4.json": true
+    },
+    "source_input_sha256_verified_from_git": {
+      "6c82155044d58f3344b281869d87745f71ba2285:bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+      "6c82155044d58f3344b281869d87745f71ba2285:pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+      "6c82155044d58f3344b281869d87745f71ba2285:pycbc/psd/__init__.py": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab",
+      "6c82155044d58f3344b281869d87745f71ba2285:pycbc/scheme.py": "27a0704bea2156e946e29e4437363036da21a05a8a98b403f93e605b75e9f5f0",
+      "6c82155044d58f3344b281869d87745f71ba2285:pycbc/strain/strain.py": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f",
+      "6c82155044d58f3344b281869d87745f71ba2285:pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_chisq.py": "7a7a1372b9dc90a99846f36ac6bc8bcc58c71aebd3579e1cae397635a816c2af",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_chisq_precision.py": "a14462bbb029a44f5dba6abf6e6d65564f454cbabc3803aa9e9aeb6da3cce59b",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_matchedfilter.py": "30beade448048c629c231da86c6901d0c461b5921c4facf22525c178d59fbb89",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_psd.py": "befc2c16c682fbc665570055c29320fd95c132ab78592faf7f85e461605c288c",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_scheme_runtime.py": "45ac62167a6a3c503391f56bbbfc21dd982fbb58f05448b22c3dc52b3aca02cb",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_scheme_selection.py": "2e2c754335a18fc18619d2271466948535f84c53313e0a2d96881042e3c59b36",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_sigmasq_series_precision.py": "477f041cf5dafd836e572a50c1e269438bf9bdd52a57190e9c3e88876b0bfde0",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_strain.py": "adbd2d57d2391e004f8163428ae4bd38964df5aeb2ea26e7b8350e1e46bef8ed",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_strain_psd_precision.py": "cc6380df5aad6b8b25f88cd194c9786c30e4d9eaaffe3f756ff9a129f95a8134",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_torch_chisq_cpu_optimization.py": "d92e1148de28c32d02ca8f5f717c432f2eefcac72cbafcf205b9345bf2970928",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_torch_chisq_sparse_dispatch.py": "f3034eb5fe710f01568b82ef90dc63e794af383e4b4c7b34ec081ea2098b64eb",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_torch_filter_pipeline.py": "fe864e1aa22f0a51051fc17eb31f85ba0c758643f08ef7131174ab747b67285f",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_torch_matchedfilter_cpu_optimization.py": "ebfbe3420abbffdf0a29780818bbded4c05f7ff2e210fb0a8f98b3908e0f2091",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_torch_psd_pipeline.py": "f46a04e8077a863c1fceefbf1f95299061fc9446faae99eff67e2acc427e1c79",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_torch_psd_protocol.py": "05ea81b494fd836332db164101f0f7603b72c2b06530c210088fbc99c627bcb3",
+      "6c82155044d58f3344b281869d87745f71ba2285:test/test_torch_versioned_data_psd.py": "14d04001ea4ce3210668a03910fabb4a9a0aeec63876a3f9ae8bce93a0de3f6c",
+      "968bcd558117262af0d603710b054174659adb51:bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/fft/torchfft.py": "d8266c82aace68a4ad9a686cbd50c7b8e5ffda0522bcf3e35b58f457d7c97339",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/filter/matchedfilter.py": "40774107fdb566a626987dcded36dbd20f1a74c900d8d2801503209f3d7406c0",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/filter/matchedfilter_cpu.pyx": "f7fa6a9346e6a38a0bf67a2c4afeda581c74cc53c12513c8ef759c9813eb8e46",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/psd/estimate.py": "56399fd2ea312069baeaa9042f80e67b7715da3f5cbcb3653d84c79efd127209",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/scheme.py": "27a0704bea2156e946e29e4437363036da21a05a8a98b403f93e605b75e9f5f0",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/strain/strain.py": "9b7ba8b281caf0ae2601f7d581c9b3f5cf7781f9d2360269fe01200b6ea443f5",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/vetoes/chisq.py": "e3e89c87e4ed73398c79ee6acdf9b359998a6c206a95864cdcd1a03a4a2fb62f",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/vetoes/chisq_torch.py": "a2080725994d75ce4a76410df51065373cedfb39bb5ff2adac3f406bc4229447",
+      "968bcd558117262af0d603710b054174659adb51:pycbc/waveform/decompress_torch.py": "459d309f7ba733905c75ddaa8d664d5d0b3b56802aa166f8b4c230a4a30fb7af",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:pycbc/psd/__init__.py": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:pycbc/scheme.py": "27a0704bea2156e946e29e4437363036da21a05a8a98b403f93e605b75e9f5f0",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:pycbc/strain/strain.py": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:pycbc/vetoes/chisq_torch.py": "a2080725994d75ce4a76410df51065373cedfb39bb5ff2adac3f406bc4229447",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_chisq.py": "7a7a1372b9dc90a99846f36ac6bc8bcc58c71aebd3579e1cae397635a816c2af",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_chisq_precision.py": "a14462bbb029a44f5dba6abf6e6d65564f454cbabc3803aa9e9aeb6da3cce59b",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_matchedfilter.py": "30beade448048c629c231da86c6901d0c461b5921c4facf22525c178d59fbb89",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_psd.py": "befc2c16c682fbc665570055c29320fd95c132ab78592faf7f85e461605c288c",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_scheme_runtime.py": "45ac62167a6a3c503391f56bbbfc21dd982fbb58f05448b22c3dc52b3aca02cb",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_scheme_selection.py": "2e2c754335a18fc18619d2271466948535f84c53313e0a2d96881042e3c59b36",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_sigmasq_series_precision.py": "a294cbbe29ea4f4120b3ef38e2c696bdc4708391c813c3356cbac310dcbc691a",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_strain.py": "adbd2d57d2391e004f8163428ae4bd38964df5aeb2ea26e7b8350e1e46bef8ed",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_strain_psd_precision.py": "cc6380df5aad6b8b25f88cd194c9786c30e4d9eaaffe3f756ff9a129f95a8134",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_torch_chisq_cpu_optimization.py": "d92e1148de28c32d02ca8f5f717c432f2eefcac72cbafcf205b9345bf2970928",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_torch_chisq_sparse_dispatch.py": "f3034eb5fe710f01568b82ef90dc63e794af383e4b4c7b34ec081ea2098b64eb",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_torch_filter_pipeline.py": "fe864e1aa22f0a51051fc17eb31f85ba0c758643f08ef7131174ab747b67285f",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_torch_matchedfilter_cpu_optimization.py": "ebfbe3420abbffdf0a29780818bbded4c05f7ff2e210fb0a8f98b3908e0f2091",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_torch_psd_pipeline.py": "f46a04e8077a863c1fceefbf1f95299061fc9446faae99eff67e2acc427e1c79",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_torch_psd_protocol.py": "05ea81b494fd836332db164101f0f7603b72c2b06530c210088fbc99c627bcb3",
+      "f2c0abe61e787a26f41208f489c62c877bbd5667:test/test_torch_versioned_data_psd.py": "14d04001ea4ce3210668a03910fabb4a9a0aeec63876a3f9ae8bce93a0de3f6c"
+    },
+    "synthesis_inputs_unchanged": true,
+    "v1_preserved": true,
+    "v2_output_array_sha256_verified_locally": {
+      "snr-psd-diagnostic-v2/data-fft-cpu-fft64_cast32.npy": "ff70f2567127b7838fbb601fab8dc4a002a6d141a016da977b071eacb9a10447",
+      "snr-psd-diagnostic-v2/data-fft-cpu-native32.npy": "6700c46d33c1318ff0c3b5f937a207d216edb79e63956f592be3784217e18661",
+      "snr-psd-diagnostic-v2/data-fft-torch-cpu-fft64_cast32.npy": "ff70f2567127b7838fbb601fab8dc4a002a6d141a016da977b071eacb9a10447",
+      "snr-psd-diagnostic-v2/data-fft-torch-cpu-native32.npy": "d6be3a134e774ac607b39b34242a276b19b0db1512a1424b627e43bc456095fb",
+      "snr-psd-diagnostic-v2/data-fft-torch-cuda-fft64_cast32.npy": "bec09e0ad0fb2de0c83a7ef79b4577483ead912ad082e9a0114b1bd7f47d88b5",
+      "snr-psd-diagnostic-v2/data-fft-torch-cuda-native32.npy": "11deca0ffb0ae553acf75ad6e9757682aab5281373b9b39fde039c04594c3630",
+      "snr-psd-diagnostic-v2/psd-cpu-all64_cast32.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "snr-psd-diagnostic-v2/psd-cpu-common_cpu_all64_cast32.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "snr-psd-diagnostic-v2/psd-cpu-native32.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+      "snr-psd-diagnostic-v2/psd-cpu-trunc64_cast32.npy": "18c798a8d3a46609fab42a9d5ef123de54933caf34dc38b57e1a27e47c23b1d1",
+      "snr-psd-diagnostic-v2/psd-torch-cpu-all64_cast32.npy": "4b083eda5f7778779ba7b5f153a0e2b3ac0d623f6cc60d9e22b300244d5ead9a",
+      "snr-psd-diagnostic-v2/psd-torch-cpu-common_cpu_all64_cast32.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "snr-psd-diagnostic-v2/psd-torch-cpu-native32.npy": "0feb48ec2ced12ed323cfe70d011d1c94649dbfd37251ad9958768a227fec4e5",
+      "snr-psd-diagnostic-v2/psd-torch-cpu-trunc64_cast32.npy": "2e09c716c840c01b7ef1fdcc11740f257dd744962b695fc38e17f32b88cd8be8",
+      "snr-psd-diagnostic-v2/psd-torch-cuda-all64_cast32.npy": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf",
+      "snr-psd-diagnostic-v2/psd-torch-cuda-common_cpu_all64_cast32.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "snr-psd-diagnostic-v2/psd-torch-cuda-native32.npy": "dacef3475235c68e04f6125cf57f6fe76e896556940596233eda30d66b59a286",
+      "snr-psd-diagnostic-v2/psd-torch-cuda-trunc64_cast32.npy": "470742e88e5224e33e6b23cec40595e2b6f2b8fc69d0e7bdb3fdf54fab0ac50b"
+    }
+  },
+  "regressions": {
+    "baseline_method": "Read-only bootstrap loads unchanged Darwin Python 3.12 extensions and replaces selected functions with ASTs from the old git commit. These are targeted regression controls, not full old-checkout CLI runs.",
+    "final_local_evidence": "Updated prefix/chisq suite: 13 passed, 5 CUDA skipped. Unchanged strain/PSD suite: 20 passed, 10 CUDA skipped.",
+    "initial_new_suite_counts": {
+      "baseline": {
+        "failed": 17,
+        "passed": 16,
+        "skipped": 15
+      },
+      "corrected": {
+        "passed": 33,
+        "skipped": 15
+      }
+    },
+    "linux_suites": {
+      "v3": {
+        "counts": {
+          "failed": 2,
+          "passed": 363,
+          "skipped": 68
+        },
+        "failed_cases": [
+          "test/test_sigmasq_series_precision.py::test_long_sigmasq_series_and_equal_power_bins[torch-cuda-False-complex128]",
+          "test/test_sigmasq_series_precision.py::test_long_sigmasq_series_and_equal_power_bins[torch-cuda-True-complex128]"
+        ],
+        "input_hashes_unchanged": true,
+        "passed": false,
+        "returncode": 1,
+        "source_before_after_clean": true,
+        "source_commit": "6c82155044d58f3344b281869d87745f71ba2285",
+        "summary": "2 failed, 363 passed, 68 skipped, 21 warnings, 8 subtests passed in 27.79s"
+      },
+      "v4": {
+        "counts": {
+          "passed": 365,
+          "skipped": 68
+        },
+        "failed_cases": [],
+        "input_hashes_unchanged": true,
+        "passed": true,
+        "returncode": 0,
+        "source_before_after_clean": true,
+        "source_commit": "f2c0abe61e787a26f41208f489c62c877bbd5667",
+        "summary": "365 passed, 68 skipped, 21 warnings, 8 subtests passed in 23.33s"
+      }
+    },
+    "local_logs": {
+      "chisq-precision-baseline-local-v2.log": {
+        "counts": {
+          "failed": 7,
+          "passed": 6,
+          "skipped": 5
+        },
+        "failed_cases": [
+          "test/test_sigmasq_series_precision.py::test_long_sigmasq_series_and_equal_power_bins[cpu-False-complex64]",
+          "test/test_sigmasq_series_precision.py::test_long_sigmasq_series_and_equal_power_bins[cpu-True-complex64]",
+          "test/test_sigmasq_series_precision.py::test_equal_power_thresholds_between_adjacent_float32_values[cpu]",
+          "test/test_chisq_precision.py::test_long_cpu_point_chisq_matches_direct_phases[False-complex64]",
+          "test/test_chisq_precision.py::test_long_cpu_point_chisq_matches_direct_phases[False-complex128]",
+          "test/test_chisq_precision.py::test_long_cpu_point_chisq_matches_direct_phases[True-complex64]",
+          "test/test_chisq_precision.py::test_long_cpu_point_chisq_matches_direct_phases[True-complex128]"
+        ],
+        "header": {
+          "baseline_selected_functions_from_source": "968bcd558117262af0d603710b054174659adb51",
+          "file_sha256": {
+            "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/run-local-chisq-precision-tests-v2.py": "9b863cd404479cd752141df907758c0277d0f4927946fc9048f5d8c3646084f0",
+            "/Users/xangma/repos/pycbc/pycbc/events/eventmgr_cython.cpython-312-darwin.so": "4dc6c6102c89e6f954762b6e2eeb7488e5c3c4e7ce5cccabd414e6f95e931989",
+            "/Users/xangma/repos/pycbc/pycbc/events/simd_threshold_cython.cpython-312-darwin.so": "2b54d4e5c44c5d16b5397b6fe5421bd365d208ee4229c7f3c1e52fc80e90a3cb",
+            "/Users/xangma/repos/pycbc/pycbc/types/array_cpu.cpython-312-darwin.so": "02c6fec41262957c5bf1418dc047dfd1ccd11b79748561031caa613efb77e9f3",
+            "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_chisq_precision.py": "a14462bbb029a44f5dba6abf6e6d65564f454cbabc3803aa9e9aeb6da3cce59b",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_sigmasq_series_precision.py": "477f041cf5dafd836e572a50c1e269438bf9bdd52a57190e9c3e88876b0bfde0"
+          },
+          "local_native_abi": "Existing Darwin Python 3.12 extensions loaded read-only",
+          "python": "/Users/xangma/miniconda3/bin/python3.12",
+          "tests": [
+            "test/test_sigmasq_series_precision.py",
+            "test/test_chisq_precision.py"
+          ]
+        },
+        "summary": "7 failed, 6 passed, 5 skipped in 0.73s"
+      },
+      "chisq-precision-existing-local-v2.log": {
+        "counts": {
+          "passed": 71,
+          "skipped": 4
+        },
+        "failed_cases": [],
+        "header": {
+          "baseline_selected_functions_from_source": null,
+          "file_sha256": {
+            "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/run-local-chisq-precision-tests-v2.py": "9b863cd404479cd752141df907758c0277d0f4927946fc9048f5d8c3646084f0",
+            "/Users/xangma/repos/pycbc/pycbc/events/eventmgr_cython.cpython-312-darwin.so": "4dc6c6102c89e6f954762b6e2eeb7488e5c3c4e7ce5cccabd414e6f95e931989",
+            "/Users/xangma/repos/pycbc/pycbc/events/simd_threshold_cython.cpython-312-darwin.so": "2b54d4e5c44c5d16b5397b6fe5421bd365d208ee4229c7f3c1e52fc80e90a3cb",
+            "/Users/xangma/repos/pycbc/pycbc/types/array_cpu.cpython-312-darwin.so": "02c6fec41262957c5bf1418dc047dfd1ccd11b79748561031caa613efb77e9f3",
+            "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_torch_chisq_cpu_optimization.py": "d92e1148de28c32d02ca8f5f717c432f2eefcac72cbafcf205b9345bf2970928",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_torch_chisq_sparse_dispatch.py": "f3034eb5fe710f01568b82ef90dc63e794af383e4b4c7b34ec081ea2098b64eb",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_torch_filter_pipeline.py": "fe864e1aa22f0a51051fc17eb31f85ba0c758643f08ef7131174ab747b67285f"
+          },
+          "local_native_abi": "Existing Darwin Python 3.12 extensions loaded read-only",
+          "python": "/Users/xangma/miniconda3/bin/python3.12",
+          "tests": [
+            "test/test_torch_chisq_cpu_optimization.py",
+            "test/test_torch_chisq_sparse_dispatch.py",
+            "test/test_torch_filter_pipeline.py::test_power_chisq_bins_stay_on_device",
+            "test/test_torch_filter_pipeline.py::test_power_chisq_bins_accepts_public_backend_storage"
+          ]
+        },
+        "summary": "71 passed, 4 skipped, 19 warnings in 2.43s"
+      },
+      "chisq-precision-regressions-local-v2.log": {
+        "counts": {
+          "passed": 13,
+          "skipped": 5
+        },
+        "failed_cases": [],
+        "header": {
+          "baseline_selected_functions_from_source": null,
+          "file_sha256": {
+            "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/run-local-chisq-precision-tests-v2.py": "9b863cd404479cd752141df907758c0277d0f4927946fc9048f5d8c3646084f0",
+            "/Users/xangma/repos/pycbc/pycbc/events/eventmgr_cython.cpython-312-darwin.so": "4dc6c6102c89e6f954762b6e2eeb7488e5c3c4e7ce5cccabd414e6f95e931989",
+            "/Users/xangma/repos/pycbc/pycbc/events/simd_threshold_cython.cpython-312-darwin.so": "2b54d4e5c44c5d16b5397b6fe5421bd365d208ee4229c7f3c1e52fc80e90a3cb",
+            "/Users/xangma/repos/pycbc/pycbc/types/array_cpu.cpython-312-darwin.so": "02c6fec41262957c5bf1418dc047dfd1ccd11b79748561031caa613efb77e9f3",
+            "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_chisq_precision.py": "a14462bbb029a44f5dba6abf6e6d65564f454cbabc3803aa9e9aeb6da3cce59b",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_sigmasq_series_precision.py": "477f041cf5dafd836e572a50c1e269438bf9bdd52a57190e9c3e88876b0bfde0"
+          },
+          "local_native_abi": "Existing Darwin Python 3.12 extensions loaded read-only",
+          "python": "/Users/xangma/miniconda3/bin/python3.12",
+          "tests": [
+            "test/test_sigmasq_series_precision.py",
+            "test/test_chisq_precision.py"
+          ]
+        },
+        "summary": "13 passed, 5 skipped in 0.69s"
+      },
+      "chisq-precision-regressions-local-v3.log": {
+        "counts": {
+          "passed": 13,
+          "skipped": 5
+        },
+        "failed_cases": [],
+        "header": {
+          "baseline_selected_functions_from_source": null,
+          "file_sha256": {
+            "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/run-local-chisq-precision-tests-v2.py": "9b863cd404479cd752141df907758c0277d0f4927946fc9048f5d8c3646084f0",
+            "/Users/xangma/repos/pycbc/pycbc/events/eventmgr_cython.cpython-312-darwin.so": "4dc6c6102c89e6f954762b6e2eeb7488e5c3c4e7ce5cccabd414e6f95e931989",
+            "/Users/xangma/repos/pycbc/pycbc/events/simd_threshold_cython.cpython-312-darwin.so": "2b54d4e5c44c5d16b5397b6fe5421bd365d208ee4229c7f3c1e52fc80e90a3cb",
+            "/Users/xangma/repos/pycbc/pycbc/types/array_cpu.cpython-312-darwin.so": "02c6fec41262957c5bf1418dc047dfd1ccd11b79748561031caa613efb77e9f3",
+            "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_chisq_precision.py": "a14462bbb029a44f5dba6abf6e6d65564f454cbabc3803aa9e9aeb6da3cce59b",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_sigmasq_series_precision.py": "a294cbbe29ea4f4120b3ef38e2c696bdc4708391c813c3356cbac310dcbc691a"
+          },
+          "local_native_abi": "Existing Darwin Python 3.12 extensions loaded read-only",
+          "python": "/Users/xangma/miniconda3/bin/python3.12",
+          "tests": [
+            "test/test_sigmasq_series_precision.py",
+            "test/test_chisq_precision.py"
+          ]
+        },
+        "summary": "13 passed, 5 skipped in 2.39s"
+      },
+      "local-strain-psd-existing-fixed-v1.log": {
+        "counts": {
+          "passed": 51,
+          "skipped": 16
+        },
+        "failed_cases": [],
+        "header": {
+          "baseline_selected_functions_from_source": null,
+          "file_sha256": {
+            "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/run-local-strain-psd-precision-tests.py": "f5eff7826a76e6b360c576ad7ff56b79d49c42c735298a907d6dcda217c71522",
+            "/Users/xangma/repos/pycbc/pycbc/events/eventmgr_cython.cpython-312-darwin.so": "4dc6c6102c89e6f954762b6e2eeb7488e5c3c4e7ce5cccabd414e6f95e931989",
+            "/Users/xangma/repos/pycbc/pycbc/events/simd_threshold_cython.cpython-312-darwin.so": "2b54d4e5c44c5d16b5397b6fe5421bd365d208ee4229c7f3c1e52fc80e90a3cb",
+            "/Users/xangma/repos/pycbc/pycbc/types/array_cpu.cpython-312-darwin.so": "02c6fec41262957c5bf1418dc047dfd1ccd11b79748561031caa613efb77e9f3",
+            "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/psd/__init__.py": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/strain/strain.py": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_psd.py": "befc2c16c682fbc665570055c29320fd95c132ab78592faf7f85e461605c288c",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_strain.py": "adbd2d57d2391e004f8163428ae4bd38964df5aeb2ea26e7b8350e1e46bef8ed",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_torch_psd_pipeline.py": "f46a04e8077a863c1fceefbf1f95299061fc9446faae99eff67e2acc427e1c79",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_torch_psd_protocol.py": "05ea81b494fd836332db164101f0f7603b72c2b06530c210088fbc99c627bcb3"
+          },
+          "local_native_abi": "Existing Darwin Python 3.12 extensions loaded read-only",
+          "python": "/Users/xangma/miniconda3/bin/python3.12",
+          "tests": [
+            "test/test_psd.py",
+            "test/test_strain.py",
+            "test/test_torch_psd_pipeline.py",
+            "test/test_torch_psd_protocol.py"
+          ]
+        },
+        "summary": "51 passed, 16 skipped, 2 warnings in 1.59s"
+      },
+      "local-strain-psd-precision-baseline-v2.log": {
+        "counts": {
+          "failed": 10,
+          "passed": 10,
+          "skipped": 10
+        },
+        "failed_cases": [
+          "test/test_strain_psd_precision.py::test_strain_segments_retain_weak_frequencies[cpu-float32]",
+          "test/test_strain_psd_precision.py::test_strain_segments_retain_weak_frequencies[torch-cpu-float32]",
+          "test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[cpu-0-float32-None]",
+          "test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[cpu-0-float32-double]",
+          "test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[cpu-2-float32-None]",
+          "test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[cpu-2-float32-double]",
+          "test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[torch-cpu-0-float32-None]",
+          "test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[torch-cpu-0-float32-double]",
+          "test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[torch-cpu-2-float32-None]",
+          "test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[torch-cpu-2-float32-double]"
+        ],
+        "header": {
+          "baseline_selected_functions_from_source": "968bcd558117262af0d603710b054174659adb51",
+          "file_sha256": {
+            "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/run-local-strain-psd-precision-tests.py": "f5eff7826a76e6b360c576ad7ff56b79d49c42c735298a907d6dcda217c71522",
+            "/Users/xangma/repos/pycbc/pycbc/events/eventmgr_cython.cpython-312-darwin.so": "4dc6c6102c89e6f954762b6e2eeb7488e5c3c4e7ce5cccabd414e6f95e931989",
+            "/Users/xangma/repos/pycbc/pycbc/events/simd_threshold_cython.cpython-312-darwin.so": "2b54d4e5c44c5d16b5397b6fe5421bd365d208ee4229c7f3c1e52fc80e90a3cb",
+            "/Users/xangma/repos/pycbc/pycbc/types/array_cpu.cpython-312-darwin.so": "02c6fec41262957c5bf1418dc047dfd1ccd11b79748561031caa613efb77e9f3",
+            "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/psd/__init__.py": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/strain/strain.py": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_strain_psd_precision.py": "cc6380df5aad6b8b25f88cd194c9786c30e4d9eaaffe3f756ff9a129f95a8134"
+          },
+          "local_native_abi": "Existing Darwin Python 3.12 extensions loaded read-only",
+          "python": "/Users/xangma/miniconda3/bin/python3.12",
+          "tests": [
+            "test/test_strain_psd_precision.py"
+          ]
+        },
+        "summary": "10 failed, 10 passed, 10 skipped in 0.30s"
+      },
+      "local-strain-psd-precision-fixed-v2.log": {
+        "counts": {
+          "passed": 20,
+          "skipped": 10
+        },
+        "failed_cases": [],
+        "header": {
+          "baseline_selected_functions_from_source": null,
+          "file_sha256": {
+            "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/run-local-strain-psd-precision-tests.py": "f5eff7826a76e6b360c576ad7ff56b79d49c42c735298a907d6dcda217c71522",
+            "/Users/xangma/repos/pycbc/pycbc/events/eventmgr_cython.cpython-312-darwin.so": "4dc6c6102c89e6f954762b6e2eeb7488e5c3c4e7ce5cccabd414e6f95e931989",
+            "/Users/xangma/repos/pycbc/pycbc/events/simd_threshold_cython.cpython-312-darwin.so": "2b54d4e5c44c5d16b5397b6fe5421bd365d208ee4229c7f3c1e52fc80e90a3cb",
+            "/Users/xangma/repos/pycbc/pycbc/types/array_cpu.cpython-312-darwin.so": "02c6fec41262957c5bf1418dc047dfd1ccd11b79748561031caa613efb77e9f3",
+            "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/psd/__init__.py": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/strain/strain.py": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f",
+            "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_strain_psd_precision.py": "cc6380df5aad6b8b25f88cd194c9786c30e4d9eaaffe3f756ff9a129f95a8134"
+          },
+          "local_native_abi": "Existing Darwin Python 3.12 extensions loaded read-only",
+          "python": "/Users/xangma/miniconda3/bin/python3.12",
+          "tests": [
+            "test/test_strain_psd_precision.py"
+          ]
+        },
+        "summary": "20 passed, 10 skipped in 0.26s"
+      }
+    },
+    "test_reference_correction": {
+      "correction": "Use np.cumsum(dtype=np.longdouble) and float64 rtol=2*n*eps64/(1-n*eps64). Preserve float32 rtol=3e-7 and every full-CLI scientific budget.",
+      "diagnostic": {
+        "float64_eps": 2.220446049250313e-16,
+        "input_sha256": {
+          "/home/xangma/pycbc-torch-inspiral-reference-20260906/diagnose-prefix-reference.py": "b6d5e04075b93be9a60469a6375f302fe635e1e3df88c357c4204b895b540824",
+          "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v3/pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+          "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v3/test/test_sigmasq_series_precision.py": "477f041cf5dafd836e572a50c1e269438bf9bdd52a57190e9c3e88876b0bfde0"
+        },
+        "input_sha256_after": {
+          "/home/xangma/pycbc-torch-inspiral-reference-20260906/diagnose-prefix-reference.py": "b6d5e04075b93be9a60469a6375f302fe635e1e3df88c357c4204b895b540824",
+          "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v3/pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+          "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v3/test/test_sigmasq_series_precision.py": "477f041cf5dafd836e572a50c1e269438bf9bdd52a57190e9c3e88876b0bfde0"
+        },
+        "reference_eps": 1.0842021724855044e-19,
+        "rows": [
+          {
+            "cpu": {
+              "max_relative_error_vs_serial": 0.0,
+              "max_relative_error_vs_wide": 4.348968326921857e-14
+            },
+            "input_power_sha256": "3e5fe03ac81b43aaeed824c79d2e4ced6c4fbebfc91ddba4c54961c632a34184",
+            "serial_reference_max_relative_error": 4.348968326921857e-14,
+            "torch_cpu": {
+              "max_relative_error_vs_serial": 0.0,
+              "max_relative_error_vs_wide": 4.348968326921857e-14
+            },
+            "torch_cuda": {
+              "max_relative_error_vs_serial": 4.3396982464395003e-14,
+              "max_relative_error_vs_wide": 1.186197195619008e-15
+            },
+            "use_psd": false
+          },
+          {
+            "cpu": {
+              "max_relative_error_vs_serial": 0.0,
+              "max_relative_error_vs_wide": 7.217362330829122e-14
+            },
+            "input_power_sha256": "2e2974da437eb675a47d809d3aeaf67a52ee2dea821da0276a0a904de8200b47",
+            "serial_reference_max_relative_error": 7.217362330829122e-14,
+            "torch_cpu": {
+              "max_relative_error_vs_serial": 0.0,
+              "max_relative_error_vs_wide": 7.217362330829122e-14
+            },
+            "torch_cuda": {
+              "max_relative_error_vs_serial": 7.219154549808574e-14,
+              "max_relative_error_vs_wide": 1.229721266958332e-15
+            },
+            "use_psd": true
+          }
+        ],
+        "samples": 1008128,
+        "source_commit": "6c82155044d58f3344b281869d87745f71ba2285"
+      },
+      "final_linux_outcome": "365 passed, 68 skipped, 8 subtests; first failed run preserved.",
+      "finding": "Against wider accumulation, CUDA float64 prefixes are more accurate than the old serial float64 reference. The hardcoded 3e-14 bound rejected valid accumulation-order differences.",
+      "runtime_unchanged_from": "6c82155044d58f3344b281869d87745f71ba2285",
+      "test_only_commit": "f2c0abe61e787a26f41208f489c62c877bbd5667"
+    },
+    "three_new_suites": {
+      "test/test_chisq_precision.py": "Long vectors and late samples against independent direct complex128 phases, both correlation precisions and NumPy/PyCBC indices.",
+      "test/test_sigmasq_series_precision.py": "Independent long-double prefix reference, equal-bin power within discrete-cell/rounding bounds, threshold placement and repeated CUDA bins.",
+      "test/test_strain_psd_precision.py": "Strong-line input against independent NumPy FFT and SciPy Welch plus NumPy inverse-ASD truncation; public dtype, padding/metadata/cache and input immutability."
+    }
+  },
+  "remaining_qualification": [
+    "Resolve 302 CUDA chi-squared violations in the initial corrected full-CLI comparison; unit-test success does not clear this scientific blocker.",
+    "Complete full CLI parity on corrected source, repeated CUDA qualification and review every unmatched trigger.",
+    "Retain all original scientific budgets; threshold adjacency requires review, not automatic acceptance.",
+    "Requalify compression/segment boundaries, retune CPU reference and collect matched timings on this exact corrected source. Earlier timings are not source-equivalent.",
+    "No final passing full-CLI qualification, performance or capacity claim is established by this report."
+  ],
+  "schema_version": 2,
+  "scientific_budgets": {
+    "atol": 1e-05,
+    "max_examples": 12,
+    "phase_atol": 0.0001,
+    "rtol": 0.0001,
+    "sigmasq_rtol": 1e-05
+  },
+  "scope": "New synthesis only. All v1 evidence, failures, source, tests and runners preserved. No remote action or new experiment performed for this report.",
+  "source": {
+    "baseline_commit": "968bcd558117262af0d603710b054174659adb51",
+    "corrected_blobs": {
+      "pycbc/filter/matchedfilter.py": {
+        "git_blob": "f76b2b5581e36d6e264715454ec7a7d7f920b3b5",
+        "sha256": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786"
+      },
+      "pycbc/psd/__init__.py": {
+        "git_blob": "8fccdb09a1ef235ab86fc302edf9efbcf4eef275",
+        "sha256": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab"
+      },
+      "pycbc/strain/strain.py": {
+        "git_blob": "c735b15db8c68ba9e5153e8d970fe3c7faa7dd10",
+        "sha256": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f"
+      },
+      "pycbc/vetoes/chisq.py": {
+        "git_blob": "df78834e053c182d96252649a8650623cfecad8f",
+        "sha256": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c"
+      },
+      "test/test_chisq_precision.py": {
+        "git_blob": "ebcb2f81507dd2d5a1a393a8f946439633e01819",
+        "sha256": "a14462bbb029a44f5dba6abf6e6d65564f454cbabc3803aa9e9aeb6da3cce59b"
+      },
+      "test/test_sigmasq_series_precision.py": {
+        "git_blob": "b7eec751204f9825928312ecfcdb60f15eb219d4",
+        "sha256": "a294cbbe29ea4f4120b3ef38e2c696bdc4708391c813c3356cbac310dcbc691a"
+      },
+      "test/test_strain_psd_precision.py": {
+        "git_blob": "799d08a751902bc55a6aee704ebe7c32fadbecdf",
+        "sha256": "cc6380df5aad6b8b25f88cd194c9786c30e4d9eaaffe3f756ff9a129f95a8134"
+      }
+    },
+    "corrected_commit": "f2c0abe61e787a26f41208f489c62c877bbd5667",
+    "parent_delta": [
+      "test/test_sigmasq_series_precision.py"
+    ],
+    "recorded_native_hashes_unchanged": true,
+    "recorded_native_modules_sha256": {
+      "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+      "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+      "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+      "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+      "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+      "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+      "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+      "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+      "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+      "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+      "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc"
+    },
+    "runtime_fix_commit": "6c82155044d58f3344b281869d87745f71ba2285",
+    "runtime_identical_to_parent": true,
+    "verification": "Corrected blobs checked against source-v4.json and local files. Native hashes compared across source-v2/v3/v4 manifests."
+  },
+  "status": "Diagnostic mechanisms established; local regressions and corrected Linux/CUDA unit suite pass. Initial corrected CLI comparison passes Torch CPU but fails CUDA chi-squared. Complete qualification and matched timing remain outstanding."
+}

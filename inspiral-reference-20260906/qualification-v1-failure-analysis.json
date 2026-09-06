@@ -1,0 +1,11 @@
+{
+  "original_qualification": "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/runs/qual-cpu-l256/qualification.json",
+  "sha256": "7b26ea1a5e929912586e8efa3a63e648c6452405dbb0d442a7a8a116e387afca",
+  "executable_exit_code": 0,
+  "wrapper_status": "failed",
+  "cause": "The first wrapper required every PSD bin finite. The normal inverse-spectrum truncation produces positive infinity in 25 excluded bins below 30 Hz; all actual matched-filter bins are finite and positive.",
+  "correction": "Record actual controller kmin/kmax and validate all used bins; preserve complete PSD coverage and reject NaN, negative infinity, and nonpositive values. Allow positive infinity only in excluded bins.",
+  "original_wrapper": "qualification-wrapper-v1.py",
+  "original_wrapper_sha256": "21a3dc66027bb61a725d915c944ba0ae0a6c070d27abc01859aef8b081d424ea",
+  "timing_use": "Excluded: instrumented qualification with failed diagnostic status. Fresh v2 qualifications required."
+}

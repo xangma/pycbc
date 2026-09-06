@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "selected_segment_length_seconds": 512,
+  "selected_start_pad_seconds": 112,
+  "selected_end_pad_seconds": 16,
+  "basis": "Choose the lowest median full-process wall time among the three declared segment lengths using the passing 1e-5 compressed bank. Retain 112 seconds start padding: the earlier 96-second padding grid gave only 0.18% lower median at 512 seconds, while 112 seconds preserves 16 seconds more margin. Both paddings passed the separate matched-filter boundary model; this does not validate all conditioning/gating transients.",
+  "selection_grid": [
+    {
+      "segment_length_seconds": 256,
+      "wall_seconds": [
+        33.32091964199208,
+        33.03636621602345,
+        33.03716041997541
+      ],
+      "median_wall_seconds": 33.03716041997541
+    },
+    {
+      "segment_length_seconds": 512,
+      "wall_seconds": [
+        31.278152207029052,
+        31.313541919982526,
+        31.211140260042157
+      ],
+      "median_wall_seconds": 31.278152207029052
+    },
+    {
+      "segment_length_seconds": 1024,
+      "wall_seconds": [
+        36.64353617897723,
+        36.66756003705086,
+        36.64143422298366
+      ],
+      "median_wall_seconds": 36.64353617897723
+    }
+  ],
+  "input_sha256": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/accuracy-campaign.status.json": "ec23c200e1fdeb0aff92c10a148c76fbf069f71c6ce970c7a7567551efb2967a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/accuracy-timings-plan.json": "f6a0b3f4a1445953441810eebd3d1279aaa01a43a5c081d493ee3226c5d2d808",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/accuracy-qualifications-plan.json": "13f00a1aab80e2e9f0535d49aebdcbe0ebeef170b019f445618f97dc6157de41",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/waveform-validation-1e5.json": "b61e3d9c2c02763556bfa0ac36bb4bcec0bc4800288e435abfe81295b6f857b5",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/boundary-injections-1e5.json": "bb054327c978258c966d4316e87d942b94bbe95c0bae32c11cde5b6e4a08d188",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/full-tuning-grid-summary.json": "0a3a505b4de6fd1370f34d4a3c2f16c0a1cd7676ee0abedc6ff8a6a8e8c0c811",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/compression-1e5.json": "9d5724fbc1961fe20ff346b8ba39959f4c7fab1aae949126957aece2499279ee",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l256-r1/receipt.json": "3a8fcb33af4487e2c306eec3c09362fa5ce5c9d8dd2a53cefb71e53205385ebf",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l256-r1/triggers.hdf": "25a1edbc7a9a28541790553b62d7e249d3fc0dbec77a83bbc478253fc651152b",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l256-r2/receipt.json": "a758f6d311cd10cc401a17c86c539a92b1e45d8c87e1a0a34334345aa7706f94",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l256-r2/triggers.hdf": "1ea86801b6a6f00ea8aa003c5a30861fbbcb35b7224ddfd92225a7998401e1df",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l256-r3/receipt.json": "114d08cdd9d6c780dc09b17c03d06a16b3541184130b09fe193f736a4cfbc540",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l256-r3/triggers.hdf": "7f972a46140a8a316eb34fae4a9c6c2c2a9d15d945c9521a472debec254ce173",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-1e5-cpu-l256/receipt.json": "938078eaffc0c789febfc8b59ee116d94c944554c90505e649e99b7c6f42a194",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-1e5-cpu-l256/qualification.json": "cc24eccbfe3ac765f12889b0af6d4f2288d3f1c9ec9edf6468f850bad0ba8153",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-1e5-cpu-l256/triggers.hdf": "c31931f59606f7b3c6c43b5716be6f12570995eedaf707cf02a247b38b280d8f",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l512-r1/receipt.json": "083ff246bf8bef3738d0679de56cc3da2ce549e87697d238141e874f2b417503",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l512-r1/triggers.hdf": "d9964dfbee6cacf858458050ae82793b2b7dec2d501f5637b348a1630352b6ef",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l512-r2/receipt.json": "1125a93377e13b0e81f8467b96564148b9d5e4847c2541d7af7c14efe3b203a3",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l512-r2/triggers.hdf": "666db03116af5a481a80db4e574fee2b9df17be5732149aa5a1f889e656aee95",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l512-r3/receipt.json": "fd1cac9a275958a2206a47727a9e265b62c7f11c8478f15aca962f0f0e1677f2",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l512-r3/triggers.hdf": "ee68e2541990ecd52b1201ed5a5e0df256dc5b96c586594e8ecec9573ca4dc40",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-1e5-cpu-l512/receipt.json": "daf8390fdbb4f1d81abd989fda19c07356d24d34ed2470b6ae1e6102fa84034a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-1e5-cpu-l512/qualification.json": "9f4f891e873862b5e08a9a1c5ee749b213413ce52eb634fa82bec70e62486bb8",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-1e5-cpu-l512/triggers.hdf": "795178b5ae93f51085958bd6173f193c8a28e78d27fa3d03171c4c6f36add135",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l1024-r1/receipt.json": "6dd4c021283c50f187e8cc9ecee53653bbedea1de8dff489197783eab02845f2",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l1024-r1/triggers.hdf": "6c8c56b18aa170c30c67cb798b6c05d7f829b9bc82a692a3ee6838be30b5cb63",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l1024-r2/receipt.json": "1a318962de78b893ce2a04370025abe67d4b6cad77dbe180478a6ca5efe69e83",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l1024-r2/triggers.hdf": "0f42ff44d6a64339309e748a6515593daf45eaf71d1a5d0165f47666fab41cfe",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l1024-r3/receipt.json": "770a9ead88a746befd6a7840c0f336215aa1ec60051649e3b239cb6bbdb0b068",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/tune-1e5-cpu-l1024-r3/triggers.hdf": "66dfe97a875424f82af95d2f91b8297c662879f9a845249fc51085043bac6e9b",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-1e5-cpu-l1024/receipt.json": "7f3c8c6945dea93bbd92672a0c2ff6a26986d2d3139ab04b46cf684dd0ff6bbd",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-1e5-cpu-l1024/qualification.json": "9cfc13cf92e5ec384d16d8e48447091da4bf4f2e2608ca0d58fe1e98b3592f01",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-1e5-cpu-l1024/triggers.hdf": "7b4b233f5c39a2bed60ea1ec623cf20a75d5df629198808302b9af92a10a4630"
+  }
+}

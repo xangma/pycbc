@@ -1,0 +1,39 @@
+{
+  "source": "candidate-v2",
+  "command": [
+    "taskset",
+    "-c",
+    "8-11",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/profile-live.py",
+    "--root",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+    "--out",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/cpu32-t4-diagnostic/candidate-v2",
+    "--route",
+    "torch_cpu_native",
+    "--batch",
+    "32",
+    "--threads",
+    "4"
+  ],
+  "cwd": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+  "host": "len",
+  "log": "/home/xangma/pycbc-torch-performance-fix-20260906/cpu32-t4-diagnostic/candidate-v2.log",
+  "environment": {
+    "PYTHONPATH": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "OMP_DYNAMIC": "FALSE",
+    "OMP_NUM_THREADS": "4",
+    "MKL_NUM_THREADS": "4",
+    "OPENBLAS_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "PYCBC_TORCH_CPU_NATIVE_BATCH_CORRELATE": "1",
+    "PYCBC_TORCH_CPU_FFTW_BATCH": "1"
+  },
+  "started_utc": "2026-09-06T17:21:51.922932+00:00",
+  "pid": 323946,
+  "stop_command": "kill -TERM -- -323946",
+  "returncode": 0,
+  "finished_utc": "2026-09-06T17:21:58.598803+00:00"
+}

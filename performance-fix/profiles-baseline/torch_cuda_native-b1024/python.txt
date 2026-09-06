@@ -1,0 +1,53 @@
+         3192548 function calls (3192542 primitive calls) in 1.096 seconds
+
+   Ordered by: cumulative time
+   List reduced from 164 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    1.096    1.096 matchedfilter.py:2501(process_data)
+        1    0.000    0.000    1.096    1.096 matchedfilter.py:2506(process_all)
+        2    0.000    0.000    1.096    0.548 matchedfilter.py:2776(_process_batch)
+        1    0.000    0.000    1.081    1.081 scheme.py:432(_scheming_function)
+        1    0.000    0.000    1.081    1.081 matchedfilter_torch.py:1040(batch_correlate_execute)
+        1    0.000    0.000    1.081    1.081 matchedfilter_torch.py:765(_try_cuda_native_batch_correlate)
+        1    0.000    0.000    1.081    1.081 matchedfilter_torch.py:727(execute)
+        1    0.000    0.000    1.077    1.077 matchedfilter_torch.py:683(can_execute)
+        1    0.002    0.002    1.056    1.056 matchedfilter_torch.py:339(_batch_outputs_are_disjoint)
+     2050    0.171    0.000    1.054    0.001 {built-in method builtins.any}
+  1049600    0.329    0.000    0.587    0.000 matchedfilter_torch.py:343(<genexpr>)
+  1573376    0.388    0.000    0.388    0.000 matchedfilter_torch.py:203(_spans_overlap)
+   524800    0.165    0.000    0.295    0.000 matchedfilter_torch.py:345(<genexpr>)
+        1    0.000    0.000    0.016    0.016 {built-in method builtins.all}
+     2049    0.001    0.000    0.015    0.000 matchedfilter_torch.py:706(<genexpr>)
+     2050    0.007    0.000    0.014    0.000 matchedfilter_torch.py:555(_cuda_batch_tensor_contract)
+        1    0.000    0.000    0.011    0.011 matchedfilter.py:2091(_torch_batch_peak_values)
+        1    0.000    0.000    0.011    0.011 matchedfilter.py:1981(_try_torch_cuda_native_batch_peak_values)
+        2    0.011    0.005    0.011    0.005 {method 'cpu' of 'torch._C.TensorBase' objects}
+     2050    0.002    0.000    0.004    0.000 matchedfilter_torch.py:174(_has_autograd_state)
+        1    0.003    0.003    0.003    0.003 matchedfilter_torch.py:751(<listcomp>)
+     2050    0.001    0.000    0.002    0.000 forward_ad.py:151(unpack_dual)
+        1    0.000    0.000    0.002    0.002 torchfft.py:1414(execute)
+     2049    0.001    0.000    0.002    0.000 matchedfilter_torch.py:207(_logical_storage_span)
+        1    0.000    0.000    0.002    0.002 torchfft.py:1330(_execute_batched_ifft)
+     2050    0.001    0.000    0.002    0.000 matchedfilter_torch.py:213(_is_inference_tensor)
+        1    0.000    0.000    0.002    0.002 torchfft.py:1287(_execute_batched_ifft_direct)
+        1    0.001    0.001    0.002    0.002 matchedfilter_torch.py:572(_find_uniform_stride)
+        1    0.000    0.000    0.002    0.002 matchedfilter.py:2146(_torch_batch_peak_magnitudes)
+        1    0.000    0.000    0.002    0.002 {built-in method numpy.fromiter}
+     1025    0.001    0.000    0.001    0.000 matchedfilter.py:2162(<genexpr>)
+        2    0.001    0.000    0.001    0.001 matchedfilter_torch.py:352(_same_array_tensors)
+        1    0.000    0.000    0.001    0.001 matchedfilter_torch.py:711(<listcomp>)
+        1    0.000    0.000    0.001    0.001 matchedfilter_torch.py:341(<listcomp>)
+       32    0.001    0.000    0.001    0.000 {built-in method torch._C._fft.fft_ifft}
+     2050    0.001    0.000    0.001    0.000 <string>:1(<lambda>)
+     2050    0.001    0.000    0.001    0.000 {built-in method torch.is_inference}
+     5187    0.001    0.000    0.001    0.000 {method 'data_ptr' of 'torch._C.TensorBase' objects}
+     3138    0.001    0.000    0.001    0.000 {method 'is_contiguous' of 'torch._C.TensorBase' objects}
+     3140    0.001    0.000    0.001    0.000 {method 'numel' of 'torch._C.TensorBase' objects}
+     2049    0.001    0.000    0.001    0.000 matchedfilter_torch.py:708(<genexpr>)
+     1025    0.001    0.000    0.001    0.000 {method 'item' of 'numpy.generic' objects}
+     2050    0.001    0.000    0.001    0.000 {method 'is_conj' of 'torch._C.TensorBase' objects}
+     1025    0.000    0.000    0.001    0.000 matchedfilter_torch.py:740(<genexpr>)
+     2050    0.000    0.000    0.000    0.000 {method 'is_neg' of 'torch._C.TensorBase' objects}
+
+

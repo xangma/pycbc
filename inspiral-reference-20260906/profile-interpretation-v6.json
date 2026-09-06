@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "source_commit": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+  "baseline_source_commit": "837f38d493420043e45fb1ad210a0ccf68bacbaa",
+  "input_sha256": {
+    "runs/reference-precision5-cpu-l512-cprofile/profile.pstats": "2487c4a8db5dfd0444cee155ab3f44b1222753e7e74835a9b2000484aa453f4a",
+    "runs/profile-precision5-torch-cpu-l512-cprofile/profile.pstats": "ef8ee40e6ce7b52275f8796cf705c648a7d0b60b0d8dcb9383fe3663e9ca68d9",
+    "runs/profile-optimized6-cpu-l512-cprofile/profile.pstats": "c87e4ee5123f6ce9b304c04f72a2afccd7f2e6996646e605afdac7acf12b7d35",
+    "runs/profile-optimized6-torch-cpu-l512-cprofile/profile.pstats": "030c675a8bb6be420e7c3fe9c4d6f4512e7f52b2d1b222550e0f8586f677877c",
+    "optimized-report-v6/report.json": "8cfec174b477f1a7f670b3359c678de77e177c300f85d7c95ba9e0cf6d78e8f3",
+    "final-report/report.json": "11f17262ab7ec11c21cb50bdb8dd884379414a56fb22a4bbfd8ff934365f8b14",
+    "interpret-hotpaths-v6.py": "9519063f07da8ef9ef4f4e68287cb726c04be6aaa94a730ff606862eed3db64b"
+  },
+  "source_blob_sha256": {
+    "837f38d493420043e45fb1ad210a0ccf68bacbaa": {
+      "pycbc/fft/torchfft.py": "d8266c82aace68a4ad9a686cbd50c7b8e5ffda0522bcf3e35b58f457d7c97339",
+      "pycbc/fft/mkl.py": "8362642e359f48f17a89e0877757a29124a3c2b231e4debfa77d5520c2bb9fc3",
+      "pycbc/waveform/decompress_torch.py": "459d309f7ba733905c75ddaa8d664d5d0b3b56802aa166f8b4c230a4a30fb7af",
+      "pycbc/waveform/decompress_cpu.py": "7667f5fc0f91753853bdf3936eb6d4ed14dee425a1688f5dc3eb57ed363a8e19"
+    },
+    "a4d77a6d1863c0515e8dace64c5609b63d40b51e": {
+      "pycbc/fft/torchfft.py": "9123222316047a11652e2207e1b006f9f4a17e850d89d2d8b4b3cd081072ca5f",
+      "pycbc/fft/mkl.py": "8362642e359f48f17a89e0877757a29124a3c2b231e4debfa77d5520c2bb9fc3",
+      "pycbc/waveform/decompress_torch.py": "9710a30767edeacb68f70178534c215a6668e2d6ec12c389dbb50d73f52953b4",
+      "pycbc/waveform/decompress_cpu.py": "7667f5fc0f91753853bdf3936eb6d4ed14dee425a1688f5dc3eb57ed363a8e19"
+    }
+  },
+  "profiles": {
+    "before_cpu": {
+      "total_self_seconds": 34.48535865000002,
+      "interpolation": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/decompress_cpu.py",
+        "line": 34,
+        "function": "inline_linear_interp",
+        "primitive_calls": 96,
+        "calls": 96,
+        "self_seconds": 0.42077141500000004,
+        "cumulative_seconds": 0.421866134
+      },
+      "inverse_fft": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/fft/mkl.py",
+        "line": 189,
+        "function": "execute",
+        "primitive_calls": 480,
+        "calls": 480,
+        "self_seconds": 7.1034884730000005,
+        "cumulative_seconds": 7.1034884730000005
+      }
+    },
+    "before_torch_cpu": {
+      "total_self_seconds": 82.85235743700034,
+      "interpolation": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/decompress_torch.py",
+        "line": 155,
+        "function": "inline_linear_interp",
+        "primitive_calls": 96,
+        "calls": 96,
+        "self_seconds": 1.747877587,
+        "cumulative_seconds": 26.62460962
+      },
+      "inverse_fft": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/fft/torchfft.py",
+        "line": 1414,
+        "function": "execute",
+        "primitive_calls": 480,
+        "calls": 480,
+        "self_seconds": 0.004424162000000001,
+        "cumulative_seconds": 26.844547461
+      }
+    },
+    "after_cpu": {
+      "total_self_seconds": 34.58819860199989,
+      "interpolation": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/waveform/decompress_cpu.py",
+        "line": 34,
+        "function": "inline_linear_interp",
+        "primitive_calls": 96,
+        "calls": 96,
+        "self_seconds": 0.42067454800000004,
+        "cumulative_seconds": 0.42176825500000004
+      },
+      "inverse_fft": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/fft/mkl.py",
+        "line": 189,
+        "function": "execute",
+        "primitive_calls": 480,
+        "calls": 480,
+        "self_seconds": 7.1696354300000005,
+        "cumulative_seconds": 7.1696354300000005
+      }
+    },
+    "after_torch_cpu": {
+      "total_self_seconds": 47.09740219500027,
+      "interpolation": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/waveform/decompress_torch.py",
+        "line": 262,
+        "function": "inline_linear_interp",
+        "primitive_calls": 96,
+        "calls": 96,
+        "self_seconds": 0.000533149,
+        "cumulative_seconds": 0.440409223
+      },
+      "inverse_fft": {
+        "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/fft/torchfft.py",
+        "line": 1445,
+        "function": "execute",
+        "primitive_calls": 480,
+        "calls": 480,
+        "self_seconds": 0.002907068,
+        "cumulative_seconds": 17.81755871
+      }
+    }
+  },
+  "saved_cumulative_seconds": {
+    "interpolation": 26.184200397,
+    "inverse_fft": 9.026988751000001
+  },
+  "profile_total_reduction_seconds": 35.754955242000065,
+  "reduction_explained_fraction": 0.9847918675797608,
+  "remaining_profile_gap_seconds": 12.509203593000379,
+  "remaining_ifft_gap_seconds": 10.64792328,
+  "remaining_gap_ifft_fraction": 0.8512071292818456,
+  "limitations": [
+    "Separate instrumented processes; no confidence intervals or timing samples.",
+    "Only the two disjoint call paths are added; nested cumulative times are not.",
+    "Retained FP64 MKL FFT and conversions are not individually isolated."
+  ]
+}

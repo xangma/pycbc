@@ -1,0 +1,38 @@
+-----------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+                   Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg    # of Calls  
+-----------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+         aten::_fft_c2c        58.78%      51.954ms        66.00%      58.332ms      14.583ms             4  
+            aten::copy_        20.04%      17.709ms        20.04%      17.709ms       1.362ms            13  
+           aten::argmax         6.71%       5.931ms         6.72%       5.937ms       1.484ms             4  
+              aten::pow         5.80%       5.126ms         5.82%       5.140ms     642.562us             8  
+              aten::add         3.76%       3.325ms         3.76%       3.325ms     831.213us             4  
+              aten::cat         1.86%       1.642ms         1.86%       1.642ms     547.299us             3  
+              aten::mul         1.81%       1.597ms         4.57%       4.037ms       4.037ms             1  
+            aten::slice         0.28%     249.243us         0.36%     317.540us       5.991us            53  
+       aten::as_strided         0.13%     117.510us         0.13%     117.510us       1.588us            74  
+            aten::index         0.09%      77.317us         0.14%     125.637us      31.409us             4  
+           aten::select         0.08%      73.739us         0.09%      80.422us      10.053us             8  
+           aten::arange         0.08%      70.273us         0.16%     140.104us      17.513us             8  
+    aten::empty_strided         0.07%      64.952us         0.07%      64.952us      64.952us             1  
+            aten::empty         0.06%      55.092us         0.06%      55.092us       6.887us             8  
+     aten::view_as_real         0.06%      54.452us         0.06%      54.452us       6.807us             8  
+             aten::view         0.05%      41.958us         0.05%      41.958us       2.622us            16  
+             aten::real         0.04%      39.484us         0.13%     117.782us      29.446us             4  
+         aten::fft_ifft         0.04%      37.861us        66.04%      58.369ms      14.592ms             4  
+          aten::reshape         0.04%      33.123us         0.07%      59.261us       4.559us            13  
+            aten::clone         0.04%      31.428us         2.76%       2.440ms       2.440ms             1  
+      aten::as_strided_         0.03%      24.696us         0.03%      24.696us       6.174us             4  
+          aten::permute         0.03%      23.012us         0.04%      30.968us       7.742us             4  
+            aten::stack         0.02%      21.700us         1.87%       1.656ms       1.656ms             1  
+           aten::square         0.02%      21.351us         5.84%       5.162ms     645.231us             8  
+             aten::imag         0.02%      14.577us         0.08%      71.153us      17.788us             4  
+          aten::resize_         0.02%      13.767us         0.02%      13.767us       1.721us             8  
+               aten::to         0.01%       9.617us         0.01%       9.617us       0.801us            12  
+      aten::result_type         0.01%       8.516us         0.01%       8.516us       1.065us             8  
+            aten::split         0.01%       7.704us         0.03%      27.541us      27.541us             1  
+           aten::narrow         0.01%       7.594us         0.02%      19.837us       4.959us             4  
+           aten::detach         0.00%       3.848us         0.00%       3.848us       0.962us             4  
+     aten::resolve_conj         0.00%       0.572us         0.00%       0.572us       0.286us             2  
+      aten::resolve_neg         0.00%       0.320us         0.00%       0.320us       0.160us             2  
+-----------------------  ------------  ------------  ------------  ------------  ------------  ------------  
+Self CPU time total: 88.387ms

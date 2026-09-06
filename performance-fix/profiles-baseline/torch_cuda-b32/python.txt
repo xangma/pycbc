@@ -1,0 +1,53 @@
+         1170 function calls (1164 primitive calls) in 0.002 seconds
+
+   Ordered by: cumulative time
+   List reduced from 140 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.001    0.001 matchedfilter.py:2501(process_data)
+        1    0.000    0.000    0.001    0.001 matchedfilter.py:2506(process_all)
+        2    0.000    0.000    0.001    0.001 matchedfilter.py:2776(_process_batch)
+        1    0.000    0.000    0.001    0.001 scheme.py:432(_scheming_function)
+        1    0.000    0.000    0.001    0.001 matchedfilter_torch.py:1040(batch_correlate_execute)
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:2091(_torch_batch_peak_values)
+        1    0.000    0.000    0.000    0.000 torchfft.py:1414(execute)
+        2    0.000    0.000    0.000    0.000 {built-in method builtins.all}
+        1    0.000    0.000    0.000    0.000 torchfft.py:1330(_execute_batched_ifft)
+       65    0.000    0.000    0.000    0.000 matchedfilter_torch.py:1070(<genexpr>)
+        1    0.000    0.000    0.000    0.000 torchfft.py:1287(_execute_batched_ifft_direct)
+        1    0.000    0.000    0.000    0.000 matchedfilter_torch.py:1121(<listcomp>)
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:2146(_torch_batch_peak_magnitudes)
+        1    0.000    0.000    0.000    0.000 {built-in method numpy.fromiter}
+        1    0.000    0.000    0.000    0.000 __init__.py:1209(synchronize)
+        2    0.000    0.000    0.000    0.000 matchedfilter_torch.py:572(_find_uniform_stride)
+       33    0.000    0.000    0.000    0.000 matchedfilter.py:2162(<genexpr>)
+        1    0.000    0.000    0.000    0.000 {built-in method torch._C._fft.fft_ifft}
+        1    0.000    0.000    0.000    0.000 __init__.py:650(__init__)
+  166/160    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+        2    0.000    0.000    0.000    0.000 {method 'cpu' of 'torch._C.TensorBase' objects}
+        1    0.000    0.000    0.000    0.000 _utils.py:557(_get_device_index)
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:2533(_process_vetoes)
+        1    0.000    0.000    0.000    0.000 {built-in method torch.mul}
+        6    0.000    0.000    0.000    0.000 <frozen _collections_abc>:771(get)
+        1    0.000    0.000    0.000    0.000 {built-in method torch.stack}
+        1    0.000    0.000    0.000    0.000 _utils.py:869(_get_device_index)
+       33    0.000    0.000    0.000    0.000 matchedfilter_torch.py:1064(<genexpr>)
+        1    0.000    0.000    0.000    0.000 _utils.py:843(_get_current_device_index)
+        1    0.000    0.000    0.000    0.000 matchedfilter_torch.py:184(_has_dynamic_autograd_state)
+        3    0.000    0.000    0.000    0.000 matchedfilter.py:59(_torch_inference_mode_context)
+        1    0.000    0.000    0.000    0.000 {built-in method builtins.any}
+        1    0.000    0.000    0.000    0.000 _utils.py:827(_get_device_attr)
+       65    0.000    0.000    0.000    0.000 matchedfilter_torch.py:1068(<genexpr>)
+        1    0.000    0.000    0.000    0.000 torchfft.py:1269(_can_use_direct_batch_ifft)
+        6    0.000    0.000    0.000    0.000 <frozen os>:674(__getitem__)
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:2494(combine_results)
+       33    0.000    0.000    0.000    0.000 {method 'item' of 'numpy.generic' objects}
+        1    0.000    0.000    0.000    0.000 torchfft.py:1099(_batch_logical_views)
+       33    0.000    0.000    0.000    0.000 matchedfilter_torch.py:1061(<genexpr>)
+        1    0.000    0.000    0.000    0.000 {method 'square' of 'torch._C.TensorBase' objects}
+        3    0.000    0.000    0.000    0.000 backend.py:60(backend_array)
+        1    0.000    0.000    0.000    0.000 torchfft.py:1089(_batch_views)
+        1    0.000    0.000    0.000    0.000 {method 'sum' of 'torch._C.TensorBase' objects}
+        2    0.000    0.000    0.000    0.000 {method 'view' of 'torch._C.TensorBase' objects}
+
+

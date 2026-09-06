@@ -1,0 +1,42 @@
+{
+  "batch_32": {
+    "batch": 32,
+    "routes_evaluated": [
+      "branch_standard",
+      "torch_cuda_native",
+      "torch_cuda_native_fixed"
+    ],
+    "comparisons": {
+      "torch_cuda_native_vs_branch_standard": {
+        "finite_values": true,
+        "block_count_match": true,
+        "trigger_count_match": true,
+        "template_id_match": true,
+        "end_time_match": true,
+        "sequence_length_match": true,
+        "veto_count_match": true,
+        "max_snr_diff": 2.86102294921875e-06,
+        "max_phase_diff": 6.12817530054599e-08,
+        "max_sigmasq_relative_diff": 1.1920930376163766e-07,
+        "relative_output_l2_diff": 1.4993022170639316e-07,
+        "passed": true
+      },
+      "torch_cuda_native_fixed_vs_branch_standard": {
+        "finite_values": true,
+        "block_count_match": true,
+        "trigger_count_match": true,
+        "template_id_match": true,
+        "end_time_match": true,
+        "sequence_length_match": true,
+        "veto_count_match": true,
+        "max_snr_diff": 2.86102294921875e-06,
+        "max_phase_diff": 6.12817530054599e-08,
+        "max_sigmasq_relative_diff": 1.1920930376163766e-07,
+        "relative_output_l2_diff": 1.4993022170639316e-07,
+        "passed": true
+      }
+    },
+    "all_passed": true
+  },
+  "all_passed_globally": true
+}

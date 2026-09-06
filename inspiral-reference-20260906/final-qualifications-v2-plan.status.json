@@ -1,0 +1,30 @@
+{
+  "state": "failed",
+  "pid": 573829,
+  "plan": "/home/xangma/pycbc-torch-inspiral-reference-20260906/final-qualifications-v2-plan.json",
+  "plan_sha256": "607c667f8561e76d19d28de9c1a9168b020ef30cb1d1900dcf501999679bc4d0",
+  "started_utc": "2026-09-06T17:31:10.884942+00:00",
+  "completed": [],
+  "current": [
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "-u",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-case.py",
+    "--config",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/config.json",
+    "--source",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2",
+    "--bank",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf",
+    "--case",
+    "qual-v2-cpu-l512",
+    "--mode",
+    "qualify",
+    "--scheme",
+    "cpu:1",
+    "--segment-length",
+    "512"
+  ],
+  "child_pid": 573840,
+  "returncode": 1,
+  "finished_utc": "2026-09-06T17:31:10.934964+00:00"
+}

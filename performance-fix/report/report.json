@@ -1,0 +1,3488 @@
+{
+  "schema": 1,
+  "generated_utc": "2026-09-06T16:13:30.119151+00:00",
+  "campaign_started_utc": "2026-09-06T14:42:37.468714+00:00",
+  "campaign_finished_utc": "2026-09-06T15:47:33.542233+00:00",
+  "sources": {
+    "baseline": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline",
+      "sha": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+      "tree": "b0d5ef6e3b39bfe246b4c416528839256edadf1f",
+      "status": ""
+    },
+    "candidate": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate",
+      "sha": "97bf1614f3afe53a6e2edb4d8c7dff79e9661782",
+      "tree": "d9819f6f6ebf2998ac967178778cc1911757e455",
+      "status": ""
+    }
+  },
+  "batches": [
+    1,
+    8,
+    32,
+    128,
+    512,
+    1024
+  ],
+  "replicates": [
+    1,
+    2,
+    3
+  ],
+  "counts": {
+    "live_workers": 252,
+    "standard_controls": 36,
+    "waveform_workers": 108,
+    "live_parity_records": 108
+  },
+  "validation": {
+    "complete": true,
+    "all_live_parity_passed": true,
+    "all_waveform_dispatch_and_parity_passed": true
+  },
+  "runtime": {
+    "hostname": "len",
+    "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+    "python": "3.11.9 | packaged by conda-forge | (main, Apr 19 2024, 18:36:13) [GCC 12.3.0]",
+    "numpy": "1.26.4",
+    "torch": "2.13.0+cu130",
+    "lalsuite": "7.21"
+  },
+  "cuda_device": {
+    "index": 0,
+    "name": "NVIDIA GeForce RTX 4090",
+    "memory_bytes": 25272188928,
+    "compute_capability": [
+      8,
+      9
+    ]
+  },
+  "notes": {
+    "aggregation": "Three separate worker processes per source, route, thread count and batch. Throughput is the median of their three warm throughput medians. Ranges are min\u2013max across workers, not confidence intervals. The paired ratio is the median of candidate/baseline worker ratios matched by replicate; it need not equal the ratio of the two aggregate medians.",
+    "timing": "Sequential workers pinned to CPU cores 8\u201311; before/after order reverses for replicate 2. Timing excludes profiling and dispatch instrumentation. Live workers use three warm iterations after one warmup; waveform workers use five calibrated timed blocks after two warmups. CUDA calls synchronize at timing boundaries. These three replicates characterize run variation, not independent scientific workloads.",
+    "live": "Synthetic seeded templates and injected strain; N=131072, three strain blocks per iteration, complex64 inputs/outputs, SNR threshold 5.5. The public LiveBatchMatchedFilter.process_data API is timed with chi-square and sine-Gaussian vetoes disabled. Frame I/O, PSD estimation, bank loading, waveform generation and CLI startup are excluded. The raw unit templates/s counts one template filtered against one strain block. Native labels mean opt-in routing is enabled; admission can select a fallback for a given batch.",
+    "live_parity": "Each baseline and candidate is checked against the corresponding standard CPU control: trigger counts and template IDs, end times within 1e-4 s, SNR and wrapped phase differences below 1e-3, relative sigma-squared and aggregate output-norm differences below 1e-3. These checks do not establish pointwise equivalence of every matched-filter output sample.",
+    "search_capacity": "Real-time filtering capacity is derived from the measured template\u2013block rate: multiply by 56 seconds of valid strain per block, then divide CPU routes by their configured 1- or 4-core budget. CUDA capacity uses one GPU and includes the timed host work. The CPU divisor is the configured thread count, not measured CPU utilization; affinity CPUs 8\u201311 are distinct physical cores. This is synthetic matched-filter component capacity with vetoes and I/O excluded, not complete production search capacity. Raw template\u2013block rates and all unchanged ratios remain in JSON. The live harness's legacy throughput_wps_summary unit says waveforms/second, but its numerator is batch size times block count: template\u2013block evaluations, not generated waveforms. That raw label is preserved; standalone waveform generation has a separate waveforms/second metric. The 56 s basis, pinned source trees, full file hashes and source excerpts are recorded in search_capacity_basis.",
+    "waveform": "Standalone waveform generation, measured in waveforms/second; this is not search capacity. Complete public get_fd_waveform_batch TaylorF2 calls, both polarizations, complex128 and 4097 frequency bins (delta_f=0.25 Hz, 20\u20131024 Hz). Host parameter conversion is included; output stays on the requested device and host copies are excluded. Triton and autograd are disabled. Every row and both polarizations pass native-scalar pointwise relative error <=2e-10 and native-scalar versus LAL CPU relative L2 <1e-11, with finite values, exact zero support, frequency spacing and epoch checks. Direct batch/LAL errors are reported without an additional numerical tolerance."
+  },
+  "live_unit": "templates/second",
+  "waveform_unit": "waveforms/second",
+  "search_capacity_basis": {
+    "schema": 1,
+    "valid_seconds_per_block": 56.0,
+    "sample_rate_hz": 2048.0,
+    "valid_samples_per_block": 114688,
+    "cpu_formula": "raw_templates_per_second * 56 / configured_threads",
+    "cuda_formula": "raw_templates_per_second * 56 / 1 GPU",
+    "units": {
+      "cpu": "templates/core at real time",
+      "cuda": "templates/GPU at real time"
+    },
+    "cpu_divisor": "configured core budget (thread count), not measured utilization",
+    "cpu_affinity": "8-11; four distinct physical cores",
+    "verification": "File bytes, Git blobs and excerpts were independently inspected from the pinned frozen source trees when preparing this reporter. Each report checks worker source commit/tree identities; available full run snapshots also check both file hashes. The supplied Git source bundles permit source audit.",
+    "scope": "Real-time filtering capacity is derived from the measured template\u2013block rate: multiply by 56 seconds of valid strain per block, then divide CPU routes by their configured 1- or 4-core budget. CUDA capacity uses one GPU and includes the timed host work. The CPU divisor is the configured thread count, not measured CPU utilization; affinity CPUs 8\u201311 are distinct physical cores. This is synthetic matched-filter component capacity with vetoes and I/O excluded, not complete production search capacity. Raw template\u2013block rates and all unchanged ratios remain in JSON. The live harness's legacy throughput_wps_summary unit says waveforms/second, but its numerator is batch size times block count: template\u2013block evaluations, not generated waveforms. That raw label is preserved; standalone waveform generation has a separate waveforms/second metric. The 56 s basis, pinned source trees, full file hashes and source excerpts are recorded in search_capacity_basis.",
+    "sources": {
+      "baseline": {
+        "commit": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+        "tree": "b0d5ef6e3b39bfe246b4c416528839256edadf1f",
+        "run_snapshot_file_hashes_checked": false,
+        "harness": {
+          "path": "tools/bench_production_live_batch.py",
+          "sha256": "079ab813e3ed76902b007882611cf495eb2c63b8f75560a0666d956c350fdffe",
+          "git_blob": "673df95cba04f49c5704c150b0f3c9f061ce82bb",
+          "sample_rate_line": 323,
+          "blocksize_line": 328,
+          "public_data_start_line": 438,
+          "sample_rate_source": "sample_rate = 2048.0",
+          "blocksize_source": "blocksize = 56.0",
+          "public_data_source": [
+            "blocksize=blocksize,",
+            "sample_rate=sample_rate,",
+            "start_time=1000000000.0 + b * blocksize,"
+          ]
+        },
+        "valid_interval": {
+          "path": "pycbc/filter/matchedfilter.py",
+          "sha256": "8d40acb0d70547bac98464a165b775d4943d822de21e03e17bbde7fff518cc2e",
+          "git_blob": "140397eabdb5e4ea4dfe5272d2bc0483665adbc1",
+          "start_line": 2908,
+          "source": [
+            "valid_end = int(psize - self.data.trim_padding)",
+            "valid_start = int(",
+            "    valid_end - self.data.blocksize * self.data.sample_rate",
+            ")"
+          ]
+        }
+      },
+      "candidate": {
+        "commit": "97bf1614f3afe53a6e2edb4d8c7dff79e9661782",
+        "tree": "d9819f6f6ebf2998ac967178778cc1911757e455",
+        "run_snapshot_file_hashes_checked": false,
+        "harness": {
+          "path": "tools/bench_production_live_batch.py",
+          "sha256": "079ab813e3ed76902b007882611cf495eb2c63b8f75560a0666d956c350fdffe",
+          "git_blob": "673df95cba04f49c5704c150b0f3c9f061ce82bb",
+          "sample_rate_line": 323,
+          "blocksize_line": 328,
+          "public_data_start_line": 438,
+          "sample_rate_source": "sample_rate = 2048.0",
+          "blocksize_source": "blocksize = 56.0",
+          "public_data_source": [
+            "blocksize=blocksize,",
+            "sample_rate=sample_rate,",
+            "start_time=1000000000.0 + b * blocksize,"
+          ]
+        },
+        "valid_interval": {
+          "path": "pycbc/filter/matchedfilter.py",
+          "sha256": "b6d98c6cd9d3e1502b3a80f3512a8437b46691d8d31aa26aab193d754e103720",
+          "git_blob": "84f6620cb9a74a59f4b1b8a7433ed2603cfad2b2",
+          "start_line": 2927,
+          "source": [
+            "valid_end = int(psize - self.data.trim_padding)",
+            "valid_start = int(",
+            "    valid_end - self.data.blocksize * self.data.sample_rate",
+            ")"
+          ]
+        }
+      }
+    }
+  },
+  "search_capacity_units": {
+    "cpu": "templates/core at real time",
+    "cuda": "templates/GPU at real time"
+  },
+  "live": [
+    {
+      "route": "torch_cpu",
+      "threads": 1,
+      "batch": 1,
+      "before": {
+        "median": 457.49972435641604,
+        "minimum": 453.03041102543136,
+        "maximum": 459.9009312074055,
+        "worker_values": [
+          459.9009312074055,
+          453.03041102543136,
+          457.49972435641604
+        ]
+      },
+      "after": {
+        "median": 680.3111380312747,
+        "minimum": 664.728318888787,
+        "maximum": 685.1650574042704,
+        "worker_values": [
+          685.1650574042704,
+          664.728318888787,
+          680.3111380312747
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.487019776871553,
+        "minimum": 1.4672929293735024,
+        "maximum": 1.4898101110721074,
+        "worker_values": [
+          1.4898101110721074,
+          1.4672929293735024,
+          1.487019776871553
+        ]
+      },
+      "ratio_of_medians": 1.487019776871553,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 25619.984563959297,
+          "minimum": 25369.703017424155,
+          "maximum": 25754.45214761471,
+          "worker_values": [
+            25754.45214761471,
+            25369.703017424155,
+            25619.984563959297
+          ]
+        },
+        "after": {
+          "median": 38097.42372975138,
+          "minimum": 37224.785857772076,
+          "maximum": 38369.243214639144,
+          "worker_values": [
+            38369.243214639144,
+            37224.785857772076,
+            38097.42372975138
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu",
+      "threads": 1,
+      "batch": 8,
+      "before": {
+        "median": 292.72670375083044,
+        "minimum": 292.55327934612,
+        "maximum": 293.6583129156175,
+        "worker_values": [
+          293.6583129156175,
+          292.72670375083044,
+          292.55327934612
+        ]
+      },
+      "after": {
+        "median": 369.4271794533469,
+        "minimum": 367.6913361150919,
+        "maximum": 370.7007402430407,
+        "worker_values": [
+          369.4271794533469,
+          370.7007402430407,
+          367.6913361150919
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.2580171008457082,
+        "minimum": 1.2568354623708593,
+        "maximum": 1.2663714498646557,
+        "worker_values": [
+          1.2580171008457082,
+          1.2663714498646557,
+          1.2568354623708593
+        ]
+      },
+      "ratio_of_medians": 1.2620207679030337,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 16392.695410046505,
+          "minimum": 16382.98364338272,
+          "maximum": 16444.86552327458,
+          "worker_values": [
+            16444.86552327458,
+            16392.695410046505,
+            16382.98364338272
+          ]
+        },
+        "after": {
+          "median": 20687.922049387427,
+          "minimum": 20590.714822445145,
+          "maximum": 20759.241453610277,
+          "worker_values": [
+            20687.922049387427,
+            20759.241453610277,
+            20590.714822445145
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu",
+      "threads": 1,
+      "batch": 32,
+      "before": {
+        "median": 296.5379884855226,
+        "minimum": 293.1577852398378,
+        "maximum": 297.54819174198883,
+        "worker_values": [
+          297.54819174198883,
+          293.1577852398378,
+          296.5379884855226
+        ]
+      },
+      "after": {
+        "median": 376.0199173049948,
+        "minimum": 374.88579016538756,
+        "maximum": 376.1904075207986,
+        "worker_values": [
+          374.88579016538756,
+          376.1904075207986,
+          376.0199173049948
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.2680328723662082,
+        "minimum": 1.2599162104485582,
+        "maximum": 1.2832352625840393,
+        "worker_values": [
+          1.2599162104485582,
+          1.2832352625840393,
+          1.2680328723662082
+        ]
+      },
+      "ratio_of_medians": 1.2680328723662082,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 16606.127355189266,
+          "minimum": 16416.835973430916,
+          "maximum": 16662.698737551375,
+          "worker_values": [
+            16662.698737551375,
+            16416.835973430916,
+            16606.127355189266
+          ]
+        },
+        "after": {
+          "median": 21057.115369079707,
+          "minimum": 20993.604249261705,
+          "maximum": 21066.662821164722,
+          "worker_values": [
+            20993.604249261705,
+            21066.662821164722,
+            21057.115369079707
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu",
+      "threads": 1,
+      "batch": 128,
+      "before": {
+        "median": 211.7860650520511,
+        "minimum": 211.2672057882989,
+        "maximum": 212.21467960837626,
+        "worker_values": [
+          211.7860650520511,
+          211.2672057882989,
+          212.21467960837626
+        ]
+      },
+      "after": {
+        "median": 331.26760090974017,
+        "minimum": 330.15218860361966,
+        "maximum": 331.9939665007333,
+        "worker_values": [
+          331.26760090974017,
+          330.15218860361966,
+          331.9939665007333
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.5641614608984016,
+        "minimum": 1.5627233170038226,
+        "maximum": 1.5644250770653532,
+        "worker_values": [
+          1.5641614608984016,
+          1.5627233170038226,
+          1.5644250770653532
+        ]
+      },
+      "ratio_of_medians": 1.5641614608984016,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 11860.019642914862,
+          "minimum": 11830.963524144738,
+          "maximum": 11884.022058069071,
+          "worker_values": [
+            11860.019642914862,
+            11830.963524144738,
+            11884.022058069071
+          ]
+        },
+        "after": {
+          "median": 18550.985650945448,
+          "minimum": 18488.5225618027,
+          "maximum": 18591.662124041064,
+          "worker_values": [
+            18550.985650945448,
+            18488.5225618027,
+            18591.662124041064
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu",
+      "threads": 1,
+      "batch": 512,
+      "before": {
+        "median": 211.0282159733039,
+        "minimum": 210.91976015033725,
+        "maximum": 211.70099578107494,
+        "worker_values": [
+          211.0282159733039,
+          211.70099578107494,
+          210.91976015033725
+        ]
+      },
+      "after": {
+        "median": 331.2446237053991,
+        "minimum": 331.1558818642294,
+        "maximum": 331.870835959662,
+        "worker_values": [
+          331.870835959662,
+          331.2446237053991,
+          331.1558818642294
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.5700562224619992,
+        "minimum": 1.564681462565944,
+        "maximum": 1.5726372628845293,
+        "worker_values": [
+          1.5726372628845293,
+          1.564681462565944,
+          1.5700562224619992
+        ]
+      },
+      "ratio_of_medians": 1.5696698291156626,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 11817.580094505018,
+          "minimum": 11811.506568418887,
+          "maximum": 11855.255763740197,
+          "worker_values": [
+            11817.580094505018,
+            11855.255763740197,
+            11811.506568418887
+          ]
+        },
+        "after": {
+          "median": 18549.698927502348,
+          "minimum": 18544.729384396847,
+          "maximum": 18584.76681374107,
+          "worker_values": [
+            18584.76681374107,
+            18549.698927502348,
+            18544.729384396847
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu",
+      "threads": 1,
+      "batch": 1024,
+      "before": {
+        "median": 211.06652108091376,
+        "minimum": 207.69131082238135,
+        "maximum": 211.71717196700422,
+        "worker_values": [
+          211.71717196700422,
+          207.69131082238135,
+          211.06652108091376
+        ]
+      },
+      "after": {
+        "median": 328.63768639459033,
+        "minimum": 328.5628340008591,
+        "maximum": 331.29927581113355,
+        "worker_values": [
+          328.5628340008591,
+          331.29927581113355,
+          328.63768639459033
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.5570337006151955,
+        "minimum": 1.5518950633445314,
+        "maximum": 1.595152317635774,
+        "worker_values": [
+          1.5518950633445314,
+          1.595152317635774,
+          1.5570337006151955
+        ]
+      },
+      "ratio_of_medians": 1.5570337006151955,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 11819.72518053117,
+          "minimum": 11630.713406053355,
+          "maximum": 11856.161630152237,
+          "worker_values": [
+            11856.161630152237,
+            11630.713406053355,
+            11819.72518053117
+          ]
+        },
+        "after": {
+          "median": 18403.71043809706,
+          "minimum": 18399.51870404811,
+          "maximum": 18552.75944542348,
+          "worker_values": [
+            18399.51870404811,
+            18552.75944542348,
+            18403.71043809706
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu",
+      "threads": 4,
+      "batch": 1,
+      "before": {
+        "median": 833.7052585125475,
+        "minimum": 822.5612088359525,
+        "maximum": 843.664948027427,
+        "worker_values": [
+          822.5612088359525,
+          833.7052585125475,
+          843.664948027427
+        ]
+      },
+      "after": {
+        "median": 1028.2501444691452,
+        "minimum": 1016.3796354110731,
+        "maximum": 1046.9081139217492,
+        "worker_values": [
+          1016.3796354110731,
+          1046.9081139217492,
+          1028.2501444691452
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.2356279684637728,
+        "minimum": 1.218789694739952,
+        "maximum": 1.2557292918957796,
+        "worker_values": [
+          1.2356279684637728,
+          1.2557292918957796,
+          1.218789694739952
+        ]
+      },
+      "ratio_of_medians": 1.233349716785635,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 11671.873619175665,
+          "minimum": 11515.856923703335,
+          "maximum": 11811.309272383978,
+          "worker_values": [
+            11515.856923703335,
+            11671.873619175665,
+            11811.309272383978
+          ]
+        },
+        "after": {
+          "median": 14395.502022568033,
+          "minimum": 14229.314895755024,
+          "maximum": 14656.71359490449,
+          "worker_values": [
+            14229.314895755024,
+            14656.71359490449,
+            14395.502022568033
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu",
+      "threads": 4,
+      "batch": 8,
+      "before": {
+        "median": 716.8356437443933,
+        "minimum": 715.7576187030329,
+        "maximum": 716.9933243440296,
+        "worker_values": [
+          715.7576187030329,
+          716.9933243440296,
+          716.8356437443933
+        ]
+      },
+      "after": {
+        "median": 832.7274373801979,
+        "minimum": 831.598785741033,
+        "maximum": 839.0274748636108,
+        "worker_values": [
+          831.598785741033,
+          839.0274748636108,
+          832.7274373801979
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.1618441271332978,
+        "minimum": 1.1616713603001707,
+        "maximum": 1.1702026314278855,
+        "worker_values": [
+          1.1618441271332978,
+          1.1702026314278855,
+          1.1616713603001707
+        ]
+      },
+      "ratio_of_medians": 1.1616713603001707,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 10035.699012421506,
+          "minimum": 10020.606661842461,
+          "maximum": 10037.906540816413,
+          "worker_values": [
+            10020.606661842461,
+            10037.906540816413,
+            10035.699012421506
+          ]
+        },
+        "after": {
+          "median": 11658.184123322771,
+          "minimum": 11642.383000374462,
+          "maximum": 11746.38464809055,
+          "worker_values": [
+            11642.383000374462,
+            11746.38464809055,
+            11658.184123322771
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu",
+      "threads": 4,
+      "batch": 32,
+      "before": {
+        "median": 749.1344103045685,
+        "minimum": 748.9849031014045,
+        "maximum": 750.5729686399355,
+        "worker_values": [
+          749.1344103045685,
+          748.9849031014045,
+          750.5729686399355
+        ]
+      },
+      "after": {
+        "median": 853.8955837267569,
+        "minimum": 849.4530544327658,
+        "maximum": 854.9788979184854,
+        "worker_values": [
+          854.9788979184854,
+          853.8955837267569,
+          849.4530544327658
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.1400704876572774,
+        "minimum": 1.1317394709431177,
+        "maximum": 1.141289047943859,
+        "worker_values": [
+          1.141289047943859,
+          1.1400704876572774,
+          1.1317394709431177
+        ]
+      },
+      "ratio_of_medians": 1.139842960063197,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 10487.88174426396,
+          "minimum": 10485.788643419663,
+          "maximum": 10508.021560959098,
+          "worker_values": [
+            10487.88174426396,
+            10485.788643419663,
+            10508.021560959098
+          ]
+        },
+        "after": {
+          "median": 11954.538172174596,
+          "minimum": 11892.34276205872,
+          "maximum": 11969.704570858796,
+          "worker_values": [
+            11969.704570858796,
+            11954.538172174596,
+            11892.34276205872
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu",
+      "threads": 4,
+      "batch": 128,
+      "before": {
+        "median": 542.225993253387,
+        "minimum": 540.7734385065568,
+        "maximum": 543.0084842912121,
+        "worker_values": [
+          542.225993253387,
+          543.0084842912121,
+          540.7734385065568
+        ]
+      },
+      "after": {
+        "median": 768.7476562955975,
+        "minimum": 765.7930075261,
+        "maximum": 771.6403910219359,
+        "worker_values": [
+          771.6403910219359,
+          765.7930075261,
+          768.7476562955975
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.4215706644517019,
+        "minimum": 1.410278162643606,
+        "maximum": 1.4230973812082477,
+        "worker_values": [
+          1.4230973812082477,
+          1.410278162643606,
+          1.4215706644517019
+        ]
+      },
+      "ratio_of_medians": 1.4177624567259632,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 7591.163905547417,
+          "minimum": 7570.828139091795,
+          "maximum": 7602.118780076969,
+          "worker_values": [
+            7591.163905547417,
+            7602.118780076969,
+            7570.828139091795
+          ]
+        },
+        "after": {
+          "median": 10762.467188138366,
+          "minimum": 10721.1021053654,
+          "maximum": 10802.965474307102,
+          "worker_values": [
+            10802.965474307102,
+            10721.1021053654,
+            10762.467188138366
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu",
+      "threads": 4,
+      "batch": 512,
+      "before": {
+        "median": 554.606762758311,
+        "minimum": 554.1878384911938,
+        "maximum": 555.5293497524657,
+        "worker_values": [
+          554.1878384911938,
+          554.606762758311,
+          555.5293497524657
+        ]
+      },
+      "after": {
+        "median": 784.2748377285577,
+        "minimum": 784.1837409487405,
+        "maximum": 784.3974017559183,
+        "worker_values": [
+          784.2748377285577,
+          784.1837409487405,
+          784.3974017559183
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.4139455080724928,
+        "minimum": 1.4119819269772735,
+        "maximum": 1.415178723271496,
+        "worker_values": [
+          1.415178723271496,
+          1.4139455080724928,
+          1.4119819269772735
+        ]
+      },
+      "ratio_of_medians": 1.4141097627948191,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 7764.494678616354,
+          "minimum": 7758.629738876713,
+          "maximum": 7777.410896534519,
+          "worker_values": [
+            7758.629738876713,
+            7764.494678616354,
+            7777.410896534519
+          ]
+        },
+        "after": {
+          "median": 10979.847728199808,
+          "minimum": 10978.572373282366,
+          "maximum": 10981.563624582855,
+          "worker_values": [
+            10979.847728199808,
+            10978.572373282366,
+            10981.563624582855
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu",
+      "threads": 4,
+      "batch": 1024,
+      "before": {
+        "median": 559.1181084967266,
+        "minimum": 558.4596312816242,
+        "maximum": 559.3870219096049,
+        "worker_values": [
+          558.4596312816242,
+          559.1181084967266,
+          559.3870219096049
+        ]
+      },
+      "after": {
+        "median": 783.3786208628152,
+        "minimum": 781.4038031039087,
+        "maximum": 784.2455531114209,
+        "worker_values": [
+          781.4038031039087,
+          783.3786208628152,
+          784.2455531114209
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.4010968504830703,
+        "minimum": 1.3992126902899746,
+        "maximum": 1.4019730926795662,
+        "worker_values": [
+          1.3992126902899746,
+          1.4010968504830703,
+          1.4019730926795662
+        ]
+      },
+      "ratio_of_medians": 1.4010968504830703,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 7827.653518954172,
+          "minimum": 7818.434837942738,
+          "maximum": 7831.418306734468,
+          "worker_values": [
+            7818.434837942738,
+            7827.653518954172,
+            7831.418306734468
+          ]
+        },
+        "after": {
+          "median": 10967.300692079412,
+          "minimum": 10939.65324345472,
+          "maximum": 10979.437743559893,
+          "worker_values": [
+            10939.65324345472,
+            10967.300692079412,
+            10979.437743559893
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cuda",
+      "threads": 1,
+      "batch": 1,
+      "before": {
+        "median": 2153.19246669729,
+        "minimum": 2126.462119912617,
+        "maximum": 2154.3552445624073,
+        "worker_values": [
+          2154.3552445624073,
+          2126.462119912617,
+          2153.19246669729
+        ]
+      },
+      "after": {
+        "median": 2065.231009856659,
+        "minimum": 2043.34479195685,
+        "maximum": 2072.607589059948,
+        "worker_values": [
+          2043.34479195685,
+          2072.607589059948,
+          2065.231009856659
+        ]
+      },
+      "paired_ratio": {
+        "median": 0.9591483538043619,
+        "minimum": 0.9484716121513629,
+        "maximum": 0.9746741170000801,
+        "worker_values": [
+          0.9484716121513629,
+          0.9746741170000801,
+          0.9591483538043619
+        ]
+      },
+      "ratio_of_medians": 0.9591483538043619,
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 120578.77813504824,
+          "minimum": 119081.87871510655,
+          "maximum": 120643.8936954948,
+          "worker_values": [
+            120643.8936954948,
+            119081.87871510655,
+            120578.77813504824
+          ]
+        },
+        "after": {
+          "median": 115652.9365519729,
+          "minimum": 114427.3083495836,
+          "maximum": 116066.0249873571,
+          "worker_values": [
+            114427.3083495836,
+            116066.0249873571,
+            115652.9365519729
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cuda",
+      "threads": 1,
+      "batch": 8,
+      "before": {
+        "median": 13383.461833155072,
+        "minimum": 13335.933840432219,
+        "maximum": 13597.702894724318,
+        "worker_values": [
+          13383.461833155072,
+          13335.933840432219,
+          13597.702894724318
+        ]
+      },
+      "after": {
+        "median": 13003.992767612688,
+        "minimum": 12923.597843482306,
+        "maximum": 13277.09744946958,
+        "worker_values": [
+          12923.597843482306,
+          13277.09744946958,
+          13003.992767612688
+        ]
+      },
+      "paired_ratio": {
+        "median": 0.9656393842336415,
+        "minimum": 0.9563374687836443,
+        "maximum": 0.9955881311600199,
+        "worker_values": [
+          0.9656393842336415,
+          0.9955881311600199,
+          0.9563374687836443
+        ]
+      },
+      "ratio_of_medians": 0.9716464192693165,
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 749473.862656684,
+          "minimum": 746812.2950642043,
+          "maximum": 761471.3621045618,
+          "worker_values": [
+            749473.862656684,
+            746812.2950642043,
+            761471.3621045618
+          ]
+        },
+        "after": {
+          "median": 728223.5949863106,
+          "minimum": 723721.4792350092,
+          "maximum": 743517.4571702965,
+          "worker_values": [
+            723721.4792350092,
+            743517.4571702965,
+            728223.5949863106
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cuda",
+      "threads": 1,
+      "batch": 32,
+      "before": {
+        "median": 41047.11182259439,
+        "minimum": 40671.503468728486,
+        "maximum": 41239.50486819467,
+        "worker_values": [
+          40671.503468728486,
+          41047.11182259439,
+          41239.50486819467
+        ]
+      },
+      "after": {
+        "median": 40850.42065295142,
+        "minimum": 40016.673614005835,
+        "maximum": 41280.71704605509,
+        "worker_values": [
+          40016.673614005835,
+          41280.71704605509,
+          40850.42065295142
+        ]
+      },
+      "paired_ratio": {
+        "median": 0.9905652549300288,
+        "minimum": 0.9838995414756148,
+        "maximum": 1.0056911488552556,
+        "worker_values": [
+          0.9838995414756148,
+          1.0056911488552556,
+          0.9905652549300288
+        ]
+      },
+      "ratio_of_medians": 0.9952081605523656,
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 2298638.262065286,
+          "minimum": 2277604.194248795,
+          "maximum": 2309412.2726189015,
+          "worker_values": [
+            2277604.194248795,
+            2298638.262065286,
+            2309412.2726189015
+          ]
+        },
+        "after": {
+          "median": 2287623.5565652796,
+          "minimum": 2240933.7223843266,
+          "maximum": 2311720.1545790853,
+          "worker_values": [
+            2240933.7223843266,
+            2311720.1545790853,
+            2287623.5565652796
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cuda",
+      "threads": 1,
+      "batch": 128,
+      "before": {
+        "median": 48968.11805703179,
+        "minimum": 46722.09805581319,
+        "maximum": 49476.32403281517,
+        "worker_values": [
+          46722.09805581319,
+          49476.32403281517,
+          48968.11805703179
+        ]
+      },
+      "after": {
+        "median": 48662.60215661501,
+        "minimum": 48634.855080797184,
+        "maximum": 49307.860173694644,
+        "worker_values": [
+          48662.60215661501,
+          48634.855080797184,
+          49307.860173694644
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.0069380268252737,
+        "minimum": 0.98299249250086,
+        "maximum": 1.0415328973130387,
+        "worker_values": [
+          1.0415328973130387,
+          0.98299249250086,
+          1.0069380268252737
+        ]
+      },
+      "ratio_of_medians": 0.9937609221563108,
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 2742214.6111937803,
+          "minimum": 2616437.491125539,
+          "maximum": 2770674.1458376497,
+          "worker_values": [
+            2616437.491125539,
+            2770674.1458376497,
+            2742214.6111937803
+          ]
+        },
+        "after": {
+          "median": 2725105.7207704405,
+          "minimum": 2723551.8845246425,
+          "maximum": 2761240.1697269,
+          "worker_values": [
+            2725105.7207704405,
+            2723551.8845246425,
+            2761240.1697269
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cuda",
+      "threads": 1,
+      "batch": 512,
+      "before": {
+        "median": 52552.39201484194,
+        "minimum": 52327.88571426235,
+        "maximum": 52635.67126980919,
+        "worker_values": [
+          52635.67126980919,
+          52552.39201484194,
+          52327.88571426235
+        ]
+      },
+      "after": {
+        "median": 52472.15055981738,
+        "minimum": 52362.987181602104,
+        "maximum": 52759.53854501627,
+        "worker_values": [
+          52759.53854501627,
+          52472.15055981738,
+          52362.987181602104
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.000670798501805,
+        "minimum": 0.9984731150771996,
+        "maximum": 1.0023532952505183,
+        "worker_values": [
+          1.0023532952505183,
+          0.9984731150771996,
+          1.000670798501805
+        ]
+      },
+      "ratio_of_medians": 0.9984731150771996,
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 2942933.9528311486,
+          "minimum": 2930361.5999986916,
+          "maximum": 2947597.5911093145,
+          "worker_values": [
+            2947597.5911093145,
+            2942933.9528311486,
+            2930361.5999986916
+          ]
+        },
+        "after": {
+          "median": 2938440.4313497734,
+          "minimum": 2932327.282169718,
+          "maximum": 2954534.1585209114,
+          "worker_values": [
+            2954534.1585209114,
+            2938440.4313497734,
+            2932327.282169718
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cuda",
+      "threads": 1,
+      "batch": 1024,
+      "before": {
+        "median": 52952.493666859344,
+        "minimum": 52712.89885321304,
+        "maximum": 53001.7366177732,
+        "worker_values": [
+          52952.493666859344,
+          53001.7366177732,
+          52712.89885321304
+        ]
+      },
+      "after": {
+        "median": 52798.61989357469,
+        "minimum": 52660.334261471726,
+        "maximum": 53367.79818327815,
+        "worker_values": [
+          52660.334261471726,
+          53367.79818327815,
+          52798.61989357469
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.0016261871804917,
+        "minimum": 0.9944826129015626,
+        "maximum": 1.0069065956865686,
+        "worker_values": [
+          0.9944826129015626,
+          1.0069065956865686,
+          1.0016261871804917
+        ]
+      },
+      "ratio_of_medians": 0.9970941165820684,
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 2965339.6453441232,
+          "minimum": 2951922.33577993,
+          "maximum": 2968097.250595299,
+          "worker_values": [
+            2965339.6453441232,
+            2968097.250595299,
+            2951922.33577993
+          ]
+        },
+        "after": {
+          "median": 2956722.7140401825,
+          "minimum": 2948978.7186424164,
+          "maximum": 2988596.6982635763,
+          "worker_values": [
+            2948978.7186424164,
+            2988596.6982635763,
+            2956722.7140401825
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu_native",
+      "threads": 1,
+      "batch": 1,
+      "before": {
+        "median": 460.44458687530334,
+        "minimum": 455.2316127399298,
+        "maximum": 460.44826173107055,
+        "worker_values": [
+          460.44458687530334,
+          455.2316127399298,
+          460.44826173107055
+        ]
+      },
+      "after": {
+        "median": 668.8563537340467,
+        "minimum": 668.059347720214,
+        "maximum": 688.5888885624468,
+        "worker_values": [
+          668.8563537340467,
+          668.059347720214,
+          688.5888885624468
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.4675152801874305,
+        "minimum": 1.452631593028555,
+        "maximum": 1.4954750528836267,
+        "worker_values": [
+          1.452631593028555,
+          1.4675152801874305,
+          1.4954750528836267
+        ]
+      },
+      "ratio_of_medians": 1.452631593028555,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 25784.896865016988,
+          "minimum": 25492.970313436068,
+          "maximum": 25785.10265693995,
+          "worker_values": [
+            25784.896865016988,
+            25492.970313436068,
+            25785.10265693995
+          ]
+        },
+        "after": {
+          "median": 37455.955809106614,
+          "minimum": 37411.323472331984,
+          "maximum": 38560.97775949702,
+          "worker_values": [
+            37455.955809106614,
+            37411.323472331984,
+            38560.97775949702
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu_native",
+      "threads": 1,
+      "batch": 8,
+      "before": {
+        "median": 486.6653392869537,
+        "minimum": 486.0450098336019,
+        "maximum": 486.89710194584575,
+        "worker_values": [
+          486.0450098336019,
+          486.89710194584575,
+          486.6653392869537
+        ]
+      },
+      "after": {
+        "median": 751.1511156112018,
+        "minimum": 744.5499640646062,
+        "maximum": 752.662331310731,
+        "worker_values": [
+          744.5499640646062,
+          751.1511156112018,
+          752.662331310731
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.5427307178647929,
+        "minimum": 1.5318539415094576,
+        "maximum": 1.5465706524600817,
+        "worker_values": [
+          1.5318539415094576,
+          1.5427307178647929,
+          1.5465706524600817
+        ]
+      },
+      "ratio_of_medians": 1.543465406251787,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 27253.259000069407,
+          "minimum": 27218.520550681707,
+          "maximum": 27266.23770896736,
+          "worker_values": [
+            27218.520550681707,
+            27266.23770896736,
+            27253.259000069407
+          ]
+        },
+        "after": {
+          "median": 42064.4624742273,
+          "minimum": 41694.797987617945,
+          "maximum": 42149.090553400936,
+          "worker_values": [
+            41694.797987617945,
+            42064.4624742273,
+            42149.090553400936
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu_native",
+      "threads": 1,
+      "batch": 32,
+      "before": {
+        "median": 493.69277396851805,
+        "minimum": 488.7988933185723,
+        "maximum": 494.38737717788905,
+        "worker_values": [
+          488.7988933185723,
+          493.69277396851805,
+          494.38737717788905
+        ]
+      },
+      "after": {
+        "median": 545.3529672671991,
+        "minimum": 544.7384341660536,
+        "maximum": 549.6600255406402,
+        "worker_values": [
+          544.7384341660536,
+          549.6600255406402,
+          545.3529672671991
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.1133645346319998,
+        "minimum": 1.1030883724828027,
+        "maximum": 1.1144428549493932,
+        "worker_values": [
+          1.1144428549493932,
+          1.1133645346319998,
+          1.1030883724828027
+        ]
+      },
+      "ratio_of_medians": 1.104640367497004,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 27646.795342237012,
+          "minimum": 27372.738025840048,
+          "maximum": 27685.693121961787,
+          "worker_values": [
+            27372.738025840048,
+            27646.795342237012,
+            27685.693121961787
+          ]
+        },
+        "after": {
+          "median": 30539.76616696315,
+          "minimum": 30505.352313299,
+          "maximum": 30780.96143027585,
+          "worker_values": [
+            30505.352313299,
+            30780.96143027585,
+            30539.76616696315
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu_native",
+      "threads": 1,
+      "batch": 128,
+      "before": {
+        "median": 332.1495190019989,
+        "minimum": 331.717593374071,
+        "maximum": 332.69188287869554,
+        "worker_values": [
+          331.717593374071,
+          332.1495190019989,
+          332.69188287869554
+        ]
+      },
+      "after": {
+        "median": 771.5994419527599,
+        "minimum": 586.2933661888878,
+        "maximum": 774.1771330223629,
+        "worker_values": [
+          771.5994419527599,
+          774.1771330223629,
+          586.2933661888878
+        ]
+      },
+      "paired_ratio": {
+        "median": 2.32607331466632,
+        "minimum": 1.7622713277999007,
+        "maximum": 2.330809134839373,
+        "worker_values": [
+          2.32607331466632,
+          2.330809134839373,
+          1.7622713277999007
+        ]
+      },
+      "ratio_of_medians": 2.3230485001789702,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 18600.37306411194,
+          "minimum": 18576.185228947976,
+          "maximum": 18630.74544120695,
+          "worker_values": [
+            18576.185228947976,
+            18600.37306411194,
+            18630.74544120695
+          ]
+        },
+        "after": {
+          "median": 43209.568749354556,
+          "minimum": 32832.42850657772,
+          "maximum": 43353.919449252324,
+          "worker_values": [
+            43209.568749354556,
+            43353.919449252324,
+            32832.42850657772
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu_native",
+      "threads": 1,
+      "batch": 512,
+      "before": {
+        "median": 323.704066118786,
+        "minimum": 322.3708818893823,
+        "maximum": 323.8731987744608,
+        "worker_values": [
+          323.704066118786,
+          323.8731987744608,
+          322.3708818893823
+        ]
+      },
+      "after": {
+        "median": 603.1826982195201,
+        "minimum": 601.4195017886738,
+        "maximum": 604.5690661413317,
+        "worker_values": [
+          601.4195017886738,
+          604.5690661413317,
+          603.1826982195201
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.866684456846157,
+        "minimum": 1.857930019229285,
+        "maximum": 1.8710830664492057,
+        "worker_values": [
+          1.857930019229285,
+          1.866684456846157,
+          1.8710830664492057
+        ]
+      },
+      "ratio_of_medians": 1.8633769586267015,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 18127.427702652014,
+          "minimum": 18052.769385805408,
+          "maximum": 18136.899131369802,
+          "worker_values": [
+            18127.427702652014,
+            18136.899131369802,
+            18052.769385805408
+          ]
+        },
+        "after": {
+          "median": 33778.23110029313,
+          "minimum": 33679.49210016573,
+          "maximum": 33855.86770391458,
+          "worker_values": [
+            33679.49210016573,
+            33855.86770391458,
+            33778.23110029313
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu_native",
+      "threads": 1,
+      "batch": 1024,
+      "before": {
+        "median": 316.9392198349537,
+        "minimum": 316.86591115737474,
+        "maximum": 318.22216407098904,
+        "worker_values": [
+          318.22216407098904,
+          316.9392198349537,
+          316.86591115737474
+        ]
+      },
+      "after": {
+        "median": 619.3294039998113,
+        "minimum": 605.181683418377,
+        "maximum": 622.5054074792421,
+        "worker_values": [
+          622.5054074792421,
+          605.181683418377,
+          619.3294039998113
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.9545472775461006,
+        "minimum": 1.9094565946540973,
+        "maximum": 1.956197517845971,
+        "worker_values": [
+          1.956197517845971,
+          1.9094565946540973,
+          1.9545472775461006
+        ]
+      },
+      "ratio_of_medians": 1.954095186838434,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 17748.596310757406,
+          "minimum": 17744.491024812985,
+          "maximum": 17820.441187975386,
+          "worker_values": [
+            17820.441187975386,
+            17748.596310757406,
+            17744.491024812985
+          ]
+        },
+        "after": {
+          "median": 34682.44662398944,
+          "minimum": 33890.17427142911,
+          "maximum": 34860.302818837554,
+          "worker_values": [
+            34860.302818837554,
+            33890.17427142911,
+            34682.44662398944
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu_native",
+      "threads": 4,
+      "batch": 1,
+      "before": {
+        "median": 903.4155431439644,
+        "minimum": 882.774076338771,
+        "maximum": 908.45636608369,
+        "worker_values": [
+          908.45636608369,
+          882.774076338771,
+          903.4155431439644
+        ]
+      },
+      "after": {
+        "median": 1055.4769225248274,
+        "minimum": 1047.0469611032524,
+        "maximum": 1080.686971093785,
+        "worker_values": [
+          1055.4769225248274,
+          1080.686971093785,
+          1047.0469611032524
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.16183557287945,
+        "minimum": 1.1589871007304549,
+        "maximum": 1.2241942758172515,
+        "worker_values": [
+          1.16183557287945,
+          1.2241942758172515,
+          1.1589871007304549
+        ]
+      },
+      "ratio_of_medians": 1.1683183121375975,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 12647.817604015501,
+          "minimum": 12358.837068742794,
+          "maximum": 12718.38912517166,
+          "worker_values": [
+            12718.38912517166,
+            12358.837068742794,
+            12647.817604015501
+          ]
+        },
+        "after": {
+          "median": 14776.676915347583,
+          "minimum": 14658.657455445535,
+          "maximum": 15129.61759531299,
+          "worker_values": [
+            14776.676915347583,
+            15129.61759531299,
+            14658.657455445535
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu_native",
+      "threads": 4,
+      "batch": 8,
+      "before": {
+        "median": 921.5758886257107,
+        "minimum": 920.237318468331,
+        "maximum": 961.5017118336102,
+        "worker_values": [
+          920.237318468331,
+          961.5017118336102,
+          921.5758886257107
+        ]
+      },
+      "after": {
+        "median": 1165.658250856941,
+        "minimum": 1101.1738329530308,
+        "maximum": 1226.5621853740229,
+        "worker_values": [
+          1165.658250856941,
+          1101.1738329530308,
+          1226.5621853740229
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.2666930882536862,
+        "minimum": 1.145264557931012,
+        "maximum": 1.3309399697979505,
+        "worker_values": [
+          1.2666930882536862,
+          1.145264557931012,
+          1.3309399697979505
+        ]
+      },
+      "ratio_of_medians": 1.2648532424119898,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 12902.06244075995,
+          "minimum": 12883.322458556633,
+          "maximum": 13461.023965670543,
+          "worker_values": [
+            12883.322458556633,
+            13461.023965670543,
+            12902.06244075995
+          ]
+        },
+        "after": {
+          "median": 16319.215511997176,
+          "minimum": 15416.433661342431,
+          "maximum": 17171.87059523632,
+          "worker_values": [
+            16319.215511997176,
+            15416.433661342431,
+            17171.87059523632
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu_native",
+      "threads": 4,
+      "batch": 32,
+      "before": {
+        "median": 1157.0756604904257,
+        "minimum": 1143.9560351956663,
+        "maximum": 1168.7530227027232,
+        "worker_values": [
+          1168.7530227027232,
+          1157.0756604904257,
+          1143.9560351956663
+        ]
+      },
+      "after": {
+        "median": 1091.673684271095,
+        "minimum": 1077.039732063031,
+        "maximum": 1095.8903233877597,
+        "worker_values": [
+          1091.673684271095,
+          1095.8903233877597,
+          1077.039732063031
+        ]
+      },
+      "paired_ratio": {
+        "median": 0.9415044800028615,
+        "minimum": 0.9340499344734241,
+        "maximum": 0.9471207119880712,
+        "worker_values": [
+          0.9340499344734241,
+          0.9471207119880712,
+          0.9415044800028615
+        ]
+      },
+      "ratio_of_medians": 0.9434764912507018,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 16199.05924686596,
+          "minimum": 16015.38449273933,
+          "maximum": 16362.542317838124,
+          "worker_values": [
+            16362.542317838124,
+            16199.05924686596,
+            16015.38449273933
+          ]
+        },
+        "after": {
+          "median": 15283.43157979533,
+          "minimum": 15078.556248882433,
+          "maximum": 15342.464527428636,
+          "worker_values": [
+            15283.43157979533,
+            15342.464527428636,
+            15078.556248882433
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu_native",
+      "threads": 4,
+      "batch": 128,
+      "before": {
+        "median": 891.3165545839195,
+        "minimum": 883.65307667912,
+        "maximum": 898.8089917160497,
+        "worker_values": [
+          883.65307667912,
+          891.3165545839195,
+          898.8089917160497
+        ]
+      },
+      "after": {
+        "median": 1809.2059295292052,
+        "minimum": 1368.984123156721,
+        "maximum": 1823.377459732632,
+        "worker_values": [
+          1823.377459732632,
+          1809.2059295292052,
+          1368.984123156721
+        ]
+      },
+      "paired_ratio": {
+        "median": 2.0298129999097467,
+        "minimum": 1.5231090651896906,
+        "maximum": 2.063453981946303,
+        "worker_values": [
+          2.063453981946303,
+          2.0298129999097467,
+          1.5231090651896906
+        ]
+      },
+      "ratio_of_medians": 2.0298129999097467,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 12478.431764174873,
+          "minimum": 12371.14307350768,
+          "maximum": 12583.325884024696,
+          "worker_values": [
+            12371.14307350768,
+            12478.431764174873,
+            12583.325884024696
+          ]
+        },
+        "after": {
+          "median": 25328.88301340887,
+          "minimum": 19165.777724194093,
+          "maximum": 25527.284436256847,
+          "worker_values": [
+            25527.284436256847,
+            25328.88301340887,
+            19165.777724194093
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu_native",
+      "threads": 4,
+      "batch": 512,
+      "before": {
+        "median": 896.2674720560403,
+        "minimum": 896.008634163201,
+        "maximum": 899.9642014630472,
+        "worker_values": [
+          899.9642014630472,
+          896.2674720560403,
+          896.008634163201
+        ]
+      },
+      "after": {
+        "median": 1477.6163190893815,
+        "minimum": 1472.2221484460435,
+        "maximum": 1477.770308217572,
+        "worker_values": [
+          1477.6163190893815,
+          1477.770308217572,
+          1472.2221484460435
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.643089243019381,
+        "minimum": 1.6418612170209226,
+        "maximum": 1.648805021147942,
+        "worker_values": [
+          1.6418612170209226,
+          1.648805021147942,
+          1.643089243019381
+        ]
+      },
+      "ratio_of_medians": 1.6486332095704925,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 12547.744608784564,
+          "minimum": 12544.120878284813,
+          "maximum": 12599.49882048266,
+          "worker_values": [
+            12599.49882048266,
+            12547.744608784564,
+            12544.120878284813
+          ]
+        },
+        "after": {
+          "median": 20686.62846725134,
+          "minimum": 20611.11007824461,
+          "maximum": 20688.784315046007,
+          "worker_values": [
+            20686.62846725134,
+            20688.784315046007,
+            20611.11007824461
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cpu_native",
+      "threads": 4,
+      "batch": 1024,
+      "before": {
+        "median": 853.0559998516216,
+        "minimum": 850.1947190835843,
+        "maximum": 853.4048320642775,
+        "worker_values": [
+          853.4048320642775,
+          850.1947190835843,
+          853.0559998516216
+        ]
+      },
+      "after": {
+        "median": 1498.1989271382852,
+        "minimum": 1494.8409862487265,
+        "maximum": 1503.2480845781238,
+        "worker_values": [
+          1494.8409862487265,
+          1503.2480845781238,
+          1498.1989271382852
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.7562726566589746,
+        "minimum": 1.7516200167661304,
+        "maximum": 1.7681221146591672,
+        "worker_values": [
+          1.7516200167661304,
+          1.7681221146591672,
+          1.7562726566589746
+        ]
+      },
+      "ratio_of_medians": 1.7562726566589746,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 11942.783997922701,
+          "minimum": 11902.72606717018,
+          "maximum": 11947.667648899884,
+          "worker_values": [
+            11947.667648899884,
+            11902.72606717018,
+            11942.783997922701
+          ]
+        },
+        "after": {
+          "median": 20974.784979935994,
+          "minimum": 20927.773807482172,
+          "maximum": 21045.47318409373,
+          "worker_values": [
+            20927.773807482172,
+            21045.47318409373,
+            20974.784979935994
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cuda_native",
+      "threads": 1,
+      "batch": 1,
+      "before": {
+        "median": 2089.5730305774186,
+        "minimum": 2065.4585111348865,
+        "maximum": 2107.188462721729,
+        "worker_values": [
+          2107.188462721729,
+          2065.4585111348865,
+          2089.5730305774186
+        ]
+      },
+      "after": {
+        "median": 2019.693356689965,
+        "minimum": 1997.1839706014518,
+        "maximum": 2032.7034888645114,
+        "worker_values": [
+          2019.693356689965,
+          2032.7034888645114,
+          1997.1839706014518
+        ]
+      },
+      "paired_ratio": {
+        "median": 0.9584777975109298,
+        "minimum": 0.9557856755308348,
+        "maximum": 0.9841415249477088,
+        "worker_values": [
+          0.9584777975109298,
+          0.9841415249477088,
+          0.9557856755308348
+        ]
+      },
+      "ratio_of_medians": 0.9665579173999276,
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 117016.08971233544,
+          "minimum": 115665.67662355365,
+          "maximum": 118002.55391241683,
+          "worker_values": [
+            118002.55391241683,
+            115665.67662355365,
+            117016.08971233544
+          ]
+        },
+        "after": {
+          "median": 113102.82797463804,
+          "minimum": 111842.3023536813,
+          "maximum": 113831.39537641263,
+          "worker_values": [
+            113102.82797463804,
+            113831.39537641263,
+            111842.3023536813
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cuda_native",
+      "threads": 1,
+      "batch": 8,
+      "before": {
+        "median": 11494.715304638692,
+        "minimum": 11470.065756931146,
+        "maximum": 11621.313682983151,
+        "worker_values": [
+          11494.715304638692,
+          11470.065756931146,
+          11621.313682983151
+        ]
+      },
+      "after": {
+        "median": 11672.618080690863,
+        "minimum": 11656.885406502308,
+        "maximum": 11781.575481363267,
+        "worker_values": [
+          11781.575481363267,
+          11672.618080690863,
+          11656.885406502308
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.017659212078825,
+        "minimum": 1.0030609038263243,
+        "maximum": 1.0249558313644194,
+        "worker_values": [
+          1.0249558313644194,
+          1.017659212078825,
+          1.0030609038263243
+        ]
+      },
+      "ratio_of_medians": 1.0154769188568227,
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 643704.0570597667,
+          "minimum": 642323.6823881442,
+          "maximum": 650793.5662470565,
+          "worker_values": [
+            643704.0570597667,
+            642323.6823881442,
+            650793.5662470565
+          ]
+        },
+        "after": {
+          "median": 653666.6125186883,
+          "minimum": 652785.5827641293,
+          "maximum": 659768.2269563429,
+          "worker_values": [
+            659768.2269563429,
+            653666.6125186883,
+            652785.5827641293
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cuda_native",
+      "threads": 1,
+      "batch": 32,
+      "before": {
+        "median": 26682.431536632892,
+        "minimum": 25014.14862781761,
+        "maximum": 26948.911600832722,
+        "worker_values": [
+          26948.911600832722,
+          26682.431536632892,
+          25014.14862781761
+        ]
+      },
+      "after": {
+        "median": 31956.741224628924,
+        "minimum": 31555.737293227747,
+        "maximum": 32121.28999100604,
+        "worker_values": [
+          31555.737293227747,
+          32121.28999100604,
+          31956.741224628924
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.2038366873313633,
+        "minimum": 1.1709466326741254,
+        "maximum": 1.2775466277149496,
+        "worker_values": [
+          1.1709466326741254,
+          1.2038366873313633,
+          1.2775466277149496
+        ]
+      },
+      "ratio_of_medians": 1.1976697543758266,
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 1494216.166051442,
+          "minimum": 1400792.3231577862,
+          "maximum": 1509139.0496466325,
+          "worker_values": [
+            1509139.0496466325,
+            1494216.166051442,
+            1400792.3231577862
+          ]
+        },
+        "after": {
+          "median": 1789577.5085792197,
+          "minimum": 1767121.2884207538,
+          "maximum": 1798792.2394963382,
+          "worker_values": [
+            1767121.2884207538,
+            1798792.2394963382,
+            1789577.5085792197
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cuda_native",
+      "threads": 1,
+      "batch": 128,
+      "before": {
+        "median": 20996.63135295731,
+        "minimum": 20927.083990143125,
+        "maximum": 21114.98445216815,
+        "worker_values": [
+          20927.083990143125,
+          20996.63135295731,
+          21114.98445216815
+        ]
+      },
+      "after": {
+        "median": 36566.14563400697,
+        "minimum": 36487.50037057618,
+        "maximum": 36618.6771274021,
+        "worker_values": [
+          36487.50037057618,
+          36618.6771274021,
+          36566.14563400697
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.7435539699540639,
+        "minimum": 1.7317628491197987,
+        "maximum": 1.7440262922101777,
+        "worker_values": [
+          1.7435539699540639,
+          1.7440262922101777,
+          1.7317628491197987
+        ]
+      },
+      "ratio_of_medians": 1.7415243911903395,
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 1175811.3557656093,
+          "minimum": 1171916.703448015,
+          "maximum": 1182439.1293214164,
+          "worker_values": [
+            1171916.703448015,
+            1175811.3557656093,
+            1182439.1293214164
+          ]
+        },
+        "after": {
+          "median": 2047704.1555043904,
+          "minimum": 2043300.020752266,
+          "maximum": 2050645.9191345177,
+          "worker_values": [
+            2043300.020752266,
+            2050645.9191345177,
+            2047704.1555043904
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cuda_native",
+      "threads": 1,
+      "batch": 512,
+      "before": {
+        "median": 8766.815348278235,
+        "minimum": 8760.870216554167,
+        "maximum": 8786.194093056583,
+        "worker_values": [
+          8766.815348278235,
+          8786.194093056583,
+          8760.870216554167
+        ]
+      },
+      "after": {
+        "median": 38195.86411403574,
+        "minimum": 38087.29190725387,
+        "maximum": 38532.19529230396,
+        "worker_values": [
+          38532.19529230396,
+          38195.86411403574,
+          38087.29190725387
+        ]
+      },
+      "paired_ratio": {
+        "median": 4.347432499945696,
+        "minimum": 4.347259314954194,
+        "maximum": 4.395232905170236,
+        "worker_values": [
+          4.395232905170236,
+          4.347259314954194,
+          4.347432499945696
+        ]
+      },
+      "ratio_of_medians": 4.356868782634648,
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 490941.6595035811,
+          "minimum": 490608.73212703335,
+          "maximum": 492026.86921116867,
+          "worker_values": [
+            490941.6595035811,
+            492026.86921116867,
+            490608.73212703335
+          ]
+        },
+        "after": {
+          "median": 2138968.3903860017,
+          "minimum": 2132888.346806217,
+          "maximum": 2157802.9363690214,
+          "worker_values": [
+            2157802.9363690214,
+            2138968.3903860017,
+            2132888.346806217
+          ]
+        }
+      }
+    },
+    {
+      "route": "torch_cuda_native",
+      "threads": 1,
+      "batch": 1024,
+      "before": {
+        "median": 4960.409073051941,
+        "minimum": 4948.811950700399,
+        "maximum": 4969.739214245113,
+        "worker_values": [
+          4969.739214245113,
+          4948.811950700399,
+          4960.409073051941
+        ]
+      },
+      "after": {
+        "median": 38622.971379347255,
+        "minimum": 38527.01248364248,
+        "maximum": 38709.27793726524,
+        "worker_values": [
+          38527.01248364248,
+          38622.971379347255,
+          38709.27793726524
+        ]
+      },
+      "paired_ratio": {
+        "median": 7.803646305615873,
+        "minimum": 7.7523207602543405,
+        "maximum": 7.804493636878037,
+        "worker_values": [
+          7.7523207602543405,
+          7.804493636878037,
+          7.803646305615873
+        ]
+      },
+      "ratio_of_medians": 7.786247224885444,
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 277782.9080909087,
+          "minimum": 277133.46923922235,
+          "maximum": 278305.3959977263,
+          "worker_values": [
+            278305.3959977263,
+            277133.46923922235,
+            277782.9080909087
+          ]
+        },
+        "after": {
+          "median": 2162886.397243446,
+          "minimum": 2157512.699083979,
+          "maximum": 2167719.5644868533,
+          "worker_values": [
+            2157512.699083979,
+            2162886.397243446,
+            2167719.5644868533
+          ]
+        }
+      }
+    }
+  ],
+  "waveform": [
+    {
+      "route": "torch-cpu-batch",
+      "threads": 1,
+      "batch": 1,
+      "before": {
+        "median": 224.53091142317288,
+        "minimum": 223.30490364170103,
+        "maximum": 224.74953490424895,
+        "worker_values": [
+          223.30490364170103,
+          224.74953490424895,
+          224.53091142317288
+        ]
+      },
+      "after": {
+        "median": 255.21451850217895,
+        "minimum": 254.99308831426697,
+        "maximum": 256.0300795166404,
+        "worker_values": [
+          256.0300795166404,
+          255.21451850217895,
+          254.99308831426697
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.1356703034696283,
+        "minimum": 1.1355508193194221,
+        "maximum": 1.1465492935499877,
+        "worker_values": [
+          1.1465492935499877,
+          1.1355508193194221,
+          1.1356703034696283
+        ]
+      },
+      "ratio_of_medians": 1.13665649368508
+    },
+    {
+      "route": "torch-cpu-batch",
+      "threads": 1,
+      "batch": 8,
+      "before": {
+        "median": 897.5201607709914,
+        "minimum": 870.971286929101,
+        "maximum": 909.2292979229135,
+        "worker_values": [
+          897.5201607709914,
+          909.2292979229135,
+          870.971286929101
+        ]
+      },
+      "after": {
+        "median": 880.5016605380816,
+        "minimum": 829.9404675403229,
+        "maximum": 889.3805186756013,
+        "worker_values": [
+          829.9404675403229,
+          880.5016605380816,
+          889.3805186756013
+        ]
+      },
+      "paired_ratio": {
+        "median": 0.9684044086013741,
+        "minimum": 0.9247039830585911,
+        "maximum": 1.021136439309507,
+        "worker_values": [
+          0.9247039830585911,
+          0.9684044086013741,
+          1.021136439309507
+        ]
+      },
+      "ratio_of_medians": 0.9810383086901463
+    },
+    {
+      "route": "torch-cpu-batch",
+      "threads": 1,
+      "batch": 32,
+      "before": {
+        "median": 830.5500174739938,
+        "minimum": 830.4723776193197,
+        "maximum": 830.5925725141708,
+        "worker_values": [
+          830.5500174739938,
+          830.5925725141708,
+          830.4723776193197
+        ]
+      },
+      "after": {
+        "median": 899.7875657793918,
+        "minimum": 897.7277920449479,
+        "maximum": 903.8247306471673,
+        "worker_values": [
+          903.8247306471673,
+          897.7277920449479,
+          899.7875657793918
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.0834647726138407,
+        "minimum": 1.080828100024494,
+        "maximum": 1.0882243231973296,
+        "worker_values": [
+          1.0882243231973296,
+          1.080828100024494,
+          1.0834647726138407
+        ]
+      },
+      "ratio_of_medians": 1.0833634902759677
+    },
+    {
+      "route": "torch-cpu-batch",
+      "threads": 1,
+      "batch": 128,
+      "before": {
+        "median": 649.513126482685,
+        "minimum": 645.7717887803377,
+        "maximum": 686.9170566276015,
+        "worker_values": [
+          645.7717887803377,
+          649.513126482685,
+          686.9170566276015
+        ]
+      },
+      "after": {
+        "median": 847.5027741480455,
+        "minimum": 847.447398724789,
+        "maximum": 913.7091507585977,
+        "worker_values": [
+          847.5027741480455,
+          847.447398724789,
+          913.7091507585977
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.3123874236573805,
+        "minimum": 1.3047425281671818,
+        "maximum": 1.3301593575859438,
+        "worker_values": [
+          1.3123874236573805,
+          1.3047425281671818,
+          1.3301593575859438
+        ]
+      },
+      "ratio_of_medians": 1.3048277849864802
+    },
+    {
+      "route": "torch-cpu-batch",
+      "threads": 1,
+      "batch": 512,
+      "before": {
+        "median": 663.7189594068966,
+        "minimum": 638.2538778061754,
+        "maximum": 676.675225427611,
+        "worker_values": [
+          663.7189594068966,
+          638.2538778061754,
+          676.675225427611
+        ]
+      },
+      "after": {
+        "median": 767.1494878295007,
+        "minimum": 764.904807342754,
+        "maximum": 768.860826576626,
+        "worker_values": [
+          764.904807342754,
+          767.1494878295007,
+          768.860826576626
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.1524528514693595,
+        "minimum": 1.1362331554118301,
+        "maximum": 1.2019503750864295,
+        "worker_values": [
+          1.1524528514693595,
+          1.2019503750864295,
+          1.1362331554118301
+        ]
+      },
+      "ratio_of_medians": 1.1558348258049314
+    },
+    {
+      "route": "torch-cpu-batch",
+      "threads": 1,
+      "batch": 1024,
+      "before": {
+        "median": 465.1140409619595,
+        "minimum": 436.3713559836712,
+        "maximum": 465.7364987320049,
+        "worker_values": [
+          465.7364987320049,
+          465.1140409619595,
+          436.3713559836712
+        ]
+      },
+      "after": {
+        "median": 539.7513493619015,
+        "minimum": 538.9354190882106,
+        "maximum": 540.4513409638561,
+        "worker_values": [
+          538.9354190882106,
+          540.4513409638561,
+          539.7513493619015
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.1619759744214175,
+        "minimum": 1.1571680994628808,
+        "maximum": 1.2369082937288365,
+        "worker_values": [
+          1.1571680994628808,
+          1.1619759744214175,
+          1.2369082937288365
+        ]
+      },
+      "ratio_of_medians": 1.16047098523531
+    },
+    {
+      "route": "torch-cpu-batch",
+      "threads": 4,
+      "batch": 1,
+      "before": {
+        "median": 224.1461014175186,
+        "minimum": 220.74084675085112,
+        "maximum": 226.91470915226066,
+        "worker_values": [
+          224.1461014175186,
+          220.74084675085112,
+          226.91470915226066
+        ]
+      },
+      "after": {
+        "median": 253.09384347862928,
+        "minimum": 251.2315855461135,
+        "maximum": 256.64125885301297,
+        "worker_values": [
+          253.09384347862928,
+          256.64125885301297,
+          251.2315855461135
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.129146756861006,
+        "minimum": 1.1071630679416915,
+        "maximum": 1.1626360169882035,
+        "worker_values": [
+          1.129146756861006,
+          1.1626360169882035,
+          1.1071630679416915
+        ]
+      },
+      "ratio_of_medians": 1.129146756861006
+    },
+    {
+      "route": "torch-cpu-batch",
+      "threads": 4,
+      "batch": 8,
+      "before": {
+        "median": 886.6746062466492,
+        "minimum": 882.2083173938508,
+        "maximum": 972.4939093314268,
+        "worker_values": [
+          972.4939093314268,
+          882.2083173938508,
+          886.6746062466492
+        ]
+      },
+      "after": {
+        "median": 990.4617787856607,
+        "minimum": 989.8578912992999,
+        "maximum": 999.8725912350619,
+        "worker_values": [
+          990.4617787856607,
+          989.8578912992999,
+          999.8725912350619
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.1220228508199275,
+        "minimum": 1.0184760740214676,
+        "maximum": 1.12766575719089,
+        "worker_values": [
+          1.0184760740214676,
+          1.1220228508199275,
+          1.12766575719089
+        ]
+      },
+      "ratio_of_medians": 1.1170521539782776
+    },
+    {
+      "route": "torch-cpu-batch",
+      "threads": 4,
+      "batch": 32,
+      "before": {
+        "median": 2084.0522589997627,
+        "minimum": 2081.5436484850406,
+        "maximum": 2124.3608356996538,
+        "worker_values": [
+          2084.0522589997627,
+          2081.5436484850406,
+          2124.3608356996538
+        ]
+      },
+      "after": {
+        "median": 2307.5054884979504,
+        "minimum": 2289.635504576397,
+        "maximum": 2325.5753109948255,
+        "worker_values": [
+          2325.5753109948255,
+          2307.5054884979504,
+          2289.635504576397
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.1085549371868162,
+        "minimum": 1.0777997156129602,
+        "maximum": 1.115891072765604,
+        "worker_values": [
+          1.115891072765604,
+          1.1085549371868162,
+          1.0777997156129602
+        ]
+      },
+      "ratio_of_medians": 1.1072205500285457
+    },
+    {
+      "route": "torch-cpu-batch",
+      "threads": 4,
+      "batch": 128,
+      "before": {
+        "median": 1698.7592594158145,
+        "minimum": 1694.3199538446065,
+        "maximum": 1762.95890836152,
+        "worker_values": [
+          1698.7592594158145,
+          1694.3199538446065,
+          1762.95890836152
+        ]
+      },
+      "after": {
+        "median": 2491.239061538568,
+        "minimum": 2485.57125884242,
+        "maximum": 2900.398382180442,
+        "worker_values": [
+          2491.239061538568,
+          2900.398382180442,
+          2485.57125884242
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.4665050669953545,
+        "minimum": 1.4098860994738047,
+        "maximum": 1.7118362890073417,
+        "worker_values": [
+          1.4665050669953545,
+          1.7118362890073417,
+          1.4098860994738047
+        ]
+      },
+      "ratio_of_medians": 1.4665050669953545
+    },
+    {
+      "route": "torch-cpu-batch",
+      "threads": 4,
+      "batch": 512,
+      "before": {
+        "median": 1686.1454836423618,
+        "minimum": 1611.1805507900642,
+        "maximum": 1704.7331810225264,
+        "worker_values": [
+          1686.1454836423618,
+          1611.1805507900642,
+          1704.7331810225264
+        ]
+      },
+      "after": {
+        "median": 2232.6565094720518,
+        "minimum": 2219.1540875882088,
+        "maximum": 2240.3576548966985,
+        "worker_values": [
+          2232.6565094720518,
+          2219.1540875882088,
+          2240.3576548966985
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.3241185479731754,
+        "minimum": 1.3141984211000668,
+        "maximum": 1.3773466210847793,
+        "worker_values": [
+          1.3241185479731754,
+          1.3773466210847793,
+          1.3141984211000668
+        ]
+      },
+      "ratio_of_medians": 1.3241185479731754
+    },
+    {
+      "route": "torch-cpu-batch",
+      "threads": 4,
+      "batch": 1024,
+      "before": {
+        "median": 1140.1086361421048,
+        "minimum": 1066.5614503795869,
+        "maximum": 1148.3641616439995,
+        "worker_values": [
+          1148.3641616439995,
+          1066.5614503795869,
+          1140.1086361421048
+        ]
+      },
+      "after": {
+        "median": 1426.4075674955513,
+        "minimum": 1424.893553285357,
+        "maximum": 1435.777426820868,
+        "worker_values": [
+          1426.4075674955513,
+          1424.893553285357,
+          1435.777426820868
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.259333875128993,
+        "minimum": 1.242121284465639,
+        "maximum": 1.3359694865947391,
+        "worker_values": [
+          1.242121284465639,
+          1.3359694865947391,
+          1.259333875128993
+        ]
+      },
+      "ratio_of_medians": 1.2511154834527205
+    },
+    {
+      "route": "torch-cuda-batch",
+      "threads": 1,
+      "batch": 1,
+      "before": {
+        "median": 81.4124155301412,
+        "minimum": 80.19868743620195,
+        "maximum": 82.36617461059043,
+        "worker_values": [
+          82.36617461059043,
+          81.4124155301412,
+          80.19868743620195
+        ]
+      },
+      "after": {
+        "median": 92.58481718248291,
+        "minimum": 91.34370258519668,
+        "maximum": 93.23598477143096,
+        "worker_values": [
+          93.23598477143096,
+          91.34370258519668,
+          92.58481718248291
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.1319693455745719,
+        "minimum": 1.1219873773598896,
+        "maximum": 1.1544430481625292,
+        "worker_values": [
+          1.1319693455745719,
+          1.1219873773598896,
+          1.1544430481625292
+        ]
+      },
+      "ratio_of_medians": 1.1372321602250626
+    },
+    {
+      "route": "torch-cuda-batch",
+      "threads": 1,
+      "batch": 8,
+      "before": {
+        "median": 638.8160694022554,
+        "minimum": 636.3317890422512,
+        "maximum": 643.8399956527923,
+        "worker_values": [
+          636.3317890422512,
+          638.8160694022554,
+          643.8399956527923
+        ]
+      },
+      "after": {
+        "median": 719.7058706048012,
+        "minimum": 717.8051385157548,
+        "maximum": 726.9557217085553,
+        "worker_values": [
+          726.9557217085553,
+          719.7058706048012,
+          717.8051385157548
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.1266245560764228,
+        "minimum": 1.1148812490096534,
+        "maximum": 1.1424161643766109,
+        "worker_values": [
+          1.1424161643766109,
+          1.1266245560764228,
+          1.1148812490096534
+        ]
+      },
+      "ratio_of_medians": 1.1266245560764228
+    },
+    {
+      "route": "torch-cuda-batch",
+      "threads": 1,
+      "batch": 32,
+      "before": {
+        "median": 2561.588133410952,
+        "minimum": 2546.06659961229,
+        "maximum": 2564.6086530416887,
+        "worker_values": [
+          2561.588133410952,
+          2564.6086530416887,
+          2546.06659961229
+        ]
+      },
+      "after": {
+        "median": 2900.768235833618,
+        "minimum": 2880.671772657384,
+        "maximum": 2912.9929956173114,
+        "worker_values": [
+          2900.768235833618,
+          2880.671772657384,
+          2912.9929956173114
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.1324100849776428,
+        "minimum": 1.1232402921361262,
+        "maximum": 1.1441150031428464,
+        "worker_values": [
+          1.1324100849776428,
+          1.1232402921361262,
+          1.1441150031428464
+        ]
+      },
+      "ratio_of_medians": 1.1324100849776428
+    },
+    {
+      "route": "torch-cuda-batch",
+      "threads": 1,
+      "batch": 128,
+      "before": {
+        "median": 10222.20049117274,
+        "minimum": 10119.057430354698,
+        "maximum": 10350.39114451585,
+        "worker_values": [
+          10350.39114451585,
+          10222.20049117274,
+          10119.057430354698
+        ]
+      },
+      "after": {
+        "median": 11601.195350915223,
+        "minimum": 11451.85407038349,
+        "maximum": 11705.260373274901,
+        "worker_values": [
+          11705.260373274901,
+          11601.195350915223,
+          11451.85407038349
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.1317115402498583,
+        "minimum": 1.1309002925437197,
+        "maximum": 1.1349019578449178,
+        "worker_values": [
+          1.1309002925437197,
+          1.1349019578449178,
+          1.1317115402498583
+        ]
+      },
+      "ratio_of_medians": 1.1349019578449178
+    },
+    {
+      "route": "torch-cuda-batch",
+      "threads": 1,
+      "batch": 512,
+      "before": {
+        "median": 33679.57681480171,
+        "minimum": 33443.91817448985,
+        "maximum": 33861.15791040215,
+        "worker_values": [
+          33679.57681480171,
+          33443.91817448985,
+          33861.15791040215
+        ]
+      },
+      "after": {
+        "median": 39762.688200026205,
+        "minimum": 38646.78800185557,
+        "maximum": 40011.20001012784,
+        "worker_values": [
+          39762.688200026205,
+          38646.78800185557,
+          40011.20001012784
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.1806172155509702,
+        "minimum": 1.1555699843606941,
+        "maximum": 1.1816252744811304,
+        "worker_values": [
+          1.1806172155509702,
+          1.1555699843606941,
+          1.1816252744811304
+        ]
+      },
+      "ratio_of_medians": 1.1806172155509702
+    },
+    {
+      "route": "torch-cuda-batch",
+      "threads": 1,
+      "batch": 1024,
+      "before": {
+        "median": 46165.75103591919,
+        "minimum": 45804.90922762709,
+        "maximum": 46432.572038163045,
+        "worker_values": [
+          45804.90922762709,
+          46165.75103591919,
+          46432.572038163045
+        ]
+      },
+      "after": {
+        "median": 59643.60731293532,
+        "minimum": 59093.55450327222,
+        "maximum": 59717.753137422435,
+        "worker_values": [
+          59643.60731293532,
+          59093.55450327222,
+          59717.753137422435
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.286117708240247,
+        "minimum": 1.2800301777240572,
+        "maximum": 1.3021225959981044,
+        "worker_values": [
+          1.3021225959981044,
+          1.2800301777240572,
+          1.286117708240247
+        ]
+      },
+      "ratio_of_medians": 1.29194491532326
+    }
+  ],
+  "standard_controls": [
+    {
+      "route": "branch_standard",
+      "threads": 1,
+      "batch": 1,
+      "before": {
+        "median": 1116.3189457186193,
+        "minimum": 1115.9817514663998,
+        "maximum": 1122.6683581536597,
+        "worker_values": [
+          1115.9817514663998,
+          1116.3189457186193,
+          1122.6683581536597
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 62513.86096024268,
+          "minimum": 62494.97808211839,
+          "maximum": 62869.42805660494,
+          "worker_values": [
+            62494.97808211839,
+            62513.86096024268,
+            62869.42805660494
+          ]
+        }
+      }
+    },
+    {
+      "route": "branch_standard",
+      "threads": 1,
+      "batch": 8,
+      "before": {
+        "median": 1184.8987030098797,
+        "minimum": 1182.110879636288,
+        "maximum": 1185.0957031441922,
+        "worker_values": [
+          1184.8987030098797,
+          1185.0957031441922,
+          1182.110879636288
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 66354.32736855326,
+          "minimum": 66198.20925963213,
+          "maximum": 66365.35937607476,
+          "worker_values": [
+            66354.32736855326,
+            66365.35937607476,
+            66198.20925963213
+          ]
+        }
+      }
+    },
+    {
+      "route": "branch_standard",
+      "threads": 1,
+      "batch": 32,
+      "before": {
+        "median": 1174.4052900303352,
+        "minimum": 1133.4258657487524,
+        "maximum": 1193.9989463705547,
+        "worker_values": [
+          1174.4052900303352,
+          1193.9989463705547,
+          1133.4258657487524
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 65766.69624169877,
+          "minimum": 63471.84848193013,
+          "maximum": 66863.94099675106,
+          "worker_values": [
+            65766.69624169877,
+            66863.94099675106,
+            63471.84848193013
+          ]
+        }
+      }
+    },
+    {
+      "route": "branch_standard",
+      "threads": 1,
+      "batch": 128,
+      "before": {
+        "median": 1195.8818947414466,
+        "minimum": 1186.3411721341188,
+        "maximum": 1200.8057631822032,
+        "worker_values": [
+          1186.3411721341188,
+          1195.8818947414466,
+          1200.8057631822032
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 66969.386105521,
+          "minimum": 66435.10563951066,
+          "maximum": 67245.12273820338,
+          "worker_values": [
+            66435.10563951066,
+            66969.386105521,
+            67245.12273820338
+          ]
+        }
+      }
+    },
+    {
+      "route": "branch_standard",
+      "threads": 1,
+      "batch": 512,
+      "before": {
+        "median": 1205.863036088571,
+        "minimum": 1204.9827410777002,
+        "maximum": 1207.6918412298014,
+        "worker_values": [
+          1207.6918412298014,
+          1205.863036088571,
+          1204.9827410777002
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 67528.33002095998,
+          "minimum": 67479.03350035122,
+          "maximum": 67630.74310886888,
+          "worker_values": [
+            67630.74310886888,
+            67528.33002095998,
+            67479.03350035122
+          ]
+        }
+      }
+    },
+    {
+      "route": "branch_standard",
+      "threads": 1,
+      "batch": 1024,
+      "before": {
+        "median": 1202.7655903360665,
+        "minimum": 1196.3742951664237,
+        "maximum": 1204.2030949764694,
+        "worker_values": [
+          1196.3742951664237,
+          1202.7655903360665,
+          1204.2030949764694
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 67354.87305881972,
+          "minimum": 66996.96052931972,
+          "maximum": 67435.37331868228,
+          "worker_values": [
+            66996.96052931972,
+            67354.87305881972,
+            67435.37331868228
+          ]
+        }
+      }
+    },
+    {
+      "route": "branch_standard",
+      "threads": 4,
+      "batch": 1,
+      "before": {
+        "median": 1903.523104011675,
+        "minimum": 1800.528995418854,
+        "maximum": 1955.6650727996323,
+        "worker_values": [
+          1903.523104011675,
+          1800.528995418854,
+          1955.6650727996323
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 26649.323456163453,
+          "minimum": 25207.405935863957,
+          "maximum": 27379.31101919485,
+          "worker_values": [
+            26649.323456163453,
+            25207.405935863957,
+            27379.31101919485
+          ]
+        }
+      }
+    },
+    {
+      "route": "branch_standard",
+      "threads": 4,
+      "batch": 8,
+      "before": {
+        "median": 2781.2508003338894,
+        "minimum": 2752.960350029732,
+        "maximum": 2805.159904633914,
+        "worker_values": [
+          2781.2508003338894,
+          2805.159904633914,
+          2752.960350029732
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 38937.511204674454,
+          "minimum": 38541.44490041625,
+          "maximum": 39272.23866487479,
+          "worker_values": [
+            38937.511204674454,
+            39272.23866487479,
+            38541.44490041625
+          ]
+        }
+      }
+    },
+    {
+      "route": "branch_standard",
+      "threads": 4,
+      "batch": 32,
+      "before": {
+        "median": 2702.193606992737,
+        "minimum": 2662.9963180192367,
+        "maximum": 2738.278194061034,
+        "worker_values": [
+          2662.9963180192367,
+          2738.278194061034,
+          2702.193606992737
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 37830.71049789832,
+          "minimum": 37281.94845226932,
+          "maximum": 38335.89471685448,
+          "worker_values": [
+            37281.94845226932,
+            38335.89471685448,
+            37830.71049789832
+          ]
+        }
+      }
+    },
+    {
+      "route": "branch_standard",
+      "threads": 4,
+      "batch": 128,
+      "before": {
+        "median": 2878.3503670335217,
+        "minimum": 2866.0511796879373,
+        "maximum": 2882.819534438609,
+        "worker_values": [
+          2878.3503670335217,
+          2866.0511796879373,
+          2882.819534438609
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 40296.9051384693,
+          "minimum": 40124.716515631124,
+          "maximum": 40359.47348214053,
+          "worker_values": [
+            40296.9051384693,
+            40124.716515631124,
+            40359.47348214053
+          ]
+        }
+      }
+    },
+    {
+      "route": "branch_standard",
+      "threads": 4,
+      "batch": 512,
+      "before": {
+        "median": 2886.880470024136,
+        "minimum": 2877.205591394258,
+        "maximum": 2933.12490120038,
+        "worker_values": [
+          2877.205591394258,
+          2933.12490120038,
+          2886.880470024136
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 40416.3265803379,
+          "minimum": 40280.87827951962,
+          "maximum": 41063.74861680532,
+          "worker_values": [
+            40280.87827951962,
+            41063.74861680532,
+            40416.3265803379
+          ]
+        }
+      }
+    },
+    {
+      "route": "branch_standard",
+      "threads": 4,
+      "batch": 1024,
+      "before": {
+        "median": 2935.8398239126086,
+        "minimum": 2915.3726924476377,
+        "maximum": 2938.4848822428153,
+        "worker_values": [
+          2915.3726924476377,
+          2935.8398239126086,
+          2938.4848822428153
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 41101.75753477652,
+          "minimum": 40815.21769426693,
+          "maximum": 41138.78835139942,
+          "worker_values": [
+            40815.21769426693,
+            41101.75753477652,
+            41138.78835139942
+          ]
+        }
+      }
+    }
+  ],
+  "waveform_source_sha256": {
+    "baseline": {
+      "pycbc/waveform/taylorf2_torch.py": "9361103c2db535b1b65040bb4af82a686c5d5d9db173cc79ee54b64bb78bed9e",
+      "pycbc/waveform/waveform.py": "01d0b6994418e7f8a2cc52019cc2a132715b607ce7de999db8280ee7be73a76d",
+      "pycbc/waveform/torch_waveform_registry.py": "d8de5cd1c7414257a983522c4936cb03b1b333c43daeb31136c545b966cd5627",
+      "pycbc/waveform/taylorf2_triton.py": "d7db7a98df0b562a332e07bb0126610cfe744b6147967c955d188c6241a91f9a"
+    },
+    "candidate": {
+      "pycbc/waveform/taylorf2_torch.py": "46137f45803da55bb1601e05a1cb26f7bc83d4879d8ee7823b3e3bc4ef85a648",
+      "pycbc/waveform/waveform.py": "01d0b6994418e7f8a2cc52019cc2a132715b607ce7de999db8280ee7be73a76d",
+      "pycbc/waveform/torch_waveform_registry.py": "d8de5cd1c7414257a983522c4936cb03b1b333c43daeb31136c545b966cd5627",
+      "pycbc/waveform/taylorf2_triton.py": "d7db7a98df0b562a332e07bb0126610cfe744b6147967c955d188c6241a91f9a"
+    }
+  },
+  "figures": [
+    "live-before-after.png",
+    "live-before-after.svg",
+    "waveform-before-after.png",
+    "waveform-before-after.svg"
+  ],
+  "input_manifest": {
+    "path": "input-manifest.json",
+    "sha256": "c44fe190b7790e497ce7a351a1d39944797939df97c3fbb376b28b5033ced60f",
+    "files": 472
+  }
+}

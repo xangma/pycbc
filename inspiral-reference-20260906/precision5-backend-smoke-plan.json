@@ -1,0 +1,22 @@
+[
+  [
+    "--case",
+    "qual-precision5-torch-cpu-l512",
+    "--mode",
+    "qualify",
+    "--scheme",
+    "torch:cpu:1",
+    "--segment-length",
+    "512"
+  ],
+  [
+    "--case",
+    "qual-precision5-torch-cuda-l512",
+    "--mode",
+    "qualify",
+    "--scheme",
+    "torch:cuda:0",
+    "--segment-length",
+    "512"
+  ]
+]

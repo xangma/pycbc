@@ -1,0 +1,42 @@
+{
+  "batch_32": {
+    "batch": 32,
+    "routes_evaluated": [
+      "branch_standard",
+      "torch_cpu",
+      "torch_cpu_fixed"
+    ],
+    "comparisons": {
+      "torch_cpu_vs_branch_standard": {
+        "finite_values": true,
+        "block_count_match": true,
+        "trigger_count_match": true,
+        "template_id_match": true,
+        "end_time_match": true,
+        "sequence_length_match": true,
+        "veto_count_match": true,
+        "max_snr_diff": 1.9073486328125e-06,
+        "max_phase_diff": 3.1592207960784435e-08,
+        "max_sigmasq_relative_diff": 1.1920930376163766e-07,
+        "relative_output_l2_diff": 6.435700876444841e-08,
+        "passed": true
+      },
+      "torch_cpu_fixed_vs_branch_standard": {
+        "finite_values": true,
+        "block_count_match": true,
+        "trigger_count_match": true,
+        "template_id_match": true,
+        "end_time_match": true,
+        "sequence_length_match": true,
+        "veto_count_match": true,
+        "max_snr_diff": 1.9073486328125e-06,
+        "max_phase_diff": 3.1592207960784435e-08,
+        "max_sigmasq_relative_diff": 1.1920930376163766e-07,
+        "relative_output_l2_diff": 6.435700876444841e-08,
+        "passed": true
+      }
+    },
+    "all_passed": true
+  },
+  "all_passed_globally": true
+}

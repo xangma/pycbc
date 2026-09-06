@@ -1,0 +1,46 @@
+Commit `f2c0abe61e787a26f41208f489c62c877bbd5667` fixes three demonstrated numerical mechanisms: lost cumulative power, CPU chi-squared phase error, and weak-frequency errors near strong spectral lines. The three new regression suites pass locally; the final Linux/CUDA suite has **365 passed, 68 skipped, and 8 passing subtests**. **This report establishes no final passing full-CLI qualification or performance result.** Scientific budgets remain `atol=1e-5`, `rtol=1e-4`, phase `1e-4` radians, and normalization `rtol=1e-5`.
+
+The initial full CLI comparison on this corrected source at segment length 512 matches all **475 trigger identities** for both backends, with no unmatched triggers. Torch CPU passes every metric. CUDA passes SNR, phase and normalization, but still has **302 chi-squared violations**, maximum absolute error **0.721248627**. This remains a scientific blocker. See [the initial corrected comparison](/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/precision-backend-smoke-parity-v2.json). Unit-test success does not establish full CLI parity.
+
+| Original comparison against CPU | Matched / CPU / candidate triggers | Chi-squared violations | SNR / phase violations |
+| --- | --- | ---: | ---: |
+| Torch CPU | 469 / 477 / 475 | 469 | 0 / 0 |
+| Torch CUDA | 469 / 477 / 475 | 468 | 19 / 27 |
+
+Both original comparisons have eight CPU-only and six candidate-only triggers. One Torch CPU candidate-only trigger requires threshold review; every unmatched trigger remains unaccepted. CUDA's worst SNR and phase differences are `0.000844479` and `0.000148296` radians. See [the retained original qualification](/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/final-qualification-parity.json).
+
+The CPU capture wrapper failed its final assertion because it expected five calls although only four segments had selected-template triggers. Its executable completed, all 44 verification checks passed, and every trigger column matched the original CPU output bitwise. CUDA capture completed, but **106 chi-squared entries differed on replay, 60 beyond budget**, with maximum difference `0.167629`; identities and all other columns matched bitwise. See [CPU verification](/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-verification.json) and [CUDA verification](/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cuda/capture-verification.json).
+
+At template `4366715446675002219`, segment 3, sample `1884341`, changing only captured bins changes direct complex128 chi-squared by approximately **7.53**; changing only other inputs changes it by approximately **0.0016**. The CPU float32 prefix loses **0.5241%** of total power, leaving **6.98%** excess power in the final bin. Its penultimate edge is `273702`, versus `362757` with float64 accumulation. The fix accumulates in float64 while retaining public output precision; Torch thresholds also use float64 to avoid edge movement from rounded thresholds. This demonstrates error in the old CPU reference. See [the bin-swap control](/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-captured-bin-swap-diagnostic.json).
+
+On an RTX 4090, Torch 2.13.0+cu130 produced **three edge vectors in 100 identical float32 scans**: penultimate edges `362790` (81), `362775` (17), and `362805` (2). Double accumulation followed by float32 casting produced `362778` in all 100 runs, versus the fully float64 CPU reference `362772`. That control retained float32 thresholds; stable output alone did not establish accuracy. The committed fix additionally promotes threshold arithmetic. See [the scan record](/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-cuda-prefix-repeatability.json).
+
+| Fixed-input chi-squared evaluation, four captures / eight samples | Maximum absolute error versus direct complex128 |
+| --- | ---: |
+| Locally compiled native float32 | 0.191856552 |
+| Native float64, original pi literal | 0.00176387072 |
+| Native float64, full-precision pi | 1.14563647e-9 |
+| Torch CPU, identical inputs and bins | 1.71334084e-6 |
+
+Local float32 does not reproduce Linux bitwise. The controlled precision/pi comparison nevertheless isolates accumulated CPU phase error. The Python fix invokes the **existing kernel's double real specialization**, compensates its shortened pi literal using `indices * (numpy.pi / 3.141592653)`, and performs final subtraction in double. Public output precision and correlation storage are preserved. **No C, Cython, or kernel files changed.** See [the identical-input diagnostic](/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-identical-input-diagnostic.json).
+
+The [v2 strain/PSD control](/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/snr-psd-diagnostic-v2/report.json) reconstructs captured CPU and CUDA native correlations bitwise. Native CUDA forward FFT differs from CPU by relative L2 `3.35899e-7`, while weak bins reach relative error `0.0631583` and phase difference `0.0571759` radians. Float64 forward FFT cast to complex64 gives exact Torch CPU agreement and CUDA relative L2 `9.02759e-16` against the corresponding CPU control. Native PSD relative L2 differences are `0.00169107` (Torch CPU) and `0.00304023` (CUDA). Promoting only inverse-spectrum truncation leaves maximum relative differences `0.00422103` and `0.00209860`; promoting Welch, interpolation and truncation together gives identical float32 PSD values throughout the filtering band.
+
+With both promotions, the two unclustered samples above SNR 5.5 differ from the corresponding CPU control by at most `4.65437e-7` SNR / `5.29911e-8` radians on Torch CPU and **`1.81365e-6` SNR / `7.69341e-8` radians on CUDA**. These controls retain complex64 overwhitening, correlation and inverse FFT. The fix promotes each strain segment's forward FFT and measured-PSD pipeline, then restores public precision. MPS behavior is unchanged. The old CPU PSD itself changes by relative L2 `0.00137518`, requiring a regenerated CPU reference.
+
+| Local validation with unchanged Darwin native extensions | Original selected functions | Corrected functions |
+| --- | --- | --- |
+| Prefix / binning and native chi-squared regressions | 7 failed, 6 passed, 5 CUDA skips | 13 passed, 5 CUDA skips |
+| Strain / measured-PSD regressions | 10 failed, 10 passed, 10 CUDA skips | 20 passed, 10 CUDA skips |
+| Existing chi-squared / filter tests | — | 71 passed, 4 skipped |
+| Existing PSD / strain tests | — | 51 passed, 16 skipped |
+
+The three suites use independent cumulative sums, direct complex128 phases, NumPy FFT and SciPy Welch references. Baseline checks replace only selected functions from `968bcd558117262af0d603710b054174659adb51` at runtime; they are targeted regression controls.
+
+The first Linux suite on `6c82155044d58f3344b281869d87745f71ba2285` had **363 passed, 2 failed, 68 skipped**. Both failures compared complex128 CUDA prefixes with a serial float64 reference using hardcoded `rtol=3e-14`. An [independent wider-precision check](/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/prefix-reference-diagnostic.json) showed that reference was less accurate: without/with PSD weighting, CUDA errors against long-double accumulation were `1.18620e-15` / `1.22972e-15`; CPU, Torch CPU and the old reference errors were `4.34897e-14` / `7.21736e-14`.
+
+The final commit changes only that test relative to its parent: reference accumulation uses `np.longdouble` and float64 tolerance follows `2*n*eps64/(1-n*eps64)`. The float32 tolerance `3e-7` and full-CLI budgets remain unchanged. The revised prefix/chi-squared suite passes locally (13 passed, 5 CUDA skips). The [final Linux/CUDA run](/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/unit-tests-v4.json) passes with 365 passed, 68 skipped, 8 subtests in 23.33 seconds, with clean source and unchanged input hashes before/after. The [failed first run](/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/unit-tests-v3.json) remains preserved; the production runtime is identical between these commits.
+
+The [companion JSON](/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/numerical-investigation-v2.json) binds the six original local logs, updated prefix log, both Linux runs, bootstrap runners, wider-reference diagnostic, replay inputs, v2 arrays, and all seven corrected git blobs. Source manifests record identical native module hashes. It also binds the initial corrected CLI comparison and its three trigger files and execution receipts, including the remaining CUDA chi-squared failure. These two report files are the only changes made for this synthesis.
+
+The SNR/PSD evidence covers one template and segment, only two above-threshold samples before clustering or chi-squared/newSNR vetoes, and direct float64 normalization. That point was not the campaign's worst SNR/phase failure. Full CLI parity, repeated CUDA qualification, unmatched-trigger review, compression/boundary checks, CPU retuning and matched timings remain required on the corrected source. Earlier timings are not source-equivalent.

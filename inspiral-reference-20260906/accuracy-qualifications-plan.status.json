@@ -1,0 +1,37 @@
+{
+  "state": "complete",
+  "pid": 4000452,
+  "plan": "/home/xangma/pycbc-torch-inspiral-reference-20260906/accuracy-qualifications-plan.json",
+  "plan_sha256": "13f00a1aab80e2e9f0535d49aebdcbe0ebeef170b019f445618f97dc6157de41",
+  "started_utc": "2026-09-06T17:02:40.970144+00:00",
+  "completed": [
+    [
+      "--case",
+      "qual-1e5-cpu-l256",
+      "--mode",
+      "qualify",
+      "--segment-length",
+      "256"
+    ],
+    [
+      "--case",
+      "qual-1e5-cpu-l512",
+      "--mode",
+      "qualify",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "qual-1e5-cpu-l1024",
+      "--mode",
+      "qualify",
+      "--segment-length",
+      "1024"
+    ]
+  ],
+  "current": null,
+  "child_pid": 4029272,
+  "returncode": 0,
+  "finished_utc": "2026-09-06T17:04:22.367827+00:00"
+}

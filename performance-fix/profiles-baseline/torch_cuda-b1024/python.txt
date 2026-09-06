@@ -1,0 +1,53 @@
+         27328 function calls (27322 primitive calls) in 0.026 seconds
+
+   Ordered by: cumulative time
+   List reduced from 141 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.026    0.026 matchedfilter.py:2501(process_data)
+        1    0.000    0.000    0.026    0.026 matchedfilter.py:2506(process_all)
+        2    0.000    0.000    0.026    0.013 matchedfilter.py:2776(_process_batch)
+        1    0.000    0.000    0.012    0.012 scheme.py:432(_scheming_function)
+        1    0.001    0.001    0.012    0.012 matchedfilter_torch.py:1040(batch_correlate_execute)
+        1    0.000    0.000    0.010    0.010 matchedfilter.py:2091(_torch_batch_peak_values)
+        2    0.010    0.005    0.010    0.005 {method 'cpu' of 'torch._C.TensorBase' objects}
+        2    0.000    0.000    0.004    0.002 {built-in method builtins.all}
+     2049    0.002    0.000    0.003    0.000 matchedfilter_torch.py:1070(<genexpr>)
+        1    0.002    0.002    0.002    0.002 matchedfilter_torch.py:1121(<listcomp>)
+        1    0.000    0.000    0.002    0.002 torchfft.py:1414(execute)
+        1    0.000    0.000    0.002    0.002 torchfft.py:1330(_execute_batched_ifft)
+        1    0.000    0.000    0.002    0.002 torchfft.py:1287(_execute_batched_ifft_direct)
+        1    0.000    0.000    0.002    0.002 matchedfilter.py:2146(_torch_batch_peak_magnitudes)
+        1    0.000    0.000    0.002    0.002 {built-in method numpy.fromiter}
+        2    0.001    0.000    0.001    0.001 matchedfilter_torch.py:572(_find_uniform_stride)
+     1025    0.001    0.000    0.001    0.000 matchedfilter.py:2162(<genexpr>)
+       32    0.001    0.000    0.001    0.000 {built-in method torch._C._fft.fft_ifft}
+     2049    0.001    0.000    0.001    0.000 matchedfilter_torch.py:1068(<genexpr>)
+        1    0.000    0.000    0.001    0.001 matchedfilter_torch.py:184(_has_dynamic_autograd_state)
+        1    0.000    0.000    0.001    0.001 {built-in method builtins.any}
+     1025    0.000    0.000    0.001    0.000 matchedfilter_torch.py:1061(<genexpr>)
+     1025    0.000    0.000    0.001    0.000 matchedfilter_torch.py:1064(<genexpr>)
+     1025    0.001    0.000    0.001    0.000 {method 'item' of 'numpy.generic' objects}
+     2050    0.000    0.000    0.000    0.000 matchedfilter_torch.py:186(<genexpr>)
+     1025    0.000    0.000    0.000    0.000 matchedfilter_torch.py:1085(<genexpr>)
+     2048    0.000    0.000    0.000    0.000 {method 'is_conj' of 'torch._C.TensorBase' objects}
+     2048    0.000    0.000    0.000    0.000 {method 'is_neg' of 'torch._C.TensorBase' objects}
+4134/4128    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+     2116    0.000    0.000    0.000    0.000 {method 'data_ptr' of 'torch._C.TensorBase' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method torch.stack}
+     1088    0.000    0.000    0.000    0.000 {method 'is_contiguous' of 'torch._C.TensorBase' objects}
+     1091    0.000    0.000    0.000    0.000 {method 'numel' of 'torch._C.TensorBase' objects}
+       32    0.000    0.000    0.000    0.000 torchfft.py:1006(_shares_storage)
+       32    0.000    0.000    0.000    0.000 torchfft.py:1011(_tensors_overlap)
+     2068    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+     1025    0.000    0.000    0.000    0.000 {built-in method builtins.abs}
+        1    0.000    0.000    0.000    0.000 __init__.py:1209(synchronize)
+        1    0.000    0.000    0.000    0.000 __init__.py:650(__init__)
+        1    0.000    0.000    0.000    0.000 _utils.py:557(_get_device_index)
+        6    0.000    0.000    0.000    0.000 <frozen _collections_abc>:771(get)
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:2533(_process_vetoes)
+        1    0.000    0.000    0.000    0.000 {built-in method torch.mul}
+        1    0.000    0.000    0.000    0.000 _utils.py:869(_get_device_index)
+        1    0.000    0.000    0.000    0.000 _utils.py:843(_get_current_device_index)
+
+

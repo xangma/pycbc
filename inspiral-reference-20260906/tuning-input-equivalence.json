@@ -1,0 +1,487 @@
+{
+  "cases": [
+    {
+      "case": "qual-v2-cpu-l256",
+      "receipt_sha256": "fe8d9b523650feea7e97f5b0cf322a40cdb4dcdde960b95afa030a7f525d2a73",
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "psd_arrays": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "bytes": 2097284,
+          "capture": "Exact final segment.psd before overwhitening; no rescaling or dtype conversion",
+          "data_sha256": "443b6ff6cd22742ebd32bab2237cc837ab41988aefd950ca6b6d39d81764b317",
+          "delta_f_hz": 0.00390625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "dyn_range_factor": 5.902958103587057e+20,
+          "finite": false,
+          "n_samples": 524289,
+          "nbytes": 2097156,
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-v2-cpu-l256/arrays/qualification-psd-000.npy",
+          "relative_path": "arrays/qualification-psd-000.npy",
+          "scaling": "DYN_RANGE_FAC**2",
+          "segment_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14
+          ],
+          "sha256": "0ee0a52ecf7f0a28eaa721925d293a138caedd0406ace712f727d3a704f60efa",
+          "shape": [
+            524289
+          ],
+          "validity": {
+            "excluded_infinity_policy": "Positive infinity is allowed only outside the actual filter slice; inverse-spectrum truncation can produce it where the inverse spectrum vanishes.",
+            "filter_bin_start": 7680,
+            "filter_bin_stop": 524288,
+            "filter_bins_are_half_open": true,
+            "nan_count": 0,
+            "negative_infinity_count": 0,
+            "nonpositive_count": 0,
+            "positive_infinity_count": 25,
+            "positive_infinity_first_bin": 0,
+            "positive_infinity_last_bin": 7305,
+            "positive_infinity_only_in_excluded_bins": true,
+            "used_bins_finite_positive": true,
+            "valid_for_filter": true
+          }
+        }
+      ]
+    },
+    {
+      "case": "qual-v2-cpu-l512",
+      "receipt_sha256": "d5a97c4387e89c8861dba8d29e690cfcf5f400ff8c8698a012d7dd4da7202518",
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "psd_arrays": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "bytes": 4194436,
+          "capture": "Exact final segment.psd before overwhitening; no rescaling or dtype conversion",
+          "data_sha256": "fca627aa115278db74c39a4e5073c37fafc9f77290d4a51f9851882f7c7304c6",
+          "delta_f_hz": 0.001953125,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "dyn_range_factor": 5.902958103587057e+20,
+          "finite": false,
+          "n_samples": 1048577,
+          "nbytes": 4194308,
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-v2-cpu-l512/arrays/qualification-psd-000.npy",
+          "relative_path": "arrays/qualification-psd-000.npy",
+          "scaling": "DYN_RANGE_FAC**2",
+          "segment_indices": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "sha256": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+          "shape": [
+            1048577
+          ],
+          "validity": {
+            "excluded_infinity_policy": "Positive infinity is allowed only outside the actual filter slice; inverse-spectrum truncation can produce it where the inverse spectrum vanishes.",
+            "filter_bin_start": 15360,
+            "filter_bin_stop": 1048576,
+            "filter_bins_are_half_open": true,
+            "nan_count": 0,
+            "negative_infinity_count": 0,
+            "nonpositive_count": 0,
+            "positive_infinity_count": 44,
+            "positive_infinity_first_bin": 0,
+            "positive_infinity_last_bin": 14757,
+            "positive_infinity_only_in_excluded_bins": true,
+            "used_bins_finite_positive": true,
+            "valid_for_filter": true
+          }
+        }
+      ]
+    },
+    {
+      "case": "qual-v2-cpu-l1024",
+      "receipt_sha256": "08f902ce27a0b896034d9c8e5526181a81aaba53f27c4609ca21e4aef6e14c58",
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "psd_arrays": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "bytes": 8388740,
+          "capture": "Exact final segment.psd before overwhitening; no rescaling or dtype conversion",
+          "data_sha256": "1b79fd585679ac6fb64d76f2eba23bbce2369807d2ce6e08ef6643bfcff0c0ca",
+          "delta_f_hz": 0.0009765625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "dyn_range_factor": 5.902958103587057e+20,
+          "finite": false,
+          "n_samples": 2097153,
+          "nbytes": 8388612,
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-v2-cpu-l1024/arrays/qualification-psd-000.npy",
+          "relative_path": "arrays/qualification-psd-000.npy",
+          "scaling": "DYN_RANGE_FAC**2",
+          "segment_indices": [
+            0,
+            1,
+            2
+          ],
+          "sha256": "11155a418cf88e6f89cf3f7563e84709be5c0a636030fe048ebb1db824ebbfe0",
+          "shape": [
+            2097153
+          ],
+          "validity": {
+            "excluded_infinity_policy": "Positive infinity is allowed only outside the actual filter slice; inverse-spectrum truncation can produce it where the inverse spectrum vanishes.",
+            "filter_bin_start": 30720,
+            "filter_bin_stop": 2097152,
+            "filter_bins_are_half_open": true,
+            "nan_count": 0,
+            "negative_infinity_count": 0,
+            "nonpositive_count": 0,
+            "positive_infinity_count": 82,
+            "positive_infinity_first_bin": 0,
+            "positive_infinity_last_bin": 29763,
+            "positive_infinity_only_in_excluded_bins": true,
+            "used_bins_finite_positive": true,
+            "valid_for_filter": true
+          }
+        }
+      ]
+    },
+    {
+      "case": "qual-cpu-l256-s96",
+      "receipt_sha256": "371b3102aa3701f00cb0fff13a6fa4bde1e59dc044b909d9836fb4c1f8f12a0c",
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "psd_arrays": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "bytes": 2097284,
+          "capture": "Exact final segment.psd before overwhitening; no rescaling or dtype conversion",
+          "data_sha256": "443b6ff6cd22742ebd32bab2237cc837ab41988aefd950ca6b6d39d81764b317",
+          "delta_f_hz": 0.00390625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "dyn_range_factor": 5.902958103587057e+20,
+          "finite": false,
+          "n_samples": 524289,
+          "nbytes": 2097156,
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-cpu-l256-s96/arrays/qualification-psd-000.npy",
+          "relative_path": "arrays/qualification-psd-000.npy",
+          "scaling": "DYN_RANGE_FAC**2",
+          "segment_indices": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13
+          ],
+          "sha256": "0ee0a52ecf7f0a28eaa721925d293a138caedd0406ace712f727d3a704f60efa",
+          "shape": [
+            524289
+          ],
+          "validity": {
+            "excluded_infinity_policy": "Positive infinity is allowed only outside the actual filter slice; inverse-spectrum truncation can produce it where the inverse spectrum vanishes.",
+            "filter_bin_start": 7680,
+            "filter_bin_stop": 524288,
+            "filter_bins_are_half_open": true,
+            "nan_count": 0,
+            "negative_infinity_count": 0,
+            "nonpositive_count": 0,
+            "positive_infinity_count": 25,
+            "positive_infinity_first_bin": 0,
+            "positive_infinity_last_bin": 7305,
+            "positive_infinity_only_in_excluded_bins": true,
+            "used_bins_finite_positive": true,
+            "valid_for_filter": true
+          }
+        }
+      ]
+    },
+    {
+      "case": "qual-cpu-l512-s96",
+      "receipt_sha256": "7eff014c76c9b2a9685c7e0db3d67218689b96a75cf217a7e504a4178ce90374",
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "psd_arrays": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "bytes": 4194436,
+          "capture": "Exact final segment.psd before overwhitening; no rescaling or dtype conversion",
+          "data_sha256": "fca627aa115278db74c39a4e5073c37fafc9f77290d4a51f9851882f7c7304c6",
+          "delta_f_hz": 0.001953125,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "dyn_range_factor": 5.902958103587057e+20,
+          "finite": false,
+          "n_samples": 1048577,
+          "nbytes": 4194308,
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-cpu-l512-s96/arrays/qualification-psd-000.npy",
+          "relative_path": "arrays/qualification-psd-000.npy",
+          "scaling": "DYN_RANGE_FAC**2",
+          "segment_indices": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "sha256": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+          "shape": [
+            1048577
+          ],
+          "validity": {
+            "excluded_infinity_policy": "Positive infinity is allowed only outside the actual filter slice; inverse-spectrum truncation can produce it where the inverse spectrum vanishes.",
+            "filter_bin_start": 15360,
+            "filter_bin_stop": 1048576,
+            "filter_bins_are_half_open": true,
+            "nan_count": 0,
+            "negative_infinity_count": 0,
+            "nonpositive_count": 0,
+            "positive_infinity_count": 44,
+            "positive_infinity_first_bin": 0,
+            "positive_infinity_last_bin": 14757,
+            "positive_infinity_only_in_excluded_bins": true,
+            "used_bins_finite_positive": true,
+            "valid_for_filter": true
+          }
+        }
+      ]
+    },
+    {
+      "case": "qual-cpu-l1024-s96",
+      "receipt_sha256": "3d832e5a7d0abba45a36eab2ee3265e9e0bd8901c4a4c9adf0cc990647a60d5e",
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "psd_arrays": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "bytes": 8388740,
+          "capture": "Exact final segment.psd before overwhitening; no rescaling or dtype conversion",
+          "data_sha256": "1b79fd585679ac6fb64d76f2eba23bbce2369807d2ce6e08ef6643bfcff0c0ca",
+          "delta_f_hz": 0.0009765625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "dyn_range_factor": 5.902958103587057e+20,
+          "finite": false,
+          "n_samples": 2097153,
+          "nbytes": 8388612,
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-cpu-l1024-s96/arrays/qualification-psd-000.npy",
+          "relative_path": "arrays/qualification-psd-000.npy",
+          "scaling": "DYN_RANGE_FAC**2",
+          "segment_indices": [
+            0,
+            1,
+            2
+          ],
+          "sha256": "11155a418cf88e6f89cf3f7563e84709be5c0a636030fe048ebb1db824ebbfe0",
+          "shape": [
+            2097153
+          ],
+          "validity": {
+            "excluded_infinity_policy": "Positive infinity is allowed only outside the actual filter slice; inverse-spectrum truncation can produce it where the inverse spectrum vanishes.",
+            "filter_bin_start": 30720,
+            "filter_bin_stop": 2097152,
+            "filter_bins_are_half_open": true,
+            "nan_count": 0,
+            "negative_infinity_count": 0,
+            "nonpositive_count": 0,
+            "positive_infinity_count": 82,
+            "positive_infinity_first_bin": 0,
+            "positive_infinity_last_bin": 29763,
+            "positive_infinity_only_in_excluded_bins": true,
+            "used_bins_finite_positive": true,
+            "valid_for_filter": true
+          }
+        }
+      ]
+    }
+  ]
+}

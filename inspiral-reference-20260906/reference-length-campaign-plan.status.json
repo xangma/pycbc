@@ -1,0 +1,109 @@
+{
+  "state": "complete",
+  "pid": 3386568,
+  "plan": "/home/xangma/pycbc-torch-inspiral-reference-20260906/reference-length-campaign-plan.json",
+  "plan_sha256": "4adf7565b47d1ab10604068ba28dcfd3c0b5582d0cceeef8be78e3c3203d8a12",
+  "started_utc": "2026-09-06T16:39:48.569007+00:00",
+  "completed": [
+    [
+      "--case",
+      "qual-v2-cpu-l256",
+      "--mode",
+      "qualify",
+      "--segment-length",
+      "256"
+    ],
+    [
+      "--case",
+      "qual-v2-cpu-l512",
+      "--mode",
+      "qualify",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "qual-v2-cpu-l1024",
+      "--mode",
+      "qualify",
+      "--segment-length",
+      "1024"
+    ],
+    [
+      "--case",
+      "tune-cpu-l256-r1",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "256"
+    ],
+    [
+      "--case",
+      "tune-cpu-l512-r1",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "tune-cpu-l1024-r1",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "1024"
+    ],
+    [
+      "--case",
+      "tune-cpu-l512-r2",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "tune-cpu-l1024-r2",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "1024"
+    ],
+    [
+      "--case",
+      "tune-cpu-l256-r2",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "256"
+    ],
+    [
+      "--case",
+      "tune-cpu-l1024-r3",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "1024"
+    ],
+    [
+      "--case",
+      "tune-cpu-l256-r3",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "256"
+    ],
+    [
+      "--case",
+      "tune-cpu-l512-r3",
+      "--mode",
+      "timing",
+      "--segment-length",
+      "512"
+    ]
+  ],
+  "current": null,
+  "child_pid": 3553654,
+  "returncode": 0,
+  "finished_utc": "2026-09-06T16:46:34.181093+00:00"
+}

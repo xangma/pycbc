@@ -1,0 +1,13 @@
+1048576 legacy_fftw_single cold 0.06674116099020466 median 0.016064744035247713
+1048576 legacy_mkl_single cold 0.035877489019185305 median 0.0071973170270211995
+1048576 legacy_mkl_double cold 0.015960546967107803 median 0.01295439898967743
+1048576 current_torch_dispatch cold 0.0026353150024078786 median 0.025491609005257487
+1048576 fftw_double_workspace_one_native_thread cold 0.00031158997444435954 median 0.02542202698532492
+1048576 mkl_single_direct cold 0.013319068995770067 median 0.007102687959559262
+1048576 mkl_double_workspace cold 0.017040279984939843 median 0.017386303981766105
+Traceback (most recent call last):
+  File "/home/xangma/pycbc-torch-inspiral-reference-20260906/qualify-large-ifft-v6.py", line 381, in <module>
+    main()
+  File "/home/xangma/pycbc-torch-inspiral-reference-20260906/qualify-large-ifft-v6.py", line 316, in main
+    raise RuntimeError(
+RuntimeError: legacy_fftw_single produced nonfinite output

@@ -1,0 +1,946 @@
+{
+  "schema_version": 1,
+  "scope": "Diagnostic algorithms on identical captured inputs; no qualification tolerances changed.",
+  "capture_state": "failed",
+  "capture_returncode": 1,
+  "capture_traceback": "Traceback (most recent call last):\n  File \"/home/xangma/pycbc-torch-inspiral-reference-20260906/capture-chisq-inputs.py\", line 131, in main\n    assert len(record['captures']) == 5, len(record['captures'])\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 4\n",
+  "capture_source_info": {
+    "commit": "968bcd558117262af0d603710b054174659adb51",
+    "status": "",
+    "tracked_diff": ""
+  },
+  "input_sha256": {
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/status.json": "b9ac86bca1d82c172059b8c695aa1893e0a5cdb87ff33cbd27d79358729faacf",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/diagnose-chisq-binning.py": "98810924fd12029ff007f68254269161380382344b20fed9d0ff416334a56204",
+    "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/vetoes/chisq_torch.py": "a2080725994d75ce4a76410df51065373cedfb39bb5ff2adac3f406bc4229447",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-corr.npy": "41b0ecd95c6b1889405110fecea9a587292758f162bb244195adf3001b11d7fe",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-snrv.npy": "a0952edde162b3fbfa8fbfb1a92dced4831224bc1adf70729b248e9419cf0619",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-indices.npy": "ee45beca5fa18b34aaa35b2740bc50e4f69d127390b91244a7ab62ff0577791a",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-chisq.npy": "5df589cbf674b1957da9a588610964b45541fdff931a2b7badd7667168604266",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-corr.npy": "1e2c6668d12e0371563ee588e990dc07c9e42c071dde5cd0fbff9e37db429fa1",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-snrv.npy": "f6dda6162ef57ac5d1a4bede5100a2efc80965c49c13e2ec682ed67b32500418",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-indices.npy": "626cee6c6a9da6c3d4479f29d803dcd4314c970c14c21910733f37e43a5dae52",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-chisq.npy": "9f4f58be845262c15a3759d96549166a02a207d5d4cc378cacf1bc6cdf8040a5",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-corr.npy": "4a7d5f6f97db335f400114c92af31ee8f4f9fc6181dcf355ba407163cae8790f",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-snrv.npy": "17fb70c807b9027064e19203f891eb24525b8ae36ba1850ac4ae78e88a5fc096",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-indices.npy": "62088e711eedeb8a604a82ba167346ec512d804bf95d1f06d0db9ffd52b9d60f",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-chisq.npy": "c1003b7f6d58a14d32a34aa4bf58de4bc2bb3571897c2ac7b179c0619a6947e4",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-corr.npy": "80242c538323714bfa6b9b33c8999e77c3a5e5205de8e8f215ff9641c6b36354",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-snrv.npy": "55e3ea6e81b96d7a3658b5e0a2684a1bb1506e3a9169f6327598f90fdb6bc6c7",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-indices.npy": "cb41cdf39c23c172a4ea31243f4b575bf82a35ad451640ba52c16f5cb603e7af",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-chisq.npy": "9845e45f8d23eda1bf97fdc9a508e3ab79b492882860ee59940ea620390d00fb",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a"
+  },
+  "captures": [
+    {
+      "template_hash": 4366715446675002219,
+      "segment": {
+        "number": 0,
+        "epoch": 1187007048.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 458752,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "points": [
+        745959,
+        827661,
+        1079662
+      ],
+      "bins": [
+        15360,
+        24424,
+        29157,
+        34176,
+        39319,
+        43646,
+        48332,
+        52803,
+        57901,
+        64284,
+        71154,
+        79953,
+        91080,
+        106550,
+        133454,
+        273702,
+        1048576
+      ],
+      "snr_norm": 3.5558137339407767e-06,
+      "snr_magnitude": [
+        5.799083232879639,
+        5.52567720413208,
+        5.681973934173584
+      ],
+      "recorded_chisq": [
+        32.47197341918945,
+        30.694997787475586,
+        23.962745666503906
+      ],
+      "variants": {
+        "direct_complex128": [
+          32.55080342198579,
+          30.743762292237186,
+          23.99299801271478
+        ],
+        "native_float32": [
+          32.47173558375027,
+          30.69534270216135,
+          23.962872962199626
+        ],
+        "native_float64_original_pi": [
+          32.550036068715144,
+          30.744207262678675,
+          23.992745357086946
+        ],
+        "native_float64_full_pi": [
+          32.550803422110356,
+          30.743762292092384,
+          23.992998012199358
+        ],
+        "torch_cpu_same_inputs": [
+          32.550804138183594,
+          30.743762969970703,
+          23.992998123168945
+        ]
+      },
+      "binning_from_same_captured_template_and_psd": {
+        "numpy_float32": {
+          "accumulated_power": 614652736.0,
+          "relative_power_error_vs_float64": -0.005241188623114734,
+          "bins": [
+            15360,
+            24424,
+            29157,
+            34176,
+            39319,
+            43646,
+            48332,
+            52803,
+            57901,
+            64284,
+            71154,
+            79953,
+            91080,
+            106550,
+            133454,
+            273702,
+            1048576
+          ],
+          "bins_equal_recorded": true,
+          "edge_difference_from_recorded": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "direct_chisq_with_only_bins_changed": [
+            32.55080342198579,
+            30.743762292237186,
+            23.99299801271478
+          ]
+        },
+        "numpy_float64": {
+          "accumulated_power": 617891220.4348657,
+          "relative_power_error_vs_float64": 0.0,
+          "bins": [
+            15360,
+            24451,
+            29204,
+            34237,
+            39399,
+            43747,
+            48475,
+            52973,
+            58122,
+            64598,
+            71574,
+            80491,
+            91917,
+            107871,
+            136456,
+            362757,
+            1048576
+          ],
+          "bins_equal_recorded": false,
+          "edge_difference_from_recorded": [
+            0,
+            27,
+            47,
+            61,
+            80,
+            101,
+            143,
+            170,
+            221,
+            314,
+            420,
+            538,
+            837,
+            1321,
+            3002,
+            89055,
+            0
+          ],
+          "direct_chisq_with_only_bins_changed": [
+            33.29098446647427,
+            30.936446636190695,
+            19.640874663243924
+          ]
+        },
+        "torch_float32": {
+          "accumulated_power": 617891200.0,
+          "relative_power_error_vs_float64": -3.3071947069807095e-08,
+          "bins": [
+            15360,
+            24451,
+            29204,
+            34237,
+            39399,
+            43747,
+            48475,
+            52973,
+            58122,
+            64598,
+            71574,
+            80491,
+            91917,
+            107871,
+            136456,
+            362755,
+            1048576
+          ],
+          "bins_equal_recorded": false,
+          "edge_difference_from_recorded": [
+            0,
+            27,
+            47,
+            61,
+            80,
+            101,
+            143,
+            170,
+            221,
+            314,
+            420,
+            538,
+            837,
+            1321,
+            3002,
+            89053,
+            0
+          ],
+          "direct_chisq_with_only_bins_changed": [
+            33.29378938890495,
+            30.930524138350805,
+            19.639897010760915
+          ]
+        }
+      },
+      "max_absolute_error_vs_direct": {
+        "direct_complex128": 0.0,
+        "native_float32": 0.07906783823552388,
+        "native_float64_original_pi": 0.0007673532706462538,
+        "native_float64_full_pi": 5.154205950930191e-10,
+        "torch_cpu_same_inputs": 7.161978032854677e-07
+      }
+    },
+    {
+      "template_hash": 4366715446675002219,
+      "segment": {
+        "number": 1,
+        "epoch": 1187007429.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 2019328,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "points": [
+        1653144,
+        1679179
+      ],
+      "bins": [
+        15360,
+        24424,
+        29157,
+        34176,
+        39319,
+        43646,
+        48332,
+        52803,
+        57901,
+        64284,
+        71154,
+        79953,
+        91080,
+        106550,
+        133454,
+        273702,
+        1048576
+      ],
+      "snr_norm": 3.5558137339407767e-06,
+      "snr_magnitude": [
+        6.310549259185791,
+        5.599355697631836
+      ],
+      "recorded_chisq": [
+        61.470703125,
+        34.089420318603516
+      ],
+      "variants": {
+        "direct_complex128": [
+          61.66362933785256,
+          34.08256074101805
+        ],
+        "native_float32": [
+          61.47177278556239,
+          34.08927468234049
+        ],
+        "native_float64_original_pi": [
+          61.663223415854596,
+          34.08295204784589
+        ],
+        "native_float64_full_pi": [
+          61.66362933855614,
+          34.08256074055977
+        ],
+        "torch_cpu_same_inputs": [
+          61.66362762451172,
+          34.08256149291992
+        ]
+      },
+      "binning_from_same_captured_template_and_psd": {
+        "numpy_float32": {
+          "accumulated_power": 614652736.0,
+          "relative_power_error_vs_float64": -0.005241188623114734,
+          "bins": [
+            15360,
+            24424,
+            29157,
+            34176,
+            39319,
+            43646,
+            48332,
+            52803,
+            57901,
+            64284,
+            71154,
+            79953,
+            91080,
+            106550,
+            133454,
+            273702,
+            1048576
+          ],
+          "bins_equal_recorded": true,
+          "edge_difference_from_recorded": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "direct_chisq_with_only_bins_changed": [
+            61.66362933785256,
+            34.08256074101805
+          ]
+        },
+        "numpy_float64": {
+          "accumulated_power": 617891220.4348657,
+          "relative_power_error_vs_float64": 0.0,
+          "bins": [
+            15360,
+            24451,
+            29204,
+            34237,
+            39399,
+            43747,
+            48475,
+            52973,
+            58122,
+            64598,
+            71574,
+            80491,
+            91917,
+            107871,
+            136456,
+            362757,
+            1048576
+          ],
+          "bins_equal_recorded": false,
+          "edge_difference_from_recorded": [
+            0,
+            27,
+            47,
+            61,
+            80,
+            101,
+            143,
+            170,
+            221,
+            314,
+            420,
+            538,
+            837,
+            1321,
+            3002,
+            89055,
+            0
+          ],
+          "direct_chisq_with_only_bins_changed": [
+            65.3240283087958,
+            36.81093867587566
+          ]
+        },
+        "torch_float32": {
+          "accumulated_power": 617891200.0,
+          "relative_power_error_vs_float64": -3.3071947069807095e-08,
+          "bins": [
+            15360,
+            24451,
+            29204,
+            34237,
+            39399,
+            43747,
+            48475,
+            52973,
+            58122,
+            64598,
+            71574,
+            80491,
+            91917,
+            107871,
+            136456,
+            362755,
+            1048576
+          ],
+          "bins_equal_recorded": false,
+          "edge_difference_from_recorded": [
+            0,
+            27,
+            47,
+            61,
+            80,
+            101,
+            143,
+            170,
+            221,
+            314,
+            420,
+            538,
+            837,
+            1321,
+            3002,
+            89053,
+            0
+          ],
+          "direct_chisq_with_only_bins_changed": [
+            65.32116563926047,
+            36.80725576693158
+          ]
+        }
+      },
+      "max_absolute_error_vs_direct": {
+        "direct_complex128": 0.0,
+        "native_float32": 0.19185655229016874,
+        "native_float64_original_pi": 0.00040592199796662953,
+        "native_float64_full_pi": 7.035794169496512e-10,
+        "torch_cpu_same_inputs": 1.7133408434233388e-06
+      }
+    },
+    {
+      "template_hash": 4366715446675002219,
+      "segment": {
+        "number": 2,
+        "epoch": 1187007810.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 3579904,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "points": [
+        1570938,
+        1838129
+      ],
+      "bins": [
+        15360,
+        24424,
+        29157,
+        34176,
+        39319,
+        43646,
+        48332,
+        52803,
+        57901,
+        64284,
+        71154,
+        79953,
+        91080,
+        106550,
+        133454,
+        273702,
+        1048576
+      ],
+      "snr_norm": 3.5558137339407767e-06,
+      "snr_magnitude": [
+        5.501109600067139,
+        5.923646926879883
+      ],
+      "recorded_chisq": [
+        32.482688903808594,
+        25.021318435668945
+      ],
+      "variants": {
+        "direct_complex128": [
+          32.326697814168654,
+          25.0688433047602
+        ],
+        "native_float32": [
+          32.48961827316553,
+          25.02036283939256
+        ],
+        "native_float64_original_pi": [
+          32.32647477521852,
+          25.067908743802356
+        ],
+        "native_float64_full_pi": [
+          32.32669781433408,
+          25.06884330393818
+        ],
+        "torch_cpu_same_inputs": [
+          32.326698303222656,
+          25.068843841552734
+        ]
+      },
+      "binning_from_same_captured_template_and_psd": {
+        "numpy_float32": {
+          "accumulated_power": 614652736.0,
+          "relative_power_error_vs_float64": -0.005241188623114734,
+          "bins": [
+            15360,
+            24424,
+            29157,
+            34176,
+            39319,
+            43646,
+            48332,
+            52803,
+            57901,
+            64284,
+            71154,
+            79953,
+            91080,
+            106550,
+            133454,
+            273702,
+            1048576
+          ],
+          "bins_equal_recorded": true,
+          "edge_difference_from_recorded": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "direct_chisq_with_only_bins_changed": [
+            32.326697814168654,
+            25.0688433047602
+          ]
+        },
+        "numpy_float64": {
+          "accumulated_power": 617891220.4348657,
+          "relative_power_error_vs_float64": 0.0,
+          "bins": [
+            15360,
+            24451,
+            29204,
+            34237,
+            39399,
+            43747,
+            48475,
+            52973,
+            58122,
+            64598,
+            71574,
+            80491,
+            91917,
+            107871,
+            136456,
+            362757,
+            1048576
+          ],
+          "bins_equal_recorded": false,
+          "edge_difference_from_recorded": [
+            0,
+            27,
+            47,
+            61,
+            80,
+            101,
+            143,
+            170,
+            221,
+            314,
+            420,
+            538,
+            837,
+            1321,
+            3002,
+            89055,
+            0
+          ],
+          "direct_chisq_with_only_bins_changed": [
+            32.86476306110666,
+            23.71052011998941
+          ]
+        },
+        "torch_float32": {
+          "accumulated_power": 617891200.0,
+          "relative_power_error_vs_float64": -3.3071947069807095e-08,
+          "bins": [
+            15360,
+            24451,
+            29204,
+            34237,
+            39399,
+            43747,
+            48475,
+            52973,
+            58122,
+            64598,
+            71574,
+            80491,
+            91917,
+            107871,
+            136456,
+            362755,
+            1048576
+          ],
+          "bins_equal_recorded": false,
+          "edge_difference_from_recorded": [
+            0,
+            27,
+            47,
+            61,
+            80,
+            101,
+            143,
+            170,
+            221,
+            314,
+            420,
+            538,
+            837,
+            1321,
+            3002,
+            89053,
+            0
+          ],
+          "direct_chisq_with_only_bins_changed": [
+            32.8636206323847,
+            23.706525121849317
+          ]
+        }
+      },
+      "max_absolute_error_vs_direct": {
+        "direct_complex128": 0.0,
+        "native_float32": 0.16292045899687935,
+        "native_float64_original_pi": 0.0009345609578446101,
+        "native_float64_full_pi": 8.220197855735023e-10,
+        "torch_cpu_same_inputs": 5.367925339783142e-07
+      }
+    },
+    {
+      "template_hash": 4366715446675002219,
+      "segment": {
+        "number": 3,
+        "epoch": 1187008191.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 5140480,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "points": [
+        1884341
+      ],
+      "bins": [
+        15360,
+        24424,
+        29157,
+        34176,
+        39319,
+        43646,
+        48332,
+        52803,
+        57901,
+        64284,
+        71154,
+        79953,
+        91080,
+        106550,
+        133454,
+        273702,
+        1048576
+      ],
+      "snr_norm": 3.5558137339407767e-06,
+      "snr_magnitude": [
+        5.725484848022461
+      ],
+      "recorded_chisq": [
+        35.91798400878906
+      ],
+      "variants": {
+        "direct_complex128": [
+          35.83482520105563
+        ],
+        "native_float32": [
+          35.918471198315096
+        ],
+        "native_float64_original_pi": [
+          35.83658907177879
+        ],
+        "native_float64_full_pi": [
+          35.834825202201266
+        ],
+        "torch_cpu_same_inputs": [
+          35.83482360839844
+        ]
+      },
+      "binning_from_same_captured_template_and_psd": {
+        "numpy_float32": {
+          "accumulated_power": 614652736.0,
+          "relative_power_error_vs_float64": -0.005241188623114734,
+          "bins": [
+            15360,
+            24424,
+            29157,
+            34176,
+            39319,
+            43646,
+            48332,
+            52803,
+            57901,
+            64284,
+            71154,
+            79953,
+            91080,
+            106550,
+            133454,
+            273702,
+            1048576
+          ],
+          "bins_equal_recorded": true,
+          "edge_difference_from_recorded": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "direct_chisq_with_only_bins_changed": [
+            35.83482520105563
+          ]
+        },
+        "numpy_float64": {
+          "accumulated_power": 617891220.4348657,
+          "relative_power_error_vs_float64": 0.0,
+          "bins": [
+            15360,
+            24451,
+            29204,
+            34237,
+            39399,
+            43747,
+            48475,
+            52973,
+            58122,
+            64598,
+            71574,
+            80491,
+            91917,
+            107871,
+            136456,
+            362757,
+            1048576
+          ],
+          "bins_equal_recorded": false,
+          "edge_difference_from_recorded": [
+            0,
+            27,
+            47,
+            61,
+            80,
+            101,
+            143,
+            170,
+            221,
+            314,
+            420,
+            538,
+            837,
+            1321,
+            3002,
+            89055,
+            0
+          ],
+          "direct_chisq_with_only_bins_changed": [
+            28.286825138617704
+          ]
+        },
+        "torch_float32": {
+          "accumulated_power": 617891200.0,
+          "relative_power_error_vs_float64": -3.3071947069807095e-08,
+          "bins": [
+            15360,
+            24451,
+            29204,
+            34237,
+            39399,
+            43747,
+            48475,
+            52973,
+            58122,
+            64598,
+            71574,
+            80491,
+            91917,
+            107871,
+            136456,
+            362755,
+            1048576
+          ],
+          "bins_equal_recorded": false,
+          "edge_difference_from_recorded": [
+            0,
+            27,
+            47,
+            61,
+            80,
+            101,
+            143,
+            170,
+            221,
+            314,
+            420,
+            538,
+            837,
+            1321,
+            3002,
+            89053,
+            0
+          ],
+          "direct_chisq_with_only_bins_changed": [
+            28.28985968567057
+          ]
+        }
+      },
+      "max_absolute_error_vs_direct": {
+        "direct_complex128": 0.0,
+        "native_float32": 0.08364599725946675,
+        "native_float64_original_pi": 0.001763870723159755,
+        "native_float64_full_pi": 1.14563647457544e-09,
+        "torch_cpu_same_inputs": 1.59265719190671e-06
+      }
+    }
+  ],
+  "input_sha256_after": {
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/status.json": "b9ac86bca1d82c172059b8c695aa1893e0a5cdb87ff33cbd27d79358729faacf",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/diagnose-chisq-binning.py": "98810924fd12029ff007f68254269161380382344b20fed9d0ff416334a56204",
+    "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/vetoes/chisq_torch.py": "a2080725994d75ce4a76410df51065373cedfb39bb5ff2adac3f406bc4229447",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-corr.npy": "41b0ecd95c6b1889405110fecea9a587292758f162bb244195adf3001b11d7fe",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-snrv.npy": "a0952edde162b3fbfa8fbfb1a92dced4831224bc1adf70729b248e9419cf0619",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-indices.npy": "ee45beca5fa18b34aaa35b2740bc50e4f69d127390b91244a7ab62ff0577791a",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-chisq.npy": "5df589cbf674b1957da9a588610964b45541fdff931a2b7badd7667168604266",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-corr.npy": "1e2c6668d12e0371563ee588e990dc07c9e42c071dde5cd0fbff9e37db429fa1",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-snrv.npy": "f6dda6162ef57ac5d1a4bede5100a2efc80965c49c13e2ec682ed67b32500418",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-indices.npy": "626cee6c6a9da6c3d4479f29d803dcd4314c970c14c21910733f37e43a5dae52",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-chisq.npy": "9f4f58be845262c15a3759d96549166a02a207d5d4cc378cacf1bc6cdf8040a5",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-corr.npy": "4a7d5f6f97db335f400114c92af31ee8f4f9fc6181dcf355ba407163cae8790f",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-snrv.npy": "17fb70c807b9027064e19203f891eb24525b8ae36ba1850ac4ae78e88a5fc096",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-indices.npy": "62088e711eedeb8a604a82ba167346ec512d804bf95d1f06d0db9ffd52b9d60f",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-chisq.npy": "c1003b7f6d58a14d32a34aa4bf58de4bc2bb3571897c2ac7b179c0619a6947e4",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-corr.npy": "80242c538323714bfa6b9b33c8999e77c3a5e5205de8e8f215ff9641c6b36354",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-snrv.npy": "55e3ea6e81b96d7a3658b5e0a2684a1bb1506e3a9169f6327598f90fdb6bc6c7",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-indices.npy": "cb41cdf39c23c172a4ea31243f4b575bf82a35ad451640ba52c16f5cb603e7af",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-bins.npy": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-chisq.npy": "9845e45f8d23eda1bf97fdc9a508e3ab79b492882860ee59940ea620390d00fb",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-template.npy": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-psd.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a"
+  }
+}

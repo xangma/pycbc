@@ -1,0 +1,2305 @@
+{
+  "approximant": "IMRPhenomD",
+  "compression": {
+    "delta_f_hz": 0.00390625,
+    "performed": false,
+    "segment_length_seconds": 256,
+    "selection_rule": "smallest power of two >= 2 * longest duration"
+  },
+  "f_lower_hz": 30.0,
+  "kind": "deterministic benchmark template set",
+  "longest": {
+    "duration_seconds": 77.67651664129376,
+    "row_index": 2,
+    "source_id": "BNS-002",
+    "template_hash": -6983633448227792462
+  },
+  "outputs": {
+    "bank-metadata.json": {
+      "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-metadata.json"
+    },
+    "bank-pilot.hdf": {
+      "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-pilot.hdf",
+      "rows": 8,
+      "sha256": "e2b219c205ea78c8154c0f95baf5c3a6c27b0663279579c685a50ab0d0289b0c"
+    },
+    "bank.hdf": {
+      "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank.hdf",
+      "rows": 96,
+      "sha256": "f2917fce4a4a5f2111345b892d61ed0744b17570f63ab2cd4216e685eac3667c"
+    }
+  },
+  "pilot": {
+    "row_indices_in_main_bank": [
+      0,
+      2,
+      4,
+      7,
+      64,
+      67,
+      69,
+      76
+    ],
+    "selection": "Four per population: longest and shortest duration, then two boundary cases maximizing minimum normalized parameter distance.",
+    "source_ids": [
+      "BNS-000",
+      "BNS-002",
+      "BNS-004",
+      "BNS-007",
+      "NSBH-064",
+      "NSBH-067",
+      "NSBH-069",
+      "NSBH-076"
+    ],
+    "template_hashes": [
+      3833317720381408592,
+      -6983633448227792462,
+      5376643164617863838,
+      1522989468805120761,
+      6637547548569117386,
+      -8616817622438516598,
+      -1925867763368015919,
+      4550056397018417685
+    ]
+  },
+  "provenance": {
+    "byteorder": "little",
+    "distributions": {
+      "PyCBC": "0.0a9310",
+      "h5py": "3.11.0",
+      "lalsuite": "7.21",
+      "numpy": "1.26.4"
+    },
+    "duration_dispatch": {
+      "qualified_name": "pycbc.waveform.waveform.imrphenomd_length_in_time",
+      "source": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/waveform/waveform.py",
+      "source_sha256": "18dca1089e344d603ea518dbc4a9474836ee1557516f706ab7a6e6471da47d40"
+    },
+    "environment": {
+      "MKL_DYNAMIC": "FALSE",
+      "MKL_NUM_THREADS": "1",
+      "MKL_THREADING_LAYER": "GNU",
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "PYCBC_WAVEFORM": null,
+      "PYTHONPATH": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2"
+    },
+    "modules": {
+      "lal": {
+        "path": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lal/__init__.py",
+        "sha256": "5229a365707f57bac4b377b0f03f62f4edf52d90a351b3a3eac6c38ee8bfb087",
+        "version": "7.4.1"
+      },
+      "lal._lal": {
+        "path": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lal/_lal.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "baa61ab6b4b9dd9bb0666bfced783ec958132bfed223686b2af70a7c30860b5e"
+      },
+      "lalsimulation": {
+        "path": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lalsimulation/__init__.py",
+        "sha256": "c3e1826c9321eb2f0485b322737ac292e98396363f58fb2af38b520e2ea8b0ee",
+        "version": "5.3.1"
+      },
+      "lalsimulation._lalsimulation": {
+        "path": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lalsimulation/_lalsimulation.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "ae3b2766e7d2d0192062cf5e7df11b34c0b84e5eeebccf24ba6984f539432bf2"
+      },
+      "pycbc": {
+        "path": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/__init__.py",
+        "sha256": "977f5aa517bf682c2d8268714f4d3c2f6748d026b95b616f89efd312125696c9",
+        "version": "0.0a9313"
+      },
+      "pycbc.pnutils": {
+        "path": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/pnutils.py",
+        "sha256": "541b32877ef80ea0a8b4d33da92a1810939f1d9b7d3d6794279cdba6ad02838d",
+        "version": "unknown"
+      },
+      "pycbc.waveform.bank": {
+        "path": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/waveform/bank.py",
+        "sha256": "372bb9968d0b0b9bbe674335dd7b3424df7290b70a28ba10798bd3acf6006a2e",
+        "version": "unknown"
+      },
+      "pycbc.waveform.waveform": {
+        "path": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/waveform/waveform.py",
+        "sha256": "01d0b6994418e7f8a2cc52019cc2a132715b607ce7de999db8280ee7be73a76d",
+        "version": "unknown"
+      }
+    },
+    "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+    "python_executable": "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "python_version": "3.11.9 | packaged by conda-forge | (main, Apr 19 2024, 18:36:13) [GCC 12.3.0]",
+    "script": {
+      "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/prepare-bank.py",
+      "sha256": "0f9ad71b0296a93227c96feb6acd7b1a976a2286b4d258e1e01ac30ff0a3cee3"
+    }
+  },
+  "sample_rate_hz": 4096,
+  "schema_version": 1,
+  "scope": [
+    "No minimal-match placement or astrophysical population weights.",
+    "IMRPhenomD has no neutron-star tidal or disruption physics here.",
+    "Masses are detector-frame solar masses; spin components are dimensionless.",
+    "Longest means maximum estimator result among the selected 96 rows.",
+    "Duration estimates are not a verification of FFT edge containment.",
+    "Compression and PSD-weighted waveform validation are separate steps."
+  ],
+  "selection": {
+    "bounds": {
+      "BNS": {
+        "mass1": [
+          1.2,
+          2.0
+        ],
+        "mass2": [
+          1.2,
+          2.0
+        ],
+        "spin1z": [
+          -0.05,
+          0.05
+        ],
+        "spin2z": [
+          -0.05,
+          0.05
+        ]
+      },
+      "NSBH": {
+        "mass1": [
+          3.0,
+          8.0
+        ],
+        "mass2": [
+          1.2,
+          2.0
+        ],
+        "spin1z": [
+          -0.5,
+          0.5
+        ],
+        "spin2z": [
+          -0.05,
+          0.05
+        ]
+      }
+    },
+    "method": "BNS:10 boundary+54 interior; NSBH:16 boundary+16 interior. Coprime midpoint permutations in four transformed coordinates.",
+    "population_counts": {
+      "BNS": 64,
+      "NSBH": 32
+    },
+    "sha256": "f5e6f67e67346591c9c03d826481a078aee945fdc9e3f5a53be5c70a301fd390"
+  },
+  "templates": [
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.2,
+        "mass2": 1.2,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.05,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.05,
+        "template_duration": 77.55948779902117
+      },
+      "population": "BNS",
+      "row_index": 0,
+      "selection": "boundary",
+      "source_id": "BNS-000",
+      "template_hash": 3833317720381408592
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.2,
+        "mass2": 1.2,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.05,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.05,
+        "template_duration": 77.61821893334823
+      },
+      "population": "BNS",
+      "row_index": 1,
+      "selection": "boundary",
+      "source_id": "BNS-001",
+      "template_hash": -6413357392576467902
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.2,
+        "mass2": 1.2,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.05,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.05,
+        "template_duration": 77.67651664129376
+      },
+      "population": "BNS",
+      "row_index": 2,
+      "selection": "boundary",
+      "source_id": "BNS-002",
+      "template_hash": -6983633448227792462
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 2.0,
+        "mass2": 1.2,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.05,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.05,
+        "template_duration": 51.226354665856185
+      },
+      "population": "BNS",
+      "row_index": 3,
+      "selection": "boundary",
+      "source_id": "BNS-003",
+      "template_hash": 448379470406034306
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 2.0,
+        "mass2": 1.2,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.05,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.05,
+        "template_duration": 51.26364090949636
+      },
+      "population": "BNS",
+      "row_index": 4,
+      "selection": "boundary",
+      "source_id": "BNS-004",
+      "template_hash": 5376643164617863838
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 2.0,
+        "mass2": 1.2,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.05,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.05,
+        "template_duration": 51.295687051528326
+      },
+      "population": "BNS",
+      "row_index": 5,
+      "selection": "boundary",
+      "source_id": "BNS-005",
+      "template_hash": -421728721160151110
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 2.0,
+        "mass2": 1.2,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.05,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.05,
+        "template_duration": 51.33258484822406
+      },
+      "population": "BNS",
+      "row_index": 6,
+      "selection": "boundary",
+      "source_id": "BNS-006",
+      "template_hash": -53190396181123398
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 2.0,
+        "mass2": 2.0,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.05,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.05,
+        "template_duration": 33.14328816709323
+      },
+      "population": "BNS",
+      "row_index": 7,
+      "selection": "boundary",
+      "source_id": "BNS-007",
+      "template_hash": 1522989468805120761
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 2.0,
+        "mass2": 2.0,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.05,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.05,
+        "template_duration": 33.18639006287908
+      },
+      "population": "BNS",
+      "row_index": 8,
+      "selection": "boundary",
+      "source_id": "BNS-008",
+      "template_hash": -1105769880650941106
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 2.0,
+        "mass2": 2.0,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.05,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.05,
+        "template_duration": 33.22913253024278
+      },
+      "population": "BNS",
+      "row_index": 9,
+      "selection": "boundary",
+      "source_id": "BNS-009",
+      "template_hash": 1242816600780320219
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.27698003589195,
+        "mass2": 1.2049894467707745,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.036111111111111115,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.028703703703703703,
+        "template_duration": 73.42907252068568
+      },
+      "population": "BNS",
+      "row_index": 10,
+      "selection": "interior-stratum",
+      "source_id": "BNS-010",
+      "template_hash": 8535707951511350814
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.3333333333333333,
+        "mass2": 1.2209876543209877,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.023148148148148147,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.008333333333333331,
+        "template_duration": 70.09846486036228
+      },
+      "population": "BNS",
+      "row_index": 11,
+      "selection": "interior-stratum",
+      "source_id": "BNS-011",
+      "template_hash": 3879221880687797132
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.372132593164774,
+        "mass2": 1.2430331482911936,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.010185185185185186,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.012037037037037034,
+        "template_duration": 67.4602599127561
+      },
+      "population": "BNS",
+      "row_index": 12,
+      "selection": "interior-stratum",
+      "source_id": "BNS-012",
+      "template_hash": 5355613567695075738
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.4036700308869263,
+        "mass2": 1.2697758439149656,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.002777777777777782,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.03240740740740741,
+        "template_duration": 65.05627057279503
+      },
+      "population": "BNS",
+      "row_index": 13,
+      "selection": "interior-stratum",
+      "source_id": "BNS-013",
+      "template_hash": 4748953822229506262
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.4309401076758503,
+        "mass2": 1.3005017135256014,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.01574074074074075,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.04722222222222223,
+        "template_duration": 62.7294392147504
+      },
+      "population": "BNS",
+      "row_index": 14,
+      "selection": "interior-stratum",
+      "source_id": "BNS-014",
+      "template_hash": 5539282670572346112
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.4553138954016902,
+        "mass2": 1.334749000350892,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.028703703703703717,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.026851851851851852,
+        "template_duration": 60.546100273039535
+      },
+      "population": "BNS",
+      "row_index": 15,
+      "selection": "interior-stratum",
+      "source_id": "BNS-015",
+      "template_hash": -7052599390602382323
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.4775554665954844,
+        "mass2": 1.3721871876101617,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.04166666666666667,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.006481481481481484,
+        "template_duration": 58.44106604101435
+      },
+      "population": "BNS",
+      "row_index": 16,
+      "selection": "interior-stratum",
+      "source_id": "BNS-016",
+      "template_hash": 3460790216806613615
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.4981423969999719,
+        "mass2": 1.41256448674998,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.04537037037037037,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.013888888888888881,
+        "template_duration": 56.355539764458634
+      },
+      "population": "BNS",
+      "row_index": 17,
+      "selection": "interior-stratum",
+      "source_id": "BNS-017",
+      "template_hash": -6941579517259602393
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.517396819046349,
+        "mass2": 1.4556807708984478,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.03240740740740741,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.03425925925925925,
+        "template_duration": 54.39710917755645
+      },
+      "population": "BNS",
+      "row_index": 18,
+      "selection": "interior-stratum",
+      "source_id": "BNS-018",
+      "template_hash": -4245249360170687183
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.5355481971231444,
+        "mass2": 1.5013719918606019,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.019444444444444445,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.04537037037037037,
+        "template_duration": 52.460155993525376
+      },
+      "population": "BNS",
+      "row_index": 19,
+      "selection": "interior-stratum",
+      "source_id": "BNS-019",
+      "template_hash": 5389896006948769075
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.5527668414752787,
+        "mass2": 1.549500481831989,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.006481481481481484,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.025,
+        "template_duration": 50.644847853437746
+      },
+      "population": "BNS",
+      "row_index": 20,
+      "selection": "interior-stratum",
+      "source_id": "BNS-020",
+      "template_hash": 4015805510226417211
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.569183282796359,
+        "mass2": 1.2307652735663632,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.006481481481481477,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.004629629629629629,
+        "template_duration": 60.95972071050186
+      },
+      "population": "BNS",
+      "row_index": 21,
+      "selection": "interior-stratum",
+      "source_id": "BNS-021",
+      "template_hash": 2858064605829850857
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.5849001794597504,
+        "mass2": 1.2677139204605117,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.019444444444444445,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.01574074074074075,
+        "template_duration": 58.98444131415798
+      },
+      "population": "BNS",
+      "row_index": 22,
+      "selection": "interior-stratum",
+      "source_id": "BNS-022",
+      "template_hash": 4229332153758369844
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.6,
+        "mass2": 1.3074074074074074,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.03240740740740741,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.03611111111111112,
+        "template_duration": 57.03748754727442
+      },
+      "population": "BNS",
+      "row_index": 23,
+      "selection": "interior-stratum",
+      "source_id": "BNS-023",
+      "template_hash": 7190896270511713173
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.6145501801372806,
+        "mass2": 1.3496986761606846,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.04537037037037038,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.04351851851851852,
+        "template_duration": 55.08383459198901
+      },
+      "population": "BNS",
+      "row_index": 24,
+      "selection": "interior-stratum",
+      "source_id": "BNS-024",
+      "template_hash": -7153221148213542011
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.6286067004885758,
+        "mass2": 1.3944604474438909,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.04166666666666667,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.023148148148148147,
+        "template_duration": 53.168017615332595
+      },
+      "population": "BNS",
+      "row_index": 25,
+      "selection": "interior-stratum",
+      "source_id": "BNS-025",
+      "template_hash": -2089560357676917331
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.6422166387140533,
+        "mass2": 1.4415813118900846,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.028703703703703703,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.002777777777777782,
+        "template_duration": 51.36400851280796
+      },
+      "population": "BNS",
+      "row_index": 26,
+      "selection": "interior-stratum",
+      "source_id": "BNS-026",
+      "template_hash": -2359921982636952293
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.6554200340426488,
+        "mass2": 1.4909627995272479,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.015740740740740743,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.01759259259259259,
+        "template_duration": 49.61836612461247
+      },
+      "population": "BNS",
+      "row_index": 27,
+      "selection": "interior-stratum",
+      "source_id": "BNS-027",
+      "template_hash": 6524558763798634181
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.6682512779045662,
+        "mass2": 1.542517138467229,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.002777777777777782,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.03796296296296296,
+        "template_duration": 47.933929704714174
+      },
+      "population": "BNS",
+      "row_index": 28,
+      "selection": "interior-stratum",
+      "source_id": "BNS-028",
+      "template_hash": 4033764243783294599
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.6807401700618652,
+        "mass2": 1.5961655105139445,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.010185185185185186,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.04166666666666667,
+        "template_duration": 46.26545436175047
+      },
+      "population": "BNS",
+      "row_index": 29,
+      "selection": "interior-stratum",
+      "source_id": "BNS-029",
+      "template_hash": -6055592308200640150
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.6929127336181964,
+        "mass2": 1.6518366724833466,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.023148148148148154,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.0212962962962963,
+        "template_duration": 44.70716595431061
+      },
+      "population": "BNS",
+      "row_index": 30,
+      "selection": "interior-stratum",
+      "source_id": "BNS-030",
+      "template_hash": -5769624376735430847
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.7047918529600241,
+        "mass2": 1.2046739986385187,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.03611111111111112,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.0009259259259259273,
+        "template_duration": 58.0836404342234
+      },
+      "population": "BNS",
+      "row_index": 31,
+      "selection": "interior-stratum",
+      "source_id": "BNS-031",
+      "template_hash": -8478399347912373614
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.7163977794943222,
+        "mass2": 1.252596070133681,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.049074074074074076,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.019444444444444445,
+        "template_duration": 55.88412465156877
+      },
+      "population": "BNS",
+      "row_index": 32,
+      "selection": "interior-stratum",
+      "source_id": "BNS-032",
+      "template_hash": -8391401044334513035
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.7277485372016852,
+        "mass2": 1.30261777112255,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.03796296296296296,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.03981481481481482,
+        "template_duration": 53.71383040658372
+      },
+      "population": "BNS",
+      "row_index": 33,
+      "selection": "interior-stratum",
+      "source_id": "BNS-033",
+      "template_hash": -5970098812872226710
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.7388602512436506,
+        "mass2": 1.3546728498940108,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.025,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.03981481481481482,
+        "template_duration": 51.653974062130864
+      },
+      "population": "BNS",
+      "row_index": 34,
+      "selection": "interior-stratum",
+      "source_id": "BNS-034",
+      "template_hash": -147807539629333899
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.7497474167490212,
+        "mass2": 1.4087004082102765,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.012037037037037034,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.019444444444444445,
+        "template_duration": 49.728024018188506
+      },
+      "population": "BNS",
+      "row_index": 35,
+      "selection": "interior-stratum",
+      "source_id": "BNS-035",
+      "template_hash": -7402409573454333945
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.7604231205741552,
+        "mass2": 1.46464425138224,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.0009259259259259273,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.0009259259259259273,
+        "template_duration": 47.891326927716435
+      },
+      "population": "BNS",
+      "row_index": 36,
+      "selection": "interior-stratum",
+      "source_id": "BNS-036",
+      "template_hash": 5656161535976326662
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.7708992257184502,
+        "mass2": 1.5224523404520875,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.013888888888888881,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.021296296296296285,
+        "template_duration": 46.141742507167464
+      },
+      "population": "BNS",
+      "row_index": 37,
+      "selection": "interior-stratum",
+      "source_id": "BNS-037",
+      "template_hash": 7232173740963467730
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.7811865258054231,
+        "mass2": 1.5820763271498615,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.02685185185185185,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.04166666666666667,
+        "template_duration": 44.47656221227102
+      },
+      "population": "BNS",
+      "row_index": 38,
+      "selection": "interior-stratum",
+      "source_id": "BNS-038",
+      "template_hash": 8915758036057122577
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.7912948753622253,
+        "mass2": 1.6434711565216689,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.03981481481481482,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.03796296296296296,
+        "template_duration": 42.84821244223457
+      },
+      "population": "BNS",
+      "row_index": 39,
+      "selection": "interior-stratum",
+      "source_id": "BNS-039",
+      "template_hash": -8561992547937732779
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.8012333003763858,
+        "mass2": 1.7065947253171398,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.04722222222222223,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.017592592592592597,
+        "template_duration": 41.29403946889975
+      },
+      "population": "BNS",
+      "row_index": 40,
+      "selection": "interior-stratum",
+      "source_id": "BNS-040",
+      "template_hash": -8044683044112389368
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.8110100926607786,
+        "mass2": 1.7714075866549874,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.03425925925925926,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.002777777777777782,
+        "template_duration": 39.86406893720863
+      },
+      "population": "BNS",
+      "row_index": 41,
+      "selection": "interior-stratum",
+      "source_id": "BNS-041",
+      "template_hash": 64330149211518193
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.8206328908341751,
+        "mass2": 1.2172398025231714,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.0212962962962963,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.023148148148148154,
+        "template_duration": 54.58229824332937
+      },
+      "population": "BNS",
+      "row_index": 42,
+      "selection": "interior-stratum",
+      "source_id": "BNS-042",
+      "template_hash": -1837224297572925390
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.8301087501670144,
+        "mass2": 1.2758464236312146,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.008333333333333331,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.043518518518518526,
+        "template_duration": 52.215210094189416
+      },
+      "population": "BNS",
+      "row_index": 43,
+      "selection": "interior-stratum",
+      "source_id": "BNS-043",
+      "template_hash": 4333987755049735897
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.8394442031083627,
+        "mass2": 1.3361779321434475,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.004629629629629629,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.036111111111111115,
+        "template_duration": 49.956475218440346
+      },
+      "population": "BNS",
+      "row_index": 44,
+      "selection": "interior-stratum",
+      "source_id": "BNS-044",
+      "template_hash": 269161650520979651
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.8486453119700634,
+        "mass2": 1.3981971786575194,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.01759259259259259,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.015740740740740743,
+        "template_duration": 47.877539839276174
+      },
+      "population": "BNS",
+      "row_index": 45,
+      "selection": "interior-stratum",
+      "source_id": "BNS-045",
+      "template_hash": 2337570508776503110
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.8577177149754998,
+        "mass2": 1.4618690902217266,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.030555555555555558,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.004629629629629629,
+        "template_duration": 45.9277825214495
+      },
+      "population": "BNS",
+      "row_index": 46,
+      "selection": "interior-stratum",
+      "source_id": "BNS-046",
+      "template_hash": -2285123416601157772
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.8666666666666667,
+        "mass2": 1.5271604938271606,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.043518518518518526,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.02500000000000001,
+        "template_duration": 44.09795339717502
+      },
+      "population": "BNS",
+      "row_index": 47,
+      "selection": "interior-stratum",
+      "source_id": "BNS-047",
+      "template_hash": 5849022448341005138
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.8754970734920295,
+        "mass2": 1.5940399595370172,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.04351851851851852,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.04537037037037038,
+        "template_duration": 42.32778335648097
+      },
+      "population": "BNS",
+      "row_index": 48,
+      "selection": "interior-stratum",
+      "source_id": "BNS-048",
+      "template_hash": -3341592853798439869
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.8842135252595846,
+        "mass2": 1.6624776605921268,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.030555555555555558,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.03425925925925926,
+        "template_duration": 40.67160020520747
+      },
+      "population": "BNS",
+      "row_index": 49,
+      "selection": "interior-stratum",
+      "source_id": "BNS-049",
+      "template_hash": -7418641327584348031
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.8928203230275509,
+        "mass2": 1.7324452482526547,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.017592592592592597,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.013888888888888888,
+        "template_duration": 39.153682709790985
+      },
+      "population": "BNS",
+      "row_index": 50,
+      "selection": "interior-stratum",
+      "source_id": "BNS-050",
+      "template_hash": -1328999742139748135
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.9013215039137554,
+        "mass2": 1.8039157394812895,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.004629629629629629,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.006481481481481477,
+        "template_duration": 37.72447322454863
+      },
+      "population": "BNS",
+      "row_index": 51,
+      "selection": "interior-stratum",
+      "source_id": "BNS-051",
+      "template_hash": -8580970330985472509
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.9097208632298361,
+        "mass2": 1.8768634158580846,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.008333333333333338,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.02685185185185185,
+        "template_duration": 36.37758416654842
+      },
+      "population": "BNS",
+      "row_index": 52,
+      "selection": "interior-stratum",
+      "source_id": "BNS-052",
+      "template_hash": -4602776248991586278
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.9180219742846005,
+        "mass2": 1.2332417580687314,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.021296296296296285,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.04722222222222222,
+        "template_duration": 51.804813753966975
+      },
+      "population": "BNS",
+      "row_index": 53,
+      "selection": "interior-stratum",
+      "source_id": "BNS-053",
+      "template_hash": 1546029841711109108
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.9262282061496974,
+        "mass2": 1.3008650286319023,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.03425925925925925,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.03240740740740741,
+        "template_duration": 49.27939961593408
+      },
+      "population": "BNS",
+      "row_index": 54,
+      "selection": "interior-stratum",
+      "source_id": "BNS-054",
+      "template_hash": -9151645858255745739
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.934342739638147,
+        "mass2": 1.3699867452866081,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.04722222222222222,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.012037037037037034,
+        "template_duration": 46.988885929828065
+      },
+      "population": "BNS",
+      "row_index": 55,
+      "selection": "interior-stratum",
+      "source_id": "BNS-055",
+      "template_hash": -5048195976008776129
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.9423685817106695,
+        "mass2": 1.4405824107395688,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.03981481481481482,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.008333333333333338,
+        "template_duration": 44.81653903147308
+      },
+      "population": "BNS",
+      "row_index": 56,
+      "selection": "interior-stratum",
+      "source_id": "BNS-056",
+      "template_hash": -4173465474691440929
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.9503085784948504,
+        "mass2": 1.5126285743728543,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.026851851851851852,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.028703703703703717,
+        "template_duration": 42.86210826451139
+      },
+      "population": "BNS",
+      "row_index": 57,
+      "selection": "interior-stratum",
+      "source_id": "BNS-057",
+      "template_hash": 4148837371994600644
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.958165427076977,
+        "mass2": 1.5861027637892013,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.013888888888888888,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.049074074074074076,
+        "template_duration": 41.04955043399343
+      },
+      "population": "BNS",
+      "row_index": 58,
+      "selection": "interior-stratum",
+      "source_id": "BNS-058",
+      "template_hash": 1517219411916725867
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.9659416862050705,
+        "mass2": 1.6609834222530517,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.0009259259259259273,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.030555555555555558,
+        "template_duration": 39.323957257617856
+      },
+      "population": "BNS",
+      "row_index": 59,
+      "selection": "interior-stratum",
+      "source_id": "BNS-059",
+      "template_hash": -2373881347836422333
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.9736397860235204,
+        "mass2": 1.7372498514052226,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.012037037037037034,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.010185185185185186,
+        "template_duration": 37.7551867690956
+      },
+      "population": "BNS",
+      "row_index": 60,
+      "selection": "interior-stratum",
+      "source_id": "BNS-060",
+      "template_hash": -6051532311927781382
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.9812620369443086,
+        "mass2": 1.814882158706169,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.02500000000000001,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.010185185185185186,
+        "template_duration": 36.29167339334518
+      },
+      "population": "BNS",
+      "row_index": 61,
+      "selection": "interior-stratum",
+      "source_id": "BNS-061",
+      "template_hash": 7756420153281539086
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.9888106377466155,
+        "mass2": 1.8938612091289673,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.03796296296296296,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.030555555555555558,
+        "template_duration": 34.92391676544487
+      },
+      "population": "BNS",
+      "row_index": 62,
+      "selection": "interior-stratum",
+      "source_id": "BNS-062",
+      "template_hash": -3201011114526358934
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 1.9962876829852851,
+        "mass2": 1.9741685806801383,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.049074074074074076,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.049074074074074076,
+        "template_duration": 33.55725712447138
+      },
+      "population": "BNS",
+      "row_index": 63,
+      "selection": "interior-stratum",
+      "source_id": "BNS-063",
+      "template_hash": 3167910686990190570
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 3.0,
+        "mass2": 1.2,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.05,
+        "template_duration": 36.945897833534694
+      },
+      "population": "NSBH",
+      "row_index": 64,
+      "selection": "boundary",
+      "source_id": "NSBH-064",
+      "template_hash": 6637547548569117386
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 3.0,
+        "mass2": 1.2,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.05,
+        "template_duration": 36.97394884677011
+      },
+      "population": "NSBH",
+      "row_index": 65,
+      "selection": "boundary",
+      "source_id": "NSBH-065",
+      "template_hash": 1260664243110379185
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 3.0,
+        "mass2": 1.2,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.05,
+        "template_duration": 37.74836957331612
+      },
+      "population": "NSBH",
+      "row_index": 66,
+      "selection": "boundary",
+      "source_id": "NSBH-066",
+      "template_hash": 6960842148949500855
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 3.0,
+        "mass2": 1.2,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.05,
+        "template_duration": 37.77297037431823
+      },
+      "population": "NSBH",
+      "row_index": 67,
+      "selection": "boundary",
+      "source_id": "NSBH-067",
+      "template_hash": -8616817622438516598
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 3.0,
+        "mass2": 2.0,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.05,
+        "template_duration": 23.54428344776387
+      },
+      "population": "NSBH",
+      "row_index": 68,
+      "selection": "boundary",
+      "source_id": "NSBH-068",
+      "template_hash": 5619976736944983879
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 3.0,
+        "mass2": 2.0,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.05,
+        "template_duration": 23.575769273604053
+      },
+      "population": "NSBH",
+      "row_index": 69,
+      "selection": "boundary",
+      "source_id": "NSBH-069",
+      "template_hash": -1925867763368015919
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 3.0,
+        "mass2": 2.0,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.05,
+        "template_duration": 24.037214924351463
+      },
+      "population": "NSBH",
+      "row_index": 70,
+      "selection": "boundary",
+      "source_id": "NSBH-070",
+      "template_hash": 2212190759553504900
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 3.0,
+        "mass2": 2.0,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.05,
+        "template_duration": 24.065432223115266
+      },
+      "population": "NSBH",
+      "row_index": 71,
+      "selection": "boundary",
+      "source_id": "NSBH-071",
+      "template_hash": -693574943151888723
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 8.0,
+        "mass2": 1.2,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.05,
+        "template_duration": 17.221408080652278
+      },
+      "population": "NSBH",
+      "row_index": 72,
+      "selection": "boundary",
+      "source_id": "NSBH-072",
+      "template_hash": -3021755972813798441
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 8.0,
+        "mass2": 1.2,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.05,
+        "template_duration": 17.234849373161246
+      },
+      "population": "NSBH",
+      "row_index": 73,
+      "selection": "boundary",
+      "source_id": "NSBH-073",
+      "template_hash": 1566472787125737745
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 8.0,
+        "mass2": 1.2,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.05,
+        "template_duration": 18.407726226700778
+      },
+      "population": "NSBH",
+      "row_index": 74,
+      "selection": "boundary",
+      "source_id": "NSBH-074",
+      "template_hash": -4932752867818623925
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 8.0,
+        "mass2": 1.2,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.05,
+        "template_duration": 18.418930325365164
+      },
+      "population": "NSBH",
+      "row_index": 75,
+      "selection": "boundary",
+      "source_id": "NSBH-075",
+      "template_hash": 966843580596598048
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 8.0,
+        "mass2": 2.0,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.05,
+        "template_duration": 10.659790257400559
+      },
+      "population": "NSBH",
+      "row_index": 76,
+      "selection": "boundary",
+      "source_id": "NSBH-076",
+      "template_hash": 4550056397018417685
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 8.0,
+        "mass2": 2.0,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.05,
+        "template_duration": 10.674151482500532
+      },
+      "population": "NSBH",
+      "row_index": 77,
+      "selection": "boundary",
+      "source_id": "NSBH-077",
+      "template_hash": -9089864996530750207
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 8.0,
+        "mass2": 2.0,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.05,
+        "template_duration": 11.377571629867814
+      },
+      "population": "NSBH",
+      "row_index": 78,
+      "selection": "boundary",
+      "source_id": "NSBH-078",
+      "template_hash": 6361075354752035920
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 8.0,
+        "mass2": 2.0,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.5,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.05,
+        "template_duration": 11.38974872485089
+      },
+      "population": "NSBH",
+      "row_index": 79,
+      "selection": "boundary",
+      "source_id": "NSBH-079",
+      "template_hash": 1116806153332344254
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 3.15625,
+        "mass2": 1.375,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.03125,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.021875000000000006,
+        "template_duration": 31.787417343134653
+      },
+      "population": "NSBH",
+      "row_index": 80,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-080",
+      "template_hash": 9172092068918341242
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 3.46875,
+        "mass2": 1.625,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.40625,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.009375000000000001,
+        "template_duration": 25.70845576631772
+      },
+      "population": "NSBH",
+      "row_index": 81,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-081",
+      "template_hash": 2696823089386844153
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 3.78125,
+        "mass2": 1.875,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.15625,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.040625,
+        "template_duration": 20.855842385570373
+      },
+      "population": "NSBH",
+      "row_index": 82,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-082",
+      "template_hash": -3932445145631927705
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 4.09375,
+        "mass2": 1.325,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.28125,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.028124999999999997,
+        "template_duration": 27.164429924777163
+      },
+      "population": "NSBH",
+      "row_index": 83,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-083",
+      "template_hash": 3495669628688393759
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 4.40625,
+        "mass2": 1.575,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.28125,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.0031250000000000028,
+        "template_duration": 21.546971817713455
+      },
+      "population": "NSBH",
+      "row_index": 84,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-084",
+      "template_hash": 7522773488180059576
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 4.71875,
+        "mass2": 1.825,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.15625,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.034375,
+        "template_duration": 18.146228984470564
+      },
+      "population": "NSBH",
+      "row_index": 85,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-085",
+      "template_hash": -227279039753762543
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 5.03125,
+        "mass2": 1.275,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.40625,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.034375,
+        "template_duration": 23.49083968236984
+      },
+      "population": "NSBH",
+      "row_index": 86,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-086",
+      "template_hash": 2336390601993366320
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 5.34375,
+        "mass2": 1.525,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.03125,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.0031250000000000028,
+        "template_duration": 19.351746533922828
+      },
+      "population": "NSBH",
+      "row_index": 87,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-087",
+      "template_hash": -6828153826128418098
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 5.65625,
+        "mass2": 1.775,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.46875,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.028125,
+        "template_duration": 16.410747673532978
+      },
+      "population": "NSBH",
+      "row_index": 88,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-088",
+      "template_hash": -3175783081774490059
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 5.96875,
+        "mass2": 1.2249999999999999,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.09375,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.04062500000000001,
+        "template_duration": 21.700226957750502
+      },
+      "population": "NSBH",
+      "row_index": 89,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-089",
+      "template_hash": -7207261484354495793
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 6.28125,
+        "mass2": 1.475,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.34375,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.009375000000000001,
+        "template_duration": 17.923890375041136
+      },
+      "population": "NSBH",
+      "row_index": 90,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-090",
+      "template_hash": -2091536583491262971
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 6.59375,
+        "mass2": 1.725,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.21875,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.021875000000000002,
+        "template_duration": 14.516350141468756
+      },
+      "population": "NSBH",
+      "row_index": 91,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-091",
+      "template_hash": -2462387222899036811
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 6.90625,
+        "mass2": 1.975,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.21875,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.046875,
+        "template_duration": 12.664620632119599
+      },
+      "population": "NSBH",
+      "row_index": 92,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-092",
+      "template_hash": 4355984172731584761
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 7.21875,
+        "mass2": 1.425,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.34375,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": 0.015625,
+        "template_duration": 16.0507978490041
+      },
+      "population": "NSBH",
+      "row_index": 93,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-093",
+      "template_hash": -5853028359404708607
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 7.53125,
+        "mass2": 1.675,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": 0.09375,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.015625,
+        "template_duration": 13.711614334625144
+      },
+      "population": "NSBH",
+      "row_index": 94,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-094",
+      "template_hash": 4366715446675002219
+    },
+    {
+      "parameters": {
+        "approximant": "IMRPhenomD",
+        "f_final": 2048.0,
+        "f_lower": 30.0,
+        "inclination": 0.0,
+        "mass1": 7.84375,
+        "mass2": 1.925,
+        "spin1x": 0.0,
+        "spin1y": 0.0,
+        "spin1z": -0.46875,
+        "spin2x": 0.0,
+        "spin2y": 0.0,
+        "spin2z": -0.046875,
+        "template_duration": 11.247983331829712
+      },
+      "population": "NSBH",
+      "row_index": 95,
+      "selection": "interior-stratum",
+      "source_id": "NSBH-095",
+      "template_hash": 5893430375570109586
+    }
+  ]
+}

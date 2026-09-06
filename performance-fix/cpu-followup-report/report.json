@@ -1,0 +1,536 @@
+{
+  "generated_utc": "2026-09-06T16:13:29.359938+00:00",
+  "title": "Optional CPU native peak follow-up",
+  "unit": "templates/second",
+  "search_capacity_units": {
+    "cpu": "templates/core at real time",
+    "cuda": "templates/GPU at real time"
+  },
+  "search_capacity_basis": {
+    "schema": 1,
+    "valid_seconds_per_block": 56.0,
+    "sample_rate_hz": 2048.0,
+    "valid_samples_per_block": 114688,
+    "cpu_formula": "raw_templates_per_second * 56 / configured_threads",
+    "cuda_formula": "raw_templates_per_second * 56 / 1 GPU",
+    "units": {
+      "cpu": "templates/core at real time",
+      "cuda": "templates/GPU at real time"
+    },
+    "cpu_divisor": "configured core budget (thread count), not measured utilization",
+    "cpu_affinity": "8-11; four distinct physical cores",
+    "verification": "File bytes, Git blobs and excerpts were independently inspected from the pinned frozen source trees when preparing this reporter. Each report checks worker source commit/tree identities; available full run snapshots also check both file hashes. The supplied Git source bundles permit source audit.",
+    "scope": "Real-time filtering capacity is derived from the measured template\u2013block rate: multiply by 56 seconds of valid strain per block, then divide CPU routes by their configured 1- or 4-core budget. CUDA capacity uses one GPU and includes the timed host work. The CPU divisor is the configured thread count, not measured CPU utilization; affinity CPUs 8\u201311 are distinct physical cores. This is synthetic matched-filter component capacity with vetoes and I/O excluded, not complete production search capacity. Raw template\u2013block rates and all unchanged ratios remain in JSON. The live harness's legacy throughput_wps_summary unit says waveforms/second, but its numerator is batch size times block count: template\u2013block evaluations, not generated waveforms. That raw label is preserved; standalone waveform generation has a separate waveforms/second metric. The 56 s basis, pinned source trees, full file hashes and source excerpts are recorded in search_capacity_basis.",
+    "sources": {
+      "cpu-baseline": {
+        "commit": "bd53914be6d2e4324cc867d52b3842b77cc6729a",
+        "tree": "ffddeb39a1b90d97736b79164aa620133eec3a1b",
+        "run_snapshot_file_hashes_checked": true,
+        "harness": {
+          "path": "tools/bench_production_live_batch.py",
+          "sha256": "8503f204a42e8a6e1af0efd29c081e4c07237771168ed4bf3d8b24eb1bfa16de",
+          "git_blob": "acc96b8cd0508e01373c4c35ab521d20b3f3d84e",
+          "sample_rate_line": 326,
+          "blocksize_line": 331,
+          "public_data_start_line": 441,
+          "sample_rate_source": "sample_rate = 2048.0",
+          "blocksize_source": "blocksize = 56.0",
+          "public_data_source": [
+            "blocksize=blocksize,",
+            "sample_rate=sample_rate,",
+            "start_time=1000000000.0 + b * blocksize,"
+          ]
+        },
+        "valid_interval": {
+          "path": "pycbc/filter/matchedfilter.py",
+          "sha256": "3640bc607ee916684ae26cf7f28f069d1a7d5a2cab5509f01fae96d12ad8c434",
+          "git_blob": "bf2829c638d683bbb52d574a2e395a96941de6c5",
+          "start_line": 3079,
+          "source": [
+            "valid_end = int(psize - self.data.trim_padding)",
+            "valid_start = int(",
+            "    valid_end - self.data.blocksize * self.data.sample_rate",
+            ")"
+          ]
+        }
+      },
+      "cpu-candidate": {
+        "commit": "1514327669fc7be125523b991c847868c3a2a17e",
+        "tree": "0bbf15de82c467649cb88fb6378aaf74d829cfca",
+        "run_snapshot_file_hashes_checked": true,
+        "harness": {
+          "path": "tools/bench_production_live_batch.py",
+          "sha256": "8503f204a42e8a6e1af0efd29c081e4c07237771168ed4bf3d8b24eb1bfa16de",
+          "git_blob": "acc96b8cd0508e01373c4c35ab521d20b3f3d84e",
+          "sample_rate_line": 326,
+          "blocksize_line": 331,
+          "public_data_start_line": 441,
+          "sample_rate_source": "sample_rate = 2048.0",
+          "blocksize_source": "blocksize = 56.0",
+          "public_data_source": [
+            "blocksize=blocksize,",
+            "sample_rate=sample_rate,",
+            "start_time=1000000000.0 + b * blocksize,"
+          ]
+        },
+        "valid_interval": {
+          "path": "pycbc/filter/matchedfilter.py",
+          "sha256": "277d812bea4b8b30f8922dca6b2ccaf57a04a2114ae5c886c428711abeb99b65",
+          "git_blob": "61d9b055940f369334bf94950f3ce3265f4855d1",
+          "start_line": 3098,
+          "source": [
+            "valid_end = int(psize - self.data.trim_padding)",
+            "valid_start = int(",
+            "    valid_end - self.data.blocksize * self.data.sample_rate",
+            ")"
+          ]
+        }
+      }
+    }
+  },
+  "source_identities": {
+    "cpu-candidate": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/cpu-candidate",
+      "sha": "1514327669fc7be125523b991c847868c3a2a17e",
+      "tree": "0bbf15de82c467649cb88fb6378aaf74d829cfca"
+    },
+    "cpu-baseline": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/cpu-baseline",
+      "sha": "bd53914be6d2e4324cc867d52b3842b77cc6729a",
+      "tree": "ffddeb39a1b90d97736b79164aa620133eec3a1b"
+    }
+  },
+  "host": "len",
+  "python_executable": "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+  "runtime": {
+    "python": "3.11.9 | packaged by conda-forge | (main, Apr 19 2024, 18:36:13) [GCC 12.3.0]",
+    "numpy_version": "1.26.4"
+  },
+  "torch_version": "2.13.0+cu130",
+  "counts": {
+    "worker_processes": 36,
+    "standard_controls": 12,
+    "native_workers": 24,
+    "parity_documents": 12,
+    "parity_comparisons": 24
+  },
+  "configuration": {
+    "route": "torch_cpu_native",
+    "required_environment": {
+      "PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK": "1"
+    },
+    "batches": [
+      32,
+      1024
+    ],
+    "threads": [
+      1,
+      4
+    ],
+    "replicates": [
+      1,
+      2,
+      3
+    ],
+    "cpu_affinity": "8-11"
+  },
+  "notes": {
+    "aggregation": "Three separate worker processes per source, route, thread count and batch. Throughput is the median of their three warm throughput medians. Ranges are min\u2013max across workers, not confidence intervals. The paired ratio is the median of candidate/baseline worker ratios matched by replicate; it need not equal the ratio of the two aggregate medians.",
+    "workload": "Synthetic seeded templates and injected strain; N=131072, three strain blocks per iteration, complex64 inputs/outputs, SNR threshold 5.5. The public LiveBatchMatchedFilter.process_data API is timed with chi-square and sine-Gaussian vetoes disabled. Frame I/O, PSD estimation, bank loading, waveform generation and CLI startup are excluded. The raw unit templates/s counts one template filtered against one strain block. Native labels mean opt-in routing is enabled; admission can select a fallback for a given batch.",
+    "search_capacity": "Real-time filtering capacity is derived from the measured template\u2013block rate: multiply by 56 seconds of valid strain per block, then divide CPU routes by their configured 1- or 4-core budget. CUDA capacity uses one GPU and includes the timed host work. The CPU divisor is the configured thread count, not measured CPU utilization; affinity CPUs 8\u201311 are distinct physical cores. This is synthetic matched-filter component capacity with vetoes and I/O excluded, not complete production search capacity. Raw template\u2013block rates and all unchanged ratios remain in JSON. The live harness's legacy throughput_wps_summary unit says waveforms/second, but its numerator is batch size times block count: template\u2013block evaluations, not generated waveforms. That raw label is preserved; standalone waveform generation has a separate waveforms/second metric. The 56 s basis, pinned source trees, full file hashes and source excerpts are recorded in search_capacity_basis.",
+    "parity": "Each baseline and candidate is checked against the corresponding standard CPU control: trigger counts and template IDs, end times within 1e-4 s, SNR and wrapped phase differences below 1e-3, relative sigma-squared and aggregate output-norm differences below 1e-3. These checks do not establish pointwise equivalence of every matched-filter output sample.",
+    "timing": "Sequential fresh workers, with three timed public API iterations after one cold iteration and one warmup. Each iteration filters all templates against three strain blocks; throughput is 3*batch/seconds. No profiling instrumentation is included in these worker commands.",
+    "scope": "Both revisions explicitly enable PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK=1 alongside native correlation and FFTW batch routing. Enabled routing permits fallback when admission requires it; these records do not count native dispatches. The branch_standard control belongs to cpu-baseline. This report summarizes only the optional CPU follow-up, not the other postcheck tests or profiles."
+  },
+  "numerical_parity": {
+    "all_passed": true,
+    "recomputed": true,
+    "maxima": {
+      "max_snr_diff": 3.814697265625e-06,
+      "max_phase_diff": 3.771492629311979e-08,
+      "max_sigmasq_relative_diff": 1.1920930376163766e-07,
+      "relative_output_l2_diff": 1.2349261083218824e-07
+    }
+  },
+  "comparisons": [
+    {
+      "threads": 1,
+      "batch": 32,
+      "before": {
+        "median": 940.3392828371203,
+        "minimum": 938.7228607031592,
+        "maximum": 943.5297262283631,
+        "worker_values": [
+          938.7228607031592,
+          943.5297262283631,
+          940.3392828371203
+        ]
+      },
+      "after": {
+        "median": 938.7464976688284,
+        "minimum": 938.1765773995236,
+        "maximum": 942.6200562388727,
+        "worker_values": [
+          938.1765773995236,
+          942.6200562388727,
+          938.7464976688284
+        ]
+      },
+      "paired_ratio": {
+        "median": 0.9990358862426872,
+        "minimum": 0.9983061590668781,
+        "maximum": 0.9994180568871771,
+        "worker_values": [
+          0.9994180568871771,
+          0.9990358862426872,
+          0.9983061590668781
+        ]
+      },
+      "ratio_of_medians": 0.9983061590668781,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 52658.999838878735,
+          "minimum": 52568.480199376914,
+          "maximum": 52837.66466878833,
+          "worker_values": [
+            52568.480199376914,
+            52837.66466878833,
+            52658.999838878735
+          ]
+        },
+        "after": {
+          "median": 52569.803869454394,
+          "minimum": 52537.88833437332,
+          "maximum": 52786.72314937687,
+          "worker_values": [
+            52537.88833437332,
+            52786.72314937687,
+            52569.803869454394
+          ]
+        }
+      }
+    },
+    {
+      "threads": 1,
+      "batch": 1024,
+      "before": {
+        "median": 828.8020905988834,
+        "minimum": 824.5959496354811,
+        "maximum": 830.7073541291413,
+        "worker_values": [
+          830.7073541291413,
+          828.8020905988834,
+          824.5959496354811
+        ]
+      },
+      "after": {
+        "median": 947.9698669077617,
+        "minimum": 946.4091642477772,
+        "maximum": 952.1200341223083,
+        "worker_values": [
+          946.4091642477772,
+          952.1200341223083,
+          947.9698669077617
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.1487905797080178,
+        "minimum": 1.1392810711781045,
+        "maximum": 1.149617418478491,
+        "worker_values": [
+          1.1392810711781045,
+          1.1487905797080178,
+          1.149617418478491
+        ]
+      },
+      "ratio_of_medians": 1.143783151201717,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "before": {
+          "median": 46412.91707353747,
+          "minimum": 46177.373179586946,
+          "maximum": 46519.611831231916,
+          "worker_values": [
+            46519.611831231916,
+            46412.91707353747,
+            46177.373179586946
+          ]
+        },
+        "after": {
+          "median": 53086.312546834655,
+          "minimum": 52998.913197875525,
+          "maximum": 53318.721910849265,
+          "worker_values": [
+            52998.913197875525,
+            53318.721910849265,
+            53086.312546834655
+          ]
+        }
+      }
+    },
+    {
+      "threads": 4,
+      "batch": 32,
+      "before": {
+        "median": 1716.8799812545321,
+        "minimum": 1665.7706497909294,
+        "maximum": 1724.3442143823993,
+        "worker_values": [
+          1716.8799812545321,
+          1665.7706497909294,
+          1724.3442143823993
+        ]
+      },
+      "after": {
+        "median": 1754.941471879284,
+        "minimum": 1725.335781345177,
+        "maximum": 1775.9570271678135,
+        "worker_values": [
+          1754.941471879284,
+          1725.335781345177,
+          1775.9570271678135
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.0299318502390198,
+        "minimum": 1.0221689873726294,
+        "maximum": 1.0357583029582877,
+        "worker_values": [
+          1.0221689873726294,
+          1.0357583029582877,
+          1.0299318502390198
+        ]
+      },
+      "ratio_of_medians": 1.0221689873726294,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 24036.319737563448,
+          "minimum": 23320.78909707301,
+          "maximum": 24140.81900135359,
+          "worker_values": [
+            24036.319737563448,
+            23320.78909707301,
+            24140.81900135359
+          ]
+        },
+        "after": {
+          "median": 24569.18060630998,
+          "minimum": 24154.70093883248,
+          "maximum": 24863.39838034939,
+          "worker_values": [
+            24569.18060630998,
+            24154.70093883248,
+            24863.39838034939
+          ]
+        }
+      }
+    },
+    {
+      "threads": 4,
+      "batch": 1024,
+      "before": {
+        "median": 1824.2265975039577,
+        "minimum": 1818.8801062347243,
+        "maximum": 1826.8102443103708,
+        "worker_values": [
+          1826.8102443103708,
+          1818.8801062347243,
+          1824.2265975039577
+        ]
+      },
+      "after": {
+        "median": 2538.861819436364,
+        "minimum": 2325.403289764687,
+        "maximum": 2544.141172326538,
+        "worker_values": [
+          2544.141172326538,
+          2538.861819436364,
+          2325.403289764687
+        ]
+      },
+      "paired_ratio": {
+        "median": 1.3926685490462436,
+        "minimum": 1.2747337929106377,
+        "maximum": 1.3958379173721782,
+        "worker_values": [
+          1.3926685490462436,
+          1.3958379173721782,
+          1.2747337929106377
+        ]
+      },
+      "ratio_of_medians": 1.3917469589086264,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 25539.17236505541,
+          "minimum": 25464.32148728614,
+          "maximum": 25575.34342034519,
+          "worker_values": [
+            25575.34342034519,
+            25464.32148728614,
+            25539.17236505541
+          ]
+        },
+        "after": {
+          "median": 35544.0654721091,
+          "minimum": 32555.64605670562,
+          "maximum": 35617.97641257153,
+          "worker_values": [
+            35617.97641257153,
+            35544.0654721091,
+            32555.64605670562
+          ]
+        }
+      }
+    }
+  ],
+  "standard_controls": [
+    {
+      "threads": 1,
+      "batch": 32,
+      "throughput": {
+        "median": 1189.051658225432,
+        "minimum": 1187.6455468896195,
+        "maximum": 1191.188850521992,
+        "worker_values": [
+          1191.188850521992,
+          1187.6455468896195,
+          1189.051658225432
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "throughput": {
+          "median": 66586.8928606242,
+          "minimum": 66508.15062581869,
+          "maximum": 66706.57562923155,
+          "worker_values": [
+            66706.57562923155,
+            66508.15062581869,
+            66586.8928606242
+          ]
+        }
+      }
+    },
+    {
+      "threads": 1,
+      "batch": 1024,
+      "throughput": {
+        "median": 1194.9486137963013,
+        "minimum": 1191.4392446764175,
+        "maximum": 1198.76902108551,
+        "worker_values": [
+          1191.4392446764175,
+          1198.76902108551,
+          1194.9486137963013
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 56.0,
+        "throughput": {
+          "median": 66917.12237259287,
+          "minimum": 66720.59770187938,
+          "maximum": 67131.06518078856,
+          "worker_values": [
+            66720.59770187938,
+            67131.06518078856,
+            66917.12237259287
+          ]
+        }
+      }
+    },
+    {
+      "threads": 4,
+      "batch": 32,
+      "throughput": {
+        "median": 2724.5660411961767,
+        "minimum": 2688.577678554325,
+        "maximum": 2733.0803677655717,
+        "worker_values": [
+          2733.0803677655717,
+          2688.577678554325,
+          2724.5660411961767
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "throughput": {
+          "median": 38143.924576746474,
+          "minimum": 37640.08749976055,
+          "maximum": 38263.125148718005,
+          "worker_values": [
+            38263.125148718005,
+            37640.08749976055,
+            38143.924576746474
+          ]
+        }
+      }
+    },
+    {
+      "threads": 4,
+      "batch": 1024,
+      "throughput": {
+        "median": 2928.3649356751375,
+        "minimum": 2772.73738888634,
+        "maximum": 2934.430682281889,
+        "worker_values": [
+          2928.3649356751375,
+          2772.73738888634,
+          2934.430682281889
+        ]
+      },
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "throughput": {
+          "median": 40997.109099451925,
+          "minimum": 38818.32344440876,
+          "maximum": 41082.02955194644,
+          "worker_values": [
+            40997.109099451925,
+            38818.32344440876,
+            41082.02955194644
+          ]
+        }
+      }
+    }
+  ],
+  "input_manifest": {
+    "path": "input-manifest.json",
+    "files": 132,
+    "sha256": "b822d0ec2c4b541c8c7e19eccdbd9f826d781978cd5cb482d2952ca96d94f017"
+  }
+}

@@ -1,0 +1,1727 @@
+{
+  "schema_version": 1,
+  "summarizer": {
+    "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/summarize-profiles.py",
+    "sha256": "66a39b8f65e79196eed80cf3a838113a6e07348314e5cdcdd4ee941e89f1c988"
+  },
+  "runs": [
+    {
+      "directory": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/reference-cpu-l512-cprofile",
+      "receipt": {
+        "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/reference-cpu-l512-cprofile/receipt.json",
+        "sha256": "24406f3716bdfd970e9d2fea3951d48b4ec47676716d2178cfb4e4c60f415488"
+      },
+      "run": {
+        "case": "reference-cpu-l512-cprofile",
+        "mode": "cprofile",
+        "scheme": "cpu:1",
+        "segment_length": 512,
+        "source_info": {
+          "commit": "fb4b335eeeeaeaa907c1143b45e0191e2d977761",
+          "status": "",
+          "tracked_diff": ""
+        },
+        "environment": {
+          "OMP_NUM_THREADS": "1",
+          "MKL_NUM_THREADS": "1",
+          "MKL_DYNAMIC": "FALSE",
+          "MKL_THREADING_LAYER": "GNU",
+          "OPENBLAS_NUM_THREADS": "1",
+          "NUMEXPR_NUM_THREADS": "1",
+          "VECLIB_MAXIMUM_THREADS": "1",
+          "BLIS_NUM_THREADS": "1",
+          "PYTHONHASHSEED": "0",
+          "PYTHONPATH": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source",
+          "PYTHONDONTWRITEBYTECODE": "1"
+        }
+      },
+      "full_process_wall_seconds": 34.389974974037614,
+      "wall_note": "Parent run-case elapsed time includes command wrappers and profiling overhead; only mode=timing is unprofiled.",
+      "cprofile": {
+        "input": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/reference-cpu-l512-cprofile/profile.pstats",
+          "sha256": "1cab0ffa9bfaab8e2af93ff6a22fe0e24fde365e520abb1cf45f510b09633333"
+        },
+        "total_profile_self_seconds": 33.350721911,
+        "groups": [
+          {
+            "group": "FFT",
+            "self_seconds": 11.337459429,
+            "share_of_profile_self_percent": 33.99464473139512,
+            "function_count": 84,
+            "top_functions": [
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/fft/mkl.py",
+                "line": 189,
+                "function": "execute",
+                "primitive_calls": 480,
+                "calls": 480,
+                "self_seconds": 7.256701968000001,
+                "cumulative_seconds": 7.256701968000001,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/fft/mkl.py",
+                "line": 76,
+                "function": "create_descriptor",
+                "primitive_calls": 1136,
+                "calls": 1136,
+                "self_seconds": 3.391962325,
+                "cumulative_seconds": 3.427237632,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/fft/mkl.py",
+                "line": 102,
+                "function": "fft",
+                "primitive_calls": 1133,
+                "calls": 1133,
+                "self_seconds": 0.388788978,
+                "cumulative_seconds": 2.771999182,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/fft/mkl.py",
+                "line": 111,
+                "function": "ifft",
+                "primitive_calls": 3,
+                "calls": 3,
+                "self_seconds": 0.25748954300000004,
+                "cumulative_seconds": 1.3365475260000002,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/fft/mkl.py",
+                "line": 122,
+                "function": "_get_desc",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 0.025693312000000003,
+                "cumulative_seconds": 0.025701308000000003,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/fft/func_api.py",
+                "line": 34,
+                "function": "fft",
+                "primitive_calls": 1133,
+                "calls": 1133,
+                "self_seconds": 0.006671659000000001,
+                "cumulative_seconds": 2.8581913620000003,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/fft/core.py",
+                "line": 95,
+                "function": "_check_fwd_args",
+                "primitive_calls": 1133,
+                "calls": 1133,
+                "self_seconds": 0.004079467000000001,
+                "cumulative_seconds": 0.023371812000000002,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/fft/core.py",
+                "line": 70,
+                "function": "_check_fft_args",
+                "primitive_calls": 1137,
+                "calls": 1137,
+                "self_seconds": 0.003963328,
+                "cumulative_seconds": 0.010194564000000001,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/fft/mkl.py",
+                "line": 67,
+                "function": "check_status",
+                "primitive_calls": 3413,
+                "calls": 3413,
+                "self_seconds": 0.0007931710000000001,
+                "cumulative_seconds": 0.0007931710000000001,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/fft/backend_cpu.py",
+                "line": 36,
+                "function": "get_backend",
+                "primitive_calls": 1138,
+                "calls": 1138,
+                "self_seconds": 0.000378401,
+                "cumulative_seconds": 0.000378401,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/fft/func_api.py",
+                "line": 64,
+                "function": "ifft",
+                "primitive_calls": 3,
+                "calls": 3,
+                "self_seconds": 7.8718e-05,
+                "cumulative_seconds": 1.3446966660000002,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/fft/fftw.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 7.4163e-05,
+                "cumulative_seconds": 0.114446872,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/fft/torchfft.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 5.0196000000000005e-05,
+                "cumulative_seconds": 1.9670926210000002,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/scipy/fft/_fftlog_backend.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 4.0967e-05,
+                "cumulative_seconds": 4.6428000000000003e-05,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/numpy/fft/_pocketfft.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 3.4775000000000005e-05,
+                "cumulative_seconds": 0.000634277,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/scipy/fft/__init__.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 3.3703e-05,
+                "cumulative_seconds": 0.008386408,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/scipy/fft/_basic.py",
+                "line": 16,
+                "function": "_dispatch",
+                "primitive_calls": 28,
+                "calls": 28,
+                "self_seconds": 2.9978000000000003e-05,
+                "cumulative_seconds": 0.002775224,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/fft/backend_support.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 2.9288e-05,
+                "cumulative_seconds": 2.280930337,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/scipy/fft/_pocketfft/helper.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 2.9136e-05,
+                "cumulative_seconds": 5.7379e-05,
+                "classification_basis": "FFT module or named FFT operation"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/fft/mkl.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 2.6432e-05,
+                "cumulative_seconds": 0.00755597,
+                "classification_basis": "FFT module or named FFT operation"
+              }
+            ]
+          },
+          {
+            "group": "correlation",
+            "self_seconds": 0.0,
+            "share_of_profile_self_percent": 0.0,
+            "function_count": 0,
+            "top_functions": []
+          },
+          {
+            "group": "threshold/clustering",
+            "self_seconds": 0.7110845440000001,
+            "share_of_profile_self_percent": 2.1321413848180137,
+            "function_count": 9,
+            "top_functions": [
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/events/threshold_cpu.py",
+                "line": 81,
+                "function": "threshold_and_cluster",
+                "primitive_calls": 480,
+                "calls": 480,
+                "self_seconds": 0.706764931,
+                "cumulative_seconds": 0.708380117,
+                "classification_basis": "Threshold module or named event threshold/cluster function"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/events/eventmgr.py",
+                "line": 472,
+                "function": "cluster_template_events",
+                "primitive_calls": 96,
+                "calls": 96,
+                "self_seconds": 0.002510109,
+                "cumulative_seconds": 0.006298266,
+                "classification_basis": "Threshold module or named event threshold/cluster function"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/events/eventmgr.py",
+                "line": 179,
+                "function": "findchirp_cluster_over_window",
+                "primitive_calls": 97,
+                "calls": 97,
+                "self_seconds": 0.001523265,
+                "cumulative_seconds": 0.0038862790000000003,
+                "classification_basis": "Threshold module or named event threshold/cluster function"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/events/eventmgr.py",
+                "line": 163,
+                "function": "_torch_cluster_positions",
+                "primitive_calls": 97,
+                "calls": 97,
+                "self_seconds": 0.000199683,
+                "cumulative_seconds": 0.0013291700000000002,
+                "classification_basis": "Threshold module or named event threshold/cluster function"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/events/threshold_cpu.py",
+                "line": 73,
+                "function": "__init__",
+                "primitive_calls": 5,
+                "calls": 5,
+                "self_seconds": 3.7330000000000003e-05,
+                "cumulative_seconds": 0.00105381,
+                "classification_basis": "Threshold module or named event threshold/cluster function"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/events/eventmgr.py",
+                "line": 378,
+                "function": "newsnr_threshold",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 2.4888000000000003e-05,
+                "cumulative_seconds": 0.000203214,
+                "classification_basis": "Threshold module or named event threshold/cluster function"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/events/threshold_cpu.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 2.1892e-05,
+                "cumulative_seconds": 0.0005831,
+                "classification_basis": "Threshold module or named event threshold/cluster function"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/events/threshold_cpu.py",
+                "line": 93,
+                "function": "_threshold_cluster_factory",
+                "primitive_calls": 5,
+                "calls": 5,
+                "self_seconds": 1.534e-06,
+                "cumulative_seconds": 1.534e-06,
+                "classification_basis": "Threshold module or named event threshold/cluster function"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/events/threshold_cpu.py",
+                "line": 72,
+                "function": "CPUThresholdCluster",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 9.12e-07,
+                "cumulative_seconds": 9.12e-07,
+                "classification_basis": "Threshold module or named event threshold/cluster function"
+              }
+            ]
+          },
+          {
+            "group": "signal-consistency",
+            "self_seconds": 1.6469346790000001,
+            "share_of_profile_self_percent": 4.938227974180058,
+            "function_count": 33,
+            "top_functions": [
+              {
+                "file": "pycbc/vetoes/chisq_cpu.pyx",
+                "line": 25,
+                "function": "__pyx_fuse_0_0point_chisq_code",
+                "primitive_calls": 319,
+                "calls": 319,
+                "self_seconds": 1.6141435940000002,
+                "cumulative_seconds": 1.6141435940000002,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/chisq.py",
+                "line": 222,
+                "function": "power_chisq_at_points_from_precomputed",
+                "primitive_calls": 319,
+                "calls": 319,
+                "self_seconds": 0.008226519,
+                "cumulative_seconds": 1.6371771130000001,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "pycbc/vetoes/chisq_cpu.pyx",
+                "line": 141,
+                "function": "shift_sum",
+                "primitive_calls": 319,
+                "calls": 319,
+                "self_seconds": 0.006383836,
+                "cumulative_seconds": 1.625192441,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/chisq.py",
+                "line": 465,
+                "function": "cached_chisq_bins",
+                "primitive_calls": 319,
+                "calls": 319,
+                "self_seconds": 0.00418763,
+                "cumulative_seconds": 0.943960966,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/chisq.py",
+                "line": 129,
+                "function": "power_chisq_bins_from_sigmasq_series",
+                "primitive_calls": 96,
+                "calls": 96,
+                "self_seconds": 0.0036668050000000004,
+                "cumulative_seconds": 0.069070637,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/chisq.py",
+                "line": 494,
+                "function": "values",
+                "primitive_calls": 319,
+                "calls": 319,
+                "self_seconds": 0.003255341,
+                "cumulative_seconds": 2.597641083,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "pycbc/vetoes/chisq_cpu.pyx",
+                "line": 25,
+                "function": "point_chisq_code",
+                "primitive_calls": 319,
+                "calls": 319,
+                "self_seconds": 0.002035124,
+                "cumulative_seconds": 0.002035124,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/chisq.py",
+                "line": 89,
+                "function": "_chisq_dof_array",
+                "primitive_calls": 319,
+                "calls": 319,
+                "self_seconds": 0.0015721580000000001,
+                "cumulative_seconds": 0.009581052000000001,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/chisq.py",
+                "line": 171,
+                "function": "power_chisq_bins",
+                "primitive_calls": 96,
+                "calls": 96,
+                "self_seconds": 0.0011842810000000001,
+                "cumulative_seconds": 0.9326111960000001,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/chisq.py",
+                "line": 53,
+                "function": "_torch_tensor",
+                "primitive_calls": 638,
+                "calls": 638,
+                "self_seconds": 0.0007734520000000001,
+                "cumulative_seconds": 0.005966643000000001,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/chisq.py",
+                "line": 457,
+                "function": "parse_option",
+                "primitive_calls": 96,
+                "calls": 96,
+                "self_seconds": 0.00051584,
+                "cumulative_seconds": 0.0055045730000000005,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/bank_chisq.py",
+                "line": 249,
+                "function": "values",
+                "primitive_calls": 319,
+                "calls": 319,
+                "self_seconds": 0.00032986100000000003,
+                "cumulative_seconds": 0.00032986100000000003,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/autochisq.py",
+                "line": 289,
+                "function": "values",
+                "primitive_calls": 319,
+                "calls": 319,
+                "self_seconds": 0.000266522,
+                "cumulative_seconds": 0.000266522,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/sgchisq.py",
+                "line": 236,
+                "function": "values",
+                "primitive_calls": 319,
+                "calls": 319,
+                "self_seconds": 0.000221616,
+                "cumulative_seconds": 0.000221616,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/chisq.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 3.4716000000000004e-05,
+                "cumulative_seconds": 3.0409707310000003,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/__init__.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 2.8595000000000003e-05,
+                "cumulative_seconds": 5.39468684,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "pycbc/vetoes/chisq_cpu.pyx",
+                "line": 1,
+                "function": "__Pyx_PyMODINIT_FUNC PyInit_chisq_cpu(void)",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 2.4827e-05,
+                "cumulative_seconds": 0.000124365,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/sgchisq.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 1.8494000000000003e-05,
+                "cumulative_seconds": 0.000756328,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/bank_chisq.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 1.8256000000000003e-05,
+                "cumulative_seconds": 2.346110394,
+                "classification_basis": "PyCBC vetoes module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/vetoes/autochisq.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 1.5671e-05,
+                "cumulative_seconds": 5.2369000000000006e-05,
+                "classification_basis": "PyCBC vetoes module"
+              }
+            ]
+          },
+          {
+            "group": "decompression/waveforms",
+            "self_seconds": 0.45692075500000007,
+            "share_of_profile_self_percent": 1.3700475696428474,
+            "function_count": 83,
+            "top_functions": [
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/decompress_cpu.py",
+                "line": 34,
+                "function": "inline_linear_interp",
+                "primitive_calls": 96,
+                "calls": 96,
+                "self_seconds": 0.41976116100000005,
+                "cumulative_seconds": 0.420864991,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/compress.py",
+                "line": 1011,
+                "function": "from_hdf",
+                "primitive_calls": 96,
+                "calls": 96,
+                "self_seconds": 0.011550219,
+                "cumulative_seconds": 0.163867325,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/bank.py",
+                "line": 46,
+                "function": "sigma_cached",
+                "primitive_calls": 480,
+                "calls": 480,
+                "self_seconds": 0.00439753,
+                "cumulative_seconds": 0.233675068,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/bank.py",
+                "line": 808,
+                "function": "get_decompressed_waveform",
+                "primitive_calls": 96,
+                "calls": 96,
+                "self_seconds": 0.004361149,
+                "cumulative_seconds": 0.646205282,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/bank.py",
+                "line": 903,
+                "function": "__getitem__",
+                "primitive_calls": 96,
+                "calls": 96,
+                "self_seconds": 0.0038543210000000004,
+                "cumulative_seconds": 0.8077077130000001,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/compress.py",
+                "line": 636,
+                "function": "fd_decompress",
+                "primitive_calls": 96,
+                "calls": 96,
+                "self_seconds": 0.0037495600000000003,
+                "cumulative_seconds": 0.43381598000000005,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/parameters.py",
+                "line": 59,
+                "function": "docstr",
+                "primitive_calls": 525,
+                "calls": 525,
+                "self_seconds": 0.001111493,
+                "cumulative_seconds": 0.001423074,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/compress.py",
+                "line": 817,
+                "function": "__init__",
+                "primitive_calls": 96,
+                "calls": 96,
+                "self_seconds": 0.0010406900000000001,
+                "cumulative_seconds": 0.001442252,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/waveform.py",
+                "line": 578,
+                "function": "get_obj_attrs",
+                "primitive_calls": 96,
+                "calls": 96,
+                "self_seconds": 0.000848083,
+                "cumulative_seconds": 0.011635772,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/bank.py",
+                "line": 272,
+                "function": "__init__",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 0.000623314,
+                "cumulative_seconds": 0.030111662,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/bank.py",
+                "line": 541,
+                "function": "approximant",
+                "primitive_calls": 96,
+                "calls": 96,
+                "self_seconds": 0.0005989890000000001,
+                "cumulative_seconds": 0.002102234,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/bank.py",
+                "line": 552,
+                "function": "__len__",
+                "primitive_calls": 484,
+                "calls": 484,
+                "self_seconds": 0.0005821330000000001,
+                "cumulative_seconds": 0.000869404,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/waveform.py",
+                "line": 641,
+                "function": "props",
+                "primitive_calls": 96,
+                "calls": 96,
+                "self_seconds": 0.000536256,
+                "cumulative_seconds": 0.014181094000000002,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/compress.py",
+                "line": 921,
+                "function": "decompress",
+                "primitive_calls": 96,
+                "calls": 96,
+                "self_seconds": 0.000525139,
+                "cumulative_seconds": 0.43511333,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/waveform.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 0.000414905,
+                "cumulative_seconds": 0.015099048,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/parameters.py",
+                "line": 48,
+                "function": "__new__",
+                "primitive_calls": 470,
+                "calls": 470,
+                "self_seconds": 0.000411441,
+                "cumulative_seconds": 0.000527607,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/compress.py",
+                "line": 854,
+                "function": "_get",
+                "primitive_calls": 288,
+                "calls": 288,
+                "self_seconds": 0.000351392,
+                "cumulative_seconds": 0.000540426,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/bank.py",
+                "line": 523,
+                "function": "end_frequency",
+                "primitive_calls": 96,
+                "calls": 96,
+                "self_seconds": 0.00033264700000000004,
+                "cumulative_seconds": 0.00617438,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/waveform.py",
+                "line": 1491,
+                "function": "td_fd_waveform_transform",
+                "primitive_calls": 80,
+                "calls": 80,
+                "self_seconds": 0.00025429200000000004,
+                "cumulative_seconds": 0.000269228,
+                "classification_basis": "PyCBC waveform module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/waveform/parameters.py",
+                "line": 159,
+                "function": "<listcomp>",
+                "primitive_calls": 6,
+                "calls": 6,
+                "self_seconds": 0.00019396000000000002,
+                "cumulative_seconds": 0.0015493640000000001,
+                "classification_basis": "PyCBC waveform module"
+              }
+            ]
+          },
+          {
+            "group": "conditioning/PSD",
+            "self_seconds": 0.07847025,
+            "share_of_profile_self_percent": 0.23528801028477384,
+            "function_count": 50,
+            "top_functions": [
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/strain/strain.py",
+                "line": 258,
+                "function": "from_cli",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 0.030312252,
+                "cumulative_seconds": 12.859479751,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/psd/estimate.py",
+                "line": 167,
+                "function": "welch",
+                "primitive_calls": 2,
+                "calls": 2,
+                "self_seconds": 0.018936865,
+                "cumulative_seconds": 2.205042526,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/strain/strain.py",
+                "line": 119,
+                "function": "detect_loud_glitches",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 0.012102575,
+                "cumulative_seconds": 5.222161214000001,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/psd/__init__.py",
+                "line": 43,
+                "function": "from_cli",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 0.00569018,
+                "cumulative_seconds": 1.3510435090000001,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/psd/estimate.py",
+                "line": 371,
+                "function": "inverse_spectrum_truncation",
+                "primitive_calls": 2,
+                "calls": 2,
+                "self_seconds": 0.004387712,
+                "cumulative_seconds": 2.663329537,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/psd/estimate.py",
+                "line": 518,
+                "function": "interpolate",
+                "primitive_calls": 2,
+                "calls": 2,
+                "self_seconds": 0.00417938,
+                "cumulative_seconds": 0.10628946800000001,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/psd/analytical.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 0.000816327,
+                "cumulative_seconds": 0.06817601300000001,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/psd/estimate.py",
+                "line": 94,
+                "function": "_inverse_spectrum_max_frequency",
+                "primitive_calls": 2,
+                "calls": 2,
+                "self_seconds": 0.0006867780000000001,
+                "cumulative_seconds": 0.93973057,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/filter/resample.py",
+                "line": 592,
+                "function": "highpass",
+                "primitive_calls": 2,
+                "calls": 2,
+                "self_seconds": 0.00016005000000000001,
+                "cumulative_seconds": 0.8784107440000001,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/psd/estimate.py",
+                "line": 58,
+                "function": "median_bias",
+                "primitive_calls": 2,
+                "calls": 2,
+                "self_seconds": 0.000153821,
+                "cumulative_seconds": 0.000153821,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/strain/strain.py",
+                "line": 78,
+                "function": "_linear_tapers_for_series",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 0.000143052,
+                "cumulative_seconds": 0.000399845,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/psd/__init__.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 8.6502e-05,
+                "cumulative_seconds": 0.075548628,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/strain/strain.py",
+                "line": 1616,
+                "function": "fourier_segments",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 8.5561e-05,
+                "cumulative_seconds": 0.336648565,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/strain/strain.py",
+                "line": 1458,
+                "function": "__init__",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 7.687400000000001e-05,
+                "cumulative_seconds": 0.00021921400000000002,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/psd/analytical_space.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 6.899e-05,
+                "cumulative_seconds": 0.0010394620000000001,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/filter/resample.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 5.4220000000000006e-05,
+                "cumulative_seconds": 0.32457805700000003,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/psd/analytical.py",
+                "line": 95,
+                "function": "get_psd_model_list",
+                "primitive_calls": 2,
+                "calls": 2,
+                "self_seconds": 5.0415000000000004e-05,
+                "cumulative_seconds": 8.3557e-05,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/strain/strain.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 4.6897e-05,
+                "cumulative_seconds": 0.008025557000000001,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/psd/__init__.py",
+                "line": 779,
+                "function": "associate_psds_to_segments",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 4.4393e-05,
+                "cumulative_seconds": 1.351185066,
+                "classification_basis": "Strain, PSD, or resampling module"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/psd/analytical_torch.py",
+                "line": 1,
+                "function": "<module>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 3.8643e-05,
+                "cumulative_seconds": 0.051795898,
+                "classification_basis": "Strain, PSD, or resampling module"
+              }
+            ]
+          },
+          {
+            "group": "I/O/import/setup",
+            "self_seconds": 0.8199595390000001,
+            "share_of_profile_self_percent": 2.458596072337356,
+            "function_count": 590,
+            "top_functions": [
+              {
+                "file": "<frozen importlib._bootstrap_external>",
+                "line": 1607,
+                "function": "find_spec",
+                "primitive_calls": 4146,
+                "calls": 4146,
+                "self_seconds": 0.047236111000000004,
+                "cumulative_seconds": 0.186904131,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/h5py-3.11.0-py3.11-linux-x86_64.egg/h5py/_hl/group.py",
+                "line": 348,
+                "function": "__getitem__",
+                "primitive_calls": 419,
+                "calls": 419,
+                "self_seconds": 0.036095224,
+                "cumulative_seconds": 0.083796138,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "<frozen importlib._bootstrap>",
+                "line": 1054,
+                "function": "_find_spec",
+                "primitive_calls": 2687,
+                "calls": 2687,
+                "self_seconds": 0.027928944,
+                "cumulative_seconds": 0.275460561,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/h5py-3.11.0-py3.11-linux-x86_64.egg/h5py/_hl/attrs.py",
+                "line": 52,
+                "function": "__getitem__",
+                "primitive_calls": 481,
+                "calls": 481,
+                "self_seconds": 0.025602200000000002,
+                "cumulative_seconds": 0.029143290000000002,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "<frozen importlib._bootstrap_external>",
+                "line": 126,
+                "function": "_path_join",
+                "primitive_calls": 22644,
+                "calls": 22644,
+                "self_seconds": 0.022314229,
+                "cumulative_seconds": 0.053966878,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "<frozen importlib._bootstrap_external>",
+                "line": 1007,
+                "function": "get_code",
+                "primitive_calls": 2385,
+                "calls": 2385,
+                "self_seconds": 0.021370133000000003,
+                "cumulative_seconds": 1.011718766,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/logging/__init__.py",
+                "line": 292,
+                "function": "__init__",
+                "primitive_calls": 1009,
+                "calls": 1009,
+                "self_seconds": 0.021242242,
+                "cumulative_seconds": 0.043223258,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "<frozen importlib._bootstrap_external>",
+                "line": 128,
+                "function": "<listcomp>",
+                "primitive_calls": 22644,
+                "calls": 22644,
+                "self_seconds": 0.020582720000000002,
+                "cumulative_seconds": 0.026882660000000003,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/h5py-3.11.0-py3.11-linux-x86_64.egg/h5py/_hl/dataset.py",
+                "line": 763,
+                "function": "__getitem__",
+                "primitive_calls": 302,
+                "calls": 302,
+                "self_seconds": 0.02007615,
+                "cumulative_seconds": 0.034727779,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "<frozen importlib._bootstrap_external>",
+                "line": 437,
+                "function": "cache_from_source",
+                "primitive_calls": 4771,
+                "calls": 4771,
+                "self_seconds": 0.019827873000000003,
+                "cumulative_seconds": 0.055370050000000004,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/h5py-3.11.0-py3.11-linux-x86_64.egg/h5py/_hl/filters.py",
+                "line": 298,
+                "function": "get_filters",
+                "primitive_calls": 325,
+                "calls": 325,
+                "self_seconds": 0.01939223,
+                "cumulative_seconds": 0.019701673000000003,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "<frozen importlib._bootstrap>",
+                "line": 1165,
+                "function": "_find_and_load",
+                "primitive_calls": 15,
+                "calls": 2829,
+                "self_seconds": 0.017168638,
+                "cumulative_seconds": 6.35297526,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "<frozen importlib._bootstrap>",
+                "line": 100,
+                "function": "acquire",
+                "primitive_calls": 7169,
+                "calls": 7169,
+                "self_seconds": 0.016519158000000003,
+                "cumulative_seconds": 0.019127761,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "<frozen importlib._bootstrap>",
+                "line": 1120,
+                "function": "_find_and_load_unlocked",
+                "primitive_calls": 15,
+                "calls": 2731,
+                "self_seconds": 0.015595205000000001,
+                "cumulative_seconds": 6.352556478,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "<frozen importlib._bootstrap>",
+                "line": 179,
+                "function": "_get_module_lock",
+                "primitive_calls": 7169,
+                "calls": 7169,
+                "self_seconds": 0.015285631000000001,
+                "cumulative_seconds": 0.022495532000000002,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "<frozen importlib._bootstrap>",
+                "line": 493,
+                "function": "_init_module_attrs",
+                "primitive_calls": 2620,
+                "calls": 2620,
+                "self_seconds": 0.01282055,
+                "cumulative_seconds": 0.07118864400000001,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "<frozen importlib._bootstrap>",
+                "line": 125,
+                "function": "release",
+                "primitive_calls": 7169,
+                "calls": 7169,
+                "self_seconds": 0.012744450000000001,
+                "cumulative_seconds": 0.015322372,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "<frozen importlib._bootstrap>",
+                "line": 1207,
+                "function": "_handle_fromlist",
+                "primitive_calls": 4669,
+                "calls": 7291,
+                "self_seconds": 0.012314669,
+                "cumulative_seconds": 6.087743548000001,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "<frozen importlib._bootstrap>",
+                "line": 666,
+                "function": "_load_unlocked",
+                "primitive_calls": 16,
+                "calls": 2620,
+                "self_seconds": 0.012163719,
+                "cumulative_seconds": 6.350314319000001,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              },
+              {
+                "file": "<frozen importlib._bootstrap_external>",
+                "line": 1467,
+                "function": "_get_spec",
+                "primitive_calls": 2683,
+                "calls": 2683,
+                "self_seconds": 0.011659604,
+                "cumulative_seconds": 0.219138682,
+                "classification_basis": "I/O, import, argument parsing, or logging code"
+              }
+            ]
+          },
+          {
+            "group": "remaining",
+            "self_seconds": 18.299892715000002,
+            "share_of_profile_self_percent": 54.87105425734184,
+            "function_count": 13229,
+            "top_functions": [
+              {
+                "file": "~",
+                "line": 0,
+                "function": "<built-in method lalframe._lalframe.FrStreamReadREAL8TimeSeries>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 2.295527052,
+                "cumulative_seconds": 2.295527052,
+                "classification_basis": "Opaque/shared native operation; no unique workload attribution"
+              },
+              {
+                "file": "~",
+                "line": 0,
+                "function": "<built-in method lalframe._lalframe.FrStreamGetTimeSeriesType>",
+                "primitive_calls": 2,
+                "calls": 2,
+                "self_seconds": 2.186750343,
+                "cumulative_seconds": 2.186750343,
+                "classification_basis": "Opaque/shared native operation; no unique workload attribution"
+              },
+              {
+                "file": "~",
+                "line": 0,
+                "function": "<built-in method numpy.array>",
+                "primitive_calls": 4325,
+                "calls": 4325,
+                "self_seconds": 1.1387316650000001,
+                "cumulative_seconds": 1.1413907540000001,
+                "classification_basis": "Opaque/shared native operation; no unique workload attribution"
+              },
+              {
+                "file": "~",
+                "line": 0,
+                "function": "<built-in method lalframe._lalframe.FrStreamGetVectorLength>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 1.0974352170000001,
+                "cumulative_seconds": 1.0974352170000001,
+                "classification_basis": "Opaque/shared native operation; no unique workload attribution"
+              },
+              {
+                "file": "~",
+                "line": 0,
+                "function": "<built-in method lalframe._lalframe.FrStreamGetREAL8TimeSeriesMetadata>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 1.096995159,
+                "cumulative_seconds": 1.096995159,
+                "classification_basis": "Opaque/shared native operation; no unique workload attribution"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/scheme.py",
+                "line": 432,
+                "function": "_scheming_function",
+                "primitive_calls": 25571,
+                "calls": 25573,
+                "self_seconds": 1.052830414,
+                "cumulative_seconds": 3.2990356000000003,
+                "classification_basis": "Shared utility or orchestration; no unique workload attribution"
+              },
+              {
+                "file": "~",
+                "line": 0,
+                "function": "<method 'partition' of 'numpy.ndarray' objects>",
+                "primitive_calls": 2,
+                "calls": 2,
+                "self_seconds": 0.7030265400000001,
+                "cumulative_seconds": 0.7030265400000001,
+                "classification_basis": "Opaque/shared native operation; no unique workload attribution"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/filter/matchedfilter.py",
+                "line": 312,
+                "function": "full_matched_filter_and_cluster_symm",
+                "primitive_calls": 480,
+                "calls": 480,
+                "self_seconds": 0.5441878720000001,
+                "cumulative_seconds": 8.599517027000001,
+                "classification_basis": "Shared utility or orchestration; no unique workload attribution"
+              },
+              {
+                "file": "~",
+                "line": 0,
+                "function": "<built-in method marshal.loads>",
+                "primitive_calls": 2247,
+                "calls": 2247,
+                "self_seconds": 0.47451315200000005,
+                "cumulative_seconds": 0.47451315200000005,
+                "classification_basis": "Opaque/shared native operation; no unique workload attribution"
+              },
+              {
+                "file": "~",
+                "line": 0,
+                "function": "<built-in method lal._lal.HighPassREAL4TimeSeries>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 0.40427510200000005,
+                "cumulative_seconds": 0.40427510200000005,
+                "classification_basis": "Opaque/shared native operation; no unique workload attribution"
+              },
+              {
+                "file": "~",
+                "line": 0,
+                "function": "<built-in method _imp.create_dynamic>",
+                "primitive_calls": 217,
+                "calls": 220,
+                "self_seconds": 0.386094362,
+                "cumulative_seconds": 0.39133904500000005,
+                "classification_basis": "Opaque/shared native operation; no unique workload attribution"
+              },
+              {
+                "file": "~",
+                "line": 0,
+                "function": "<built-in method lal._lal.HighPassREAL8TimeSeries>",
+                "primitive_calls": 1,
+                "calls": 1,
+                "self_seconds": 0.380916012,
+                "cumulative_seconds": 0.380916012,
+                "classification_basis": "Opaque/shared native operation; no unique workload attribution"
+              },
+              {
+                "file": "~",
+                "line": 0,
+                "function": "<built-in method builtins.compile>",
+                "primitive_calls": 595,
+                "calls": 595,
+                "self_seconds": 0.37469751100000004,
+                "cumulative_seconds": 0.37469751100000004,
+                "classification_basis": "Opaque/shared native operation; no unique workload attribution"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/types/array.py",
+                "line": 912,
+                "function": "__pow__",
+                "primitive_calls": 3,
+                "calls": 3,
+                "self_seconds": 0.28366409200000003,
+                "cumulative_seconds": 0.28366409200000003,
+                "classification_basis": "Shared utility or orchestration; no unique workload attribution"
+              },
+              {
+                "file": "~",
+                "line": 0,
+                "function": "<built-in method builtins.exec>",
+                "primitive_calls": 1,
+                "calls": 3798,
+                "self_seconds": 0.133865653,
+                "cumulative_seconds": 33.360251156000004,
+                "classification_basis": "Opaque/shared native operation; no unique workload attribution"
+              },
+              {
+                "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/types/array.py",
+                "line": 825,
+                "function": "__mul__",
+                "primitive_calls": 2545,
+                "calls": 2545,
+                "self_seconds": 0.13266159600000002,
+                "cumulative_seconds": 0.13266159600000002,
+                "classification_basis": "Shared utility or orchestration; no unique workload attribution"
+              },
+              {
+                "file": "~",
+                "line": 0,
+                "function": "<method 'fill' of 'numpy.ndarray' objects>",
+                "primitive_calls": 101,
+                "calls": 101,
+                "self_seconds": 0.128943689,
+                "cumulative_seconds": 0.128943689,
+                "classification_basis": "Opaque/shared native operation; no unique workload attribution"
+              },
+              {
+                "file": "~",
+                "line": 0,
+                "function": "<built-in method _ctypes.dlopen>",
+                "primitive_calls": 24,
+                "calls": 24,
+                "self_seconds": 0.116151951,
+                "cumulative_seconds": 0.116151951,
+                "classification_basis": "Opaque/shared native operation; no unique workload attribution"
+              },
+              {
+                "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/inspect.py",
+                "line": 863,
+                "function": "cleandoc",
+                "primitive_calls": 7488,
+                "calls": 7488,
+                "self_seconds": 0.09915865,
+                "cumulative_seconds": 0.15362299000000001,
+                "classification_basis": "Shared utility or orchestration; no unique workload attribution"
+              },
+              {
+                "file": "~",
+                "line": 0,
+                "function": "<built-in method posix.lstat>",
+                "primitive_calls": 23741,
+                "calls": 23741,
+                "self_seconds": 0.095085394,
+                "cumulative_seconds": 0.095085394,
+                "classification_basis": "Opaque/shared native operation; no unique workload attribution"
+              }
+            ]
+          }
+        ],
+        "phase_functions": [
+          {
+            "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/bin/pycbc_inspiral",
+            "line": 240,
+            "function": "template_triggers",
+            "primitive_calls": 96,
+            "calls": 96,
+            "self_seconds": 0.03406004,
+            "cumulative_seconds": 12.380157604,
+            "classification_basis": "Shared utility or orchestration; no unique workload attribution"
+          },
+          {
+            "file": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/bin/pycbc_inspiral",
+            "line": 1,
+            "function": "<module>",
+            "primitive_calls": 1,
+            "calls": 1,
+            "self_seconds": 0.0038593530000000003,
+            "cumulative_seconds": 33.360181865,
+            "classification_basis": "Shared utility or orchestration; no unique workload attribution"
+          }
+        ],
+        "exclusive_groups_reconcile": true,
+        "accounting": "Each pstats tt/self time is counted exactly once. Native callees can be charged to an opaque C-call entry. Groups are code ownership, not inclusive pipeline phases.",
+        "phase_note": "Phase cumulative times include descendants and overlap the exclusive groups. template_triggers includes one template's decompression, all segment filtering and vetoes; it is not a pure correlation timer. Do not sum phase cumulative rows.",
+        "timing_note": "cProfile instrumentation changes elapsed time; this is not an unprofiled benchmark. CUDA launches can be asynchronous and cProfile does not measure device kernel time."
+      },
+      "internal_phase_times": {
+        "input": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/reference-cpu-l512-cprofile/triggers.hdf",
+          "sha256": "72fead3e782809d94912133ab4c2f8742cb58dbaf92a53137518211cda267f29"
+        },
+        "detectors": [
+          {
+            "detector": "H1",
+            "run_seconds": 27.065364122390747,
+            "setup_seconds": 14.66523218154907,
+            "setup_fraction": 0.5418449984723005
+          }
+        ],
+        "source": "pycbc_inspiral tstart/tsetup/tstop; eventmgr DETECTOR/search/run_time and DETECTOR/search/setup_time_fraction",
+        "note": "Internal run excludes imports before tstart and final event-file writing. Setup ends before template chunks. Both values are from this profiled execution, not a separate unprofiled measurement."
+      }
+    },
+    {
+      "directory": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/reference-cpu-l512-perf",
+      "receipt": {
+        "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/reference-cpu-l512-perf/receipt.json",
+        "sha256": "ce7de026b5f8dc42995f09919fc11b6fb22f55e9494a72e78c6c29eee0693b99"
+      },
+      "run": {
+        "case": "reference-cpu-l512-perf",
+        "mode": "perf",
+        "scheme": "cpu:1",
+        "segment_length": 512,
+        "source_info": {
+          "commit": "fb4b335eeeeaeaa907c1143b45e0191e2d977761",
+          "status": "",
+          "tracked_diff": ""
+        },
+        "environment": {
+          "OMP_NUM_THREADS": "1",
+          "MKL_NUM_THREADS": "1",
+          "MKL_DYNAMIC": "FALSE",
+          "MKL_THREADING_LAYER": "GNU",
+          "OPENBLAS_NUM_THREADS": "1",
+          "NUMEXPR_NUM_THREADS": "1",
+          "VECLIB_MAXIMUM_THREADS": "1",
+          "BLIS_NUM_THREADS": "1",
+          "PYTHONHASHSEED": "0",
+          "PYTHONPATH": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source",
+          "PYTHONDONTWRITEBYTECODE": "1"
+        }
+      },
+      "full_process_wall_seconds": 34.151083523000125,
+      "wall_note": "Parent run-case elapsed time includes command wrappers and profiling overhead; only mode=timing is unprofiled.",
+      "perf": {
+        "input": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/reference-cpu-l512-perf/perf-report.txt",
+          "sha256": "3f86b0e20c7631cedf12b525db6e40c503962cdd691800e938ac6a7a75904694"
+        },
+        "event": "cycles:u",
+        "samples_header": "6K",
+        "sample_count_exact": null,
+        "event_period_count_approx": 74586242455,
+        "reported_row_count": 79,
+        "reported_rows_percent_sum": 88.35,
+        "top_native_functions": [
+          {
+            "self_event_percent": 14.64,
+            "raw_columns": "861   10917282125  python      libframel-9cd69e87.so.8.43.1                           [.] Frz_inflate_fast                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     -      -            ",
+            "samples": 861,
+            "event_period": 10917282125,
+            "command": "python",
+            "shared_object": "libframel-9cd69e87.so.8.43.1",
+            "symbol": "[.] Frz_inflate_fast                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     -      -",
+            "classification": "unassigned native symbol; no unique pipeline attribution"
+          },
+          {
+            "self_event_percent": 9.69,
+            "raw_columns": "549    7229140699  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cRadix4Inv_32fc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     -      -            ",
+            "samples": 549,
+            "event_period": 7229140699,
+            "command": "python",
+            "shared_object": "libmkl_def.so",
+            "symbol": "[.] mkl_dft_def_owns_cRadix4Inv_32fc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     -      -",
+            "classification": "FFT symbol (symbol-name evidence)"
+          },
+          {
+            "self_event_percent": 5.9,
+            "raw_columns": "373    4396945843  python      libmkl_core.so                                         [.] mkl_serv_libm_sincospif                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              -      -            ",
+            "samples": 373,
+            "event_period": 4396945843,
+            "command": "python",
+            "shared_object": "libmkl_core.so",
+            "symbol": "[.] mkl_serv_libm_sincospif                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              -      -",
+            "classification": "unassigned native symbol; no unique pipeline attribution"
+          },
+          {
+            "self_event_percent": 5.79,
+            "raw_columns": "330    4321745115  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFft_BlkMerge_32fc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -      -            ",
+            "samples": 330,
+            "event_period": 4321745115,
+            "command": "python",
+            "shared_object": "libmkl_def.so",
+            "symbol": "[.] mkl_dft_def_owns_cFft_BlkMerge_32fc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -      -",
+            "classification": "FFT symbol (symbol-name evidence)"
+          },
+          {
+            "self_event_percent": 5.69,
+            "raw_columns": "327    4240941014  python      chisq_cpu.cpython-311-x86_64-linux-gnu.so              [.] __pyx_fuse_0_0__pyx_pw_5pycbc_6vetoes_9chisq_cpu_21point_chisq_code(_object*, _object*, _object*)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    -      -            ",
+            "samples": 327,
+            "event_period": 4240941014,
+            "command": "python",
+            "shared_object": "chisq_cpu.cpython-311-x86_64-linux-gnu.so",
+            "symbol": "[.] __pyx_fuse_0_0__pyx_pw_5pycbc_6vetoes_9chisq_cpu_21point_chisq_code(_object*, _object*, _object*)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    -      -",
+            "classification": "unassigned native symbol; no unique pipeline attribution"
+          },
+          {
+            "self_event_percent": 4.58,
+            "raw_columns": "258    3415345252  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFftInv_Fact8_32fc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -      -            ",
+            "samples": 258,
+            "event_period": 3415345252,
+            "command": "python",
+            "shared_object": "libmkl_def.so",
+            "symbol": "[.] mkl_dft_def_owns_cFftInv_Fact8_32fc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -      -",
+            "classification": "FFT symbol (symbol-name evidence)"
+          },
+          {
+            "self_event_percent": 3.9,
+            "raw_columns": "222    2912380357  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFft_BlkSplit_32fc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -      -            ",
+            "samples": 222,
+            "event_period": 2912380357,
+            "command": "python",
+            "shared_object": "libmkl_def.so",
+            "symbol": "[.] mkl_dft_def_owns_cFft_BlkSplit_32fc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -      -",
+            "classification": "FFT symbol (symbol-name evidence)"
+          },
+          {
+            "self_event_percent": 3.84,
+            "raw_columns": "221    2866788824  python      libframel-9cd69e87.so.8.43.1                           [.] FrCksumGnu                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           -      -            ",
+            "samples": 221,
+            "event_period": 2866788824,
+            "command": "python",
+            "shared_object": "libframel-9cd69e87.so.8.43.1",
+            "symbol": "[.] FrCksumGnu                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           -      -",
+            "classification": "unassigned native symbol; no unique pipeline attribution"
+          },
+          {
+            "self_event_percent": 2.61,
+            "raw_columns": "147    1947168825  python      simd_threshold_cython.cpython-311-x86_64-linux-gnu.so  [.] _max_simple(float*, float*, float*, long*, long, long)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               -      -            ",
+            "samples": 147,
+            "event_period": 1947168825,
+            "command": "python",
+            "shared_object": "simd_threshold_cython.cpython-311-x86_64-linux-gnu.so",
+            "symbol": "[.] _max_simple(float*, float*, float*, long*, long, long)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               -      -",
+            "classification": "unassigned native symbol; no unique pipeline attribution"
+          },
+          {
+            "self_event_percent": 2.05,
+            "raw_columns": "147    1530510118  python      python3.11                                             [.] _PyEval_EvalFrameDefault                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             -      -            ",
+            "samples": 147,
+            "event_period": 1530510118,
+            "command": "python",
+            "shared_object": "python3.11",
+            "symbol": "[.] _PyEval_EvalFrameDefault                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             -      -",
+            "classification": "unassigned native symbol; no unique pipeline attribution"
+          },
+          {
+            "self_event_percent": 1.83,
+            "raw_columns": "104    1363820969  python      matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so      [.] __pyx_pf_5pycbc_6filter_17matchedfilter_cpu_12_correlate(_object*, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice) [clone ._omp_fn.0]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    -      -            ",
+            "samples": 104,
+            "event_period": 1363820969,
+            "command": "python",
+            "shared_object": "matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so",
+            "symbol": "[.] __pyx_pf_5pycbc_6filter_17matchedfilter_cpu_12_correlate(_object*, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice) [clone ._omp_fn.0]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    -      -",
+            "classification": "correlation symbol (symbol-name evidence)"
+          },
+          {
+            "self_event_percent": 1.8,
+            "raw_columns": "106    1345890587  python      libframel-9cd69e87.so.8.43.1                           [.] Frz_adler32                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          -      -            ",
+            "samples": 106,
+            "event_period": 1345890587,
+            "command": "python",
+            "shared_object": "libframel-9cd69e87.so.8.43.1",
+            "symbol": "[.] Frz_adler32                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          -      -",
+            "classification": "unassigned native symbol; no unique pipeline attribution"
+          },
+          {
+            "self_event_percent": 1.67,
+            "raw_columns": "94    1245355088  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFftInv_Fact4_32fc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -      -            ",
+            "samples": 94,
+            "event_period": 1245355088,
+            "command": "python",
+            "shared_object": "libmkl_def.so",
+            "symbol": "[.] mkl_dft_def_owns_cFftInv_Fact4_32fc                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -      -",
+            "classification": "FFT symbol (symbol-name evidence)"
+          },
+          {
+            "self_event_percent": 1.62,
+            "raw_columns": "105    1206675415  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] FLOAT_add_FMA3__AVX2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 -      -            ",
+            "samples": 105,
+            "event_period": 1206675415,
+            "command": "python",
+            "shared_object": "_multiarray_umath.cpython-311-x86_64-linux-gnu.so",
+            "symbol": "[.] FLOAT_add_FMA3__AVX2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 -      -",
+            "classification": "unassigned native symbol; no unique pipeline attribution"
+          },
+          {
+            "self_event_percent": 1.61,
+            "raw_columns": "106    1201986425  python      libmkl_core.so                                         [.] mkl_serv_libm_sin                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    -      -            ",
+            "samples": 106,
+            "event_period": 1201986425,
+            "command": "python",
+            "shared_object": "libmkl_core.so",
+            "symbol": "[.] mkl_serv_libm_sin                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    -      -",
+            "classification": "unassigned native symbol; no unique pipeline attribution"
+          },
+          {
+            "self_event_percent": 1.47,
+            "raw_columns": "83    1096030158  python      libmkl_core.so                                         [.] mkl_serv_libm_cos                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    -      -            ",
+            "samples": 83,
+            "event_period": 1096030158,
+            "command": "python",
+            "shared_object": "libmkl_core.so",
+            "symbol": "[.] mkl_serv_libm_cos                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    -      -",
+            "classification": "unassigned native symbol; no unique pipeline attribution"
+          },
+          {
+            "self_event_percent": 1.38,
+            "raw_columns": "78    1027077867  python      decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so  [.] void _decomp_main_loop<float, std::complex<float> >(int, std::complex<float>*, double, long, long, float*, float*, float*, long, long)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               -      -            ",
+            "samples": 78,
+            "event_period": 1027077867,
+            "command": "python",
+            "shared_object": "decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so",
+            "symbol": "[.] void _decomp_main_loop<float, std::complex<float> >(int, std::complex<float>*, double, long, long, float*, float*, float*, long, long)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               -      -",
+            "classification": "unassigned native symbol; no unique pipeline attribution"
+          },
+          {
+            "self_event_percent": 1.1,
+            "raw_columns": "63     822105538  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cBitRev1_Blk                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -      -            ",
+            "samples": 63,
+            "event_period": 822105538,
+            "command": "python",
+            "shared_object": "libmkl_def.so",
+            "symbol": "[.] mkl_dft_def_owns_cBitRev1_Blk                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -      -",
+            "classification": "FFT symbol (symbol-name evidence)"
+          },
+          {
+            "self_event_percent": 0.89,
+            "raw_columns": "50     664627768  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] int introselect_<npy::float_tag, false, float>(float*, long*, long, long, long*, long*) [clone .isra.0]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              -      -            ",
+            "samples": 50,
+            "event_period": 664627768,
+            "command": "python",
+            "shared_object": "_multiarray_umath.cpython-311-x86_64-linux-gnu.so",
+            "symbol": "[.] int introselect_<npy::float_tag, false, float>(float*, long*, long, long, long*, long*) [clone .isra.0]                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              -      -",
+            "classification": "unassigned native symbol; no unique pipeline attribution"
+          },
+          {
+            "self_event_percent": 0.87,
+            "raw_columns": "49     648921749  python      python3.11                                             [.] gc_collect_main                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      -      -            ",
+            "samples": 49,
+            "event_period": 648921749,
+            "command": "python",
+            "shared_object": "python3.11",
+            "symbol": "[.] gc_collect_main                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      -      -",
+            "classification": "unassigned native symbol; no unique pipeline attribution"
+          }
+        ],
+        "headers": [
+          "# To display the perf.data header info, please use --header/--header-only options.",
+          "#",
+          "#",
+          "# Total Lost Samples: 0",
+          "#",
+          "# Samples: 6K of event 'cycles:u'",
+          "# Event count (approx.): 74586242455",
+          "#",
+          "# Overhead       Samples        Period  Command     Shared Object                                          Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           IPC   [IPC Coverage]",
+          "# ........  ............  ............  ..........  .....................................................  .......................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................  ....................",
+          "#",
+          "#",
+          "# (Cannot load tips.txt file, please install perf!)",
+          "#"
+        ],
+        "denominator_note": "Overhead is perf's reported direct event-period percentage for this event, not seconds or necessarily sample-count share. Samples header may be rounded; exact sample_count is then null. Percent-limit omits small rows; never renormalize visible rows.",
+        "timing_note": "CPU event sampling is separate from cProfile and full-process wall time; it does not measure CUDA device utilization or elapsed kernel time."
+      },
+      "internal_phase_times": {
+        "input": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/reference-cpu-l512-perf/triggers.hdf",
+          "sha256": "d649ba928d57e620bee3104c5c74caa795523d0ea3ed3f9143592459a73bce32"
+        },
+        "detectors": [
+          {
+            "detector": "H1",
+            "run_seconds": 27.055167198181152,
+            "setup_seconds": 14.622176647186281,
+            "setup_fraction": 0.5404578186517099
+          }
+        ],
+        "source": "pycbc_inspiral tstart/tsetup/tstop; eventmgr DETECTOR/search/run_time and DETECTOR/search/setup_time_fraction",
+        "note": "Internal run excludes imports before tstart and final event-file writing. Setup ends before template chunks. Both values are from this profiled execution, not a separate unprofiled measurement."
+      }
+    }
+  ]
+}

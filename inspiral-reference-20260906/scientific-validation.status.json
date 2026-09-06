@@ -1,0 +1,88 @@
+{
+  "state": "failed",
+  "pid": 3797840,
+  "host": "len",
+  "cwd": "/home/xangma/pycbc-torch-inspiral-reference-20260906",
+  "started_utc": "2026-09-06T16:55:08.837860+00:00",
+  "commands": [
+    [
+      "waveform-validation",
+      [
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-u",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/validate-waveforms.py",
+        "--bank-metadata",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-metadata.json",
+        "--compression-receipt",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/compression.json",
+        "--source",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/source",
+        "--output",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/waveform-validation.json",
+        "--qualification",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-v2-cpu-l256/qualification.json",
+        "--qualification",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-v2-cpu-l512/qualification.json",
+        "--qualification",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-v2-cpu-l1024/qualification.json",
+        "--qualification",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-cpu-l256-s96/qualification.json",
+        "--qualification",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-cpu-l512-s96/qualification.json",
+        "--qualification",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-cpu-l1024-s96/qualification.json"
+      ]
+    ],
+    [
+      "boundary-injections",
+      [
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-u",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/check-boundary-injections.py",
+        "--bank-metadata",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-metadata.json",
+        "--compression-receipt",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/compression.json",
+        "--source",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/source",
+        "--output",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/boundary-injections.json",
+        "--qualification",
+        "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-v2-cpu-l1024/qualification.json"
+      ]
+    ]
+  ],
+  "completed": [
+    {
+      "name": "waveform-validation",
+      "returncode": 1
+    }
+  ],
+  "environment": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "MKL_DYNAMIC": "FALSE",
+    "MKL_THREADING_LAYER": "GNU",
+    "OPENBLAS_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+    "BLIS_NUM_THREADS": "1",
+    "PYTHONHASHSEED": "0",
+    "PYTHONPATH": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "runner_sha256": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-validation-suite.py": "fbcf3e84127ed2298c21f8c745f644de3952181aeaf5d5d4b25de44d0219a7ba",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/validate-waveforms.py": "9c761995585d27364d97960fd74f2efb3b64f7e978178f348072901b6f4489c6",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/check-boundary-injections.py": "60fbc9ab4c3a67cd038b081d5f5d1367e39ed7e4efc5a0f9b65f5337738a7b1b"
+  },
+  "current": null,
+  "child_pid": 3797856,
+  "runner_sha256_after": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-validation-suite.py": "fbcf3e84127ed2298c21f8c745f644de3952181aeaf5d5d4b25de44d0219a7ba",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/validate-waveforms.py": "9c761995585d27364d97960fd74f2efb3b64f7e978178f348072901b6f4489c6",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/check-boundary-injections.py": "60fbc9ab4c3a67cd038b081d5f5d1367e39ed7e4efc5a0f9b65f5337738a7b1b"
+  },
+  "returncode": 1,
+  "finished_utc": "2026-09-06T16:57:45.168704+00:00"
+}

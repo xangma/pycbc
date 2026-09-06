@@ -1,0 +1,2106 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "generated_utc": "2026-09-06T17:32:53.849744+00:00",
+  "scope": "Read-only attribution of the previously reported B32/T4 CPU-native residual; no performance-code change or new benchmark.",
+  "conclusion": {
+    "causal_attribution": "unresolved",
+    "summary": "The diagnostic confirms cheaper overlap admission and a changed peak-reduction workload. The positive cProfile difference is concentrated in unchanged native FFTW plan execution and batch orchestration own time, while correlation and complete peak-helper cumulative time decrease. Opposite Torch-profile timing direction prevents assigning the original roughly 6% throughput regression to a single cause.",
+    "supported": [
+      "Overlap comparisons and admission overhead are reduced.",
+      "Chunked peak arithmetic removes the sum/fill reduction and increases small-operation launches; argmax costs more in this one Torch profile.",
+      "Unchanged FFTW implementation dominates both cProfile samples."
+    ],
+    "not_supported": [
+      "Claiming chunking, FFTW itself, scheduling, cache effects, or Python overhead conclusively causes the repeatable throughput loss.",
+      "Claiming the original 5.85% rate loss was remeasured for candidate-v2."
+    ],
+    "next_action": "No automatic performance change. Retain this attribution and the original timing result with their separate source identities."
+  },
+  "input_sha256": {
+    "accelerator-refinement/plan.json": "e7f5ef64e0b3339cf7a2a4231d0473f030fa18b66802ccf162bfef0d341601aa",
+    "accelerator-refinement/sources-after.json": "d084abe3fed6ee3a1c510e0e3cbd5cda3c289bc6b5844bd30cd4fca01572204a",
+    "accelerator-refinement/sources-before.json": "d084abe3fed6ee3a1c510e0e3cbd5cda3c289bc6b5844bd30cd4fca01572204a",
+    "accelerator-refinement/status.json": "edd21f8a42759637d5359c4220da8ce74f98ff95e7838fc9a5dc68fc5c96771a",
+    "comparison/live/torch_cpu_native-b32-t4-r1-baseline.json": "e314777d1aabbe4d49cf18d4f4e703fc21295b23e3d83bc76c3cda6b96c14fc3",
+    "comparison/live/torch_cpu_native-b32-t4-r1-candidate.json": "765780cbc992f93cf62a32ef26780d37d4742d32a06d90e6251a1a79f4af910b",
+    "comparison/live/torch_cpu_native-b32-t4-r2-baseline.json": "4e51a56837cab4d141a5caaa190023735895ffb5d1467f170cf72ee6fadb3a6d",
+    "comparison/live/torch_cpu_native-b32-t4-r2-candidate.json": "9354a1af639ed343a895e36a9c4db008d582cc6c86a3edff20e8f578ab330a82",
+    "comparison/live/torch_cpu_native-b32-t4-r3-baseline.json": "c4f751c644497b3f01c8a5085675bc78897d69aa5e33ab38d0dffa0829fc44e1",
+    "comparison/live/torch_cpu_native-b32-t4-r3-candidate.json": "1b3a4875a69fe318dedb54bb49da88285a66ee3f4dd71f08ae32b5218e969c71",
+    "cpu32-t4-diagnostic/baseline/operators.txt": "3e9a038115fcec80940a3f0625f3e51699ead21b7f41f14ee8dcdf8198febe06",
+    "cpu32-t4-diagnostic/baseline/python.pstats": "a66bb7113ff18c48791c80fffdc12e092374d756794c31e871cdc99329af0aaf",
+    "cpu32-t4-diagnostic/baseline/python.txt": "57df7848950550a5e6b5af76f8184f30d45e22dea65f55eecbaad17f0e097f06",
+    "cpu32-t4-diagnostic/baseline/status.json": "0fd7f9cab5b535579b9f4e28f130a9532b5ffc755a5199b31060883e6051dfd2",
+    "cpu32-t4-diagnostic/baseline/trace.json": "1a6c0a408042131b632cd6014f0fd12b8c6c6991b018830756c902dadce60e79",
+    "cpu32-t4-diagnostic/baseline/worker.log": "c36ae1afbd48cff7e4251e8294cdf8e440584b2b9ec593e68d0ec185dae545df",
+    "cpu32-t4-diagnostic/baseline-command.json": "305a91ff8ce87d53f852aa508c882173034e10d4ccd2f4ac8b808fda5408e32e",
+    "cpu32-t4-diagnostic/baseline-profiles-sha256.json": "d9dc8ee8451ddb7891b772ee7f83daec9cf44ea5d3cb512579665f93de53c97a",
+    "cpu32-t4-diagnostic/baseline.log": "e07ede5ce9664be34da50c42396dbecd206fd9a78a06fe0a39a61b4b331d6fd7",
+    "cpu32-t4-diagnostic/candidate-v2/operators.txt": "9a2dbcf27c49a068a0cee4e49385eb72a4deb600c9534bcf43134e0772f2acf5",
+    "cpu32-t4-diagnostic/candidate-v2/python.pstats": "8e1f912198b09a3cdb5ef8269ca028e0151e5bcc2ea95a323ef76be59965adf6",
+    "cpu32-t4-diagnostic/candidate-v2/python.txt": "07c45b99e763a3954ed720ffe94435d9b085bfcdcf92af6cd7e4d11bdc4d91a0",
+    "cpu32-t4-diagnostic/candidate-v2/status.json": "0fd7f9cab5b535579b9f4e28f130a9532b5ffc755a5199b31060883e6051dfd2",
+    "cpu32-t4-diagnostic/candidate-v2/trace.json": "a64dde0920d8cc3e68525bb33321a9e3934e836cea65bff5feba64979bbfaf45",
+    "cpu32-t4-diagnostic/candidate-v2/worker.log": "c818c4d9ffc16ee8f9b049cd4df95ca8c189de7e0dae87daca73a143ee616020",
+    "cpu32-t4-diagnostic/candidate-v2-command.json": "8343b4c6504163979979a2c5ae6606b49291bbe1c8757f1547298449633c9c60",
+    "cpu32-t4-diagnostic/candidate-v2-profiles-sha256.json": "10f9cb417428982f2c8a5a0f09ae8dc4c23f4066196b2096593799f62d4eb6e5",
+    "cpu32-t4-diagnostic/candidate-v2.log": "54d429e2e8fcaa9e9642eafdadfc455919a25369c789baaef7ada95c0a1eb920",
+    "cpu32-t4-diagnostic/sources-after.json": "2e91aa687c377f8238cbf68eb73833e62f8c62f1b28ce03cba1a13589e103ff3",
+    "cpu32-t4-diagnostic/sources-before.json": "2e91aa687c377f8238cbf68eb73833e62f8c62f1b28ce03cba1a13589e103ff3",
+    "cpu32-t4-diagnostic/status.json": "413669c917262e43d137b82f3ef2fb23716d160322a6cf6c8f606b02df7d3ebf",
+    "profile-live.py": "2023c5f9d91f3bfe9eeb34dae3fa734e3094be0ec67495cba06673404a01750b",
+    "report/input-manifest.json": "c44fe190b7790e497ce7a351a1d39944797939df97c3fbb376b28b5033ced60f",
+    "report/report.json": "f092fca1108f2bf85a55f4fb6e47dcb8c9382ab5e89d03d055e23858f69fcaea",
+    "report/report.md": "44557b517dcfd1f9bbfa2747805a4d50af81e9b8ff94cf03b83d2a45b1e9ce73",
+    "run-cpu32-diagnostic.py": "652b6bb2dbf0877c15a92c9b9c24eeb091402a5cbc5a13931da776773e1a70e6"
+  },
+  "verification": {
+    "all_profile_manifest_hashes_match": true,
+    "before_after_source_snapshots_equal": true,
+    "both_sources_clean": true,
+    "native_binary_manifests_equal_across_sources": true,
+    "completed_commands_and_profile_calls_verified": true,
+    "six_original_worker_rates_and_paired_ratios_recomputed": true,
+    "selected_original_workers_bound_by_report_manifest": true,
+    "pstats_exclusive_accounting_reconciles": true,
+    "torch_exclusive_accounting_reconciles_and_matches_printed_table": true,
+    "source_files_verified_against_snapshots": true
+  },
+  "runtime": {
+    "host": "len",
+    "affinity_cpu_list": "8-11",
+    "threads": 4,
+    "route": "torch_cpu_native",
+    "batch": 32,
+    "fft_samples": 131072,
+    "valid_peak_samples_per_template": 114688,
+    "num_strain_blocks": 3,
+    "seed": 7101,
+    "snr_threshold": 5.5,
+    "commands": [
+      {
+        "source": "baseline",
+        "command": [
+          "taskset",
+          "-c",
+          "8-11",
+          "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+          "/home/xangma/pycbc-torch-performance-fix-20260906/profile-live.py",
+          "--root",
+          "/home/xangma/pycbc-torch-performance-fix-20260906/baseline",
+          "--out",
+          "/home/xangma/pycbc-torch-performance-fix-20260906/cpu32-t4-diagnostic/baseline",
+          "--route",
+          "torch_cpu_native",
+          "--batch",
+          "32",
+          "--threads",
+          "4"
+        ],
+        "cwd": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline",
+        "host": "len",
+        "log": "/home/xangma/pycbc-torch-performance-fix-20260906/cpu32-t4-diagnostic/baseline.log",
+        "environment": {
+          "PYTHONPATH": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "OMP_DYNAMIC": "FALSE",
+          "OMP_NUM_THREADS": "4",
+          "MKL_NUM_THREADS": "4",
+          "OPENBLAS_NUM_THREADS": "1",
+          "NUMEXPR_NUM_THREADS": "1",
+          "PYCBC_TORCH_CPU_NATIVE_BATCH_CORRELATE": "1",
+          "PYCBC_TORCH_CPU_FFTW_BATCH": "1"
+        },
+        "started_utc": "2026-09-06T17:21:45.535868+00:00",
+        "pid": 320994,
+        "stop_command": "kill -TERM -- -320994",
+        "returncode": 0,
+        "finished_utc": "2026-09-06T17:21:51.910633+00:00"
+      },
+      {
+        "source": "candidate-v2",
+        "command": [
+          "taskset",
+          "-c",
+          "8-11",
+          "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+          "/home/xangma/pycbc-torch-performance-fix-20260906/profile-live.py",
+          "--root",
+          "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+          "--out",
+          "/home/xangma/pycbc-torch-performance-fix-20260906/cpu32-t4-diagnostic/candidate-v2",
+          "--route",
+          "torch_cpu_native",
+          "--batch",
+          "32",
+          "--threads",
+          "4"
+        ],
+        "cwd": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+        "host": "len",
+        "log": "/home/xangma/pycbc-torch-performance-fix-20260906/cpu32-t4-diagnostic/candidate-v2.log",
+        "environment": {
+          "PYTHONPATH": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+          "PYTHONDONTWRITEBYTECODE": "1",
+          "OMP_DYNAMIC": "FALSE",
+          "OMP_NUM_THREADS": "4",
+          "MKL_NUM_THREADS": "4",
+          "OPENBLAS_NUM_THREADS": "1",
+          "NUMEXPR_NUM_THREADS": "1",
+          "PYCBC_TORCH_CPU_NATIVE_BATCH_CORRELATE": "1",
+          "PYCBC_TORCH_CPU_FFTW_BATCH": "1"
+        },
+        "started_utc": "2026-09-06T17:21:51.922932+00:00",
+        "pid": 323946,
+        "stop_command": "kill -TERM -- -323946",
+        "returncode": 0,
+        "finished_utc": "2026-09-06T17:21:58.598803+00:00"
+      }
+    ]
+  },
+  "source_identity": {
+    "diagnostic": {
+      "baseline": {
+        "root": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline",
+        "sha": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+        "tree": "b0d5ef6e3b39bfe246b4c416528839256edadf1f",
+        "status": ""
+      },
+      "candidate-v2": {
+        "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+        "sha": "0d00581251e642a5d6b56b2497a9adad93069e6b",
+        "tree": "fa7a7c09df6d93133324f762d756842de172433d",
+        "status": ""
+      }
+    },
+    "original_timing": {
+      "baseline": {
+        "root": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline",
+        "sha": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+        "tree": "b0d5ef6e3b39bfe246b4c416528839256edadf1f",
+        "status": ""
+      },
+      "candidate": {
+        "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate",
+        "sha": "97bf1614f3afe53a6e2edb4d8c7dff79e9661782",
+        "tree": "d9819f6f6ebf2998ac967178778cc1911757e455",
+        "status": ""
+      }
+    },
+    "local_commit_with_original_candidate_tree": "450ab3f96ccea2783abb943b47f698578a507d59",
+    "original_candidate_tree_verified_equal": true,
+    "files": {
+      "baseline": {
+        "pycbc/filter/matchedfilter.py": {
+          "git_ref": "dfd42bf76766cadca0eecf609a1eaeac73534676:pycbc/filter/matchedfilter.py",
+          "sha256": "8d40acb0d70547bac98464a165b775d4943d822de21e03e17bbde7fff518cc2e"
+        },
+        "pycbc/filter/matchedfilter_torch.py": {
+          "git_ref": "dfd42bf76766cadca0eecf609a1eaeac73534676:pycbc/filter/matchedfilter_torch.py",
+          "sha256": "2db0475c19872675647f5c3b3711a61ba2210c1599ecb67c5eee8b5c910d7350"
+        },
+        "pycbc/fft/torchfft.py": {
+          "git_ref": "dfd42bf76766cadca0eecf609a1eaeac73534676:pycbc/fft/torchfft.py",
+          "sha256": "d8266c82aace68a4ad9a686cbd50c7b8e5ffda0522bcf3e35b58f457d7c97339"
+        },
+        "tools/bench_production_live_batch.py": {
+          "git_ref": "dfd42bf76766cadca0eecf609a1eaeac73534676:tools/bench_production_live_batch.py",
+          "sha256": "079ab813e3ed76902b007882611cf495eb2c63b8f75560a0666d956c350fdffe"
+        }
+      },
+      "candidate": {
+        "pycbc/filter/matchedfilter.py": {
+          "git_ref": "450ab3f96ccea2783abb943b47f698578a507d59:pycbc/filter/matchedfilter.py",
+          "sha256": "b6d98c6cd9d3e1502b3a80f3512a8437b46691d8d31aa26aab193d754e103720"
+        },
+        "pycbc/filter/matchedfilter_torch.py": {
+          "git_ref": "450ab3f96ccea2783abb943b47f698578a507d59:pycbc/filter/matchedfilter_torch.py",
+          "sha256": "a7e5a56cd5255fbf0f7b88663f6ec32bdbd31e4757f00b93a8b7d2c9fa5ed533"
+        },
+        "pycbc/fft/torchfft.py": {
+          "git_ref": "450ab3f96ccea2783abb943b47f698578a507d59:pycbc/fft/torchfft.py",
+          "sha256": "d8266c82aace68a4ad9a686cbd50c7b8e5ffda0522bcf3e35b58f457d7c97339"
+        },
+        "tools/bench_production_live_batch.py": {
+          "git_ref": "450ab3f96ccea2783abb943b47f698578a507d59:tools/bench_production_live_batch.py",
+          "sha256": "079ab813e3ed76902b007882611cf495eb2c63b8f75560a0666d956c350fdffe"
+        }
+      },
+      "candidate-v2": {
+        "pycbc/filter/matchedfilter.py": {
+          "git_ref": "0d00581251e642a5d6b56b2497a9adad93069e6b:pycbc/filter/matchedfilter.py",
+          "sha256": "40774107fdb566a626987dcded36dbd20f1a74c900d8d2801503209f3d7406c0"
+        },
+        "pycbc/filter/matchedfilter_torch.py": {
+          "git_ref": "0d00581251e642a5d6b56b2497a9adad93069e6b:pycbc/filter/matchedfilter_torch.py",
+          "sha256": "a7e5a56cd5255fbf0f7b88663f6ec32bdbd31e4757f00b93a8b7d2c9fa5ed533"
+        },
+        "pycbc/fft/torchfft.py": {
+          "git_ref": "0d00581251e642a5d6b56b2497a9adad93069e6b:pycbc/fft/torchfft.py",
+          "sha256": "d8266c82aace68a4ad9a686cbd50c7b8e5ffda0522bcf3e35b58f457d7c97339"
+        },
+        "tools/bench_production_live_batch.py": {
+          "git_ref": "0d00581251e642a5d6b56b2497a9adad93069e6b:tools/bench_production_live_batch.py",
+          "sha256": "079ab813e3ed76902b007882611cf495eb2c63b8f75560a0666d956c350fdffe"
+        }
+      }
+    },
+    "candidate_vs_v2_diff_sha256": "fd237ce9ba32697ccfecde9efd45938bef219dfec49bc3a2d3ed22aa6bb3b9d3",
+    "candidate_vs_v2_process_batch_ast_equal": true,
+    "candidate_vs_v2_cpu_peak_note": "The read-only diff preserves CPU chunk-size calculation, real.square()+imag.square(), per-chunk argmax, indexing and concatenation. It moves non-CPU handling outside the loop; source trees are nevertheless distinct."
+  },
+  "original_unprofiled_result": {
+    "input": "report/report.json",
+    "selection": {
+      "route": "torch_cpu_native",
+      "threads": 4,
+      "batch": 32
+    },
+    "report_row": {
+      "route": "torch_cpu_native",
+      "threads": 4,
+      "batch": 32,
+      "before": {
+        "median": 1157.0756604904257,
+        "minimum": 1143.9560351956663,
+        "maximum": 1168.7530227027232,
+        "worker_values": [
+          1168.7530227027232,
+          1157.0756604904257,
+          1143.9560351956663
+        ]
+      },
+      "after": {
+        "median": 1091.673684271095,
+        "minimum": 1077.039732063031,
+        "maximum": 1095.8903233877597,
+        "worker_values": [
+          1091.673684271095,
+          1095.8903233877597,
+          1077.039732063031
+        ]
+      },
+      "paired_ratio": {
+        "median": 0.9415044800028615,
+        "minimum": 0.9340499344734241,
+        "maximum": 0.9471207119880712,
+        "worker_values": [
+          0.9340499344734241,
+          0.9471207119880712,
+          0.9415044800028615
+        ]
+      },
+      "ratio_of_medians": 0.9434764912507018,
+      "search_capacity": {
+        "unit": "templates/core at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 4,
+        "resource": "configured CPU core",
+        "scale_from_raw_rate": 14.0,
+        "before": {
+          "median": 16199.05924686596,
+          "minimum": 16015.38449273933,
+          "maximum": 16362.542317838124,
+          "worker_values": [
+            16362.542317838124,
+            16199.05924686596,
+            16015.38449273933
+          ]
+        },
+        "after": {
+          "median": 15283.43157979533,
+          "minimum": 15078.556248882433,
+          "maximum": 15342.464527428636,
+          "worker_values": [
+            15283.43157979533,
+            15342.464527428636,
+            15078.556248882433
+          ]
+        }
+      }
+    },
+    "workers": {
+      "baseline": [
+        {
+          "replicate": 1,
+          "path": "comparison/live/torch_cpu_native-b32-t4-r1-baseline.json",
+          "template_block_rate": 1168.7530227027232,
+          "latency_block_median_ms": 27.506107,
+          "warm_iteration_rate_samples": [
+            1159.0476028577477,
+            1168.7530227027232,
+            1176.6575845043608
+          ]
+        },
+        {
+          "replicate": 2,
+          "path": "comparison/live/torch_cpu_native-b32-t4-r2-baseline.json",
+          "template_block_rate": 1157.0756604904257,
+          "latency_block_median_ms": 27.744758,
+          "warm_iteration_rate_samples": [
+            1150.7121643712735,
+            1157.0756604904257,
+            1160.627594864078
+          ]
+        },
+        {
+          "replicate": 3,
+          "path": "comparison/live/torch_cpu_native-b32-t4-r3-baseline.json",
+          "template_block_rate": 1143.9560351956663,
+          "latency_block_median_ms": 27.918627,
+          "warm_iteration_rate_samples": [
+            1143.9560351956663,
+            1127.906964312072,
+            1178.0115746263523
+          ]
+        }
+      ],
+      "candidate": [
+        {
+          "replicate": 1,
+          "path": "comparison/live/torch_cpu_native-b32-t4-r1-candidate.json",
+          "template_block_rate": 1091.673684271095,
+          "latency_block_median_ms": 29.354056,
+          "warm_iteration_rate_samples": [
+            1105.2580660726267,
+            1091.673684271095,
+            1070.655990367665
+          ]
+        },
+        {
+          "replicate": 2,
+          "path": "comparison/live/torch_cpu_native-b32-t4-r2-candidate.json",
+          "template_block_rate": 1095.8903233877597,
+          "latency_block_median_ms": 29.388852,
+          "warm_iteration_rate_samples": [
+            1075.5687548755616,
+            1095.8903233877597,
+            1110.42683627758
+          ]
+        },
+        {
+          "replicate": 3,
+          "path": "comparison/live/torch_cpu_native-b32-t4-r3-candidate.json",
+          "template_block_rate": 1077.039732063031,
+          "latency_block_median_ms": 29.750104,
+          "warm_iteration_rate_samples": [
+            1065.6629305930403,
+            1077.039732063031,
+            1083.7077665960335
+          ]
+        }
+      ]
+    },
+    "paired_rate_loss_percent": 5.849551999713853,
+    "paired_equivalent_latency_increase_percent": 6.212983712723363,
+    "units": "Raw rate is template-block evaluations per second. Displayed capacity multiplies by 56 valid seconds and divides by four configured cores. The paired median is not generally the ratio of aggregate medians."
+  },
+  "cprofile": {
+    "baseline": {
+      "profiled_call": 7,
+      "zero_based_strain_block": 0,
+      "total_self_seconds": 0.028622692999999984,
+      "total_calls": 4830,
+      "disjoint_attribution": [
+        {
+          "phase": "FFTW plan execution including target version update",
+          "seconds": 0.013985191000000001,
+          "accounting_field": "cumulative_seconds",
+          "function": {
+            "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/fft/torchfft.py",
+            "line": 637,
+            "function": "execute",
+            "primitive_calls": 1,
+            "calls": 1,
+            "self_seconds": 0.013969662,
+            "cumulative_seconds": 0.013985191000000001
+          }
+        },
+        {
+          "phase": "Native correlation wrapper including admission checks",
+          "seconds": 0.0030555490000000003,
+          "accounting_field": "cumulative_seconds",
+          "function": {
+            "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter_torch.py",
+            "line": 498,
+            "function": "execute",
+            "primitive_calls": 1,
+            "calls": 1,
+            "self_seconds": 0.0011035670000000002,
+            "cumulative_seconds": 0.0030555490000000003
+          }
+        },
+        {
+          "phase": "Complete peak helper",
+          "seconds": 0.010482428,
+          "accounting_field": "cumulative_seconds",
+          "function": {
+            "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter.py",
+            "line": 2091,
+            "function": "_torch_batch_peak_values",
+            "primitive_calls": 1,
+            "calls": 1,
+            "self_seconds": 0.00013914300000000002,
+            "cumulative_seconds": 0.010482428
+          }
+        },
+        {
+          "phase": "Batch orchestration own time",
+          "seconds": 0.000290816,
+          "accounting_field": "self_seconds",
+          "function": {
+            "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter.py",
+            "line": 2776,
+            "function": "_process_batch",
+            "primitive_calls": 2,
+            "calls": 2,
+            "self_seconds": 0.000290816,
+            "cumulative_seconds": 0.028387638000000003
+          }
+        },
+        {
+          "phase": "All other exclusive work",
+          "seconds": 0.0008087089999999839,
+          "accounting_field": "total minus the disjoint terms above"
+        }
+      ],
+      "overlap_check": {
+        "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter_torch.py",
+        "line": 339,
+        "function": "_batch_outputs_are_disjoint",
+        "primitive_calls": 1,
+        "calls": 1,
+        "self_seconds": 4.3671e-05,
+        "cumulative_seconds": 0.001104425
+      },
+      "span_comparisons": {
+        "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter_torch.py",
+        "line": 203,
+        "function": "_spans_overlap",
+        "primitive_calls": 1552,
+        "calls": 1552,
+        "self_seconds": 0.000321796,
+        "cumulative_seconds": 0.000321796
+      },
+      "peak_helper": {
+        "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter.py",
+        "line": 2091,
+        "function": "_torch_batch_peak_values",
+        "primitive_calls": 1,
+        "calls": 1,
+        "self_seconds": 0.00013914300000000002,
+        "cumulative_seconds": 0.010482428
+      },
+      "top_self_functions": [
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/fft/torchfft.py",
+          "line": 637,
+          "function": "execute",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 0.013969662,
+          "cumulative_seconds": 0.013985191000000001
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'sum' of 'torch._C.TensorBase' objects>",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 0.006924432,
+          "cumulative_seconds": 0.006924432
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'square' of 'torch._C.TensorBase' objects>",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 0.001832248,
+          "cumulative_seconds": 0.001832248
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method torch.argmax>",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 0.001485956,
+          "cumulative_seconds": 0.001485956
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter_torch.py",
+          "line": 498,
+          "function": "execute",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 0.0011035670000000002,
+          "cumulative_seconds": 0.0030555490000000003
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter_torch.py",
+          "line": 343,
+          "function": "<genexpr>",
+          "primitive_calls": 1056,
+          "calls": 1056,
+          "self_seconds": 0.000332312,
+          "cumulative_seconds": 0.0005196020000000001
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter_torch.py",
+          "line": 203,
+          "function": "_spans_overlap",
+          "primitive_calls": 1552,
+          "calls": 1552,
+          "self_seconds": 0.000321796,
+          "cumulative_seconds": 0.000321796
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter.py",
+          "line": 2776,
+          "function": "_process_batch",
+          "primitive_calls": 2,
+          "calls": 2,
+          "self_seconds": 0.000290816,
+          "cumulative_seconds": 0.028387638000000003
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter_torch.py",
+          "line": 321,
+          "function": "_batch_tensor_contract",
+          "primitive_calls": 65,
+          "calls": 65,
+          "self_seconds": 0.000260185,
+          "cumulative_seconds": 0.0005444190000000001
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method builtins.any>",
+          "primitive_calls": 65,
+          "calls": 65,
+          "self_seconds": 0.00021276400000000002,
+          "cumulative_seconds": 0.001047769
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter_torch.py",
+          "line": 345,
+          "function": "<genexpr>",
+          "primitive_calls": 528,
+          "calls": 528,
+          "self_seconds": 0.000167882,
+          "cumulative_seconds": 0.00029426100000000003
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter.py",
+          "line": 2091,
+          "function": "_torch_batch_peak_values",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 0.00013914300000000002,
+          "cumulative_seconds": 0.010482428
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter.py",
+          "line": 2506,
+          "function": "process_all",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 9.567000000000001e-05,
+          "cumulative_seconds": 0.028607854000000002
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/fft/torchfft.py",
+          "line": 781,
+          "function": "_can_use_fftw_cpu_batch",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 8.2657e-05,
+          "cumulative_seconds": 0.00013694800000000002
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter_torch.py",
+          "line": 174,
+          "function": "_has_autograd_state",
+          "primitive_calls": 65,
+          "calls": 65,
+          "self_seconds": 6.8e-05,
+          "cumulative_seconds": 0.00014149
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'data_ptr' of 'torch._C.TensorBase' objects>",
+          "primitive_calls": 205,
+          "calls": 205,
+          "self_seconds": 5.4048e-05,
+          "cumulative_seconds": 5.4048e-05
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter_torch.py",
+          "line": 352,
+          "function": "_same_array_tensors",
+          "primitive_calls": 2,
+          "calls": 2,
+          "self_seconds": 5.3781000000000006e-05,
+          "cumulative_seconds": 7.9039e-05
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter_torch.py",
+          "line": 339,
+          "function": "_batch_outputs_are_disjoint",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 4.3671e-05,
+          "cumulative_seconds": 0.001104425
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter.py",
+          "line": 2494,
+          "function": "combine_results",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 4.3332000000000005e-05,
+          "cumulative_seconds": 4.7029e-05
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter_torch.py",
+          "line": 207,
+          "function": "_logical_storage_span",
+          "primitive_calls": 65,
+          "calls": 65,
+          "self_seconds": 4.2922e-05,
+          "cumulative_seconds": 6.5734e-05
+        },
+        {
+          "file": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/autograd/graph.py",
+          "line": 245,
+          "function": "increment_version",
+          "primitive_calls": 33,
+          "calls": 33,
+          "self_seconds": 3.8538e-05,
+          "cumulative_seconds": 6.920900000000001e-05
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method torch.is_inference>",
+          "primitive_calls": 67,
+          "calls": 67,
+          "self_seconds": 3.8531e-05,
+          "cumulative_seconds": 3.8531e-05
+        },
+        {
+          "file": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/autograd/forward_ad.py",
+          "line": 151,
+          "function": "unpack_dual",
+          "primitive_calls": 65,
+          "calls": 65,
+          "self_seconds": 3.5622000000000006e-05,
+          "cumulative_seconds": 7.349e-05
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method torch.arange>",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 3.4435000000000005e-05,
+          "cumulative_seconds": 3.4435000000000005e-05
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline/pycbc/filter/matchedfilter_torch.py",
+          "line": 485,
+          "function": "<genexpr>",
+          "primitive_calls": 65,
+          "calls": 65,
+          "self_seconds": 3.4094e-05,
+          "cumulative_seconds": 0.000567563
+        }
+      ]
+    },
+    "candidate-v2": {
+      "profiled_call": 7,
+      "zero_based_strain_block": 0,
+      "total_self_seconds": 0.030500528000000002,
+      "total_calls": 1792,
+      "disjoint_attribution": [
+        {
+          "phase": "FFTW plan execution including target version update",
+          "seconds": 0.015841264,
+          "accounting_field": "cumulative_seconds",
+          "function": {
+            "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/fft/torchfft.py",
+            "line": 637,
+            "function": "execute",
+            "primitive_calls": 1,
+            "calls": 1,
+            "self_seconds": 0.015826958000000002,
+            "cumulative_seconds": 0.015841264
+          }
+        },
+        {
+          "phase": "Native correlation wrapper including admission checks",
+          "seconds": 0.0021202020000000003,
+          "accounting_field": "cumulative_seconds",
+          "function": {
+            "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter_torch.py",
+            "line": 505,
+            "function": "execute",
+            "primitive_calls": 1,
+            "calls": 1,
+            "self_seconds": 0.001132238,
+            "cumulative_seconds": 0.0021202020000000003
+          }
+        },
+        {
+          "phase": "Complete peak helper",
+          "seconds": 0.0099434,
+          "accounting_field": "cumulative_seconds",
+          "function": {
+            "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter.py",
+            "line": 2094,
+            "function": "_torch_batch_peak_values",
+            "primitive_calls": 1,
+            "calls": 1,
+            "self_seconds": 0.003618904,
+            "cumulative_seconds": 0.0099434
+          }
+        },
+        {
+          "phase": "Batch orchestration own time",
+          "seconds": 0.001819471,
+          "accounting_field": "self_seconds",
+          "function": {
+            "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter.py",
+            "line": 2798,
+            "function": "_process_batch",
+            "primitive_calls": 2,
+            "calls": 2,
+            "self_seconds": 0.001819471,
+            "cumulative_seconds": 0.030284159
+          }
+        },
+        {
+          "phase": "All other exclusive work",
+          "seconds": 0.0007761910000000025,
+          "accounting_field": "total minus the disjoint terms above"
+        }
+      ],
+      "overlap_check": {
+        "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter_torch.py",
+        "line": 339,
+        "function": "_batch_outputs_are_disjoint",
+        "primitive_calls": 1,
+        "calls": 1,
+        "self_seconds": 2.9159000000000003e-05,
+        "cumulative_seconds": 0.000110889
+      },
+      "span_comparisons": {
+        "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter_torch.py",
+        "line": 203,
+        "function": "_spans_overlap",
+        "primitive_calls": 32,
+        "calls": 32,
+        "self_seconds": 8.677e-06,
+        "cumulative_seconds": 8.677e-06
+      },
+      "peak_helper": {
+        "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter.py",
+        "line": 2094,
+        "function": "_torch_batch_peak_values",
+        "primitive_calls": 1,
+        "calls": 1,
+        "self_seconds": 0.003618904,
+        "cumulative_seconds": 0.0099434
+      },
+      "top_self_functions": [
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/fft/torchfft.py",
+          "line": 637,
+          "function": "execute",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 0.015826958000000002,
+          "cumulative_seconds": 0.015841264
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'square' of 'torch._C.TensorBase' objects>",
+          "primitive_calls": 8,
+          "calls": 8,
+          "self_seconds": 0.004030738,
+          "cumulative_seconds": 0.004030738
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter.py",
+          "line": 2094,
+          "function": "_torch_batch_peak_values",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 0.003618904,
+          "cumulative_seconds": 0.0099434
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method torch.argmax>",
+          "primitive_calls": 4,
+          "calls": 4,
+          "self_seconds": 0.002097008,
+          "cumulative_seconds": 0.002097008
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter.py",
+          "line": 2798,
+          "function": "_process_batch",
+          "primitive_calls": 2,
+          "calls": 2,
+          "self_seconds": 0.001819471,
+          "cumulative_seconds": 0.030284159
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter_torch.py",
+          "line": 505,
+          "function": "execute",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 0.001132238,
+          "cumulative_seconds": 0.0021202020000000003
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter_torch.py",
+          "line": 321,
+          "function": "_batch_tensor_contract",
+          "primitive_calls": 65,
+          "calls": 65,
+          "self_seconds": 0.000270538,
+          "cumulative_seconds": 0.0005567090000000001
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter.py",
+          "line": 2528,
+          "function": "process_all",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 9.6524e-05,
+          "cumulative_seconds": 0.030485299
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method torch.arange>",
+          "primitive_calls": 4,
+          "calls": 4,
+          "self_seconds": 9.1873e-05,
+          "cumulative_seconds": 9.1873e-05
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter_torch.py",
+          "line": 174,
+          "function": "_has_autograd_state",
+          "primitive_calls": 65,
+          "calls": 65,
+          "self_seconds": 7.3803e-05,
+          "cumulative_seconds": 0.0001466
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/fft/torchfft.py",
+          "line": 781,
+          "function": "_can_use_fftw_cpu_batch",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 6.508100000000001e-05,
+          "cumulative_seconds": 0.000124666
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'data_ptr' of 'torch._C.TensorBase' objects>",
+          "primitive_calls": 205,
+          "calls": 205,
+          "self_seconds": 5.8406e-05,
+          "cumulative_seconds": 5.8406e-05
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter_torch.py",
+          "line": 359,
+          "function": "_same_array_tensors",
+          "primitive_calls": 2,
+          "calls": 2,
+          "self_seconds": 5.7242000000000005e-05,
+          "cumulative_seconds": 8.692400000000001e-05
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter_torch.py",
+          "line": 207,
+          "function": "_logical_storage_span",
+          "primitive_calls": 65,
+          "calls": 65,
+          "self_seconds": 4.2453e-05,
+          "cumulative_seconds": 6.5431e-05
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<built-in method torch.is_inference>",
+          "primitive_calls": 67,
+          "calls": 67,
+          "self_seconds": 3.7931e-05,
+          "cumulative_seconds": 3.7931e-05
+        },
+        {
+          "file": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/autograd/graph.py",
+          "line": 245,
+          "function": "increment_version",
+          "primitive_calls": 33,
+          "calls": 33,
+          "self_seconds": 3.7508e-05,
+          "cumulative_seconds": 6.928900000000001e-05
+        },
+        {
+          "file": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/autograd/forward_ad.py",
+          "line": 151,
+          "function": "unpack_dual",
+          "primitive_calls": 65,
+          "calls": 65,
+          "self_seconds": 3.6852000000000006e-05,
+          "cumulative_seconds": 7.2797e-05
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/fft/torchfft.py",
+          "line": 1414,
+          "function": "execute",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 3.5227e-05,
+          "cumulative_seconds": 0.01604001
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter_torch.py",
+          "line": 492,
+          "function": "<genexpr>",
+          "primitive_calls": 65,
+          "calls": 65,
+          "self_seconds": 3.4536e-05,
+          "cumulative_seconds": 0.000575746
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter.py",
+          "line": 2184,
+          "function": "<genexpr>",
+          "primitive_calls": 33,
+          "calls": 33,
+          "self_seconds": 3.1952e-05,
+          "cumulative_seconds": 6.9471e-05
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'item' of 'numpy.generic' objects>",
+          "primitive_calls": 33,
+          "calls": 33,
+          "self_seconds": 3.1818e-05,
+          "cumulative_seconds": 3.1818e-05
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter_torch.py",
+          "line": 461,
+          "function": "can_execute",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 3.135e-05,
+          "cumulative_seconds": 0.0008756030000000001
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter_torch.py",
+          "line": 339,
+          "function": "_batch_outputs_are_disjoint",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 2.9159000000000003e-05,
+          "cumulative_seconds": 0.000110889
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter.py",
+          "line": 2516,
+          "function": "combine_results",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 2.6481000000000003e-05,
+          "cumulative_seconds": 2.9906e-05
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/pycbc/filter/matchedfilter.py",
+          "line": 2555,
+          "function": "_process_vetoes",
+          "primitive_calls": 1,
+          "calls": 1,
+          "self_seconds": 2.6151e-05,
+          "cumulative_seconds": 5.1928e-05
+        }
+      ]
+    }
+  },
+  "cprofile_comparison": {
+    "disjoint_phase_deltas": [
+      {
+        "phase": "FFTW plan execution including target version update",
+        "baseline_ms": 13.985191,
+        "candidate_v2_ms": 15.841264,
+        "delta_ms": 1.8560729999999999
+      },
+      {
+        "phase": "Native correlation wrapper including admission checks",
+        "baseline_ms": 3.055549,
+        "candidate_v2_ms": 2.1202020000000004,
+        "delta_ms": -0.935347
+      },
+      {
+        "phase": "Complete peak helper",
+        "baseline_ms": 10.482428,
+        "candidate_v2_ms": 9.9434,
+        "delta_ms": -0.5390280000000004
+      },
+      {
+        "phase": "Batch orchestration own time",
+        "baseline_ms": 0.290816,
+        "candidate_v2_ms": 1.819471,
+        "delta_ms": 1.528655
+      },
+      {
+        "phase": "All other exclusive work",
+        "baseline_ms": 0.8087089999999839,
+        "candidate_v2_ms": 0.7761910000000025,
+        "delta_ms": -0.032517999999981395
+      }
+    ],
+    "total_delta_ms": 1.8778350000000186,
+    "total_latency_increase_percent": 6.56065101910579,
+    "note": "Four selected disjoint phase terms plus the remainder reconcile exactly to profile total; overlap/admission details are nested inside correlation and are not added again."
+  },
+  "torch_profile": {
+    "baseline": {
+      "profiled_call": 8,
+      "zero_based_strain_block": 1,
+      "trace_span_us": 33843.508,
+      "recorded_cpu_op_events": 41,
+      "recorded_thread_count": 1,
+      "exclusive_operator_us": 15019.281,
+      "uncovered_trace_span_us": 18824.227,
+      "operator_rows": [
+        {
+          "name": "aten::sum",
+          "calls": 1,
+          "self_cpu_us": 6473.620000000001,
+          "total_cpu_us": 9292.191,
+          "input_shapes": [
+            [
+              [
+                32,
+                114688,
+                2
+              ],
+              [],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::pow",
+          "calls": 1,
+          "self_cpu_us": 4072.037,
+          "total_cpu_us": 4074.993,
+          "input_shapes": [
+            [
+              [
+                32,
+                114688,
+                2
+              ],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::fill_",
+          "calls": 1,
+          "self_cpu_us": 2816.046,
+          "total_cpu_us": 2816.046,
+          "input_shapes": [
+            [
+              [
+                32,
+                114688,
+                1
+              ],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::argmax",
+          "calls": 1,
+          "self_cpu_us": 1486.365,
+          "total_cpu_us": 1488.369,
+          "input_shapes": [
+            [
+              [
+                32,
+                114688
+              ],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::view",
+          "calls": 3,
+          "self_cpu_us": 29.065,
+          "total_cpu_us": 29.065,
+          "input_shapes": [
+            [
+              [
+                4194304
+              ],
+              []
+            ],
+            [
+              [
+                32
+              ],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::index",
+          "calls": 1,
+          "self_cpu_us": 24.708000000000002,
+          "total_cpu_us": 40.026,
+          "input_shapes": [
+            [
+              [
+                32,
+                114688
+              ],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::arange",
+          "calls": 2,
+          "self_cpu_us": 23.435,
+          "total_cpu_us": 45.947,
+          "input_shapes": [
+            [
+              [],
+              [],
+              [],
+              [],
+              []
+            ],
+            [
+              [],
+              [],
+              [],
+              [
+                0
+              ]
+            ]
+          ]
+        },
+        {
+          "name": "aten::as_strided",
+          "calls": 4,
+          "self_cpu_us": 16.631,
+          "total_cpu_us": 16.631,
+          "input_shapes": [
+            [
+              [
+                32,
+                131072
+              ],
+              [],
+              [],
+              []
+            ],
+            [
+              [
+                32,
+                114688
+              ],
+              [],
+              [],
+              []
+            ],
+            [
+              [
+                32
+              ],
+              [],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::detach",
+          "calls": 6,
+          "self_cpu_us": 13.705999999999998,
+          "total_cpu_us": 13.705999999999998,
+          "input_shapes": [
+            [
+              [
+                65537
+              ]
+            ],
+            [
+              [
+                32
+              ]
+            ]
+          ]
+        },
+        {
+          "name": "aten::slice",
+          "calls": 1,
+          "self_cpu_us": 11.983,
+          "total_cpu_us": 15.81,
+          "input_shapes": [
+            [
+              [
+                32,
+                131072
+              ],
+              [],
+              [],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::square",
+          "calls": 1,
+          "self_cpu_us": 11.902000000000044,
+          "total_cpu_us": 4086.895,
+          "input_shapes": [
+            [
+              [
+                32,
+                114688,
+                2
+              ]
+            ]
+          ]
+        },
+        {
+          "name": "aten::view_as_real",
+          "calls": 1,
+          "self_cpu_us": 11.812,
+          "total_cpu_us": 11.812,
+          "input_shapes": [
+            [
+              [
+                32,
+                114688
+              ]
+            ]
+          ]
+        },
+        {
+          "name": "aten::reshape",
+          "calls": 3,
+          "self_cpu_us": 10.379000000000003,
+          "total_cpu_us": 39.444,
+          "input_shapes": [
+            [
+              [
+                4194304
+              ],
+              []
+            ],
+            [
+              [
+                32
+              ],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::to",
+          "calls": 6,
+          "self_cpu_us": 7.253,
+          "total_cpu_us": 7.253,
+          "input_shapes": [
+            [
+              [
+                65537
+              ],
+              [],
+              [],
+              [],
+              [],
+              [],
+              [],
+              []
+            ],
+            [
+              [
+                32,
+                114688,
+                2
+              ],
+              [],
+              [],
+              [],
+              []
+            ],
+            [
+              [
+                32
+              ],
+              [],
+              [],
+              [],
+              [],
+              [],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::empty",
+          "calls": 1,
+          "self_cpu_us": 3.937,
+          "total_cpu_us": 3.937,
+          "input_shapes": [
+            [
+              [],
+              [],
+              [],
+              [],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::resize_",
+          "calls": 1,
+          "self_cpu_us": 2.314,
+          "total_cpu_us": 2.314,
+          "input_shapes": [
+            [
+              [
+                0
+              ],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::result_type",
+          "calls": 1,
+          "self_cpu_us": 1.874,
+          "total_cpu_us": 1.874,
+          "input_shapes": [
+            [
+              [
+                32,
+                114688,
+                2
+              ],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::resolve_conj",
+          "calls": 3,
+          "self_cpu_us": 1.6630000000000003,
+          "total_cpu_us": 1.6630000000000003,
+          "input_shapes": [
+            [
+              [
+                65537
+              ]
+            ],
+            [
+              [
+                32
+              ]
+            ]
+          ]
+        },
+        {
+          "name": "aten::resolve_neg",
+          "calls": 3,
+          "self_cpu_us": 0.5509999999999999,
+          "total_cpu_us": 0.5509999999999999,
+          "input_shapes": [
+            [
+              [
+                65537
+              ]
+            ],
+            [
+              [
+                32
+              ]
+            ]
+          ]
+        }
+      ],
+      "squared_scalar_elements": 7340032,
+      "argmax_input_elements": 3670016,
+      "rows_per_peak_chunk": [
+        32
+      ],
+      "self_time_matches_exported_table": true,
+      "accounting": "Self time subtracts direct same-thread cpu_op children from each duration. These are host operation intervals, including waiting for worker threads, not summed physical-core CPU utilization. The trace span includes profiler context overhead. Opaque native FFTW/correlation and Python work are absent from cpu_op events."
+    },
+    "candidate-v2": {
+      "profiled_call": 8,
+      "zero_based_strain_block": 1,
+      "trace_span_us": 29016.346,
+      "recorded_cpu_op_events": 152,
+      "recorded_thread_count": 1,
+      "exclusive_operator_us": 9001.205000000002,
+      "uncovered_trace_span_us": 20015.141,
+      "operator_rows": [
+        {
+          "name": "aten::pow",
+          "calls": 8,
+          "self_cpu_us": 4331.027000000001,
+          "total_cpu_us": 4346.0740000000005,
+          "input_shapes": [
+            [
+              [
+                9,
+                114688
+              ],
+              []
+            ],
+            [
+              [
+                5,
+                114688
+              ],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::argmax",
+          "calls": 4,
+          "self_cpu_us": 2066.4210000000003,
+          "total_cpu_us": 2073.504,
+          "input_shapes": [
+            [
+              [
+                9,
+                114688
+              ],
+              [],
+              []
+            ],
+            [
+              [
+                5,
+                114688
+              ],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::add",
+          "calls": 4,
+          "self_cpu_us": 2064.267,
+          "total_cpu_us": 2064.267,
+          "input_shapes": [
+            [
+              [
+                9,
+                114688
+              ],
+              [
+                9,
+                114688
+              ],
+              []
+            ],
+            [
+              [
+                5,
+                114688
+              ],
+              [
+                5,
+                114688
+              ],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::index",
+          "calls": 4,
+          "self_cpu_us": 74.87,
+          "total_cpu_us": 124.064,
+          "input_shapes": [
+            [
+              [
+                9,
+                114688
+              ],
+              []
+            ],
+            [
+              [
+                5,
+                114688
+              ],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::arange",
+          "calls": 8,
+          "self_cpu_us": 71.855,
+          "total_cpu_us": 131.268,
+          "input_shapes": [
+            [
+              [],
+              [],
+              [],
+              [],
+              []
+            ],
+            [
+              [],
+              [],
+              [],
+              [
+                0
+              ]
+            ]
+          ]
+        },
+        {
+          "name": "aten::select",
+          "calls": 8,
+          "self_cpu_us": 67.408,
+          "total_cpu_us": 74.121,
+          "input_shapes": [
+            [
+              [
+                9,
+                114688,
+                2
+              ],
+              [],
+              []
+            ],
+            [
+              [
+                5,
+                114688,
+                2
+              ],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::view_as_real",
+          "calls": 8,
+          "self_cpu_us": 52.479,
+          "total_cpu_us": 52.479,
+          "input_shapes": [
+            [
+              [
+                9,
+                114688
+              ]
+            ],
+            [
+              [
+                5,
+                114688
+              ]
+            ]
+          ]
+        },
+        {
+          "name": "aten::as_strided",
+          "calls": 21,
+          "self_cpu_us": 51.989000000000004,
+          "total_cpu_us": 51.989000000000004,
+          "input_shapes": [
+            [
+              [
+                32,
+                131072
+              ],
+              [],
+              [],
+              []
+            ],
+            [
+              [
+                32,
+                114688
+              ],
+              [],
+              [],
+              []
+            ],
+            [
+              [
+                9,
+                114688,
+                2
+              ],
+              [],
+              [],
+              []
+            ],
+            [
+              [
+                9
+              ],
+              [],
+              [],
+              []
+            ],
+            [
+              [
+                9,
+                114688
+              ],
+              [],
+              [],
+              []
+            ],
+            [
+              [
+                5,
+                114688,
+                2
+              ],
+              [],
+              [],
+              []
+            ],
+            [
+              [
+                5
+              ],
+              [],
+              [],
+              []
+            ],
+            [
+              [
+                5,
+                114688
+              ],
+              [],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::real",
+          "calls": 4,
+          "self_cpu_us": 29.554999999999993,
+          "total_cpu_us": 100.27999999999999,
+          "input_shapes": [
+            [
+              [
+                9,
+                114688
+              ]
+            ],
+            [
+              [
+                5,
+                114688
+              ]
+            ]
+          ]
+        },
+        {
+          "name": "aten::square",
+          "calls": 8,
+          "self_cpu_us": 26.764000000000152,
+          "total_cpu_us": 4372.838,
+          "input_shapes": [
+            [
+              [
+                9,
+                114688
+              ]
+            ],
+            [
+              [
+                5,
+                114688
+              ]
+            ]
+          ]
+        },
+        {
+          "name": "aten::reshape",
+          "calls": 9,
+          "self_cpu_us": 24.480000000000004,
+          "total_cpu_us": 45.769,
+          "input_shapes": [
+            [
+              [
+                4194304
+              ],
+              []
+            ],
+            [
+              [
+                9
+              ],
+              []
+            ],
+            [
+              [
+                5
+              ],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::slice",
+          "calls": 5,
+          "self_cpu_us": 21.857999999999997,
+          "total_cpu_us": 39.583,
+          "input_shapes": [
+            [
+              [
+                32,
+                131072
+              ],
+              [],
+              [],
+              [],
+              []
+            ],
+            [
+              [
+                32,
+                114688
+              ],
+              [],
+              [],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::view",
+          "calls": 9,
+          "self_cpu_us": 21.288999999999998,
+          "total_cpu_us": 21.288999999999998,
+          "input_shapes": [
+            [
+              [
+                4194304
+              ],
+              []
+            ],
+            [
+              [
+                9
+              ],
+              []
+            ],
+            [
+              [
+                5
+              ],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::imag",
+          "calls": 4,
+          "self_cpu_us": 14.717,
+          "total_cpu_us": 70.592,
+          "input_shapes": [
+            [
+              [
+                9,
+                114688
+              ]
+            ],
+            [
+              [
+                5,
+                114688
+              ]
+            ]
+          ]
+        },
+        {
+          "name": "aten::detach",
+          "calls": 6,
+          "self_cpu_us": 13.736,
+          "total_cpu_us": 13.736,
+          "input_shapes": [
+            [
+              [
+                65537
+              ]
+            ],
+            [
+              [
+                32
+              ]
+            ]
+          ]
+        },
+        {
+          "name": "aten::to",
+          "calls": 13,
+          "self_cpu_us": 12.664000000000003,
+          "total_cpu_us": 12.664000000000003,
+          "input_shapes": [
+            [
+              [
+                65537
+              ],
+              [],
+              [],
+              [],
+              [],
+              [],
+              [],
+              []
+            ],
+            [
+              [
+                9,
+                114688
+              ],
+              [],
+              [],
+              [],
+              []
+            ],
+            [
+              [
+                5,
+                114688
+              ],
+              [],
+              [],
+              [],
+              []
+            ],
+            [
+              [
+                32
+              ],
+              [],
+              [],
+              [],
+              [],
+              [],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::cat",
+          "calls": 2,
+          "self_cpu_us": 10.58,
+          "total_cpu_us": 10.58,
+          "input_shapes": [
+            [
+              [
+                [
+                  9
+                ],
+                [
+                  9
+                ],
+                [
+                  9
+                ],
+                [
+                  5
+                ]
+              ],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::empty",
+          "calls": 4,
+          "self_cpu_us": 9.498000000000001,
+          "total_cpu_us": 9.498000000000001,
+          "input_shapes": [
+            [
+              [],
+              [],
+              [],
+              [],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::resize_",
+          "calls": 4,
+          "self_cpu_us": 9.007,
+          "total_cpu_us": 9.007,
+          "input_shapes": [
+            [
+              [
+                0
+              ],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::result_type",
+          "calls": 8,
+          "self_cpu_us": 8.856,
+          "total_cpu_us": 8.856,
+          "input_shapes": [
+            [
+              [
+                9,
+                114688
+              ],
+              []
+            ],
+            [
+              [
+                5,
+                114688
+              ],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::split",
+          "calls": 1,
+          "self_cpu_us": 8.075000000000003,
+          "total_cpu_us": 29.886,
+          "input_shapes": [
+            [
+              [
+                32,
+                114688
+              ],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::narrow",
+          "calls": 4,
+          "self_cpu_us": 7.846,
+          "total_cpu_us": 21.810999999999996,
+          "input_shapes": [
+            [
+              [
+                32,
+                114688
+              ],
+              [],
+              [],
+              []
+            ]
+          ]
+        },
+        {
+          "name": "aten::resolve_conj",
+          "calls": 3,
+          "self_cpu_us": 1.4440000000000002,
+          "total_cpu_us": 1.4440000000000002,
+          "input_shapes": [
+            [
+              [
+                65537
+              ]
+            ],
+            [
+              [
+                32
+              ]
+            ]
+          ]
+        },
+        {
+          "name": "aten::resolve_neg",
+          "calls": 3,
+          "self_cpu_us": 0.52,
+          "total_cpu_us": 0.52,
+          "input_shapes": [
+            [
+              [
+                65537
+              ]
+            ],
+            [
+              [
+                32
+              ]
+            ]
+          ]
+        }
+      ],
+      "squared_scalar_elements": 7340032,
+      "argmax_input_elements": 3670016,
+      "rows_per_peak_chunk": [
+        9,
+        9,
+        9,
+        5
+      ],
+      "self_time_matches_exported_table": true,
+      "accounting": "Self time subtracts direct same-thread cpu_op children from each duration. These are host operation intervals, including waiting for worker threads, not summed physical-core CPU utilization. The trace span includes profiler context overhead. Opaque native FFTW/correlation and Python work are absent from cpu_op events."
+    }
+  },
+  "limitations": [
+    "The unprofiled 0.94150448 paired rate ratio belongs to original candidate 97bf1614/tree d9819f6f. Diagnostic profiles use candidate-v2 0d005812/tree fa7a7c09. Matching CPU arithmetic and unchanged FFT/correlation implementations do not make these a fresh candidate-v2 throughput measurement.",
+    "One warm cProfile call per source and one separate Torch-profile call per source provide attribution samples, not variance estimates or statistically isolated causes. cProfile captures call 7, block 0; Torch profiler captures call 8, block 1. Both belong to the first warm measured iteration after one cold pass and one warmup across three different synthetic blocks.",
+    "Instrumentation perturbs timing. cProfile and Torch profiling have opposite overall direction here. Do not combine their milliseconds, subtract operator times from cProfile times, or interpret the instrumented worker throughput as a benchmark.",
+    "cProfile self time includes untraced native calls and uninstrumented expression/operator/deallocation work charged to their Python caller; it is not pure Python instruction time. The same-thread Torch trace does not expose native FFTW/correlation internals, four-core utilization, scheduler waits, cache behavior, or memory bandwidth.",
+    "The profiler used record_shapes=True but did not request memory profiling. Input element counts establish work/chunk sizes; they do not measure peak allocated memory or allocation traffic.",
+    "This is the synthetic public LiveBatchMatchedFilter component with FFT size 131072, batch 32, four configured threads, and affinity CPUs 8-11. It is not a compressed-bank pycbc_inspiral production-search measurement. Native-enabled here enables correlation and FFTW; optional native CPU peak selection is not enabled."
+  ]
+}

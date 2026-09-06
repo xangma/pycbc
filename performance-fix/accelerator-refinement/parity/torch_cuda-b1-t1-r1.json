@@ -1,0 +1,57 @@
+{
+  "batch_1": {
+    "batch": 1,
+    "routes_evaluated": [
+      "branch_standard",
+      "baseline",
+      "candidate",
+      "candidate-v2"
+    ],
+    "comparisons": {
+      "baseline_vs_branch_standard": {
+        "finite_values": true,
+        "block_count_match": true,
+        "trigger_count_match": true,
+        "template_id_match": true,
+        "end_time_match": true,
+        "sequence_length_match": true,
+        "veto_count_match": true,
+        "max_snr_diff": 9.5367431640625e-07,
+        "max_phase_diff": 1.0117082638316788e-07,
+        "max_sigmasq_relative_diff": 2.3841855067985646e-07,
+        "relative_output_l2_diff": 1.530399320925804e-07,
+        "passed": true
+      },
+      "candidate_vs_branch_standard": {
+        "finite_values": true,
+        "block_count_match": true,
+        "trigger_count_match": true,
+        "template_id_match": true,
+        "end_time_match": true,
+        "sequence_length_match": true,
+        "veto_count_match": true,
+        "max_snr_diff": 9.5367431640625e-07,
+        "max_phase_diff": 1.0117082638316788e-07,
+        "max_sigmasq_relative_diff": 2.3841855067985646e-07,
+        "relative_output_l2_diff": 1.530399320925804e-07,
+        "passed": true
+      },
+      "candidate-v2_vs_branch_standard": {
+        "finite_values": true,
+        "block_count_match": true,
+        "trigger_count_match": true,
+        "template_id_match": true,
+        "end_time_match": true,
+        "sequence_length_match": true,
+        "veto_count_match": true,
+        "max_snr_diff": 9.5367431640625e-07,
+        "max_phase_diff": 1.0117082638316788e-07,
+        "max_sigmasq_relative_diff": 2.3841855067985646e-07,
+        "relative_output_l2_diff": 1.530399320925804e-07,
+        "passed": true
+      }
+    },
+    "all_passed": true
+  },
+  "all_passed_globally": true
+}

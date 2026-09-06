@@ -1,0 +1,23 @@
+................................................................ [ 14%]
+...................................................................s.... [ 31%]
+..............................s..s....ss........ssss....ss..s....ss..s.. [ 48%]
+s..s......sss...s................ssssssss................ssssssss....... [ 64%]
+.........ssssssss................ssssssss...s..s..s..s...s...s.......... [ 81%]
+..s........ss..s..s..s..s..s..s......................................... [ 97%]
+.........                                                                [100%]
+=============================== warnings summary ===============================
+test/test_torch_chisq_cpu_optimization.py:586
+  /home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/test/test_torch_chisq_cpu_optimization.py:586: UserWarning: Sparse invariant checks are implicitly disabled. Memory errors (e.g. SEGFAULT) will occur when operating on a sparse tensor which violates the invariants, but checks incur performance overhead. To silence this warning, explicitly opt in or out. See `torch.sparse.check_sparse_tensor_invariants.__doc__` for guidance.  (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/Context.cpp:816.)
+    torch.sparse_coo_tensor(
+
+test/test_torch_chisq_cpu_optimization.py: 18 warnings
+  /home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+test/test_torch_psd_pipeline.py::test_lisa_response_psd_public_devices[cpu]
+test/test_torch_psd_pipeline.py::test_lisa_response_psd_public_devices[cuda]
+  /home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/psd/read.py:99: RuntimeWarning: divide by zero encountered in log
+    slog = numpy.log(noise_data)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+365 passed, 68 skipped, 21 warnings, 8 subtests passed in 23.33s

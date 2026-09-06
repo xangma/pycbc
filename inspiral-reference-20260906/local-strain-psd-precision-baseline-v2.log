@@ -1,0 +1,524 @@
+{
+  "baseline_selected_functions_from_source": "968bcd558117262af0d603710b054174659adb51",
+  "local_native_abi": "Existing Darwin Python 3.12 extensions loaded read-only",
+  "python": "/Users/xangma/miniconda3/bin/python3.12",
+  "tests": [
+    "test/test_strain_psd_precision.py"
+  ],
+  "file_sha256": {
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/run-local-strain-psd-precision-tests.py": "f5eff7826a76e6b360c576ad7ff56b79d49c42c735298a907d6dcda217c71522",
+    "/Users/xangma/repos/pycbc/pycbc/types/array_cpu.cpython-312-darwin.so": "02c6fec41262957c5bf1418dc047dfd1ccd11b79748561031caa613efb77e9f3",
+    "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+    "/Users/xangma/repos/pycbc/pycbc/events/eventmgr_cython.cpython-312-darwin.so": "4dc6c6102c89e6f954762b6e2eeb7488e5c3c4e7ce5cccabd414e6f95e931989",
+    "/Users/xangma/repos/pycbc/pycbc/events/simd_threshold_cython.cpython-312-darwin.so": "2b54d4e5c44c5d16b5397b6fe5421bd365d208ee4229c7f3c1e52fc80e90a3cb",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/psd/__init__.py": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/strain/strain.py": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_strain_psd_precision.py": "cc6380df5aad6b8b25f88cd194c9786c30e4d9eaaffe3f756ff9a129f95a8134"
+  }
+}
+F.F.ssFF..FF..FF..FF..ssssssss                                           [100%]
+=================================== FAILURES ===================================
+__________ test_strain_segments_retain_weak_frequencies[cpu-float32] ___________
+
+context = <pycbc.scheme.CPUScheme object at 0x1688d54f0>
+dtype = <class 'numpy.float32'>
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_strain_segments_retain_weak_frequencies(context, dtype):
+        values = line_rich_data(dtype)
+        with context:
+            strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+            segments = StrainSegments(
+                strain, segment_length=64, segment_start_pad=8, segment_end_pad=8,
+                trigger_start=1234567890, trigger_end=1234568018,
+                allow_zero_padding=True,
+            )
+            result = segments.fourier_segments()
+            assert segments.fourier_segments() is result
+            assert result[0].seg_slice.start < 0
+            assert result[-1].seg_slice.stop > len(values)
+            for output, segment, analyze in zip(
+                result, segments.segment_slices, segments.analyze_slices
+            ):
+                chunk = np.zeros(32768, dtype=np.float64)
+                start, stop = max(segment.start, 0), min(segment.stop, len(values))
+                chunk[start - segment.start:stop - segment.start] = values[start:stop]
+                reference = np.fft.rfft(chunk) / 512
+                expected_dtype = np.complex64 if dtype == np.float32 else np.complex128
+                assert output.dtype == expected_dtype
+                assert output.delta_f == 1 / 64
+                assert float(output.epoch) == 1234567890 + segment.start / 512
+                assert output.analyze == analyze
+                assert output.cumulative_index == segment.start + analyze.start
+                assert output.seg_slice == segment
+>               np.testing.assert_allclose(
+                    output.numpy(), reference,
+                    rtol=2e-7 if dtype == np.float32 else 2e-11, atol=2e-11,
+                )
+E               AssertionError: 
+E               Not equal to tolerance rtol=2e-07, atol=2e-11
+E               
+E               Mismatched elements: 15801 / 16385 (96.4%)
+E               First 5 mismatches are at indices:
+E                [0]: (-0.00029627198819071054+0j) (ACTUAL), (-0.00029538640385240456+0j) (DESIRED)
+E                [1]: (-0.02957000955939293-0.0713229700922966j) (ACTUAL), (-0.029570074668223954-0.0713229348702479j) (DESIRED)
+E                [2]: (-0.10099570453166962-0.10112632811069489j) (ACTUAL), (-0.10099632463747912-0.10112660340029711j) (DESIRED)
+E                [3]: (-0.17187972366809845-0.07146178185939789j) (ACTUAL), (-0.1718797420243177-0.07146189694150143j) (DESIRED)
+E                [4]: (-0.20115336775779724+0.000713697518222034j) (ACTUAL), (-0.20115347721188748+0.0007142614871576787j) (DESIRED)
+E               Max absolute difference among violations: 3.24089646e-05
+E               Max relative difference among violations: 0.4372752
+E                ACTUAL: array([-2.962720e-04+0.j      , -2.957001e-02-0.071323j,
+E                      -1.009957e-01-0.101126j, ...,  2.576728e-02-0.026124j,
+E                       8.127067e-03-0.018317j, -4.358255e-06+0.j      ],
+E                     shape=(16385,), dtype=complex64)
+E                DESIRED: array([-2.953864e-04+0.j      , -2.957007e-02-0.071323j,
+E                      -1.009963e-01-0.101127j, ...,  2.576724e-02-0.026124j,
+E                       8.127053e-03-0.018317j, -4.471427e-06+0.j      ], shape=(16385,))
+
+test/test_strain_psd_precision.py:62: AssertionError
+_______ test_strain_segments_retain_weak_frequencies[torch-cpu-float32] ________
+
+context = <pycbc.scheme.TorchScheme object at 0x1688d7560>
+dtype = <class 'numpy.float32'>
+
+    @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+    def test_strain_segments_retain_weak_frequencies(context, dtype):
+        values = line_rich_data(dtype)
+        with context:
+            strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+            segments = StrainSegments(
+                strain, segment_length=64, segment_start_pad=8, segment_end_pad=8,
+                trigger_start=1234567890, trigger_end=1234568018,
+                allow_zero_padding=True,
+            )
+            result = segments.fourier_segments()
+            assert segments.fourier_segments() is result
+            assert result[0].seg_slice.start < 0
+            assert result[-1].seg_slice.stop > len(values)
+            for output, segment, analyze in zip(
+                result, segments.segment_slices, segments.analyze_slices
+            ):
+                chunk = np.zeros(32768, dtype=np.float64)
+                start, stop = max(segment.start, 0), min(segment.stop, len(values))
+                chunk[start - segment.start:stop - segment.start] = values[start:stop]
+                reference = np.fft.rfft(chunk) / 512
+                expected_dtype = np.complex64 if dtype == np.float32 else np.complex128
+                assert output.dtype == expected_dtype
+                assert output.delta_f == 1 / 64
+                assert float(output.epoch) == 1234567890 + segment.start / 512
+                assert output.analyze == analyze
+                assert output.cumulative_index == segment.start + analyze.start
+                assert output.seg_slice == segment
+>               np.testing.assert_allclose(
+                    output.numpy(), reference,
+                    rtol=2e-7 if dtype == np.float32 else 2e-11, atol=2e-11,
+                )
+E               AssertionError: 
+E               Not equal to tolerance rtol=2e-07, atol=2e-11
+E               
+E               Mismatched elements: 15725 / 16385 (96%)
+E               First 5 mismatches are at indices:
+E                [0]: (-0.00029627198819071054+0j) (ACTUAL), (-0.00029538640385240456+0j) (DESIRED)
+E                [1]: (-0.02957005426287651-0.07132292538881302j) (ACTUAL), (-0.029570074668223954-0.0713229348702479j) (DESIRED)
+E                [2]: (-0.10099587589502335-0.1011260598897934j) (ACTUAL), (-0.10099632463747912-0.10112660340029711j) (DESIRED)
+E                [3]: (-0.1718798726797104-0.07146213948726654j) (ACTUAL), (-0.1718797420243177-0.07146189694150143j) (DESIRED)
+E                [4]: (-0.20115341246128082+0.0007137993816286325j) (ACTUAL), (-0.20115347721188748+0.0007142614871576787j) (DESIRED)
+E               Max absolute difference among violations: 3.77500321e-05
+E               Max relative difference among violations: 0.23673622
+E                ACTUAL: array([-2.962720e-04+0.j      , -2.957005e-02-0.071323j,
+E                      -1.009959e-01-0.101126j, ...,  2.576729e-02-0.026124j,
+E                       8.127075e-03-0.018317j, -4.358255e-06+0.j      ],
+E                     shape=(16385,), dtype=complex64)
+E                DESIRED: array([-2.953864e-04+0.j      , -2.957007e-02-0.071323j,
+E                      -1.009963e-01-0.101127j, ...,  2.576724e-02-0.026124j,
+E                       8.127053e-03-0.018317j, -4.471427e-06+0.j      ], shape=(16385,))
+
+test/test_strain_psd_precision.py:62: AssertionError
+_______ test_estimated_psd_retains_weak_frequencies[cpu-0-float32-None] ________
+
+context = <pycbc.scheme.CPUScheme object at 0x168945c10>
+dtype = <class 'numpy.float32'>, precision = None, inverse_length = 0
+
+    @pytest.mark.parametrize("dtype,precision", [
+        (np.float32, None), (np.float32, "double"),
+        (np.float64, None), (np.float64, "single"),
+    ])
+    @pytest.mark.parametrize("inverse_length", [0, 2])
+    def test_estimated_psd_retains_weak_frequencies(
+        context, dtype, precision, inverse_length
+    ):
+        values = line_rich_data(dtype)
+        expected = reference_psd(values, inverse_length)
+        output_dtype = (dtype if precision is None else
+                        np.float64 if precision == "double" else np.float32)
+        with context:
+            strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+            actual = psd.from_cli(
+                psd_options(inverse_length), 16385, 1 / 64, 30,
+                strain=strain, precision=precision,
+            )
+            assert actual.dtype == output_dtype
+            assert actual.delta_f == 1 / 64
+>           np.testing.assert_allclose(
+                actual.numpy()[30 * 64:-1], expected[30 * 64:-1],
+                rtol=3e-7 if output_dtype == np.float32 else 2e-9, atol=0,
+            )
+E           AssertionError: 
+E           Not equal to tolerance rtol=3e-07, atol=0
+E           
+E           Mismatched elements: 14242 / 14464 (98.5%)
+E           First 5 mismatches are at indices:
+E            [0]: 3.8144873926171385e-09 (ACTUAL), 3.81925991551651e-09 (DESIRED)
+E            [1]: 3.830581629671315e-09 (ACTUAL), 3.834457160540428e-09 (DESIRED)
+E            [2]: 3.846675866725491e-09 (ACTUAL), 3.849654405564347e-09 (DESIRED)
+E            [3]: 3.862770103779667e-09 (ACTUAL), 3.864851650588265e-09 (DESIRED)
+E            [4]: 3.878864340833843e-09 (ACTUAL), 3.880048895612184e-09 (DESIRED)
+E           Max absolute difference among violations: 5.40436585e-07
+E           Max relative difference among violations: 0.03623033
+E            ACTUAL: array([3.814487e-09, 3.830582e-09, 3.846676e-09, ..., 2.159539e-09,
+E                  2.003604e-09, 1.847669e-09], shape=(14464,), dtype=float32)
+E            DESIRED: array([3.819260e-09, 3.834457e-09, 3.849654e-09, ..., 2.163387e-09,
+E                  2.007280e-09, 1.851173e-09], shape=(14464,))
+
+test/test_strain_psd_precision.py:120: AssertionError
+______ test_estimated_psd_retains_weak_frequencies[cpu-0-float32-double] _______
+
+context = <pycbc.scheme.CPUScheme object at 0x168947c20>
+dtype = <class 'numpy.float32'>, precision = 'double', inverse_length = 0
+
+    @pytest.mark.parametrize("dtype,precision", [
+        (np.float32, None), (np.float32, "double"),
+        (np.float64, None), (np.float64, "single"),
+    ])
+    @pytest.mark.parametrize("inverse_length", [0, 2])
+    def test_estimated_psd_retains_weak_frequencies(
+        context, dtype, precision, inverse_length
+    ):
+        values = line_rich_data(dtype)
+        expected = reference_psd(values, inverse_length)
+        output_dtype = (dtype if precision is None else
+                        np.float64 if precision == "double" else np.float32)
+        with context:
+            strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+            actual = psd.from_cli(
+                psd_options(inverse_length), 16385, 1 / 64, 30,
+                strain=strain, precision=precision,
+            )
+            assert actual.dtype == output_dtype
+            assert actual.delta_f == 1 / 64
+>           np.testing.assert_allclose(
+                actual.numpy()[30 * 64:-1], expected[30 * 64:-1],
+                rtol=3e-7 if output_dtype == np.float32 else 2e-9, atol=0,
+            )
+E           AssertionError: 
+E           Not equal to tolerance rtol=2e-09, atol=0
+E           
+E           Mismatched elements: 14459 / 14464 (100%)
+E           First 5 mismatches are at indices:
+E            [0]: 3.8144873926171385e-09 (ACTUAL), 3.81925991551651e-09 (DESIRED)
+E            [1]: 3.830581629671315e-09 (ACTUAL), 3.834457160540428e-09 (DESIRED)
+E            [2]: 3.846675866725491e-09 (ACTUAL), 3.849654405564347e-09 (DESIRED)
+E            [3]: 3.862770103779667e-09 (ACTUAL), 3.864851650588265e-09 (DESIRED)
+E            [4]: 3.878864340833843e-09 (ACTUAL), 3.880048895612184e-09 (DESIRED)
+E           Max absolute difference among violations: 0.0002146
+E           Max relative difference among violations: 0.03623033
+E            ACTUAL: array([3.814487e-09, 3.830582e-09, 3.846676e-09, ..., 2.159539e-09,
+E                  2.003604e-09, 1.847669e-09], shape=(14464,))
+E            DESIRED: array([3.819260e-09, 3.834457e-09, 3.849654e-09, ..., 2.163387e-09,
+E                  2.007280e-09, 1.851173e-09], shape=(14464,))
+
+test/test_strain_psd_precision.py:120: AssertionError
+_______ test_estimated_psd_retains_weak_frequencies[cpu-2-float32-None] ________
+
+context = <pycbc.scheme.CPUScheme object at 0x168964aa0>
+dtype = <class 'numpy.float32'>, precision = None, inverse_length = 2
+
+    @pytest.mark.parametrize("dtype,precision", [
+        (np.float32, None), (np.float32, "double"),
+        (np.float64, None), (np.float64, "single"),
+    ])
+    @pytest.mark.parametrize("inverse_length", [0, 2])
+    def test_estimated_psd_retains_weak_frequencies(
+        context, dtype, precision, inverse_length
+    ):
+        values = line_rich_data(dtype)
+        expected = reference_psd(values, inverse_length)
+        output_dtype = (dtype if precision is None else
+                        np.float64 if precision == "double" else np.float32)
+        with context:
+            strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+            actual = psd.from_cli(
+                psd_options(inverse_length), 16385, 1 / 64, 30,
+                strain=strain, precision=precision,
+            )
+            assert actual.dtype == output_dtype
+            assert actual.delta_f == 1 / 64
+>           np.testing.assert_allclose(
+                actual.numpy()[30 * 64:-1], expected[30 * 64:-1],
+                rtol=3e-7 if output_dtype == np.float32 else 2e-9, atol=0,
+            )
+E           AssertionError: 
+E           Not equal to tolerance rtol=3e-07, atol=0
+E           
+E           Mismatched elements: 14455 / 14464 (99.9%)
+E           First 5 mismatches are at indices:
+E            [0]: 1.5599500358121077e-08 (ACTUAL), 1.5579607983474088e-08 (DESIRED)
+E            [1]: 1.468404597915196e-08 (ACTUAL), 1.4665499222507296e-08 (DESIRED)
+E            [2]: 1.3848256763537847e-08 (ACTUAL), 1.3830940695608602e-08 (DESIRED)
+E            [3]: 1.3084028083198973e-08 (ACTUAL), 1.3067848607141091e-08 (DESIRED)
+E            [4]: 1.2384226089068306e-08 (ACTUAL), 1.236908290225092e-08 (DESIRED)
+E           Max absolute difference among violations: 0.08807291
+E           Max relative difference among violations: 0.01890749
+E            ACTUAL: array([1.559950e-08, 1.468405e-08, 1.384826e-08, ..., 3.573172e-09,
+E                  3.571638e-09, 3.570716e-09], shape=(14464,), dtype=float32)
+E            DESIRED: array([1.557961e-08, 1.466550e-08, 1.383094e-08, ..., 3.564335e-09,
+E                  3.562841e-09, 3.561944e-09], shape=(14464,))
+
+test/test_strain_psd_precision.py:120: AssertionError
+______ test_estimated_psd_retains_weak_frequencies[cpu-2-float32-double] _______
+
+context = <pycbc.scheme.CPUScheme object at 0x1689464e0>
+dtype = <class 'numpy.float32'>, precision = 'double', inverse_length = 2
+
+    @pytest.mark.parametrize("dtype,precision", [
+        (np.float32, None), (np.float32, "double"),
+        (np.float64, None), (np.float64, "single"),
+    ])
+    @pytest.mark.parametrize("inverse_length", [0, 2])
+    def test_estimated_psd_retains_weak_frequencies(
+        context, dtype, precision, inverse_length
+    ):
+        values = line_rich_data(dtype)
+        expected = reference_psd(values, inverse_length)
+        output_dtype = (dtype if precision is None else
+                        np.float64 if precision == "double" else np.float32)
+        with context:
+            strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+            actual = psd.from_cli(
+                psd_options(inverse_length), 16385, 1 / 64, 30,
+                strain=strain, precision=precision,
+            )
+            assert actual.dtype == output_dtype
+            assert actual.delta_f == 1 / 64
+>           np.testing.assert_allclose(
+                actual.numpy()[30 * 64:-1], expected[30 * 64:-1],
+                rtol=3e-7 if output_dtype == np.float32 else 2e-9, atol=0,
+            )
+E           AssertionError: 
+E           Not equal to tolerance rtol=2e-09, atol=0
+E           
+E           Mismatched elements: 14464 / 14464 (100%)
+E           First 5 mismatches are at indices:
+E            [0]: 1.5599500358121077e-08 (ACTUAL), 1.5579607983474088e-08 (DESIRED)
+E            [1]: 1.468404597915196e-08 (ACTUAL), 1.4665499222507296e-08 (DESIRED)
+E            [2]: 1.3848256763537847e-08 (ACTUAL), 1.3830940695608602e-08 (DESIRED)
+E            [3]: 1.3084028083198973e-08 (ACTUAL), 1.3067848607141091e-08 (DESIRED)
+E            [4]: 1.2384226089068306e-08 (ACTUAL), 1.236908290225092e-08 (DESIRED)
+E           Max absolute difference among violations: 0.08807291
+E           Max relative difference among violations: 0.01890749
+E            ACTUAL: array([1.559950e-08, 1.468405e-08, 1.384826e-08, ..., 3.573172e-09,
+E                  3.571638e-09, 3.570716e-09], shape=(14464,))
+E            DESIRED: array([1.557961e-08, 1.466550e-08, 1.383094e-08, ..., 3.564335e-09,
+E                  3.562841e-09, 3.561944e-09], shape=(14464,))
+
+test/test_strain_psd_precision.py:120: AssertionError
+____ test_estimated_psd_retains_weak_frequencies[torch-cpu-0-float32-None] _____
+
+context = <pycbc.scheme.TorchScheme object at 0x1688d6ba0>
+dtype = <class 'numpy.float32'>, precision = None, inverse_length = 0
+
+    @pytest.mark.parametrize("dtype,precision", [
+        (np.float32, None), (np.float32, "double"),
+        (np.float64, None), (np.float64, "single"),
+    ])
+    @pytest.mark.parametrize("inverse_length", [0, 2])
+    def test_estimated_psd_retains_weak_frequencies(
+        context, dtype, precision, inverse_length
+    ):
+        values = line_rich_data(dtype)
+        expected = reference_psd(values, inverse_length)
+        output_dtype = (dtype if precision is None else
+                        np.float64 if precision == "double" else np.float32)
+        with context:
+            strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+            actual = psd.from_cli(
+                psd_options(inverse_length), 16385, 1 / 64, 30,
+                strain=strain, precision=precision,
+            )
+            assert actual.dtype == output_dtype
+            assert actual.delta_f == 1 / 64
+>           np.testing.assert_allclose(
+                actual.numpy()[30 * 64:-1], expected[30 * 64:-1],
+                rtol=3e-7 if output_dtype == np.float32 else 2e-9, atol=0,
+            )
+E           AssertionError: 
+E           Not equal to tolerance rtol=3e-07, atol=0
+E           
+E           Mismatched elements: 14240 / 14464 (98.5%)
+E           First 5 mismatches are at indices:
+E            [0]: 3.806683857021653e-09 (ACTUAL), 3.81925991551651e-09 (DESIRED)
+E            [1]: 3.821964966732594e-09 (ACTUAL), 3.834457160540428e-09 (DESIRED)
+E            [2]: 3.837245632354325e-09 (ACTUAL), 3.849654405564347e-09 (DESIRED)
+E            [3]: 3.852526742065265e-09 (ACTUAL), 3.864851650588265e-09 (DESIRED)
+E            [4]: 3.867807407686996e-09 (ACTUAL), 3.880048895612184e-09 (DESIRED)
+E           Max absolute difference among violations: 6.49035274e-05
+E           Max relative difference among violations: 0.03949274
+E            ACTUAL: array([3.806684e-09, 3.821965e-09, 3.837246e-09, ..., 2.156323e-09,
+E                  1.997966e-09, 1.839608e-09], shape=(14464,), dtype=float32)
+E            DESIRED: array([3.819260e-09, 3.834457e-09, 3.849654e-09, ..., 2.163387e-09,
+E                  2.007280e-09, 1.851173e-09], shape=(14464,))
+
+test/test_strain_psd_precision.py:120: AssertionError
+___ test_estimated_psd_retains_weak_frequencies[torch-cpu-0-float32-double] ____
+
+context = <pycbc.scheme.TorchScheme object at 0x168967e90>
+dtype = <class 'numpy.float32'>, precision = 'double', inverse_length = 0
+
+    @pytest.mark.parametrize("dtype,precision", [
+        (np.float32, None), (np.float32, "double"),
+        (np.float64, None), (np.float64, "single"),
+    ])
+    @pytest.mark.parametrize("inverse_length", [0, 2])
+    def test_estimated_psd_retains_weak_frequencies(
+        context, dtype, precision, inverse_length
+    ):
+        values = line_rich_data(dtype)
+        expected = reference_psd(values, inverse_length)
+        output_dtype = (dtype if precision is None else
+                        np.float64 if precision == "double" else np.float32)
+        with context:
+            strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+            actual = psd.from_cli(
+                psd_options(inverse_length), 16385, 1 / 64, 30,
+                strain=strain, precision=precision,
+            )
+            assert actual.dtype == output_dtype
+            assert actual.delta_f == 1 / 64
+>           np.testing.assert_allclose(
+                actual.numpy()[30 * 64:-1], expected[30 * 64:-1],
+                rtol=3e-7 if output_dtype == np.float32 else 2e-9, atol=0,
+            )
+E           AssertionError: 
+E           Not equal to tolerance rtol=2e-09, atol=0
+E           
+E           Mismatched elements: 14456 / 14464 (99.9%)
+E           First 5 mismatches are at indices:
+E            [0]: 3.806683857021653e-09 (ACTUAL), 3.81925991551651e-09 (DESIRED)
+E            [1]: 3.821964966732594e-09 (ACTUAL), 3.834457160540428e-09 (DESIRED)
+E            [2]: 3.837245632354325e-09 (ACTUAL), 3.849654405564347e-09 (DESIRED)
+E            [3]: 3.852526742065265e-09 (ACTUAL), 3.864851650588265e-09 (DESIRED)
+E            [4]: 3.867807407686996e-09 (ACTUAL), 3.880048895612184e-09 (DESIRED)
+E           Max absolute difference among violations: 0.00031666
+E           Max relative difference among violations: 0.03949274
+E            ACTUAL: array([3.806684e-09, 3.821965e-09, 3.837246e-09, ..., 2.156323e-09,
+E                  1.997966e-09, 1.839608e-09], shape=(14464,))
+E            DESIRED: array([3.819260e-09, 3.834457e-09, 3.849654e-09, ..., 2.163387e-09,
+E                  2.007280e-09, 1.851173e-09], shape=(14464,))
+
+test/test_strain_psd_precision.py:120: AssertionError
+____ test_estimated_psd_retains_weak_frequencies[torch-cpu-2-float32-None] _____
+
+context = <pycbc.scheme.TorchScheme object at 0x168965be0>
+dtype = <class 'numpy.float32'>, precision = None, inverse_length = 2
+
+    @pytest.mark.parametrize("dtype,precision", [
+        (np.float32, None), (np.float32, "double"),
+        (np.float64, None), (np.float64, "single"),
+    ])
+    @pytest.mark.parametrize("inverse_length", [0, 2])
+    def test_estimated_psd_retains_weak_frequencies(
+        context, dtype, precision, inverse_length
+    ):
+        values = line_rich_data(dtype)
+        expected = reference_psd(values, inverse_length)
+        output_dtype = (dtype if precision is None else
+                        np.float64 if precision == "double" else np.float32)
+        with context:
+            strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+            actual = psd.from_cli(
+                psd_options(inverse_length), 16385, 1 / 64, 30,
+                strain=strain, precision=precision,
+            )
+            assert actual.dtype == output_dtype
+            assert actual.delta_f == 1 / 64
+>           np.testing.assert_allclose(
+                actual.numpy()[30 * 64:-1], expected[30 * 64:-1],
+                rtol=3e-7 if output_dtype == np.float32 else 2e-9, atol=0,
+            )
+E           AssertionError: 
+E           Not equal to tolerance rtol=3e-07, atol=0
+E           
+E           Mismatched elements: 14455 / 14464 (99.9%)
+E           First 5 mismatches are at indices:
+E            [0]: 1.555675410713775e-08 (ACTUAL), 1.5579607983474088e-08 (DESIRED)
+E            [1]: 1.4645179291505883e-08 (ACTUAL), 1.4665499222507296e-08 (DESIRED)
+E            [2]: 1.3812977428528939e-08 (ACTUAL), 1.3830940695608602e-08 (DESIRED)
+E            [3]: 1.3052074976371841e-08 (ACTUAL), 1.3067848607141091e-08 (DESIRED)
+E            [4]: 1.235533719778914e-08 (ACTUAL), 1.236908290225092e-08 (DESIRED)
+E           Max absolute difference among violations: 0.03595329
+E           Max relative difference among violations: 0.01901421
+E            ACTUAL: array([1.555675e-08, 1.464518e-08, 1.381298e-08, ..., 3.570552e-09,
+E                  3.569087e-09, 3.568208e-09], shape=(14464,), dtype=float32)
+E            DESIRED: array([1.557961e-08, 1.466550e-08, 1.383094e-08, ..., 3.564335e-09,
+E                  3.562841e-09, 3.561944e-09], shape=(14464,))
+
+test/test_strain_psd_precision.py:120: AssertionError
+___ test_estimated_psd_retains_weak_frequencies[torch-cpu-2-float32-double] ____
+
+context = <pycbc.scheme.TorchScheme object at 0x168945a90>
+dtype = <class 'numpy.float32'>, precision = 'double', inverse_length = 2
+
+    @pytest.mark.parametrize("dtype,precision", [
+        (np.float32, None), (np.float32, "double"),
+        (np.float64, None), (np.float64, "single"),
+    ])
+    @pytest.mark.parametrize("inverse_length", [0, 2])
+    def test_estimated_psd_retains_weak_frequencies(
+        context, dtype, precision, inverse_length
+    ):
+        values = line_rich_data(dtype)
+        expected = reference_psd(values, inverse_length)
+        output_dtype = (dtype if precision is None else
+                        np.float64 if precision == "double" else np.float32)
+        with context:
+            strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+            actual = psd.from_cli(
+                psd_options(inverse_length), 16385, 1 / 64, 30,
+                strain=strain, precision=precision,
+            )
+            assert actual.dtype == output_dtype
+            assert actual.delta_f == 1 / 64
+>           np.testing.assert_allclose(
+                actual.numpy()[30 * 64:-1], expected[30 * 64:-1],
+                rtol=3e-7 if output_dtype == np.float32 else 2e-9, atol=0,
+            )
+E           AssertionError: 
+E           Not equal to tolerance rtol=2e-09, atol=0
+E           
+E           Mismatched elements: 14464 / 14464 (100%)
+E           First 5 mismatches are at indices:
+E            [0]: 1.555675410713775e-08 (ACTUAL), 1.5579607983474088e-08 (DESIRED)
+E            [1]: 1.4645179291505883e-08 (ACTUAL), 1.4665499222507296e-08 (DESIRED)
+E            [2]: 1.3812977428528939e-08 (ACTUAL), 1.3830940695608602e-08 (DESIRED)
+E            [3]: 1.3052074976371841e-08 (ACTUAL), 1.3067848607141091e-08 (DESIRED)
+E            [4]: 1.235533719778914e-08 (ACTUAL), 1.236908290225092e-08 (DESIRED)
+E           Max absolute difference among violations: 0.03595329
+E           Max relative difference among violations: 0.01901421
+E            ACTUAL: array([1.555675e-08, 1.464518e-08, 1.381298e-08, ..., 3.570552e-09,
+E                  3.569087e-09, 3.568208e-09], shape=(14464,))
+E            DESIRED: array([1.557961e-08, 1.466550e-08, 1.383094e-08, ..., 3.564335e-09,
+E                  3.562841e-09, 3.561944e-09], shape=(14464,))
+
+test/test_strain_psd_precision.py:120: AssertionError
+=========================== short test summary info ============================
+FAILED test/test_strain_psd_precision.py::test_strain_segments_retain_weak_frequencies[cpu-float32]
+FAILED test/test_strain_psd_precision.py::test_strain_segments_retain_weak_frequencies[torch-cpu-float32]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[cpu-0-float32-None]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[cpu-0-float32-double]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[cpu-2-float32-None]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[cpu-2-float32-double]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[torch-cpu-0-float32-None]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[torch-cpu-0-float32-double]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[torch-cpu-2-float32-None]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[torch-cpu-2-float32-double]
+10 failed, 10 passed, 10 skipped in 0.30s

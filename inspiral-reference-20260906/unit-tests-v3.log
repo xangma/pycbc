@@ -1,0 +1,191 @@
+..........................................................F.F... [ 14%]
+...................................................................s.... [ 31%]
+..............................s..s....ss........ssss....ss..s....ss..s.. [ 48%]
+s..s......sss...s................ssssssss................ssssssss....... [ 64%]
+.........ssssssss................ssssssss...s..s..s..s...s...s.......... [ 81%]
+..s........ss..s..s..s..s..s..s......................................... [ 97%]
+.........                                                                [100%]
+=================================== FAILURES ===================================
+__ test_long_sigmasq_series_and_equal_power_bins[torch-cuda-False-complex128] __
+
+dtype = <class 'numpy.complex128'>, use_psd = False, backend = 'torch-cuda'
+
+    @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+    @pytest.mark.parametrize("use_psd", [False, True])
+    @pytest.mark.parametrize("backend", ["cpu", "torch-cpu", "torch-cuda"])
+    def test_long_sigmasq_series_and_equal_power_bins(dtype, use_psd, backend):
+        if backend == "cpu":
+            context = scheme.CPUScheme(1)
+        else:
+            torch = pytest.importorskip("torch")
+            device = backend.removeprefix("torch-")
+            if device == "cuda" and not torch.cuda.is_available():
+                pytest.skip("CUDA is unavailable")
+            context = scheme.TorchScheme(device=device, num_threads=1)
+        delta_f = 1 / 512
+        frequency = np.arange(1048577) * delta_f
+        low, high = 30.0, 1999.0
+        kmin, kmax = int(low / delta_f), int(high / delta_f)
+        # An inspiral-like amplitude gives a long, low-power tail. A sequential
+        # float32 prefix loses tail contributions after its running sum grows.
+        amplitude = (np.maximum(frequency, low) / low) ** (-7 / 6)
+        waveform = (amplitude * np.exp(0.2j * frequency)).astype(dtype)
+        real_dtype = np.float32 if dtype == np.complex64 else np.float64
+        psd_values = (1 + (frequency / 300) ** 2).astype(real_dtype)
+    
+        band = waveform[kmin:kmax].astype(np.complex128)
+        reference_power = band.real**2 + band.imag**2
+        if use_psd:
+            reference_power /= psd_values[kmin:kmax].astype(np.float64)
+        reference_prefix = np.cumsum(reference_power, dtype=np.float64)
+    
+        with context:
+            template = FrequencySeries(waveform, delta_f=delta_f)
+            psd = FrequencySeries(psd_values, delta_f=delta_f) if use_psd else None
+            result = sigmasq_series(template, psd, low, high)
+            bins = power_chisq_bins_from_sigmasq_series(result, 16, kmin, kmax)
+            actual = result.numpy()
+            if backend == "torch-cuda":
+                # A parallel float32 scan can move bin edges between identical
+                # calls. Repeated full calculations must retain the same bins.
+                for _ in range(20):
+                    repeated = sigmasq_series(template, psd, low, high)
+                    repeated_bins = power_chisq_bins_from_sigmasq_series(
+                        repeated, 16, kmin, kmax
+                    )
+                    np.testing.assert_array_equal(repeated_bins, bins)
+    
+        assert result.dtype == real_dtype
+        assert result.delta_f == delta_f
+        assert np.count_nonzero(actual[:kmin]) == 0
+        assert np.count_nonzero(actual[kmax:]) == 0
+        tolerance = 3e-7 if dtype == np.complex64 else 3e-14
+>       np.testing.assert_allclose(
+            actual[kmin:kmax], reference_prefix * (4 * delta_f), rtol=tolerance
+        )
+
+test/test_sigmasq_series_precision.py:62: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = (<function assert_allclose.<locals>.compare at 0x7421c48882c0>, array([7.81250000e-03, 1.56238133e-02, 2.34339403e-02,...), array([7.81250000e-03, 1.56238133e-02, 2.34339403e-02, ...,
+       8.96707445e+01, 8.96707450e+01, 8.96707454e+01]))
+kwds = {'equal_nan': True, 'err_msg': '', 'header': 'Not equal to tolerance rtol=3e-14, atol=0', 'verbose': True}
+
+    @wraps(func)
+    def inner(*args, **kwds):
+        with self._recreate_cm():
+>           return func(*args, **kwds)
+                   ^^^^^^^^^^^^^^^^^^^
+E           AssertionError: 
+E           Not equal to tolerance rtol=3e-14, atol=0
+E           
+E           Mismatched elements: 186727 / 1008128 (18.5%)
+E           Max absolute difference: 3.89377419e-12
+E           Max relative difference: 4.37160779e-14
+E            x: array([7.812500e-03, 1.562381e-02, 2.343394e-02, ..., 8.967074e+01,
+E                  8.967074e+01, 8.967075e+01])
+E            y: array([7.812500e-03, 1.562381e-02, 2.343394e-02, ..., 8.967074e+01,
+E                  8.967074e+01, 8.967075e+01])
+
+../../miniconda3/envs/pycbc3g/lib/python3.11/contextlib.py:81: AssertionError
+__ test_long_sigmasq_series_and_equal_power_bins[torch-cuda-True-complex128] ___
+
+dtype = <class 'numpy.complex128'>, use_psd = True, backend = 'torch-cuda'
+
+    @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+    @pytest.mark.parametrize("use_psd", [False, True])
+    @pytest.mark.parametrize("backend", ["cpu", "torch-cpu", "torch-cuda"])
+    def test_long_sigmasq_series_and_equal_power_bins(dtype, use_psd, backend):
+        if backend == "cpu":
+            context = scheme.CPUScheme(1)
+        else:
+            torch = pytest.importorskip("torch")
+            device = backend.removeprefix("torch-")
+            if device == "cuda" and not torch.cuda.is_available():
+                pytest.skip("CUDA is unavailable")
+            context = scheme.TorchScheme(device=device, num_threads=1)
+        delta_f = 1 / 512
+        frequency = np.arange(1048577) * delta_f
+        low, high = 30.0, 1999.0
+        kmin, kmax = int(low / delta_f), int(high / delta_f)
+        # An inspiral-like amplitude gives a long, low-power tail. A sequential
+        # float32 prefix loses tail contributions after its running sum grows.
+        amplitude = (np.maximum(frequency, low) / low) ** (-7 / 6)
+        waveform = (amplitude * np.exp(0.2j * frequency)).astype(dtype)
+        real_dtype = np.float32 if dtype == np.complex64 else np.float64
+        psd_values = (1 + (frequency / 300) ** 2).astype(real_dtype)
+    
+        band = waveform[kmin:kmax].astype(np.complex128)
+        reference_power = band.real**2 + band.imag**2
+        if use_psd:
+            reference_power /= psd_values[kmin:kmax].astype(np.float64)
+        reference_prefix = np.cumsum(reference_power, dtype=np.float64)
+    
+        with context:
+            template = FrequencySeries(waveform, delta_f=delta_f)
+            psd = FrequencySeries(psd_values, delta_f=delta_f) if use_psd else None
+            result = sigmasq_series(template, psd, low, high)
+            bins = power_chisq_bins_from_sigmasq_series(result, 16, kmin, kmax)
+            actual = result.numpy()
+            if backend == "torch-cuda":
+                # A parallel float32 scan can move bin edges between identical
+                # calls. Repeated full calculations must retain the same bins.
+                for _ in range(20):
+                    repeated = sigmasq_series(template, psd, low, high)
+                    repeated_bins = power_chisq_bins_from_sigmasq_series(
+                        repeated, 16, kmin, kmax
+                    )
+                    np.testing.assert_array_equal(repeated_bins, bins)
+    
+        assert result.dtype == real_dtype
+        assert result.delta_f == delta_f
+        assert np.count_nonzero(actual[:kmin]) == 0
+        assert np.count_nonzero(actual[kmax:]) == 0
+        tolerance = 3e-7 if dtype == np.complex64 else 3e-14
+>       np.testing.assert_allclose(
+            actual[kmin:kmax], reference_prefix * (4 * delta_f), rtol=tolerance
+        )
+
+test/test_sigmasq_series_precision.py:62: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = (<function assert_allclose.<locals>.compare at 0x7421c4888cc0>, array([7.73514851e-03, 1.54691121e-02, 2.32018911e-02,...), array([7.73514851e-03, 1.54691121e-02, 2.32018911e-02, ...,
+       8.16937403e+01, 8.16937403e+01, 8.16937403e+01]))
+kwds = {'equal_nan': True, 'err_msg': '', 'header': 'Not equal to tolerance rtol=3e-14, atol=0', 'verbose': True}
+
+    @wraps(func)
+    def inner(*args, **kwds):
+        with self._recreate_cm():
+>           return func(*args, **kwds)
+                   ^^^^^^^^^^^^^^^^^^^
+E           AssertionError: 
+E           Not equal to tolerance rtol=3e-14, atol=0
+E           
+E           Mismatched elements: 498458 / 1008128 (49.4%)
+E           Max absolute difference: 5.91171556e-12
+E           Max relative difference: 7.2365501e-14
+E            x: array([7.735149e-03, 1.546911e-02, 2.320189e-02, ..., 8.169374e+01,
+E                  8.169374e+01, 8.169374e+01])
+E            y: array([7.735149e-03, 1.546911e-02, 2.320189e-02, ..., 8.169374e+01,
+E                  8.169374e+01, 8.169374e+01])
+
+../../miniconda3/envs/pycbc3g/lib/python3.11/contextlib.py:81: AssertionError
+=============================== warnings summary ===============================
+test/test_torch_chisq_cpu_optimization.py:586
+  /home/xangma/pycbc-torch-inspiral-reference-20260906/source-v3/test/test_torch_chisq_cpu_optimization.py:586: UserWarning: Sparse invariant checks are implicitly disabled. Memory errors (e.g. SEGFAULT) will occur when operating on a sparse tensor which violates the invariants, but checks incur performance overhead. To silence this warning, explicitly opt in or out. See `torch.sparse.check_sparse_tensor_invariants.__doc__` for guidance.  (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/Context.cpp:816.)
+    torch.sparse_coo_tensor(
+
+test/test_torch_chisq_cpu_optimization.py: 18 warnings
+  /home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+test/test_torch_psd_pipeline.py::test_lisa_response_psd_public_devices[cpu]
+test/test_torch_psd_pipeline.py::test_lisa_response_psd_public_devices[cuda]
+  /home/xangma/pycbc-torch-inspiral-reference-20260906/source-v3/pycbc/psd/read.py:99: RuntimeWarning: divide by zero encountered in log
+    slog = numpy.log(noise_data)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED test/test_sigmasq_series_precision.py::test_long_sigmasq_series_and_equal_power_bins[torch-cuda-False-complex128]
+FAILED test/test_sigmasq_series_precision.py::test_long_sigmasq_series_and_equal_power_bins[torch-cuda-True-complex128]
+2 failed, 363 passed, 68 skipped, 21 warnings, 8 subtests passed in 27.79s

@@ -1,0 +1,1404 @@
+{
+  "command": [
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/check-boundary-injections.py",
+    "--bank-metadata",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-metadata.json",
+    "--compression-receipt",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/compression-1e5.json",
+    "--source",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5",
+    "--output",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/boundary-injections-precision5.json",
+    "--qualification",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision5-cpu-l1024/qualification.json"
+  ],
+  "common_measured_psd": {
+    "byte_order": "C order; dtype_str records endianness",
+    "bytes": 8388740,
+    "capture": "Exact final segment.psd before overwhitening; no rescaling or dtype conversion",
+    "data_sha256": "55cbb98ecab29dfe1552125c60f2ab55a0126ac72b75454ac741d7263d2b7873",
+    "delta_f_hz": 0.0009765625,
+    "dtype": "float32",
+    "dtype_str": "<f4",
+    "dyn_range_factor": 5.902958103587057e+20,
+    "finite": true,
+    "n_samples": 2097153,
+    "nbytes": 8388612,
+    "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision5-cpu-l1024/arrays/qualification-psd-000.npy",
+    "relative_path": "arrays/qualification-psd-000.npy",
+    "scaling": "DYN_RANGE_FAC**2",
+    "segment_indices": [
+      0,
+      1,
+      2
+    ],
+    "sha256": "22d2648f8eaa8f6ed8205eaa16f9782901b74f242c72d55ea8100a8f483cad83",
+    "shape": [
+      2097153
+    ],
+    "validity": {
+      "excluded_infinity_policy": "Positive infinity is allowed only outside the actual filter slice; inverse-spectrum truncation can produce it where the inverse spectrum vanishes.",
+      "filter_bin_start": 30720,
+      "filter_bin_stop": 2097152,
+      "filter_bins_are_half_open": true,
+      "nan_count": 0,
+      "negative_infinity_count": 0,
+      "nonpositive_count": 0,
+      "positive_infinity_count": 0,
+      "positive_infinity_first_bin": null,
+      "positive_infinity_last_bin": null,
+      "positive_infinity_only_in_excluded_bins": true,
+      "used_bins_finite_positive": true,
+      "valid_for_filter": true
+    }
+  },
+  "completed_cases": 36,
+  "compression_command": [
+    "/usr/bin/time",
+    "-v",
+    "-o",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/compression-1e5-time.txt",
+    "taskset",
+    "-c",
+    "8",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/bin/pycbc_compress_bank",
+    "--verbose",
+    "--bank-file",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank.hdf",
+    "--output",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf",
+    "--sample-rate",
+    "4096",
+    "--segment-length",
+    "256",
+    "--compression-algorithm",
+    "spa",
+    "--interpolation",
+    "inline_linear",
+    "--precision",
+    "single",
+    "--tolerance",
+    "0.00001",
+    "--nprocesses",
+    "1",
+    "--psd-model",
+    "aLIGOZeroDetHighPower",
+    "--low-frequency-cutoff",
+    "30",
+    "--approximant",
+    "IMRPhenomD"
+  ],
+  "cwd": "/home/xangma/pycbc-torch-inspiral-reference-20260906",
+  "end_pad_seconds": 16,
+  "expected_cases": 36,
+  "finished_utc": "2026-09-06T19:00:25.856841+00:00",
+  "host": "len",
+  "input_sha256": {
+    "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lal/__init__.py": "5229a365707f57bac4b377b0f03f62f4edf52d90a351b3a3eac6c38ee8bfb087",
+    "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lal/_lal.cpython-311-x86_64-linux-gnu.so": "baa61ab6b4b9dd9bb0666bfced783ec958132bfed223686b2af70a7c30860b5e",
+    "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lalsimulation/__init__.py": "c3e1826c9321eb2f0485b322737ac292e98396363f58fb2af38b520e2ea8b0ee",
+    "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lalsimulation/_lalsimulation.cpython-311-x86_64-linux-gnu.so": "ae3b2766e7d2d0192062cf5e7df11b34c0b84e5eeebccf24ba6984f539432bf2",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/check-boundary-injections.py": "60fbc9ab4c3a67cd038b081d5f5d1367e39ed7e4efc5a0f9b65f5337738a7b1b",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/compress-bank-1e5.py": "a07f938fd4891d1cba1bb5ea0a7163d184f75236cc8d79ec914dc594d4722108",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/compression-1e5.json": "9d5724fbc1961fe20ff346b8ba39959f4c7fab1aae949126957aece2499279ee",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf": "161820754117cd51b24a7bb672ea456cf7b2a3808e69690c23235d024b1a2916",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-metadata.json": "565488d9e10981c47a8f4cf42d074b9385efb8214a89b8cbd6a58412a9ce8538",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank.hdf": "f2917fce4a4a5f2111345b892d61ed0744b17570f63ab2cd4216e685eac3667c",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision5-cpu-l1024/arrays/qualification-psd-000.npy": "22d2648f8eaa8f6ed8205eaa16f9782901b74f242c72d55ea8100a8f483cad83",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision5-cpu-l1024/qualification.json": "fc994f281d906182296ba21668075ebceac00db15775e30e45ae31cdc3ea622b",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/__init__.py": "977f5aa517bf682c2d8268714f4d3c2f6748d026b95b616f89efd312125696c9",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/bank.py": "372bb9968d0b0b9bbe674335dd7b3424df7290b70a28ba10798bd3acf6006a2e",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/compress.py": "9f34fe0d96d4c9f4f0614d23a12eac3ccec5377e07cd2f02af97ab8c0f4e85f2",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/decompress_cpu.py": "7667f5fc0f91753853bdf3936eb6d4ed14dee425a1688f5dc3eb57ed363a8e19",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/waveform.py": "01d0b6994418e7f8a2cc52019cc2a132715b607ce7de999db8280ee7be73a76d",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/bin/pycbc_compress_bank": "05883cb816293406c11fab690600f47643f393fa771eac004d891a7463942d77",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/validate-waveforms.py": "9c761995585d27364d97960fd74f2efb3b64f7e978178f348072901b6f4489c6"
+  },
+  "input_sha256_after": {
+    "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lal/__init__.py": "5229a365707f57bac4b377b0f03f62f4edf52d90a351b3a3eac6c38ee8bfb087",
+    "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lal/_lal.cpython-311-x86_64-linux-gnu.so": "baa61ab6b4b9dd9bb0666bfced783ec958132bfed223686b2af70a7c30860b5e",
+    "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lalsimulation/__init__.py": "c3e1826c9321eb2f0485b322737ac292e98396363f58fb2af38b520e2ea8b0ee",
+    "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lalsimulation/_lalsimulation.cpython-311-x86_64-linux-gnu.so": "ae3b2766e7d2d0192062cf5e7df11b34c0b84e5eeebccf24ba6984f539432bf2",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/check-boundary-injections.py": "60fbc9ab4c3a67cd038b081d5f5d1367e39ed7e4efc5a0f9b65f5337738a7b1b",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/compress-bank-1e5.py": "a07f938fd4891d1cba1bb5ea0a7163d184f75236cc8d79ec914dc594d4722108",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/compression-1e5.json": "9d5724fbc1961fe20ff346b8ba39959f4c7fab1aae949126957aece2499279ee",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf": "161820754117cd51b24a7bb672ea456cf7b2a3808e69690c23235d024b1a2916",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-metadata.json": "565488d9e10981c47a8f4cf42d074b9385efb8214a89b8cbd6a58412a9ce8538",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank.hdf": "f2917fce4a4a5f2111345b892d61ed0744b17570f63ab2cd4216e685eac3667c",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision5-cpu-l1024/arrays/qualification-psd-000.npy": "22d2648f8eaa8f6ed8205eaa16f9782901b74f242c72d55ea8100a8f483cad83",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision5-cpu-l1024/qualification.json": "fc994f281d906182296ba21668075ebceac00db15775e30e45ae31cdc3ea622b",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/__init__.py": "977f5aa517bf682c2d8268714f4d3c2f6748d026b95b616f89efd312125696c9",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/bank.py": "372bb9968d0b0b9bbe674335dd7b3424df7290b70a28ba10798bd3acf6006a2e",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/compress.py": "9f34fe0d96d4c9f4f0614d23a12eac3ccec5377e07cd2f02af97ab8c0f4e85f2",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/decompress_cpu.py": "7667f5fc0f91753853bdf3936eb6d4ed14dee425a1688f5dc3eb57ed363a8e19",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/waveform.py": "01d0b6994418e7f8a2cc52019cc2a132715b607ce7de999db8280ee7be73a76d",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source/bin/pycbc_compress_bank": "05883cb816293406c11fab690600f47643f393fa771eac004d891a7463942d77",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/validate-waveforms.py": "9c761995585d27364d97960fd74f2efb3b64f7e978178f348072901b6f4489c6"
+  },
+  "long_reference_seconds": 4096,
+  "method": {
+    "arithmetic": "float64/complex128 diagnostic FFTs and linear convolution; common normalization across lengths",
+    "circular": "4*IFFT(FFT(injection_segment)*common_transfer[::4096/L])/common_sigma; exact periodization of the same long kernel",
+    "comparison": "All retained samples within one second of the reference peak. Complex errors use the common reference peak amplitude as denominator; no fitted phase, time, or segment-dependent amplitude",
+    "kernel": "4*IFFT(conj(compressed_H)*inverse_PSD), with only the positive-frequency band populated; unwrapped lags [-2048,2048) seconds",
+    "limits": "Finite-reference diagnostic, not proof of waveform support. Does not test production FFT rounding, L-dependent PSD differences, real-noise interactions, conditioning, gating, chi-square, or trigger clustering",
+    "linear": "Full zero-padded linear convolution of the finite unwrapped injection and kernel, divided by common_sigma",
+    "placement": "Measured linear-reference peak at first valid sample, integer midpoint, and last valid sample; sample-aligned coalescence",
+    "tails": "Both outer-reference energy fractions must meet the stated budget; padding-tail energies are reported separately, without discarding kernel samples",
+    "waveforms": "Same-approximant complex64 FilterBank regeneration for the real injection; compressed FilterBank template with generation fallback forbidden for the filter",
+    "weighting": "One inverse PSD, linearly interpolated once from the actual final L1024 PSD onto the 4096-s grid, zero outside the actual controller band"
+  },
+  "passed": true,
+  "pid": 2959194,
+  "purpose": "Noiseless boundary-injection diagnostic with one common long weighting kernel",
+  "qualification": "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-precision5-cpu-l1024/qualification.json",
+  "runtime": {
+    "fft_workers": 1,
+    "numpy": "1.26.4",
+    "pycbc": "0.0a9313",
+    "python": "3.11.9 | packaged by conda-forge | (main, Apr 19 2024, 18:36:13) [GCC 12.3.0]",
+    "scheme": "CPUScheme(1)",
+    "scipy": "1.13.0"
+  },
+  "schema_version": 1,
+  "segment_lengths_seconds": [
+    256,
+    512,
+    1024
+  ],
+  "source_after": {
+    "commit": "837f38d493420043e45fb1ad210a0ccf68bacbaa",
+    "root": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5",
+    "status": "",
+    "tree": "a6494f95d8a65d8664125647a11d35a26a6f0f71"
+  },
+  "source_before": {
+    "commit": "837f38d493420043e45fb1ad210a0ccf68bacbaa",
+    "root": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5",
+    "status": "",
+    "tree": "a6494f95d8a65d8664125647a11d35a26a6f0f71"
+  },
+  "source_modules": {
+    "lal": {
+      "path": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lal/__init__.py",
+      "sha256": "5229a365707f57bac4b377b0f03f62f4edf52d90a351b3a3eac6c38ee8bfb087"
+    },
+    "lal._lal": {
+      "path": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lal/_lal.cpython-311-x86_64-linux-gnu.so",
+      "sha256": "baa61ab6b4b9dd9bb0666bfced783ec958132bfed223686b2af70a7c30860b5e"
+    },
+    "lalsimulation": {
+      "path": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lalsimulation/__init__.py",
+      "sha256": "c3e1826c9321eb2f0485b322737ac292e98396363f58fb2af38b520e2ea8b0ee"
+    },
+    "lalsimulation._lalsimulation": {
+      "path": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lalsimulation/_lalsimulation.cpython-311-x86_64-linux-gnu.so",
+      "sha256": "ae3b2766e7d2d0192062cf5e7df11b34c0b84e5eeebccf24ba6984f539432bf2"
+    },
+    "pycbc": {
+      "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/__init__.py",
+      "sha256": "977f5aa517bf682c2d8268714f4d3c2f6748d026b95b616f89efd312125696c9"
+    },
+    "pycbc.waveform.bank": {
+      "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/bank.py",
+      "sha256": "372bb9968d0b0b9bbe674335dd7b3424df7290b70a28ba10798bd3acf6006a2e"
+    },
+    "pycbc.waveform.compress": {
+      "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/compress.py",
+      "sha256": "9f34fe0d96d4c9f4f0614d23a12eac3ccec5377e07cd2f02af97ab8c0f4e85f2"
+    },
+    "pycbc.waveform.decompress_cpu": {
+      "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/decompress_cpu.py",
+      "sha256": "7667f5fc0f91753853bdf3936eb6d4ed14dee425a1688f5dc3eb57ed363a8e19"
+    },
+    "pycbc.waveform.decompress_cpu_cython": {
+      "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so",
+      "sha256": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707"
+    },
+    "pycbc.waveform.waveform": {
+      "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/pycbc/waveform/waveform.py",
+      "sha256": "01d0b6994418e7f8a2cc52019cc2a132715b607ce7de999db8280ee7be73a76d"
+    }
+  },
+  "start_pads_seconds": [
+    96,
+    112
+  ],
+  "started_utc": "2026-09-06T18:59:52.290562+00:00",
+  "state": "complete",
+  "target_reference_peak_snr": 8.0,
+  "templates": [
+    {
+      "cases": [
+        {
+          "circular_peak_sample": 393216,
+          "circular_peak_snr": 8.000137441604647,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            393216,
+            397313
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 393216,
+          "maximum_relative_complex_error": 1.8258853237899802e-05,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "first_valid",
+          "reference_peak_sample": 393216,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 1.724210955264119e-05,
+          "relative_peak_snr_error": 1.7180200580835248e-05,
+          "retained_samples": [
+            393216,
+            983040
+          ],
+          "rms_relative_complex_error": 1.752609015940045e-05,
+          "segment_length_seconds": 256,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 393216
+        },
+        {
+          "circular_peak_sample": 688127,
+          "circular_peak_snr": 8.000162871066504,
+          "compared_sample_count": 8193,
+          "comparison_samples": [
+            684031,
+            692224
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 688127,
+          "maximum_relative_complex_error": 2.130778483493252e-05,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "midpoint",
+          "reference_peak_sample": 688127,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 2.0371047616543695e-05,
+          "relative_peak_snr_error": 2.0358883312976417e-05,
+          "retained_samples": [
+            393216,
+            983040
+          ],
+          "rms_relative_complex_error": 2.0314875424406362e-05,
+          "segment_length_seconds": 256,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 688127
+        },
+        {
+          "circular_peak_sample": 983039,
+          "circular_peak_snr": 8.000148813477525,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            978943,
+            983040
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 983039,
+          "maximum_relative_complex_error": 2.4513617953031438e-05,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "last_valid",
+          "reference_peak_sample": 983039,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 2.4484058711552074e-05,
+          "relative_peak_snr_error": 1.8601684690588982e-05,
+          "retained_samples": [
+            393216,
+            983040
+          ],
+          "rms_relative_complex_error": 2.3507413642609426e-05,
+          "segment_length_seconds": 256,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 983039
+        },
+        {
+          "circular_peak_sample": 458752,
+          "circular_peak_snr": 8.000144905650629,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            458752,
+            462849
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 458752,
+          "maximum_relative_complex_error": 1.9146602344197987e-05,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "first_valid",
+          "reference_peak_sample": 458752,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 1.8154235066904607e-05,
+          "relative_peak_snr_error": 1.8113206328607134e-05,
+          "retained_samples": [
+            458752,
+            983040
+          ],
+          "rms_relative_complex_error": 1.8304871664359815e-05,
+          "segment_length_seconds": 256,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 458752
+        },
+        {
+          "circular_peak_sample": 720895,
+          "circular_peak_snr": 8.000164800501441,
+          "compared_sample_count": 8193,
+          "comparison_samples": [
+            716799,
+            724992
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 720895,
+          "maximum_relative_complex_error": 2.1553792389917277e-05,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "midpoint",
+          "reference_peak_sample": 720895,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 2.0633257036337158e-05,
+          "relative_peak_snr_error": 2.06000626801206e-05,
+          "retained_samples": [
+            458752,
+            983040
+          ],
+          "rms_relative_complex_error": 2.0547503979415856e-05,
+          "segment_length_seconds": 256,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 720895
+        },
+        {
+          "circular_peak_sample": 983039,
+          "circular_peak_snr": 8.000148813477525,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            978943,
+            983040
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 983039,
+          "maximum_relative_complex_error": 2.4513617953031438e-05,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "last_valid",
+          "reference_peak_sample": 983039,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 2.4484058711552074e-05,
+          "relative_peak_snr_error": 1.8601684690588982e-05,
+          "retained_samples": [
+            458752,
+            983040
+          ],
+          "rms_relative_complex_error": 2.3507413642609426e-05,
+          "segment_length_seconds": 256,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 983039
+        },
+        {
+          "circular_peak_sample": 393216,
+          "circular_peak_snr": 8.000066479990824,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            393216,
+            397313
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 393216,
+          "maximum_relative_complex_error": 8.889184909588898e-06,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "first_valid",
+          "reference_peak_sample": 393216,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 8.380886316534354e-06,
+          "relative_peak_snr_error": 8.309998853039957e-06,
+          "retained_samples": [
+            393216,
+            2031616
+          ],
+          "rms_relative_complex_error": 8.638884705121687e-06,
+          "segment_length_seconds": 512,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 393216
+        },
+        {
+          "circular_peak_sample": 1212415,
+          "circular_peak_snr": 8.000061452623177,
+          "compared_sample_count": 8193,
+          "comparison_samples": [
+            1208319,
+            1216512
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 1212415,
+          "maximum_relative_complex_error": 7.911963221373469e-06,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "midpoint",
+          "reference_peak_sample": 1212415,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 7.692836597663837e-06,
+          "relative_peak_snr_error": 7.681577897100667e-06,
+          "retained_samples": [
+            393216,
+            2031616
+          ],
+          "rms_relative_complex_error": 7.652502077990654e-06,
+          "segment_length_seconds": 512,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 1212415
+        },
+        {
+          "circular_peak_sample": 2031615,
+          "circular_peak_snr": 8.000083697473766,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            2027519,
+            2031616
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 2031615,
+          "maximum_relative_complex_error": 1.659662472640285e-05,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "last_valid",
+          "reference_peak_sample": 2031615,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 1.659662472640285e-05,
+          "relative_peak_snr_error": 1.0462184220738635e-05,
+          "retained_samples": [
+            393216,
+            2031616
+          ],
+          "rms_relative_complex_error": 1.614578700131101e-05,
+          "segment_length_seconds": 512,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 2031615
+        },
+        {
+          "circular_peak_sample": 458752,
+          "circular_peak_snr": 8.000069929772826,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            458752,
+            462849
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 458752,
+          "maximum_relative_complex_error": 9.05564942877775e-06,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "first_valid",
+          "reference_peak_sample": 458752,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 8.768822421277071e-06,
+          "relative_peak_snr_error": 8.741221603214555e-06,
+          "retained_samples": [
+            458752,
+            2031616
+          ],
+          "rms_relative_complex_error": 8.902250343092877e-06,
+          "segment_length_seconds": 512,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 458752
+        },
+        {
+          "circular_peak_sample": 1245183,
+          "circular_peak_snr": 8.00006128420941,
+          "compared_sample_count": 8193,
+          "comparison_samples": [
+            1241087,
+            1249280
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 1245183,
+          "maximum_relative_complex_error": 7.890878444435085e-06,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "midpoint",
+          "reference_peak_sample": 1245183,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 7.667143007222744e-06,
+          "relative_peak_snr_error": 7.66052617628965e-06,
+          "retained_samples": [
+            458752,
+            2031616
+          ],
+          "rms_relative_complex_error": 7.629892800266858e-06,
+          "segment_length_seconds": 512,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 1245183
+        },
+        {
+          "circular_peak_sample": 2031615,
+          "circular_peak_snr": 8.000083697473766,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            2027519,
+            2031616
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 2031615,
+          "maximum_relative_complex_error": 1.659662472640285e-05,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "last_valid",
+          "reference_peak_sample": 2031615,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 1.659662472640285e-05,
+          "relative_peak_snr_error": 1.0462184220738635e-05,
+          "retained_samples": [
+            458752,
+            2031616
+          ],
+          "rms_relative_complex_error": 1.614578700131101e-05,
+          "segment_length_seconds": 512,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 2031615
+        },
+        {
+          "circular_peak_sample": 393216,
+          "circular_peak_snr": 8.000029919095452,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            393216,
+            397313
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 393216,
+          "maximum_relative_complex_error": 4.3602815867320104e-06,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "first_valid",
+          "reference_peak_sample": 393216,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 3.840170188010191e-06,
+          "relative_peak_snr_error": 3.7398869314753114e-06,
+          "retained_samples": [
+            393216,
+            4128768
+          ],
+          "rms_relative_complex_error": 4.103572234085307e-06,
+          "segment_length_seconds": 1024,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 393216
+        },
+        {
+          "circular_peak_sample": 2260991,
+          "circular_peak_snr": 8.000027324299095,
+          "compared_sample_count": 8193,
+          "comparison_samples": [
+            2256895,
+            2265088
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 2260991,
+          "maximum_relative_complex_error": 3.467853176110063e-06,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "midpoint",
+          "reference_peak_sample": 2260991,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 3.4169225209350484e-06,
+          "relative_peak_snr_error": 3.415537386919354e-06,
+          "retained_samples": [
+            393216,
+            4128768
+          ],
+          "rms_relative_complex_error": 3.4000736066977807e-06,
+          "segment_length_seconds": 1024,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 2260991
+        },
+        {
+          "circular_peak_sample": 4128767,
+          "circular_peak_snr": 8.000050547756945,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            4124671,
+            4128768
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 4128767,
+          "maximum_relative_complex_error": 1.3287516098093667e-05,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "last_valid",
+          "reference_peak_sample": 4128767,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 1.325254745496027e-05,
+          "relative_peak_snr_error": 6.3184696181828315e-06,
+          "retained_samples": [
+            393216,
+            4128768
+          ],
+          "rms_relative_complex_error": 1.2970172901659859e-05,
+          "segment_length_seconds": 1024,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 4128767
+        },
+        {
+          "circular_peak_sample": 458752,
+          "circular_peak_snr": 8.000032011536934,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            458752,
+            462849
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 458752,
+          "maximum_relative_complex_error": 4.3389007676494845e-06,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "first_valid",
+          "reference_peak_sample": 458752,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 4.031286994604348e-06,
+          "relative_peak_snr_error": 4.001442116763343e-06,
+          "retained_samples": [
+            458752,
+            4128768
+          ],
+          "rms_relative_complex_error": 4.18028677372417e-06,
+          "segment_length_seconds": 1024,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 458752
+        },
+        {
+          "circular_peak_sample": 2293759,
+          "circular_peak_snr": 8.000027310412682,
+          "compared_sample_count": 8193,
+          "comparison_samples": [
+            2289663,
+            2297856
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 2293759,
+          "maximum_relative_complex_error": 3.466372312647085e-06,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "midpoint",
+          "reference_peak_sample": 2293759,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 3.4146165997987517e-06,
+          "relative_peak_snr_error": 3.4138015851947756e-06,
+          "retained_samples": [
+            458752,
+            4128768
+          ],
+          "rms_relative_complex_error": 3.398158595907251e-06,
+          "segment_length_seconds": 1024,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 2293759
+        },
+        {
+          "circular_peak_sample": 4128767,
+          "circular_peak_snr": 8.000050547756945,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            4124671,
+            4128768
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 4128767,
+          "maximum_relative_complex_error": 1.3287516098093667e-05,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "last_valid",
+          "reference_peak_sample": 4128767,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 1.325254745496027e-05,
+          "relative_peak_snr_error": 6.3184696181828315e-06,
+          "retained_samples": [
+            458752,
+            4128768
+          ],
+          "rms_relative_complex_error": 1.2970172901659859e-05,
+          "segment_length_seconds": 1024,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 4128767
+        }
+      ],
+      "kind": "longest",
+      "passed": true,
+      "reference": {
+        "bank_index": 2,
+        "common_inverse_psd": {
+          "data_sha256": "82ed806974173acaf983124931854434fe984a15fcc128c1cf4a8c2c759d658b",
+          "dtype_str": "<f8",
+          "shape": [
+            8388609
+          ]
+        },
+        "common_transfer_function": {
+          "data_sha256": "f4b9e57d78171be5646d644b70c8581af1045d527b742e84f9b1a4b94850f2d9",
+          "dtype_str": "<c16",
+          "shape": [
+            16777216
+          ]
+        },
+        "compressed_frequency_waveform": {
+          "data_sha256": "c0bdb75be32b6f94ff642eb7238c9195339173311b19bc7daa847b828a08ffb1",
+          "dtype_str": "<c16",
+          "shape": [
+            8388609
+          ]
+        },
+        "delta_f_hz": 0.000244140625,
+        "filter_frequency_index_slice": [
+          122880,
+          8388608
+        ],
+        "filter_snr_norm": 1307.2913728684168,
+        "injection_amplitude_scale": 0.0061208041419237936,
+        "long_frequency_samples": 8388609,
+        "long_samples": 16777216,
+        "main_bank_row_index": 2,
+        "normalized_injection": {
+          "data_sha256": "a8a0039722324da26f316ad21ef67fb227968f35408310c32d73324de6789f01",
+          "dtype_str": "<f8",
+          "shape": [
+            16777216
+          ]
+        },
+        "parameters": {
+          "approximant": "IMRPhenomD",
+          "f_final": 2048.0,
+          "f_lower": 30.0,
+          "inclination": 0.0,
+          "mass1": 1.2,
+          "mass2": 1.2,
+          "spin1x": 0.0,
+          "spin1y": 0.0,
+          "spin1z": 0.05,
+          "spin2x": 0.0,
+          "spin2y": 0.0,
+          "spin2z": 0.05,
+          "template_duration": 77.67651664129376
+        },
+        "reference_peak_lag_samples": 0,
+        "reference_peak_snr": 8.0,
+        "reference_peak_window": {
+          "data_sha256": "783f3ee3f783a1f44da10dff1dfe7f4dbf55bd63b67275764f0c5b770bfc763c",
+          "dtype_str": "<c16",
+          "shape": [
+            8193
+          ]
+        },
+        "regenerated_frequency_waveform": {
+          "data_sha256": "c52ecba32d2d8c3a9abaaac51884f1bc08144a2521d097b9f1b70b1603122ba8",
+          "dtype_str": "<c16",
+          "shape": [
+            8388609
+          ]
+        },
+        "tails": {
+          "edge_region_absolute_lag_seconds_at_least": 1792.0,
+          "injection_edge_energy_fraction": 3.5240930347615854e-07,
+          "interpretation": "Observed energy inside the finite long reference. It cannot bound unobserved tails beyond +/-2048 s.",
+          "kernel_edge_energy_fraction": 3.265559036261203e-07,
+          "kernel_energy_outside_padding": {
+            "112": 7.662607373259732e-05,
+            "96": 7.822237769016588e-05
+          }
+        },
+        "template_hash": "-6983633448227792462",
+        "waveform_cutoffs_hz": [
+          30.0,
+          2048.0
+        ]
+      },
+      "reference_edge_budget_passed": true
+    },
+    {
+      "cases": [
+        {
+          "circular_peak_sample": 393216,
+          "circular_peak_snr": 8.000001581656312,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            393216,
+            397313
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 393216,
+          "maximum_relative_complex_error": 3.817599842292011e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "first_valid",
+          "reference_peak_sample": 393216,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 2.9970126879473164e-07,
+          "relative_peak_snr_error": 1.977070389624913e-07,
+          "retained_samples": [
+            393216,
+            983040
+          ],
+          "rms_relative_complex_error": 1.9744758900501682e-07,
+          "segment_length_seconds": 256,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 393216
+        },
+        {
+          "circular_peak_sample": 688127,
+          "circular_peak_snr": 8.000001622785481,
+          "compared_sample_count": 8193,
+          "comparison_samples": [
+            684031,
+            692224
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 688127,
+          "maximum_relative_complex_error": 5.387208726156253e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "midpoint",
+          "reference_peak_sample": 688127,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 4.886837454311044e-07,
+          "relative_peak_snr_error": 2.0284818513793823e-07,
+          "retained_samples": [
+            393216,
+            983040
+          ],
+          "rms_relative_complex_error": 1.7928149417631528e-07,
+          "segment_length_seconds": 256,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 688127
+        },
+        {
+          "circular_peak_sample": 983039,
+          "circular_peak_snr": 7.999997412180547,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            978943,
+            983040
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 983039,
+          "maximum_relative_complex_error": 8.75481229783937e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "last_valid",
+          "reference_peak_sample": 983039,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 7.447264660482097e-07,
+          "relative_peak_snr_error": 3.2347743161853515e-07,
+          "retained_samples": [
+            393216,
+            983040
+          ],
+          "rms_relative_complex_error": 5.234759297684845e-07,
+          "segment_length_seconds": 256,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 983039
+        },
+        {
+          "circular_peak_sample": 458752,
+          "circular_peak_snr": 8.000001749615487,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            458752,
+            462849
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 458752,
+          "maximum_relative_complex_error": 4.281887415944197e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "first_valid",
+          "reference_peak_sample": 458752,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 3.5277717854137586e-07,
+          "relative_peak_snr_error": 2.1870193589457187e-07,
+          "retained_samples": [
+            458752,
+            983040
+          ],
+          "rms_relative_complex_error": 1.8662890573926595e-07,
+          "segment_length_seconds": 256,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 458752
+        },
+        {
+          "circular_peak_sample": 720895,
+          "circular_peak_snr": 8.000001512219963,
+          "compared_sample_count": 8193,
+          "comparison_samples": [
+            716799,
+            724992
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 720895,
+          "maximum_relative_complex_error": 5.512652965650255e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "midpoint",
+          "reference_peak_sample": 720895,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 5.057286770035823e-07,
+          "relative_peak_snr_error": 1.8902749543414643e-07,
+          "retained_samples": [
+            458752,
+            983040
+          ],
+          "rms_relative_complex_error": 1.854065079420337e-07,
+          "segment_length_seconds": 256,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 720895
+        },
+        {
+          "circular_peak_sample": 983039,
+          "circular_peak_snr": 7.999997412180547,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            978943,
+            983040
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 983039,
+          "maximum_relative_complex_error": 8.75481229783937e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "last_valid",
+          "reference_peak_sample": 983039,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 7.447264660482097e-07,
+          "relative_peak_snr_error": 3.2347743161853515e-07,
+          "retained_samples": [
+            458752,
+            983040
+          ],
+          "rms_relative_complex_error": 5.234759297684845e-07,
+          "segment_length_seconds": 256,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 983039
+        },
+        {
+          "circular_peak_sample": 393216,
+          "circular_peak_snr": 8.000000013813784,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            393216,
+            397313
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 393216,
+          "maximum_relative_complex_error": 2.1446791984957546e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "first_valid",
+          "reference_peak_sample": 393216,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 6.064669667186616e-08,
+          "relative_peak_snr_error": 1.7267229868167533e-09,
+          "retained_samples": [
+            393216,
+            2031616
+          ],
+          "rms_relative_complex_error": 1.607324179132644e-07,
+          "segment_length_seconds": 512,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 393216
+        },
+        {
+          "circular_peak_sample": 1212415,
+          "circular_peak_snr": 8.000000900176769,
+          "compared_sample_count": 8193,
+          "comparison_samples": [
+            1208319,
+            1216512
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 1212415,
+          "maximum_relative_complex_error": 1.8204717710400815e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "midpoint",
+          "reference_peak_sample": 1212415,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 1.553671506691382e-07,
+          "relative_peak_snr_error": 1.1252209608514363e-07,
+          "retained_samples": [
+            393216,
+            2031616
+          ],
+          "rms_relative_complex_error": 8.644795474068189e-08,
+          "segment_length_seconds": 512,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 1212415
+        },
+        {
+          "circular_peak_sample": 2031615,
+          "circular_peak_snr": 7.999995925125139,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            2027519,
+            2031616
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 2031615,
+          "maximum_relative_complex_error": 6.31250781426945e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "last_valid",
+          "reference_peak_sample": 2031615,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 5.828271439632218e-07,
+          "relative_peak_snr_error": 5.093593575811184e-07,
+          "retained_samples": [
+            393216,
+            2031616
+          ],
+          "rms_relative_complex_error": 5.568498369189275e-07,
+          "segment_length_seconds": 512,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 2031615
+        },
+        {
+          "circular_peak_sample": 458752,
+          "circular_peak_snr": 8.000000253374134,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            458752,
+            462849
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 458752,
+          "maximum_relative_complex_error": 1.8987031011015188e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "first_valid",
+          "reference_peak_sample": 458752,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 5.247936120553667e-08,
+          "relative_peak_snr_error": 3.167176676477368e-08,
+          "retained_samples": [
+            458752,
+            2031616
+          ],
+          "rms_relative_complex_error": 1.3786059324699224e-07,
+          "segment_length_seconds": 512,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 458752
+        },
+        {
+          "circular_peak_sample": 1245183,
+          "circular_peak_snr": 8.000000891534057,
+          "compared_sample_count": 8193,
+          "comparison_samples": [
+            1241087,
+            1249280
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 1245183,
+          "maximum_relative_complex_error": 1.853584535697644e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "midpoint",
+          "reference_peak_sample": 1245183,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 1.5896792140103225e-07,
+          "relative_peak_snr_error": 1.1144175715571691e-07,
+          "retained_samples": [
+            458752,
+            2031616
+          ],
+          "rms_relative_complex_error": 8.738416916001686e-08,
+          "segment_length_seconds": 512,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 1245183
+        },
+        {
+          "circular_peak_sample": 2031615,
+          "circular_peak_snr": 7.999995925125139,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            2027519,
+            2031616
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 2031615,
+          "maximum_relative_complex_error": 6.31250781426945e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "last_valid",
+          "reference_peak_sample": 2031615,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 5.828271439632218e-07,
+          "relative_peak_snr_error": 5.093593575811184e-07,
+          "retained_samples": [
+            458752,
+            2031616
+          ],
+          "rms_relative_complex_error": 5.568498369189275e-07,
+          "segment_length_seconds": 512,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 2031615
+        },
+        {
+          "circular_peak_sample": 393216,
+          "circular_peak_snr": 7.999999200893714,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            393216,
+            397313
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 393216,
+          "maximum_relative_complex_error": 1.938000893675634e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "first_valid",
+          "reference_peak_sample": 393216,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 1.3149187068448444e-07,
+          "relative_peak_snr_error": 9.988828575391295e-08,
+          "retained_samples": [
+            393216,
+            4128768
+          ],
+          "rms_relative_complex_error": 1.618556859463485e-07,
+          "segment_length_seconds": 1024,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 393216
+        },
+        {
+          "circular_peak_sample": 2260991,
+          "circular_peak_snr": 8.000000430543713,
+          "compared_sample_count": 8193,
+          "comparison_samples": [
+            2256895,
+            2265088
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 2260991,
+          "maximum_relative_complex_error": 7.044229585005659e-08,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "midpoint",
+          "reference_peak_sample": 2260991,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 5.97145133494448e-08,
+          "relative_peak_snr_error": 5.381796408521211e-08,
+          "retained_samples": [
+            393216,
+            4128768
+          ],
+          "rms_relative_complex_error": 4.102137049269201e-08,
+          "segment_length_seconds": 1024,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 2260991
+        },
+        {
+          "circular_peak_sample": 4128767,
+          "circular_peak_snr": 7.999995252159182,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            4124671,
+            4128768
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 4128767,
+          "maximum_relative_complex_error": 6.226087819765554e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "last_valid",
+          "reference_peak_sample": 4128767,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 6.041454700858409e-07,
+          "relative_peak_snr_error": 5.934801022844383e-07,
+          "retained_samples": [
+            393216,
+            4128768
+          ],
+          "rms_relative_complex_error": 5.820583144251343e-07,
+          "segment_length_seconds": 1024,
+          "start_pad_seconds": 96,
+          "target_reference_peak_sample": 4128767
+        },
+        {
+          "circular_peak_sample": 458752,
+          "circular_peak_snr": 7.999999437828857,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            458752,
+            462849
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 458752,
+          "maximum_relative_complex_error": 1.6515406500544951e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "first_valid",
+          "reference_peak_sample": 458752,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 1.0518307287692309e-07,
+          "relative_peak_snr_error": 7.027139292681284e-08,
+          "retained_samples": [
+            458752,
+            4128768
+          ],
+          "rms_relative_complex_error": 1.3503497259210705e-07,
+          "segment_length_seconds": 1024,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 458752
+        },
+        {
+          "circular_peak_sample": 2293759,
+          "circular_peak_snr": 8.000000429713975,
+          "compared_sample_count": 8193,
+          "comparison_samples": [
+            2289663,
+            2297856
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 2293759,
+          "maximum_relative_complex_error": 7.057407843070638e-08,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "midpoint",
+          "reference_peak_sample": 2293759,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 6.029120629965389e-08,
+          "relative_peak_snr_error": 5.3714246828207024e-08,
+          "retained_samples": [
+            458752,
+            4128768
+          ],
+          "rms_relative_complex_error": 4.114297962675992e-08,
+          "segment_length_seconds": 1024,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 2293759
+        },
+        {
+          "circular_peak_sample": 4128767,
+          "circular_peak_snr": 7.999995252159182,
+          "compared_sample_count": 4097,
+          "comparison_samples": [
+            4124671,
+            4128768
+          ],
+          "end_pad_seconds": 16,
+          "injection_coalescence_sample": 4128767,
+          "maximum_relative_complex_error": 6.226087819765554e-07,
+          "passed": true,
+          "peak_location_error_samples": 0,
+          "placement": "last_valid",
+          "reference_peak_sample": 4128767,
+          "reference_peak_snr": 8.0,
+          "relative_complex_error_at_reference_peak": 6.041454700858409e-07,
+          "relative_peak_snr_error": 5.934801022844383e-07,
+          "retained_samples": [
+            458752,
+            4128768
+          ],
+          "rms_relative_complex_error": 5.820583144251343e-07,
+          "segment_length_seconds": 1024,
+          "start_pad_seconds": 112,
+          "target_reference_peak_sample": 4128767
+        }
+      ],
+      "kind": "shortest",
+      "passed": true,
+      "reference": {
+        "bank_index": 76,
+        "common_inverse_psd": {
+          "data_sha256": "82ed806974173acaf983124931854434fe984a15fcc128c1cf4a8c2c759d658b",
+          "dtype_str": "<f8",
+          "shape": [
+            8388609
+          ]
+        },
+        "common_transfer_function": {
+          "data_sha256": "83a9372c0a251e008f004f03a0918e31103fa089a0005f954b4e0ada88ff1950",
+          "dtype_str": "<c16",
+          "shape": [
+            16777216
+          ]
+        },
+        "compressed_frequency_waveform": {
+          "data_sha256": "24547db4a94e2513097503b886ce4f3867fe1b322f7daefff73db2b27802d3b5",
+          "dtype_str": "<c16",
+          "shape": [
+            8388609
+          ]
+        },
+        "delta_f_hz": 0.000244140625,
+        "filter_frequency_index_slice": [
+          122880,
+          8388608
+        ],
+        "filter_snr_norm": 2226.8377910506506,
+        "injection_amplitude_scale": 0.0035930804909624875,
+        "long_frequency_samples": 8388609,
+        "long_samples": 16777216,
+        "main_bank_row_index": 76,
+        "normalized_injection": {
+          "data_sha256": "0df88259d73e71db66725a60955c0163e05832a87731bc013bca6accc3d091a1",
+          "dtype_str": "<f8",
+          "shape": [
+            16777216
+          ]
+        },
+        "parameters": {
+          "approximant": "IMRPhenomD",
+          "f_final": 2048.0,
+          "f_lower": 30.0,
+          "inclination": 0.0,
+          "mass1": 8.0,
+          "mass2": 2.0,
+          "spin1x": 0.0,
+          "spin1y": 0.0,
+          "spin1z": -0.5,
+          "spin2x": 0.0,
+          "spin2y": 0.0,
+          "spin2z": -0.05,
+          "template_duration": 10.659790257400559
+        },
+        "reference_peak_lag_samples": 0,
+        "reference_peak_snr": 8.0,
+        "reference_peak_window": {
+          "data_sha256": "648cb8cee10f18a1adb9f4b3b75dd0de15368b894c1cf61e18007bd7a7403ea6",
+          "dtype_str": "<c16",
+          "shape": [
+            8193
+          ]
+        },
+        "regenerated_frequency_waveform": {
+          "data_sha256": "0ae1838dd8c90c7cd71fe37b7c7c67a19bd8feaa997ceaa69b2b67c7d7882a99",
+          "dtype_str": "<c16",
+          "shape": [
+            8388609
+          ]
+        },
+        "tails": {
+          "edge_region_absolute_lag_seconds_at_least": 1792.0,
+          "injection_edge_energy_fraction": 3.8443568097498825e-07,
+          "interpretation": "Observed energy inside the finite long reference. It cannot bound unobserved tails beyond +/-2048 s.",
+          "kernel_edge_energy_fraction": 2.2837978923328647e-07,
+          "kernel_energy_outside_padding": {
+            "112": 5.359277546028437e-05,
+            "96": 5.4709138288205764e-05
+          }
+        },
+        "template_hash": "4550056397018417685",
+        "waveform_cutoffs_hz": [
+          30.0,
+          2048.0
+        ]
+      },
+      "reference_edge_budget_passed": true
+    }
+  ],
+  "tolerances": {
+    "edge_energy_fraction": 1e-06,
+    "maximum_relative_complex_error": 0.001,
+    "peak_location_error_samples": 1,
+    "relative_peak_snr_error": 0.001
+  }
+}

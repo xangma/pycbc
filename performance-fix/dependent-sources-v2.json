@@ -1,0 +1,593 @@
+{
+  "bundle": {
+    "advertised_refs": {
+      "refs/heads/codex/torch-performance-fix-20260906": "0d00581251e642a5d6b56b2497a9adad93069e6b",
+      "refs/heads/codex/torch-performance-fix-cpu-test-20260906-v2": "665fa5a0f41946c0c2873d8a79a16c8b6975a090",
+      "refs/heads/codex/torch-performance-fix-fft-test-20260906-v2": "c3202b4b0b681a1ace527d1e6231c47470856ba6"
+    },
+    "bytes": 38560,
+    "git_bundle_verify_passed": true,
+    "path": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/dependent-sources-v2.bundle",
+    "prerequisites": [
+      "dfd42bf76766cadca0eecf609a1eaeac73534676"
+    ],
+    "sha256": "6132363ae474aa3e291cad7f76775efbc0b4cf9b3a9ffd5f44a796da981413e0",
+    "verify_output": "The bundle contains these 3 refs:\n0d00581251e642a5d6b56b2497a9adad93069e6b refs/heads/codex/torch-performance-fix-20260906\nc3202b4b0b681a1ace527d1e6231c47470856ba6 refs/heads/codex/torch-performance-fix-fft-test-20260906-v2\n665fa5a0f41946c0c2873d8a79a16c8b6975a090 refs/heads/codex/torch-performance-fix-cpu-test-20260906-v2\nThe bundle requires this ref:\ndfd42bf76766cadca0eecf609a1eaeac73534676 \nThe bundle uses this hash algorithm: sha1\n/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/dependent-sources-v2.bundle is okay\n"
+  },
+  "feature_comparison": "Only matchedfilter.py blob IDs and hunk start coordinates normalized. Context, additions, deletions, counts, modes and all other paths remain exact.",
+  "finished_utc": "2026-09-06T15:19:23.988433+00:00",
+  "main_fix": {
+    "commit": "0d00581251e642a5d6b56b2497a9adad93069e6b",
+    "files": {
+      "pycbc/filter/matchedfilter.py": {
+        "bytes": 139411,
+        "git_blob": "c6a7bd138782fbeee320dbb4b7a03c2335124481",
+        "kind": "blob",
+        "mode": "100644",
+        "sha256": "40774107fdb566a626987dcded36dbd20f1a74c900d8d2801503209f3d7406c0"
+      },
+      "pycbc/filter/matchedfilter_torch.py": {
+        "bytes": 44201,
+        "git_blob": "14008291d2b36ac15758a6c682bee3627b23800d",
+        "kind": "blob",
+        "mode": "100644",
+        "sha256": "a7e5a56cd5255fbf0f7b88663f6ec32bdbd31e4757f00b93a8b7d2c9fa5ed533"
+      },
+      "pycbc/waveform/taylorf2_torch.py": {
+        "bytes": 53536,
+        "git_blob": "6f4906cdcb66fb77f858cbfe9e81d3f9ef101c31",
+        "kind": "blob",
+        "mode": "100644",
+        "sha256": "46137f45803da55bb1601e05a1cb26f7bc83d4879d8ee7823b3e3bc4ef85a648"
+      },
+      "test/test_live_batch_torch_peaks.py": {
+        "bytes": 38001,
+        "git_blob": "4cb7140a6d6d5bd9ec070c50f21f95355a1b1331",
+        "kind": "blob",
+        "mode": "100644",
+        "sha256": "60c57afe670a848fb7de17f2ec681a92400ceea1a1db26577b39dec765ec85cb"
+      },
+      "test/test_torch_batch_overlap_scaling.py": {
+        "bytes": 4311,
+        "git_blob": "56c9ef9cb0e6e21ee4ca3f7eb6a7008ab230965f",
+        "kind": "blob",
+        "mode": "100644",
+        "sha256": "26cfac4f7ca97f2dbc902b42930cdc44d5a4a9713cabf9c0456ab14ecb50efb3"
+      },
+      "test/waveform/test_taylorf2_phase_evaluation.py": {
+        "bytes": 7406,
+        "git_blob": "07cf65e6a91a773fe636b6aedda2d463d9e6d4b9",
+        "kind": "blob",
+        "mode": "100644",
+        "sha256": "b36d53b6269057f6dfaa8b988f1a0135ef09671b809c73b9a237c3b0618d47d2"
+      }
+    },
+    "parent": "450ab3f96ccea2783abb943b47f698578a507d59",
+    "tree": "fa7a7c09df6d93133324f762d756842de172433d"
+  },
+  "old_worktrees": {
+    "cpu": {
+      "head": "1514327669fc7be125523b991c847868c3a2a17e",
+      "path": "/private/tmp/pycbc-torch-performance-fix-cpu-test-20260906"
+    },
+    "fft": {
+      "head": "d6407d32742a57e4f026c461a26ef7b3929c5849",
+      "path": "/private/tmp/pycbc-torch-performance-fix-fft-test-20260906"
+    }
+  },
+  "purpose": "Local temporary qualification sources; no builds/tests/remote actions. Existing source/test worktrees were not modified.",
+  "schema": "torch_performance_fix_dependent_sources_v2",
+  "script_sha256": "08e01d25195eeeec82d2cc485da6088e773bad64cfa26c23faf77e5b35127924",
+  "sources": [
+    {
+      "aggregate_update_sha256": {
+        "pycbc/filter/matchedfilter.py": "d938ecd1e076e1108b6fbab9f00fdc9f3ada5a922e69a0c5fc2e66f6116442bb",
+        "pycbc/filter/matchedfilter_torch.py": "3ce1848d25989ecbfb00a6f58fd82416c7969cda3522f8088b77fc38be2d63ec",
+        "pycbc/waveform/taylorf2_torch.py": "b0dde7deb107843d8268c0f1b0dc482a87552b4c6a0d22ccec433e0d203a4188",
+        "test/test_live_batch_torch_peaks.py": "8ff20215e1282f6167337f8cdca9d040af65a4407436b12f376aeecaaf24089d",
+        "test/test_torch_batch_overlap_scaling.py": "07b8735c6d9402224ad5cb371f39f2cea173b741c2c18b96e4cf6cedbfd01c70",
+        "test/waveform/test_taylorf2_phase_evaluation.py": "8c7946c5003ae6b1ed02a1454af6d75d31ccc0d25a091d8204ae09167ab56d7b"
+      },
+      "feature_base_after": "0d00581251e642a5d6b56b2497a9adad93069e6b",
+      "feature_base_before": "450ab3f96ccea2783abb943b47f698578a507d59",
+      "feature_checks": {
+        "bin/pycbc_live": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "6000473cd8a9750a281c7c294c49446e2d0e29c13092d9a28d26b68ec4c0f4df",
+          "preserved": true
+        },
+        "pycbc/fft/__init__.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "09bd8b5ba7d192b85b01cb80f7314b6668d8ae587430b22a0a1db812bd38ab43",
+          "preserved": true
+        },
+        "pycbc/fft/cufft.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "b5ae1516f2f6ea69f2cbb6e42ef90b18a0e6da3621dd57312b53d0d0063c5f2c",
+          "preserved": true
+        },
+        "pycbc/fft/cupyfft.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "8d69f411adf3c862949c883732912dffa475f651a433f8956850a46c93f4d6a8",
+          "preserved": true
+        },
+        "pycbc/fft/fftw.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "b18380af0299b7925c3e99e791f9e66131f416aa6b548664148bd07480a8699b",
+          "preserved": true
+        },
+        "pycbc/fft/npfft.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "7c48e900231e21c3d20192496e9825f09e59e0833bbddcf2c2a036523ebf3645",
+          "preserved": true
+        },
+        "pycbc/fft/parser_support.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "3b36a1559d68a36989045736efca275484c3cf21c26e6e658985bc082b57b5d4",
+          "preserved": true
+        },
+        "pycbc/fft/torchfft.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "198b8fc2e54ed0c13df8f25a8e29429a6ee7c988222165ad736481320b04c2ea",
+          "preserved": true
+        },
+        "pycbc/fft/wisdom_cache.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "ed3b8e6610dc5873b54e46b2ebdf102f9b8796fdcb2cdd9097c35b40623e708d",
+          "preserved": true
+        },
+        "test/test_fft_batched_backends.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "c0d51c109e4afaecfbc03e8ad424bcff1bf267b26aee7c778565857ca197ddce",
+          "preserved": true
+        },
+        "test/test_fft_cli_wisdom.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "123e3ffd44e90f1799339d8664bc9619dc3e3a8478539dd03871b0b3516727d6",
+          "preserved": true
+        },
+        "test/test_fftw_wisdom_cache.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "ef53297dfe5a0ca8ae19b84d5d3ca9897a0868d5a34c25045105395732ec0696",
+          "preserved": true
+        }
+      },
+      "fix_files": {
+        "pycbc/filter/matchedfilter.py": {
+          "bytes": 139411,
+          "git_blob": "c6a7bd138782fbeee320dbb4b7a03c2335124481",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "40774107fdb566a626987dcded36dbd20f1a74c900d8d2801503209f3d7406c0"
+        },
+        "pycbc/filter/matchedfilter_torch.py": {
+          "bytes": 44201,
+          "git_blob": "14008291d2b36ac15758a6c682bee3627b23800d",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "a7e5a56cd5255fbf0f7b88663f6ec32bdbd31e4757f00b93a8b7d2c9fa5ed533"
+        },
+        "pycbc/waveform/taylorf2_torch.py": {
+          "bytes": 53536,
+          "git_blob": "6f4906cdcb66fb77f858cbfe9e81d3f9ef101c31",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "46137f45803da55bb1601e05a1cb26f7bc83d4879d8ee7823b3e3bc4ef85a648"
+        },
+        "test/test_live_batch_torch_peaks.py": {
+          "bytes": 38001,
+          "git_blob": "4cb7140a6d6d5bd9ec070c50f21f95355a1b1331",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "60c57afe670a848fb7de17f2ec681a92400ceea1a1db26577b39dec765ec85cb"
+        },
+        "test/test_torch_batch_overlap_scaling.py": {
+          "bytes": 4311,
+          "git_blob": "56c9ef9cb0e6e21ee4ca3f7eb6a7008ab230965f",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "26cfac4f7ca97f2dbc902b42930cdc44d5a4a9713cabf9c0456ab14ecb50efb3"
+        },
+        "test/waveform/test_taylorf2_phase_evaluation.py": {
+          "bytes": 7406,
+          "git_blob": "07cf65e6a91a773fe636b6aedda2d463d9e6d4b9",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "b36d53b6269057f6dfaa8b988f1a0135ef09671b809c73b9a237c3b0618d47d2"
+        }
+      },
+      "key": "fft",
+      "native_build_inputs": {
+        "MANIFEST.in": {
+          "bytes": 197,
+          "git_blob": "84fc07f4d761c6983e31c4cf40a20ae9f00fef30",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "b63681ca74db0915070a4d53db5295d0b4d93c16f309c61cfa48b0280747c25b"
+        },
+        "pycbc/events/eventmgr_cython.pyx": {
+          "bytes": 8437,
+          "git_blob": "c0eebebf072e4b8164c5338f9652539bd2bd1838",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "7c551d1b858dc10a3ddf792e5ecd4752e61f018830503eded25588cb42301b6b"
+        },
+        "pycbc/events/simd_threshold_ccode.cpp": {
+          "bytes": 13391,
+          "git_blob": "015c023efc1521a706ccd5ea4fef716b35f160ac",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "ec763b92ad78c458691febb0f7885cc83c6353a639e6af51c2b53a25d1372409"
+        },
+        "pycbc/events/simd_threshold_cython.pyx": {
+          "bytes": 3258,
+          "git_blob": "c4a441a4ab427fe92c663a24154b554980c3dd03",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "395a4061b1fdf0965eb9798d58b3e4fe9c7df0c2254397e793c39dde40c9acdb"
+        },
+        "pycbc/fft/fftw_pruned_cython.pyx": {
+          "bytes": 1250,
+          "git_blob": "8cfd716a8a593fe3edc09d0ae8f2893dd090faae",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "59a342723d9e602ea51607e0a5bb516714d80ebac332c742f5ff39721c5b40f2"
+        },
+        "pycbc/filter/matchedfilter_cpu.pyx": {
+          "bytes": 2810,
+          "git_blob": "aea47af4ad000612055232c917f050b22e80e0eb",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "f7fa6a9346e6a38a0bf67a2c4afeda581c74cc53c12513c8ef759c9813eb8e46"
+        },
+        "pycbc/filter/simd_correlate_ccode.cpp": {
+          "bytes": 15271,
+          "git_blob": "07a2a7420b2c54b221e5ff07af6144efcc0db556",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "69548f29a2dc3732ccacc601577a49d7b298c4a27cff9636b4f4983144f1a718"
+        },
+        "pycbc/filter/simd_correlate_cython.pyx": {
+          "bytes": 2347,
+          "git_blob": "091ff4d8d65d0c20a8169dec567efe646d3cc7d9",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "fcb9c4ae78833c46b693735b8678e9f584b759aaa52bf739378669f82c6c11f0"
+        },
+        "pycbc/inference/models/relbin_cpu.pyx": {
+          "bytes": 21714,
+          "git_blob": "77df7d742ca5625bbb99f5c920893eae4f0cac2d",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "57bb88030db3fc86ec392629266407789bee3a303d3625fc3c4fcd895e68bece"
+        },
+        "pycbc/types/array_cpu.pyx": {
+          "bytes": 5421,
+          "git_blob": "7d33b4cfe5ac82e4d6ed07f1869efb3091b0a6c6",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "78db70390e8441effa83a11be91b9837d63b625184de1553e330d7499bd25ce2"
+        },
+        "pycbc/vetoes/chisq_cpu.pyx": {
+          "bytes": 4964,
+          "git_blob": "15dece5585a2d06bc3a17047d81328e981a6044c",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "f5d7129a6380a96731df4ea3d1dddbb2f534e0d03aabbc720b629b4e558f15f6"
+        },
+        "pycbc/waveform/decompress_cpu_ccode.cpp": {
+          "bytes": 22291,
+          "git_blob": "9bc8be99d9aa9fdf40bb66a75d9eeb0d3e80f760",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "23bd51591c70108711cd9ba5d0a3ddb05dc2fdae81574e6624b9786c8f092b5e"
+        },
+        "pycbc/waveform/decompress_cpu_cython.pyx": {
+          "bytes": 10682,
+          "git_blob": "a77cc9711fb2a7ec76514ca29df4d0d4fffdcb93",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "26e2316449a59a7d351e13af9dbd2739ad7f290f6d6f9941e69a3ef832e4091c"
+        },
+        "pycbc/waveform/spa_tmplt_cpu.pyx": {
+          "bytes": 6584,
+          "git_blob": "7e03094adaf9199b688f26ff3e407d40c55b20db",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "68365ecda2c912742047b91dc7d28942a3712f987d4359602c12178c950dc9ee"
+        },
+        "pycbc/waveform/utils_cpu.pyx": {
+          "bytes": 4229,
+          "git_blob": "5ace3c7e3347771c41f2145f48bff0991dae91b3",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "7f2c8eb0d31ff458da059ac0f6a31c448fb66cd88a5696acc2722e5607a603fa"
+        },
+        "pyproject.toml": {
+          "bytes": 2042,
+          "git_blob": "e6e9e91a64701588fd5a720bbfd2959ba774ad79",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "b7dc55db180f5f1576611dab55cbe9851e9e591a2aaf899bd84f8bdb15c96aa7"
+        },
+        "setup.py": {
+          "bytes": 8763,
+          "git_blob": "5debeecfcd4a622c8a81bf7db7e1f94024388148",
+          "kind": "blob",
+          "mode": "100755",
+          "sha256": "fb490c0aa7394a88672049091d0ec12137f64d56e1f27d139a312a7225733e90"
+        }
+      },
+      "new": "c3202b4b0b681a1ace527d1e6231c47470856ba6",
+      "old": "d6407d32742a57e4f026c461a26ef7b3929c5849",
+      "parent": "d6407d32742a57e4f026c461a26ef7b3929c5849",
+      "published": "37d3c6b4ac1ec74a2dcd42558f44f21b92218ca5",
+      "ref": "refs/heads/codex/torch-performance-fix-fft-test-20260906-v2",
+      "refinement_patch_sha256": "b10fc50cb2f397d5adda49bc98d687b0e2d43c56a8ed74626ce1f7a9e2e81ab7",
+      "tree": "e5f773b444186f267d4825f59b3d2c50cee31010",
+      "worktree": "/private/tmp/pycbc-torch-performance-fix-fft-test-20260906-v2",
+      "worktree_clean": true
+    },
+    {
+      "aggregate_update_sha256": {
+        "pycbc/filter/matchedfilter.py": "d938ecd1e076e1108b6fbab9f00fdc9f3ada5a922e69a0c5fc2e66f6116442bb",
+        "pycbc/filter/matchedfilter_torch.py": "3ce1848d25989ecbfb00a6f58fd82416c7969cda3522f8088b77fc38be2d63ec",
+        "pycbc/waveform/taylorf2_torch.py": "b0dde7deb107843d8268c0f1b0dc482a87552b4c6a0d22ccec433e0d203a4188",
+        "test/test_live_batch_torch_peaks.py": "8ff20215e1282f6167337f8cdca9d040af65a4407436b12f376aeecaaf24089d",
+        "test/test_torch_batch_overlap_scaling.py": "07b8735c6d9402224ad5cb371f39f2cea173b741c2c18b96e4cf6cedbfd01c70",
+        "test/waveform/test_taylorf2_phase_evaluation.py": "8c7946c5003ae6b1ed02a1454af6d75d31ccc0d25a091d8204ae09167ab56d7b"
+      },
+      "feature_base_after": "0d00581251e642a5d6b56b2497a9adad93069e6b",
+      "feature_base_before": "450ab3f96ccea2783abb943b47f698578a507d59",
+      "feature_checks": {
+        ".github/workflows/basic-tests.yml": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "6c582a434492e771f73f82b63f7a64997b6768c877b1447f3abb90455df674d5",
+          "preserved": true
+        },
+        "docs/torch_optimizations.rst": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "506deb962fe068b091c21e15989fa51c92ab3fbc6fbfd8abcf9d091cf3fa5f2c",
+          "preserved": true
+        },
+        "pycbc/fft/torchfft.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "33293a5224433bc1f42083d171c3f685245942634e7e5a54164106220ca9356b",
+          "preserved": true
+        },
+        "pycbc/filter/matchedfilter.py": {
+          "comparison": "blob IDs/hunk starts normalized",
+          "patch_sha256": "053995b68965d4a39ef9d9e9cb4a3ddf53b1f87615f45b90a5756b6ad518f0f0",
+          "preserved": true
+        },
+        "pycbc/filter/matchedfilter_cpu.pyx": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "ad66f420077d72945034da50bfb7d958437dfebf1f86bda3899ed3d78ad9d455",
+          "preserved": true
+        },
+        "pycbc/hardware.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "dc62d64e93721cff9da7f1516db1052b23a5480a8b821f23b1ef55b5443e6348",
+          "preserved": true
+        },
+        "pycbc/vetoes/chisq_cpu.pyx": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "f3aa9675035f63dfe4b6856fdb984b2dcf8f4e25df79d1980e925a9eaff19469",
+          "preserved": true
+        },
+        "pycbc/vetoes/chisq_torch.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "2bd64e2ff84782c8b6edea05a1a709deaa4e74de10f8cd4151dcf093b1ae32e1",
+          "preserved": true
+        },
+        "test/test_cpu_batch_peaks.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "f1e45db3abd33a5df2f9e517f971c6e7a2d28de580af4b0eea71e891378dfd17",
+          "preserved": true
+        },
+        "test/test_torch_chisq_cpu_optimization.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "9bfc9aaae8983f3119b9e3b80513affeeb7ff2d34cdefdca469f170a502c4ad8",
+          "preserved": true
+        },
+        "test/test_torch_cpu_fft_tuning.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "f647dcc4381dbbf8deb3960841ac7e1769b4b736f21457e037616768fa4156f0",
+          "preserved": true
+        },
+        "test/test_torch_cpu_native_peaks.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "49b9218388d84bf35a5926c62bd257b9ab7fcff56494e49b5b59fc4f4cdb573e",
+          "preserved": true
+        },
+        "test/test_torch_performance_artifacts.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "7bd3b2aab4a9c153e49143b36c679dce15ca75b6a4847bae3a8fd317ebf8ea21",
+          "preserved": true
+        },
+        "tools/bench_production_live_batch.py": {
+          "comparison": "exact patch and file bytes/mode",
+          "patch_sha256": "fef00091805af0c2ee1e9b9df01b82edf6d41d259859b45fd0731c3b3083aa36",
+          "preserved": true
+        }
+      },
+      "fix_files": {
+        "pycbc/filter/matchedfilter.py": {
+          "bytes": 145313,
+          "git_blob": "4677559c027e5d8fc983f25f32464a4f42693c48",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "b24096418220915c6847c7cbafa0196beaa19b4b64d3797e0c25b18a0c73a298"
+        },
+        "pycbc/filter/matchedfilter_torch.py": {
+          "bytes": 44201,
+          "git_blob": "14008291d2b36ac15758a6c682bee3627b23800d",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "a7e5a56cd5255fbf0f7b88663f6ec32bdbd31e4757f00b93a8b7d2c9fa5ed533"
+        },
+        "pycbc/waveform/taylorf2_torch.py": {
+          "bytes": 53536,
+          "git_blob": "6f4906cdcb66fb77f858cbfe9e81d3f9ef101c31",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "46137f45803da55bb1601e05a1cb26f7bc83d4879d8ee7823b3e3bc4ef85a648"
+        },
+        "test/test_live_batch_torch_peaks.py": {
+          "bytes": 38001,
+          "git_blob": "4cb7140a6d6d5bd9ec070c50f21f95355a1b1331",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "60c57afe670a848fb7de17f2ec681a92400ceea1a1db26577b39dec765ec85cb"
+        },
+        "test/test_torch_batch_overlap_scaling.py": {
+          "bytes": 4311,
+          "git_blob": "56c9ef9cb0e6e21ee4ca3f7eb6a7008ab230965f",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "26cfac4f7ca97f2dbc902b42930cdc44d5a4a9713cabf9c0456ab14ecb50efb3"
+        },
+        "test/waveform/test_taylorf2_phase_evaluation.py": {
+          "bytes": 7406,
+          "git_blob": "07cf65e6a91a773fe636b6aedda2d463d9e6d4b9",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "b36d53b6269057f6dfaa8b988f1a0135ef09671b809c73b9a237c3b0618d47d2"
+        }
+      },
+      "key": "cpu",
+      "native_build_inputs": {
+        "MANIFEST.in": {
+          "bytes": 197,
+          "git_blob": "84fc07f4d761c6983e31c4cf40a20ae9f00fef30",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "b63681ca74db0915070a4d53db5295d0b4d93c16f309c61cfa48b0280747c25b"
+        },
+        "pycbc/events/eventmgr_cython.pyx": {
+          "bytes": 8437,
+          "git_blob": "c0eebebf072e4b8164c5338f9652539bd2bd1838",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "7c551d1b858dc10a3ddf792e5ecd4752e61f018830503eded25588cb42301b6b"
+        },
+        "pycbc/events/simd_threshold_ccode.cpp": {
+          "bytes": 13391,
+          "git_blob": "015c023efc1521a706ccd5ea4fef716b35f160ac",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "ec763b92ad78c458691febb0f7885cc83c6353a639e6af51c2b53a25d1372409"
+        },
+        "pycbc/events/simd_threshold_cython.pyx": {
+          "bytes": 3258,
+          "git_blob": "c4a441a4ab427fe92c663a24154b554980c3dd03",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "395a4061b1fdf0965eb9798d58b3e4fe9c7df0c2254397e793c39dde40c9acdb"
+        },
+        "pycbc/fft/fftw_pruned_cython.pyx": {
+          "bytes": 1250,
+          "git_blob": "8cfd716a8a593fe3edc09d0ae8f2893dd090faae",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "59a342723d9e602ea51607e0a5bb516714d80ebac332c742f5ff39721c5b40f2"
+        },
+        "pycbc/filter/matchedfilter_cpu.pyx": {
+          "bytes": 5431,
+          "git_blob": "4cd7b081795697ce72e9c00f58a233d9a7841c8a",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "440900feaf688eb158f913724dacab74d541015a1219fec59ec34d9f8646738b"
+        },
+        "pycbc/filter/simd_correlate_ccode.cpp": {
+          "bytes": 15271,
+          "git_blob": "07a2a7420b2c54b221e5ff07af6144efcc0db556",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "69548f29a2dc3732ccacc601577a49d7b298c4a27cff9636b4f4983144f1a718"
+        },
+        "pycbc/filter/simd_correlate_cython.pyx": {
+          "bytes": 2347,
+          "git_blob": "091ff4d8d65d0c20a8169dec567efe646d3cc7d9",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "fcb9c4ae78833c46b693735b8678e9f584b759aaa52bf739378669f82c6c11f0"
+        },
+        "pycbc/inference/models/relbin_cpu.pyx": {
+          "bytes": 21714,
+          "git_blob": "77df7d742ca5625bbb99f5c920893eae4f0cac2d",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "57bb88030db3fc86ec392629266407789bee3a303d3625fc3c4fcd895e68bece"
+        },
+        "pycbc/types/array_cpu.pyx": {
+          "bytes": 5421,
+          "git_blob": "7d33b4cfe5ac82e4d6ed07f1869efb3091b0a6c6",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "78db70390e8441effa83a11be91b9837d63b625184de1553e330d7499bd25ce2"
+        },
+        "pycbc/vetoes/chisq_cpu.pyx": {
+          "bytes": 6772,
+          "git_blob": "ad59331432b72cc0f52c23e35d4c517eb3cb655d",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "d550069568e1675dfb6f40ea29b68d563c490125e629954e5c25ea2ae16a6d22"
+        },
+        "pycbc/waveform/decompress_cpu_ccode.cpp": {
+          "bytes": 22291,
+          "git_blob": "9bc8be99d9aa9fdf40bb66a75d9eeb0d3e80f760",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "23bd51591c70108711cd9ba5d0a3ddb05dc2fdae81574e6624b9786c8f092b5e"
+        },
+        "pycbc/waveform/decompress_cpu_cython.pyx": {
+          "bytes": 10682,
+          "git_blob": "a77cc9711fb2a7ec76514ca29df4d0d4fffdcb93",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "26e2316449a59a7d351e13af9dbd2739ad7f290f6d6f9941e69a3ef832e4091c"
+        },
+        "pycbc/waveform/spa_tmplt_cpu.pyx": {
+          "bytes": 6584,
+          "git_blob": "7e03094adaf9199b688f26ff3e407d40c55b20db",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "68365ecda2c912742047b91dc7d28942a3712f987d4359602c12178c950dc9ee"
+        },
+        "pycbc/waveform/utils_cpu.pyx": {
+          "bytes": 4229,
+          "git_blob": "5ace3c7e3347771c41f2145f48bff0991dae91b3",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "7f2c8eb0d31ff458da059ac0f6a31c448fb66cd88a5696acc2722e5607a603fa"
+        },
+        "pyproject.toml": {
+          "bytes": 2042,
+          "git_blob": "e6e9e91a64701588fd5a720bbfd2959ba774ad79",
+          "kind": "blob",
+          "mode": "100644",
+          "sha256": "b7dc55db180f5f1576611dab55cbe9851e9e591a2aaf899bd84f8bdb15c96aa7"
+        },
+        "setup.py": {
+          "bytes": 8763,
+          "git_blob": "5debeecfcd4a622c8a81bf7db7e1f94024388148",
+          "kind": "blob",
+          "mode": "100755",
+          "sha256": "fb490c0aa7394a88672049091d0ec12137f64d56e1f27d139a312a7225733e90"
+        }
+      },
+      "new": "665fa5a0f41946c0c2873d8a79a16c8b6975a090",
+      "old": "1514327669fc7be125523b991c847868c3a2a17e",
+      "parent": "1514327669fc7be125523b991c847868c3a2a17e",
+      "published": "bd53914be6d2e4324cc867d52b3842b77cc6729a",
+      "ref": "refs/heads/codex/torch-performance-fix-cpu-test-20260906-v2",
+      "refinement_patch_sha256": "b10fc50cb2f397d5adda49bc98d687b0e2d43c56a8ed74626ce1f7a9e2e81ab7",
+      "tree": "225b9b0f29832057511312db81b73ec6bae52195",
+      "worktree": "/private/tmp/pycbc-torch-performance-fix-cpu-test-20260906-v2",
+      "worktree_clean": true
+    }
+  ],
+  "started_utc": "2026-09-06T15:19:20.430869+00:00",
+  "state": "complete"
+}

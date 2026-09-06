@@ -1,0 +1,73 @@
+{
+  "label": "torch_cuda-b1-t1-r3-candidate-v2",
+  "command": [
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/run-accelerator-refinement.py",
+    "--worker",
+    "--root",
+    "/home/xangma/pycbc-torch-performance-fix-20260906",
+    "--python",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "--route",
+    "torch_cuda",
+    "--batch",
+    "1"
+  ],
+  "cwd": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+  "host": "len",
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "log_path": "/home/xangma/pycbc-torch-performance-fix-20260906/accelerator-refinement/logs/torch_cuda-b1-t1-r3-candidate-v2.log",
+  "started_utc": "2026-09-06T16:08:29.263173+00:00",
+  "pid": 2546030,
+  "stop_command": "kill -TERM -- -2546030",
+  "returncode": 0,
+  "finished_utc": "2026-09-06T16:08:34.390390+00:00",
+  "wall_seconds": 5.127101598016452,
+  "worker_pid": 2546064,
+  "worker_command": [
+    "taskset",
+    "-c",
+    "8-11",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2/tools/bench_production_live_batch.py",
+    "child",
+    "--route",
+    "torch_cuda",
+    "--source-root",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+    "--batch",
+    "1",
+    "--size",
+    "131072",
+    "--num-blocks",
+    "3",
+    "--threads",
+    "1",
+    "--samples",
+    "3",
+    "--warmups",
+    "1",
+    "--snr-threshold",
+    "5.5",
+    "--cuda-device",
+    "0",
+    "--seed",
+    "7101",
+    "--call-surface",
+    "public"
+  ],
+  "source_before": {
+    "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+    "sha": "0d00581251e642a5d6b56b2497a9adad93069e6b",
+    "tree": "fa7a7c09df6d93133324f762d756842de172433d",
+    "status": ""
+  },
+  "source_after": {
+    "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+    "sha": "0d00581251e642a5d6b56b2497a9adad93069e6b",
+    "tree": "fa7a7c09df6d93133324f762d756842de172433d",
+    "status": ""
+  }
+}

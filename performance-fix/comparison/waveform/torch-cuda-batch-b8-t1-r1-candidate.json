@@ -1,0 +1,840 @@
+{
+  "schema": 1,
+  "status": "ok",
+  "route": "torch-cuda-batch",
+  "batch": 8,
+  "threads": 1,
+  "replicate": 1,
+  "precision": "double",
+  "harness_sha256": "73a7feb009a06f09fbadd5c1eb29bed50912eb886956ab5c2caf514e6bddca56",
+  "runtime": {
+    "hostname": "len",
+    "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "processor": "x86_64",
+    "python": "3.11.9 | packaged by conda-forge | (main, Apr 19 2024, 18:36:13) [GCC 12.3.0]",
+    "python_executable": "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "pid": 1947308,
+    "cwd": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate",
+    "started_utc": "2026-09-06T15:46:16Z",
+    "cpu_count": 128,
+    "numpy": "1.26.4",
+    "torch": "2.13.0+cu130",
+    "lalsuite": "7.21",
+    "scipy": "1.13.0",
+    "triton": "3.7.1",
+    "import_seconds": 3.156971625983715,
+    "module_origins": {
+      "pycbc": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate/pycbc/__init__.py",
+      "taylorf2_torch": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate/pycbc/waveform/taylorf2_torch.py",
+      "torch": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/__init__.py",
+      "numpy": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/numpy/__init__.py",
+      "lalsimulation": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lalsimulation/__init__.py"
+    },
+    "torch_threads": 1,
+    "torch_interop_threads": 1,
+    "torch_cuda_build": "13.0",
+    "cuda_device": {
+      "index": 0,
+      "name": "NVIDIA GeForce RTX 4090",
+      "memory_bytes": 25272188928,
+      "compute_capability": [
+        8,
+        9
+      ]
+    },
+    "worker_total_seconds": 4.145427538023796
+  },
+  "source": {
+    "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate",
+    "sha": "97bf1614f3afe53a6e2edb4d8c7dff79e9661782",
+    "status_porcelain": "",
+    "tree": "d9819f6f6ebf2998ac967178778cc1911757e455",
+    "clean": true,
+    "waveform_source_sha256": {
+      "pycbc/waveform/taylorf2_torch.py": "46137f45803da55bb1601e05a1cb26f7bc83d4879d8ee7823b3e3bc4ef85a648",
+      "pycbc/waveform/waveform.py": "01d0b6994418e7f8a2cc52019cc2a132715b607ce7de999db8280ee7be73a76d",
+      "pycbc/waveform/torch_waveform_registry.py": "d8de5cd1c7414257a983522c4936cb03b1b333c43daeb31136c545b966cd5627",
+      "pycbc/waveform/taylorf2_triton.py": "d7db7a98df0b562a332e07bb0126610cfe744b6147967c955d188c6241a91f9a"
+    },
+    "status_after": ""
+  },
+  "capabilities": {
+    "public_cpu_cuda_precision": "double only, chosen internally",
+    "public_taylorf2_triton": true,
+    "basis": "CPU/CUDA complex128; optional Triton is disabled in this baseline and measured separately",
+    "cuda_available": true
+  },
+  "dispatch": {
+    "requested": "torch-cuda-batch",
+    "actual": "native Torch cuda:0 batch",
+    "triton_requested": false,
+    "triton_actual": false,
+    "probe_counts": {
+      "native_scalar": 0,
+      "native_batch": 1,
+      "lal_fd": 0
+    },
+    "expected_counts": {
+      "native_scalar": 0,
+      "native_batch": 1,
+      "lal_fd": 0
+    },
+    "passed": true
+  },
+  "parameters": [
+    {
+      "mass1": 1.4,
+      "mass2": 1.3,
+      "spin1z": 0.02,
+      "spin2z": -0.01,
+      "distance": 100.0,
+      "inclination": 0.4,
+      "coa_phase": 0.2,
+      "delta_f": 0.25,
+      "f_lower": 20.0,
+      "f_final": 1024.0,
+      "f_ref": 30.0
+    },
+    {
+      "mass1": 1.45,
+      "mass2": 1.28,
+      "spin1z": 0.02,
+      "spin2z": -0.01,
+      "distance": 100.0,
+      "inclination": 0.4,
+      "coa_phase": 0.2,
+      "delta_f": 0.25,
+      "f_lower": 20.0,
+      "f_final": 1024.0,
+      "f_ref": 30.0
+    },
+    {
+      "mass1": 1.5,
+      "mass2": 1.26,
+      "spin1z": 0.02,
+      "spin2z": -0.01,
+      "distance": 100.0,
+      "inclination": 0.4,
+      "coa_phase": 0.2,
+      "delta_f": 0.25,
+      "f_lower": 20.0,
+      "f_final": 1024.0,
+      "f_ref": 30.0
+    },
+    {
+      "mass1": 1.5499999999999998,
+      "mass2": 1.24,
+      "spin1z": 0.02,
+      "spin2z": -0.01,
+      "distance": 100.0,
+      "inclination": 0.4,
+      "coa_phase": 0.2,
+      "delta_f": 0.25,
+      "f_lower": 20.0,
+      "f_final": 1024.0,
+      "f_ref": 30.0
+    },
+    {
+      "mass1": 1.5999999999999999,
+      "mass2": 1.22,
+      "spin1z": 0.02,
+      "spin2z": -0.01,
+      "distance": 100.0,
+      "inclination": 0.4,
+      "coa_phase": 0.2,
+      "delta_f": 0.25,
+      "f_lower": 20.0,
+      "f_final": 1024.0,
+      "f_ref": 30.0
+    },
+    {
+      "mass1": 1.65,
+      "mass2": 1.2,
+      "spin1z": 0.02,
+      "spin2z": -0.01,
+      "distance": 100.0,
+      "inclination": 0.4,
+      "coa_phase": 0.2,
+      "delta_f": 0.25,
+      "f_lower": 20.0,
+      "f_final": 1024.0,
+      "f_ref": 30.0
+    },
+    {
+      "mass1": 1.7,
+      "mass2": 1.1800000000000002,
+      "spin1z": 0.02,
+      "spin2z": -0.01,
+      "distance": 100.0,
+      "inclination": 0.4,
+      "coa_phase": 0.2,
+      "delta_f": 0.25,
+      "f_lower": 20.0,
+      "f_final": 1024.0,
+      "f_ref": 30.0
+    },
+    {
+      "mass1": 1.75,
+      "mass2": 1.1600000000000001,
+      "spin1z": 0.02,
+      "spin2z": -0.01,
+      "distance": 100.0,
+      "inclination": 0.4,
+      "coa_phase": 0.2,
+      "delta_f": 0.25,
+      "f_lower": 20.0,
+      "f_final": 1024.0,
+      "f_ref": 30.0
+    }
+  ],
+  "workload": {
+    "approximant": "TaylorF2",
+    "nominal_bins": 4097,
+    "input_policy": "Python host scalars/lists; conversion included in calls",
+    "output_policy": "device output retained; host copy excluded from timing",
+    "autograd": false
+  },
+  "environment": {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+    "PYCBC_NUM_THREADS": "1",
+    "PYCBC_TAYLORF2_NATIVE": "1",
+    "PYCBC_TAYLORF2_TRITON": "0"
+  },
+  "timing": {
+    "cold_call_seconds": 0.407749452,
+    "warmup_calls": 2,
+    "calibration_seconds": 0.011003426,
+    "inner_calls_per_sample": 5,
+    "sample_total_seconds": [
+      0.055323467,
+      0.055023984,
+      0.055029254,
+      0.054893198,
+      0.054904449
+    ],
+    "sample_seconds_per_call": [
+      0.0110646934,
+      0.0110047968,
+      0.0110058508,
+      0.0109786396,
+      0.010980889800000001
+    ],
+    "median_seconds_per_call": 0.0110047968,
+    "median_seconds_per_waveform": 0.0013755996,
+    "waveforms_per_second": 726.9557217085553,
+    "synchronization": "CUDA synchronize before/after each timed block",
+    "cold_definition": "first waveform call after imports, capability discovery and scheme entry"
+  },
+  "output": {
+    "devices": [
+      "cuda:0",
+      "cuda:0"
+    ],
+    "dtypes": [
+      "complex128",
+      "complex128"
+    ],
+    "shapes": [
+      [
+        8,
+        4097
+      ],
+      [
+        8,
+        4097
+      ]
+    ],
+    "metadata": [
+      {
+        "delta_f": 0.25,
+        "epoch": -4.0
+      },
+      {
+        "delta_f": 0.25,
+        "epoch": -4.0
+      },
+      {
+        "delta_f": 0.25,
+        "epoch": -4.0
+      },
+      {
+        "delta_f": 0.25,
+        "epoch": -4.0
+      },
+      {
+        "delta_f": 0.25,
+        "epoch": -4.0
+      },
+      {
+        "delta_f": 0.25,
+        "epoch": -4.0
+      },
+      {
+        "delta_f": 0.25,
+        "epoch": -4.0
+      },
+      {
+        "delta_f": 0.25,
+        "epoch": -4.0
+      }
+    ]
+  },
+  "parity_batch_vs_native_scalar": {
+    "passed": true,
+    "metadata_equal": true,
+    "gate": "pointwise_relative",
+    "tolerance": 2e-10,
+    "metrics": [
+      {
+        "polarization": 0,
+        "row": 0,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 2.0593425724724561e-13,
+        "max_pointwise_relative": 3.6380288909084306e-12,
+        "max_relative_amplitude": 3.3306690738754696e-16,
+        "max_wrapped_phase_radians": 3.638048771470539e-12,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 1,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 2.7542147392206263e-14,
+        "max_pointwise_relative": 7.275938737023698e-12,
+        "max_relative_amplitude": 2.220446049250313e-16,
+        "max_wrapped_phase_radians": 7.27596005913513e-12,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 2,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 9.551255224573284e-13,
+        "max_pointwise_relative": 3.63820166823178e-12,
+        "max_relative_amplitude": 6.661338147750939e-16,
+        "max_wrapped_phase_radians": 3.638233933724643e-12,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 3,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 3.8189336006333263e-13,
+        "max_pointwise_relative": 3.63799959908332e-12,
+        "max_relative_amplitude": 3.3306690738754696e-16,
+        "max_wrapped_phase_radians": 3.637995121687446e-12,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 4,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 1.377885001609637e-12,
+        "max_pointwise_relative": 7.275955067059411e-12,
+        "max_relative_amplitude": 5.551115123125783e-16,
+        "max_wrapped_phase_radians": 7.275954420015303e-12,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 5,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 9.15040584984426e-13,
+        "max_pointwise_relative": 3.638169959737312e-12,
+        "max_relative_amplitude": 4.440892098500626e-16,
+        "max_wrapped_phase_radians": 3.638145627002441e-12,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 6,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 2.887550653478755e-13,
+        "max_pointwise_relative": 3.6380514578885705e-12,
+        "max_relative_amplitude": 3.3306690738754696e-16,
+        "max_wrapped_phase_radians": 3.638036869405107e-12,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 7,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 9.269985233488446e-13,
+        "max_pointwise_relative": 7.275957941174657e-12,
+        "max_relative_amplitude": 4.440892098500626e-16,
+        "max_wrapped_phase_radians": 7.275950923638246e-12,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 0,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 2.0593456863281609e-13,
+        "max_pointwise_relative": 3.6379567328507034e-12,
+        "max_relative_amplitude": 2.220446049250313e-16,
+        "max_wrapped_phase_radians": 3.6379685311466104e-12,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 1,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 2.754212818906658e-14,
+        "max_pointwise_relative": 7.275867265591591e-12,
+        "max_relative_amplitude": 2.220446049250313e-16,
+        "max_wrapped_phase_radians": 7.275894330580528e-12,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 2,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 9.551292434298904e-13,
+        "max_pointwise_relative": 3.6381345887127835e-12,
+        "max_relative_amplitude": 4.440892098500626e-16,
+        "max_wrapped_phase_radians": 3.638157836166937e-12,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 3,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 3.818914156014602e-13,
+        "max_pointwise_relative": 3.637988054525259e-12,
+        "max_relative_amplitude": 3.3306690738754696e-16,
+        "max_wrapped_phase_radians": 3.637986822680649e-12,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 4,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 1.377883079710045e-12,
+        "max_pointwise_relative": 7.275956453136741e-12,
+        "max_relative_amplitude": 5.551115123125783e-16,
+        "max_wrapped_phase_radians": 7.275956689302292e-12,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 5,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 9.150300347662656e-13,
+        "max_pointwise_relative": 3.638217801503132e-12,
+        "max_relative_amplitude": 4.440892098500626e-16,
+        "max_wrapped_phase_radians": 3.638210298019991e-12,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 6,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 2.887550020213434e-13,
+        "max_pointwise_relative": 3.638033582894122e-12,
+        "max_relative_amplitude": 2.220446049250313e-16,
+        "max_wrapped_phase_radians": 3.638043434152785e-12,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 7,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 9.270004436260566e-13,
+        "max_pointwise_relative": 7.275963749642531e-12,
+        "max_relative_amplitude": 4.440892098500626e-16,
+        "max_wrapped_phase_radians": 7.275954498779634e-12,
+        "passed": true
+      }
+    ]
+  },
+  "parity_scalar_vs_cpu_reference": {
+    "passed": true,
+    "metadata_equal": true,
+    "gate": "relative_l2",
+    "tolerance": 1e-11,
+    "metrics": [
+      {
+        "polarization": 0,
+        "row": 0,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.933945842254939e-12,
+        "max_pointwise_relative": 1.819002686575441e-11,
+        "max_relative_amplitude": 2.1094237467877974e-15,
+        "max_wrapped_phase_radians": 1.819005829904558e-11,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 1,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.219844378403558e-12,
+        "max_pointwise_relative": 1.637085056232305e-11,
+        "max_relative_amplitude": 2.1094237467877974e-15,
+        "max_wrapped_phase_radians": 1.6370860931686113e-11,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 2,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.702204806130272e-12,
+        "max_pointwise_relative": 1.8189922139358502e-11,
+        "max_relative_amplitude": 2.220446049250313e-15,
+        "max_wrapped_phase_radians": 1.818992469254627e-11,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 3,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.139827682908917e-12,
+        "max_pointwise_relative": 1.3642393585933971e-11,
+        "max_relative_amplitude": 2.7755575615628914e-15,
+        "max_wrapped_phase_radians": 1.3642395454936258e-11,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 4,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 6.1335390686062024e-12,
+        "max_pointwise_relative": 1.7280487430356663e-11,
+        "max_relative_amplitude": 2.4424906541753444e-15,
+        "max_wrapped_phase_radians": 1.7280520788068602e-11,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 5,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.440029759448524e-12,
+        "max_pointwise_relative": 1.8189830932419838e-11,
+        "max_relative_amplitude": 2.1094237467877974e-15,
+        "max_wrapped_phase_radians": 1.8189847348598392e-11,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 6,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.979257911536384e-12,
+        "max_pointwise_relative": 2.4556338831578883e-11,
+        "max_relative_amplitude": 2.3314683517128287e-15,
+        "max_wrapped_phase_radians": 2.455634489279095e-11,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 7,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 7.060143910944374e-12,
+        "max_pointwise_relative": 2.0008871292491034e-11,
+        "max_relative_amplitude": 1.887379141862766e-15,
+        "max_wrapped_phase_radians": 2.0008877513007298e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 0,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.933949735975098e-12,
+        "max_pointwise_relative": 1.818988586353019e-11,
+        "max_relative_amplitude": 2.1094237467877974e-15,
+        "max_wrapped_phase_radians": 1.8189887593408838e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 1,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.219835900348673e-12,
+        "max_pointwise_relative": 1.6370783808101217e-11,
+        "max_relative_amplitude": 2.3314683517128287e-15,
+        "max_wrapped_phase_radians": 1.6370794177447726e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 2,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.702208643571466e-12,
+        "max_pointwise_relative": 1.8189921113013296e-11,
+        "max_relative_amplitude": 2.4424906541753444e-15,
+        "max_wrapped_phase_radians": 1.818992012154006e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 3,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.139827034339489e-12,
+        "max_pointwise_relative": 1.3642426618525052e-11,
+        "max_relative_amplitude": 2.55351295663786e-15,
+        "max_wrapped_phase_radians": 1.3642429346878055e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 4,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 6.133542625859679e-12,
+        "max_pointwise_relative": 1.7280492257213915e-11,
+        "max_relative_amplitude": 2.3314683517128287e-15,
+        "max_wrapped_phase_radians": 1.7280486620548156e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 5,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.440033066760633e-12,
+        "max_pointwise_relative": 1.819001849490555e-11,
+        "max_relative_amplitude": 2.1094237467877974e-15,
+        "max_wrapped_phase_radians": 1.819004324929661e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 6,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.979257260934629e-12,
+        "max_pointwise_relative": 2.455633267778703e-11,
+        "max_relative_amplitude": 2.1094237467877974e-15,
+        "max_wrapped_phase_radians": 2.45563280153051e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 7,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 7.060140442561077e-12,
+        "max_pointwise_relative": 2.0008887742043867e-11,
+        "max_relative_amplitude": 2.1094237467877974e-15,
+        "max_wrapped_phase_radians": 2.0008889842907625e-11,
+        "passed": true
+      }
+    ]
+  },
+  "parity_direct_vs_cpu_reference": {
+    "passed": true,
+    "metadata_equal": true,
+    "gate": null,
+    "tolerance": null,
+    "metrics": [
+      {
+        "polarization": 0,
+        "row": 0,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.9204088116465575e-12,
+        "max_pointwise_relative": 1.819002686575441e-11,
+        "max_relative_amplitude": 2.1094237467877974e-15,
+        "max_wrapped_phase_radians": 1.819005829904558e-11,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 1,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.219917040199222e-12,
+        "max_pointwise_relative": 1.637085056232305e-11,
+        "max_relative_amplitude": 2.1094237467877974e-15,
+        "max_wrapped_phase_radians": 1.6370860931686113e-11,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 2,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.220274181642585e-12,
+        "max_pointwise_relative": 1.728043118075585e-11,
+        "max_relative_amplitude": 2.220446049250313e-15,
+        "max_wrapped_phase_radians": 1.7280436430735008e-11,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 3,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.172107490718843e-12,
+        "max_pointwise_relative": 1.3642393585933971e-11,
+        "max_relative_amplitude": 2.7755575615628914e-15,
+        "max_wrapped_phase_radians": 1.3642395454936258e-11,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 4,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 7.06874192612617e-12,
+        "max_pointwise_relative": 1.7280487430356663e-11,
+        "max_relative_amplitude": 2.4424906541753444e-15,
+        "max_wrapped_phase_radians": 1.7280520788068602e-11,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 5,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.104471618163719e-12,
+        "max_pointwise_relative": 1.7280265988250658e-11,
+        "max_relative_amplitude": 2.220446049250313e-15,
+        "max_wrapped_phase_radians": 1.7280284551050062e-11,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 6,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.933842596370002e-12,
+        "max_pointwise_relative": 2.4556338831578883e-11,
+        "max_relative_amplitude": 2.3314683517128287e-15,
+        "max_wrapped_phase_radians": 2.455634489279095e-11,
+        "passed": true
+      },
+      {
+        "polarization": 0,
+        "row": 7,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 7.189360469727137e-12,
+        "max_pointwise_relative": 1.9099396693301622e-11,
+        "max_relative_amplitude": 1.887379141862766e-15,
+        "max_wrapped_phase_radians": 1.909938962828636e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 0,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.920412788741269e-12,
+        "max_pointwise_relative": 1.818988586353019e-11,
+        "max_relative_amplitude": 2.1094237467877974e-15,
+        "max_wrapped_phase_radians": 1.8189887593408838e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 1,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.219908562161613e-12,
+        "max_pointwise_relative": 1.6370783808101217e-11,
+        "max_relative_amplitude": 2.3314683517128287e-15,
+        "max_wrapped_phase_radians": 1.6370794177447726e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 2,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.220278199578459e-12,
+        "max_pointwise_relative": 1.728042933412566e-11,
+        "max_relative_amplitude": 2.4424906541753444e-15,
+        "max_wrapped_phase_radians": 1.7280426024126197e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 3,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.172107633973028e-12,
+        "max_pointwise_relative": 1.3642426618525052e-11,
+        "max_relative_amplitude": 2.55351295663786e-15,
+        "max_wrapped_phase_radians": 1.3642429346878055e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 4,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 7.06874232195813e-12,
+        "max_pointwise_relative": 1.7280492257213915e-11,
+        "max_relative_amplitude": 2.3314683517128287e-15,
+        "max_wrapped_phase_radians": 1.7280486620548156e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 5,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.104481424221055e-12,
+        "max_pointwise_relative": 1.7280380383156393e-11,
+        "max_relative_amplitude": 2.1094237467877974e-15,
+        "max_wrapped_phase_radians": 1.7280393663048102e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 6,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 5.933841519228252e-12,
+        "max_pointwise_relative": 2.455633267778703e-11,
+        "max_relative_amplitude": 2.1094237467877974e-15,
+        "max_wrapped_phase_radians": 2.45563280153051e-11,
+        "passed": true
+      },
+      {
+        "polarization": 1,
+        "row": 7,
+        "finite": true,
+        "exact_zero_support": true,
+        "relative_l2": 7.189361258840484e-12,
+        "max_pointwise_relative": 1.909940693185535e-11,
+        "max_relative_amplitude": 2.1094237467877974e-15,
+        "max_wrapped_phase_radians": 1.9099402373278455e-11,
+        "passed": true
+      }
+    ]
+  },
+  "parity_method": "Full complex hplus/hcross, exact zero support, frequency/epoch metadata. Scalar-vs-LAL relative L2 <1e-11 from test_taylorf2_public_torch_parity_and_dispatch; batch-vs-native-scalar pointwise rtol=2e-10, atol=0 from test_each_batch_row_matches_scalar_taylorf2. Direct batch-vs-LAL complex/amplitude/phase metrics are additionally reported without a new tolerance."
+}

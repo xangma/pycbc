@@ -1,0 +1,54 @@
+{
+  "schema": "torch_accelerator_refinement_v2",
+  "state": "failed",
+  "pid": 1616783,
+  "host": "len",
+  "cwd": "/home/xangma/pycbc-torch-performance-fix-20260906",
+  "command": [
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/run-accelerator-refinement.py"
+  ],
+  "queue_started_utc": "2026-09-06T15:34:00.662013+00:00",
+  "started_utc": "2026-09-06T15:34:00.662029+00:00",
+  "timing_started_utc": null,
+  "finished_utc": "2026-09-06T16:01:07.953791+00:00",
+  "completed": [],
+  "completed_tests": [],
+  "source": null,
+  "source_before": null,
+  "source_after": null,
+  "runner_sha256": "a478f5b0b5865534c79d8dacf0fa4b27c592971b53d4faf442976c5b976c86d4",
+  "stop_command": "kill -TERM 1616783",
+  "expected_next_check_seconds": 30,
+  "log_path": "/home/xangma/pycbc-torch-performance-fix-20260906/accelerator-refinement/runner.log",
+  "updated_utc": "2026-09-06T16:01:07.953814+00:00",
+  "postcheck_status_sha256": "e8d5fff294761cbc5bd97d747548aa84d5329cf4eea57fccfa02c49354ab7ff1",
+  "postcheck_finished_utc": "2026-09-06T16:00:57.013803+00:00",
+  "original_status_sha256": "427d458316d1f2821563593e23375a8d8affe9d126f5616c572700069fac9adf",
+  "original_sources": {
+    "baseline": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline",
+      "sha": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+      "tree": "b0d5ef6e3b39bfe246b4c416528839256edadf1f",
+      "status": ""
+    },
+    "candidate": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate",
+      "sha": "97bf1614f3afe53a6e2edb4d8c7dff79e9661782",
+      "tree": "d9819f6f6ebf2998ac967178778cc1911757e455",
+      "status": ""
+    }
+  },
+  "current": "setup-cpu-candidate-v2-3",
+  "current_command": [
+    "git",
+    "-C",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/cpu-candidate-v2",
+    "checkout",
+    "--detach",
+    "665fa5a0f41946c0c2873d8a79a16c8b6975a090"
+  ],
+  "current_cwd": "/home/xangma/pycbc-torch-performance-fix-20260906",
+  "current_log": "/home/xangma/pycbc-torch-performance-fix-20260906/accelerator-refinement/logs/setup-cpu-candidate-v2-3.log",
+  "error": "RuntimeError('Harness differs: cpu-candidate: tools/bench_production_live_batch.py')"
+}

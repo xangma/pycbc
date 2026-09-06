@@ -1,0 +1,27 @@
+{
+  "label": "setup-dependent",
+  "stage": "setup",
+  "source": null,
+  "command": [
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/setup-dependent.py"
+  ],
+  "cwd": "/home/xangma/pycbc-torch-performance-fix-20260906",
+  "environment": {
+    "PYTHONPATH": "/home/xangma/pycbc-torch-performance-fix-20260906",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "OMP_DYNAMIC": "FALSE",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1"
+  },
+  "source_identity": null,
+  "started_utc": "2026-09-06T15:47:49.515422+00:00",
+  "log_path": "/home/xangma/pycbc-torch-performance-fix-20260906/postchecks/logs/setup-dependent.log",
+  "host": "len",
+  "pid": 1989602,
+  "returncode": 0,
+  "finished_utc": "2026-09-06T15:47:51.684071+00:00",
+  "wall_seconds": 2.1685259959776886
+}

@@ -1,0 +1,40 @@
+{
+  "state": "complete",
+  "pid": 439344,
+  "host": "len",
+  "cwd": "/home/xangma/pycbc-torch-inspiral-reference-20260906",
+  "command": [
+    "taskset",
+    "-c",
+    "8",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/qualify-large-ifft-v6b.py",
+    "--source",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6-candidate1",
+    "--output",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/large-ifft-v6-candidate1b.json",
+    "--threads",
+    "1"
+  ],
+  "source_commit": "55e8db71dc19507c5d40f7f42123623651ae5a32",
+  "log": "/home/xangma/pycbc-torch-inspiral-reference-20260906/large-ifft-v6-candidate1b.log",
+  "input_sha256": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-large-ifft-v6.py": "c6cee01ee0043338533bb9843db79572d3a6bb5a966cf669db6f0b782c16c8c4",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6-candidate1.json": "5ee8ae32e74967db3b5406047e4d75a6d79d300a195c12e247e465cf385bdc9d",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/config.json": "e29df1ee26ad1a513982a81b55d1f8b648126baacc7b509bc918e5c8e912d36a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/qualify-large-ifft-v6b.py": "6b359c22450bc8c513b2ae5485e9a03bb91aa976892859a946751d17994eb1d9"
+  },
+  "started_utc": "2026-09-06T20:00:50.643996+00:00",
+  "child_pid": 439397,
+  "returncode": 0,
+  "wall_seconds": 121.24918033304857,
+  "output_sha256": "16d3ecf99ec0d043d9b503d7376bb4147356ad1e1a4fefa079ea254c64ab4077",
+  "log_sha256": "328a68fbc44ea6942c3f9e8b29d97ab2c77fc61071130a30b26e3b756cb49232",
+  "finished_utc": "2026-09-06T20:02:51.894084+00:00",
+  "input_sha256_after": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-large-ifft-v6.py": "c6cee01ee0043338533bb9843db79572d3a6bb5a966cf669db6f0b782c16c8c4",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6-candidate1.json": "5ee8ae32e74967db3b5406047e4d75a6d79d300a195c12e247e465cf385bdc9d",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/config.json": "e29df1ee26ad1a513982a81b55d1f8b648126baacc7b509bc918e5c8e912d36a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/qualify-large-ifft-v6b.py": "6b359c22450bc8c513b2ae5485e9a03bb91aa976892859a946751d17994eb1d9"
+  }
+}

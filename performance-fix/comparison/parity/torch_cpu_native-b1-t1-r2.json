@@ -1,0 +1,42 @@
+{
+  "batch_1": {
+    "batch": 1,
+    "routes_evaluated": [
+      "branch_standard",
+      "torch_cpu_native",
+      "torch_cpu_native_fixed"
+    ],
+    "comparisons": {
+      "torch_cpu_native_vs_branch_standard": {
+        "finite_values": true,
+        "block_count_match": true,
+        "trigger_count_match": true,
+        "template_id_match": true,
+        "end_time_match": true,
+        "sequence_length_match": true,
+        "veto_count_match": true,
+        "max_snr_diff": 0.0,
+        "max_phase_diff": 2.5152985472232103e-08,
+        "max_sigmasq_relative_diff": 2.3841855067985646e-07,
+        "relative_output_l2_diff": 1.34524397836924e-07,
+        "passed": true
+      },
+      "torch_cpu_native_fixed_vs_branch_standard": {
+        "finite_values": true,
+        "block_count_match": true,
+        "trigger_count_match": true,
+        "template_id_match": true,
+        "end_time_match": true,
+        "sequence_length_match": true,
+        "veto_count_match": true,
+        "max_snr_diff": 0.0,
+        "max_phase_diff": 2.5152985472232103e-08,
+        "max_sigmasq_relative_diff": 2.3841855067985646e-07,
+        "relative_output_l2_diff": 1.34524397836924e-07,
+        "passed": true
+      }
+    },
+    "all_passed": true
+  },
+  "all_passed_globally": true
+}

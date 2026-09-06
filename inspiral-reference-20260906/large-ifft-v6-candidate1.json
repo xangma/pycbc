@@ -1,0 +1,213 @@
+{
+  "schema": "torch-large-ifft-qualification-v6",
+  "state": "failed",
+  "started_utc": "2026-09-06T19:51:52.980164+00:00",
+  "host": "len",
+  "pid": 192656,
+  "cwd": "/home/xangma/pycbc-torch-inspiral-reference-20260906",
+  "command": [
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/qualify-large-ifft-v6.py",
+    "--source",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6-candidate1",
+    "--output",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/large-ifft-v6-candidate1.json",
+    "--threads",
+    "1"
+  ],
+  "source_before": {
+    "root": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6-candidate1",
+    "head": "55e8db71dc19507c5d40f7f42123623651ae5a32",
+    "status": "",
+    "torchfft_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6-candidate1/pycbc/fft/torchfft.py",
+    "torchfft_sha256": "723af26e70b218d0be1c29f0cc3a05d206999f3b97dd38945325b100895f7d32",
+    "harness_sha256": "2ad70b69a4e2e5c38ee6621ca8d0508119a10e7050ce6b32b85d29c6be57da12"
+  },
+  "threads": 1,
+  "cpu_affinity": [
+    8
+  ],
+  "versions": {
+    "python": "3.11.9 | packaged by conda-forge | (main, Apr 19 2024, 18:36:13) [GCC 12.3.0]",
+    "numpy": "1.26.4",
+    "torch": "2.13.0+cu130"
+  },
+  "libraries": {
+    "mkl": "libmkl_rt.so",
+    "fftw_float": "/usr/lib/x86_64-linux-gnu/libfftw3f.so.3.6.10",
+    "fftw_double": "/usr/lib/x86_64-linux-gnu/libfftw3.so.3.6.10"
+  },
+  "environment": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "MKL_DYNAMIC": "FALSE",
+    "MKL_THREADING_LAYER": "GNU",
+    "OPENBLAS_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "PYTHONHASHSEED": "0"
+  },
+  "policy": {
+    "truth": "NumPy complex128 unnormalized inverse",
+    "error_gate": "candidate L2 and max absolute errors each <= legacy FFTW errors; no tolerance floor",
+    "parity_gate": "bitwise matching-precision standard PyCBC MKL result cast to complex64",
+    "release": "manual only after review and complete scientific campaign"
+  },
+  "sizes": [
+    {
+      "size": 1048576,
+      "timings": {
+        "legacy_fftw_single": {
+          "construction_seconds": 0.06674116099020466,
+          "first_execute_seconds": 0.022264453989919275,
+          "warmup_executions": 2,
+          "steady_seconds": [
+            0.01606453297426924,
+            0.016094160033389926,
+            0.016065455973148346,
+            0.016063462011516094,
+            0.01605203002691269,
+            0.016089199983980507,
+            0.016064263007137924,
+            0.016170754039194435,
+            0.016064744035247713
+          ],
+          "steady_median_seconds": 0.016064744035247713,
+          "steady_min_seconds": 0.01605203002691269,
+          "steady_max_seconds": 0.016170754039194435,
+          "native_library_threads": 1,
+          "plan_type": "IFFT"
+        },
+        "legacy_mkl_single": {
+          "construction_seconds": 0.035877489019185305,
+          "first_execute_seconds": 0.0076345650013536215,
+          "warmup_executions": 2,
+          "steady_seconds": [
+            0.007160829030908644,
+            0.007219239021651447,
+            0.007245818967930973,
+            0.007194791978690773,
+            0.007185114023741335,
+            0.0071973170270211995,
+            0.007196144957561046,
+            0.007214169017970562,
+            0.007206594978924841
+          ],
+          "steady_median_seconds": 0.0071973170270211995,
+          "steady_min_seconds": 0.007160829030908644,
+          "steady_max_seconds": 0.007245818967930973,
+          "native_library_threads": 1,
+          "plan_type": "IFFT"
+        },
+        "legacy_mkl_double": {
+          "construction_seconds": 0.015960546967107803,
+          "first_execute_seconds": 0.023484973004087806,
+          "warmup_executions": 2,
+          "steady_seconds": [
+            0.012972172989975661,
+            0.013029630994424224,
+            0.012938028026837856,
+            0.01295439898967743,
+            0.012944991001859307,
+            0.01296464801998809,
+            0.012947124952916056,
+            0.012984446017071605,
+            0.012935072998516262
+          ],
+          "steady_median_seconds": 0.01295439898967743,
+          "steady_min_seconds": 0.012935072998516262,
+          "steady_max_seconds": 0.013029630994424224,
+          "native_library_threads": 1,
+          "plan_type": "IFFT"
+        },
+        "current_torch_dispatch": {
+          "construction_seconds": 0.0026353150024078786,
+          "first_execute_seconds": 0.04173915897263214,
+          "warmup_executions": 2,
+          "steady_seconds": [
+            0.025500526011455804,
+            0.025497951020952314,
+            0.025506347010377795,
+            0.02544769598171115,
+            0.025470578984823078,
+            0.025486178987193853,
+            0.02541659801499918,
+            0.025513550033792853,
+            0.025491609005257487
+          ],
+          "steady_median_seconds": 0.025491609005257487,
+          "steady_min_seconds": 0.02541659801499918,
+          "steady_max_seconds": 0.025513550033792853,
+          "native_library_threads": 1,
+          "plan_type": "IFFT"
+        },
+        "fftw_double_workspace_one_native_thread": {
+          "construction_seconds": 0.00031158997444435954,
+          "first_execute_seconds": 0.04226258903509006,
+          "warmup_executions": 2,
+          "steady_seconds": [
+            0.025450571032706648,
+            0.0254219570197165,
+            0.025396429002285004,
+            0.02553714602254331,
+            0.025424622988794,
+            0.02542517299298197,
+            0.025350140989758074,
+            0.02542202698532492,
+            0.025367614987771958
+          ],
+          "steady_median_seconds": 0.02542202698532492,
+          "steady_min_seconds": 0.025350140989758074,
+          "steady_max_seconds": 0.02553714602254331,
+          "native_library_threads": 1,
+          "plan_type": "_FFTWCPUWorkPlan",
+          "retained_workspace_bytes": 16777216
+        },
+        "mkl_single_direct": {
+          "construction_seconds": 0.013319068995770067,
+          "first_execute_seconds": 0.012559241964481771,
+          "warmup_executions": 2,
+          "steady_seconds": [
+            0.007064826029818505,
+            0.007082369003910571,
+            0.007102687959559262,
+            0.007060658012051135,
+            0.007112546009011567,
+            0.007121875009033829,
+            0.007125931966584176,
+            0.00708812999073416,
+            0.007110342034138739
+          ],
+          "steady_median_seconds": 0.007102687959559262,
+          "steady_min_seconds": 0.007060658012051135,
+          "steady_max_seconds": 0.007125931966584176,
+          "native_library_threads": 1,
+          "plan_type": "_MKLCPUDirectIFFTPlan"
+        },
+        "mkl_double_workspace": {
+          "construction_seconds": 0.017040279984939843,
+          "first_execute_seconds": 0.042704314982984215,
+          "warmup_executions": 2,
+          "steady_seconds": [
+            0.017355675983708352,
+            0.017363812017720193,
+            0.01736067602178082,
+            0.017386303981766105,
+            0.01743598800385371,
+            0.0174550439696759,
+            0.017361807986162603,
+            0.017421421012841165,
+            0.017477105953730643
+          ],
+          "steady_median_seconds": 0.017386303981766105,
+          "steady_min_seconds": 0.017355675983708352,
+          "steady_max_seconds": 0.017477105953730643,
+          "native_library_threads": 1,
+          "plan_type": "_MKLCPUDirectIFFTPlan",
+          "retained_workspace_bytes": 33554432
+        }
+      },
+      "cases": []
+    }
+  ],
+  "error": "RuntimeError('legacy_fftw_single produced nonfinite output')",
+  "finished_utc": "2026-09-06T19:51:54.847964+00:00"
+}

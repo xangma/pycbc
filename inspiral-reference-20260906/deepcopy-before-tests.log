@@ -1,0 +1,256 @@
+.........FF...........                                                   [100%]
+=================================== FAILURES ===================================
+_______ test_torch_scheme_preserves_context_when_deepcopying_arrays[cpu] _______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7c2ffd373a90>
+device = 'cpu'
+
+    @pytest.mark.parametrize("device", ("cpu", "cuda"))
+    def test_torch_scheme_preserves_context_when_deepcopying_arrays(
+        monkeypatch,
+        device,
+    ):
+        torch = pytest.importorskip("torch")
+        if device == "cuda" and not torch.cuda.is_available():
+            pytest.skip("Torch CUDA is unavailable")
+        from pycbc.types import Array, FrequencySeries, TimeSeries
+    
+        runtime = _OpenMPRuntime(max_threads=6)
+        monkeypatch.setattr(
+            scheme,
+            "get_ctypes_library",
+            lambda name, packages, mode=None: runtime,
+        )
+        orig_threads = torch.get_num_threads()
+        context = scheme.TorchScheme(device, num_threads=2)
+        try:
+            torch.set_num_threads(3)
+            with context:
+                out_vals = {
+                    "array": Array([1.0, 2.0, 3.0], dtype="float32"),
+                    "frequency": FrequencySeries(
+                        [1.0 + 2.0j, 3.0 + 4.0j],
+                        delta_f=0.25,
+                        epoch=1234567890.125,
+                        dtype="complex64",
+                    ),
+                    "time": TimeSeries(
+                        [4.0, 5.0, 6.0],
+                        delta_t=0.125,
+                        epoch=1234567890.25,
+                        dtype="float64",
+                    ),
+                }
+                for array in out_vals.values():
+                    array.metadata = {"labels": ["original"]}
+                out_vals["alias"] = out_vals["array"]
+                thread_state = context._thread_state
+    
+>               copied = copy.deepcopy(out_vals)
+                         ^^^^^^^^^^^^^^^^^^^^^^^
+
+test_scheme_deepcopy_regression.py:114: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:146: in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:231: in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:172: in deepcopy
+    y = _reconstruct(x, memo, *rv)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:271: in _reconstruct
+    state = deepcopy(state, memo)
+            ^^^^^^^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:146: in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:231: in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:172: in deepcopy
+    y = _reconstruct(x, memo, *rv)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:271: in _reconstruct
+    state = deepcopy(state, memo)
+            ^^^^^^^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:146: in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:231: in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = <module 'torch' from '/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/__init__.py'>
+memo = {136542361961280: {}, 136542367901072: <pycbc.scheme.TorchScheme object at 0x7c2fb2b88fd0>, 136542368511824: <pycbc.types.array.Array object at 0x7c2f4428f050>, 136542374686976: {}, ...}
+_nil = []
+
+    def deepcopy(x, memo=None, _nil=[]):
+        """Deep copy operation on arbitrary Python objects.
+    
+        See the module's __doc__ string for more info.
+        """
+    
+        if memo is None:
+            memo = {}
+    
+        d = id(x)
+        y = memo.get(d, _nil)
+        if y is not _nil:
+            return y
+    
+        cls = type(x)
+    
+        copier = _deepcopy_dispatch.get(cls)
+        if copier is not None:
+            y = copier(x, memo)
+        else:
+            if issubclass(cls, type):
+                y = _deepcopy_atomic(x, memo)
+            else:
+                copier = getattr(x, "__deepcopy__", None)
+                if copier is not None:
+                    y = copier(memo)
+                else:
+                    reductor = dispatch_table.get(cls)
+                    if reductor:
+                        rv = reductor(x)
+                    else:
+                        reductor = getattr(x, "__reduce_ex__", None)
+                        if reductor is not None:
+>                           rv = reductor(4)
+                                 ^^^^^^^^^^^
+E                           TypeError: cannot pickle 'module' object
+
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:161: TypeError
+______ test_torch_scheme_preserves_context_when_deepcopying_arrays[cuda] _______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7c2ffd373d50>
+device = 'cuda'
+
+    @pytest.mark.parametrize("device", ("cpu", "cuda"))
+    def test_torch_scheme_preserves_context_when_deepcopying_arrays(
+        monkeypatch,
+        device,
+    ):
+        torch = pytest.importorskip("torch")
+        if device == "cuda" and not torch.cuda.is_available():
+            pytest.skip("Torch CUDA is unavailable")
+        from pycbc.types import Array, FrequencySeries, TimeSeries
+    
+        runtime = _OpenMPRuntime(max_threads=6)
+        monkeypatch.setattr(
+            scheme,
+            "get_ctypes_library",
+            lambda name, packages, mode=None: runtime,
+        )
+        orig_threads = torch.get_num_threads()
+        context = scheme.TorchScheme(device, num_threads=2)
+        try:
+            torch.set_num_threads(3)
+            with context:
+                out_vals = {
+                    "array": Array([1.0, 2.0, 3.0], dtype="float32"),
+                    "frequency": FrequencySeries(
+                        [1.0 + 2.0j, 3.0 + 4.0j],
+                        delta_f=0.25,
+                        epoch=1234567890.125,
+                        dtype="complex64",
+                    ),
+                    "time": TimeSeries(
+                        [4.0, 5.0, 6.0],
+                        delta_t=0.125,
+                        epoch=1234567890.25,
+                        dtype="float64",
+                    ),
+                }
+                for array in out_vals.values():
+                    array.metadata = {"labels": ["original"]}
+                out_vals["alias"] = out_vals["array"]
+                thread_state = context._thread_state
+    
+>               copied = copy.deepcopy(out_vals)
+                         ^^^^^^^^^^^^^^^^^^^^^^^
+
+test_scheme_deepcopy_regression.py:114: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:146: in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:231: in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:172: in deepcopy
+    y = _reconstruct(x, memo, *rv)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:271: in _reconstruct
+    state = deepcopy(state, memo)
+            ^^^^^^^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:146: in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:231: in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:172: in deepcopy
+    y = _reconstruct(x, memo, *rv)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:271: in _reconstruct
+    state = deepcopy(state, memo)
+            ^^^^^^^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:146: in deepcopy
+    y = copier(x, memo)
+        ^^^^^^^^^^^^^^^
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:231: in _deepcopy_dict
+    y[deepcopy(key, memo)] = deepcopy(value, memo)
+                             ^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+x = <module 'torch' from '/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/__init__.py'>
+memo = {136542332059712: {}, 136542332061120: {}, 136542332061248: {}, 136542374779152: <pycbc.types.array.Array object at 0x7c2f4407a5d0>, ...}
+_nil = []
+
+    def deepcopy(x, memo=None, _nil=[]):
+        """Deep copy operation on arbitrary Python objects.
+    
+        See the module's __doc__ string for more info.
+        """
+    
+        if memo is None:
+            memo = {}
+    
+        d = id(x)
+        y = memo.get(d, _nil)
+        if y is not _nil:
+            return y
+    
+        cls = type(x)
+    
+        copier = _deepcopy_dispatch.get(cls)
+        if copier is not None:
+            y = copier(x, memo)
+        else:
+            if issubclass(cls, type):
+                y = _deepcopy_atomic(x, memo)
+            else:
+                copier = getattr(x, "__deepcopy__", None)
+                if copier is not None:
+                    y = copier(memo)
+                else:
+                    reductor = dispatch_table.get(cls)
+                    if reductor:
+                        rv = reductor(x)
+                    else:
+                        reductor = getattr(x, "__reduce_ex__", None)
+                        if reductor is not None:
+>                           rv = reductor(4)
+                                 ^^^^^^^^^^^
+E                           TypeError: cannot pickle 'module' object
+
+../miniconda3/envs/pycbc3g/lib/python3.11/copy.py:161: TypeError
+=========================== short test summary info ============================
+FAILED test_scheme_deepcopy_regression.py::test_torch_scheme_preserves_context_when_deepcopying_arrays[cpu]
+FAILED test_scheme_deepcopy_regression.py::test_torch_scheme_preserves_context_when_deepcopying_arrays[cuda]
+2 failed, 20 passed in 3.57s

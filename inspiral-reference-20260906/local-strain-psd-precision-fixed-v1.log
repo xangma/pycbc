@@ -1,0 +1,112 @@
+{
+  "baseline_selected_functions_from_source": null,
+  "local_native_abi": "Existing Darwin Python 3.12 extensions loaded read-only",
+  "python": "/Users/xangma/miniconda3/bin/python3.12",
+  "tests": [
+    "test/test_strain_psd_precision.py"
+  ],
+  "file_sha256": {
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/run-local-strain-psd-precision-tests.py": "f5eff7826a76e6b360c576ad7ff56b79d49c42c735298a907d6dcda217c71522",
+    "/Users/xangma/repos/pycbc/pycbc/types/array_cpu.cpython-312-darwin.so": "02c6fec41262957c5bf1418dc047dfd1ccd11b79748561031caa613efb77e9f3",
+    "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+    "/Users/xangma/repos/pycbc/pycbc/events/eventmgr_cython.cpython-312-darwin.so": "4dc6c6102c89e6f954762b6e2eeb7488e5c3c4e7ce5cccabd414e6f95e931989",
+    "/Users/xangma/repos/pycbc/pycbc/events/simd_threshold_cython.cpython-312-darwin.so": "2b54d4e5c44c5d16b5397b6fe5421bd365d208ee4229c7f3c1e52fc80e90a3cb",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/psd/__init__.py": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/strain/strain.py": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_strain_psd_precision.py": "95b5c1d88ac5f371bdbf1bbad6eb2b3c4f1dd4b9efdeb3583c2beba8d1082ace"
+  }
+}
+....ss...FFF......ssssss                                                 [100%]
+=================================== FAILURES ===================================
+_______ test_estimated_psd_retains_weak_frequencies[cpu-2-float32-None] ________
+
+context = <pycbc.scheme.CPUScheme object at 0x1503c74a0>
+dtype = <class 'numpy.float32'>, precision = None, inverse_length = 2
+
+    @pytest.mark.parametrize("dtype,precision", [
+        (np.float32, None), (np.float32, "double"), (np.float64, "single"),
+    ])
+    @pytest.mark.parametrize("inverse_length", [0, 2])
+    def test_estimated_psd_retains_weak_frequencies(
+        context, dtype, precision, inverse_length
+    ):
+        values = line_rich_data(dtype)
+        expected = reference_psd(values, inverse_length)
+        output_dtype = np.float64 if precision == "double" else np.float32
+        with context:
+            strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+            actual = psd.from_cli(
+                psd_options(inverse_length), 16385, 1 / 64, 30,
+                strain=strain, precision=precision,
+            )
+            assert actual.dtype == output_dtype
+            assert actual.delta_f == 1 / 64
+>           assert actual.epoch == strain.start_time
+E           assert np.float64(0.0) == np.float64(1234567890.0)
+E            +  where np.float64(0.0) = <pycbc.types.frequencyseries.FrequencySeries object at 0x1503964e0>.epoch
+E            +  and   np.float64(1234567890.0) = <pycbc.types.timeseries.TimeSeries object at 0x1503c6b10>.start_time
+
+test/test_strain_psd_precision.py:118: AssertionError
+______ test_estimated_psd_retains_weak_frequencies[cpu-2-float32-double] _______
+
+context = <pycbc.scheme.CPUScheme object at 0x1503c72f0>
+dtype = <class 'numpy.float32'>, precision = 'double', inverse_length = 2
+
+    @pytest.mark.parametrize("dtype,precision", [
+        (np.float32, None), (np.float32, "double"), (np.float64, "single"),
+    ])
+    @pytest.mark.parametrize("inverse_length", [0, 2])
+    def test_estimated_psd_retains_weak_frequencies(
+        context, dtype, precision, inverse_length
+    ):
+        values = line_rich_data(dtype)
+        expected = reference_psd(values, inverse_length)
+        output_dtype = np.float64 if precision == "double" else np.float32
+        with context:
+            strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+            actual = psd.from_cli(
+                psd_options(inverse_length), 16385, 1 / 64, 30,
+                strain=strain, precision=precision,
+            )
+            assert actual.dtype == output_dtype
+            assert actual.delta_f == 1 / 64
+>           assert actual.epoch == strain.start_time
+E           assert np.float64(0.0) == np.float64(1234567890.0)
+E            +  where np.float64(0.0) = <pycbc.types.frequencyseries.FrequencySeries object at 0x1503c5760>.epoch
+E            +  and   np.float64(1234567890.0) = <pycbc.types.timeseries.TimeSeries object at 0x1503c63c0>.start_time
+
+test/test_strain_psd_precision.py:118: AssertionError
+______ test_estimated_psd_retains_weak_frequencies[cpu-2-float64-single] _______
+
+context = <pycbc.scheme.CPUScheme object at 0x1503cdeb0>
+dtype = <class 'numpy.float64'>, precision = 'single', inverse_length = 2
+
+    @pytest.mark.parametrize("dtype,precision", [
+        (np.float32, None), (np.float32, "double"), (np.float64, "single"),
+    ])
+    @pytest.mark.parametrize("inverse_length", [0, 2])
+    def test_estimated_psd_retains_weak_frequencies(
+        context, dtype, precision, inverse_length
+    ):
+        values = line_rich_data(dtype)
+        expected = reference_psd(values, inverse_length)
+        output_dtype = np.float64 if precision == "double" else np.float32
+        with context:
+            strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+            actual = psd.from_cli(
+                psd_options(inverse_length), 16385, 1 / 64, 30,
+                strain=strain, precision=precision,
+            )
+            assert actual.dtype == output_dtype
+            assert actual.delta_f == 1 / 64
+>           assert actual.epoch == strain.start_time
+E           assert np.float64(0.0) == np.float64(1234567890.0)
+E            +  where np.float64(0.0) = <pycbc.types.frequencyseries.FrequencySeries object at 0x1503cfef0>.epoch
+E            +  and   np.float64(1234567890.0) = <pycbc.types.timeseries.TimeSeries object at 0x1503ce630>.start_time
+
+test/test_strain_psd_precision.py:118: AssertionError
+=========================== short test summary info ============================
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[cpu-2-float32-None]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[cpu-2-float32-double]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[cpu-2-float64-single]
+3 failed, 13 passed, 8 skipped in 0.26s

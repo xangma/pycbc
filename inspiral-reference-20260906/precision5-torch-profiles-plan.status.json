@@ -1,0 +1,63 @@
+{
+  "state": "complete",
+  "pid": 3413446,
+  "plan": "/home/xangma/pycbc-torch-inspiral-reference-20260906/precision5-torch-profiles-plan.json",
+  "plan_sha256": "122a4ff47def5d850876a1291e473c3ab1745be40250696913787950c54f3073",
+  "started_utc": "2026-09-06T19:16:25.654675+00:00",
+  "completed": [
+    [
+      "--case",
+      "profile-precision5-torch-cpu-l512-cprofile",
+      "--mode",
+      "cprofile",
+      "--scheme",
+      "torch:cpu:1",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "profile-precision5-torch-cpu-l512-perf",
+      "--mode",
+      "perf",
+      "--scheme",
+      "torch:cpu:1",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "profile-precision5-torch-cuda-l512-cprofile",
+      "--mode",
+      "cprofile",
+      "--scheme",
+      "torch:cuda:0",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "profile-precision5-torch-cuda-l512-perf",
+      "--mode",
+      "perf",
+      "--scheme",
+      "torch:cuda:0",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "profile-precision5-torch-cuda-l512-torchprofile",
+      "--mode",
+      "torchprofile",
+      "--scheme",
+      "torch:cuda:0",
+      "--segment-length",
+      "512"
+    ]
+  ],
+  "current": null,
+  "child_pid": 3511910,
+  "returncode": 0,
+  "finished_utc": "2026-09-06T19:20:47.093216+00:00"
+}

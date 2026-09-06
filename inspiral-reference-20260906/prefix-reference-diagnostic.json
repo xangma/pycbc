@@ -1,0 +1,52 @@
+{
+  "source_commit": "6c82155044d58f3344b281869d87745f71ba2285",
+  "float64_eps": 2.220446049250313e-16,
+  "reference_eps": 1.0842021724855044e-19,
+  "samples": 1008128,
+  "input_sha256": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/diagnose-prefix-reference.py": "b6d5e04075b93be9a60469a6375f302fe635e1e3df88c357c4204b895b540824",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v3/test/test_sigmasq_series_precision.py": "477f041cf5dafd836e572a50c1e269438bf9bdd52a57190e9c3e88876b0bfde0",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v3/pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786"
+  },
+  "input_sha256_after": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/diagnose-prefix-reference.py": "b6d5e04075b93be9a60469a6375f302fe635e1e3df88c357c4204b895b540824",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v3/test/test_sigmasq_series_precision.py": "477f041cf5dafd836e572a50c1e269438bf9bdd52a57190e9c3e88876b0bfde0",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v3/pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786"
+  },
+  "rows": [
+    {
+      "use_psd": false,
+      "input_power_sha256": "3e5fe03ac81b43aaeed824c79d2e4ced6c4fbebfc91ddba4c54961c632a34184",
+      "serial_reference_max_relative_error": 4.348968326921857e-14,
+      "cpu": {
+        "max_relative_error_vs_wide": 4.348968326921857e-14,
+        "max_relative_error_vs_serial": 0.0
+      },
+      "torch_cpu": {
+        "max_relative_error_vs_wide": 4.348968326921857e-14,
+        "max_relative_error_vs_serial": 0.0
+      },
+      "torch_cuda": {
+        "max_relative_error_vs_wide": 1.186197195619008e-15,
+        "max_relative_error_vs_serial": 4.3396982464395003e-14
+      }
+    },
+    {
+      "use_psd": true,
+      "input_power_sha256": "2e2974da437eb675a47d809d3aeaf67a52ee2dea821da0276a0a904de8200b47",
+      "serial_reference_max_relative_error": 7.217362330829122e-14,
+      "cpu": {
+        "max_relative_error_vs_wide": 7.217362330829122e-14,
+        "max_relative_error_vs_serial": 0.0
+      },
+      "torch_cpu": {
+        "max_relative_error_vs_wide": 7.217362330829122e-14,
+        "max_relative_error_vs_serial": 0.0
+      },
+      "torch_cuda": {
+        "max_relative_error_vs_wide": 1.229721266958332e-15,
+        "max_relative_error_vs_serial": 7.219154549808574e-14
+      }
+    }
+  ]
+}

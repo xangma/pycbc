@@ -1,0 +1,62 @@
+{
+  "state": "complete",
+  "passed": true,
+  "command": [
+    "taskset",
+    "-c",
+    "8",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "-m",
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "test/test_scheme_runtime.py",
+    "test/test_scheme_selection.py"
+  ],
+  "cwd": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2",
+  "host": "len",
+  "pid": 551403,
+  "started_utc": "2026-09-06T17:30:22.071655+00:00",
+  "source_info": {
+    "commit": "968bcd558117262af0d603710b054174659adb51",
+    "status": ""
+  },
+  "environment": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "MKL_DYNAMIC": "FALSE",
+    "MKL_THREADING_LAYER": "GNU",
+    "OPENBLAS_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+    "BLIS_NUM_THREADS": "1",
+    "PYTHONHASHSEED": "0",
+    "PYTHONPATH": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "input_sha256": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-unit-checks-v2.py": "44d482b768200bf513f0501d6e2b271a96cc2708229e21a7d297ed246298576f",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/config.json": "e29df1ee26ad1a513982a81b55d1f8b648126baacc7b509bc918e5c8e912d36a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/pycbc/scheme.py": "27a0704bea2156e946e29e4437363036da21a05a8a98b403f93e605b75e9f5f0",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/test/test_scheme_runtime.py": "45ac62167a6a3c503391f56bbbfc21dd982fbb58f05448b22c3dc52b3aca02cb",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/test/test_scheme_selection.py": "2e2c754335a18fc18619d2271466948535f84c53313e0a2d96881042e3c59b36"
+  },
+  "returncode": 0,
+  "finished_utc": "2026-09-06T17:30:27.556727+00:00",
+  "wall_seconds": 5.484623039024882,
+  "source_after": {
+    "commit": "968bcd558117262af0d603710b054174659adb51",
+    "status": ""
+  },
+  "input_sha256_after": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-unit-checks-v2.py": "44d482b768200bf513f0501d6e2b271a96cc2708229e21a7d297ed246298576f",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/config.json": "e29df1ee26ad1a513982a81b55d1f8b648126baacc7b509bc918e5c8e912d36a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/pycbc/scheme.py": "27a0704bea2156e946e29e4437363036da21a05a8a98b403f93e605b75e9f5f0",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/test/test_scheme_runtime.py": "45ac62167a6a3c503391f56bbbfc21dd982fbb58f05448b22c3dc52b3aca02cb",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/test/test_scheme_selection.py": "2e2c754335a18fc18619d2271466948535f84c53313e0a2d96881042e3c59b36"
+  },
+  "log_sha256": "90d632ef76e0645b6515e5f5fced9a43f3f836d46a3fea681ce34bc466ed016a"
+}

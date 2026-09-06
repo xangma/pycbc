@@ -1,0 +1,53 @@
+         1808 function calls (1802 primitive calls) in 0.003 seconds
+
+   Ordered by: cumulative time
+   List reduced from 165 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.003    0.003 matchedfilter.py:2520(process_data)
+        1    0.000    0.000    0.003    0.003 matchedfilter.py:2525(process_all)
+        2    0.000    0.000    0.002    0.001 matchedfilter.py:2795(_process_batch)
+        1    0.000    0.000    0.001    0.001 scheme.py:432(_scheming_function)
+        1    0.000    0.000    0.001    0.001 matchedfilter_torch.py:1047(batch_correlate_execute)
+        1    0.000    0.000    0.001    0.001 matchedfilter_torch.py:772(_try_cuda_native_batch_correlate)
+        1    0.000    0.000    0.001    0.001 matchedfilter_torch.py:734(execute)
+        1    0.000    0.000    0.001    0.001 matchedfilter_torch.py:690(can_execute)
+        1    0.000    0.000    0.001    0.001 {built-in method builtins.all}
+       65    0.000    0.000    0.001    0.000 matchedfilter_torch.py:713(<genexpr>)
+       66    0.000    0.000    0.001    0.000 matchedfilter_torch.py:562(_cuda_batch_tensor_contract)
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:2094(_torch_batch_peak_values)
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:1981(_try_torch_cuda_native_batch_peak_values)
+        1    0.000    0.000    0.000    0.000 torchfft.py:1414(execute)
+        1    0.000    0.000    0.000    0.000 torchfft.py:1330(_execute_batched_ifft)
+        1    0.000    0.000    0.000    0.000 matchedfilter_torch.py:793(standard_peak_tensor)
+        1    0.000    0.000    0.000    0.000 matchedfilter_torch.py:339(_batch_outputs_are_disjoint)
+        1    0.000    0.000    0.000    0.000 torchfft.py:1287(_execute_batched_ifft_direct)
+       66    0.000    0.000    0.000    0.000 matchedfilter_torch.py:174(_has_autograd_state)
+        1    0.000    0.000    0.000    0.000 matchedfilter_torch.py:758(<listcomp>)
+       65    0.000    0.000    0.000    0.000 matchedfilter_torch.py:207(_logical_storage_span)
+        1    0.000    0.000    0.000    0.000 __init__.py:1209(synchronize)
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:2165(_torch_batch_peak_magnitudes)
+        1    0.000    0.000    0.000    0.000 {method 'extend' of 'list' objects}
+        1    0.000    0.000    0.000    0.000 {built-in method numpy.fromiter}
+        1    0.000    0.000    0.000    0.000 matchedfilter_torch.py:579(_find_uniform_stride)
+        2    0.000    0.000    0.000    0.000 {built-in method builtins.any}
+       66    0.000    0.000    0.000    0.000 forward_ad.py:151(unpack_dual)
+       33    0.000    0.000    0.000    0.000 matchedfilter_torch.py:342(<genexpr>)
+        1    0.000    0.000    0.000    0.000 matchedfilter_torch.py:718(<listcomp>)
+       33    0.000    0.000    0.000    0.000 matchedfilter.py:2181(<genexpr>)
+        1    0.000    0.000    0.000    0.000 {built-in method torch._C._fft.fft_ifft}
+       66    0.000    0.000    0.000    0.000 matchedfilter_torch.py:213(_is_inference_tensor)
+        1    0.000    0.000    0.000    0.000 __init__.py:650(__init__)
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:2552(_process_vetoes)
+        2    0.000    0.000    0.000    0.000 matchedfilter_torch.py:359(_same_array_tensors)
+        1    0.000    0.000    0.000    0.000 _utils.py:557(_get_device_index)
+        6    0.000    0.000    0.000    0.000 <frozen _collections_abc>:771(get)
+        1    0.000    0.000    0.000    0.000 {built-in method torch.mul}
+        1    0.000    0.000    0.000    0.000 {built-in method torch.stack}
+        1    0.000    0.000    0.000    0.000 _utils.py:869(_get_device_index)
+        2    0.000    0.000    0.000    0.000 {method 'cpu' of 'torch._C.TensorBase' objects}
+        1    0.000    0.000    0.000    0.000 torchfft.py:1099(_batch_logical_views)
+      165    0.000    0.000    0.000    0.000 {method 'data_ptr' of 'torch._C.TensorBase' objects}
+       66    0.000    0.000    0.000    0.000 <string>:1(<lambda>)
+
+

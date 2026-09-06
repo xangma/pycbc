@@ -1,0 +1,865 @@
+{
+  "purpose": "diagnostic only; original scientific tolerances unchanged",
+  "host": "len",
+  "pid": 1102167,
+  "python": "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+  "pycbc_source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/pycbc/__init__.py",
+  "torch_version": "2.13.0+cu130",
+  "torch_threads": 1,
+  "affinity": [
+    8
+  ],
+  "template_hash": "4366715446675002219",
+  "fft_length": 2097152,
+  "delta_f": 0.001953125,
+  "filter_slice": [
+    15360,
+    1048576
+  ],
+  "schemes": [
+    "cpu",
+    "torch-cpu",
+    "torch-cuda"
+  ],
+  "psd": {
+    "cpu": {
+      "saved_vs_cpu": {
+        "finite_count": 1033216,
+        "nonfinite_disagreement": 0,
+        "max_absolute": 0.0,
+        "relative_l2": 0.0,
+        "relative_abs_quantiles": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "replay_stages": {
+        "welch_vs_cpu": {
+          "finite_count": 64576,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.0,
+          "relative_l2": 0.0,
+          "relative_abs_quantiles": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "interpolate_vs_cpu": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.0,
+          "relative_l2": 0.0,
+          "relative_abs_quantiles": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "interpolate_common_input": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.0,
+          "relative_l2": 0.0,
+          "relative_abs_quantiles": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "native_vs_saved_cpu": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.0,
+          "relative_l2": 0.0,
+          "relative_abs_quantiles": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "native_vs_own_saved": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.0,
+          "relative_l2": 0.0,
+          "relative_abs_quantiles": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "common_cpu_interp_vs_saved_cpu": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.0,
+          "relative_l2": 0.0,
+          "relative_abs_quantiles": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "common_cpu_interp_float64_vs_saved_cpu": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.04144157544866367,
+          "relative_l2": 0.0013751773082076103,
+          "relative_abs_quantiles": [
+            2.28809447493203e-12,
+            1.9569929761733893e-06,
+            1.7119360279130544e-05,
+            0.003037620636789727
+          ]
+        },
+        "torch_hann_131072_vs_numpy_float32": {
+          "finite_count": 131072,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 1.7881393432617188e-07,
+          "relative_l2": 7.098037950332988e-08,
+          "relative_abs_quantiles": [
+            0.0,
+            7.056393639507901e-08,
+            2.8882951547370367e-05,
+            1.0
+          ]
+        },
+        "torch_hann_65536_vs_numpy_float32": {
+          "finite_count": 65536,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 1.7881393432617188e-07,
+          "relative_l2": 8.104832133037384e-08,
+          "relative_abs_quantiles": [
+            0.0,
+            7.279013962259081e-08,
+            2.7605181682790856e-05,
+            1.0
+          ]
+        }
+      }
+    },
+    "torch-cpu": {
+      "saved_vs_cpu": {
+        "finite_count": 1033216,
+        "nonfinite_disagreement": 0,
+        "max_absolute": 0.04111194610595703,
+        "relative_l2": 0.0016910702664335725,
+        "relative_abs_quantiles": [
+          0.0,
+          3.617437329539122e-06,
+          9.568660593605966e-05,
+          0.0044307882689821184
+        ]
+      },
+      "replay_stages": {
+        "welch_vs_cpu": {
+          "finite_count": 64576,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.0001220703125,
+          "relative_l2": 2.0503766906516842e-07,
+          "relative_abs_quantiles": [
+            0.0,
+            1.3724645099876378e-06,
+            0.0002002939656123727,
+            0.009323958623593216
+          ]
+        },
+        "interpolate_vs_cpu": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.0001220703125,
+          "relative_l2": 2.0134040581976072e-07,
+          "relative_abs_quantiles": [
+            0.0,
+            1.1230041258926752e-06,
+            0.0001624858466099104,
+            0.009323958623593216
+          ]
+        },
+        "interpolate_common_input": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 3.0517578125e-05,
+          "relative_l2": 3.694549457661651e-08,
+          "relative_abs_quantiles": [
+            0.0,
+            0.0,
+            7.386859791343573e-08,
+            1.066555072686213e-06
+          ]
+        },
+        "native_vs_saved_cpu": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.04111194610595703,
+          "relative_l2": 0.0016910702664335725,
+          "relative_abs_quantiles": [
+            0.0,
+            3.617437329539122e-06,
+            9.568660593605966e-05,
+            0.0044307882689821184
+          ]
+        },
+        "native_vs_own_saved": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.0,
+          "relative_l2": 0.0,
+          "relative_abs_quantiles": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "common_cpu_interp_vs_saved_cpu": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.058341026306152344,
+          "relative_l2": 0.001818402250502131,
+          "relative_abs_quantiles": [
+            0.0,
+            1.644759298800255e-06,
+            1.79896867504562e-05,
+            0.0046267901401336456
+          ]
+        },
+        "common_cpu_interp_float64_vs_saved_cpu": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.04144157539479387,
+          "relative_l2": 0.001375177307103132,
+          "relative_abs_quantiles": [
+            2.2878923285873943e-12,
+            1.9569929755538504e-06,
+            1.711936027852854e-05,
+            0.0030376206395727576
+          ]
+        },
+        "torch_hann_131072_vs_numpy_float32": {
+          "finite_count": 131072,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 1.7881393432617188e-07,
+          "relative_l2": 7.098037950332988e-08,
+          "relative_abs_quantiles": [
+            0.0,
+            7.056393639507901e-08,
+            2.8882951547370367e-05,
+            1.0
+          ]
+        },
+        "torch_hann_65536_vs_numpy_float32": {
+          "finite_count": 65536,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 1.7881393432617188e-07,
+          "relative_l2": 8.104832133037384e-08,
+          "relative_abs_quantiles": [
+            0.0,
+            7.279013962259081e-08,
+            2.7605181682790856e-05,
+            1.0
+          ]
+        }
+      }
+    },
+    "torch-cuda": {
+      "saved_vs_cpu": {
+        "finite_count": 1033216,
+        "nonfinite_disagreement": 0,
+        "max_absolute": 0.08454036712646484,
+        "relative_l2": 0.0030402347112471286,
+        "relative_abs_quantiles": [
+          0.0,
+          5.731829519249945e-06,
+          0.00011836038731965051,
+          0.00710137138645854
+        ]
+      },
+      "replay_stages": {
+        "welch_vs_cpu": {
+          "finite_count": 64576,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.000213623046875,
+          "relative_l2": 4.1144176063232594e-07,
+          "relative_abs_quantiles": [
+            0.0,
+            1.6530138750923246e-06,
+            0.00023829331472256088,
+            0.006222048320176502
+          ]
+        },
+        "interpolate_vs_cpu": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.000213623046875,
+          "relative_l2": 4.1807991194728654e-07,
+          "relative_abs_quantiles": [
+            0.0,
+            1.3842022268779827e-06,
+            0.00019591214589223055,
+            0.006222048320176502
+          ]
+        },
+        "interpolate_common_input": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 3.0517578125e-05,
+          "relative_l2": 3.694549457661651e-08,
+          "relative_abs_quantiles": [
+            0.0,
+            0.0,
+            7.386859791343573e-08,
+            1.066555072686213e-06
+          ]
+        },
+        "native_vs_saved_cpu": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.08454036712646484,
+          "relative_l2": 0.0030402347112471286,
+          "relative_abs_quantiles": [
+            0.0,
+            5.731829519249945e-06,
+            0.00011836038731965051,
+            0.00710137138645854
+          ]
+        },
+        "native_vs_own_saved": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.0,
+          "relative_l2": 0.0,
+          "relative_abs_quantiles": [
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "common_cpu_interp_vs_saved_cpu": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.09521102905273438,
+          "relative_l2": 0.003724142227179417,
+          "relative_abs_quantiles": [
+            0.0,
+            4.452055567612847e-06,
+            3.441874533253118e-05,
+            0.00707432691644066
+          ]
+        },
+        "common_cpu_interp_float64_vs_saved_cpu": {
+          "finite_count": 1033216,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 0.041441575445130496,
+          "relative_l2": 0.0013751773087707937,
+          "relative_abs_quantiles": [
+            2.2882966212766657e-12,
+            1.956992977416844e-06,
+            1.7119360291530778e-05,
+            0.0030376206423992458
+          ]
+        },
+        "torch_hann_131072_vs_numpy_float32": {
+          "finite_count": 131072,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 1.7881393432617188e-07,
+          "relative_l2": 7.233362615780188e-08,
+          "relative_abs_quantiles": [
+            0.0,
+            7.18578037586326e-08,
+            2.8026587862787324e-05,
+            1.0
+          ]
+        },
+        "torch_hann_65536_vs_numpy_float32": {
+          "finite_count": 65536,
+          "nonfinite_disagreement": 0,
+          "max_absolute": 1.7881393432617188e-07,
+          "relative_l2": 8.075177765884333e-08,
+          "relative_abs_quantiles": [
+            0.0,
+            7.242311147312729e-08,
+            2.7563274667487316e-05,
+            1.0
+          ]
+        }
+      }
+    }
+  },
+  "waveforms": {
+    "cpu": {
+      "relative_path": "waveform-cpu.npy",
+      "data_sha256": "dfe87f1406ad49409d4ae7e7b93669263c56fb34ff6516281a309444702ba0e8",
+      "dtype": "complex64",
+      "shape": [
+        1048577
+      ],
+      "vs_cpu": {
+        "finite_count": 1033216,
+        "nonfinite_disagreement": 0,
+        "max_absolute": 0.0,
+        "relative_l2": 0.0,
+        "relative_abs_quantiles": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max_phase_radians": 0.0
+      }
+    },
+    "torch-cpu": {
+      "relative_path": "waveform-torch-cpu.npy",
+      "data_sha256": "bf62d9e95554fec4d6f406b53bc807e590fca8dd469fe34d536797bae70a3c5e",
+      "dtype": "complex64",
+      "shape": [
+        1048577
+      ],
+      "vs_cpu": {
+        "finite_count": 1033216,
+        "nonfinite_disagreement": 0,
+        "max_absolute": 4.656612873077393e-10,
+        "relative_l2": 3.0823938073319544e-12,
+        "relative_abs_quantiles": [
+          0.0,
+          0.0,
+          0.0,
+          1.7371630742871125e-08
+        ],
+        "max_phase_radians": 1.677775614829734e-08
+      }
+    },
+    "torch-cuda": {
+      "relative_path": "waveform-torch-cuda.npy",
+      "data_sha256": "bf62d9e95554fec4d6f406b53bc807e590fca8dd469fe34d536797bae70a3c5e",
+      "dtype": "complex64",
+      "shape": [
+        1048577
+      ],
+      "vs_cpu": {
+        "finite_count": 1033216,
+        "nonfinite_disagreement": 0,
+        "max_absolute": 4.656612873077393e-10,
+        "relative_l2": 3.0823938073319544e-12,
+        "relative_abs_quantiles": [
+          0.0,
+          0.0,
+          0.0,
+          1.7371630742871125e-08
+        ],
+        "max_phase_radians": 1.677775614829734e-08
+      }
+    }
+  },
+  "fft": {
+    "cpu": {
+      "route": {
+        "class": "pycbc.fft.mkl.IFFT",
+        "_mkl_plan_present": false,
+        "_fftw_plan_present": false,
+        "_promoted_batch_plan_present": false
+      },
+      "common_input_vs_cpu": {
+        "finite_count": 2097152,
+        "nonfinite_disagreement": 0,
+        "max_absolute": 0.0,
+        "relative_l2": 0.0,
+        "relative_abs_quantiles": [
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max_phase_radians": 0.0
+      },
+      "common_input_vs_numpy_complex128": {
+        "finite_count": 2097152,
+        "nonfinite_disagreement": 0,
+        "max_absolute": 0.3859381663217449,
+        "relative_l2": 1.7393498310019144e-07,
+        "relative_abs_quantiles": [
+          5.735592932475724e-11,
+          1.7283187892499857e-07,
+          1.5968835900343426e-06,
+          0.0002286220607586773
+        ],
+        "max_phase_radians": 0.0001954802911865771
+      },
+      "variants": {
+        "waveform_only": {
+          "relative_sigmasq": 0.0,
+          "normalized_series_vs_cpu": {
+            "finite_count": 2097152,
+            "nonfinite_disagreement": 0,
+            "max_absolute": 0.0,
+            "relative_l2": 0.0,
+            "relative_abs_quantiles": [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max_phase_radians": 0.0
+          },
+          "selected_relative_snr_change": [
+            0.0
+          ],
+          "selected_phase_change": [
+            0.0
+          ],
+          "selected_cpu_raw_complex": [
+            [
+              1606690.625,
+              105883.8828125
+            ]
+          ]
+        },
+        "psd_only": {
+          "relative_sigmasq": 0.0,
+          "normalized_series_vs_cpu": {
+            "finite_count": 2097152,
+            "nonfinite_disagreement": 0,
+            "max_absolute": 0.0,
+            "relative_l2": 0.0,
+            "relative_abs_quantiles": [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max_phase_radians": 0.0
+          },
+          "selected_relative_snr_change": [
+            0.0
+          ],
+          "selected_phase_change": [
+            0.0
+          ],
+          "selected_cpu_raw_complex": [
+            [
+              1606690.625,
+              105883.8828125
+            ]
+          ]
+        },
+        "waveform_and_psd": {
+          "relative_sigmasq": 0.0,
+          "normalized_series_vs_cpu": {
+            "finite_count": 2097152,
+            "nonfinite_disagreement": 0,
+            "max_absolute": 0.0,
+            "relative_l2": 0.0,
+            "relative_abs_quantiles": [
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "max_phase_radians": 0.0
+          },
+          "selected_relative_snr_change": [
+            0.0
+          ],
+          "selected_phase_change": [
+            0.0
+          ],
+          "selected_cpu_raw_complex": [
+            [
+              1606690.625,
+              105883.8828125
+            ]
+          ]
+        }
+      }
+    },
+    "torch-cpu": {
+      "route": {
+        "class": "pycbc.fft.torchfft.IFFT",
+        "_mkl_plan_present": false,
+        "_fftw_plan_present": true,
+        "_promoted_batch_plan_present": false
+      },
+      "common_input_vs_cpu": {
+        "finite_count": 2097152,
+        "nonfinite_disagreement": 0,
+        "max_absolute": 0.3762998305872592,
+        "relative_l2": 1.7577301964427447e-07,
+        "relative_abs_quantiles": [
+          0.0,
+          1.7525574631662732e-07,
+          1.5982817362024799e-06,
+          0.000228574196896133
+        ],
+        "max_phase_radians": 0.00019547163252260657
+      },
+      "common_input_vs_numpy_complex128": {
+        "finite_count": 2097152,
+        "nonfinite_disagreement": 0,
+        "max_absolute": 0.07223277490547433,
+        "relative_l2": 2.5369689613831468e-08,
+        "relative_abs_quantiles": [
+          2.37537681598094e-12,
+          2.204566713560615e-08,
+          5.0140731897246955e-08,
+          5.93400297485094e-08
+        ],
+        "max_phase_radians": 5.869064528625279e-08
+      },
+      "variants": {
+        "waveform_only": {
+          "relative_sigmasq": 0.0,
+          "normalized_series_vs_cpu": {
+            "finite_count": 2097152,
+            "nonfinite_disagreement": 0,
+            "max_absolute": 0.3762998305872592,
+            "relative_l2": 1.7577288868735094e-07,
+            "relative_abs_quantiles": [
+              0.0,
+              1.7525693160347305e-07,
+              1.5982817362024799e-06,
+              0.000228574196896133
+            ],
+            "max_phase_radians": 0.00019547163252260657
+          },
+          "selected_relative_snr_change": [
+            -1.5779803108628698e-07
+          ],
+          "selected_phase_change": [
+            -3.336313745841353e-08
+          ],
+          "selected_cpu_raw_complex": [
+            [
+              1606690.625,
+              105883.8828125
+            ]
+          ]
+        },
+        "psd_only": {
+          "relative_sigmasq": -2.3952437044894026e-07,
+          "normalized_series_vs_cpu": {
+            "finite_count": 2097152,
+            "nonfinite_disagreement": 0,
+            "max_absolute": 56.86271687119293,
+            "relative_l2": 4.379699744871948e-05,
+            "relative_abs_quantiles": [
+              2.628151086090298e-08,
+              4.413360320773462e-05,
+              0.0004345280796895263,
+              0.08221969688397208
+            ],
+            "max_phase_radians": 0.043738560904362685
+          },
+          "selected_relative_snr_change": [
+            -2.8476315100389726e-06
+          ],
+          "selected_phase_change": [
+            2.1940423946311077e-06
+          ],
+          "selected_cpu_raw_complex": [
+            [
+              1606690.625,
+              105883.8828125
+            ]
+          ]
+        },
+        "waveform_and_psd": {
+          "relative_sigmasq": -2.3952437022689566e-07,
+          "normalized_series_vs_cpu": {
+            "finite_count": 2097152,
+            "nonfinite_disagreement": 0,
+            "max_absolute": 56.86271687125385,
+            "relative_l2": 4.379699715711004e-05,
+            "relative_abs_quantiles": [
+              2.6281510687463857e-08,
+              4.413360320780112e-05,
+              0.00043452807968960674,
+              0.08221968292545145
+            ],
+            "max_phase_radians": 0.04373856090436266
+          },
+          "selected_relative_snr_change": [
+            -2.8476315102610172e-06
+          ],
+          "selected_phase_change": [
+            2.1940423946170753e-06
+          ],
+          "selected_cpu_raw_complex": [
+            [
+              1606690.625,
+              105883.8828125
+            ]
+          ]
+        }
+      }
+    },
+    "torch-cuda": {
+      "route": {
+        "class": "pycbc.fft.torchfft.IFFT",
+        "_mkl_plan_present": false,
+        "_fftw_plan_present": false,
+        "_promoted_batch_plan_present": false
+      },
+      "common_input_vs_cpu": {
+        "finite_count": 2097152,
+        "nonfinite_disagreement": 0,
+        "max_absolute": 0.7629097259833564,
+        "relative_l2": 3.436288396282175e-07,
+        "relative_abs_quantiles": [
+          0.0,
+          3.3859062101242067e-07,
+          2.9456508932029322e-06,
+          0.0004087848797856251
+        ],
+        "max_phase_radians": 0.0003970052863157355
+      },
+      "common_input_vs_numpy_complex128": {
+        "finite_count": 2097152,
+        "nonfinite_disagreement": 0,
+        "max_absolute": 0.5959590027579114,
+        "relative_l2": 2.927299901256198e-07,
+        "relative_abs_quantiles": [
+          2.7708700172556917e-10,
+          2.865271166229156e-07,
+          2.5700441818195696e-06,
+          0.0002953508304288996
+        ],
+        "max_phase_radians": 0.0002015249951291921
+      },
+      "variants": {
+        "waveform_only": {
+          "relative_sigmasq": 0.0,
+          "normalized_series_vs_cpu": {
+            "finite_count": 2097152,
+            "nonfinite_disagreement": 0,
+            "max_absolute": 0.7629097259833564,
+            "relative_l2": 3.436288396282175e-07,
+            "relative_abs_quantiles": [
+              0.0,
+              3.3859062101242067e-07,
+              2.9456508932029322e-06,
+              0.0004087848797856251
+            ],
+            "max_phase_radians": 0.0003970052863157355
+          },
+          "selected_relative_snr_change": [
+            -2.3589939490697986e-07
+          ],
+          "selected_phase_change": [
+            -3.794107556620622e-08
+          ],
+          "selected_cpu_raw_complex": [
+            [
+              1606690.625,
+              105883.8828125
+            ]
+          ]
+        },
+        "psd_only": {
+          "relative_sigmasq": -1.8835686321772016e-07,
+          "normalized_series_vs_cpu": {
+            "finite_count": 2097152,
+            "nonfinite_disagreement": 0,
+            "max_absolute": 56.86725273723639,
+            "relative_l2": 3.9516007641450555e-05,
+            "relative_abs_quantiles": [
+              9.818530140505595e-09,
+              3.943519390041725e-05,
+              0.0003921143176924474,
+              0.04396472262568993
+            ],
+            "max_phase_radians": 0.03601393536679655
+          },
+          "selected_relative_snr_change": [
+            5.1173891124634e-08
+          ],
+          "selected_phase_change": [
+            5.279818819795763e-07
+          ],
+          "selected_cpu_raw_complex": [
+            [
+              1606690.625,
+              105883.8828125
+            ]
+          ]
+        },
+        "waveform_and_psd": {
+          "relative_sigmasq": -1.8835686321772016e-07,
+          "normalized_series_vs_cpu": {
+            "finite_count": 2097152,
+            "nonfinite_disagreement": 0,
+            "max_absolute": 56.86725273723639,
+            "relative_l2": 3.9516009695126245e-05,
+            "relative_abs_quantiles": [
+              9.818530140505595e-09,
+              3.9435221922595525e-05,
+              0.0003921143176924474,
+              0.04396472262568993
+            ],
+            "max_phase_radians": 0.03601393536679655
+          },
+          "selected_relative_snr_change": [
+            5.1173891124634e-08
+          ],
+          "selected_phase_change": [
+            5.279818819795763e-07
+          ],
+          "selected_cpu_raw_complex": [
+            [
+              1606690.625,
+              105883.8828125
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "bank_sha256": "161820754117cd51b24a7bb672ea456cf7b2a3808e69690c23235d024b1a2916",
+  "compressed": {
+    "samples": 342,
+    "phase_range": [
+      0.0,
+      1342.2198486328125
+    ]
+  },
+  "direct_double_sigmasq_waveform_by_psd": {
+    "cpu": {
+      "cpu": 4827275.158224825,
+      "torch-cpu": 4827274.001974782,
+      "torch-cuda": 4827274.248974418
+    },
+    "torch-cpu": {
+      "cpu": 4827275.158224826,
+      "torch-cpu": 4827274.001974783,
+      "torch-cuda": 4827274.248974418
+    },
+    "torch-cuda": {
+      "cpu": 4827275.158224826,
+      "torch-cpu": 4827274.001974783,
+      "torch-cuda": 4827274.248974418
+    }
+  },
+  "strain_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+  "correlation": {
+    "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-corr.npy",
+    "data_sha256": "03e6abc641d9080a946444a83241d93f7dc217b4a2280aa8877bebf8763c6e65",
+    "indices": [
+      1884341
+    ],
+    "assumption": "captured CPU correlation for this template hash and one segment"
+  },
+  "limitations": [
+    "PSD substitution holds the CPU data FFT fixed; it does not reproduce backend data-FFT differences.",
+    "Correlation substitution uses double ratios then complex64 rounding, not the exact native multiply/divide order.",
+    "Direct sigmasq uses double summation; native template norm reductions may differ.",
+    "No replacement qualification, scientific pass claim, or timing result is produced."
+  ]
+}

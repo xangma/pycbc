@@ -1,0 +1,115 @@
+{
+  "failed_receipt_sha256": "7090b66a09cd034629ce1b35ab9b5a426a8b008b7b20fa97916307fdd4347c54",
+  "failed_pairs": [
+    {
+      "case": "qual-v2-cpu-l512",
+      "index": 90,
+      "template_hash": "-2091536583491262971",
+      "psd_results": [
+        {
+          "metrics": {
+            "constant_phase_offset_radians": -0.021535884854176866,
+            "decompressed_snr_norm": 2815.361396949971,
+            "fixed_time_fixed_phase_mismatch": 0.00036966587627773606,
+            "fixed_time_phase_optimized_mismatch": 0.000137809627056229,
+            "normalized_overlap_abs": 0.9998621903729438,
+            "normalized_overlap_imag": -0.021531252566356247,
+            "normalized_overlap_real": 0.9996303341237223,
+            "recovered_reference_signal_snr_fraction": 0.9998621903729438,
+            "reference_snr_norm": 2831.689689030872,
+            "relative_snr_norm_error": 0.005766271687237423,
+            "relative_weighted_amplitude_error": 0.010201009635305408,
+            "relative_weighted_complex_error": 0.02771855793461305,
+            "snr_norm_ratio": 0.9942337283127626
+          },
+          "passed": false,
+          "psd_index": 0
+        }
+      ]
+    },
+    {
+      "case": "qual-v2-cpu-l1024",
+      "index": 90,
+      "template_hash": "-2091536583491262971",
+      "psd_results": [
+        {
+          "metrics": {
+            "constant_phase_offset_radians": -0.021535658670105227,
+            "decompressed_snr_norm": 2815.3557624571736,
+            "fixed_time_fixed_phase_mismatch": 0.00037535621896356286,
+            "fixed_time_phase_optimized_mismatch": 0.0001435061606740451,
+            "normalized_overlap_abs": 0.999856493839326,
+            "normalized_overlap_imag": -0.021530903796775514,
+            "normalized_overlap_real": 0.9996246437810364,
+            "recovered_reference_signal_snr_fraction": 0.999856493839326,
+            "reference_snr_norm": 2831.6999295514156,
+            "relative_snr_norm_error": 0.005771857011993231,
+            "relative_weighted_amplitude_error": 0.010744943928738338,
+            "relative_weighted_complex_error": 0.027922997089228078,
+            "snr_norm_ratio": 0.9942281429880068
+          },
+          "passed": false,
+          "psd_index": 0
+        }
+      ]
+    },
+    {
+      "case": "qual-cpu-l512-s96",
+      "index": 90,
+      "template_hash": "-2091536583491262971",
+      "psd_results": [
+        {
+          "metrics": {
+            "constant_phase_offset_radians": -0.021535884854176866,
+            "decompressed_snr_norm": 2815.361396949971,
+            "fixed_time_fixed_phase_mismatch": 0.00036966587627773606,
+            "fixed_time_phase_optimized_mismatch": 0.000137809627056229,
+            "normalized_overlap_abs": 0.9998621903729438,
+            "normalized_overlap_imag": -0.021531252566356247,
+            "normalized_overlap_real": 0.9996303341237223,
+            "recovered_reference_signal_snr_fraction": 0.9998621903729438,
+            "reference_snr_norm": 2831.689689030872,
+            "relative_snr_norm_error": 0.005766271687237423,
+            "relative_weighted_amplitude_error": 0.010201009635305408,
+            "relative_weighted_complex_error": 0.02771855793461305,
+            "snr_norm_ratio": 0.9942337283127626
+          },
+          "passed": false,
+          "psd_index": 0
+        }
+      ]
+    },
+    {
+      "case": "qual-cpu-l1024-s96",
+      "index": 90,
+      "template_hash": "-2091536583491262971",
+      "psd_results": [
+        {
+          "metrics": {
+            "constant_phase_offset_radians": -0.021535658670105227,
+            "decompressed_snr_norm": 2815.3557624571736,
+            "fixed_time_fixed_phase_mismatch": 0.00037535621896356286,
+            "fixed_time_phase_optimized_mismatch": 0.0001435061606740451,
+            "normalized_overlap_abs": 0.999856493839326,
+            "normalized_overlap_imag": -0.021530903796775514,
+            "normalized_overlap_real": 0.9996246437810364,
+            "recovered_reference_signal_snr_fraction": 0.999856493839326,
+            "reference_snr_norm": 2831.6999295514156,
+            "relative_snr_norm_error": 0.005771857011993231,
+            "relative_weighted_amplitude_error": 0.010744943928738338,
+            "relative_weighted_complex_error": 0.027922997089228078,
+            "snr_norm_ratio": 0.9942281429880068
+          },
+          "passed": false,
+          "psd_index": 0
+        }
+      ]
+    }
+  ],
+  "decision": "Preserve original bank and all runs; recompress full bank to a new file at tolerance 1e-5, qualify and validate unchanged limits before fresh FFT-length timings.",
+  "budgets_unchanged": {
+    "fixed_time_phase_optimized_mismatch": 0.001,
+    "relative_snr_norm_error": 0.01,
+    "relative_weighted_amplitude_error": 0.01
+  }
+}

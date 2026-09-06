@@ -1,0 +1,396 @@
+{
+  "baseline_selected_functions_from_source": "968bcd558117262af0d603710b054174659adb51",
+  "local_native_abi": "Existing Darwin Python 3.12 extensions loaded read-only",
+  "python": "/Users/xangma/miniconda3/bin/python3.12",
+  "tests": [
+    "test/test_sigmasq_series_precision.py",
+    "test/test_chisq_precision.py"
+  ],
+  "file_sha256": {
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/run-local-chisq-precision-tests.py": "26b29e5f7db6a496da08a444459086f0ecefca801bb826820fc8db0f794bd69b",
+    "/Users/xangma/repos/pycbc/pycbc/types/array_cpu.cpython-312-darwin.so": "02c6fec41262957c5bf1418dc047dfd1ccd11b79748561031caa613efb77e9f3",
+    "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/vetoes/chisq.py": "56cfd948cac84702a77a8092b19093f3de52ee29dd1135c96b8083a00d0f54af",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_sigmasq_series_precision.py": "477f041cf5dafd836e572a50c1e269438bf9bdd52a57190e9c3e88876b0bfde0",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_chisq_precision.py": "bb1f8e1aa0f20372154de61485ccfbb95c8e8fd083cb316a28ca36d31c730b47"
+  }
+}
+F.F.....ssssFsFFFF                                                       [100%]
+=================================== FAILURES ===================================
+______ test_long_sigmasq_series_and_equal_power_bins[cpu-False-complex64] ______
+
+dtype = <class 'numpy.complex64'>, use_psd = False, backend = 'cpu'
+
+    @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+    @pytest.mark.parametrize("use_psd", [False, True])
+    @pytest.mark.parametrize("backend", ["cpu", "torch-cpu", "torch-cuda"])
+    def test_long_sigmasq_series_and_equal_power_bins(dtype, use_psd, backend):
+        if backend == "cpu":
+            context = scheme.CPUScheme(1)
+        else:
+            torch = pytest.importorskip("torch")
+            device = backend.removeprefix("torch-")
+            if device == "cuda" and not torch.cuda.is_available():
+                pytest.skip("CUDA is unavailable")
+            context = scheme.TorchScheme(device=device, num_threads=1)
+        delta_f = 1 / 512
+        frequency = np.arange(1048577) * delta_f
+        low, high = 30.0, 1999.0
+        kmin, kmax = int(low / delta_f), int(high / delta_f)
+        # An inspiral-like amplitude gives a long, low-power tail. A sequential
+        # float32 prefix loses tail contributions after its running sum grows.
+        amplitude = (np.maximum(frequency, low) / low) ** (-7 / 6)
+        waveform = (amplitude * np.exp(0.2j * frequency)).astype(dtype)
+        real_dtype = np.float32 if dtype == np.complex64 else np.float64
+        psd_values = (1 + (frequency / 300) ** 2).astype(real_dtype)
+    
+        band = waveform[kmin:kmax].astype(np.complex128)
+        reference_power = band.real**2 + band.imag**2
+        if use_psd:
+            reference_power /= psd_values[kmin:kmax].astype(np.float64)
+        reference_prefix = np.cumsum(reference_power, dtype=np.float64)
+    
+        with context:
+            template = FrequencySeries(waveform, delta_f=delta_f)
+            psd = FrequencySeries(psd_values, delta_f=delta_f) if use_psd else None
+            result = sigmasq_series(template, psd, low, high)
+            bins = power_chisq_bins_from_sigmasq_series(result, 16, kmin, kmax)
+            actual = result.numpy()
+            if backend == "torch-cuda":
+                # A parallel float32 scan can move bin edges between identical
+                # calls. Repeated full calculations must retain the same bins.
+                for _ in range(20):
+                    repeated = sigmasq_series(template, psd, low, high)
+                    repeated_bins = power_chisq_bins_from_sigmasq_series(
+                        repeated, 16, kmin, kmax
+                    )
+                    np.testing.assert_array_equal(repeated_bins, bins)
+    
+        assert result.dtype == real_dtype
+        assert result.delta_f == delta_f
+        assert np.count_nonzero(actual[:kmin]) == 0
+        assert np.count_nonzero(actual[kmax:]) == 0
+        tolerance = 3e-7 if dtype == np.complex64 else 3e-14
+>       np.testing.assert_allclose(
+            actual[kmin:kmax], reference_prefix * (4 * delta_f), rtol=tolerance
+        )
+E       AssertionError: 
+E       Not equal to tolerance rtol=3e-07, atol=0
+E       
+E       Mismatched elements: 1000982 / 1008128 (99.3%)
+E       First 5 mismatches are at indices:
+E        [141]: 1.097614049911499 (ACTUAL), 1.0976144055838706 (DESIRED)
+E        [142]: 1.1052606105804443 (ACTUAL), 1.1052609428951092 (DESIRED)
+E        [143]: 1.1129059791564941 (ACTUAL), 1.1129063298116724 (DESIRED)
+E        [1019]: 7.394418239593506 (ACTUAL), 7.394415977885406 (DESIRED)
+E        [1020]: 7.401142597198486 (ACTUAL), 7.401140123197494 (DESIRED)
+E       Max absolute difference among violations: 0.62830309
+E       Max relative difference among violations: 0.00700678
+E        ACTUAL: array([7.812500e-03, 1.562381e-02, 2.343394e-02, ..., 8.904244e+01,
+E              8.904244e+01, 8.904244e+01], shape=(1008128,), dtype=float32)
+E        DESIRED: array([7.812500e-03, 1.562381e-02, 2.343394e-02, ..., 8.967074e+01,
+E              8.967074e+01, 8.967075e+01], shape=(1008128,))
+
+test/test_sigmasq_series_precision.py:62: AssertionError
+______ test_long_sigmasq_series_and_equal_power_bins[cpu-True-complex64] _______
+
+dtype = <class 'numpy.complex64'>, use_psd = True, backend = 'cpu'
+
+    @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+    @pytest.mark.parametrize("use_psd", [False, True])
+    @pytest.mark.parametrize("backend", ["cpu", "torch-cpu", "torch-cuda"])
+    def test_long_sigmasq_series_and_equal_power_bins(dtype, use_psd, backend):
+        if backend == "cpu":
+            context = scheme.CPUScheme(1)
+        else:
+            torch = pytest.importorskip("torch")
+            device = backend.removeprefix("torch-")
+            if device == "cuda" and not torch.cuda.is_available():
+                pytest.skip("CUDA is unavailable")
+            context = scheme.TorchScheme(device=device, num_threads=1)
+        delta_f = 1 / 512
+        frequency = np.arange(1048577) * delta_f
+        low, high = 30.0, 1999.0
+        kmin, kmax = int(low / delta_f), int(high / delta_f)
+        # An inspiral-like amplitude gives a long, low-power tail. A sequential
+        # float32 prefix loses tail contributions after its running sum grows.
+        amplitude = (np.maximum(frequency, low) / low) ** (-7 / 6)
+        waveform = (amplitude * np.exp(0.2j * frequency)).astype(dtype)
+        real_dtype = np.float32 if dtype == np.complex64 else np.float64
+        psd_values = (1 + (frequency / 300) ** 2).astype(real_dtype)
+    
+        band = waveform[kmin:kmax].astype(np.complex128)
+        reference_power = band.real**2 + band.imag**2
+        if use_psd:
+            reference_power /= psd_values[kmin:kmax].astype(np.float64)
+        reference_prefix = np.cumsum(reference_power, dtype=np.float64)
+    
+        with context:
+            template = FrequencySeries(waveform, delta_f=delta_f)
+            psd = FrequencySeries(psd_values, delta_f=delta_f) if use_psd else None
+            result = sigmasq_series(template, psd, low, high)
+            bins = power_chisq_bins_from_sigmasq_series(result, 16, kmin, kmax)
+            actual = result.numpy()
+            if backend == "torch-cuda":
+                # A parallel float32 scan can move bin edges between identical
+                # calls. Repeated full calculations must retain the same bins.
+                for _ in range(20):
+                    repeated = sigmasq_series(template, psd, low, high)
+                    repeated_bins = power_chisq_bins_from_sigmasq_series(
+                        repeated, 16, kmin, kmax
+                    )
+                    np.testing.assert_array_equal(repeated_bins, bins)
+    
+        assert result.dtype == real_dtype
+        assert result.delta_f == delta_f
+        assert np.count_nonzero(actual[:kmin]) == 0
+        assert np.count_nonzero(actual[kmax:]) == 0
+        tolerance = 3e-7 if dtype == np.complex64 else 3e-14
+>       np.testing.assert_allclose(
+            actual[kmin:kmax], reference_prefix * (4 * delta_f), rtol=tolerance
+        )
+E       AssertionError: 
+E       Not equal to tolerance rtol=3e-07, atol=0
+E       
+E       Mismatched elements: 993737 / 1008128 (98.6%)
+E       First 5 mismatches are at indices:
+E        [305]: 2.3128533363342285 (ACTUAL), 2.3128540586559403 (DESIRED)
+E        [307]: 2.3276207447052 (ACTUAL), 2.3276214431254534 (DESIRED)
+E        [308]: 2.3350026607513428 (ACTUAL), 2.3350034717941113 (DESIRED)
+E        [309]: 2.342383623123169 (ACTUAL), 2.342384391078148 (DESIRED)
+E        [310]: 2.3497633934020996 (ACTUAL), 2.3497642016466 (DESIRED)
+E       Max absolute difference among violations: 0.23312317
+E       Max relative difference among violations: 0.00285362
+E        ACTUAL: array([7.735149e-03, 1.546911e-02, 2.320189e-02, ..., 8.146062e+01,
+E              8.146062e+01, 8.146062e+01], shape=(1008128,), dtype=float32)
+E        DESIRED: array([7.735148e-03, 1.546911e-02, 2.320189e-02, ..., 8.169374e+01,
+E              8.169374e+01, 8.169374e+01], shape=(1008128,))
+
+test/test_sigmasq_series_precision.py:62: AssertionError
+_______ test_equal_power_thresholds_between_adjacent_float32_values[cpu] _______
+
+device = 'cpu'
+
+    @pytest.mark.parametrize("device", ["cpu", "cuda"])
+    def test_equal_power_thresholds_between_adjacent_float32_values(device):
+        torch = pytest.importorskip("torch")
+        if device == "cuda" and not torch.cuda.is_available():
+            pytest.skip("CUDA is unavailable")
+        # The float32 values for thirds lie above the true thresholds. Rounding
+        # those thresholds to float32 would incorrectly include the equal value
+        # in searchsorted(side="right") and move both internal edges one cell.
+        prefix = np.array([0, 0, 0.1, 1 / 3, 0.5, 2 / 3, 0.8, 1, 0], dtype=np.float32)
+        for context in [scheme.CPUScheme(1), scheme.TorchScheme(device, num_threads=1)]:
+            with context:
+                series = FrequencySeries(prefix, delta_f=0.25)
+                bins = power_chisq_bins_from_sigmasq_series(series, 3, 2, 8)
+>           np.testing.assert_array_equal(bins, [2, 3, 5, 8])
+E           AssertionError: 
+E           Arrays are not equal
+E           
+E           Mismatched elements: 2 / 4 (50%)
+E           Mismatch at indices:
+E            [1]: 4 (ACTUAL), 3 (DESIRED)
+E            [2]: 6 (ACTUAL), 5 (DESIRED)
+E           Max absolute difference among violations: 1
+E           Max relative difference among violations: 0.33333333
+E            ACTUAL: array([2, 4, 6, 8])
+E            DESIRED: array([2, 3, 5, 8])
+
+test/test_sigmasq_series_precision.py:87: AssertionError
+_______ test_long_cpu_point_chisq_matches_direct_phases[False-complex64] _______
+
+dtype = <class 'numpy.complex64'>, array_indices = False
+
+    @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+    @pytest.mark.parametrize("array_indices", [False, True])
+    def test_long_cpu_point_chisq_matches_direct_phases(dtype, array_indices):
+        size = 2**21
+        rng = np.random.default_rng(782)
+        values = (rng.normal(size=size) + 1j * rng.normal(size=size)).astype(dtype)
+        points = np.array([137, 1884341, size - 3], dtype=np.int64)
+        bins = np.array([15360, 65536, 262144, 1048576], dtype=np.uint32)
+        # Evaluate direct complex128 phases independently of the recurrence. The
+        # late sample indices and long final bin expose accumulated phase error.
+        bin_sums = np.zeros((len(points), len(bins) - 1), dtype=np.complex128)
+        for column, (start, end) in enumerate(zip(bins[:-1], bins[1:])):
+            for first in range(int(start), int(end), 32768):
+                last = min(first + 32768, int(end))
+                frequencies = np.arange(first, last, dtype=np.float64)
+                phases = np.exp(2j * np.pi * points[:, None] * frequencies[None, :] / size)
+                bin_sums[:, column] += np.sum(values[None, first:last] * phases, axis=1)
+    
+        snr = bin_sums.sum(axis=1).astype(dtype)
+        norm = 1 / np.sqrt(size)
+        expected = (
+            (len(bins) - 1) * np.sum(abs(bin_sums) ** 2, axis=1)
+            - abs(snr.astype(np.complex128)) ** 2
+        ) * norm**2
+    
+        with scheme.CPUScheme(1):
+            correlation = FrequencySeries(values, delta_f=1 / 512)
+            indices = Array(points) if array_indices else points
+            actual = power_chisq_at_points_from_precomputed(
+                correlation, snr, norm, bins, indices
+            )
+    
+>       assert actual.dtype == (np.float32 if dtype == np.complex64 else np.float64)
+E       AssertionError: assert dtype('float64') == <class 'numpy.float32'>
+E        +  where dtype('float64') = array([1.33534443, 1.17740524, 4.25893116]).dtype
+
+test/test_chisq_precision.py:43: AssertionError
+______ test_long_cpu_point_chisq_matches_direct_phases[False-complex128] _______
+
+dtype = <class 'numpy.complex128'>, array_indices = False
+
+    @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+    @pytest.mark.parametrize("array_indices", [False, True])
+    def test_long_cpu_point_chisq_matches_direct_phases(dtype, array_indices):
+        size = 2**21
+        rng = np.random.default_rng(782)
+        values = (rng.normal(size=size) + 1j * rng.normal(size=size)).astype(dtype)
+        points = np.array([137, 1884341, size - 3], dtype=np.int64)
+        bins = np.array([15360, 65536, 262144, 1048576], dtype=np.uint32)
+        # Evaluate direct complex128 phases independently of the recurrence. The
+        # late sample indices and long final bin expose accumulated phase error.
+        bin_sums = np.zeros((len(points), len(bins) - 1), dtype=np.complex128)
+        for column, (start, end) in enumerate(zip(bins[:-1], bins[1:])):
+            for first in range(int(start), int(end), 32768):
+                last = min(first + 32768, int(end))
+                frequencies = np.arange(first, last, dtype=np.float64)
+                phases = np.exp(2j * np.pi * points[:, None] * frequencies[None, :] / size)
+                bin_sums[:, column] += np.sum(values[None, first:last] * phases, axis=1)
+    
+        snr = bin_sums.sum(axis=1).astype(dtype)
+        norm = 1 / np.sqrt(size)
+        expected = (
+            (len(bins) - 1) * np.sum(abs(bin_sums) ** 2, axis=1)
+            - abs(snr.astype(np.complex128)) ** 2
+        ) * norm**2
+    
+        with scheme.CPUScheme(1):
+            correlation = FrequencySeries(values, delta_f=1 / 512)
+            indices = Array(points) if array_indices else points
+            actual = power_chisq_at_points_from_precomputed(
+                correlation, snr, norm, bins, indices
+            )
+    
+        assert actual.dtype == (np.float32 if dtype == np.complex64 else np.float64)
+        tolerance = 3e-6 if dtype == np.complex64 else 3e-8
+>       np.testing.assert_allclose(actual, expected, rtol=tolerance, atol=1e-9)
+E       AssertionError: 
+E       Not equal to tolerance rtol=3e-08, atol=1e-09
+E       
+E       Mismatched elements: 2 / 3 (66.7%)
+E       Mismatch at indices:
+E        [1]: 1.1748832421724016 (ACTUAL), 1.1755450805401098 (DESIRED)
+E        [2]: 4.25896000045547 (ACTUAL), 4.258339878298571 (DESIRED)
+E       Max absolute difference among violations: 0.00066184
+E       Max relative difference among violations: 0.00056301
+E        ACTUAL: array([1.328926, 1.174883, 4.25896 ])
+E        DESIRED: array([1.328926, 1.175545, 4.25834 ])
+
+test/test_chisq_precision.py:45: AssertionError
+_______ test_long_cpu_point_chisq_matches_direct_phases[True-complex64] ________
+
+dtype = <class 'numpy.complex64'>, array_indices = True
+
+    @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+    @pytest.mark.parametrize("array_indices", [False, True])
+    def test_long_cpu_point_chisq_matches_direct_phases(dtype, array_indices):
+        size = 2**21
+        rng = np.random.default_rng(782)
+        values = (rng.normal(size=size) + 1j * rng.normal(size=size)).astype(dtype)
+        points = np.array([137, 1884341, size - 3], dtype=np.int64)
+        bins = np.array([15360, 65536, 262144, 1048576], dtype=np.uint32)
+        # Evaluate direct complex128 phases independently of the recurrence. The
+        # late sample indices and long final bin expose accumulated phase error.
+        bin_sums = np.zeros((len(points), len(bins) - 1), dtype=np.complex128)
+        for column, (start, end) in enumerate(zip(bins[:-1], bins[1:])):
+            for first in range(int(start), int(end), 32768):
+                last = min(first + 32768, int(end))
+                frequencies = np.arange(first, last, dtype=np.float64)
+                phases = np.exp(2j * np.pi * points[:, None] * frequencies[None, :] / size)
+                bin_sums[:, column] += np.sum(values[None, first:last] * phases, axis=1)
+    
+        snr = bin_sums.sum(axis=1).astype(dtype)
+        norm = 1 / np.sqrt(size)
+        expected = (
+            (len(bins) - 1) * np.sum(abs(bin_sums) ** 2, axis=1)
+            - abs(snr.astype(np.complex128)) ** 2
+        ) * norm**2
+    
+        with scheme.CPUScheme(1):
+            correlation = FrequencySeries(values, delta_f=1 / 512)
+            indices = Array(points) if array_indices else points
+            actual = power_chisq_at_points_from_precomputed(
+                correlation, snr, norm, bins, indices
+            )
+    
+>       assert actual.dtype == (np.float32 if dtype == np.complex64 else np.float64)
+E       AssertionError: assert dtype('float64') == <class 'numpy.float32'>
+E        +  where dtype('float64') = array([1.33534443, 1.17740524, 4.25893116]).dtype
+
+test/test_chisq_precision.py:43: AssertionError
+_______ test_long_cpu_point_chisq_matches_direct_phases[True-complex128] _______
+
+dtype = <class 'numpy.complex128'>, array_indices = True
+
+    @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+    @pytest.mark.parametrize("array_indices", [False, True])
+    def test_long_cpu_point_chisq_matches_direct_phases(dtype, array_indices):
+        size = 2**21
+        rng = np.random.default_rng(782)
+        values = (rng.normal(size=size) + 1j * rng.normal(size=size)).astype(dtype)
+        points = np.array([137, 1884341, size - 3], dtype=np.int64)
+        bins = np.array([15360, 65536, 262144, 1048576], dtype=np.uint32)
+        # Evaluate direct complex128 phases independently of the recurrence. The
+        # late sample indices and long final bin expose accumulated phase error.
+        bin_sums = np.zeros((len(points), len(bins) - 1), dtype=np.complex128)
+        for column, (start, end) in enumerate(zip(bins[:-1], bins[1:])):
+            for first in range(int(start), int(end), 32768):
+                last = min(first + 32768, int(end))
+                frequencies = np.arange(first, last, dtype=np.float64)
+                phases = np.exp(2j * np.pi * points[:, None] * frequencies[None, :] / size)
+                bin_sums[:, column] += np.sum(values[None, first:last] * phases, axis=1)
+    
+        snr = bin_sums.sum(axis=1).astype(dtype)
+        norm = 1 / np.sqrt(size)
+        expected = (
+            (len(bins) - 1) * np.sum(abs(bin_sums) ** 2, axis=1)
+            - abs(snr.astype(np.complex128)) ** 2
+        ) * norm**2
+    
+        with scheme.CPUScheme(1):
+            correlation = FrequencySeries(values, delta_f=1 / 512)
+            indices = Array(points) if array_indices else points
+            actual = power_chisq_at_points_from_precomputed(
+                correlation, snr, norm, bins, indices
+            )
+    
+        assert actual.dtype == (np.float32 if dtype == np.complex64 else np.float64)
+        tolerance = 3e-6 if dtype == np.complex64 else 3e-8
+>       np.testing.assert_allclose(actual, expected, rtol=tolerance, atol=1e-9)
+E       AssertionError: 
+E       Not equal to tolerance rtol=3e-08, atol=1e-09
+E       
+E       Mismatched elements: 2 / 3 (66.7%)
+E       Mismatch at indices:
+E        [1]: 1.1748832421724016 (ACTUAL), 1.1755450805401098 (DESIRED)
+E        [2]: 4.25896000045547 (ACTUAL), 4.258339878298571 (DESIRED)
+E       Max absolute difference among violations: 0.00066184
+E       Max relative difference among violations: 0.00056301
+E        ACTUAL: array([1.328926, 1.174883, 4.25896 ])
+E        DESIRED: array([1.328926, 1.175545, 4.25834 ])
+
+test/test_chisq_precision.py:45: AssertionError
+=========================== short test summary info ============================
+FAILED test/test_sigmasq_series_precision.py::test_long_sigmasq_series_and_equal_power_bins[cpu-False-complex64]
+FAILED test/test_sigmasq_series_precision.py::test_long_sigmasq_series_and_equal_power_bins[cpu-True-complex64]
+FAILED test/test_sigmasq_series_precision.py::test_equal_power_thresholds_between_adjacent_float32_values[cpu]
+FAILED test/test_chisq_precision.py::test_long_cpu_point_chisq_matches_direct_phases[False-complex64]
+FAILED test/test_chisq_precision.py::test_long_cpu_point_chisq_matches_direct_phases[False-complex128]
+FAILED test/test_chisq_precision.py::test_long_cpu_point_chisq_matches_direct_phases[True-complex64]
+FAILED test/test_chisq_precision.py::test_long_cpu_point_chisq_matches_direct_phases[True-complex128]
+7 failed, 6 passed, 5 skipped in 0.80s

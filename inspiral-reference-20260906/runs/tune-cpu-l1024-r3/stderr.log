@@ -1,0 +1,743 @@
+2026-09-06T17:44:56.711+01:00 INFO : Running with CPU support: 1 threads
+2026-09-06T17:44:56.711+01:00 INFO : Reading Frames
+2026-09-06T17:45:03.410+01:00 INFO : Highpass Filtering
+2026-09-06T17:45:03.862+01:00 INFO : Resampling data
+2026-09-06T17:45:03.874+01:00 INFO : Converting to float32
+/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/types/array.py:872: RuntimeWarning: divide by zero encountered in divide
+  return self._data.__rtruediv__(other)
+2026-09-06T17:45:08.961+01:00 INFO : Highpass Filtering
+2026-09-06T17:45:09.403+01:00 INFO : Remove Padding
+2026-09-06T17:45:09.426+01:00 INFO : Making frequency-domain data segments
+/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/types/array.py:872: RuntimeWarning: divide by zero encountered in divide
+  return self._data.__rtruediv__(other)
+2026-09-06T17:45:11.490+01:00 INFO : Overwhitening frequency-domain data segments
+2026-09-06T17:45:11.516+01:00 INFO : Read in template bank
+2026-09-06T17:45:11.526+01:00 INFO : Full template bank size: 96
+2026-09-06T17:45:11.527+01:00 INFO : Template bank size after thinning: 96
+2026-09-06T17:45:11.527+01:00 INFO : 0: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:11.553+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:11.563+01:00 INFO : Filtering template 1/96 segment 1/3
+2026-09-06T17:45:11.651+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:11.683+01:00 INFO : Filtering template 1/96 segment 2/3
+2026-09-06T17:45:11.722+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:11.732+01:00 INFO : Filtering template 1/96 segment 3/3
+2026-09-06T17:45:11.770+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:11.780+01:00 INFO : 1: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:11.784+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:11.794+01:00 INFO : Filtering template 2/96 segment 1/3
+2026-09-06T17:45:11.837+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:11.867+01:00 INFO : Filtering template 2/96 segment 2/3
+2026-09-06T17:45:11.906+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:11.919+01:00 INFO : Filtering template 2/96 segment 3/3
+2026-09-06T17:45:11.957+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:11.967+01:00 INFO : 2: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:11.971+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:11.981+01:00 INFO : Filtering template 3/96 segment 1/3
+2026-09-06T17:45:12.024+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:12.056+01:00 INFO : Filtering template 3/96 segment 2/3
+2026-09-06T17:45:12.094+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:12.104+01:00 INFO : Filtering template 3/96 segment 3/3
+2026-09-06T17:45:12.142+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:12.152+01:00 INFO : 3: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:12.156+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:12.166+01:00 INFO : Filtering template 4/96 segment 1/3
+2026-09-06T17:45:12.209+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:12.237+01:00 INFO : Filtering template 4/96 segment 2/3
+2026-09-06T17:45:12.275+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:12.289+01:00 INFO : Filtering template 4/96 segment 3/3
+2026-09-06T17:45:12.327+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:12.337+01:00 INFO : 4: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:12.341+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:12.350+01:00 INFO : Filtering template 5/96 segment 1/3
+2026-09-06T17:45:12.394+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:12.422+01:00 INFO : Filtering template 5/96 segment 2/3
+2026-09-06T17:45:12.460+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:12.470+01:00 INFO : Filtering template 5/96 segment 3/3
+2026-09-06T17:45:12.508+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:12.518+01:00 INFO : 5: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:12.522+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:12.531+01:00 INFO : Filtering template 6/96 segment 1/3
+2026-09-06T17:45:12.575+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:12.603+01:00 INFO : Filtering template 6/96 segment 2/3
+2026-09-06T17:45:12.641+01:00 INFO : Filtering template 6/96 segment 3/3
+2026-09-06T17:45:12.679+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:12.689+01:00 INFO : 6: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:12.693+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:12.702+01:00 INFO : Filtering template 7/96 segment 1/3
+2026-09-06T17:45:12.746+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:12.774+01:00 INFO : Filtering template 7/96 segment 2/3
+2026-09-06T17:45:12.812+01:00 INFO : Filtering template 7/96 segment 3/3
+2026-09-06T17:45:12.850+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:12.860+01:00 INFO : 7: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:12.864+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:12.873+01:00 INFO : Filtering template 8/96 segment 1/3
+2026-09-06T17:45:12.917+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:12.945+01:00 INFO : Filtering template 8/96 segment 2/3
+2026-09-06T17:45:12.983+01:00 INFO : 5 points above threshold
+2026-09-06T17:45:12.997+01:00 INFO : Filtering template 8/96 segment 3/3
+2026-09-06T17:45:13.035+01:00 INFO : 8: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:13.039+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:13.048+01:00 INFO : Filtering template 9/96 segment 1/3
+2026-09-06T17:45:13.092+01:00 INFO : Filtering template 9/96 segment 2/3
+2026-09-06T17:45:13.130+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:13.159+01:00 INFO : Filtering template 9/96 segment 3/3
+2026-09-06T17:45:13.197+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:13.211+01:00 INFO : 9: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:13.220+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:13.229+01:00 INFO : Filtering template 10/96 segment 1/3
+2026-09-06T17:45:13.276+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:13.308+01:00 INFO : Filtering template 10/96 segment 2/3
+2026-09-06T17:45:13.346+01:00 INFO : Filtering template 10/96 segment 3/3
+2026-09-06T17:45:13.384+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:13.398+01:00 INFO : 10: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:13.402+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:13.411+01:00 INFO : Filtering template 11/96 segment 1/3
+2026-09-06T17:45:13.455+01:00 INFO : 5 points above threshold
+2026-09-06T17:45:13.487+01:00 INFO : Filtering template 11/96 segment 2/3
+2026-09-06T17:45:13.525+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:13.535+01:00 INFO : Filtering template 11/96 segment 3/3
+2026-09-06T17:45:13.573+01:00 INFO : 11: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:13.577+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:13.586+01:00 INFO : Filtering template 12/96 segment 1/3
+2026-09-06T17:45:13.630+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:13.663+01:00 INFO : Filtering template 12/96 segment 2/3
+2026-09-06T17:45:13.701+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:13.711+01:00 INFO : Filtering template 12/96 segment 3/3
+2026-09-06T17:45:13.749+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:13.759+01:00 INFO : 12: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:13.763+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:13.772+01:00 INFO : Filtering template 13/96 segment 1/3
+2026-09-06T17:45:13.816+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:13.843+01:00 INFO : Filtering template 13/96 segment 2/3
+2026-09-06T17:45:13.882+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:13.892+01:00 INFO : Filtering template 13/96 segment 3/3
+2026-09-06T17:45:13.930+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:13.940+01:00 INFO : 13: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:13.944+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:13.954+01:00 INFO : Filtering template 14/96 segment 1/3
+2026-09-06T17:45:13.997+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:14.025+01:00 INFO : Filtering template 14/96 segment 2/3
+2026-09-06T17:45:14.063+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:14.077+01:00 INFO : Filtering template 14/96 segment 3/3
+2026-09-06T17:45:14.115+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:14.125+01:00 INFO : 14: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:14.129+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:14.138+01:00 INFO : Filtering template 15/96 segment 1/3
+2026-09-06T17:45:14.182+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:14.210+01:00 INFO : Filtering template 15/96 segment 2/3
+2026-09-06T17:45:14.248+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:14.258+01:00 INFO : Filtering template 15/96 segment 3/3
+2026-09-06T17:45:14.297+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:14.310+01:00 INFO : 15: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:14.315+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:14.324+01:00 INFO : Filtering template 16/96 segment 1/3
+2026-09-06T17:45:14.368+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:14.399+01:00 INFO : Filtering template 16/96 segment 2/3
+2026-09-06T17:45:14.437+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:14.447+01:00 INFO : Filtering template 16/96 segment 3/3
+2026-09-06T17:45:14.485+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:14.496+01:00 INFO : 16: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:14.500+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:14.509+01:00 INFO : Filtering template 17/96 segment 1/3
+2026-09-06T17:45:14.553+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:14.584+01:00 INFO : Filtering template 17/96 segment 2/3
+2026-09-06T17:45:14.622+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:14.637+01:00 INFO : Filtering template 17/96 segment 3/3
+2026-09-06T17:45:14.675+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:14.689+01:00 INFO : 17: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:14.694+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:14.703+01:00 INFO : Filtering template 18/96 segment 1/3
+2026-09-06T17:45:14.747+01:00 INFO : Filtering template 18/96 segment 2/3
+2026-09-06T17:45:14.785+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:14.814+01:00 INFO : Filtering template 18/96 segment 3/3
+2026-09-06T17:45:14.852+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:14.862+01:00 INFO : 18: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:14.867+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:14.876+01:00 INFO : Filtering template 19/96 segment 1/3
+2026-09-06T17:45:14.919+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:14.947+01:00 INFO : Filtering template 19/96 segment 2/3
+2026-09-06T17:45:14.985+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:14.995+01:00 INFO : Filtering template 19/96 segment 3/3
+2026-09-06T17:45:15.033+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:15.047+01:00 INFO : 19: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:15.051+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:15.060+01:00 INFO : Filtering template 20/96 segment 1/3
+2026-09-06T17:45:15.104+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:15.132+01:00 INFO : Filtering template 20/96 segment 2/3
+2026-09-06T17:45:15.170+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:15.180+01:00 INFO : Filtering template 20/96 segment 3/3
+2026-09-06T17:45:15.217+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:15.228+01:00 INFO : 20: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:15.232+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:15.241+01:00 INFO : Filtering template 21/96 segment 1/3
+2026-09-06T17:45:15.285+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:15.313+01:00 INFO : Filtering template 21/96 segment 2/3
+2026-09-06T17:45:15.351+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:15.361+01:00 INFO : Filtering template 21/96 segment 3/3
+2026-09-06T17:45:15.399+01:00 INFO : 21: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:15.403+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:15.412+01:00 INFO : Filtering template 22/96 segment 1/3
+2026-09-06T17:45:15.456+01:00 INFO : 5 points above threshold
+2026-09-06T17:45:15.488+01:00 INFO : Filtering template 22/96 segment 2/3
+2026-09-06T17:45:15.527+01:00 INFO : Filtering template 22/96 segment 3/3
+2026-09-06T17:45:15.565+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:15.575+01:00 INFO : 22: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:15.579+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:15.589+01:00 INFO : Filtering template 23/96 segment 1/3
+2026-09-06T17:45:15.632+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:15.664+01:00 INFO : Filtering template 23/96 segment 2/3
+2026-09-06T17:45:15.702+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:15.712+01:00 INFO : Filtering template 23/96 segment 3/3
+2026-09-06T17:45:15.750+01:00 INFO : 23: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:15.754+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:15.763+01:00 INFO : Filtering template 24/96 segment 1/3
+2026-09-06T17:45:15.808+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:15.836+01:00 INFO : Filtering template 24/96 segment 2/3
+2026-09-06T17:45:15.874+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:15.888+01:00 INFO : Filtering template 24/96 segment 3/3
+2026-09-06T17:45:15.926+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:15.936+01:00 INFO : 24: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:15.940+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:15.949+01:00 INFO : Filtering template 25/96 segment 1/3
+2026-09-06T17:45:15.994+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:16.023+01:00 INFO : Filtering template 25/96 segment 2/3
+2026-09-06T17:45:16.062+01:00 INFO : Filtering template 25/96 segment 3/3
+2026-09-06T17:45:16.100+01:00 INFO : 25: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:16.104+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:16.113+01:00 INFO : Filtering template 26/96 segment 1/3
+2026-09-06T17:45:16.157+01:00 INFO : Filtering template 26/96 segment 2/3
+2026-09-06T17:45:16.195+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:16.223+01:00 INFO : Filtering template 26/96 segment 3/3
+2026-09-06T17:45:16.261+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:16.272+01:00 INFO : 26: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:16.276+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:16.285+01:00 INFO : Filtering template 27/96 segment 1/3
+2026-09-06T17:45:16.329+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:16.356+01:00 INFO : Filtering template 27/96 segment 2/3
+2026-09-06T17:45:16.394+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:16.404+01:00 INFO : Filtering template 27/96 segment 3/3
+2026-09-06T17:45:16.443+01:00 INFO : 27: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:16.447+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:16.456+01:00 INFO : Filtering template 28/96 segment 1/3
+2026-09-06T17:45:16.500+01:00 INFO : 5 points above threshold
+2026-09-06T17:45:16.534+01:00 INFO : Filtering template 28/96 segment 2/3
+2026-09-06T17:45:16.572+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:16.583+01:00 INFO : Filtering template 28/96 segment 3/3
+2026-09-06T17:45:16.623+01:00 INFO : 28: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:16.627+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:16.637+01:00 INFO : Filtering template 29/96 segment 1/3
+2026-09-06T17:45:16.683+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:16.716+01:00 INFO : Filtering template 29/96 segment 2/3
+2026-09-06T17:45:16.754+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:16.764+01:00 INFO : Filtering template 29/96 segment 3/3
+2026-09-06T17:45:16.802+01:00 INFO : 5 points above threshold
+2026-09-06T17:45:16.816+01:00 INFO : 29: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:16.821+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:16.830+01:00 INFO : Filtering template 30/96 segment 1/3
+2026-09-06T17:45:16.874+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:16.902+01:00 INFO : Filtering template 30/96 segment 2/3
+2026-09-06T17:45:16.940+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:16.950+01:00 INFO : Filtering template 30/96 segment 3/3
+2026-09-06T17:45:16.988+01:00 INFO : 30: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:16.992+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:17.001+01:00 INFO : Filtering template 31/96 segment 1/3
+2026-09-06T17:45:17.045+01:00 INFO : Filtering template 31/96 segment 2/3
+2026-09-06T17:45:17.083+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:17.111+01:00 INFO : Filtering template 31/96 segment 3/3
+2026-09-06T17:45:17.149+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:17.159+01:00 INFO : 31: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:17.163+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:17.172+01:00 INFO : Filtering template 32/96 segment 1/3
+2026-09-06T17:45:17.216+01:00 INFO : Filtering template 32/96 segment 2/3
+2026-09-06T17:45:17.254+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:17.282+01:00 INFO : Filtering template 32/96 segment 3/3
+2026-09-06T17:45:17.320+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:17.330+01:00 INFO : 32: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:17.334+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:17.343+01:00 INFO : Filtering template 33/96 segment 1/3
+2026-09-06T17:45:17.387+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:17.415+01:00 INFO : Filtering template 33/96 segment 2/3
+2026-09-06T17:45:17.453+01:00 INFO : Filtering template 33/96 segment 3/3
+2026-09-06T17:45:17.491+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:17.501+01:00 INFO : 33: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:17.505+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:17.515+01:00 INFO : Filtering template 34/96 segment 1/3
+2026-09-06T17:45:17.558+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:17.586+01:00 INFO : Filtering template 34/96 segment 2/3
+2026-09-06T17:45:17.624+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:17.634+01:00 INFO : Filtering template 34/96 segment 3/3
+2026-09-06T17:45:17.672+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:17.682+01:00 INFO : 34: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:17.687+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:17.696+01:00 INFO : Filtering template 35/96 segment 1/3
+2026-09-06T17:45:17.739+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:17.768+01:00 INFO : Filtering template 35/96 segment 2/3
+2026-09-06T17:45:17.806+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:17.816+01:00 INFO : Filtering template 35/96 segment 3/3
+2026-09-06T17:45:17.855+01:00 INFO : 35: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:17.859+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:17.868+01:00 INFO : Filtering template 36/96 segment 1/3
+2026-09-06T17:45:17.913+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:17.941+01:00 INFO : Filtering template 36/96 segment 2/3
+2026-09-06T17:45:17.979+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:17.991+01:00 INFO : Filtering template 36/96 segment 3/3
+2026-09-06T17:45:18.029+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:18.039+01:00 INFO : 36: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:18.043+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:18.052+01:00 INFO : Filtering template 37/96 segment 1/3
+2026-09-06T17:45:18.096+01:00 INFO : 5 points above threshold
+2026-09-06T17:45:18.129+01:00 INFO : Filtering template 37/96 segment 2/3
+2026-09-06T17:45:18.167+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:18.176+01:00 INFO : Filtering template 37/96 segment 3/3
+2026-09-06T17:45:18.214+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:18.228+01:00 INFO : 37: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:18.232+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:18.242+01:00 INFO : Filtering template 38/96 segment 1/3
+2026-09-06T17:45:18.285+01:00 INFO : Filtering template 38/96 segment 2/3
+2026-09-06T17:45:18.323+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:18.351+01:00 INFO : Filtering template 38/96 segment 3/3
+2026-09-06T17:45:18.389+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:18.399+01:00 INFO : 38: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:18.404+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:18.413+01:00 INFO : Filtering template 39/96 segment 1/3
+2026-09-06T17:45:18.456+01:00 INFO : Filtering template 39/96 segment 2/3
+2026-09-06T17:45:18.494+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:18.526+01:00 INFO : Filtering template 39/96 segment 3/3
+2026-09-06T17:45:18.564+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:18.574+01:00 INFO : 39: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:18.578+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:18.587+01:00 INFO : Filtering template 40/96 segment 1/3
+2026-09-06T17:45:18.631+01:00 INFO : Filtering template 40/96 segment 2/3
+2026-09-06T17:45:18.669+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:18.697+01:00 INFO : Filtering template 40/96 segment 3/3
+2026-09-06T17:45:18.736+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:18.746+01:00 INFO : 40: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:18.750+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:18.759+01:00 INFO : Filtering template 41/96 segment 1/3
+2026-09-06T17:45:18.803+01:00 INFO : Filtering template 41/96 segment 2/3
+2026-09-06T17:45:18.841+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:18.869+01:00 INFO : Filtering template 41/96 segment 3/3
+2026-09-06T17:45:18.908+01:00 INFO : 41: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:18.912+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:18.921+01:00 INFO : Filtering template 42/96 segment 1/3
+2026-09-06T17:45:18.965+01:00 INFO : Filtering template 42/96 segment 2/3
+2026-09-06T17:45:19.003+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:19.031+01:00 INFO : Filtering template 42/96 segment 3/3
+2026-09-06T17:45:19.069+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:19.079+01:00 INFO : 42: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:19.083+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:19.092+01:00 INFO : Filtering template 43/96 segment 1/3
+2026-09-06T17:45:19.136+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:19.164+01:00 INFO : Filtering template 43/96 segment 2/3
+2026-09-06T17:45:19.202+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:19.212+01:00 INFO : Filtering template 43/96 segment 3/3
+2026-09-06T17:45:19.250+01:00 INFO : 43: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:19.254+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:19.263+01:00 INFO : Filtering template 44/96 segment 1/3
+2026-09-06T17:45:19.307+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:19.335+01:00 INFO : Filtering template 44/96 segment 2/3
+2026-09-06T17:45:19.373+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:19.383+01:00 INFO : Filtering template 44/96 segment 3/3
+2026-09-06T17:45:19.421+01:00 INFO : 44: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:19.426+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:19.436+01:00 INFO : Filtering template 45/96 segment 1/3
+2026-09-06T17:45:19.480+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:19.512+01:00 INFO : Filtering template 45/96 segment 2/3
+2026-09-06T17:45:19.550+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:19.560+01:00 INFO : Filtering template 45/96 segment 3/3
+2026-09-06T17:45:19.598+01:00 INFO : 45: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:19.602+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:19.611+01:00 INFO : Filtering template 46/96 segment 1/3
+2026-09-06T17:45:19.655+01:00 INFO : Filtering template 46/96 segment 2/3
+2026-09-06T17:45:19.693+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:19.721+01:00 INFO : Filtering template 46/96 segment 3/3
+2026-09-06T17:45:19.759+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:19.769+01:00 INFO : 46: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:19.773+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:19.782+01:00 INFO : Filtering template 47/96 segment 1/3
+2026-09-06T17:45:19.826+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:19.859+01:00 INFO : Filtering template 47/96 segment 2/3
+2026-09-06T17:45:19.898+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:19.912+01:00 INFO : Filtering template 47/96 segment 3/3
+2026-09-06T17:45:19.950+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:19.960+01:00 INFO : 47: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:19.964+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:19.973+01:00 INFO : Filtering template 48/96 segment 1/3
+2026-09-06T17:45:20.017+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:20.045+01:00 INFO : Filtering template 48/96 segment 2/3
+2026-09-06T17:45:20.083+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:20.093+01:00 INFO : Filtering template 48/96 segment 3/3
+2026-09-06T17:45:20.131+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:20.141+01:00 INFO : 48: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:20.145+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:20.154+01:00 INFO : Filtering template 49/96 segment 1/3
+2026-09-06T17:45:20.198+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:20.225+01:00 INFO : Filtering template 49/96 segment 2/3
+2026-09-06T17:45:20.263+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:20.277+01:00 INFO : Filtering template 49/96 segment 3/3
+2026-09-06T17:45:20.315+01:00 INFO : 49: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:20.320+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:20.329+01:00 INFO : Filtering template 50/96 segment 1/3
+2026-09-06T17:45:20.373+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:20.400+01:00 INFO : Filtering template 50/96 segment 2/3
+2026-09-06T17:45:20.438+01:00 INFO : 6 points above threshold
+2026-09-06T17:45:20.453+01:00 INFO : Filtering template 50/96 segment 3/3
+2026-09-06T17:45:20.491+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:20.501+01:00 INFO : 50: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:20.505+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:20.515+01:00 INFO : Filtering template 51/96 segment 1/3
+2026-09-06T17:45:20.558+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:20.587+01:00 INFO : Filtering template 51/96 segment 2/3
+2026-09-06T17:45:20.625+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:20.635+01:00 INFO : Filtering template 51/96 segment 3/3
+2026-09-06T17:45:20.673+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:20.683+01:00 INFO : 51: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:20.702+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:20.712+01:00 INFO : Filtering template 52/96 segment 1/3
+2026-09-06T17:45:20.761+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:20.793+01:00 INFO : Filtering template 52/96 segment 2/3
+2026-09-06T17:45:20.831+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:20.841+01:00 INFO : Filtering template 52/96 segment 3/3
+2026-09-06T17:45:20.879+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:20.893+01:00 INFO : 52: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:20.897+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:20.906+01:00 INFO : Filtering template 53/96 segment 1/3
+2026-09-06T17:45:20.950+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:20.978+01:00 INFO : Filtering template 53/96 segment 2/3
+2026-09-06T17:45:21.015+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:21.029+01:00 INFO : Filtering template 53/96 segment 3/3
+2026-09-06T17:45:21.068+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:21.078+01:00 INFO : 53: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:21.082+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:21.091+01:00 INFO : Filtering template 54/96 segment 1/3
+2026-09-06T17:45:21.135+01:00 INFO : Filtering template 54/96 segment 2/3
+2026-09-06T17:45:21.173+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:21.201+01:00 INFO : Filtering template 54/96 segment 3/3
+2026-09-06T17:45:21.239+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:21.253+01:00 INFO : 54: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:21.257+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:21.266+01:00 INFO : Filtering template 55/96 segment 1/3
+2026-09-06T17:45:21.310+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:21.337+01:00 INFO : Filtering template 55/96 segment 2/3
+2026-09-06T17:45:21.376+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:21.389+01:00 INFO : Filtering template 55/96 segment 3/3
+2026-09-06T17:45:21.427+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:21.438+01:00 INFO : 55: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:21.442+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:21.451+01:00 INFO : Filtering template 56/96 segment 1/3
+2026-09-06T17:45:21.495+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:21.523+01:00 INFO : Filtering template 56/96 segment 2/3
+2026-09-06T17:45:21.561+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:21.571+01:00 INFO : Filtering template 56/96 segment 3/3
+2026-09-06T17:45:21.608+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:21.618+01:00 INFO : 56: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:21.623+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:21.632+01:00 INFO : Filtering template 57/96 segment 1/3
+2026-09-06T17:45:21.675+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:21.703+01:00 INFO : Filtering template 57/96 segment 2/3
+2026-09-06T17:45:21.745+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:21.756+01:00 INFO : Filtering template 57/96 segment 3/3
+2026-09-06T17:45:21.799+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:21.809+01:00 INFO : 57: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:21.813+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:21.822+01:00 INFO : Filtering template 58/96 segment 1/3
+2026-09-06T17:45:21.867+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:21.895+01:00 INFO : Filtering template 58/96 segment 2/3
+2026-09-06T17:45:21.933+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:21.947+01:00 INFO : Filtering template 58/96 segment 3/3
+2026-09-06T17:45:21.985+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:21.996+01:00 INFO : 58: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:22.000+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:22.009+01:00 INFO : Filtering template 59/96 segment 1/3
+2026-09-06T17:45:22.053+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:22.082+01:00 INFO : Filtering template 59/96 segment 2/3
+2026-09-06T17:45:22.120+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:22.134+01:00 INFO : Filtering template 59/96 segment 3/3
+2026-09-06T17:45:22.172+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:22.182+01:00 INFO : 59: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:22.187+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:22.196+01:00 INFO : Filtering template 60/96 segment 1/3
+2026-09-06T17:45:22.239+01:00 INFO : Filtering template 60/96 segment 2/3
+2026-09-06T17:45:22.277+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:22.305+01:00 INFO : Filtering template 60/96 segment 3/3
+2026-09-06T17:45:22.343+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:22.353+01:00 INFO : 60: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:22.357+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:22.366+01:00 INFO : Filtering template 61/96 segment 1/3
+2026-09-06T17:45:22.410+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:22.437+01:00 INFO : Filtering template 61/96 segment 2/3
+2026-09-06T17:45:22.476+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:22.485+01:00 INFO : Filtering template 61/96 segment 3/3
+2026-09-06T17:45:22.523+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:22.533+01:00 INFO : 61: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:22.538+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:22.547+01:00 INFO : Filtering template 62/96 segment 1/3
+2026-09-06T17:45:22.591+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:22.618+01:00 INFO : Filtering template 62/96 segment 2/3
+2026-09-06T17:45:22.656+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:22.666+01:00 INFO : Filtering template 62/96 segment 3/3
+2026-09-06T17:45:22.704+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:22.715+01:00 INFO : 62: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:22.719+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:22.728+01:00 INFO : Filtering template 63/96 segment 1/3
+2026-09-06T17:45:22.772+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:22.800+01:00 INFO : Filtering template 63/96 segment 2/3
+2026-09-06T17:45:22.838+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:22.851+01:00 INFO : Filtering template 63/96 segment 3/3
+2026-09-06T17:45:22.890+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:22.900+01:00 INFO : 63: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:22.904+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:22.913+01:00 INFO : Filtering template 64/96 segment 1/3
+2026-09-06T17:45:22.957+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:22.984+01:00 INFO : Filtering template 64/96 segment 2/3
+2026-09-06T17:45:23.023+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:23.032+01:00 INFO : Filtering template 64/96 segment 3/3
+2026-09-06T17:45:23.071+01:00 INFO : 64: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:23.075+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:23.084+01:00 INFO : Filtering template 65/96 segment 1/3
+2026-09-06T17:45:23.127+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:23.159+01:00 INFO : Filtering template 65/96 segment 2/3
+2026-09-06T17:45:23.197+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:23.211+01:00 INFO : Filtering template 65/96 segment 3/3
+2026-09-06T17:45:23.249+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:23.259+01:00 INFO : 65: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:23.263+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:23.272+01:00 INFO : Filtering template 66/96 segment 1/3
+2026-09-06T17:45:23.316+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:23.343+01:00 INFO : Filtering template 66/96 segment 2/3
+2026-09-06T17:45:23.382+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:23.391+01:00 INFO : Filtering template 66/96 segment 3/3
+2026-09-06T17:45:23.429+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:23.439+01:00 INFO : 66: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:23.444+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:23.453+01:00 INFO : Filtering template 67/96 segment 1/3
+2026-09-06T17:45:23.497+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:23.528+01:00 INFO : Filtering template 67/96 segment 2/3
+2026-09-06T17:45:23.566+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:23.576+01:00 INFO : Filtering template 67/96 segment 3/3
+2026-09-06T17:45:23.614+01:00 INFO : 67: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:23.618+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:23.628+01:00 INFO : Filtering template 68/96 segment 1/3
+2026-09-06T17:45:23.671+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:23.699+01:00 INFO : Filtering template 68/96 segment 2/3
+2026-09-06T17:45:23.737+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:23.747+01:00 INFO : Filtering template 68/96 segment 3/3
+2026-09-06T17:45:23.785+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:23.800+01:00 INFO : 68: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:23.805+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:23.814+01:00 INFO : Filtering template 69/96 segment 1/3
+2026-09-06T17:45:23.857+01:00 INFO : Filtering template 69/96 segment 2/3
+2026-09-06T17:45:23.897+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:23.925+01:00 INFO : Filtering template 69/96 segment 3/3
+2026-09-06T17:45:23.963+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:23.973+01:00 INFO : 69: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:23.977+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:23.986+01:00 INFO : Filtering template 70/96 segment 1/3
+2026-09-06T17:45:24.029+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:24.057+01:00 INFO : Filtering template 70/96 segment 2/3
+2026-09-06T17:45:24.096+01:00 INFO : Filtering template 70/96 segment 3/3
+2026-09-06T17:45:24.134+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:24.144+01:00 INFO : 70: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:24.148+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:24.157+01:00 INFO : Filtering template 71/96 segment 1/3
+2026-09-06T17:45:24.201+01:00 INFO : Filtering template 71/96 segment 2/3
+2026-09-06T17:45:24.239+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:24.266+01:00 INFO : Filtering template 71/96 segment 3/3
+2026-09-06T17:45:24.305+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:24.320+01:00 INFO : 71: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:24.324+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:24.333+01:00 INFO : Filtering template 72/96 segment 1/3
+2026-09-06T17:45:24.377+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:24.404+01:00 INFO : Filtering template 72/96 segment 2/3
+2026-09-06T17:45:24.442+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:24.456+01:00 INFO : Filtering template 72/96 segment 3/3
+2026-09-06T17:45:24.495+01:00 INFO : 6 points above threshold
+2026-09-06T17:45:24.510+01:00 INFO : 72: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:24.514+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:24.523+01:00 INFO : Filtering template 73/96 segment 1/3
+2026-09-06T17:45:24.567+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:24.595+01:00 INFO : Filtering template 73/96 segment 2/3
+2026-09-06T17:45:24.633+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:24.643+01:00 INFO : Filtering template 73/96 segment 3/3
+2026-09-06T17:45:24.681+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:24.691+01:00 INFO : 73: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:24.695+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:24.705+01:00 INFO : Filtering template 74/96 segment 1/3
+2026-09-06T17:45:24.749+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:24.777+01:00 INFO : Filtering template 74/96 segment 2/3
+2026-09-06T17:45:24.815+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:24.828+01:00 INFO : Filtering template 74/96 segment 3/3
+2026-09-06T17:45:24.867+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:24.877+01:00 INFO : 74: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:24.881+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:24.890+01:00 INFO : Filtering template 75/96 segment 1/3
+2026-09-06T17:45:24.933+01:00 INFO : Filtering template 75/96 segment 2/3
+2026-09-06T17:45:24.972+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:25.003+01:00 INFO : Filtering template 75/96 segment 3/3
+2026-09-06T17:45:25.041+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:25.051+01:00 INFO : 75: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:25.056+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:25.065+01:00 INFO : Filtering template 76/96 segment 1/3
+2026-09-06T17:45:25.108+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:25.137+01:00 INFO : Filtering template 76/96 segment 2/3
+2026-09-06T17:45:25.176+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:25.186+01:00 INFO : Filtering template 76/96 segment 3/3
+2026-09-06T17:45:25.224+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:25.234+01:00 INFO : 76: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:25.238+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:25.247+01:00 INFO : Filtering template 77/96 segment 1/3
+2026-09-06T17:45:25.291+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:25.319+01:00 INFO : Filtering template 77/96 segment 2/3
+2026-09-06T17:45:25.357+01:00 INFO : Filtering template 77/96 segment 3/3
+2026-09-06T17:45:25.395+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:25.405+01:00 INFO : 77: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:25.409+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:25.418+01:00 INFO : Filtering template 78/96 segment 1/3
+2026-09-06T17:45:25.462+01:00 INFO : Filtering template 78/96 segment 2/3
+2026-09-06T17:45:25.501+01:00 INFO : Filtering template 78/96 segment 3/3
+2026-09-06T17:45:25.539+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:25.567+01:00 INFO : 78: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:25.571+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:25.580+01:00 INFO : Filtering template 79/96 segment 1/3
+2026-09-06T17:45:25.624+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:25.651+01:00 INFO : Filtering template 79/96 segment 2/3
+2026-09-06T17:45:25.690+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:25.700+01:00 INFO : Filtering template 79/96 segment 3/3
+2026-09-06T17:45:25.737+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:25.747+01:00 INFO : 79: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:25.752+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:25.761+01:00 INFO : Filtering template 80/96 segment 1/3
+2026-09-06T17:45:25.805+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:25.836+01:00 INFO : Filtering template 80/96 segment 2/3
+2026-09-06T17:45:25.875+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:25.885+01:00 INFO : Filtering template 80/96 segment 3/3
+2026-09-06T17:45:25.923+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:25.933+01:00 INFO : 80: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:25.938+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:25.947+01:00 INFO : Filtering template 81/96 segment 1/3
+2026-09-06T17:45:25.990+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:26.018+01:00 INFO : Filtering template 81/96 segment 2/3
+2026-09-06T17:45:26.056+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:26.066+01:00 INFO : Filtering template 81/96 segment 3/3
+2026-09-06T17:45:26.104+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:26.114+01:00 INFO : 81: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:26.118+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:26.127+01:00 INFO : Filtering template 82/96 segment 1/3
+2026-09-06T17:45:26.171+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:26.199+01:00 INFO : Filtering template 82/96 segment 2/3
+2026-09-06T17:45:26.237+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:26.246+01:00 INFO : Filtering template 82/96 segment 3/3
+2026-09-06T17:45:26.285+01:00 INFO : 82: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:26.289+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:26.298+01:00 INFO : Filtering template 83/96 segment 1/3
+2026-09-06T17:45:26.342+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:26.369+01:00 INFO : Filtering template 83/96 segment 2/3
+2026-09-06T17:45:26.407+01:00 INFO : 5 points above threshold
+2026-09-06T17:45:26.423+01:00 INFO : Filtering template 83/96 segment 3/3
+2026-09-06T17:45:26.461+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:26.471+01:00 INFO : 83: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:26.475+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:26.485+01:00 INFO : Filtering template 84/96 segment 1/3
+2026-09-06T17:45:26.528+01:00 INFO : Filtering template 84/96 segment 2/3
+2026-09-06T17:45:26.566+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:26.594+01:00 INFO : Filtering template 84/96 segment 3/3
+2026-09-06T17:45:26.632+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:26.642+01:00 INFO : 84: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:26.646+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:26.655+01:00 INFO : Filtering template 85/96 segment 1/3
+2026-09-06T17:45:26.699+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:26.727+01:00 INFO : Filtering template 85/96 segment 2/3
+2026-09-06T17:45:26.765+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:26.778+01:00 INFO : Filtering template 85/96 segment 3/3
+2026-09-06T17:45:26.817+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:26.828+01:00 INFO : 85: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:26.832+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:26.841+01:00 INFO : Filtering template 86/96 segment 1/3
+2026-09-06T17:45:26.888+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:26.920+01:00 INFO : Filtering template 86/96 segment 2/3
+2026-09-06T17:45:26.958+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:26.968+01:00 INFO : Filtering template 86/96 segment 3/3
+2026-09-06T17:45:27.006+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:27.016+01:00 INFO : 86: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:27.020+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:27.030+01:00 INFO : Filtering template 87/96 segment 1/3
+2026-09-06T17:45:27.073+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:27.101+01:00 INFO : Filtering template 87/96 segment 2/3
+2026-09-06T17:45:27.139+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:27.153+01:00 INFO : Filtering template 87/96 segment 3/3
+2026-09-06T17:45:27.191+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:27.201+01:00 INFO : 87: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:27.205+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:27.214+01:00 INFO : Filtering template 88/96 segment 1/3
+2026-09-06T17:45:27.258+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:27.286+01:00 INFO : Filtering template 88/96 segment 2/3
+2026-09-06T17:45:27.324+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:27.334+01:00 INFO : Filtering template 88/96 segment 3/3
+2026-09-06T17:45:27.372+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:27.382+01:00 INFO : 88: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:27.386+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:27.395+01:00 INFO : Filtering template 89/96 segment 1/3
+2026-09-06T17:45:27.439+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:27.466+01:00 INFO : Filtering template 89/96 segment 2/3
+2026-09-06T17:45:27.504+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:27.518+01:00 INFO : Filtering template 89/96 segment 3/3
+2026-09-06T17:45:27.556+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:27.566+01:00 INFO : 89: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:27.570+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:27.579+01:00 INFO : Filtering template 90/96 segment 1/3
+2026-09-06T17:45:27.623+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:27.651+01:00 INFO : Filtering template 90/96 segment 2/3
+2026-09-06T17:45:27.689+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:27.702+01:00 INFO : Filtering template 90/96 segment 3/3
+2026-09-06T17:45:27.740+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:27.750+01:00 INFO : 90: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:27.754+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:27.764+01:00 INFO : Filtering template 91/96 segment 1/3
+2026-09-06T17:45:27.807+01:00 INFO : Filtering template 91/96 segment 2/3
+2026-09-06T17:45:27.845+01:00 INFO : 5 points above threshold
+2026-09-06T17:45:27.877+01:00 INFO : Filtering template 91/96 segment 3/3
+2026-09-06T17:45:27.915+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:27.925+01:00 INFO : 91: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:27.929+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:27.939+01:00 INFO : Filtering template 92/96 segment 1/3
+2026-09-06T17:45:27.982+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:28.010+01:00 INFO : Filtering template 92/96 segment 2/3
+2026-09-06T17:45:28.048+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:28.060+01:00 INFO : Filtering template 92/96 segment 3/3
+2026-09-06T17:45:28.098+01:00 INFO : 92: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:28.102+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:28.111+01:00 INFO : Filtering template 93/96 segment 1/3
+2026-09-06T17:45:28.155+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:28.184+01:00 INFO : Filtering template 93/96 segment 2/3
+2026-09-06T17:45:28.222+01:00 INFO : 5 points above threshold
+2026-09-06T17:45:28.237+01:00 INFO : Filtering template 93/96 segment 3/3
+2026-09-06T17:45:28.275+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:28.285+01:00 INFO : 93: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:28.289+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:28.298+01:00 INFO : Filtering template 94/96 segment 1/3
+2026-09-06T17:45:28.342+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:28.370+01:00 INFO : Filtering template 94/96 segment 2/3
+2026-09-06T17:45:28.408+01:00 INFO : 5 points above threshold
+2026-09-06T17:45:28.422+01:00 INFO : Filtering template 94/96 segment 3/3
+2026-09-06T17:45:28.460+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:28.470+01:00 INFO : 94: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:28.474+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:28.483+01:00 INFO : Filtering template 95/96 segment 1/3
+2026-09-06T17:45:28.527+01:00 INFO : 3 points above threshold
+2026-09-06T17:45:28.559+01:00 INFO : Filtering template 95/96 segment 2/3
+2026-09-06T17:45:28.597+01:00 INFO : 4 points above threshold
+2026-09-06T17:45:28.607+01:00 INFO : Filtering template 95/96 segment 3/3
+2026-09-06T17:45:28.645+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:28.655+01:00 INFO : 95: generating IMRPhenomD from 30.0 Hz
+2026-09-06T17:45:28.659+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T17:45:28.668+01:00 INFO : Filtering template 96/96 segment 1/3
+2026-09-06T17:45:28.712+01:00 INFO : 2 points above threshold
+2026-09-06T17:45:28.739+01:00 INFO : Filtering template 96/96 segment 2/3
+2026-09-06T17:45:28.777+01:00 INFO : Filtering template 96/96 segment 3/3
+2026-09-06T17:45:28.816+01:00 INFO : 1 points above threshold
+2026-09-06T17:45:28.826+01:00 INFO : We currently have 527 triggers
+2026-09-06T17:45:28.826+01:00 INFO : Removing triggers with NewSNR below threshold
+2026-09-06T17:45:28.826+01:00 INFO : 475 remaining triggers
+2026-09-06T17:45:28.826+01:00 INFO : Outputting 475 triggers
+2026-09-06T17:45:28.826+01:00 INFO : Writing out triggers
+2026-09-06T17:45:28.853+01:00 INFO : Finished

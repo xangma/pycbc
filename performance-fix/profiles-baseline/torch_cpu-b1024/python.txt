@@ -1,0 +1,53 @@
+         27428 function calls (27422 primitive calls) in 4.860 seconds
+
+   Ordered by: cumulative time
+   List reduced from 117 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    4.860    4.860 matchedfilter.py:2501(process_data)
+        1    0.000    0.000    4.860    4.860 matchedfilter.py:2506(process_all)
+        2    0.062    0.031    4.860    2.430 matchedfilter.py:2776(_process_batch)
+        1    0.000    0.000    2.156    2.156 torchfft.py:1414(execute)
+        1    0.000    0.000    2.156    2.156 torchfft.py:1330(_execute_batched_ifft)
+        1    0.000    0.000    2.156    2.156 torchfft.py:1229(_execute_promoted_torch_batch_plan)
+        1    0.009    0.009    2.156    2.156 torchfft.py:1187(execute)
+        1    0.125    0.125    2.080    2.080 matchedfilter.py:2091(_torch_batch_peak_values)
+      128    1.856    0.014    1.856    0.014 {built-in method torch._C._fft.fft_ifft}
+        1    1.121    1.121    1.121    1.121 {method 'sum' of 'torch._C.TensorBase' objects}
+        1    0.648    0.648    0.648    0.648 {method 'square' of 'torch._C.TensorBase' objects}
+        1    0.000    0.000    0.560    0.560 scheme.py:432(_scheming_function)
+        1    0.001    0.001    0.560    0.560 matchedfilter_torch.py:1040(batch_correlate_execute)
+        1    0.496    0.496    0.496    0.496 {built-in method torch.mul}
+      256    0.291    0.001    0.291    0.001 {method 'copy_' of 'torch._C.TensorBase' objects}
+        1    0.187    0.187    0.187    0.187 {built-in method torch.argmax}
+        1    0.052    0.052    0.052    0.052 {built-in method torch.stack}
+        2    0.000    0.000    0.005    0.002 {built-in method builtins.all}
+     2049    0.003    0.000    0.003    0.000 matchedfilter_torch.py:1070(<genexpr>)
+        1    0.002    0.002    0.002    0.002 matchedfilter_torch.py:1121(<listcomp>)
+        1    0.000    0.000    0.002    0.002 matchedfilter.py:2146(_torch_batch_peak_magnitudes)
+        2    0.001    0.000    0.002    0.001 matchedfilter_torch.py:572(_find_uniform_stride)
+        1    0.000    0.000    0.002    0.002 {built-in method numpy.fromiter}
+     1025    0.001    0.000    0.001    0.000 matchedfilter.py:2162(<genexpr>)
+        1    0.000    0.000    0.001    0.001 matchedfilter_torch.py:184(_has_dynamic_autograd_state)
+        1    0.000    0.000    0.001    0.001 {built-in method builtins.any}
+     2049    0.001    0.000    0.001    0.000 matchedfilter_torch.py:1068(<genexpr>)
+     1025    0.000    0.000    0.001    0.000 matchedfilter_torch.py:1061(<genexpr>)
+     2050    0.001    0.000    0.001    0.000 matchedfilter_torch.py:186(<genexpr>)
+     1025    0.000    0.000    0.001    0.000 matchedfilter_torch.py:1064(<genexpr>)
+     1025    0.001    0.000    0.001    0.000 {method 'item' of 'numpy.generic' objects}
+4136/4130    0.001    0.000    0.001    0.000 {built-in method builtins.getattr}
+     1025    0.000    0.000    0.000    0.000 matchedfilter_torch.py:1085(<genexpr>)
+     2048    0.000    0.000    0.000    0.000 {method 'is_conj' of 'torch._C.TensorBase' objects}
+     2057    0.000    0.000    0.000    0.000 {method 'data_ptr' of 'torch._C.TensorBase' objects}
+     2048    0.000    0.000    0.000    0.000 {method 'is_neg' of 'torch._C.TensorBase' objects}
+      128    0.000    0.000    0.000    0.000 {built-in method builtins.min}
+     1028    0.000    0.000    0.000    0.000 {method 'is_contiguous' of 'torch._C.TensorBase' objects}
+     1031    0.000    0.000    0.000    0.000 {method 'numel' of 'torch._C.TensorBase' objects}
+     2059    0.000    0.000    0.000    0.000 {built-in method builtins.isinstance}
+     1025    0.000    0.000    0.000    0.000 {built-in method builtins.abs}
+        1    0.000    0.000    0.000    0.000 torchfft.py:1099(_batch_logical_views)
+        1    0.000    0.000    0.000    0.000 torchfft.py:1269(_can_use_direct_batch_ifft)
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:2533(_process_vetoes)
+        1    0.000    0.000    0.000    0.000 torchfft.py:1089(_batch_views)
+
+

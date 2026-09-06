@@ -1,0 +1,19 @@
+2026-09-06T18:16:17.293+01:00 INFO : Running with Torch support on device cpu
+2026-09-06T18:16:17.293+01:00 INFO : Reading Frames
+2026-09-06T18:16:23.964+01:00 INFO : Highpass Filtering
+2026-09-06T18:16:24.415+01:00 INFO : Resampling data
+2026-09-06T18:16:24.426+01:00 INFO : Converting to float32
+/home/xangma/pycbc-torch-inspiral-reference-20260906/source/pycbc/types/array.py:872: RuntimeWarning: divide by zero encountered in divide
+  return self._data.__rtruediv__(other)
+2026-09-06T18:16:29.494+01:00 INFO : Highpass Filtering
+2026-09-06T18:16:29.992+01:00 INFO : Remove Padding
+2026-09-06T18:16:30.040+01:00 INFO : Making frequency-domain data segments
+2026-09-06T18:16:31.671+01:00 INFO : Overwhitening frequency-domain data segments
+2026-09-06T18:16:31.695+01:00 INFO : Read in template bank
+2026-09-06T18:16:31.706+01:00 INFO : Full template bank size: 96
+2026-09-06T18:16:31.707+01:00 INFO : Template bank size after thinning: 96
+2026-09-06T18:16:31.707+01:00 INFO : 0: generating IMRPhenomD from 30.0 Hz
+2026-09-06T18:16:31.709+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-06T18:16:32.021+01:00 INFO : Filtering template 1/96 segment 1/5
+2026-09-06T18:16:32.126+01:00 INFO : 1 points above threshold
+Qualification failed; inspect /home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-torch-cpu-l512/qualification.json

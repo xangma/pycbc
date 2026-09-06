@@ -1,0 +1,53 @@
+         1173 function calls (1167 primitive calls) in 0.086 seconds
+
+   Ordered by: cumulative time
+   List reduced from 121 to 45 due to restriction <45>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.086    0.086 matchedfilter.py:2520(process_data)
+        1    0.000    0.000    0.086    0.086 matchedfilter.py:2525(process_all)
+        2    0.000    0.000    0.086    0.043 matchedfilter.py:2795(_process_batch)
+        1    0.000    0.000    0.067    0.067 torchfft.py:1414(execute)
+        1    0.000    0.000    0.067    0.067 torchfft.py:1330(_execute_batched_ifft)
+        1    0.000    0.000    0.067    0.067 torchfft.py:1229(_execute_promoted_torch_batch_plan)
+        1    0.000    0.000    0.067    0.067 torchfft.py:1187(execute)
+        4    0.057    0.014    0.057    0.014 {built-in method torch._C._fft.fft_ifft}
+        1    0.002    0.002    0.013    0.013 matchedfilter.py:2094(_torch_batch_peak_values)
+        8    0.009    0.001    0.009    0.001 {method 'copy_' of 'torch._C.TensorBase' objects}
+        4    0.006    0.001    0.006    0.001 {built-in method torch.argmax}
+        1    0.000    0.000    0.006    0.006 scheme.py:432(_scheming_function)
+        1    0.000    0.000    0.006    0.006 matchedfilter_torch.py:1047(batch_correlate_execute)
+        8    0.005    0.001    0.005    0.001 {method 'square' of 'torch._C.TensorBase' objects}
+        1    0.003    0.003    0.003    0.003 {built-in method torch.mul}
+        1    0.002    0.002    0.002    0.002 {built-in method torch.stack}
+        2    0.000    0.000    0.000    0.000 {built-in method builtins.all}
+       65    0.000    0.000    0.000    0.000 matchedfilter_torch.py:1077(<genexpr>)
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:2165(_torch_batch_peak_magnitudes)
+        1    0.000    0.000    0.000    0.000 matchedfilter_torch.py:1128(<listcomp>)
+        4    0.000    0.000    0.000    0.000 {built-in method torch.arange}
+        1    0.000    0.000    0.000    0.000 {built-in method numpy.fromiter}
+        2    0.000    0.000    0.000    0.000 matchedfilter_torch.py:579(_find_uniform_stride)
+        1    0.000    0.000    0.000    0.000 _tensor.py:1044(split)
+       33    0.000    0.000    0.000    0.000 matchedfilter.py:2181(<genexpr>)
+        1    0.000    0.000    0.000    0.000 matchedfilter_torch.py:184(_has_dynamic_autograd_state)
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:2552(_process_vetoes)
+  169/163    0.000    0.000    0.000    0.000 {built-in method builtins.getattr}
+        1    0.000    0.000    0.000    0.000 torchfft.py:1269(_can_use_direct_batch_ifft)
+        1    0.000    0.000    0.000    0.000 {built-in method builtins.any}
+        4    0.000    0.000    0.000    0.000 <frozen _collections_abc>:771(get)
+        1    0.000    0.000    0.000    0.000 torchfft.py:1099(_batch_logical_views)
+        1    0.000    0.000    0.000    0.000 numeric.py:615(flatnonzero)
+        1    0.000    0.000    0.000    0.000 torchfft.py:1089(_batch_views)
+       66    0.000    0.000    0.000    0.000 matchedfilter_torch.py:186(<genexpr>)
+        3    0.000    0.000    0.000    0.000 matchedfilter.py:59(_torch_inference_mode_context)
+        2    0.000    0.000    0.000    0.000 {method 'view' of 'torch._C.TensorBase' objects}
+        4    0.000    0.000    0.000    0.000 <frozen os>:674(__getitem__)
+        3    0.000    0.000    0.000    0.000 backend.py:60(backend_array)
+        1    0.000    0.000    0.000    0.000 matchedfilter.py:2513(combine_results)
+       33    0.000    0.000    0.000    0.000 matchedfilter_torch.py:1068(<genexpr>)
+       33    0.000    0.000    0.000    0.000 matchedfilter_torch.py:1071(<genexpr>)
+        1    0.000    0.000    0.000    0.000 fromnumeric.py:1768(ravel)
+       65    0.000    0.000    0.000    0.000 matchedfilter_torch.py:1075(<genexpr>)
+       33    0.000    0.000    0.000    0.000 {method 'item' of 'numpy.generic' objects}
+
+

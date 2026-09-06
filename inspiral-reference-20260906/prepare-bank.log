@@ -1,0 +1,66 @@
+No CuPy
+No CuPy or GPU PhenomHM module.
+No CuPy or GPU response available.
+No CuPy or GPU interpolation available.
+{
+  "compression": {
+    "delta_f_hz": 0.00390625,
+    "performed": false,
+    "segment_length_seconds": 256,
+    "selection_rule": "smallest power of two >= 2 * longest duration"
+  },
+  "longest": {
+    "duration_seconds": 77.67651664129376,
+    "row_index": 2,
+    "source_id": "BNS-002",
+    "template_hash": -6983633448227792462
+  },
+  "outputs": {
+    "bank-metadata.json": {
+      "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-metadata.json"
+    },
+    "bank-pilot.hdf": {
+      "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-pilot.hdf",
+      "rows": 8,
+      "sha256": "e2b219c205ea78c8154c0f95baf5c3a6c27b0663279579c685a50ab0d0289b0c"
+    },
+    "bank.hdf": {
+      "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank.hdf",
+      "rows": 96,
+      "sha256": "f2917fce4a4a5f2111345b892d61ed0744b17570f63ab2cd4216e685eac3667c"
+    }
+  },
+  "pilot": {
+    "row_indices_in_main_bank": [
+      0,
+      2,
+      4,
+      7,
+      64,
+      67,
+      69,
+      76
+    ],
+    "selection": "Four per population: longest and shortest duration, then two boundary cases maximizing minimum normalized parameter distance.",
+    "source_ids": [
+      "BNS-000",
+      "BNS-002",
+      "BNS-004",
+      "BNS-007",
+      "NSBH-064",
+      "NSBH-067",
+      "NSBH-069",
+      "NSBH-076"
+    ],
+    "template_hashes": [
+      3833317720381408592,
+      -6983633448227792462,
+      5376643164617863838,
+      1522989468805120761,
+      6637547548569117386,
+      -8616817622438516598,
+      -1925867763368015919,
+      4550056397018417685
+    ]
+  }
+}

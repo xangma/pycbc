@@ -1,0 +1,560 @@
+From 450ab3f96ccea2783abb943b47f698578a507d59 Mon Sep 17 00:00:00 2001
+From: xangma <xangma@users.noreply.github.com>
+Date: Sun, 6 Sep 2026 15:38:17 +0100
+Subject: [PATCH] Remove large-batch Torch admission and reduction overhead
+
+---
+ pycbc/filter/matchedfilter.py                 |  31 ++-
+ pycbc/filter/matchedfilter_torch.py           |  21 +-
+ pycbc/waveform/taylorf2_torch.py              |  38 +++-
+ test/test_live_batch_torch_peaks.py           |  37 ++++
+ test/test_torch_batch_overlap_scaling.py      | 128 ++++++++++++
+ .../test_taylorf2_phase_evaluation.py         | 189 ++++++++++++++++++
+ 6 files changed, 426 insertions(+), 18 deletions(-)
+ create mode 100644 test/test_torch_batch_overlap_scaling.py
+ create mode 100644 test/waveform/test_taylorf2_phase_evaluation.py
+
+diff --git a/pycbc/filter/matchedfilter.py b/pycbc/filter/matchedfilter.py
+index 140397eabd..84f6620cb9 100644
+--- a/pycbc/filter/matchedfilter.py
++++ b/pycbc/filter/matchedfilter.py
+@@ -2088,6 +2088,9 @@ def _torch_batch_peak_and_threshold_gpu(*args, **kwargs):
+         return None
+ 
+ 
++_TORCH_CPU_PEAK_MAX_ELEMENTS = 1 << 20
++
++
+ def _torch_batch_peak_values(output, template_count, template_size, segment):
+     """Materialize one peak index and value per contiguous Torch output.
+ 
+@@ -2131,12 +2134,28 @@ def _torch_batch_peak_values(output, template_count, template_size, segment):
+     values = tensor.reshape(template_count, template_size)[:, segment]
+     if values.shape[1] == 0:
+         return None
+-    if values.is_complex():
+-        sq_mag = torch.view_as_real(values).square().sum(dim=-1)
+-    else:
+-        sq_mag = values.square()
+-    indices = torch.argmax(sq_mag, dim=-1)
+-    peaks = values[torch.arange(values.shape[0], device=values.device), indices]
++    rows_per_chunk = template_count
++    if values.device.type == "cpu":
++        # Bound temporary magnitudes to keep large batches cache-friendly.
++        rows_per_chunk = max(1, _TORCH_CPU_PEAK_MAX_ELEMENTS // values.shape[1])
++    index_chunks = []
++    peak_chunks = []
++    for chunk in values.split(rows_per_chunk):
++        if chunk.is_complex():
++            if chunk.device.type == "cpu":
++                # Preserve separately rounded squares, NaNs and first ties.
++                sq_mag = chunk.real.square() + chunk.imag.square()
++            else:
++                sq_mag = torch.view_as_real(chunk).square().sum(dim=-1)
++        else:
++            sq_mag = chunk.square()
++        indices = torch.argmax(sq_mag, dim=-1)
++        peaks = chunk[torch.arange(chunk.shape[0], device=chunk.device), indices]
++        index_chunks.append(indices)
++        peak_chunks.append(peaks)
++    if len(index_chunks) > 1:
++        indices = torch.cat(index_chunks)
++        peaks = torch.cat(peak_chunks)
+     return (
+         indices.detach().cpu().numpy(),
+         peaks.detach().cpu().numpy(),
+diff --git a/pycbc/filter/matchedfilter_torch.py b/pycbc/filter/matchedfilter_torch.py
+index cf3dd12794..14008291d2 100644
+--- a/pycbc/filter/matchedfilter_torch.py
++++ b/pycbc/filter/matchedfilter_torch.py
+@@ -337,15 +337,22 @@ def _batch_tensor_contract(tensor, size):
+ 
+ 
+ def _batch_outputs_are_disjoint(input_spans, z_tensors, size):
+-    """Reject output/input and output/output logical-span overlap."""
+-    output_spans = [_logical_storage_span(tensor, size) for tensor in z_tensors]
+-    for index, output_span in enumerate(output_spans):
+-        if any(_spans_overlap(output_span, input_span) for input_span in input_spans):
++    """Reject output overlap in O(B log B), allowing inputs to share storage."""
++    spans = [(start, stop, False) for start, stop in input_spans]
++    spans.extend((*_logical_storage_span(tensor, size), True) for tensor in z_tensors)
++    # Sorting by end as well as start puts zero-length spans first at a shared
++    # boundary. This preserves the strict inequalities in _spans_overlap.
++    spans.sort()
++    input_end = output_end = None
++    for start, stop, is_output in spans:
++        if output_end is not None and start < output_end:
+             return False
+-        if any(
+-            _spans_overlap(output_span, other) for other in output_spans[index + 1 :]
+-        ):
++        if is_output and input_end is not None and start < input_end:
+             return False
++        if is_output:
++            output_end = stop if output_end is None else max(output_end, stop)
++        else:
++            input_end = stop if input_end is None else max(input_end, stop)
+     return True
+ 
+ 
+diff --git a/pycbc/waveform/taylorf2_torch.py b/pycbc/waveform/taylorf2_torch.py
+index 64e720ed25..6f4906cdcb 100644
+--- a/pycbc/waveform/taylorf2_torch.py
++++ b/pycbc/waveform/taylorf2_torch.py
+@@ -698,15 +698,39 @@ def _contact_frequency(mass1, mass2, lambda1, lambda2):
+     return math.sqrt(total_mass_seconds / radius_seconds**3) / math.pi
+ 
+ 
+-def _evaluate_phase_polynomial(v, coeff, coeff_log, coeff_log_sq):
+-    """Evaluate the PN polynomial at one or many Torch ``v`` values."""
++def _evaluate_phase_polynomial(
++    v, coeff, coeff_log, coeff_log_sq, *, taylorf2_log_terms=False
++):
++    """Evaluate the PN polynomial at one or many Torch ``v`` values.
++
++    ``taylorf2_log_terms`` requires coefficients constructed by
++    :func:`taylorf2_aligned_phasing`: only orders 5 and 6 have logarithmic
++    terms, and no order has a squared logarithm. Using that fixed structure
++    avoids broadcasting zero terms over the frequency grid in float64.
++    Float32 keeps the dense operations because broadcast kernels can round
++    differently at MPS precision. The default retains support for arbitrary
++    logarithmic coefficients.
++    """
+     import torch
+ 
++    taylorf2_log_terms = taylorf2_log_terms and v.dtype == torch.float64
+     log_v = torch.log(v)
+-    log_v_sq = log_v * log_v
+-    result = coeff[15] + coeff_log[15] * log_v + coeff_log_sq[15] * log_v_sq
++    if taylorf2_log_terms:
++        result = coeff[15]
++    else:
++        log_v_sq = log_v * log_v
++        result = coeff[15] + coeff_log[15] * log_v + coeff_log_sq[15] * log_v_sq
+     for index in range(_MAX_PN_ORDER - 2, -1, -1):
+-        term = coeff[index] + coeff_log[index] * log_v + coeff_log_sq[index] * log_v_sq
++        if taylorf2_log_terms:
++            term = coeff[index]
++            if index in (5, 6):
++                term = term + coeff_log[index] * log_v
++        else:
++            term = (
++                coeff[index]
++                + coeff_log[index] * log_v
++                + coeff_log_sq[index] * log_v_sq
++            )
+         result = torch.addcmul(term, result, v)
+     v2 = v * v
+     return result / (v2 * v2 * v)
+@@ -856,6 +880,7 @@ def _taylorf2_samples(inputs, frequencies, time_shift=0.0):
+         coeff,
+         coeff_log,
+         coeff_log_sq,
++        taylorf2_log_terms=True,
+     )
+ 
+     if inputs.f_ref == 0.0:
+@@ -874,6 +899,7 @@ def _taylorf2_samples(inputs, frequencies, time_shift=0.0):
+             coeff,
+             coeff_log,
+             coeff_log_sq,
++            taylorf2_log_terms=True,
+         )
+ 
+     phase = (
+@@ -1524,6 +1550,7 @@ def taylorf2_fd_batch(**params):
+         coeff,
+         coeff_log,
+         coeff_log_sq,
++        taylorf2_log_terms=True,
+     ).squeeze(-1)
+     reference_phase = torch.where(
+         numeric["f_ref"] > 0.0,
+@@ -1597,6 +1624,7 @@ def taylorf2_fd_batch(**params):
+         coeff,
+         coeff_log,
+         coeff_log_sq,
++        taylorf2_log_terms=True,
+     )
+     phase = (
+         phase
+diff --git a/test/test_live_batch_torch_peaks.py b/test/test_live_batch_torch_peaks.py
+index 2295c13bcb..4cb7140a6d 100644
+--- a/test/test_live_batch_torch_peaks.py
++++ b/test/test_live_batch_torch_peaks.py
+@@ -85,6 +85,43 @@ def _legacy_torch_peaks(templates):
+     return peaks
+ 
+ 
++@pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
++@pytest.mark.parametrize("count", [1, 32, 1024])
++def test_cpu_peak_components_preserve_exact_reduction(dtype, count, monkeypatch):
++    # Exercise several full chunks plus a final partial chunk on small inputs.
++    monkeypatch.setattr(matchedfilter, "_TORCH_CPU_PEAK_MAX_ELEMENTS", 768)
++    rng = np.random.default_rng(7101)
++    rows = (rng.normal(size=(count, 257))
++            + 1j * rng.normal(size=(count, 257))).astype(dtype)
++    # Boundaries, equal magnitudes, non-finite values, and nearly equal peaks
++    # must retain the same first-index decision as the original reduction.
++    rows[:, 0] = 1e10
++    rows[:, -1] = 1e10
++    for row in range(count):
++        case = row % 4
++        if case == 0:
++            rows[row, 20:22] = [10, -10j]
++        elif case == 1:
++            rows[row, 20:22] = [np.inf, np.nan]
++        elif case == 2:
++            rows[row, 20:22] = [10 + 1e-7j, -10j]
++        else:
++            rows[row, 20:22] = [complex(-0.0, 0.0), complex(0.0, -0.0)]
++
++    with scheme.TorchScheme("cpu"):
++        output = Array(rows.reshape(-1))
++        values = output._data.tensor.reshape(count, 257)[:, 1:-1]
++        expected_indices = torch.argmax(
++            torch.view_as_real(values).square().sum(dim=-1), dim=-1
++        )
++        expected_peaks = values[torch.arange(count), expected_indices]
++        indices, peaks = matchedfilter._torch_batch_peak_values(
++            output, count, 257, slice(1, -1)
++        )
++        np.testing.assert_array_equal(indices, expected_indices.numpy())
++        np.testing.assert_array_equal(peaks, expected_peaks.numpy())
++
++
+ def _run_without_scalar_sync(batch, monkeypatch):
+     copies = []
+     original_cpu = torch.Tensor.cpu
+diff --git a/test/test_torch_batch_overlap_scaling.py b/test/test_torch_batch_overlap_scaling.py
+new file mode 100644
+index 0000000000..56c9ef9cb0
+--- /dev/null
++++ b/test/test_torch_batch_overlap_scaling.py
+@@ -0,0 +1,128 @@
++# Copyright (C) 2026 The PyCBC Collaboration
++#
++# This program is free software; you can redistribute it and/or modify it
++# under the terms of the GNU General Public License as published by the
++# Free Software Foundation; either version 3 of the License, or (at your
++# option) any later version.
++
++"""Overlap admission must preserve alias safety without quadratic batch work."""
++
++import random
++
++import pytest
++
++torch = pytest.importorskip("torch")
++
++from pycbc.filter import matchedfilter_torch  # noqa: E402
++
++
++class SpanTensor:
++    """Expose just the address metadata consumed by the admission check."""
++
++    def __init__(self, address, itemsize=1):
++        self.address = address
++        self.itemsize = itemsize
++
++    def data_ptr(self):
++        return self.address
++
++    def element_size(self):
++        return self.itemsize
++
++
++def quadratic_oracle(inputs, outputs, size):
++    spans = [(z.data_ptr(), z.data_ptr() + size * z.element_size()) for z in outputs]
++
++    def overlap(left, right):
++        return left[0] < right[1] and right[0] < left[1]
++
++    for index, span in enumerate(spans):
++        if any(overlap(span, other) for other in inputs):
++            return False
++        if any(overlap(span, other) for other in spans[index + 1 :]):
++            return False
++    return True
++
++
++@pytest.mark.parametrize(
++    "inputs, addresses, size, expected",
++    [
++        ([], [], 8, True),
++        ([(0, 20), (0, 20), (5, 15)], [20, 28], 8, True),
++        ([(100, 108), (0, 8)], [24, 8, 16], 8, True),
++        ([(0, 8)], [7], 8, False),
++        ([(0, 100)], [20], 8, False),
++        ([(20, 21)], [16], 8, False),
++        ([], [0, 0], 8, False),
++        ([], [16, 0, 7], 8, False),
++        ([(0, 8)], [0, 8], 0, True),
++        ([(0, 8)], [4], 0, False),
++        ([(4, 4)], [0], 8, False),
++        ([(0, 0), (8, 8)], [0], 8, True),
++        ([(0, 0)], [0, 0], 0, True),
++    ],
++)
++def test_overlap_boundaries(inputs, addresses, size, expected):
++    outputs = [SpanTensor(address) for address in addresses]
++    assert quadratic_oracle(inputs, outputs, size) is expected
++    assert (
++        matchedfilter_torch._batch_outputs_are_disjoint(inputs, outputs, size)
++        is expected
++    )
++
++
++def test_randomized_overlap_matches_quadratic_oracle():
++    rng = random.Random(91021)
++    for _ in range(1500):
++        starts = [rng.randrange(-64, 128) for _ in range(rng.randrange(33))]
++        inputs = [(start, start + rng.randrange(33)) for start in starts]
++        outputs = [
++            SpanTensor(rng.randrange(-64, 128), rng.choice((1, 2, 4, 8)))
++            for _ in range(rng.randrange(33))
++        ]
++        rng.shuffle(inputs)
++        rng.shuffle(outputs)
++        size = rng.randrange(17)
++        assert matchedfilter_torch._batch_outputs_are_disjoint(
++            inputs, outputs, size
++        ) is quadratic_oracle(inputs, outputs, size)
++
++
++def test_output_storage_mutation_is_rechecked():
++    storage = torch.empty(128, dtype=torch.complex64)
++    source = storage[:8]
++    output = storage[16:24]
++    inputs = [(source.data_ptr(), source.data_ptr() + 8 * source.element_size())]
++    assert matchedfilter_torch._batch_outputs_are_disjoint(inputs, [output], 8)
++    output.set_(storage[4:12])
++    assert not matchedfilter_torch._batch_outputs_are_disjoint(inputs, [output], 8)
++    output.set_(storage[8:16])
++    assert matchedfilter_torch._batch_outputs_are_disjoint(inputs, [output], 8)
++
++
++class CountingAddress(int):
++    comparisons = 0
++
++    def __add__(self, other):
++        return type(self)(int(self) + other)
++
++    def __lt__(self, other):
++        type(self).comparisons += 1
++        return int(self) < int(other)
++
++    def __gt__(self, other):
++        type(self).comparisons += 1
++        return int(self) > int(other)
++
++
++def test_large_disjoint_batch_has_subquadratic_address_comparisons():
++    # Count comparisons instead of asserting a machine-dependent time limit.
++    # The former scan makes over a million comparisons for this B=1024 case.
++    count = 1024
++    inputs = [
++        (CountingAddress(4 * i), CountingAddress(4 * i + 1)) for i in range(count)
++    ]
++    outputs = [SpanTensor(CountingAddress(4 * i + 2)) for i in reversed(range(count))]
++    CountingAddress.comparisons = 0
++    assert matchedfilter_torch._batch_outputs_are_disjoint(inputs, outputs, 1)
++    assert CountingAddress.comparisons < 64 * count
+diff --git a/test/waveform/test_taylorf2_phase_evaluation.py b/test/waveform/test_taylorf2_phase_evaluation.py
+new file mode 100644
+index 0000000000..07cf65e6a9
+--- /dev/null
++++ b/test/waveform/test_taylorf2_phase_evaluation.py
+@@ -0,0 +1,189 @@
++"""Equivalence of TaylorF2's sparse logarithms and the full PN evaluator."""
++
++import itertools
++
++import pytest
++
++torch = pytest.importorskip("torch")
++
++from pycbc.constants import MTSUN_SI  # noqa: E402
++from pycbc.waveform.taylorf2_torch import (  # noqa: E402
++    _evaluate_phase_polynomial,
++    taylorf2_aligned_phasing,
++)
++
++
++@pytest.fixture(params=["cpu", "cuda"])
++def device(request):
++    if request.param == "cuda" and not torch.cuda.is_available():
++        pytest.skip("CUDA is unavailable")
++    return request.param
++
++
++def _legacy_phase(v, coeff, coeff_log, coeff_log_sq):
++    """The original evaluator, retaining every dense logarithmic term."""
++    log_v = torch.log(v)
++    log_v_sq = log_v * log_v
++    result = coeff[15] + coeff_log[15] * log_v + coeff_log_sq[15] * log_v_sq
++    for index in range(14, -1, -1):
++        term = (coeff[index] + coeff_log[index] * log_v
++                + coeff_log_sq[index] * log_v_sq)
++        result = torch.addcmul(term, result, v)
++    v2 = v * v
++    return result / (v2 * v2 * v)
++
++
++def _parameters(device, dtype):
++    values = {
++        "mass1": [1.4, 2.1, 8.0],
++        "mass2": [1.3, 1.7, 3.0],
++        "chi1": [0.02, -0.15, 0.3],
++        "chi2": [-0.01, 0.1, -0.2],
++        "qm_def1": [0.1, 0.3, -0.05],
++        "qm_def2": [0.2, -0.1, 0.4],
++        "lambda1": [500.0, 1000.0, 10.0],
++        "lambda2": [200.0, 800.0, 20.0],
++    }
++    for index, name in enumerate(
++        [f"dchi{i}" for i in range(8)] + ["dchi5l", "dchi6l"]
++    ):
++        values[name] = [0.003 * (index + 1), -0.002, 0.004]
++    return {name: torch.tensor(value, device=device, dtype=dtype)
++            for name, value in values.items()}
++
++
++def _coefficients(parameters, orders):
++    phase_order, spin_order, tidal_order = orders
++    phasing = taylorf2_aligned_phasing(
++        **{key: value for key, value in parameters.items()
++           if not key.startswith("dchi")},
++        dchi={key: value for key, value in parameters.items()
++              if key.startswith("dchi")},
++        spin_order=spin_order,
++        tidal_order=tidal_order,
++    )
++    coeffs = (phasing.v, phasing.vlogv, phasing.vlogvsq)
++    if phase_order != -1:
++        mask = torch.ones_like(phasing.v)
++        mask[phase_order + 1:8] = 0.0
++        coeffs = tuple(coeff * mask for coeff in coeffs)
++    return tuple(coeff.unsqueeze(-1) for coeff in coeffs)
++
++
++def _velocity(parameters):
++    mass = parameters["mass1"] + parameters["mass2"]
++    frequencies = mass.new_tensor([20.3, 30.0, 48.7, 127.0, 511.5, 1024.0])
++    return torch.pow(torch.pi * mass[:, None] * MTSUN_SI * frequencies,
++                     1.0 / 3.0)
++
++
++@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
++def test_all_pn_orders_match_original_evaluation(device, dtype):
++    parameters = _parameters(device, dtype)
++    velocity = _velocity(parameters)
++    orders = itertools.product(
++        [-1, 0, 1, 2, 3, 4, 5, 6, 7],
++        [-1, 0, 1, 2, 3, 4, 5, 6, 7],
++        [-1, 0, 10, 12, 13, 14, 15],
++    )
++    for order in orders:
++        coeffs = _coefficients(parameters, order)
++        # This structural invariant justifies enabling the sparse evaluator.
++        assert torch.count_nonzero(coeffs[2]) == 0
++        other_logs = torch.cat((coeffs[1][:5], coeffs[1][7:]))
++        assert torch.count_nonzero(other_logs) == 0
++        expected = _legacy_phase(velocity, *coeffs)
++        actual = _evaluate_phase_polynomial(
++            velocity, *coeffs, taylorf2_log_terms=True
++        )
++        tolerance = 5e-14 if dtype == torch.float64 else 0.0
++        torch.testing.assert_close(actual, expected, rtol=tolerance, atol=0.0,
++                                   msg=f"PN orders: {order}")
++        if dtype == torch.float64:
++            # Small relative phase errors must also preserve the complex
++            # waveform, where a large absolute phase error would be visible.
++            error = (torch.exp(-1j * actual) - torch.exp(-1j * expected)).abs()
++            assert error.max() < 2e-10
++            assert (torch.linalg.vector_norm(error, dim=-1)
++                    / error.shape[-1]**0.5).max() < 1e-11
++
++
++def test_scalar_and_reference_velocity_shapes(device):
++    parameters = _parameters(device, torch.float64)
++    coeffs = _coefficients(parameters, (-1, -1, 15))
++    velocity = _velocity(parameters)
++    for values, coefficients in (
++        (velocity[0], tuple(coeff[:, 0, 0] for coeff in coeffs)),
++        (velocity[:, :1], coeffs),
++        (velocity[0, 0], tuple(coeff[:, 0, 0] for coeff in coeffs)),
++    ):
++        torch.testing.assert_close(
++            _evaluate_phase_polynomial(
++                values, *coefficients, taylorf2_log_terms=True
++            ),
++            _legacy_phase(values, *coefficients), rtol=5e-14, atol=0.0,
++        )
++
++
++def test_generic_evaluator_preserves_arbitrary_log_coefficients(device):
++    values = torch.linspace(0.07, 0.5, 9, device=device, dtype=torch.float64)
++    coeff = torch.arange(1, 17, device=device, dtype=values.dtype)
++    coeff_log = coeff / 7.0
++    coeff_log_sq = -coeff / 13.0
++    torch.testing.assert_close(
++        _evaluate_phase_polynomial(values, coeff, coeff_log, coeff_log_sq),
++        _legacy_phase(values, coeff, coeff_log, coeff_log_sq),
++        rtol=0.0, atol=0.0,
++    )
++
++
++@pytest.mark.parametrize("orders", [(-1, -1, 15), (4, 5, 12)])
++def test_reverse_autograd_matches_original(device, orders):
++    parameters = {name: value.requires_grad_() for name, value in
++                  _parameters(device, torch.float64).items()}
++    velocity = _velocity(parameters)
++    coeffs = _coefficients(parameters, orders)
++    expected = _legacy_phase(velocity, *coeffs)
++    actual = _evaluate_phase_polynomial(
++        velocity, *coeffs, taylorf2_log_terms=True
++    )
++    weights = torch.linspace(0.2, 1.0, actual.numel(),
++                             device=device, dtype=actual.dtype).reshape_as(actual)
++    expected_gradients = torch.autograd.grad(
++        (expected * weights).sum(), tuple(parameters.values()), retain_graph=True
++    )
++    actual_gradients = torch.autograd.grad(
++        (actual * weights).sum(), tuple(parameters.values())
++    )
++    for actual_gradient, expected_gradient in zip(
++        actual_gradients, expected_gradients, strict=True
++    ):
++        torch.testing.assert_close(actual_gradient, expected_gradient,
++                                   rtol=5e-14, atol=0.0)
++
++
++@pytest.mark.parametrize("orders", [(-1, -1, 15), (4, 5, 12)])
++def test_forward_autograd_matches_original(device, orders):
++    with torch.autograd.forward_ad.dual_level():
++        parameters = {
++            name: torch.autograd.forward_ad.make_dual(
++                value, torch.full_like(value, 0.2 + index * 0.01)
++            )
++            for index, (name, value) in enumerate(
++                _parameters(device, torch.float64).items()
++            )
++        }
++        velocity = _velocity(parameters)
++        coeffs = _coefficients(parameters, orders)
++        expected = torch.autograd.forward_ad.unpack_dual(
++            _legacy_phase(velocity, *coeffs)
++        )
++        actual = torch.autograd.forward_ad.unpack_dual(
++            _evaluate_phase_polynomial(
++                velocity, *coeffs, taylorf2_log_terms=True
++            )
++        )
++        torch.testing.assert_close(actual.primal, expected.primal,
++                                   rtol=5e-14, atol=0.0)
++        torch.testing.assert_close(actual.tangent, expected.tangent,
++                                   rtol=5e-14, atol=0.0)
+-- 
+2.50.1 (Apple Git-155)
+

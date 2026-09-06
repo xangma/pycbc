@@ -1,0 +1,168 @@
+{
+  "schema_version": 1,
+  "scope": "Repeatability diagnostic only; same fixed CUDA float32 power vector in both routes.",
+  "torch_version": "2.13.0+cu130",
+  "cuda_version": "13.0",
+  "device": "NVIDIA GeForce RTX 4090",
+  "input_sha256": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/repeat-cuda-chisq-bins.py": "4134611bc44be4fbc403df4414c9e91f5d466f5d86b34a0fb262c96008d76e2d",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cuda/status.json": "28308e0e279988e1f777d39e7fa79c7e1bdef34796b163c0382f936aef2ea726",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cuda/capture-0-template.npy": "093e51ede2c3322573a3a7335e696b4741e904d72ee767e35e8391214dcf7e4e",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cuda/capture-0-psd.npy": "dacef3475235c68e04f6125cf57f6fe76e896556940596233eda30d66b59a286",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cuda/capture-0-bins.npy": "fa1575b89aa117fd645254de511b5a0b7b72ea5400c5f08e708aa98a4e804798"
+  },
+  "repeats": 100,
+  "truth_bins_float64": [
+    15360,
+    24451,
+    29204,
+    34237,
+    39399,
+    43747,
+    48475,
+    52973,
+    58122,
+    64598,
+    71574,
+    80492,
+    91917,
+    107871,
+    136457,
+    362772,
+    1048576
+  ],
+  "recorded_bins": [
+    15360,
+    24451,
+    29204,
+    34237,
+    39399,
+    43747,
+    48475,
+    52973,
+    58122,
+    64598,
+    71574,
+    80492,
+    91917,
+    107871,
+    136457,
+    362790,
+    1048576
+  ],
+  "routes": {
+    "torch.float32": {
+      "unique_edge_vectors": 3,
+      "outcomes": [
+        {
+          "bins": [
+            15360,
+            24451,
+            29204,
+            34237,
+            39399,
+            43747,
+            48475,
+            52973,
+            58122,
+            64598,
+            71574,
+            80492,
+            91917,
+            107871,
+            136457,
+            362790,
+            1048576
+          ],
+          "count": 81
+        },
+        {
+          "bins": [
+            15360,
+            24451,
+            29204,
+            34237,
+            39399,
+            43747,
+            48475,
+            52973,
+            58122,
+            64598,
+            71574,
+            80492,
+            91917,
+            107871,
+            136457,
+            362775,
+            1048576
+          ],
+          "count": 17
+        },
+        {
+          "bins": [
+            15360,
+            24451,
+            29204,
+            34237,
+            39399,
+            43747,
+            48475,
+            52973,
+            58122,
+            64598,
+            71574,
+            80492,
+            91917,
+            107871,
+            136457,
+            362805,
+            1048576
+          ],
+          "count": 2
+        }
+      ],
+      "cumulative_total_range": [
+        617890944.0,
+        617891264.0
+      ]
+    },
+    "torch.float64": {
+      "unique_edge_vectors": 1,
+      "outcomes": [
+        {
+          "bins": [
+            15360,
+            24451,
+            29204,
+            34237,
+            39399,
+            43747,
+            48475,
+            52973,
+            58122,
+            64598,
+            71574,
+            80492,
+            91917,
+            107871,
+            136457,
+            362778,
+            1048576
+          ],
+          "count": 100
+        }
+      ],
+      "cumulative_total_range": [
+        617891136.0,
+        617891136.0
+      ]
+    }
+  },
+  "input_sha256_after": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/repeat-cuda-chisq-bins.py": "4134611bc44be4fbc403df4414c9e91f5d466f5d86b34a0fb262c96008d76e2d",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cuda/status.json": "28308e0e279988e1f777d39e7fa79c7e1bdef34796b163c0382f936aef2ea726",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cuda/capture-0-template.npy": "093e51ede2c3322573a3a7335e696b4741e904d72ee767e35e8391214dcf7e4e",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cuda/capture-0-psd.npy": "dacef3475235c68e04f6125cf57f6fe76e896556940596233eda30d66b59a286",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cuda/capture-0-bins.npy": "fa1575b89aa117fd645254de511b5a0b7b72ea5400c5f08e708aa98a4e804798"
+  }
+}

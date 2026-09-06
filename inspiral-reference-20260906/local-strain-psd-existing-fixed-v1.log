@@ -1,0 +1,33 @@
+{
+  "baseline_selected_functions_from_source": null,
+  "local_native_abi": "Existing Darwin Python 3.12 extensions loaded read-only",
+  "python": "/Users/xangma/miniconda3/bin/python3.12",
+  "tests": [
+    "test/test_psd.py",
+    "test/test_strain.py",
+    "test/test_torch_psd_pipeline.py",
+    "test/test_torch_psd_protocol.py"
+  ],
+  "file_sha256": {
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/run-local-strain-psd-precision-tests.py": "f5eff7826a76e6b360c576ad7ff56b79d49c42c735298a907d6dcda217c71522",
+    "/Users/xangma/repos/pycbc/pycbc/types/array_cpu.cpython-312-darwin.so": "02c6fec41262957c5bf1418dc047dfd1ccd11b79748561031caa613efb77e9f3",
+    "/Users/xangma/repos/pycbc/pycbc/vetoes/chisq_cpu.cpython-312-darwin.so": "095d1b28442d15955a3d5103deff9c8f0da1fc61352e56ec5b77ef828ff9a319",
+    "/Users/xangma/repos/pycbc/pycbc/events/eventmgr_cython.cpython-312-darwin.so": "4dc6c6102c89e6f954762b6e2eeb7488e5c3c4e7ce5cccabd414e6f95e931989",
+    "/Users/xangma/repos/pycbc/pycbc/events/simd_threshold_cython.cpython-312-darwin.so": "2b54d4e5c44c5d16b5397b6fe5421bd365d208ee4229c7f3c1e52fc80e90a3cb",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/psd/__init__.py": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/pycbc/strain/strain.py": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_psd.py": "befc2c16c682fbc665570055c29320fd95c132ab78592faf7f85e461605c288c",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_strain.py": "adbd2d57d2391e004f8163428ae4bd38964df5aeb2ea26e7b8350e1e46bef8ed",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_torch_psd_pipeline.py": "f46a04e8077a863c1fceefbf1f95299061fc9446faae99eff67e2acc427e1c79",
+    "/private/tmp/pycbc-torch-performance-fix-20260906/test/test_torch_psd_protocol.py": "05ea81b494fd836332db164101f0f7603b72c2b06530c210088fbc99c627bcb3"
+  }
+}
+.......s..s..s..s...s...s............s.......ss...s..ss.s..s..s..s.      [100%]
+=============================== warnings summary ===============================
+test/test_torch_psd_pipeline.py::test_lisa_response_psd_public_devices[cpu]
+test/test_torch_psd_pipeline.py::test_lisa_response_psd_public_devices[mps]
+  /private/tmp/pycbc-torch-performance-fix-20260906/pycbc/psd/read.py:99: RuntimeWarning: divide by zero encountered in log
+    slog = numpy.log(noise_data)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+51 passed, 16 skipped, 2 warnings in 1.59s

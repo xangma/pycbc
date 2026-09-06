@@ -1,0 +1,33 @@
+{
+  "state": "complete",
+  "pid": 2127081,
+  "plan": "/home/xangma/pycbc-torch-inspiral-reference-20260906/precision-backend-smoke-plan.json",
+  "plan_sha256": "45feff29052e9f97dad9bc2c004fcfc1e17c40c59f917fae3c6cfbcfe9388fce",
+  "started_utc": "2026-09-06T18:29:05.053448+00:00",
+  "completed": [
+    [
+      "--case",
+      "qual-precision-torch-cpu-l512",
+      "--mode",
+      "qualify",
+      "--scheme",
+      "torch:cpu:1",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "qual-precision-torch-cuda-l512",
+      "--mode",
+      "qualify",
+      "--scheme",
+      "torch:cuda:0",
+      "--segment-length",
+      "512"
+    ]
+  ],
+  "current": null,
+  "child_pid": 2163172,
+  "returncode": 0,
+  "finished_utc": "2026-09-06T18:30:46.483123+00:00"
+}

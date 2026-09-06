@@ -1,0 +1,1668 @@
+{
+  "schema": 1,
+  "generated_utc": "2026-09-06T16:15:13.715540+00:00",
+  "title": "CUDA refinement: before, v1 and later v2 measurements",
+  "sources": {
+    "baseline": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline",
+      "sha": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+      "tree": "b0d5ef6e3b39bfe246b4c416528839256edadf1f",
+      "status": ""
+    },
+    "candidate": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate",
+      "sha": "97bf1614f3afe53a6e2edb4d8c7dff79e9661782",
+      "tree": "d9819f6f6ebf2998ac967178778cc1911757e455",
+      "status": ""
+    },
+    "candidate-v2": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+      "sha": "0d00581251e642a5d6b56b2497a9adad93069e6b",
+      "tree": "fa7a7c09df6d93133324f762d756842de172433d",
+      "status": ""
+    }
+  },
+  "runtime": {
+    "hostname": "len",
+    "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+    "python": "3.11.9 | packaged by conda-forge | (main, Apr 19 2024, 18:36:13) [GCC 12.3.0]",
+    "numpy": "1.26.4",
+    "torch": "2.13.0+cu130",
+    "lalsuite": "7.21"
+  },
+  "cuda_device": {
+    "index": 0,
+    "name": "NVIDIA GeForce RTX 4090",
+    "memory_bytes": 25272188928,
+    "compute_capability": [
+      8,
+      9
+    ]
+  },
+  "unit": "templates/second",
+  "search_capacity_units": {
+    "cpu": "templates/core at real time",
+    "cuda": "templates/GPU at real time"
+  },
+  "search_capacity_basis": {
+    "schema": 1,
+    "valid_seconds_per_block": 56.0,
+    "sample_rate_hz": 2048.0,
+    "valid_samples_per_block": 114688,
+    "cpu_formula": "raw_templates_per_second * 56 / configured_threads",
+    "cuda_formula": "raw_templates_per_second * 56 / 1 GPU",
+    "units": {
+      "cpu": "templates/core at real time",
+      "cuda": "templates/GPU at real time"
+    },
+    "cpu_divisor": "configured core budget (thread count), not measured utilization",
+    "cpu_affinity": "8-11; four distinct physical cores",
+    "verification": "File bytes, Git blobs and excerpts were independently inspected from the pinned frozen source trees when preparing this reporter. Each report checks worker source commit/tree identities; available full run snapshots also check both file hashes. The supplied Git source bundles permit source audit.",
+    "scope": "Real-time filtering capacity is derived from the measured template\u2013block rate: multiply by 56 seconds of valid strain per block, then divide CPU routes by their configured 1- or 4-core budget. CUDA capacity uses one GPU and includes the timed host work. The CPU divisor is the configured thread count, not measured CPU utilization; affinity CPUs 8\u201311 are distinct physical cores. This is synthetic matched-filter component capacity with vetoes and I/O excluded, not complete production search capacity. Raw template\u2013block rates and all unchanged ratios remain in JSON. The live harness's legacy throughput_wps_summary unit says waveforms/second, but its numerator is batch size times block count: template\u2013block evaluations, not generated waveforms. That raw label is preserved; standalone waveform generation has a separate waveforms/second metric. The 56 s basis, pinned source trees, full file hashes and source excerpts are recorded in search_capacity_basis.",
+    "sources": {
+      "baseline": {
+        "commit": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+        "tree": "b0d5ef6e3b39bfe246b4c416528839256edadf1f",
+        "run_snapshot_file_hashes_checked": true,
+        "harness": {
+          "path": "tools/bench_production_live_batch.py",
+          "sha256": "079ab813e3ed76902b007882611cf495eb2c63b8f75560a0666d956c350fdffe",
+          "git_blob": "673df95cba04f49c5704c150b0f3c9f061ce82bb",
+          "sample_rate_line": 323,
+          "blocksize_line": 328,
+          "public_data_start_line": 438,
+          "sample_rate_source": "sample_rate = 2048.0",
+          "blocksize_source": "blocksize = 56.0",
+          "public_data_source": [
+            "blocksize=blocksize,",
+            "sample_rate=sample_rate,",
+            "start_time=1000000000.0 + b * blocksize,"
+          ]
+        },
+        "valid_interval": {
+          "path": "pycbc/filter/matchedfilter.py",
+          "sha256": "8d40acb0d70547bac98464a165b775d4943d822de21e03e17bbde7fff518cc2e",
+          "git_blob": "140397eabdb5e4ea4dfe5272d2bc0483665adbc1",
+          "start_line": 2908,
+          "source": [
+            "valid_end = int(psize - self.data.trim_padding)",
+            "valid_start = int(",
+            "    valid_end - self.data.blocksize * self.data.sample_rate",
+            ")"
+          ]
+        }
+      },
+      "candidate": {
+        "commit": "97bf1614f3afe53a6e2edb4d8c7dff79e9661782",
+        "tree": "d9819f6f6ebf2998ac967178778cc1911757e455",
+        "run_snapshot_file_hashes_checked": true,
+        "harness": {
+          "path": "tools/bench_production_live_batch.py",
+          "sha256": "079ab813e3ed76902b007882611cf495eb2c63b8f75560a0666d956c350fdffe",
+          "git_blob": "673df95cba04f49c5704c150b0f3c9f061ce82bb",
+          "sample_rate_line": 323,
+          "blocksize_line": 328,
+          "public_data_start_line": 438,
+          "sample_rate_source": "sample_rate = 2048.0",
+          "blocksize_source": "blocksize = 56.0",
+          "public_data_source": [
+            "blocksize=blocksize,",
+            "sample_rate=sample_rate,",
+            "start_time=1000000000.0 + b * blocksize,"
+          ]
+        },
+        "valid_interval": {
+          "path": "pycbc/filter/matchedfilter.py",
+          "sha256": "b6d98c6cd9d3e1502b3a80f3512a8437b46691d8d31aa26aab193d754e103720",
+          "git_blob": "84f6620cb9a74a59f4b1b8a7433ed2603cfad2b2",
+          "start_line": 2927,
+          "source": [
+            "valid_end = int(psize - self.data.trim_padding)",
+            "valid_start = int(",
+            "    valid_end - self.data.blocksize * self.data.sample_rate",
+            ")"
+          ]
+        }
+      },
+      "candidate-v2": {
+        "commit": "0d00581251e642a5d6b56b2497a9adad93069e6b",
+        "tree": "fa7a7c09df6d93133324f762d756842de172433d",
+        "run_snapshot_file_hashes_checked": true,
+        "harness": {
+          "path": "tools/bench_production_live_batch.py",
+          "sha256": "079ab813e3ed76902b007882611cf495eb2c63b8f75560a0666d956c350fdffe",
+          "git_blob": "673df95cba04f49c5704c150b0f3c9f061ce82bb",
+          "sample_rate_line": 323,
+          "blocksize_line": 328,
+          "public_data_start_line": 438,
+          "sample_rate_source": "sample_rate = 2048.0",
+          "blocksize_source": "blocksize = 56.0",
+          "public_data_source": [
+            "blocksize=blocksize,",
+            "sample_rate=sample_rate,",
+            "start_time=1000000000.0 + b * blocksize,"
+          ]
+        },
+        "valid_interval": {
+          "path": "pycbc/filter/matchedfilter.py",
+          "sha256": "40774107fdb566a626987dcded36dbd20f1a74c900d8d2801503209f3d7406c0",
+          "git_blob": "c6a7bd138782fbeee320dbb4b7a03c2335124481",
+          "start_line": 2930,
+          "source": [
+            "valid_end = int(psize - self.data.trim_padding)",
+            "valid_start = int(",
+            "    valid_end - self.data.blocksize * self.data.sample_rate",
+            ")"
+          ]
+        }
+      }
+    }
+  },
+  "batches": [
+    1,
+    8,
+    32,
+    128,
+    512,
+    1024
+  ],
+  "replicates": [
+    1,
+    2,
+    3
+  ],
+  "original_campaign": {
+    "started_utc": "2026-09-06T14:42:37.468714+00:00",
+    "finished_utc": "2026-09-06T15:47:33.542233+00:00",
+    "status_path": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/comparison-status.json",
+    "fully_validated": true
+  },
+  "v2_campaign": {
+    "started_utc": "2026-09-06T16:06:42.185979+00:00",
+    "finished_utc": "2026-09-06T16:12:39.036084+00:00",
+    "timing_started_utc": "2026-09-06T16:08:06.956735+00:00",
+    "status_path": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/accelerator-refinement/status.json",
+    "source_snapshot_pair_checked": true,
+    "recorded_host": "len",
+    "runner_sha256": "a69ef8762c585c2040e5d6a3e91e16b371c606a2a63353b8ee57fdc83844d795"
+  },
+  "counts": {
+    "original_cuda_workers": 72,
+    "fresh_v2_cuda_workers": 36,
+    "reused_original_standard_controls": 18,
+    "v2_parity_documents": 36,
+    "v2_parity_comparisons": 108
+  },
+  "validation": {
+    "complete": true,
+    "all_original_campaign_gates_passed": true,
+    "all_v2_parity_passed": true,
+    "parity_recomputed": true,
+    "parity_maxima": {
+      "max_snr_diff": 2.86102294921875e-06,
+      "max_phase_diff": 1.0117082638316788e-07,
+      "max_sigmasq_relative_diff": 2.3841855067985646e-07,
+      "relative_output_l2_diff": 1.530399320925804e-07
+    }
+  },
+  "comparisons": [
+    {
+      "route": "torch_cuda",
+      "batch": 1,
+      "threads": 1,
+      "throughput": {
+        "baseline": {
+          "median": 2153.19246669729,
+          "minimum": 2126.462119912617,
+          "maximum": 2154.3552445624073,
+          "worker_values": [
+            2154.3552445624073,
+            2126.462119912617,
+            2153.19246669729
+          ]
+        },
+        "candidate": {
+          "median": 2065.231009856659,
+          "minimum": 2043.34479195685,
+          "maximum": 2072.607589059948,
+          "worker_values": [
+            2043.34479195685,
+            2072.607589059948,
+            2065.231009856659
+          ]
+        },
+        "candidate-v2": {
+          "median": 2147.664844015102,
+          "minimum": 2119.690440408083,
+          "maximum": 2162.1652787967982,
+          "worker_values": [
+            2119.690440408083,
+            2147.664844015102,
+            2162.1652787967982
+          ]
+        }
+      },
+      "ratios": {
+        "candidate_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 0.9591483538043619,
+            "minimum": 0.9484716121513629,
+            "maximum": 0.9746741170000801,
+            "worker_values": [
+              0.9484716121513629,
+              0.9746741170000801,
+              0.9591483538043619
+            ]
+          },
+          "ratio_of_medians": 0.9591483538043619,
+          "measurement_order": "paired original campaign"
+        },
+        "candidate-v2_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 1.004167213214001,
+            "minimum": 0.9839094298668623,
+            "maximum": 1.0099708919824806,
+            "worker_values": [
+              0.9839094298668623,
+              1.0099708919824806,
+              1.004167213214001
+            ]
+          },
+          "ratio_of_medians": 0.9974328246231204,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        },
+        "candidate-v2_over_candidate": {
+          "replicate_matched_ratio": {
+            "median": 1.0373630768295932,
+            "minimum": 1.0362139245997826,
+            "maximum": 1.046936283872121,
+            "worker_values": [
+              1.0373630768295932,
+              1.0362139245997826,
+              1.046936283872121
+            ]
+          },
+          "ratio_of_medians": 1.039915067014302,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        }
+      },
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "throughput": {
+          "baseline": {
+            "median": 120578.77813504824,
+            "minimum": 119081.87871510655,
+            "maximum": 120643.8936954948,
+            "worker_values": [
+              120643.8936954948,
+              119081.87871510655,
+              120578.77813504824
+            ]
+          },
+          "candidate": {
+            "median": 115652.9365519729,
+            "minimum": 114427.3083495836,
+            "maximum": 116066.0249873571,
+            "worker_values": [
+              114427.3083495836,
+              116066.0249873571,
+              115652.9365519729
+            ]
+          },
+          "candidate-v2": {
+            "median": 120269.23126484572,
+            "minimum": 118702.66466285264,
+            "maximum": 121081.2556126207,
+            "worker_values": [
+              118702.66466285264,
+              120269.23126484572,
+              121081.2556126207
+            ]
+          }
+        }
+      }
+    },
+    {
+      "route": "torch_cuda",
+      "batch": 8,
+      "threads": 1,
+      "throughput": {
+        "baseline": {
+          "median": 13383.461833155072,
+          "minimum": 13335.933840432219,
+          "maximum": 13597.702894724318,
+          "worker_values": [
+            13383.461833155072,
+            13335.933840432219,
+            13597.702894724318
+          ]
+        },
+        "candidate": {
+          "median": 13003.992767612688,
+          "minimum": 12923.597843482306,
+          "maximum": 13277.09744946958,
+          "worker_values": [
+            12923.597843482306,
+            13277.09744946958,
+            13003.992767612688
+          ]
+        },
+        "candidate-v2": {
+          "median": 13596.95564163184,
+          "minimum": 13425.63457100902,
+          "maximum": 13601.13206755909,
+          "worker_values": [
+            13601.13206755909,
+            13425.63457100902,
+            13596.95564163184
+          ]
+        }
+      },
+      "ratios": {
+        "candidate_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 0.9656393842336415,
+            "minimum": 0.9563374687836443,
+            "maximum": 0.9955881311600199,
+            "worker_values": [
+              0.9656393842336415,
+              0.9955881311600199,
+              0.9563374687836443
+            ]
+          },
+          "ratio_of_medians": 0.9716464192693165,
+          "measurement_order": "paired original campaign"
+        },
+        "candidate-v2_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 1.0067262429200754,
+            "minimum": 0.9999450456376151,
+            "maximum": 1.01626412038362,
+            "worker_values": [
+              1.01626412038362,
+              1.0067262429200754,
+              0.9999450456376151
+            ]
+          },
+          "ratio_of_medians": 1.0159520616667264,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        },
+        "candidate-v2_over_candidate": {
+          "replicate_matched_ratio": {
+            "median": 1.0455985238238492,
+            "minimum": 1.0111874694077339,
+            "maximum": 1.0524261302682427,
+            "worker_values": [
+              1.0524261302682427,
+              1.0111874694077339,
+              1.0455985238238492
+            ]
+          },
+          "ratio_of_medians": 1.0455985238238492,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        }
+      },
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "throughput": {
+          "baseline": {
+            "median": 749473.862656684,
+            "minimum": 746812.2950642043,
+            "maximum": 761471.3621045618,
+            "worker_values": [
+              749473.862656684,
+              746812.2950642043,
+              761471.3621045618
+            ]
+          },
+          "candidate": {
+            "median": 728223.5949863106,
+            "minimum": 723721.4792350092,
+            "maximum": 743517.4571702965,
+            "worker_values": [
+              723721.4792350092,
+              743517.4571702965,
+              728223.5949863106
+            ]
+          },
+          "candidate-v2": {
+            "median": 761429.515931383,
+            "minimum": 751835.5359765051,
+            "maximum": 761663.3957833091,
+            "worker_values": [
+              761663.3957833091,
+              751835.5359765051,
+              761429.515931383
+            ]
+          }
+        }
+      }
+    },
+    {
+      "route": "torch_cuda",
+      "batch": 32,
+      "threads": 1,
+      "throughput": {
+        "baseline": {
+          "median": 41047.11182259439,
+          "minimum": 40671.503468728486,
+          "maximum": 41239.50486819467,
+          "worker_values": [
+            40671.503468728486,
+            41047.11182259439,
+            41239.50486819467
+          ]
+        },
+        "candidate": {
+          "median": 40850.42065295142,
+          "minimum": 40016.673614005835,
+          "maximum": 41280.71704605509,
+          "worker_values": [
+            40016.673614005835,
+            41280.71704605509,
+            40850.42065295142
+          ]
+        },
+        "candidate-v2": {
+          "median": 40889.865702347335,
+          "minimum": 40490.54292756748,
+          "maximum": 41402.40289195785,
+          "worker_values": [
+            40490.54292756748,
+            40889.865702347335,
+            41402.40289195785
+          ]
+        }
+      },
+      "ratios": {
+        "candidate_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 0.9905652549300288,
+            "minimum": 0.9838995414756148,
+            "maximum": 1.0056911488552556,
+            "worker_values": [
+              0.9838995414756148,
+              1.0056911488552556,
+              0.9905652549300288
+            ]
+          },
+          "ratio_of_medians": 0.9952081605523656,
+          "measurement_order": "paired original campaign"
+        },
+        "candidate-v2_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 0.9961691307070113,
+            "minimum": 0.9955506798193448,
+            "maximum": 1.0039500480009111,
+            "worker_values": [
+              0.9955506798193448,
+              0.9961691307070113,
+              1.0039500480009111
+            ]
+          },
+          "ratio_of_medians": 0.9961691307070113,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        },
+        "candidate-v2_over_candidate": {
+          "replicate_matched_ratio": {
+            "median": 1.0118417967003583,
+            "minimum": 0.9905318664094013,
+            "maximum": 1.0135122779688328,
+            "worker_values": [
+              1.0118417967003583,
+              0.9905318664094013,
+              1.0135122779688328
+            ]
+          },
+          "ratio_of_medians": 1.0009655971411169,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        }
+      },
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "throughput": {
+          "baseline": {
+            "median": 2298638.262065286,
+            "minimum": 2277604.194248795,
+            "maximum": 2309412.2726189015,
+            "worker_values": [
+              2277604.194248795,
+              2298638.262065286,
+              2309412.2726189015
+            ]
+          },
+          "candidate": {
+            "median": 2287623.5565652796,
+            "minimum": 2240933.7223843266,
+            "maximum": 2311720.1545790853,
+            "worker_values": [
+              2240933.7223843266,
+              2311720.1545790853,
+              2287623.5565652796
+            ]
+          },
+          "candidate-v2": {
+            "median": 2289832.4793314505,
+            "minimum": 2267470.403943779,
+            "maximum": 2318534.5619496396,
+            "worker_values": [
+              2267470.403943779,
+              2289832.4793314505,
+              2318534.5619496396
+            ]
+          }
+        }
+      }
+    },
+    {
+      "route": "torch_cuda",
+      "batch": 128,
+      "threads": 1,
+      "throughput": {
+        "baseline": {
+          "median": 48968.11805703179,
+          "minimum": 46722.09805581319,
+          "maximum": 49476.32403281517,
+          "worker_values": [
+            46722.09805581319,
+            49476.32403281517,
+            48968.11805703179
+          ]
+        },
+        "candidate": {
+          "median": 48662.60215661501,
+          "minimum": 48634.855080797184,
+          "maximum": 49307.860173694644,
+          "worker_values": [
+            48662.60215661501,
+            48634.855080797184,
+            49307.860173694644
+          ]
+        },
+        "candidate-v2": {
+          "median": 49149.71001671091,
+          "minimum": 48670.19466430177,
+          "maximum": 49226.78059931554,
+          "worker_values": [
+            49149.71001671091,
+            49226.78059931554,
+            48670.19466430177
+          ]
+        }
+      },
+      "ratios": {
+        "candidate_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 1.0069380268252737,
+            "minimum": 0.98299249250086,
+            "maximum": 1.0415328973130387,
+            "worker_values": [
+              1.0415328973130387,
+              0.98299249250086,
+              1.0069380268252737
+            ]
+          },
+          "ratio_of_medians": 0.9937609221563108,
+          "measurement_order": "paired original campaign"
+        },
+        "candidate-v2_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 0.9949563061044284,
+            "minimum": 0.9939159721763652,
+            "maximum": 1.0519585391477442,
+            "worker_values": [
+              1.0519585391477442,
+              0.9949563061044284,
+              0.9939159721763652
+            ]
+          },
+          "ratio_of_medians": 1.0037083712195682,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        },
+        "candidate-v2_over_candidate": {
+          "replicate_matched_ratio": {
+            "median": 1.0100099016186639,
+            "minimum": 0.9870676702021424,
+            "maximum": 1.0121708087242163,
+            "worker_values": [
+              1.0100099016186639,
+              1.0121708087242163,
+              0.9870676702021424
+            ]
+          },
+          "ratio_of_medians": 1.0100099016186639,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        }
+      },
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "throughput": {
+          "baseline": {
+            "median": 2742214.6111937803,
+            "minimum": 2616437.491125539,
+            "maximum": 2770674.1458376497,
+            "worker_values": [
+              2616437.491125539,
+              2770674.1458376497,
+              2742214.6111937803
+            ]
+          },
+          "candidate": {
+            "median": 2725105.7207704405,
+            "minimum": 2723551.8845246425,
+            "maximum": 2761240.1697269,
+            "worker_values": [
+              2725105.7207704405,
+              2723551.8845246425,
+              2761240.1697269
+            ]
+          },
+          "candidate-v2": {
+            "median": 2752383.760935811,
+            "minimum": 2725530.9012008994,
+            "maximum": 2756699.7135616704,
+            "worker_values": [
+              2752383.760935811,
+              2756699.7135616704,
+              2725530.9012008994
+            ]
+          }
+        }
+      }
+    },
+    {
+      "route": "torch_cuda",
+      "batch": 512,
+      "threads": 1,
+      "throughput": {
+        "baseline": {
+          "median": 52552.39201484194,
+          "minimum": 52327.88571426235,
+          "maximum": 52635.67126980919,
+          "worker_values": [
+            52635.67126980919,
+            52552.39201484194,
+            52327.88571426235
+          ]
+        },
+        "candidate": {
+          "median": 52472.15055981738,
+          "minimum": 52362.987181602104,
+          "maximum": 52759.53854501627,
+          "worker_values": [
+            52759.53854501627,
+            52472.15055981738,
+            52362.987181602104
+          ]
+        },
+        "candidate-v2": {
+          "median": 52436.24566722477,
+          "minimum": 52337.36419629538,
+          "maximum": 52543.51670473335,
+          "worker_values": [
+            52436.24566722477,
+            52543.51670473335,
+            52337.36419629538
+          ]
+        }
+      },
+      "ratios": {
+        "candidate_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 1.000670798501805,
+            "minimum": 0.9984731150771996,
+            "maximum": 1.0023532952505183,
+            "worker_values": [
+              1.0023532952505183,
+              0.9984731150771996,
+              1.000670798501805
+            ]
+          },
+          "ratio_of_medians": 0.9984731150771996,
+          "measurement_order": "paired original campaign"
+        },
+        "candidate-v2_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 0.9998311150117376,
+            "minimum": 0.9962112081450968,
+            "maximum": 1.0001811363463982,
+            "worker_values": [
+              0.9962112081450968,
+              0.9998311150117376,
+              1.0001811363463982
+            ]
+          },
+          "ratio_of_medians": 0.9977898941767605,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        },
+        "candidate-v2_over_candidate": {
+          "replicate_matched_ratio": {
+            "median": 0.9995106660890475,
+            "minimum": 0.9938723331039816,
+            "maximum": 1.0013600766150152,
+            "worker_values": [
+              0.9938723331039816,
+              1.0013600766150152,
+              0.9995106660890475
+            ]
+          },
+          "ratio_of_medians": 0.9993157343045873,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        }
+      },
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "throughput": {
+          "baseline": {
+            "median": 2942933.9528311486,
+            "minimum": 2930361.5999986916,
+            "maximum": 2947597.5911093145,
+            "worker_values": [
+              2947597.5911093145,
+              2942933.9528311486,
+              2930361.5999986916
+            ]
+          },
+          "candidate": {
+            "median": 2938440.4313497734,
+            "minimum": 2932327.282169718,
+            "maximum": 2954534.1585209114,
+            "worker_values": [
+              2954534.1585209114,
+              2938440.4313497734,
+              2932327.282169718
+            ]
+          },
+          "candidate-v2": {
+            "median": 2936429.7573645874,
+            "minimum": 2930892.394992541,
+            "maximum": 2942436.9354650676,
+            "worker_values": [
+              2936429.7573645874,
+              2942436.9354650676,
+              2930892.394992541
+            ]
+          }
+        }
+      }
+    },
+    {
+      "route": "torch_cuda",
+      "batch": 1024,
+      "threads": 1,
+      "throughput": {
+        "baseline": {
+          "median": 52952.493666859344,
+          "minimum": 52712.89885321304,
+          "maximum": 53001.7366177732,
+          "worker_values": [
+            52952.493666859344,
+            53001.7366177732,
+            52712.89885321304
+          ]
+        },
+        "candidate": {
+          "median": 52798.61989357469,
+          "minimum": 52660.334261471726,
+          "maximum": 53367.79818327815,
+          "worker_values": [
+            52660.334261471726,
+            53367.79818327815,
+            52798.61989357469
+          ]
+        },
+        "candidate-v2": {
+          "median": 52829.74661429597,
+          "minimum": 52609.39787773484,
+          "maximum": 52972.93253860829,
+          "worker_values": [
+            52829.74661429597,
+            52972.93253860829,
+            52609.39787773484
+          ]
+        }
+      },
+      "ratios": {
+        "candidate_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 1.0016261871804917,
+            "minimum": 0.9944826129015626,
+            "maximum": 1.0069065956865686,
+            "worker_values": [
+              0.9944826129015626,
+              1.0069065956865686,
+              1.0016261871804917
+            ]
+          },
+          "ratio_of_medians": 0.9970941165820684,
+          "measurement_order": "paired original campaign"
+        },
+        "candidate-v2_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 0.998036515203491,
+            "minimum": 0.9976819400926495,
+            "maximum": 0.9994565446152712,
+            "worker_values": [
+              0.9976819400926495,
+              0.9994565446152712,
+              0.998036515203491
+            ]
+          },
+          "ratio_of_medians": 0.9976819400926495,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        },
+        "candidate-v2_over_candidate": {
+          "replicate_matched_ratio": {
+            "median": 0.9964161560241298,
+            "minimum": 0.9926010504815321,
+            "maximum": 1.0032170770505,
+            "worker_values": [
+              1.0032170770505,
+              0.9926010504815321,
+              0.9964161560241298
+            ]
+          },
+          "ratio_of_medians": 1.000589536635314,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        }
+      },
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "throughput": {
+          "baseline": {
+            "median": 2965339.6453441232,
+            "minimum": 2951922.33577993,
+            "maximum": 2968097.250595299,
+            "worker_values": [
+              2965339.6453441232,
+              2968097.250595299,
+              2951922.33577993
+            ]
+          },
+          "candidate": {
+            "median": 2956722.7140401825,
+            "minimum": 2948978.7186424164,
+            "maximum": 2988596.6982635763,
+            "worker_values": [
+              2948978.7186424164,
+              2988596.6982635763,
+              2956722.7140401825
+            ]
+          },
+          "candidate-v2": {
+            "median": 2958465.810400574,
+            "minimum": 2946126.281153151,
+            "maximum": 2966484.222162064,
+            "worker_values": [
+              2958465.810400574,
+              2966484.222162064,
+              2946126.281153151
+            ]
+          }
+        }
+      }
+    },
+    {
+      "route": "torch_cuda_native",
+      "batch": 1,
+      "threads": 1,
+      "throughput": {
+        "baseline": {
+          "median": 2089.5730305774186,
+          "minimum": 2065.4585111348865,
+          "maximum": 2107.188462721729,
+          "worker_values": [
+            2107.188462721729,
+            2065.4585111348865,
+            2089.5730305774186
+          ]
+        },
+        "candidate": {
+          "median": 2019.693356689965,
+          "minimum": 1997.1839706014518,
+          "maximum": 2032.7034888645114,
+          "worker_values": [
+            2019.693356689965,
+            2032.7034888645114,
+            1997.1839706014518
+          ]
+        },
+        "candidate-v2": {
+          "median": 2101.6291829426173,
+          "minimum": 2089.5002611875325,
+          "maximum": 2112.200067590402,
+          "worker_values": [
+            2089.5002611875325,
+            2101.6291829426173,
+            2112.200067590402
+          ]
+        }
+      },
+      "ratios": {
+        "candidate_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 0.9584777975109298,
+            "minimum": 0.9557856755308348,
+            "maximum": 0.9841415249477088,
+            "worker_values": [
+              0.9584777975109298,
+              0.9841415249477088,
+              0.9557856755308348
+            ]
+          },
+          "ratio_of_medians": 0.9665579173999276,
+          "measurement_order": "paired original campaign"
+        },
+        "candidate-v2_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 1.0108285456798467,
+            "minimum": 0.9916057809507224,
+            "maximum": 1.0175121754384,
+            "worker_values": [
+              0.9916057809507224,
+              1.0175121754384,
+              1.0108285456798467
+            ]
+          },
+          "ratio_of_medians": 1.0057696726502385,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        },
+        "candidate-v2_over_candidate": {
+          "replicate_matched_ratio": {
+            "median": 1.03456312032039,
+            "minimum": 1.0339083857806572,
+            "maximum": 1.0575891348428523,
+            "worker_values": [
+              1.03456312032039,
+              1.0339083857806572,
+              1.0575891348428523
+            ]
+          },
+          "ratio_of_medians": 1.0405684486614024,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        }
+      },
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "throughput": {
+          "baseline": {
+            "median": 117016.08971233544,
+            "minimum": 115665.67662355365,
+            "maximum": 118002.55391241683,
+            "worker_values": [
+              118002.55391241683,
+              115665.67662355365,
+              117016.08971233544
+            ]
+          },
+          "candidate": {
+            "median": 113102.82797463804,
+            "minimum": 111842.3023536813,
+            "maximum": 113831.39537641263,
+            "worker_values": [
+              113102.82797463804,
+              113831.39537641263,
+              111842.3023536813
+            ]
+          },
+          "candidate-v2": {
+            "median": 117691.23424478657,
+            "minimum": 117012.01462650183,
+            "maximum": 118283.2037850625,
+            "worker_values": [
+              117012.01462650183,
+              117691.23424478657,
+              118283.2037850625
+            ]
+          }
+        }
+      }
+    },
+    {
+      "route": "torch_cuda_native",
+      "batch": 8,
+      "threads": 1,
+      "throughput": {
+        "baseline": {
+          "median": 11494.715304638692,
+          "minimum": 11470.065756931146,
+          "maximum": 11621.313682983151,
+          "worker_values": [
+            11494.715304638692,
+            11470.065756931146,
+            11621.313682983151
+          ]
+        },
+        "candidate": {
+          "median": 11672.618080690863,
+          "minimum": 11656.885406502308,
+          "maximum": 11781.575481363267,
+          "worker_values": [
+            11781.575481363267,
+            11672.618080690863,
+            11656.885406502308
+          ]
+        },
+        "candidate-v2": {
+          "median": 11636.34106891429,
+          "minimum": 11615.138203205875,
+          "maximum": 11726.2907836729,
+          "worker_values": [
+            11615.138203205875,
+            11726.2907836729,
+            11636.34106891429
+          ]
+        }
+      },
+      "ratios": {
+        "candidate_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 1.017659212078825,
+            "minimum": 1.0030609038263243,
+            "maximum": 1.0249558313644194,
+            "worker_values": [
+              1.0249558313644194,
+              1.017659212078825,
+              1.0030609038263243
+            ]
+          },
+          "ratio_of_medians": 1.0154769188568227,
+          "measurement_order": "paired original campaign"
+        },
+        "candidate-v2_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 1.0104763706952,
+            "minimum": 1.0012930884012832,
+            "maximum": 1.022338583942897,
+            "worker_values": [
+              1.0104763706952,
+              1.022338583942897,
+              1.0012930884012832
+            ]
+          },
+          "ratio_of_medians": 1.012320945801802,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        },
+        "candidate-v2_over_candidate": {
+          "replicate_matched_ratio": {
+            "median": 0.9982375791756039,
+            "minimum": 0.9858730881603508,
+            "maximum": 1.0045981717735477,
+            "worker_values": [
+              0.9858730881603508,
+              1.0045981717735477,
+              0.9982375791756039
+            ]
+          },
+          "ratio_of_medians": 0.9968921272395107,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        }
+      },
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "throughput": {
+          "baseline": {
+            "median": 643704.0570597667,
+            "minimum": 642323.6823881442,
+            "maximum": 650793.5662470565,
+            "worker_values": [
+              643704.0570597667,
+              642323.6823881442,
+              650793.5662470565
+            ]
+          },
+          "candidate": {
+            "median": 653666.6125186883,
+            "minimum": 652785.5827641293,
+            "maximum": 659768.2269563429,
+            "worker_values": [
+              659768.2269563429,
+              653666.6125186883,
+              652785.5827641293
+            ]
+          },
+          "candidate-v2": {
+            "median": 651635.0998592002,
+            "minimum": 650447.739379529,
+            "maximum": 656672.2838856824,
+            "worker_values": [
+              650447.739379529,
+              656672.2838856824,
+              651635.0998592002
+            ]
+          }
+        }
+      }
+    },
+    {
+      "route": "torch_cuda_native",
+      "batch": 32,
+      "threads": 1,
+      "throughput": {
+        "baseline": {
+          "median": 26682.431536632892,
+          "minimum": 25014.14862781761,
+          "maximum": 26948.911600832722,
+          "worker_values": [
+            26948.911600832722,
+            26682.431536632892,
+            25014.14862781761
+          ]
+        },
+        "candidate": {
+          "median": 31956.741224628924,
+          "minimum": 31555.737293227747,
+          "maximum": 32121.28999100604,
+          "worker_values": [
+            31555.737293227747,
+            32121.28999100604,
+            31956.741224628924
+          ]
+        },
+        "candidate-v2": {
+          "median": 31411.680171507775,
+          "minimum": 31407.06600096773,
+          "maximum": 31504.218119454148,
+          "worker_values": [
+            31407.06600096773,
+            31504.218119454148,
+            31411.680171507775
+          ]
+        }
+      },
+      "ratios": {
+        "candidate_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 1.2038366873313633,
+            "minimum": 1.1709466326741254,
+            "maximum": 1.2775466277149496,
+            "worker_values": [
+              1.1709466326741254,
+              1.2038366873313633,
+              1.2775466277149496
+            ]
+          },
+          "ratio_of_medians": 1.1976697543758266,
+          "measurement_order": "paired original campaign"
+        },
+        "candidate-v2_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 1.1807101641468214,
+            "minimum": 1.1654298498644098,
+            "maximum": 1.2557565175964307,
+            "worker_values": [
+              1.1654298498644098,
+              1.1807101641468214,
+              1.2557565175964307
+            ]
+          },
+          "ratio_of_medians": 1.1772420413927416,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        },
+        "candidate-v2_over_candidate": {
+          "replicate_matched_ratio": {
+            "median": 0.9829437848718732,
+            "minimum": 0.9807893184948465,
+            "maximum": 0.9952886129429173,
+            "worker_values": [
+              0.9952886129429173,
+              0.9807893184948465,
+              0.9829437848718732
+            ]
+          },
+          "ratio_of_medians": 0.9829437848718732,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        }
+      },
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "throughput": {
+          "baseline": {
+            "median": 1494216.166051442,
+            "minimum": 1400792.3231577862,
+            "maximum": 1509139.0496466325,
+            "worker_values": [
+              1509139.0496466325,
+              1494216.166051442,
+              1400792.3231577862
+            ]
+          },
+          "candidate": {
+            "median": 1789577.5085792197,
+            "minimum": 1767121.2884207538,
+            "maximum": 1798792.2394963382,
+            "worker_values": [
+              1767121.2884207538,
+              1798792.2394963382,
+              1789577.5085792197
+            ]
+          },
+          "candidate-v2": {
+            "median": 1759054.0896044355,
+            "minimum": 1758795.696054193,
+            "maximum": 1764236.2146894322,
+            "worker_values": [
+              1758795.696054193,
+              1764236.2146894322,
+              1759054.0896044355
+            ]
+          }
+        }
+      }
+    },
+    {
+      "route": "torch_cuda_native",
+      "batch": 128,
+      "threads": 1,
+      "throughput": {
+        "baseline": {
+          "median": 20996.63135295731,
+          "minimum": 20927.083990143125,
+          "maximum": 21114.98445216815,
+          "worker_values": [
+            20927.083990143125,
+            20996.63135295731,
+            21114.98445216815
+          ]
+        },
+        "candidate": {
+          "median": 36566.14563400697,
+          "minimum": 36487.50037057618,
+          "maximum": 36618.6771274021,
+          "worker_values": [
+            36487.50037057618,
+            36618.6771274021,
+            36566.14563400697
+          ]
+        },
+        "candidate-v2": {
+          "median": 36536.64916110807,
+          "minimum": 36296.144782296855,
+          "maximum": 36770.55689582959,
+          "worker_values": [
+            36536.64916110807,
+            36770.55689582959,
+            36296.144782296855
+          ]
+        }
+      },
+      "ratios": {
+        "candidate_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 1.7435539699540639,
+            "minimum": 1.7317628491197987,
+            "maximum": 1.7440262922101777,
+            "worker_values": [
+              1.7435539699540639,
+              1.7440262922101777,
+              1.7317628491197987
+            ]
+          },
+          "ratio_of_medians": 1.7415243911903395,
+          "measurement_order": "paired original campaign"
+        },
+        "candidate-v2_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 1.7459025432457391,
+            "minimum": 1.718975681204911,
+            "maximum": 1.7512598224786462,
+            "worker_values": [
+              1.7459025432457391,
+              1.7512598224786462,
+              1.718975681204911
+            ]
+          },
+          "ratio_of_medians": 1.7401195718932314,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        },
+        "candidate-v2_over_candidate": {
+          "replicate_matched_ratio": {
+            "median": 1.0013470034952443,
+            "minimum": 0.9926160975670618,
+            "maximum": 1.0041476039098594,
+            "worker_values": [
+              1.0013470034952443,
+              1.0041476039098594,
+              0.9926160975670618
+            ]
+          },
+          "ratio_of_medians": 0.99919333929274,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        }
+      },
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "throughput": {
+          "baseline": {
+            "median": 1175811.3557656093,
+            "minimum": 1171916.703448015,
+            "maximum": 1182439.1293214164,
+            "worker_values": [
+              1171916.703448015,
+              1175811.3557656093,
+              1182439.1293214164
+            ]
+          },
+          "candidate": {
+            "median": 2047704.1555043904,
+            "minimum": 2043300.020752266,
+            "maximum": 2050645.9191345177,
+            "worker_values": [
+              2043300.020752266,
+              2050645.9191345177,
+              2047704.1555043904
+            ]
+          },
+          "candidate-v2": {
+            "median": 2046052.353022052,
+            "minimum": 2032584.107808624,
+            "maximum": 2059151.1861664571,
+            "worker_values": [
+              2046052.353022052,
+              2059151.1861664571,
+              2032584.107808624
+            ]
+          }
+        }
+      }
+    },
+    {
+      "route": "torch_cuda_native",
+      "batch": 512,
+      "threads": 1,
+      "throughput": {
+        "baseline": {
+          "median": 8766.815348278235,
+          "minimum": 8760.870216554167,
+          "maximum": 8786.194093056583,
+          "worker_values": [
+            8766.815348278235,
+            8786.194093056583,
+            8760.870216554167
+          ]
+        },
+        "candidate": {
+          "median": 38195.86411403574,
+          "minimum": 38087.29190725387,
+          "maximum": 38532.19529230396,
+          "worker_values": [
+            38532.19529230396,
+            38195.86411403574,
+            38087.29190725387
+          ]
+        },
+        "candidate-v2": {
+          "median": 37747.45317122473,
+          "minimum": 36765.931730212644,
+          "maximum": 38017.08902802802,
+          "worker_values": [
+            36765.931730212644,
+            38017.08902802802,
+            37747.45317122473
+          ]
+        }
+      },
+      "ratios": {
+        "candidate_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 4.347432499945696,
+            "minimum": 4.347259314954194,
+            "maximum": 4.395232905170236,
+            "worker_values": [
+              4.395232905170236,
+              4.347259314954194,
+              4.347432499945696
+            ]
+          },
+          "ratio_of_medians": 4.356868782634648,
+          "measurement_order": "paired original campaign"
+        },
+        "candidate-v2_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 4.3086419771290245,
+            "minimum": 4.193761391065835,
+            "maximum": 4.326912042390638,
+            "worker_values": [
+              4.193761391065835,
+              4.326912042390638,
+              4.3086419771290245
+            ]
+          },
+          "ratio_of_medians": 4.305720112907155,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        },
+        "candidate-v2_over_candidate": {
+          "replicate_matched_ratio": {
+            "median": 0.9910773720311573,
+            "minimum": 0.9541613565307532,
+            "maximum": 0.995319517174059,
+            "worker_values": [
+              0.9541613565307532,
+              0.995319517174059,
+              0.9910773720311573
+            ]
+          },
+          "ratio_of_medians": 0.9882602225866064,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        }
+      },
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "throughput": {
+          "baseline": {
+            "median": 490941.6595035811,
+            "minimum": 490608.73212703335,
+            "maximum": 492026.86921116867,
+            "worker_values": [
+              490941.6595035811,
+              492026.86921116867,
+              490608.73212703335
+            ]
+          },
+          "candidate": {
+            "median": 2138968.3903860017,
+            "minimum": 2132888.346806217,
+            "maximum": 2157802.9363690214,
+            "worker_values": [
+              2157802.9363690214,
+              2138968.3903860017,
+              2132888.346806217
+            ]
+          },
+          "candidate-v2": {
+            "median": 2113857.377588585,
+            "minimum": 2058892.176891908,
+            "maximum": 2128956.9855695693,
+            "worker_values": [
+              2058892.176891908,
+              2128956.9855695693,
+              2113857.377588585
+            ]
+          }
+        }
+      }
+    },
+    {
+      "route": "torch_cuda_native",
+      "batch": 1024,
+      "threads": 1,
+      "throughput": {
+        "baseline": {
+          "median": 4960.409073051941,
+          "minimum": 4948.811950700399,
+          "maximum": 4969.739214245113,
+          "worker_values": [
+            4969.739214245113,
+            4948.811950700399,
+            4960.409073051941
+          ]
+        },
+        "candidate": {
+          "median": 38622.971379347255,
+          "minimum": 38527.01248364248,
+          "maximum": 38709.27793726524,
+          "worker_values": [
+            38527.01248364248,
+            38622.971379347255,
+            38709.27793726524
+          ]
+        },
+        "candidate-v2": {
+          "median": 38147.2548859127,
+          "minimum": 37722.040161668905,
+          "maximum": 38841.013490500525,
+          "worker_values": [
+            37722.040161668905,
+            38841.013490500525,
+            38147.2548859127
+          ]
+        }
+      },
+      "ratios": {
+        "candidate_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 7.803646305615873,
+            "minimum": 7.7523207602543405,
+            "maximum": 7.804493636878037,
+            "worker_values": [
+              7.7523207602543405,
+              7.804493636878037,
+              7.803646305615873
+            ]
+          },
+          "ratio_of_medians": 7.786247224885444,
+          "measurement_order": "paired original campaign"
+        },
+        "candidate-v2_over_baseline": {
+          "replicate_matched_ratio": {
+            "median": 7.690344551047726,
+            "minimum": 7.590345999150935,
+            "maximum": 7.848553122937598,
+            "worker_values": [
+              7.590345999150935,
+              7.848553122937598,
+              7.690344551047726
+            ]
+          },
+          "ratio_of_medians": 7.690344551047726,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        },
+        "candidate-v2_over_candidate": {
+          "replicate_matched_ratio": {
+            "median": 0.9854809213371691,
+            "minimum": 0.9791062875089174,
+            "maximum": 1.0056453997029826,
+            "worker_values": [
+              0.9791062875089174,
+              1.0056453997029826,
+              0.9854809213371691
+            ]
+          },
+          "ratio_of_medians": 0.9876830684837228,
+          "measurement_order": "follow-on v2 versus earlier original campaign; not paired timing"
+        }
+      },
+      "search_capacity": {
+        "unit": "templates/GPU at real time",
+        "valid_seconds_per_block": 56.0,
+        "resource_count": 1,
+        "resource": "GPU",
+        "scale_from_raw_rate": 56.0,
+        "throughput": {
+          "baseline": {
+            "median": 277782.9080909087,
+            "minimum": 277133.46923922235,
+            "maximum": 278305.3959977263,
+            "worker_values": [
+              278305.3959977263,
+              277133.46923922235,
+              277782.9080909087
+            ]
+          },
+          "candidate": {
+            "median": 2162886.397243446,
+            "minimum": 2157512.699083979,
+            "maximum": 2167719.5644868533,
+            "worker_values": [
+              2157512.699083979,
+              2162886.397243446,
+              2167719.5644868533
+            ]
+          },
+          "candidate-v2": {
+            "median": 2136246.273611111,
+            "minimum": 2112434.2490534587,
+            "maximum": 2175096.7554680295,
+            "worker_values": [
+              2112434.2490534587,
+              2175096.7554680295,
+              2136246.273611111
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "notes": {
+    "aggregation": "Every point is the median of three distinct worker throughput medians; ranges are the full minimum\u2013maximum across workers, not confidence intervals. The JSON also retains each worker value and every replicate-matched ratio.",
+    "measurement_order": "Before and v1 came from the original paired campaign. V2 was measured afterward in a separate follow-on run. Ratios involving v2 match replicate labels for description; they are not paired timing estimates and do not remove possible run-period effects. The original before/v1 results remain unchanged.",
+    "timing": "All workers use one thread, CPU affinity 8\u201311, the same interpreter and device, one cold iteration, one warmup and three timed iterations. Each timed iteration filters the batch against three strain blocks. Profiling is excluded.",
+    "workload": "Synthetic seeded templates and injected strain; N=131072, three strain blocks per iteration, complex64 inputs/outputs, SNR threshold 5.5. The public LiveBatchMatchedFilter.process_data API is timed with chi-square and sine-Gaussian vetoes disabled. Frame I/O, PSD estimation, bank loading, waveform generation and CLI startup are excluded. The raw unit templates/s counts one template filtered against one strain block. Native labels mean opt-in routing is enabled; admission can select a fallback for a given batch.",
+    "search_capacity": "Real-time filtering capacity is derived from the measured template\u2013block rate: multiply by 56 seconds of valid strain per block, then divide CPU routes by their configured 1- or 4-core budget. CUDA capacity uses one GPU and includes the timed host work. The CPU divisor is the configured thread count, not measured CPU utilization; affinity CPUs 8\u201311 are distinct physical cores. This is synthetic matched-filter component capacity with vetoes and I/O excluded, not complete production search capacity. Raw template\u2013block rates and all unchanged ratios remain in JSON. The live harness's legacy throughput_wps_summary unit says waveforms/second, but its numerator is batch size times block count: template\u2013block evaluations, not generated waveforms. That raw label is preserved; standalone waveform generation has a separate waveforms/second metric. The 56 s basis, pinned source trees, full file hashes and source excerpts are recorded in search_capacity_basis.",
+    "parity": "Each baseline and candidate is checked against the corresponding standard CPU control: trigger counts and template IDs, end times within 1e-4 s, SNR and wrapped phase differences below 1e-3, relative sigma-squared and aggregate output-norm differences below 1e-3. These checks do not establish pointwise equivalence of every matched-filter output sample. The supplement reuses the original standard controls for the same batch, seed and replicate and independently recomputes before/control, v1/control and v2/control comparisons. It does not contain newly measured contemporaneous standard controls.",
+    "scope": "This supplement covers the two CUDA matched-filter routes only. It does not replace the original full campaign report or claim new CPU or waveform timings. Native route labels indicate enabled admission gates and can include fallbacks; these records do not count native dispatches."
+  },
+  "figures": [
+    "cuda-before-v1-v2.png",
+    "cuda-before-v1-v2.svg"
+  ],
+  "input_manifest": {
+    "path": "input-manifest.json",
+    "files": 622,
+    "sha256": "f1bdc80095e533b0de360e6fba3a52dbc632f7f1dc9005b698b8d47f8c2c50e3"
+  }
+}

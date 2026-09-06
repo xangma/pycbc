@@ -1,0 +1,162 @@
+{
+  "schema": "torch_accelerator_refinement_v2",
+  "state": "complete",
+  "pid": 2497655,
+  "host": "len",
+  "cwd": "/home/xangma/pycbc-torch-performance-fix-20260906",
+  "command": [
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/run-accelerator-refinement.py"
+  ],
+  "queue_started_utc": "2026-09-06T16:06:42.185963+00:00",
+  "started_utc": "2026-09-06T16:06:42.185979+00:00",
+  "timing_started_utc": "2026-09-06T16:08:06.956735+00:00",
+  "finished_utc": "2026-09-06T16:12:39.036084+00:00",
+  "completed": [
+    "torch_cuda-b1-t1-r1-candidate-v2",
+    "torch_cuda_native-b1-t1-r1-candidate-v2",
+    "torch_cuda-b1-t1-r2-candidate-v2",
+    "torch_cuda_native-b1-t1-r2-candidate-v2",
+    "torch_cuda-b1-t1-r3-candidate-v2",
+    "torch_cuda_native-b1-t1-r3-candidate-v2",
+    "torch_cuda-b8-t1-r1-candidate-v2",
+    "torch_cuda_native-b8-t1-r1-candidate-v2",
+    "torch_cuda-b8-t1-r2-candidate-v2",
+    "torch_cuda_native-b8-t1-r2-candidate-v2",
+    "torch_cuda-b8-t1-r3-candidate-v2",
+    "torch_cuda_native-b8-t1-r3-candidate-v2",
+    "torch_cuda-b32-t1-r1-candidate-v2",
+    "torch_cuda_native-b32-t1-r1-candidate-v2",
+    "torch_cuda-b32-t1-r2-candidate-v2",
+    "torch_cuda_native-b32-t1-r2-candidate-v2",
+    "torch_cuda-b32-t1-r3-candidate-v2",
+    "torch_cuda_native-b32-t1-r3-candidate-v2",
+    "torch_cuda-b128-t1-r1-candidate-v2",
+    "torch_cuda_native-b128-t1-r1-candidate-v2",
+    "torch_cuda-b128-t1-r2-candidate-v2",
+    "torch_cuda_native-b128-t1-r2-candidate-v2",
+    "torch_cuda-b128-t1-r3-candidate-v2",
+    "torch_cuda_native-b128-t1-r3-candidate-v2",
+    "torch_cuda-b512-t1-r1-candidate-v2",
+    "torch_cuda_native-b512-t1-r1-candidate-v2",
+    "torch_cuda-b512-t1-r2-candidate-v2",
+    "torch_cuda_native-b512-t1-r2-candidate-v2",
+    "torch_cuda-b512-t1-r3-candidate-v2",
+    "torch_cuda_native-b512-t1-r3-candidate-v2",
+    "torch_cuda-b1024-t1-r1-candidate-v2",
+    "torch_cuda_native-b1024-t1-r1-candidate-v2",
+    "torch_cuda-b1024-t1-r2-candidate-v2",
+    "torch_cuda_native-b1024-t1-r2-candidate-v2",
+    "torch_cuda-b1024-t1-r3-candidate-v2",
+    "torch_cuda_native-b1024-t1-r3-candidate-v2"
+  ],
+  "completed_tests": [
+    "test-candidate-v2",
+    "test-fft-candidate-v2",
+    "test-cpu-candidate-v2"
+  ],
+  "source": {
+    "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+    "sha": "0d00581251e642a5d6b56b2497a9adad93069e6b",
+    "tree": "fa7a7c09df6d93133324f762d756842de172433d",
+    "status": ""
+  },
+  "source_before": {
+    "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+    "sha": "0d00581251e642a5d6b56b2497a9adad93069e6b",
+    "tree": "fa7a7c09df6d93133324f762d756842de172433d",
+    "status": ""
+  },
+  "source_after": {
+    "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+    "sha": "0d00581251e642a5d6b56b2497a9adad93069e6b",
+    "tree": "fa7a7c09df6d93133324f762d756842de172433d",
+    "status": ""
+  },
+  "runner_sha256": "a69ef8762c585c2040e5d6a3e91e16b371c606a2a63353b8ee57fdc83844d795",
+  "stop_command": "kill -TERM 2497655",
+  "expected_next_check_seconds": 30,
+  "log_path": "/home/xangma/pycbc-torch-performance-fix-20260906/accelerator-refinement/runner.log",
+  "updated_utc": "2026-09-06T16:12:39.036103+00:00",
+  "postcheck_status_sha256": "e8d5fff294761cbc5bd97d747548aa84d5329cf4eea57fccfa02c49354ab7ff1",
+  "postcheck_finished_utc": "2026-09-06T16:00:57.013803+00:00",
+  "original_status_sha256": "427d458316d1f2821563593e23375a8d8affe9d126f5616c572700069fac9adf",
+  "original_sources": {
+    "baseline": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline",
+      "sha": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+      "tree": "b0d5ef6e3b39bfe246b4c416528839256edadf1f",
+      "status": ""
+    },
+    "candidate": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate",
+      "sha": "97bf1614f3afe53a6e2edb4d8c7dff79e9661782",
+      "tree": "d9819f6f6ebf2998ac967178778cc1911757e455",
+      "status": ""
+    }
+  },
+  "current": "torch_cuda_native-b1024-t1-r3-candidate-v2",
+  "current_command": [
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/run-accelerator-refinement.py",
+    "--worker",
+    "--root",
+    "/home/xangma/pycbc-torch-performance-fix-20260906",
+    "--python",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "--route",
+    "torch_cuda_native",
+    "--batch",
+    "1024"
+  ],
+  "current_cwd": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+  "current_log": "/home/xangma/pycbc-torch-performance-fix-20260906/accelerator-refinement/logs/torch_cuda_native-b1024-t1-r3-candidate-v2.log",
+  "harness_sha256": {
+    "tools/bench_production_live_batch.py": "079ab813e3ed76902b007882611cf495eb2c63b8f75560a0666d956c350fdffe",
+    "tools/benchmark_artifact.py": "902a4f2c67824a5069a1712fe3f7d2a186bdf6bb2ed92e0ec6807e1bb233b7c0"
+  },
+  "sources": {
+    "baseline": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline",
+      "sha": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+      "tree": "b0d5ef6e3b39bfe246b4c416528839256edadf1f",
+      "status": ""
+    },
+    "candidate": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate",
+      "sha": "97bf1614f3afe53a6e2edb4d8c7dff79e9661782",
+      "tree": "d9819f6f6ebf2998ac967178778cc1911757e455",
+      "status": ""
+    },
+    "fft-candidate": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/fft-candidate",
+      "sha": "d6407d32742a57e4f026c461a26ef7b3929c5849",
+      "tree": "4adcca5ff8c9ab3aa6769ff0cced6f7da19c2fa7",
+      "status": ""
+    },
+    "cpu-candidate": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/cpu-candidate",
+      "sha": "1514327669fc7be125523b991c847868c3a2a17e",
+      "tree": "0bbf15de82c467649cb88fb6378aaf74d829cfca",
+      "status": ""
+    },
+    "candidate-v2": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate-v2",
+      "sha": "0d00581251e642a5d6b56b2497a9adad93069e6b",
+      "tree": "fa7a7c09df6d93133324f762d756842de172433d",
+      "status": ""
+    },
+    "fft-candidate-v2": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/fft-candidate-v2",
+      "sha": "c3202b4b0b681a1ace527d1e6231c47470856ba6",
+      "tree": "e5f773b444186f267d4825f59b3d2c50cee31010",
+      "status": ""
+    },
+    "cpu-candidate-v2": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/cpu-candidate-v2",
+      "sha": "665fa5a0f41946c0c2873d8a79a16c8b6975a090",
+      "tree": "225b9b0f29832057511312db81b73ec6bae52195",
+      "status": ""
+    }
+  }
+}

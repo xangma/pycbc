@@ -1,0 +1,446 @@
+{
+  "state": "complete",
+  "source_commit": "f2c0abe61e787a26f41208f489c62c877bbd5667",
+  "pid": 2517294,
+  "triton_version": "3.7.1",
+  "specialization_plain": "fp32",
+  "specialization_constexpr": "constexpr",
+  "input_sha256": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/diagnose-chisq-coefficient-v4.py": "ee4ec20a7ab761640453b38cc380863c19c35c7bdedaef2d0033522bcace9155",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/diagnose-chisq-inputs.py": "f935e2430478dc24a4be6213c0152438f2c30a355e829f19bdcf8179c2a6248f",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4.json": "43caf87e57b98782caa3c0e43163e489b9e12c493b2ffc278add1d434f7b876a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/vetoes/chisq_torch.py": "a2080725994d75ce4a76410df51065373cedfb39bb5ff2adac3f406bc4229447",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/status.json": "ee5b0a1f37df2534d6ebe4d9bd9a454cec5bb6f93d4c7a97a8696d5a029825a5",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-0-corr.npy": "4ac0b32e8be4ed8f168d04dc2eeae8532f2157f8fab9c6ab8e2f2199f76b51b4",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-0-snrv.npy": "88d98ad5a10b96fa427ae4787c92dd973e8f6d224b7f897b91cfc263b5a46043",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-0-indices.npy": "766d0e0e5d7cfb6f07cd0648b6dfe32d431577c9e456184eb8ec3a7d2ff210e4",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-0-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-0-chisq.npy": "c19f5684d7616beee042a28734bcaa7e1205454181ffe307ba6ec03f76886460",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-0-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-0-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-1-corr.npy": "76a090b7720939fab29a85907d687dfa8a279a895ded186d71e5c460431b20ae",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-1-snrv.npy": "26febe8f6804e4b9433003d1af0e9d1aeb2e5488b47ac769f6b03edfa6fa6e32",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-1-indices.npy": "b981fdca6390b213535d4e697b175360578a5b917d39ea68bd71ef198ed92178",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-1-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-1-chisq.npy": "1840b60a724d86161ae49bb430effe1dd4b47f94a21a58b3c6e9af98d705d7ac",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-1-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-1-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-2-corr.npy": "327e23e517dc97b9700375adaa023da2dce764a4b88cc736cc2c0a354bb88e8f",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-2-snrv.npy": "24f240ad44e08fd17d0b91f2283a26e3c4564db7ba97f344dbb519155df3feaf",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-2-indices.npy": "61e6db6a2a3e28b256852eaddc38b8660036a7192a847b89a60fbc84d4a7b21b",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-2-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-2-chisq.npy": "f169cc10e8a7332ab820ab15aae4acaa59fdceef042109fac314cd03df07724f",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-2-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-2-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/status.json": "fa74cd7b670c86978357d8aaa8273e6536fd795af6b499a5382f251a91709d86",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-0-corr.npy": "2118ff5f86e10bda1f8a7bb366c9c9df4ee23eab87a87b8f70cee2c719c2eabd",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-0-snrv.npy": "bb258a6defd26b8c10ddac9a7944f1ae8849378c3d8332d4900ddafe90bf9689",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-0-indices.npy": "68e8986e259b155fcc75ee936903430e6c10ba8f7e9e0f8d614db2a805ee6077",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-0-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-0-chisq.npy": "6ac14192e0502c02cb89fbee8778aa40978bea25068b586bea988dd5a71dff46",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-0-template.npy": "03bbfec4d28dc14c727711b01bc2b3d651f201f76394fb75a2f9c1286717a4e7",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-0-psd.npy": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-1-corr.npy": "b882cafe92a297ea27838da077334d69a7b3dded20b2ec48ae3979e7e51ac4e0",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-1-snrv.npy": "888b9bc45e6c83a504f641229d7bbadc989a7d08fe18352c1c04c639d36f4e93",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-1-indices.npy": "d5099101055c01db83748cd978a5c1a9c341915e2810c8774c29b2579e6884e9",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-1-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-1-chisq.npy": "c74c31bf721669eac35da8ef02bfe15c9770ce4e6d8c6669bec3c251d750d084",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-1-template.npy": "03bbfec4d28dc14c727711b01bc2b3d651f201f76394fb75a2f9c1286717a4e7",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-1-psd.npy": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-2-corr.npy": "9dbde7bb100a83c212a49ee41d84f788e35b4c386e4223377307f9887d944361",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-2-snrv.npy": "a2fb74590aab981cdbab00b0037221fd3c6b2d790ec29597f08081301b8ef972",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-2-indices.npy": "3cdc4d7ac74814e5e79382adee617ba43197d79e71c6d3c918d1254b3a8bfd27",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-2-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-2-chisq.npy": "b6f2a37117f5b78d0622a146c190e30c5f0782be3ae0f48b486a0633035fa379",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-2-template.npy": "03bbfec4d28dc14c727711b01bc2b3d651f201f76394fb75a2f9c1286717a4e7",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-2-psd.npy": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf"
+  },
+  "rows": [
+    {
+      "origin": "cpu",
+      "segment": {
+        "number": 1,
+        "epoch": 1187007429.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 2019328,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "points": [
+        882164,
+        1800845
+      ],
+      "expected": [
+        24.10927749763662,
+        27.93463648494599
+      ],
+      "recorded_chisq": [
+        24.109277725219727,
+        27.93463706970215
+      ],
+      "variants": {
+        "original": [
+          24.054105758666992,
+          28.65587615966797
+        ],
+        "torch_fallback": [
+          24.109275817871094,
+          27.93463897705078
+        ],
+        "constexpr_coefficient": [
+          24.109281539916992,
+          27.93463897705078
+        ]
+      },
+      "launches": {
+        "original": 1,
+        "torch_fallback": 0,
+        "constexpr_coefficient": 1
+      },
+      "max_abs_error": {
+        "original": 0.7212396747219785,
+        "torch_fallback": 2.492104790974281e-06,
+        "constexpr_coefficient": 4.042280373539597e-06
+      },
+      "violations": {
+        "original": 2,
+        "torch_fallback": 0,
+        "constexpr_coefficient": 0
+      }
+    },
+    {
+      "origin": "cpu",
+      "segment": {
+        "number": 2,
+        "epoch": 1187007810.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 3579904,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "points": [
+        787621
+      ],
+      "expected": [
+        45.44365364210797
+      ],
+      "recorded_chisq": [
+        45.44365310668945
+      ],
+      "variants": {
+        "original": [
+          45.44365692138672
+        ],
+        "torch_fallback": [
+          45.44365692138672
+        ],
+        "constexpr_coefficient": [
+          45.44365692138672
+        ]
+      },
+      "launches": {
+        "original": 0,
+        "torch_fallback": 0,
+        "constexpr_coefficient": 0
+      },
+      "max_abs_error": {
+        "original": 3.2792787507673893e-06,
+        "torch_fallback": 3.2792787507673893e-06,
+        "constexpr_coefficient": 3.2792787507673893e-06
+      },
+      "violations": {
+        "original": 0,
+        "torch_fallback": 0,
+        "constexpr_coefficient": 0
+      }
+    },
+    {
+      "origin": "cpu",
+      "segment": {
+        "number": 3,
+        "epoch": 1187008191.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 5140480,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "points": [
+        1149586
+      ],
+      "expected": [
+        56.83246091049525
+      ],
+      "recorded_chisq": [
+        56.832462310791016
+      ],
+      "variants": {
+        "original": [
+          56.83247375488281
+        ],
+        "torch_fallback": [
+          56.83247375488281
+        ],
+        "constexpr_coefficient": [
+          56.83247375488281
+        ]
+      },
+      "launches": {
+        "original": 0,
+        "torch_fallback": 0,
+        "constexpr_coefficient": 0
+      },
+      "max_abs_error": {
+        "original": 1.2844387562438442e-05,
+        "torch_fallback": 1.2844387562438442e-05,
+        "constexpr_coefficient": 1.2844387562438442e-05
+      },
+      "violations": {
+        "original": 0,
+        "torch_fallback": 0,
+        "constexpr_coefficient": 0
+      }
+    },
+    {
+      "origin": "torch-cuda",
+      "segment": {
+        "number": 1,
+        "epoch": 1187007429.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 2019328,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "points": [
+        882164.0,
+        1800845.0
+      ],
+      "expected": [
+        24.10929634273323,
+        27.934648289305112
+      ],
+      "recorded_chisq": [
+        24.054121017456055,
+        28.655885696411133
+      ],
+      "variants": {
+        "original": [
+          24.054121017456055,
+          28.655885696411133
+        ],
+        "torch_fallback": [
+          24.109296798706055,
+          27.93465232849121
+        ],
+        "constexpr_coefficient": [
+          24.10930633544922,
+          27.93465232849121
+        ]
+      },
+      "launches": {
+        "original": 1,
+        "torch_fallback": 0,
+        "constexpr_coefficient": 1
+      },
+      "max_abs_error": {
+        "original": 0.7212374071060204,
+        "torch_fallback": 4.039186098481196e-06,
+        "constexpr_coefficient": 9.99271598800533e-06
+      },
+      "violations": {
+        "original": 2,
+        "torch_fallback": 0,
+        "constexpr_coefficient": 0
+      }
+    },
+    {
+      "origin": "torch-cuda",
+      "segment": {
+        "number": 2,
+        "epoch": 1187007810.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 3579904,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "points": [
+        787621.0
+      ],
+      "expected": [
+        45.44366243613077
+      ],
+      "recorded_chisq": [
+        45.44366455078125
+      ],
+      "variants": {
+        "original": [
+          45.44366455078125
+        ],
+        "torch_fallback": [
+          45.44366455078125
+        ],
+        "constexpr_coefficient": [
+          45.44366455078125
+        ]
+      },
+      "launches": {
+        "original": 0,
+        "torch_fallback": 0,
+        "constexpr_coefficient": 0
+      },
+      "max_abs_error": {
+        "original": 2.1146504778357667e-06,
+        "torch_fallback": 2.1146504778357667e-06,
+        "constexpr_coefficient": 2.1146504778357667e-06
+      },
+      "violations": {
+        "original": 0,
+        "torch_fallback": 0,
+        "constexpr_coefficient": 0
+      }
+    },
+    {
+      "origin": "torch-cuda",
+      "segment": {
+        "number": 3,
+        "epoch": 1187008191.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 5140480,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "points": [
+        1149586.0
+      ],
+      "expected": [
+        56.832459809391096
+      ],
+      "recorded_chisq": [
+        56.83247375488281
+      ],
+      "variants": {
+        "original": [
+          56.83247375488281
+        ],
+        "torch_fallback": [
+          56.83247375488281
+        ],
+        "constexpr_coefficient": [
+          56.83247375488281
+        ]
+      },
+      "launches": {
+        "original": 0,
+        "torch_fallback": 0,
+        "constexpr_coefficient": 0
+      },
+      "max_abs_error": {
+        "original": 1.3945491716071956e-05,
+        "torch_fallback": 1.3945491716071956e-05,
+        "constexpr_coefficient": 1.3945491716071956e-05
+      },
+      "violations": {
+        "original": 0,
+        "torch_fallback": 0,
+        "constexpr_coefficient": 0
+      }
+    }
+  ],
+  "launches": [
+    {
+      "grid": [
+        2,
+        16
+      ],
+      "original_coefficient": 2.996056226339143e-06,
+      "coefficient_fp32": 2.996056309712003e-06,
+      "constexpr": false
+    },
+    {
+      "grid": [
+        2,
+        16
+      ],
+      "original_coefficient": 2.996056226339143e-06,
+      "coefficient_fp32": 2.996056309712003e-06,
+      "constexpr": true
+    },
+    {
+      "grid": [
+        2,
+        16
+      ],
+      "original_coefficient": 2.996056226339143e-06,
+      "coefficient_fp32": 2.996056309712003e-06,
+      "constexpr": false
+    },
+    {
+      "grid": [
+        2,
+        16
+      ],
+      "original_coefficient": 2.996056226339143e-06,
+      "coefficient_fp32": 2.996056309712003e-06,
+      "constexpr": true
+    }
+  ],
+  "elapsed_wall_seconds": 1.7877593869925477,
+  "input_sha256_after": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/diagnose-chisq-coefficient-v4.py": "ee4ec20a7ab761640453b38cc380863c19c35c7bdedaef2d0033522bcace9155",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/diagnose-chisq-inputs.py": "f935e2430478dc24a4be6213c0152438f2c30a355e829f19bdcf8179c2a6248f",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4.json": "43caf87e57b98782caa3c0e43163e489b9e12c493b2ffc278add1d434f7b876a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v4/pycbc/vetoes/chisq_torch.py": "a2080725994d75ce4a76410df51065373cedfb39bb5ff2adac3f406bc4229447",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/status.json": "ee5b0a1f37df2534d6ebe4d9bd9a454cec5bb6f93d4c7a97a8696d5a029825a5",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-0-corr.npy": "4ac0b32e8be4ed8f168d04dc2eeae8532f2157f8fab9c6ab8e2f2199f76b51b4",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-0-snrv.npy": "88d98ad5a10b96fa427ae4787c92dd973e8f6d224b7f897b91cfc263b5a46043",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-0-indices.npy": "766d0e0e5d7cfb6f07cd0648b6dfe32d431577c9e456184eb8ec3a7d2ff210e4",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-0-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-0-chisq.npy": "c19f5684d7616beee042a28734bcaa7e1205454181ffe307ba6ec03f76886460",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-0-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-0-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-1-corr.npy": "76a090b7720939fab29a85907d687dfa8a279a895ded186d71e5c460431b20ae",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-1-snrv.npy": "26febe8f6804e4b9433003d1af0e9d1aeb2e5488b47ac769f6b03edfa6fa6e32",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-1-indices.npy": "b981fdca6390b213535d4e697b175360578a5b917d39ea68bd71ef198ed92178",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-1-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-1-chisq.npy": "1840b60a724d86161ae49bb430effe1dd4b47f94a21a58b3c6e9af98d705d7ac",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-1-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-1-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-2-corr.npy": "327e23e517dc97b9700375adaa023da2dce764a4b88cc736cc2c0a354bb88e8f",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-2-snrv.npy": "24f240ad44e08fd17d0b91f2283a26e3c4564db7ba97f344dbb519155df3feaf",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-2-indices.npy": "61e6db6a2a3e28b256852eaddc38b8660036a7192a847b89a60fbc84d4a7b21b",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-2-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-2-chisq.npy": "f169cc10e8a7332ab820ab15aae4acaa59fdceef042109fac314cd03df07724f",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-2-template.npy": "6c15fa32848bdee1f658febc3853bcdd70c2344ce74aa07a3c76b1917f991829",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-cpu/capture-2-psd.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/status.json": "fa74cd7b670c86978357d8aaa8273e6536fd795af6b499a5382f251a91709d86",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-0-corr.npy": "2118ff5f86e10bda1f8a7bb366c9c9df4ee23eab87a87b8f70cee2c719c2eabd",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-0-snrv.npy": "bb258a6defd26b8c10ddac9a7944f1ae8849378c3d8332d4900ddafe90bf9689",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-0-indices.npy": "68e8986e259b155fcc75ee936903430e6c10ba8f7e9e0f8d614db2a805ee6077",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-0-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-0-chisq.npy": "6ac14192e0502c02cb89fbee8778aa40978bea25068b586bea988dd5a71dff46",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-0-template.npy": "03bbfec4d28dc14c727711b01bc2b3d651f201f76394fb75a2f9c1286717a4e7",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-0-psd.npy": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-1-corr.npy": "b882cafe92a297ea27838da077334d69a7b3dded20b2ec48ae3979e7e51ac4e0",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-1-snrv.npy": "888b9bc45e6c83a504f641229d7bbadc989a7d08fe18352c1c04c639d36f4e93",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-1-indices.npy": "d5099101055c01db83748cd978a5c1a9c341915e2810c8774c29b2579e6884e9",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-1-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-1-chisq.npy": "c74c31bf721669eac35da8ef02bfe15c9770ce4e6d8c6669bec3c251d750d084",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-1-template.npy": "03bbfec4d28dc14c727711b01bc2b3d651f201f76394fb75a2f9c1286717a4e7",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-1-psd.npy": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-2-corr.npy": "9dbde7bb100a83c212a49ee41d84f788e35b4c386e4223377307f9887d944361",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-2-snrv.npy": "a2fb74590aab981cdbab00b0037221fd3c6b2d790ec29597f08081301b8ef972",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-2-indices.npy": "3cdc4d7ac74814e5e79382adee617ba43197d79e71c6d3c918d1254b3a8bfd27",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-2-bins.npy": "d140c956333d8d8488fe374add463d1f28744566e844bca241d371042f97cf22",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-2-chisq.npy": "b6f2a37117f5b78d0622a146c190e30c5f0782be3ae0f48b486a0633035fa379",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-2-template.npy": "03bbfec4d28dc14c727711b01bc2b3d651f201f76394fb75a2f9c1286717a4e7",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-capture-v4b-torch-cuda/capture-2-psd.npy": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf"
+  },
+  "source_status_after": ""
+}

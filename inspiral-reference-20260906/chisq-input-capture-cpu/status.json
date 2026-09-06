@@ -1,0 +1,426 @@
+{
+  "state": "failed",
+  "started_utc": "2026-09-06T17:43:06.075098+00:00",
+  "pid": 893030,
+  "hostname": "len",
+  "cwd": "/home/xangma/pycbc-torch-inspiral-reference-20260906",
+  "source_info": {
+    "commit": "968bcd558117262af0d603710b054174659adb51",
+    "status": "",
+    "tracked_diff": ""
+  },
+  "input_sha256": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/config.json": "e29df1ee26ad1a513982a81b55d1f8b648126baacc7b509bc918e5c8e912d36a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf": "161820754117cd51b24a7bb672ea456cf7b2a3808e69690c23235d024b1a2916",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-case.py": "243eef653386a76d1ead4b92542bc84088e882df9011faab5a8154154da9c456",
+    "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/capture-chisq-inputs.py": "accfdef4a6266d0bd8bbbb0ce92451d17ed8f33ed74ebac05b4ad30a0db4db8b",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-final-cpu-l512/receipt.json": "0e84a8c9ae1a3433f452fa563c2398f4dc3848c833e9771eb86975570a6fa955",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/pycbc/vetoes/chisq.py": "e3e89c87e4ed73398c79ee6acdf9b359998a6c206a95864cdcd1a03a4a2fb62f",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/pycbc/vetoes/chisq_torch.py": "a2080725994d75ce4a76410df51065373cedfb39bb5ff2adac3f406bc4229447",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/pycbc/scheme.py": "27a0704bea2156e946e29e4437363036da21a05a8a98b403f93e605b75e9f5f0"
+  },
+  "executable_cli": [
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/bin/pycbc_inspiral",
+    "--verbose",
+    "--frame-files",
+    "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf",
+    "--channel-name",
+    "H1:LOSC-STRAIN",
+    "--gps-start-time",
+    "1187007048",
+    "--gps-end-time",
+    "1187009080",
+    "--trig-start-time",
+    "1187007160",
+    "--trig-end-time",
+    "1187009064",
+    "--sample-rate",
+    "4096",
+    "--low-frequency-cutoff",
+    "30",
+    "--strain-high-pass",
+    "25",
+    "--pad-data",
+    "8",
+    "--autogating-threshold",
+    "100",
+    "--autogating-cluster",
+    "5",
+    "--autogating-width",
+    "0.25",
+    "--autogating-taper",
+    "0.25",
+    "--autogating-pad",
+    "16",
+    "--autogating-max-iterations",
+    "1",
+    "--psd-estimation",
+    "median",
+    "--psd-segment-length",
+    "32",
+    "--psd-segment-stride",
+    "16",
+    "--psd-num-segments",
+    "126",
+    "--psd-inverse-length",
+    "16",
+    "--invpsd-trunc-method",
+    "hann",
+    "--invpsd-trunc-which-spectrum",
+    "invasd",
+    "--approximant",
+    "IMRPhenomD",
+    "--order",
+    "-1",
+    "--use-compressed-waveforms",
+    "--waveform-decompression-method",
+    "inline_linear",
+    "--snr-threshold",
+    "5.5",
+    "--newsnr-threshold",
+    "5",
+    "--chisq-bins",
+    "16",
+    "--cluster-window",
+    "1",
+    "--cluster-function",
+    "symmetric",
+    "--fft-backends",
+    "mkl",
+    "--bank-file",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf",
+    "--processing-scheme",
+    "cpu:1",
+    "--segment-length",
+    "512",
+    "--segment-start-pad",
+    "112",
+    "--segment-end-pad",
+    "16",
+    "--output",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/triggers.hdf"
+  ],
+  "template_hash": 4366715446675002219,
+  "captures": [
+    {
+      "template_hash": 4366715446675002219,
+      "template_index": 94,
+      "segment": {
+        "number": 0,
+        "epoch": 1187007048.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 458752,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "snr_norm": 3.5558137339407767e-06,
+      "snr_threshold": null,
+      "arrays": {
+        "corr": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-corr.npy",
+          "sha256": "41b0ecd95c6b1889405110fecea9a587292758f162bb244195adf3001b11d7fe",
+          "dtype": "complex64",
+          "shape": [
+            2097152
+          ]
+        },
+        "snrv": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-snrv.npy",
+          "sha256": "a0952edde162b3fbfa8fbfb1a92dced4831224bc1adf70729b248e9419cf0619",
+          "dtype": "complex64",
+          "shape": [
+            3
+          ]
+        },
+        "indices": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-indices.npy",
+          "sha256": "ee45beca5fa18b34aaa35b2740bc50e4f69d127390b91244a7ab62ff0577791a",
+          "dtype": "uint32",
+          "shape": [
+            3
+          ]
+        },
+        "bins": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-bins.npy",
+          "sha256": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+          "dtype": "int64",
+          "shape": [
+            17
+          ]
+        },
+        "chisq": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-chisq.npy",
+          "sha256": "5df589cbf674b1957da9a588610964b45541fdff931a2b7badd7667168604266",
+          "dtype": "float32",
+          "shape": [
+            3
+          ]
+        },
+        "template": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-template.npy",
+          "sha256": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+          "dtype": "complex64",
+          "shape": [
+            1048577
+          ]
+        },
+        "psd": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-0-psd.npy",
+          "sha256": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+          "dtype": "float32",
+          "shape": [
+            1048577
+          ]
+        }
+      }
+    },
+    {
+      "template_hash": 4366715446675002219,
+      "template_index": 94,
+      "segment": {
+        "number": 1,
+        "epoch": 1187007429.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 2019328,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "snr_norm": 3.5558137339407767e-06,
+      "snr_threshold": null,
+      "arrays": {
+        "corr": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-corr.npy",
+          "sha256": "1e2c6668d12e0371563ee588e990dc07c9e42c071dde5cd0fbff9e37db429fa1",
+          "dtype": "complex64",
+          "shape": [
+            2097152
+          ]
+        },
+        "snrv": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-snrv.npy",
+          "sha256": "f6dda6162ef57ac5d1a4bede5100a2efc80965c49c13e2ec682ed67b32500418",
+          "dtype": "complex64",
+          "shape": [
+            2
+          ]
+        },
+        "indices": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-indices.npy",
+          "sha256": "626cee6c6a9da6c3d4479f29d803dcd4314c970c14c21910733f37e43a5dae52",
+          "dtype": "uint32",
+          "shape": [
+            2
+          ]
+        },
+        "bins": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-bins.npy",
+          "sha256": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+          "dtype": "int64",
+          "shape": [
+            17
+          ]
+        },
+        "chisq": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-chisq.npy",
+          "sha256": "9f4f58be845262c15a3759d96549166a02a207d5d4cc378cacf1bc6cdf8040a5",
+          "dtype": "float32",
+          "shape": [
+            2
+          ]
+        },
+        "template": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-template.npy",
+          "sha256": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+          "dtype": "complex64",
+          "shape": [
+            1048577
+          ]
+        },
+        "psd": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-1-psd.npy",
+          "sha256": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+          "dtype": "float32",
+          "shape": [
+            1048577
+          ]
+        }
+      }
+    },
+    {
+      "template_hash": 4366715446675002219,
+      "template_index": 94,
+      "segment": {
+        "number": 2,
+        "epoch": 1187007810.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 3579904,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "snr_norm": 3.5558137339407767e-06,
+      "snr_threshold": null,
+      "arrays": {
+        "corr": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-corr.npy",
+          "sha256": "4a7d5f6f97db335f400114c92af31ee8f4f9fc6181dcf355ba407163cae8790f",
+          "dtype": "complex64",
+          "shape": [
+            2097152
+          ]
+        },
+        "snrv": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-snrv.npy",
+          "sha256": "17fb70c807b9027064e19203f891eb24525b8ae36ba1850ac4ae78e88a5fc096",
+          "dtype": "complex64",
+          "shape": [
+            2
+          ]
+        },
+        "indices": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-indices.npy",
+          "sha256": "62088e711eedeb8a604a82ba167346ec512d804bf95d1f06d0db9ffd52b9d60f",
+          "dtype": "uint32",
+          "shape": [
+            2
+          ]
+        },
+        "bins": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-bins.npy",
+          "sha256": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+          "dtype": "int64",
+          "shape": [
+            17
+          ]
+        },
+        "chisq": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-chisq.npy",
+          "sha256": "c1003b7f6d58a14d32a34aa4bf58de4bc2bb3571897c2ac7b179c0619a6947e4",
+          "dtype": "float32",
+          "shape": [
+            2
+          ]
+        },
+        "template": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-template.npy",
+          "sha256": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+          "dtype": "complex64",
+          "shape": [
+            1048577
+          ]
+        },
+        "psd": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-2-psd.npy",
+          "sha256": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+          "dtype": "float32",
+          "shape": [
+            1048577
+          ]
+        }
+      }
+    },
+    {
+      "template_hash": 4366715446675002219,
+      "template_index": 94,
+      "segment": {
+        "number": 3,
+        "epoch": 1187008191.0,
+        "analyze_start": 458752,
+        "analyze_stop": 2019328,
+        "cumulative_index": 5140480,
+        "filter_bin_start": 15360,
+        "filter_bin_stop": 1048576
+      },
+      "snr_norm": 3.5558137339407767e-06,
+      "snr_threshold": null,
+      "arrays": {
+        "corr": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-corr.npy",
+          "sha256": "80242c538323714bfa6b9b33c8999e77c3a5e5205de8e8f215ff9641c6b36354",
+          "dtype": "complex64",
+          "shape": [
+            2097152
+          ]
+        },
+        "snrv": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-snrv.npy",
+          "sha256": "55e3ea6e81b96d7a3658b5e0a2684a1bb1506e3a9169f6327598f90fdb6bc6c7",
+          "dtype": "complex64",
+          "shape": [
+            1
+          ]
+        },
+        "indices": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-indices.npy",
+          "sha256": "cb41cdf39c23c172a4ea31243f4b575bf82a35ad451640ba52c16f5cb603e7af",
+          "dtype": "uint32",
+          "shape": [
+            1
+          ]
+        },
+        "bins": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-bins.npy",
+          "sha256": "80dda6033043eb68915813dcc75fa1e1dedcdc21f1bd37cc1bd5d0e901fb3e4e",
+          "dtype": "int64",
+          "shape": [
+            17
+          ]
+        },
+        "chisq": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-chisq.npy",
+          "sha256": "9845e45f8d23eda1bf97fdc9a508e3ab79b492882860ee59940ea620390d00fb",
+          "dtype": "float32",
+          "shape": [
+            1
+          ]
+        },
+        "template": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-template.npy",
+          "sha256": "70b9f70a5a8a9888daf63fac21e0fa3997c3d16f8f30c889ddcdc88a3f6a321b",
+          "dtype": "complex64",
+          "shape": [
+            1048577
+          ]
+        },
+        "psd": {
+          "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/capture-3-psd.npy",
+          "sha256": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+          "dtype": "float32",
+          "shape": [
+            1048577
+          ]
+        }
+      }
+    }
+  ],
+  "conditioned_strain": {
+    "path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/chisq-input-capture-cpu/conditioned-strain.npy",
+    "sha256": "4de2a5395ef6a71e36a4a9f7850ce319c277915bf7c15e73a1a3718566a7f0c2",
+    "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+    "start_time": 1187007048.0,
+    "delta_t": 0.000244140625
+  },
+  "returncode": 1,
+  "traceback": "Traceback (most recent call last):\n  File \"/home/xangma/pycbc-torch-inspiral-reference-20260906/capture-chisq-inputs.py\", line 131, in main\n    assert len(record['captures']) == 5, len(record['captures'])\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: 4\n",
+  "finished_utc": "2026-09-06T17:43:36.904927+00:00",
+  "elapsed_wall_seconds": 30.829488089948427,
+  "input_sha256_after": {
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/config.json": "e29df1ee26ad1a513982a81b55d1f8b648126baacc7b509bc918e5c8e912d36a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf": "161820754117cd51b24a7bb672ea456cf7b2a3808e69690c23235d024b1a2916",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/run-case.py": "243eef653386a76d1ead4b92542bc84088e882df9011faab5a8154154da9c456",
+    "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/capture-chisq-inputs.py": "accfdef4a6266d0bd8bbbb0ce92451d17ed8f33ed74ebac05b4ad30a0db4db8b",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/runs/qual-final-cpu-l512/receipt.json": "0e84a8c9ae1a3433f452fa563c2398f4dc3848c833e9771eb86975570a6fa955",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/pycbc/vetoes/chisq.py": "e3e89c87e4ed73398c79ee6acdf9b359998a6c206a95864cdcd1a03a4a2fb62f",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/pycbc/vetoes/chisq_torch.py": "a2080725994d75ce4a76410df51065373cedfb39bb5ff2adac3f406bc4229447",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v2/pycbc/scheme.py": "27a0704bea2156e946e29e4437363036da21a05a8a98b403f93e605b75e9f5f0"
+  },
+  "source_status_after": ""
+}

@@ -1,0 +1,65 @@
+From 0d00581251e642a5d6b56b2497a9adad93069e6b Mon Sep 17 00:00:00 2001
+From: xangma <xangma@users.noreply.github.com>
+Date: Sun, 6 Sep 2026 16:14:51 +0100
+Subject: [PATCH] Avoid CPU chunk bookkeeping on accelerator peak reductions
+
+---
+ pycbc/filter/matchedfilter.py | 37 +++++++++++++++++++----------------
+ 1 file changed, 20 insertions(+), 17 deletions(-)
+
+diff --git a/pycbc/filter/matchedfilter.py b/pycbc/filter/matchedfilter.py
+index 84f6620cb9..c6a7bd1387 100644
+--- a/pycbc/filter/matchedfilter.py
++++ b/pycbc/filter/matchedfilter.py
+@@ -2134,28 +2134,31 @@ def _torch_batch_peak_values(output, template_count, template_size, segment):
+     values = tensor.reshape(template_count, template_size)[:, segment]
+     if values.shape[1] == 0:
+         return None
+-    rows_per_chunk = template_count
+-    if values.device.type == "cpu":
++    if values.device.type != "cpu":
++        if values.is_complex():
++            sq_mag = torch.view_as_real(values).square().sum(dim=-1)
++        else:
++            sq_mag = values.square()
++        indices = torch.argmax(sq_mag, dim=-1)
++        peaks = values[torch.arange(values.shape[0], device=values.device), indices]
++    else:
+         # Bound temporary magnitudes to keep large batches cache-friendly.
+         rows_per_chunk = max(1, _TORCH_CPU_PEAK_MAX_ELEMENTS // values.shape[1])
+-    index_chunks = []
+-    peak_chunks = []
+-    for chunk in values.split(rows_per_chunk):
+-        if chunk.is_complex():
+-            if chunk.device.type == "cpu":
++        index_chunks = []
++        peak_chunks = []
++        for chunk in values.split(rows_per_chunk):
++            if chunk.is_complex():
+                 # Preserve separately rounded squares, NaNs and first ties.
+                 sq_mag = chunk.real.square() + chunk.imag.square()
+             else:
+-                sq_mag = torch.view_as_real(chunk).square().sum(dim=-1)
+-        else:
+-            sq_mag = chunk.square()
+-        indices = torch.argmax(sq_mag, dim=-1)
+-        peaks = chunk[torch.arange(chunk.shape[0], device=chunk.device), indices]
+-        index_chunks.append(indices)
+-        peak_chunks.append(peaks)
+-    if len(index_chunks) > 1:
+-        indices = torch.cat(index_chunks)
+-        peaks = torch.cat(peak_chunks)
++                sq_mag = chunk.square()
++            indices = torch.argmax(sq_mag, dim=-1)
++            peaks = chunk[torch.arange(chunk.shape[0], device=chunk.device), indices]
++            index_chunks.append(indices)
++            peak_chunks.append(peaks)
++        if len(index_chunks) > 1:
++            indices = torch.cat(index_chunks)
++            peaks = torch.cat(peak_chunks)
+     return (
+         indices.detach().cpu().numpy(),
+         peaks.detach().cpu().numpy(),
+-- 
+2.50.1 (Apple Git-155)
+

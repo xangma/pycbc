@@ -1,0 +1,43 @@
+{
+  "state": "complete",
+  "pid": 615864,
+  "plan": "/home/xangma/pycbc-torch-inspiral-reference-20260906/final-qualifications-v3-plan.json",
+  "plan_sha256": "0621f1a805e2e112962740754d4bbada50e41b1ac3ceaa4895710d735166eb08",
+  "started_utc": "2026-09-06T17:32:44.659332+00:00",
+  "completed": [
+    [
+      "--case",
+      "qual-final-cpu-l512",
+      "--mode",
+      "qualify",
+      "--scheme",
+      "cpu:1",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "qual-final-torch-cpu-l512",
+      "--mode",
+      "qualify",
+      "--scheme",
+      "torch:cpu:1",
+      "--segment-length",
+      "512"
+    ],
+    [
+      "--case",
+      "qual-final-torch-cuda-l512",
+      "--mode",
+      "qualify",
+      "--scheme",
+      "torch:cuda:0",
+      "--segment-length",
+      "512"
+    ]
+  ],
+  "current": null,
+  "child_pid": 665592,
+  "returncode": 0,
+  "finished_utc": "2026-09-06T17:34:57.048867+00:00"
+}

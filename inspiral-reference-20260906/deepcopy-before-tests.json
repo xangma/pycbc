@@ -1,0 +1,20 @@
+{
+  "command": [
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "-B",
+    "-m",
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "/home/xangma/pycbc-torch-inspiral-reference-20260906/test_scheme_deepcopy_regression.py",
+    "-k",
+    "deepcopy"
+  ],
+  "returncode": 1,
+  "expected_failure": true,
+  "source_commit": "fb4b335eeeeaeaa907c1143b45e0191e2d977761",
+  "test_sha256": "45ac62167a6a3c503391f56bbbfc21dd982fbb58f05448b22c3dc52b3aca02cb",
+  "log_sha256": "39799444c369e36f5ae6a6e52aeadf11444451203bab04f6bc5e53a8bd0b2b85",
+  "finished_utc": "2026-09-06T17:24:10.216391+00:00"
+}

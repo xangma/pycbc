@@ -1,0 +1,48 @@
+........................................................................ [ 10%]
+........................................................................ [ 20%]
+...........................s.............s..s....ss........ssss....ss..s [ 30%]
+....ss..s..s..s......sss...s................ssssssss................ssss [ 40%]
+ssss................ssssssss................ssssssss.................... [ 50%]
+........................................................................ [ 60%]
+.s.......sss................................................sss..s...... [ 70%]
+..........s..ss......................................................... [ 80%]
+....................s................................................... [ 90%]
+.......................................................................  [100%]
+=============================== warnings summary ===============================
+test/test_torch_chisq_cpu_optimization.py:733
+  /home/xangma/pycbc-torch-performance-fix-20260906/cpu-candidate-v2/test/test_torch_chisq_cpu_optimization.py:733: UserWarning: Sparse invariant checks are implicitly disabled. Memory errors (e.g. SEGFAULT) will occur when operating on a sparse tensor which violates the invariants, but checks incur performance overhead. To silence this warning, explicitly opt in or out. See `torch.sparse.check_sparse_tensor_invariants.__doc__` for guidance.  (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/Context.cpp:816.)
+    torch.sparse_coo_tensor(
+
+test/test_torch_cpu_native_batch.py: 18 warnings
+  /home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] test/test_torch_large_batches.py:322: native threshold kernel requires CUDA and Triton
+SKIPPED [1] test/test_torch_filter_pipeline.py:83: Torch MPS device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:124: Torch MPS device unavailable
+SKIPPED [2] test/test_torch_filter_pipeline.py:142: Torch MPS device unavailable
+SKIPPED [4] test/test_torch_filter_pipeline.py:183: Torch MPS device unavailable
+SKIPPED [2] test/test_torch_filter_pipeline.py:237: Torch MPS device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:283: Torch MPS device unavailable
+SKIPPED [2] test/test_torch_filter_pipeline.py:323: Torch MPS device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:352: Torch MPS device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:391: Torch MPS device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:435: Torch MPS device unavailable
+SKIPPED [3] test/test_torch_filter_pipeline.py:471: Torch MPS device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:595: Torch MPS device unavailable
+SKIPPED [8] test/test_torch_filter_pipeline.py:644: Torch MPS device unavailable
+SKIPPED [8] test/test_torch_filter_pipeline.py:712: Torch MPS device unavailable
+SKIPPED [8] test/test_torch_filter_pipeline.py:784: Torch MPS device unavailable
+SKIPPED [8] test/test_torch_filter_pipeline.py:836: Torch MPS device unavailable
+SKIPPED [1] test/waveform/test_taylorf2_torch.py:382: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2_torch.py:574: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2_torch.py:610: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2_torch.py:651: Torch MPS device is unavailable
+SKIPPED [3] test/waveform/test_spa_tmplt_sequence_torch.py:88: Torch MPS device unavailable
+SKIPPED [1] test/waveform/test_spa_tmplt_sequence_torch.py:129: Torch MPS device unavailable
+SKIPPED [1] test/test_torch_waveform_generator.py:89: MPS is unavailable
+SKIPPED [2] test/test_torch_waveform_generator.py:125: MPS is unavailable
+SKIPPED [1] test/test_torch_chisq_cpu_optimization.py:784: Torch MPS device unavailable
+654 passed, 65 skipped, 19 warnings in 23.56s

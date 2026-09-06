@@ -1,0 +1,43 @@
+         724 function calls in 0.021 seconds
+
+   Ordered by: cumulative time
+   List reduced from 123 to 35 due to restriction <35>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.000    0.000    0.021    0.021 profile-waveform.py:40(call)
+        1    0.000    0.000    0.021    0.021 waveform.py:930(get_fd_waveform_batch)
+        1    0.003    0.003    0.021    0.021 taylorf2_torch.py:1221(taylorf2_fd_batch)
+        2    0.004    0.002    0.005    0.003 taylorf2_torch.py:701(_evaluate_phase_polynomial)
+        3    0.004    0.001    0.004    0.001 {built-in method torch.exp}
+        3    0.004    0.001    0.004    0.001 {built-in method torch.pow}
+        1    0.000    0.000    0.002    0.002 taylorf2_torch.py:364(taylorf2_aligned_phasing)
+       30    0.001    0.000    0.001    0.000 {built-in method torch.addcmul}
+        1    0.000    0.000    0.001    0.001 taylorf2_torch.py:296(_apply_spin_terms)
+       11    0.001    0.000    0.001    0.000 {built-in method torch.where}
+        6    0.000    0.000    0.000    0.000 {built-in method torch.log}
+       48    0.000    0.000    0.000    0.000 {built-in method torch.isfinite}
+        1    0.000    0.000    0.000    0.000 taylorf2_torch.py:1360(<listcomp>)
+        6    0.000    0.000    0.000    0.000 taylorf2_torch.py:1151(_batch_validate)
+        1    0.000    0.000    0.000    0.000 taylorf2_torch.py:345(_apply_tidal_terms)
+        3    0.000    0.000    0.000    0.000 taylorf2_torch.py:464(stack_coefficients)
+        1    0.000    0.000    0.000    0.000 taylorf2_torch.py:1192(_batch_contact_frequency)
+        2    0.000    0.000    0.000    0.000 {built-in method torch.cat}
+       32    0.000    0.000    0.000    0.000 _tensor.py:32(wrapped)
+        4    0.000    0.000    0.000    0.000 {method 'to' of 'torch._C.TensorBase' objects}
+        6    0.000    0.000    0.000    0.000 taylorf2_torch.py:1159(<listcomp>)
+        3    0.000    0.000    0.000    0.000 taylorf2_torch.py:466(<listcomp>)
+        2    0.000    0.000    0.000    0.000 taylorf2_torch.py:1201(compactness)
+        2    0.000    0.000    0.000    0.000 taylorf2_torch.py:1178(_batch_eos_q_from_lambda)
+        2    0.000    0.000    0.000    0.000 taylorf2_torch.py:267(_f2_14pn_tidal)
+        4    0.000    0.000    0.000    0.000 {built-in method torch.zeros_like}
+        9    0.000    0.000    0.000    0.000 {built-in method torch.stack}
+        2    0.000    0.000    0.000    0.000 taylorf2_torch.py:181(_f2_5pn_so)
+        2    0.000    0.000    0.000    0.000 taylorf2_torch.py:193(_f2_7pn_so)
+        4    0.000    0.000    0.000    0.000 taylorf2_torch.py:1172(_batch_require)
+       11    0.000    0.000    0.000    0.000 taylorf2_torch.py:1072(_batch_tensor)
+       48    0.000    0.000    0.000    0.000 {built-in method torch.broadcast_to}
+       59    0.000    0.000    0.000    0.000 {built-in method torch.as_tensor}
+       40    0.000    0.000    0.000    0.000 {method 'expand' of 'torch._C.TensorBase' objects}
+       16    0.000    0.000    0.000    0.000 _tensor.py:1106(__rsub__)
+
+

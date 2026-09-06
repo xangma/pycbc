@@ -1,0 +1,12 @@
+{
+  "host": "len",
+  "cwd": "/home/xangma/pycbc-torch-performance-fix-20260906",
+  "command": [
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-performance-fix-20260906/run-postchecks.py"
+  ],
+  "pid": 858376,
+  "log": "/home/xangma/pycbc-torch-performance-fix-20260906/postchecks-launch.log",
+  "stop": "ssh len \"kill -TERM 858376\"",
+  "next_check": "30 seconds; remains idle until comparison completes"
+}
