@@ -96,7 +96,9 @@ if _HAS_TRITON:
             - reference_phase
             - tl.full((), PI_OVER_FOUR, tl.float64)
         )
-        amplitude = amplitude_factor * libdevice.pow(velocity, -3.5)
+        amplitude = amplitude_factor * libdevice.pow(
+            velocity, tl.full((), -3.5, tl.float64)
+        )
         sample_real = amplitude * libdevice.cos(phase)
         sample_imag = -amplitude * libdevice.sin(phase)
 
