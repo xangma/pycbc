@@ -1,5 +1,9 @@
 # PyCBC Torch benchmarks — 6 September 2026
 
+**TaylorF2 Triton supplement:** [60 new qualified workers](triton/README.md) show **1.109–2.972×** higher warm public-batch throughput than ordinary Torch CUDA at the same candidate revision. Cold calls cost about 2 seconds versus 0.4 seconds. The opt-in route is included in PR #11 and the updated stack. [Plots and full tables](triton/report/report.md) and [exact-head test receipts](triton/restack-validation.json) accompany the supplement.
+
+The baseline campaign below remains pinned to its original three commits; it was not rerun after adding Triton. Its previously unsupported Triton requests remain part of that historical record.
+
 Fresh measurements of the published assembled Torch stack and its two optional follow-ups, on `len`: AMD Threadripper PRO 3995WX, NVIDIA RTX 4090, Python 3.11.9, Torch 2.13.0+cu130, CUDA 13.0. Processes ran sequentially with affinity to CPUs 8–11. The host was shared; resource snapshots are retained with the runs.
 
 | Measured source | Exact commit |

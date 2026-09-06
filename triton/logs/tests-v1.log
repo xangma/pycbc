@@ -1,0 +1,491 @@
+Sun Sep  6 09:44:25 AM UTC 2026
+fb6c6375308ddea97913593e41ca2d4340f4e532
+.........F.........FF.........s.......sss..................              [100%]
+=================================== FAILURES ===================================
+_________________________ test_cuda_batch_matches_cpu __________________________
+
+args = (<triton.language.core.tensor object at 0x7c938c10b110>, constexpr[-3.5])
+kwargs = {'_semantic': <triton.language.semantic.TritonSemantic object at 0x7c939bd934d0>}
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if "_semantic" not in kwargs or kwargs["_semantic"] is None:
+            raise ValueError("Did you forget to add @triton.jit ? "
+                             "(`_semantic` argument must be provided outside of JIT functions.)")
+>       return fn(*args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^
+
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/language/core.py:43: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/language/extra/cuda/libdevice.py:1562: in pow
+    return core.extern_elementwise(
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/language/core.py:43: in wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+lib_name = '', lib_path = ''
+args = [<triton.language.core.tensor object at 0x7c938c10b110>, constexpr[-3.5]]
+arg_type_symbol_dict = {(triton.language.float32, triton.language.int32): ('__nv_powif', triton.language.float32), (triton.language.float64, ...', triton.language.float32), (triton.language.float64, triton.language.float64): ('__nv_pow', triton.language.float64)}
+is_pure = True
+_semantic = <triton.language.semantic.TritonSemantic object at 0x7c939bd934d0>
+
+    @builtin
+    def extern_elementwise(lib_name: str, lib_path: str, args: list, arg_type_symbol_dict: dict, is_pure: bool,
+                           _semantic=None):
+        '''
+            Dispatch an elementwise function to a library
+            :param lib_name: the name of the library
+            :param lib_path: the path of the library
+            :param args: the arguments of the function
+            :param arg_type_symbol_dict: the type of the arguments
+            :param is_pure: whether the function is pure
+            :return: the return value of the function
+        '''
+        dispatch_args = args.copy()
+        all_scalar = True
+        arg_types = []
+        for i in builtins.range(len(dispatch_args)):
+            dispatch_args[i] = _semantic.to_tensor(dispatch_args[i])
+            arg_types.append(dispatch_args[i].dtype)
+            if dispatch_args[i].type.is_block():
+                all_scalar = False
+    
+        arg_types = tuple(arg_types)
+>       ret_type = arg_type_symbol_dict[arg_types][1]
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: (triton.language.float64, triton.language.float32)
+
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/language/core.py:3439: KeyError
+
+The above exception was the direct cause of the following exception:
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA unavailable")
+    def test_cuda_batch_matches_cpu():
+        params = _params(
+            mass1=[1.4, 1.8, 2.1],
+            mass2=[1.3, 1.2, 1.1],
+            spin1z=[0.02, -0.1, 0.2],
+            spin2z=[-0.01, 0.05, -0.15],
+            f_lower=[20.0, 24.5, 31.0],
+            f_final=[128.0, 96.0, 80.0],
+        )
+    
+        _activate(_scheme.TorchScheme, "cpu")
+        cpu_result = get_fd_waveform_batch("TaylorF2", **params)
+        cpu_hplus = cpu_result.hplus.clone()
+        cpu_hcross = cpu_result.hcross.clone()
+    
+        _activate(_scheme.TorchScheme, "cuda")
+>       cuda_result = get_fd_waveform_batch("TaylorF2", **params)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test/waveform/test_taylorf2_batch.py:306: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+pycbc/waveform/waveform.py:959: in get_fd_waveform_batch
+    return taylorf2_fd_batch(**params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pycbc/waveform/taylorf2_torch.py:1558: in taylorf2_fd_batch
+    plus, cross = taylorf2_triton.evaluate_taylorf2(
+pycbc/waveform/taylorf2_triton.py:183: in evaluate_taylorf2
+    _taylorf2_kernel[(triton.cdiv(output_length, block), batch_size)](
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/runtime/jit.py:370: in <lambda>
+    return lambda *args, **kwargs: self.run(grid=grid, warmup=False, *args, **kwargs)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/runtime/jit.py:739: in run
+    kernel = self._do_compile(key, signature, device, constexprs, options, attrs, warmup)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/runtime/jit.py:884: in _do_compile
+    kernel = self.compile(src, target=target, options=options.__dict__)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/compiler/compiler.py:307: in compile
+    module = src.make_ir(target, options, codegen_fns, module_map, context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <triton.compiler.compiler.ASTSource object at 0x7c939823ca10>
+target = GPUTarget(backend='cuda', arch=89, warp_size=32)
+options = CUDAOptions(num_warps=4, num_ctas=1, num_stages=3, warp_size=32, maxnreg=None, ptx_version=None, ptx_options=None, ir_...ib/libdevice.10.bc'),), debug=False, backend_name='cuda', sanitize_overflow=True, arch='sm89', instrumentation_mode='')
+codegen_fns = {'convert_custom_types': <function convert_custom_float8_sm80 at 0x7c938c44bb00>, 'min_dot_size': <function min_dot_size.<locals>.check_dot_compatibility at 0x7c938c2c4360>}
+module_map = {'triton.language.extra.libdevice': <module 'triton.language.extra.cuda.libdevice' from '/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/language/extra/cuda/libdevice.py'>}
+context = <triton._C.libtriton.ir.context object at 0x7c939821cbb0>
+
+    def make_ir(self, target: GPUTarget, options, codegen_fns, module_map, context):
+        from .code_generator import ast_to_ttir
+>       return ast_to_ttir(self.fn, self, context=context, options=options, codegen_fns=codegen_fns,
+                           module_map=module_map)
+E       triton.compiler.errors.CompilationError: at 67:35:
+E               # retain their explicit operation order (enable_fp_fusion=False).
+E               phase = tl.fma(phase, velocity, term)
+E           velocity_sq = velocity * velocity
+E           phase = phase / (velocity_sq * velocity_sq * velocity)
+E           phase = (
+E               phase
+E               + tl.full((), TIME_SHIFT, tl.float64) * frequency
+E               - 2.0 * coa_phase
+E               - reference_phase
+E               - tl.full((), PI_OVER_FOUR, tl.float64)
+E           )
+E           amplitude = amplitude_factor * libdevice.pow(velocity, -3.5)
+E                                          ^
+E       (triton.language.float64, triton.language.float32)
+
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/compiler/compiler.py:80: CompilationError
+_ test_triton_cuda_launch_and_full_complex_parity[uneven-grid-cutoffs-and-reference] _
+
+args = (<triton.language.core.tensor object at 0x7c938c1130d0>, constexpr[-3.5])
+kwargs = {'_semantic': <triton.language.semantic.TritonSemantic object at 0x7c93865a0f50>}
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if "_semantic" not in kwargs or kwargs["_semantic"] is None:
+            raise ValueError("Did you forget to add @triton.jit ? "
+                             "(`_semantic` argument must be provided outside of JIT functions.)")
+>       return fn(*args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^
+
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/language/core.py:43: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/language/extra/cuda/libdevice.py:1562: in pow
+    return core.extern_elementwise(
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/language/core.py:43: in wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+lib_name = '', lib_path = ''
+args = [<triton.language.core.tensor object at 0x7c938c1130d0>, constexpr[-3.5]]
+arg_type_symbol_dict = {(triton.language.float32, triton.language.int32): ('__nv_powif', triton.language.float32), (triton.language.float64, ...', triton.language.float32), (triton.language.float64, triton.language.float64): ('__nv_pow', triton.language.float64)}
+is_pure = True
+_semantic = <triton.language.semantic.TritonSemantic object at 0x7c93865a0f50>
+
+    @builtin
+    def extern_elementwise(lib_name: str, lib_path: str, args: list, arg_type_symbol_dict: dict, is_pure: bool,
+                           _semantic=None):
+        '''
+            Dispatch an elementwise function to a library
+            :param lib_name: the name of the library
+            :param lib_path: the path of the library
+            :param args: the arguments of the function
+            :param arg_type_symbol_dict: the type of the arguments
+            :param is_pure: whether the function is pure
+            :return: the return value of the function
+        '''
+        dispatch_args = args.copy()
+        all_scalar = True
+        arg_types = []
+        for i in builtins.range(len(dispatch_args)):
+            dispatch_args[i] = _semantic.to_tensor(dispatch_args[i])
+            arg_types.append(dispatch_args[i].dtype)
+            if dispatch_args[i].type.is_block():
+                all_scalar = False
+    
+        arg_types = tuple(arg_types)
+>       ret_type = arg_type_symbol_dict[arg_types][1]
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: (triton.language.float64, triton.language.float32)
+
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/language/core.py:3439: KeyError
+
+The above exception was the direct cause of the following exception:
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7c9386064750>
+updates = {'delta_f': 0.3, 'f_final': [128.2, 91.7], 'f_lower': [20.25, 31.1], 'f_ref': [0.0, 29.1]}
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA unavailable")
+    @pytest.mark.parametrize(
+        "updates",
+        [
+            {
+                "delta_f": 0.3,
+                "f_lower": [20.25, 31.1],
+                "f_final": [128.2, 91.7],
+                "f_ref": [0.0, 29.1],
+            },
+            {
+                "delta_f": 0.5,
+                "f_lower": [20.25, 22.1],
+                "f_final": 0.0,
+                "f_ref": [30.0, 25.0],
+                "lambda1": [800.0, 300.0],
+                "lambda2": [700.0, 100.0],
+                "dquad_mon1": [0.0, 2.2],
+                "dquad_mon2": [0.0, 1.5],
+                "dchi3": [0.0, 0.02],
+                "dchi6l": [-0.01, 0.0],
+                "phase_order": 4,
+                "spin_order": 5,
+                "tidal_order": 15,
+            },
+        ],
+        ids=["uneven-grid-cutoffs-and-reference", "pn-spin-tides-default-cutoff"],
+    )
+    def test_triton_cuda_launch_and_full_complex_parity(monkeypatch, updates):
+        from pycbc.waveform import taylorf2_triton
+    
+        if not taylorf2_triton.is_available() or torch.version.hip is not None:
+            pytest.skip("Triton CUDA unavailable")
+        launches = []
+        original_run = taylorf2_triton._taylorf2_kernel.run
+    
+        def record_run(*args, **kwargs):
+            result = original_run(*args, **kwargs)
+            launches.append(True)
+            return result
+    
+        monkeypatch.setattr(taylorf2_triton._taylorf2_kernel, "run", record_run)
+        params = _params(
+            mass1=[1.4, 2.0],
+            mass2=[1.3, 1.6],
+            spin1z=[0.02, 0.1],
+            spin2z=[-0.01, -0.04],
+            distance=[100.0, 150.0],
+            inclination=[0.8, 0.3],
+            coa_phase=[0.2, 0.7],
+            long_asc_nodes=[0.37, 0.11],
+            **updates,
+        )
+        _activate(_scheme.TorchScheme, "cuda")
+        monkeypatch.setenv("PYCBC_TAYLORF2_TRITON", "0")
+        expected = get_fd_waveform_batch("TaylorF2", **params)
+        assert not launches
+        monkeypatch.setenv("PYCBC_TAYLORF2_TRITON", "1")
+>       actual = get_fd_waveform_batch("TaylorF2", **params)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test/waveform/test_taylorf2_batch.py:581: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+pycbc/waveform/waveform.py:959: in get_fd_waveform_batch
+    return taylorf2_fd_batch(**params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pycbc/waveform/taylorf2_torch.py:1558: in taylorf2_fd_batch
+    plus, cross = taylorf2_triton.evaluate_taylorf2(
+pycbc/waveform/taylorf2_triton.py:183: in evaluate_taylorf2
+    _taylorf2_kernel[(triton.cdiv(output_length, block), batch_size)](
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/runtime/jit.py:370: in <lambda>
+    return lambda *args, **kwargs: self.run(grid=grid, warmup=False, *args, **kwargs)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test/waveform/test_taylorf2_batch.py:560: in record_run
+    result = original_run(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/runtime/jit.py:739: in run
+    kernel = self._do_compile(key, signature, device, constexprs, options, attrs, warmup)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/runtime/jit.py:884: in _do_compile
+    kernel = self.compile(src, target=target, options=options.__dict__)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/compiler/compiler.py:307: in compile
+    module = src.make_ir(target, options, codegen_fns, module_map, context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <triton.compiler.compiler.ASTSource object at 0x7c936a6fa750>
+target = GPUTarget(backend='cuda', arch=89, warp_size=32)
+options = CUDAOptions(num_warps=4, num_ctas=1, num_stages=3, warp_size=32, maxnreg=None, ptx_version=None, ptx_options=None, ir_...ib/libdevice.10.bc'),), debug=False, backend_name='cuda', sanitize_overflow=True, arch='sm89', instrumentation_mode='')
+codegen_fns = {'convert_custom_types': <function convert_custom_float8_sm80 at 0x7c938c44bb00>, 'min_dot_size': <function min_dot_size.<locals>.check_dot_compatibility at 0x7c93865bf560>}
+module_map = {'triton.language.extra.libdevice': <module 'triton.language.extra.cuda.libdevice' from '/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/language/extra/cuda/libdevice.py'>}
+context = <triton._C.libtriton.ir.context object at 0x7c93865a3570>
+
+    def make_ir(self, target: GPUTarget, options, codegen_fns, module_map, context):
+        from .code_generator import ast_to_ttir
+>       return ast_to_ttir(self.fn, self, context=context, options=options, codegen_fns=codegen_fns,
+                           module_map=module_map)
+E       triton.compiler.errors.CompilationError: at 67:35:
+E               # retain their explicit operation order (enable_fp_fusion=False).
+E               phase = tl.fma(phase, velocity, term)
+E           velocity_sq = velocity * velocity
+E           phase = phase / (velocity_sq * velocity_sq * velocity)
+E           phase = (
+E               phase
+E               + tl.full((), TIME_SHIFT, tl.float64) * frequency
+E               - 2.0 * coa_phase
+E               - reference_phase
+E               - tl.full((), PI_OVER_FOUR, tl.float64)
+E           )
+E           amplitude = amplitude_factor * libdevice.pow(velocity, -3.5)
+E                                          ^
+E       (triton.language.float64, triton.language.float32)
+
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/compiler/compiler.py:80: CompilationError
+_ test_triton_cuda_launch_and_full_complex_parity[pn-spin-tides-default-cutoff] _
+
+args = (<triton.language.core.tensor object at 0x7c936a735610>, constexpr[-3.5])
+kwargs = {'_semantic': <triton.language.semantic.TritonSemantic object at 0x7c93862eda50>}
+
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if "_semantic" not in kwargs or kwargs["_semantic"] is None:
+            raise ValueError("Did you forget to add @triton.jit ? "
+                             "(`_semantic` argument must be provided outside of JIT functions.)")
+>       return fn(*args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^
+
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/language/core.py:43: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/language/extra/cuda/libdevice.py:1562: in pow
+    return core.extern_elementwise(
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/language/core.py:43: in wrapper
+    return fn(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+lib_name = '', lib_path = ''
+args = [<triton.language.core.tensor object at 0x7c936a735610>, constexpr[-3.5]]
+arg_type_symbol_dict = {(triton.language.float32, triton.language.int32): ('__nv_powif', triton.language.float32), (triton.language.float64, ...', triton.language.float32), (triton.language.float64, triton.language.float64): ('__nv_pow', triton.language.float64)}
+is_pure = True
+_semantic = <triton.language.semantic.TritonSemantic object at 0x7c93862eda50>
+
+    @builtin
+    def extern_elementwise(lib_name: str, lib_path: str, args: list, arg_type_symbol_dict: dict, is_pure: bool,
+                           _semantic=None):
+        '''
+            Dispatch an elementwise function to a library
+            :param lib_name: the name of the library
+            :param lib_path: the path of the library
+            :param args: the arguments of the function
+            :param arg_type_symbol_dict: the type of the arguments
+            :param is_pure: whether the function is pure
+            :return: the return value of the function
+        '''
+        dispatch_args = args.copy()
+        all_scalar = True
+        arg_types = []
+        for i in builtins.range(len(dispatch_args)):
+            dispatch_args[i] = _semantic.to_tensor(dispatch_args[i])
+            arg_types.append(dispatch_args[i].dtype)
+            if dispatch_args[i].type.is_block():
+                all_scalar = False
+    
+        arg_types = tuple(arg_types)
+>       ret_type = arg_type_symbol_dict[arg_types][1]
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: (triton.language.float64, triton.language.float32)
+
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/language/core.py:3439: KeyError
+
+The above exception was the direct cause of the following exception:
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7c93862ecd10>
+updates = {'dchi3': [0.0, 0.02], 'dchi6l': [-0.01, 0.0], 'delta_f': 0.5, 'dquad_mon1': [0.0, 2.2], ...}
+
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA unavailable")
+    @pytest.mark.parametrize(
+        "updates",
+        [
+            {
+                "delta_f": 0.3,
+                "f_lower": [20.25, 31.1],
+                "f_final": [128.2, 91.7],
+                "f_ref": [0.0, 29.1],
+            },
+            {
+                "delta_f": 0.5,
+                "f_lower": [20.25, 22.1],
+                "f_final": 0.0,
+                "f_ref": [30.0, 25.0],
+                "lambda1": [800.0, 300.0],
+                "lambda2": [700.0, 100.0],
+                "dquad_mon1": [0.0, 2.2],
+                "dquad_mon2": [0.0, 1.5],
+                "dchi3": [0.0, 0.02],
+                "dchi6l": [-0.01, 0.0],
+                "phase_order": 4,
+                "spin_order": 5,
+                "tidal_order": 15,
+            },
+        ],
+        ids=["uneven-grid-cutoffs-and-reference", "pn-spin-tides-default-cutoff"],
+    )
+    def test_triton_cuda_launch_and_full_complex_parity(monkeypatch, updates):
+        from pycbc.waveform import taylorf2_triton
+    
+        if not taylorf2_triton.is_available() or torch.version.hip is not None:
+            pytest.skip("Triton CUDA unavailable")
+        launches = []
+        original_run = taylorf2_triton._taylorf2_kernel.run
+    
+        def record_run(*args, **kwargs):
+            result = original_run(*args, **kwargs)
+            launches.append(True)
+            return result
+    
+        monkeypatch.setattr(taylorf2_triton._taylorf2_kernel, "run", record_run)
+        params = _params(
+            mass1=[1.4, 2.0],
+            mass2=[1.3, 1.6],
+            spin1z=[0.02, 0.1],
+            spin2z=[-0.01, -0.04],
+            distance=[100.0, 150.0],
+            inclination=[0.8, 0.3],
+            coa_phase=[0.2, 0.7],
+            long_asc_nodes=[0.37, 0.11],
+            **updates,
+        )
+        _activate(_scheme.TorchScheme, "cuda")
+        monkeypatch.setenv("PYCBC_TAYLORF2_TRITON", "0")
+        expected = get_fd_waveform_batch("TaylorF2", **params)
+        assert not launches
+        monkeypatch.setenv("PYCBC_TAYLORF2_TRITON", "1")
+>       actual = get_fd_waveform_batch("TaylorF2", **params)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test/waveform/test_taylorf2_batch.py:581: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+pycbc/waveform/waveform.py:959: in get_fd_waveform_batch
+    return taylorf2_fd_batch(**params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pycbc/waveform/taylorf2_torch.py:1558: in taylorf2_fd_batch
+    plus, cross = taylorf2_triton.evaluate_taylorf2(
+pycbc/waveform/taylorf2_triton.py:183: in evaluate_taylorf2
+    _taylorf2_kernel[(triton.cdiv(output_length, block), batch_size)](
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/runtime/jit.py:370: in <lambda>
+    return lambda *args, **kwargs: self.run(grid=grid, warmup=False, *args, **kwargs)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test/waveform/test_taylorf2_batch.py:560: in record_run
+    result = original_run(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/runtime/jit.py:739: in run
+    kernel = self._do_compile(key, signature, device, constexprs, options, attrs, warmup)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/runtime/jit.py:884: in _do_compile
+    kernel = self.compile(src, target=target, options=options.__dict__)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/compiler/compiler.py:307: in compile
+    module = src.make_ir(target, options, codegen_fns, module_map, context)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <triton.compiler.compiler.ASTSource object at 0x7c93862ee9d0>
+target = GPUTarget(backend='cuda', arch=89, warp_size=32)
+options = CUDAOptions(num_warps=4, num_ctas=1, num_stages=3, warp_size=32, maxnreg=None, ptx_version=None, ptx_options=None, ir_...ib/libdevice.10.bc'),), debug=False, backend_name='cuda', sanitize_overflow=True, arch='sm89', instrumentation_mode='')
+codegen_fns = {'convert_custom_types': <function convert_custom_float8_sm80 at 0x7c938c44bb00>, 'min_dot_size': <function min_dot_size.<locals>.check_dot_compatibility at 0x7c9386604e00>}
+module_map = {'triton.language.extra.libdevice': <module 'triton.language.extra.cuda.libdevice' from '/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/language/extra/cuda/libdevice.py'>}
+context = <triton._C.libtriton.ir.context object at 0x7c93862ef970>
+
+    def make_ir(self, target: GPUTarget, options, codegen_fns, module_map, context):
+        from .code_generator import ast_to_ttir
+>       return ast_to_ttir(self.fn, self, context=context, options=options, codegen_fns=codegen_fns,
+                           module_map=module_map)
+E       triton.compiler.errors.CompilationError: at 67:35:
+E               # retain their explicit operation order (enable_fp_fusion=False).
+E               phase = tl.fma(phase, velocity, term)
+E           velocity_sq = velocity * velocity
+E           phase = phase / (velocity_sq * velocity_sq * velocity)
+E           phase = (
+E               phase
+E               + tl.full((), TIME_SHIFT, tl.float64) * frequency
+E               - 2.0 * coa_phase
+E               - reference_phase
+E               - tl.full((), PI_OVER_FOUR, tl.float64)
+E           )
+E           amplitude = amplitude_factor * libdevice.pow(velocity, -3.5)
+E                                          ^
+E       (triton.language.float64, triton.language.float32)
+
+../../venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/triton/compiler/compiler.py:80: CompilationError
+=========================== short test summary info ============================
+FAILED test/waveform/test_taylorf2_batch.py::test_cuda_batch_matches_cpu - tr...
+FAILED test/waveform/test_taylorf2_batch.py::test_triton_cuda_launch_and_full_complex_parity[uneven-grid-cutoffs-and-reference]
+FAILED test/waveform/test_taylorf2_batch.py::test_triton_cuda_launch_and_full_complex_parity[pn-spin-tides-default-cutoff]
+3 failed, 52 passed, 4 skipped in 7.81s
+Sun Sep  6 09:44:35 AM UTC 2026

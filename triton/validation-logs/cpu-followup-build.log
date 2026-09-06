@@ -1,0 +1,19 @@
+/home/xangma/pycbc-torch-split-20260905/venv/lib/python3.11/site-packages/setuptools/_distutils/extension.py:134: UserWarning: Unknown Extension options: 'compiler_directives'
+  warnings.warn(msg)
+running build_ext
+Compiling pycbc/filter/matchedfilter_cpu.pyx because it changed.
+[1/1] Cythonizing pycbc/filter/matchedfilter_cpu.pyx
+Compiling pycbc/vetoes/chisq_cpu.pyx because it changed.
+[1/1] Cythonizing pycbc/vetoes/chisq_cpu.pyx
+/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/Cython/Compiler/Main.py:381: FutureWarning: Cython directive 'language_level' not set, using '3str' for now (Py3). This has changed from earlier releases! File: /home/xangma/pycbc-taylorf2-triton-20260906/validation/pycbc/filter/matchedfilter_cpu.pyx
+  tree = Parsing.p_module(s, pxd, full_module_name)
+/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/Cython/Compiler/Main.py:381: FutureWarning: Cython directive 'language_level' not set, using '3str' for now (Py3). This has changed from earlier releases! File: /home/xangma/pycbc-taylorf2-triton-20260906/validation/pycbc/vetoes/chisq_cpu.pyx
+  tree = Parsing.p_module(s, pxd, full_module_name)
+building 'pycbc.filter.matchedfilter_cpu' extension
+gcc -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -I/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/numpy/core/include -I/home/xangma/pycbc-torch-split-20260905/venv/include -I/home/xangma/miniconda3/envs/pycbc3g/include/python3.11 -c pycbc/filter/matchedfilter_cpu.cpp -o build/temp.linux-x86_64-cpython-311/pycbc/filter/matchedfilter_cpu.o -O3 -w -ffast-math -ffinite-math-only -msse4.2 -fopenmp
+building 'pycbc.vetoes.chisq_cpu' extension
+gcc -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -DNDEBUG -fwrapv -O2 -Wall -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -O2 -isystem /home/xangma/miniconda3/envs/pycbc3g/include -fPIC -I/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/numpy/core/include -I/home/xangma/pycbc-torch-split-20260905/venv/include -I/home/xangma/miniconda3/envs/pycbc3g/include/python3.11 -c pycbc/vetoes/chisq_cpu.cpp -o build/temp.linux-x86_64-cpython-311/pycbc/vetoes/chisq_cpu.o -O3 -w -ffast-math -ffinite-math-only -msse4.2 -fopenmp
+g++ -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -shared -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib build/temp.linux-x86_64-cpython-311/pycbc/filter/matchedfilter_cpu.o -lm -o build/lib.linux-x86_64-cpython-311/pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so -fopenmp
+g++ -pthread -B /home/xangma/miniconda3/envs/pycbc3g/compiler_compat -shared -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,--allow-shlib-undefined -Wl,-rpath,/home/xangma/miniconda3/envs/pycbc3g/lib -Wl,-rpath-link,/home/xangma/miniconda3/envs/pycbc3g/lib -L/home/xangma/miniconda3/envs/pycbc3g/lib build/temp.linux-x86_64-cpython-311/pycbc/vetoes/chisq_cpu.o -lm -o build/lib.linux-x86_64-cpython-311/pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so -fopenmp
+copying build/lib.linux-x86_64-cpython-311/pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so -> pycbc/filter
+copying build/lib.linux-x86_64-cpython-311/pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so -> pycbc/vetoes

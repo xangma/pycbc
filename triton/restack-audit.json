@@ -1,0 +1,122 @@
+[
+  {
+    "key": "pr7",
+    "old_sha": "5012f612f0ca47fc7c12b06749d47b2cea4bd66f",
+    "sha": "a4ba198e7c4d2fa1b0238de946f1367a98e7a2f6",
+    "parent": "51e82b2ac935c53d988aae495f5e7c0328524b4e",
+    "candidate_files": [
+      "pycbc/waveform/taylorf2_torch.py",
+      "pycbc/waveform/taylorf2_triton.py",
+      "test/waveform/test_taylorf2_batch.py",
+      "docs/waveform.rst"
+    ],
+    "changed_from_old": "docs/waveform.rst                    |   9 ++\n pycbc/waveform/taylorf2_torch.py     | 100 +++++++++-----\n pycbc/waveform/taylorf2_triton.py    | 205 ++++++++++++++++++++++++++++\n test/waveform/test_taylorf2_batch.py | 253 +++++++++++++++++++++++++++++++++++\n 4 files changed, 537 insertions(+), 30 deletions(-)",
+    "feature_patch_unchanged": false
+  },
+  {
+    "key": "pr8",
+    "old_sha": "4db9f7487e2a6b0217350fe20f023f9b847c7028",
+    "sha": "21b7a4c1c47cfea837f6e02fb8a28a8e837ddccb",
+    "parent": "a4ba198e7c4d2fa1b0238de946f1367a98e7a2f6",
+    "candidate_files": [
+      "pycbc/waveform/taylorf2_torch.py",
+      "pycbc/waveform/taylorf2_triton.py",
+      "test/waveform/test_taylorf2_batch.py",
+      "docs/waveform.rst"
+    ],
+    "changed_from_old": "docs/waveform.rst                    |   9 ++\n pycbc/waveform/taylorf2_torch.py     | 100 +++++++++-----\n pycbc/waveform/taylorf2_triton.py    | 205 ++++++++++++++++++++++++++++\n test/waveform/test_taylorf2_batch.py | 253 +++++++++++++++++++++++++++++++++++\n 4 files changed, 537 insertions(+), 30 deletions(-)",
+    "feature_patch_unchanged": true
+  },
+  {
+    "key": "pr9",
+    "old_sha": "7a4c97822c8b926d47e014c9f170b2995221a5c0",
+    "sha": "7dfd7de6ac69785f2c5cc8001c720e413e8d7cce",
+    "parent": "21b7a4c1c47cfea837f6e02fb8a28a8e837ddccb",
+    "candidate_files": [
+      "pycbc/waveform/taylorf2_torch.py",
+      "pycbc/waveform/taylorf2_triton.py",
+      "test/waveform/test_taylorf2_batch.py",
+      "docs/waveform.rst"
+    ],
+    "changed_from_old": "docs/waveform.rst                    |   9 ++\n pycbc/waveform/taylorf2_torch.py     | 100 +++++++++-----\n pycbc/waveform/taylorf2_triton.py    | 205 ++++++++++++++++++++++++++++\n test/waveform/test_taylorf2_batch.py | 253 +++++++++++++++++++++++++++++++++++\n 4 files changed, 537 insertions(+), 30 deletions(-)",
+    "feature_patch_unchanged": true
+  },
+  {
+    "key": "pr10",
+    "old_sha": "2df770bb58b453d39d5b715bd7190d52f984eb47",
+    "sha": "78d99b5e0f540abd438e01a221de77fc02109b3f",
+    "parent": "7dfd7de6ac69785f2c5cc8001c720e413e8d7cce",
+    "candidate_files": [
+      "pycbc/waveform/taylorf2_torch.py",
+      "pycbc/waveform/taylorf2_triton.py",
+      "test/waveform/test_taylorf2_batch.py",
+      "docs/waveform.rst"
+    ],
+    "changed_from_old": "docs/waveform.rst                    |   9 ++\n pycbc/waveform/taylorf2_torch.py     | 100 +++++++++-----\n pycbc/waveform/taylorf2_triton.py    | 205 ++++++++++++++++++++++++++++\n test/waveform/test_taylorf2_batch.py | 253 +++++++++++++++++++++++++++++++++++\n 4 files changed, 537 insertions(+), 30 deletions(-)",
+    "feature_patch_unchanged": true
+  },
+  {
+    "key": "pr11",
+    "old_sha": "607bce53ead14f12af32552a5b2441d3bc667267",
+    "sha": "d44ed6e2273488b0fcd52819f3a604ae38b8a79c",
+    "parent": "78d99b5e0f540abd438e01a221de77fc02109b3f",
+    "candidate_files": [
+      "pycbc/waveform/taylorf2_torch.py",
+      "pycbc/waveform/taylorf2_triton.py",
+      "test/waveform/test_taylorf2_batch.py",
+      "docs/waveform.rst",
+      "docs/torch_optimizations.rst",
+      "docs/torch_parity.rst"
+    ],
+    "changed_from_old": "docs/torch_optimizations.rst         |   8 ++\n docs/torch_parity.rst                |   5 +\n docs/waveform.rst                    |   9 ++\n pycbc/waveform/taylorf2_torch.py     | 100 +++++++++-----\n pycbc/waveform/taylorf2_triton.py    | 205 ++++++++++++++++++++++++++++\n test/waveform/test_taylorf2_batch.py | 253 +++++++++++++++++++++++++++++++++++\n 6 files changed, 550 insertions(+), 30 deletions(-)",
+    "feature_patch_unchanged": false
+  },
+  {
+    "key": "format-fft",
+    "old_sha": "eba814819f1a28279352b7dfa61cf40d6cf8dcfe",
+    "sha": "ebc89b13506128a89bc00d367c5a02f1f6158be3",
+    "parent": "d44ed6e2273488b0fcd52819f3a604ae38b8a79c",
+    "candidate_files": [
+      "pycbc/waveform/taylorf2_torch.py",
+      "pycbc/waveform/taylorf2_triton.py",
+      "test/waveform/test_taylorf2_batch.py",
+      "docs/waveform.rst",
+      "docs/torch_optimizations.rst",
+      "docs/torch_parity.rst"
+    ],
+    "changed_from_old": "docs/torch_optimizations.rst         |   8 ++\n docs/torch_parity.rst                |   5 +\n docs/waveform.rst                    |   9 ++\n pycbc/waveform/taylorf2_torch.py     | 100 +++++++++-----\n pycbc/waveform/taylorf2_triton.py    | 205 ++++++++++++++++++++++++++++\n test/waveform/test_taylorf2_batch.py | 253 +++++++++++++++++++++++++++++++++++\n 6 files changed, 550 insertions(+), 30 deletions(-)",
+    "feature_patch_unchanged": true
+  },
+  {
+    "key": "fft-followup",
+    "old_sha": "e6073eaf1a89cfed69af53707f52321eadf129f1",
+    "sha": "e05ff4027853f92589f6b4e7226f0eb023f0a2da",
+    "parent": "ebc89b13506128a89bc00d367c5a02f1f6158be3",
+    "candidate_files": [
+      "pycbc/waveform/taylorf2_torch.py",
+      "pycbc/waveform/taylorf2_triton.py",
+      "test/waveform/test_taylorf2_batch.py",
+      "docs/waveform.rst",
+      "docs/torch_optimizations.rst",
+      "docs/torch_parity.rst"
+    ],
+    "changed_from_old": "docs/torch_optimizations.rst         |   8 ++\n docs/torch_parity.rst                |   5 +\n docs/waveform.rst                    |   9 ++\n pycbc/waveform/taylorf2_torch.py     | 100 +++++++++-----\n pycbc/waveform/taylorf2_triton.py    | 205 ++++++++++++++++++++++++++++\n test/waveform/test_taylorf2_batch.py | 253 +++++++++++++++++++++++++++++++++++\n 6 files changed, 550 insertions(+), 30 deletions(-)",
+    "feature_patch_unchanged": true
+  },
+  {
+    "key": "cpu-followup",
+    "old_sha": "1a2ebea088d9e0a31cbb22c19ad24f96ffea2b7c",
+    "sha": "f62d16674dfa8d792e670614b67f64b86c32f0b3",
+    "parent": "d44ed6e2273488b0fcd52819f3a604ae38b8a79c",
+    "candidate_files": [
+      "pycbc/waveform/taylorf2_torch.py",
+      "pycbc/waveform/taylorf2_triton.py",
+      "test/waveform/test_taylorf2_batch.py",
+      "docs/waveform.rst",
+      "docs/torch_optimizations.rst",
+      "docs/torch_parity.rst"
+    ],
+    "changed_from_old": "docs/torch_optimizations.rst         |   8 ++\n docs/torch_parity.rst                |   5 +\n docs/waveform.rst                    |   9 ++\n pycbc/waveform/taylorf2_torch.py     | 100 +++++++++-----\n pycbc/waveform/taylorf2_triton.py    | 205 ++++++++++++++++++++++++++++\n test/waveform/test_taylorf2_batch.py | 253 +++++++++++++++++++++++++++++++++++\n 6 files changed, 550 insertions(+), 30 deletions(-)",
+    "feature_patch_unchanged": true
+  }
+]

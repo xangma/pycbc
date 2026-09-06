@@ -1,0 +1,448 @@
+{
+  "schema": 1,
+  "method": "sequential fresh processes; route order rotated by replicate within each workload; median of worker medians, no pooled inner calls",
+  "expected_sha": "6829dc9bcba07ca7d3da44de7589cc4e9fb84da5",
+  "uncertainty": "observed range of worker medians; not a confidence interval",
+  "groups": {
+    "cuda-off-b1-n4097": {
+      "route": "cuda-off",
+      "batch": 1,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-on-b1-n4097": {
+      "route": "cuda-on",
+      "batch": 1,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-off-b8-n4097": {
+      "route": "cuda-off",
+      "batch": 8,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-on-b8-n4097": {
+      "route": "cuda-on",
+      "batch": 8,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-off-b32-n4097": {
+      "route": "cuda-off",
+      "batch": 32,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-on-b32-n4097": {
+      "route": "cuda-on",
+      "batch": 32,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-off-b128-n4097": {
+      "route": "cuda-off",
+      "batch": 128,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-on-b128-n4097": {
+      "route": "cuda-on",
+      "batch": 128,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-off-b512-n4097": {
+      "route": "cuda-off",
+      "batch": 512,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-on-b512-n4097": {
+      "route": "cuda-on",
+      "batch": 512,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-off-b1-n32769": {
+      "route": "cuda-off",
+      "batch": 1,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-on-b1-n32769": {
+      "route": "cuda-on",
+      "batch": 1,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-off-b8-n32769": {
+      "route": "cuda-off",
+      "batch": 8,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-on-b8-n32769": {
+      "route": "cuda-on",
+      "batch": 8,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-off-b32-n32769": {
+      "route": "cuda-off",
+      "batch": 32,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-on-b32-n32769": {
+      "route": "cuda-on",
+      "batch": 32,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-off-b128-n32769": {
+      "route": "cuda-off",
+      "batch": 128,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-on-b128-n32769": {
+      "route": "cuda-on",
+      "batch": 128,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-off-b512-n32769": {
+      "route": "cuda-off",
+      "batch": 512,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    },
+    "cuda-on-b512-n32769": {
+      "route": "cuda-on",
+      "batch": 512,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "failed",
+        "failed",
+        "failed"
+      ],
+      "reasons": [
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha",
+        "RuntimeError: source must be clean and match --expected-sha"
+      ],
+      "eligible": false,
+      "parameter_sha256": null
+    }
+  }
+}

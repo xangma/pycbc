@@ -1,5 +1,7 @@
 # Reproducing the measurements
 
+For the subsequently added opt-in TaylorF2 Triton route, use the [separate comparison and reproduction instructions](triton/REPRODUCE.md). The baseline commands below target the original pre-Triton commits.
+
 The original commands, working directories, process IDs, return codes and logs are preserved in `live/runs.json`, `smoke/runs.json`, `supplement/runs.json`, `supplement/waveform/manifest.json` and `supplement/inference/process-receipts.json`. Use a **new output directory** for a rerun; do not overwrite this evidence.
 
 The recorded environment is Linux on a Threadripper PRO 3995WX and RTX 4090, Python 3.11.9, Torch 2.13.0+cu130. `packages.json` records the installed distributions; `preparation.json` records imported module locations and rebuilt native-extension hashes. The existing environment supplies LALSuite, NumPy, SciPy and PyCBC's other dependencies. Native extension builds must use the selected interpreter and occur in each exact source checkout.

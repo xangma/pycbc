@@ -1,0 +1,121 @@
+{
+  "schema": 1,
+  "command": [
+    "/home/xangma/pycbc-taylorf2-triton-20260906/harness/run.py",
+    "--root",
+    "/home/xangma/pycbc-taylorf2-triton-20260906/source",
+    "--expected-sha",
+    "68c87c0e99cd2e6c3797e72103559d5818074f01",
+    "--python",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "--out",
+    "/home/xangma/pycbc-taylorf2-triton-20260906/smoke-v2",
+    "--batches",
+    "8",
+    "--delta-f",
+    ".25",
+    "--replicates",
+    "1"
+  ],
+  "cwd": "/home/xangma/pycbc-taylorf2-triton-20260906/source",
+  "pid": 689029,
+  "created_utc": "2026-09-06T09:47:32Z",
+  "expected_sha": "68c87c0e99cd2e6c3797e72103559d5818074f01",
+  "worker_sha256": "78b4f747513f1589f478f2942463485903585d292813df92b07eb3a493c45493",
+  "orchestrator_sha256": "9c4c6e1c14afe7bd054bd3369b2d6b560628abd150b72ce5aa2ce8cbfef92130",
+  "method": "sequential fresh processes; route order rotated by replicate within each workload; median of worker medians, no pooled inner calls",
+  "conditions": {
+    "batches": [
+      8
+    ],
+    "delta_f": [
+      0.25
+    ],
+    "routes": [
+      "cuda-off",
+      "cuda-on"
+    ],
+    "threads": 1,
+    "replicates": 1,
+    "samples": 5,
+    "minimum_sample_ms": 50
+  },
+  "jobs": [
+    {
+      "key": "cuda-off-b8-n4097",
+      "replicate": 1,
+      "command": [
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-B",
+        "/home/xangma/pycbc-taylorf2-triton-20260906/harness/worker.py",
+        "--root",
+        "/home/xangma/pycbc-taylorf2-triton-20260906/source",
+        "--out",
+        "/home/xangma/pycbc-taylorf2-triton-20260906/smoke-v2/cuda-off-b8-n4097-r1.json",
+        "--expected-sha",
+        "68c87c0e99cd2e6c3797e72103559d5818074f01",
+        "--route",
+        "cuda-off",
+        "--batch",
+        "8",
+        "--delta-f",
+        "0.25",
+        "--threads",
+        "1",
+        "--replicate",
+        "1",
+        "--samples",
+        "5",
+        "--sample-ms",
+        "50",
+        "--max-inner",
+        "4096"
+      ],
+      "log": "/home/xangma/pycbc-taylorf2-triton-20260906/smoke-v2/cuda-off-b8-n4097-r1.log",
+      "output": "/home/xangma/pycbc-taylorf2-triton-20260906/smoke-v2/cuda-off-b8-n4097-r1.json",
+      "status": "ok",
+      "pid": 689061,
+      "returncode": 0,
+      "seconds": 5.221859865006991
+    },
+    {
+      "key": "cuda-on-b8-n4097",
+      "replicate": 1,
+      "command": [
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-B",
+        "/home/xangma/pycbc-taylorf2-triton-20260906/harness/worker.py",
+        "--root",
+        "/home/xangma/pycbc-taylorf2-triton-20260906/source",
+        "--out",
+        "/home/xangma/pycbc-taylorf2-triton-20260906/smoke-v2/cuda-on-b8-n4097-r1.json",
+        "--expected-sha",
+        "68c87c0e99cd2e6c3797e72103559d5818074f01",
+        "--route",
+        "cuda-on",
+        "--batch",
+        "8",
+        "--delta-f",
+        "0.25",
+        "--threads",
+        "1",
+        "--replicate",
+        "1",
+        "--samples",
+        "5",
+        "--sample-ms",
+        "50",
+        "--max-inner",
+        "4096"
+      ],
+      "log": "/home/xangma/pycbc-taylorf2-triton-20260906/smoke-v2/cuda-on-b8-n4097-r1.log",
+      "output": "/home/xangma/pycbc-taylorf2-triton-20260906/smoke-v2/cuda-on-b8-n4097-r1.json",
+      "status": "ok",
+      "pid": 691423,
+      "returncode": 0,
+      "seconds": 6.726092391007114
+    }
+  ],
+  "finished_utc": "2026-09-06T09:47:44Z",
+  "status": "ok"
+}

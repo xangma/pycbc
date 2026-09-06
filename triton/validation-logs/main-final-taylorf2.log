@@ -1,0 +1,13 @@
+.................................s.......sss..................           [100%]
+=============================== warnings summary ===============================
+test/waveform/test_taylorf2_batch.py: 18 warnings
+  /home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] test/waveform/test_taylorf2_torch.py:382: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2_torch.py:574: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2_torch.py:610: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2_torch.py:651: Torch MPS device is unavailable
+58 passed, 4 skipped, 18 warnings in 7.18s

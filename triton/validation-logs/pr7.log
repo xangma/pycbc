@@ -1,0 +1,27 @@
+..................s...............sss..s..............s.......sss....... [ 25%]
+............................................sss...........s............. [ 51%]
+.................s.s...............................................s.... [ 77%]
+.....................ssssssssssssssss........................            [100%]
+=============================== warnings summary ===============================
+test/waveform/test_taylorf2_batch.py: 18 warnings
+  /home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] test/test_nltides_torch.py:115: Torch MPS device is unavailable
+SKIPPED [3] test/waveform/test_spa_tmplt_sequence_torch.py:88: Torch MPS device unavailable
+SKIPPED [1] test/waveform/test_spa_tmplt_sequence_torch.py:129: Torch MPS device unavailable
+SKIPPED [1] test/waveform/test_taylorf2_torch.py:382: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2_torch.py:574: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2_torch.py:610: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2_torch.py:651: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2ecc_torch.py:327: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2ecc_torch.py:362: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2ecc_torch.py:394: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2ecc_torch.py:693: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2nltides_torch.py:471: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2nltides_torch.py:500: Torch MPS device is unavailable
+SKIPPED [1] test/waveform/test_taylorf2redspin_torch.py:475: Torch MPS device is unavailable
+SKIPPED [16] test/waveform/test_taylorf2redspin_torch.py:791: Torch MPS device is unavailable
+245 passed, 32 skipped, 18 warnings in 21.48s

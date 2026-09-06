@@ -1,0 +1,529 @@
+[
+  {
+    "label": "pr7-build",
+    "sha": "a4ba198e7c4d2fa1b0238de946f1367a98e7a2f6",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "setup.py",
+      "build_ext",
+      "--inplace",
+      "-j",
+      "8"
+    ],
+    "returncode": 0,
+    "seconds": 21.35222864151001
+  },
+  {
+    "label": "pr7",
+    "sha": "a4ba198e7c4d2fa1b0238de946f1367a98e7a2f6",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "-ra",
+      "-p",
+      "no:cacheprovider",
+      "test/test_tmpltbank.py",
+      "test/test_nltides_torch.py",
+      "test/test_spatmplt_torch.py",
+      "test/waveform/test_spa_tmplt_sequence_torch.py",
+      "test/waveform/test_taylorf2_torch.py",
+      "test/waveform/test_taylorf2ecc_torch.py",
+      "test/waveform/test_taylorf2nltides_torch.py",
+      "test/waveform/test_taylorf2redspin_torch.py",
+      "test/waveform/test_taylorf2_batch.py",
+      "--junitxml=/home/xangma/pycbc-taylorf2-triton-20260906/validation-logs/pr7.xml"
+    ],
+    "returncode": 0,
+    "seconds": 23.54172992706299,
+    "counts": {
+      "tests": 277,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 32,
+      "passed": 245
+    }
+  },
+  {
+    "label": "pr7-qlty",
+    "sha": "a4ba198e7c4d2fa1b0238de946f1367a98e7a2f6",
+    "command": [
+      "/home/xangma/pycbc-torch-finish-20260904/qlty/qlty-x86_64-unknown-linux-gnu/qlty",
+      "check",
+      "--no-upgrade-check",
+      "--no-fix",
+      "--sarif",
+      "--no-progress",
+      "--upstream",
+      "51e82b2ac935c53d988aae495f5e7c0328524b4e"
+    ],
+    "returncode": 0,
+    "seconds": 0.3403630256652832
+  },
+  {
+    "label": "pr8-build",
+    "sha": "21b7a4c1c47cfea837f6e02fb8a28a8e837ddccb",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "setup.py",
+      "build_ext",
+      "--inplace",
+      "-j",
+      "8"
+    ],
+    "returncode": 0,
+    "seconds": 1.1999480724334717
+  },
+  {
+    "label": "pr8",
+    "sha": "21b7a4c1c47cfea837f6e02fb8a28a8e837ddccb",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "-ra",
+      "-p",
+      "no:cacheprovider",
+      "test/test_torch_domain_protocol.py",
+      "test/test_torch_domain_compat.py",
+      "test/test_torch_prior_compat.py",
+      "test/test_conversions.py",
+      "test/test_transforms.py",
+      "--junitxml=/home/xangma/pycbc-taylorf2-triton-20260906/validation-logs/pr8.xml"
+    ],
+    "returncode": 0,
+    "seconds": 50.905922412872314,
+    "counts": {
+      "tests": 73,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 3,
+      "passed": 70
+    }
+  },
+  {
+    "label": "pr8-qlty",
+    "sha": "21b7a4c1c47cfea837f6e02fb8a28a8e837ddccb",
+    "command": [
+      "/home/xangma/pycbc-torch-finish-20260904/qlty/qlty-x86_64-unknown-linux-gnu/qlty",
+      "check",
+      "--no-upgrade-check",
+      "--no-fix",
+      "--sarif",
+      "--no-progress",
+      "--upstream",
+      "a4ba198e7c4d2fa1b0238de946f1367a98e7a2f6"
+    ],
+    "returncode": 0,
+    "seconds": 0.3450610637664795
+  },
+  {
+    "label": "pr9-build",
+    "sha": "7dfd7de6ac69785f2c5cc8001c720e413e8d7cce",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "setup.py",
+      "build_ext",
+      "--inplace",
+      "-j",
+      "8"
+    ],
+    "returncode": 0,
+    "seconds": 1.2462408542633057
+  },
+  {
+    "label": "pr9",
+    "sha": "7dfd7de6ac69785f2c5cc8001c720e413e8d7cce",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "-ra",
+      "-p",
+      "no:cacheprovider",
+      "test/test_detector_torch_geometry.py",
+      "--junitxml=/home/xangma/pycbc-taylorf2-triton-20260906/validation-logs/pr9.xml"
+    ],
+    "returncode": 0,
+    "seconds": 6.685971021652222,
+    "counts": {
+      "tests": 24,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 24
+    }
+  },
+  {
+    "label": "pr9-qlty",
+    "sha": "7dfd7de6ac69785f2c5cc8001c720e413e8d7cce",
+    "command": [
+      "/home/xangma/pycbc-torch-finish-20260904/qlty/qlty-x86_64-unknown-linux-gnu/qlty",
+      "check",
+      "--no-upgrade-check",
+      "--no-fix",
+      "--sarif",
+      "--no-progress",
+      "--upstream",
+      "21b7a4c1c47cfea837f6e02fb8a28a8e837ddccb"
+    ],
+    "returncode": 0,
+    "seconds": 0.317065954208374
+  },
+  {
+    "label": "pr10-build",
+    "sha": "78d99b5e0f540abd438e01a221de77fc02109b3f",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "setup.py",
+      "build_ext",
+      "--inplace",
+      "-j",
+      "8"
+    ],
+    "returncode": 0,
+    "seconds": 1.233543872833252
+  },
+  {
+    "label": "pr10",
+    "sha": "78d99b5e0f540abd438e01a221de77fc02109b3f",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "-ra",
+      "-p",
+      "no:cacheprovider",
+      "test/test_torch_inference_core.py",
+      "test/test_torch_inference_tools.py",
+      "test/test_torch_gaussian_noise.py",
+      "test/test_torch_marginalized_gaussian.py",
+      "test/test_torch_relative_binning.py",
+      "test/test_torch_waveform_generator.py",
+      "test/test_torch_inference_cli.py",
+      "--junitxml=/home/xangma/pycbc-taylorf2-triton-20260906/validation-logs/pr10.xml"
+    ],
+    "returncode": 0,
+    "seconds": 10.17774224281311,
+    "counts": {
+      "tests": 74,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 5,
+      "passed": 69
+    }
+  },
+  {
+    "label": "pr10-qlty",
+    "sha": "78d99b5e0f540abd438e01a221de77fc02109b3f",
+    "command": [
+      "/home/xangma/pycbc-torch-finish-20260904/qlty/qlty-x86_64-unknown-linux-gnu/qlty",
+      "check",
+      "--no-upgrade-check",
+      "--no-fix",
+      "--sarif",
+      "--no-progress",
+      "--upstream",
+      "7dfd7de6ac69785f2c5cc8001c720e413e8d7cce"
+    ],
+    "returncode": 0,
+    "seconds": 0.3491220474243164
+  },
+  {
+    "label": "pr11-build",
+    "sha": "d44ed6e2273488b0fcd52819f3a604ae38b8a79c",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "setup.py",
+      "build_ext",
+      "--inplace",
+      "-j",
+      "8"
+    ],
+    "returncode": 0,
+    "seconds": 1.2103567123413086
+  },
+  {
+    "label": "pr11",
+    "sha": "d44ed6e2273488b0fcd52819f3a604ae38b8a79c",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "-ra",
+      "-p",
+      "no:cacheprovider",
+      "test/test_torch_performance_artifacts.py",
+      "test/test_torch_parity_artifacts.py",
+      "--junitxml=/home/xangma/pycbc-taylorf2-triton-20260906/validation-logs/pr11.xml"
+    ],
+    "returncode": 0,
+    "seconds": 3.481003522872925,
+    "counts": {
+      "tests": 116,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 2,
+      "passed": 114
+    }
+  },
+  {
+    "label": "pr11-qlty",
+    "sha": "d44ed6e2273488b0fcd52819f3a604ae38b8a79c",
+    "command": [
+      "/home/xangma/pycbc-torch-finish-20260904/qlty/qlty-x86_64-unknown-linux-gnu/qlty",
+      "check",
+      "--no-upgrade-check",
+      "--no-fix",
+      "--sarif",
+      "--no-progress",
+      "--upstream",
+      "78d99b5e0f540abd438e01a221de77fc02109b3f"
+    ],
+    "returncode": 0,
+    "seconds": 0.1716477870941162
+  },
+  {
+    "label": "format-fft-build",
+    "sha": "ebc89b13506128a89bc00d367c5a02f1f6158be3",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "setup.py",
+      "build_ext",
+      "--inplace",
+      "-j",
+      "8"
+    ],
+    "returncode": 0,
+    "seconds": 1.2217931747436523
+  },
+  {
+    "label": "format-fft",
+    "sha": "ebc89b13506128a89bc00d367c5a02f1f6158be3",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "-ra",
+      "-p",
+      "no:cacheprovider",
+      "test/test_torch_batched_fft.py",
+      "test/test_torch_fft_cpu_native.py",
+      "test/test_torch_fft_writes.py",
+      "test/test_hardware.py",
+      "--junitxml=/home/xangma/pycbc-taylorf2-triton-20260906/validation-logs/format-fft.xml"
+    ],
+    "returncode": 0,
+    "seconds": 4.231906175613403,
+    "counts": {
+      "tests": 85,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 85
+    }
+  },
+  {
+    "label": "format-fft-qlty",
+    "sha": "ebc89b13506128a89bc00d367c5a02f1f6158be3",
+    "command": [
+      "/home/xangma/pycbc-torch-finish-20260904/qlty/qlty-x86_64-unknown-linux-gnu/qlty",
+      "check",
+      "--no-upgrade-check",
+      "--no-fix",
+      "--sarif",
+      "--no-progress",
+      "--upstream",
+      "d44ed6e2273488b0fcd52819f3a604ae38b8a79c"
+    ],
+    "returncode": 1,
+    "seconds": 1.44110107421875
+  },
+  {
+    "label": "fft-followup-build",
+    "sha": "e05ff4027853f92589f6b4e7226f0eb023f0a2da",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "setup.py",
+      "build_ext",
+      "--inplace",
+      "-j",
+      "8"
+    ],
+    "returncode": 0,
+    "seconds": 1.204831600189209
+  },
+  {
+    "label": "fft-followup",
+    "sha": "e05ff4027853f92589f6b4e7226f0eb023f0a2da",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "-ra",
+      "-p",
+      "no:cacheprovider",
+      "test/test_fft_batched_backends.py",
+      "test/test_fft_cli_wisdom.py",
+      "test/test_fftw_wisdom_cache.py",
+      "test/test_torch_fft_cpu_native.py",
+      "--junitxml=/home/xangma/pycbc-taylorf2-triton-20260906/validation-logs/fft-followup.xml"
+    ],
+    "returncode": 0,
+    "seconds": 3.8987696170806885,
+    "counts": {
+      "tests": 95,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 95
+    }
+  },
+  {
+    "label": "fft-followup-qlty",
+    "sha": "e05ff4027853f92589f6b4e7226f0eb023f0a2da",
+    "command": [
+      "/home/xangma/pycbc-torch-finish-20260904/qlty/qlty-x86_64-unknown-linux-gnu/qlty",
+      "check",
+      "--no-upgrade-check",
+      "--no-fix",
+      "--sarif",
+      "--no-progress",
+      "--upstream",
+      "ebc89b13506128a89bc00d367c5a02f1f6158be3"
+    ],
+    "returncode": 0,
+    "seconds": 0.32646918296813965
+  },
+  {
+    "label": "cpu-followup-build",
+    "sha": "f62d16674dfa8d792e670614b67f64b86c32f0b3",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "setup.py",
+      "build_ext",
+      "--inplace",
+      "-j",
+      "8"
+    ],
+    "returncode": 0,
+    "seconds": 13.83428692817688
+  },
+  {
+    "label": "cpu-followup",
+    "sha": "f62d16674dfa8d792e670614b67f64b86c32f0b3",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "-ra",
+      "-p",
+      "no:cacheprovider",
+      "test/test_cpu_batch_peaks.py",
+      "test/test_torch_cpu_native_peaks.py",
+      "test/test_torch_cpu_fft_tuning.py",
+      "test/test_torch_fft_cpu_native.py",
+      "test/test_torch_cpu_native_batch.py",
+      "test/test_torch_chisq_cpu_optimization.py",
+      "test/test_torch_chisq_sparse_dispatch.py",
+      "test/test_chisq_torch.py",
+      "test/test_live_batch_torch_peaks.py",
+      "test/test_live_batch_torch_fft_integration.py",
+      "test/test_torch_performance_artifacts.py",
+      "--junitxml=/home/xangma/pycbc-taylorf2-triton-20260906/validation-logs/cpu-followup.xml"
+    ],
+    "returncode": 0,
+    "seconds": 10.614678382873535,
+    "counts": {
+      "tests": 305,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "passed": 304
+    }
+  },
+  {
+    "label": "cpu-followup-qlty",
+    "sha": "f62d16674dfa8d792e670614b67f64b86c32f0b3",
+    "command": [
+      "/home/xangma/pycbc-torch-finish-20260904/qlty/qlty-x86_64-unknown-linux-gnu/qlty",
+      "check",
+      "--no-upgrade-check",
+      "--no-fix",
+      "--sarif",
+      "--no-progress",
+      "--upstream",
+      "d44ed6e2273488b0fcd52819f3a604ae38b8a79c"
+    ],
+    "returncode": 0,
+    "seconds": 0.355499267578125
+  },
+  {
+    "label": "main-final-build",
+    "sha": "d44ed6e2273488b0fcd52819f3a604ae38b8a79c",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "setup.py",
+      "build_ext",
+      "--inplace",
+      "-j",
+      "8"
+    ],
+    "returncode": 0,
+    "seconds": 13.57240343093872
+  },
+  {
+    "label": "main-final-taylorf2",
+    "sha": "d44ed6e2273488b0fcd52819f3a604ae38b8a79c",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "-m",
+      "pytest",
+      "-q",
+      "-ra",
+      "-p",
+      "no:cacheprovider",
+      "test/waveform/test_taylorf2_batch.py",
+      "test/waveform/test_taylorf2_torch.py",
+      "--junitxml=/home/xangma/pycbc-taylorf2-triton-20260906/validation-logs/main-final-taylorf2.xml"
+    ],
+    "returncode": 0,
+    "seconds": 9.178560972213745,
+    "counts": {
+      "tests": 62,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 4,
+      "passed": 58
+    }
+  },
+  {
+    "label": "main-f401-ci",
+    "sha": "d44ed6e2273488b0fcd52819f3a604ae38b8a79c",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "/home/xangma/pycbc-torch-split-20260905/validate-f401.py"
+    ],
+    "returncode": 0,
+    "seconds": 1.8313958644866943
+  },
+  {
+    "label": "main-extension-scope",
+    "sha": "d44ed6e2273488b0fcd52819f3a604ae38b8a79c",
+    "command": [
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "-c",
+      "from pycbc.filter import matchedfilter_cpu as m; from pycbc.vetoes import chisq_cpu as c; assert not hasattr(m, \"_batch_abs_arg_max_complex64\"); assert not hasattr(c, \"point_chisq_code_single_double\"); print(\"No optional kernels in main stack\")"
+    ],
+    "returncode": 0,
+    "seconds": 4.190649747848511
+  }
+]

@@ -1,0 +1,18 @@
+........................................................................ [ 23%]
+......................................................................s. [ 47%]
+........................................................................ [ 70%]
+........................................................................ [ 94%]
+.................                                                        [100%]
+=============================== warnings summary ===============================
+test/test_torch_chisq_cpu_optimization.py:733
+  /home/xangma/pycbc-taylorf2-triton-20260906/validation/test/test_torch_chisq_cpu_optimization.py:733: UserWarning: Sparse invariant checks are implicitly disabled. Memory errors (e.g. SEGFAULT) will occur when operating on a sparse tensor which violates the invariants, but checks incur performance overhead. To silence this warning, explicitly opt in or out. See `torch.sparse.check_sparse_tensor_invariants.__doc__` for guidance.  (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/Context.cpp:816.)
+    torch.sparse_coo_tensor(
+
+test/test_torch_cpu_native_peaks.py: 18 warnings
+  /home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] test/test_torch_chisq_cpu_optimization.py:784: Torch MPS device unavailable
+304 passed, 1 skipped, 19 warnings in 8.52s

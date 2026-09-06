@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "method": "sequential fresh processes; route order rotated by replicate within each workload; median of worker medians, no pooled inner calls",
+  "expected_sha": "68c87c0e99cd2e6c3797e72103559d5818074f01",
+  "uncertainty": "observed range of worker medians; not a confidence interval",
+  "groups": {
+    "cuda-off-b8-n4097": {
+      "route": "cuda-off",
+      "batch": 8,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 1,
+      "completed_replicates": 1,
+      "valid_replicates": 1,
+      "statuses": [
+        "ok"
+      ],
+      "reasons": [
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "3ed37af97f761ffb546afc99e58d3c30cf81b3656c0b4255b9ccdc582634bc4f",
+      "replicate_medians_seconds": [
+        0.0125020808
+      ],
+      "median_seconds_per_call": 0.0125020808,
+      "min_replicate_median_seconds": 0.0125020808,
+      "max_replicate_median_seconds": 0.0125020808,
+      "waveforms_per_second": 639.8934807716169,
+      "cold_call_seconds": [
+        0.396140561
+      ],
+      "triton_actual": [
+        false
+      ],
+      "speedup_vs_cuda_gate_off": 1.0
+    },
+    "cuda-on-b8-n4097": {
+      "route": "cuda-on",
+      "batch": 8,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 1,
+      "completed_replicates": 1,
+      "valid_replicates": 1,
+      "statuses": [
+        "ok"
+      ],
+      "reasons": [
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "3ed37af97f761ffb546afc99e58d3c30cf81b3656c0b4255b9ccdc582634bc4f",
+      "replicate_medians_seconds": [
+        0.010847655666666666
+      ],
+      "median_seconds_per_call": 0.010847655666666666,
+      "min_replicate_median_seconds": 0.010847655666666666,
+      "max_replicate_median_seconds": 0.010847655666666666,
+      "waveforms_per_second": 737.4865358773219,
+      "cold_call_seconds": [
+        1.990994615
+      ],
+      "triton_actual": [
+        true
+      ],
+      "speedup_vs_cuda_gate_off": 1.152514532556297
+    }
+  }
+}

@@ -1,0 +1,19 @@
+..s..s..s............................................................... [ 98%]
+.                                                                        [100%]
+=============================== warnings summary ===============================
+test/test_torch_domain_compat.py::test_distance_and_volume_interpolation_match_numpy_with_gradients[cpu]
+test/test_torch_domain_compat.py::test_distance_and_volume_interpolation_match_numpy_with_gradients[cuda]
+  /home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/astropy/cosmology/funcs/optimize.py:63: AstropyUserWarning: fval is not bracketed by func(zmin)=3.630907107506232e-13 Mpc3 and func(zmax)=164042102234.23068 Mpc3. This means either there is no solution, or that there is more than one solution between zmin and zmax satisfying fval = func(z).
+    warnings.warn(
+
+test/test_torch_domain_compat.py::test_distance_and_volume_interpolation_match_numpy_with_gradients[cpu]
+test/test_torch_domain_compat.py::test_distance_and_volume_interpolation_match_numpy_with_gradients[cuda]
+  /home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/astropy/cosmology/funcs/optimize.py:63: AstropyUserWarning: fval is not bracketed by func(zmin)=3.630907107506232e-13 Mpc3 and func(zmax)=3763143105730.4414 Mpc3. This means either there is no solution, or that there is more than one solution between zmin and zmax satisfying fval = func(z).
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] test/test_torch_domain_protocol.py:27: MPS unavailable
+SKIPPED [1] test/test_torch_domain_protocol.py:42: MPS unavailable
+SKIPPED [1] test/test_torch_domain_protocol.py:50: MPS unavailable
+70 passed, 3 skipped, 4 warnings in 48.98s

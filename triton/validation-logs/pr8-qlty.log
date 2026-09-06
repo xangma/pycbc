@@ -1,0 +1,60 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "qlty",
+          "informationUri": "https://github.com/qlty/qlty",
+          "semanticVersion": "0.644.0",
+          "version": "0.644.0 linux-x64 (338acb3 2026-08-28)",
+          "releaseDateUtc": "2026-08-28",
+          "rules": [],
+          "notifications": [
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ruff in 0.05s [0RPA06]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ruff in 0.05s [0RPA06]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ripgrep in 0.02s [h75Jdv]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ripgrep in 0.02s [h75Jdv]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ruff in 0.05s [rx4Rt9]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ruff in 0.05s [rx4Rt9]"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "results": []
+    }
+  ]
+}
