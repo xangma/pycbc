@@ -1,0 +1,27 @@
+id: W2XF07
+qltyCliVersion: 0.644.0
+pluginName: ruff
+driverName: format
+pluginVersion: 0.14.6
+verb: EXECUTION_VERB_CHECK
+targetsCount: 5
+targetPaths:
+- pycbc/fft/cupyfft.py
+- pycbc/fft/__init__.py
+- pycbc/fft/npfft.py
+- pycbc/fft/parser_support.py
+- pycbc/fft/cufft.py
+configPaths:
+- /home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/ruff.toml
+script: sh -c "ruff format pycbc/fft/cupyfft.py pycbc/fft/__init__.py pycbc/fft/npfft.py pycbc/fft/parser_support.py pycbc/fft/cufft.py"
+cwd: /tmp/qlty/UCWYvHHF-rw/
+env:
+  PATH: ''
+  HOME: ''
+  VIRTUAL_ENV: ''
+startedAt: 2026-09-06T21:10:03.317922087+00:00
+durationSecs: 0.043321718
+exitCode: '0'
+stdout: |
+  5 files left unchanged
+exitResult: EXIT_RESULT_SUCCESS

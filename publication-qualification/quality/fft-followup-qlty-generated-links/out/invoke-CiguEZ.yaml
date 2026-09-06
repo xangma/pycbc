@@ -1,0 +1,28 @@
+id: CiguEZ
+qltyCliVersion: 0.644.0
+pluginName: ripgrep
+driverName: lint-fixme
+pluginVersion: 14.1.1
+verb: EXECUTION_VERB_CHECK
+targetsCount: 4
+targetPaths:
+- pycbc/filter/matchedfilter.py
+- pycbc/vetoes/chisq_torch.py
+- pycbc/fft/torchfft.py
+- pycbc/hardware.py
+script: sh -c "rg \"FIXME|XXX\" pycbc/filter/matchedfilter.py pycbc/vetoes/chisq_torch.py pycbc/fft/torchfft.py pycbc/hardware.py --json --word-regexp --only-matching"
+cwd: /home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/
+env:
+  HOME: ''
+  PATH: ''
+startedAt: 2026-09-06T21:10:06.954259229+00:00
+durationSecs: 0.020074142
+exitCode: '0'
+stdout: |
+  {"type":"begin","data":{"path":{"text":"pycbc/filter/matchedfilter.py"}}}
+  {"type":"match","data":{"path":{"text":"pycbc/filter/matchedfilter.py"},"lines":{"text":"    # FIXME: This seems much more simplistic than the aligned-spin class.\n"},"line_number":1171,"absolute_offset":44125,"submatches":[{"match":{"text":"FIXME"},"start":6,"end":11}]}}
+  {"type":"match","data":{"path":{"text":"pycbc/filter/matchedfilter.py"},"lines":{"text":"        # FIXME: This should live further down\n"},"line_number":1301,"absolute_offset":48845,"submatches":[{"match":{"text":"FIXME"},"start":10,"end":15}]}}
+  {"type":"end","data":{"path":{"text":"pycbc/filter/matchedfilter.py"},"binary_offset":null,"stats":{"elapsed":{"secs":0,"nanos":144713,"human":"0.000145s"},"searches":1,"searches_with_match":1,"bytes_searched":145693,"bytes_printed":594,"matched_lines":2,"matches":2}}}
+  {"data":{"elapsed_total":{"human":"0.004203s","nanos":4202697,"secs":0},"stats":{"bytes_printed":594,"bytes_searched":145693,"elapsed":{"human":"0.000145s","nanos":144713,"secs":0},"matched_lines":2,"matches":2,"searches":1,"searches_with_match":1}},"type":"summary"}
+exitResult: EXIT_RESULT_SUCCESS
+issuesCount: 2

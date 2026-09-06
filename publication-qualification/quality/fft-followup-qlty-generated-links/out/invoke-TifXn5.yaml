@@ -1,0 +1,27 @@
+id: TifXn5
+qltyCliVersion: 0.644.0
+pluginName: ruff
+driverName: format
+pluginVersion: 0.14.6
+verb: EXECUTION_VERB_CHECK
+targetsCount: 4
+targetPaths:
+- pycbc/filter/matchedfilter.py
+- pycbc/vetoes/chisq_torch.py
+- pycbc/fft/torchfft.py
+- pycbc/hardware.py
+configPaths:
+- /home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/ruff.toml
+script: sh -c "ruff format pycbc/filter/matchedfilter.py pycbc/vetoes/chisq_torch.py pycbc/fft/torchfft.py pycbc/hardware.py"
+cwd: /tmp/qlty/gFgbVb4u-rw/
+env:
+  HOME: ''
+  VIRTUAL_ENV: ''
+  PATH: ''
+startedAt: 2026-09-06T21:10:07.077402642+00:00
+durationSecs: 0.056579508
+exitCode: '0'
+stdout: |
+  1 file reformatted, 3 files left unchanged
+exitResult: EXIT_RESULT_SUCCESS
+issuesCount: 1

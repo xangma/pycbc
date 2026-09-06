@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Normal CPU reference and matched Torch search &#8212; PyCBC Torch documentation  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Torch benchmark results" href="torch_optimization_results.html" />
+    <link rel="prev" title="Optimized compressed-waveform search" href="torch_inspiral_optimized.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="normal-cpu-reference-and-matched-torch-search">
+<span id="torch-inspiral-reference"></span><h1>Normal CPU reference and matched Torch search<a class="headerlink" href="#normal-cpu-reference-and-matched-torch-search" title="Link to this heading">¶</a></h1>
+<p>This page retains the before campaign at source <code class="docutils literal notranslate"><span class="pre">837f38d493420043e45fb1ad210a0ccf68bacbaa</span></code>.
+Start with <a class="reference internal" href="torch_inspiral_optimized.html#torch-inspiral-optimized"><span class="std std-ref">Optimized compressed-waveform search</span></a> for the optimized search and its
+fresh matched measurements. The tuning and numerical evidence below retain
+their original measured source.</p>
+<p>The reference measurement runs the normal, single-thread <code class="docutils literal notranslate"><span class="pre">pycbc_inspiral</span></code>
+executable with MKL, then Torch CPU and CUDA with the same compressed low-mass
+bank, data, selected segment length and padding. The normal reference reaches
+<strong>5,656.56 templates per core at real time</strong>,
+with median full-process wall time <strong>32.31 seconds</strong>.
+All measurements on this page use source <code class="docutils literal notranslate"><span class="pre">837f38d493420043e45fb1ad210a0ccf68bacbaa</span></code>.</p>
+<p>The completed campaign contains 31 cases and
+28 passing trigger comparisons. Rates below
+come from fresh, unprofiled processes; separate profiles explain observed costs.
+The older <a class="reference internal" href="torch_optimization_results.html#torch-optimization-results"><span class="std std-ref">Torch benchmark results</span></a> are supporting component measurements.</p>
+<section id="workload-and-normal-reference">
+<h2>Workload and normal reference<a class="headerlink" href="#workload-and-normal-reference" title="Link to this heading">¶</a></h2>
+<p>The host is <code class="docutils literal notranslate"><span class="pre">len</span></code>, with AMD Ryzen Threadripper PRO 3995WX 64-Cores;
+CUDA uses NVIDIA GeForce RTX 4090, GPU-2e198102-8223-da7b-4944-2df0e9400916, 610.57.04, 24564 MiB.
+Every run is pinned to logical CPU 8, allocating one physical
+host core. <code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS=1</span></code> and <code class="docutils literal notranslate"><span class="pre">MKL_NUM_THREADS=1</span></code> are set before
+launch, with the other numerical-library thread limits retained in the
+<a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/config.json">configuration</a>. The normal processing scheme is
+<code class="docutils literal notranslate"><span class="pre">cpu:1</span></code> and its requested FFT backend is <code class="docutils literal notranslate"><span class="pre">mkl</span></code>; processing scheme,
+observed FFT dispatch and thread settings are retained in each qualification.
+The <a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/environment.json">hardware inventory</a> was captured on an earlier
+checkout; individual run receipts identify the final measured source.</p>
+<p>The deterministic bank contains 64 BNS and 32 NSBH templates. Their aggregate
+weights are therefore 2/3 and 1/3 by template count; these are not astrophysical
+population weights. Masses below are detector-frame solar masses, spins are
+dimensionless aligned components, and durations are estimator results.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Bank composition</span><a class="headerlink" href="#id1" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Region</p></th>
+<th class="head"><p>Templates</p></th>
+<th class="head"><p>Mass 1</p></th>
+<th class="head"><p>Mass 2</p></th>
+<th class="head"><p>Spin 1z</p></th>
+<th class="head"><p>Spin 2z</p></th>
+<th class="head"><p>Duration (s)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>BNS</p></td>
+<td><p>64</p></td>
+<td><p>1.2–2</p></td>
+<td><p>1.2–2</p></td>
+<td><p>-0.05–0.05</p></td>
+<td><p>-0.05–0.05</p></td>
+<td><p>33.14–77.68</p></td>
+</tr>
+<tr class="row-odd"><td><p>NSBH</p></td>
+<td><p>32</p></td>
+<td><p>3–8</p></td>
+<td><p>1.2–2</p></td>
+<td><p>-0.5–0.5</p></td>
+<td><p>-0.05–0.05</p></td>
+<td><p>10.66–37.77</p></td>
+</tr>
+</tbody>
+</table>
+<p>The approximant is <code class="docutils literal notranslate"><span class="pre">IMRPhenomD</span></code>, with a
+30 Hz lower cutoff and 4096 Hz
+sample rate. This point-particle model does not include neutron-star tides or
+disruption; the 96 templates are a benchmark set, not a coverage-qualified search
+bank. The <a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/inputs/bank-metadata.json">bank metadata</a> preserves every
+template identity and the selection method. Regions are identifiable there;
+this campaign measures their combined workload, without separate regional rates.</p>
+<p>The executable requests <code class="docutils literal notranslate"><span class="pre">--use-compressed-waveforms</span></code> and
+<code class="docutils literal notranslate"><span class="pre">--waveform-decompression-method</span> <span class="pre">inline_linear</span></code>. Successful qualification
+records 96 decompressions and the actual completed template/segment work.
+The compressed bank SHA256 is <code class="docutils literal notranslate"><span class="pre">161820754117cd51b24a7bb672ea456cf7b2a3808e69690c23235d024b1a2916</span></code>. Waveform checks
+independently verify successful decompression without full-generation fallback.</p>
+</section>
+<section id="normal-cpu-tuning">
+<h2>Normal CPU tuning<a class="headerlink" href="#normal-cpu-tuning" title="Link to this heading">¶</a></h2>
+<p>Three FFT segment lengths, 256, 512 and 1024 seconds, were measured with
+three fresh processes each. Start/end padding stayed at 112/16 seconds.
+The selected length is <strong>512 seconds</strong>, using the lowest median CPU
+full-process wall time; the decision records: Choose the lowest median full-process wall time from three unprofiled repetitions at each declared segment length, all using the corrected source and the 1e-5 compressed bank. Retain 112-second start padding and 16-second end padding; the new independent boundary model checks both 96- and 112-second starts. Earlier source timing results are not used to select this winner.
+This is a measured choice within that grid. Padding was validated separately,
+including 96/112-second start pads, rather than optimized by a padding timing sweep.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Normal CPU tuning; median (observed minimum–maximum)</span><a class="headerlink" href="#id2" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>FFT segment (s)</p></th>
+<th class="head"><p>FFT samples</p></th>
+<th class="head"><p>Segments/template</p></th>
+<th class="head"><p>Full wall (s)</p></th>
+<th class="head"><p>Templates/core at real time</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>256</p></td>
+<td><p>1048576</p></td>
+<td><p>15</p></td>
+<td><p>34.55 (34.48–34.69)</p></td>
+<td><p>5,289.82 (5,269.30–5,300.72)</p></td>
+</tr>
+<tr class="row-odd"><td><p>512</p></td>
+<td><p>2097152</p></td>
+<td><p>5</p></td>
+<td><p>32.34 (32.31–32.37)</p></td>
+<td><p>5,652.54 (5,646.00–5,657.08)</p></td>
+</tr>
+<tr class="row-even"><td><p>1024</p></td>
+<td><p>4194304</p></td>
+<td><p>3</p></td>
+<td><p>38.79 (38.71–38.85)</p></td>
+<td><p>4,712.09 (4,704.88–4,721.95)</p></td>
+</tr>
+</tbody>
+</table>
+<figure class="align-default" id="id3">
+<a class="reference internal image-reference" href="_images/tuning-capacity.png"><img alt="Normal CPU capacity across the declared FFT-length grid; three unprofiled processes per point." src="_images/tuning-capacity.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Normal CPU capacity across the declared FFT-length grid; three unprofiled processes per point.</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="matched-torch-measurements">
+<h2>Matched Torch measurements<a class="headerlink" href="#matched-torch-measurements" title="Link to this heading">¶</a></h2>
+<p>All backends retain the selected 512-second FFT segments, 112/16-second
+padding, the same bank, valid strain interval, PSD settings, vetoes and clustering.
+Only declared backend routing differs. Three fresh repetitions per backend
+confirm the comparison after CPU tuning. The retained
+<a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/precision5-matched-backends-plan.json">matched plan</a> records run order;
+the <a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/final-report/runs.csv">raw runs table</a> retains every wall, user/system
+CPU, memory and internal timing sample.</p>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">Matched capacity; median (observed minimum–maximum)</span><a class="headerlink" href="#id4" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Backend</p></th>
+<th class="head"><p>Full wall (s)</p></th>
+<th class="head"><p>Templates/core at real time</p></th>
+<th class="head"><p>Capacity / normal CPU</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Normal CPU (MKL)</p></td>
+<td><p>32.31 (32.30–32.35)</p></td>
+<td><p>5,656.56 (5,650.77–5,658.73)</p></td>
+<td><p>1.000x</p></td>
+</tr>
+<tr class="row-odd"><td><p>Torch CPU</p></td>
+<td><p>80.63 (79.11–80.72)</p></td>
+<td><p>2,267.00 (2,264.29–2,310.57)</p></td>
+<td><p>0.401x</p></td>
+</tr>
+<tr class="row-even"><td><p>Torch CUDA + one GPU</p></td>
+<td><p>20.34 (20.28–20.35)</p></td>
+<td><p>8,988.27 (8,982.63–9,012.77)</p></td>
+<td><p>1.589x</p></td>
+</tr>
+</tbody>
+</table>
+<p>Ratios are quotients of the displayed group medians, not medians of paired ratios.
+Ranges show all three independent-process observations, not confidence intervals.
+A ratio below one means lower capacity for this measured workload.</p>
+<p>Each template searches the unique H1 interval [1187007160, 1187009064):
+1904 seconds after excluding padding and duplicate coverage. Completed work is
+<strong>96 x 1904 = 182784 template-seconds</strong> per run. Capacity is
+<code class="docutils literal notranslate"><span class="pre">182784</span> <span class="pre">/</span> <span class="pre">(full-process</span> <span class="pre">wall</span> <span class="pre">seconds</span> <span class="pre">*</span> <span class="pre">1</span> <span class="pre">allocated</span> <span class="pre">host</span> <span class="pre">core)</span></code>.
+The denominator is allocated cores, not measured CPU utilization.
+<strong>CUDA additionally consumes one GPU</strong>: its host-core-normalized rate is not
+a comparison of equal CPU-only resources and is not a templates/GPU metric.</p>
+<p>Full wall time includes successful final trigger-file writing. Internal
+<code class="docutils literal notranslate"><span class="pre">run_time</span></code> excludes early startup/imports and final HDF writing.
+Internal setup and postsetup are derived from <code class="docutils literal notranslate"><span class="pre">setup_time_fraction</span></code>;
+postsetup includes analysis housekeeping and is not a separately isolated
+steady-filter interval. This finite-duration campaign makes no steady-state claim.</p>
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-text">Internal intervals and memory; medians</span><a class="headerlink" href="#id5" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Backend</p></th>
+<th class="head"><p>Internal total (s)</p></th>
+<th class="head"><p>Setup (s)</p></th>
+<th class="head"><p>Postsetup (s)</p></th>
+<th class="head"><p>Peak RSS (MiB)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Normal CPU (MKL)</p></td>
+<td><p>27.82</p></td>
+<td><p>15.29</p></td>
+<td><p>12.53</p></td>
+<td><p>1204.65</p></td>
+</tr>
+<tr class="row-odd"><td><p>Torch CPU</p></td>
+<td><p>76.06</p></td>
+<td><p>15.14</p></td>
+<td><p>60.87</p></td>
+<td><p>1236.62</p></td>
+</tr>
+<tr class="row-even"><td><p>Torch CUDA + one GPU</p></td>
+<td><p>15.67</p></td>
+<td><p>13.39</p></td>
+<td><p>2.27</p></td>
+<td><p>1468.85</p></td>
+</tr>
+</tbody>
+</table>
+<figure class="align-default" id="id6">
+<a class="reference internal image-reference" href="_images/matched-capacity.png"><img alt="Matched backend capacity with the normal CPU selected geometry and unprofiled repetitions." src="_images/matched-capacity.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Matched backend capacity with the normal CPU selected geometry and unprofiled repetitions.</span><a class="headerlink" href="#id6" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id7">
+<a class="reference internal image-reference" href="_images/wall-and-internal-times.png"><img alt="Full-process and internal timings; internal totals exclude early startup and final output writing." src="_images/wall-and-internal-times.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Full-process and internal timings; internal totals exclude early startup and final output writing.</span><a class="headerlink" href="#id7" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="profiles-with-the-same-selected-workload">
+<h2>Profiles with the same selected workload<a class="headerlink" href="#profiles-with-the-same-selected-workload" title="Link to this heading">¶</a></h2>
+<p>The normal CPU reference is profiled with cProfile and native <code class="docutils literal notranslate"><span class="pre">cycles:u</span></code>
+sampling. Torch CPU and CUDA use those same tools and scientific settings;
+CUDA also has a Torch operator/device trace. Profiling is enabled only in these
+separate runs. Their elapsed times below are instrumented observations and
+are excluded from capacity summaries.</p>
+<table class="docutils align-default" id="id8">
+<caption><span class="caption-text">Profiling off/on; separate full-process intervals</span><a class="headerlink" href="#id8" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Backend</p></th>
+<th class="head"><p>Mode</p></th>
+<th class="head"><p>Wall seconds</p></th>
+<th class="head"><p>Evidence</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Normal CPU (MKL)</p></td>
+<td><p>off, median of 3</p></td>
+<td><p>32.31</p></td>
+<td><p><a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/final-report/runs.csv">timings</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Torch CPU</p></td>
+<td><p>off, median of 3</p></td>
+<td><p>80.63</p></td>
+<td><p><a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/final-report/runs.csv">timings</a></p></td>
+</tr>
+<tr class="row-even"><td><p>Torch CUDA + one GPU</p></td>
+<td><p>off, median of 3</p></td>
+<td><p>20.34</p></td>
+<td><p><a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/final-report/runs.csv">timings</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Normal CPU (MKL)</p></td>
+<td><p>cprofile</p></td>
+<td><p>35.53</p></td>
+<td><p><a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/runs/reference-precision5-cpu-l512-cprofile/receipt.json">reference-precision5-cpu-l512-cprofile</a></p></td>
+</tr>
+<tr class="row-even"><td><p>Normal CPU (MKL)</p></td>
+<td><p>perf</p></td>
+<td><p>35.15</p></td>
+<td><p><a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/runs/reference-precision5-cpu-l512-perf/receipt.json">reference-precision5-cpu-l512-perf</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Torch CPU</p></td>
+<td><p>cprofile</p></td>
+<td><p>83.95</p></td>
+<td><p><a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/runs/profile-precision5-torch-cpu-l512-cprofile/receipt.json">profile-precision5-torch-cpu-l512-cprofile</a></p></td>
+</tr>
+<tr class="row-even"><td><p>Torch CPU</p></td>
+<td><p>perf</p></td>
+<td><p>84.22</p></td>
+<td><p><a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/runs/profile-precision5-torch-cpu-l512-perf/receipt.json">profile-precision5-torch-cpu-l512-perf</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Torch CUDA + one GPU</p></td>
+<td><p>cprofile</p></td>
+<td><p>23.97</p></td>
+<td><p><a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/runs/profile-precision5-torch-cuda-l512-cprofile/receipt.json">profile-precision5-torch-cuda-l512-cprofile</a></p></td>
+</tr>
+<tr class="row-even"><td><p>Torch CUDA + one GPU</p></td>
+<td><p>perf</p></td>
+<td><p>23.14</p></td>
+<td><p><a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/runs/profile-precision5-torch-cuda-l512-perf/receipt.json">profile-precision5-torch-cuda-l512-perf</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Torch CUDA + one GPU</p></td>
+<td><p>torchprofile</p></td>
+<td><p>45.19</p></td>
+<td><p><a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/runs/profile-precision5-torch-cuda-l512-torchprofile/receipt.json">profile-precision5-torch-cuda-l512-torchprofile</a></p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default" id="id9">
+<caption><span class="caption-text">Three largest exclusive cProfile categories per backend</span><a class="headerlink" href="#id9" title="Link to this table">¶</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Backend</p></th>
+<th class="head"><p>Category</p></th>
+<th class="head"><p>Self seconds</p></th>
+<th class="head"><p>Share of cProfile self time</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Normal CPU (MKL)</p></td>
+<td><p>remaining</p></td>
+<td><p>18.354</p></td>
+<td><p>53.22%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Normal CPU (MKL)</p></td>
+<td><p>FFT</p></td>
+<td><p>12.079</p></td>
+<td><p>35.03%</p></td>
+</tr>
+<tr class="row-even"><td><p>Normal CPU (MKL)</p></td>
+<td><p>signal-consistency</p></td>
+<td><p>1.947</p></td>
+<td><p>5.65%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Torch CPU</p></td>
+<td><p>remaining</p></td>
+<td><p>38.522</p></td>
+<td><p>46.49%</p></td>
+</tr>
+<tr class="row-even"><td><p>Torch CPU</p></td>
+<td><p>FFT</p></td>
+<td><p>28.425</p></td>
+<td><p>34.31%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Torch CPU</p></td>
+<td><p>decompression/waveforms</p></td>
+<td><p>11.901</p></td>
+<td><p>14.36%</p></td>
+</tr>
+<tr class="row-even"><td><p>Torch CUDA + one GPU</p></td>
+<td><p>remaining</p></td>
+<td><p>18.277</p></td>
+<td><p>80.33%</p></td>
+</tr>
+<tr class="row-odd"><td><p>Torch CUDA + one GPU</p></td>
+<td><p>FFT</p></td>
+<td><p>3.135</p></td>
+<td><p>13.78%</p></td>
+</tr>
+<tr class="row-even"><td><p>Torch CUDA + one GPU</p></td>
+<td><p>I/O/import/setup</p></td>
+<td><p>0.794</p></td>
+<td><p>3.49%</p></td>
+</tr>
+</tbody>
+</table>
+<p>cProfile shares use the sum of exclusive self times, including the retained
+unattributed categories. Nested cumulative times are not added. Native perf
+percentages refer to sampled user-space cycles; they are not percentages of
+full wall time. CUDA event shares use the sum of profiler-visible device-event
+self times. CPU operators, native samples and asynchronous device events have
+different denominators and cannot be combined into one elapsed-time breakdown.
+The measured categories determine the explanation; no fixed FFT cost or
+expected percentage speedup is assumed.</p>
+<p>Normal CPU’s FFT ownership category accounts for 35.03% of cProfile
+self time, including MKL descriptor setup; it is not exclusively transform
+execution. Native frame reads contribute 6.669477 seconds within <code class="docutils literal notranslate"><span class="pre">remaining</span></code>,
+so that category cannot be interpreted as Python overhead. Point chi-square
+and thresholding are secondary costs in this comparison.</p>
+<p>Torch CPU spends 26.624610 cumulative seconds decompressing 96 templates,
+versus 0.421866 seconds for normal CPU, and 26.844547 seconds in 480 search
+inverse FFTs, versus 7.103488 seconds. These two disjoint call subtrees account
+for 45.943802 seconds, or 94.99%, of the 48.366999-second difference between
+cProfile self-time totals. This is an attribution of the instrumented runs;
+it neither partitions the unprofiled wall-time gap nor predicts an optimization
+speedup. The <a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/profile-interpretation-v5.md">profile interpretation</a> and
+<a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/profile-interpretation-v5.json">machine-readable evidence</a> retain
+caller edges, source hashes, raw-input bindings and denominator limitations.</p>
+<p>The measured source explains the expensive paths: Torch CPU decompression uses
+generic double-precision tensor interpolation, while normal CPU uses compiled
+interpolation. The 2,097,152-point complex128 search inverse FFTs use Torch’s
+FFTW workspace fallback; its direct MKL path is limited to lengths at most
+32,768, and its reusable FFTW path to lengths at most 131,072. Normal CPU uses
+the bound MKL transform path. Reductions and copies within interpolation are
+already included in its cumulative time. These profiles do not separately
+isolate precision, library, planning or data-layout effects.</p>
+<figure class="align-default" id="id10">
+<a class="reference internal image-reference" href="_images/profile-self-time.png"><img alt="Exclusive cProfile categories, with each run using its own recorded self-time denominator." src="_images/profile-self-time.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Exclusive cProfile categories, with each run using its own recorded self-time denominator.</span><a class="headerlink" href="#id10" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id11">
+<a class="reference internal image-reference" href="_images/native-symbols.png"><img alt="Native symbols sampled with cycles:u; percentages describe the sampled event population." src="_images/native-symbols.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Native symbols sampled with cycles:u; percentages describe the sampled event population.</span><a class="headerlink" href="#id11" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<figure class="align-default" id="id12">
+<a class="reference internal image-reference" href="_images/cuda-events.png"><img alt="Profiler-visible CUDA device events, using the device-event self-time sum as denominator." src="_images/cuda-events.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Profiler-visible CUDA device events, using the device-event self-time sum as denominator.</span><a class="headerlink" href="#id12" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="scientific-checks-and-measured-source">
+<h2>Scientific checks and measured source<a class="headerlink" href="#scientific-checks-and-measured-source" title="Link to this heading">¶</a></h2>
+<p>All 28 comparisons pass the original trigger
+budgets: absolute tolerance 1e-05, relative tolerance
+0.0001, phase tolerance 0.0001 radians and
+normalization relative tolerance 1e-05. Comparisons
+cover trigger identities, retained times, SNR, phase and signal-consistency
+statistics within the same FFT geometry. Length tuning can change PSD bins and
+triggers, so this does not claim identical triggers across FFT lengths.</p>
+<p>The final source also passes 288 template/PSD
+waveform comparisons and 36 boundary injection cases,
+covering the longest and shortest retained templates. The report retains their
+budgets and worst measured errors. Unit validation records:
+369 passed, 68 skipped, 21 warnings, 8 subtests passed in 24.89s</p>
+<p>All final tuning, qualifications, scientific validations, matched timings and
+profiles use <code class="docutils literal notranslate"><span class="pre">837f38d493420043e45fb1ad210a0ccf68bacbaa</span></code>. Its numerical corrections also change
+normal CPU outputs, so earlier CPU timing and science results are not reused.
+The <a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/source-precision-provenance-v5.json">source provenance</a> records
+the changed source/test blobs and unchanged native module identities.</p>
+<p>The earlier <a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/numerical-investigation-v3.md">numerical investigation v3</a>
+diagnoses CUDA scalar narrowing using captures from parent
+<code class="docutils literal notranslate"><span class="pre">f2c0abe61e787a26f41208f489c62c877bbd5667</span></code> and records unit validation on
+<code class="docutils literal notranslate"><span class="pre">837f38d493420043e45fb1ad210a0ccf68bacbaa</span></code>. That one-template replay predates the completed
+campaign; its pending full-CLI status is historical. The final report supplies
+the full qualification summarized here. Earlier failed attempts remain archived.</p>
+</section>
+<section id="reproduction-and-evidence">
+<h2>Reproduction and evidence<a class="headerlink" href="#reproduction-and-evidence" title="Link to this heading">¶</a></h2>
+<p>The <a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/final-report/report.json">final report</a> binds all raw inputs,
+timings, trigger files, checks and six figures. The
+<a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/precision5-reference-tuning-decision.json">tuning decision</a> preserves
+every candidate and the selection rule. Complete profiling commands and raw
+profiles are linked from the profiling table; all six plans retain the full
+31-case order. Commands below are exact recorded unprofiled invocations,
+including environment and affinity. Use fresh output locations when replaying.</p>
+<p>Normal CPU (MKL): <a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/runs/matched-precision5-cpu-l512-r1/receipt.json">recorded receipt</a>.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cd /home/xangma/pycbc-torch-inspiral-reference-20260906</span>
+<span class="go">env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 MKL_DYNAMIC=FALSE MKL_THREADING_LAYER=GNU OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 BLIS_NUM_THREADS=1 PYTHONHASHSEED=0 PYTHONPATH=/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5 PYTHONDONTWRITEBYTECODE=1 /usr/bin/time -v -o /home/xangma/pycbc-torch-inspiral-reference-20260906/runs/matched-precision5-cpu-l512-r1/time.txt taskset -c 8 /home/xangma/pycbc-torch-split-20260905/venv/bin/python /home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/bin/pycbc_inspiral --verbose --frame-files /home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf --channel-name H1:LOSC-STRAIN --gps-start-time 1187007048 --gps-end-time 1187009080 --trig-start-time 1187007160 --trig-end-time 1187009064 --sample-rate 4096 --low-frequency-cutoff 30 --strain-high-pass 25 --pad-data 8 --autogating-threshold 100 --autogating-cluster 5 --autogating-width 0.25 --autogating-taper 0.25 --autogating-pad 16 --autogating-max-iterations 1 --psd-estimation median --psd-segment-length 32 --psd-segment-stride 16 --psd-num-segments 126 --psd-inverse-length 16 --invpsd-trunc-method hann --invpsd-trunc-which-spectrum invasd --approximant IMRPhenomD --order -1 --use-compressed-waveforms --waveform-decompression-method inline_linear --snr-threshold 5.5 --newsnr-threshold 5 --chisq-bins 16 --cluster-window 1 --cluster-function symmetric --fft-backends mkl --bank-file /home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf --processing-scheme cpu:1 --segment-length 512 --segment-start-pad 112 --segment-end-pad 16 --output /home/xangma/pycbc-torch-inspiral-reference-20260906/runs/matched-precision5-cpu-l512-r1/triggers.hdf</span>
+</pre></div>
+</div>
+<p>Torch CPU: <a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/runs/matched-precision5-torch-cpu-l512-r1/receipt.json">recorded receipt</a>.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cd /home/xangma/pycbc-torch-inspiral-reference-20260906</span>
+<span class="go">env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 MKL_DYNAMIC=FALSE MKL_THREADING_LAYER=GNU OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 BLIS_NUM_THREADS=1 PYTHONHASHSEED=0 PYTHONPATH=/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5 PYTHONDONTWRITEBYTECODE=1 /usr/bin/time -v -o /home/xangma/pycbc-torch-inspiral-reference-20260906/runs/matched-precision5-torch-cpu-l512-r1/time.txt taskset -c 8 /home/xangma/pycbc-torch-split-20260905/venv/bin/python /home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/bin/pycbc_inspiral --verbose --frame-files /home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf --channel-name H1:LOSC-STRAIN --gps-start-time 1187007048 --gps-end-time 1187009080 --trig-start-time 1187007160 --trig-end-time 1187009064 --sample-rate 4096 --low-frequency-cutoff 30 --strain-high-pass 25 --pad-data 8 --autogating-threshold 100 --autogating-cluster 5 --autogating-width 0.25 --autogating-taper 0.25 --autogating-pad 16 --autogating-max-iterations 1 --psd-estimation median --psd-segment-length 32 --psd-segment-stride 16 --psd-num-segments 126 --psd-inverse-length 16 --invpsd-trunc-method hann --invpsd-trunc-which-spectrum invasd --approximant IMRPhenomD --order -1 --use-compressed-waveforms --waveform-decompression-method inline_linear --snr-threshold 5.5 --newsnr-threshold 5 --chisq-bins 16 --cluster-window 1 --cluster-function symmetric --fft-backends mkl --bank-file /home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf --processing-scheme torch:cpu:1 --segment-length 512 --segment-start-pad 112 --segment-end-pad 16 --output /home/xangma/pycbc-torch-inspiral-reference-20260906/runs/matched-precision5-torch-cpu-l512-r1/triggers.hdf</span>
+</pre></div>
+</div>
+<p>Torch CUDA + one GPU: <a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/inspiral-reference-20260906/runs/matched-precision5-torch-cuda-l512-r1/receipt.json">recorded receipt</a>.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">cd /home/xangma/pycbc-torch-inspiral-reference-20260906</span>
+<span class="go">env OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 MKL_DYNAMIC=FALSE MKL_THREADING_LAYER=GNU OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 BLIS_NUM_THREADS=1 PYTHONHASHSEED=0 PYTHONPATH=/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5 PYTHONDONTWRITEBYTECODE=1 /usr/bin/time -v -o /home/xangma/pycbc-torch-inspiral-reference-20260906/runs/matched-precision5-torch-cuda-l512-r1/time.txt taskset -c 8 /home/xangma/pycbc-torch-split-20260905/venv/bin/python /home/xangma/pycbc-torch-inspiral-reference-20260906/source-v5/bin/pycbc_inspiral --verbose --frame-files /home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf --channel-name H1:LOSC-STRAIN --gps-start-time 1187007048 --gps-end-time 1187009080 --trig-start-time 1187007160 --trig-end-time 1187009064 --sample-rate 4096 --low-frequency-cutoff 30 --strain-high-pass 25 --pad-data 8 --autogating-threshold 100 --autogating-cluster 5 --autogating-width 0.25 --autogating-taper 0.25 --autogating-pad 16 --autogating-max-iterations 1 --psd-estimation median --psd-segment-length 32 --psd-segment-stride 16 --psd-num-segments 126 --psd-inverse-length 16 --invpsd-trunc-method hann --invpsd-trunc-which-spectrum invasd --approximant IMRPhenomD --order -1 --use-compressed-waveforms --waveform-decompression-method inline_linear --snr-threshold 5.5 --newsnr-threshold 5 --chisq-bins 16 --cluster-window 1 --cluster-function symmetric --fft-backends mkl --bank-file /home/xangma/pycbc-torch-inspiral-reference-20260906/inputs/bank-compressed-1e5.hdf --processing-scheme torch:cuda:0 --segment-length 512 --segment-start-pad 112 --segment-end-pad 16 --output /home/xangma/pycbc-torch-inspiral-reference-20260906/runs/matched-precision5-torch-cuda-l512-r1/triggers.hdf</span>
+</pre></div>
+</div>
+<p>Regenerate the report into a new directory from the archived evidence:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python build-reference-report-v4.py --root . --output-dir final-report-rebuilt</span>
+</pre></div>
+</div>
+<p>The builder requires a passing complete campaign and writes a success receipt
+only after all tables and figures are complete. The
+<a class="reference download internal" download="" href="_downloads/1307b55331e5ef133331e2cb95d56363/manifest.json"><code class="xref download docutils literal notranslate"><span class="pre">figure</span> <span class="pre">manifest</span></code></a>
+pins the archive commit, measured source, report, builder, inputs and figure hashes.</p>
+</section>
+<section id="scope-of-these-results">
+<h2>Scope of these results<a class="headerlink" href="#scope-of-these-results" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Finite 1904-second valid interval; no steady-state throughput claim.</p></li>
+<li><p>Three FFT lengths and one final padding configuration; no global optimum claim.</p></li>
+<li><p>CPU-normalized CUDA capacity additionally consumes one GPU; it is not a GPU-free resource comparison.</p></li>
+<li><p>96 deterministic point-particle aligned-spin templates do not establish search-bank coverage, tidal/disruption accuracy, or population-weighted throughput.</p></li>
+<li><p>Length changes can alter PSD bins and triggers; trigger parity is tested only within the same FFT geometry.</p></li>
+<li><p>All final reference tuning, scientific validation, matched timings and profiles use one corrected source. Earlier source phases are supplemental; their science and timings are not reused.</p></li>
+<li><p>Hardware inventory was captured on the parent checkout; each run receipt binds the actual final source revision.</p></li>
+<li><p>Native perf percentages, cProfile seconds and CUDA event durations must not be added or interpreted as one timeline.</p></li>
+</ul>
+<p>See <a class="reference internal" href="torch_performance.html#torch-performance"><span class="std std-ref">Benchmarking Torch</span></a> for general measurement requirements,
+<a class="reference internal" href="torch_optimization_results.html#torch-optimization-results"><span class="std std-ref">Torch benchmark results</span></a> for earlier supporting component results,
+and <a class="reference internal" href="torch_benchmark_details.html#torch-benchmark-details"><span class="std std-ref">Benchmark details and reproduction</span></a> for their separate source attribution.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">PyCBC Torch documentation</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="torch.html">Using PyCBC with PyTorch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_filtering.html">Torch filtering and vetoes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_inspiral_optimized.html">Optimized compressed-waveform search</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Normal CPU reference and matched Torch search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_optimization_results.html">Torch benchmark results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_optimizations.html">Torch optimization controls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_parity.html">Torch scientific parity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_performance.html">Benchmarking Torch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_runtime.html">PyTorch runtime</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_search.html">Torch event processing and live search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_testing.html">Testing Torch changes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_workflows.html">Torch maintainer workflow</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="torch_inspiral_optimized.html" title="previous chapter">Optimized compressed-waveform search</a></li>
+      <li>Next: <a href="torch_optimization_results.html" title="next chapter">Torch benchmark results</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/torch_inspiral_reference.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

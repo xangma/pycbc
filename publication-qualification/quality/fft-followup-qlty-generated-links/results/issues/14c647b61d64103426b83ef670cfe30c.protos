@@ -1,0 +1,49 @@
+åFIXME"E# FIXME: This seems much more simplistic than the aligned-spin class.ò¢I    # FIXME: This seems much more simplistic than the aligned-spin class.™∞        u_val,
+        denom != 0,
+        (-rhoplusre + overlap * rhocrossre) / (-rhocrossre + overlap * rhoplusre),
+    )
+    coa_phase = numpy.zeros(len(indices), dtype=numpy.float32)
+
+    return u_val, coa_phase
+
+
+class MatchedFilterSkyMaxControl(object):
+    # FIXME: This seems much more simplistic than the aligned-spin class.
+    #        E.g. no correlators. Is this worth updating?
+    def __init__(
+        self,
+        low_frequency_cutoff,
+        high_frequency_cutoff,
+        snr_threshold,
+        tlen,
+        delta_f,
+        dtype,
+    ):¿
+ ripgrepÍ+
+pycbc/filter/matchedfilter.py
+ê	ê	 ”FIXME"&# FIXME: This should live further downò¢.        # FIXME: This should live further down™±        snr = self._maximized_snr(
+            I_plus,
+            I_cross,
+            hplus_cross_corr,
+            hpnorm=Iplus_norm,
+            hcnorm=Icross_norm,
+            out=self.snr_mem,
+            thresh=self.snr_threshold,
+            analyse_slice=stilde.analyze,
+        )
+        # FIXME: This should live further down
+        # Convert output to pycbc TimeSeries
+        delta_t = 1.0 / (self.tlen * stilde.delta_f)
+
+        snr = TimeSeries(snr, epoch=stilde.start_time, delta_t=delta_t, copy=False)
+
+        from pycbc import events
+
+        idx, snrv = events.threshold_real_and_cluster_findchirp(
+            snr[stilde.analyze], self.snr_threshold, window
+        )¿
+ ripgrepÍ+
+pycbc/filter/matchedfilter.py
+í
+í
+ 

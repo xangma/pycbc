@@ -1,0 +1,145 @@
+id: x1fRPV
+qltyCliVersion: 0.644.0
+pluginName: ruff
+driverName: lint
+pluginVersion: 0.14.6
+verb: EXECUTION_VERB_CHECK
+targetsCount: 4
+targetPaths:
+- pycbc/filter/matchedfilter.py
+- pycbc/vetoes/chisq_torch.py
+- pycbc/fft/torchfft.py
+- pycbc/hardware.py
+configPaths:
+- /home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/ruff.toml
+script: sh -c "ruff check --exit-zero --output-format json --output-file /tmp/invocation-out-x1fRPV.txt pycbc/filter/matchedfilter.py pycbc/vetoes/chisq_torch.py pycbc/fft/torchfft.py pycbc/hardware.py"
+cwd: /home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/
+env:
+  VIRTUAL_ENV: ''
+  PATH: ''
+  HOME: ''
+startedAt: 2026-09-06T21:10:06.995647947+00:00
+durationSecs: 0.055190723
+exitCode: '0'
+tmpfilePath: /tmp/invocation-out-x1fRPV.txt
+tmpfileContents: |-
+  [
+    {
+      "cell": null,
+      "code": "B904",
+      "end_location": {
+        "column": 68,
+        "row": 1644
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/filter/matchedfilter.py",
+      "fix": null,
+      "location": {
+        "column": 17,
+        "row": 1644
+      },
+      "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+      "noqa_row": 1644,
+      "url": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+    },
+    {
+      "cell": null,
+      "code": "B905",
+      "end_location": {
+        "column": 46,
+        "row": 2610
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/filter/matchedfilter.py",
+      "fix": {
+        "applicability": "unsafe",
+        "edits": [
+          {
+            "content": ", strict=False",
+            "end_location": {
+              "column": 45,
+              "row": 2610
+            },
+            "location": {
+              "column": 45,
+              "row": 2610
+            }
+          }
+        ],
+        "message": "Add explicit value for parameter `strict=`"
+      },
+      "location": {
+        "column": 28,
+        "row": 2610
+      },
+      "message": "`zip()` without an explicit `strict=` parameter",
+      "noqa_row": 2610,
+      "url": "https://docs.astral.sh/ruff/rules/zip-without-explicit-strict"
+    },
+    {
+      "cell": null,
+      "code": "B905",
+      "end_location": {
+        "column": 72,
+        "row": 2627
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/filter/matchedfilter.py",
+      "fix": {
+        "applicability": "unsafe",
+        "edits": [
+          {
+            "content": ", strict=False",
+            "end_location": {
+              "column": 71,
+              "row": 2627
+            },
+            "location": {
+              "column": 71,
+              "row": 2627
+            }
+          }
+        ],
+        "message": "Add explicit value for parameter `strict=`"
+      },
+      "location": {
+        "column": 39,
+        "row": 2627
+      },
+      "message": "`zip()` without an explicit `strict=` parameter",
+      "noqa_row": 2627,
+      "url": "https://docs.astral.sh/ruff/rules/zip-without-explicit-strict"
+    },
+    {
+      "cell": null,
+      "code": "B905",
+      "end_location": {
+        "column": 46,
+        "row": 2628
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/filter/matchedfilter.py",
+      "fix": {
+        "applicability": "unsafe",
+        "edits": [
+          {
+            "content": ", strict=False",
+            "end_location": {
+              "column": 45,
+              "row": 2628
+            },
+            "location": {
+              "column": 45,
+              "row": 2628
+            }
+          }
+        ],
+        "message": "Add explicit value for parameter `strict=`"
+      },
+      "location": {
+        "column": 25,
+        "row": 2628
+      },
+      "message": "`zip()` without an explicit `strict=` parameter",
+      "noqa_row": 2628,
+      "url": "https://docs.astral.sh/ruff/rules/zip-without-explicit-strict"
+    }
+  ]
+exitResult: EXIT_RESULT_SUCCESS
+issuesCount: 4

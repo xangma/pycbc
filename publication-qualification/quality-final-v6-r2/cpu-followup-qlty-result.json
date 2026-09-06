@@ -1,0 +1,25 @@
+{
+  "label": "cpu-followup-qlty",
+  "command": [
+    "/home/xangma/pycbc-torch-finish-20260904/qlty/qlty-x86_64-unknown-linux-gnu/qlty",
+    "check",
+    "--no-upgrade-check",
+    "--no-fix",
+    "--sarif",
+    "--no-progress",
+    "--upstream",
+    "0a6fd709ac8abac22c612e7f9ef354b47192a425"
+  ],
+  "cwd": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-final-v6-r2-cpu-followup-checkout",
+  "host": "len",
+  "started_utc": "2026-09-06T21:28:27.323065+00:00",
+  "stdout": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-final-v6-r2/cpu-followup-qlty.sarif",
+  "stderr": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-final-v6-r2/cpu-followup-qlty-stderr.log",
+  "pid": 2849020,
+  "stop_command": "kill -TERM -- -2849020",
+  "returncode": 0,
+  "finished_utc": "2026-09-06T21:28:27.689593+00:00",
+  "wall_seconds": 0.3665156429633498,
+  "stdout_sha256": "2e32d39ea9665da93fd5a6c84cea1c909e739b7cca42c23627503e706ac0609e",
+  "stderr_sha256": "861c0a7fe3c0452054664829b4a4d764b64c11b491c70a9d6e2f41a2d1acb055"
+}

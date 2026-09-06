@@ -1,0 +1,67 @@
+id: UlZrx0
+qltyCliVersion: 0.644.0
+pluginName: ruff
+driverName: lint
+pluginVersion: 0.14.6
+verb: EXECUTION_VERB_CHECK
+targetsCount: 8
+targetPaths:
+- pycbc/fft/npfft.py
+- pycbc/fft/cufft.py
+- pycbc/fft/parser_support.py
+- pycbc/fft/fftw.py
+- pycbc/fft/cupyfft.py
+- pycbc/fft/wisdom_cache.py
+- pycbc/fft/torchfft.py
+- pycbc/fft/__init__.py
+configPaths:
+- /home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/ruff.toml
+script: sh -c "ruff check --exit-zero --output-format json --output-file /tmp/invocation-out-UlZrx0.txt pycbc/fft/npfft.py pycbc/fft/cufft.py pycbc/fft/parser_support.py pycbc/fft/fftw.py pycbc/fft/cupyfft.py pycbc/fft/wisdom_cache.py pycbc/fft/torchfft.py pycbc/fft/__init__.py"
+cwd: /home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/
+env:
+  HOME: ''
+  VIRTUAL_ENV: ''
+  PATH: ''
+startedAt: 2026-09-06T21:10:05.096842167+00:00
+durationSecs: 0.047025446
+exitCode: '0'
+tmpfilePath: /tmp/invocation-out-UlZrx0.txt
+tmpfileContents: |-
+  [
+    {
+      "cell": null,
+      "code": "E722",
+      "end_location": {
+        "column": 7,
+        "row": 38
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/fft/cufft.py",
+      "fix": null,
+      "location": {
+        "column": 1,
+        "row": 38
+      },
+      "message": "Do not use bare `except`",
+      "noqa_row": 38,
+      "url": "https://docs.astral.sh/ruff/rules/bare-except"
+    },
+    {
+      "cell": null,
+      "code": "E722",
+      "end_location": {
+        "column": 15,
+        "row": 161
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/fft/fftw.py",
+      "fix": null,
+      "location": {
+        "column": 9,
+        "row": 161
+      },
+      "message": "Do not use bare `except`",
+      "noqa_row": 161,
+      "url": "https://docs.astral.sh/ruff/rules/bare-except"
+    }
+  ]
+exitResult: EXIT_RESULT_SUCCESS
+issuesCount: 2

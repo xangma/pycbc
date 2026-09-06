@@ -1,0 +1,24 @@
+¿FIXME"5# FIXME: Should we make --psd-num-segments mandatory?˜¢=        # FIXME: Should we make --psd-num-segments mandatory?ª‡        )
+        psds_and_times = [(0, len(gwstrain), psd)]
+        return psds_and_times
+
+    # Figure out the data length used for PSD generation
+    seg_stride = int(opt.psd_segment_stride * gwstrain.sample_rate)
+    seg_len = int(opt.psd_segment_length * gwstrain.sample_rate)
+    input_data_len = len(gwstrain)
+
+    if opt.psd_num_segments is None:
+        # FIXME: Should we make --psd-num-segments mandatory?
+        #        err_msg = "You must supply --num-segments."
+        #        raise ValueError(err_msg)
+        num_segments = int(input_data_len // seg_stride) - 1
+    else:
+        num_segments = int(opt.psd_num_segments)
+
+    psd_data_len = (num_segments - 1) * seg_stride + seg_len
+
+    # How many unique PSD measurements is this?
+    psds_and_times = []À
+Êripgrepê#
+pycbc/psd/__init__.py
+ìì 

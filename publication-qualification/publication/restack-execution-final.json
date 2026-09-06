@@ -1,0 +1,63 @@
+{
+  "started_utc": "2026-09-06T20:56:27.491378+00:00",
+  "state": "complete",
+  "plan_sha256": "343fe55eec55f8fa79c3c17d599c7325506e7342ebd9b34e5b086a89a2ab0f5d",
+  "candidates": [
+    {
+      "number": 15,
+      "branch": "torch-pr11-performance-evidence",
+      "base": "torch-pr10-inference",
+      "candidate_branch": "codex/torch-performance-fix-20260906-pr11-final",
+      "old_head": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+      "head": "0a6fd709ac8abac22c612e7f9ef354b47192a425",
+      "parent": "78d99b5e0f540abd438e01a221de77fc02109b3f",
+      "tree": "c66c046e4d0451dfd003063f183a1d3211e340ff"
+    },
+    {
+      "number": 19,
+      "branch": "torch-fft-formatting-base",
+      "base": "torch-pr11-performance-evidence",
+      "candidate_branch": "codex/torch-performance-fix-20260906-format-fft-final",
+      "old_head": "fa38dbca79f4e2e662f079e56b4d9dbb73fd9ef4",
+      "head": "03494ad311e03fbc1255e180ea130cefa3db55b2",
+      "parent": "0a6fd709ac8abac22c612e7f9ef354b47192a425",
+      "tree": "d43e6c11937ba84fa0b1a7dfc28fd6550de011d0"
+    },
+    {
+      "number": 16,
+      "branch": "torch-followup-fft-optimizations",
+      "base": "torch-fft-formatting-base",
+      "candidate_branch": "codex/torch-performance-fix-20260906-fft-followup-final",
+      "old_head": "37d3c6b4ac1ec74a2dcd42558f44f21b92218ca5",
+      "head": "3d15380f836f9fe17d1d317837465693335a712d",
+      "parent": "03494ad311e03fbc1255e180ea130cefa3db55b2",
+      "tree": "78cfc289aa7a8090bd92f16dbc7307ee4439ba86"
+    },
+    {
+      "number": 17,
+      "branch": "torch-followup-cpu-optimizations",
+      "base": "torch-pr11-performance-evidence",
+      "candidate_branch": "codex/torch-performance-fix-20260906-cpu-followup-final",
+      "old_head": "bd53914be6d2e4324cc867d52b3842b77cc6729a",
+      "head": "3e88711c1453d2ffab5eca42ec3207d34c50ddef",
+      "parent": "0a6fd709ac8abac22c612e7f9ef354b47192a425",
+      "tree": "5a8f3a3a5eaf234c53a3bc06e36984ae995be389"
+    }
+  ],
+  "backup_bundle_sha256": "b40ca6c0a4ce07b55db975673f60bb141b94414778bc5064ce6e8edafc7af87c",
+  "error": "git cherry-pick bd53914be6d2e4324cc867d52b3842b77cc6729a: error: could not apply bd53914be6... Add optional CPU peak, sparse chi-square and FFT optimizations\nhint: After resolving the conflicts, mark them with\nhint: \"git add/rm <pathspec>\", then run\nhint: \"git cherry-pick --continue\".\nhint: You can instead skip this commit with \"git cherry-pick --skip\".\nhint: To abort and get back to the state before \"git cherry-pick\",\nhint: run \"git cherry-pick --abort\".\nhint: Disable this message with \"git config set advice.mergeConflict false\"",
+  "finished_utc": "2026-09-06T21:02:10.373168+00:00",
+  "integration": {
+    "path": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/cpu-integration-v6.json",
+    "sha256": "10e4e70b95911765cd3bb89db977dba9433fd44ee5d3cca72d0a5063abf36ba4",
+    "completion_script": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/complete-restack-v6.py",
+    "completion_script_sha256": "f697bab06837de36619b5b6624347420b6381ac5a3b1c2c00156eb79672495de"
+  },
+  "prior_failure": "restack-execution-conflict-v6.json",
+  "polish": {
+    "path": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/polish-proof-v6.json",
+    "sha256": "75cd47442b7aec30f11d754e797b7e89788f73278b5de301cc530241ff1ff1d0",
+    "script": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/polish-publication.py",
+    "script_sha256": "9e21573fa8544695e1128afabadbec7a1d48b16c49fa6ec5fb8b331f40f037b7"
+  }
+}

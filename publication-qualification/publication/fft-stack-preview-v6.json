@@ -1,0 +1,19 @@
+{
+  "source": "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906",
+  "preview": "/private/tmp/pycbc-v6-fft-stack-preview-20260906",
+  "steps": [
+    {
+      "commit": "fa38dbca79f4e2e662f079e56b4d9dbb73fd9ef4",
+      "returncode": 0,
+      "stdout": "[codex/torch-inspiral-hotpaths-20260906 935df2d86d] Format existing modules used by optional FFT changes\n Date: Sun Sep 6 09:24:48 2026 +0100\n 5 files changed, 118 insertions(+), 81 deletions(-)\n",
+      "stderr": ""
+    },
+    {
+      "commit": "37d3c6b4ac1ec74a2dcd42558f44f21b92218ca5",
+      "returncode": 0,
+      "stdout": "Auto-merging pycbc/fft/torchfft.py\n[codex/torch-inspiral-hotpaths-20260906 d98ad52491] Add optional FFTW wisdom caching and general FFT batch fixes\n Date: Sat Sep 5 12:53:24 2026 +0100\n 12 files changed, 1508 insertions(+), 68 deletions(-)\n create mode 100644 pycbc/fft/wisdom_cache.py\n create mode 100644 test/test_fft_batched_backends.py\n create mode 100644 test/test_fft_cli_wisdom.py\n create mode 100644 test/test_fftw_wisdom_cache.py\n",
+      "stderr": ""
+    }
+  ],
+  "status": ""
+}

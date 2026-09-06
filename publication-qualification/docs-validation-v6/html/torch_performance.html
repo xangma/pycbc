@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Benchmarking Torch &#8212; PyCBC Torch documentation  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="PyTorch runtime" href="torch_runtime.html" />
+    <link rel="prev" title="Torch scientific parity" href="torch_parity.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="benchmarking-torch">
+<span id="torch-performance-summary"></span><span id="torch-performance"></span><h1>Benchmarking Torch<a class="headerlink" href="#benchmarking-torch" title="Link to this heading">¶</a></h1>
+<p>For executable measurements, start with <a class="reference internal" href="torch_inspiral_optimized.html#torch-inspiral-optimized"><span class="std std-ref">Optimized compressed-waveform search</span></a>.
+The <a class="reference internal" href="torch_inspiral_reference.html#torch-inspiral-reference"><span class="std std-ref">Normal CPU reference and matched Torch search</span></a> page records the before campaign
+and normal CPU tuning. The <a class="reference internal" href="torch_optimization_results.html#torch-optimization-results"><span class="std std-ref">Torch benchmark results</span></a> page
+contains earlier supporting component measurements.
+This page explains how to collect a reproducible benchmark. Check numerical
+agreement and the selected implementation using <a class="reference internal" href="torch_parity.html#torch-parity"><span class="std std-ref">Torch scientific parity</span></a> before
+timing it.</p>
+<section id="run-a-benchmark">
+<h2>Run a benchmark<a class="headerlink" href="#run-a-benchmark" title="Link to this heading">¶</a></h2>
+<p>The live-batch harness launches isolated workers and retains raw timings,
+parity results, route settings and environment metadata:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python tools/bench_production_live_batch.py orchestrate \</span>
+<span class="go">  --root SOURCE_SET --python PYTHON --output production_live_batch.json \</span>
+<span class="go">  --batches 1 8 32 128 512 1024</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">SOURCE_SET</span></code> contains clean, built <code class="docutils literal notranslate"><span class="pre">original/</span></code> and <code class="docutils literal notranslate"><span class="pre">branch/</span></code> checkouts.
+Optional <code class="docutils literal notranslate"><span class="pre">branch_cpu/</span></code> and <code class="docutils literal notranslate"><span class="pre">branch_cuda/</span></code> directories override the current
+backend sources. To compare routes in one current checkout, pass its path and
+add <code class="docutils literal notranslate"><span class="pre">--routes</span> <span class="pre">branch_standard</span> <span class="pre">torch_cpu</span> <span class="pre">torch_cuda</span></code>; omit <code class="docutils literal notranslate"><span class="pre">torch_cuda</span></code>
+on CPU-only systems.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">--help</span></code> to set batches, FFT size, blocks, threads, replicates, samples,
+warm-ups, threshold, affinity, seed, routes, CUDA device and call surface.
+Use a new output path. Dirty sources and existing output files are rejected
+unless explicitly allowed.</p>
+<p>The default workload calls <code class="docutils literal notranslate"><span class="pre">LiveBatchMatchedFilter.process_data</span></code>. It excludes
+CLI startup, frame I/O, PSD estimation, bank loading, waveform generation and
+workflow scheduling. Its trigger and aggregate-norm checks do not establish
+pointwise agreement of SNR arrays. Treat it as a library benchmark.</p>
+<p>Generate plots from retained artifacts:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python tools/generate_torch_performance_plots.py --artifacts-dir ARTIFACTS --output-dir OUTPUT</span>
+</pre></div>
+</div>
+<p>This renderer accepts production live-batch artifacts and older component
+artifacts, labeled by scope. Matched-filter, CPU-profile and inference inputs
+are optional. It writes available figures and
+<code class="docutils literal notranslate"><span class="pre">torch_performance_plot_manifest.json</span></code>; it cannot supply missing measurements.
+The September 2026 figures have separate reproduction instructions in
+<a class="reference internal" href="torch_benchmark_details.html#torch-benchmark-details"><span class="std std-ref">Benchmark details and reproduction</span></a>.</p>
+</section>
+<section id="choose-fair-comparisons">
+<h2>Choose fair comparisons<a class="headerlink" href="#choose-fair-comparisons" title="Link to this heading">¶</a></h2>
+<p>Run each backend in a fresh process with the same scientific inputs and public
+outputs. Keep fallback routes separate from native routes.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Comparison</p></th>
+<th class="head"><p>When to include it</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Standard CPU, revision under test</p></td>
+<td><p>Always: the control for changes unrelated to Torch.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Torch CPU, same revision</p></td>
+<td><p>For backend overhead, CPU scaling or CPU optimization claims.</p></td>
+</tr>
+<tr class="row-even"><td><p>Torch CUDA or MPS, same revision</p></td>
+<td><p>For claims about that accelerator and software environment.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Standard CPU, pre-Torch revision</p></td>
+<td><p>Optional historical comparison, only if its environment can be rebuilt.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Small workloads can be dominated by launch, transfer or compilation costs.
+Vary batch size, bank size, FFT length and dtype independently before claiming
+a general crossover point. The live harness ties bank size to batch size and
+uses one FFT size and thread count per invocation, so it cannot establish that
+matrix in a single run.</p>
+</section>
+<section id="measurement-checklist">
+<h2>Measurement checklist<a class="headerlink" href="#measurement-checklist" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p><strong>Identify the run.</strong> Record the full commit, dirty-tree state or patch
+digest, command, working directory, environment lock, dependency versions,
+optimization variables and initial cache state.</p></li>
+<li><p><strong>Describe the machine.</strong> Record OS/kernel, CPU/topology, RAM, GPU/memory,
+driver/runtime, affinity, thread and BLAS settings, accelerator visibility,
+power/clock policy and CPU governor where available.</p></li>
+<li><p><strong>Fix the inputs.</strong> Retain seeds and hashes, sample rate, duration, detector
+count, waveform parameters, batch/bank dimensions, FFT length, dtype and
+thresholds. Check parity, route and output device for every timed cell.</p></li>
+<li><p><strong>Separate startup from repeated calls.</strong> Report cold and warm timings
+separately, with imports, initialization, allocation, planning, graph capture
+and compilation boundaries stated. Record warm-up counts and cache policy.</p></li>
+<li><p><strong>Time completed work.</strong> Synchronize the selected CUDA or MPS device before
+and after each timed region. Include orchestration, required transfers and
+result extraction in end-to-end latency. Label resident compute separately.</p></li>
+<li><p><strong>Keep every sample.</strong> Retain warm-up markers, durations, work counts,
+failures, timeouts and OOMs. Compute throughput and p50/p95/p99 with the
+sample count and percentile method. Do not pool repeated samples as
+independent process runs.</p></li>
+<li><p><strong>Control run order.</strong> Randomize or counterbalance backends and repeat
+complete blocks where practical to reduce thermal, clock and cache bias.</p></li>
+<li><p><strong>Verify the output.</strong> Recompute summaries, check hashes and inspect figures
+against the manifest. Publish raw evidence with the plots.</p></li>
+</ol>
+<p>For memory claims, name the measurement API and interval, including allocated
+and reserved device memory where available. Keep OOMs at their attempted
+matrix cells. For deadline claims, retain timestamped completion offsets,
+deadlines, the arrival model and miss counts/rates; a standard deviation alone
+does not describe deadline jitter.</p>
+</section>
+<section id="which-plots-are-needed">
+<h2>Which plots are needed?<a class="headerlink" href="#which-plots-are-needed" title="Link to this heading">¶</a></h2>
+<p>Match the evidence to the claim. A broad backend or optimization claim needs
+the views below; a narrow change may mark a view not applicable and explain
+why in its manifest.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>View</p></th>
+<th class="head"><p>What it must show</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Throughput and latency</p></td>
+<td><p>Equivalent completed work; p50/p95/p99, sample counts and uncertainty
+appropriate to the independent runs.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Crossover matrix</p></td>
+<td><p>Independent batch, bank, FFT-length and dtype variation, including
+unsupported cells and OOMs.</p></td>
+</tr>
+<tr class="row-even"><td><p>Timing breakdown</p></td>
+<td><p>Transfers, resident compute, allocation, orchestration and extraction
+for the same workload; separate cold and warm costs.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Memory</p></td>
+<td><p>Peak host/device memory, measurement APIs and OOM boundaries.</p></td>
+</tr>
+<tr class="row-even"><td><p>Correctness</p></td>
+<td><p>Error metrics and pass/fail for every timed route and input family.</p></td>
+</tr>
+<tr class="row-odd"><td><p>CPU scaling and hardware</p></td>
+<td><p>Thread counts, affinity and topology; equivalent workloads on every
+hardware class covered by the claim.</p></td>
+</tr>
+<tr class="row-even"><td><p>Deadlines, where relevant</p></td>
+<td><p>Lateness over time, latency quantiles and miss counts/rates.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The current renderer supports live throughput and tails, latency breakdown,
+cold/warm timing, CUDA allocator peaks and parity views when inputs contain
+them. Optional inputs add matched-filter scaling, CPU scaling/profile,
+dashboard and inference views. It does not yet render the independent crossover
+matrix, transfer/resident breakdown, host-memory/OOM boundary, deadline jitter
+or hardware matrix. Kernel benchmarks and allocator counters cannot replace
+those measurements. Extend the data and renderer together.</p>
+</section>
+<section id="keep-results-reproducible">
+<h2>Keep results reproducible<a class="headerlink" href="#keep-results-reproducible" title="Link to this heading">¶</a></h2>
+<p>Store versioned JSON/JSONL with run/cell IDs, UTC timestamps, raw samples,
+inputs, parity and route results, environment and machine records, failures,
+summary algorithms and SHA-256 checksums. Keep logs and environment exports
+beside the data. Include benchmark and renderer versions and generated filenames.</p>
+<p>For CI runs, retain provider, workflow revision, run/job/attempt IDs and URLs,
+runner labels, event, artifact name, retention policy and conclusion. For manual
+runs, record equivalent runner provenance. Neither a hostname nor an expiring
+CI link substitutes for a durable artifact.</p>
+<p>Each figure’s caption or adjacent manifest must identify the run, source
+revision, input checksum, benchmark command and CI job or manual runner.
+Figures combining runs must identify every input and reject incompatible
+workloads or schemas. Inspect all images before publishing.</p>
+<p>A <strong>substantiated measurement</strong> has enough raw data and provenance to recompute
+the result. A <strong>derived plot</strong> identifies that data and its generation command.
+An image without recoverable evidence is only a <strong>reference snapshot</strong>.
+Required or proposed evidence describes work still to collect, not a result.</p>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">PyCBC Torch documentation</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="torch.html">Using PyCBC with PyTorch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_filtering.html">Torch filtering and vetoes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_inspiral_optimized.html">Optimized compressed-waveform search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_inspiral_reference.html">Normal CPU reference and matched Torch search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_optimization_results.html">Torch benchmark results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_optimizations.html">Torch optimization controls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_parity.html">Torch scientific parity</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Benchmarking Torch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_runtime.html">PyTorch runtime</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_search.html">Torch event processing and live search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_testing.html">Testing Torch changes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_workflows.html">Torch maintainer workflow</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="torch_parity.html" title="previous chapter">Torch scientific parity</a></li>
+      <li>Next: <a href="torch_runtime.html" title="next chapter">PyTorch runtime</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/torch_performance.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

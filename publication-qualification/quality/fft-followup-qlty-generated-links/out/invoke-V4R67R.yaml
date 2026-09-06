@@ -1,0 +1,33 @@
+id: V4R67R
+qltyCliVersion: 0.644.0
+pluginName: ruff
+driverName: format
+pluginVersion: 0.14.6
+verb: EXECUTION_VERB_CHECK
+targetsCount: 10
+targetPaths:
+- pycbc/waveform/decompress_torch.py
+- pycbc/psd/__init__.py
+- pycbc/fft/torchfft.py
+- pycbc/scheme.py
+- pycbc/vetoes/chisq_torch.py
+- pycbc/strain/strain.py
+- pycbc/filter/matchedfilter_torch.py
+- pycbc/vetoes/chisq.py
+- pycbc/waveform/taylorf2_torch.py
+- pycbc/filter/matchedfilter.py
+configPaths:
+- /home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/ruff.toml
+script: sh -c "ruff format pycbc/waveform/decompress_torch.py pycbc/psd/__init__.py pycbc/fft/torchfft.py pycbc/scheme.py pycbc/vetoes/chisq_torch.py pycbc/strain/strain.py pycbc/filter/matchedfilter_torch.py pycbc/vetoes/chisq.py pycbc/waveform/taylorf2_torch.py pycbc/filter/matchedfilter.py"
+cwd: /tmp/qlty/qVSE9h4O-rw/
+env:
+  VIRTUAL_ENV: ''
+  PATH: ''
+  HOME: ''
+startedAt: 2026-09-06T21:09:58.042255282+00:00
+durationSecs: 0.059484653
+exitCode: '0'
+stdout: |
+  3 files reformatted, 7 files left unchanged
+exitResult: EXIT_RESULT_SUCCESS
+issuesCount: 3

@@ -1,0 +1,428 @@
+{
+  "schema": "torch-performance-fix-restack-v1",
+  "root": "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906",
+  "assembly": "/private/tmp/pycbc-torch-performance-fix-20260906-assembly",
+  "input_head": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+  "fix_source_chain": [
+    "450ab3f96ccea2783abb943b47f698578a507d59",
+    "0d00581251e642a5d6b56b2497a9adad93069e6b",
+    "fb4b335eeeeaeaa907c1143b45e0191e2d977761",
+    "968bcd558117262af0d603710b054174659adb51",
+    "6c82155044d58f3344b281869d87745f71ba2285",
+    "f2c0abe61e787a26f41208f489c62c877bbd5667",
+    "837f38d493420043e45fb1ad210a0ccf68bacbaa",
+    "a4d77a6d1863c0515e8dace64c5609b63d40b51e"
+  ],
+  "input_branch": "codex/torch-inspiral-hotpaths-20260906",
+  "candidate_prefix": "codex/torch-performance-fix-20260906-",
+  "script_sha256": "1feb9e6da7f1be044b58a68494f332556b528c8c2603ede18f7ca42d07574b9a",
+  "snapshot_path": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/prs-current-v6.json",
+  "snapshot_sha256": "85e22b3e1ba64c64e8316525ad9cbdd3ec29eaa357787538c8cd8b8b67cb2b13",
+  "allowlist_path": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/supplementary-allowlist-v6.json",
+  "allowlist_sha256": "b724d532e492690c10b94b5d2dd980ad655852592b82e8a97294c9c3aa4973c5",
+  "files": {
+    ".github/workflows/basic-tests.yml": {
+      "sha256": "423e040ae98b3bc63462fb55c24c6acfc520678838b864ffe174b3611a3909df",
+      "mode": 420
+    },
+    ".github/workflows/torch-gpu.yml": {
+      "sha256": "b87928ae944446bc82b23fd4a389d8a80802834ee788c5d09e907220d2591312",
+      "mode": 420
+    },
+    "docs/images/torch-inspiral-optimized-20260906/capacity-before-after.png": {
+      "sha256": "84bc9af88a2d1629124ddf5ec7cbffed5941e524fcefaf67f4f0b0bfcf4455a9",
+      "mode": 420
+    },
+    "docs/images/torch-inspiral-optimized-20260906/hotpath-profile-self-time.png": {
+      "sha256": "6ef823c3745349010ef9ee44c97bb433f6cf8ae5fbaa9ec3a6aa4d64c77650be",
+      "mode": 420
+    },
+    "docs/images/torch-inspiral-optimized-20260906/manifest.json": {
+      "sha256": "cc0a945dddad17166315302b0011007b6523d810be6221edc093968b39883f42",
+      "mode": 420
+    },
+    "docs/images/torch-inspiral-optimized-20260906/wall-breakdown.png": {
+      "sha256": "9c3db267a661bcb3e16c9170a27c23be90ae2fda09822579b48d89270da835f4",
+      "mode": 420
+    },
+    "docs/images/torch-inspiral-reference-20260906/cuda-events.png": {
+      "sha256": "c84de3dc5d7961d29c743d85c2756ac79d9657f8229dc64da32d0d3bd2003086",
+      "mode": 420
+    },
+    "docs/images/torch-inspiral-reference-20260906/manifest.json": {
+      "sha256": "4864f0555afee1a5c496fb92037b826122eb332488c6caefcdaf69e2ae84b531",
+      "mode": 420
+    },
+    "docs/images/torch-inspiral-reference-20260906/matched-capacity.png": {
+      "sha256": "4280474664b1d7347af86c034b40c9743191bb0799a0c4a5cb70d03fe9d24ce9",
+      "mode": 420
+    },
+    "docs/images/torch-inspiral-reference-20260906/native-symbols.png": {
+      "sha256": "b4ac31db9f59c68402bc527f14582f279feca3b234126b947ed17638f095c6a6",
+      "mode": 420
+    },
+    "docs/images/torch-inspiral-reference-20260906/profile-self-time.png": {
+      "sha256": "ca545ab1ba2ec0a05ecc386e8f2e2beeefa589ce4b2d63ff2fba3f8d8499970e",
+      "mode": 420
+    },
+    "docs/images/torch-inspiral-reference-20260906/tuning-capacity.png": {
+      "sha256": "b8759cf0b8b1db1b48dc14ad3a2e9f1b9f98ca7d3483401d5ce5809f29c32d5c",
+      "mode": 420
+    },
+    "docs/images/torch-inspiral-reference-20260906/wall-and-internal-times.png": {
+      "sha256": "bf27833834b9adf144c8388f458a71369f42d0d77c245a88c36373129bbc9773",
+      "mode": 420
+    },
+    "docs/images/torch-performance-fix-20260906/cuda-before-v1-v2.png": {
+      "sha256": "0bd40e93215ba3a38d41526e0ccce94f836b2a7e927d55133bc3734b9fbd069f",
+      "mode": 420
+    },
+    "docs/images/torch-performance-fix-20260906/live-before-after.png": {
+      "sha256": "b696401897feec8ba0fda43978478a7c913006ddf762ce2b901a41ae4b1d3de9",
+      "mode": 420
+    },
+    "docs/images/torch-performance-fix-20260906/manifest.json": {
+      "sha256": "76a9c8af64fbfbe86f7371ee61b2a9d25625fc825ed16d3a07a1e35c9d985989",
+      "mode": 420
+    },
+    "docs/images/torch-performance-fix-20260906/waveform-before-after.png": {
+      "sha256": "d91d0bbe23a8d37fd8a2c8a7dcf40e9513e608311b38cb682a529d30447435e0",
+      "mode": 420
+    },
+    "docs/index.rst": {
+      "sha256": "0232afd3fedbef549a7c3b6858930e5a9991e723e507cfa442409434d695cdc8",
+      "mode": 420
+    },
+    "docs/torch_benchmark_details.rst": {
+      "sha256": "3900641aea15304be4cb4e3eb51a35d30991a17160f31d4a14244b15ed45d684",
+      "mode": 420
+    },
+    "docs/torch_inspiral_optimized.rst": {
+      "sha256": "046e10d5c8707172e4b8e6c49bb8beb891f958b9d8b096c1fb57426b82edf769",
+      "mode": 420
+    },
+    "docs/torch_inspiral_reference.rst": {
+      "sha256": "754f8f60c398f1023113dff4cd95bd80d3e9d333b3d3a900b9dff9cadf6e1925",
+      "mode": 420
+    },
+    "docs/torch_optimization_results.rst": {
+      "sha256": "bc353ee7152e423f8e3de50245735756deff5ca6c234cff017178af6e25404a2",
+      "mode": 420
+    },
+    "docs/torch_performance.rst": {
+      "sha256": "dc83bf9ac5032a71dc93617b5b60e4180033e6d31dbb1271747557a916234012",
+      "mode": 420
+    },
+    "docs/torch_testing.rst": {
+      "sha256": "b97540f3edb92557f49cbcf43dab09586af10eff4bfdb79d9315204eebfd3b1a",
+      "mode": 420
+    }
+  },
+  "code_files": [
+    "bin/pycbc_inspiral",
+    "pycbc/fft/torchfft.py",
+    "pycbc/filter/matchedfilter.py",
+    "pycbc/filter/matchedfilter_torch.py",
+    "pycbc/psd/__init__.py",
+    "pycbc/scheme.py",
+    "pycbc/strain/strain.py",
+    "pycbc/vetoes/chisq.py",
+    "pycbc/vetoes/chisq_torch.py",
+    "pycbc/waveform/decompress_torch.py",
+    "pycbc/waveform/taylorf2_torch.py",
+    "test/test_chisq_precision.py",
+    "test/test_live_batch_torch_peaks.py",
+    "test/test_scheme_runtime.py",
+    "test/test_sigmasq_series_precision.py",
+    "test/test_strain_psd_precision.py",
+    "test/test_torch_batch_overlap_scaling.py",
+    "test/test_torch_decompress_cpu.py",
+    "test/test_torch_large_ifft.py",
+    "test/waveform/test_taylorf2_phase_evaluation.py"
+  ],
+  "input_index_sha256": "466429f6909b896b041407ddf8719ec5c8fcf113e8127810b3e400f0c0eb2175",
+  "input_status_sha256": "bb2a370462c12d1fb04a9dc842efde68a194d5e5a921ab106bd3ac06e03be7ea",
+  "fix_patch_sha256": "3de85fa09093cb513671c2ac77e9b1ea1f24a425d84d28f14e38487eac3871cb",
+  "fix_entries": {
+    "bin/pycbc_inspiral": "100644 blob 507952493c0eb0d0d469008124f88b9442f84a6f",
+    "pycbc/fft/torchfft.py": "100644 blob 0c24500f89a390a1f4c86aba2d117d221accda5c",
+    "pycbc/filter/matchedfilter.py": "100644 blob f76b2b5581e36d6e264715454ec7a7d7f920b3b5",
+    "pycbc/filter/matchedfilter_torch.py": "100644 blob 14008291d2b36ac15758a6c682bee3627b23800d",
+    "pycbc/psd/__init__.py": "100644 blob 8fccdb09a1ef235ab86fc302edf9efbcf4eef275",
+    "pycbc/scheme.py": "100644 blob 48f4612bd2dc11195ed2fd88f8f183a91973aae8",
+    "pycbc/strain/strain.py": "100644 blob c735b15db8c68ba9e5153e8d970fe3c7faa7dd10",
+    "pycbc/vetoes/chisq.py": "100644 blob df78834e053c182d96252649a8650623cfecad8f",
+    "pycbc/vetoes/chisq_torch.py": "100644 blob 153963bdd69206117acf1d5e1b3532ccf854a813",
+    "pycbc/waveform/decompress_torch.py": "100644 blob 67c35f0652385feb997b95bf66d4b30c57605237",
+    "pycbc/waveform/taylorf2_torch.py": "100644 blob 6f4906cdcb66fb77f858cbfe9e81d3f9ef101c31",
+    "test/test_chisq_precision.py": "100644 blob 2bffa441ea526a678fd9ebfff00a5614fbcafdfc",
+    "test/test_live_batch_torch_peaks.py": "100644 blob 4cb7140a6d6d5bd9ec070c50f21f95355a1b1331",
+    "test/test_scheme_runtime.py": "100644 blob 176e40015ae88720f3707954d484c0fdd626b3f3",
+    "test/test_sigmasq_series_precision.py": "100644 blob b7eec751204f9825928312ecfcdb60f15eb219d4",
+    "test/test_strain_psd_precision.py": "100644 blob 799d08a751902bc55a6aee704ebe7c32fadbecdf",
+    "test/test_torch_batch_overlap_scaling.py": "100644 blob 56c9ef9cb0e6e21ee4ca3f7eb6a7008ab230965f",
+    "test/test_torch_decompress_cpu.py": "100644 blob 855199fd1963db7552c81a9c5ccd872daab659e2",
+    "test/test_torch_large_ifft.py": "100644 blob 59ffe64bd3dc7f42b6c5c5204b13b793a3e7492c",
+    "test/waveform/test_taylorf2_phase_evaluation.py": "100644 blob 07cf65e6a91a773fe636b6aedda2d463d9e6d4b9"
+  },
+  "source_stack": [
+    {
+      "key": "pr11",
+      "number": 15,
+      "branch": "torch-pr11-performance-evidence",
+      "base": "torch-pr10-inference",
+      "sha": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+      "parent": "78d99b5e0f540abd438e01a221de77fc02109b3f",
+      "files": [
+        ".github/workflows/basic-tests.yml",
+        ".github/workflows/torch-gpu.yml",
+        "docs/images/torch-benchmarks-20260906/fft.png",
+        "docs/images/torch-benchmarks-20260906/inference-cold.png",
+        "docs/images/torch-benchmarks-20260906/inference.png",
+        "docs/images/torch-benchmarks-20260906/main-live.png",
+        "docs/images/torch-benchmarks-20260906/manifest.json",
+        "docs/images/torch-benchmarks-20260906/optional-cpu.png",
+        "docs/images/torch-benchmarks-20260906/taylorf2-cold.png",
+        "docs/images/torch-benchmarks-20260906/taylorf2-throughput.png",
+        "docs/images/torch-benchmarks-20260906/waveform.png",
+        "docs/index.rst",
+        "docs/torch.rst",
+        "docs/torch_benchmark_details.rst",
+        "docs/torch_optimization_results.rst",
+        "docs/torch_optimizations.rst",
+        "docs/torch_parity.rst",
+        "docs/torch_performance.rst",
+        "docs/torch_testing.rst",
+        "docs/torch_workflows.rst",
+        "pycbc/filter/matchedfilter.py",
+        "pytest.ini",
+        "test/test_torch_large_batches.py",
+        "test/test_torch_parity_artifacts.py",
+        "test/test_torch_performance_artifacts.py",
+        "tools/bench_production_live_batch.py",
+        "tools/benchmark_artifact.py",
+        "tools/generate_torch_performance_plots.py",
+        "tools/plot_torch_benchmark_docs.py",
+        "tools/torch_parity/compare.py",
+        "tools/torch_parity/generate.py",
+        "tools/torch_parity/manifest.py",
+        "tools/torch_parity/policy.json",
+        "tools/torch_parity/run_matrix.sh"
+      ],
+      "patches": {
+        ".github/workflows/basic-tests.yml": "f0def6125ef4d3f97315c93298559f65df6a211fb623a892e7e772b5fcc25076",
+        ".github/workflows/torch-gpu.yml": "9aa64145acc40081c58c7ddbac4b7cc88499b20e0e94799bc3108133684ae40e",
+        "docs/images/torch-benchmarks-20260906/fft.png": "8870cf4818019087da21c93524ad4189063b7d6eabac997dd849f2b44f9440c2",
+        "docs/images/torch-benchmarks-20260906/inference-cold.png": "bdaf828579a9053e05078eda48048315359a51c1656212e5e78d05782a2e6ea5",
+        "docs/images/torch-benchmarks-20260906/inference.png": "d2ef4cecd12969e7ce57fec993d103357d890859971c6496aa377e9a6fa74dd6",
+        "docs/images/torch-benchmarks-20260906/main-live.png": "6036ebc55e790e34f9b3d906a01eda690c98d5950f8b425085e360eb7e5d210f",
+        "docs/images/torch-benchmarks-20260906/manifest.json": "895be33615d25449cc011ab4670c9b7f0224201e2126a2ba25a185872ba64264",
+        "docs/images/torch-benchmarks-20260906/optional-cpu.png": "96e81103288e6df2e36a4722e82f364420a0ecefcf79cdb872bf3c359d2862b0",
+        "docs/images/torch-benchmarks-20260906/taylorf2-cold.png": "5c7f43b2f0abfd5fe20bc02298240a1b04daa6b31a3bd858231fb172cac17cdb",
+        "docs/images/torch-benchmarks-20260906/taylorf2-throughput.png": "278f70706f0e279362957c7777ed5a19e84ce81cd0c5292ce77d25e3f3c75c6f",
+        "docs/images/torch-benchmarks-20260906/waveform.png": "b453cb7099dc1a7d0b6e81479ea367d7aabb03c4e56cadc549c8ffa89631d5a2",
+        "docs/index.rst": "a8ec99d695aaeea75f83241e4641eb324bc0f59adf0126d3457ead553ffdd310",
+        "docs/torch.rst": "8034c6ea315ead9626b457a3a6fcf973ffec6a55ed87541d6b11fbef227b923e",
+        "docs/torch_benchmark_details.rst": "cb3f5e46355b4555ad1aa8f7d7961b93a86c14e989c9f3df56fa0e02d1b4fa6d",
+        "docs/torch_optimization_results.rst": "e29af3d9eac9d63016f64b40a370a688219c802ab4bd24c50b0664f7913db6c2",
+        "docs/torch_optimizations.rst": "66b57f664ed7a3d4cad03732be1a339dbe0e612d379155b655f218c64af469e9",
+        "docs/torch_parity.rst": "65e2ab628dc8524611b72147ec9f6066491c613caa7671207709e7f13779dc95",
+        "docs/torch_performance.rst": "3883bfd25b59658ca24c74ff3b6588019e30d45ceacddf46f80bfa303e0c37ac",
+        "docs/torch_testing.rst": "744b211eb8c70cd6de522b886387ef87300c07348c078a562a4da8ea0014ec3d",
+        "docs/torch_workflows.rst": "648793159ae7c4443737f6e7c9dce941b8657360381f90c1b964effd6ba0be6c",
+        "pycbc/filter/matchedfilter.py": "96f29e84caf2617fb96087769582e99b92960764fa71ae872a2db956ef23d9ac",
+        "pytest.ini": "1fd394defac23732a643d41a6cef2406f5ad8ba4f150de4cadb11d58023c481f",
+        "test/test_torch_large_batches.py": "bf55c33a5c900cf2dec92579851dbe05961f49ba34d37c764561f1198a741a42",
+        "test/test_torch_parity_artifacts.py": "bf896d160eed0f246feac5aee4e728fe19b17bbd9829f74ca6bcf1d24cd6003c",
+        "test/test_torch_performance_artifacts.py": "17ecb51513e6926a477756c641a3e9b16f82667a5eb57f1243df404e81193105",
+        "tools/bench_production_live_batch.py": "2af62ab93fd5bae1362c43a3b80ad4a5c638b54d38d6c22263f0d502bf5e7ecc",
+        "tools/benchmark_artifact.py": "97ddb12a1d183ea32254a129f71fee25adf5980b99832a653936dc333725a107",
+        "tools/generate_torch_performance_plots.py": "f8e90d769aa97a226125c401f5d5638eba0e56de0f4f2bac7c9a63e9d1108f23",
+        "tools/plot_torch_benchmark_docs.py": "b5334ea2d1fbe94b5df6d24df02d2bee56a66adce502b3855c12d9b0ca74e0db",
+        "tools/torch_parity/compare.py": "e978ce7036232206cca3d9d1e45c166c6aab3531a44d2cb12036463092e2f7f4",
+        "tools/torch_parity/generate.py": "671cf03b6d7f68a258c085a56b105597386a6585091142c0affac0c36eb453e1",
+        "tools/torch_parity/manifest.py": "1f369f8f83cc3b98411b63544f290172c487aae2000b1c3844a520886a54cac8",
+        "tools/torch_parity/policy.json": "4e3ebcc961526acb5d085acb6eb3de79d780120061555e5a577445daa7921e67",
+        "tools/torch_parity/run_matrix.sh": "dc4f53324fdd2807ae50e28f6e96493d18b34b690fe9d50f1b40689e64edb332"
+      },
+      "entries": {
+        ".github/workflows/basic-tests.yml": "100644 blob 0d6cf2dc8a4fb39994fd87fcb404c39abeb105ae",
+        ".github/workflows/torch-gpu.yml": "100644 blob fc6a098c2f208f369f4e1a43ccc4f2e425339aad",
+        "docs/images/torch-benchmarks-20260906/fft.png": "100644 blob 92837901df30d80e531512767bfe55285e6d04ec",
+        "docs/images/torch-benchmarks-20260906/inference-cold.png": "100644 blob f21a783673240ef6d630451f56bdaf87eccae95a",
+        "docs/images/torch-benchmarks-20260906/inference.png": "100644 blob fd812d58b7b526b23a7a8a6d532cb8bc268ddb1f",
+        "docs/images/torch-benchmarks-20260906/main-live.png": "100644 blob 9f7bc003947970806e05aa7d5655857d2d9fd1ff",
+        "docs/images/torch-benchmarks-20260906/manifest.json": "100644 blob 4147e92e399023aa01e1deeaf64fbba06007eb96",
+        "docs/images/torch-benchmarks-20260906/optional-cpu.png": "100644 blob ffd0212471596e227fc9b7b8dbc2778f64ac1649",
+        "docs/images/torch-benchmarks-20260906/taylorf2-cold.png": "100644 blob 0f7841a60736956a1d424c121fcfa3cb838ed8d9",
+        "docs/images/torch-benchmarks-20260906/taylorf2-throughput.png": "100644 blob 34c4e3b0ad4076df055cff0acbae969654a82897",
+        "docs/images/torch-benchmarks-20260906/waveform.png": "100644 blob fd81b91dfb188939f13fceb7b951e9a9c3e3e993",
+        "docs/index.rst": "100644 blob 533bfab872494a72bbd406c3938824a5a713b53f",
+        "docs/torch.rst": "100644 blob c405982c790ccdf9f636f8a9fb2e5898d82f04ce",
+        "docs/torch_benchmark_details.rst": "100644 blob 2f86e57a93c255c12aa0aaa70c272623b8857547",
+        "docs/torch_optimization_results.rst": "100644 blob 7714a4e5165863369e954e56ced783d68dd632f3",
+        "docs/torch_optimizations.rst": "100644 blob 486ea26d290beb9a10afe678eecee423e931faf3",
+        "docs/torch_parity.rst": "100644 blob 1e4a2748e5931b822fa8bfe5a72d054478170ce5",
+        "docs/torch_performance.rst": "100644 blob 9901c8cd53efeebb61f1dca87f7ce27760bffd0a",
+        "docs/torch_testing.rst": "100644 blob 103bb2c665d31bed778d6f65c1680e01612fe1cb",
+        "docs/torch_workflows.rst": "100644 blob b63e545996f590f2fefd88e98f67f8f3303d90b9",
+        "pycbc/filter/matchedfilter.py": "100644 blob 140397eabdb5e4ea4dfe5272d2bc0483665adbc1",
+        "pytest.ini": "100644 blob 4857dcd55a9f237aa5577769cf61be882b0513ef",
+        "test/test_torch_large_batches.py": "100644 blob afb5fa40acd715c0f6f7cd39f9d743b0dde4e1bc",
+        "test/test_torch_parity_artifacts.py": "100644 blob f3f96ae92c4bdce3cd65eb6cd20f8f4a8acdd85b",
+        "test/test_torch_performance_artifacts.py": "100644 blob ee1b7adada2c0c9b7c15e129dcb4205a75a5fc96",
+        "tools/bench_production_live_batch.py": "100644 blob 673df95cba04f49c5704c150b0f3c9f061ce82bb",
+        "tools/benchmark_artifact.py": "100644 blob bed744417fa0d2baf852f2d27d6fbe983ec8e64e",
+        "tools/generate_torch_performance_plots.py": "100644 blob d12f43cff85d9afc174d65e3860764c6fc880d0b",
+        "tools/plot_torch_benchmark_docs.py": "100644 blob 595280ba64f7bd051c1f16613255bfd8c9c7c59a",
+        "tools/torch_parity/compare.py": "100755 blob 481288648a56c5ccada462c81b51a85d5e98badb",
+        "tools/torch_parity/generate.py": "100755 blob 42c2fa3382db1b8dd2e2e239adfec496500d4219",
+        "tools/torch_parity/manifest.py": "100644 blob 7cb6204cb19ea4e4dea81894fd37c82fc7ba200f",
+        "tools/torch_parity/policy.json": "100644 blob bffd2f07f94bceddb693d7563edf2fbb25559d9d",
+        "tools/torch_parity/run_matrix.sh": "100755 blob f3c1bec03d17ec66b1eb013aa9444ea7b2bb2d48"
+      }
+    },
+    {
+      "key": "format-fft",
+      "number": 19,
+      "branch": "torch-fft-formatting-base",
+      "base": "torch-pr11-performance-evidence",
+      "sha": "fa38dbca79f4e2e662f079e56b4d9dbb73fd9ef4",
+      "parent": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+      "files": [
+        "pycbc/fft/__init__.py",
+        "pycbc/fft/cufft.py",
+        "pycbc/fft/cupyfft.py",
+        "pycbc/fft/npfft.py",
+        "pycbc/fft/parser_support.py"
+      ],
+      "patches": {
+        "pycbc/fft/__init__.py": "289d06b07688bb4f0411a97bd8d511ed67e274cf9044dd5364a355a81df2d2ea",
+        "pycbc/fft/cufft.py": "d67f122e849c54a903f7bf1730a435856a52d81c0e9ba27e5c06448f6021ceca",
+        "pycbc/fft/cupyfft.py": "c66e841e196c84fe1486bc4037486d9ee888f379762a6b416c8389018812fa1e",
+        "pycbc/fft/npfft.py": "ff4204c9e6b38b013bf8403b5fbd3be60b91eff3418394aae5d0720266122f5f",
+        "pycbc/fft/parser_support.py": "f9045430787934168bb3bbfdb881cde59985347a64a1c08a1bc8491a8031d50b"
+      },
+      "entries": {
+        "pycbc/fft/__init__.py": "100644 blob 6c4fa9f27a0f53f1647fecf2b2b73e91d36cbf96",
+        "pycbc/fft/cufft.py": "100644 blob 042aedbf4cd8278b6268cbf5424b4aa4bb642828",
+        "pycbc/fft/cupyfft.py": "100644 blob 1807e90c532f58163ef4c4a40e213032e578beaf",
+        "pycbc/fft/npfft.py": "100644 blob 35f79e7745d3a37cb56910312a16e8eb2b24a77d",
+        "pycbc/fft/parser_support.py": "100644 blob a7d0024ecc380948d4f605bdb75ff7c512b46bbb"
+      }
+    },
+    {
+      "key": "fft-followup",
+      "number": 16,
+      "branch": "torch-followup-fft-optimizations",
+      "base": "torch-fft-formatting-base",
+      "sha": "37d3c6b4ac1ec74a2dcd42558f44f21b92218ca5",
+      "parent": "fa38dbca79f4e2e662f079e56b4d9dbb73fd9ef4",
+      "files": [
+        "bin/pycbc_live",
+        "pycbc/fft/__init__.py",
+        "pycbc/fft/cufft.py",
+        "pycbc/fft/cupyfft.py",
+        "pycbc/fft/fftw.py",
+        "pycbc/fft/npfft.py",
+        "pycbc/fft/parser_support.py",
+        "pycbc/fft/torchfft.py",
+        "pycbc/fft/wisdom_cache.py",
+        "test/test_fft_batched_backends.py",
+        "test/test_fft_cli_wisdom.py",
+        "test/test_fftw_wisdom_cache.py"
+      ],
+      "patches": {
+        "bin/pycbc_live": "6000473cd8a9750a281c7c294c49446e2d0e29c13092d9a28d26b68ec4c0f4df",
+        "pycbc/fft/__init__.py": "3ed7db1edbc3ac6644f739b60d4c66d353c223be63eafa22810eb2ed1c555c5a",
+        "pycbc/fft/cufft.py": "cb0933d7bce0ce67141f82b0529ef1c5a6ee4f8d5038824ef6e04e07619ed886",
+        "pycbc/fft/cupyfft.py": "de574f25503394033901197dcc629605de5421be82d650f41fff670cc0565da2",
+        "pycbc/fft/fftw.py": "b18380af0299b7925c3e99e791f9e66131f416aa6b548664148bd07480a8699b",
+        "pycbc/fft/npfft.py": "29247dd3097f9f684cf39a118391352630bc65ba64657739f22e8fef96452cee",
+        "pycbc/fft/parser_support.py": "130c08b55313b157ee9d371eed491a107006c7ce253797876c57b84d81b41b31",
+        "pycbc/fft/torchfft.py": "c9fc0888e95fc96e397890587927312531f7fe3dbf7a8d50b0a913b2d35e011b",
+        "pycbc/fft/wisdom_cache.py": "ed3b8e6610dc5873b54e46b2ebdf102f9b8796fdcb2cdd9097c35b40623e708d",
+        "test/test_fft_batched_backends.py": "c0d51c109e4afaecfbc03e8ad424bcff1bf267b26aee7c778565857ca197ddce",
+        "test/test_fft_cli_wisdom.py": "123e3ffd44e90f1799339d8664bc9619dc3e3a8478539dd03871b0b3516727d6",
+        "test/test_fftw_wisdom_cache.py": "ef53297dfe5a0ca8ae19b84d5d3ca9897a0868d5a34c25045105395732ec0696"
+      },
+      "entries": {
+        "bin/pycbc_live": "100755 blob d12fc70a551c7a2e61a1be0b43f2788a6b8c79c0",
+        "pycbc/fft/__init__.py": "100644 blob 3e36a1996e4e41cd39a03767a883e699c9623060",
+        "pycbc/fft/cufft.py": "100644 blob 219e5923e77ec25b9fde1ac62b3139e3322f26f2",
+        "pycbc/fft/cupyfft.py": "100644 blob b1b527e0b72fe36252536b06c58e8289fe238a1a",
+        "pycbc/fft/fftw.py": "100644 blob 9c5c61f02384ed6478d4aeb0cdecb7d5a3901d45",
+        "pycbc/fft/npfft.py": "100644 blob 3fb5d902b41be81028931e7186feb1b3d9e48c35",
+        "pycbc/fft/parser_support.py": "100644 blob 809627479812e5e7eb69fe676d684c4807782194",
+        "pycbc/fft/torchfft.py": "100644 blob 019cc792337f18a1280b34b13065b0418000ff2e",
+        "pycbc/fft/wisdom_cache.py": "100644 blob ee30a6307db72a8f33bc199084a2724302e24515",
+        "test/test_fft_batched_backends.py": "100644 blob 8c7426cebbb8fbdd7087e97f4e6badfdf2b305c2",
+        "test/test_fft_cli_wisdom.py": "100644 blob 80743fcd87fbf3c4b728396b35247302ecefe105",
+        "test/test_fftw_wisdom_cache.py": "100644 blob cf042134307ad0f0acf50537dd7714b8819e6852"
+      }
+    },
+    {
+      "key": "cpu-followup",
+      "number": 17,
+      "branch": "torch-followup-cpu-optimizations",
+      "base": "torch-pr11-performance-evidence",
+      "sha": "bd53914be6d2e4324cc867d52b3842b77cc6729a",
+      "parent": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+      "files": [
+        ".github/workflows/basic-tests.yml",
+        "docs/torch_optimizations.rst",
+        "pycbc/fft/torchfft.py",
+        "pycbc/filter/matchedfilter.py",
+        "pycbc/filter/matchedfilter_cpu.pyx",
+        "pycbc/hardware.py",
+        "pycbc/vetoes/chisq_cpu.pyx",
+        "pycbc/vetoes/chisq_torch.py",
+        "test/test_cpu_batch_peaks.py",
+        "test/test_torch_chisq_cpu_optimization.py",
+        "test/test_torch_cpu_fft_tuning.py",
+        "test/test_torch_cpu_native_peaks.py",
+        "test/test_torch_performance_artifacts.py",
+        "tools/bench_production_live_batch.py"
+      ],
+      "patches": {
+        ".github/workflows/basic-tests.yml": "c59bf107cf7f18baebe6f3e1967caf5684e66fc73c942ce3e2bff98c03a1ed33",
+        "docs/torch_optimizations.rst": "506deb962fe068b091c21e15989fa51c92ab3fbc6fbfd8abcf9d091cf3fa5f2c",
+        "pycbc/fft/torchfft.py": "163c3affd1c75b4fcb4f35c77fed25adb09a6306b67e74a6b6ef33a1dd6dabcf",
+        "pycbc/filter/matchedfilter.py": "387cd17317aba8c1e5857adfab64efd93c0a109832387d069d14d085bf35de6a",
+        "pycbc/filter/matchedfilter_cpu.pyx": "ad66f420077d72945034da50bfb7d958437dfebf1f86bda3899ed3d78ad9d455",
+        "pycbc/hardware.py": "dc62d64e93721cff9da7f1516db1052b23a5480a8b821f23b1ef55b5443e6348",
+        "pycbc/vetoes/chisq_cpu.pyx": "f3aa9675035f63dfe4b6856fdb984b2dcf8f4e25df79d1980e925a9eaff19469",
+        "pycbc/vetoes/chisq_torch.py": "b73f4a0b5a2b5ca3c110680dfc91bb5241d773d36fac1816b4b8330b8b0010f7",
+        "test/test_cpu_batch_peaks.py": "f1e45db3abd33a5df2f9e517f971c6e7a2d28de580af4b0eea71e891378dfd17",
+        "test/test_torch_chisq_cpu_optimization.py": "9bfc9aaae8983f3119b9e3b80513affeeb7ff2d34cdefdca469f170a502c4ad8",
+        "test/test_torch_cpu_fft_tuning.py": "f647dcc4381dbbf8deb3960841ac7e1769b4b736f21457e037616768fa4156f0",
+        "test/test_torch_cpu_native_peaks.py": "49b9218388d84bf35a5926c62bd257b9ab7fcff56494e49b5b59fc4f4cdb573e",
+        "test/test_torch_performance_artifacts.py": "7bd3b2aab4a9c153e49143b36c679dce15ca75b6a4847bae3a8fd317ebf8ea21",
+        "tools/bench_production_live_batch.py": "fef00091805af0c2ee1e9b9df01b82edf6d41d259859b45fd0731c3b3083aa36"
+      },
+      "entries": {
+        ".github/workflows/basic-tests.yml": "100644 blob 13da8730880a8d4ff2511965455344c2e942a662",
+        "docs/torch_optimizations.rst": "100644 blob d3d5a5a8237108bcd934b0a7808fcee04ff6fade",
+        "pycbc/fft/torchfft.py": "100644 blob 82b400b34c52f104d3768eed7224b5ea473e16a0",
+        "pycbc/filter/matchedfilter.py": "100644 blob bf2829c638d683bbb52d574a2e395a96941de6c5",
+        "pycbc/filter/matchedfilter_cpu.pyx": "100644 blob 4cd7b081795697ce72e9c00f58a233d9a7841c8a",
+        "pycbc/hardware.py": "100644 blob ba0bfdb16413d06b74d9da52dcf98719b66069c4",
+        "pycbc/vetoes/chisq_cpu.pyx": "100644 blob ad59331432b72cc0f52c23e35d4c517eb3cb655d",
+        "pycbc/vetoes/chisq_torch.py": "100644 blob d2b8100f4402617b327a4462ef08165eb93156f7",
+        "test/test_cpu_batch_peaks.py": "100644 blob 89f473d3600870cc14dd1dad605409d65260022e",
+        "test/test_torch_chisq_cpu_optimization.py": "100644 blob 5fe80f0b8cb514c460b939b68f47bc372292877a",
+        "test/test_torch_cpu_fft_tuning.py": "100644 blob 88c204e56b07372feed6374dd62e30d7074436ea",
+        "test/test_torch_cpu_native_peaks.py": "100644 blob 57ed292eeb47d927bb6372773e8edc74aa03f5ef",
+        "test/test_torch_performance_artifacts.py": "100644 blob b08d593f995338653011537fd547c6ee47690e7d",
+        "tools/bench_production_live_batch.py": "100644 blob acc96b8cd0508e01373c4c35ab521d20b3f3d84e"
+      }
+    }
+  ],
+  "normalized_paths": [
+    ".github/workflows/basic-tests.yml",
+    "pycbc/fft/torchfft.py",
+    "pycbc/filter/matchedfilter.py",
+    "pycbc/vetoes/chisq_torch.py"
+  ],
+  "notice": "Local identity only; no scientific or remote qualification."
+}

@@ -1,0 +1,436 @@
+id: EZfu8P
+qltyCliVersion: 0.644.0
+pluginName: ruff
+driverName: lint
+pluginVersion: 0.14.6
+verb: EXECUTION_VERB_CHECK
+targetsCount: 10
+targetPaths:
+- pycbc/waveform/decompress_torch.py
+- pycbc/psd/__init__.py
+- pycbc/fft/torchfft.py
+- pycbc/scheme.py
+- pycbc/vetoes/chisq_torch.py
+- pycbc/strain/strain.py
+- pycbc/filter/matchedfilter_torch.py
+- pycbc/vetoes/chisq.py
+- pycbc/waveform/taylorf2_torch.py
+- pycbc/filter/matchedfilter.py
+configPaths:
+- /home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/ruff.toml
+script: sh -c "ruff check --exit-zero --output-format json --output-file /tmp/invocation-out-EZfu8P.txt pycbc/waveform/decompress_torch.py pycbc/psd/__init__.py pycbc/fft/torchfft.py pycbc/scheme.py pycbc/vetoes/chisq_torch.py pycbc/strain/strain.py pycbc/filter/matchedfilter_torch.py pycbc/vetoes/chisq.py pycbc/waveform/taylorf2_torch.py pycbc/filter/matchedfilter.py"
+cwd: /home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/
+env:
+  PATH: ''
+  HOME: ''
+  VIRTUAL_ENV: ''
+startedAt: 2026-09-06T21:09:57.947133563+00:00
+durationSecs: 0.05470665
+exitCode: '0'
+tmpfilePath: /tmp/invocation-out-EZfu8P.txt
+tmpfileContents: |-
+  [
+    {
+      "cell": null,
+      "code": "B904",
+      "end_location": {
+        "column": 68,
+        "row": 1641
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/filter/matchedfilter.py",
+      "fix": null,
+      "location": {
+        "column": 17,
+        "row": 1641
+      },
+      "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+      "noqa_row": 1641,
+      "url": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+    },
+    {
+      "cell": null,
+      "code": "B905",
+      "end_location": {
+        "column": 46,
+        "row": 2439
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/filter/matchedfilter.py",
+      "fix": {
+        "applicability": "unsafe",
+        "edits": [
+          {
+            "content": ", strict=False",
+            "end_location": {
+              "column": 45,
+              "row": 2439
+            },
+            "location": {
+              "column": 45,
+              "row": 2439
+            }
+          }
+        ],
+        "message": "Add explicit value for parameter `strict=`"
+      },
+      "location": {
+        "column": 28,
+        "row": 2439
+      },
+      "message": "`zip()` without an explicit `strict=` parameter",
+      "noqa_row": 2439,
+      "url": "https://docs.astral.sh/ruff/rules/zip-without-explicit-strict"
+    },
+    {
+      "cell": null,
+      "code": "B905",
+      "end_location": {
+        "column": 72,
+        "row": 2456
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/filter/matchedfilter.py",
+      "fix": {
+        "applicability": "unsafe",
+        "edits": [
+          {
+            "content": ", strict=False",
+            "end_location": {
+              "column": 71,
+              "row": 2456
+            },
+            "location": {
+              "column": 71,
+              "row": 2456
+            }
+          }
+        ],
+        "message": "Add explicit value for parameter `strict=`"
+      },
+      "location": {
+        "column": 39,
+        "row": 2456
+      },
+      "message": "`zip()` without an explicit `strict=` parameter",
+      "noqa_row": 2456,
+      "url": "https://docs.astral.sh/ruff/rules/zip-without-explicit-strict"
+    },
+    {
+      "cell": null,
+      "code": "B905",
+      "end_location": {
+        "column": 46,
+        "row": 2457
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/filter/matchedfilter.py",
+      "fix": {
+        "applicability": "unsafe",
+        "edits": [
+          {
+            "content": ", strict=False",
+            "end_location": {
+              "column": 45,
+              "row": 2457
+            },
+            "location": {
+              "column": 45,
+              "row": 2457
+            }
+          }
+        ],
+        "message": "Add explicit value for parameter `strict=`"
+      },
+      "location": {
+        "column": 25,
+        "row": 2457
+      },
+      "message": "`zip()` without an explicit `strict=` parameter",
+      "noqa_row": 2457,
+      "url": "https://docs.astral.sh/ruff/rules/zip-without-explicit-strict"
+    },
+    {
+      "cell": null,
+      "code": "F403",
+      "end_location": {
+        "column": 35,
+        "row": 22
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/psd/__init__.py",
+      "fix": null,
+      "location": {
+        "column": 1,
+        "row": 22
+      },
+      "message": "`from pycbc.psd.analytical import *` used; unable to detect undefined names",
+      "noqa_row": 22,
+      "url": "https://docs.astral.sh/ruff/rules/undefined-local-with-import-star"
+    },
+    {
+      "cell": null,
+      "code": "F403",
+      "end_location": {
+        "column": 41,
+        "row": 23
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/psd/__init__.py",
+      "fix": null,
+      "location": {
+        "column": 1,
+        "row": 23
+      },
+      "message": "`from pycbc.psd.analytical_space import *` used; unable to detect undefined names",
+      "noqa_row": 23,
+      "url": "https://docs.astral.sh/ruff/rules/undefined-local-with-import-star"
+    },
+    {
+      "cell": null,
+      "code": "F403",
+      "end_location": {
+        "column": 33,
+        "row": 24
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/psd/__init__.py",
+      "fix": null,
+      "location": {
+        "column": 1,
+        "row": 24
+      },
+      "message": "`from pycbc.psd.estimate import *` used; unable to detect undefined names",
+      "noqa_row": 24,
+      "url": "https://docs.astral.sh/ruff/rules/undefined-local-with-import-star"
+    },
+    {
+      "cell": null,
+      "code": "F403",
+      "end_location": {
+        "column": 34,
+        "row": 26
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/psd/__init__.py",
+      "fix": null,
+      "location": {
+        "column": 1,
+        "row": 26
+      },
+      "message": "`from pycbc.psd.variation import *` used; unable to detect undefined names",
+      "noqa_row": 26,
+      "url": "https://docs.astral.sh/ruff/rules/undefined-local-with-import-star"
+    },
+    {
+      "cell": null,
+      "code": "F405",
+      "end_location": {
+        "column": 30,
+        "row": 168
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/psd/__init__.py",
+      "fix": null,
+      "location": {
+        "column": 19,
+        "row": 168
+      },
+      "message": "`interpolate` may be undefined, or defined from star imports",
+      "noqa_row": 168,
+      "url": "https://docs.astral.sh/ruff/rules/undefined-local-with-import-star-usage"
+    },
+    {
+      "cell": null,
+      "code": "B904",
+      "end_location": {
+        "column": 6,
+        "row": 369
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/scheme.py",
+      "fix": null,
+      "location": {
+        "column": 5,
+        "row": 364
+      },
+      "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+      "noqa_row": 364,
+      "url": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+    },
+    {
+      "cell": null,
+      "code": "B904",
+      "end_location": {
+        "column": 40,
+        "row": 467
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/scheme.py",
+      "fix": null,
+      "location": {
+        "column": 17,
+        "row": 467
+      },
+      "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+      "noqa_row": 467,
+      "url": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+    },
+    {
+      "cell": null,
+      "code": "E722",
+      "end_location": {
+        "column": 19,
+        "row": 604
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/scheme.py",
+      "fix": null,
+      "location": {
+        "column": 13,
+        "row": 604
+      },
+      "message": "Do not use bare `except`",
+      "noqa_row": 604,
+      "url": "https://docs.astral.sh/ruff/rules/bare-except"
+    },
+    {
+      "cell": null,
+      "code": "I001",
+      "end_location": {
+        "column": 50,
+        "row": 56
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/strain/strain.py",
+      "fix": {
+        "applicability": "safe",
+        "edits": [
+          {
+            "content": "import copy\nimport functools\nimport logging\n\nimport numpy\nfrom scipy.signal import kaiserord\n\nimport pycbc\nimport pycbc.events\nimport pycbc.filter\nimport pycbc.frame\nimport pycbc.psd\nimport pycbc.types\nfrom pycbc import scheme as _scheme\nfrom pycbc.fft import FFT, IFFT\nfrom pycbc.filter import highpass, lowpass, make_frequency_series, resample_to_delta_t\nfrom pycbc.filter.zpk import filter_zpk\nfrom pycbc.inject import InjectionSet, SGBurstInjectionSet\nfrom pycbc.types import (\n    Array,\n    DictOptionAction,\n    FrequencySeries,\n    MultiDetDictOptionAction,\n    MultiDetOptionAction,\n    MultiDetOptionActionSpecial,\n    MultiDetOptionAppendAction,\n    TimeSeries,\n    complex_same_precision_as,\n    copy_opts_for_single_ifo,\n    ensure_one_opt,\n    ensure_one_opt_multi_ifo,\n    required_opts,\n    required_opts_multi_ifo,\n    zeros,\n)\nfrom pycbc.types.backend import backend_array, is_backend, wrap_backend_array\nfrom pycbc.waveform.spa_tmplt import spa_distance\n\n",
+            "end_location": {
+              "column": 1,
+              "row": 58
+            },
+            "location": {
+              "column": 1,
+              "row": 20
+            }
+          }
+        ],
+        "message": "Organize imports"
+      },
+      "location": {
+        "column": 1,
+        "row": 20
+      },
+      "message": "Import block is un-sorted or un-formatted",
+      "noqa_row": 20,
+      "url": "https://docs.astral.sh/ruff/rules/unsorted-imports"
+    },
+    {
+      "cell": null,
+      "code": "E741",
+      "end_location": {
+        "column": 10,
+        "row": 419
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/strain/strain.py",
+      "fix": null,
+      "location": {
+        "column": 9,
+        "row": 419
+      },
+      "message": "Ambiguous variable name: `l`",
+      "noqa_row": 419,
+      "url": "https://docs.astral.sh/ruff/rules/ambiguous-variable-name"
+    },
+    {
+      "cell": null,
+      "code": "B905",
+      "end_location": {
+        "column": 70,
+        "row": 1584
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/strain/strain.py",
+      "fix": {
+        "applicability": "unsafe",
+        "edits": [
+          {
+            "content": ", strict=False",
+            "end_location": {
+              "column": 69,
+              "row": 1584
+            },
+            "location": {
+              "column": 69,
+              "row": 1584
+            }
+          }
+        ],
+        "message": "Add explicit value for parameter `strict=`"
+      },
+      "location": {
+        "column": 25,
+        "row": 1584
+      },
+      "message": "`zip()` without an explicit `strict=` parameter",
+      "noqa_row": 1584,
+      "url": "https://docs.astral.sh/ruff/rules/zip-without-explicit-strict"
+    },
+    {
+      "cell": null,
+      "code": "B905",
+      "end_location": {
+        "column": 80,
+        "row": 1636
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/strain/strain.py",
+      "fix": {
+        "applicability": "unsafe",
+        "edits": [
+          {
+            "content": ", strict=False",
+            "end_location": {
+              "column": 79,
+              "row": 1636
+            },
+            "location": {
+              "column": 79,
+              "row": 1636
+            }
+          }
+        ],
+        "message": "Add explicit value for parameter `strict=`"
+      },
+      "location": {
+        "column": 35,
+        "row": 1636
+      },
+      "message": "`zip()` without an explicit `strict=` parameter",
+      "noqa_row": 1636,
+      "url": "https://docs.astral.sh/ruff/rules/zip-without-explicit-strict"
+    },
+    {
+      "cell": null,
+      "code": "I001",
+      "end_location": {
+        "column": 10,
+        "row": 166
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/waveform/decompress_torch.py",
+      "fix": {
+        "applicability": "safe",
+        "edits": [
+          {
+            "content": "        from .decompress_cpu_cython import (\n            decomp_ccode_double,\n            decomp_ccode_float,\n        )\n",
+            "end_location": {
+              "column": 1,
+              "row": 167
+            },
+            "location": {
+              "column": 1,
+              "row": 164
+            }
+          }
+        ],
+        "message": "Organize imports"
+      },
+      "location": {
+        "column": 9,
+        "row": 164
+      },
+      "message": "Import block is un-sorted or un-formatted",
+      "noqa_row": 164,
+      "url": "https://docs.astral.sh/ruff/rules/unsorted-imports"
+    }
+  ]
+exitResult: EXIT_RESULT_SUCCESS
+issuesCount: 17

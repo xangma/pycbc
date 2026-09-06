@@ -1,0 +1,200 @@
+id: eMuxSU
+qltyCliVersion: 0.644.0
+pluginName: ruff
+driverName: lint
+pluginVersion: 0.14.6
+verb: EXECUTION_VERB_CHECK
+targetsCount: 5
+targetPaths:
+- pycbc/fft/cupyfft.py
+- pycbc/fft/__init__.py
+- pycbc/fft/npfft.py
+- pycbc/fft/parser_support.py
+- pycbc/fft/cufft.py
+configPaths:
+- /home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/ruff.toml
+script: sh -c "ruff check --exit-zero --output-format json --output-file /tmp/invocation-out-eMuxSU.txt pycbc/fft/cupyfft.py pycbc/fft/__init__.py pycbc/fft/npfft.py pycbc/fft/parser_support.py pycbc/fft/cufft.py"
+cwd: /home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/
+env:
+  PATH: ''
+  VIRTUAL_ENV: ''
+  HOME: ''
+startedAt: 2026-09-06T21:10:03.254062019+00:00
+durationSecs: 0.041974805
+exitCode: '0'
+tmpfilePath: /tmp/invocation-out-eMuxSU.txt
+tmpfileContents: |-
+  [
+    {
+      "cell": null,
+      "code": "F401",
+      "end_location": {
+        "column": 47,
+        "row": 17
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/fft/__init__.py",
+      "fix": null,
+      "location": {
+        "column": 30,
+        "row": 17
+      },
+      "message": "`.backend_support.get_backend_names` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "noqa_row": 17,
+      "url": "https://docs.astral.sh/ruff/rules/unused-import"
+    },
+    {
+      "cell": null,
+      "code": "F401",
+      "end_location": {
+        "column": 27,
+        "row": 18
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/fft/__init__.py",
+      "fix": null,
+      "location": {
+        "column": 24,
+        "row": 18
+      },
+      "message": "`.class_api.FFT` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "noqa_row": 18,
+      "url": "https://docs.astral.sh/ruff/rules/unused-import"
+    },
+    {
+      "cell": null,
+      "code": "F401",
+      "end_location": {
+        "column": 33,
+        "row": 18
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/fft/__init__.py",
+      "fix": null,
+      "location": {
+        "column": 29,
+        "row": 18
+      },
+      "message": "`.class_api.IFFT` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "noqa_row": 18,
+      "url": "https://docs.astral.sh/ruff/rules/unused-import"
+    },
+    {
+      "cell": null,
+      "code": "F401",
+      "end_location": {
+        "column": 26,
+        "row": 19
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/fft/__init__.py",
+      "fix": null,
+      "location": {
+        "column": 23,
+        "row": 19
+      },
+      "message": "`.func_api.fft` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "noqa_row": 19,
+      "url": "https://docs.astral.sh/ruff/rules/unused-import"
+    },
+    {
+      "cell": null,
+      "code": "F401",
+      "end_location": {
+        "column": 32,
+        "row": 19
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/fft/__init__.py",
+      "fix": null,
+      "location": {
+        "column": 28,
+        "row": 19
+      },
+      "message": "`.func_api.ifft` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "noqa_row": 19,
+      "url": "https://docs.astral.sh/ruff/rules/unused-import"
+    },
+    {
+      "cell": null,
+      "code": "F401",
+      "end_location": {
+        "column": 37,
+        "row": 20
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/fft/__init__.py",
+      "fix": null,
+      "location": {
+        "column": 29,
+        "row": 20
+      },
+      "message": "`.parser_support.from_cli` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "noqa_row": 20,
+      "url": "https://docs.astral.sh/ruff/rules/unused-import"
+    },
+    {
+      "cell": null,
+      "code": "F401",
+      "end_location": {
+        "column": 62,
+        "row": 20
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/fft/__init__.py",
+      "fix": null,
+      "location": {
+        "column": 39,
+        "row": 20
+      },
+      "message": "`.parser_support.insert_fft_option_group` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "noqa_row": 20,
+      "url": "https://docs.astral.sh/ruff/rules/unused-import"
+    },
+    {
+      "cell": null,
+      "code": "F401",
+      "end_location": {
+        "column": 82,
+        "row": 20
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/fft/__init__.py",
+      "fix": null,
+      "location": {
+        "column": 64,
+        "row": 20
+      },
+      "message": "`.parser_support.verify_fft_options` imported but unused; consider removing, adding to `__all__`, or using a redundant alias",
+      "noqa_row": 20,
+      "url": "https://docs.astral.sh/ruff/rules/unused-import"
+    },
+    {
+      "cell": null,
+      "code": "E722",
+      "end_location": {
+        "column": 7,
+        "row": 38
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/fft/cufft.py",
+      "fix": null,
+      "location": {
+        "column": 1,
+        "row": 38
+      },
+      "message": "Do not use bare `except`",
+      "noqa_row": 38,
+      "url": "https://docs.astral.sh/ruff/rules/bare-except"
+    },
+    {
+      "cell": null,
+      "code": "B904",
+      "end_location": {
+        "column": 6,
+        "row": 41
+      },
+      "filename": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/pycbc/fft/cufft.py",
+      "fix": null,
+      "location": {
+        "column": 5,
+        "row": 39
+      },
+      "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+      "noqa_row": 39,
+      "url": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+    }
+  ]
+exitResult: EXIT_RESULT_SUCCESS
+issuesCount: 10

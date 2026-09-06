@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Benchmark details and reproduction &#8212; PyCBC Torch documentation  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Torch optimization controls" href="torch_optimizations.html" />
+    <link rel="prev" title="Torch benchmark results" href="torch_optimization_results.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="benchmark-details-and-reproduction">
+<span id="torch-benchmark-details"></span><h1>Benchmark details and reproduction<a class="headerlink" href="#benchmark-details-and-reproduction" title="Link to this heading">¶</a></h1>
+<p>Start with <a class="reference internal" href="torch_inspiral_optimized.html#torch-inspiral-optimized"><span class="std std-ref">Optimized compressed-waveform search</span></a> for executable measurements and
+<a class="reference internal" href="torch_optimization_results.html#torch-optimization-results"><span class="std std-ref">Torch benchmark results</span></a> for supporting component comparisons.</p>
+<section id="performance-fix-campaign">
+<h2>Performance-fix campaign<a class="headerlink" href="#performance-fix-campaign" title="Link to this heading">¶</a></h2>
+<p>The paired campaign contains 252 live workers (including 36 standard CPU
+controls), 108 waveform workers and 108 passing live parity records. It covers
+batches 1, 8, 32, 128, 512 and 1024, CPU with one or four threads, and CUDA with
+one host thread. Workers run sequentially with affinity 8–11. The second of
+three replicates reverses before/after order. Profilers run separately from
+the workers used for throughput claims.</p>
+<p>Before source: <code class="docutils literal notranslate"><span class="pre">dfd42bf76766cadca0eecf609a1eaeac73534676</span></code>.
+After source: <code class="docutils literal notranslate"><span class="pre">97bf1614f3afe53a6e2edb4d8c7dff79e9661782</span></code>.
+The v1 after tree also corresponds to local fix commit
+<code class="docutils literal notranslate"><span class="pre">450ab3f96ccea2783abb943b47f698578a507d59</span></code>. These are measured source revisions;
+subsequent documentation and CI-selector edits do not constitute new timings.
+Source files, trees and binary hashes are retained in the <a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/performance-fix/README.md">fix evidence</a>.</p>
+<p>The v2 GPU follow-on measures
+<code class="docutils literal notranslate"><span class="pre">0d00581251e642a5d6b56b2497a9adad93069e6b</span></code>. It repeats the two GPU routes
+at all six batch sizes with three workers per configuration, after the original
+campaign and postchecks finish. It reuses the earlier standard controls and
+before/v1 records; the archive distinguishes these run periods. V2 leaves the
+CPU reduction algorithm and waveform source unchanged. Separate main, FFT and
+CPU branch test receipts identify the actual v2 qualification commits.</p>
+<p>The optional CPU follow-up measures
+<code class="docutils literal notranslate"><span class="pre">bd53914be6d2e4324cc867d52b3842b77cc6729a</span></code> against
+<code class="docutils literal notranslate"><span class="pre">1514327669fc7be125523b991c847868c3a2a17e</span></code>, with native peak
+routing explicitly enabled on both. It contains 36 workers and 12 parity records.</p>
+<p>The live-search figures convert the legacy template-blocks/s records to
+templates/core at real time (CPU) or templates/GPU at real time (CUDA).
+The frozen harness sets <code class="docutils literal notranslate"><span class="pre">blocksize=56.0</span></code> seconds and <code class="docutils literal notranslate"><span class="pre">sample_rate=2048.0</span></code> Hz;
+the filter searches that 56-second valid segment within each 64-second FFT.
+The conversion is <code class="docutils literal notranslate"><span class="pre">rate</span> <span class="pre">*</span> <span class="pre">56</span> <span class="pre">/</span> <span class="pre">threads</span></code> for CPU and <code class="docutils literal notranslate"><span class="pre">rate</span> <span class="pre">*</span> <span class="pre">56</span></code> for CUDA.
+Threads are the configured one/four-core compute budget, with affinity 8–11
+covering four distinct physical cores. This normalization changes neither the
+timings nor speed ratios. It describes this synthetic matched-filter component;
+I/O, PSD estimation, waveform generation and veto costs are excluded.
+The live harness’s legacy <code class="docutils literal notranslate"><span class="pre">throughput_wps_summary</span></code> field says
+<code class="docutils literal notranslate"><span class="pre">waveforms/second</span></code> but counts template-block evaluations; the reports preserve
+that raw record and use the actual numerator for the conversion.</p>
+<p>At batch 1024, the baseline native CUDA profile spent about 1.06 s of a
+1.10 s instrumented call checking overlaps, with 1,573,376 pair comparisons.
+The baseline native CPU profile spent about 2.09 s of a 4.09 s call reducing
+peaks and 1.01 s checking overlaps. These instrumented values attribute costs;
+they are not throughput measurements. Baseline and candidate Python and Torch
+operator profiles are both retained in the <a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/performance-fix/README.md">fix evidence</a>.</p>
+<p>The v1 native CUDA profile reduces overlap-validation cumulative time from
+1055.89 ms to
+2.78 ms.
+The native CPU profile reduces peak-extraction cumulative time from
+2085.84 ms to
+770.81 ms.
+These are separate instrumented calls. The <a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/performance-fix/profile-summary.md">profile attribution</a> reports all
+12 before/v1 profile pairs, full operator counts and source paths. The waveform
+specialization removes arithmetic involving known-zero terms while preserving
+Horner order; it does not remove the logarithm evaluations.</p>
+<p>The <a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/performance-fix/REPRODUCE.md">fix reproduction instructions</a> describe the exact public workloads,
+flags, source preparation, correctness checks and separate profiling commands.
+The <a class="reference external" href="https://github.com/xangma/pycbc/blob/639154f7ef359eb473db79660942a2cd88dd59e6/performance-fix/report/report.md">paired report</a> includes three-worker ranges and all before/after ratios.
+The <a class="reference download internal" download="" href="_downloads/a3b8ed1f4e220c10643fe990d2a726e1/manifest.json"><code class="xref download docutils literal notranslate"><span class="pre">performance</span> <span class="pre">figure</span> <span class="pre">manifest</span></code></a>
+records the measured revisions, report and renderer hashes, and image hashes.
+To regenerate the paired figures from the archive supplement, run:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python build-report.py --input comparison --out report-new</span>
+</pre></div>
+</div>
+<p>The validator requires all expected records, passing parity, matching source
+identities and consistent runtime metadata. It recomputes live parity from
+recorded triggers and norms. Missing or failed cells are not plotted.</p>
+</section>
+<section id="earlier-campaign-details">
+<h2>Earlier campaign details<a class="headerlink" href="#earlier-campaign-details" title="Link to this heading">¶</a></h2>
+<p>The following startup, FFT, optional CPU and source records predate the
+performance fixes. Their original revisions and immutable links are preserved.</p>
+<section id="startup-costs">
+<h3>Startup costs<a class="headerlink" href="#startup-costs" title="Link to this heading">¶</a></h3>
+<p>Median first-call costs across the TaylorF2 workloads were
+<strong>1.996–2.121 s with Triton</strong>, versus <strong>0.398–0.503 s without it</strong>.
+Each worker had a fresh Triton cache. Timing
+includes compilation and lazy initialization; the CUDA driver cache was not
+cleared. These timings are separate from warm throughput.</p>
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="_images/taylorf2-cold.png"><img alt="First TaylorF2 call with Triton off and on; about 0.4 versus 2.0 seconds across the tested workloads." src="_images/taylorf2-cold.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">First-call latency; lower is faster.</span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>Inference startup was measured in four separate intervals. They exclude some
+process startup work and must not be added up as a complete startup measurement.</p>
+<figure class="align-default" id="id2">
+<a class="reference internal image-reference" href="_images/inference-cold.png"><img alt="Inference import, scheme entry, model setup and first-likelihood costs shown as separate timing phases." src="_images/inference-cold.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Separate intervals in seconds; lower is faster. Marker shapes distinguish
+<code class="docutils literal notranslate"><span class="pre">GaussianNoise</span></code> from <code class="docutils literal notranslate"><span class="pre">Relative</span></code>.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="fft-planning-and-execution">
+<h3>FFT planning and execution<a class="headerlink" href="#fft-planning-and-execution" title="Link to this heading">¶</a></h3>
+<p>For a length-131072 <code class="docutils literal notranslate"><span class="pre">complex64</span></code> inverse FFT with one thread, FFTW MEASURE
+reduced warm execution from <strong>0.737 to 0.571 ms</strong>, while plan construction
+rose from <strong>42 to 2,417 ms</strong>. Reusing cached wisdom reduced plan construction
+to <strong>76 ms</strong>, with <strong>0.569 ms</strong> execution. The four-thread Torch fallback
+was faster at <strong>0.297 ms</strong>. This single-vector test covers cache behavior,
+not every batch-layout change in the optional FFT follow-up.</p>
+<figure class="align-default" id="id3">
+<a class="reference internal image-reference" href="_images/fft.png"><img alt="FFT plan construction and warm execution, with MEASURE, cached wisdom and the four-thread Torch fallback identified." src="_images/fft.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Separate planning and execution scales. <a class="reference external" href="https://github.com/xangma/pycbc/blob/7f1ea7a7aa05b4fdafe2995a43a754984a2c5817/report/fft-summary.md">FFT records</a> include numerical,
+dispatch and cache checks.</span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="optional-cpu-tuning">
+<h3>Optional CPU tuning<a class="headerlink" href="#optional-cpu-tuning" title="Link to this heading">¶</a></h3>
+<p>At batch 1024, the optional native CPU configuration was <strong>2.65x</strong> the main
+native configuration with one thread and <strong>2.14x</strong> with four threads.
+Standard CPU was still faster. The optional configuration also enables a CPU
+peak kernel, so this comparison includes a flag change as well as code changes.</p>
+<figure class="align-default" id="id4">
+<a class="reference internal image-reference" href="_images/optional-cpu.png"><img alt="Standard CPU, main native Torch CPU and optional native Torch CPU throughput across batch sizes and thread counts." src="_images/optional-cpu.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Correlation and FFTW batching are requested in both native configurations;
+optional CPU also requests native batch peaks. <a class="reference external" href="https://github.com/xangma/pycbc/blob/7f1ea7a7aa05b4fdafe2995a43a754984a2c5817/batch1024/report/dispatch-summary.md">Dispatch probes</a> identify
+which kernels ran. <a class="reference external" href="https://github.com/xangma/pycbc/blob/7f1ea7a7aa05b4fdafe2995a43a754984a2c5817/batch1024/report/live-summary.md">Live records</a> retain all controls and configurations.</span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="methods-and-source-revisions">
+<h3>Methods and source revisions<a class="headerlink" href="#methods-and-source-revisions" title="Link to this heading">¶</a></h3>
+<p>Workers ran sequentially on a shared Linux host with CPU affinity 8–11.
+Reported centers are medians of three worker summaries; whiskers are their
+observed minimum and maximum, not confidence intervals. Repeated samples
+within a worker are not independent runs. CPU threads are stated per plot;
+CUDA uses one host thread.</p>
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-text">Measured revisions</span><a class="headerlink" href="#id5" title="Link to this table">¶</a></caption>
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Measurement</p></th>
+<th class="head"><p>Source commit</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Live filtering, waveforms and Triton (six-batch sweep)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">4885b64560e9f39b740e85b6a976898869dd360e</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Optional CPU follow-up (six-batch sweep)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">d544420232428225c214a4be84fbe1262a6d307b</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Single-evaluation inference and main FFT control</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">607bce53ead14f12af32552a5b2441d3bc667267</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Single-vector FFT follow-up</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">e6073eaf1a89cfed69af53707f52321eadf129f1</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>These are assembled-source measurements, not separate timings of intermediate
+PRs. Live filtering includes 252 timed workers in 84 comparison groups and
+60 separate dispatch probes. The
+waveform sweep includes 144 timed workers and 144 unsupported
+requests retained without speed claims. The Triton comparison adds 72 timed
+workers. All three sweeps use batches 1, 8, 32, 128, 512 and 1024; the baseline waveform
+sweep explicitly disables Triton.</p>
+<p>The 18 FFT and 30 inference workers are earlier single-vector and
+single-parameter measurements. Their original source revisions remain above.
+Separate <a class="reference internal" href="torch_testing.html#torch-large-batches"><span class="std std-ref">1024-row tests</span></a> check batched FFT and
+inference correctness. These were manual runs, not GitHub Actions measurements.</p>
+<p>The results apply to these revisions and workloads. They do not qualify MPS,
+complete production searches, sampler throughput, deadline jitter or other
+hardware. See <a class="reference internal" href="torch_performance.html#torch-performance"><span class="std std-ref">Benchmarking Torch</span></a> for broader evidence requirements and
+<a class="reference internal" href="torch_parity.html#torch-parity"><span class="std std-ref">Torch scientific parity</span></a> for numerical contracts.</p>
+</section>
+<section id="reproduce-the-results-and-figures">
+<h3>Reproduce the results and figures<a class="headerlink" href="#reproduce-the-results-and-figures" title="Link to this heading">¶</a></h3>
+<p>The <a class="reference external" href="https://github.com/xangma/pycbc/tree/7f1ea7a7aa05b4fdafe2995a43a754984a2c5817">immutable archive</a> retains raw samples, commands, environment records,
+logs, figures and checksums. Follow the <a class="reference external" href="https://github.com/xangma/pycbc/blob/7f1ea7a7aa05b4fdafe2995a43a754984a2c5817/batch1024/REPRODUCE.md">six-batch instructions</a> to rerun live
+filtering, waveform generation and Triton in new output directories. The
+<a class="reference external" href="https://github.com/xangma/pycbc/blob/7f1ea7a7aa05b4fdafe2995a43a754984a2c5817/REPRODUCE.md">historical instructions</a> cover the earlier scalar inference and FFT runs.</p>
+<p>The documentation figures are simplified renderings of the archive’s verified
+summaries. The <a class="reference download internal" download="" href="_downloads/57c825cfb246a1fc453dda819a0dc5b5/manifest.json"><code class="xref download docutils literal notranslate"><span class="pre">figure</span> <span class="pre">manifest</span></code></a>
+records input hashes, selected cells, measured revisions and image hashes.
+Live-filter, waveform and Triton figures show all six measured batch sizes
+through 1024. Requested routes omitted from overview plots remain in the
+linked full results, including slower and unsupported cases.</p>
+<p>To regenerate the documentation figures from a checkout of the pinned archive,
+run this command from the PyCBC source tree (requires Matplotlib):</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python tools/plot_torch_benchmark_docs.py --archive ARCHIVE_CHECKOUT --output docs/images/torch-benchmarks-20260906</span>
+</pre></div>
+</div>
+<p>The renderer checks summary hashes before plotting. Documentation edits do
+not constitute new measurements. Publish raw evidence before changing result
+claims, preserve slower and unsupported cases, and inspect regenerated figures.</p>
+</section>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">PyCBC Torch documentation</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="torch.html">Using PyCBC with PyTorch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_filtering.html">Torch filtering and vetoes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_inspiral_optimized.html">Optimized compressed-waveform search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_inspiral_reference.html">Normal CPU reference and matched Torch search</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="torch_optimization_results.html">Torch benchmark results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_optimizations.html">Torch optimization controls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_parity.html">Torch scientific parity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_performance.html">Benchmarking Torch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_runtime.html">PyTorch runtime</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_search.html">Torch event processing and live search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_testing.html">Testing Torch changes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_workflows.html">Torch maintainer workflow</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="torch_optimization_results.html">Torch benchmark results</a><ul>
+      <li>Previous: <a href="torch_optimization_results.html" title="previous chapter">Torch benchmark results</a></li>
+      <li>Next: <a href="torch_optimizations.html" title="next chapter">Torch optimization controls</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/torch_benchmark_details.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,45 @@
+{
+  "state": "complete",
+  "candidates": [
+    {
+      "number": 15,
+      "branch": "torch-pr11-performance-evidence",
+      "base": "torch-pr10-inference",
+      "candidate_branch": "codex/torch-performance-fix-20260906-pr11",
+      "old_head": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+      "head": "49ae2de3ca4a495b0c3de8052c1ece05228f8684",
+      "parent": "78d99b5e0f540abd438e01a221de77fc02109b3f",
+      "tree": "271d8c8bea92155f3a7243552961f2cd25810a84"
+    },
+    {
+      "number": 19,
+      "branch": "torch-fft-formatting-base",
+      "base": "torch-pr11-performance-evidence",
+      "candidate_branch": "codex/torch-performance-fix-20260906-format-fft",
+      "old_head": "fa38dbca79f4e2e662f079e56b4d9dbb73fd9ef4",
+      "head": "94e92f4a9e94430b0ba7759f719b03bacccaec2e",
+      "parent": "49ae2de3ca4a495b0c3de8052c1ece05228f8684",
+      "tree": "ed3b79c597d3c1d2af94b663b1241390c9450f4e"
+    },
+    {
+      "number": 16,
+      "branch": "torch-followup-fft-optimizations",
+      "base": "torch-fft-formatting-base",
+      "candidate_branch": "codex/torch-performance-fix-20260906-fft-followup",
+      "old_head": "37d3c6b4ac1ec74a2dcd42558f44f21b92218ca5",
+      "head": "01d7fb0f7e2ea97273cd351f80739e1acf43fff6",
+      "parent": "94e92f4a9e94430b0ba7759f719b03bacccaec2e",
+      "tree": "b8cadf6749e8ea4209f3e97f6f143e69f57cee47"
+    },
+    {
+      "number": 17,
+      "branch": "torch-followup-cpu-optimizations",
+      "base": "torch-pr11-performance-evidence",
+      "candidate_branch": "codex/torch-performance-fix-20260906-cpu-followup",
+      "old_head": "bd53914be6d2e4324cc867d52b3842b77cc6729a",
+      "head": "b776a97a0477ca922b829adcf14475b0d3791363",
+      "parent": "49ae2de3ca4a495b0c3de8052c1ece05228f8684",
+      "tree": "a2896df01806a7a2c107f8b2b5c39a5f85fcd496"
+    }
+  ]
+}

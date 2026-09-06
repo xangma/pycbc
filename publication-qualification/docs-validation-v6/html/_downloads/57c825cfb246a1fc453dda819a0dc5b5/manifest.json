@@ -1,0 +1,194 @@
+{
+  "schema_version": 2,
+  "campaign_date": "2026-09-06",
+  "artifact_repository": "https://github.com/xangma/pycbc",
+  "baseline_archive_commit": "5c6c12d895fa7229fd0da2d10ade5ecfbae5153b",
+  "checksums_path": "SHA256SUMS",
+  "reproduction_paths": [
+    "batch1024/REPRODUCE.md",
+    "REPRODUCE.md"
+  ],
+  "renderer_cwd": "PyCBC source checkout; --archive identifies the pinned evidence checkout",
+  "runner": "Manual Linux runner; no GitHub Actions CI run",
+  "documentation_renderer": "tools/plot_torch_benchmark_docs.py",
+  "summary_inputs": [
+    {
+      "key": "live",
+      "path": "batch1024/report/live-summary.json",
+      "sha256": "50830693a3cd0ed3f5c2cc8083530030e7a47370abea4a70086e7811211d0b4b"
+    },
+    {
+      "key": "waveform",
+      "path": "batch1024/report/waveform-summary.json",
+      "sha256": "1e42c39aae50bf41155ef4ed68b11b7c1f13422e85602de1f1ada39f6cc3acf9"
+    },
+    {
+      "key": "triton",
+      "path": "batch1024/report/triton/report.json",
+      "sha256": "32fe57c173fe8049de945edd5647b588f6bc66cae326bc18754df03bfe59bd09"
+    },
+    {
+      "key": "inference",
+      "path": "report/inference-summary.json",
+      "sha256": "214470389096a43b04d34377a751bbfaef1b4059a9933b5ac533408218c61801"
+    },
+    {
+      "key": "fft",
+      "path": "report/fft-summary.json",
+      "sha256": "c4e5ff9b01ee0a00f2837fab0b45c1f2ea9c1c0569c5e14893d20adca9789794"
+    }
+  ],
+  "figures": [
+    {
+      "file": "main-live.png",
+      "summary_input": "live",
+      "selection": "Main default routes at all six batches; separate CPU/1 thread, CPU/4 threads and CUDA/1 thread panels with different zero-based scales.",
+      "source_revisions": [
+        "4885b64560e9f39b740e85b6a976898869dd360e"
+      ],
+      "raw_results": "batch1024/live/",
+      "renderer_command": "python tools/plot_torch_benchmark_docs.py --archive ARCHIVE_CHECKOUT --output docs/images/torch-benchmarks-20260906",
+      "archive_figure_path": "batch1024/documentation/figures/main-live.png",
+      "sha256": "4ac2d5a1b5019579aaf10e7a61ce33d18110300107d96b949635ff03a6003d46",
+      "bytes": 109110,
+      "runner_receipts": [
+        "batch1024/live/runs.json"
+      ],
+      "archive_figure_sha256": "4ac2d5a1b5019579aaf10e7a61ce33d18110300107d96b949635ff03a6003d46",
+      "archive_renderer_command": "python batch1024/documentation/plot_torch_benchmark_docs.py --archive . --manifest batch1024/documentation/render-manifest.json --output NEW_FIGURE_DIRECTORY"
+    },
+    {
+      "file": "waveform.png",
+      "summary_input": "waveform",
+      "selection": "Eligible public and scalar routes at all six batches; separate CPU/1 thread, CPU/4 threads and CUDA/1 thread panels with different zero-based scales.",
+      "source_revisions": [
+        "4885b64560e9f39b740e85b6a976898869dd360e"
+      ],
+      "raw_results": "batch1024/waveform/",
+      "renderer_command": "python tools/plot_torch_benchmark_docs.py --archive ARCHIVE_CHECKOUT --output docs/images/torch-benchmarks-20260906",
+      "archive_figure_path": "batch1024/documentation/figures/waveform.png",
+      "sha256": "6db53c42f011ed3793b71faf1f42bfa092b0d23cbfeafdce7232fa7862c997df",
+      "bytes": 126567,
+      "runner_receipts": [
+        "batch1024/waveform/manifest.json"
+      ],
+      "archive_figure_sha256": "6db53c42f011ed3793b71faf1f42bfa092b0d23cbfeafdce7232fa7862c997df",
+      "archive_renderer_command": "python batch1024/documentation/plot_torch_benchmark_docs.py --archive . --manifest batch1024/documentation/render-manifest.json --output NEW_FIGURE_DIRECTORY"
+    },
+    {
+      "file": "taylorf2-throughput.png",
+      "summary_input": "triton",
+      "selection": "All 24 route/grid/batch groups; warm public-call throughput.",
+      "source_revisions": [
+        "4885b64560e9f39b740e85b6a976898869dd360e"
+      ],
+      "raw_results": "batch1024/triton/",
+      "renderer_command": "python tools/plot_torch_benchmark_docs.py --archive ARCHIVE_CHECKOUT --output docs/images/torch-benchmarks-20260906",
+      "archive_figure_path": "batch1024/documentation/figures/taylorf2-throughput.png",
+      "sha256": "1e7ceb52bfe6edc2f8f4e5f5fcc264f3fb090e8213e7cdced3278e14298e4311",
+      "bytes": 112120,
+      "runner_receipts": [
+        "batch1024/triton/manifest.json"
+      ],
+      "archive_figure_sha256": "1e7ceb52bfe6edc2f8f4e5f5fcc264f3fb090e8213e7cdced3278e14298e4311",
+      "archive_renderer_command": "python batch1024/documentation/plot_torch_benchmark_docs.py --archive . --manifest batch1024/documentation/render-manifest.json --output NEW_FIGURE_DIRECTORY"
+    },
+    {
+      "file": "taylorf2-cold.png",
+      "summary_input": "triton",
+      "selection": "All 24 route/grid/batch groups; separate cold first public calls.",
+      "source_revisions": [
+        "4885b64560e9f39b740e85b6a976898869dd360e"
+      ],
+      "raw_results": "batch1024/triton/",
+      "renderer_command": "python tools/plot_torch_benchmark_docs.py --archive ARCHIVE_CHECKOUT --output docs/images/torch-benchmarks-20260906",
+      "archive_figure_path": "batch1024/documentation/figures/taylorf2-cold.png",
+      "sha256": "a1eccc05dd8c8764bfd7dd54ca26afe6158aedf8df74660ba8e53a0ed3e45e32",
+      "bytes": 100161,
+      "runner_receipts": [
+        "batch1024/triton/manifest.json"
+      ],
+      "archive_figure_sha256": "a1eccc05dd8c8764bfd7dd54ca26afe6158aedf8df74660ba8e53a0ed3e45e32",
+      "archive_renderer_command": "python batch1024/documentation/plot_torch_benchmark_docs.py --archive . --manifest batch1024/documentation/render-manifest.json --output NEW_FIGURE_DIRECTORY"
+    },
+    {
+      "file": "inference.png",
+      "summary_input": "inference",
+      "selection": "Retained historical single-evaluation inference; all ten qualified cells.",
+      "source_revisions": [
+        "607bce53ead14f12af32552a5b2441d3bc667267"
+      ],
+      "raw_results": "supplement/inference/",
+      "renderer_command": "python tools/plot_torch_benchmark_docs.py --archive ARCHIVE_CHECKOUT --output docs/images/torch-benchmarks-20260906",
+      "archive_figure_path": "batch1024/documentation/figures/inference.png",
+      "sha256": "4d72b367729416203735ef3a444d66954b60d51c3677d80600a8b6edebdd3022",
+      "bytes": 78953,
+      "runner_receipts": [
+        "supplement/inference/process-receipts.json"
+      ],
+      "archive_figure_sha256": "4d72b367729416203735ef3a444d66954b60d51c3677d80600a8b6edebdd3022",
+      "archive_renderer_command": "python batch1024/documentation/plot_torch_benchmark_docs.py --archive . --manifest batch1024/documentation/render-manifest.json --output NEW_FIGURE_DIRECTORY"
+    },
+    {
+      "file": "inference-cold.png",
+      "summary_input": "inference",
+      "selection": "Retained historical inference; four separate cold intervals in each qualified cell.",
+      "source_revisions": [
+        "607bce53ead14f12af32552a5b2441d3bc667267"
+      ],
+      "raw_results": "supplement/inference/",
+      "renderer_command": "python tools/plot_torch_benchmark_docs.py --archive ARCHIVE_CHECKOUT --output docs/images/torch-benchmarks-20260906",
+      "archive_figure_path": "batch1024/documentation/figures/inference-cold.png",
+      "sha256": "c6e6f5f4c84e2f3aae772d59a56a1d7d1466006b182c671e888204e2a50406c8",
+      "bytes": 116957,
+      "runner_receipts": [
+        "supplement/inference/process-receipts.json"
+      ],
+      "archive_figure_sha256": "c6e6f5f4c84e2f3aae772d59a56a1d7d1466006b182c671e888204e2a50406c8",
+      "archive_renderer_command": "python batch1024/documentation/plot_torch_benchmark_docs.py --archive . --manifest batch1024/documentation/render-manifest.json --output NEW_FIGURE_DIRECTORY"
+    },
+    {
+      "file": "fft.png",
+      "summary_input": "fft",
+      "selection": "Retained historical single-vector FFT; six plan/execution configurations.",
+      "source_revisions": [
+        "607bce53ead14f12af32552a5b2441d3bc667267",
+        "e6073eaf1a89cfed69af53707f52321eadf129f1"
+      ],
+      "raw_results": "supplement/fft/",
+      "renderer_command": "python tools/plot_torch_benchmark_docs.py --archive ARCHIVE_CHECKOUT --output docs/images/torch-benchmarks-20260906",
+      "archive_figure_path": "batch1024/documentation/figures/fft.png",
+      "sha256": "868b7e1c9174cf5cd32c814cab7c2d1fc5c2f14ef0108cac5903f63192f1b7c0",
+      "bytes": 78989,
+      "runner_receipts": [
+        "supplement/runs.json"
+      ],
+      "archive_figure_sha256": "868b7e1c9174cf5cd32c814cab7c2d1fc5c2f14ef0108cac5903f63192f1b7c0",
+      "archive_renderer_command": "python batch1024/documentation/plot_torch_benchmark_docs.py --archive . --manifest batch1024/documentation/render-manifest.json --output NEW_FIGURE_DIRECTORY"
+    },
+    {
+      "file": "optional-cpu.png",
+      "summary_input": "live",
+      "selection": "All six batches and both CPU thread settings, including standard control; the optional native configuration enables an additional peak kernel.",
+      "source_revisions": [
+        "4885b64560e9f39b740e85b6a976898869dd360e",
+        "d544420232428225c214a4be84fbe1262a6d307b"
+      ],
+      "raw_results": "batch1024/live/",
+      "renderer_command": "python tools/plot_torch_benchmark_docs.py --archive ARCHIVE_CHECKOUT --output docs/images/torch-benchmarks-20260906",
+      "archive_figure_path": "batch1024/documentation/figures/optional-cpu.png",
+      "sha256": "051560798fafe37685d2361d9d604a4f8534051c6d04241b75c231487aea9dfe",
+      "bytes": 105768,
+      "runner_receipts": [
+        "batch1024/live/runs.json"
+      ],
+      "archive_figure_sha256": "051560798fafe37685d2361d9d604a4f8534051c6d04241b75c231487aea9dfe",
+      "archive_renderer_command": "python batch1024/documentation/plot_torch_benchmark_docs.py --archive . --manifest batch1024/documentation/render-manifest.json --output NEW_FIGURE_DIRECTORY"
+    }
+  ],
+  "documentation_renderer_sha256": "99c69844ba6c54f56f4ff9182665cdeced8e122325ad2f6d5eb90a9cc6318a7f",
+  "matplotlib_version": "3.11.1",
+  "artifact_commit": "7f1ea7a7aa05b4fdafe2995a43a754984a2c5817",
+  "artifact_url": "https://github.com/xangma/pycbc/tree/7f1ea7a7aa05b4fdafe2995a43a754984a2c5817",
+  "figure_policy": "All six measured batch sizes are shown. The complete results, slower routes and unsupported cases remain in the immutable archive."
+}

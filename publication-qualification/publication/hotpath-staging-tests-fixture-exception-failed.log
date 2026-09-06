@@ -1,0 +1,245 @@
+E.EEEEEEEE.EEEEEEE..........................
+======================================================================
+ERROR: test_conflicting_omission_rejected (test_hotpath_staging.InputBindingTests.test_conflicting_omission_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 55, in test_conflicting_omission_rejected
+    self.bind({self.frame: STAGE.FRAME_SHA256}, omitted={self.frame: self.digest})
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 967, in hotpath_inputs
+    require(name not in omitted or omitted[name] == digest, 'Conflicting omitted v6 input: ' + name)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Conflicting omitted v6 input: /data/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf
+
+======================================================================
+ERROR: test_external_hash_mutation_rejected (test_hotpath_staging.InputBindingTests.test_external_hash_mutation_rejected) (name='/data/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 29, in test_external_hash_mutation_rejected
+    self.bind({name: self.digest})
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 958, in hotpath_inputs
+    require((name == frame and digest == FRAME_SHA256)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Unrecognized external v6 input: /data/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf
+
+======================================================================
+ERROR: test_external_hash_mutation_rejected (test_hotpath_staging.InputBindingTests.test_external_hash_mutation_rejected) (name='/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lal/__init__.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 29, in test_external_hash_mutation_rejected
+    self.bind({name: self.digest})
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 958, in hotpath_inputs
+    require((name == frame and digest == FRAME_SHA256)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Unrecognized external v6 input: /home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lal/__init__.py
+
+======================================================================
+ERROR: test_external_hash_mutation_rejected (test_hotpath_staging.InputBindingTests.test_external_hash_mutation_rejected) (name='/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lal/_lal.cpython-311-x86_64-linux-gnu.so')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 29, in test_external_hash_mutation_rejected
+    self.bind({name: self.digest})
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 958, in hotpath_inputs
+    require((name == frame and digest == FRAME_SHA256)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Unrecognized external v6 input: /home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lal/_lal.cpython-311-x86_64-linux-gnu.so
+
+======================================================================
+ERROR: test_external_hash_mutation_rejected (test_hotpath_staging.InputBindingTests.test_external_hash_mutation_rejected) (name='/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lalsimulation/__init__.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 29, in test_external_hash_mutation_rejected
+    self.bind({name: self.digest})
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 958, in hotpath_inputs
+    require((name == frame and digest == FRAME_SHA256)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Unrecognized external v6 input: /home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lalsimulation/__init__.py
+
+======================================================================
+ERROR: test_external_hash_mutation_rejected (test_hotpath_staging.InputBindingTests.test_external_hash_mutation_rejected) (name='/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lalsimulation/_lalsimulation.cpython-311-x86_64-linux-gnu.so')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 29, in test_external_hash_mutation_rejected
+    self.bind({name: self.digest})
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 958, in hotpath_inputs
+    require((name == frame and digest == FRAME_SHA256)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Unrecognized external v6 input: /home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/lalsimulation/_lalsimulation.cpython-311-x86_64-linux-gnu.so
+
+======================================================================
+ERROR: test_external_hash_mutation_rejected (test_hotpath_staging.InputBindingTests.test_external_hash_mutation_rejected) (name='/home/xangma/pycbc-torch-split-20260905/validation/pycbc/version.py')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 29, in test_external_hash_mutation_rejected
+    self.bind({name: self.digest})
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 958, in hotpath_inputs
+    require((name == frame and digest == FRAME_SHA256)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Unrecognized external v6 input: /home/xangma/pycbc-torch-split-20260905/validation/pycbc/version.py
+
+======================================================================
+ERROR: test_missing_or_changed_portable_bytes_rejected (test_hotpath_staging.InputBindingTests.test_missing_or_changed_portable_bytes_rejected) (files={})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 43, in test_missing_or_changed_portable_bytes_rejected
+    self.bind({'report.json': self.digest}, files)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 970, in hotpath_inputs
+    require(relative in files and files[relative]['sha256'] == digest,
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Missing/changed v6 archived input: report.json
+
+======================================================================
+ERROR: test_missing_or_changed_portable_bytes_rejected (test_hotpath_staging.InputBindingTests.test_missing_or_changed_portable_bytes_rejected) (files={'report.json': {'sha256': 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'}})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 43, in test_missing_or_changed_portable_bytes_rejected
+    self.bind({'report.json': self.digest}, files)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 970, in hotpath_inputs
+    require(relative in files and files[relative]['sha256'] == digest,
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Missing/changed v6 archived input: report.json
+
+======================================================================
+ERROR: test_source_omission_requires_absolute_path (test_hotpath_staging.InputBindingTests.test_source_omission_requires_absolute_path)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 51, in test_source_omission_requires_absolute_path
+    self.bind({'source-v6/pycbc/fft/torchfft.py': self.digest})
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 966, in hotpath_inputs
+    require(path.is_absolute(), 'Source omissions must use recorded absolute paths')
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Source omissions must use recorded absolute paths
+
+======================================================================
+ERROR: test_unlisted_external_rejected (test_hotpath_staging.InputBindingTests.test_unlisted_external_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 33, in test_unlisted_external_rejected
+    self.bind({'/external/arbitrary.so': self.digest})
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 958, in hotpath_inputs
+    require((name == frame and digest == FRAME_SHA256)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Unrecognized external v6 input: /external/arbitrary.so
+
+======================================================================
+ERROR: test_unsafe_path_and_hash_rejected (test_hotpath_staging.InputBindingTests.test_unsafe_path_and_hash_rejected) (value={})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 61, in test_unsafe_path_and_hash_rejected
+    self.bind(value)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 949, in hotpath_inputs
+    require(isinstance(inputs, dict) and inputs, 'Empty v6 input manifest')
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Empty v6 input manifest
+
+======================================================================
+ERROR: test_unsafe_path_and_hash_rejected (test_hotpath_staging.InputBindingTests.test_unsafe_path_and_hash_rejected) (value={'../report.json': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 61, in test_unsafe_path_and_hash_rejected
+    self.bind(value)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 956, in hotpath_inputs
+    require('..' not in path.parts and path.as_posix() == name, 'Unsafe v6 input path: ' + name)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Unsafe v6 input path: ../report.json
+
+======================================================================
+ERROR: test_unsafe_path_and_hash_rejected (test_hotpath_staging.InputBindingTests.test_unsafe_path_and_hash_rejected) (value={'report.json': 'bad'})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 61, in test_unsafe_path_and_hash_rejected
+    self.bind(value)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 952, in hotpath_inputs
+    require(isinstance(name, str) and not any(c in name for c in '\n\r\\')
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Malformed v6 input hash/path
+
+======================================================================
+ERROR: test_unsafe_path_and_hash_rejected (test_hotpath_staging.InputBindingTests.test_unsafe_path_and_hash_rejected) (value={'./report.json': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 61, in test_unsafe_path_and_hash_rejected
+    self.bind(value)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 956, in hotpath_inputs
+    require('..' not in path.parts and path.as_posix() == name, 'Unsafe v6 input path: ' + name)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Unsafe v6 input path: ./report.json
+
+======================================================================
+ERROR: test_unsafe_path_and_hash_rejected (test_hotpath_staging.InputBindingTests.test_unsafe_path_and_hash_rejected) (value={'report\n.json': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'})
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 61, in test_unsafe_path_and_hash_rejected
+    self.bind(value)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_hotpath_staging.py", line 17, in bind
+    return STAGE.hotpath_inputs(inputs, self.remote, files or {}, self.frame,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 952, in hotpath_inputs
+    require(isinstance(name, str) and not any(c in name for c in '\n\r\\')
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: Malformed v6 input hash/path
+
+----------------------------------------------------------------------
+Ran 34 tests in 0.158s
+
+FAILED (errors=16)

@@ -1,3 +1,11 @@
+# Final publication qualification
+
+Fresh unit tests and qlty checks pass on all four final publication commits; CI-selected F401 checks and both documentation builds also pass. The measured scientific sources and raw campaign evidence remain unchanged.
+
+[Final check results](publication-qualification/quality-final-v6-r2/result.json), [candidate identities and bounded lint cleanup](publication-qualification/publication/polish-proof-v6.json), [archive inventory](publication-qualification/archive-finalization.json), [retained earlier lint findings](publication-qualification/quality/result.json), and [retained setup failure](publication-qualification/quality-final-v6/result.json).
+
+---
+
 # Optimized single-thread pycbc_inspiral reference — 6 September 2026
 
 The primary comparison uses the complete executable, a compressed 96-template

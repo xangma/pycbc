@@ -1,0 +1,199 @@
+{
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "-B",
+    "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/validate-archive-transport.py"
+  ],
+  "cwd": "/Users/xangma/repos/pycbc",
+  "finished_utc": "2026-09-06T19:33:12.100548+00:00",
+  "full_diff": {
+    "bytes": 40623,
+    "mode": 420,
+    "path": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/gzip-transport-review.diff",
+    "sha256": "549747be2c595dd39f0b640a97de4144760d3f94e899e18ab63e5c68b20cd797"
+  },
+  "host": "client-3792.default.vpn.port.ac.uk",
+  "input_files": {
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/build-reference-report-v4.py": {
+      "bytes": 61834,
+      "mode": 420,
+      "sha256": "ad303e00008dd4792353ae23cb0856087bf7a643388d1e9b4391de2f8801ccda"
+    },
+    "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/ARCHIVE_TRANSPORT.md": {
+      "bytes": 2524,
+      "mode": 420,
+      "sha256": "50c3e7426ff3aa65e82feeeffab2a2599a286440560c4555c019a1400135fe0a"
+    },
+    "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/archive_transport.py": {
+      "bytes": 11696,
+      "mode": 420,
+      "sha256": "fbad8fc04e36788d4cf2ed9d42c6556568d4a44c028def25b5cb6260ffdbf11e"
+    },
+    "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py": {
+      "bytes": 65290,
+      "mode": 420,
+      "sha256": "5e5b8da24a4ee3697f753fa479458bb2454901b976878afa08c16947ee1454ee"
+    },
+    "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_archive_transport.py": {
+      "bytes": 15723,
+      "mode": 420,
+      "sha256": "0314b53d861e5c7d98c1bdea440e87d4ef817c8f7afcca1348c152bbb464c3b6"
+    },
+    "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/validate-archive-transport.py": {
+      "bytes": 4955,
+      "mode": 420,
+      "sha256": "36e6cbffb9552a42af7b27382714d570e5230afc01e498dfeb7c9d2c5edcb087"
+    },
+    "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/write-docs.py": {
+      "bytes": 44730,
+      "mode": 420,
+      "sha256": "627e1500f6d2b6bca5c28574721b4af3a949be5133216134a436744a488e0db8"
+    }
+  },
+  "input_files_after": {
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/build-reference-report-v4.py": {
+      "bytes": 61834,
+      "mode": 420,
+      "sha256": "ad303e00008dd4792353ae23cb0856087bf7a643388d1e9b4391de2f8801ccda"
+    },
+    "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/ARCHIVE_TRANSPORT.md": {
+      "bytes": 2524,
+      "mode": 420,
+      "sha256": "50c3e7426ff3aa65e82feeeffab2a2599a286440560c4555c019a1400135fe0a"
+    },
+    "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/archive_transport.py": {
+      "bytes": 11696,
+      "mode": 420,
+      "sha256": "fbad8fc04e36788d4cf2ed9d42c6556568d4a44c028def25b5cb6260ffdbf11e"
+    },
+    "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py": {
+      "bytes": 65290,
+      "mode": 420,
+      "sha256": "5e5b8da24a4ee3697f753fa479458bb2454901b976878afa08c16947ee1454ee"
+    },
+    "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/test_archive_transport.py": {
+      "bytes": 15723,
+      "mode": 420,
+      "sha256": "0314b53d861e5c7d98c1bdea440e87d4ef817c8f7afcca1348c152bbb464c3b6"
+    },
+    "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/validate-archive-transport.py": {
+      "bytes": 4955,
+      "mode": 420,
+      "sha256": "36e6cbffb9552a42af7b27382714d570e5230afc01e498dfeb7c9d2c5edcb087"
+    },
+    "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/write-docs.py": {
+      "bytes": 44730,
+      "mode": 420,
+      "sha256": "627e1500f6d2b6bca5c28574721b4af3a949be5133216134a436744a488e0db8"
+    }
+  },
+  "isolated_tests": {
+    "output": "test_changed_cached_gzip_rejected (__main__.TransportTests.test_changed_cached_gzip_rejected) ... ok\ntest_changed_cached_manifest_rejected (__main__.TransportTests.test_changed_cached_manifest_rejected) ... ok\ntest_changed_uncompressed_file_rejected (__main__.TransportTests.test_changed_uncompressed_file_rejected) ... ok\ntest_cli_is_standalone_in_extracted_supplement (__main__.TransportTests.test_cli_is_standalone_in_extracted_supplement) ... ok\ntest_compression_determinism_and_frozen_reuse (__main__.TransportTests.test_compression_determinism_and_frozen_reuse) ... ok\ntest_corrupt_gzip_rebound_hash_still_rejected (__main__.TransportTests.test_corrupt_gzip_rebound_hash_still_rejected) ... ok\ntest_corrupted_archived_gzip_rejected (__main__.TransportTests.test_corrupted_archived_gzip_rejected) ... ok\ntest_exact_threshold_remains_uncompressed (__main__.TransportTests.test_exact_threshold_remains_uncompressed) ... ok\ntest_execute_requires_frozen_cache (__main__.TransportTests.test_execute_requires_frozen_cache) ... ok\ntest_full_roundtrip_and_separate_inventories (__main__.TransportTests.test_full_roundtrip_and_separate_inventories) ... ok\ntest_identical_inputs_share_gzip_preserve_modes (__main__.TransportTests.test_identical_inputs_share_gzip_preserve_modes) ... ok\ntest_incompressible_file_rejected_before_archive (__main__.TransportTests.test_incompressible_file_rejected_before_archive) ... ok\ntest_manifest_traversal_rejected (__main__.TransportTests.test_manifest_traversal_rejected) ... ok\ntest_missing_mapping_rejected (__main__.TransportTests.test_missing_mapping_rejected) ... ok\ntest_no_large_files_keep_original_inventory (__main__.TransportTests.test_no_large_files_keep_original_inventory) ... ok\ntest_original_change_rejected (__main__.TransportTests.test_original_change_rejected) ... ok\ntest_policy_cannot_raise_production_limits (__main__.TransportTests.test_policy_cannot_raise_production_limits) ... ok\ntest_restore_refuses_existing_or_in_archive_destination (__main__.TransportTests.test_restore_refuses_existing_or_in_archive_destination) ... ok\ntest_stage_corrupted_cache_aborts_before_archive_copy (__main__.TransportTests.test_stage_corrupted_cache_aborts_before_archive_copy) ... ok\ntest_stage_old_or_changed_plan_aborts_before_copy (__main__.TransportTests.test_stage_old_or_changed_plan_aborts_before_copy) ... ok\ntest_stage_plan_and_execute_use_distinct_inventories (__main__.TransportTests.test_stage_plan_and_execute_use_distinct_inventories) ... ok\ntest_symlink_archived_input_rejected (__main__.TransportTests.test_symlink_archived_input_rejected) ... ok\ntest_symlink_cache_rejected (__main__.TransportTests.test_symlink_cache_rejected) ... ok\ntest_unsafe_paths_and_reserved_prefix (__main__.TransportTests.test_unsafe_paths_and_reserved_prefix) ... ok\ntest_wrong_decompressed_hash_rejected (__main__.TransportTests.test_wrong_decompressed_hash_rejected) ... ok\ntest_wrong_decompressed_size_rejected (__main__.TransportTests.test_wrong_decompressed_size_rejected) ... ok\n\n----------------------------------------------------------------------\nRan 26 tests in 0.194s\n\nOK\n",
+    "returncode": 0
+  },
+  "large_input_checks": {
+    "actual_cached_files": {
+      "archive-transport/917c872ed0ed76924bfa9088d005c36970f3e1e7963586580011bf401c07b7a9.gz": {
+        "bytes": 6334103,
+        "mode": 420,
+        "sha256": "f51ab3d07be5f27907a235d2e66410b999d1d6539000d2499bcbf8caee991690",
+        "source": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/gzip-transport-validation-cache/archive-transport/917c872ed0ed76924bfa9088d005c36970f3e1e7963586580011bf401c07b7a9.gz"
+      },
+      "archive-transport/README.md": {
+        "bytes": 2524,
+        "mode": 420,
+        "sha256": "50c3e7426ff3aa65e82feeeffab2a2599a286440560c4555c019a1400135fe0a",
+        "source": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/gzip-transport-validation-cache/archive-transport/README.md"
+      },
+      "archive-transport/aff2e29b80e8b57c623721f9603ba7d3c114a5ca14a9f0a43007c620b8993d2c.gz": {
+        "bytes": 6579902,
+        "mode": 420,
+        "sha256": "12b1d82a8b419d246f95e3506d650eb129d72bda6bde5ccdaea7b9212d7e0d89",
+        "source": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/gzip-transport-validation-cache/archive-transport/aff2e29b80e8b57c623721f9603ba7d3c114a5ca14a9f0a43007c620b8993d2c.gz"
+      },
+      "archive-transport/b0df748f9330bd924da97896d09b593d42a60f52c5867ff0eb5d1a79e43935d2.gz": {
+        "bytes": 22961455,
+        "mode": 420,
+        "sha256": "810c183aac94c428013130394ad13aee49024b03f4cb30cd9ca81579c0388be3",
+        "source": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/gzip-transport-validation-cache/archive-transport/b0df748f9330bd924da97896d09b593d42a60f52c5867ff0eb5d1a79e43935d2.gz"
+      },
+      "archive-transport/manifest.json": {
+        "bytes": 2060,
+        "mode": 420,
+        "sha256": "a6f12bee8515113d9c451c198fafa9862bca1867319eddb9c8e4876a0e14138d",
+        "source": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/gzip-transport-validation-cache/archive-transport/manifest.json"
+      },
+      "archive-transport/restore.py": {
+        "bytes": 11696,
+        "mode": 420,
+        "sha256": "fbad8fc04e36788d4cf2ed9d42c6556568d4a44c028def25b5cb6260ffdbf11e",
+        "source": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/gzip-transport-validation-cache/archive-transport/restore.py"
+      }
+    },
+    "all_decompressed_hashes_and_sizes_match": true,
+    "caveat": "Validation cache contains only the three large inputs; use a fresh staging cache for the full supplement.",
+    "frozen_cache_reuse_passed": true,
+    "original_files": {
+      "runs/profile-precision5-torch-cpu-l512-perf/perf.data": {
+        "bytes": 263631296,
+        "mode": 384,
+        "sha256": "b0df748f9330bd924da97896d09b593d42a60f52c5867ff0eb5d1a79e43935d2",
+        "source": "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/runs/profile-precision5-torch-cpu-l512-perf/perf.data"
+      },
+      "runs/reference-cpu-l512-perf/perf.data": {
+        "bytes": 104912964,
+        "mode": 384,
+        "sha256": "aff2e29b80e8b57c623721f9603ba7d3c114a5ca14a9f0a43007c620b8993d2c",
+        "source": "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/runs/reference-cpu-l512-perf/perf.data"
+      },
+      "runs/reference-precision5-cpu-l512-perf/perf.data": {
+        "bytes": 108825132,
+        "mode": 384,
+        "sha256": "917c872ed0ed76924bfa9088d005c36970f3e1e7963586580011bf401c07b7a9",
+        "source": "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/runs/reference-precision5-cpu-l512-perf/perf.data"
+      }
+    },
+    "original_inputs_unchanged": true,
+    "transport": {
+      "compressed_bytes": 35875460,
+      "compressed_files": 3,
+      "manifest": "archive-transport/manifest.json",
+      "manifest_sha256": "a6f12bee8515113d9c451c198fafa9862bca1867319eddb9c8e4876a0e14138d",
+      "original_bytes": 477369392
+    }
+  },
+  "original_artifacts_modified": false,
+  "original_stager": {
+    "bytes": 63856,
+    "mode": 420,
+    "path": "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.before-gzip-e9e0e15fbac7.py",
+    "sha256": "e9e0e15fbac7524886357fafec0151360d5a3a21252fbcabbef3fab47fe61212"
+  },
+  "pid": 41786,
+  "real_archive_copied": false,
+  "scientific_campaigns_run": false,
+  "started_utc": "2026-09-06T19:32:31.436090+00:00",
+  "state": "passed",
+  "unchanged_stager_functions": [
+    "bound_inputs",
+    "bundle_header",
+    "history",
+    "inventory",
+    "qualify",
+    "qualify_precision_history",
+    "qualify_precision_orchestration",
+    "qualify_precision_parent",
+    "qualify_precision_smoke",
+    "qualify_precision_source",
+    "qualify_precision_tests",
+    "qualify_reference",
+    "qualify_reference_history",
+    "read",
+    "record",
+    "reference_cases",
+    "reference_inventory",
+    "require",
+    "walk"
+  ],
+  "wall_seconds": 40.66413029213436
+}

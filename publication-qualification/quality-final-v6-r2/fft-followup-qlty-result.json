@@ -1,0 +1,25 @@
+{
+  "label": "fft-followup-qlty",
+  "command": [
+    "/home/xangma/pycbc-torch-finish-20260904/qlty/qlty-x86_64-unknown-linux-gnu/qlty",
+    "check",
+    "--no-upgrade-check",
+    "--no-fix",
+    "--sarif",
+    "--no-progress",
+    "--upstream",
+    "03494ad311e03fbc1255e180ea130cefa3db55b2"
+  ],
+  "cwd": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-final-v6-r2-fft-followup-checkout",
+  "host": "len",
+  "started_utc": "2026-09-06T21:27:48.341178+00:00",
+  "stdout": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-final-v6-r2/fft-followup-qlty.sarif",
+  "stderr": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-final-v6-r2/fft-followup-qlty-stderr.log",
+  "pid": 2830153,
+  "stop_command": "kill -TERM -- -2830153",
+  "returncode": 0,
+  "finished_utc": "2026-09-06T21:27:48.707166+00:00",
+  "wall_seconds": 0.3659799159504473,
+  "stdout_sha256": "eafc359175df7b86f2745318887effa371b8129a5c2c50f64c44585e7a8a5cd3",
+  "stderr_sha256": "861c0a7fe3c0452054664829b4a4d764b64c11b491c70a9d6e2f41a2d1acb055"
+}

@@ -1,0 +1,294 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "qlty",
+          "informationUri": "https://github.com/qlty/qlty",
+          "semanticVersion": "0.644.0",
+          "version": "0.644.0 linux-x64 (338acb3 2026-08-28)",
+          "releaseDateUtc": "2026-08-28",
+          "rules": [
+            {
+              "id": "ruff:F401",
+              "helpUri": "https://docs.astral.sh/ruff/rules/unused-import"
+            },
+            {
+              "id": "ruff:B904",
+              "helpUri": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+            }
+          ],
+          "notifications": [
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ruff in 0.04s [eMuxSU]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ruff in 0.04s [eMuxSU]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ripgrep in 0.02s [yg9a0e]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ripgrep in 0.02s [yg9a0e]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ruff in 0.04s [W2XF07]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ruff in 0.04s [W2XF07]"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "ruff:F401",
+          "level": "warning",
+          "message": {
+            "text": "`.class_api.FFT` imported but unused; consider removing, adding to `__all__`, or using a redundant alias"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/fft/__init__.py"
+                },
+                "region": {
+                  "startLine": 18,
+                  "startColumn": 24,
+                  "endLine": 18,
+                  "endColumn": 27
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F401",
+          "level": "warning",
+          "message": {
+            "text": "`.class_api.IFFT` imported but unused; consider removing, adding to `__all__`, or using a redundant alias"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/fft/__init__.py"
+                },
+                "region": {
+                  "startLine": 18,
+                  "startColumn": 29,
+                  "endLine": 18,
+                  "endColumn": 33
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F401",
+          "level": "warning",
+          "message": {
+            "text": "`.func_api.fft` imported but unused; consider removing, adding to `__all__`, or using a redundant alias"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/fft/__init__.py"
+                },
+                "region": {
+                  "startLine": 19,
+                  "startColumn": 23,
+                  "endLine": 19,
+                  "endColumn": 26
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F401",
+          "level": "warning",
+          "message": {
+            "text": "`.func_api.ifft` imported but unused; consider removing, adding to `__all__`, or using a redundant alias"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/fft/__init__.py"
+                },
+                "region": {
+                  "startLine": 19,
+                  "startColumn": 28,
+                  "endLine": 19,
+                  "endColumn": 32
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F401",
+          "level": "warning",
+          "message": {
+            "text": "`.parser_support.from_cli` imported but unused; consider removing, adding to `__all__`, or using a redundant alias"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/fft/__init__.py"
+                },
+                "region": {
+                  "startLine": 20,
+                  "startColumn": 29,
+                  "endLine": 20,
+                  "endColumn": 37
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F401",
+          "level": "warning",
+          "message": {
+            "text": "`.parser_support.insert_fft_option_group` imported but unused; consider removing, adding to `__all__`, or using a redundant alias"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/fft/__init__.py"
+                },
+                "region": {
+                  "startLine": 20,
+                  "startColumn": 39,
+                  "endLine": 20,
+                  "endColumn": 62
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F401",
+          "level": "warning",
+          "message": {
+            "text": "`.parser_support.verify_fft_options` imported but unused; consider removing, adding to `__all__`, or using a redundant alias"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/fft/__init__.py"
+                },
+                "region": {
+                  "startLine": 20,
+                  "startColumn": 64,
+                  "endLine": 20,
+                  "endColumn": 82
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/fft/cufft.py"
+                },
+                "region": {
+                  "startLine": 39,
+                  "startColumn": 5,
+                  "endLine": 41,
+                  "endColumn": 6
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

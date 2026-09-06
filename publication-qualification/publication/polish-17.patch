@@ -1,0 +1,125 @@
+diff --git a/pycbc/fft/torchfft.py b/pycbc/fft/torchfft.py
+index 985efac0258cd26ecb5423374f28d769a1d31d05..33cd0d35a25189b0e3714f7f228d46489c523436 100644
+--- a/pycbc/fft/torchfft.py
++++ b/pycbc/fft/torchfft.py
+@@ -923,8 +923,7 @@ def _can_use_mkl_cpu_ifft(fftobj):
+         and (
+             fftobj.size in _MKL_DIRECT_IFFT_SIZES
+             or (
+-                fftobj.size in _MKL_PROMOTED_IFFT_SIZES
+-                and torch.get_num_threads() == 1
++                fftobj.size in _MKL_PROMOTED_IFFT_SIZES and torch.get_num_threads() == 1
+             )
+         )
+         and fftobj.nbatch == 1
+diff --git a/pycbc/strain/strain.py b/pycbc/strain/strain.py
+index c735b15db8c68ba9e5153e8d970fe3c7faa7dd10..c6e846a4bc4e20c1b2ae43c6cc6fdad816f014de 100644
+--- a/pycbc/strain/strain.py
++++ b/pycbc/strain/strain.py
+@@ -25,12 +25,12 @@ import numpy
+ from scipy.signal import kaiserord
+ 
+ import pycbc
+-from pycbc import scheme as _scheme
+ import pycbc.events
+ import pycbc.filter
+ import pycbc.frame
+ import pycbc.psd
+ import pycbc.types
++from pycbc import scheme as _scheme
+ from pycbc.fft import FFT, IFFT
+ from pycbc.filter import highpass, lowpass, make_frequency_series, resample_to_delta_t
+ from pycbc.filter.zpk import filter_zpk
+diff --git a/pycbc/waveform/decompress_torch.py b/pycbc/waveform/decompress_torch.py
+index 67c35f0652385feb997b95bf66d4b30c57605237..712a3d258bd01fecf9bd9e81f6bf56027d19db2c 100644
+--- a/pycbc/waveform/decompress_torch.py
++++ b/pycbc/waveform/decompress_torch.py
+@@ -78,8 +78,8 @@ def _cpu_numpy_view(value):
+         if (
+             value.device.type != "cpu"
+             or value.layout != torch.strided
+-            or value.dtype not in (torch.float32, torch.float64,
+-                                   torch.complex64, torch.complex128)
++            or value.dtype
++            not in (torch.float32, torch.float64, torch.complex64, torch.complex128)
+             or value.requires_grad
+             or value.is_conj()
+             or value.is_neg()
+@@ -104,9 +104,7 @@ def _cpu_numpy_view(value):
+     return value
+ 
+ 
+-def _cpu_linear_interp(
+-    amp, phase, sample_frequencies, output, df, imin, start_index
+-):
++def _cpu_linear_interp(amp, phase, sample_frequencies, output, df, imin, start_index):
+     """Use the existing Cython/C++ linear kernel for compatible CPU storage."""
+     out = backend_array(output, "torch")
+     if (
+@@ -121,8 +119,7 @@ def _cpu_linear_interp(
+         return False
+ 
+     h = _cpu_numpy_view(out)
+-    arrays = tuple(_cpu_numpy_view(value) for value in
+-                   (sample_frequencies, amp, phase))
++    arrays = tuple(_cpu_numpy_view(value) for value in (sample_frequencies, amp, phase))
+     if h is None or any(value is None for value in arrays):
+         return False
+     frequencies, amplitudes, phases = arrays
+@@ -131,8 +128,7 @@ def _cpu_linear_interp(
+     # The Python-facing Cython wrappers accept lengths/indices as C ints,
+     # then pass int64_t values and unchecked contiguous pointers to C++.
+     if (
+-        not all(value.dtype == dtype and value.size == sample_count
+-                for value in arrays)
++        not all(value.dtype == dtype and value.size == sample_count for value in arrays)
+         or not 2 <= sample_count <= numpy.iinfo(numpy.int32).max
+         or not 0 <= start_index < h.size <= numpy.iinfo(numpy.int32).max
+         or not 0 <= imin < sample_count - 1
+@@ -162,15 +158,26 @@ def _cpu_linear_interp(
+ 
+     try:
+         from .decompress_cpu_cython import (
+-            decomp_ccode_double, decomp_ccode_float,
++            decomp_ccode_double,
++            decomp_ccode_float,
+         )
+     except ImportError:
+         return False
+-    function = (decomp_ccode_float if out.dtype == torch.complex64
+-                else decomp_ccode_double)
++    function = (
++        decomp_ccode_float if out.dtype == torch.complex64 else decomp_ccode_double
++    )
+     try:
+-        function(h, float(df), h.size, start_index, frequencies, amplitudes,
+-                 phases, sample_count, imin)
++        function(
++            h,
++            float(df),
++            h.size,
++            start_index,
++            frequencies,
++            amplitudes,
++            phases,
++            sample_count,
++            imin,
++        )
+     finally:
+         # NumPy is only the zero-copy ABI: notify Torch and every shared view
+         # of the native write, including writes made before a kernel error.
+diff --git a/pycbc/waveform/taylorf2_torch.py b/pycbc/waveform/taylorf2_torch.py
+index 6f4906cdcb66fb77f858cbfe9e81d3f9ef101c31..fe6456cc9e9155d416817df730363272b88e5679 100644
+--- a/pycbc/waveform/taylorf2_torch.py
++++ b/pycbc/waveform/taylorf2_torch.py
+@@ -727,9 +727,7 @@ def _evaluate_phase_polynomial(
+                 term = term + coeff_log[index] * log_v
+         else:
+             term = (
+-                coeff[index]
+-                + coeff_log[index] * log_v
+-                + coeff_log_sq[index] * log_v_sq
++                coeff[index] + coeff_log[index] * log_v + coeff_log_sq[index] * log_v_sq
+             )
+         result = torch.addcmul(term, result, v)
+     v2 = v * v

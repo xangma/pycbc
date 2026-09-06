@@ -1,0 +1,101 @@
+{
+  "finished_utc": "2026-09-06T20:59:15.018770+00:00",
+  "sphinx_command": [
+    "/Users/xangma/miniconda3/bin/python",
+    "-B",
+    "-m",
+    "sphinx",
+    "-E",
+    "-a",
+    "-n",
+    "-W",
+    "--keep-going",
+    "-b",
+    "html",
+    "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/docs-validation-v6/source",
+    "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/docs-validation-v6/html"
+  ],
+  "returncode": 0,
+  "scope": "Thirteen Torch pages; external document targets verified and stubbed; full site not built",
+  "pages": [
+    "torch",
+    "torch_benchmark_details",
+    "torch_filtering",
+    "torch_inspiral_optimized",
+    "torch_inspiral_reference",
+    "torch_optimization_results",
+    "torch_optimizations",
+    "torch_parity",
+    "torch_performance",
+    "torch_runtime",
+    "torch_search",
+    "torch_testing",
+    "torch_workflows"
+  ],
+  "page_sha256": {
+    "torch": "4d902a2866380f61ebc53c8cef285d522d76ba86783c0d0266717744af88848f",
+    "torch_benchmark_details": "3900641aea15304be4cb4e3eb51a35d30991a17160f31d4a14244b15ed45d684",
+    "torch_filtering": "04d659a6170f9b863abcb2b87dc7a8b6ba083e47b8d3fe628c78539a9497efd8",
+    "torch_inspiral_optimized": "046e10d5c8707172e4b8e6c49bb8beb891f958b9d8b096c1fb57426b82edf769",
+    "torch_inspiral_reference": "754f8f60c398f1023113dff4cd95bd80d3e9d333b3d3a900b9dff9cadf6e1925",
+    "torch_optimization_results": "bc353ee7152e423f8e3de50245735756deff5ca6c234cff017178af6e25404a2",
+    "torch_optimizations": "1861ca1dbd8e96ec199907b29a08a374819d225aa18b978ebc988990e785d045",
+    "torch_parity": "3699c4b70ec30159182ea2202e657e36d6baf9233d38009a9365b4391d82c91c",
+    "torch_performance": "dc83bf9ac5032a71dc93617b5b60e4180033e6d31dbb1271747557a916234012",
+    "torch_runtime": "87b72e52856a1f1bf6a71b76ad171b50c89ade1b45b502c7bcaad15e7c10c3e2",
+    "torch_search": "23d0b47607e6bd40fae64d60990d260da8455729d7eed4a84a08b068f290ad4c",
+    "torch_testing": "b97540f3edb92557f49cbcf43dab09586af10eff4bfdb79d9315204eebfd3b1a",
+    "torch_workflows": "06eb2bb3f7bcadc3b5d515a37ef6216462365b4aa4a28b385fd34ae963349965"
+  },
+  "manifest_sha256": {
+    "torch-inspiral-optimized-20260906": "cc0a945dddad17166315302b0011007b6523d810be6221edc093968b39883f42",
+    "torch-benchmarks-20260906": "e569daf64b14bd32088ee946359dd7a514ee39ab2b8a2defe8ffb06b51851b91",
+    "torch-performance-fix-20260906": "76a9c8af64fbfbe86f7371ee61b2a9d25625fc825ed16d3a07a1e35c9d985989",
+    "torch-inspiral-reference-20260906": "4864f0555afee1a5c496fb92037b826122eb332488c6caefcdaf69e2ae84b531"
+  },
+  "log_sha256": "30e5e95a56e4b14bea6c600eee02cf5820f84f77c373f754d6eddaa64a5e3654",
+  "external_labels": {},
+  "external_documents": {
+    "install": {
+      "path": "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/install.rst",
+      "sha256": "8d42c5917118aba6dc69140d71296cc90c6fd034ed231cf838d0219038a9e4c6"
+    },
+    "waveform": {
+      "path": "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/waveform.rst",
+      "sha256": "b429240d1bddb5f5cde526701ccf0645d97764a3ee18e5d410e841a5e6b94da3"
+    }
+  },
+  "figure_collections": {
+    "torch-inspiral-optimized-20260906": [
+      "capacity-before-after.png",
+      "wall-breakdown.png",
+      "hotpath-profile-self-time.png"
+    ],
+    "torch-benchmarks-20260906": [
+      "main-live.png",
+      "waveform.png",
+      "taylorf2-throughput.png",
+      "taylorf2-cold.png",
+      "inference.png",
+      "inference-cold.png",
+      "fft.png",
+      "optional-cpu.png"
+    ],
+    "torch-performance-fix-20260906": [
+      "live-before-after.png",
+      "waveform-before-after.png",
+      "cuda-before-v1-v2.png"
+    ],
+    "torch-inspiral-reference-20260906": [
+      "tuning-capacity.png",
+      "matched-capacity.png",
+      "wall-and-internal-times.png",
+      "profile-self-time.png",
+      "native-symbols.png",
+      "cuda-events.png"
+    ]
+  },
+  "images": 20,
+  "image_hashes_verified": true,
+  "downloadable_manifests_verified": true
+}

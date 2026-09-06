@@ -1,0 +1,44 @@
+{
+  "check_only": false,
+  "sources": {
+    "baseline": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/baseline",
+      "sha": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+      "tree": "b0d5ef6e3b39bfe246b4c416528839256edadf1f",
+      "status": ""
+    },
+    "candidate": {
+      "root": "/home/xangma/pycbc-torch-performance-fix-20260906/candidate",
+      "sha": "97bf1614f3afe53a6e2edb4d8c7dff79e9661782",
+      "tree": "d9819f6f6ebf2998ac967178778cc1911757e455",
+      "status": ""
+    }
+  },
+  "reference_source": "837f38d493420043e45fb1ad210a0ccf68bacbaa",
+  "optimized_source": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+  "optimized_report_sha256": "8cfec174b477f1a7f670b3359c678de77e177c300f85d7c95ba9e0cf6d78e8f3",
+  "reference_report_sha256": "11f17262ab7ec11c21cb50bdb8dd884379414a56fb22a4bbfd8ff934365f8b14",
+  "outputs": {
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/images/torch-inspiral-reference-20260906/tuning-capacity.png": "b8759cf0b8b1db1b48dc14ad3a2e9f1b9f98ca7d3483401d5ce5809f29c32d5c",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/images/torch-inspiral-reference-20260906/matched-capacity.png": "4280474664b1d7347af86c034b40c9743191bb0799a0c4a5cb70d03fe9d24ce9",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/images/torch-inspiral-reference-20260906/wall-and-internal-times.png": "bf27833834b9adf144c8388f458a71369f42d0d77c245a88c36373129bbc9773",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/images/torch-inspiral-reference-20260906/profile-self-time.png": "ca545ab1ba2ec0a05ecc386e8f2e2beeefa589ce4b2d63ff2fba3f8d8499970e",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/images/torch-inspiral-reference-20260906/native-symbols.png": "b4ac31db9f59c68402bc527f14582f279feca3b234126b947ed17638f095c6a6",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/images/torch-inspiral-reference-20260906/cuda-events.png": "c84de3dc5d7961d29c743d85c2756ac79d9657f8229dc64da32d0d3bd2003086",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/images/torch-inspiral-reference-20260906/manifest.json": "4864f0555afee1a5c496fb92037b826122eb332488c6caefcdaf69e2ae84b531",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/torch_inspiral_reference.rst": "754f8f60c398f1023113dff4cd95bd80d3e9d333b3d3a900b9dff9cadf6e1925",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/images/torch-inspiral-optimized-20260906/capacity-before-after.png": "84bc9af88a2d1629124ddf5ec7cbffed5941e524fcefaf67f4f0b0bfcf4455a9",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/images/torch-inspiral-optimized-20260906/wall-breakdown.png": "9c3db267a661bcb3e16c9170a27c23be90ae2fda09822579b48d89270da835f4",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/images/torch-inspiral-optimized-20260906/hotpath-profile-self-time.png": "6ef823c3745349010ef9ee44c97bb433f6cf8ae5fbaa9ec3a6aa4d64c77650be",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/images/torch-inspiral-optimized-20260906/manifest.json": "cc0a945dddad17166315302b0011007b6523d810be6221edc093968b39883f42",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/torch_inspiral_optimized.rst": "046e10d5c8707172e4b8e6c49bb8beb891f958b9d8b096c1fb57426b82edf769",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/index.rst": "0232afd3fedbef549a7c3b6858930e5a9991e723e507cfa442409434d695cdc8",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/torch_performance.rst": "dc83bf9ac5032a71dc93617b5b60e4180033e6d31dbb1271747557a916234012",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/images/torch-performance-fix-20260906/live-before-after.png": "b696401897feec8ba0fda43978478a7c913006ddf762ce2b901a41ae4b1d3de9",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/images/torch-performance-fix-20260906/waveform-before-after.png": "d91d0bbe23a8d37fd8a2c8a7dcf40e9513e608311b38cb682a529d30447435e0",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/images/torch-performance-fix-20260906/cuda-before-v1-v2.png": "0bd40e93215ba3a38d41526e0ccce94f836b2a7e927d55133bc3734b9fbd069f",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/images/torch-performance-fix-20260906/manifest.json": "76a9c8af64fbfbe86f7371ee61b2a9d25625fc825ed16d3a07a1e35c9d985989",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/torch_optimization_results.rst": "bc353ee7152e423f8e3de50245735756deff5ca6c234cff017178af6e25404a2",
+    "/private/tmp/pycbc-torch-inspiral-hotpaths-20260906/docs/torch_benchmark_details.rst": "3900641aea15304be4cb4e3eb51a35d30991a17160f31d4a14244b15ed45d684"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "label": "pr11-qlty",
+  "command": [
+    "/home/xangma/pycbc-torch-finish-20260904/qlty/qlty-x86_64-unknown-linux-gnu/qlty",
+    "check",
+    "--no-upgrade-check",
+    "--no-fix",
+    "--sarif",
+    "--no-progress",
+    "--upstream",
+    "78d99b5e0f540abd438e01a221de77fc02109b3f"
+  ],
+  "cwd": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout",
+  "host": "len",
+  "started_utc": "2026-09-06T21:09:57.675428+00:00",
+  "stdout": "/home/xangma/pycbc-torch-performance-fix-20260906/quality/pr11-qlty.sarif",
+  "stderr": "/home/xangma/pycbc-torch-performance-fix-20260906/quality/pr11-qlty-stderr.log",
+  "pid": 2334716,
+  "stop_command": "kill -TERM -- -2334716",
+  "returncode": 1,
+  "finished_utc": "2026-09-06T21:09:59.393168+00:00",
+  "wall_seconds": 1.7177373568993062
+}

@@ -1,0 +1,124 @@
+{
+  "checkout": "/home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout",
+  "output": "/home/xangma/pycbc-torch-performance-fix-20260906/quality",
+  "stack": "/home/xangma/pycbc-torch-performance-fix-20260906/publication/candidate-stack.json",
+  "bundle": "/home/xangma/pycbc-torch-performance-fix-20260906/publication/publication.bundle",
+  "prerequisite": "/home/xangma/pycbc-torch-performance-fix-20260906/accelerator-refinement/status.json",
+  "unit_receipt": "/home/xangma/pycbc-torch-inspiral-reference-20260906/unit-tests-v6.json",
+  "unit_source_commit": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+  "unit_test_files": [
+    "test/test_torch_decompress_cpu.py",
+    "test/test_torch_large_ifft.py",
+    "test/test_decompress.py",
+    "test/test_torch_fft_cpu_native.py",
+    "test/test_torch_fft_writes.py",
+    "test/test_torch_fft_cuda_workspace.py",
+    "test/test_scheme_runtime.py",
+    "test/test_scheme_selection.py",
+    "test/test_matchedfilter.py",
+    "test/test_chisq.py",
+    "test/test_psd.py",
+    "test/test_strain.py",
+    "test/test_sigmasq_series_precision.py",
+    "test/test_chisq_precision.py",
+    "test/test_strain_psd_precision.py",
+    "test/test_torch_chisq_cpu_optimization.py",
+    "test/test_torch_chisq_sparse_dispatch.py",
+    "test/test_torch_filter_pipeline.py",
+    "test/test_torch_psd_pipeline.py",
+    "test/test_torch_psd_protocol.py",
+    "test/test_torch_versioned_data_psd.py",
+    "test/test_torch_matchedfilter_cpu_optimization.py"
+  ],
+  "inspiral_sha256": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+  "reviewed_source_sha256": {
+    "pycbc/fft/torchfft.py": "9123222316047a11652e2207e1b006f9f4a17e850d89d2d8b4b3cd081072ca5f",
+    "pycbc/waveform/decompress_torch.py": "9710a30767edeacb68f70178534c215a6668e2d6ec12c389dbb50d73f52953b4",
+    "test/test_torch_decompress_cpu.py": "90c9f428dee12ac9d0d1fb3f3ac9a9866e9ee52637e626da6cea3e2110b9199a",
+    "test/test_torch_large_ifft.py": "fd65930d7ee5786b91a7a21f4daf42591860fb098e279f7490f9290e72d82e50",
+    "test/test_decompress.py": "0dde129f3c8168f3789bc63f45aa2971b0d2b6fc006c9873c0eed7fefafefa49",
+    "test/test_torch_fft_cpu_native.py": "bba8b779eb5f70055a678962482ff33a757fcfb1a7711fbac8ba2ae3a9ebeece",
+    "test/test_torch_fft_writes.py": "288123508aeedf242c6515968013fe77af06a8251ad2898b08d897d4547f75a5",
+    "test/test_torch_fft_cuda_workspace.py": "f06f3400362e68f1684f3d2271a120476fe36b7c269877ae5bea8a623755bc82",
+    "bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+    "pycbc/scheme.py": "27a0704bea2156e946e29e4437363036da21a05a8a98b403f93e605b75e9f5f0",
+    "test/test_scheme_runtime.py": "45ac62167a6a3c503391f56bbbfc21dd982fbb58f05448b22c3dc52b3aca02cb",
+    "test/test_scheme_selection.py": "2e2c754335a18fc18619d2271466948535f84c53313e0a2d96881042e3c59b36",
+    "pycbc/filter/matchedfilter.py": "5941534911809626e15ffde451759129e74b520630efc4a50ba168652963f786",
+    "pycbc/vetoes/chisq_torch.py": "6f61bd09869c86441b717ce28a62ba1532b24f273bce73a226268f269644cf84",
+    "pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+    "pycbc/psd/__init__.py": "01c9eb05c8729e4362f356d2722fd25e3475e4485a9da574a9439b29309c47ab",
+    "pycbc/strain/strain.py": "889a3c1adb2a5e391ec94355a2a789b7b21f46759af7134ff906668b760da10f",
+    "test/test_sigmasq_series_precision.py": "a294cbbe29ea4f4120b3ef38e2c696bdc4708391c813c3356cbac310dcbc691a",
+    "test/test_chisq_precision.py": "917d98d5b2db0920f76d22d74db8152fbebfde646c2db04b2ca887d3add55be6",
+    "test/test_strain_psd_precision.py": "cc6380df5aad6b8b25f88cd194c9786c30e4d9eaaffe3f756ff9a129f95a8134"
+  },
+  "cpu_feature_patch_sha256": {
+    "pycbc/fft/torchfft.py": "1ea6322b454a84ef3f80a90ec6268af774fb6ebba57daa02711a7001386de20f",
+    "test/test_torch_large_ifft.py": "a6b4bd3e9750a4756736328e1f18546a919616c80e6799cbd8ee3b1b3064faf2",
+    "pycbc/filter/matchedfilter.py": "387cd17317aba8c1e5857adfab64efd93c0a109832387d069d14d085bf35de6a",
+    "pycbc/vetoes/chisq_torch.py": "b73f4a0b5a2b5ca3c110680dfc91bb5241d773d36fac1816b4b8330b8b0010f7"
+  },
+  "fft_feature_patch_sha256": {
+    "pycbc/fft/torchfft.py": "c9fc0888e95fc96e397890587927312531f7fe3dbf7a8d50b0a913b2d35e011b"
+  },
+  "candidates": [
+    {
+      "number": 15,
+      "branch": "torch-pr11-performance-evidence",
+      "base": "torch-pr10-inference",
+      "candidate_branch": "codex/torch-performance-fix-20260906-pr11",
+      "old_head": "dfd42bf76766cadca0eecf609a1eaeac73534676",
+      "head": "49ae2de3ca4a495b0c3de8052c1ece05228f8684",
+      "parent": "78d99b5e0f540abd438e01a221de77fc02109b3f",
+      "tree": "271d8c8bea92155f3a7243552961f2cd25810a84"
+    },
+    {
+      "number": 19,
+      "branch": "torch-fft-formatting-base",
+      "base": "torch-pr11-performance-evidence",
+      "candidate_branch": "codex/torch-performance-fix-20260906-format-fft",
+      "old_head": "fa38dbca79f4e2e662f079e56b4d9dbb73fd9ef4",
+      "head": "94e92f4a9e94430b0ba7759f719b03bacccaec2e",
+      "parent": "49ae2de3ca4a495b0c3de8052c1ece05228f8684",
+      "tree": "ed3b79c597d3c1d2af94b663b1241390c9450f4e"
+    },
+    {
+      "number": 16,
+      "branch": "torch-followup-fft-optimizations",
+      "base": "torch-fft-formatting-base",
+      "candidate_branch": "codex/torch-performance-fix-20260906-fft-followup",
+      "old_head": "37d3c6b4ac1ec74a2dcd42558f44f21b92218ca5",
+      "head": "01d7fb0f7e2ea97273cd351f80739e1acf43fff6",
+      "parent": "94e92f4a9e94430b0ba7759f719b03bacccaec2e",
+      "tree": "b8cadf6749e8ea4209f3e97f6f143e69f57cee47"
+    },
+    {
+      "number": 17,
+      "branch": "torch-followup-cpu-optimizations",
+      "base": "torch-pr11-performance-evidence",
+      "candidate_branch": "codex/torch-performance-fix-20260906-cpu-followup",
+      "old_head": "bd53914be6d2e4324cc867d52b3842b77cc6729a",
+      "head": "b776a97a0477ca922b829adcf14475b0d3791363",
+      "parent": "49ae2de3ca4a495b0c3de8052c1ece05228f8684",
+      "tree": "a2896df01806a7a2c107f8b2b5c39a5f85fcd496"
+    }
+  ],
+  "qlty_command": [
+    "/home/xangma/pycbc-torch-finish-20260904/qlty/qlty-x86_64-unknown-linux-gnu/qlty",
+    "check",
+    "--no-upgrade-check",
+    "--no-fix",
+    "--sarif",
+    "--no-progress",
+    "--upstream",
+    "<actual candidate parent>"
+  ],
+  "flake8_command": [
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "-m",
+    "flake8",
+    "--select=F401",
+    "<CI-selected paths>"
+  ]
+}

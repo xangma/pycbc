@@ -1,0 +1,24 @@
+ÀFIXME"O# FIXME: This repeats almost all of the options above. Any nice way of reducing˜¢O# FIXME: This repeats almost all of the options above. Any nice way of reducingªÛ    )
+    data_reading_group.add_argument(
+        "--witness-filter-length",
+        type=float,
+        help="filter length in seconds for the transfer function",
+    )
+
+    return data_reading_group
+
+
+# FIXME: This repeats almost all of the options above. Any nice way of reducing
+#        this?
+def insert_strain_option_group_multi_ifo(parser, gps_times=True):
+    """
+    Adds the options used to call the pycbc.strain.from_cli function to an
+    optparser as an OptionGroup. This should be used if you
+    want to use these options in your code.
+
+    Parameters
+    -----------
+    parser : objectÀ
+Êripgrepê$
+pycbc/strain/strain.py
+•• 

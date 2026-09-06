@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 1375, in <module>
+    main()
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 1323, in main
+    qualify(art, files)
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 378, in qualify
+    require(cpu['source_identities'] == {n: {k: before[n][k] for k in ('root', 'sha', 'tree', 'status')}
+  File "/Users/xangma/repos/pycbc/artifacts/torch-performance-fix-20260906/publication/stage-evidence.py", line 213, in require
+    raise ValueError(message)
+ValueError: CPU report source differs

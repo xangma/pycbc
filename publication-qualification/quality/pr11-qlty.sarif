@@ -1,0 +1,234 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "qlty",
+          "informationUri": "https://github.com/qlty/qlty",
+          "semanticVersion": "0.644.0",
+          "version": "0.644.0 linux-x64 (338acb3 2026-08-28)",
+          "releaseDateUtc": "2026-08-28",
+          "rules": [
+            {
+              "id": "ruff:fmt"
+            },
+            {
+              "id": "ruff:I001",
+              "helpUri": "https://docs.astral.sh/ruff/rules/unsorted-imports"
+            }
+          ],
+          "notifications": [
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ripgrep in 0.02s [P1BKhm]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ripgrep in 0.02s [P1BKhm]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ruff in 0.05s [EZfu8P]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ruff in 0.05s [EZfu8P]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ruff in 0.06s [V4R67R]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ruff in 0.06s [V4R67R]"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "ruff:fmt",
+          "level": "note",
+          "message": {
+            "text": "Incorrect formatting, autoformat by running `qlty fmt`."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/fft/torchfft.py"
+                },
+                "region": {}
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "style",
+              "name": "style"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:I001",
+          "level": "warning",
+          "message": {
+            "text": "Import block is un-sorted or un-formatted"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/strain/strain.py"
+                },
+                "region": {
+                  "startLine": 20,
+                  "startColumn": 1,
+                  "endLine": 56,
+                  "endColumn": 50
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 20,
+                    "startColumn": 1,
+                    "endLine": 58,
+                    "endColumn": 1
+                  },
+                  "insertedContent": {
+                    "text": "import copy\nimport functools\nimport logging\n\nimport numpy\nfrom scipy.signal import kaiserord\n\nimport pycbc\nimport pycbc.events\nimport pycbc.filter\nimport pycbc.frame\nimport pycbc.psd\nimport pycbc.types\nfrom pycbc import scheme as _scheme\nfrom pycbc.fft import FFT, IFFT\nfrom pycbc.filter import highpass, lowpass, make_frequency_series, resample_to_delta_t\nfrom pycbc.filter.zpk import filter_zpk\nfrom pycbc.inject import InjectionSet, SGBurstInjectionSet\nfrom pycbc.types import (\n    Array,\n    DictOptionAction,\n    FrequencySeries,\n    MultiDetDictOptionAction,\n    MultiDetOptionAction,\n    MultiDetOptionActionSpecial,\n    MultiDetOptionAppendAction,\n    TimeSeries,\n    complex_same_precision_as,\n    copy_opts_for_single_ifo,\n    ensure_one_opt,\n    ensure_one_opt_multi_ifo,\n    required_opts,\n    required_opts_multi_ifo,\n    zeros,\n)\nfrom pycbc.types.backend import backend_array, is_backend, wrap_backend_array\nfrom pycbc.waveform.spa_tmplt import spa_distance\n\n"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:fmt",
+          "level": "note",
+          "message": {
+            "text": "Incorrect formatting, autoformat by running `qlty fmt`."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/decompress_torch.py"
+                },
+                "region": {}
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "style",
+              "name": "style"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:I001",
+          "level": "warning",
+          "message": {
+            "text": "Import block is un-sorted or un-formatted"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/decompress_torch.py"
+                },
+                "region": {
+                  "startLine": 164,
+                  "startColumn": 9,
+                  "endLine": 166,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 164,
+                    "startColumn": 1,
+                    "endLine": 167,
+                    "endColumn": 1
+                  },
+                  "insertedContent": {
+                    "text": "        from .decompress_cpu_cython import (\n            decomp_ccode_double,\n            decomp_ccode_float,\n        )\n"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:fmt",
+          "level": "note",
+          "message": {
+            "text": "Incorrect formatting, autoformat by running `qlty fmt`."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/taylorf2_torch.py"
+                },
+                "region": {}
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "style",
+              "name": "style"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

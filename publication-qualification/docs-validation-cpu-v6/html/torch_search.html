@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Torch event processing and live search &#8212; PyCBC Torch documentation  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Testing Torch changes" href="torch_testing.html" />
+    <link rel="prev" title="PyTorch runtime" href="torch_runtime.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="torch-event-processing-and-live-search">
+<h1>Torch event processing and live search<a class="headerlink" href="#torch-event-processing-and-live-search" title="Link to this heading">¶</a></h1>
+<p>Torch event support builds on <a class="reference internal" href="torch_filtering.html"><span class="doc">Torch filtering and vetoes</span></a>. Ranking, coincidence,
+cuts, significance and live-search code preserve tensor storage through their
+numerical calculations. Existing output and event-record interfaces materialize
+host values at their serialization boundaries.</p>
+<p><code class="docutils literal notranslate"><span class="pre">LiveBatchMatchedFilter</span></code> supports Torch batch correlation, inverse FFTs,
+peak selection and signal-consistency vetoes. Its data reader can supply
+Torch-backed strain; <code class="docutils literal notranslate"><span class="pre">StrainBuffer</span></code> maintains device-local overwhitened data
+and invalidates cached values when the PSD changes.</p>
+<p>CUDA graph and asynchronous stream paths are optional. They can be requested
+with the <code class="docutils literal notranslate"><span class="pre">enable_cuda_graphs</span></code> and <code class="docutils literal notranslate"><span class="pre">enable_async_streams</span></code> constructor
+arguments; their default environment switches are <code class="docutils literal notranslate"><span class="pre">PYCBC_ENABLE_CUDA_GRAPHS</span></code>
+and <code class="docutils literal notranslate"><span class="pre">PYCBC_TORCH_ASYNC_STREAMS</span></code>. Storage, shape, stream and differentiation
+checks determine whether an accelerated path is eligible for a particular
+batch. These checks do not establish that every search configuration runs
+entirely on a device.</p>
+<p>The integration suites are <code class="docutils literal notranslate"><span class="pre">test_live_batch_torch_fft_integration.py</span></code> and
+<code class="docutils literal notranslate"><span class="pre">test_live_batch_torch_peaks.py</span></code> under <code class="docutils literal notranslate"><span class="pre">test/</span></code>. Event, peak and storage
+regressions are grouped in <code class="docutils literal notranslate"><span class="pre">test_torch_event_pipeline.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">test_torch_event_kernels.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_torch_peak_contracts.py</span></code> and
+<code class="docutils literal notranslate"><span class="pre">test_torch_cuda_native_peaks.py</span></code>. Run the CUDA suites on a CUDA host when
+qualifying graph or stream behavior.</p>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">PyCBC Torch documentation</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="torch.html">Using PyCBC with PyTorch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_filtering.html">Torch filtering and vetoes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_inspiral_optimized.html">Optimized compressed-waveform search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_inspiral_reference.html">Normal CPU reference and matched Torch search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_optimization_results.html">Torch benchmark results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_optimizations.html">Torch optimization controls</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_parity.html">Torch scientific parity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_performance.html">Benchmarking Torch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_runtime.html">PyTorch runtime</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Torch event processing and live search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_testing.html">Testing Torch changes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="torch_workflows.html">Torch maintainer workflow</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="torch_runtime.html" title="previous chapter">PyTorch runtime</a></li>
+      <li>Next: <a href="torch_testing.html" title="next chapter">Testing Torch changes</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 9.1.0</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/torch_search.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

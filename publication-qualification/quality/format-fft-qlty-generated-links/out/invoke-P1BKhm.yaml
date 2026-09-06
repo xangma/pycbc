@@ -1,0 +1,40 @@
+id: P1BKhm
+qltyCliVersion: 0.644.0
+pluginName: ripgrep
+driverName: lint-fixme
+pluginVersion: 14.1.1
+verb: EXECUTION_VERB_CHECK
+targetsCount: 10
+targetPaths:
+- pycbc/waveform/decompress_torch.py
+- pycbc/psd/__init__.py
+- pycbc/fft/torchfft.py
+- pycbc/scheme.py
+- pycbc/vetoes/chisq_torch.py
+- pycbc/strain/strain.py
+- pycbc/filter/matchedfilter_torch.py
+- pycbc/vetoes/chisq.py
+- pycbc/waveform/taylorf2_torch.py
+- pycbc/filter/matchedfilter.py
+script: sh -c "rg \"FIXME|XXX\" pycbc/waveform/decompress_torch.py pycbc/psd/__init__.py pycbc/fft/torchfft.py pycbc/scheme.py pycbc/vetoes/chisq_torch.py pycbc/strain/strain.py pycbc/filter/matchedfilter_torch.py pycbc/vetoes/chisq.py pycbc/waveform/taylorf2_torch.py pycbc/filter/matchedfilter.py --json --word-regexp --only-matching"
+cwd: /home/xangma/pycbc-torch-performance-fix-20260906/quality-checkout/
+env:
+  PATH: ''
+  HOME: ''
+startedAt: 2026-09-06T21:09:57.904906381+00:00
+durationSecs: 0.02183044
+exitCode: '0'
+stdout: |
+  {"type":"begin","data":{"path":{"text":"pycbc/psd/__init__.py"}}}
+  {"type":"match","data":{"path":{"text":"pycbc/psd/__init__.py"},"lines":{"text":"        # FIXME: Should we make --psd-num-segments mandatory?\n"},"line_number":748,"absolute_offset":25924,"submatches":[{"match":{"text":"FIXME"},"start":10,"end":15}]}}
+  {"type":"end","data":{"path":{"text":"pycbc/psd/__init__.py"},"binary_offset":null,"stats":{"elapsed":{"secs":0,"nanos":51527,"human":"0.000052s"},"searches":1,"searches_with_match":1,"bytes_searched":31614,"bytes_printed":319,"matched_lines":1,"matches":1}}}
+  {"type":"begin","data":{"path":{"text":"pycbc/strain/strain.py"}}}
+  {"type":"match","data":{"path":{"text":"pycbc/strain/strain.py"},"lines":{"text":"# FIXME: This repeats almost all of the options above. Any nice way of reducing\n"},"line_number":917,"absolute_offset":31716,"submatches":[{"match":{"text":"FIXME"},"start":2,"end":7}]}}
+  {"type":"end","data":{"path":{"text":"pycbc/strain/strain.py"},"binary_offset":null,"stats":{"elapsed":{"secs":0,"nanos":92355,"human":"0.000092s"},"searches":1,"searches_with_match":1,"bytes_searched":101087,"bytes_printed":337,"matched_lines":1,"matches":1}}}
+  {"type":"begin","data":{"path":{"text":"pycbc/filter/matchedfilter.py"}}}
+  {"type":"match","data":{"path":{"text":"pycbc/filter/matchedfilter.py"},"lines":{"text":"    # FIXME: This seems much more simplistic than the aligned-spin class.\n"},"line_number":1168,"absolute_offset":43984,"submatches":[{"match":{"text":"FIXME"},"start":6,"end":11}]}}
+  {"type":"match","data":{"path":{"text":"pycbc/filter/matchedfilter.py"},"lines":{"text":"        # FIXME: This should live further down\n"},"line_number":1298,"absolute_offset":48704,"submatches":[{"match":{"text":"FIXME"},"start":10,"end":15}]}}
+  {"type":"end","data":{"path":{"text":"pycbc/filter/matchedfilter.py"},"binary_offset":null,"stats":{"elapsed":{"secs":0,"nanos":36018,"human":"0.000036s"},"searches":1,"searches_with_match":1,"bytes_searched":139791,"bytes_printed":594,"matched_lines":2,"matches":2}}}
+  {"data":{"elapsed_total":{"human":"0.004456s","nanos":4455705,"secs":0},"stats":{"bytes_printed":1250,"bytes_searched":272492,"elapsed":{"human":"0.000180s","nanos":179900,"secs":0},"matched_lines":4,"matches":4,"searches":3,"searches_with_match":3}},"type":"summary"}
+exitResult: EXIT_RESULT_SUCCESS
+issuesCount: 4
