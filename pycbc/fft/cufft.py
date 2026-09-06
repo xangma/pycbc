@@ -60,7 +60,7 @@ def _get_fwd_plan(itype, otype, inlen, batch=1):
         theplan = _forward_plans[(itype, otype, inlen, batch)]
     except KeyError:
         theplan = cu_fft.Plan((inlen,), itype, otype, batch=batch)
-        _forward_plans.update({(itype, otype, inlen): theplan})
+        _forward_plans.update({(itype, otype, inlen, batch): theplan})
 
     return theplan
 
@@ -72,7 +72,7 @@ def _get_inv_plan(itype, otype, outlen, batch=1):
         theplan = _reverse_plans[(itype, otype, outlen, batch)]
     except KeyError:
         theplan = cu_fft.Plan((outlen,), itype, otype, batch=batch)
-        _reverse_plans.update({(itype, otype, outlen): theplan})
+        _reverse_plans.update({(itype, otype, outlen, batch): theplan})
 
     return theplan
 
@@ -90,7 +90,7 @@ def ifft(invec, outvec, prec, itype, otype):
 class FFT(_BaseFFT):
     def __init__(self, invec, outvec, nbatch=1, size=None):
         super(FFT, self).__init__(invec, outvec, nbatch, size)
-        self.plan = _get_fwd_plan(invec.dtype, outvec.dtype, len(invec), batch=nbatch)
+        self.plan = _get_fwd_plan(invec.dtype, outvec.dtype, self.size, batch=nbatch)
         self.invec = invec.data
         self.outvec = outvec.data
 
@@ -101,7 +101,7 @@ class FFT(_BaseFFT):
 class IFFT(_BaseIFFT):
     def __init__(self, invec, outvec, nbatch=1, size=None):
         super(IFFT, self).__init__(invec, outvec, nbatch, size)
-        self.plan = _get_inv_plan(invec.dtype, outvec.dtype, len(outvec), batch=nbatch)
+        self.plan = _get_inv_plan(invec.dtype, outvec.dtype, self.size, batch=nbatch)
 
         self.invec = invec.data
         self.outvec = outvec.data

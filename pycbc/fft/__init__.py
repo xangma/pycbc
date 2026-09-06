@@ -14,7 +14,23 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-from .backend_support import get_backend_names
-from .class_api import FFT, IFFT
-from .func_api import fft, ifft
-from .parser_support import from_cli, insert_fft_option_group, verify_fft_options
+from .backend_support import get_backend_names  # noqa: F401 - public re-export
+from .class_api import FFT as FFT  # noqa: F401 - public re-export
+from .class_api import IFFT as IFFT  # noqa: F401 - public re-export
+from .func_api import fft as fft  # noqa: F401 - public re-export
+from .func_api import ifft as ifft  # noqa: F401 - public re-export
+from .parser_support import (  # noqa: F401 - public re-export
+    export_wisdom_from_cli as export_wisdom_from_cli,
+)
+from .parser_support import (  # noqa: F401 - public re-export
+    from_cli as from_cli,
+)
+from .parser_support import (  # noqa: F401 - public re-export
+    import_wisdom_from_cli as import_wisdom_from_cli,
+)
+from .parser_support import (  # noqa: F401 - public re-export
+    insert_fft_option_group as insert_fft_option_group,
+)
+from .parser_support import (  # noqa: F401 - public re-export
+    verify_fft_options as verify_fft_options,
+)
