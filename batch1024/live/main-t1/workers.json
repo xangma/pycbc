@@ -1,0 +1,1784 @@
+[
+  {
+    "label": "r0-b1-branch_standard",
+    "route": "branch_standard",
+    "batch": 1,
+    "replicate": 0,
+    "cell_index": 0,
+    "started_utc": "2026-09-06T12:18:41.379836+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:18:41.380147+00:00",
+      "available_ram_gib": 217.61439514160156
+    },
+    "raw_file": "main-t1/r0-b1-branch_standard.json",
+    "raw_sha256": "a926e97eb408c286aaeebed430e8dc651363fed783ddb01c7046c051188e780e",
+    "worker_pid": 565711,
+    "finished_utc": "2026-09-06T12:18:45.928690+00:00"
+  },
+  {
+    "label": "r0-b1-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 1,
+    "replicate": 0,
+    "cell_index": 0,
+    "started_utc": "2026-09-06T12:18:45.929087+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:18:45.929438+00:00",
+      "available_ram_gib": 217.73219299316406
+    },
+    "raw_file": "main-t1/r0-b1-torch_cpu.json",
+    "raw_sha256": "18d8615f6229018e65fc90692c1c88f4139752a56e0b56410cb74cff14846598",
+    "worker_pid": 567810,
+    "finished_utc": "2026-09-06T12:18:50.709962+00:00"
+  },
+  {
+    "label": "r0-b1-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 1,
+    "replicate": 0,
+    "cell_index": 0,
+    "started_utc": "2026-09-06T12:18:50.710551+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:18:50.710912+00:00",
+      "available_ram_gib": 217.7099266052246
+    },
+    "raw_file": "main-t1/r0-b1-torch_cpu_native.json",
+    "raw_sha256": "2c05f5f99cdf142adc651b65222f57b4988e0f7e8024ca1ecd7d3e612af1c61b",
+    "worker_pid": 569930,
+    "finished_utc": "2026-09-06T12:18:55.536710+00:00"
+  },
+  {
+    "label": "r0-b1-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 1,
+    "replicate": 0,
+    "cell_index": 0,
+    "started_utc": "2026-09-06T12:18:55.537305+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:18:55.537683+00:00",
+      "available_ram_gib": 217.7884292602539,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r0-b1-torch_cuda.json",
+    "raw_sha256": "b7118893c2e7b894cb378e8a092502d3e68aa6fb4c095d5ffb27db434a0d6bcf",
+    "worker_pid": 572147,
+    "finished_utc": "2026-09-06T12:19:00.542322+00:00"
+  },
+  {
+    "label": "r0-b1-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 1,
+    "replicate": 0,
+    "cell_index": 0,
+    "started_utc": "2026-09-06T12:19:00.543108+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:19:00.543528+00:00",
+      "available_ram_gib": 217.9036865234375,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r0-b1-torch_cuda_native.json",
+    "raw_sha256": "c5e7ef5a1206f45ab55b0df32c96982638661699bc41a547f69d74ca006d684c",
+    "worker_pid": 574412,
+    "finished_utc": "2026-09-06T12:19:05.559476+00:00"
+  },
+  {
+    "label": "r0-b8-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 8,
+    "replicate": 0,
+    "cell_index": 1,
+    "started_utc": "2026-09-06T12:19:05.560229+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:19:05.560590+00:00",
+      "available_ram_gib": 217.92768096923828
+    },
+    "raw_file": "main-t1/r0-b8-torch_cpu.json",
+    "raw_sha256": "f5d7d4f362bdb4380fe374f20324ccba464b3573a43b99f36ca431ae5199c53f",
+    "worker_pid": 576767,
+    "finished_utc": "2026-09-06T12:19:11.012123+00:00"
+  },
+  {
+    "label": "r0-b8-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 8,
+    "replicate": 0,
+    "cell_index": 1,
+    "started_utc": "2026-09-06T12:19:11.012931+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:19:11.013350+00:00",
+      "available_ram_gib": 217.76900100708008
+    },
+    "raw_file": "main-t1/r0-b8-torch_cpu_native.json",
+    "raw_sha256": "9e07bb4f045f8a0ee8b633dd1dcf3b4fee25810acaceb9a9c990a370dbbd0510",
+    "worker_pid": 579198,
+    "finished_utc": "2026-09-06T12:19:16.211285+00:00"
+  },
+  {
+    "label": "r0-b8-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 8,
+    "replicate": 0,
+    "cell_index": 1,
+    "started_utc": "2026-09-06T12:19:16.212149+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:19:16.212547+00:00",
+      "available_ram_gib": 217.83235549926758,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r0-b8-torch_cuda.json",
+    "raw_sha256": "e6727810438b99cd62eb23c1e19541d00e3bc9c0094c93c1a614ec885b7b673f",
+    "worker_pid": 581583,
+    "finished_utc": "2026-09-06T12:19:21.312493+00:00"
+  },
+  {
+    "label": "r0-b8-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 8,
+    "replicate": 0,
+    "cell_index": 1,
+    "started_utc": "2026-09-06T12:19:21.313313+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:19:21.313750+00:00",
+      "available_ram_gib": 217.8874168395996,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r0-b8-torch_cuda_native.json",
+    "raw_sha256": "080279073e0e05374d97430d5c4e328e90c16ab75792ac5b151f1e9418c669fa",
+    "worker_pid": 583862,
+    "finished_utc": "2026-09-06T12:19:26.416360+00:00"
+  },
+  {
+    "label": "r0-b8-branch_standard",
+    "route": "branch_standard",
+    "batch": 8,
+    "replicate": 0,
+    "cell_index": 1,
+    "started_utc": "2026-09-06T12:19:26.417215+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:19:26.417623+00:00",
+      "available_ram_gib": 217.87144470214844
+    },
+    "raw_file": "main-t1/r0-b8-branch_standard.json",
+    "raw_sha256": "26217aa9f0a823c437ddb973ba578fb298a5504d0042bf1027f0833e54386c65",
+    "worker_pid": 586168,
+    "finished_utc": "2026-09-06T12:19:31.093141+00:00"
+  },
+  {
+    "label": "r0-b32-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 32,
+    "replicate": 0,
+    "cell_index": 2,
+    "started_utc": "2026-09-06T12:19:31.094003+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:19:31.094438+00:00",
+      "available_ram_gib": 217.68066787719727
+    },
+    "raw_file": "main-t1/r0-b32-torch_cpu_native.json",
+    "raw_sha256": "cab010d9141cbc380031cf65f2ce6a626a68fe5bd0f9146055d3d0cd6433e017",
+    "worker_pid": 588260,
+    "finished_utc": "2026-09-06T12:19:37.620725+00:00"
+  },
+  {
+    "label": "r0-b32-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 32,
+    "replicate": 0,
+    "cell_index": 2,
+    "started_utc": "2026-09-06T12:19:37.621711+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:19:37.622144+00:00",
+      "available_ram_gib": 217.62145614624023,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r0-b32-torch_cuda.json",
+    "raw_sha256": "c2118ec670689402f13d9660eab27e0d2dcf71418f67cc2b9ad5d2731e2bba83",
+    "worker_pid": 591205,
+    "finished_utc": "2026-09-06T12:19:42.888234+00:00"
+  },
+  {
+    "label": "r0-b32-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 32,
+    "replicate": 0,
+    "cell_index": 2,
+    "started_utc": "2026-09-06T12:19:42.889153+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:19:42.889589+00:00",
+      "available_ram_gib": 217.60437393188477,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r0-b32-torch_cuda_native.json",
+    "raw_sha256": "450ad23be01e2560af4f483ca7fa8b2a7565f98d1ab7d25d4cb2cc780fdc4986",
+    "worker_pid": 593586,
+    "finished_utc": "2026-09-06T12:19:48.305570+00:00"
+  },
+  {
+    "label": "r0-b32-branch_standard",
+    "route": "branch_standard",
+    "batch": 32,
+    "replicate": 0,
+    "cell_index": 2,
+    "started_utc": "2026-09-06T12:19:48.306535+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:19:48.306960+00:00",
+      "available_ram_gib": 217.7361831665039
+    },
+    "raw_file": "main-t1/r0-b32-branch_standard.json",
+    "raw_sha256": "a858acf32408aa4cc41af70b85dfbfbaceb1206e1d47be357bd205a495bf916c",
+    "worker_pid": 595970,
+    "finished_utc": "2026-09-06T12:19:53.629838+00:00"
+  },
+  {
+    "label": "r0-b32-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 32,
+    "replicate": 0,
+    "cell_index": 2,
+    "started_utc": "2026-09-06T12:19:53.630852+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:19:53.631267+00:00",
+      "available_ram_gib": 217.57172775268555
+    },
+    "raw_file": "main-t1/r0-b32-torch_cpu.json",
+    "raw_sha256": "355a74e519318b27272567b3b5b5c54fe3e838fe56e7c58e3aa8e16348365f88",
+    "worker_pid": 598374,
+    "finished_utc": "2026-09-06T12:20:01.237458+00:00"
+  },
+  {
+    "label": "r0-b128-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 128,
+    "replicate": 0,
+    "cell_index": 3,
+    "started_utc": "2026-09-06T12:20:01.238485+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:20:01.238889+00:00",
+      "available_ram_gib": 217.53480911254883,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2585.0,
+        "free_mib": 21517.0
+      }
+    },
+    "raw_file": "main-t1/r0-b128-torch_cuda.json",
+    "raw_sha256": "7cce2883acd731149c078dc98aa7c0329be847179736654094a4638264fbd238",
+    "worker_pid": 601785,
+    "finished_utc": "2026-09-06T12:20:07.276538+00:00"
+  },
+  {
+    "label": "r0-b128-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 128,
+    "replicate": 0,
+    "cell_index": 3,
+    "started_utc": "2026-09-06T12:20:07.277587+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:20:07.278029+00:00",
+      "available_ram_gib": 217.53653717041016,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r0-b128-torch_cuda_native.json",
+    "raw_sha256": "e1430d1402990f7addc9f11340b6f46ed3c6f7b3e9cf72836c8f96abf9fa62e2",
+    "worker_pid": 604504,
+    "finished_utc": "2026-09-06T12:20:13.473502+00:00"
+  },
+  {
+    "label": "r0-b128-branch_standard",
+    "route": "branch_standard",
+    "batch": 128,
+    "replicate": 0,
+    "cell_index": 3,
+    "started_utc": "2026-09-06T12:20:13.474630+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:20:13.475067+00:00",
+      "available_ram_gib": 217.59777069091797
+    },
+    "raw_file": "main-t1/r0-b128-branch_standard.json",
+    "raw_sha256": "16598ec25693848365efb830163c31e3c3120667dcef79acfac792a284ee8ea4",
+    "worker_pid": 607263,
+    "finished_utc": "2026-09-06T12:20:21.421492+00:00"
+  },
+  {
+    "label": "r0-b128-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 128,
+    "replicate": 0,
+    "cell_index": 3,
+    "started_utc": "2026-09-06T12:20:21.422437+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:20:21.423541+00:00",
+      "available_ram_gib": 217.55056762695312
+    },
+    "raw_file": "main-t1/r0-b128-torch_cpu.json",
+    "raw_sha256": "76f7e1e2692511fc52e7c0561659bb1048dbdc6814bfff2a2f998d7c34da796f",
+    "worker_pid": 610806,
+    "finished_utc": "2026-09-06T12:20:41.688641+00:00"
+  },
+  {
+    "label": "r0-b128-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 128,
+    "replicate": 0,
+    "cell_index": 3,
+    "started_utc": "2026-09-06T12:20:41.689734+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:20:41.690134+00:00",
+      "available_ram_gib": 217.68421173095703
+    },
+    "raw_file": "main-t1/r0-b128-torch_cpu_native.json",
+    "raw_sha256": "bf41d9a019326e90560a61fa43c7eb69bb2262dd1d0fae8b0cd04ff724edc846",
+    "worker_pid": 619852,
+    "finished_utc": "2026-09-06T12:20:56.773130+00:00"
+  },
+  {
+    "label": "r0-b512-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 512,
+    "replicate": 0,
+    "cell_index": 4,
+    "started_utc": "2026-09-06T12:20:56.774309+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:20:56.774704+00:00",
+      "available_ram_gib": 217.81650924682617,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r0-b512-torch_cuda_native.json",
+    "raw_sha256": "dc170c0c1773f29071f3eff1983a22ca3bad366d12abb99cf604ef503fb9c184",
+    "worker_pid": 626647,
+    "finished_utc": "2026-09-06T12:21:06.784913+00:00"
+  },
+  {
+    "label": "r0-b512-branch_standard",
+    "route": "branch_standard",
+    "batch": 512,
+    "replicate": 0,
+    "cell_index": 4,
+    "started_utc": "2026-09-06T12:21:06.785906+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:21:06.786244+00:00",
+      "available_ram_gib": 217.68992614746094
+    },
+    "raw_file": "main-t1/r0-b512-branch_standard.json",
+    "raw_sha256": "be49dd87938989f56b9d0db2f5e1a5e7b9af11444ba67b8275381a32328129f2",
+    "worker_pid": 631141,
+    "finished_utc": "2026-09-06T12:21:25.427997+00:00"
+  },
+  {
+    "label": "r0-b512-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 512,
+    "replicate": 0,
+    "cell_index": 4,
+    "started_utc": "2026-09-06T12:21:25.429082+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:21:25.429454+00:00",
+      "available_ram_gib": 217.64016342163086
+    },
+    "raw_file": "main-t1/r0-b512-torch_cpu.json",
+    "raw_sha256": "d79d87ba4a49718163426eabbe5eacc99e2553d830826e9400a5a973903df9c6",
+    "worker_pid": 639480,
+    "finished_utc": "2026-09-06T12:22:32.657366+00:00"
+  },
+  {
+    "label": "r0-b512-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 512,
+    "replicate": 0,
+    "cell_index": 4,
+    "started_utc": "2026-09-06T12:22:32.658603+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:22:32.659043+00:00",
+      "available_ram_gib": 217.66197204589844
+    },
+    "raw_file": "main-t1/r0-b512-torch_cpu_native.json",
+    "raw_sha256": "16451a704a3cd6b5d0333e1667a77e9e9186f9f0c42204f8e78ad82613677fb9",
+    "worker_pid": 669455,
+    "finished_utc": "2026-09-06T12:23:21.178647+00:00"
+  },
+  {
+    "label": "r0-b512-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 512,
+    "replicate": 0,
+    "cell_index": 4,
+    "started_utc": "2026-09-06T12:23:21.179832+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:23:21.180228+00:00",
+      "available_ram_gib": 217.4965705871582,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r0-b512-torch_cuda.json",
+    "raw_sha256": "d9e0197347b117e685ce355e600f8882c31ab3b119a75d7190ace23a05f7a4f0",
+    "worker_pid": 691136,
+    "finished_utc": "2026-09-06T12:23:30.005315+00:00"
+  },
+  {
+    "label": "r0-b1024-branch_standard",
+    "route": "branch_standard",
+    "batch": 1024,
+    "replicate": 0,
+    "cell_index": 5,
+    "started_utc": "2026-09-06T12:23:30.006595+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:23:30.006988+00:00",
+      "available_ram_gib": 217.69213104248047
+    },
+    "raw_file": "main-t1/r0-b1024-branch_standard.json",
+    "raw_sha256": "4b8fddcb8886a0cdfe08bb086377e3e3ad39cb86174c0d71478d17e0dbd1a6e9",
+    "worker_pid": 695088,
+    "finished_utc": "2026-09-06T12:24:02.939032+00:00"
+  },
+  {
+    "label": "r0-b1024-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 1024,
+    "replicate": 0,
+    "cell_index": 5,
+    "started_utc": "2026-09-06T12:24:02.940060+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:24:02.940430+00:00",
+      "available_ram_gib": 217.7657012939453
+    },
+    "raw_file": "main-t1/r0-b1024-torch_cpu.json",
+    "raw_sha256": "c2a8c6a1a958979196b976fa56cea6e66ab27dd66f43de02ccd20fd6e3e4b913",
+    "worker_pid": 709710,
+    "finished_utc": "2026-09-06T12:26:19.248685+00:00"
+  },
+  {
+    "label": "r0-b1024-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 1024,
+    "replicate": 0,
+    "cell_index": 5,
+    "started_utc": "2026-09-06T12:26:19.249951+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:26:19.250355+00:00",
+      "available_ram_gib": 218.03372955322266
+    },
+    "raw_file": "main-t1/r0-b1024-torch_cpu_native.json",
+    "raw_sha256": "b6e243064074b3683a3c07433180fdcda5508ca0c271987b0949002ff6dbc713",
+    "worker_pid": 770505,
+    "finished_utc": "2026-09-06T12:27:53.292569+00:00"
+  },
+  {
+    "label": "r0-b1024-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 1024,
+    "replicate": 0,
+    "cell_index": 5,
+    "started_utc": "2026-09-06T12:27:53.293855+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:27:53.294283+00:00",
+      "available_ram_gib": 218.09226608276367,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2497.0,
+        "free_mib": 21605.0
+      }
+    },
+    "raw_file": "main-t1/r0-b1024-torch_cuda.json",
+    "raw_sha256": "89f81c38b5175f4bbe74f3dc9e5653c0c1fc6cdb4727f16014530e2d49f5ae96",
+    "worker_pid": 812372,
+    "finished_utc": "2026-09-06T12:28:05.888367+00:00"
+  },
+  {
+    "label": "r0-b1024-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 1024,
+    "replicate": 0,
+    "cell_index": 5,
+    "started_utc": "2026-09-06T12:28:05.889843+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:28:05.890246+00:00",
+      "available_ram_gib": 217.62731552124023,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r0-b1024-torch_cuda_native.json",
+    "raw_sha256": "55e6486fd0d9da4a91fc0a2ba94090c3e1cd8370a22c5cd97dfc0d9d2901a696",
+    "worker_pid": 817981,
+    "finished_utc": "2026-09-06T12:28:23.134590+00:00"
+  },
+  {
+    "label": "r1-b1-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 1,
+    "replicate": 1,
+    "cell_index": 6,
+    "started_utc": "2026-09-06T12:28:23.135954+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:28:23.136403+00:00",
+      "available_ram_gib": 217.70680618286133
+    },
+    "raw_file": "main-t1/r1-b1-torch_cpu.json",
+    "raw_sha256": "0472f519083a52cedc28a1ef788c9a252074253226e29e5d4d7e5e1eedeeec00",
+    "worker_pid": 825699,
+    "finished_utc": "2026-09-06T12:28:27.899505+00:00"
+  },
+  {
+    "label": "r1-b1-branch_standard",
+    "route": "branch_standard",
+    "batch": 1,
+    "replicate": 1,
+    "cell_index": 6,
+    "started_utc": "2026-09-06T12:28:27.900871+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:28:27.901308+00:00",
+      "available_ram_gib": 217.73596572875977
+    },
+    "raw_file": "main-t1/r1-b1-branch_standard.json",
+    "raw_sha256": "d88cf62c150223997bf131fff11631d36326fe9c52374fe1974409063cb18b61",
+    "worker_pid": 827816,
+    "finished_utc": "2026-09-06T12:28:32.415100+00:00"
+  },
+  {
+    "label": "r1-b1-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 1,
+    "replicate": 1,
+    "cell_index": 6,
+    "started_utc": "2026-09-06T12:28:32.416503+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:28:32.416940+00:00",
+      "available_ram_gib": 217.99261856079102,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r1-b1-torch_cuda_native.json",
+    "raw_sha256": "bb98e1381662533a36b65e2ae074687707ff091f7317a73f00e72740134b7c10",
+    "worker_pid": 829857,
+    "finished_utc": "2026-09-06T12:28:37.490368+00:00"
+  },
+  {
+    "label": "r1-b1-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 1,
+    "replicate": 1,
+    "cell_index": 6,
+    "started_utc": "2026-09-06T12:28:37.491877+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:28:37.492255+00:00",
+      "available_ram_gib": 217.94437408447266,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r1-b1-torch_cuda.json",
+    "raw_sha256": "2e21d007680beac3be7512e222b421f7e099b7de6cf30d49ea90f90a0ddfbc05",
+    "worker_pid": 832165,
+    "finished_utc": "2026-09-06T12:28:42.634341+00:00"
+  },
+  {
+    "label": "r1-b1-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 1,
+    "replicate": 1,
+    "cell_index": 6,
+    "started_utc": "2026-09-06T12:28:42.635633+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:28:42.635960+00:00",
+      "available_ram_gib": 217.93007278442383
+    },
+    "raw_file": "main-t1/r1-b1-torch_cpu_native.json",
+    "raw_sha256": "7bc0f0a04d4a9d97b470dec4453d5ba96711e5b25d697ef5ffb6956444f43bd6",
+    "worker_pid": 834473,
+    "finished_utc": "2026-09-06T12:28:47.370646+00:00"
+  },
+  {
+    "label": "r1-b8-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 8,
+    "replicate": 1,
+    "cell_index": 7,
+    "started_utc": "2026-09-06T12:28:47.372143+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:28:47.372581+00:00",
+      "available_ram_gib": 217.75885772705078
+    },
+    "raw_file": "main-t1/r1-b8-torch_cpu_native.json",
+    "raw_sha256": "ad04da23383e9e5f2d3129a87eaec7f7d6e1641e3d37243a0eb571a39598ceb4",
+    "worker_pid": 836650,
+    "finished_utc": "2026-09-06T12:28:52.476889+00:00"
+  },
+  {
+    "label": "r1-b8-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 8,
+    "replicate": 1,
+    "cell_index": 7,
+    "started_utc": "2026-09-06T12:28:52.478477+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:28:52.478968+00:00",
+      "available_ram_gib": 217.86587142944336
+    },
+    "raw_file": "main-t1/r1-b8-torch_cpu.json",
+    "raw_sha256": "6b88cfddc29ffadbf4cdd6623d276467d4a4185a2c6c7732adcf52b7adbfeed4",
+    "worker_pid": 838968,
+    "finished_utc": "2026-09-06T12:28:57.825668+00:00"
+  },
+  {
+    "label": "r1-b8-branch_standard",
+    "route": "branch_standard",
+    "batch": 8,
+    "replicate": 1,
+    "cell_index": 7,
+    "started_utc": "2026-09-06T12:28:57.827225+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:28:57.827641+00:00",
+      "available_ram_gib": 217.7760009765625
+    },
+    "raw_file": "main-t1/r1-b8-branch_standard.json",
+    "raw_sha256": "33ec531f2d82589d7b04e35a8d12773a954ff7d7a4fc99e957c7a8c58a53aa46",
+    "worker_pid": 841380,
+    "finished_utc": "2026-09-06T12:29:02.594880+00:00"
+  },
+  {
+    "label": "r1-b8-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 8,
+    "replicate": 1,
+    "cell_index": 7,
+    "started_utc": "2026-09-06T12:29:02.596212+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:29:02.596625+00:00",
+      "available_ram_gib": 217.83900833129883,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2585.0,
+        "free_mib": 21517.0
+      }
+    },
+    "raw_file": "main-t1/r1-b8-torch_cuda_native.json",
+    "raw_sha256": "eeae2b41d07ff23e04c1d8897f79e5f19ca8c5cd27f6fb2066e50f30dd7393a6",
+    "worker_pid": 843516,
+    "finished_utc": "2026-09-06T12:29:07.952233+00:00"
+  },
+  {
+    "label": "r1-b8-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 8,
+    "replicate": 1,
+    "cell_index": 7,
+    "started_utc": "2026-09-06T12:29:07.953595+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:29:07.953963+00:00",
+      "available_ram_gib": 217.92901229858398,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r1-b8-torch_cuda.json",
+    "raw_sha256": "c14336aef069bcd62c672a9f082a65e0fdcd1f754c559232c30f98480e47acce",
+    "worker_pid": 845882,
+    "finished_utc": "2026-09-06T12:29:13.015907+00:00"
+  },
+  {
+    "label": "r1-b32-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 32,
+    "replicate": 1,
+    "cell_index": 8,
+    "started_utc": "2026-09-06T12:29:13.017630+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:29:13.018030+00:00",
+      "available_ram_gib": 217.88467025756836,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r1-b32-torch_cuda.json",
+    "raw_sha256": "79b518aae0adb5fa8d0dddf13b27fb3874eec6050c8b1f42ba34ea11976c7a67",
+    "worker_pid": 848195,
+    "finished_utc": "2026-09-06T12:29:18.324195+00:00"
+  },
+  {
+    "label": "r1-b32-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 32,
+    "replicate": 1,
+    "cell_index": 8,
+    "started_utc": "2026-09-06T12:29:18.325625+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:29:18.325955+00:00",
+      "available_ram_gib": 217.78910446166992
+    },
+    "raw_file": "main-t1/r1-b32-torch_cpu_native.json",
+    "raw_sha256": "bb4332ea4bf7aca6ea554a76cf833e4e3febb3038d22ab0d3ef047ebf7f07ef0",
+    "worker_pid": 850566,
+    "finished_utc": "2026-09-06T12:29:24.865641+00:00"
+  },
+  {
+    "label": "r1-b32-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 32,
+    "replicate": 1,
+    "cell_index": 8,
+    "started_utc": "2026-09-06T12:29:24.867357+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:29:24.867814+00:00",
+      "available_ram_gib": 217.7954559326172
+    },
+    "raw_file": "main-t1/r1-b32-torch_cpu.json",
+    "raw_sha256": "a14b69c002dde5aa286245c5bfc694c2ea263ea7bd6eee65e7e3200e8a8ed62f",
+    "worker_pid": 853521,
+    "finished_utc": "2026-09-06T12:29:32.490873+00:00"
+  },
+  {
+    "label": "r1-b32-branch_standard",
+    "route": "branch_standard",
+    "batch": 32,
+    "replicate": 1,
+    "cell_index": 8,
+    "started_utc": "2026-09-06T12:29:32.492555+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:29:32.493024+00:00",
+      "available_ram_gib": 217.58415603637695
+    },
+    "raw_file": "main-t1/r1-b32-branch_standard.json",
+    "raw_sha256": "ba59de31481ab2977506f080d42b61a9532d8047ee78b9fbefcf643db53e97fb",
+    "worker_pid": 856902,
+    "finished_utc": "2026-09-06T12:29:37.895601+00:00"
+  },
+  {
+    "label": "r1-b32-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 32,
+    "replicate": 1,
+    "cell_index": 8,
+    "started_utc": "2026-09-06T12:29:37.897321+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:29:37.897755+00:00",
+      "available_ram_gib": 217.72939682006836,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r1-b32-torch_cuda_native.json",
+    "raw_sha256": "0480c330779254df45a8afbd1dced0b89fb8bedef76960776cc9e1fbcda9ccc0",
+    "worker_pid": 859347,
+    "finished_utc": "2026-09-06T12:29:43.315969+00:00"
+  },
+  {
+    "label": "r1-b128-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 128,
+    "replicate": 1,
+    "cell_index": 9,
+    "started_utc": "2026-09-06T12:29:43.317394+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:29:43.317748+00:00",
+      "available_ram_gib": 217.63398361206055,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r1-b128-torch_cuda_native.json",
+    "raw_sha256": "ccd3ac755e85bd9a15b12e17bf53ae29092cf46309aa4725268da3714819aac3",
+    "worker_pid": 861803,
+    "finished_utc": "2026-09-06T12:29:49.481642+00:00"
+  },
+  {
+    "label": "r1-b128-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 128,
+    "replicate": 1,
+    "cell_index": 9,
+    "started_utc": "2026-09-06T12:29:49.483089+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:29:49.483414+00:00",
+      "available_ram_gib": 217.65645217895508,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 8.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r1-b128-torch_cuda.json",
+    "raw_sha256": "506439b1d643eb75dc26cf165d6e4cb590a23a2a337c0c7d366436819d98c54f",
+    "worker_pid": 864578,
+    "finished_utc": "2026-09-06T12:29:55.641684+00:00"
+  },
+  {
+    "label": "r1-b128-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 128,
+    "replicate": 1,
+    "cell_index": 9,
+    "started_utc": "2026-09-06T12:29:55.643322+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:29:55.643677+00:00",
+      "available_ram_gib": 217.5503807067871
+    },
+    "raw_file": "main-t1/r1-b128-torch_cpu_native.json",
+    "raw_sha256": "6e713c71dacd43df9acd4bb4014922de485bb7c24b0f03b91fb5eda168348d51",
+    "worker_pid": 867347,
+    "finished_utc": "2026-09-06T12:30:10.705954+00:00"
+  },
+  {
+    "label": "r1-b128-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 128,
+    "replicate": 1,
+    "cell_index": 9,
+    "started_utc": "2026-09-06T12:30:10.707859+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:30:10.708277+00:00",
+      "available_ram_gib": 217.69632720947266
+    },
+    "raw_file": "main-t1/r1-b128-torch_cpu.json",
+    "raw_sha256": "a5f5441c07077a6ab5b8e1217c7db726b635777b7e1e5e0443fe2ea02fc7ad49",
+    "worker_pid": 874151,
+    "finished_utc": "2026-09-06T12:30:31.076666+00:00"
+  },
+  {
+    "label": "r1-b128-branch_standard",
+    "route": "branch_standard",
+    "batch": 128,
+    "replicate": 1,
+    "cell_index": 9,
+    "started_utc": "2026-09-06T12:30:31.078541+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:30:31.078979+00:00",
+      "available_ram_gib": 217.65947341918945
+    },
+    "raw_file": "main-t1/r1-b128-branch_standard.json",
+    "raw_sha256": "d52991a08a7900e88b2730df0e321abf51e5b807ccf6a5e5d48660bcdae752c0",
+    "worker_pid": 883304,
+    "finished_utc": "2026-09-06T12:30:39.130788+00:00"
+  },
+  {
+    "label": "r1-b512-branch_standard",
+    "route": "branch_standard",
+    "batch": 512,
+    "replicate": 1,
+    "cell_index": 10,
+    "started_utc": "2026-09-06T12:30:39.132731+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:30:39.133129+00:00",
+      "available_ram_gib": 217.66807174682617
+    },
+    "raw_file": "main-t1/r1-b512-branch_standard.json",
+    "raw_sha256": "0f9c87588f6ad5876902965c0b20114d3970c58e9bb5d08f95c59b4220e07a43",
+    "worker_pid": 886943,
+    "finished_utc": "2026-09-06T12:30:57.495524+00:00"
+  },
+  {
+    "label": "r1-b512-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 512,
+    "replicate": 1,
+    "cell_index": 10,
+    "started_utc": "2026-09-06T12:30:57.497428+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:30:57.497855+00:00",
+      "available_ram_gib": 217.71149826049805,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r1-b512-torch_cuda_native.json",
+    "raw_sha256": "c38ee516fb084716d093f2bab75462f9573f40ed391a5a19dbff632a8b8550c0",
+    "worker_pid": 895126,
+    "finished_utc": "2026-09-06T12:31:07.589427+00:00"
+  },
+  {
+    "label": "r1-b512-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 512,
+    "replicate": 1,
+    "cell_index": 10,
+    "started_utc": "2026-09-06T12:31:07.591084+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:31:07.591438+00:00",
+      "available_ram_gib": 217.68780136108398,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2436.0,
+        "free_mib": 21666.0
+      }
+    },
+    "raw_file": "main-t1/r1-b512-torch_cuda.json",
+    "raw_sha256": "cd0cf501694d7296ca278831a69cd03d9f062311296c931360781939893cc2c3",
+    "worker_pid": 899752,
+    "finished_utc": "2026-09-06T12:31:16.431014+00:00"
+  },
+  {
+    "label": "r1-b512-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 512,
+    "replicate": 1,
+    "cell_index": 10,
+    "started_utc": "2026-09-06T12:31:16.432984+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:31:16.433382+00:00",
+      "available_ram_gib": 217.6572608947754
+    },
+    "raw_file": "main-t1/r1-b512-torch_cpu_native.json",
+    "raw_sha256": "a8e574ef247bd9f6a4d30d649204060929f91cbf1909a5947f987ae10081ccdf",
+    "worker_pid": 903707,
+    "finished_utc": "2026-09-06T12:32:03.335010+00:00"
+  },
+  {
+    "label": "r1-b512-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 512,
+    "replicate": 1,
+    "cell_index": 10,
+    "started_utc": "2026-09-06T12:32:03.336762+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:32:03.337123+00:00",
+      "available_ram_gib": 217.62263107299805
+    },
+    "raw_file": "main-t1/r1-b512-torch_cpu.json",
+    "raw_sha256": "baff7ab8ea68eb8c1237a8699dcef2f143948640d9e76e047364addb8465dcf4",
+    "worker_pid": 924558,
+    "finished_utc": "2026-09-06T12:33:10.219146+00:00"
+  },
+  {
+    "label": "r1-b1024-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 1024,
+    "replicate": 1,
+    "cell_index": 11,
+    "started_utc": "2026-09-06T12:33:10.221266+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:33:10.221689+00:00",
+      "available_ram_gib": 217.66798400878906
+    },
+    "raw_file": "main-t1/r1-b1024-torch_cpu.json",
+    "raw_sha256": "c3fd577626e7647dd8a4b0672ca143369af007cf6716a2ee6be570e0de9b287e",
+    "worker_pid": 954353,
+    "finished_utc": "2026-09-06T12:35:22.340068+00:00"
+  },
+  {
+    "label": "r1-b1024-branch_standard",
+    "route": "branch_standard",
+    "batch": 1024,
+    "replicate": 1,
+    "cell_index": 11,
+    "started_utc": "2026-09-06T12:35:22.341732+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:35:22.342083+00:00",
+      "available_ram_gib": 217.97369384765625
+    },
+    "raw_file": "main-t1/r1-b1024-branch_standard.json",
+    "raw_sha256": "3f2b28caf624791ce361b40abe3a2a7b53f5b7180af8f0a598db645faec75c3e",
+    "worker_pid": 1013243,
+    "finished_utc": "2026-09-06T12:35:54.871324+00:00"
+  },
+  {
+    "label": "r1-b1024-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 1024,
+    "replicate": 1,
+    "cell_index": 11,
+    "started_utc": "2026-09-06T12:35:54.873356+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:35:54.873791+00:00",
+      "available_ram_gib": 217.67043685913086,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r1-b1024-torch_cuda_native.json",
+    "raw_sha256": "e46f3565a1f422f2b953ed99f922060365292fa995650d7fe8730fb1bd80a6fe",
+    "worker_pid": 1027705,
+    "finished_utc": "2026-09-06T12:36:12.095857+00:00"
+  },
+  {
+    "label": "r1-b1024-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 1024,
+    "replicate": 1,
+    "cell_index": 11,
+    "started_utc": "2026-09-06T12:36:12.097928+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:36:12.098348+00:00",
+      "available_ram_gib": 217.8031349182129,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r1-b1024-torch_cuda.json",
+    "raw_sha256": "0514426e84afe6946bee8f4b36ad992929d6ba52de2df71d688d4fbf475b338e",
+    "worker_pid": 1035499,
+    "finished_utc": "2026-09-06T12:36:24.711846+00:00"
+  },
+  {
+    "label": "r1-b1024-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 1024,
+    "replicate": 1,
+    "cell_index": 11,
+    "started_utc": "2026-09-06T12:36:24.713878+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:36:24.714350+00:00",
+      "available_ram_gib": 217.76671600341797
+    },
+    "raw_file": "main-t1/r1-b1024-torch_cpu_native.json",
+    "raw_sha256": "df31eb9c5ebb6ff4fb7be94a012157505a4d0555b26466808867b2a1ab0f9bf6",
+    "worker_pid": 1041129,
+    "finished_utc": "2026-09-06T12:38:07.305264+00:00"
+  },
+  {
+    "label": "r2-b1-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 1,
+    "replicate": 2,
+    "cell_index": 12,
+    "started_utc": "2026-09-06T12:38:07.307421+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:38:07.307818+00:00",
+      "available_ram_gib": 217.71468353271484,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r2-b1-torch_cuda_native.json",
+    "raw_sha256": "5d211712b3027f545814a02f2261f351f1e4fd7ab32652d77ce8e9049a09eaf5",
+    "worker_pid": 1086813,
+    "finished_utc": "2026-09-06T12:38:12.359803+00:00"
+  },
+  {
+    "label": "r2-b1-branch_standard",
+    "route": "branch_standard",
+    "batch": 1,
+    "replicate": 2,
+    "cell_index": 12,
+    "started_utc": "2026-09-06T12:38:12.362008+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:38:12.363089+00:00",
+      "available_ram_gib": 217.87638473510742
+    },
+    "raw_file": "main-t1/r2-b1-branch_standard.json",
+    "raw_sha256": "6315dbfb297991c8ce60bf453d2902a366930857a6a976ed9d8b9fccf1059291",
+    "worker_pid": 1089034,
+    "finished_utc": "2026-09-06T12:38:16.847864+00:00"
+  },
+  {
+    "label": "r2-b1-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 1,
+    "replicate": 2,
+    "cell_index": 12,
+    "started_utc": "2026-09-06T12:38:16.850036+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:38:16.850729+00:00",
+      "available_ram_gib": 217.72915649414062
+    },
+    "raw_file": "main-t1/r2-b1-torch_cpu.json",
+    "raw_sha256": "456547fb9f21121ddc95eb9e8a9e90ab137da3ae08724d3c119e6acac59d2beb",
+    "worker_pid": 1091079,
+    "finished_utc": "2026-09-06T12:38:21.626085+00:00"
+  },
+  {
+    "label": "r2-b1-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 1,
+    "replicate": 2,
+    "cell_index": 12,
+    "started_utc": "2026-09-06T12:38:21.627939+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:38:21.628295+00:00",
+      "available_ram_gib": 217.6631736755371
+    },
+    "raw_file": "main-t1/r2-b1-torch_cpu_native.json",
+    "raw_sha256": "f9384de075b9c46b22b874bd254b71630905cf950decea2094684f4448332923",
+    "worker_pid": 1093208,
+    "finished_utc": "2026-09-06T12:38:26.458147+00:00"
+  },
+  {
+    "label": "r2-b1-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 1,
+    "replicate": 2,
+    "cell_index": 12,
+    "started_utc": "2026-09-06T12:38:26.460381+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:38:26.460809+00:00",
+      "available_ram_gib": 217.7554588317871,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r2-b1-torch_cuda.json",
+    "raw_sha256": "009a6124a6151b6db1d98fe365208415bb127d528f0f31d564d8526f8aae3e5a",
+    "worker_pid": 1095431,
+    "finished_utc": "2026-09-06T12:38:31.584960+00:00"
+  },
+  {
+    "label": "r2-b8-branch_standard",
+    "route": "branch_standard",
+    "batch": 8,
+    "replicate": 2,
+    "cell_index": 13,
+    "started_utc": "2026-09-06T12:38:31.587187+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:38:31.587630+00:00",
+      "available_ram_gib": 217.85232162475586
+    },
+    "raw_file": "main-t1/r2-b8-branch_standard.json",
+    "raw_sha256": "266a40930f3332513abe0a3956ddf823d0df087ea820fefe54f6c19e33634d0d",
+    "worker_pid": 1097698,
+    "finished_utc": "2026-09-06T12:38:36.334871+00:00"
+  },
+  {
+    "label": "r2-b8-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 8,
+    "replicate": 2,
+    "cell_index": 13,
+    "started_utc": "2026-09-06T12:38:36.337247+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:38:36.337631+00:00",
+      "available_ram_gib": 217.90256881713867
+    },
+    "raw_file": "main-t1/r2-b8-torch_cpu.json",
+    "raw_sha256": "ff17576857b1fd86278f85b2d04bbd16307c65be166ca58eb3369378a3f50678",
+    "worker_pid": 1099855,
+    "finished_utc": "2026-09-06T12:38:41.817376+00:00"
+  },
+  {
+    "label": "r2-b8-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 8,
+    "replicate": 2,
+    "cell_index": 13,
+    "started_utc": "2026-09-06T12:38:41.819304+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:38:41.819663+00:00",
+      "available_ram_gib": 217.68207550048828
+    },
+    "raw_file": "main-t1/r2-b8-torch_cpu_native.json",
+    "raw_sha256": "4e12c6d5c77ddd63b27bd07c4815d123430a14eebc660f61064b1657fe1fc119",
+    "worker_pid": 1102288,
+    "finished_utc": "2026-09-06T12:38:47.023909+00:00"
+  },
+  {
+    "label": "r2-b8-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 8,
+    "replicate": 2,
+    "cell_index": 13,
+    "started_utc": "2026-09-06T12:38:47.026271+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:38:47.026700+00:00",
+      "available_ram_gib": 217.8463363647461,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r2-b8-torch_cuda.json",
+    "raw_sha256": "ad83c88c1336a285e24486e7e6feecfa4f4d801b8e7f8405cd1cd42818f81fcc",
+    "worker_pid": 1104653,
+    "finished_utc": "2026-09-06T12:38:52.167378+00:00"
+  },
+  {
+    "label": "r2-b8-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 8,
+    "replicate": 2,
+    "cell_index": 13,
+    "started_utc": "2026-09-06T12:38:52.169728+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:38:52.170179+00:00",
+      "available_ram_gib": 218.0029067993164,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r2-b8-torch_cuda_native.json",
+    "raw_sha256": "1c9d3ed82e3dc0514ca4cbbe0fc6d64fda7f97dc29b15bbadd47df69710b45d7",
+    "worker_pid": 1106988,
+    "finished_utc": "2026-09-06T12:38:57.335864+00:00"
+  },
+  {
+    "label": "r2-b32-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 32,
+    "replicate": 2,
+    "cell_index": 14,
+    "started_utc": "2026-09-06T12:38:57.338307+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:38:57.338744+00:00",
+      "available_ram_gib": 217.9774284362793
+    },
+    "raw_file": "main-t1/r2-b32-torch_cpu.json",
+    "raw_sha256": "a499255a39c62e9610f55d822e399275cc7ad8c1d2b15abc6cb6a4f0a8b1585a",
+    "worker_pid": 1109252,
+    "finished_utc": "2026-09-06T12:39:04.866335+00:00"
+  },
+  {
+    "label": "r2-b32-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 32,
+    "replicate": 2,
+    "cell_index": 14,
+    "started_utc": "2026-09-06T12:39:04.868721+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:39:04.869129+00:00",
+      "available_ram_gib": 217.7115478515625
+    },
+    "raw_file": "main-t1/r2-b32-torch_cpu_native.json",
+    "raw_sha256": "9c2de7541f37720ddf8bb4cfa3ec6127533fef3460386a0f2c7921a1ccdf1819",
+    "worker_pid": 1112666,
+    "finished_utc": "2026-09-06T12:39:11.401184+00:00"
+  },
+  {
+    "label": "r2-b32-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 32,
+    "replicate": 2,
+    "cell_index": 14,
+    "started_utc": "2026-09-06T12:39:11.403734+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:39:11.404153+00:00",
+      "available_ram_gib": 217.73761367797852,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r2-b32-torch_cuda.json",
+    "raw_sha256": "26762d2d266f67d1e258e282b293bcf5bbf2d555d4bde99e5159412ca7fcab63",
+    "worker_pid": 1115614,
+    "finished_utc": "2026-09-06T12:39:16.753921+00:00"
+  },
+  {
+    "label": "r2-b32-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 32,
+    "replicate": 2,
+    "cell_index": 14,
+    "started_utc": "2026-09-06T12:39:16.756355+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:39:16.756785+00:00",
+      "available_ram_gib": 217.83176040649414,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r2-b32-torch_cuda_native.json",
+    "raw_sha256": "c0ab0aa52cc133c3457d9574ab0cfc5f1f5464e028579df93e54671ce7961ca7",
+    "worker_pid": 1117997,
+    "finished_utc": "2026-09-06T12:39:22.091390+00:00"
+  },
+  {
+    "label": "r2-b32-branch_standard",
+    "route": "branch_standard",
+    "batch": 32,
+    "replicate": 2,
+    "cell_index": 14,
+    "started_utc": "2026-09-06T12:39:22.093457+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:39:22.093846+00:00",
+      "available_ram_gib": 217.84909057617188
+    },
+    "raw_file": "main-t1/r2-b32-branch_standard.json",
+    "raw_sha256": "ea721c50796df608d2c4bb16df9e15efd5ba63f42d77b2b4c56da5d5fcaac39d",
+    "worker_pid": 1120377,
+    "finished_utc": "2026-09-06T12:39:27.410107+00:00"
+  },
+  {
+    "label": "r2-b128-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 128,
+    "replicate": 2,
+    "cell_index": 15,
+    "started_utc": "2026-09-06T12:39:27.412670+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:39:27.413070+00:00",
+      "available_ram_gib": 217.618408203125
+    },
+    "raw_file": "main-t1/r2-b128-torch_cpu_native.json",
+    "raw_sha256": "07f7dae36d64a74a666fd14677ee1554b502c9ace8a146ac393d3c8c23d35817",
+    "worker_pid": 1122771,
+    "finished_utc": "2026-09-06T12:39:42.502878+00:00"
+  },
+  {
+    "label": "r2-b128-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 128,
+    "replicate": 2,
+    "cell_index": 15,
+    "started_utc": "2026-09-06T12:39:42.504982+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:39:42.505379+00:00",
+      "available_ram_gib": 217.62909317016602,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r2-b128-torch_cuda.json",
+    "raw_sha256": "76e98396bceb4d496554f6875bdcd0386be065f9d2359b041b7b8246ae1ee635",
+    "worker_pid": 1129621,
+    "finished_utc": "2026-09-06T12:39:48.585294+00:00"
+  },
+  {
+    "label": "r2-b128-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 128,
+    "replicate": 2,
+    "cell_index": 15,
+    "started_utc": "2026-09-06T12:39:48.587908+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:39:48.588332+00:00",
+      "available_ram_gib": 217.63171768188477,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r2-b128-torch_cuda_native.json",
+    "raw_sha256": "56c04f625e9232f5ba287a7165c67c57ca9dd9a7d0a3713aa17d43bb0067ac97",
+    "worker_pid": 1132339,
+    "finished_utc": "2026-09-06T12:39:54.873240+00:00"
+  },
+  {
+    "label": "r2-b128-branch_standard",
+    "route": "branch_standard",
+    "batch": 128,
+    "replicate": 2,
+    "cell_index": 15,
+    "started_utc": "2026-09-06T12:39:54.875386+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:39:54.875730+00:00",
+      "available_ram_gib": 217.68147659301758
+    },
+    "raw_file": "main-t1/r2-b128-branch_standard.json",
+    "raw_sha256": "11b54428727c50250f5faff0ce15f1e71a515bc592546b5b45960d510b7729c3",
+    "worker_pid": 1135155,
+    "finished_utc": "2026-09-06T12:40:02.806290+00:00"
+  },
+  {
+    "label": "r2-b128-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 128,
+    "replicate": 2,
+    "cell_index": 15,
+    "started_utc": "2026-09-06T12:40:02.808953+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:40:02.809395+00:00",
+      "available_ram_gib": 217.6829719543457
+    },
+    "raw_file": "main-t1/r2-b128-torch_cpu.json",
+    "raw_sha256": "2062f2d69129c314444797dfb63a6643cb40c860bcafe56700b2de297db4f682",
+    "worker_pid": 1138708,
+    "finished_utc": "2026-09-06T12:40:23.175439+00:00"
+  },
+  {
+    "label": "r2-b512-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 512,
+    "replicate": 2,
+    "cell_index": 16,
+    "started_utc": "2026-09-06T12:40:23.178104+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:40:23.178549+00:00",
+      "available_ram_gib": 217.63370895385742,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r2-b512-torch_cuda.json",
+    "raw_sha256": "8f1c5e0f5b8dd132e466089045e7a99946db3ee085c8e59567377ac527341d18",
+    "worker_pid": 1147802,
+    "finished_utc": "2026-09-06T12:40:31.937853+00:00"
+  },
+  {
+    "label": "r2-b512-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 512,
+    "replicate": 2,
+    "cell_index": 16,
+    "started_utc": "2026-09-06T12:40:31.940566+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:40:31.940963+00:00",
+      "available_ram_gib": 217.72462463378906,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r2-b512-torch_cuda_native.json",
+    "raw_sha256": "9bddbddeb043c907a9fb94aa01e5120e0d2f9548e3c943199406412652256623",
+    "worker_pid": 1151724,
+    "finished_utc": "2026-09-06T12:40:41.838745+00:00"
+  },
+  {
+    "label": "r2-b512-branch_standard",
+    "route": "branch_standard",
+    "batch": 512,
+    "replicate": 2,
+    "cell_index": 16,
+    "started_utc": "2026-09-06T12:40:41.841480+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:40:41.841900+00:00",
+      "available_ram_gib": 217.5633888244629
+    },
+    "raw_file": "main-t1/r2-b512-branch_standard.json",
+    "raw_sha256": "407cc2af0f12bbeae1dc43369e1d737838ba1d552652984bf1e351f9e5d076f4",
+    "worker_pid": 1156162,
+    "finished_utc": "2026-09-06T12:41:00.250449+00:00"
+  },
+  {
+    "label": "r2-b512-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 512,
+    "replicate": 2,
+    "cell_index": 16,
+    "started_utc": "2026-09-06T12:41:00.253077+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:41:00.253497+00:00",
+      "available_ram_gib": 217.7690086364746
+    },
+    "raw_file": "main-t1/r2-b512-torch_cpu.json",
+    "raw_sha256": "c1133f105ec1ce65fe32326c8a6cec0ca427c0b3ca946e2c0c711bf8b788b4ac",
+    "worker_pid": 1164393,
+    "finished_utc": "2026-09-06T12:42:07.212474+00:00"
+  },
+  {
+    "label": "r2-b512-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 512,
+    "replicate": 2,
+    "cell_index": 16,
+    "started_utc": "2026-09-06T12:42:07.215169+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:42:07.215606+00:00",
+      "available_ram_gib": 217.55753707885742
+    },
+    "raw_file": "main-t1/r2-b512-torch_cpu_native.json",
+    "raw_sha256": "f4c50884789724fdbf749dcd5b74d30c9ff30a2cf3b0c06c9b530e0f25a393c6",
+    "worker_pid": 1194286,
+    "finished_utc": "2026-09-06T12:42:53.829897+00:00"
+  },
+  {
+    "label": "r2-b1024-torch_cuda_native",
+    "route": "torch_cuda_native",
+    "batch": 1024,
+    "replicate": 2,
+    "cell_index": 17,
+    "started_utc": "2026-09-06T12:42:53.832673+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:42:53.833085+00:00",
+      "available_ram_gib": 217.6770782470703,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r2-b1024-torch_cuda_native.json",
+    "raw_sha256": "eb1cd30206583ce27835ee8d55e6fb4a1912bd416ae4ea9f4223a49a5840d105",
+    "worker_pid": 1215078,
+    "finished_utc": "2026-09-06T12:43:11.199013+00:00"
+  },
+  {
+    "label": "r2-b1024-branch_standard",
+    "route": "branch_standard",
+    "batch": 1024,
+    "replicate": 2,
+    "cell_index": 17,
+    "started_utc": "2026-09-06T12:43:11.201875+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:43:11.202350+00:00",
+      "available_ram_gib": 217.72488403320312
+    },
+    "raw_file": "main-t1/r2-b1024-branch_standard.json",
+    "raw_sha256": "92df19de6845df0ebdd564dc96e283f8b1400a9e2c6961583a31dcbd201d5240",
+    "worker_pid": 1222838,
+    "finished_utc": "2026-09-06T12:43:43.608120+00:00"
+  },
+  {
+    "label": "r2-b1024-torch_cpu",
+    "route": "torch_cpu",
+    "batch": 1024,
+    "replicate": 2,
+    "cell_index": 17,
+    "started_utc": "2026-09-06T12:43:43.610410+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:43:43.610781+00:00",
+      "available_ram_gib": 217.70480346679688
+    },
+    "raw_file": "main-t1/r2-b1024-torch_cpu.json",
+    "raw_sha256": "2e78a4d7ff69fdf5b4009e48dd39f54a8a5ccfdb2c8f01380b9f421178e09919",
+    "worker_pid": 1237243,
+    "finished_utc": "2026-09-06T12:45:55.446166+00:00"
+  },
+  {
+    "label": "r2-b1024-torch_cpu_native",
+    "route": "torch_cpu_native",
+    "batch": 1024,
+    "replicate": 2,
+    "cell_index": 17,
+    "started_utc": "2026-09-06T12:45:55.448951+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:45:55.449356+00:00",
+      "available_ram_gib": 218.07133865356445
+    },
+    "raw_file": "main-t1/r2-b1024-torch_cpu_native.json",
+    "raw_sha256": "1f7c43fa13c710f86fab9cb95c078c52bea72551ed5896777c50cf2109067682",
+    "worker_pid": 1295882,
+    "finished_utc": "2026-09-06T12:47:33.434896+00:00"
+  },
+  {
+    "label": "r2-b1024-torch_cuda",
+    "route": "torch_cuda",
+    "batch": 1024,
+    "replicate": 2,
+    "cell_index": 17,
+    "started_utc": "2026-09-06T12:47:33.437241+00:00",
+    "status": "completed",
+    "capacity_before": {
+      "utc": "2026-09-06T12:47:33.437612+00:00",
+      "available_ram_gib": 217.66636276245117,
+      "gpu": {
+        "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+        "name": "NVIDIA GeForce RTX 4090",
+        "utilization_percent": 0.0,
+        "used_mib": 2507.0,
+        "free_mib": 21595.0
+      }
+    },
+    "raw_file": "main-t1/r2-b1024-torch_cuda.json",
+    "raw_sha256": "cde99a64cc65cfed6cab12123327339572f0f57e48081a6ebaffe3e182bc5588",
+    "worker_pid": 1339590,
+    "finished_utc": "2026-09-06T12:47:45.971040+00:00"
+  }
+]

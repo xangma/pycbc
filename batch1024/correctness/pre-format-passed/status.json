@@ -1,0 +1,210 @@
+{
+  "pid": 3134715,
+  "waiting_for_queue": null,
+  "runs": [
+    {
+      "name": "main",
+      "base_revision": "4885b64560e9f39b740e85b6a976898869dd360e",
+      "revision": "efd63078f7211e7f1f428d1eaa4ec5a84a5aaf5f",
+      "cwd": "/home/xangma/pycbc-torch-batch1024-20260906/correctness-sources/main",
+      "runtime_patch_sha256": "cc85f4d652377dae0cc2e5c194f609620773539f2954aa09c3fe0fc430b1dad0",
+      "file_sha256": {
+        "pycbc/filter/matchedfilter.py": "8d40acb0d70547bac98464a165b775d4943d822de21e03e17bbde7fff518cc2e"
+      },
+      "native_sha256": {
+        "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+        "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+        "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+        "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+        "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+        "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+        "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+        "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+        "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+        "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+        "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66"
+      },
+      "generated_metadata_sha256": {
+        "pycbc/version.py": "aa687f2ea5a97ff59e0cabe9bc408e41cc6b45efbe47e879397b7660fa5ae2ba"
+      },
+      "command": [
+        "taskset",
+        "-c",
+        "8-11",
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-B",
+        "-m",
+        "pytest",
+        "-q",
+        "-rs",
+        "-p",
+        "no:cacheprovider",
+        "--junitxml=/home/xangma/pycbc-torch-batch1024-20260906/correctness/main.xml",
+        "/home/xangma/pycbc-torch-batch1024-20260906/test_torch_large_batches.py",
+        "test/test_torch_fft_cpu_native.py",
+        "test/test_torch_cpu_native_batch.py",
+        "test/test_torch_cuda_native_batch.py",
+        "test/test_torch_cuda_native_peaks.py",
+        "test/test_live_batch_torch_fft_integration.py",
+        "test/test_live_batch_torch_peaks.py",
+        "test/test_chisq_torch.py",
+        "test/test_torch_filter_pipeline.py"
+      ],
+      "imports": "/home/xangma/pycbc-torch-batch1024-20260906/correctness-sources/main/pycbc/__init__.py\n2.13.0+cu130\n",
+      "started_utc": "2026-09-06T13:54:22.653735+00:00",
+      "log": "/home/xangma/pycbc-torch-batch1024-20260906/correctness/main.log",
+      "environment": {
+        "PYTHONPATH": "/home/xangma/pycbc-torch-batch1024-20260906/correctness-sources/main",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1"
+      },
+      "pid": 3135693,
+      "returncode": 0,
+      "finished_utc": "2026-09-06T13:54:38.595150+00:00",
+      "head_after": "efd63078f7211e7f1f428d1eaa4ec5a84a5aaf5f",
+      "tracked_changes_after": "",
+      "log_sha256": "b0ebe9c2573575462d6a08eb6b0afd06a3ca4158d4f9ac3c90c9267fd6d63999"
+    },
+    {
+      "name": "fft",
+      "base_revision": "d840198592a0ca128f4f89d90987a7469ec37c8f",
+      "revision": "bca6251a931fa2eaa0338485636c2cdbe6765b0b",
+      "cwd": "/home/xangma/pycbc-torch-batch1024-20260906/correctness-sources/fft",
+      "runtime_patch_sha256": "cc85f4d652377dae0cc2e5c194f609620773539f2954aa09c3fe0fc430b1dad0",
+      "file_sha256": {
+        "pycbc/filter/matchedfilter.py": "8d40acb0d70547bac98464a165b775d4943d822de21e03e17bbde7fff518cc2e"
+      },
+      "native_sha256": {
+        "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+        "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+        "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+        "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+        "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+        "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+        "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+        "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+        "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+        "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+        "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66"
+      },
+      "generated_metadata_sha256": {
+        "pycbc/version.py": "20e478937591ac05add83360f1036f4eff0d77bb7d28bc0584f26ff35ac53184"
+      },
+      "command": [
+        "taskset",
+        "-c",
+        "8-11",
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-B",
+        "-m",
+        "pytest",
+        "-q",
+        "-rs",
+        "-p",
+        "no:cacheprovider",
+        "--junitxml=/home/xangma/pycbc-torch-batch1024-20260906/correctness/fft.xml",
+        "/home/xangma/pycbc-torch-batch1024-20260906/test_torch_large_batches.py",
+        "test/test_torch_fft_cpu_native.py",
+        "test/test_torch_cpu_native_batch.py",
+        "test/test_torch_cuda_native_batch.py",
+        "test/test_torch_cuda_native_peaks.py",
+        "test/test_live_batch_torch_fft_integration.py",
+        "test/test_live_batch_torch_peaks.py",
+        "test/test_chisq_torch.py",
+        "test/test_torch_filter_pipeline.py",
+        "test/test_fft_batched_backends.py",
+        "test/test_fft_cli_wisdom.py",
+        "test/test_fftw_wisdom_cache.py"
+      ],
+      "imports": "/home/xangma/pycbc-torch-batch1024-20260906/correctness-sources/fft/pycbc/__init__.py\n2.13.0+cu130\n",
+      "started_utc": "2026-09-06T13:54:40.668529+00:00",
+      "log": "/home/xangma/pycbc-torch-batch1024-20260906/correctness/fft.log",
+      "environment": {
+        "PYTHONPATH": "/home/xangma/pycbc-torch-batch1024-20260906/correctness-sources/fft",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1"
+      },
+      "pid": 3143757,
+      "returncode": 0,
+      "finished_utc": "2026-09-06T13:54:57.103461+00:00",
+      "head_after": "bca6251a931fa2eaa0338485636c2cdbe6765b0b",
+      "tracked_changes_after": "",
+      "log_sha256": "578774bced7dcd42842e658608fbb6f49c842622803477715a823f451ca80bab"
+    },
+    {
+      "name": "cpu",
+      "base_revision": "d544420232428225c214a4be84fbe1262a6d307b",
+      "revision": "d90513f3956925b6fe368c2c57b16abb32bd822d",
+      "cwd": "/home/xangma/pycbc-torch-batch1024-20260906/correctness-sources/cpu",
+      "runtime_patch_sha256": "abf0076655887f2931784b672e3e9d95a00bbca0e4980f7a9a47f3d3b22fd42f",
+      "file_sha256": {
+        "pycbc/filter/matchedfilter.py": "3640bc607ee916684ae26cf7f28f069d1a7d5a2cab5509f01fae96d12ad8c434"
+      },
+      "native_sha256": {
+        "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+        "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+        "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+        "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "6c22e1d2681423bedf6368afc8b7bd8b7d9c8797e1dde906f79a0a11f85b4e11",
+        "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+        "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+        "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "39776c527cdfaac6b5cb58423fdf5b19a5d0933c4df4cc5bd01a56875d148efe",
+        "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+        "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+        "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+        "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66"
+      },
+      "generated_metadata_sha256": {
+        "pycbc/version.py": "db292079071ca35829cab4894e8235ee61ac9e8c2850c4d97f437fb2f3200aaa"
+      },
+      "command": [
+        "taskset",
+        "-c",
+        "8-11",
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-B",
+        "-m",
+        "pytest",
+        "-q",
+        "-rs",
+        "-p",
+        "no:cacheprovider",
+        "--junitxml=/home/xangma/pycbc-torch-batch1024-20260906/correctness/cpu.xml",
+        "/home/xangma/pycbc-torch-batch1024-20260906/test_torch_large_batches.py",
+        "test/test_torch_fft_cpu_native.py",
+        "test/test_torch_cpu_native_batch.py",
+        "test/test_torch_cuda_native_batch.py",
+        "test/test_torch_cuda_native_peaks.py",
+        "test/test_live_batch_torch_fft_integration.py",
+        "test/test_live_batch_torch_peaks.py",
+        "test/test_chisq_torch.py",
+        "test/test_torch_filter_pipeline.py"
+      ],
+      "imports": "/home/xangma/pycbc-torch-batch1024-20260906/correctness-sources/cpu/pycbc/__init__.py\n2.13.0+cu130\n",
+      "started_utc": "2026-09-06T13:54:59.176984+00:00",
+      "log": "/home/xangma/pycbc-torch-batch1024-20260906/correctness/cpu.log",
+      "environment": {
+        "PYTHONPATH": "/home/xangma/pycbc-torch-batch1024-20260906/correctness-sources/cpu",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1"
+      },
+      "pid": 3152151,
+      "returncode": 0,
+      "finished_utc": "2026-09-06T13:55:15.248607+00:00",
+      "head_after": "d90513f3956925b6fe368c2c57b16abb32bd822d",
+      "tracked_changes_after": "",
+      "log_sha256": "2dfad1fce7b50e6e7b0e81fd4b0286adc9405f25b4ce9c46fbb67c6e848ae665"
+    }
+  ],
+  "benchmark_queue_passed": true,
+  "test_sha256": "43a611f4c41f866c7d041d81ee92882622d45ca427f3d0b8cc4014b99cb7427e",
+  "active": null,
+  "finished": true,
+  "finished_utc": "2026-09-06T13:55:15.261240+00:00",
+  "passed": true
+}

@@ -1,0 +1,30 @@
+...............s........................................................ [ 22%]
+........................................................................ [ 44%]
+........................s..s....ss........ssss....ss..s....ss..s..s..s.. [ 66%]
+....sss...s................ssssssss................ssssssss............. [ 88%]
+...ssssssss................ssssssss.                                     [100%]
+=============================== warnings summary ===============================
+test/test_torch_fft_cpu_native.py: 18 warnings
+  /home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] ../../test_torch_large_batches.py:322: native threshold kernel requires CUDA and Triton
+SKIPPED [1] test/test_torch_filter_pipeline.py:83: Torch MPS device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:124: Torch MPS device unavailable
+SKIPPED [2] test/test_torch_filter_pipeline.py:142: Torch MPS device unavailable
+SKIPPED [4] test/test_torch_filter_pipeline.py:183: Torch MPS device unavailable
+SKIPPED [2] test/test_torch_filter_pipeline.py:237: Torch MPS device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:283: Torch MPS device unavailable
+SKIPPED [2] test/test_torch_filter_pipeline.py:323: Torch MPS device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:352: Torch MPS device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:391: Torch MPS device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:435: Torch MPS device unavailable
+SKIPPED [3] test/test_torch_filter_pipeline.py:471: Torch MPS device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:595: Torch MPS device unavailable
+SKIPPED [8] test/test_torch_filter_pipeline.py:644: Torch MPS device unavailable
+SKIPPED [8] test/test_torch_filter_pipeline.py:712: Torch MPS device unavailable
+SKIPPED [8] test/test_torch_filter_pipeline.py:784: Torch MPS device unavailable
+SKIPPED [8] test/test_torch_filter_pipeline.py:836: Torch MPS device unavailable
+271 passed, 53 skipped, 18 warnings in 13.94s

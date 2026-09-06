@@ -1,0 +1,195 @@
+{
+  "status": "passed",
+  "scope": "Untimed instrumentation only; child timings are diagnostic",
+  "expected_revision": "4885b64560e9f39b740e85b6a976898869dd360e",
+  "source_root": "/home/xangma/pycbc-torch-batch1024-20260906/main",
+  "harness_sha256": "ffb110051dfd0dcf2d32c35a39f1c9b20cfd96c0fef9988c4b87d08d279a9171",
+  "route": "torch_cpu_native",
+  "threads": 4,
+  "batch": 1,
+  "size": 131072,
+  "cuda_device": 0,
+  "counts": {
+    "_try_cpu_native_batch_correlate": {
+      "available": true,
+      "attempts": 12,
+      "successes": 0,
+      "fallbacks": 12,
+      "exceptions": 0
+    },
+    "_try_cuda_native_batch_correlate": {
+      "available": true,
+      "attempts": 0,
+      "successes": 0,
+      "fallbacks": 0,
+      "exceptions": 0
+    },
+    "_try_torch_cpu_native_batch_peak_values": {
+      "available": false
+    },
+    "_try_torch_cuda_native_batch_peak_values": {
+      "available": true,
+      "attempts": 0,
+      "successes": 0,
+      "fallbacks": 0,
+      "exceptions": 0
+    },
+    "_execute_fftw_cpu_batch_plan": {
+      "available": true,
+      "attempts": 0,
+      "successes": 0,
+      "fallbacks": 0,
+      "exceptions": 0
+    },
+    "_execute_fftw_cpu_plan": {
+      "available": true,
+      "attempts": 12,
+      "successes": 0,
+      "fallbacks": 12,
+      "exceptions": 0
+    },
+    "_execute_mkl_cpu_ifft_plan": {
+      "available": true,
+      "attempts": 12,
+      "successes": 0,
+      "fallbacks": 12,
+      "exceptions": 0
+    },
+    "_torch_batch_peak_and_threshold_gpu": {
+      "available": true,
+      "attempts": 0,
+      "successes": 0,
+      "fallbacks": 0,
+      "exceptions": 0
+    }
+  },
+  "revision": "4885b64560e9f39b740e85b6a976898869dd360e",
+  "tracked_clean": true,
+  "configuration": {
+    "label": "Torch CPU (experimental native routing)",
+    "backend": "torch",
+    "device": "cpu",
+    "routing_mode": "experimental_native",
+    "experimental": true,
+    "feature_flags": {
+      "PYCBC_TORCH_CPU_NATIVE_BATCH_CORRELATE": {
+        "environment_value": "1",
+        "package_default": false,
+        "selection": "explicit",
+        "applies_to_route": true,
+        "enabled": true
+      },
+      "PYCBC_TORCH_CPU_FFTW_BATCH": {
+        "environment_value": "1",
+        "package_default": false,
+        "selection": "explicit",
+        "applies_to_route": true,
+        "enabled": true
+      },
+      "PYCBC_TORCH_CPU_MKL_IFFT": {
+        "environment_value": null,
+        "package_default": true,
+        "selection": "package_default",
+        "applies_to_route": true,
+        "enabled": true
+      },
+      "PYCBC_TORCH_CUDA_NATIVE_BATCH_CORRELATE": {
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default",
+        "applies_to_route": false,
+        "enabled": null
+      },
+      "PYCBC_TORCH_CUDA_NATIVE_BATCH_PEAK": {
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default",
+        "applies_to_route": false,
+        "enabled": null
+      },
+      "PYCBC_TORCH_CUDA_PROMOTED_ROWS": {
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default",
+        "applies_to_route": false,
+        "enabled": null
+      },
+      "PYCBC_TORCH_ONDEVICE_PEAKS": {
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default",
+        "applies_to_route": true,
+        "enabled": false
+      },
+      "PYCBC_TORCH_DIRECT_BATCH_IFFT": {
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default",
+        "applies_to_route": true,
+        "enabled": false
+      },
+      "PYCBC_ENABLE_CUDA_GRAPHS": {
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default",
+        "applies_to_route": false,
+        "enabled": null
+      },
+      "PYCBC_TORCH_CUDA_GRAPH": {
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default",
+        "applies_to_route": false,
+        "enabled": null
+      },
+      "PYCBC_TORCH_ASYNC_STREAMS": {
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default",
+        "applies_to_route": false,
+        "enabled": null
+      },
+      "PYCBC_BATCH_MAXELEMENTS": {
+        "environment_value": null,
+        "package_default": null,
+        "selection": "constructor_argument",
+        "applies_to_route": false,
+        "enabled": null,
+        "effective_value": "batch_templates * fft_samples"
+      }
+    }
+  },
+  "backend_import_environment": {
+    "PYCBC_TORCH_CPU_NATIVE_BATCH_CORRELATE": "1",
+    "PYCBC_TORCH_CPU_FFTW_BATCH": "1",
+    "PYCBC_TORCH_CPU_MKL_IFFT": null,
+    "PYCBC_TORCH_CUDA_NATIVE_BATCH_CORRELATE": null,
+    "PYCBC_TORCH_CUDA_NATIVE_BATCH_PEAK": null,
+    "PYCBC_TORCH_CUDA_PROMOTED_ROWS": null,
+    "PYCBC_TORCH_ONDEVICE_PEAKS": null,
+    "PYCBC_TORCH_DIRECT_BATCH_IFFT": null,
+    "PYCBC_ENABLE_CUDA_GRAPHS": null,
+    "PYCBC_TORCH_CUDA_GRAPH": null,
+    "PYCBC_TORCH_ASYNC_STREAMS": null,
+    "PYCBC_BATCH_MAXELEMENTS": null
+  },
+  "pycbc_module": "/home/xangma/pycbc-torch-batch1024-20260906/main/pycbc/__init__.py",
+  "batch_structure": [
+    {
+      "chunks": [
+        1
+      ],
+      "template_group_sizes": [
+        1
+      ],
+      "fft_output_elements": [
+        131072
+      ],
+      "fft_input_elements": [
+        131072
+      ]
+    }
+  ],
+  "unsafe_helper_excluded": true,
+  "source_unchanged_after": true
+}

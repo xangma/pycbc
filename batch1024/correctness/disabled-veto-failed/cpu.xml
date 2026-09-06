@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="1" tests="157" time="11.702" timestamp="2026-09-06T14:48:15.124441+01:00" hostname="len"><testcase classname="" name="test_complex_fft_rows[cpu-False]" time="0.077" /><testcase classname="" name="test_complex_fft_rows[cpu-True]" time="0.007" /><testcase classname="" name="test_complex_fft_rows[cuda-False]" time="0.199" /><testcase classname="" name="test_complex_fft_rows[cuda-True]" time="0.005" /><testcase classname="" name="test_real_fft_row_boundaries[cpu]" time="0.003" /><testcase classname="" name="test_real_fft_row_boundaries[cuda]" time="0.004" /><testcase classname="" name="test_promoted_ifft_final_partial_chunk[cpu]" time="0.029" /><testcase classname="" name="test_promoted_ifft_final_partial_chunk[cuda]" time="0.051" /><testcase classname="" name="test_direct_cpu_fftw_reuses_full_batch[False]" time="0.078" /><testcase classname="" name="test_direct_cpu_fftw_reuses_full_batch[True]" time="0.010" /><testcase classname="" name="test_native_correlation_row_tails_and_reuse[cpu]" time="0.870" /><testcase classname="" name="test_native_correlation_row_tails_and_reuse[cuda]" time="0.548" /><testcase classname="" name="test_peak_ties_nan_overflow_and_slice_boundaries[cpu]" time="0.002" /><testcase classname="" name="test_peak_ties_nan_overflow_and_slice_boundaries[cuda]" time="0.134" /><testcase classname="" name="test_peak_threshold_equality_and_abort[cpu-torch]" time="0.002" /><testcase classname="" name="test_peak_threshold_equality_and_abort[cpu-triton]" time="0.001"><skipped type="pytest.skip" message="native threshold kernel requires CUDA and Triton">/home/xangma/pycbc-torch-batch1024-20260906/test_torch_large_batches.py:322: native threshold kernel requires CUDA and Triton</skipped></testcase><testcase classname="" name="test_peak_threshold_equality_and_abort[cuda-torch]" time="0.040" /><testcase classname="" name="test_peak_threshold_equality_and_abort[cuda-triton]" time="0.485" /><testcase classname="" name="test_public_live_filter_full_batch[cpu]" time="1.412"><failure message="TypeError: 'NoneType' object is not subscriptable">device = 'cpu'
+
+    def test_public_live_filter_full_batch(device):
+        from pycbc.filter import matchedfilter
+        from pycbc.vetoes.sgchisq import SingleDetSGChisq
+    
+        size = 32
+        values, data_values = _complex_values(17, 9109), _complex_values(17, 9110)[0]
+        power = (values.real**2 + values.imag**2).sum(axis=1) * (4.0 / size)
+        with scheme.TorchScheme(device):
+            templates = []
+            for index, row in enumerate(values):
+                template = FrequencySeries(row, delta_f=1.0 / size)
+                template.id = index
+                template.params = np.array([(20.0,)], dtype=[("mass1", np.float32)])[0]
+                template.sigmasq = lambda _psd, value=power[index]: value
+                templates.append(template)
+            batch = matchedfilter.LiveBatchMatchedFilter(
+                templates,
+                snr_threshold=0.0,
+                chisq_bins=0,
+                sg_chisq=SingleDetSGChisq(templates),
+                maxelements=BATCH * size,
+                enable_cuda_graphs=False,
+                enable_async_streams=False,
+            )
+            data = FrequencySeries(data_values, delta_f=1.0 / size)
+            data.psd = FrequencySeries(np.ones(17, np.float32), delta_f=1.0 / size)
+            reader = SimpleNamespace(
+                overwhitened_data=lambda _delta_f: data,
+                trim_padding=0,
+                blocksize=size,
+                sample_rate=1,
+                start_time=100.0,
+            )
+            mid = batch.mids[0]
+            assert len(batch.tgroups) == 1
+            assert batch.ifts[mid].nbatch == BATCH
+            assert batch.ifts[mid].__class__.__module__ == "pycbc.fft.torchfft"
+            row_ids = np.array([template.id for template in batch.tgroups[0]])
+            pointers = [template.cout.ptr for template in templates]
+&gt;           result = batch.process_data(reader)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+../test_torch_large_batches.py:399: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+pycbc/filter/matchedfilter.py:2675: in process_data
+    return self.process_all()
+           ^^^^^^^^^^^^^^^^^^
+pycbc/filter/matchedfilter.py:2701: in process_all
+    result = self._process_vetoes(result, veto_info)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;pycbc.filter.matchedfilter.LiveBatchMatchedFilter object at 0x7bd713f698d0&gt;
+results = {'chisq': array([0., 0., 0., ..., 0., 0., 0.], dtype=float32), 'chisq_dof': array([0, 0, 0, ..., 0, 0, 0], dtype=uint3... ,
+       -0.89015377, -0.902159  ], dtype=float32), 'end_time': array([103., 121., 121., ..., 103., 124., 120.]), ...}
+veto_info = [(array([-5.04078627+15.0540514j]), 0.058730572, 3, &lt;pycbc.types.frequencyseries.FrequencySeries object at 0x7bd760182...requencySeries object at 0x7bd713bbacd0&gt;, &lt;pycbc.types.frequencyseries.FrequencySeries object at 0x7bd713ddc090&gt;), ...]
+
+    def _process_vetoes(self, results, veto_info):
+        """Calculate signal based vetoes"""
+        chisq = numpy.array(numpy.zeros(len(veto_info)), numpy.float32, ndmin=1)
+        dof = numpy.array(numpy.zeros(len(veto_info)), numpy.uint32, ndmin=1)
+        sg_chisq = numpy.array(numpy.zeros(len(veto_info)), numpy.float32, ndmin=1)
+        results["chisq"] = chisq
+        results["chisq_dof"] = dof
+        results["sg_chisq"] = sg_chisq
+    
+        if self.newsnr_threshold:
+            from pycbc.events import ranking
+    
+        keep = []
+        batch_torch_vetoes = _can_batch_torch_vetoes(self.power_chisq, self.sg_chisq)
+        veto_values = []
+        for i, (snrv, norm, peak_index, htilde, stilde) in enumerate(veto_info):
+            mid = getattr(htilde, "_mid", None)
+            cout_mem = self.cout_mem.get(mid) if mid is not None else None
+            is_valid = (
+                getattr(htilde, "_corr_valid", False)
+                and getattr(htilde, "_corr_stilde", None) is stilde
+                and (
+                    cout_mem is None
+                    or (
+                        getattr(cout_mem, "_active_tgroup", None)
+                        is getattr(htilde, "_tgroup", None)
+                        and getattr(cout_mem, "_active_stilde", None) is stilde
+                    )
+                )
+            )
+            if not is_valid:
+                correlate(htilde, stilde, htilde.cout)
+                htilde._corr_valid = True
+                htilde._corr_stilde = stilde
+                if cout_mem is not None:
+                    cout_mem._active_tgroup = getattr(htilde, "_tgroup", None)
+                    cout_mem._active_stilde = stilde
+            c, d = self.power_chisq.values(
+                htilde.cout, snrv, norm, stilde.psd, [peak_index], htilde
+            )
+            if c is not None and d is not None:
+                if not batch_torch_vetoes:
+                    chisq[i] = c[0] / d[0]
+                    dof[i] = d[0]
+    
+            sgv = self.sg_chisq.values(
+                stilde, htilde, stilde.psd, snrv, norm, c, d, [peak_index]
+            )
+            if batch_torch_vetoes:
+                veto_values.append((c, d, sgv))
+            elif sgv is not None:
+                sg_chisq[i] = sgv[0]
+    
+            if self.newsnr_threshold and not batch_torch_vetoes:
+                newsnr = ranking.newsnr(results["snr"][i], chisq[i])
+                if newsnr &gt;= self.newsnr_threshold:
+                    keep.append(i)
+    
+        if batch_torch_vetoes:
+            materialized = _materialize_torch_veto_results(veto_values)
+            if materialized is None:
+                for i, (c, d, sgv) in enumerate(veto_values):
+&gt;                   chisq[i] = c[0] / d[0]
+                               ^^^^
+E                   TypeError: 'NoneType' object is not subscriptable
+
+pycbc/filter/matchedfilter.py:2766: TypeError</failure></testcase><testcase classname="" name="test_public_live_filter_full_batch[cuda]" time="0.115"><failure message="TypeError: 'NoneType' object is not subscriptable">device = 'cuda'
+
+    def test_public_live_filter_full_batch(device):
+        from pycbc.filter import matchedfilter
+        from pycbc.vetoes.sgchisq import SingleDetSGChisq
+    
+        size = 32
+        values, data_values = _complex_values(17, 9109), _complex_values(17, 9110)[0]
+        power = (values.real**2 + values.imag**2).sum(axis=1) * (4.0 / size)
+        with scheme.TorchScheme(device):
+            templates = []
+            for index, row in enumerate(values):
+                template = FrequencySeries(row, delta_f=1.0 / size)
+                template.id = index
+                template.params = np.array([(20.0,)], dtype=[("mass1", np.float32)])[0]
+                template.sigmasq = lambda _psd, value=power[index]: value
+                templates.append(template)
+            batch = matchedfilter.LiveBatchMatchedFilter(
+                templates,
+                snr_threshold=0.0,
+                chisq_bins=0,
+                sg_chisq=SingleDetSGChisq(templates),
+                maxelements=BATCH * size,
+                enable_cuda_graphs=False,
+                enable_async_streams=False,
+            )
+            data = FrequencySeries(data_values, delta_f=1.0 / size)
+            data.psd = FrequencySeries(np.ones(17, np.float32), delta_f=1.0 / size)
+            reader = SimpleNamespace(
+                overwhitened_data=lambda _delta_f: data,
+                trim_padding=0,
+                blocksize=size,
+                sample_rate=1,
+                start_time=100.0,
+            )
+            mid = batch.mids[0]
+            assert len(batch.tgroups) == 1
+            assert batch.ifts[mid].nbatch == BATCH
+            assert batch.ifts[mid].__class__.__module__ == "pycbc.fft.torchfft"
+            row_ids = np.array([template.id for template in batch.tgroups[0]])
+            pointers = [template.cout.ptr for template in templates]
+&gt;           result = batch.process_data(reader)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+../test_torch_large_batches.py:399: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+pycbc/filter/matchedfilter.py:2675: in process_data
+    return self.process_all()
+           ^^^^^^^^^^^^^^^^^^
+pycbc/filter/matchedfilter.py:2701: in process_all
+    result = self._process_vetoes(result, veto_info)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = &lt;pycbc.filter.matchedfilter.LiveBatchMatchedFilter object at 0x7bd71338cad0&gt;
+results = {'chisq': array([0., 0., 0., ..., 0., 0., 0.], dtype=float32), 'chisq_dof': array([0, 0, 0, ..., 0, 0, 0], dtype=uint3... ,
+       -0.89015377, -0.90215904], dtype=float32), 'end_time': array([103., 121., 121., ..., 103., 124., 120.]), ...}
+veto_info = [(array([-5.04078674+15.0540514j]), 0.058730572, 3, &lt;pycbc.types.frequencyseries.FrequencySeries object at 0x7bd71401b...requencySeries object at 0x7bd713302ed0&gt;, &lt;pycbc.types.frequencyseries.FrequencySeries object at 0x7bd71347a150&gt;), ...]
+
+    def _process_vetoes(self, results, veto_info):
+        """Calculate signal based vetoes"""
+        chisq = numpy.array(numpy.zeros(len(veto_info)), numpy.float32, ndmin=1)
+        dof = numpy.array(numpy.zeros(len(veto_info)), numpy.uint32, ndmin=1)
+        sg_chisq = numpy.array(numpy.zeros(len(veto_info)), numpy.float32, ndmin=1)
+        results["chisq"] = chisq
+        results["chisq_dof"] = dof
+        results["sg_chisq"] = sg_chisq
+    
+        if self.newsnr_threshold:
+            from pycbc.events import ranking
+    
+        keep = []
+        batch_torch_vetoes = _can_batch_torch_vetoes(self.power_chisq, self.sg_chisq)
+        veto_values = []
+        for i, (snrv, norm, peak_index, htilde, stilde) in enumerate(veto_info):
+            mid = getattr(htilde, "_mid", None)
+            cout_mem = self.cout_mem.get(mid) if mid is not None else None
+            is_valid = (
+                getattr(htilde, "_corr_valid", False)
+                and getattr(htilde, "_corr_stilde", None) is stilde
+                and (
+                    cout_mem is None
+                    or (
+                        getattr(cout_mem, "_active_tgroup", None)
+                        is getattr(htilde, "_tgroup", None)
+                        and getattr(cout_mem, "_active_stilde", None) is stilde
+                    )
+                )
+            )
+            if not is_valid:
+                correlate(htilde, stilde, htilde.cout)
+                htilde._corr_valid = True
+                htilde._corr_stilde = stilde
+                if cout_mem is not None:
+                    cout_mem._active_tgroup = getattr(htilde, "_tgroup", None)
+                    cout_mem._active_stilde = stilde
+            c, d = self.power_chisq.values(
+                htilde.cout, snrv, norm, stilde.psd, [peak_index], htilde
+            )
+            if c is not None and d is not None:
+                if not batch_torch_vetoes:
+                    chisq[i] = c[0] / d[0]
+                    dof[i] = d[0]
+    
+            sgv = self.sg_chisq.values(
+                stilde, htilde, stilde.psd, snrv, norm, c, d, [peak_index]
+            )
+            if batch_torch_vetoes:
+                veto_values.append((c, d, sgv))
+            elif sgv is not None:
+                sg_chisq[i] = sgv[0]
+    
+            if self.newsnr_threshold and not batch_torch_vetoes:
+                newsnr = ranking.newsnr(results["snr"][i], chisq[i])
+                if newsnr &gt;= self.newsnr_threshold:
+                    keep.append(i)
+    
+        if batch_torch_vetoes:
+            materialized = _materialize_torch_veto_results(veto_values)
+            if materialized is None:
+                for i, (c, d, sgv) in enumerate(veto_values):
+&gt;                   chisq[i] = c[0] / d[0]
+                               ^^^^
+E                   TypeError: 'NoneType' object is not subscriptable
+
+pycbc/filter/matchedfilter.py:2766: TypeError</failure></testcase><testcase classname="" name="test_relative_summary_and_likelihood_batches[cpu]" time="1.667" /><testcase classname="" name="test_relative_summary_and_likelihood_batches[cuda]" time="0.857" /><testcase classname="" name="test_public_gaussian_likelihood_and_gradient_batch[cpu-gaussian]" time="0.738" /><testcase classname="" name="test_public_gaussian_likelihood_and_gradient_batch[cpu-phase]" time="0.053" /><testcase classname="" name="test_public_gaussian_likelihood_and_gradient_batch[cuda-gaussian]" time="0.159" /><testcase classname="" name="test_public_gaussian_likelihood_and_gradient_batch[cuda-phase]" time="0.076" /><testcase classname="test.test_torch_fft_cpu_native" name="test_direct_batch_fftw_is_bitwise_legacy_exact[False-False]" time="0.002" /><testcase classname="test.test_torch_fft_cpu_native" name="test_direct_batch_fftw_is_bitwise_legacy_exact[False-True]" time="0.002" /><testcase classname="test.test_torch_fft_cpu_native" name="test_direct_batch_fftw_is_bitwise_legacy_exact[True-False]" time="0.002" /><testcase classname="test.test_torch_fft_cpu_native" name="test_direct_batch_fftw_is_bitwise_legacy_exact[True-True]" time="0.002" /><testcase classname="test.test_torch_fft_cpu_native" name="test_direct_batch_fftw_gate_is_strict_and_default_off" time="0.001" /><testcase classname="test.test_torch_fft_cpu_native" name="test_direct_batch_fftw_runtime_drift_falls_back[gate]" time="0.001" /><testcase classname="test.test_torch_fft_cpu_native" name="test_direct_batch_fftw_runtime_drift_falls_back[source]" time="0.001" /><testcase classname="test.test_torch_fft_cpu_native" name="test_direct_batch_fftw_runtime_drift_falls_back[target]" time="0.001" /><testcase classname="test.test_torch_fft_cpu_native" name="test_direct_batch_fftw_runtime_drift_falls_back[pid]" time="0.001" /><testcase classname="test.test_torch_fft_cpu_native" name="test_direct_batch_fftw_runtime_drift_falls_back[thread]" time="0.001" /><testcase classname="test.test_torch_fft_cpu_native" name="test_direct_batch_fftw_runtime_drift_falls_back[threads]" time="0.001" /><testcase classname="test.test_torch_fft_cpu_native" name="test_direct_batch_fftw_does_not_change_single_batch_dispatch" time="0.001" /><testcase classname="test.test_torch_fft_cpu_native" name="test_direct_batch_fftw_rejects_unsafe_contracts" time="0.002" /><testcase classname="test.test_torch_fft_cpu_native" name="test_direct_batch_fftw_rejects_forward_ad" time="0.309" /><testcase classname="test.test_torch_fft_cpu_native" name="test_direct_batch_fftw_setup_failure_falls_back" time="0.001" /><testcase classname="test.test_torch_fft_cpu_native" name="test_batch_plan_destructor_is_fork_safe" time="0.140" /><testcase classname="test.test_torch_fft_cpu_native" name="test_mkl_descriptor_destructor_is_fork_safe" time="0.140" /><testcase classname="test.test_torch_fft_cpu_native" name="test_single_ifft_rechecks_mkl_plan_before_execution[none]" time="0.012" /><testcase classname="test.test_torch_fft_cpu_native" name="test_single_ifft_rechecks_mkl_plan_before_execution[gate]" time="0.001" /><testcase classname="test.test_torch_fft_cpu_native" name="test_single_ifft_rechecks_mkl_plan_before_execution[source]" time="0.001" /><testcase classname="test.test_torch_fft_cpu_native" name="test_single_ifft_rechecks_mkl_plan_before_execution[target]" time="0.001" /><testcase classname="test.test_torch_fft_cpu_native" name="test_mkl_direct_ifft_plan_multithreaded_support" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_batch_correlation_gate_is_strict_and_default_off" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_is_zero_copy_exact_and_reusable" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_drift_fails_closed[x_rebind]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_drift_fails_closed[z_rebind]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_drift_fails_closed[pid]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_drift_fails_closed[thread]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_drift_fails_closed[openmp]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_drift_fails_closed[epoch]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[stride-x-cpu]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[stride-x-cuda]" time="0.005" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[stride-y-cpu]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[stride-y-cuda]" time="0.003" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[stride-z-cpu]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[stride-z-cuda]" time="0.003" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[rank-x-cpu]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[rank-x-cuda]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[rank-y-cpu]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[rank-y-cuda]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[rank-z-cpu]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[rank-z-cuda]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[length-x-cpu]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[length-x-cuda]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[length-y-cpu]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[length-y-cuda]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[length-z-cpu]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[length-z-cuda]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[autograd-x-cpu]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[autograd-x-cuda]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[autograd-y-cpu]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[autograd-y-cuda]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[autograd-z-cpu]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_rechecks_inplace_tensor_metadata[autograd-z-cuda]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_accepts_dynamic_y_and_recovers" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_dynamic_ad_y_uses_torch" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_batch_correlation_dynamic_ad_y_preserves_outputs[False-False]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_batch_correlation_dynamic_ad_y_preserves_outputs[False-True]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_batch_correlation_dynamic_ad_y_preserves_outputs[True-False]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_batch_correlation_dynamic_ad_y_preserves_outputs[True-True]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_does_not_change_single_batch" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_real_thread_and_fork_decline" time="0.093" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_rejects_unsafe_tensor_contracts[unaligned]" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_rejects_unsafe_tensor_contracts[noncontiguous]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_rejects_unsafe_tensor_contracts[subclass]" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_rejects_output_alias" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_preserves_ad_and_inference_dispatch" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_setup_failure_uses_torch" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_native_batch_correlation_2d_packed_layout" time="0.002" /><testcase classname="test.test_torch_cpu_native_batch" name="test_torch_batch_correlation_2d_packed_layout_default" time="0.001" /><testcase classname="test.test_torch_cpu_native_batch" name="test_torch_batch_nonuniform_cache_tracks_in_place_mutation" time="0.001" /><testcase classname="test.test_torch_cuda_native_batch" name="test_cuda_batch_correlation_gate_is_strict_and_default_off" time="0.002" /><testcase classname="test.test_torch_cuda_native_batch" name="test_cuda_native_batch_correlation_is_zero_copy_exact_and_reusable" time="0.003" /><testcase classname="test.test_torch_cuda_native_batch" name="test_cuda_native_batch_correlation_refreshes_nonuniform_inputs" time="0.002" /><testcase classname="test.test_torch_cuda_native_batch" name="test_cuda_native_batch_correlation_drift_fails_closed[x_rebind]" time="0.002" /><testcase classname="test.test_torch_cuda_native_batch" name="test_cuda_native_batch_correlation_drift_fails_closed[z_rebind]" time="0.002" /><testcase classname="test.test_torch_cuda_native_batch" name="test_cuda_native_batch_correlation_drift_fails_closed[pid]" time="0.002" /><testcase classname="test.test_torch_cuda_native_batch" name="test_cuda_native_batch_correlation_drift_fails_closed[thread]" time="0.002" /><testcase classname="test.test_torch_cuda_native_batch" name="test_cuda_native_batch_correlation_accepts_dynamic_y_and_recovers" time="0.003" /><testcase classname="test.test_torch_cuda_native_batch" name="test_cuda_native_batch_correlation_dynamic_ad_y_uses_torch" time="0.002" /><testcase classname="test.test_torch_cuda_native_batch" name="test_cuda_native_batch_correlation_does_not_change_single_batch" time="0.001" /><testcase classname="test.test_torch_cuda_native_batch" name="test_cuda_native_batch_correlation_rejects_unsafe_tensor_contracts[noncontiguous]" time="0.002" /><testcase classname="test.test_torch_cuda_native_batch" name="test_cuda_native_batch_correlation_rejects_unsafe_tensor_contracts[subclass]" time="0.002" /><testcase classname="test.test_torch_cuda_native_batch" name="test_cuda_native_batch_correlation_rejects_unsafe_tensor_contracts[non_uniform_stride]" time="0.002" /><testcase classname="test.test_torch_cuda_native_batch" name="test_cuda_native_batch_correlation_rejects_output_alias" time="0.001" /><testcase classname="test.test_torch_cuda_native_batch" name="test_cuda_native_batch_correlation_stream_safety" time="0.004" /><testcase classname="test.test_torch_cuda_native_peaks" name="test_cuda_native_batch_peak_is_exact_legacy_semantics" time="0.001" /><testcase classname="test.test_torch_cuda_native_peaks" name="test_cuda_native_batch_peak_gate_is_strict_default_off_and_corrects_nan" time="0.001" /><testcase classname="test.test_torch_cuda_native_peaks" name="test_cuda_native_batch_peak_does_not_change_single_batch" time="0.001" /><testcase classname="test.test_torch_cuda_native_peaks" name="test_cuda_native_batch_peak_stream_safety" time="0.001" /><testcase classname="test.test_torch_cuda_native_peaks" name="test_standard_peak_tensor_direct" time="0.001" /><testcase classname="test.test_live_batch_torch_fft_integration" name="test_live_batch_uses_real_batched_ifft_without_resizing[cpu]" time="0.003" /><testcase classname="test.test_live_batch_torch_fft_integration" name="test_live_batch_uses_real_batched_ifft_without_resizing[cuda]" time="0.004" /><testcase classname="test.test_live_batch_torch_fft_integration" name="test_live_batch_correlator_preserves_autograd_rejection[cpu]" time="0.001" /><testcase classname="test.test_live_batch_torch_fft_integration" name="test_live_batch_correlator_preserves_autograd_rejection[cuda]" time="0.002" /><testcase classname="test.test_live_batch_torch_fft_integration" name="test_live_batch_maxelements_cuda_and_cpu_defaults" time="0.077" /><testcase classname="test.test_live_batch_torch_fft_integration" name="test_torch_batched_ifft_inplace_shares_storage[cpu]" time="0.001" /><testcase classname="test.test_live_batch_torch_fft_integration" name="test_torch_batched_ifft_inplace_shares_storage[cuda]" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_peak_reduction_preserves_boundaries[cpu]" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_peak_reduction_preserves_boundaries[cuda]" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_peak_reduction_preserves_abort[cpu]" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_peak_reduction_preserves_abort[cuda]" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_batch_magnitudes_match_scalar_contract" time="0.001" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_off_axis_threshold_matches_scalar_path[cpu]" time="0.003" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_off_axis_threshold_matches_scalar_path[cuda]" time="0.003" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_batch_magnitudes_are_scalar_exact" time="0.019" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_batch_magnitudes_active_for_all_sizes[cpu]" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_batch_magnitudes_active_for_all_sizes[cuda]" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_batch_magnitude_none_keeps_scalar_fallback[cpu]" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_batch_magnitude_none_keeps_scalar_fallback[cuda]" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_batch_magnitudes_preserve_exception_order[cpu]" time="0.001" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_batch_magnitudes_preserve_exception_order[cuda]" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_batch_threshold_at_measured_crossover[cpu]" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_batch_threshold_at_measured_crossover[cuda]" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_peak_results_survive_workspace_reuse[cpu]" time="0.001" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_torch_peak_results_survive_workspace_reuse[cuda]" time="0.001" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_cpu_storage_keeps_legacy_peak_path" time="0.001" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_power_matrices_init" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_power_matrices_not_built_for_numpy" time="0.001" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_vectorized_sigmasq_and_caching[cpu]" time="0.004" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_vectorized_sigmasq_and_caching[cuda]" time="0.006" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_vectorized_sigmasq_cache_bounding" time="0.016" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_vectorized_sigmasq_fallback" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_torch_batch_peak_and_threshold_gpu_unit[cpu]" time="0.001" /><testcase classname="test.test_live_batch_torch_peaks" name="test_torch_batch_peak_and_threshold_gpu_unit[cuda]" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_ondevice_peaks_integration[cpu]" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_ondevice_peaks_integration[cuda]" time="0.003" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_inference_mode_active_during_search_processing" time="0.001" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_async_streams_flag_initialization" time="0.001" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_async_streams_double_buffering_pipeline[frequencyseries]" time="0.002" /><testcase classname="test.test_live_batch_torch_peaks" name="test_live_batch_async_streams_double_buffering_pipeline[backend_protocol]" time="0.001" /></testsuite></testsuites>

@@ -1,0 +1,16 @@
+diff --git a/pycbc/filter/matchedfilter.py b/pycbc/filter/matchedfilter.py
+index 6c01a431acd7c0ef3b4a22c09cb5559c7679bbdc..140397eabdb5e4ea4dfe5272d2bc0483665adbc1 100644
+--- a/pycbc/filter/matchedfilter.py
++++ b/pycbc/filter/matchedfilter.py
+@@ -2592,8 +2592,9 @@ class LiveBatchMatchedFilter(object):
+             materialized = _materialize_torch_veto_results(veto_values)
+             if materialized is None:
+                 for i, (c, d, sgv) in enumerate(veto_values):
+-                    chisq[i] = c[0] / d[0]
+-                    dof[i] = d[0]
++                    if c is not None and d is not None:
++                        chisq[i] = c[0] / d[0]
++                        dof[i] = d[0]
+                     if sgv is not None:
+                         sg_chisq[i] = sgv[0]
+             else:

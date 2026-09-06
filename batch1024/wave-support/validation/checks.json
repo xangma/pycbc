@@ -1,0 +1,28 @@
+{
+  "validation_only": true,
+  "scientific_benchmarks_run": false,
+  "scripts_ast_cli_passed": 6,
+  "baseline_measurement_operation_parity_asts_unchanged": true,
+  "triton_worker_byte_identical": true,
+  "waveform_expected_cells": 96,
+  "waveform_expected_workers": 288,
+  "triton_expected_groups": 24,
+  "triton_expected_workers": 72,
+  "old_campaigns_rejected": true,
+  "waveform_rejection_reasons": [
+    "manifest does not describe the complete 288-worker matrix",
+    "worker.py hash differs from the supplied archived harness",
+    "run.py hash differs from the supplied archived harness",
+    "manifest expected SHA does not match published main",
+    "manifest must contain all 288 jobs in the fixed full-run matrix",
+    "existing summary does not cover the complete expected matrix"
+  ],
+  "triton_rejection_reasons": [
+    "campaign revision differs",
+    "campaign is not the requested full 72-worker matrix",
+    "manifest must contain each of the 72 worker jobs exactly once",
+    "summary does not contain the expected 24 route/workload groups",
+    "12 of the 72 raw worker artifacts are missing; plots suppressed"
+  ],
+  "single_precision_1024_capability_record_verified": true
+}

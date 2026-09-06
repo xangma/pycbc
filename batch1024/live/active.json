@@ -1,0 +1,23 @@
+{
+  "label": "cpu-t4",
+  "command": [
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-batch1024-20260906/live-support/run-live.py",
+    "--main-root",
+    "/home/xangma/pycbc-torch-batch1024-20260906/main",
+    "--cpu-root",
+    "/home/xangma/pycbc-torch-batch1024-20260906/cpu",
+    "--expected-main",
+    "4885b64560e9f39b740e85b6a976898869dd360e",
+    "--expected-cpu",
+    "d544420232428225c214a4be84fbe1262a6d307b",
+    "--python",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "--output",
+    "/home/xangma/pycbc-torch-batch1024-20260906/live",
+    "--session",
+    "cpu-t4"
+  ],
+  "started_utc": "2026-09-06T13:20:40.254584+00:00",
+  "pid": 2228714
+}

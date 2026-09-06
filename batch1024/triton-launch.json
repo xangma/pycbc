@@ -1,0 +1,28 @@
+{
+  "pid": 3924196,
+  "cwd": "/home/xangma/pycbc-torch-batch1024-20260906/main",
+  "command": [
+    "taskset",
+    "-c",
+    "8-11",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "-B",
+    "/home/xangma/pycbc-torch-batch1024-20260906/triton-original/run.py",
+    "--root",
+    "/home/xangma/pycbc-torch-batch1024-20260906/main",
+    "--python",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "--expected-sha",
+    "4885b64560e9f39b740e85b6a976898869dd360e",
+    "--batches",
+    "1",
+    "8",
+    "32",
+    "128",
+    "512",
+    "1024",
+    "--out",
+    "/home/xangma/pycbc-torch-batch1024-20260906/triton"
+  ],
+  "log": "/home/xangma/pycbc-torch-batch1024-20260906/logs/triton.log"
+}

@@ -1,0 +1,274 @@
+...............s..FF.................................................... [ 45%]
+........................................................................ [ 91%]
+.............                                                            [100%]
+=================================== FAILURES ===================================
+___________________ test_public_live_filter_full_batch[cpu] ____________________
+
+device = 'cpu'
+
+    def test_public_live_filter_full_batch(device):
+        from pycbc.filter import matchedfilter
+        from pycbc.vetoes.sgchisq import SingleDetSGChisq
+    
+        size = 32
+        values, data_values = _complex_values(17, 9109), _complex_values(17, 9110)[0]
+        power = (values.real**2 + values.imag**2).sum(axis=1) * (4.0 / size)
+        with scheme.TorchScheme(device):
+            templates = []
+            for index, row in enumerate(values):
+                template = FrequencySeries(row, delta_f=1.0 / size)
+                template.id = index
+                template.params = np.array([(20.0,)], dtype=[("mass1", np.float32)])[0]
+                template.sigmasq = lambda _psd, value=power[index]: value
+                templates.append(template)
+            batch = matchedfilter.LiveBatchMatchedFilter(
+                templates,
+                snr_threshold=0.0,
+                chisq_bins=0,
+                sg_chisq=SingleDetSGChisq(templates),
+                maxelements=BATCH * size,
+                enable_cuda_graphs=False,
+                enable_async_streams=False,
+            )
+            data = FrequencySeries(data_values, delta_f=1.0 / size)
+            data.psd = FrequencySeries(np.ones(17, np.float32), delta_f=1.0 / size)
+            reader = SimpleNamespace(
+                overwhitened_data=lambda _delta_f: data,
+                trim_padding=0,
+                blocksize=size,
+                sample_rate=1,
+                start_time=100.0,
+            )
+            mid = batch.mids[0]
+            assert len(batch.tgroups) == 1
+            assert batch.ifts[mid].nbatch == BATCH
+            assert batch.ifts[mid].__class__.__module__ == "pycbc.fft.torchfft"
+            row_ids = np.array([template.id for template in batch.tgroups[0]])
+            pointers = [template.cout.ptr for template in templates]
+>           result = batch.process_data(reader)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+../test_torch_large_batches.py:399: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+pycbc/filter/matchedfilter.py:2504: in process_data
+    return self.process_all()
+           ^^^^^^^^^^^^^^^^^^
+pycbc/filter/matchedfilter.py:2530: in process_all
+    result = self._process_vetoes(result, veto_info)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <pycbc.filter.matchedfilter.LiveBatchMatchedFilter object at 0x7685981019d0>
+results = {'chisq': array([0., 0., 0., ..., 0., 0., 0.], dtype=float32), 'chisq_dof': array([0, 0, 0, ..., 0, 0, 0], dtype=uint3... ,
+       -0.89015377, -0.902159  ], dtype=float32), 'end_time': array([103., 121., 121., ..., 103., 124., 120.]), ...}
+veto_info = [(array([-5.04078627+15.0540514j]), 0.058730572, 3, <pycbc.types.frequencyseries.FrequencySeries object at 0x768598500...requencySeries object at 0x768598499690>, <pycbc.types.frequencyseries.FrequencySeries object at 0x7685986a6610>), ...]
+
+    def _process_vetoes(self, results, veto_info):
+        """Calculate signal based vetoes"""
+        chisq = numpy.array(numpy.zeros(len(veto_info)), numpy.float32, ndmin=1)
+        dof = numpy.array(numpy.zeros(len(veto_info)), numpy.uint32, ndmin=1)
+        sg_chisq = numpy.array(numpy.zeros(len(veto_info)), numpy.float32, ndmin=1)
+        results["chisq"] = chisq
+        results["chisq_dof"] = dof
+        results["sg_chisq"] = sg_chisq
+    
+        if self.newsnr_threshold:
+            from pycbc.events import ranking
+    
+        keep = []
+        batch_torch_vetoes = _can_batch_torch_vetoes(self.power_chisq, self.sg_chisq)
+        veto_values = []
+        for i, (snrv, norm, peak_index, htilde, stilde) in enumerate(veto_info):
+            mid = getattr(htilde, "_mid", None)
+            cout_mem = self.cout_mem.get(mid) if mid is not None else None
+            is_valid = (
+                getattr(htilde, "_corr_valid", False)
+                and getattr(htilde, "_corr_stilde", None) is stilde
+                and (
+                    cout_mem is None
+                    or (
+                        getattr(cout_mem, "_active_tgroup", None)
+                        is getattr(htilde, "_tgroup", None)
+                        and getattr(cout_mem, "_active_stilde", None) is stilde
+                    )
+                )
+            )
+            if not is_valid:
+                correlate(htilde, stilde, htilde.cout)
+                htilde._corr_valid = True
+                htilde._corr_stilde = stilde
+                if cout_mem is not None:
+                    cout_mem._active_tgroup = getattr(htilde, "_tgroup", None)
+                    cout_mem._active_stilde = stilde
+            c, d = self.power_chisq.values(
+                htilde.cout, snrv, norm, stilde.psd, [peak_index], htilde
+            )
+            if c is not None and d is not None:
+                if not batch_torch_vetoes:
+                    chisq[i] = c[0] / d[0]
+                    dof[i] = d[0]
+    
+            sgv = self.sg_chisq.values(
+                stilde, htilde, stilde.psd, snrv, norm, c, d, [peak_index]
+            )
+            if batch_torch_vetoes:
+                veto_values.append((c, d, sgv))
+            elif sgv is not None:
+                sg_chisq[i] = sgv[0]
+    
+            if self.newsnr_threshold and not batch_torch_vetoes:
+                newsnr = ranking.newsnr(results["snr"][i], chisq[i])
+                if newsnr >= self.newsnr_threshold:
+                    keep.append(i)
+    
+        if batch_torch_vetoes:
+            materialized = _materialize_torch_veto_results(veto_values)
+            if materialized is None:
+                for i, (c, d, sgv) in enumerate(veto_values):
+>                   chisq[i] = c[0] / d[0]
+                               ^^^^
+E                   TypeError: 'NoneType' object is not subscriptable
+
+pycbc/filter/matchedfilter.py:2595: TypeError
+----------------------------- Captured stdout call -----------------------------
+No CuPy
+No CuPy or GPU PhenomHM module.
+No CuPy or GPU response available.
+No CuPy or GPU interpolation available.
+___________________ test_public_live_filter_full_batch[cuda] ___________________
+
+device = 'cuda'
+
+    def test_public_live_filter_full_batch(device):
+        from pycbc.filter import matchedfilter
+        from pycbc.vetoes.sgchisq import SingleDetSGChisq
+    
+        size = 32
+        values, data_values = _complex_values(17, 9109), _complex_values(17, 9110)[0]
+        power = (values.real**2 + values.imag**2).sum(axis=1) * (4.0 / size)
+        with scheme.TorchScheme(device):
+            templates = []
+            for index, row in enumerate(values):
+                template = FrequencySeries(row, delta_f=1.0 / size)
+                template.id = index
+                template.params = np.array([(20.0,)], dtype=[("mass1", np.float32)])[0]
+                template.sigmasq = lambda _psd, value=power[index]: value
+                templates.append(template)
+            batch = matchedfilter.LiveBatchMatchedFilter(
+                templates,
+                snr_threshold=0.0,
+                chisq_bins=0,
+                sg_chisq=SingleDetSGChisq(templates),
+                maxelements=BATCH * size,
+                enable_cuda_graphs=False,
+                enable_async_streams=False,
+            )
+            data = FrequencySeries(data_values, delta_f=1.0 / size)
+            data.psd = FrequencySeries(np.ones(17, np.float32), delta_f=1.0 / size)
+            reader = SimpleNamespace(
+                overwhitened_data=lambda _delta_f: data,
+                trim_padding=0,
+                blocksize=size,
+                sample_rate=1,
+                start_time=100.0,
+            )
+            mid = batch.mids[0]
+            assert len(batch.tgroups) == 1
+            assert batch.ifts[mid].nbatch == BATCH
+            assert batch.ifts[mid].__class__.__module__ == "pycbc.fft.torchfft"
+            row_ids = np.array([template.id for template in batch.tgroups[0]])
+            pointers = [template.cout.ptr for template in templates]
+>           result = batch.process_data(reader)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+../test_torch_large_batches.py:399: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+pycbc/filter/matchedfilter.py:2504: in process_data
+    return self.process_all()
+           ^^^^^^^^^^^^^^^^^^
+pycbc/filter/matchedfilter.py:2530: in process_all
+    result = self._process_vetoes(result, veto_info)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <pycbc.filter.matchedfilter.LiveBatchMatchedFilter object at 0x768597b35710>
+results = {'chisq': array([0., 0., 0., ..., 0., 0., 0.], dtype=float32), 'chisq_dof': array([0, 0, 0, ..., 0, 0, 0], dtype=uint3... ,
+       -0.89015377, -0.90215904], dtype=float32), 'end_time': array([103., 121., 121., ..., 103., 124., 120.]), ...}
+veto_info = [(array([-5.04078674+15.0540514j]), 0.058730572, 3, <pycbc.types.frequencyseries.FrequencySeries object at 0x768598835...requencySeries object at 0x768597be3b10>, <pycbc.types.frequencyseries.FrequencySeries object at 0x768597d74150>), ...]
+
+    def _process_vetoes(self, results, veto_info):
+        """Calculate signal based vetoes"""
+        chisq = numpy.array(numpy.zeros(len(veto_info)), numpy.float32, ndmin=1)
+        dof = numpy.array(numpy.zeros(len(veto_info)), numpy.uint32, ndmin=1)
+        sg_chisq = numpy.array(numpy.zeros(len(veto_info)), numpy.float32, ndmin=1)
+        results["chisq"] = chisq
+        results["chisq_dof"] = dof
+        results["sg_chisq"] = sg_chisq
+    
+        if self.newsnr_threshold:
+            from pycbc.events import ranking
+    
+        keep = []
+        batch_torch_vetoes = _can_batch_torch_vetoes(self.power_chisq, self.sg_chisq)
+        veto_values = []
+        for i, (snrv, norm, peak_index, htilde, stilde) in enumerate(veto_info):
+            mid = getattr(htilde, "_mid", None)
+            cout_mem = self.cout_mem.get(mid) if mid is not None else None
+            is_valid = (
+                getattr(htilde, "_corr_valid", False)
+                and getattr(htilde, "_corr_stilde", None) is stilde
+                and (
+                    cout_mem is None
+                    or (
+                        getattr(cout_mem, "_active_tgroup", None)
+                        is getattr(htilde, "_tgroup", None)
+                        and getattr(cout_mem, "_active_stilde", None) is stilde
+                    )
+                )
+            )
+            if not is_valid:
+                correlate(htilde, stilde, htilde.cout)
+                htilde._corr_valid = True
+                htilde._corr_stilde = stilde
+                if cout_mem is not None:
+                    cout_mem._active_tgroup = getattr(htilde, "_tgroup", None)
+                    cout_mem._active_stilde = stilde
+            c, d = self.power_chisq.values(
+                htilde.cout, snrv, norm, stilde.psd, [peak_index], htilde
+            )
+            if c is not None and d is not None:
+                if not batch_torch_vetoes:
+                    chisq[i] = c[0] / d[0]
+                    dof[i] = d[0]
+    
+            sgv = self.sg_chisq.values(
+                stilde, htilde, stilde.psd, snrv, norm, c, d, [peak_index]
+            )
+            if batch_torch_vetoes:
+                veto_values.append((c, d, sgv))
+            elif sgv is not None:
+                sg_chisq[i] = sgv[0]
+    
+            if self.newsnr_threshold and not batch_torch_vetoes:
+                newsnr = ranking.newsnr(results["snr"][i], chisq[i])
+                if newsnr >= self.newsnr_threshold:
+                    keep.append(i)
+    
+        if batch_torch_vetoes:
+            materialized = _materialize_torch_veto_results(veto_values)
+            if materialized is None:
+                for i, (c, d, sgv) in enumerate(veto_values):
+>                   chisq[i] = c[0] / d[0]
+                               ^^^^
+E                   TypeError: 'NoneType' object is not subscriptable
+
+pycbc/filter/matchedfilter.py:2595: TypeError
+=============================== warnings summary ===============================
+test/test_torch_fft_cpu_native.py: 18 warnings
+  /home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] ../test_torch_large_batches.py:322: native threshold kernel requires CUDA and Triton
+2 failed, 154 passed, 1 skipped, 18 warnings in 11.80s

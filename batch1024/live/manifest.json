@@ -1,0 +1,41 @@
+{
+  "started_utc": "2026-09-06T12:18:41.283523+00:00",
+  "host": "len",
+  "controller_pid": 565637,
+  "cwd": "/home/xangma/pycbc-torch-batch1024-20260906/main",
+  "command": [
+    "/home/xangma/pycbc-torch-batch1024-20260906/live-support/run-live.py",
+    "--main-root",
+    "/home/xangma/pycbc-torch-batch1024-20260906/main",
+    "--cpu-root",
+    "/home/xangma/pycbc-torch-batch1024-20260906/cpu",
+    "--expected-main",
+    "4885b64560e9f39b740e85b6a976898869dd360e",
+    "--expected-cpu",
+    "d544420232428225c214a4be84fbe1262a6d307b",
+    "--python",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "--output",
+    "/home/xangma/pycbc-torch-batch1024-20260906/live"
+  ],
+  "support_sha256": "addf1f45172c9703588da909f2349e1ce41a321cd6651aaf40e8c83a3e2c1d9b",
+  "expected_groups": 84,
+  "expected_workers": 252,
+  "batches": [
+    1,
+    8,
+    32,
+    128,
+    512,
+    1024
+  ],
+  "heads": {
+    "main": "4885b64560e9f39b740e85b6a976898869dd360e",
+    "cpu": "d544420232428225c214a4be84fbe1262a6d307b"
+  },
+  "roots": {
+    "main": "/home/xangma/pycbc-torch-batch1024-20260906/main",
+    "cpu": "/home/xangma/pycbc-torch-batch1024-20260906/cpu"
+  },
+  "stop_command": "kill -TERM 565637"
+}

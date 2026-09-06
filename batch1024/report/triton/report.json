@@ -1,0 +1,1561 @@
+{
+  "schema": 1,
+  "synthetic": false,
+  "status": "qualified",
+  "expected_sha": "4885b64560e9f39b740e85b6a976898869dd360e",
+  "run_date": "2026-09-06",
+  "renderer_sha256": "7f6222aa00a2536007ba97193d4c132cc46b4de0d89e103ede52f7fda4d63759",
+  "input_hashes": {
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/manifest.json": "0c3f7df310a5dde4c0c7fb761007cedfa55e874cbe6e266b7e6da32ff99bd356",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/summary.json": "676a4525086510324d6296ecfd3dc8c41dc9d8f8e0b7096cfca7d0c7c35ea719",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1-n4097-r1.json": "edb58d6c6ed4b448fb0d46a89cd6e664418a8104a651de43faad9c70d53c38ce",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1-n4097-r2.json": "0217fa16e8a88775d906428b26b293c5e48306104b8e416c32899e6a7fef66c5",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1-n4097-r3.json": "8ee49e48ecc690272fb436a59dccc904d45608b010b49c5c4c73656777192522",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1-n4097-r1.json": "17ef6b63e5a37411ad0d232e98ca75d22eed69aa5a13d2da53f7a36f51edce83",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1-n4097-r2.json": "09e90a321bb60f1cf61e978f81d60fd5f1fe3471e5e5cfef28fe22bda57fcab1",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1-n4097-r3.json": "a07d560bf0948b4862b7d27e6f31effdd48e25139787ed6e2465a9e07f6ef15f",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b8-n4097-r1.json": "d6f554adc961d31d66250b58ac3b754282b70444d8d73b3e7ca446d2e94a2d25",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b8-n4097-r2.json": "4d8c5ce10658d49357e799a5923f88632830ad038b25d627ed98e4e8b947cdad",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b8-n4097-r3.json": "5486329400cd9a4e06045799703fd953b8d0c82d5c48485cc887af12cf065885",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b8-n4097-r1.json": "a0455ac596c29fa02987f470a3e9b094f15df0f4f861370c8c5e1c1f53958549",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b8-n4097-r2.json": "2339169dc29db774c7c007c9c60d78e4f31a338875864715058b2e6350f8f0e7",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b8-n4097-r3.json": "d4371177db5a30b6ac6fafb6fd403f2c9341d04ed75c434304f220c271d19d84",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b32-n4097-r1.json": "94893bafa936ed8389e397fe85ca5c848683076c850f9910d38ae5593e6a8c96",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b32-n4097-r2.json": "b83f9a34e9a4ae557da22c0935e9d15bc0464555b17c2c34455994fb1641b761",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b32-n4097-r3.json": "12d8aff8a5c2930b9b87a9d252ea258b7f4114879610d0f8ab7c530ee1cd5477",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b32-n4097-r1.json": "a2d337835b6f7fe18a12a4567012b279a84e0db69af24d767c8d60d7f57f8798",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b32-n4097-r2.json": "fea7e7a3da3c438fc490cb2a1d062949f7ab63e2e375269d4cabde405c00f19a",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b32-n4097-r3.json": "e881c2b05f65ebccfc3af756f53a66d007f17f949092b12f2fd7f4e19e40c7ac",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b128-n4097-r1.json": "957263a9485bf9fbe2adf2a7ccdda184e36047e02a53b8a6f11427c30691f13f",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b128-n4097-r2.json": "a1cf90d645fb683bcd674eef1ef3adffe5121925dc0aa272b39a9faa148a829f",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b128-n4097-r3.json": "9868f9b469bce15720d482036f8ac193c0578e4bf7fc18e9dc6b5be859a2d24b",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b128-n4097-r1.json": "af000bf736ec02314fc2e66800a9151f620458b068a72bb12d365904227ec148",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b128-n4097-r2.json": "7f77f8e342cc8515064a54c58c14e9ed93b44a2c9d06d34cc329eed411116ec1",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b128-n4097-r3.json": "6894c60e25390847cea7999757339abcbdb51e8c9117c6b3275eeec6975221d9",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b512-n4097-r1.json": "a30ae132dccc26bbbc476ceca002523c05e44163608f6ca3fcd4ab63aff588eb",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b512-n4097-r2.json": "d93138afc443e4e61c15ac5abe48f4c6633add4f2534e3308101ebf19dbefb6d",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b512-n4097-r3.json": "5a53f658b1c877fbe22e54c825131cca6b4170fde5c622d0fd5b88f3d9e13ea2",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b512-n4097-r1.json": "fe6147a529f6ca468c771fef26edb1fb68a6e90379e652c70d7f2079b5065752",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b512-n4097-r2.json": "b5377225839bb7bf4f57f5f892af7b88e1f02d73868a7961b12f134ba4208f77",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b512-n4097-r3.json": "ecdbc745c8364322b47ad539a45d262696fe5269395e7e671993aa5a5dfbd457",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1024-n4097-r1.json": "602f7af3656202a42dde256ca5f960d57a81fe8e12c6952435589cabc0775d56",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1024-n4097-r2.json": "e226d667adca0172c7b4d9a90333557d3fa11587feeab79648b9b08751c8c69a",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1024-n4097-r3.json": "c9c75e37ada85b3f2b13bc8bd5329ed16c7ecd0ed0502fc9d5c5629a8b9c679c",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1024-n4097-r1.json": "5580629ffaa23c1ee1a712a5b72ab3e4b1654e4ace4db3c6c179d238446bbef3",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1024-n4097-r2.json": "78eea980df77c3ab08a54138b1c685aa834035a34550c4a4f0ef77aa7546257b",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1024-n4097-r3.json": "af2dae41cba8ab162a8f23ae2ca12ead1a1e91c9c9e912c5da267ab2b889bba0",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1-n32769-r1.json": "3ffa06db6e3e74c8b915380e674c989e15a851d2b3fb80d7e965f2c856a48929",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1-n32769-r2.json": "121bec242190578799ffa25875cdd7c8df31ff6d01c9fc03484ab63d4d08ab87",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1-n32769-r3.json": "ea50c741628564ad1636d2a902c9e05bc1d540558eabcd7b74a2bec6c0bf3165",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1-n32769-r1.json": "0a5a34c6ebabe1737e64a740abab6a43006f5d215e6eca6abcd6400c92fda245",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1-n32769-r2.json": "f04697dc1f471bc7dda4296fd50f5e099b6d6dcaecf96fdaa3184f3783a337eb",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1-n32769-r3.json": "aeb8a5bd15218fd103d749fbf71a9e06dac9e1b8ff0c0b379c3412f3067f741f",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b8-n32769-r1.json": "569e644bfc080a402961cb6a63bf17e530c99fbbc9e32102a260a8e54fbaeba3",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b8-n32769-r2.json": "98b41cae48e245fcb6dd8a7215ce135cf1eb8553b385b5ccb6a1f909e99a10fc",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b8-n32769-r3.json": "bcf8b581a0bfb891fba9472adac0a7c55efc4a3351b8d9e83c24cd1e6648f462",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b8-n32769-r1.json": "76a5c995d9ddf64fcc2752181da189ba0a92ee37405a5a0823a7d08def0e6c32",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b8-n32769-r2.json": "cbf6f6c0f24886f3557b2f0ee66995d97d8adb5030562cbc0d17d7aa5744851a",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b8-n32769-r3.json": "41751031270c4581f644f18e04ab3bb3f67332520955d28d438e29da84c2bdde",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b32-n32769-r1.json": "e3375b9a6e194f2aa0b70e2161d82e1c7a2d35f4c4fad35b3aafdce314b0ba2b",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b32-n32769-r2.json": "560904126395ae840d50162a54c23f10ed37391980a9174daeac8439713873b4",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b32-n32769-r3.json": "f9f1be92bd021e086eb3b904d872069b2513cbae10bceaf9f91530616351354c",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b32-n32769-r1.json": "a8aa8cfba10a6316b9b389380d5c06233496cfdc84793675f3f08ae1d051b815",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b32-n32769-r2.json": "3e006f87d3efee50da5001bce58cdf0d8bbe11e407b036dba7f485a01979c94c",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b32-n32769-r3.json": "6009e0ad380817e911825a4dd6c4cee03ee2d0ca28cc95f9f1a75a4dd4c8f58f",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b128-n32769-r1.json": "a92ba9807099f3e989adefe51d74eb0e3fdf8d285ddb614ad619e27096f80197",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b128-n32769-r2.json": "ccd1636f3ff3b139fc67977453cc4fc8e07cba1255a9ee388ccd54037bc20074",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b128-n32769-r3.json": "8bd7d71275f7eb6e57497c09456619cfa69ae3e261077e20a34cc130ddd88333",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b128-n32769-r1.json": "5238f2fc85591ca8710771f9b046b188bfc37ce5196e08be18baae28eabc00e0",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b128-n32769-r2.json": "5ff71741b3473a34025524da131c40dcf0d04199822b9a31392594a4144cda2a",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b128-n32769-r3.json": "4c7f767221359a4b96a53f3b51db8aee2a1548ea00f93a580d5dc0d6b0d699dd",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b512-n32769-r1.json": "f1aa18752dcae3ee8e299cb805f62a96321272c1391e70c31f1eac990d3a86e4",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b512-n32769-r2.json": "f45b87c655c47c7d88500ee3747949c6b4f420ec57d184ca3c450c3f1ddf556c",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b512-n32769-r3.json": "1b637ed657f2003f1a16458003961a17fbaec8211cad58009c2b561b3b43d024",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b512-n32769-r1.json": "899d70ac2a7f34fce461c7abdb97d756e308a1225a082f88bf95957049113e25",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b512-n32769-r2.json": "029d3218ed90788240329dd71a8736e0e7e33aa9adef9473d1bcbae0a1a4f539",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b512-n32769-r3.json": "5dabfa18df7c2ae2ddf771702f8cb85c442e2f9efd903ca8a4918036d689bceb",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1024-n32769-r1.json": "68fe077f71ed9eb1e7869b50fe3d0dc66a79c2adf925348f7320fa037b24ab15",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1024-n32769-r2.json": "9bbe17b0d044c78235b66aaafef2115852a058cf0d3e141162360f1438d22e28",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1024-n32769-r3.json": "d602b9ade7e1ba1af5e11ae4342e0f354c3b09c7d74d2aec39007fc1616f05d9",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1024-n32769-r1.json": "421657795b37a94672f0ba4bdba1ba0337dc1fe07c920a8ee937a42b175d5938",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1024-n32769-r2.json": "4d455d26bcffe87320ffe99ceee5d8555d3e3bb5fd26c6d61b9131a9c2d75087",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1024-n32769-r3.json": "c8e62389e96ffd62bbde67af84f559cb298cbe298e807fb38b1290abcbafab54"
+  },
+  "supplied_harness_hashes": {
+    "worker": "78b4f747513f1589f478f2942463485903585d292813df92b07eb3a493c45493",
+    "run": "9c4c6e1c14afe7bd054bd3369b2d6b560628abd150b72ce5aa2ce8cbfef92130"
+  },
+  "global_problems": [],
+  "raw_worker_files": 72,
+  "expected_worker_count": 72,
+  "expected_group_count": 24,
+  "qualified_group_count": 24,
+  "runtime": {
+    "hostname": "len",
+    "cuda_device": {
+      "index": 0,
+      "name": "NVIDIA GeForce RTX 4090",
+      "memory_bytes": 25272188928,
+      "compute_capability": [
+        8,
+        9
+      ]
+    },
+    "torch": "2.13.0+cu130",
+    "triton": "3.7.1"
+  },
+  "estimand": "median of three worker medians; throughput derived separately for each worker before aggregation",
+  "ranges": "min/max of three worker estimates; observed ranges, not confidence intervals",
+  "limitations": [
+    "Complete public get_fd_waveform_batch call, including validation, host-list conversion, coefficient work, allocation and output wrapping; host output copies are excluded.",
+    "Complex128 hplus and hcross, one host thread, no autograd; eight distinct deterministic BNS mass pairs repeat in larger batches.",
+    "All bins and both polarizations of every row are checked. Exact repeated rows reuse their complete scalar reference; no rows or frequency bins are sampled.",
+    "Warm timing uses five synchronized groups of at least 50 ms per worker. Three process replicates support an observed range, not a confidence interval or tail-latency claim.",
+    "Cold time is the first complete public call with a fresh per-worker Triton cache. It includes any compilation plus lazy initialization and is not isolated compiler time; the CUDA driver cache is not cleared.",
+    "The measured candidate's gate-off route is the same-revision control. These results do not compare different commits or establish a whole-search or inference speedup.",
+    "Performance cells qualify only after exact-source, dispatch, timing and waveform checks. Failed and incomplete cells remain listed, without performance comparisons."
+  ],
+  "rows": [
+    {
+      "key": "cuda-off-b1-n4097",
+      "bins": 4097,
+      "delta_f": 0.25,
+      "batch": 1,
+      "route": "cuda-off",
+      "label": "Torch CUDA \u00b7 gate off",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1-n4097-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1-n4097-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1-n4097-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.012545794599999998,
+        0.0123655634,
+        0.0122811322
+      ],
+      "worker_throughputs": [
+        79.7079843790843,
+        80.8697483205658,
+        81.42571741064721
+      ],
+      "throughput_median": 80.8697483205658,
+      "throughput_min": 79.7079843790843,
+      "throughput_max": 81.42571741064721,
+      "warm_call_seconds_median": 0.0123655634,
+      "cold_call_seconds": [
+        0.396957929,
+        0.397912502,
+        0.39905068
+      ],
+      "cold_median_seconds": 0.397912502,
+      "cold_min_seconds": 0.396957929,
+      "cold_max_seconds": 0.39905068,
+      "speedup_vs_gate_off": 1.0
+    },
+    {
+      "key": "cuda-on-b1-n4097",
+      "bins": 4097,
+      "delta_f": 0.25,
+      "batch": 1,
+      "route": "cuda-on",
+      "label": "Triton CUDA \u00b7 gate on",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1-n4097-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1-n4097-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1-n4097-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.011001926333333334,
+        0.010816465833333332,
+        0.010702116833333332
+      ],
+      "worker_throughputs": [
+        90.89317358635893,
+        92.45163951041003,
+        93.43945834018103
+      ],
+      "throughput_median": 92.45163951041003,
+      "throughput_min": 90.89317358635893,
+      "throughput_max": 93.43945834018103,
+      "warm_call_seconds_median": 0.010816465833333332,
+      "cold_call_seconds": [
+        1.994102974,
+        2.097851076,
+        2.115213121
+      ],
+      "cold_median_seconds": 2.097851076,
+      "cold_min_seconds": 1.994102974,
+      "cold_max_seconds": 2.115213121,
+      "speedup_vs_gate_off": 1.1432166097999203
+    },
+    {
+      "key": "cuda-off-b8-n4097",
+      "bins": 4097,
+      "delta_f": 0.25,
+      "batch": 8,
+      "route": "cuda-off",
+      "label": "Torch CUDA \u00b7 gate off",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b8-n4097-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b8-n4097-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b8-n4097-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.0125734078,
+        0.012607805,
+        0.01247947
+      ],
+      "worker_throughputs": [
+        636.2634639115101,
+        634.527580336149,
+        641.052865225847
+      ],
+      "throughput_median": 636.2634639115101,
+      "throughput_min": 634.527580336149,
+      "throughput_max": 641.052865225847,
+      "warm_call_seconds_median": 0.0125734078,
+      "cold_call_seconds": [
+        0.405925119,
+        0.397130722,
+        0.40770446
+      ],
+      "cold_median_seconds": 0.405925119,
+      "cold_min_seconds": 0.397130722,
+      "cold_max_seconds": 0.40770446,
+      "speedup_vs_gate_off": 1.0
+    },
+    {
+      "key": "cuda-on-b8-n4097",
+      "bins": 4097,
+      "delta_f": 0.25,
+      "batch": 8,
+      "route": "cuda-on",
+      "label": "Triton CUDA \u00b7 gate on",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b8-n4097-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b8-n4097-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b8-n4097-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.011008263666666665,
+        0.011137260666666668,
+        0.011117274000000002
+      ],
+      "worker_throughputs": [
+        726.7267792852952,
+        718.309487353892,
+        719.6008661835625
+      ],
+      "throughput_median": 719.6008661835625,
+      "throughput_min": 718.309487353892,
+      "throughput_max": 726.7267792852952,
+      "warm_call_seconds_median": 0.011117274000000002,
+      "cold_call_seconds": [
+        1.994053009,
+        2.093859602,
+        2.099683866
+      ],
+      "cold_median_seconds": 2.093859602,
+      "cold_min_seconds": 1.994053009,
+      "cold_max_seconds": 2.099683866,
+      "speedup_vs_gate_off": 1.130979392969895
+    },
+    {
+      "key": "cuda-off-b32-n4097",
+      "bins": 4097,
+      "delta_f": 0.25,
+      "batch": 32,
+      "route": "cuda-off",
+      "label": "Torch CUDA \u00b7 gate off",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b32-n4097-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b32-n4097-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b32-n4097-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.012394770400000001,
+        0.0125960304,
+        0.012493981599999999
+      ],
+      "worker_throughputs": [
+        2581.733986778811,
+        2540.482912775441,
+        2561.2331620530003
+      ],
+      "throughput_median": 2561.2331620530003,
+      "throughput_min": 2540.482912775441,
+      "throughput_max": 2581.733986778811,
+      "warm_call_seconds_median": 0.012493981599999999,
+      "cold_call_seconds": [
+        0.400901163,
+        0.401518018,
+        0.399158185
+      ],
+      "cold_median_seconds": 0.400901163,
+      "cold_min_seconds": 0.399158185,
+      "cold_max_seconds": 0.401518018,
+      "speedup_vs_gate_off": 1.0
+    },
+    {
+      "key": "cuda-on-b32-n4097",
+      "bins": 4097,
+      "delta_f": 0.25,
+      "batch": 32,
+      "route": "cuda-on",
+      "label": "Triton CUDA \u00b7 gate on",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b32-n4097-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b32-n4097-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b32-n4097-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.010875188833333334,
+        0.010861064166666665,
+        0.010781055999999999
+      ],
+      "worker_throughputs": [
+        2942.477642495495,
+        2946.304294767924,
+        2968.1693518705406
+      ],
+      "throughput_median": 2946.304294767924,
+      "throughput_min": 2942.477642495495,
+      "throughput_max": 2968.1693518705406,
+      "warm_call_seconds_median": 0.010861064166666665,
+      "cold_call_seconds": [
+        2.096336007,
+        2.00363165,
+        1.997408741
+      ],
+      "cold_median_seconds": 2.00363165,
+      "cold_min_seconds": 1.997408741,
+      "cold_max_seconds": 2.096336007,
+      "speedup_vs_gate_off": 1.1503459889634817
+    },
+    {
+      "key": "cuda-off-b128-n4097",
+      "bins": 4097,
+      "delta_f": 0.25,
+      "batch": 128,
+      "route": "cuda-off",
+      "label": "Torch CUDA \u00b7 gate off",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b128-n4097-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b128-n4097-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b128-n4097-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.0125646752,
+        0.012668578199999999,
+        0.012722958400000001
+      ],
+      "worker_throughputs": [
+        10187.29079443295,
+        10103.738397415427,
+        10060.55321221517
+      ],
+      "throughput_median": 10103.738397415427,
+      "throughput_min": 10060.55321221517,
+      "throughput_max": 10187.29079443295,
+      "warm_call_seconds_median": 0.012668578199999999,
+      "cold_call_seconds": [
+        0.392523149,
+        0.402627651,
+        0.398004086
+      ],
+      "cold_median_seconds": 0.398004086,
+      "cold_min_seconds": 0.392523149,
+      "cold_max_seconds": 0.402627651,
+      "speedup_vs_gate_off": 1.0
+    },
+    {
+      "key": "cuda-on-b128-n4097",
+      "bins": 4097,
+      "delta_f": 0.25,
+      "batch": 128,
+      "route": "cuda-on",
+      "label": "Triton CUDA \u00b7 gate on",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b128-n4097-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b128-n4097-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b128-n4097-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.011329069999999998,
+        0.011334251833333335,
+        0.011208000833333334
+      ],
+      "worker_throughputs": [
+        11298.367827191465,
+        11293.202399434951,
+        11420.413140880535
+      ],
+      "throughput_median": 11298.367827191465,
+      "throughput_min": 11293.202399434951,
+      "throughput_max": 11420.413140880535,
+      "warm_call_seconds_median": 0.011329069999999998,
+      "cold_call_seconds": [
+        2.003664955,
+        1.9986975,
+        2.004905955
+      ],
+      "cold_median_seconds": 2.003664955,
+      "cold_min_seconds": 1.9986975,
+      "cold_max_seconds": 2.004905955,
+      "speedup_vs_gate_off": 1.1182363777432744
+    },
+    {
+      "key": "cuda-off-b512-n4097",
+      "bins": 4097,
+      "delta_f": 0.25,
+      "batch": 512,
+      "route": "cuda-off",
+      "label": "Torch CUDA \u00b7 gate off",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b512-n4097-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b512-n4097-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b512-n4097-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.01517696175,
+        0.015150407,
+        0.0152128115
+      ],
+      "worker_throughputs": [
+        33735.342319090974,
+        33794.47166006827,
+        33655.84330023415
+      ],
+      "throughput_median": 33735.342319090974,
+      "throughput_min": 33655.84330023415,
+      "throughput_max": 33794.47166006827,
+      "warm_call_seconds_median": 0.01517696175,
+      "cold_call_seconds": [
+        0.40386717,
+        0.400340348,
+        0.399651017
+      ],
+      "cold_median_seconds": 0.400340348,
+      "cold_min_seconds": 0.399651017,
+      "cold_max_seconds": 0.40386717,
+      "speedup_vs_gate_off": 1.0
+    },
+    {
+      "key": "cuda-on-b512-n4097",
+      "bins": 4097,
+      "delta_f": 0.25,
+      "batch": 512,
+      "route": "cuda-on",
+      "label": "Triton CUDA \u00b7 gate on",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b512-n4097-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b512-n4097-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b512-n4097-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.012514386999999998,
+        0.0123078722,
+        0.012384972800000001
+      ],
+      "worker_throughputs": [
+        40912.91087609805,
+        41599.391972887075,
+        41340.42183766443
+      ],
+      "throughput_median": 41340.42183766443,
+      "throughput_min": 40912.91087609805,
+      "throughput_max": 41599.391972887075,
+      "warm_call_seconds_median": 0.012384972800000001,
+      "cold_call_seconds": [
+        2.097742561,
+        2.095045142,
+        2.007581313
+      ],
+      "cold_median_seconds": 2.095045142,
+      "cold_min_seconds": 2.007581313,
+      "cold_max_seconds": 2.097742561,
+      "speedup_vs_gate_off": 1.2254335956232376
+    },
+    {
+      "key": "cuda-off-b1024-n4097",
+      "bins": 4097,
+      "delta_f": 0.25,
+      "batch": 1024,
+      "route": "cuda-off",
+      "label": "Torch CUDA \u00b7 gate off",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1024-n4097-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1024-n4097-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1024-n4097-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.022124688,
+        0.022116492,
+        0.022281302333333333
+      ],
+      "worker_throughputs": [
+        46283.13854640572,
+        46300.29029920296,
+        45957.81631974325
+      ],
+      "throughput_median": 46283.13854640572,
+      "throughput_min": 45957.81631974325,
+      "throughput_max": 46300.29029920296,
+      "warm_call_seconds_median": 0.022124688,
+      "cold_call_seconds": [
+        0.403979406,
+        0.405832174,
+        0.404746109
+      ],
+      "cold_median_seconds": 0.404746109,
+      "cold_min_seconds": 0.403979406,
+      "cold_max_seconds": 0.405832174,
+      "speedup_vs_gate_off": 1.0
+    },
+    {
+      "key": "cuda-on-b1024-n4097",
+      "bins": 4097,
+      "delta_f": 0.25,
+      "batch": 1024,
+      "route": "cuda-on",
+      "label": "Triton CUDA \u00b7 gate on",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1024-n4097-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1024-n4097-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1024-n4097-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.0139888388,
+        0.013837382200000001,
+        0.0139278225
+      ],
+      "worker_throughputs": [
+        73201.21524311224,
+        74002.43667476352,
+        73521.90193406041
+      ],
+      "throughput_median": 73521.90193406041,
+      "throughput_min": 73201.21524311224,
+      "throughput_max": 74002.43667476352,
+      "warm_call_seconds_median": 0.0139278225,
+      "cold_call_seconds": [
+        2.11407581,
+        2.096972564,
+        2.10397356
+      ],
+      "cold_median_seconds": 2.10397356,
+      "cold_min_seconds": 2.096972564,
+      "cold_max_seconds": 2.11407581,
+      "speedup_vs_gate_off": 1.5885245522047688
+    },
+    {
+      "key": "cuda-off-b1-n32769",
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "batch": 1,
+      "route": "cuda-off",
+      "label": "Torch CUDA \u00b7 gate off",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1-n32769-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1-n32769-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1-n32769-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.0123725228,
+        0.0126219686,
+        0.0125499934
+      ],
+      "worker_throughputs": [
+        80.82426002884391,
+        79.22694404421193,
+        79.6813168045172
+      ],
+      "throughput_median": 79.6813168045172,
+      "throughput_min": 79.22694404421193,
+      "throughput_max": 80.82426002884391,
+      "warm_call_seconds_median": 0.0125499934,
+      "cold_call_seconds": [
+        0.398902087,
+        0.396259411,
+        0.402776768
+      ],
+      "cold_median_seconds": 0.398902087,
+      "cold_min_seconds": 0.396259411,
+      "cold_max_seconds": 0.402776768,
+      "speedup_vs_gate_off": 1.0
+    },
+    {
+      "key": "cuda-on-b1-n32769",
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "batch": 1,
+      "route": "cuda-on",
+      "label": "Triton CUDA \u00b7 gate on",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1-n32769-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1-n32769-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1-n32769-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.01082325,
+        0.0109298075,
+        0.010832642833333335
+      ],
+      "worker_throughputs": [
+        92.3936895110064,
+        91.4929197060424,
+        92.3135762330205
+      ],
+      "throughput_median": 92.3135762330205,
+      "throughput_min": 91.4929197060424,
+      "throughput_max": 92.3936895110064,
+      "warm_call_seconds_median": 0.010832642833333335,
+      "cold_call_seconds": [
+        1.99923291,
+        2.007641263,
+        1.998254609
+      ],
+      "cold_median_seconds": 1.99923291,
+      "cold_min_seconds": 1.998254609,
+      "cold_max_seconds": 2.007641263,
+      "speedup_vs_gate_off": 1.1585347724548043
+    },
+    {
+      "key": "cuda-off-b8-n32769",
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "batch": 8,
+      "route": "cuda-off",
+      "label": "Torch CUDA \u00b7 gate off",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b8-n32769-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b8-n32769-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b8-n32769-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.0123788314,
+        0.0123536226,
+        0.0123382128
+      ],
+      "worker_throughputs": [
+        646.2645577352317,
+        647.5833250725985,
+        648.392123695581
+      ],
+      "throughput_median": 647.5833250725985,
+      "throughput_min": 646.2645577352317,
+      "throughput_max": 648.392123695581,
+      "warm_call_seconds_median": 0.0123536226,
+      "cold_call_seconds": [
+        0.398397499,
+        0.399528434,
+        0.396629317
+      ],
+      "cold_median_seconds": 0.398397499,
+      "cold_min_seconds": 0.396629317,
+      "cold_max_seconds": 0.399528434,
+      "speedup_vs_gate_off": 1.0
+    },
+    {
+      "key": "cuda-on-b8-n32769",
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "batch": 8,
+      "route": "cuda-on",
+      "label": "Triton CUDA \u00b7 gate on",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b8-n32769-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b8-n32769-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b8-n32769-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.010884416166666668,
+        0.010853970999999999,
+        0.010704806166666666
+      ],
+      "worker_throughputs": [
+        734.9957845694893,
+        737.0574327128754,
+        747.3278708129186
+      ],
+      "throughput_median": 737.0574327128754,
+      "throughput_min": 734.9957845694893,
+      "throughput_max": 747.3278708129186,
+      "warm_call_seconds_median": 0.010853970999999999,
+      "cold_call_seconds": [
+        2.005149032,
+        1.998969933,
+        2.011454693
+      ],
+      "cold_median_seconds": 2.005149032,
+      "cold_min_seconds": 1.998969933,
+      "cold_max_seconds": 2.011454693,
+      "speedup_vs_gate_off": 1.1381661697824696
+    },
+    {
+      "key": "cuda-off-b32-n32769",
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "batch": 32,
+      "route": "cuda-off",
+      "label": "Torch CUDA \u00b7 gate off",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b32-n32769-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b32-n32769-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b32-n32769-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.012602870399999999,
+        0.012443632,
+        0.012742916200000001
+      ],
+      "worker_throughputs": [
+        2539.1041075848884,
+        2571.5964599403133,
+        2511.1991241063015
+      ],
+      "throughput_median": 2539.1041075848884,
+      "throughput_min": 2511.1991241063015,
+      "throughput_max": 2571.5964599403133,
+      "warm_call_seconds_median": 0.012602870399999999,
+      "cold_call_seconds": [
+        0.400006558,
+        0.398630017,
+        0.400550442
+      ],
+      "cold_median_seconds": 0.400006558,
+      "cold_min_seconds": 0.398630017,
+      "cold_max_seconds": 0.400550442,
+      "speedup_vs_gate_off": 1.0
+    },
+    {
+      "key": "cuda-on-b32-n32769",
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "batch": 32,
+      "route": "cuda-on",
+      "label": "Triton CUDA \u00b7 gate on",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b32-n32769-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b32-n32769-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b32-n32769-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.011354265,
+        0.0114196692,
+        0.0117533492
+      ],
+      "worker_throughputs": [
+        2818.3242156141328,
+        2802.1827462392694,
+        2722.6282020107083
+      ],
+      "throughput_median": 2802.1827462392694,
+      "throughput_min": 2722.6282020107083,
+      "throughput_max": 2818.3242156141328,
+      "warm_call_seconds_median": 0.0114196692,
+      "cold_call_seconds": [
+        1.99497573,
+        1.995600111,
+        1.995776634
+      ],
+      "cold_median_seconds": 1.995600111,
+      "cold_min_seconds": 1.99497573,
+      "cold_max_seconds": 1.995776634,
+      "speedup_vs_gate_off": 1.1036108121240498
+    },
+    {
+      "key": "cuda-off-b128-n32769",
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "batch": 128,
+      "route": "cuda-off",
+      "label": "Torch CUDA \u00b7 gate off",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b128-n32769-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b128-n32769-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b128-n32769-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.02175327,
+        0.021837401333333336,
+        0.021826158666666665
+      ],
+      "worker_throughputs": [
+        5884.172816316811,
+        5861.503300972747,
+        5864.522564636355
+      ],
+      "throughput_median": 5864.522564636355,
+      "throughput_min": 5861.503300972747,
+      "throughput_max": 5884.172816316811,
+      "warm_call_seconds_median": 0.021826158666666665,
+      "cold_call_seconds": [
+        0.40635305,
+        0.405905043,
+        0.406530845
+      ],
+      "cold_median_seconds": 0.40635305,
+      "cold_min_seconds": 0.405905043,
+      "cold_max_seconds": 0.406530845,
+      "speedup_vs_gate_off": 1.0
+    },
+    {
+      "key": "cuda-on-b128-n32769",
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "batch": 128,
+      "route": "cuda-on",
+      "label": "Triton CUDA \u00b7 gate on",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b128-n32769-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b128-n32769-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b128-n32769-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.013367759000000002,
+        0.01357279425,
+        0.013458433
+      ],
+      "worker_throughputs": [
+        9575.277352022877,
+        9430.629953003228,
+        9510.765480646967
+      ],
+      "throughput_median": 9510.765480646967,
+      "throughput_min": 9430.629953003228,
+      "throughput_max": 9575.277352022877,
+      "warm_call_seconds_median": 0.013458433,
+      "cold_call_seconds": [
+        1.998166912,
+        2.105494437,
+        2.015769829
+      ],
+      "cold_median_seconds": 2.015769829,
+      "cold_min_seconds": 1.998166912,
+      "cold_max_seconds": 2.105494437,
+      "speedup_vs_gate_off": 1.62174590954732
+    },
+    {
+      "key": "cuda-off-b512-n32769",
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "batch": 512,
+      "route": "cuda-off",
+      "label": "Torch CUDA \u00b7 gate off",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b512-n32769-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b512-n32769-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b512-n32769-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.062770188,
+        0.062637451,
+        0.062707478
+      ],
+      "worker_throughputs": [
+        8156.738354838128,
+        8174.023556609927,
+        8164.895421244656
+      ],
+      "throughput_median": 8164.895421244656,
+      "throughput_min": 8156.738354838128,
+      "throughput_max": 8174.023556609927,
+      "warm_call_seconds_median": 0.062707478,
+      "cold_call_seconds": [
+        0.446218832,
+        0.448045964,
+        0.448074383
+      ],
+      "cold_median_seconds": 0.448045964,
+      "cold_min_seconds": 0.446218832,
+      "cold_max_seconds": 0.448074383,
+      "speedup_vs_gate_off": 1.0
+    },
+    {
+      "key": "cuda-on-b512-n32769",
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "batch": 512,
+      "route": "cuda-on",
+      "label": "Triton CUDA \u00b7 gate on",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b512-n32769-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b512-n32769-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b512-n32769-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.021122858666666664,
+        0.021271728333333333,
+        0.020992879000000002
+      ],
+      "worker_throughputs": [
+        24239.143388672648,
+        24069.50634084975,
+        24389.22265021391
+      ],
+      "throughput_median": 24239.143388672648,
+      "throughput_min": 24069.50634084975,
+      "throughput_max": 24389.22265021391,
+      "warm_call_seconds_median": 0.021122858666666664,
+      "cold_call_seconds": [
+        2.016949251,
+        2.007328239,
+        2.005176809
+      ],
+      "cold_median_seconds": 2.007328239,
+      "cold_min_seconds": 2.005176809,
+      "cold_max_seconds": 2.016949251,
+      "speedup_vs_gate_off": 2.9687022476250693
+    },
+    {
+      "key": "cuda-off-b1024-n32769",
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "batch": 1024,
+      "route": "cuda-off",
+      "label": "Torch CUDA \u00b7 gate off",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1024-n32769-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1024-n32769-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-off-b1024-n32769-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.114415945,
+        0.114389919,
+        0.114601289
+      ],
+      "worker_throughputs": [
+        8949.801533343976,
+        8951.837792629261,
+        8935.327071233902
+      ],
+      "throughput_median": 8949.801533343976,
+      "throughput_min": 8935.327071233902,
+      "throughput_max": 8951.837792629261,
+      "warm_call_seconds_median": 0.114415945,
+      "cold_call_seconds": [
+        0.504568937,
+        0.501413455,
+        0.503170653
+      ],
+      "cold_median_seconds": 0.503170653,
+      "cold_min_seconds": 0.501413455,
+      "cold_max_seconds": 0.504568937,
+      "speedup_vs_gate_off": 1.0
+    },
+    {
+      "key": "cuda-on-b1024-n32769",
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "batch": 1024,
+      "route": "cuda-on",
+      "label": "Triton CUDA \u00b7 gate on",
+      "qualified": true,
+      "worker_records": [
+        {
+          "replicate": 1,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1024-n32769-r1.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 2,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1024-n32769-r2.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        },
+        {
+          "replicate": 3,
+          "path": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024/triton/cuda-on-b1024-n32769-r3.json",
+          "status": "ok",
+          "reason": null,
+          "qualified": true,
+          "problems": []
+        }
+      ],
+      "problems": [],
+      "qualified_workers": 3,
+      "worker_medians_seconds": [
+        0.031949323,
+        0.030912522,
+        0.0316334475
+      ],
+      "worker_throughputs": [
+        32050.757382245625,
+        33125.734613306544,
+        32370.799926248947
+      ],
+      "throughput_median": 32370.799926248947,
+      "throughput_min": 32050.757382245625,
+      "throughput_max": 33125.734613306544,
+      "warm_call_seconds_median": 0.0316334475,
+      "cold_call_seconds": [
+        2.121216908,
+        2.127669483,
+        2.114776681
+      ],
+      "cold_median_seconds": 2.121216908,
+      "cold_min_seconds": 2.114776681,
+      "cold_max_seconds": 2.127669483,
+      "speedup_vs_gate_off": 3.61692935934346
+    }
+  ],
+  "plots_generated": false
+}

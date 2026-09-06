@@ -1,0 +1,2549 @@
+{
+  "method": "sequential fresh processes; median of replicate medians; no pooling of inner calls",
+  "groups": {
+    "standard-cpu-b1-t1-double": {
+      "route": "standard-cpu",
+      "batch": 1,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.000515045171875,
+        0.00051461246875,
+        0.000527198609375
+      ],
+      "median_seconds_per_call": 0.000515045171875,
+      "min_replicate_median_seconds": 0.00051461246875,
+      "max_replicate_median_seconds": 0.000527198609375,
+      "cold_call_seconds": [
+        0.000830171,
+        0.000846672,
+        0.000854617
+      ],
+      "waveforms_per_second": 1941.577272454652,
+      "speedup_vs_standard_cpu_same_threads": 1.0
+    },
+    "standard-cpu-b1-t1-single": {
+      "route": "standard-cpu",
+      "batch": 1,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "standard-cpu-b8-t1-double": {
+      "route": "standard-cpu",
+      "batch": 8,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.004155254083333333,
+        0.004127424307692308,
+        0.004120827076923077
+      ],
+      "median_seconds_per_call": 0.004127424307692308,
+      "min_replicate_median_seconds": 0.004120827076923077,
+      "max_replicate_median_seconds": 0.004155254083333333,
+      "cold_call_seconds": [
+        0.00468762,
+        0.004886206,
+        0.004638247
+      ],
+      "waveforms_per_second": 1938.2548058096056,
+      "speedup_vs_standard_cpu_same_threads": 1.0
+    },
+    "standard-cpu-b8-t1-single": {
+      "route": "standard-cpu",
+      "batch": 8,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "standard-cpu-b32-t1-double": {
+      "route": "standard-cpu",
+      "batch": 32,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.01797731525,
+        0.0179187915,
+        0.01851448825
+      ],
+      "median_seconds_per_call": 0.01797731525,
+      "min_replicate_median_seconds": 0.0179187915,
+      "max_replicate_median_seconds": 0.01851448825,
+      "cold_call_seconds": [
+        0.019404248,
+        0.019643531,
+        0.019594297
+      ],
+      "waveforms_per_second": 1780.0210740588752,
+      "speedup_vs_standard_cpu_same_threads": 1.0
+    },
+    "standard-cpu-b32-t1-single": {
+      "route": "standard-cpu",
+      "batch": 32,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "standard-cpu-b128-t1-double": {
+      "route": "standard-cpu",
+      "batch": 128,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.076728854,
+        0.077549635,
+        0.076485739
+      ],
+      "median_seconds_per_call": 0.076728854,
+      "min_replicate_median_seconds": 0.076485739,
+      "max_replicate_median_seconds": 0.077549635,
+      "cold_call_seconds": [
+        0.078769315,
+        0.078811623,
+        0.078676164
+      ],
+      "waveforms_per_second": 1668.2120653072702,
+      "speedup_vs_standard_cpu_same_threads": 1.0
+    },
+    "standard-cpu-b128-t1-single": {
+      "route": "standard-cpu",
+      "batch": 128,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "standard-cpu-b512-t1-double": {
+      "route": "standard-cpu",
+      "batch": 512,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.30990563,
+        0.311860642,
+        0.31026744
+      ],
+      "median_seconds_per_call": 0.31026744,
+      "min_replicate_median_seconds": 0.30990563,
+      "max_replicate_median_seconds": 0.311860642,
+      "cold_call_seconds": [
+        0.313461691,
+        0.317820752,
+        0.313931416
+      ],
+      "waveforms_per_second": 1650.189268973889,
+      "speedup_vs_standard_cpu_same_threads": 1.0
+    },
+    "standard-cpu-b512-t1-single": {
+      "route": "standard-cpu",
+      "batch": 512,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "standard-cpu-b1024-t1-double": {
+      "route": "standard-cpu",
+      "batch": 1024,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.623194742,
+        0.622339755,
+        0.619654808
+      ],
+      "median_seconds_per_call": 0.622339755,
+      "min_replicate_median_seconds": 0.619654808,
+      "max_replicate_median_seconds": 0.623194742,
+      "cold_call_seconds": [
+        0.62728706,
+        0.628600698,
+        0.627646317
+      ],
+      "waveforms_per_second": 1645.4034822184867,
+      "speedup_vs_standard_cpu_same_threads": 1.0
+    },
+    "standard-cpu-b1024-t1-single": {
+      "route": "standard-cpu",
+      "batch": 1024,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-scalar-b1-t1-double": {
+      "route": "torch-cpu-scalar",
+      "batch": 1,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.0014372051212121213,
+        0.0014635615757575757,
+        0.00146799565625
+      ],
+      "median_seconds_per_call": 0.0014635615757575757,
+      "min_replicate_median_seconds": 0.0014372051212121213,
+      "max_replicate_median_seconds": 0.00146799565625,
+      "cold_call_seconds": [
+        0.059123834,
+        0.059453876,
+        0.058464975
+      ],
+      "waveforms_per_second": 683.2647266531135,
+      "speedup_vs_standard_cpu_same_threads": 0.35191219857517775
+    },
+    "torch-cpu-scalar-b1-t1-single": {
+      "route": "torch-cpu-scalar",
+      "batch": 1,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-scalar-b8-t1-double": {
+      "route": "torch-cpu-scalar",
+      "batch": 8,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.0115672968,
+        0.0117924746,
+        0.011562489200000001
+      ],
+      "median_seconds_per_call": 0.0115672968,
+      "min_replicate_median_seconds": 0.011562489200000001,
+      "max_replicate_median_seconds": 0.0117924746,
+      "cold_call_seconds": [
+        0.069779075,
+        0.069457275,
+        0.069475207
+      ],
+      "waveforms_per_second": 691.6049737739936,
+      "speedup_vs_standard_cpu_same_threads": 0.35681839750946026
+    },
+    "torch-cpu-scalar-b8-t1-single": {
+      "route": "torch-cpu-scalar",
+      "batch": 8,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-scalar-b32-t1-double": {
+      "route": "torch-cpu-scalar",
+      "batch": 32,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.0468903245,
+        0.047702575,
+        0.047006307
+      ],
+      "median_seconds_per_call": 0.047006307,
+      "min_replicate_median_seconds": 0.0468903245,
+      "max_replicate_median_seconds": 0.047702575,
+      "cold_call_seconds": [
+        0.120629956,
+        0.121760732,
+        0.125405452
+      ],
+      "waveforms_per_second": 680.7597116701808,
+      "speedup_vs_standard_cpu_same_threads": 0.3824447483185608
+    },
+    "torch-cpu-scalar-b32-t1-single": {
+      "route": "torch-cpu-scalar",
+      "batch": 32,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-scalar-b128-t1-double": {
+      "route": "torch-cpu-scalar",
+      "batch": 128,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.191718928,
+        0.193472548,
+        0.191973346
+      ],
+      "median_seconds_per_call": 0.191973346,
+      "min_replicate_median_seconds": 0.191718928,
+      "max_replicate_median_seconds": 0.193472548,
+      "cold_call_seconds": [
+        0.249679469,
+        0.25268281,
+        0.252359642
+      ],
+      "waveforms_per_second": 666.7592281274298,
+      "speedup_vs_standard_cpu_same_threads": 0.3996849333448613
+    },
+    "torch-cpu-scalar-b128-t1-single": {
+      "route": "torch-cpu-scalar",
+      "batch": 128,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-scalar-b512-t1-double": {
+      "route": "torch-cpu-scalar",
+      "batch": 512,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.805626125,
+        0.802063176,
+        0.798073585
+      ],
+      "median_seconds_per_call": 0.802063176,
+      "min_replicate_median_seconds": 0.798073585,
+      "max_replicate_median_seconds": 0.805626125,
+      "cold_call_seconds": [
+        0.866993836,
+        0.855602105,
+        0.852147729
+      ],
+      "waveforms_per_second": 638.3537049455566,
+      "speedup_vs_standard_cpu_same_threads": 0.38683665985932264
+    },
+    "torch-cpu-scalar-b512-t1-single": {
+      "route": "torch-cpu-scalar",
+      "batch": 512,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-scalar-b1024-t1-double": {
+      "route": "torch-cpu-scalar",
+      "batch": 1024,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        1.598818895,
+        1.726075196,
+        1.63941041
+      ],
+      "median_seconds_per_call": 1.63941041,
+      "min_replicate_median_seconds": 1.598818895,
+      "max_replicate_median_seconds": 1.726075196,
+      "cold_call_seconds": [
+        1.661483163,
+        1.696085864,
+        1.70671208
+      ],
+      "waveforms_per_second": 624.6147967304904,
+      "speedup_vs_standard_cpu_same_threads": 0.37961193317053543
+    },
+    "torch-cpu-scalar-b1024-t1-single": {
+      "route": "torch-cpu-scalar",
+      "batch": 1024,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-batch-b1-t1-double": {
+      "route": "torch-cpu-batch",
+      "batch": 1,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.00445855225,
+        0.004509630727272728,
+        0.00449932390909091
+      ],
+      "median_seconds_per_call": 0.00449932390909091,
+      "min_replicate_median_seconds": 0.00445855225,
+      "max_replicate_median_seconds": 0.004509630727272728,
+      "cold_call_seconds": [
+        0.011050125,
+        0.011045957,
+        0.010913936
+      ],
+      "waveforms_per_second": 222.25561444453783,
+      "speedup_vs_standard_cpu_same_threads": 0.11447168114177073
+    },
+    "torch-cpu-batch-b1-t1-single": {
+      "route": "torch-cpu-batch",
+      "batch": 1,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-batch-b8-t1-double": {
+      "route": "torch-cpu-batch",
+      "batch": 8,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.009289589,
+        0.0105077805,
+        0.009918602
+      ],
+      "median_seconds_per_call": 0.009918602,
+      "min_replicate_median_seconds": 0.009289589,
+      "max_replicate_median_seconds": 0.0105077805,
+      "cold_call_seconds": [
+        0.019883576,
+        0.019422204,
+        0.019143226
+      ],
+      "waveforms_per_second": 806.5652800666868,
+      "speedup_vs_standard_cpu_same_threads": 0.41612964283598713
+    },
+    "torch-cpu-batch-b8-t1-single": {
+      "route": "torch-cpu-batch",
+      "batch": 8,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-batch-b32-t1-double": {
+      "route": "torch-cpu-batch",
+      "batch": 32,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.038496508,
+        0.038384741,
+        0.0386467405
+      ],
+      "median_seconds_per_call": 0.038496508,
+      "min_replicate_median_seconds": 0.038384741,
+      "max_replicate_median_seconds": 0.0386467405,
+      "cold_call_seconds": [
+        0.057020854,
+        0.056028115,
+        0.055327569
+      ],
+      "waveforms_per_second": 831.2442260996764,
+      "speedup_vs_standard_cpu_same_threads": 0.46698560944800505
+    },
+    "torch-cpu-batch-b32-t1-single": {
+      "route": "torch-cpu-batch",
+      "batch": 32,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-batch-b128-t1-double": {
+      "route": "torch-cpu-batch",
+      "batch": 128,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.195597929,
+        0.196295944,
+        0.196029696
+      ],
+      "median_seconds_per_call": 0.196029696,
+      "min_replicate_median_seconds": 0.195597929,
+      "max_replicate_median_seconds": 0.196295944,
+      "cold_call_seconds": [
+        0.251102544,
+        0.250302575,
+        0.2495841
+      ],
+      "waveforms_per_second": 652.9622940393684,
+      "speedup_vs_standard_cpu_same_threads": 0.39141444161602945
+    },
+    "torch-cpu-batch-b128-t1-single": {
+      "route": "torch-cpu-batch",
+      "batch": 128,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-batch-b512-t1-double": {
+      "route": "torch-cpu-batch",
+      "batch": 512,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.791574325,
+        0.794853333,
+        0.790844689
+      ],
+      "median_seconds_per_call": 0.791574325,
+      "min_replicate_median_seconds": 0.790844689,
+      "max_replicate_median_seconds": 0.794853333,
+      "cold_call_seconds": [
+        1.005670771,
+        0.928605262,
+        0.981797441
+      ],
+      "waveforms_per_second": 646.812287652205,
+      "speedup_vs_standard_cpu_same_threads": 0.39196248564529934
+    },
+    "torch-cpu-batch-b512-t1-single": {
+      "route": "torch-cpu-batch",
+      "batch": 512,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-batch-b1024-t1-double": {
+      "route": "torch-cpu-batch",
+      "batch": 1024,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        2.183588581,
+        2.181821275,
+        2.322026421
+      ],
+      "median_seconds_per_call": 2.183588581,
+      "min_replicate_median_seconds": 2.181821275,
+      "max_replicate_median_seconds": 2.322026421,
+      "cold_call_seconds": [
+        2.186140364,
+        2.197672009,
+        2.330009592
+      ],
+      "waveforms_per_second": 468.95280956774707,
+      "speedup_vs_standard_cpu_same_threads": 0.2850077896610873
+    },
+    "torch-cpu-batch-b1024-t1-single": {
+      "route": "torch-cpu-batch",
+      "batch": 1024,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cuda-scalar-b1-t1-double": {
+      "route": "torch-cuda-scalar",
+      "batch": 1,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.0027708675555555553,
+        0.0027987780555555554,
+        0.002771552666666667
+      ],
+      "median_seconds_per_call": 0.002771552666666667,
+      "min_replicate_median_seconds": 0.0027708675555555553,
+      "max_replicate_median_seconds": 0.0027987780555555554,
+      "cold_call_seconds": [
+        0.221382323,
+        0.220571436,
+        0.220922808
+      ],
+      "waveforms_per_second": 360.8085864746331,
+      "speedup_vs_standard_cpu_same_threads": 0.1858327204348032
+    },
+    "torch-cuda-scalar-b1-t1-single": {
+      "route": "torch-cuda-scalar",
+      "batch": 1,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cuda-scalar-b8-t1-double": {
+      "route": "torch-cuda-scalar",
+      "batch": 8,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.02193088333333333,
+        0.022219181333333334,
+        0.021976839666666668
+      ],
+      "median_seconds_per_call": 0.021976839666666668,
+      "min_replicate_median_seconds": 0.02193088333333333,
+      "max_replicate_median_seconds": 0.022219181333333334,
+      "cold_call_seconds": [
+        0.242449686,
+        0.241641754,
+        0.240231646
+      ],
+      "waveforms_per_second": 364.0195824941102,
+      "speedup_vs_standard_cpu_same_threads": 0.18780790915777446
+    },
+    "torch-cuda-scalar-b8-t1-single": {
+      "route": "torch-cuda-scalar",
+      "batch": 8,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cuda-scalar-b32-t1-double": {
+      "route": "torch-cuda-scalar",
+      "batch": 32,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.08985042,
+        0.088081776,
+        0.088690645
+      ],
+      "median_seconds_per_call": 0.088690645,
+      "min_replicate_median_seconds": 0.088081776,
+      "max_replicate_median_seconds": 0.08985042,
+      "cold_call_seconds": [
+        0.30973782,
+        0.308863783,
+        0.311416575
+      ],
+      "waveforms_per_second": 360.8046823878663,
+      "speedup_vs_standard_cpu_same_threads": 0.20269685996758735
+    },
+    "torch-cuda-scalar-b32-t1-single": {
+      "route": "torch-cuda-scalar",
+      "batch": 32,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cuda-scalar-b128-t1-double": {
+      "route": "torch-cuda-scalar",
+      "batch": 128,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.355489851,
+        0.352495724,
+        0.352951249
+      ],
+      "median_seconds_per_call": 0.352951249,
+      "min_replicate_median_seconds": 0.352495724,
+      "max_replicate_median_seconds": 0.355489851,
+      "cold_call_seconds": [
+        0.576527627,
+        0.572712224,
+        0.570177912
+      ],
+      "waveforms_per_second": 362.65631687848196,
+      "speedup_vs_standard_cpu_same_threads": 0.2173922155464592
+    },
+    "torch-cuda-scalar-b128-t1-single": {
+      "route": "torch-cuda-scalar",
+      "batch": 128,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cuda-scalar-b512-t1-double": {
+      "route": "torch-cuda-scalar",
+      "batch": 512,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        1.458227687,
+        1.453387569,
+        1.446454985
+      ],
+      "median_seconds_per_call": 1.453387569,
+      "min_replicate_median_seconds": 1.446454985,
+      "max_replicate_median_seconds": 1.458227687,
+      "cold_call_seconds": [
+        1.692177907,
+        1.694887562,
+        1.677980234
+      ],
+      "waveforms_per_second": 352.2804315384921,
+      "speedup_vs_standard_cpu_same_threads": 0.21347880401473285
+    },
+    "torch-cuda-scalar-b512-t1-single": {
+      "route": "torch-cuda-scalar",
+      "batch": 512,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cuda-scalar-b1024-t1-double": {
+      "route": "torch-cuda-scalar",
+      "batch": 1024,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        2.947999988,
+        2.903950188,
+        2.921864341
+      ],
+      "median_seconds_per_call": 2.921864341,
+      "min_replicate_median_seconds": 2.903950188,
+      "max_replicate_median_seconds": 2.947999988,
+      "cold_call_seconds": [
+        3.156073551,
+        3.114867035,
+        3.135105387
+      ],
+      "waveforms_per_second": 350.4611715304821,
+      "speedup_vs_standard_cpu_same_threads": 0.21299406213602853
+    },
+    "torch-cuda-scalar-b1024-t1-single": {
+      "route": "torch-cuda-scalar",
+      "batch": 1024,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cuda-batch-b1-t1-double": {
+      "route": "torch-cuda-batch",
+      "batch": 1,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.0122655264,
+        0.012409945,
+        0.012465498
+      ],
+      "median_seconds_per_call": 0.012409945,
+      "min_replicate_median_seconds": 0.0122655264,
+      "max_replicate_median_seconds": 0.012465498,
+      "cold_call_seconds": [
+        0.404584469,
+        0.401881727,
+        0.39868849
+      ],
+      "waveforms_per_second": 80.5805344020461,
+      "speedup_vs_standard_cpu_same_threads": 0.041502615190881186
+    },
+    "torch-cuda-batch-b1-t1-single": {
+      "route": "torch-cuda-batch",
+      "batch": 1,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cuda-batch-b8-t1-double": {
+      "route": "torch-cuda-batch",
+      "batch": 8,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.0126315295,
+        0.01277211025,
+        0.01278512725
+      ],
+      "median_seconds_per_call": 0.01277211025,
+      "min_replicate_median_seconds": 0.0126315295,
+      "max_replicate_median_seconds": 0.01278512725,
+      "cold_call_seconds": [
+        0.400644773,
+        0.402081485,
+        0.399523648
+      ],
+      "waveforms_per_second": 626.3647778956497,
+      "speedup_vs_standard_cpu_same_threads": 0.3231591512210997
+    },
+    "torch-cuda-batch-b8-t1-single": {
+      "route": "torch-cuda-batch",
+      "batch": 8,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cuda-batch-b32-t1-double": {
+      "route": "torch-cuda-batch",
+      "batch": 32,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.01249785175,
+        0.01256453525,
+        0.01245646075
+      ],
+      "median_seconds_per_call": 0.01249785175,
+      "min_replicate_median_seconds": 0.01245646075,
+      "max_replicate_median_seconds": 0.01256453525,
+      "cold_call_seconds": [
+        0.400118199,
+        0.400170554,
+        0.400658963
+      ],
+      "waveforms_per_second": 2560.4400372247974,
+      "speedup_vs_standard_cpu_same_threads": 1.4384324289972474
+    },
+    "torch-cuda-batch-b32-t1-single": {
+      "route": "torch-cuda-batch",
+      "batch": 32,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cuda-batch-b128-t1-double": {
+      "route": "torch-cuda-batch",
+      "batch": 128,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.01280360425,
+        0.01261289875,
+        0.01281672375
+      ],
+      "median_seconds_per_call": 0.01280360425,
+      "min_replicate_median_seconds": 0.01261289875,
+      "max_replicate_median_seconds": 0.01281672375,
+      "cold_call_seconds": [
+        0.40167522,
+        0.401536785,
+        0.399985961
+      ],
+      "waveforms_per_second": 9997.184972348705,
+      "speedup_vs_standard_cpu_same_threads": 5.992754266830763
+    },
+    "torch-cuda-batch-b128-t1-single": {
+      "route": "torch-cuda-batch",
+      "batch": 128,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cuda-batch-b512-t1-double": {
+      "route": "torch-cuda-batch",
+      "batch": 512,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.015247567,
+        0.01507612525,
+        0.01564139575
+      ],
+      "median_seconds_per_call": 0.015247567,
+      "min_replicate_median_seconds": 0.01507612525,
+      "max_replicate_median_seconds": 0.01564139575,
+      "cold_call_seconds": [
+        0.402110903,
+        0.386687163,
+        0.406729551
+      ],
+      "waveforms_per_second": 33579.127738871386,
+      "speedup_vs_standard_cpu_same_threads": 20.348652345649636
+    },
+    "torch-cuda-batch-b512-t1-single": {
+      "route": "torch-cuda-batch",
+      "batch": 512,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cuda-batch-b1024-t1-double": {
+      "route": "torch-cuda-batch",
+      "batch": 1024,
+      "threads": 1,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.02203501033333333,
+        0.022315449666666667,
+        0.02228042666666667
+      ],
+      "median_seconds_per_call": 0.02228042666666667,
+      "min_replicate_median_seconds": 0.02203501033333333,
+      "max_replicate_median_seconds": 0.022315449666666667,
+      "cold_call_seconds": [
+        0.409814204,
+        0.406695446,
+        0.415717988
+      ],
+      "waveforms_per_second": 45959.62255659975,
+      "speedup_vs_standard_cpu_same_threads": 27.932129142350355
+    },
+    "torch-cuda-batch-b1024-t1-single": {
+      "route": "torch-cuda-batch",
+      "batch": 1024,
+      "threads": 1,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "standard-cpu-b1-t4-double": {
+      "route": "standard-cpu",
+      "batch": 1,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.000515284734375,
+        0.000517165171875,
+        0.0005455408125
+      ],
+      "median_seconds_per_call": 0.000517165171875,
+      "min_replicate_median_seconds": 0.000515284734375,
+      "max_replicate_median_seconds": 0.0005455408125,
+      "cold_call_seconds": [
+        0.000842062,
+        0.000831601,
+        0.000985863
+      ],
+      "waveforms_per_second": 1933.6182217655257,
+      "speedup_vs_standard_cpu_same_threads": 1.0
+    },
+    "standard-cpu-b1-t4-single": {
+      "route": "standard-cpu",
+      "batch": 1,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "standard-cpu-b8-t4-double": {
+      "route": "standard-cpu",
+      "batch": 8,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.00415261975,
+        0.004118975333333334,
+        0.004133206615384615
+      ],
+      "median_seconds_per_call": 0.004133206615384615,
+      "min_replicate_median_seconds": 0.004118975333333334,
+      "max_replicate_median_seconds": 0.00415261975,
+      "cold_call_seconds": [
+        0.004674222,
+        0.005192341,
+        0.004815569
+      ],
+      "waveforms_per_second": 1935.5432100157811,
+      "speedup_vs_standard_cpu_same_threads": 1.0
+    },
+    "standard-cpu-b8-t4-single": {
+      "route": "standard-cpu",
+      "batch": 8,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "standard-cpu-b32-t4-double": {
+      "route": "standard-cpu",
+      "batch": 32,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.017632934,
+        0.0186418385,
+        0.01861789825
+      ],
+      "median_seconds_per_call": 0.01861789825,
+      "min_replicate_median_seconds": 0.017632934,
+      "max_replicate_median_seconds": 0.0186418385,
+      "cold_call_seconds": [
+        0.019275371,
+        0.019720832,
+        0.019654807
+      ],
+      "waveforms_per_second": 1718.776178186493,
+      "speedup_vs_standard_cpu_same_threads": 1.0
+    },
+    "standard-cpu-b32-t4-single": {
+      "route": "standard-cpu",
+      "batch": 32,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "standard-cpu-b128-t4-double": {
+      "route": "standard-cpu",
+      "batch": 128,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.077553716,
+        0.076722605,
+        0.07699533
+      ],
+      "median_seconds_per_call": 0.07699533,
+      "min_replicate_median_seconds": 0.076722605,
+      "max_replicate_median_seconds": 0.077553716,
+      "cold_call_seconds": [
+        0.079543475,
+        0.078171603,
+        0.078256753
+      ],
+      "waveforms_per_second": 1662.4384881524632,
+      "speedup_vs_standard_cpu_same_threads": 1.0
+    },
+    "standard-cpu-b128-t4-single": {
+      "route": "standard-cpu",
+      "batch": 128,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "standard-cpu-b512-t4-double": {
+      "route": "standard-cpu",
+      "batch": 512,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.309413714,
+        0.31062505,
+        0.310486886
+      ],
+      "median_seconds_per_call": 0.310486886,
+      "min_replicate_median_seconds": 0.309413714,
+      "max_replicate_median_seconds": 0.31062505,
+      "cold_call_seconds": [
+        0.31434869,
+        0.315721901,
+        0.315291074
+      ],
+      "waveforms_per_second": 1649.0229477840169,
+      "speedup_vs_standard_cpu_same_threads": 1.0
+    },
+    "standard-cpu-b512-t4-single": {
+      "route": "standard-cpu",
+      "batch": 512,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "standard-cpu-b1024-t4-double": {
+      "route": "standard-cpu",
+      "batch": 1024,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.62366025,
+        0.628653877,
+        0.620966995
+      ],
+      "median_seconds_per_call": 0.62366025,
+      "min_replicate_median_seconds": 0.620966995,
+      "max_replicate_median_seconds": 0.628653877,
+      "cold_call_seconds": [
+        0.635067686,
+        0.634790243,
+        0.631633962
+      ],
+      "waveforms_per_second": 1641.9196188950634,
+      "speedup_vs_standard_cpu_same_threads": 1.0
+    },
+    "standard-cpu-b1024-t4-single": {
+      "route": "standard-cpu",
+      "batch": 1024,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-scalar-b1-t4-double": {
+      "route": "torch-cpu-scalar",
+      "batch": 1,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.0014208822352941176,
+        0.0014316212424242425,
+        0.0014412136363636363
+      ],
+      "median_seconds_per_call": 0.0014316212424242425,
+      "min_replicate_median_seconds": 0.0014208822352941176,
+      "max_replicate_median_seconds": 0.0014412136363636363,
+      "cold_call_seconds": [
+        0.058620257,
+        0.058875609,
+        0.060366966
+      ],
+      "waveforms_per_second": 698.5087747836469,
+      "speedup_vs_standard_cpu_same_threads": 0.36124441056718043
+    },
+    "torch-cpu-scalar-b1-t4-single": {
+      "route": "torch-cpu-scalar",
+      "batch": 1,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-scalar-b8-t4-double": {
+      "route": "torch-cpu-scalar",
+      "batch": 8,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.0116436894,
+        0.011434478,
+        0.0113947428
+      ],
+      "median_seconds_per_call": 0.011434478,
+      "min_replicate_median_seconds": 0.0113947428,
+      "max_replicate_median_seconds": 0.0116436894,
+      "cold_call_seconds": [
+        0.071692535,
+        0.070177171,
+        0.070154247
+      ],
+      "waveforms_per_second": 699.6384093790726,
+      "speedup_vs_standard_cpu_same_threads": 0.3614687627528441
+    },
+    "torch-cpu-scalar-b8-t4-single": {
+      "route": "torch-cpu-scalar",
+      "batch": 8,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-scalar-b32-t4-double": {
+      "route": "torch-cpu-scalar",
+      "batch": 32,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.046689027,
+        0.0466437615,
+        0.046402125
+      ],
+      "median_seconds_per_call": 0.0466437615,
+      "min_replicate_median_seconds": 0.046402125,
+      "max_replicate_median_seconds": 0.046689027,
+      "cold_call_seconds": [
+        0.105614554,
+        0.106433471,
+        0.106759757
+      ],
+      "waveforms_per_second": 686.0510167045597,
+      "speedup_vs_standard_cpu_same_threads": 0.3991508757285795
+    },
+    "torch-cpu-scalar-b32-t4-single": {
+      "route": "torch-cpu-scalar",
+      "batch": 32,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-scalar-b128-t4-double": {
+      "route": "torch-cpu-scalar",
+      "batch": 128,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.195884464,
+        0.197115679,
+        0.195669967
+      ],
+      "median_seconds_per_call": 0.195884464,
+      "min_replicate_median_seconds": 0.195669967,
+      "max_replicate_median_seconds": 0.197115679,
+      "cold_call_seconds": [
+        0.254217245,
+        0.255457998,
+        0.254285171
+      ],
+      "waveforms_per_second": 653.4464111457047,
+      "speedup_vs_standard_cpu_same_threads": 0.39306501612093137
+    },
+    "torch-cpu-scalar-b128-t4-single": {
+      "route": "torch-cpu-scalar",
+      "batch": 128,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-scalar-b512-t4-double": {
+      "route": "torch-cpu-scalar",
+      "batch": 512,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.792596993,
+        0.796914673,
+        0.795463872
+      ],
+      "median_seconds_per_call": 0.795463872,
+      "min_replicate_median_seconds": 0.792596993,
+      "max_replicate_median_seconds": 0.796914673,
+      "cold_call_seconds": [
+        0.848461374,
+        0.854362373,
+        0.853856427
+      ],
+      "waveforms_per_second": 643.6495961943574,
+      "speedup_vs_standard_cpu_same_threads": 0.3903217945264521
+    },
+    "torch-cpu-scalar-b512-t4-single": {
+      "route": "torch-cpu-scalar",
+      "batch": 512,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-scalar-b1024-t4-double": {
+      "route": "torch-cpu-scalar",
+      "batch": 1024,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        1.61999734,
+        1.609419142,
+        1.637529632
+      ],
+      "median_seconds_per_call": 1.61999734,
+      "min_replicate_median_seconds": 1.609419142,
+      "max_replicate_median_seconds": 1.637529632,
+      "cold_call_seconds": [
+        1.666939052,
+        1.65051399,
+        1.703992276
+      ],
+      "waveforms_per_second": 632.0998033243684,
+      "speedup_vs_standard_cpu_same_threads": 0.3849760950842055
+    },
+    "torch-cpu-scalar-b1024-t4-single": {
+      "route": "torch-cpu-scalar",
+      "batch": 1024,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-batch-b1-t4-double": {
+      "route": "torch-cpu-batch",
+      "batch": 1,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.004460588090909091,
+        0.004433152833333333,
+        0.004461310166666667
+      ],
+      "median_seconds_per_call": 0.004460588090909091,
+      "min_replicate_median_seconds": 0.004433152833333333,
+      "max_replicate_median_seconds": 0.004461310166666667,
+      "cold_call_seconds": [
+        0.01111052,
+        0.011091685,
+        0.011108897
+      ],
+      "waveforms_per_second": 224.1856857480411,
+      "speedup_vs_standard_cpu_same_threads": 0.11594102870180041
+    },
+    "torch-cpu-batch-b1-t4-single": {
+      "route": "torch-cpu-batch",
+      "batch": 1,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-batch-b8-t4-double": {
+      "route": "torch-cpu-batch",
+      "batch": 8,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.009012162,
+        0.009112229,
+        0.0090517328
+      ],
+      "median_seconds_per_call": 0.0090517328,
+      "min_replicate_median_seconds": 0.009012162,
+      "max_replicate_median_seconds": 0.009112229,
+      "cold_call_seconds": [
+        0.018879508,
+        0.019073113,
+        0.018845294
+      ],
+      "waveforms_per_second": 883.808678046705,
+      "speedup_vs_standard_cpu_same_threads": 0.4566204843546216
+    },
+    "torch-cpu-batch-b8-t4-single": {
+      "route": "torch-cpu-batch",
+      "batch": 8,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-batch-b32-t4-double": {
+      "route": "torch-cpu-batch",
+      "batch": 32,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.014987661666666666,
+        0.015365211666666668,
+        0.015427268666666667
+      ],
+      "median_seconds_per_call": 0.015365211666666668,
+      "min_replicate_median_seconds": 0.014987661666666666,
+      "max_replicate_median_seconds": 0.015427268666666667,
+      "cold_call_seconds": [
+        0.026493392,
+        0.026112021,
+        0.026509282
+      ],
+      "waveforms_per_second": 2082.6266955645583,
+      "speedup_vs_standard_cpu_same_threads": 1.2116916222110834
+    },
+    "torch-cpu-batch-b32-t4-single": {
+      "route": "torch-cpu-batch",
+      "batch": 32,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-batch-b128-t4-double": {
+      "route": "torch-cpu-batch",
+      "batch": 128,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.074753846,
+        0.075726854,
+        0.076022522
+      ],
+      "median_seconds_per_call": 0.075726854,
+      "min_replicate_median_seconds": 0.074753846,
+      "max_replicate_median_seconds": 0.076022522,
+      "cold_call_seconds": [
+        0.097332451,
+        0.099525475,
+        0.09767108
+      ],
+      "waveforms_per_second": 1690.2854567284678,
+      "speedup_vs_standard_cpu_same_threads": 1.0167506760547587
+    },
+    "torch-cpu-batch-b128-t4-single": {
+      "route": "torch-cpu-batch",
+      "batch": 128,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-batch-b512-t4-double": {
+      "route": "torch-cpu-batch",
+      "batch": 512,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.308536387,
+        0.308915321,
+        0.309009488
+      ],
+      "median_seconds_per_call": 0.308915321,
+      "min_replicate_median_seconds": 0.308536387,
+      "max_replicate_median_seconds": 0.309009488,
+      "cold_call_seconds": [
+        0.379024495,
+        0.381172621,
+        0.370858783
+      ],
+      "waveforms_per_second": 1657.4121294553725,
+      "speedup_vs_standard_cpu_same_threads": 1.005087365025835
+    },
+    "torch-cpu-batch-b512-t4-single": {
+      "route": "torch-cpu-batch",
+      "batch": 512,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    },
+    "torch-cpu-batch-b1024-t4-double": {
+      "route": "torch-cpu-batch",
+      "batch": 1024,
+      "threads": 4,
+      "precision": "double",
+      "replicate_count": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "replicate_medians_seconds": [
+        0.944198443,
+        0.945833389,
+        0.916175974
+      ],
+      "median_seconds_per_call": 0.944198443,
+      "min_replicate_median_seconds": 0.916175974,
+      "max_replicate_median_seconds": 0.945833389,
+      "cold_call_seconds": [
+        0.935982314,
+        0.945945966,
+        0.910365921
+      ],
+      "waveforms_per_second": 1084.5177807606276,
+      "speedup_vs_standard_cpu_same_threads": 0.6605181936314631
+    },
+    "torch-cpu-batch-b1024-t4-single": {
+      "route": "torch-cpu-batch",
+      "batch": 1024,
+      "threads": 4,
+      "precision": "single",
+      "replicate_count": 3,
+      "valid_replicates": 0,
+      "statuses": [
+        "unsupported",
+        "unsupported",
+        "unsupported"
+      ],
+      "reasons": [
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector",
+        "Public TaylorF2 CPU/CUDA outputs are complex128; no single precision selector"
+      ],
+      "eligible": false
+    }
+  }
+}

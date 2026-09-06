@@ -1,0 +1,29 @@
+{
+  "label": "r2-b1024-branch_standard",
+  "route": "branch_standard",
+  "batch": 1024,
+  "replicate": 2,
+  "cell_index": 17,
+  "started_utc": "2026-09-06T13:31:42.909649+00:00",
+  "status": "running",
+  "session": "cpu-t4",
+  "pid": 2228714,
+  "cwd": "/home/xangma/pycbc-torch-batch1024-20260906/cpu",
+  "worker_arguments": {
+    "python_bin": "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "script_path": "/home/xangma/pycbc-torch-batch1024-20260906/cpu/tools/bench_production_live_batch.py",
+    "route": "branch_standard",
+    "source_root": "/home/xangma/pycbc-torch-batch1024-20260906/cpu",
+    "batch": 1024,
+    "size": 131072,
+    "num_blocks": 3,
+    "threads": 4,
+    "samples": 5,
+    "warmups": 2,
+    "snr_threshold": 5.5,
+    "cuda_device": 0,
+    "seed": 28801,
+    "affinity": "8-11",
+    "call_surface": "public"
+  }
+}

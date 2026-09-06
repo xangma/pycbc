@@ -1,0 +1,35 @@
+{
+  "label": "probe-cpu-torch_cpu-t1-b512",
+  "started_utc": "2026-09-06T13:38:55.577110+00:00",
+  "command": [
+    "taskset",
+    "-c",
+    "8-11",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-batch1024-20260906/live-support/live_dispatch_probe.py",
+    "--source-root",
+    "/home/xangma/pycbc-torch-batch1024-20260906/cpu",
+    "--expected-revision",
+    "d544420232428225c214a4be84fbe1262a6d307b",
+    "--route",
+    "torch_cpu",
+    "--threads",
+    "1",
+    "--batch",
+    "512",
+    "--size",
+    "131072",
+    "--cuda-device",
+    "0",
+    "--output",
+    "/home/xangma/pycbc-torch-batch1024-20260906/probes/probe-cpu-torch_cpu-t1-b512.json"
+  ],
+  "cwd": "/home/xangma/pycbc-torch-batch1024-20260906/cpu",
+  "capacity_before": {
+    "utc": "2026-09-06T13:38:55.577123+00:00",
+    "available_ram_gib": 217.68658447265625
+  },
+  "pid": 2719883,
+  "returncode": 0,
+  "finished_utc": "2026-09-06T13:39:33.505015+00:00"
+}

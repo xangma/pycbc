@@ -1,0 +1,42 @@
+{
+  "label": "probe-main-torch_cuda_native-t1-b128",
+  "started_utc": "2026-09-06T13:44:50.769664+00:00",
+  "command": [
+    "taskset",
+    "-c",
+    "8-11",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-batch1024-20260906/live-support/live_dispatch_probe.py",
+    "--source-root",
+    "/home/xangma/pycbc-torch-batch1024-20260906/main",
+    "--expected-revision",
+    "4885b64560e9f39b740e85b6a976898869dd360e",
+    "--route",
+    "torch_cuda_native",
+    "--threads",
+    "1",
+    "--batch",
+    "128",
+    "--size",
+    "131072",
+    "--cuda-device",
+    "0",
+    "--output",
+    "/home/xangma/pycbc-torch-batch1024-20260906/probes/probe-main-torch_cuda_native-t1-b128.json"
+  ],
+  "cwd": "/home/xangma/pycbc-torch-batch1024-20260906/main",
+  "capacity_before": {
+    "utc": "2026-09-06T13:44:50.769674+00:00",
+    "available_ram_gib": 217.8492660522461,
+    "gpu": {
+      "uuid": "GPU-2e198102-8223-da7b-4944-2df0e9400916",
+      "name": "NVIDIA GeForce RTX 4090",
+      "utilization_percent": 0.0,
+      "used_mib": 2507.0,
+      "free_mib": 21595.0
+    }
+  },
+  "pid": 2879502,
+  "returncode": 0,
+  "finished_utc": "2026-09-06T13:44:56.729316+00:00"
+}

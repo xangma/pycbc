@@ -1,0 +1,1184 @@
+{
+  "finished_utc": "2026-09-06T13:59:09.698138+00:00",
+  "sources": [
+    {
+      "name": "main",
+      "revision": "4885b64560e9f39b740e85b6a976898869dd360e",
+      "status": "",
+      "tree": "f708834abcbe776048a5f2fa4060048764401bec",
+      "native_sha256": {
+        "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+        "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+        "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+        "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+        "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+        "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+        "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+        "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+        "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+        "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+        "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707"
+      },
+      "native_unchanged": true
+    },
+    {
+      "name": "fft",
+      "revision": "d840198592a0ca128f4f89d90987a7469ec37c8f",
+      "status": "",
+      "tree": "ada2582a9ebcf03135bb1bb0f7b488104908f31e",
+      "native_sha256": {
+        "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+        "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+        "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+        "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+        "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+        "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+        "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+        "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+        "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+        "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+        "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707"
+      },
+      "native_unchanged": true
+    },
+    {
+      "name": "cpu",
+      "revision": "d544420232428225c214a4be84fbe1262a6d307b",
+      "status": "",
+      "tree": "279d683153d1c4787f449d20a7abb634bdda3ee5",
+      "native_sha256": {
+        "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+        "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+        "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+        "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "6c22e1d2681423bedf6368afc8b7bd8b7d9c8797e1dde906f79a0a11f85b4e11",
+        "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+        "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+        "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+        "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "39776c527cdfaac6b5cb58423fdf5b19a5d0933c4df4cc5bd01a56875d148efe",
+        "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+        "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+        "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707"
+      },
+      "native_unchanged": true
+    }
+  ],
+  "correctness_sources": [
+    {
+      "name": "main",
+      "base_revision": "4885b64560e9f39b740e85b6a976898869dd360e",
+      "revision": "efd63078f7211e7f1f428d1eaa4ec5a84a5aaf5f",
+      "cwd": "/home/xangma/pycbc-torch-batch1024-20260906/correctness-sources/main",
+      "runtime_patch_sha256": "cc85f4d652377dae0cc2e5c194f609620773539f2954aa09c3fe0fc430b1dad0",
+      "file_sha256": {
+        "pycbc/filter/matchedfilter.py": "8d40acb0d70547bac98464a165b775d4943d822de21e03e17bbde7fff518cc2e"
+      },
+      "native_sha256": {
+        "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+        "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+        "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+        "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+        "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+        "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+        "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+        "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+        "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+        "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+        "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66"
+      },
+      "generated_metadata_sha256": {
+        "pycbc/version.py": "aa687f2ea5a97ff59e0cabe9bc408e41cc6b45efbe47e879397b7660fa5ae2ba"
+      },
+      "status": "",
+      "verified_unchanged": true
+    },
+    {
+      "name": "fft",
+      "base_revision": "d840198592a0ca128f4f89d90987a7469ec37c8f",
+      "revision": "bca6251a931fa2eaa0338485636c2cdbe6765b0b",
+      "cwd": "/home/xangma/pycbc-torch-batch1024-20260906/correctness-sources/fft",
+      "runtime_patch_sha256": "cc85f4d652377dae0cc2e5c194f609620773539f2954aa09c3fe0fc430b1dad0",
+      "file_sha256": {
+        "pycbc/filter/matchedfilter.py": "8d40acb0d70547bac98464a165b775d4943d822de21e03e17bbde7fff518cc2e"
+      },
+      "native_sha256": {
+        "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+        "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+        "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+        "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+        "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+        "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+        "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+        "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+        "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+        "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+        "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66"
+      },
+      "generated_metadata_sha256": {
+        "pycbc/version.py": "20e478937591ac05add83360f1036f4eff0d77bb7d28bc0584f26ff35ac53184"
+      },
+      "status": "",
+      "verified_unchanged": true
+    },
+    {
+      "name": "cpu",
+      "base_revision": "d544420232428225c214a4be84fbe1262a6d307b",
+      "revision": "d90513f3956925b6fe368c2c57b16abb32bd822d",
+      "cwd": "/home/xangma/pycbc-torch-batch1024-20260906/correctness-sources/cpu",
+      "runtime_patch_sha256": "abf0076655887f2931784b672e3e9d95a00bbca0e4980f7a9a47f3d3b22fd42f",
+      "file_sha256": {
+        "pycbc/filter/matchedfilter.py": "3640bc607ee916684ae26cf7f28f069d1a7d5a2cab5509f01fae96d12ad8c434"
+      },
+      "native_sha256": {
+        "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+        "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+        "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+        "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "6c22e1d2681423bedf6368afc8b7bd8b7d9c8797e1dde906f79a0a11f85b4e11",
+        "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+        "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+        "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "39776c527cdfaac6b5cb58423fdf5b19a5d0933c4df4cc5bd01a56875d148efe",
+        "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+        "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+        "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+        "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66"
+      },
+      "generated_metadata_sha256": {
+        "pycbc/version.py": "db292079071ca35829cab4894e8235ee61ac9e8c2850c4d97f437fb2f3200aaa"
+      },
+      "status": "",
+      "verified_unchanged": true
+    }
+  ],
+  "nvidia_smi": "Sun Sep  6 14:59:09 2026       \n+-----------------------------------------------------------------------------------------+\n| NVIDIA-SMI 610.57.04              KMD Version: 610.57.04     CUDA UMD Version: 13.3     |\n+-----------------------------------------+------------------------+----------------------+\n| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |\n| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |\n|                                         |                        |               MIG M. |\n|=========================================+========================+======================|\n|   0  NVIDIA GeForce RTX 4090        On  |   00000000:41:00.0  On |                  Off |\n|  0%   54C    P8             40W /  480W |    2507MiB /  24564MiB |      0%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n\n+-----------------------------------------------------------------------------------------+\n| Processes:                                                                              |\n|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |\n|        ID   ID                                                               Usage      |\n|=========================================================================================|\n|    0   N/A  N/A           28575      G   /usr/lib/xorg/Xorg                      619MiB |\n|    0   N/A  N/A           29014      G   xfwm4                                     8MiB |\n|    0   N/A  N/A           29494      G   ...nstallation/ubuntu12_32/steam         13MiB |\n|    0   N/A  N/A           30687      G   ./steamwebhelper                          9MiB |\n|    0   N/A  N/A           30744      G   ...on/ubuntu12_64/steamwebhelper        514MiB |\n|    0   N/A  N/A         1787087      C   ...d-linux-cuda/bin/llama-server        436MiB |\n|    0   N/A  N/A         1787088      C   ...d-linux-cuda/bin/llama-server        434MiB |\n|    0   N/A  N/A         1787205      C   /usr/bin/sunshine                       386MiB |\n+-----------------------------------------------------------------------------------------+",
+  "uname": "Linux len 6.8.0-138-generic #138-Ubuntu SMP PREEMPT_DYNAMIC Fri Jul 31 22:41:49 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux",
+  "lscpu": "Architecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           43 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  128\nOn-line CPU(s) list:                     0-127\nVendor ID:                               AuthenticAMD\nModel name:                              AMD Ryzen Threadripper PRO 3995WX 64-Cores\nCPU family:                              23\nModel:                                   49\nThread(s) per core:                      2\nCore(s) per socket:                      64\nSocket(s):                               1\nStepping:                                0\nCPU(s) scaling MHz:                      56%\nCPU max MHz:                             4309.9941\nCPU min MHz:                             2200.0000\nBogoMIPS:                                5390.10\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl nonstop_tsc cpuid extd_apicid aperfmperf rapl pni pclmulqdq monitor ssse3 fma cx16 sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand lahf_lm cmp_legacy svm extapic cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw ibs skinit wdt tce topoext perfctr_core perfctr_nb bpext perfctr_llc mwaitx cat_l3 cdp_l3 hw_pstate ssbd mba ibpb stibp vmmcall fsgsbase bmi1 avx2 smep bmi2 cqm rdt_a rdseed adx smap clflushopt clwb sha_ni xsaveopt xsavec xgetbv1 xsaves cqm_llc cqm_occup_llc cqm_mbm_total cqm_mbm_local clzero irperf xsaveerptr rdpru wbnoinvd arat npt lbrv svm_lock nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold avic v_vmsave_vmload vgif v_spec_ctrl umip rdpid overflow_recov succor smca sev sev_es ibpb_exit_to_user\nVirtualization:                          AMD-V\nL1d cache:                               2 MiB (64 instances)\nL1i cache:                               2 MiB (64 instances)\nL2 cache:                                32 MiB (64 instances)\nL3 cache:                                256 MiB (16 instances)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0-127\nVulnerability Gather data sampling:      Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Mitigation; untrained return thunk; SMT enabled with STIBP protection\nVulnerability Spec rstack overflow:      Mitigation; Safe RET\nVulnerability Spec store bypass:         Mitigation; Speculative Store Bypass disabled via prctl\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Retpolines; IBPB conditional; STIBP always-on; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Not affected\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Mitigation; IBPB before exit to userspace",
+  "memory": "total        used        free      shared  buff/cache   available\nMem:     270043860992 36101509120 11698843648   199417856 224796884992 233942351872\nSwap:              0           0           0",
+  "packages": [
+    {
+      "name": "alabaster",
+      "version": "0.7.13"
+    },
+    {
+      "name": "annotated-types",
+      "version": "0.6.0"
+    },
+    {
+      "name": "anyio",
+      "version": "3.7.1"
+    },
+    {
+      "name": "argon2-cffi",
+      "version": "23.1.0"
+    },
+    {
+      "name": "argon2-cffi-bindings",
+      "version": "21.2.0"
+    },
+    {
+      "name": "arrow",
+      "version": "1.3.0"
+    },
+    {
+      "name": "astropy",
+      "version": "6.0.0"
+    },
+    {
+      "name": "astropy-iers-data",
+      "version": "0.2023.11.27.0.30.38"
+    },
+    {
+      "name": "asttokens",
+      "version": "2.4.1"
+    },
+    {
+      "name": "async-lru",
+      "version": "2.0.4"
+    },
+    {
+      "name": "attrs",
+      "version": "23.1.0"
+    },
+    {
+      "name": "Babel",
+      "version": "2.13.1"
+    },
+    {
+      "name": "bbhx",
+      "version": "1.0.5"
+    },
+    {
+      "name": "bbhx",
+      "version": "1.0.5"
+    },
+    {
+      "name": "beautifulsoup4",
+      "version": "4.12.2"
+    },
+    {
+      "name": "bleach",
+      "version": "6.1.0"
+    },
+    {
+      "name": "Brotli",
+      "version": "1.1.0"
+    },
+    {
+      "name": "cached-property",
+      "version": "1.5.2"
+    },
+    {
+      "name": "certifi",
+      "version": "2024.7.4"
+    },
+    {
+      "name": "cffi",
+      "version": "1.16.0"
+    },
+    {
+      "name": "charset-normalizer",
+      "version": "3.3.2"
+    },
+    {
+      "name": "cloudpickle",
+      "version": "3.0.0"
+    },
+    {
+      "name": "comm",
+      "version": "0.1.4"
+    },
+    {
+      "name": "contourpy",
+      "version": "1.2.0"
+    },
+    {
+      "name": "corner",
+      "version": "2.2.2"
+    },
+    {
+      "name": "cpnest",
+      "version": "0.11.5"
+    },
+    {
+      "name": "cryptography",
+      "version": "41.0.7"
+    },
+    {
+      "name": "cuda-bindings",
+      "version": "13.3.1"
+    },
+    {
+      "name": "cuda-pathfinder",
+      "version": "1.6.0"
+    },
+    {
+      "name": "cuda-python",
+      "version": "12.3.0"
+    },
+    {
+      "name": "cuda-toolkit",
+      "version": "13.0.3.0"
+    },
+    {
+      "name": "cycler",
+      "version": "0.12.1"
+    },
+    {
+      "name": "Cython",
+      "version": "3.0.6"
+    },
+    {
+      "name": "debugpy",
+      "version": "1.8.0"
+    },
+    {
+      "name": "decorator",
+      "version": "5.1.1"
+    },
+    {
+      "name": "defusedxml",
+      "version": "0.7.1"
+    },
+    {
+      "name": "distro",
+      "version": "1.8.0"
+    },
+    {
+      "name": "docutils",
+      "version": "0.20.1"
+    },
+    {
+      "name": "dynesty",
+      "version": "2.1.3"
+    },
+    {
+      "name": "emcee",
+      "version": "2.2.1"
+    },
+    {
+      "name": "entrypoints",
+      "version": "0.4"
+    },
+    {
+      "name": "epsie",
+      "version": "1.0.0"
+    },
+    {
+      "name": "exceptiongroup",
+      "version": "1.2.0"
+    },
+    {
+      "name": "executing",
+      "version": "2.0.1"
+    },
+    {
+      "name": "fastjsonschema",
+      "version": "2.19.0"
+    },
+    {
+      "name": "filelock",
+      "version": "3.13.1"
+    },
+    {
+      "name": "flake8",
+      "version": "7.3.0"
+    },
+    {
+      "name": "fonttools",
+      "version": "4.45.1"
+    },
+    {
+      "name": "fqdn",
+      "version": "1.5.1"
+    },
+    {
+      "name": "fsspec",
+      "version": "2023.10.0"
+    },
+    {
+      "name": "gitdb",
+      "version": "4.0.11"
+    },
+    {
+      "name": "GitPython",
+      "version": "3.1.40"
+    },
+    {
+      "name": "gwdatafind",
+      "version": "1.1.3"
+    },
+    {
+      "name": "h11",
+      "version": "0.14.0"
+    },
+    {
+      "name": "h5py",
+      "version": "3.11.0"
+    },
+    {
+      "name": "h5py",
+      "version": "3.11.0"
+    },
+    {
+      "name": "httpcore",
+      "version": "1.0.2"
+    },
+    {
+      "name": "httpx",
+      "version": "0.25.2"
+    },
+    {
+      "name": "idna",
+      "version": "3.6"
+    },
+    {
+      "name": "igwn-auth-utils",
+      "version": "1.1.0"
+    },
+    {
+      "name": "igwn-ligolw",
+      "version": "2.1.1"
+    },
+    {
+      "name": "igwn-segments",
+      "version": "2.1.1"
+    },
+    {
+      "name": "imagesize",
+      "version": "1.4.1"
+    },
+    {
+      "name": "importlib-metadata",
+      "version": "6.8.0"
+    },
+    {
+      "name": "importlib-resources",
+      "version": "6.1.1"
+    },
+    {
+      "name": "iniconfig",
+      "version": "2.3.0"
+    },
+    {
+      "name": "install",
+      "version": "1.3.5"
+    },
+    {
+      "name": "ipykernel",
+      "version": "6.29.3"
+    },
+    {
+      "name": "ipython",
+      "version": "8.18.1"
+    },
+    {
+      "name": "ipywidgets",
+      "version": "8.1.1"
+    },
+    {
+      "name": "isoduration",
+      "version": "20.11.0"
+    },
+    {
+      "name": "jax",
+      "version": "0.4.20"
+    },
+    {
+      "name": "jaxlib",
+      "version": "0.4.20+cuda12.cudnn89"
+    },
+    {
+      "name": "jedi",
+      "version": "0.19.1"
+    },
+    {
+      "name": "Jinja2",
+      "version": "3.1.2"
+    },
+    {
+      "name": "json5",
+      "version": "0.9.14"
+    },
+    {
+      "name": "jsonpointer",
+      "version": "2.4"
+    },
+    {
+      "name": "jsonschema",
+      "version": "4.20.0"
+    },
+    {
+      "name": "jsonschema-specifications",
+      "version": "2023.11.1"
+    },
+    {
+      "name": "jupyter",
+      "version": "1.0.0"
+    },
+    {
+      "name": "jupyter_client",
+      "version": "8.6.0"
+    },
+    {
+      "name": "jupyter-console",
+      "version": "6.6.3"
+    },
+    {
+      "name": "jupyter_core",
+      "version": "5.5.0"
+    },
+    {
+      "name": "jupyter-events",
+      "version": "0.9.0"
+    },
+    {
+      "name": "jupyter-lsp",
+      "version": "2.2.1"
+    },
+    {
+      "name": "jupyter_server",
+      "version": "2.11.1"
+    },
+    {
+      "name": "jupyter_server_terminals",
+      "version": "0.4.4"
+    },
+    {
+      "name": "jupyterlab",
+      "version": "4.0.9"
+    },
+    {
+      "name": "jupyterlab_pygments",
+      "version": "0.3.0"
+    },
+    {
+      "name": "jupyterlab_server",
+      "version": "2.25.2"
+    },
+    {
+      "name": "jupyterlab-widgets",
+      "version": "3.0.9"
+    },
+    {
+      "name": "kiwisolver",
+      "version": "1.4.5"
+    },
+    {
+      "name": "lalsuite",
+      "version": "7.21"
+    },
+    {
+      "name": "ligo-segments",
+      "version": "1.4.0"
+    },
+    {
+      "name": "linkify-it-py",
+      "version": "2.0.3"
+    },
+    {
+      "name": "llvmlite",
+      "version": "0.41.1"
+    },
+    {
+      "name": "lscsoft-glue",
+      "version": "3.0.1"
+    },
+    {
+      "name": "Mako",
+      "version": "1.3.0"
+    },
+    {
+      "name": "markdown-it-py",
+      "version": "3.0.0"
+    },
+    {
+      "name": "MarkupSafe",
+      "version": "2.1.3"
+    },
+    {
+      "name": "matplotlib",
+      "version": "3.8.2"
+    },
+    {
+      "name": "matplotlib-inline",
+      "version": "0.1.6"
+    },
+    {
+      "name": "mccabe",
+      "version": "0.7.0"
+    },
+    {
+      "name": "mdit-py-plugins",
+      "version": "0.4.1"
+    },
+    {
+      "name": "mdurl",
+      "version": "0.1.2"
+    },
+    {
+      "name": "memray",
+      "version": "1.13.3"
+    },
+    {
+      "name": "mistune",
+      "version": "3.0.2"
+    },
+    {
+      "name": "ml-dtypes",
+      "version": "0.3.1"
+    },
+    {
+      "name": "mpi4py",
+      "version": "3.1.6"
+    },
+    {
+      "name": "mpld3",
+      "version": "0.5.9"
+    },
+    {
+      "name": "mpmath",
+      "version": "1.3.0"
+    },
+    {
+      "name": "nbclient",
+      "version": "0.8.0"
+    },
+    {
+      "name": "nbconvert",
+      "version": "7.11.0"
+    },
+    {
+      "name": "nbformat",
+      "version": "5.9.2"
+    },
+    {
+      "name": "nest-asyncio",
+      "version": "1.5.8"
+    },
+    {
+      "name": "networkx",
+      "version": "3.2.1"
+    },
+    {
+      "name": "notebook",
+      "version": "7.0.6"
+    },
+    {
+      "name": "notebook_shim",
+      "version": "0.2.3"
+    },
+    {
+      "name": "numba",
+      "version": "0.58.1"
+    },
+    {
+      "name": "numpy",
+      "version": "1.26.4"
+    },
+    {
+      "name": "nvidia-cublas",
+      "version": "13.1.1.3"
+    },
+    {
+      "name": "nvidia-cublas-cu12",
+      "version": "12.3.4.1"
+    },
+    {
+      "name": "nvidia-cuda-cupti",
+      "version": "13.0.85"
+    },
+    {
+      "name": "nvidia-cuda-cupti-cu12",
+      "version": "12.3.101"
+    },
+    {
+      "name": "nvidia-cuda-nvcc-cu12",
+      "version": "12.3.103"
+    },
+    {
+      "name": "nvidia-cuda-nvrtc",
+      "version": "13.0.88"
+    },
+    {
+      "name": "nvidia-cuda-nvrtc-cu12",
+      "version": "12.1.105"
+    },
+    {
+      "name": "nvidia-cuda-runtime",
+      "version": "13.0.96"
+    },
+    {
+      "name": "nvidia-cuda-runtime-cu12",
+      "version": "12.3.101"
+    },
+    {
+      "name": "nvidia-cudnn-cu12",
+      "version": "8.9.2.26"
+    },
+    {
+      "name": "nvidia-cudnn-cu13",
+      "version": "9.20.0.48"
+    },
+    {
+      "name": "nvidia-cufft",
+      "version": "12.0.0.61"
+    },
+    {
+      "name": "nvidia-cufft-cu12",
+      "version": "11.0.12.1"
+    },
+    {
+      "name": "nvidia-cufile",
+      "version": "1.15.1.6"
+    },
+    {
+      "name": "nvidia-curand",
+      "version": "10.4.0.35"
+    },
+    {
+      "name": "nvidia-curand-cu12",
+      "version": "10.3.2.106"
+    },
+    {
+      "name": "nvidia-cusolver",
+      "version": "12.0.4.66"
+    },
+    {
+      "name": "nvidia-cusolver-cu12",
+      "version": "11.5.4.101"
+    },
+    {
+      "name": "nvidia-cusparse",
+      "version": "12.6.3.3"
+    },
+    {
+      "name": "nvidia-cusparse-cu12",
+      "version": "12.2.0.103"
+    },
+    {
+      "name": "nvidia-cusparselt-cu13",
+      "version": "0.8.1"
+    },
+    {
+      "name": "nvidia-nccl-cu12",
+      "version": "2.19.3"
+    },
+    {
+      "name": "nvidia-nccl-cu13",
+      "version": "2.29.7"
+    },
+    {
+      "name": "nvidia-nvjitlink",
+      "version": "13.3.33"
+    },
+    {
+      "name": "nvidia-nvjitlink-cu12",
+      "version": "12.3.101"
+    },
+    {
+      "name": "nvidia-nvshmem-cu13",
+      "version": "3.4.5"
+    },
+    {
+      "name": "nvidia-nvtx",
+      "version": "13.0.85"
+    },
+    {
+      "name": "nvidia-nvtx-cu12",
+      "version": "12.1.105"
+    },
+    {
+      "name": "nvidia-pyindex",
+      "version": "1.0.9"
+    },
+    {
+      "name": "openai",
+      "version": "1.3.6"
+    },
+    {
+      "name": "opt-einsum",
+      "version": "3.3.0"
+    },
+    {
+      "name": "overrides",
+      "version": "7.4.0"
+    },
+    {
+      "name": "packaging",
+      "version": "23.2"
+    },
+    {
+      "name": "pandas",
+      "version": "2.2.2"
+    },
+    {
+      "name": "pandocfilters",
+      "version": "1.5.0"
+    },
+    {
+      "name": "parso",
+      "version": "0.8.3"
+    },
+    {
+      "name": "pegasus-wms.api",
+      "version": "5.1.2"
+    },
+    {
+      "name": "pegasus-wms.common",
+      "version": "5.1.2"
+    },
+    {
+      "name": "pexpect",
+      "version": "4.8.0"
+    },
+    {
+      "name": "pickleshare",
+      "version": "0.7.5"
+    },
+    {
+      "name": "Pillow",
+      "version": "10.1.0"
+    },
+    {
+      "name": "pip",
+      "version": "24.0"
+    },
+    {
+      "name": "pkgconfig",
+      "version": "1.5.5"
+    },
+    {
+      "name": "pkgutil_resolve_name",
+      "version": "1.3.10"
+    },
+    {
+      "name": "platformdirs",
+      "version": "4.0.0"
+    },
+    {
+      "name": "pluggy",
+      "version": "1.6.0"
+    },
+    {
+      "name": "prometheus-client",
+      "version": "0.19.0"
+    },
+    {
+      "name": "prompt-toolkit",
+      "version": "3.0.41"
+    },
+    {
+      "name": "psutil",
+      "version": "5.9.5"
+    },
+    {
+      "name": "ptemcee",
+      "version": "1.0.0"
+    },
+    {
+      "name": "ptyprocess",
+      "version": "0.7.0"
+    },
+    {
+      "name": "pure-eval",
+      "version": "0.2.2"
+    },
+    {
+      "name": "py-spy",
+      "version": "0.4.2"
+    },
+    {
+      "name": "PyCBC",
+      "version": "0.0a9310",
+      "editable_project_location": "/home/xangma/pycbc-torch-split-20260905/validation"
+    },
+    {
+      "name": "pycbc-bbhx-plugin",
+      "version": "0.2"
+    },
+    {
+      "name": "pycbc-bbhx-plugin",
+      "version": "0.2"
+    },
+    {
+      "name": "pycbc-bbhx-plugin",
+      "version": "0.2"
+    },
+    {
+      "name": "pycodestyle",
+      "version": "2.14.0"
+    },
+    {
+      "name": "pycparser",
+      "version": "2.21"
+    },
+    {
+      "name": "pydantic",
+      "version": "2.5.2"
+    },
+    {
+      "name": "pydantic_core",
+      "version": "2.14.5"
+    },
+    {
+      "name": "pyerfa",
+      "version": "2.0.1.1"
+    },
+    {
+      "name": "pyflakes",
+      "version": "3.4.0"
+    },
+    {
+      "name": "Pygments",
+      "version": "2.17.2"
+    },
+    {
+      "name": "PyJWT",
+      "version": "2.8.0"
+    },
+    {
+      "name": "pykerr",
+      "version": "0.1.0"
+    },
+    {
+      "name": "pymultinest",
+      "version": "2.12"
+    },
+    {
+      "name": "pyOpenSSL",
+      "version": "23.3.0"
+    },
+    {
+      "name": "pyparsing",
+      "version": "3.1.1"
+    },
+    {
+      "name": "pyRXP",
+      "version": "3.0.1"
+    },
+    {
+      "name": "PySocks",
+      "version": "1.7.1"
+    },
+    {
+      "name": "pytest",
+      "version": "9.0.3"
+    },
+    {
+      "name": "python-dateutil",
+      "version": "2.8.2"
+    },
+    {
+      "name": "python-json-logger",
+      "version": "2.0.7"
+    },
+    {
+      "name": "python-ligo-lw",
+      "version": "1.8.3"
+    },
+    {
+      "name": "pytz",
+      "version": "2023.3.post1"
+    },
+    {
+      "name": "PyYAML",
+      "version": "6.0.1"
+    },
+    {
+      "name": "pyzmq",
+      "version": "25.1.1"
+    },
+    {
+      "name": "qtconsole",
+      "version": "5.5.1"
+    },
+    {
+      "name": "QtPy",
+      "version": "2.4.1"
+    },
+    {
+      "name": "referencing",
+      "version": "0.31.0"
+    },
+    {
+      "name": "requests",
+      "version": "2.31.0"
+    },
+    {
+      "name": "rfc3339-validator",
+      "version": "0.1.4"
+    },
+    {
+      "name": "rfc3986-validator",
+      "version": "0.1.1"
+    },
+    {
+      "name": "rich",
+      "version": "13.7.1"
+    },
+    {
+      "name": "rpds-py",
+      "version": "0.13.1"
+    },
+    {
+      "name": "safe-netrc",
+      "version": "1.0.1"
+    },
+    {
+      "name": "scipy",
+      "version": "1.13.0"
+    },
+    {
+      "name": "scitokens",
+      "version": "1.8.1"
+    },
+    {
+      "name": "Send2Trash",
+      "version": "1.8.2"
+    },
+    {
+      "name": "setuptools",
+      "version": "65.5.0"
+    },
+    {
+      "name": "six",
+      "version": "1.16.0"
+    },
+    {
+      "name": "smmap",
+      "version": "5.0.1"
+    },
+    {
+      "name": "snakeviz",
+      "version": "2.2.0"
+    },
+    {
+      "name": "sniffio",
+      "version": "1.3.0"
+    },
+    {
+      "name": "snowballstemmer",
+      "version": "2.2.0"
+    },
+    {
+      "name": "soupsieve",
+      "version": "2.5"
+    },
+    {
+      "name": "Sphinx",
+      "version": "7.2.6"
+    },
+    {
+      "name": "sphinx-carousel",
+      "version": "1.2.0"
+    },
+    {
+      "name": "sphinx_design",
+      "version": "0.5.0"
+    },
+    {
+      "name": "sphinx-rtd-theme",
+      "version": "2.0.0"
+    },
+    {
+      "name": "sphinxcontrib-applehelp",
+      "version": "1.0.7"
+    },
+    {
+      "name": "sphinxcontrib-devhelp",
+      "version": "1.0.5"
+    },
+    {
+      "name": "sphinxcontrib-htmlhelp",
+      "version": "2.0.4"
+    },
+    {
+      "name": "sphinxcontrib-jquery",
+      "version": "4.1"
+    },
+    {
+      "name": "sphinxcontrib-jsmath",
+      "version": "1.0.1"
+    },
+    {
+      "name": "sphinxcontrib-programoutput",
+      "version": "0.17"
+    },
+    {
+      "name": "sphinxcontrib-qthelp",
+      "version": "1.0.6"
+    },
+    {
+      "name": "sphinxcontrib-serializinghtml",
+      "version": "1.1.9"
+    },
+    {
+      "name": "stack-data",
+      "version": "0.6.2"
+    },
+    {
+      "name": "sympy",
+      "version": "1.14.0"
+    },
+    {
+      "name": "tensordict",
+      "version": "0.2.1"
+    },
+    {
+      "name": "terminado",
+      "version": "0.18.0"
+    },
+    {
+      "name": "textual",
+      "version": "0.72.0"
+    },
+    {
+      "name": "tinycss2",
+      "version": "1.2.1"
+    },
+    {
+      "name": "tomli",
+      "version": "2.0.1"
+    },
+    {
+      "name": "torch",
+      "version": "2.13.0+cu130"
+    },
+    {
+      "name": "tornado",
+      "version": "6.3.3"
+    },
+    {
+      "name": "tqdm",
+      "version": "4.66.1"
+    },
+    {
+      "name": "traitlets",
+      "version": "5.14.0"
+    },
+    {
+      "name": "triton",
+      "version": "3.7.1"
+    },
+    {
+      "name": "types-python-dateutil",
+      "version": "2.8.19.14"
+    },
+    {
+      "name": "typing_extensions",
+      "version": "4.16.0"
+    },
+    {
+      "name": "typing-utils",
+      "version": "0.1.0"
+    },
+    {
+      "name": "tzdata",
+      "version": "2023.3"
+    },
+    {
+      "name": "uc-micro-py",
+      "version": "1.0.3"
+    },
+    {
+      "name": "ultranest",
+      "version": "3.6.4"
+    },
+    {
+      "name": "uri-template",
+      "version": "1.3.0"
+    },
+    {
+      "name": "urllib3",
+      "version": "2.1.0"
+    },
+    {
+      "name": "wcwidth",
+      "version": "0.2.12"
+    },
+    {
+      "name": "webcolors",
+      "version": "1.13"
+    },
+    {
+      "name": "webencodings",
+      "version": "0.5.1"
+    },
+    {
+      "name": "websocket-client",
+      "version": "1.6.4"
+    },
+    {
+      "name": "wheel",
+      "version": "0.43.0"
+    },
+    {
+      "name": "widgetsnbextension",
+      "version": "4.0.9"
+    },
+    {
+      "name": "zipp",
+      "version": "3.17.0"
+    }
+  ],
+  "queue_passed": true,
+  "correctness_passed": true
+}

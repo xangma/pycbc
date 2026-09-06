@@ -1,0 +1,206 @@
+........FF.....s..FF.................................................... [ 45%]
+........................................................................ [ 91%]
+.............                                                            [100%]
+=================================== FAILURES ===================================
+________________ test_direct_cpu_fftw_reuses_full_batch[False] _________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7bf874678b50>
+inverse = False
+
+    @pytest.mark.parametrize("inverse", [False, True])
+    def test_direct_cpu_fftw_reuses_full_batch(monkeypatch, inverse):
+        from pycbc.fft import fftw, torchfft
+    
+        if not torchfft._FFTW_DIRECT_PLATFORM_SUPPORTED:
+            pytest.skip("direct FFTW requires its supported Linux/x86-64 platform")
+        monkeypatch.setenv("PYCBC_TORCH_CPU_FFTW_BATCH", "1")
+        # Exercise the real plan_many ABI with bounded buffers, as in the focused
+        # native FFT tests; platform and library eligibility remain authoritative.
+        monkeypatch.setattr(torchfft, "_FFTW_DIRECT_BATCH_SIZES", frozenset({64}))
+        old_measure = fftw.get_measure_level()
+        fftw.set_measure_level(0)
+        try:
+            inputs = [_complex_values(64, seed) for seed in (9105, 9106)]
+            references = []
+            with scheme.CPUScheme(1):
+                for values in inputs:
+                    output = zeros(values.size, np.complex64)
+                    (fftw.IFFT if inverse else fftw.FFT)(
+                        Array(values.ravel()),
+                        output,
+                        nbatch=BATCH,
+                        size=64,
+                    ).execute()
+                    references.append(output.numpy().copy())
+            with scheme.TorchScheme("cpu"):
+                source, target = (
+                    Array(inputs[0].ravel()),
+                    zeros(inputs[0].size, np.complex64),
+                )
+                engine = (torchfft.IFFT if inverse else torchfft.FFT)(
+                    source,
+                    target,
+                    nbatch=BATCH,
+                    size=64,
+                )
+                plan = engine._fftw_batch_plan
+                if plan is None:
+                    pytest.skip("single-precision direct FFTW plan is unavailable")
+                assert plan._batch == BATCH
+                assert engine._promoted_batch_plan is None
+                pointers = (source.ptr, target.ptr)
+                for values, expected in zip(inputs, references, strict=True):
+                    source._data.tensor.copy_(torch.from_numpy(values.ravel()))
+                    version = target._data.tensor._version
+                    engine.execute()
+                    assert engine._fftw_batch_plan is plan
+                    assert (source.ptr, target.ptr) == pointers
+                    assert target._data.tensor._version == version + 1
+                    np.testing.assert_array_equal(source.numpy(), values.ravel())
+>                   np.testing.assert_array_equal(target.numpy(), expected)
+
+../test_torch_large_batches.py:199: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = (<built-in function eq>, array([-2.795648  -9.881006j ,  5.49362   -4.111907j ,
+        9.951651  +5.1048427j, ..., -3...51  +5.104844j , ..., -3.2160778 -0.5148176j,
+        1.7688742 -4.2112494j, -1.574461 +14.03129j  ], dtype=complex64))
+kwds = {'err_msg': '', 'header': 'Arrays are not equal', 'strict': False, 'verbose': True}
+
+    @wraps(func)
+    def inner(*args, **kwds):
+        with self._recreate_cm():
+>           return func(*args, **kwds)
+                   ^^^^^^^^^^^^^^^^^^^
+E           AssertionError: 
+E           Arrays are not equal
+E           
+E           Mismatched elements: 55141 / 65536 (84.1%)
+E           Max absolute difference: 5.800974e-06
+E           Max relative difference: 5.226893e-05
+E            x: array([-2.795648 -9.881006j,  5.49362  -4.111907j,  9.951651 +5.104843j,
+E                  ..., -3.216078 -0.514818j,  1.768874 -4.211249j,
+E                  -1.574461+14.031288j], dtype=complex64)
+E            y: array([-2.795648 -9.881006j,  5.493621 -4.111908j,  9.951651 +5.104844j,
+E                  ..., -3.216078 -0.514818j,  1.768874 -4.211249j,
+E                  -1.574461+14.03129j ], dtype=complex64)
+
+../../miniconda3/envs/pycbc3g/lib/python3.11/contextlib.py:81: AssertionError
+_________________ test_direct_cpu_fftw_reuses_full_batch[True] _________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7bf87841d990>
+inverse = True
+
+    @pytest.mark.parametrize("inverse", [False, True])
+    def test_direct_cpu_fftw_reuses_full_batch(monkeypatch, inverse):
+        from pycbc.fft import fftw, torchfft
+    
+        if not torchfft._FFTW_DIRECT_PLATFORM_SUPPORTED:
+            pytest.skip("direct FFTW requires its supported Linux/x86-64 platform")
+        monkeypatch.setenv("PYCBC_TORCH_CPU_FFTW_BATCH", "1")
+        # Exercise the real plan_many ABI with bounded buffers, as in the focused
+        # native FFT tests; platform and library eligibility remain authoritative.
+        monkeypatch.setattr(torchfft, "_FFTW_DIRECT_BATCH_SIZES", frozenset({64}))
+        old_measure = fftw.get_measure_level()
+        fftw.set_measure_level(0)
+        try:
+            inputs = [_complex_values(64, seed) for seed in (9105, 9106)]
+            references = []
+            with scheme.CPUScheme(1):
+                for values in inputs:
+                    output = zeros(values.size, np.complex64)
+                    (fftw.IFFT if inverse else fftw.FFT)(
+                        Array(values.ravel()),
+                        output,
+                        nbatch=BATCH,
+                        size=64,
+                    ).execute()
+                    references.append(output.numpy().copy())
+            with scheme.TorchScheme("cpu"):
+                source, target = (
+                    Array(inputs[0].ravel()),
+                    zeros(inputs[0].size, np.complex64),
+                )
+                engine = (torchfft.IFFT if inverse else torchfft.FFT)(
+                    source,
+                    target,
+                    nbatch=BATCH,
+                    size=64,
+                )
+                plan = engine._fftw_batch_plan
+                if plan is None:
+                    pytest.skip("single-precision direct FFTW plan is unavailable")
+                assert plan._batch == BATCH
+                assert engine._promoted_batch_plan is None
+                pointers = (source.ptr, target.ptr)
+                for values, expected in zip(inputs, references, strict=True):
+                    source._data.tensor.copy_(torch.from_numpy(values.ravel()))
+                    version = target._data.tensor._version
+                    engine.execute()
+                    assert engine._fftw_batch_plan is plan
+                    assert (source.ptr, target.ptr) == pointers
+                    assert target._data.tensor._version == version + 1
+                    np.testing.assert_array_equal(source.numpy(), values.ravel())
+>                   np.testing.assert_array_equal(target.numpy(), expected)
+
+../test_torch_large_batches.py:199: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = (<built-in function eq>, array([ -2.795648  -9.881006j , -11.45952  -22.284618j ,
+        -5.8995037 -4.9265933j, ...,... -4.9265924j, ..., -11.091231 -15.659336j ,
+        -8.345076  -5.778508j ,  -5.2159266 +4.563835j ], dtype=complex64))
+kwds = {'err_msg': '', 'header': 'Arrays are not equal', 'strict': False, 'verbose': True}
+
+    @wraps(func)
+    def inner(*args, **kwds):
+        with self._recreate_cm():
+>           return func(*args, **kwds)
+                   ^^^^^^^^^^^^^^^^^^^
+E           AssertionError: 
+E           Arrays are not equal
+E           
+E           Mismatched elements: 55141 / 65536 (84.1%)
+E           Max absolute difference: 5.800974e-06
+E           Max relative difference: 5.226893e-05
+E            x: array([ -2.795648 -9.881006j, -11.45952 -22.284618j,
+E                   -5.899504 -4.926593j, ..., -11.091231-15.659336j,
+E                   -8.345077 -5.778509j,  -5.215926 +4.563835j], dtype=complex64)
+E            y: array([ -2.795648 -9.881006j, -11.45952 -22.284618j,
+E                   -5.899504 -4.926592j, ..., -11.091231-15.659336j,
+E                   -8.345076 -5.778508j,  -5.215927 +4.563835j], dtype=complex64)
+
+../../miniconda3/envs/pycbc3g/lib/python3.11/contextlib.py:81: AssertionError
+___________________ test_public_live_filter_full_batch[cpu] ____________________
+
+device = 'cpu'
+
+    def test_public_live_filter_full_batch(device):
+        from pycbc.filter import matchedfilter
+>       from pycbc.vetoes import SingleDetSGChisq
+E       ImportError: cannot import name 'SingleDetSGChisq' from 'pycbc.vetoes' (/home/xangma/pycbc-torch-batch1024-20260906/cpu/pycbc/vetoes/__init__.py)
+
+../test_torch_large_batches.py:355: ImportError
+----------------------------- Captured stdout call -----------------------------
+No CuPy
+No CuPy or GPU PhenomHM module.
+No CuPy or GPU response available.
+No CuPy or GPU interpolation available.
+___________________ test_public_live_filter_full_batch[cuda] ___________________
+
+device = 'cuda'
+
+    def test_public_live_filter_full_batch(device):
+        from pycbc.filter import matchedfilter
+>       from pycbc.vetoes import SingleDetSGChisq
+E       ImportError: cannot import name 'SingleDetSGChisq' from 'pycbc.vetoes' (/home/xangma/pycbc-torch-batch1024-20260906/cpu/pycbc/vetoes/__init__.py)
+
+../test_torch_large_batches.py:355: ImportError
+=============================== warnings summary ===============================
+test/test_torch_fft_cpu_native.py: 18 warnings
+  /home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] ../test_torch_large_batches.py:315: native threshold kernel requires CUDA and Triton
+4 failed, 152 passed, 1 skipped, 18 warnings in 11.30s

@@ -1,0 +1,96 @@
+{
+  "pid": 4085887,
+  "cwd": "/home/xangma/pycbc-torch-batch1024-20260906/main",
+  "command": [
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "-B",
+    "/home/xangma/pycbc-torch-batch1024-20260906/queue.py"
+  ],
+  "runs": [
+    {
+      "name": "waveform",
+      "command": [
+        "taskset",
+        "-c",
+        "8-11",
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-B",
+        "/home/xangma/pycbc-torch-batch1024-20260906/wave-support/waveform/harness/run.py",
+        "--root",
+        "/home/xangma/pycbc-torch-batch1024-20260906/main",
+        "--python",
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "--expected-sha",
+        "4885b64560e9f39b740e85b6a976898869dd360e",
+        "--batches",
+        "1",
+        "8",
+        "32",
+        "128",
+        "512",
+        "1024",
+        "--out",
+        "/home/xangma/pycbc-torch-batch1024-20260906/waveform"
+      ],
+      "log": "/home/xangma/pycbc-torch-batch1024-20260906/logs/waveform.log",
+      "started_utc": "2026-09-06T11:56:45.908221+00:00",
+      "pid": 4164730,
+      "returncode": 0,
+      "finished_utc": "2026-09-06T12:18:41.229674+00:00"
+    },
+    {
+      "name": "live",
+      "command": [
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-B",
+        "/home/xangma/pycbc-torch-batch1024-20260906/live-support/run-live.py",
+        "--main-root",
+        "/home/xangma/pycbc-torch-batch1024-20260906/main",
+        "--cpu-root",
+        "/home/xangma/pycbc-torch-batch1024-20260906/cpu",
+        "--expected-main",
+        "4885b64560e9f39b740e85b6a976898869dd360e",
+        "--expected-cpu",
+        "d544420232428225c214a4be84fbe1262a6d307b",
+        "--python",
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "--output",
+        "/home/xangma/pycbc-torch-batch1024-20260906/live"
+      ],
+      "log": "/home/xangma/pycbc-torch-batch1024-20260906/logs/live.log",
+      "started_utc": "2026-09-06T12:18:41.230214+00:00",
+      "pid": 565637,
+      "returncode": 0,
+      "finished_utc": "2026-09-06T13:32:04.600590+00:00"
+    },
+    {
+      "name": "probes",
+      "command": [
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-B",
+        "/home/xangma/pycbc-torch-batch1024-20260906/live-support/run-probes.py",
+        "--main-root",
+        "/home/xangma/pycbc-torch-batch1024-20260906/main",
+        "--cpu-root",
+        "/home/xangma/pycbc-torch-batch1024-20260906/cpu",
+        "--expected-main",
+        "4885b64560e9f39b740e85b6a976898869dd360e",
+        "--expected-cpu",
+        "d544420232428225c214a4be84fbe1262a6d307b",
+        "--python",
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "--output",
+        "/home/xangma/pycbc-torch-batch1024-20260906/probes"
+      ],
+      "log": "/home/xangma/pycbc-torch-batch1024-20260906/logs/probes.log",
+      "started_utc": "2026-09-06T13:32:04.601225+00:00",
+      "pid": 2535501,
+      "returncode": 0,
+      "finished_utc": "2026-09-06T13:45:20.780656+00:00"
+    }
+  ],
+  "waiting_for": null,
+  "active": null,
+  "finished": true,
+  "passed": true
+}

@@ -1,0 +1,185 @@
+{
+  "recorded_utc": "2026-09-06T13:58:51.346990+00:00",
+  "cwd": "/private/tmp/pycbc-torch-benchmark-docs-20260906",
+  "platform": "macOS-26.6-arm64-arm-64bit-Mach-O",
+  "checks": [
+    {
+      "command": [
+        "/private/tmp/pycbc-ruff-0.14.6/bin/ruff",
+        "check",
+        "tools/plot_torch_benchmark_docs.py",
+        "test/test_torch_large_batches.py"
+      ],
+      "returncode": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/private/tmp/pycbc-ruff-0.14.6/bin/ruff",
+        "format",
+        "--check",
+        "tools/plot_torch_benchmark_docs.py",
+        "test/test_torch_large_batches.py"
+      ],
+      "returncode": 0,
+      "stdout": "2 files already formatted\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/xangma/miniconda3/bin/flake8",
+        "--select=F401,F821",
+        "tools/plot_torch_benchmark_docs.py",
+        "test/test_torch_large_batches.py"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/private/tmp/pycbc-ruff-0.14.6/bin/ruff",
+        "format",
+        "--check",
+        "pycbc/filter/matchedfilter.py"
+      ],
+      "returncode": 0,
+      "stdout": "1 file already formatted\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/xangma/miniconda3/bin/flake8",
+        "--select=F401,F821",
+        "pycbc/filter/matchedfilter.py"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "file_sha256": {
+    "tools/plot_torch_benchmark_docs.py": "99c69844ba6c54f56f4ff9182665cdeced8e122325ad2f6d5eb90a9cc6318a7f",
+    "test/test_torch_large_batches.py": "7cfe32a8e20125b0e21dd1abcb831f821fec4f974f845fe23b4c564e97219fb6",
+    "test/test_torch_performance_artifacts.py": "ca573b66b6541f478772c33433224119b23122cd8cd8f22e5ebaa9cc65da9c0d",
+    "test/test_torch_parity_artifacts.py": "c2ff5bb0d164e8028f27d4243989ddd1219a7c32ffaa25101525bf4a1b93b007",
+    "pycbc/filter/matchedfilter.py": "8d40acb0d70547bac98464a165b775d4943d822de21e03e17bbde7fff518cc2e"
+  },
+  "artifact_tests": {
+    "command": [
+      "/Users/xangma/miniconda3/bin/python",
+      "-B",
+      "-m",
+      "pytest",
+      "-q",
+      "test/test_torch_performance_artifacts.py",
+      "test/test_torch_parity_artifacts.py"
+    ],
+    "observed_finished_utc": "2026-09-06T11:56:50Z",
+    "returncode": 0,
+    "passed": 116,
+    "skipped": 0,
+    "elapsed_seconds": 4.63,
+    "output_excerpt": "116 passed in 4.63s",
+    "scope": "Observed earlier in this working tree. Artifact tooling and the two artifact test files have not changed since that run. The later live-filter fallback fix is covered by separate completed Linux correctness receipts."
+  },
+  "qlty": {
+    "available_locally": false,
+    "note": "Qlty is unavailable locally. New docs/tools/test paths are excluded by repository configuration; the one runtime guard is covered by passing format/F401/F821 checks and adds no Ruff diagnostics compared with its parent. Historical Qlty results retain their original source attribution."
+  },
+  "ci_f401": {
+    "receipt": "ci-f401-validation.json",
+    "sha256": "d2945737f47b22d8d8fd62daf7d01053b5558535831c43b48dd743ace5b46f5f",
+    "passed": true,
+    "checked_files": 634
+  },
+  "runtime_ruff": {
+    "base_revision": "4885b64560e9f39b740e85b6a976898869dd360e",
+    "base": {
+      "command": [
+        "/private/tmp/pycbc-ruff-0.14.6/bin/ruff",
+        "check",
+        "--output-format=json",
+        "--stdin-filename",
+        "pycbc/filter/matchedfilter.py",
+        "-"
+      ],
+      "returncode": 1,
+      "stdout": "[\n  {\n    \"cell\": null,\n    \"code\": \"B904\",\n    \"end_location\": {\n      \"column\": 68,\n      \"row\": 1633\n    },\n    \"filename\": \"/private/tmp/pycbc-torch-benchmark-docs-20260906/pycbc/filter/matchedfilter.py\",\n    \"fix\": null,\n    \"location\": {\n      \"column\": 17,\n      \"row\": 1633\n    },\n    \"message\": \"Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling\",\n    \"noqa_row\": 1633,\n    \"url\": \"https://docs.astral.sh/ruff/rules/raise-without-from-inside-except\"\n  },\n  {\n    \"cell\": null,\n    \"code\": \"B905\",\n    \"end_location\": {\n      \"column\": 46,\n      \"row\": 2409\n    },\n    \"filename\": \"/private/tmp/pycbc-torch-benchmark-docs-20260906/pycbc/filter/matchedfilter.py\",\n    \"fix\": {\n      \"applicability\": \"unsafe\",\n      \"edits\": [\n        {\n          \"content\": \", strict=False\",\n          \"end_location\": {\n            \"column\": 45,\n            \"row\": 2409\n          },\n          \"location\": {\n            \"column\": 45,\n            \"row\": 2409\n          }\n        }\n      ],\n      \"message\": \"Add explicit value for parameter `strict=`\"\n    },\n    \"location\": {\n      \"column\": 28,\n      \"row\": 2409\n    },\n    \"message\": \"`zip()` without an explicit `strict=` parameter\",\n    \"noqa_row\": 2409,\n    \"url\": \"https://docs.astral.sh/ruff/rules/zip-without-explicit-strict\"\n  },\n  {\n    \"cell\": null,\n    \"code\": \"B905\",\n    \"end_location\": {\n      \"column\": 72,\n      \"row\": 2426\n    },\n    \"filename\": \"/private/tmp/pycbc-torch-benchmark-docs-20260906/pycbc/filter/matchedfilter.py\",\n    \"fix\": {\n      \"applicability\": \"unsafe\",\n      \"edits\": [\n        {\n          \"content\": \", strict=False\",\n          \"end_location\": {\n            \"column\": 71,\n            \"row\": 2426\n          },\n          \"location\": {\n            \"column\": 71,\n            \"row\": 2426\n          }\n        }\n      ],\n      \"message\": \"Add explicit value for parameter `strict=`\"\n    },\n    \"location\": {\n      \"column\": 39,\n      \"row\": 2426\n    },\n    \"message\": \"`zip()` without an explicit `strict=` parameter\",\n    \"noqa_row\": 2426,\n    \"url\": \"https://docs.astral.sh/ruff/rules/zip-without-explicit-strict\"\n  },\n  {\n    \"cell\": null,\n    \"code\": \"B905\",\n    \"end_location\": {\n      \"column\": 46,\n      \"row\": 2427\n    },\n    \"filename\": \"/private/tmp/pycbc-torch-benchmark-docs-20260906/pycbc/filter/matchedfilter.py\",\n    \"fix\": {\n      \"applicability\": \"unsafe\",\n      \"edits\": [\n        {\n          \"content\": \", strict=False\",\n          \"end_location\": {\n            \"column\": 45,\n            \"row\": 2427\n          },\n          \"location\": {\n            \"column\": 45,\n            \"row\": 2427\n          }\n        }\n      ],\n      \"message\": \"Add explicit value for parameter `strict=`\"\n    },\n    \"location\": {\n      \"column\": 25,\n      \"row\": 2427\n    },\n    \"message\": \"`zip()` without an explicit `strict=` parameter\",\n    \"noqa_row\": 2427,\n    \"url\": \"https://docs.astral.sh/ruff/rules/zip-without-explicit-strict\"\n  }\n]",
+      "stderr": ""
+    },
+    "current": {
+      "command": [
+        "/private/tmp/pycbc-ruff-0.14.6/bin/ruff",
+        "check",
+        "--output-format=json",
+        "pycbc/filter/matchedfilter.py"
+      ],
+      "returncode": 1,
+      "stdout": "[\n  {\n    \"cell\": null,\n    \"code\": \"B904\",\n    \"end_location\": {\n      \"column\": 68,\n      \"row\": 1633\n    },\n    \"filename\": \"/private/tmp/pycbc-torch-benchmark-docs-20260906/pycbc/filter/matchedfilter.py\",\n    \"fix\": null,\n    \"location\": {\n      \"column\": 17,\n      \"row\": 1633\n    },\n    \"message\": \"Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling\",\n    \"noqa_row\": 1633,\n    \"url\": \"https://docs.astral.sh/ruff/rules/raise-without-from-inside-except\"\n  },\n  {\n    \"cell\": null,\n    \"code\": \"B905\",\n    \"end_location\": {\n      \"column\": 46,\n      \"row\": 2409\n    },\n    \"filename\": \"/private/tmp/pycbc-torch-benchmark-docs-20260906/pycbc/filter/matchedfilter.py\",\n    \"fix\": {\n      \"applicability\": \"unsafe\",\n      \"edits\": [\n        {\n          \"content\": \", strict=False\",\n          \"end_location\": {\n            \"column\": 45,\n            \"row\": 2409\n          },\n          \"location\": {\n            \"column\": 45,\n            \"row\": 2409\n          }\n        }\n      ],\n      \"message\": \"Add explicit value for parameter `strict=`\"\n    },\n    \"location\": {\n      \"column\": 28,\n      \"row\": 2409\n    },\n    \"message\": \"`zip()` without an explicit `strict=` parameter\",\n    \"noqa_row\": 2409,\n    \"url\": \"https://docs.astral.sh/ruff/rules/zip-without-explicit-strict\"\n  },\n  {\n    \"cell\": null,\n    \"code\": \"B905\",\n    \"end_location\": {\n      \"column\": 72,\n      \"row\": 2426\n    },\n    \"filename\": \"/private/tmp/pycbc-torch-benchmark-docs-20260906/pycbc/filter/matchedfilter.py\",\n    \"fix\": {\n      \"applicability\": \"unsafe\",\n      \"edits\": [\n        {\n          \"content\": \", strict=False\",\n          \"end_location\": {\n            \"column\": 71,\n            \"row\": 2426\n          },\n          \"location\": {\n            \"column\": 71,\n            \"row\": 2426\n          }\n        }\n      ],\n      \"message\": \"Add explicit value for parameter `strict=`\"\n    },\n    \"location\": {\n      \"column\": 39,\n      \"row\": 2426\n    },\n    \"message\": \"`zip()` without an explicit `strict=` parameter\",\n    \"noqa_row\": 2426,\n    \"url\": \"https://docs.astral.sh/ruff/rules/zip-without-explicit-strict\"\n  },\n  {\n    \"cell\": null,\n    \"code\": \"B905\",\n    \"end_location\": {\n      \"column\": 46,\n      \"row\": 2427\n    },\n    \"filename\": \"/private/tmp/pycbc-torch-benchmark-docs-20260906/pycbc/filter/matchedfilter.py\",\n    \"fix\": {\n      \"applicability\": \"unsafe\",\n      \"edits\": [\n        {\n          \"content\": \", strict=False\",\n          \"end_location\": {\n            \"column\": 45,\n            \"row\": 2427\n          },\n          \"location\": {\n            \"column\": 45,\n            \"row\": 2427\n          }\n        }\n      ],\n      \"message\": \"Add explicit value for parameter `strict=`\"\n    },\n    \"location\": {\n      \"column\": 25,\n      \"row\": 2427\n    },\n    \"message\": \"`zip()` without an explicit `strict=` parameter\",\n    \"noqa_row\": 2427,\n    \"url\": \"https://docs.astral.sh/ruff/rules/zip-without-explicit-strict\"\n  }\n]",
+      "stderr": ""
+    },
+    "unchanged_diagnostics": [
+      {
+        "code": "B904",
+        "location": {
+          "column": 17,
+          "row": 1633
+        },
+        "end_location": {
+          "column": 68,
+          "row": 1633
+        },
+        "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+      },
+      {
+        "code": "B905",
+        "location": {
+          "column": 28,
+          "row": 2409
+        },
+        "end_location": {
+          "column": 46,
+          "row": 2409
+        },
+        "message": "`zip()` without an explicit `strict=` parameter"
+      },
+      {
+        "code": "B905",
+        "location": {
+          "column": 39,
+          "row": 2426
+        },
+        "end_location": {
+          "column": 72,
+          "row": 2426
+        },
+        "message": "`zip()` without an explicit `strict=` parameter"
+      },
+      {
+        "code": "B905",
+        "location": {
+          "column": 25,
+          "row": 2427
+        },
+        "end_location": {
+          "column": 46,
+          "row": 2427
+        },
+        "message": "`zip()` without an explicit `strict=` parameter"
+      }
+    ],
+    "new_diagnostics": 0
+  }
+}

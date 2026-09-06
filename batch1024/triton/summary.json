@@ -1,0 +1,1016 @@
+{
+  "schema": 1,
+  "method": "sequential fresh processes; route order rotated by replicate within each workload; median of worker medians, no pooled inner calls",
+  "expected_sha": "4885b64560e9f39b740e85b6a976898869dd360e",
+  "uncertainty": "observed range of worker medians; not a confidence interval",
+  "groups": {
+    "cuda-off-b1-n4097": {
+      "route": "cuda-off",
+      "batch": 1,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "6e3d06424b0be7639ae0271f7d7033900589cf5ad72f9558eb57d04c5522c663",
+      "replicate_medians_seconds": [
+        0.012545794599999998,
+        0.0123655634,
+        0.0122811322
+      ],
+      "median_seconds_per_call": 0.0123655634,
+      "min_replicate_median_seconds": 0.0122811322,
+      "max_replicate_median_seconds": 0.012545794599999998,
+      "waveforms_per_second": 80.8697483205658,
+      "cold_call_seconds": [
+        0.396957929,
+        0.397912502,
+        0.39905068
+      ],
+      "triton_actual": [
+        false,
+        false,
+        false
+      ],
+      "speedup_vs_cuda_gate_off": 1.0
+    },
+    "cuda-on-b1-n4097": {
+      "route": "cuda-on",
+      "batch": 1,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "6e3d06424b0be7639ae0271f7d7033900589cf5ad72f9558eb57d04c5522c663",
+      "replicate_medians_seconds": [
+        0.011001926333333334,
+        0.010816465833333332,
+        0.010702116833333332
+      ],
+      "median_seconds_per_call": 0.010816465833333332,
+      "min_replicate_median_seconds": 0.010702116833333332,
+      "max_replicate_median_seconds": 0.011001926333333334,
+      "waveforms_per_second": 92.45163951041003,
+      "cold_call_seconds": [
+        1.994102974,
+        2.097851076,
+        2.115213121
+      ],
+      "triton_actual": [
+        true,
+        true,
+        true
+      ],
+      "speedup_vs_cuda_gate_off": 1.1432166097999201
+    },
+    "cuda-off-b8-n4097": {
+      "route": "cuda-off",
+      "batch": 8,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "3ed37af97f761ffb546afc99e58d3c30cf81b3656c0b4255b9ccdc582634bc4f",
+      "replicate_medians_seconds": [
+        0.0125734078,
+        0.012607805,
+        0.01247947
+      ],
+      "median_seconds_per_call": 0.0125734078,
+      "min_replicate_median_seconds": 0.01247947,
+      "max_replicate_median_seconds": 0.012607805,
+      "waveforms_per_second": 636.2634639115101,
+      "cold_call_seconds": [
+        0.405925119,
+        0.397130722,
+        0.40770446
+      ],
+      "triton_actual": [
+        false,
+        false,
+        false
+      ],
+      "speedup_vs_cuda_gate_off": 1.0
+    },
+    "cuda-on-b8-n4097": {
+      "route": "cuda-on",
+      "batch": 8,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "3ed37af97f761ffb546afc99e58d3c30cf81b3656c0b4255b9ccdc582634bc4f",
+      "replicate_medians_seconds": [
+        0.011008263666666665,
+        0.011137260666666668,
+        0.011117274000000002
+      ],
+      "median_seconds_per_call": 0.011117274000000002,
+      "min_replicate_median_seconds": 0.011008263666666665,
+      "max_replicate_median_seconds": 0.011137260666666668,
+      "waveforms_per_second": 719.6008661835625,
+      "cold_call_seconds": [
+        1.994053009,
+        2.093859602,
+        2.099683866
+      ],
+      "triton_actual": [
+        true,
+        true,
+        true
+      ],
+      "speedup_vs_cuda_gate_off": 1.1309793929698952
+    },
+    "cuda-off-b32-n4097": {
+      "route": "cuda-off",
+      "batch": 32,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "615d6c5a4294ac4c5f8f5b6237e069e26fce725da00443d5f0991805e643f2c3",
+      "replicate_medians_seconds": [
+        0.012394770400000001,
+        0.0125960304,
+        0.012493981599999999
+      ],
+      "median_seconds_per_call": 0.012493981599999999,
+      "min_replicate_median_seconds": 0.012394770400000001,
+      "max_replicate_median_seconds": 0.0125960304,
+      "waveforms_per_second": 2561.2331620530003,
+      "cold_call_seconds": [
+        0.400901163,
+        0.401518018,
+        0.399158185
+      ],
+      "triton_actual": [
+        false,
+        false,
+        false
+      ],
+      "speedup_vs_cuda_gate_off": 1.0
+    },
+    "cuda-on-b32-n4097": {
+      "route": "cuda-on",
+      "batch": 32,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "615d6c5a4294ac4c5f8f5b6237e069e26fce725da00443d5f0991805e643f2c3",
+      "replicate_medians_seconds": [
+        0.010875188833333334,
+        0.010861064166666665,
+        0.010781055999999999
+      ],
+      "median_seconds_per_call": 0.010861064166666665,
+      "min_replicate_median_seconds": 0.010781055999999999,
+      "max_replicate_median_seconds": 0.010875188833333334,
+      "waveforms_per_second": 2946.304294767924,
+      "cold_call_seconds": [
+        2.096336007,
+        2.00363165,
+        1.997408741
+      ],
+      "triton_actual": [
+        true,
+        true,
+        true
+      ],
+      "speedup_vs_cuda_gate_off": 1.1503459889634817
+    },
+    "cuda-off-b128-n4097": {
+      "route": "cuda-off",
+      "batch": 128,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "e6a1b0bd1fc9dcbb542ac71a9f8abc3b0eee997822b03e128df97581c29ed03b",
+      "replicate_medians_seconds": [
+        0.0125646752,
+        0.012668578199999999,
+        0.012722958400000001
+      ],
+      "median_seconds_per_call": 0.012668578199999999,
+      "min_replicate_median_seconds": 0.0125646752,
+      "max_replicate_median_seconds": 0.012722958400000001,
+      "waveforms_per_second": 10103.738397415427,
+      "cold_call_seconds": [
+        0.392523149,
+        0.402627651,
+        0.398004086
+      ],
+      "triton_actual": [
+        false,
+        false,
+        false
+      ],
+      "speedup_vs_cuda_gate_off": 1.0
+    },
+    "cuda-on-b128-n4097": {
+      "route": "cuda-on",
+      "batch": 128,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "e6a1b0bd1fc9dcbb542ac71a9f8abc3b0eee997822b03e128df97581c29ed03b",
+      "replicate_medians_seconds": [
+        0.011329069999999998,
+        0.011334251833333335,
+        0.011208000833333334
+      ],
+      "median_seconds_per_call": 0.011329069999999998,
+      "min_replicate_median_seconds": 0.011208000833333334,
+      "max_replicate_median_seconds": 0.011334251833333335,
+      "waveforms_per_second": 11298.367827191465,
+      "cold_call_seconds": [
+        2.003664955,
+        1.9986975,
+        2.004905955
+      ],
+      "triton_actual": [
+        true,
+        true,
+        true
+      ],
+      "speedup_vs_cuda_gate_off": 1.1182363777432747
+    },
+    "cuda-off-b512-n4097": {
+      "route": "cuda-off",
+      "batch": 512,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "7b3c3edad9244be6f40e08810b8505e77c079b5584cb98ec2d49746e4f688a7b",
+      "replicate_medians_seconds": [
+        0.01517696175,
+        0.015150407,
+        0.0152128115
+      ],
+      "median_seconds_per_call": 0.01517696175,
+      "min_replicate_median_seconds": 0.015150407,
+      "max_replicate_median_seconds": 0.0152128115,
+      "waveforms_per_second": 33735.342319090974,
+      "cold_call_seconds": [
+        0.40386717,
+        0.400340348,
+        0.399651017
+      ],
+      "triton_actual": [
+        false,
+        false,
+        false
+      ],
+      "speedup_vs_cuda_gate_off": 1.0
+    },
+    "cuda-on-b512-n4097": {
+      "route": "cuda-on",
+      "batch": 512,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "7b3c3edad9244be6f40e08810b8505e77c079b5584cb98ec2d49746e4f688a7b",
+      "replicate_medians_seconds": [
+        0.012514386999999998,
+        0.0123078722,
+        0.012384972800000001
+      ],
+      "median_seconds_per_call": 0.012384972800000001,
+      "min_replicate_median_seconds": 0.0123078722,
+      "max_replicate_median_seconds": 0.012514386999999998,
+      "waveforms_per_second": 41340.42183766443,
+      "cold_call_seconds": [
+        2.097742561,
+        2.095045142,
+        2.007581313
+      ],
+      "triton_actual": [
+        true,
+        true,
+        true
+      ],
+      "speedup_vs_cuda_gate_off": 1.2254335956232378
+    },
+    "cuda-off-b1024-n4097": {
+      "route": "cuda-off",
+      "batch": 1024,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "eeefbe7cc76bd244e6ae384fc68dd1e06775872e380c7b2d2bf2e45d2f486641",
+      "replicate_medians_seconds": [
+        0.022124688,
+        0.022116492,
+        0.022281302333333333
+      ],
+      "median_seconds_per_call": 0.022124688,
+      "min_replicate_median_seconds": 0.022116492,
+      "max_replicate_median_seconds": 0.022281302333333333,
+      "waveforms_per_second": 46283.13854640572,
+      "cold_call_seconds": [
+        0.403979406,
+        0.405832174,
+        0.404746109
+      ],
+      "triton_actual": [
+        false,
+        false,
+        false
+      ],
+      "speedup_vs_cuda_gate_off": 1.0
+    },
+    "cuda-on-b1024-n4097": {
+      "route": "cuda-on",
+      "batch": 1024,
+      "bins": 4097,
+      "delta_f": 0.25,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "eeefbe7cc76bd244e6ae384fc68dd1e06775872e380c7b2d2bf2e45d2f486641",
+      "replicate_medians_seconds": [
+        0.0139888388,
+        0.013837382200000001,
+        0.0139278225
+      ],
+      "median_seconds_per_call": 0.0139278225,
+      "min_replicate_median_seconds": 0.013837382200000001,
+      "max_replicate_median_seconds": 0.0139888388,
+      "waveforms_per_second": 73521.90193406041,
+      "cold_call_seconds": [
+        2.11407581,
+        2.096972564,
+        2.10397356
+      ],
+      "triton_actual": [
+        true,
+        true,
+        true
+      ],
+      "speedup_vs_cuda_gate_off": 1.5885245522047686
+    },
+    "cuda-off-b1-n32769": {
+      "route": "cuda-off",
+      "batch": 1,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "4c8cc883773617c45918b544fbdcece2dbd35ebc2594158e5058d3dfdef865d4",
+      "replicate_medians_seconds": [
+        0.0123725228,
+        0.0126219686,
+        0.0125499934
+      ],
+      "median_seconds_per_call": 0.0125499934,
+      "min_replicate_median_seconds": 0.0123725228,
+      "max_replicate_median_seconds": 0.0126219686,
+      "waveforms_per_second": 79.6813168045172,
+      "cold_call_seconds": [
+        0.398902087,
+        0.396259411,
+        0.402776768
+      ],
+      "triton_actual": [
+        false,
+        false,
+        false
+      ],
+      "speedup_vs_cuda_gate_off": 1.0
+    },
+    "cuda-on-b1-n32769": {
+      "route": "cuda-on",
+      "batch": 1,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "4c8cc883773617c45918b544fbdcece2dbd35ebc2594158e5058d3dfdef865d4",
+      "replicate_medians_seconds": [
+        0.01082325,
+        0.0109298075,
+        0.010832642833333335
+      ],
+      "median_seconds_per_call": 0.010832642833333335,
+      "min_replicate_median_seconds": 0.01082325,
+      "max_replicate_median_seconds": 0.0109298075,
+      "waveforms_per_second": 92.3135762330205,
+      "cold_call_seconds": [
+        1.99923291,
+        2.007641263,
+        1.998254609
+      ],
+      "triton_actual": [
+        true,
+        true,
+        true
+      ],
+      "speedup_vs_cuda_gate_off": 1.1585347724548043
+    },
+    "cuda-off-b8-n32769": {
+      "route": "cuda-off",
+      "batch": 8,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "abc8b0bfb5cea583a161c201f64aa5c05b470da4b0970f1d4b1d3849fd8cea64",
+      "replicate_medians_seconds": [
+        0.0123788314,
+        0.0123536226,
+        0.0123382128
+      ],
+      "median_seconds_per_call": 0.0123536226,
+      "min_replicate_median_seconds": 0.0123382128,
+      "max_replicate_median_seconds": 0.0123788314,
+      "waveforms_per_second": 647.5833250725985,
+      "cold_call_seconds": [
+        0.398397499,
+        0.399528434,
+        0.396629317
+      ],
+      "triton_actual": [
+        false,
+        false,
+        false
+      ],
+      "speedup_vs_cuda_gate_off": 1.0
+    },
+    "cuda-on-b8-n32769": {
+      "route": "cuda-on",
+      "batch": 8,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "abc8b0bfb5cea583a161c201f64aa5c05b470da4b0970f1d4b1d3849fd8cea64",
+      "replicate_medians_seconds": [
+        0.010884416166666668,
+        0.010853970999999999,
+        0.010704806166666666
+      ],
+      "median_seconds_per_call": 0.010853970999999999,
+      "min_replicate_median_seconds": 0.010704806166666666,
+      "max_replicate_median_seconds": 0.010884416166666668,
+      "waveforms_per_second": 737.0574327128754,
+      "cold_call_seconds": [
+        2.005149032,
+        1.998969933,
+        2.011454693
+      ],
+      "triton_actual": [
+        true,
+        true,
+        true
+      ],
+      "speedup_vs_cuda_gate_off": 1.1381661697824694
+    },
+    "cuda-off-b32-n32769": {
+      "route": "cuda-off",
+      "batch": 32,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "1a43582d6c00a9652762589f7e3482befa6a8cc0f9d92d0387a1ae4d1bbf4e4a",
+      "replicate_medians_seconds": [
+        0.012602870399999999,
+        0.012443632,
+        0.012742916200000001
+      ],
+      "median_seconds_per_call": 0.012602870399999999,
+      "min_replicate_median_seconds": 0.012443632,
+      "max_replicate_median_seconds": 0.012742916200000001,
+      "waveforms_per_second": 2539.1041075848884,
+      "cold_call_seconds": [
+        0.400006558,
+        0.398630017,
+        0.400550442
+      ],
+      "triton_actual": [
+        false,
+        false,
+        false
+      ],
+      "speedup_vs_cuda_gate_off": 1.0
+    },
+    "cuda-on-b32-n32769": {
+      "route": "cuda-on",
+      "batch": 32,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "1a43582d6c00a9652762589f7e3482befa6a8cc0f9d92d0387a1ae4d1bbf4e4a",
+      "replicate_medians_seconds": [
+        0.011354265,
+        0.0114196692,
+        0.0117533492
+      ],
+      "median_seconds_per_call": 0.0114196692,
+      "min_replicate_median_seconds": 0.011354265,
+      "max_replicate_median_seconds": 0.0117533492,
+      "waveforms_per_second": 2802.1827462392694,
+      "cold_call_seconds": [
+        1.99497573,
+        1.995600111,
+        1.995776634
+      ],
+      "triton_actual": [
+        true,
+        true,
+        true
+      ],
+      "speedup_vs_cuda_gate_off": 1.10361081212405
+    },
+    "cuda-off-b128-n32769": {
+      "route": "cuda-off",
+      "batch": 128,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "473760ed5a2fc0cf32b35035d6b46a3b7e37f5259a56e1f80cf66f1e476b6449",
+      "replicate_medians_seconds": [
+        0.02175327,
+        0.021837401333333336,
+        0.021826158666666665
+      ],
+      "median_seconds_per_call": 0.021826158666666665,
+      "min_replicate_median_seconds": 0.02175327,
+      "max_replicate_median_seconds": 0.021837401333333336,
+      "waveforms_per_second": 5864.522564636355,
+      "cold_call_seconds": [
+        0.40635305,
+        0.405905043,
+        0.406530845
+      ],
+      "triton_actual": [
+        false,
+        false,
+        false
+      ],
+      "speedup_vs_cuda_gate_off": 1.0
+    },
+    "cuda-on-b128-n32769": {
+      "route": "cuda-on",
+      "batch": 128,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "473760ed5a2fc0cf32b35035d6b46a3b7e37f5259a56e1f80cf66f1e476b6449",
+      "replicate_medians_seconds": [
+        0.013367759000000002,
+        0.01357279425,
+        0.013458433
+      ],
+      "median_seconds_per_call": 0.013458433,
+      "min_replicate_median_seconds": 0.013367759000000002,
+      "max_replicate_median_seconds": 0.01357279425,
+      "waveforms_per_second": 9510.765480646967,
+      "cold_call_seconds": [
+        1.998166912,
+        2.105494437,
+        2.015769829
+      ],
+      "triton_actual": [
+        true,
+        true,
+        true
+      ],
+      "speedup_vs_cuda_gate_off": 1.62174590954732
+    },
+    "cuda-off-b512-n32769": {
+      "route": "cuda-off",
+      "batch": 512,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "baba9fea6b0c4df333392b50050e4a3de76d1842a4e7be43c16c1c699a4bd6e1",
+      "replicate_medians_seconds": [
+        0.062770188,
+        0.062637451,
+        0.062707478
+      ],
+      "median_seconds_per_call": 0.062707478,
+      "min_replicate_median_seconds": 0.062637451,
+      "max_replicate_median_seconds": 0.062770188,
+      "waveforms_per_second": 8164.895421244656,
+      "cold_call_seconds": [
+        0.446218832,
+        0.448045964,
+        0.448074383
+      ],
+      "triton_actual": [
+        false,
+        false,
+        false
+      ],
+      "speedup_vs_cuda_gate_off": 1.0
+    },
+    "cuda-on-b512-n32769": {
+      "route": "cuda-on",
+      "batch": 512,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "baba9fea6b0c4df333392b50050e4a3de76d1842a4e7be43c16c1c699a4bd6e1",
+      "replicate_medians_seconds": [
+        0.021122858666666664,
+        0.021271728333333333,
+        0.020992879000000002
+      ],
+      "median_seconds_per_call": 0.021122858666666664,
+      "min_replicate_median_seconds": 0.020992879000000002,
+      "max_replicate_median_seconds": 0.021271728333333333,
+      "waveforms_per_second": 24239.143388672648,
+      "cold_call_seconds": [
+        2.016949251,
+        2.007328239,
+        2.005176809
+      ],
+      "triton_actual": [
+        true,
+        true,
+        true
+      ],
+      "speedup_vs_cuda_gate_off": 2.9687022476250693
+    },
+    "cuda-off-b1024-n32769": {
+      "route": "cuda-off",
+      "batch": 1024,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "2ddd3f0f6d34d565e9398b306b0deeeda2d4630eda11cc808bc2f538bce5e80f",
+      "replicate_medians_seconds": [
+        0.114415945,
+        0.114389919,
+        0.114601289
+      ],
+      "median_seconds_per_call": 0.114415945,
+      "min_replicate_median_seconds": 0.114389919,
+      "max_replicate_median_seconds": 0.114601289,
+      "waveforms_per_second": 8949.801533343976,
+      "cold_call_seconds": [
+        0.504568937,
+        0.501413455,
+        0.503170653
+      ],
+      "triton_actual": [
+        false,
+        false,
+        false
+      ],
+      "speedup_vs_cuda_gate_off": 1.0
+    },
+    "cuda-on-b1024-n32769": {
+      "route": "cuda-on",
+      "batch": 1024,
+      "bins": 32769,
+      "delta_f": 0.03125,
+      "threads": 1,
+      "expected_replicates": 3,
+      "completed_replicates": 3,
+      "valid_replicates": 3,
+      "statuses": [
+        "ok",
+        "ok",
+        "ok"
+      ],
+      "reasons": [
+        null,
+        null,
+        null
+      ],
+      "eligible": true,
+      "parameter_sha256": "2ddd3f0f6d34d565e9398b306b0deeeda2d4630eda11cc808bc2f538bce5e80f",
+      "replicate_medians_seconds": [
+        0.031949323,
+        0.030912522,
+        0.0316334475
+      ],
+      "median_seconds_per_call": 0.0316334475,
+      "min_replicate_median_seconds": 0.030912522,
+      "max_replicate_median_seconds": 0.031949323,
+      "waveforms_per_second": 32370.799926248947,
+      "cold_call_seconds": [
+        2.121216908,
+        2.127669483,
+        2.114776681
+      ],
+      "triton_actual": [
+        true,
+        true,
+        true
+      ],
+      "speedup_vs_cuda_gate_off": 3.6169293593434606
+    }
+  }
+}

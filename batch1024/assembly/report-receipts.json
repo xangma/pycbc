@@ -1,0 +1,91 @@
+[
+  {
+    "command": [
+      "/Users/xangma/miniconda3/bin/python3.12",
+      "-B",
+      "report-engines/triton/report/render.py",
+      "--input-dir",
+      "triton",
+      "--output-dir",
+      "report/triton",
+      "--expected-sha",
+      "4885b64560e9f39b740e85b6a976898869dd360e",
+      "--harness-dir",
+      "report-engines/triton/harness",
+      "--run-date",
+      "2026-09-06",
+      "--tables-only"
+    ],
+    "cwd": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024",
+    "started_utc": "2026-09-06T13:59:27.514619+00:00",
+    "finished_utc": "2026-09-06T13:59:27.918517+00:00",
+    "returncode": 0,
+    "log": "assembly/logs/report-0.log",
+    "log_sha256": "e284e45e7c9acdbd7dc4f14333dd13ab208b3d804d35cb35eff21b544cec21da"
+  },
+  {
+    "command": [
+      "/Users/xangma/miniconda3/bin/python3.12",
+      "-B",
+      "report-engines/waveform/report/waveform_report.py",
+      "--input-dir",
+      "waveform",
+      "--output-dir",
+      "report",
+      "--expected-sha",
+      "4885b64560e9f39b740e85b6a976898869dd360e",
+      "--harness-dir",
+      "report-engines/waveform/harness",
+      "--tables-only"
+    ],
+    "cwd": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024",
+    "started_utc": "2026-09-06T13:59:27.919116+00:00",
+    "finished_utc": "2026-09-06T13:59:28.799916+00:00",
+    "returncode": 0,
+    "log": "assembly/logs/report-1.log",
+    "log_sha256": "29d9e94282a7d7e08a178e63f43f8955bfc13136f1d237236d3006c83622d95b"
+  },
+  {
+    "command": [
+      "/Users/xangma/miniconda3/bin/python3.12",
+      "-B",
+      "report-engines/live/live_report.py",
+      "--input-dir",
+      "live",
+      "--output-dir",
+      "report",
+      "--main-revision",
+      "4885b64560e9f39b740e85b6a976898869dd360e",
+      "--cpu-revision",
+      "d544420232428225c214a4be84fbe1262a6d307b",
+      "--tables-only"
+    ],
+    "cwd": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024",
+    "started_utc": "2026-09-06T13:59:28.800549+00:00",
+    "finished_utc": "2026-09-06T13:59:29.012498+00:00",
+    "returncode": 0,
+    "log": "assembly/logs/report-2.log",
+    "log_sha256": "93bf068b5835fc201cbb1e9b3fc21c9a32a1d70fb9dfa71af7dbf9a74a95a988"
+  },
+  {
+    "command": [
+      "/Users/xangma/miniconda3/bin/python3.12",
+      "-B",
+      "report-engines/live/probe_report.py",
+      "--input-dir",
+      "probes",
+      "--output-dir",
+      "report",
+      "--main-revision",
+      "4885b64560e9f39b740e85b6a976898869dd360e",
+      "--cpu-revision",
+      "d544420232428225c214a4be84fbe1262a6d307b"
+    ],
+    "cwd": "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-20260906/evidence/batch1024",
+    "started_utc": "2026-09-06T13:59:29.013138+00:00",
+    "finished_utc": "2026-09-06T13:59:29.092431+00:00",
+    "returncode": 0,
+    "log": "assembly/logs/report-3.log",
+    "log_sha256": "cc36fe78d8d694097e4fef9acff0acb71754eb8634c4342a044210d034457a76"
+  }
+]
