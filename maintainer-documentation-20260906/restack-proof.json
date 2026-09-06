@@ -1,0 +1,55 @@
+{
+  "old_heads": {
+    "15": "21820cf55c5f36fcda8775cb84089e31dd742151",
+    "19": "6a099c18f8cc9a80a8a580a519af26cd665d4822",
+    "16": "cd8b8b141313077e89b0df815d8852893424c4be",
+    "17": "3d76006711cdfca767edc73166f5c20fff20d579"
+  },
+  "new_heads": {
+    "15": "2685db817fe0fdb77de2e0196fbdfd66d4faf713",
+    "19": "a0506820e0689a30903d6b28efd7c4f47e5110cf",
+    "16": "5bab76f878f2cd9a927e7ed34a0e6eace65f0e7e",
+    "17": "fe0e15b275856128ed95dacc0a8b89f26d462118"
+  },
+  "proof": [
+    {
+      "pr": 19,
+      "parent": 15,
+      "old_head": "6a099c18f8cc9a80a8a580a519af26cd665d4822",
+      "new_head": "a0506820e0689a30903d6b28efd7c4f47e5110cf",
+      "old_base": "21820cf55c5f36fcda8775cb84089e31dd742151",
+      "new_base": "2685db817fe0fdb77de2e0196fbdfd66d4faf713",
+      "feature_diff_sha256": "8a01edd1088fed93d5bc29d20c5119440744bfcbb3e7bd2f372d4fd4fabdc7e8",
+      "diff_hunks_unchanged": true,
+      "full_patch_byte_identical": true,
+      "runtime_and_test_diff_byte_identical": true,
+      "note": ""
+    },
+    {
+      "pr": 16,
+      "parent": 19,
+      "old_head": "cd8b8b141313077e89b0df815d8852893424c4be",
+      "new_head": "5bab76f878f2cd9a927e7ed34a0e6eace65f0e7e",
+      "old_base": "6a099c18f8cc9a80a8a580a519af26cd665d4822",
+      "new_base": "a0506820e0689a30903d6b28efd7c4f47e5110cf",
+      "feature_diff_sha256": "1ff262a1ddf0e44c3a2b769a745c657453927f48a22d99d119856328d1966f05",
+      "diff_hunks_unchanged": true,
+      "full_patch_byte_identical": true,
+      "runtime_and_test_diff_byte_identical": true,
+      "note": ""
+    },
+    {
+      "pr": 17,
+      "parent": 15,
+      "old_head": "3d76006711cdfca767edc73166f5c20fff20d579",
+      "new_head": "fe0e15b275856128ed95dacc0a8b89f26d462118",
+      "old_base": "21820cf55c5f36fcda8775cb84089e31dd742151",
+      "new_base": "2685db817fe0fdb77de2e0196fbdfd66d4faf713",
+      "feature_diff_sha256": "ab3a1da6a03a8bcb98aa93786f3b6bd05259fedb19ee662e0244ca8143e76e22",
+      "diff_hunks_unchanged": true,
+      "full_patch_byte_identical": false,
+      "runtime_and_test_diff_byte_identical": true,
+      "note": "PR17 documentation blob IDs change because both base and head inherit the updated results link; all hunks are identical."
+    }
+  ]
+}

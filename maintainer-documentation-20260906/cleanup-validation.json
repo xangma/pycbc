@@ -1,0 +1,20 @@
+{
+  "base": "21820cf55c5f36fcda8775cb84089e31dd742151",
+  "runtime_and_tests_unchanged": true,
+  "previous_images": 20,
+  "current_images": 1,
+  "previous_image_directories": 4,
+  "current_image_directories": 1,
+  "removed_redundant_pages": 2,
+  "archive_commit": "485cb3c7243c1b49a02faa9ee4c02abb154c79e6",
+  "renderer_f401": "pass",
+  "renderer_guard_checks": [
+    "profiled_sample",
+    "wrong_source",
+    "wrong_median",
+    "tampered_evidence"
+  ],
+  "renderer_reproduces_byte_for_byte": true,
+  "qlty_scope": "docs/** and tools/** excluded by repository configuration; remaining implementation unchanged",
+  "sphinx": "11 Torch pages, 1 image and 1 downloadable manifest; warnings are errors; external docs verified and stubbed"
+}
