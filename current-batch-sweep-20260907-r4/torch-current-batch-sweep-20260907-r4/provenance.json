@@ -1,0 +1,145 @@
+{
+  "source": {
+    "path": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/source",
+    "commit": "9578a710479b924e882857c4dffab6ed372a634b",
+    "status": ""
+  },
+  "helper_sha256": {
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/batch-campaign.py": "ddfc848fb18c8bcf5e0654ad009477729ef0e4be8a5e15282ff7dbbb65e498c0",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/batch-worker.py": "73a46ff05aff869523bb87ea329cd4f44d99c87cdcb8eb6237924c5ff0d63221",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/campaign_controls.py": "8fd1d90757de96db461950af19cae81dd81fe1fe1eabc709c28384194242ecc3",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/native-provenance.json": "acff3ecb7b67a2bf8f9f302f5e5b7978ac882c3fea9332c62c4dc3b240f2820e",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/NUMERICAL-POLICY.md": "07e3fc53ff91848acd09164de9bf4ae00f1d2130805ef1ef04f9913bf067e85d",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/policy-decision.json": "633e062331ad5ff72029e5d52f479f4040d86913f3ae45c9b44a5980a6ce93b5"
+  },
+  "native": {
+    "source_revision": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+    "target_revision": "9578a710479b924e882857c4dffab6ed372a634b",
+    "native_build_inputs_diff": "",
+    "extensions": [
+      {
+        "relative_path": "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+        "bytes": 406920,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+        "bytes": 101136,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+        "bytes": 278752,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+        "bytes": 318736,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+        "bytes": 87768,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+        "bytes": 438920,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+        "bytes": 387344,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+        "bytes": 386424,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+        "bytes": 143640,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+        "bytes": 141808,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+        "bytes": 107072,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so"
+      }
+    ],
+    "copied_from_revision": "a23401d299ba2dfb93a0437483db02a960b9bfdb",
+    "previous_provenance_sha256": "51c55fda0d8b890bfe26f695af42101b5ebe75bf324f777fb2390b6652d00570"
+  },
+  "plan": {
+    "revision": "9578a710479b924e882857c4dffab6ed372a634b",
+    "batches": [
+      1,
+      8,
+      32,
+      128,
+      512,
+      1024
+    ],
+    "routes": [
+      "branch_standard",
+      "torch_cpu",
+      "torch_cuda"
+    ],
+    "bank_templates": 1024,
+    "fft_samples": 131072,
+    "blocks": 3,
+    "replicates": 3,
+    "warmups": 2,
+    "samples": 5,
+    "seed": 7102,
+    "qualification_seeds": [
+      7102,
+      7103
+    ],
+    "numerical_policy_version": 2,
+    "physical_core_logical_cpu": 8,
+    "smt_sibling": 72,
+    "numerical_threads": 1,
+    "qualification": "Two fresh seeds, fixed banks across batches. Every complex SNR sample compared against an independent complex128 oracle and standard CPU batch 1 under policy v2; raw v1 errors retained as diagnostics. Actual route normalization is included. All trigger/veto gates unchanged.",
+    "timing": "Public LiveBatchMatchedFilter.process_data calls, uninstrumented; three fresh processes per cell, two warmups and five timed calls per process. Timing summaries are published only when all required qualifications pass.",
+    "scope": "shared-host diagnostic; no exclusive reservation",
+    "excludes": [
+      "frame I/O",
+      "PSD estimation",
+      "waveform generation",
+      "bank loading",
+      "CLI startup/teardown",
+      "full-machine capacity"
+    ],
+    "ordering": "Batch order rotates between replicates; route order rotates and reverses between cells.",
+    "worker_timeout_seconds": 3600
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "adopted": true,
+  "policy_version": 2,
+  "recorded_utc": "2026-09-07T16:13:23.714354+00:00",
+  "user_instruction": "Ok no worries, let's make that clear in the docs and continue with the benchmarking please",
+  "context": "User accepted the documented FFT precision explanation after being offered the separately versioned complete-complex-SNR criterion. No runtime precision change is part of this campaign.",
+  "criterion": "abs(actual_complex_SNR - independent_complex128_oracle_SNR) <= 0.001 and abs(actual_complex_SNR - standard_CPU_MKL_SNR) <= 0.001 for every sample; actual route normalization included; all previous trigger and veto checks unchanged.",
+  "policy_document_sha256": "07e3fc53ff91848acd09164de9bf4ae00f1d2130805ef1ef04f9913bf067e85d",
+  "previous_policy": "R3 version 1 failed; preserved without reclassification",
+  "qualification_seeds": [
+    7102,
+    7103
+  ]
+}

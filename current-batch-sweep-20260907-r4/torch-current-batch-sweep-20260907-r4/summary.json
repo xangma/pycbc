@@ -1,0 +1,374 @@
+{
+  "plan": {
+    "revision": "9578a710479b924e882857c4dffab6ed372a634b",
+    "batches": [
+      1,
+      8,
+      32,
+      128,
+      512,
+      1024
+    ],
+    "routes": [
+      "branch_standard",
+      "torch_cpu",
+      "torch_cuda"
+    ],
+    "bank_templates": 1024,
+    "fft_samples": 131072,
+    "blocks": 3,
+    "replicates": 3,
+    "warmups": 2,
+    "samples": 5,
+    "seed": 7102,
+    "qualification_seeds": [
+      7102,
+      7103
+    ],
+    "numerical_policy_version": 2,
+    "physical_core_logical_cpu": 8,
+    "smt_sibling": 72,
+    "numerical_threads": 1,
+    "qualification": "Two fresh seeds, fixed banks across batches. Every complex SNR sample compared against an independent complex128 oracle and standard CPU batch 1 under policy v2; raw v1 errors retained as diagnostics. Actual route normalization is included. All trigger/veto gates unchanged.",
+    "timing": "Public LiveBatchMatchedFilter.process_data calls, uninstrumented; three fresh processes per cell, two warmups and five timed calls per process. Timing summaries are published only when all required qualifications pass.",
+    "scope": "shared-host diagnostic; no exclusive reservation",
+    "excludes": [
+      "frame I/O",
+      "PSD estimation",
+      "waveform generation",
+      "bank loading",
+      "CLI startup/teardown",
+      "full-machine capacity"
+    ],
+    "ordering": "Batch order rotates between replicates; route order rotates and reverses between cells.",
+    "worker_timeout_seconds": 3600
+  },
+  "cells": [
+    {
+      "batch": 1,
+      "route": "branch_standard",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        2.6155328140000003,
+        2.6180294789999996,
+        2.640594904
+      ],
+      "median_iteration_seconds": 2.6180294789999996,
+      "median_templates_per_second": 1173.4016078281143,
+      "templates_per_second_range": [
+        1163.3742060724662,
+        1174.5216819902607
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 65710.4900383744
+    },
+    {
+      "batch": 1,
+      "route": "torch_cpu",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        4.3366429360000005,
+        4.305850644,
+        4.322638762
+      ],
+      "median_iteration_seconds": 4.322638762,
+      "median_templates_per_second": 710.6770121541791,
+      "templates_per_second_range": [
+        708.3820469742266,
+        713.4478768511599
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 39797.91268063403
+    },
+    {
+      "batch": 1,
+      "route": "torch_cuda",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        1.267120547,
+        1.2727721730000001,
+        1.2536891760000002
+      ],
+      "median_iteration_seconds": 1.267120547,
+      "median_templates_per_second": 2424.3944329315655,
+      "templates_per_second_range": [
+        2413.6291358092094,
+        2450.3681285671396
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 135766.08824416768
+    },
+    {
+      "batch": 8,
+      "route": "branch_standard",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        2.613501211,
+        2.6094050980000003,
+        2.6223631999999997
+      ],
+      "median_iteration_seconds": 2.613501211,
+      "median_templates_per_second": 1175.434695446177,
+      "templates_per_second_range": [
+        1171.4624427310453,
+        1177.2798337653894
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 65824.34294498592
+    },
+    {
+      "batch": 8,
+      "route": "torch_cpu",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        8.274333719,
+        8.235315457,
+        8.343451152
+      ],
+      "median_iteration_seconds": 8.274333719,
+      "median_templates_per_second": 371.2685642525993,
+      "templates_per_second_range": [
+        368.19296284411206,
+        373.0276048367773
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 20791.03959814556
+    },
+    {
+      "batch": 8,
+      "route": "torch_cuda",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        0.23458568800000004,
+        0.23053611000000002,
+        0.233368674
+      ],
+      "median_iteration_seconds": 0.233368674,
+      "median_templates_per_second": 13163.720508606053,
+      "templates_per_second_range": [
+        13095.428055269935,
+        13325.46124769781
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 737168.3484819389
+    },
+    {
+      "batch": 32,
+      "route": "branch_standard",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        2.602810285,
+        2.60180117,
+        2.6280640569999996
+      ],
+      "median_iteration_seconds": 2.602810285,
+      "median_templates_per_second": 1180.2627405093415,
+      "templates_per_second_range": [
+        1168.9212794557086,
+        1180.7205083238548
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 66094.71346852313
+    },
+    {
+      "batch": 32,
+      "route": "torch_cpu",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        8.228259623,
+        8.212098497,
+        8.224419802
+      ],
+      "median_iteration_seconds": 8.224419802,
+      "median_templates_per_second": 373.52178925168147,
+      "templates_per_second_range": [
+        373.34748060367565,
+        374.08221554116125
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 20917.22019809416
+    },
+    {
+      "batch": 32,
+      "route": "torch_cuda",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        0.10095754600000001,
+        0.10107738900000002,
+        0.101213965
+      ],
+      "median_iteration_seconds": 0.10107738900000002,
+      "median_templates_per_second": 30392.55396674324,
+      "templates_per_second_range": [
+        30351.54289232716,
+        30428.631852838418
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 1701983.0221376214
+    },
+    {
+      "batch": 128,
+      "route": "branch_standard",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        2.58626977,
+        2.588665648,
+        2.594379583
+      ],
+      "median_iteration_seconds": 2.588665648,
+      "median_templates_per_second": 1186.71177267463,
+      "templates_per_second_range": [
+        1184.0981250891998,
+        1187.8111230446002
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 66455.85926977929
+    },
+    {
+      "batch": 128,
+      "route": "torch_cpu",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        9.264240012,
+        9.333649002,
+        9.260819669
+      ],
+      "median_iteration_seconds": 9.264240012,
+      "median_templates_per_second": 331.59762657496225,
+      "templates_per_second_range": [
+        329.13172536718884,
+        331.72009711875967
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 18569.467088197885
+    },
+    {
+      "batch": 128,
+      "route": "torch_cuda",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        0.09361746800000001,
+        0.093760505,
+        0.094304881
+      ],
+      "median_iteration_seconds": 0.093760505,
+      "median_templates_per_second": 32764.32864776059,
+      "templates_per_second_range": [
+        32575.19618735323,
+        32814.38887024802
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 1834802.404274593
+    },
+    {
+      "batch": 512,
+      "route": "branch_standard",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        2.5722019950000004,
+        2.599436103,
+        2.582980304
+      ],
+      "median_iteration_seconds": 2.582980304,
+      "median_templates_per_second": 1189.323819172258,
+      "templates_per_second_range": [
+        1181.7947732797186,
+        1194.3074478487836
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 66602.13387364645
+    },
+    {
+      "batch": 512,
+      "route": "torch_cpu",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        9.288922765999999,
+        9.310746015000001,
+        9.291692381
+      ],
+      "median_iteration_seconds": 9.291692381,
+      "median_templates_per_second": 330.61791910822836,
+      "templates_per_second_range": [
+        329.941338218321,
+        330.71649720722854
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 18514.60347006079
+    },
+    {
+      "batch": 512,
+      "route": "torch_cuda",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        0.09233142800000001,
+        0.091177272,
+        0.091599941
+      ],
+      "median_iteration_seconds": 0.091599941,
+      "median_templates_per_second": 33537.13950536278,
+      "templates_per_second_range": [
+        33271.44469161681,
+        33692.60707865881
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 1878079.8123003156
+    },
+    {
+      "batch": 1024,
+      "route": "branch_standard",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        2.611143804,
+        2.586711186,
+        2.58353951
+      ],
+      "median_iteration_seconds": 2.586711186,
+      "median_templates_per_second": 1187.6084259528152,
+      "templates_per_second_range": [
+        1176.4959077680885,
+        1189.066390550381
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 66506.07185335766
+    },
+    {
+      "batch": 1024,
+      "route": "torch_cpu",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        9.365283394,
+        9.335520672,
+        9.334925318
+      ],
+      "median_iteration_seconds": 9.335520672,
+      "median_templates_per_second": 329.06573804863837,
+      "templates_per_second_range": [
+        328.01997235536084,
+        329.08672489071114
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 18427.68133072375
+    },
+    {
+      "batch": 1024,
+      "route": "torch_cuda",
+      "workers": 3,
+      "worker_median_iteration_seconds": [
+        0.089028171,
+        0.09027005700000001,
+        0.08966770199999999
+      ],
+      "median_iteration_seconds": 0.08966770199999999,
+      "median_templates_per_second": 34259.827468311836,
+      "templates_per_second_range": [
+        34031.21812585096,
+        34505.931835890464
+      ],
+      "valid_seconds_per_block": 56.0,
+      "median_template_seconds_per_second": 1918550.338225463
+    }
+  ],
+  "denominator": "1024 templates x 3 blocks per iteration; capacity multiplies by valid seconds per block. One affinity-pinned host CPU per worker; CUDA additionally uses one GPU.",
+  "scope": "Warm public live-filter API throughput on a shared host; excludes end-to-end CLI work and does not establish full-machine capacity."
+}

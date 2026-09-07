@@ -1,0 +1,42 @@
+{
+  "state": "draft-tested-awaiting-criterion-adoption",
+  "recorded_utc": "2026-09-07T12:55:56.519322+00:00",
+  "host": "client-3792.default.vpn.port.ac.uk",
+  "source_revision": "9578a710479b924e882857c4dffab6ed372a634b",
+  "policy_adopted": false,
+  "controller_tests": {
+    "passed": 37,
+    "seconds": 2.63
+  },
+  "worker_tests": {
+    "passed": 54
+  },
+  "independently_repeated_public_api_tests": {
+    "passed": 3,
+    "seconds": 9.96,
+    "routes": [
+      "torch_cpu_b1",
+      "torch_cpu_b8",
+      "standard_cpu_fftw_b1"
+    ]
+  },
+  "unchanged_ast_functions": [
+    "workload",
+    "trigger_record",
+    "compare_triggers",
+    "validate_triggers",
+    "sg_activation"
+  ],
+  "limitations": [
+    "No new Linux MKL/CUDA qualification or timing acquisition",
+    "Numerical policy is a draft pending user choice"
+  ],
+  "sha256": {
+    "batch-worker.py": "73a46ff05aff869523bb87ea329cd4f44d99c87cdcb8eb6237924c5ff0d63221",
+    "batch-campaign.py": "ddfc848fb18c8bcf5e0654ad009477729ef0e4be8a5e15282ff7dbbb65e498c0",
+    "campaign_controls.py": "8fd1d90757de96db461950af19cae81dd81fe1fe1eabc709c28384194242ecc3",
+    "test_batch_worker.py": "4f3951eec441ccd4e8ccdfcb0dcd1846da1e3af2ed9d21049bd003c068f80939",
+    "test_batch_campaign.py": "fdfb7d20e15d8420e2b99b857a17a7416e059ee7cfdbf98c7cfc3dc5508f7f36",
+    "NUMERICAL-POLICY.md": "7511d732d396836ea95a3d80db13cb03484618bf5e1bc70897f8d98371af47c5"
+  }
+}

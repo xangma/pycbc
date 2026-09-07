@@ -1,0 +1,19 @@
+{
+  "host": "len",
+  "cwd": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4",
+  "pid": 3789112,
+  "pgid": 3789112,
+  "command": [
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/batch-campaign.py",
+    "--shared-host",
+    "--snr-policy-v2"
+  ],
+  "log": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/launch.log",
+  "started": 1788797640.6446311,
+  "expected_next_check": "after smoke qualification, about two minutes",
+  "stop_command": "ssh len \"kill -TERM 3789112\"",
+  "source_symlink_target": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/source",
+  "source_revision": "9578a710479b924e882857c4dffab6ed372a634b",
+  "native_hashes_verified": 11
+}
