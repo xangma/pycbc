@@ -1,0 +1,48 @@
+{
+  "host": "client-3792.default.vpn.port.ac.uk",
+  "cwd": "/private/tmp/pycbc-torch-python-optimization-r4-20260907",
+  "pid": 68497,
+  "pgid": 68497,
+  "python": "/private/tmp/pycbc-python-optimization-r4-20260907-venv/bin/python",
+  "environment": {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "PYTHONPATH": "/private/tmp/pycbc-torch-python-optimization-r4-20260907"
+  },
+  "tests": [
+    {
+      "role": "candidate",
+      "command": [
+        "/private/tmp/pycbc-python-optimization-r4-20260907-venv/bin/python",
+        "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-r4-20260907/validate-local.py",
+        "candidate"
+      ],
+      "started": 1788804458.7843142,
+      "finished": 1788804501.866839,
+      "returncode": 0
+    },
+    {
+      "role": "baseline",
+      "command": [
+        "/private/tmp/pycbc-python-optimization-r4-20260907-venv/bin/python",
+        "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-r4-20260907/validate-local.py",
+        "baseline"
+      ],
+      "started": 1788804501.867405,
+      "finished": 1788804518.548566,
+      "returncode": 0
+    },
+    {
+      "role": "integration",
+      "command": [
+        "/private/tmp/pycbc-python-optimization-r4-20260907-venv/bin/python",
+        "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-r4-20260907/validate-local.py",
+        "integration"
+      ],
+      "started": 1788804518.548907,
+      "finished": 1788804524.765399,
+      "returncode": 0
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{"role": "integration", "pycbc": "/private/tmp/pycbc-torch-python-optimization-r4-20260907/pycbc/__init__.py", "torch": "2.9.1", "python": "3.13.9 | packaged by conda-forge | (main, Oct 22 2025, 23:38:18) [Clang 19.1.7 ]", "pid": 70753}
+........................................................................ [ 13%]
+........................................................................ [ 26%]
+........................................................................ [ 40%]
+..................................................................s..s.. [ 53%]
+.ss......ssss......ss...s...ss...s..s..s....ssssss..ss........ssssssss.s [ 67%]
+.s.s.s........ssssssss..ssssss........ssssssss.sss.sss........ssssssss.s [ 80%]
+ss.sss..s..s..s..s...s...s............s.......ss...s..ss.s.............. [ 94%]
+.............................s.s                                         [100%]
+=============================== warnings summary ===============================
+test/test_torch_psd_pipeline.py::test_lisa_response_psd_public_devices[cpu]
+test/test_torch_psd_pipeline.py::test_lisa_response_psd_public_devices[mps]
+  /private/tmp/pycbc-torch-python-optimization-r4-20260907/pycbc/psd/read.py:99: RuntimeWarning: divide by zero encountered in log
+    slog = numpy.log(noise_data)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] test/test_torch_filter_pipeline.py:83: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:124: Torch CUDA device unavailable
+SKIPPED [2] test/test_torch_filter_pipeline.py:142: Torch CUDA device unavailable
+SKIPPED [4] test/test_torch_filter_pipeline.py:183: Torch CUDA device unavailable
+SKIPPED [2] test/test_torch_filter_pipeline.py:237: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:283: Torch CUDA device unavailable
+SKIPPED [2] test/test_torch_filter_pipeline.py:323: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:352: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:391: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:435: Torch CUDA device unavailable
+SKIPPED [3] test/test_torch_filter_pipeline.py:471: Torch CUDA device unavailable
+SKIPPED [3] test/test_torch_filter_pipeline.py:486: Torch MPS PyCBC arrays do not support complex dtypes
+SKIPPED [1] test/test_torch_filter_pipeline.py:595: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:599: Glitch detection requires complex PyCBC arrays on MPS
+SKIPPED [8] test/test_torch_filter_pipeline.py:644: Torch CUDA device unavailable
+SKIPPED [4] test/test_torch_filter_pipeline.py:651: Torch MPS does not support float64
+SKIPPED [8] test/test_torch_filter_pipeline.py:712: Torch CUDA device unavailable
+SKIPPED [6] test/test_torch_filter_pipeline.py:725: Torch MPS only supports float32 PyCBC arrays
+SKIPPED [8] test/test_torch_filter_pipeline.py:784: Torch CUDA device unavailable
+SKIPPED [6] test/test_torch_filter_pipeline.py:792: Torch MPS only supports float32 PyCBC arrays
+SKIPPED [8] test/test_torch_filter_pipeline.py:836: Torch CUDA device unavailable
+SKIPPED [6] test/test_torch_filter_pipeline.py:851: Torch MPS only supports float32 PyCBC arrays
+SKIPPED [1] test/test_torch_psd_pipeline.py:236: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:275: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:314: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:339: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:448: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:534: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:610: Torch CUDA device unavailable
+SKIPPED [2] test/test_torch_psd_pipeline.py:699: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:742: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:822: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:825: Welch requires complex PyCBC arrays, unsupported on MPS
+SKIPPED [1] test/test_torch_psd_pipeline.py:885: Torch CUDA device unavailable
+SKIPPED [2] test/test_torch_search_kernels.py:1162: CUDA is unavailable
+443 passed, 93 skipped, 2 warnings in 3.86s

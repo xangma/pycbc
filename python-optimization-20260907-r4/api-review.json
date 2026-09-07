@@ -1,0 +1,8 @@
+{
+  "decision": "proceed",
+  "reviewed_by_thread": "01a079bf-abfd-7cd2-bd6a-3893ab4f0d53",
+  "candidate_revision": "9e6a688a5190d6e1ddc655fbe352cc206085d5c6",
+  "api_summary_sha256": "a4bf978c0251f1d57785facd65fed9760ec578b22ddfbb9256fea29b617b1c31",
+  "reviewed_utc": "2026-09-07T18:25:56.860364+00:00",
+  "cutoff_assessment": "Retain 4096 for this unchanged candidate and proceed only with the already reviewed eight-worker 384-template executable phase. Parent independently checked all 108 raw worker cells, rebuilt all 18 cell medians/ranges and ratios, verified their exact input/output parity, 18 evidence hashes, 23 helper hashes, serial fresh workers and terminal/source/lock audit. Every tested fast-path cell has non-overlapping worker ranges and a 1.391136x to 18.249478x improvement. At 4096 the complex64 contiguous/stride-3 ratios are 1.391136x/1.774882x and complex128 ratios 4.313573x/4.213839x. All six below-cutoff medians slow by 0.949316 to 1.502676 microseconds (ratios 0.939482x to 0.990176x); retain and report those costs. This supports the existing cutoff on this shared x86 host/runtime, not optimality or general portability. Component speedups do not establish executable benefit. Require both scientific qualifications and all unchanged within/across-revision trigger/veto comparisons, then six fresh AB/BA/AB timings under the shared inherited lock and existing time bounds. Report complete wall times including identical verification startup and all negative/noisy outcomes; no additional source/helper/tolerance change is authorized by this receipt."
+}

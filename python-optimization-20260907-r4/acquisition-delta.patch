@@ -1,0 +1,285 @@
+--- original/benchmark-squared-norm.py
++++ r4/benchmark-squared-norm.py
+@@ -21,7 +21,7 @@
+ import time
+ 
+ 
+-BASE_REVISION = "818331d6ec39ed6f9fb64abcb867a27ee9919785"
++BASE_REVISION = "9578a710479b924e882857c4dffab6ed372a634b"
+ SIZES = (16, 512, 4095, 4096, 8193, 131072, 1048577)
+ THREAD_ENV = ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
+               "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")
+--- original/compare-candidate.py
++++ r4/compare-candidate.py
+@@ -22,8 +22,8 @@
+ 
+ 
+ ROOT = Path(__file__).resolve().parent
+-BASE = "818331d6ec39ed6f9fb64abcb867a27ee9919785"
+-CANDIDATE = "1f914b4599e0ae13357836c71ebd3c45a52bbf16"
++BASE = "9578a710479b924e882857c4dffab6ed372a634b"
++CANDIDATE = "9e6a688a5190d6e1ddc655fbe352cc206085d5c6"
+ REVISIONS = {"baseline": BASE, "candidate": CANDIDATE}
+ CHANGED = ["pycbc/types/array_torch.py", "test/test_torch_squared_norm.py"]
+ DIFF_SHA = "06c76d2bd544f9ac96fbb407356e59bb7ef675a1edc47860f9470cf0e92f3b09"
+@@ -37,7 +37,7 @@
+     "run-case.py": "243eef653386a76d1ead4b92542bc84088e882df9011faab5a8154154da9c456",
+     "qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+     "config.json": "2cdf795f4c5c902823d039beb1a6f29a64a441e4c4ab781cb414c92257b5fbe4",
+-    "native-provenance.json": "60396741272a056018eb5c4b7a7ec9b04f6383e38d83b372bf5ccc0885d94367",
++    "native-provenance.json": "acff3ecb7b67a2bf8f9f302f5e5b7978ac882c3fea9332c62c4dc3b240f2820e",
+     "checked-inspiral.py": "1b7e1efed640ec77c0579289a80a7946a34f1c42861d07cfe8c01794c25be735",
+     "run-case-verified.py": "9bd95de06906a43aaad78285ca8fc9aa0a1eed410491049d63662e2d4de42b1f",
+     "threadpoolctl.py": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b",
+--- original/native-provenance.json
++++ r4/native-provenance.json
+@@ -1,73 +1,86 @@
+ {
+   "source_revision": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+-  "target_revision": "818331d6ec39ed6f9fb64abcb867a27ee9919785",
++  "target_revision": "9578a710479b924e882857c4dffab6ed372a634b",
+   "native_build_inputs_diff": "",
+   "extensions": [
+     {
+       "relative_path": "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so",
+       "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so",
+       "sha256": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+-      "bytes": 406920
++      "bytes": 406920,
++      "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so"
+     },
+     {
+       "relative_path": "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so",
+       "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so",
+       "sha256": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+-      "bytes": 101136
++      "bytes": 101136,
++      "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so"
+     },
+     {
+       "relative_path": "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so",
+       "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so",
+       "sha256": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+-      "bytes": 278752
++      "bytes": 278752,
++      "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so"
+     },
+     {
+       "relative_path": "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so",
+       "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so",
+       "sha256": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+-      "bytes": 318736
++      "bytes": 318736,
++      "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so"
+     },
+     {
+       "relative_path": "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so",
+       "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so",
+       "sha256": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+-      "bytes": 87768
++      "bytes": 87768,
++      "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so"
+     },
+     {
+       "relative_path": "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so",
+       "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so",
+       "sha256": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+-      "bytes": 438920
++      "bytes": 438920,
++      "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so"
+     },
+     {
+       "relative_path": "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so",
+       "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so",
+       "sha256": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+-      "bytes": 387344
++      "bytes": 387344,
++      "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so"
+     },
+     {
+       "relative_path": "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so",
+       "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so",
+       "sha256": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+-      "bytes": 386424
++      "bytes": 386424,
++      "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so"
+     },
+     {
+       "relative_path": "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so",
+       "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so",
+       "sha256": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+-      "bytes": 143640
++      "bytes": 143640,
++      "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so"
+     },
+     {
+       "relative_path": "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so",
+       "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so",
+       "sha256": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+-      "bytes": 141808
++      "bytes": 141808,
++      "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so"
+     },
+     {
+       "relative_path": "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so",
+       "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so",
+       "sha256": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+-      "bytes": 107072
++      "bytes": 107072,
++      "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so"
+     }
+-  ]
++  ],
++  "copied_from_revision": "a23401d299ba2dfb93a0437483db02a960b9bfdb",
++  "previous_provenance_sha256": "51c55fda0d8b890bfe26f695af42101b5ebe75bf324f777fb2390b6652d00570"
+ }
+--- original/optimize-campaign.py
++++ r4/optimize-campaign.py
+@@ -17,10 +17,10 @@
+ 
+ 
+ ROOT = Path(__file__).resolve().parent
+-PROFILE = Path('/home/xangma/pycbc-torch-device-profile-20260907')
+-PROFILE_PID = 3526622
++PROFILE = Path('/home/xangma/pycbc-torch-device-profile-20260907-r2')
++PROFILE_PID = 2663981
+ PROFILER = '01a07ac4-9675-7983-9923-90de72db82d5'
+-OWNER = '01a07ac4-f4e4-7792-99b5-5bd27522c961'
++OWNER = '01a079bf-abfd-7cd2-bd6a-3893ab4f0d53'
+ LOCK = Path('/home/xangma/pycbc-torch-performance-coordination-20260907/len-benchmark.lock')
+ BOUNDS = {'api': (900, 180), 'executable': (10800, 900)}
+ 
+@@ -51,6 +51,8 @@
+ 
+ 
+ def gates():
++    if PROFILE_PID <= 0:
++        raise ValueError('Profiler acquisition PID has not yet been pinned')
+     helper = load('profile_gates', 'profile-gates.py')
+     predecessors = helper.check_predecessors()
+     status = control.read(PROFILE / 'profile-status.json')
+--- original/profile-gates.py
++++ r4/profile-gates.py
+@@ -21,13 +21,14 @@
+ 
+ ROOT = Path(__file__).resolve().parent
+ REFERENCE = Path('/home/xangma/pycbc-torch-reference-protocol-20260907')
+-BATCH = Path('/home/xangma/pycbc-torch-current-batch-sweep-20260907')
++BATCH = Path('/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4')
+ CONVERGENCE = Path('/home/xangma/pycbc-torch-convergence-20260907')
+ SOURCE = BATCH / 'source'
+-REVISION = '818331d6ec39ed6f9fb64abcb867a27ee9919785'
++REVISION = '9578a710479b924e882857c4dffab6ed372a634b'
++BATCH_STATUS_SHA256 = 'a19f0d8862c7a05be182cfa3e8031ac3fe919ff210b7abede1490166adf40d32'
+ LOCK = Path('/home/xangma/pycbc-torch-performance-coordination-20260907/len-benchmark.lock')
+ PREDECESSORS = [(CONVERGENCE, 'convergence-status.json', 340874),
+-                (BATCH, 'batch-status.json', 1609662)]
++                (BATCH, 'batch-status.json', 3789112)]
+ 
+ 
+ def process_table(proc=Path('/proc')):
+@@ -76,10 +77,12 @@
+                            sha256=control.digest(root / filename),
+                            owned_groups=sorted(g for g in groups if g)))
+     batch_status = result[1]['status']
+-    if (batch_status.get('qualifications_passed') != 18 or
++    if (batch_status.get('qualifications_passed') != 36 or
+             batch_status.get('timing_workers') != 54 or
+             batch_status.get('source_unchanged') is not True):
+         raise ValueError('Batch campaign lacks its final qualification/timing gates')
++    if result[1]['sha256'] != BATCH_STATUS_SHA256:
++        raise ValueError('Batch completion differs from the reviewed R4 receipt')
+     return result
+ 
+ 
+--- original/test_optimize_campaign.py
++++ r4/test_optimize_campaign.py
+@@ -194,10 +194,11 @@
+         assert launch['inherited_lock']['fd'] == lock.fileno()
+ 
+ 
+-@pytest.mark.parametrize('mutation', ['no-release', 'wrong-thread', 'wrong-profile-hash',
+-                                      'failed-lifecycle', 'failed-science'])
++@pytest.mark.parametrize('mutation', [None, 'no-release', 'wrong-thread', 'wrong-profile-hash',
++                                      'wrong-profile-pid', 'failed-lifecycle', 'failed-science'])
+ def test_profile_gate_rejects_missing_evidence(monkeypatch, tmp_path, mutation):
+     campaign = load('optimize-campaign')
++    monkeypatch.setattr(campaign, 'PROFILE_PID', 123)
+     monkeypatch.setattr(campaign, 'ROOT', tmp_path)
+     profile = tmp_path / 'profile'
+     (profile / 'stages').mkdir(parents=True)
+@@ -221,14 +222,63 @@
+         release['released_by_thread'] = 'someone-else'
+     if mutation == 'wrong-profile-hash':
+         release['profile_status_sha256'] = 'changed'
++    if mutation == 'wrong-profile-pid':
++        release['profile_pid'] = 124
+     if mutation != 'no-release':
+         (tmp_path / 'profile-release.json').write_text(json.dumps(release))
+-    with pytest.raises((FileNotFoundError, ValueError)):
++    if mutation is None:
++        assert campaign.gates()['release'] == release
++    else:
++        with pytest.raises((FileNotFoundError, ValueError)):
++            campaign.gates()
++
++
++def test_unpinned_profile_acquisition_fails_closed(monkeypatch):
++    campaign = load('optimize-campaign')
++    monkeypatch.setattr(campaign, 'PROFILE_PID', 0)
++    with pytest.raises(ValueError, match='PID has not yet been pinned'):
+         campaign.gates()
+ 
+ 
++@pytest.mark.parametrize('mutation', [None, 'qualification-count', 'timing-count',
++                                     'source-changed', 'changed-receipt', 'active-group'])
++def test_reviewed_r4_predecessor_gate(monkeypatch, tmp_path, mutation):
++    gate = load('profile-gates')
++    predecessors = []
++    for pid, name in ((101, 'convergence'), (102, 'r4')):
++        root = tmp_path / name
++        (root / 'stages').mkdir(parents=True)
++        (root / 'status.json').write_text(json.dumps(dict(
++            state='complete', finished=1, pid=pid, pgid=pid,
++            qualifications_passed=36, timing_workers=54, source_unchanged=True)))
++        (root / 'stages/worker.json').write_text(json.dumps(dict(pid=pid + 100, pgid=pid + 100)))
++        predecessors.append((root, 'status.json', pid))
++    monkeypatch.setattr(gate, 'PREDECESSORS', predecessors)
++    processes = [dict(pid=999, pgid=202)] if mutation == 'active-group' else []
++    monkeypatch.setattr(gate, 'process_table', lambda: processes)
++    path = predecessors[1][0] / 'status.json'
++    monkeypatch.setattr(gate, 'BATCH_STATUS_SHA256', gate.control.digest(path))
++    value = json.loads(path.read_text())
++    if mutation == 'qualification-count':
++        value['qualifications_passed'] = 35
++    elif mutation == 'timing-count':
++        value['timing_workers'] = 53
++    elif mutation == 'source-changed':
++        value['source_unchanged'] = False
++    elif mutation == 'changed-receipt':
++        value['unreviewed'] = True
++    if mutation not in (None, 'active-group'):
++        path.write_text(json.dumps(value))
++    if mutation is None:
++        assert len(gate.check_predecessors()) == 2
++    else:
++        with pytest.raises(ValueError):
++            gate.check_predecessors()
++
++
+ @pytest.mark.parametrize('mutation', [None, 'incomplete', 'live-supervisor', 'wrong-decision',
+-                                     'wrong-candidate', 'empty-assessment', 'changed-summary'])
++                                     'wrong-candidate', 'wrong-reviewer', 'empty-assessment',
++                                     'changed-summary'])
+ def test_executable_requires_reviewed_unchanged_api_evidence(monkeypatch, tmp_path, mutation):
+     campaign = load('optimize-campaign')
+     compare = load('compare-candidate')
+@@ -251,6 +301,8 @@
+         review['decision'] = 'pending'
+     elif mutation == 'wrong-candidate':
+         review['candidate_revision'] = compare.BASE
++    elif mutation == 'wrong-reviewer':
++        review['reviewed_by_thread'] = '01a07ac4-f4e4-7792-99b5-5bd27522c961'
+     elif mutation == 'empty-assessment':
+         review['cutoff_assessment'] = ''
+     elif mutation == 'changed-summary':
