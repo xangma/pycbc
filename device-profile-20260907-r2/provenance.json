@@ -1,0 +1,121 @@
+{
+  "source": {
+    "path": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/source",
+    "commit": "9578a710479b924e882857c4dffab6ed372a634b",
+    "status": ""
+  },
+  "sha256": {
+    "/home/xangma/pycbc-torch-device-profile-20260907-r2/campaign_controls.py": "efc82d6a72c42ef6e66060a9d7cd5131b42e527455fde39456b977dd410e4ba0",
+    "/home/xangma/pycbc-torch-device-profile-20260907-r2/compare-triggers.py": "f0af115a2bf2d3a5a85152cb1f61d9b7570a460efd6d420566c5a2b74ac8f1b5",
+    "/home/xangma/pycbc-torch-device-profile-20260907-r2/config.json": "6d399146bcc19a43b780ef1d591ee115954621d0bdf8751915ef69ee986c395b",
+    "/home/xangma/pycbc-torch-device-profile-20260907-r2/native-provenance.json": "acff3ecb7b67a2bf8f9f302f5e5b7978ac882c3fea9332c62c4dc3b240f2820e",
+    "/home/xangma/pycbc-torch-device-profile-20260907-r2/profile-campaign.py": "66e6b08df39c0c26bcac784b7d43aa4df2a261232c60340811022265a0ca7cfc",
+    "/home/xangma/pycbc-torch-device-profile-20260907-r2/profile_torch_filtering.py": "d3418867079b25bde495206305ff92bb8a04af2465a7f7ea36f260833a0b3dd8",
+    "/home/xangma/pycbc-torch-device-profile-20260907-r2/qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+    "/home/xangma/pycbc-torch-device-profile-20260907-r2/run-case.py": "cad8bc90c2b035770c924f02fb6ed1fa34ecfcec403de2660166f42f685c9cfe",
+    "/home/xangma/pycbc-torch-device-profile-20260907-r2/summarize_torch_trace.py": "7f268a7bd36a4512e00b5863b21945039bec26ca1a2f3e3c7e198cdf32fc43cd",
+    "/home/xangma/pycbc-torch-device-profile-20260907-r2/test-profile-campaign.py": "6d1d467267a2646ad9b45f83881721b9502c0f56f0a0bf08b5a2c028505b95c7",
+    "/home/xangma/pycbc-torch-device-profile-20260907-r2/thread-runtime.py": "cd9892a43766e2c4a7cebd30ce7602c9b77fc26f4dc8bccd10498854f84d2c8e",
+    "/home/xangma/pycbc-torch-device-profile-20260907-r2/wait-and-profile.py": "67c3b4b5909a95729e09c7318971c55ef229c90955362d9781f4caee8b6f3e2a",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/source/pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/source/pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/source/pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/source/pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/source/pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/source/pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/source/pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/source/pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/source/pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/source/pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r4/source/pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+    "/home/xangma/pycbc-torch-reference-protocol-20260907/inputs/bank-compressed.hdf": "26050d48322a1d71092bb0e024e71a89ace56b3e7b1c5e4cf20c7b769213fb7f",
+    "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865"
+  },
+  "native": {
+    "source_revision": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+    "target_revision": "9578a710479b924e882857c4dffab6ed372a634b",
+    "native_build_inputs_diff": "",
+    "extensions": [
+      {
+        "relative_path": "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+        "bytes": 406920,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+        "bytes": 101136,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+        "bytes": 278752,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+        "bytes": 318736,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+        "bytes": 87768,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+        "bytes": 438920,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+        "bytes": 387344,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+        "bytes": 386424,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+        "bytes": 143640,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+        "bytes": 141808,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so"
+      },
+      {
+        "relative_path": "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so",
+        "source_path": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6/pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so",
+        "sha256": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+        "bytes": 107072,
+        "staged_from": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r2/source/pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so"
+      }
+    ],
+    "copied_from_revision": "a23401d299ba2dfb93a0437483db02a960b9bfdb",
+    "previous_provenance_sha256": "51c55fda0d8b890bfe26f695af42101b5ebe75bf324f777fb2390b6652d00570"
+  },
+  "profiler_revision": "dc6c3ed48a"
+}
