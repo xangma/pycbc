@@ -1,0 +1,999 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 23K of event 'cycles:u'
+# Event count (approx.): 308143790071
+#
+# Overhead  Command     Shared Object                                          Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+# ........  ..........  .....................................................  .....................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#
+    18.27%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cRadix4Inv_64fc
+    12.91%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFft_BlkMerge_64fc
+     8.98%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFft_BlkSplit_64fc
+     8.78%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFftInv_Fact8_64fc
+     6.84%  python      chisq_cpu.cpython-311-x86_64-linux-gnu.so              [.] __pyx_fuse_1_0__pyx_pw_5pycbc_6vetoes_9chisq_cpu_25point_chisq_code(_object*, _object*, _object*)
+     3.83%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+     3.52%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::(anonymous namespace)::cascade_sum<false, float>(at::TensorIterator&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+     3.50%  python      libframel-9cd69e87.so.8.43.1                           [.] Frz_inflate_fast
+     3.40%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFftInv_Fact4_64fc
+     3.39%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+     2.91%  python      simd_threshold_cython.cpython-311-x86_64-linux-gnu.so  [.] _max_simple(float*, float*, float*, long*, long, long)
+     1.66%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_zBitRev1_Blk
+     1.46%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#16}::operator()() const::{lambda(c10::complex<float>, c10::complex<float>)#1}, at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#16}::operator()() const::{lambda(at::vec::AVX2::Vectorized<c10::complex<float> >, at::vec::AVX2::Vectorized<c10::complex<float> >)#1}> >(long, char**, long const*, long, long)
+     1.30%  python      decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so  [.] void _decomp_main_loop<float, std::complex<float> >(int, std::complex<float>*, double, long, long, float*, float*, float*, long, long)
+     1.30%  python      libtorch_cpu.so                                        [.] std::array<float, 4l> at::native::(anonymous namespace)::multi_row_sum<float, 4l, at::native::(anonymous namespace)::CastLoadPolicy<float, float> >(char const*, long, long, long)
+     1.22%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::AVX2::conj_kernel(at::TensorIteratorBase&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(c10::complex<float>)#1}, at::native::AVX2::conj_kernel(at::TensorIteratorBase&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(at::vec::AVX2::Vectorized<c10::complex<float> >)#1}> >(long, char**, long const*, long, long)
+     1.06%  python      python3.11                                             [.] _PyEval_EvalFrameDefault
+     1.05%  python      libmkl_core.so                                         [.] mkl_serv_libm_sincospif
+     0.93%  python      libframel-9cd69e87.so.8.43.1                           [.] FrCksumGnu
+     0.52%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::AVX2::pow_tensor_scalar_optimized_kernel<float, double, double>(at::TensorIteratorBase&, double)::{lambda(float)#1}, at::native::AVX2::pow_tensor_scalar_optimized_kernel<float, double, double>(at::TensorIteratorBase&, double)::{lambda(at::vec::AVX2::Vectorized<float>)#2}> >(long, char**, long const*, long, long)
+     0.51%  python      libframel-9cd69e87.so.8.43.1                           [.] Frz_adler32
+     0.50%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#15}::operator()() const::{lambda()#1}::operator()() const::{lambda()#16}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#15}::operator()() const::{lambda()#1}::operator()() const::{lambda()#16}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+     0.36%  python      libtorch_cpu.so                                        [.] void at::native::(anonymous namespace)::sort_kernel_impl<double, at::native::StridedRandomAccessor<double, long, at::native::DefaultPtrTraits>, at::native::StridedRandomAccessor<long, long, at::native::DefaultPtrTraits> >(at::native::StridedRandomAccessor<double, long, at::native::DefaultPtrTraits> const&, at::native::StridedRandomAccessor<long, long, at::native::DefaultPtrTraits> const&, long, bool, bool)
+     0.34%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#14}::operator()() const::{lambda(float, float)#1}, at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#14}::operator()() const::{lambda(at::vec::AVX2::Vectorized<float>, at::vec::AVX2::Vectorized<float>)#1}> >(long, char**, long const*, long, long)
+     0.34%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::(anonymous namespace)::cpu_cum_base_kernel<double, at::native::(anonymous namespace)::cumsum_cpu_kernel(at::Tensor const&, at::Tensor const&, long)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(double*, auto:1, double const*, auto:2, double)#1}>(at::Tensor const&, at::Tensor const&, long, at::native::(anonymous namespace)::cumsum_cpu_kernel(at::Tensor const&, at::Tensor const&, long)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(double*, auto:1, double const*, auto:2, double)#1} const&, double)::{lambda(char**, long const*, long)#1}>(at::native::(anonymous namespace)::cpu_cum_base_kernel<double, at::native::(anonymous namespace)::cumsum_cpu_kernel(at::Tensor const&, at::Tensor const&, long)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(double*, auto:1, double const*, auto:2, double)#1}>(at::Tensor const&, at::Tensor const&, long, at::native::(anonymous namespace)::cumsum_cpu_kernel(at::Tensor const&, at::Tensor const&, long)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(double*, auto:1, double const*, auto:2, double)#1} const&, double)::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+     0.33%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::fill_kernel(at::TensorIterator&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#9}::operator()() const::{lambda()#1}, at::native::(anonymous namespace)::fill_kernel(at::TensorIterator&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#9}::operator()() const::{lambda()#2}> >(long, char**, long const*, long, long)
+     0.32%  python      libmkl_core.so                                         [.] mkl_serv_libm_sin
+     0.29%  python      libtorch_cpu.so                                        [.] void std::__introsort_loop<at::native::CompositeRandomAccessor<at::native::StridedRandomAccessor<double, long, at::native::DefaultPtrTraits>, at::native::StridedRandomAccessor<long, long, at::native::DefaultPtrTraits>, at::native::TupleInfoCPU>, long, __gnu_cxx::__ops::_Iter_comp_iter<at::native::(anonymous namespace)::KeyValueCompAsc<double> > >(at::native::CompositeRandomAccessor<at::native::StridedRandomAccessor<double, long, at::native::DefaultPtrTraits>, at::native::StridedRandomAccessor<long, long, at::native::DefaultPtrTraits>, at::native::TupleInfoCPU>, at::native::CompositeRandomAccessor<at::native::StridedRandomAccessor<double, long, at::native::DefaultPtrTraits>, at::native::StridedRandomAccessor<long, long, at::native::DefaultPtrTraits>, at::native::TupleInfoCPU>, long, __gnu_cxx::__ops::_Iter_comp_iter<at::native::(anonymous namespace)::KeyValueCompAsc<double> >)
+     0.29%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::fill_kernel(at::TensorIterator&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#7}::operator()() const::{lambda()#1}, at::native::(anonymous namespace)::fill_kernel(at::TensorIterator&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#7}::operator()() const::{lambda()#2}> >(long, char**, long const*, long, long)
+     0.28%  python      libmkl_core.so                                         [.] mkl_serv_libm_cos
+     0.27%  python      python3.11                                             [.] _Py_dict_lookup
+     0.25%  python      python3.11                                             [.] gc_collect_main
+     0.19%  python      liblal-8f7cb511.so.20.3.2                              [.] XLALIIRFilterReverseREAL4Vector
+     0.17%  python      liblal-8f7cb511.so.20.3.2                              [.] XLALIIRFilterREAL4Vector
+     0.15%  python      python3.11                                             [.] deduce_unreachable
+     0.14%  python      liblal-8f7cb511.so.20.3.2                              [.] XLALIIRFilterReverseREAL8Vector
+     0.14%  python      liblal-8f7cb511.so.20.3.2                              [.] XLALIIRFilterREAL8Vector
+     0.13%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#16}::operator()() const::{lambda()#1}::operator()() const::{lambda()#15}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#16}::operator()() const::{lambda()#1}::operator()() const::{lambda()#15}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+     0.13%  python      libm.so.6                                              [.] __sincos_fma
+     0.12%  python      python3.11                                             [.] _PyObject_GenericGetAttrWithDict
+     0.11%  python      libtorch_cpu.so                                        [.] mkl_serv_libm_sincospi
+     0.11%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] int introselect_<npy::float_tag, false, float>(float*, long*, long, long, long*, long*) [clone .isra.0]
+     0.10%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::div_true_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#2}::operator()() const::{lambda(float, float)#1}, at::native::(anonymous namespace)::div_true_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#2}::operator()() const::{lambda(at::vec::AVX2::Vectorized<float>, at::vec::AVX2::Vectorized<float>)#1}> >(long, char**, long const*, long, long)
+     0.10%  python      python3.11                                             [.] visit_reachable
+     0.09%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] handle_scalar
+     0.09%  python      libtorch_cpu.so                                        [.] void at::native::(anonymous namespace)::vectorized_inner_sum<double, at::native::(anonymous namespace)::InnerSumCastLoadPolicy<at::vec::AVX2::Vectorized<double>, at::vec::AVX2::Vectorized<double>, void>, at::native::(anonymous namespace)::CastLoadPolicy<double, double>, at::native::(anonymous namespace)::CastStoreAccumulate<double, double> >(char* restrict*, long, long, long, long)
+     0.07%  python      libc.so.6                                              [.] __memmove_avx_unaligned_erms
+     0.07%  python      libframel-9cd69e87.so.8.43.1                           [.] huft_build
+     0.06%  python      libtorch_cpu.so                                        [.] mkl_dft_def_owns_cRadix4FwdNorm_64fc
+     0.06%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFft_BlkMerge_32fc
+     0.06%  python      libm.so.6                                              [.] __csqrtf
+     0.06%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFft_BlkSplit_32fc
+     0.05%  python      python3.11                                             [.] dict_traverse
+     0.05%  python      libc.so.6                                              [.] _int_malloc
+     0.05%  python      python3.11                                             [.] object_dealloc
+     0.05%  python      libm.so.6                                              [.] __powf_fma
+     0.05%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_initTabTwd_L1_32f
+     0.05%  python      python3.11                                             [.] func_traverse
+     0.05%  python      [unknown]                                              [k] 0xffffffff86400ba0
+     0.05%  python      libc.so.6                                              [.] malloc
+     0.05%  python      ld-linux-x86-64.so.2                                   [.] do_lookup_x
+     0.05%  python      libc.so.6                                              [.] __memmove_avx_unaligned
+     0.05%  python      python3.11                                             [.] subtype_traverse
+     0.05%  python      python3.11                                             [.] PyObject_GetAttr
+     0.05%  python      libframel-9cd69e87.so.8.43.1                           [.] Frz_inflate_blocks
+     0.05%  python      libframel-9cd69e87.so.8.43.1                           [.] Frz_inflate_codes
+     0.04%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] _aligned_strided_to_contig_size4
+     0.04%  python      python3.11                                             [.] _PyFunction_Vectorcall
+     0.04%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cRadix4Fwd_32fc
+     0.04%  python      python3.11                                             [.] dict_dealloc
+     0.04%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cRadix4Inv_32fc
+     0.04%  python      python3.11                                             [.] sre_ucs1_match
+     0.04%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_initTabTwdBase_32f
+     0.04%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_Pack
+     0.04%  python      python3.11                                             [.] tupledealloc
+     0.04%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] npy_csqrtf
+     0.04%  python      python3.11                                             [.] PyObject_GC_Del
+     0.04%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFftInv_Large_64fc
+     0.04%  python      python3.11                                             [.] list_dealloc
+     0.04%  python      python3.11                                             [.] assemble
+     0.04%  python      libc.so.6                                              [.] __memset_avx2_unaligned
+     0.03%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] _aligned_contig_to_strided_size4
+     0.03%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_DiscoverDTypeAndShape_Recursive
+     0.03%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] signed_integers_is_known_scalar_types
+     0.03%  python      python3.11                                             [.] _PyFrame_Clear
+     0.03%  python      [unknown]                                              [k] 0xffffffff8626bd40
+     0.03%  python      python3.11                                             [.] unicode_dealloc
+     0.03%  python      [unknown]                                              [k] 0xffffffff86400f30
+     0.03%  python      libtorch_cpu.so                                        [.] mkl_serv_libm_sin
+     0.03%  python      python3.11                                             [.] vectorcall_method
+     0.03%  python      libm.so.6                                              [.] powf@GLIBC_2.2.5
+     0.03%  python      python3.11                                             [.] r_object
+     0.03%  python      python3.11                                             [.] PyObject_Vectorcall
+     0.03%  python      libc.so.6                                              [.] __strlen_avx2
+     0.03%  python      libtorch_cpu.so                                        [.] mkl_dft_def_owns_cRadix4Fwd_64fc
+     0.03%  python      [unknown]                                              [k] 0xffffffff861d9bb7
+     0.03%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] CFLOAT_multiply_FMA3__AVX2
+     0.03%  python      python3.11                                             [.] shift_expr_rule
+     0.03%  python      libtorch_cpu.so                                        [.] c10::impl::OperatorEntry::getKernelForDispatchKey(c10::DispatchKey) const
+     0.03%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFftInv_Fact8_32fc
+     0.03%  python      python3.11                                             [.] PyObject_Malloc
+     0.03%  python      libtorch_python.so                                     [.] torch::FunctionSignature::parse(_object*, _object*, _object*, _object**, std::vector<_object*, std::allocator<_object*> >&, bool)
+     0.03%  python      libmkl_def.so                                          [.] compute_task_fwd
+     0.03%  python      python3.11                                             [.] tok_nextc
+     0.03%  python      python3.11                                             [.] PyNumber_Long
+     0.03%  python      python3.11                                             [.] getset_get
+     0.03%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cRadix4FwdNorm_32fc
+     0.03%  python      python3.11                                             [.] _PyObject_GetMethod
+     0.02%  python      python3.11                                             [.] initialize_locals
+     0.02%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] nc_sqrtf
+     0.02%  python      python3.11                                             [.] siphash13
+     0.02%  python      python3.11                                             [.] set_traverse
+     0.02%  python      python3.11                                             [.] update_one_slot
+     0.02%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] binary_search_with_guess.part.0
+     0.02%  python      python3.11                                             [.] type_getattro
+     0.02%  python      libtorch_cpu.so                                        [.] c10::impl::OperatorEntry::lookup(c10::DispatchKeySet) const
+     0.02%  python      python3.11                                             [.] PyLong_AsLongLong
+     0.02%  python      python3.11                                             [.] type_traverse
+     0.02%  python      python3.11                                             [.] PyDict_GetItemWithError
+     0.02%  python      python3.11                                             [.] _PyObject_MakeTpCall
+     0.02%  python      python3.11                                             [.] subtype_dealloc
+     0.02%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] LONG_setitem
+     0.02%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_AssignFromCache_Recursive
+     0.02%  python      python3.11                                             [.] PyTuple_New
+     0.02%  python      python3.11                                             [.] PyLong_AsLong
+     0.02%  python      python3.11                                             [.] slot_tp_init
+     0.02%  python      libtorch_cpu.so                                        [.] mkl_serv_libm_cos
+     0.02%  python      python3.11                                             [.] _PyUnicode_JoinArray
+     0.02%  python      libc.so.6                                              [.] cfree@GLIBC_2.2.5
+     0.02%  python      python3.11                                             [.] tupletraverse
+     0.02%  python      libtorch_cpu.so                                        [.] torch::jit::SharedParserData::match(torch::jit::StringCordView::Iterator, bool, bool, int*, torch::jit::StringCordView::Iterator*, torch::jit::StringCordView::Iterator*)
+     0.02%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] arr_interp
+     0.02%  python      libtorch_cpu.so                                        [.] void at::native::AVX2::vectorized_loop<at::native::(anonymous namespace)::div_true_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#4}::operator()() const::{lambda(c10::complex<float>, c10::complex<float>)#1}&, at::native::(anonymous namespace)::div_true_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#4}::operator()() const::{lambda(at::vec::AVX2::Vectorized<c10::complex<float> >, at::vec::AVX2::Vectorized<c10::complex<float> >)#1}&>(char**, long, long, at::native::(anonymous namespace)::div_true_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#4}::operator()() const::{lambda(c10::complex<float>, c10::complex<float>)#1}&, at::native::(anonymous namespace)::div_true_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#4}::operator()() const::{lambda(at::vec::AVX2::Vectorized<c10::complex<float> >, at::vec::AVX2::Vectorized<c10::complex<float> >)#1}&) [clone .isra.0]
+     0.02%  python      [unknown]                                              [k] 0xffffffff8545f2ae
+     0.02%  python      python3.11                                             [.] _PyObject_GC_New
+     0.02%  python      python3.11                                             [.] unicode_decode_utf8
+     0.02%  python      python3.11                                             [.] PyDict_SetDefault
+     0.02%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] discover_dtype_from_pyobject
+     0.02%  python      python3.11                                             [.] _PyUnicode_FromUCS1
+     0.02%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] update_shape
+     0.02%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFftFwd_Fact8_32fc
+     0.02%  python      liblal-8f7cb511.so.20.3.2                              [.] memmove@plt
+     0.02%  python      libc.so.6                                              [.] __printf_buffer
+     0.02%  python      libc10.so                                              [.] c10::TensorImpl::requires_grad() const
+     0.02%  python      libc.so.6                                              [.] __memcmp_avx2_movbe
+     0.02%  python      libhdf5.so.1000.0.0                                    [.] H5C_protect
+     0.02%  python      libc.so.6                                              [.] __memset_avx2_unaligned_erms
+     0.02%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::AVX2::direct_copy_kernel(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#16}::operator()() const::{lambda(c10::complex<double>)#1}, at::native::AVX2::direct_copy_kernel(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#16}::operator()() const::{lambda(at::vec::AVX2::Vectorized<c10::complex<double> >)#1}> >(long, char**, long const*, long, long)
+     0.02%  python      python3.11                                             [.] _PyObject_GenericSetAttrWithDict
+     0.02%  python      python3.11                                             [.] cfunction_call
+     0.02%  python      python3.11                                             [.] listiter_next
+     0.02%  python      ld-linux-x86-64.so.2                                   [.] strcmp
+     0.02%  python      python3.11                                             [.] _PyPegen_fill_token
+     0.02%  python      libtorch_cpu.so                                        [.] compute_task_fwd
+     0.02%  python      libc.so.6                                              [.] __memmove_sse2_unaligned_erms
+     0.02%  python      libc.so.6                                              [.] pthread_mutex_lock@@GLIBC_2.2.5
+     0.02%  python      libtorch_cpu.so                                        [.] c10::impl::OperatorEntry::hasKernelForAnyDispatchKey(c10::DispatchKeySet) const
+     0.02%  python      libc10.so                                              [.] c10::runtimeDispatchKeySetHas(c10::DispatchKey, c10::DispatchKey)
+     0.02%  python      python3.11                                             [.] member_get
+     0.02%  python      python3.11                                             [.] PyUnicode_Substring
+     0.02%  python      python3.11                                             [.] bitwise_xor_rule
+     0.01%  python      libtorch_cpu.so                                        [.] mkl_dft_def_owns_cFftFwd_Fact8_64fc
+     0.01%  python      python3.11                                             [.] find_name_in_mro
+     0.01%  python      python3.11                                             [.] dict_subscript
+     0.01%  python      [unknown]                                              [k] 0xffffffff862549db
+     0.01%  python      libmkl_def.so                                          [.] initTabTwd_Step
+     0.01%  python      libtorch_cpu.so                                        [.] initTabTwd_Step
+     0.01%  python      ld-linux-x86-64.so.2                                   [.] _dl_lookup_symbol_x
+     0.01%  python      libtorch_cpu.so                                        [.] at::TensorIteratorBase::compute_mem_overlaps(at::TensorIteratorConfig const&)
+     0.01%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#15}::operator()() const::{lambda(c10::complex<double>, c10::complex<double>)#1}, at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#15}::operator()() const::{lambda(at::vec::AVX2::Vectorized<c10::complex<double> >, at::vec::AVX2::Vectorized<c10::complex<double> >)#1}> >(long, char**, long const*, long, long)
+     0.01%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] _typenum_fromtypeobj
+     0.01%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFftFwd_Fact4_32fc
+     0.01%  python      libgomp.so.1                                           [.] 0x000000000000c94b
+     0.01%  python      libc.so.6                                              [.] __strftime_internal
+     0.01%  python      libtorch_cpu.so                                        [.] at::native::copy_impl(at::Tensor&, at::Tensor const&, bool) [clone .isra.0]
+     0.01%  python      libhdf5.so.1000.0.0                                    [.] H5SL_search
+     0.01%  python      libc10.so                                              [.] c10::TensorImpl::incref_pyobject() const
+     0.01%  python      libtorch_cpu.so                                        [.] at::native::AVX2::copy_kernel(at::TensorIterator&, bool)
+     0.01%  python      libc10.so                                              [.] c10::impl::ExcludeDispatchKeyGuard::ExcludeDispatchKeyGuard(c10::DispatchKeySet)
+     0.01%  python      libhdf5.so.1000.0.0                                    [.] H5I__find_id
+     0.01%  python      python3.11                                             [.] method_vectorcall_VARARGS_KEYWORDS
+     0.01%  python      libtorch.so                                            [.] std::__cxx11::basic_ostringstream<char, std::char_traits<char>, std::allocator<char> >::basic_ostringstream()
+     0.01%  python      python3.11                                             [.] convertsimple
+     0.01%  python      libtorch_cpu.so                                        [.] c10::impl::OperatorEntry::hasKernelForDispatchKey(c10::DispatchKey) const
+     0.01%  python      python3.11                                             [.] tok_get
+     0.01%  python      libc10.so                                              [.] c10::DeviceTypeName[abi:cxx11](c10::DeviceType, bool)
+     0.01%  python      python3.11                                             [.] PyErr_Occurred
+     0.01%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_DescrFromType
+     0.01%  python      libc.so.6                                              [.] unlink_chunk.isra.0
+     0.01%  python      libm.so.6                                              [.] __cpow
+     0.01%  python      libm.so.6                                              [.] __ieee754_exp_fma
+     0.01%  python      python3.11                                             [.] _PyType_AllocNoTrack
+     0.01%  python      libstdc++.so.6.0.32                                    [.] operator delete(void*)
+     0.01%  python      python3.11                                             [.] PyUnicode_Splitlines
+     0.01%  python      python3.11                                             [.] _PyObject_Malloc
+     0.01%  python      python3.11                                             [.] PyLong_FromLong
+     0.01%  python      python3.11                                             [.] list_resize
+     0.01%  python      python3.11                                             [.] replace
+     0.01%  python      python3.11                                             [.] set_update_internal
+     0.01%  python      python3.11                                             [.] primary_raw
+     0.01%  python      libtorch_python.so                                     [.] pybind11::detail::all_type_info_get_cache(_typeobject*)
+     0.01%  python      python3.11                                             [.] compiler_visit_expr1
+     0.01%  python      _datetime.cpython-311-x86_64-linux-gnu.so              [.] wrap_strftime
+     0.01%  python      python3.11                                             [.] method_vectorcall_VARARGS
+     0.01%  python      python3.11                                             [.] descr_traverse
+     0.01%  python      libtorch_cpu.so                                        [.] mkl_dft_def_owns_cFft_BlkMerge_64fc
+     0.01%  python      python3.11                                             [.] PyObject_IsTrue
+     0.01%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_PromoteTypes
+     0.01%  python      python3.11                                             [.] PyUnicode_FromFormatV
+     0.01%  python      libmkl_def.so                                          [.] compute_task_bwd
+     0.01%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] DOUBLE_multiply_FMA3__AVX2
+     0.01%  python      libc.so.6                                              [.] __strncpy_avx2
+     0.01%  python      python3.11                                             [.] rangeiter_next
+     0.01%  python      libtorch_cpu.so                                        [.] mkl_dft_def_owns_cRealRecombine_64f
+     0.01%  python      python3.11                                             [.] PyObject_SetAttr
+     0.01%  python      [unknown]                                              [k] 0xffffffff85447f50
+     0.01%  python      libtorch_cpu.so                                        [.] mkl_dft_def_owns_cFft_BlkSplit_64fc
+     0.01%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::addcmul_cpu_kernel(at::TensorIteratorBase&, c10::Scalar const&)::{lambda()#2}::operator()() const::{lambda()#6}::operator()() const::{lambda(double, double, double)#1}, at::native::(anonymous namespace)::addcmul_cpu_kernel(at::TensorIteratorBase&, c10::Scalar const&)::{lambda()#2}::operator()() const::{lambda()#6}::operator()() const::{lambda(at::vec::AVX2::Vectorized<double>, at::vec::AVX2::Vectorized<double>, at::vec::AVX2::Vectorized<double>)#1}> >(long, char**, long const*, long, long)
+     0.01%  python      python3.11                                             [.] vgetargs1_impl
+     0.01%  python      python3.11                                             [.] _PyCode_New
+     0.01%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] FLOAT_multiply_FMA3__AVX2
+     0.01%  python      libtorch_cpu.so                                        [.] mkl_dft_def_owns_zBitRev1_Blk
+     0.01%  python      python3.11                                             [.] PyObject_RichCompare
+     0.01%  python      [unknown]                                              [k] 0xffffffff86401647
+     0.01%  python      python3.11                                             [.] _PyObject_GC_NewVar
+     0.01%  python      python3.11                                             [.] sre_ucs1_count
+     0.01%  python      python3.11                                             [.] PyType_GenericAlloc
+     0.01%  python      libc10.so                                              [.] c10::GradMode::is_enabled()
+     0.01%  python      python3.11                                             [.] meth_dealloc
+     0.01%  python      _errors.cpython-311-x86_64-linux-gnu.so                [.] __Pyx_CyFunction_CallAsMethod
+     0.01%  python      [unknown]                                              [k] 0xffffffff8626bd45
+     0.01%  python      python3.11                                             [.] code_dealloc
+     0.01%  python      python3.11                                             [.] PyContextVar_Get
+     0.01%  python      libmkl_core.so                                         [.] mkl_serv_deallocate
+     0.01%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFft_BlkSplit_64fc@plt
+     0.01%  python      python3.11                                             [.] method_get
+     0.01%  python      libtorch_cpu.so                                        [.] at::internal::OpaqueOptionalTensorRef::getTensor() const
+     0.01%  python      libstdc++.so.6.0.32                                    [.] std::ostream::sentry::sentry(std::ostream&)
+     0.01%  python      libtorch_python.so                                     [.] c10::VariableVersion::VersionCounter::~VersionCounter()
+     0.01%  python      libtorch_cpu.so                                        [.] at::_ops::add_Tensor::redispatch(c10::DispatchKeySet, at::Tensor const&, at::Tensor const&, c10::Scalar const&)
+     0.01%  python      [unknown]                                              [k] 0xffffffff852138e8
+     0.01%  python      libtorch_cpu.so                                        [.] at::TensorIteratorBase::has_contiguous_first_dim() const
+     0.01%  python      libtorch_cpu.so                                        [.] torch::autograd::impl::bump_version(at::Tensor const&)
+     0.01%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] array_dealloc
+     0.01%  python      libtorch_cpu.so                                        [.] at::TensorIteratorBase::compute_fast_setup_type(at::TensorIteratorConfig const&)
+     0.01%  python      python3.11                                             [.] PyObject_Call
+     0.01%  python      python3.11                                             [.] PyType_IsSubtype
+     0.01%  python      libtorch_python.so                                     [.] torch::PyWarningHandler::PyWarningHandler()
+     0.01%  python      libhdf5.so.1000.0.0                                    [.] H5FL_reg_malloc
+     0.01%  python      python3.11                                             [.] _copy_characters
+     0.01%  python      libhdf5.so.1000.0.0                                    [.] H5E__set_auto
+     0.01%  python      python3.11                                             [.] PyObject_Free
+     0.01%  python      libtorch_python.so                                     [.] torch::PyWarningHandler::~PyWarningHandler()
+     0.01%  python      libc.so.6                                              [.] __printf_buffer_write
+     0.01%  python      libhdf5.so.1000.0.0                                    [.] H5FL_fac_malloc
+     0.01%  python      libtorch_cpu.so                                        [.] Sleef_finz_hypotd4_u05avx2
+     0.01%  python      libtorch_cpu.so                                        [.] at::_ops::empty_strided::call(c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)
+     0.01%  python      libz.so.1.3.1                                          [.] inflate_table
+     0.01%  python      libc.so.6                                              [.] _int_free
+     0.01%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyUFunc_ReduceWrapper
+     0.01%  python      libhdf5.so.1000.0.0                                    [.] H5Eset_auto2
+     0.01%  python      libtorch_python.so                                     [.] torch::PythonArgParser::raw_parse(_object*, _object*, _object*, _object**)
+     0.01%  python      libc10.so                                              [.] c10::ProfiledCPUMemoryReporter::New(void*, unsigned long)
+     0.01%  python      ld-linux-x86-64.so.2                                   [.] __tls_get_addr
+     0.01%  python      python3.11                                             [.] super_getattro
+     0.01%  python      libz.so.1.3.1                                          [.] inflate_fast
+     0.01%  python      libtorch_cpu.so                                        [.] at::detail::empty_strided_cpu(c10::ArrayRef<long>, c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)
+     0.01%  python      libtorch_cpu.so                                        [.] at::impl::PythonTorchFunctionTLS::exchange_skip_next(bool)
+     0.01%  python      libtorch_cpu.so                                        [.] at::_ops::fill__Scalar::call(at::Tensor&, c10::Scalar const&)
+     0.01%  python      _ctypes.cpython-311-x86_64-linux-gnu.so                [.] _ctypes_callproc
+     0.01%  python      python3.11                                             [.] dict_get
+     0.01%  python      libz.so.1.3.1                                          [.] inflate
+     0.01%  python      libtorch_cpu.so                                        [.] at::TensorIteratorBase::reorder_dimensions()
+     0.01%  python      libc10.so                                              [.] c10::TensorImpl::_fw_grad(unsigned long, at::TensorBase const&) const
+     0.01%  python      libtorch_cpu.so                                        [.] at::_ops::copy_::call(at::Tensor&, at::Tensor const&, bool)
+     0.01%  python      python3.11                                             [.] method_vectorcall
+     0.01%  python      libtorch_cpu.so                                        [.] c10::TensorImpl::empty_tensor_restride(c10::MemoryFormat)
+     0.01%  python      libtorch_cpu.so                                        [.] at::native::DispatchStubImpl::try_choose_cpu_impl(void*, void*, void*)
+     0.01%  python      libtorch_python.so                                     [.] torch::utils::(anonymous namespace)::internal_new_from_data(c10::TensorOptions, c10::ScalarType, std::optional<c10::Device>, _object*, bool, bool, bool, bool)
+     0.01%  python      [unknown]                                              [k] 0xffffffff851a6e09
+     0.01%  python      python3.11                                             [.] PyObject_RichCompareBool
+     0.01%  python      python3.11                                             [.] take_gil
+     0.01%  python      python3.11                                             [.] PyMem_Malloc
+     0.01%  python      python3.11                                             [.] resize_compact
+     0.01%  python      libtorch_cpu.so                                        [.] at::_ops::set__source_Storage::call(at::Tensor&, c10::Storage)
+     0.01%  python      [unknown]                                              [k] 0xffffffff85432b4d
+     0.01%  python      libc10.so                                              [.] c10::impl::getGlobalPyInterpreter()
+     0.01%  python      python3.11                                             [.] _PyFrame_MakeAndSetFrameObject
+     0.01%  python      python3.11                                             [.] PyMember_SetOne
+     0.01%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_initTabBitRevNorm
+     0.01%  python      python3.11                                             [.] method_dealloc
+     0.01%  python      python3.11                                             [.] _PyErr_NormalizeException
+     0.01%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] LONG_copyswap
+     0.01%  python      libc.so.6                                              [.] _int_free_merge_chunk
+     0.01%  python      python3.11                                             [.] insertdict
+     0.01%  python      python3.11                                             [.] PyUnicode_AsUTF8AndSize
+     0.01%  python      libmkl_def.so                                          [.] setup_twiddle
+     0.01%  python      python3.11                                             [.] object_isinstance
+     0.01%  python      [unknown]                                              [k] 0xffffffff8545f29f
+     0.01%  python      python3.11                                             [.] insert_to_emptydict
+     0.01%  python      libtorch_cpu.so                                        [.] std::vector<c10::Argument, std::allocator<c10::Argument> >::~vector()
+     0.01%  python      python3.11                                             [.] PyImport_Import
+     0.01%  python      python3.11                                             [.] _PyObject_LookupSpecial
+     0.01%  python      python3.11                                             [.] tuple_iter
+     0.01%  python      python3.11                                             [.] object_richcompare
+     0.01%  python      libm.so.6                                              [.] __clog
+     0.01%  python      libc.so.6                                              [.] memcpy@GLIBC_2.2.5
+     0.01%  python      [unknown]                                              [k] 0xffffffff862549ee
+     0.01%  python      libmkl_def.so                                          [.] mkl_dft_def_ownsCopy_8u
+     0.01%  python      python3.11                                             [.] list_traverse
+     0.01%  python      python3.11                                             [.] symtable_visit_expr
+     0.01%  python      python3.11                                             [.] bitwise_or_rule
+     0.01%  python      libmkl_def.so                                          [.] mkl_serv_libm_sin@plt
+     0.01%  python      libtorch_cpu.so                                        [.] std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::basic_string(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&)
+     0.01%  python      python3.11                                             [.] _PyDict_Next
+     0.01%  python      python3.11                                             [.] BaseException_new
+     0.01%  python      python3.11                                             [.] meth_traverse
+     0.01%  python      libtorch_cpu.so                                        [.] c10::DispatchKeySet::getDispatchTableIndexForDispatchKeySet() const
+     0.01%  python      libtorch_cpu.so                                        [.] mkl_dft_def_owns_cFftFwd_Fact4_64fc
+     0.01%  python      python3.11                                             [.] set_contains
+     0.01%  python      python3.11                                             [.] bounded_lru_cache_wrapper
+     0.01%  python      python3.11                                             [.] PyDict_Copy
+     0.01%  python      python3.11                                             [.] target_with_star_atom_rule
+     0.01%  python      python3.11                                             [.] PyUnicode_New
+     0.01%  python      python3.11                                             [.] _PyType_Lookup
+     0.01%  python      python3.11                                             [.] PyUnicode_Format
+     0.01%  python      python3.11                                             [.] unicodekeys_lookup_unicode
+     0.01%  python      python3.11                                             [.] inversion_rule
+     0.01%  python      python3.11                                             [.] r_long
+     0.01%  python      libtorch_cpu.so                                        [.] std::__shared_ptr<c10::Type, (__gnu_cxx::_Lock_policy)2>::__shared_ptr(std::__shared_ptr<c10::Type, (__gnu_cxx::_Lock_policy)2> const&)
+     0.01%  python      libtorch_cpu.so                                        [.] c10::impl::OperatorEntry::updateDispatchTableEntry_(c10::Dispatcher const&, c10::DispatchKey)
+     0.01%  python      libtorch_cpu.so                                        [.] torch::jit::Lexer::lex()
+     0.01%  python      python3.11                                             [.] cfunction_vectorcall_NOARGS
+     0.01%  python      python3.11                                             [.] func_dealloc
+     0.01%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::cpu_index_kernel<double, at::native::(anonymous namespace)::index_kernel(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(char*, char*, long)#1}>(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>, at::native::(anonymous namespace)::index_kernel(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(char*, char*, long)#1} const&, bool)::{lambda(char**, long const*, long)#1}>(at::native::cpu_index_kernel<double, at::native::(anonymous namespace)::index_kernel(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(char*, char*, long)#1}>(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>, at::native::(anonymous namespace)::index_kernel(at::TensorIteratorBase&, c10::ArrayRef<long>, c10::ArrayRef<long>)::{lambda()#1}::operator()() const::{lambda()#6}::operator()() const::{lambda(char*, char*, long)#1} const&, bool)::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+     0.01%  python      libtorch_cpu.so                                        [.] at::native::as_strided_tensorimpl(at::Tensor const&, c10::ArrayRef<long>, c10::ArrayRef<long>, std::optional<long>)
+     0.01%  python      libtorch_cpu.so                                        [.] mkl_dft_def_owns_cRadix4Inv_64fc
+     0.01%  python      ld-linux-x86-64.so.2                                   [.] _dl_relocate_object
+     0.01%  python      libc10.so                                              [.] c10::SymInt::has_hint() const
+     0.01%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] CFLOAT_conjugate_FMA3__AVX2
+     0.01%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] CFLOAT_absolute_FMA3__AVX2
+     0.01%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] _aligned_contig_cast_double_to_float
+     0.01%  python      python3.11                                             [.] sum_rule
+     0.01%  python      [unknown]                                              [k] 0xffffffff8626bd48
+     0.01%  python      [unknown]                                              [k] 0xffffffff8545d5e1
+     0.01%  python      libstdc++.so.6.0.32                                    [.] std::basic_streambuf<char, std::char_traits<char> >::sputn(char const*, long)
+     0.01%  python      python3.11                                             [.] unicode_hash
+     0.01%  python      libc.so.6                                              [.] malloc_consolidate
+     0.01%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_NewFromDescr_int
+     0.01%  python      python3.11                                             [.] conjunction_rule
+     0.01%  python      [unknown]                                              [k] 0xffffffff854609f6
+     0.01%  python      python3.11                                             [.] list_iter
+     0.01%  python      [unknown]                                              [k] 0xffffffff8544812a
+     0.00%  python      [unknown]                                              [k] 0xffffffff854327d2
+     0.00%  python      [unknown]                                              [k] 0xffffffff8549a5ba
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545ca57
+     0.00%  python      libtorch_cpu.so                                        [.] setup_twiddle
+     0.00%  python      [unknown]                                              [k] 0xffffffff861b82e7
+     0.00%  python      [unknown]                                              [k] 0xffffffff86259161
+     0.00%  python      libstdc++.so.6.0.32                                    [.] operator new(unsigned long)
+     0.00%  python      python3.11                                             [.] PyObject_HasAttrString
+     0.00%  python      python3.11                                             [.] convert_to_double
+     0.00%  python      libc.so.6                                              [.] _dl_addr
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5S_get_select_bounds
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5I__remove_common
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_DescrFromScalar.part.0
+     0.00%  python      libtorch_cpu.so                                        [.] std::_Sp_counted_base<(__gnu_cxx::_Lock_policy)2>::_M_release()
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_TransferNDimToStrided
+     0.00%  python      libtorch_python.so                                     [.] THPVariable_device(THPVariable*, void*)
+     0.00%  python      libtorch_cpu.so                                        [.] at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda()#1}::operator()() const [clone .isra.0]
+     0.00%  python      libtorch_cpu.so                                        [.] at::_ops::detach::redispatch(c10::DispatchKeySet, at::Tensor const&)
+     0.00%  python      libtorch_cpu.so                                        [.] at::native::AVX2::direct_copy_kernel(at::TensorIteratorBase&)
+     0.00%  python      libtorch_cpu.so                                        [.] at::TensorIteratorBase::populate_operands(at::TensorIteratorConfig&)
+     0.00%  python      libstdc++.so.6.0.32                                    [.] std::__cxx11::basic_stringbuf<char, std::char_traits<char>, std::allocator<char> >::_M_pbump(char*, char*, long)
+     0.00%  python      python3.11                                             [.] _Py_Dealloc
+     0.00%  python      python3.11                                             [.] _PyHamt_Find.constprop.0
+     0.00%  python      libc10.so                                              [.] c10::WarningUtils::get_warning_handler()
+     0.00%  python      [unknown]                                              [k] 0xffffffff85432871
+     0.00%  python      python3.11                                             [.] float_new_impl
+     0.00%  python      [unknown]                                              [k] 0xffffffff86259151
+     0.00%  python      libtorch_cpu.so                                        [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::empty_memory_format>, at::Tensor, c10::guts::typelist::typelist<c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat> > >, at::Tensor (c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>)
+     0.00%  python      _ctypes.cpython-311-x86_64-linux-gnu.so                [.] byref
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545adff
+     0.00%  python      libtorch_cpu.so                                        [.] at::_ops::detach::call(at::Tensor const&)
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] array_subscript
+     0.00%  python      python3.11                                             [.] PyErr_Fetch
+     0.00%  python      python3.11                                             [.] _PyObject_CallMethodIdObjArgs.cold
+     0.00%  python      python3.11                                             [.] _Py_NewReference
+     0.00%  python      libtorch_python.so                                     [.] c10::dispatchKeyToDeviceType(c10::DispatchKey)
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] discover_descriptor_from_pyint
+     0.00%  python      _ctypes.cpython-311-x86_64-linux-gnu.so                [.] _ctypes_callproc.cold
+     0.00%  python      libtorch_python.so                                     [.] torch::autograd::THPVariable_mul(_object*, _object*, _object*)
+     0.00%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFftInv_Fact4_32fc
+     0.00%  python      libtorch_cpu.so                                        [.] at::_ops::lift_fresh::call(at::Tensor const&)
+     0.00%  python      libtorch_cpu.so                                        [.] at::_ops::slice_Tensor::call(at::Tensor const&, long, std::optional<c10::SymInt>, std::optional<c10::SymInt>, c10::SymInt)
+     0.00%  python      python3.11                                             [.] PyObject_GetAttrString
+     0.00%  python      [unknown]                                              [k] 0xffffffff85067dc3
+     0.00%  python      [unknown]                                              [k] 0xffffffff86401638
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] ensure_native_byteorder
+     0.00%  python      _ctypes.cpython-311-x86_64-linux-gnu.so                [.] i_get
+     0.00%  python      [unknown]                                              [k] 0xffffffff85226c67
+     0.00%  python      python3.11                                             [.] maybe_freelist_clear
+     0.00%  python      libtorch_cpu.so                                        [.] c10::impl::OperatorEntry::computeDispatchTableEntryWithDebug(c10::Dispatcher const&, c10::DispatchKey) const
+     0.00%  python      libtorch_python.so                                     [.] THPVariable_layout(THPVariable*, void*)
+     0.00%  python      libtorch_cpu.so                                        [.] torch::autograd::DifferentiableViewMeta::DifferentiableViewMeta(c10::TensorImpl*, std::optional<torch::autograd::ViewInfo>, std::optional<torch::autograd::ViewInfo>, bool, torch::autograd::CreationMeta)
+     0.00%  python      simd_threshold_cython.cpython-311-x86_64-linux-gnu.so  [.] __Pyx_BufFmt_TypeCharToAlignment(char, int) [clone .constprop.0]
+     0.00%  python      libtorch_python.so                                     [.] torch::autograd::THPVariable_is_inference(_object*, _object*, _object*)
+     0.00%  python      libtorch_cpu.so                                        [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor& (at::Tensor&, at::Tensor const&, bool), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CompositeExplicitAutograd__copy_>, at::Tensor&, c10::guts::typelist::typelist<at::Tensor&, at::Tensor const&, bool> >, at::Tensor& (at::Tensor&, at::Tensor const&, bool)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor&, at::Tensor const&, bool)
+     0.00%  python      libc.so.6                                              [.] __offtime
+     0.00%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::AVX2::direct_copy_kernel(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#9}::operator()() const::{lambda(unsigned char)#1}, at::native::AVX2::direct_copy_kernel(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#9}::operator()() const::{lambda(at::vec::AVX2::Vectorized<unsigned char>)#1}> >(long, char**, long const*, long, long)
+     0.00%  python      python3.11                                             [.] PyThread_tss_get
+     0.00%  python      python3.11                                             [.] parse_internal_render_format_spec
+     0.00%  python      libtorch_cpu.so                                        [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor& (at::Tensor&, at::Tensor const&), &at::(anonymous namespace)::wrapper_CPU_mul__Tensor>, at::Tensor&, c10::guts::typelist::typelist<at::Tensor&, at::Tensor const&> >, at::Tensor& (at::Tensor&, at::Tensor const&)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor&, at::Tensor const&)
+     0.00%  python      libc10.so                                              [.] c10::DispatchKeySet::iterator::operator++()
+     0.00%  python      libtorch_cpu.so                                        [.] at::(anonymous namespace)::structured_sum_out_functional::set_output_raw_strided(long, c10::ArrayRef<long>, c10::ArrayRef<long>, c10::TensorOptions)
+     0.00%  python      python3.11                                             [.] PyMem_Free
+     0.00%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::AVX2::direct_copy_kernel(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#14}::operator()() const::{lambda(double)#1}, at::native::AVX2::direct_copy_kernel(at::TensorIteratorBase&)::{lambda()#3}::operator()() const::{lambda()#14}::operator()() const::{lambda(at::vec::AVX2::Vectorized<double>)#1}> >(long, char**, long const*, long, long)
+     0.00%  python      [unknown]                                              [k] 0xffffffff8520fbba
+     0.00%  python      simd_threshold_cython.cpython-311-x86_64-linux-gnu.so  [.] _parallel_thresh_cluster(std::complex<float>*, unsigned int, std::complex<float>*, unsigned int*, float, unsigned int, unsigned int) [clone ._omp_fn.0]
+     0.00%  python      libtorch_cpu.so                                        [.] at::native::structured_pow_Tensor_Scalar_out::impl(at::Tensor const&, c10::Scalar const&, at::Tensor const&)
+     0.00%  python      libtorch_python.so                                     [.] torch::detail::(anonymous namespace)::ConcretePyInterpreterVTable::decref(_object*) const
+     0.00%  python      libtorch_cpu.so                                        [.] at::OperandInfo::tensor(c10::MaybeOwned<at::TensorBase>&&)
+     0.00%  python      libtorch_cpu.so                                        [.] at::native::lift_fresh(at::Tensor const&)
+     0.00%  python      libtorch_cpu.so                                        [.] at::native::update_result_type_state(at::Tensor const&, at::native::ResultTypeState const&)
+     0.00%  python      libtorch_cpu.so                                        [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CPU__empty_strided>, at::Tensor, c10::guts::typelist::typelist<c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool> > >, at::Tensor (c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] _aligned_cast_float_to_double
+     0.00%  python      libc10.so                                              [.] c10::intrusive_ptr<c10::StorageImpl, c10::detail::intrusive_target_default_null_type<c10::StorageImpl> >::reset_not_null_(c10::StorageImpl*)
+     0.00%  python      libtorch_cpu.so                                        [.] std::vector<c10::SymInt, std::allocator<c10::SymInt> >::~vector()
+     0.00%  python      python3.11                                             [.] PyObject_CallMethod
+     0.00%  python      python3.11                                             [.] PyObject_Format
+     0.00%  python      libtorch_cpu.so                                        [.] at::_ops::div_Tensor::call(at::Tensor const&, at::Tensor const&)
+     0.00%  python      python3.11                                             [.] PyObject_GenericGetDict
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] should_use_min_scalar
+     0.00%  python      libc.so.6                                              [.] tzset_internal
+     0.00%  python      libc10.so                                              [.] c10::memoryProfilingEnabled()
+     0.00%  python      python3.11                                             [.] PyDict_New
+     0.00%  python      libc.so.6                                              [.] wcsftime
+     0.00%  python      libc.so.6                                              [.] __libc_scratch_buffer_set_array_size
+     0.00%  python      libtorch_python.so                                     [.] torch::autograd::THPVariable_add_(_object*, _object*, _object*)
+     0.00%  python      libtorch_python.so                                     [.] std::optional<c10::SymInt>::optional<c10::SymInt&, true>(c10::SymInt&)
+     0.00%  python      libstdc++.so.6.0.32                                    [.] std::num_get<char, std::istreambuf_iterator<char, std::char_traits<char> > > const* std::__try_use_facet<std::num_get<char, std::istreambuf_iterator<char, std::char_traits<char> > > >(std::locale const&)
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] _convert_from_any.part.0
+     0.00%  python      libstdc++.so.6.0.32                                    [.] std::ios_base::ios_base()
+     0.00%  python      libtorch_python.so                                     [.] torch::utils::aten_to_numpy_dtype(c10::ScalarType)
+     0.00%  python      libtorch_cpu.so                                        [.] at::TensorIteratorBase::numel() const
+     0.00%  python      libtorch_cpu.so                                        [.] at::native::structured_div_out::impl(at::Tensor const&, at::Tensor const&, at::Tensor const&)
+     0.00%  python      libtorch_cpu.so                                        [.] at::native::set_storage_cpu_(at::Tensor&, c10::Storage, long, c10::ArrayRef<long>, c10::ArrayRef<long>)
+     0.00%  python      libtorch_python.so                                     [.] torch::check_has_torch_function(_object*, bool) [clone .constprop.0]
+     0.00%  python      libtorch_python.so                                     [.] torch::autograd::THPVariable_set_(_object*, _object*, _object*)
+     0.00%  python      python3.11                                             [.] PyTraceBack_Here
+     0.00%  python      libtorch_cpu.so                                        [.] void at::native::checkAsStridedArgs<long>(c10::ArrayRef<long>, c10::ArrayRef<long>, long) [clone .isra.0]
+     0.00%  python      python3.11                                             [.] PyUnicode_Partition
+     0.00%  python      libc10.so                                              [.] c10::TensorImpl::~TensorImpl()
+     0.00%  python      libtorch_cpu.so                                        [.] torch::autograd::ForwardGrad::undef_grad()
+     0.00%  python      python3.11                                             [.] PyObject_IsInstance
+     0.00%  python      python3.11                                             [.] PyThread_acquire_lock_timed
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_EquivTypes
+     0.00%  python      python3.11                                             [.] PyBool_FromLong
+     0.00%  python      python3.11                                             [.] ensure_unicode
+     0.00%  python      python3.11                                             [.] binary_op
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_GetCastInfo
+     0.00%  python      libtorch_cpu.so                                        [.] at::TensorIteratorBase::fast_set_up(at::TensorIteratorConfig const&)
+     0.00%  python      libtorch_cpu.so                                        [.] at::_ops::set__source_Storage_storage_offset::call(at::Tensor&, c10::Storage, c10::SymInt, c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>)
+     0.00%  python      python3.11                                             [.] object_get_class
+     0.00%  python      [unknown]                                              [k] 0xffffffff8549af68
+     0.00%  python      python3.11                                             [.] va_build_value
+     0.00%  python      python3.11                                             [.] long_to_decimal_string_internal
+     0.00%  python      python3.11                                             [.] _PyInterpreterFrame_GetLine
+     0.00%  python      libtorch_python.so                                     [.] torch::tensors::get_default_scalar_type()
+     0.00%  python      libtorch_python.so                                     [.] PyEval_AcquireThread@plt
+     0.00%  python      libc10.so                                              [.] c10::NUMAMove(void*, unsigned long, int)
+     0.00%  python      libtorch_cpu.so                                        [.] at::detail::empty_cpu(c10::ArrayRef<long>, c10::ScalarType, bool, std::optional<c10::MemoryFormat>)
+     0.00%  python      python3.11                                             [.] _PyObject_GC_Resize
+     0.00%  python      _datetime.cpython-311-x86_64-linux-gnu.so              [.] timezone_dst
+     0.00%  python      simd_threshold_cython.cpython-311-x86_64-linux-gnu.so  [.] _windowed_max(std::complex<float>*, long, std::complex<float>*, float*, long*, long, long)
+     0.00%  python      libc.so.6                                              [.] _int_memalign
+     0.00%  python      python3.11                                             [.] builtin_callable
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5Oopen
+     0.00%  python      _datetime.cpython-311-x86_64-linux-gnu.so              [.] local_timezone_from_timestamp
+     0.00%  python      libtorch_cpu.so                                        [.] at::native::to(at::Tensor const&, c10::Device, c10::ScalarType, bool, bool, std::optional<c10::MemoryFormat>)
+     0.00%  python      libc.so.6                                              [.] _mid_memalign.isra.0
+     0.00%  python      libtorch_cpu.so                                        [.] c10::TensorImpl::set_sizes_and_strides(c10::ArrayRef<long>, c10::ArrayRef<long>, std::optional<long>) [clone .isra.0]
+     0.00%  python      python3.11                                             [.] PyBytes_FromStringAndSize
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_ExtractDTypeAndDescriptor
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] _get_cast_safety_from_castingimpl
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] scalar_value
+     0.00%  python      libtorch_python.so                                     [.] torch::PythonArgs::toBool(int)
+     0.00%  python      python3.11                                             [.] PyMemoryView_FromBuffer
+     0.00%  python      libtorch_cpu.so                                        [.] at::native::_to_copy(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>)
+     0.00%  python      python3.11                                             [.] cfunction_vectorcall_O
+     0.00%  python      python3.11                                             [.] func_descr_get
+     0.00%  python      libtorch_python.so                                     [.] c10::intrusive_ptr<c10::TensorImpl, c10::UndefinedTensorImpl>::retain_()
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] _strided_to_strided_field_transfer
+     0.00%  python      libtorch_cpu.so                                        [.] c10::impl::make_boxed_from_unboxed_functor<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor& (at::Tensor const&, at::Tensor const&, at::Tensor&), &at::(anonymous namespace)::wrapper_CPU_mul_out_out>, at::Tensor&, c10::guts::typelist::typelist<at::Tensor const&, at::Tensor const&, at::Tensor&> >, false>::call(c10::OperatorKernel*, c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)
+     0.00%  python      libtorch_cpu.so                                        [.] c10::asIntArrayRefSlow(c10::ArrayRef<c10::SymInt>, char const*, long) [clone .constprop.0]
+     0.00%  python      libtorch_python.so                                     [.] torch::autograd::THPVariable_full(_object*, _object*, _object*)
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyUFunc_SimpleUniformOperationTypeResolver
+     0.00%  python      python3.11                                             [.] PyTuple_Pack.constprop.0
+     0.00%  python      libtorch_python.so                                     [.] torch::is_int_or_symint(_object*)
+     0.00%  python      python3.11                                             [.] PyObject_Realloc
+     0.00%  python      libtorch_python.so                                     [.] torch::autograd::THPVariable_dim(_object*, _object*)
+     0.00%  python      python3.11                                             [.] long_mul
+     0.00%  python      libtorch_python.so                                     [.] torch::tensors::get_default_dispatch_key()
+     0.00%  python      libtorch_cpu.so                                        [.] at::_ops::copy_::redispatch(c10::DispatchKeySet, at::Tensor&, at::Tensor const&, bool)
+     0.00%  python      libtorch_python.so                                     [.] THPDevice_index(THPDevice*, _object*)
+     0.00%  python      libtorch_python.so                                     [.] torch::createStorageGetType(_object*)
+     0.00%  python      [unknown]                                              [k] 0xffffffff851a6e1a
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] npy_get_zerofill_void_and_legacy_user_dtype_loop
+     0.00%  python      libtorch_python.so                                     [.] torch::autograd::set_grad_enabled(_object*, _object*, _object*)
+     0.00%  python      libtorch_cpu.so                                        [.] at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#16}::operator()() const::{lambda()#1}::operator()() const [clone .isra.0]
+     0.00%  python      chisq_cpu.cpython-311-x86_64-linux-gnu.so              [.] __pyx_pw_5pycbc_6vetoes_9chisq_cpu_3point_chisq_code(_object*, _object*, _object*)
+     0.00%  python      libtorch_cpu.so                                        [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor& (at::Tensor&, c10::Storage), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CPU_source_Storage_set_>, at::Tensor&, c10::guts::typelist::typelist<at::Tensor&, c10::Storage> >, at::Tensor& (at::Tensor&, c10::Storage)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor&, c10::Storage)
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_AssignArray
+     0.00%  python      python3.11                                             [.] PyVectorcall_Call
+     0.00%  python      libtorch_cpu.so                                        [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor& (c10::DispatchKeySet, at::Tensor&, at::Tensor const&), &torch::autograd::VariableType::(anonymous namespace)::mul__Tensor>, at::Tensor&, c10::guts::typelist::typelist<c10::DispatchKeySet, at::Tensor&, at::Tensor const&> >, at::Tensor& (c10::DispatchKeySet, at::Tensor&, at::Tensor const&)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor&, at::Tensor const&)
+     0.00%  python      libtorch_python.so                                     [.] torch::FunctionParameter::_check(_object*, std::vector<_object*, std::allocator<_object*> >&, int, pybind11::object*)
+     0.00%  python      libtorch_cpu.so                                        [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CompositeExplicitAutograd__lift_fresh>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&> >, at::Tensor (at::Tensor const&)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&)
+     0.00%  python      libc.so.6                                              [.] pthread_getspecific@@GLIBC_2.34
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] define_cast_for_descrs
+     0.00%  python      libtorch_python.so                                     [.] torch::utils::only_lift_cpu_tensors()
+     0.00%  python      python3.11                                             [.] PyUnicode_Contains
+     0.00%  python      libtorch_python.so                                     [.] torch::PythonArgs::deviceOptional(int) [clone .part.0] [clone .isra.0]
+     0.00%  python      libtorch_cpu.so                                        [.] at::_ops::add_Tensor::call(at::Tensor const&, at::Tensor const&, c10::Scalar const&)
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5P__create
+     0.00%  python      libc.so.6                                              [.] __mbsrtowcs_l
+     0.00%  python      libtorch_cpu.so                                        [.] torch::autograd::isFwGradDefined(std::optional<at::Tensor> const&) [clone .constprop.0]
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5S_select_all
+     0.00%  python      libc10.so                                              [.] c10::intrusive_ptr<c10::VariableVersion::VersionCounter, c10::detail::intrusive_target_default_null_type<c10::VariableVersion::VersionCounter> >::reset_not_null_(c10::VariableVersion::VersionCounter*)
+     0.00%  python      libmkl_core.so                                         [.] mkl_serv_allocate
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] default_malloc
+     0.00%  python      python3.11                                             [.] long_add
+     0.00%  python      python3.11                                             [.] cfunction_vectorcall_FASTCALL
+     0.00%  python      python3.11                                             [.] set_dealloc
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5D__chunk_lock
+     0.00%  python      libtorch_cpu.so                                        [.] c10::DispatchKeySet::DispatchKeySet(c10::DispatchKey)
+     0.00%  python      libc.so.6                                              [.] pthread_mutex_unlock@@GLIBC_2.2.5
+     0.00%  python      python3.11                                             [.] _PyUnicode_FromId
+     0.00%  python      python3.11                                             [.] _PyLong_AsByteArray
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5D__read
+     0.00%  python      [unknown]                                              [k] 0xffffffff86400f43
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5AC__check_if_write_permitted
+     0.00%  python      libc10.so                                              [.] c10::TensorImpl::~TensorImpl()
+     0.00%  python      libtorch_cpu.so                                        [.] at::impl::torch_function_mode_enabled()
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5S_create_simple
+     0.00%  python      libtorch_python.so                                     [.] torch::utils::maybe_initialize_device(c10::Device&) [clone .isra.0]
+     0.00%  python      libc10.so                                              [.] c10::TensorImpl::storage() const
+     0.00%  python      [unknown]                                              [k] 0xffffffff85005930
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5O_protect
+     0.00%  python      libtorch_cpu.so                                        [.] torch::autograd::generated::ViewAsRealViewFunc::~ViewAsRealViewFunc()
+     0.00%  python      libtorch_cpu.so                                        [.] torch::autograd::make_variable_differentiable_view(at::Tensor const&, std::optional<torch::autograd::ViewInfo>, std::optional<torch::autograd::ViewInfo>, bool, torch::autograd::CreationMeta, bool) [clone .isra.0]
+     0.00%  python      libtorch_cpu.so                                        [.] bool torch::autograd::compute_requires_grad<at::Tensor const&>(at::Tensor const&) [clone .part.0]
+     0.00%  python      libtorch_cpu.so                                        [.] torch::ADInplaceOrView::(anonymous namespace)::select_int(c10::DispatchKeySet, at::Tensor const&, long, c10::SymInt)
+     0.00%  python      libtorch_python.so                                     [.] torch::PythonArgs::scalartypeOptional(int) [clone .constprop.0]
+     0.00%  python      python3.11                                             [.] PyMethod_New
+     0.00%  python      python3.11                                             [.] PyMem_Calloc
+     0.00%  python      python3.11                                             [.] Py_LeaveRecursiveCall
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5VL__object_open
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyUFuncOverride_GetNonDefaultArrayUfunc
+     0.00%  python      [unknown]                                              [k] 0xffffffff8520fb95
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5O__dtype_copy
+     0.00%  python      python3.11                                             [.] PyVectorcall_Function
+     0.00%  python      libtorch_cpu.so                                        [.] at::_ops::to_dtype::call(at::Tensor const&, c10::ScalarType, bool, bool, std::optional<c10::MemoryFormat>)
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5P__dapl_vds_file_pref_close
+     0.00%  python      python3.11                                             [.] PyNumber_Add
+     0.00%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cFft_BlkMerge_64fc@plt
+     0.00%  python      python3.11                                             [.] PyNumber_Remainder
+     0.00%  python      python3.11                                             [.] gen_iternext
+     0.00%  python      libtorch_cpu.so                                        [.] at::(anonymous namespace)::check_inplace(at::Tensor const&, c10::ArrayRef<long>, c10::TensorOptions const&)
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] array_result_type
+     0.00%  python      python3.11                                             [.] cfunction_call.cold
+     0.00%  python      libffi.so.8.1.0                                        [.] ffi_prep_cif_machdep
+     0.00%  python      python3.11                                             [.] PyImport_ImportModule
+     0.00%  python      libtorch_cpu.so                                        [.] at::globalContext()@plt
+     0.00%  python      python3.11                                             [.] mappingproxy_check_mapping
+     0.00%  python      libgomp.so.1                                           [.] 0x000000000001152f
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5P__lacc_elink_pref_close
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5G__component
+     0.00%  python      libtorch_python.so                                     [.] torch::autograd::THPVariable_to(_object*, _object*, _object*)
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5SL_next
+     0.00%  python      libc10.so                                              [.] c10::impl::GetAutogradMetaFactory()
+     0.00%  python      libtorch_python.so                                     [.] pybind11::detail::get_internals()
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5VL_set_vol_wrapper
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5P_copy_plist
+     0.00%  python      libtorch_cpu.so                                        [.] torch::ADInplaceOrView::(anonymous namespace)::view_as_real(c10::DispatchKeySet, at::Tensor const&)
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] voidtype_getfield
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5HL_protect
+     0.00%  python      libc10.so                                              [.] c10::operator<<(std::ostream&, c10::DeviceType)
+     0.00%  python      python3.11                                             [.] PyList_New
+     0.00%  python      libtorch_python.so                                     [.] torch::getTHPDtype(c10::ScalarType)
+     0.00%  python      libtorch_cpu.so                                        [.] c10::HeaderOnlyArrayRef<long>::equals(c10::HeaderOnlyArrayRef<long>) const
+     0.00%  python      libtorch_cpu.so                                        [.] torch::autograd::AutogradMeta::fw_grad(unsigned long, at::TensorBase const&) const
+     0.00%  python      python3.11                                             [.] long_richcompare
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5T__conv_vlen
+     0.00%  python      [unknown]                                              [k] 0xffffffff85139ada
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] FLOAT_maximum_AVX2
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5F_has_feature
+     0.00%  python      libtorch_python.so                                     [.] torch::utils::is_numpy_scalar(_object*)
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5_checksum_fletcher32
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5G__stab_lookup
+     0.00%  python      python3.11                                             [.] unicode_decode_locale
+     0.00%  python      libc10.so                                              [.] c10::isSharedStorageAlias(c10::Storage const&, c10::Storage const&)
+     0.00%  python      python3.11                                             [.] PyArg_ParseTuple
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5CX__push_common
+     0.00%  python      python3.11                                             [.] range_iter
+     0.00%  python      python3.11                                             [.] slot_mp_ass_subscript
+     0.00%  python      libtorch_cpu.so                                        [.] c10::SymInt::release_() [clone .isra.0]
+     0.00%  python      python3.11                                             [.] PyUnicode_AsWideCharString
+     0.00%  python      python3.11                                             [.] float_abs
+     0.00%  python      _objects.cpython-311-x86_64-linux-gnu.so               [.] __pyx_pw_4h5py_8_objects_9FastRLock_11__exit__
+     0.00%  python      python3.11                                             [.] _PyUnicodeWriter_PrepareInternal
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] NpyIter_GetDataPtrArray
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5O__assert
+     0.00%  python      libtorch_python.so                                     [.] torch::autograd::THPVariable_stride(_object*, _object*, _object*)
+     0.00%  python      libtorch_cpu.so                                        [.] at::native::resize_impl_cpu_(c10::TensorImpl*, c10::ArrayRef<long>, c10::OptionalArrayRef<long>, bool)
+     0.00%  python      libtorch_cpu.so                                        [.] at::_ops::result_type_Scalar::call(at::Tensor const&, c10::Scalar const&)
+     0.00%  python      libm.so.6                                              [.] __ieee754_log_fma
+     0.00%  python      libtorch_python.so                                     [.] pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*)
+     0.00%  python      libtorch_cpu.so                                        [.] torch::autograd::VariableType::(anonymous namespace)::select_int(c10::DispatchKeySet, at::Tensor const&, long, c10::SymInt)
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_GetCastingImpl
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5C_create
+     0.00%  python      libc10.so                                              [.] c10::tls_debug_info::{lambda()#1}::_FUN()
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5C__tag_entry
+     0.00%  python      libtorch_cpu.so                                        [.] at::TensorIteratorBase::allocate_or_resize_outputs()@plt
+     0.00%  python      libtorch_cpu.so                                        [.] at::TensorIteratorBase::for_each(c10::function_ref<void (char**, long const*, long, long)>, long)
+     0.00%  python      libtorch_cpu.so                                        [.] std::_Hashtable<c10::Symbol, std::pair<c10::Symbol const, std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > >, std::allocator<std::pair<c10::Symbol const, std::vector<std::shared_ptr<torch::jit::Operator>, std::allocator<std::shared_ptr<torch::jit::Operator> > > > >, std::__detail::_Select1st, std::equal_to<c10::Symbol>, std::hash<c10::Symbol>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::find(c10::Symbol const&) [clone .isra.0]
+     0.00%  python      libtorch_cpu.so                                        [.] at::meta::structured_mul_Tensor::meta(at::Tensor const&, at::Tensor const&)
+     0.00%  python      python3.11                                             [.] thread_get_ident
+     0.00%  python      python3.11                                             [.] PyFloat_FromDouble
+     0.00%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#13}::operator()() const::{lambda(double, double)#1}, at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#13}::operator()() const::{lambda(at::vec::AVX2::Vectorized<double>, at::vec::AVX2::Vectorized<double>)#1}> >(long, char**, long const*, long, long)
+     0.00%  python      libtorch_python.so                                     [.] THPStorage_Wrap(c10::Storage)
+     0.00%  python      libtorch_python.so                                     [.] THPVariable_get_shape(THPVariable*, void*)
+     0.00%  python      python3.11                                             [.] _PyLong_FormatAdvancedWriter.cold
+     0.00%  python      python3.11                                             [.] atom_rule
+     0.00%  python      libm.so.6                                              [.] powf@@GLIBC_2.27@plt
+     0.00%  python      python3.11                                             [.] weakref_dealloc
+     0.00%  python      _conv.cpython-311-x86_64-linux-gnu.so                  [.] __pyx_f_4h5py_5_conv_vlen2str
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] npy_default_get_strided_loop
+     0.00%  python      [unknown]                                              [k] 0xffffffff853ff909
+     0.00%  python      libtorch_cpu.so                                        [.] c10::TensorImpl::set_sizes_and_strides(c10::ArrayRef<long>, c10::ArrayRef<long>, std::optional<long>) [clone .isra.0]
+     0.00%  python      python3.11                                             [.] property_descr_get
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5FL_blk_free
+     0.00%  python      [unknown]                                              [k] 0xffffffff851dcd55
+     0.00%  python      libtorch_cpu.so                                        [.] at::_ops::as_strided::call(at::Tensor const&, c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::SymInt>)
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyUFunc_F_F
+     0.00%  python      libc.so.6                                              [.] printf_positional
+     0.00%  python      python3.11                                             [.] PyFunction_NewWithQualName.cold
+     0.00%  python      python3.11                                             [.] t_primary_raw
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] PyArray_CastToType
+     0.00%  python      python3.11                                             [.] _PyTime_AsSecondsDouble
+     0.00%  python      python3.11                                             [.] builtin_next
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5C__flush_single_entry
+     0.00%  python      libtorch_python.so                                     [.] std::_Hash_bytes(void const*, unsigned long, unsigned long)@plt
+     0.00%  python      python3.11                                             [.] unicode_join
+     0.00%  python      python3.11                                             [.] tuplesubscript
+     0.00%  python      libz.so.1.3.1                                          [.] longest_match
+     0.00%  python      python3.11                                             [.] compound_stmt_rule
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5P_close
+     0.00%  python      python3.11                                             [.] dictiter_iternextkey
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] FLOAT_power
+     0.00%  python      python3.11                                             [.] PyErr_Clear
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545f1b4
+     0.00%  python      [unknown]                                              [k] 0xffffffff86259169
+     0.00%  python      [unknown]                                              [k] 0xffffffff8549af26
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] _get_fixed_signature
+     0.00%  python      libframel-9cd69e87.so.8.43.1                           [.] Frz_zcfree
+     0.00%  python      python3.11                                             [.] _PyModule_ClearDict
+     0.00%  python      python3.11                                             [.] _PyArg_ParseTupleAndKeywords_SizeT
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545b9d7
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] _aligned_contig_cast_long_to_double
+     0.00%  python      [unknown]                                              [k] 0xffffffff85460ab4
+     0.00%  python      python3.11                                             [.] split
+     0.00%  python      python3.11                                             [.] dictiter_iternextitem
+     0.00%  python      libtorch_python.so                                     [.] pybind11::detail::get_type_info(std::type_info const&, bool) [clone .constprop.0]
+     0.00%  python      libstdc++.so.6.0.32                                    [.] malloc@plt
+     0.00%  python      python3.11                                             [.] _PyTuple_FromArray
+     0.00%  python      python3.11                                             [.] slot_tp_getattr_hook
+     0.00%  python      libhdf5.so.1000.0.0                                    [.] H5FL_blk_malloc
+     0.00%  python      python3.11                                             [.] _PyPegen_expect_token
+     0.00%  python      [unknown]                                              [k] 0xffffffff86259601
+     0.00%  python      python3.11                                             [.] visit_decref
+     0.00%  python      python3.11                                             [.] term_raw
+     0.00%  python      libtorch_cpu.so                                        [.] at::native::MathOpFallback::fallback_impl(c10::OperatorHandle const&, c10::DispatchKeySet, std::vector<c10::IValue, std::allocator<c10::IValue> >*)
+     0.00%  python      python3.11                                             [.] _PyEvalFramePushAndInit
+     0.00%  python      python3.11                                             [.] _Py_CheckFunctionResult
+     0.00%  python      libtorch_cpu.so                                        [.] torch::Library::_def(c10::FunctionSchema&&, c10::OperatorName*, std::vector<torch::headeronly::Tag, std::allocator<torch::headeronly::Tag> > const&, torch::_RegisterOrVerify) &
+     0.00%  python      python3.11                                             [.] dict_update_common
+     0.00%  python      [unknown]                                              [k] 0xffffffff85432916
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545cd20
+     0.00%  python      libstdc++.so.6.0.32                                    [.] std::__detail::_Prime_rehash_policy::_M_need_rehash(unsigned long, unsigned long, unsigned long) const
+     0.00%  python      libtorch_cpu.so                                        [.] c10::Dispatcher::findOp(c10::OperatorName const&)
+     0.00%  python      [unknown]                                              [k] 0xffffffff85432e3b
+     0.00%  python      libmkl_def.so                                          [.] mkl_dft_def_owns_cBitRev1_Blk
+     0.00%  python      libtorch_cpu.so                                        [.] std::pair<ska::detailv3::sherwood_v3_table<std::pair<c10::DispatchKey, std::__cxx11::list<c10::impl::AnnotatedKernel, std::allocator<c10::impl::AnnotatedKernel> > >, c10::DispatchKey, std::hash<c10::DispatchKey>, ska::detailv3::KeyOrValueHasher<c10::DispatchKey, std::pair<c10::DispatchKey, std::__cxx11::list<c10::impl::AnnotatedKernel, std::allocator<c10::impl::AnnotatedKernel> > >, std::hash<c10::DispatchKey> >, std::equal_to<c10::DispatchKey>, ska::detailv3::KeyOrValueEquality<c10::DispatchKey, std::pair<c10::DispatchKey, std::__cxx11::list<c10::impl::AnnotatedKernel, std::allocator<c10::impl::AnnotatedKernel> > >, std::equal_to<c10::DispatchKey> >, std::allocator<std::pair<c10::DispatchKey, std::__cxx11::list<c10::impl::AnnotatedKernel, std::allocator<c10::impl::AnnotatedKernel> > > >, std::allocator<ska::detailv3::sherwood_v3_entry<std::pair<c10::DispatchKey, std::__cxx11::list<c10::impl::AnnotatedKernel, std::allocator<c10::impl::AnnotatedKernel> > > > > >::templated_iterator<std::pair<c10::DispatchKey, std::__cxx11::list<c10::impl::AnnotatedKernel, std::allocator<c10::impl::AnnotatedKernel> > > >, bool> ska::detailv3::sherwood_v3_table<std::pair<c10::DispatchKey, std::__cxx11::list<c10::impl::AnnotatedKernel, std::allocator<c10::impl::AnnotatedKernel> > >, c10::DispatchKey, std::hash<c10::DispatchKey>, ska::detailv3::KeyOrValueHasher<c10::DispatchKey, std::pair<c10::DispatchKey, std::__cxx11::list<c10::impl::AnnotatedKernel, std::allocator<c10::impl::AnnotatedKernel> > >, std::hash<c10::DispatchKey> >, std::equal_to<c10::DispatchKey>, ska::detailv3::KeyOrValueEquality<c10::DispatchKey, std::pair<c10::DispatchKey, std::__cxx11::list<c10::impl::AnnotatedKernel, std::allocator<c10::impl::AnnotatedKernel> > >, std::equal_to<c10::DispatchKey> >, std::allocator<std::pair<c10::DispatchKey, std::__cxx11::list<c10::impl::AnnotatedKernel, std::allocator<c10::impl::AnnotatedKernel> > > >, std::allocator<ska::detailv3::sherwood_v3_entry<std::pair<c10::DispatchKey, std::__cxx11::list<c10::impl::AnnotatedKernel, std::allocator<c10::impl::AnnotatedKernel> > > > > >::emplace_new_key<std::pair<c10::DispatchKey, std::__cxx11::list<c10::impl::AnnotatedKernel, std::allocator<c10::impl::AnnotatedKernel> > >>(signed char, ska::detailv3::sherwood_v3_entry<std::pair<c10::DispatchKey, std::__cxx11::list<c10::impl::AnnotatedKernel, std::allocator<c10::impl::AnnotatedKernel> > > >*, std::pair<c10::DispatchKey, std::__cxx11::list<c10::impl::AnnotatedKernel, std::allocator<c10::impl::AnnotatedKernel> > >&&)
+     0.00%  python      libtorch_cpu.so                                        [.] decltype (::new ((void*)(0)) c10::Argument((declval<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >)(), (declval<c10::Type::SingletonOrSharedTypePtr<c10::Type> >)(), (declval<c10::Type::SingletonOrSharedTypePtr<c10::Type> >)())) std::construct_at<c10::Argument, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, c10::Type::SingletonOrSharedTypePtr<c10::Type>, c10::Type::SingletonOrSharedTypePtr<c10::Type> >(c10::Argument*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, c10::Type::SingletonOrSharedTypePtr<c10::Type>&&, c10::Type::SingletonOrSharedTypePtr<c10::Type>&&) [clone .isra.0]
+     0.00%  python      python3.11                                             [.] optimize_basic_block
+     0.00%  python      python3.11                                             [.] object_set_class
+     0.00%  python      python3.11                                             [.] disjunction_rule
+     0.00%  python      libtorch_cpu.so                                        [.] mkl_dft_def_owns_cFftInv_Fact4_64fc
+     0.00%  python      python3.11                                             [.] _PyPegen_Parser_Free
+     0.00%  python      libtorch_cpu.so                                        [.] c10::DispatchKeyExtractor::setOperatorHasFallthroughForKey(c10::DispatchKey, bool)
+     0.00%  python      python3.11                                             [.] star_target_rule
+     0.00%  python      libtorch_python.so                                     [.] std::_Hashtable<std::type_index, std::pair<std::type_index const, pybind11::detail::type_info*>, std::allocator<std::pair<std::type_index const, pybind11::detail::type_info*> >, std::__detail::_Select1st, std::equal_to<std::type_index>, std::hash<std::type_index>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::_M_find_before_node(unsigned long, std::type_index const&, unsigned long) const [clone .isra.0]
+     0.00%  python      python3.11                                             [.] astfold_expr
+     0.00%  python      python3.11                                             [.] tuplehash
+     0.00%  python      python3.11                                             [.] analyze_block
+     0.00%  python      python3.11                                             [.] structseq_dealloc
+     0.00%  python      python3.11                                             [.] _PyPegen_new_identifier
+     0.00%  python      [unknown]                                              [k] 0xffffffff8542e1b4
+     0.00%  python      python3.11                                             [.] _PyAST_Compile
+     0.00%  python      [unknown]                                              [k] 0xffffffff86400bac
+     0.00%  python      libtorch_cpu.so                                        [.] c10::isIncludedInAlias(c10::DispatchKey, c10::DispatchKey)@plt
+     0.00%  python      python3.11                                             [.] PyLong_FromSsize_t
+     0.00%  python      [unknown]                                              [k] 0xffffffff85447f44
+     0.00%  python      python3.11                                             [.] cell_traverse
+     0.00%  python      python3.11                                             [.] vgetargskeywords
+     0.00%  python      libtorch_python.so                                     [.] pybind11::cpp_function::initialize<torch::impl::dispatch::initDispatchBindings(_object*)::{lambda(pybind11::object const&, char const*, c10::DispatchKey, pybind11::object, bool)#1}, void, pybind11::object const&, char const*, c10::DispatchKey, pybind11::object, bool, pybind11::name, pybind11::is_method, pybind11::sibling, char [1], pybind11::arg, pybind11::arg, pybind11::arg, pybind11::arg_v>(torch::impl::dispatch::initDispatchBindings(_object*)::{lambda(pybind11::object const&, char const*, c10::DispatchKey, pybind11::object, bool)#1}&&, void (*)(pybind11::object const&, char const*, c10::DispatchKey, pybind11::object, bool), pybind11::name const&, pybind11::is_method const&, pybind11::sibling const&, char const (&) [1], pybind11::arg const&, pybind11::arg const&, pybind11::arg const&, pybind11::arg_v const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail::function_call&)
+     0.00%  python      libtorch_cpu.so                                        [.] c10::impl::OperatorEntry::registerSchema(c10::FunctionSchema&&, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&, std::vector<torch::headeronly::Tag, std::allocator<torch::headeronly::Tag> >)
+     0.00%  python      python3.11                                             [.] _PyPegen_dummy_name
+     0.00%  python      [unknown]                                              [k] 0xffffffff85438de1
+     0.00%  python      [unknown]                                              [k] 0xffffffff85497af6
+     0.00%  python      libc.so.6                                              [.] memcpy@@GLIBC_2.14@plt
+     0.00%  python      python3.11                                             [.] _PyObject_GenericGetAttrWithDict.cold
+     0.00%  python      python3.11                                             [.] _PyDictKeys_StringLookup
+     0.00%  python      libtorch_cpu.so                                        [.] void std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >::_M_construct<char*>(char*, char*, std::forward_iterator_tag) [clone .isra.0]
+     0.00%  python      [unknown]                                              [k] 0xffffffff86259128
+     0.00%  python      libtorch_cpu.so                                        [.] std::__detail::_Map_base<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::shared_ptr<torch::jit::Operator> >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, std::shared_ptr<torch::jit::Operator> > >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true>, true>::operator[](std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&)
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] _aligned_strided_to_contig_size4_srcstride0
+     0.00%  python      libc.so.6                                              [.] sem_trywait@@GLIBC_2.34
+     0.00%  python      python3.11                                             [.] partial_call
+     0.00%  python      python3.11                                             [.] PyDict_SetItem
+     0.00%  python      python3.11                                             [.] param_rule
+     0.00%  python      libtorch_cpu.so                                        [.] c10::operator<<(std::ostream&, c10::AliasInfo const&) [clone .isra.0]
+     0.00%  python      python3.11                                             [.] PyRun_StringFlags
+     0.00%  python      [unknown]                                              [k] 0xffffffff851f9a1d
+     0.00%  python      python3.11                                             [.] unicode_length
+     0.00%  python      python3.11                                             [.] MarkupIterator_next
+     0.00%  python      libc.so.6                                              [.] __memrchr_avx2
+     0.00%  python      python3.11                                             [.] _PyArg_UnpackStack
+     0.00%  python      python3.11                                             [.] cell_dealloc
+     0.00%  python      python3.11                                             [.] list_contains
+     0.00%  python      python3.11                                             [.] islice_next
+     0.00%  python      python3.11                                             [.] long_hash
+     0.00%  python      python3.11                                             [.] _PyEval_EvalFrameDefault.cold
+     0.00%  python      python3.11                                             [.] _PyDictView_New
+     0.00%  python      [unknown]                                              [k] 0xffffffff85433088
+     0.00%  python      python3.11                                             [.] _PyUnicode_FromASCII
+     0.00%  python      python3.11                                             [.] unicode_repr
+     0.00%  python      libtorch_python.so                                     [.] c10::FunctionSchema::arguments() const
+     0.00%  python      python3.11                                             [.] PyType_GenericNew
+     0.00%  python      python3.11                                             [.] list_subscript
+     0.00%  python      python3.11                                             [.] star_expressions_rule
+     0.00%  python      python3.11                                             [.] PyArg_ParseTupleAndKeywords
+     0.00%  python      python3.11                                             [.] _odict_get_index
+     0.00%  python      python3.11                                             [.] PyObject_VectorcallMethod
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545d045
+     0.00%  python      python3.11                                             [.] PyList_Append
+     0.00%  python      python3.11                                             [.] list_ass_slice
+     0.00%  python      python3.11                                             [.] PyBuffer_Release
+     0.00%  python      libtorch_python.so                                     [.] std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > pybind11::cast<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, 0>(pybind11::handle const&)
+     0.00%  python      python3.11                                             [.] slice_dealloc
+     0.00%  python      libtorch_cpu.so                                        [.] c10::impl::ExcludeDispatchKeyGuard::ExcludeDispatchKeyGuard(c10::DispatchKeySet)@plt
+     0.00%  python      python3.11                                             [.] dictresize
+     0.00%  python      python3.11                                             [.] PyUnicode_AsASCIIString
+     0.00%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::add_kernel(at::TensorIteratorBase&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#5}::operator()() const::{lambda(long, long)#1}, at::native::(anonymous namespace)::add_kernel(at::TensorIteratorBase&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#5}::operator()() const::{lambda(at::vec::AVX2::Vectorized<long>, at::vec::AVX2::Vectorized<long>)#1}> >(long, char**, long const*, long, long)
+     0.00%  python      python3.11                                             [.] statements_rule
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] _aligned_contig_cast_float_to_cfloat
+     0.00%  python      [unknown]                                              [k] 0xffffffff8626b6e6
+     0.00%  python      python3.11                                             [.] allocate_from_new_pool
+     0.00%  python      python3.11                                             [.] dict_ass_sub
+     0.00%  python      python3.11                                             [.] tupleiter_next
+     0.00%  python      [unknown]                                              [k] 0xffffffff85425251
+     0.00%  python      python3.11                                             [.] _PyCode_Validate
+     0.00%  python      [unknown]                                              [k] 0xffffffff8625aef2
+     0.00%  python      python3.11                                             [.] memory_getbuf
+     0.00%  python      python3.11                                             [.] PyErr_Format
+     0.00%  python      libcudart.so.13                                        [.] 0x0000000000037fb4
+     0.00%  python      python3.11                                             [.] unicode_subscript
+     0.00%  python      python3.11                                             [.] type_init
+     0.00%  python      [unknown]                                              [k] 0xffffffff86400116
+     0.00%  python      python3.11                                             [.] PyEval_SaveThread
+     0.00%  python      ld-linux-x86-64.so.2                                   [.] check_match
+     0.00%  python      python3.11                                             [.] float_richcompare
+     0.00%  python      [unknown]                                              [k] 0xffffffffc088c388
+     0.00%  python      python3.11                                             [.] object_new
+     0.00%  python      libc.so.6                                              [.] __strcmp_avx2
+     0.00%  python      libtorch_cpu.so                                        [.] dnnl::impl::graph::utils::pm::pb_graph_t::append_optional(std::shared_ptr<dnnl::impl::graph::utils::pm::pb_graph_t> const&, std::vector<std::shared_ptr<std::pair<unsigned long, std::shared_ptr<std::pair<dnnl::impl::graph::utils::pm::pb_node_t*, unsigned long> > > >, std::allocator<std::shared_ptr<std::pair<unsigned long, std::shared_ptr<std::pair<dnnl::impl::graph::utils::pm::pb_node_t*, unsigned long> > > > > > const&)
+     0.00%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::div_true_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#1}::operator()() const::{lambda(double, double)#1}, at::native::(anonymous namespace)::div_true_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#1}::operator()() const::{lambda(at::vec::AVX2::Vectorized<double>, at::vec::AVX2::Vectorized<double>)#1}> >(long, char**, long const*, long, long)
+     0.00%  python      libtorch_cpu.so                                        [.] c10::Dispatcher::registerImpl(c10::OperatorName, std::optional<c10::DispatchKey>, c10::KernelFunction, std::optional<c10::impl::CppSignature>, std::unique_ptr<c10::FunctionSchema, std::default_delete<c10::FunctionSchema> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)
+     0.00%  python      libtorch_cpu.so                                        [.] c10::impl::OperatorEntry::registerKernel(c10::Dispatcher const&, std::optional<c10::DispatchKey>, c10::KernelFunction, std::optional<c10::impl::CppSignature>, std::unique_ptr<c10::FunctionSchema, std::default_delete<c10::FunctionSchema> >, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)
+     0.00%  python      python3.11                                             [.] slot_tp_richcompare
+     0.00%  python      [unknown]                                              [k] 0xffffffff85432ad0
+     0.00%  python      libc.so.6                                              [.] __ctype_b_loc
+     0.00%  python      python3.11                                             [.] _Py_dg_strtod
+     0.00%  python      [unknown]                                              [k] 0xffffffff85431546
+     0.00%  python      [unknown]                                              [k] 0xffffffff850d9306
+     0.00%  python      python3.11                                             [.] compiler_call_helper
+     0.00%  python      libtorch_cpu.so                                        [.] std::_Hashtable<c10::OperatorName, std::pair<c10::OperatorName const, std::pair<char const*, char const*> >, std::allocator<std::pair<c10::OperatorName const, std::pair<char const*, char const*> > >, std::__detail::_Select1st, std::equal_to<c10::OperatorName>, std::hash<c10::OperatorName>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::_M_find_before_node(unsigned long, c10::OperatorName const&, unsigned long) const [clone .isra.0]
+     0.00%  python      [unknown]                                              [k] 0xffffffff861b8182
+     0.00%  python      python3.11                                             [.] _PyDict_FromItems.constprop.0
+     0.00%  python      libcusparseLt.so.0                                     [.] 0x000000000364caf9
+     0.00%  python      python3.11                                             [.] PyCode_NewWithPosOnlyArgs
+     0.00%  python      [unknown]                                              [k] 0xffffffff850d7cef
+     0.00%  pkg-config  libpkgconf.so.3.0.0                                    [.] pkgconf_tuple_parse
+     0.00%  python      python3.11                                             [.] PyCMethod_New
+     0.00%  python      python3.11                                             [.] PyObject_CallMethodObjArgs
+     0.00%  pkg-config  libpkgconf.so.3.0.0                                    [.] pkgconf_tuple_find_global
+     0.00%  python      python3.11                                             [.] output_markup
+     0.00%  python      libcudart.so.13                                        [.] 0x00000000000260a0
+     0.00%  python      python3.11                                             [.] sm_get___isabstractmethod__
+     0.00%  python      [unknown]                                              [k] 0xffffffff85432a49
+     0.00%  gcc         libc.so.6                                              [.] __strncmp_avx2
+     0.00%  python      [unknown]                                              [k] 0xffffffff854480c8
+     0.00%  python      [unknown]                                              [k] 0xffffffff861b80f0
+     0.00%  python      [unknown]                                              [k] 0xffffffff854325e2
+     0.00%  python      [unknown]                                              [k] 0xffffffff861b818a
+     0.00%  python      [unknown]                                              [k] 0xffffffff8626a152
+     0.00%  python      [unknown]                                              [k] 0xffffffff850d7d59
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545d53b
+     0.00%  python      libtorch_cpu.so                                        [.] c10::RegistrationHandleRAII& std::vector<c10::RegistrationHandleRAII, std::allocator<c10::RegistrationHandleRAII> >::emplace_back<c10::RegistrationHandleRAII>(c10::RegistrationHandleRAII&&) [clone .isra.0]
+     0.00%  python      [unknown]                                              [k] 0xffffffff850d911c
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] DOUBLE_fill
+     0.00%  pkg-config  libc.so.6                                              [.] __strlen_avx2
+     0.00%  python      python3.11                                             [.] expression_rule
+     0.00%  python      [unknown]                                              [k] 0xffffffff8549a504
+     0.00%  python      [unknown]                                              [k] 0xffffffff862591a4
+     0.00%  python      python3.11                                             [.] bytes_subscript
+     0.00%  python      [unknown]                                              [k] 0xffffffff85447f36
+     0.00%  python      [unknown]                                              [k] 0xffffffff8626aa76
+     0.00%  python      libtorch_python.so                                     [.] torch::autograd::UnpackedSlice::~UnpackedSlice()
+     0.00%  python      libcudart.so.13                                        [.] 0x000000000002607e
+     0.00%  python      [unknown]                                              [k] 0xffffffff861b80e1
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545cd42
+     0.00%  python      [unknown]                                              [k] 0xffffffff853c7f82
+     0.00%  python      [unknown]                                              [k] 0xffffffff851dcd4f
+     0.00%  python      [unknown]                                              [k] 0xffffffff8625aeea
+     0.00%  python      libtorch_cpu.so                                        [.] compute_task_bwd
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] FLOAT_greater_AVX2
+     0.00%  python      [unknown]                                              [k] 0xffffffff85497afb
+     0.00%  python      python3.11                                             [.] term_rule
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545ba22
+     0.00%  python      [unknown]                                              [k] 0xffffffff8640008c
+     0.00%  python      _multiarray_umath.cpython-311-x86_64-linux-gnu.so      [.] FLOAT_divide_FMA3__AVX2
+     0.00%  python      python3.11                                             [.] PySlice_Unpack
+     0.00%  python      [unknown]                                              [k] 0xffffffff8625aeda
+     0.00%  python      python3.11                                             [.] intern_string_constants
+     0.00%  python      libtorch_cpu.so                                        [.] std::__shared_count<(__gnu_cxx::_Lock_policy)2>::__shared_count(std::__weak_count<(__gnu_cxx::_Lock_policy)2> const&)
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545d4d5
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545d08e
+     0.00%  python      [unknown]                                              [k] 0xffffffff854325d6
+     0.00%  python      [unknown]                                              [k] 0xffffffff85432f26
+     0.00%  python      [unknown]                                              [k] 0xffffffff861b80e0
+     0.00%  python      [unknown]                                              [k] 0xffffffff86400080
+     0.00%  python      [unknown]                                              [k] 0xffffffff8550f982
+     0.00%  python      [unknown]                                              [k] 0xffffffff85471e98
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545f35d
+     0.00%  python      [unknown]                                              [k] 0xffffffff859457cc
+     0.00%  python      [unknown]                                              [k] 0xffffffff86400126
+     0.00%  python      [unknown]                                              [k] 0xffffffff854ead18
+     0.00%  ld          x86_64-linux-gnu-ld.bfd                                [.] 0x0000000000039ca8
+     0.00%  python      [unknown]                                              [k] 0xffffffff85447f3b
+     0.00%  python      python3.11                                             [.] PyObject_GetItem
+     0.00%  python      ld-linux-x86-64.so.2                                   [.] dl_open_worker_begin
+     0.00%  python      [unknown]                                              [k] 0xffffffff85432a86
+     0.00%  python      [unknown]                                              [k] 0xffffffff85460bc7
+     0.00%  python      python3.11                                             [.] method_vectorcall_FASTCALL
+     0.00%  python      [unknown]                                              [k] 0xffffffff85432b0c
+     0.00%  python      [unknown]                                              [k] 0xffffffff854259f4
+     0.00%  python      [unknown]                                              [k] 0xffffffff85432ae0
+     0.00%  python      [unknown]                                              [k] 0xffffffff8542e139
+     0.00%  python      [unknown]                                              [k] 0xffffffff85460ba8
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545d4bf
+     0.00%  python      [unknown]                                              [k] 0xffffffff85432785
+     0.00%  python      libcusparse.so.12                                      [.] 0x0000000000b98a87
+     0.00%  python      [unknown]                                              [k] 0xffffffff851e29be
+     0.00%  python      [unknown]                                              [k] 0xffffffff850d900a
+     0.00%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda()#1}::operator()() const::{lambda()#16}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda()#1}::operator()() const::{lambda()#16}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)
+     0.00%  python      [unknown]                                              [k] 0xffffffff85497a10
+     0.00%  python      [unknown]                                              [k] 0xffffffff850d90bb
+     0.00%  python      [unknown]                                              [k] 0xffffffff8626aa89
+     0.00%  python      libcublasLt.so.13                                      [.] 0x0000000003620fd4
+     0.00%  python      libc.so.6                                              [.] __cxa_atexit
+     0.00%  python      libtorch_cpu.so                                        [.] void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::add_kernel(at::TensorIteratorBase&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#8}::operator()() const::{lambda(double, double)#1}, at::native::(anonymous namespace)::add_kernel(at::TensorIteratorBase&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#8}::operator()() const::{lambda(at::vec::AVX2::Vectorized<double>, at::vec::AVX2::Vectorized<double>)#1}> >(long, char**, long const*, long, long)
+     0.00%  python      libmkl_core.so                                         [.] mkl_serv_malloc
+     0.00%  python      [unknown]                                              [k] 0xffffffff854579d6
+     0.00%  python      [unknown]                                              [k] 0xffffffff85448221
+     0.00%  python      ld-linux-x86-64.so.2                                   [.] _dl_map_object_deps
+     0.00%  python      [unknown]                                              [k] 0xffffffff85432ce1
+     0.00%  python      [unknown]                                              [k] 0xffffffff85432f2d
+     0.00%  python      [unknown]                                              [k] 0xffffffff854329fb
+     0.00%  python      [unknown]                                              [k] 0xffffffff8524a049
+     0.00%  python      [unknown]                                              [k] 0xffffffff8542e1b0
+     0.00%  python      [unknown]                                              [k] 0xffffffff8542528b
+     0.00%  python      [unknown]                                              [k] 0xffffffff854328b6
+     0.00%  python      [unknown]                                              [k] 0xffffffff8626bd60
+     0.00%  python      [unknown]                                              [k] 0xffffffff854329f7
+     0.00%  python      [unknown]                                              [k] 0xffffffff8626aa70
+     0.00%  python      [unknown]                                              [k] 0xffffffff8549a4a6
+     0.00%  python      [unknown]                                              [k] 0xffffffff850d914c
+     0.00%  python      [unknown]                                              [k] 0xffffffff8543269e
+     0.00%  python      [unknown]                                              [k] 0xffffffff854481a3
+     0.00%  python      [unknown]                                              [k] 0xffffffff85425875
+     0.00%  python      [unknown]                                              [k] 0xffffffff861b828c
+     0.00%  python      [unknown]                                              [k] 0xffffffff8549a5b1
+     0.00%  python      [unknown]                                              [k] 0xffffffff854d146c
+     0.00%  python      [unknown]                                              [k] 0xffffffff853ff91b
+     0.00%  python      [unknown]                                              [k] 0xffffffff861b8165
+     0.00%  python      [unknown]                                              [k] 0xffffffff851dcd46
+     0.00%  python      [unknown]                                              [k] 0xffffffff854314d5
+     0.00%  python      [unknown]                                              [k] 0xffffffff85432b66
+     0.00%  python      [unknown]                                              [k] 0xffffffff85460b91
+     0.00%  python      [unknown]                                              [k] 0xffffffff8543297b
+     0.00%  python      [unknown]                                              [k] 0xffffffff85448127
+     0.00%  python      [unknown]                                              [k] 0xffffffff85878400
+     0.00%  python      [unknown]                                              [k] 0xffffffff86259838
+     0.00%  python      [unknown]                                              [k] 0xffffffff850d7c71
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545f2fd
+     0.00%  python      [unknown]                                              [k] 0xffffffff85425281
+     0.00%  python      [unknown]                                              [k] 0xffffffff854609f5
+     0.00%  python      [unknown]                                              [k] 0xffffffff85432885
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545b9a1
+     0.00%  python      [unknown]                                              [k] 0xffffffff851e29c7
+     0.00%  python      [unknown]                                              [k] 0xffffffff8524a095
+     0.00%  python      [unknown]                                              [k] 0xffffffff854481a9
+     0.00%  python      [unknown]                                              [k] 0xffffffff85433105
+     0.00%  python      [unknown]                                              [k] 0xffffffff85426495
+     0.00%  python      [unknown]                                              [k] 0xffffffff85448052
+     0.00%  python      [unknown]                                              [k] 0xffffffff85460c74
+     0.00%  python      [unknown]                                              [k] 0xffffffff854331cd
+     0.00%  python      python3.11                                             [.] list_extend
+     0.00%  python      [unknown]                                              [k] 0xffffffff854579dc
+     0.00%  python      [unknown]                                              [k] 0xffffffff851e29c5
+     0.00%  python      [unknown]                                              [k] 0xffffffff854579d5
+     0.00%  python      [unknown]                                              [k] 0xffffffff86259821
+     0.00%  python      [unknown]                                              [k] 0xffffffff861b81e8
+     0.00%  python      [unknown]                                              [k] 0xffffffff8544800a
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545ca4b
+     0.00%  python      [unknown]                                              [k] 0xffffffff861b8113
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545f186
+     0.00%  python      [unknown]                                              [k] 0xffffffff861b8225
+     0.00%  python      [unknown]                                              [k] 0xffffffff8626a14c
+     0.00%  python      [unknown]                                              [k] 0xffffffff85460a66
+     0.00%  python      [unknown]                                              [k] 0xffffffff8626a15b
+     0.00%  python      [unknown]                                              [k] 0xffffffff8549a53d
+     0.00%  python      [unknown]                                              [k] 0xffffffff85460cf1
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545f35b
+     0.00%  python      [unknown]                                              [k] 0xffffffff8542e120
+     0.00%  python      [unknown]                                              [k] 0xffffffff85432a56
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545ba1e
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545b9a0
+     0.00%  python      libcublasLt.so.13                                      [.] 0x000000000717c2fb
+     0.00%  python      [unknown]                                              [k] 0xffffffff854480f6
+     0.00%  python      libtorch_cpu.so                                        [.] mkl_dft_def_owns_initTabTwd_L1_64f
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545ba68
+     0.00%  python      [unknown]                                              [k] 0xffffffff861b8379
+     0.00%  python      [unknown]                                              [k] 0xffffffff853ff917
+     0.00%  python      [unknown]                                              [k] 0xffffffff8549abcb
+     0.00%  lscpu       [unknown]                                              [k] 0xffffffff850dc868
+     0.00%  python      [unknown]                                              [k] 0xffffffff850d7c45
+     0.00%  python      [unknown]                                              [k] 0xffffffff85460b63
+     0.00%  python      [unknown]                                              [k] 0xffffffff850d9144
+     0.00%  python      libtorch_cpu.so                                        [.] mkl_vml_kernel_dCos_EXHAynn
+     0.00%  python      [unknown]                                              [k] 0xffffffff8549abc7
+     0.00%  python      libtorch_cpu.so                                        [.] static_uncommit
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545f345
+     0.00%  python      python3.11                                             [.] vectorcall_maybe.constprop.0
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545d07c
+     0.00%  python      python3.11                                             [.] translate_newlines
+     0.00%  lscpu       [unknown]                                              [k] 0xffffffff854d564e
+     0.00%  lscpu       [unknown]                                              [k] 0xffffffff854eaa3f
+     0.00%  python      [unknown]                                              [k] 0xffffffff854579d0
+     0.00%  python      [unknown]                                              [k] 0xffffffff8545d541
+     0.00%  lscpu       [unknown]                                              [k] 0xffffffff850dc7a0
+     0.00%  python      ld-linux-x86-64.so.2                                   [.] memmove
+     0.00%  lscpu       libc.so.6                                              [.] __strcmp_avx2
+     0.00%  lscpu       [unknown]                                              [k] 0xffffffff8524a097
+     0.00%  python      [unknown]                                              [k] 0xffffffff8626aa86
+     0.00%  lscpu       [unknown]                                              [k] 0xffffffff854d5670
+     0.00%  lscpu       [unknown]                                              [k] 0xffffffff854ead23
+     0.00%  python      [unknown]                                              [k] 0xffffffff86400ba3
+     0.00%  python      ld-linux-x86-64.so.2                                   [.] _dl_fixup
+     0.00%  python      libmkl_gnu_thread.so                                   [.] .plt
+     0.00%  python      libmkl_gnu_thread.so                                   [.] mkl_serv_get_dynamic
+     0.00%  python      [unknown]                                              [k] 0xffffffff8542e1bf
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#

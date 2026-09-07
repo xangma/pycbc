@@ -1,0 +1,719 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 1K of event 'cycles:u' (time slices: 548702.389501264,548709.610634503)
+# Event count (approx.): 18118097312
+#
+# Overhead  Command  Shared Object                                      Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         
+# ........  .......  .................................................  ...............................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#
+     6.69%  python   python3.11                                         [.] _PyEval_EvalFrameDefault
+     5.16%  python   libcrypto.so.3                                     [.] sha256_block_data_order_shaext
+     2.46%  python   [vdso]                                             [.] 0x0000000000000b03
+     2.40%  python   libcuda.so.610.57.04                               [.] 0x0000000000458cd0
+     1.91%  python   libc.so.6                                          [.] pthread_mutex_lock@@GLIBC_2.2.5
+     1.38%  python   python3.11                                         [.] _PyObject_GenericGetAttrWithDict
+     1.15%  python   python3.11                                         [.] _Py_dict_lookup
+     0.79%  python   libcuda.so.610.57.04                               [.] 0x0000000000458cd1
+     0.79%  python   libc.so.6                                          [.] pthread_mutex_unlock@@GLIBC_2.2.5
+     0.72%  python   libcuda.so.610.57.04                               [.] 0x0000000000458cfe
+     0.65%  python   libc10_cuda.so                                     [.] c10::cuda::CUDACachingAllocator::Native::NativeCachingAllocator::malloc(void**, signed char, unsigned long, CUstream_st*)
+     0.65%  python   libc.so.6                                          [.] _int_malloc
+     0.58%  python   python3.11                                         [.] object_dealloc
+     0.51%  python   libcuda.so.610.57.04                               [.] 0x0000000000458d30
+     0.51%  python   python3.11                                         [.] PyObject_GetAttr
+     0.51%  python   libcuda.so.610.57.04                               [.] 0x0000000000458d5a
+     0.51%  python   libcuda.so.610.57.04                               [.] 0x00000000003ee7e4
+     0.51%  python   libc10_cuda.so                                     [.] std::_Rb_tree<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*, std::_Identity<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, bool (*)(c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block const*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block const*), std::allocator<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> >::erase(c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block* const&)
+     0.51%  python   python3.11                                         [.] PyObject_GC_Del
+     0.50%  python   libcuda.so.610.57.04                               [.] 0x0000000000458d1a
+     0.44%  python   libcuda.so.610.57.04                               [.] 0x000000000035c4c1
+     0.44%  python   python3.11                                         [.] _PyObject_MakeTpCall
+     0.43%  python   python3.11                                         [.] PyType_IsSubtype
+     0.43%  python   ld-linux-x86-64.so.2                               [.] __tls_get_addr
+     0.43%  python   libcuda.so.610.57.04                               [.] 0x0000000000458d27
+     0.43%  python   libc.so.6                                          [.] cfree@GLIBC_2.2.5
+     0.43%  python   libtorch_cpu.so                                    [.] c10::impl::OperatorEntry::lookup(c10::DispatchKeySet) const
+     0.37%  python   libcuda.so.610.57.04                               [.] 0x0000000000458e6b
+     0.36%  python   libc.so.6                                          [.] malloc
+     0.36%  python   libcuda.so.610.57.04                               [.] 0x0000000001334bb0
+     0.36%  python   libcuda.so.610.57.04                               [.] 0x000000000041b497
+     0.36%  python   libcuda.so.610.57.04                               [.] 0x0000000000457a3d
+     0.36%  python   python3.11                                         [.] tupledealloc
+     0.36%  python   libc.so.6                                          [.] pthread_rwlock_unlock@@GLIBC_2.34
+     0.36%  python   libtorch_cpu.so                                    [.] at::native::copy_impl(at::Tensor&, at::Tensor const&, bool) [clone .isra.0]
+     0.36%  python   python3.11                                         [.] dict_dealloc
+     0.31%  python   libc.so.6                                          [.] __memset_avx2_unaligned_erms
+     0.29%  python   python3.11                                         [.] find_name_in_mro
+     0.29%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::compute_types(at::TensorIteratorConfig const&)
+     0.29%  python   libcuda.so.610.57.04                               [.] 0x00000000002870b2
+     0.29%  python   python3.11                                         [.] _PyType_AllocNoTrack
+     0.29%  python   libc10_cuda.so                                     [.] c10::cuda::CUDACachingAllocator::Native::local_raw_delete(void*)
+     0.29%  python   libtorch_python.so                                 [.] THPVariable_Wrap(at::TensorBase&&)
+     0.29%  python   libcuda.so.610.57.04                               [.] 0x0000000000458e67
+     0.29%  python   libstdc++.so.6.0.32                                [.] operator delete(void*)
+     0.29%  python   python3.11                                         [.] PyEval_RestoreThread
+     0.29%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] array_dealloc
+     0.29%  python   libc10.so                                          [.] c10::AutogradState::get_tls_state()
+     0.29%  python   libtorch_python.so                                 [.] torch::FunctionSignature::parse(_object*, _object*, _object*, _object**, std::vector<_object*, std::allocator<_object*> >&, bool)
+     0.29%  python   libz.so.1.3.1                                      [.] inflate_fast
+     0.29%  python   libtorch_cuda.so                                   [.] at::cuda::detail::(anonymous namespace)::_hasPrimaryContext(signed char)
+     0.29%  python   python3.11                                         [.] type_getattro
+     0.29%  python   libc.so.6                                          [.] __memmove_sse2_unaligned_erms
+     0.28%  python   libc10_cuda.so                                     [.] c10::cuda::MaybeSetDevice(signed char)
+     0.27%  python   libc.so.6                                          [.] memcpy@GLIBC_2.2.5
+     0.22%  python   python3.11                                         [.] PyObject_Vectorcall
+     0.22%  python   libc.so.6                                          [.] printf_positional
+     0.22%  python   libhdf5.so.1000.0.0                                [.] H5I__find_id
+     0.22%  python   python3.11                                         [.] initialize_locals
+     0.22%  python   libc.so.6                                          [.] pthread_once@GLIBC_2.2.5
+     0.22%  python   python3.11                                         [.] _PyObject_Malloc
+     0.22%  python   libc10.so                                          [.] c10::intrusive_ptr<c10::VariableVersion::VersionCounter, c10::detail::intrusive_target_default_null_type<c10::VariableVersion::VersionCounter> >::reset_not_null_(c10::VariableVersion::VersionCounter*)
+     0.22%  python   libhdf5.so.1000.0.0                                [.] H5SL__insert_common
+     0.22%  python   libc10_cuda.so                                     [.] c10::cuda::ExchangeDevice(signed char)
+     0.22%  python   libcuda.so.610.57.04                               [.] 0x0000000001334d2c
+     0.22%  python   libcuda.so.610.57.04                               [.] 0x0000000000432379
+     0.22%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] PyArray_NewFromDescr_int
+     0.22%  python   libcuda.so.610.57.04                               [.] 0x00000000002710d6
+     0.22%  python   libc.so.6                                          [.] pthread_rwlock_rdlock@GLIBC_2.2.5
+     0.22%  python   libhdf5.so.1000.0.0                                [.] H5_hash_string
+     0.22%  python   python3.11                                         [.] insertdict
+     0.22%  python   libc.so.6                                          [.] __memmove_avx_unaligned_erms
+     0.22%  python   libtorch_cpu.so                                    [.] c10::intrusive_ptr<c10::TensorImpl, c10::UndefinedTensorImpl>::reset_not_null_(c10::TensorImpl*)
+     0.22%  python   python3.11                                         [.] _PyFrame_Clear
+     0.22%  python   libcuda.so.610.57.04                               [.] 0x000000000135f219
+     0.22%  python   libcuda.so.610.57.04                               [.] 0x0000000000299503
+     0.22%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::is_contiguous() const
+     0.22%  python   libtorch_python.so                                 [.] torch::utils::(anonymous namespace)::internal_new_from_data(c10::TensorOptions, c10::ScalarType, std::optional<c10::Device>, _object*, bool, bool, bool, bool)
+     0.22%  python   [vdso]                                             [.] 0x0000000000000b2b
+     0.22%  python   libc10.so                                          [.] c10::get_default_dtype_as_scalartype()
+     0.22%  python   libcuda.so.610.57.04                               [.] 0x0000000000458ce4
+     0.22%  python   libtorch_cpu.so                                    [.] at::_ops::as_strided::call(at::Tensor const&, c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::SymInt>)
+     0.22%  python   libz.so.1.3.1                                      [.] inflate_table
+     0.22%  python   libtorch_python.so                                 [.] torch::check_has_torch_function(_object*, bool)
+     0.22%  python   python3.11                                         [.] method_get
+     0.22%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::populate_operands(at::TensorIteratorConfig&)
+     0.22%  python   libtorch_cpu.so                                    [.] at::native::fill_out(at::Tensor&, c10::Scalar const&)
+     0.22%  python   libstdc++.so.6.0.32                                [.] operator new(unsigned long)
+     0.22%  python   libc10_cuda.so                                     [.] c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block::~Block()
+     0.21%  python   python3.11                                         [.] insert_to_emptydict
+     0.21%  python   libc10_cuda.so                                     [.] c10::cuda::getCurrentCUDAStream(signed char)
+     0.21%  python   libc.so.6                                          [.] __errno_location
+     0.21%  python   libc.so.6                                          [.] _int_free
+     0.21%  python   python3.11                                         [.] new_dict
+     0.21%  python   libc10_cuda.so                                     [.] std::pair<std::_Rb_tree_iterator<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, bool> std::_Rb_tree<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*, std::_Identity<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, bool (*)(c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block const*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block const*), std::allocator<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> >::_M_insert_unique<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block* const&>(c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block* const&)
+     0.21%  python   libtorch_cpu.so                                    [.] c10::TensorImpl::set_sizes_and_strides(c10::ArrayRef<long>, c10::ArrayRef<long>, std::optional<long>) [clone .isra.0]
+     0.20%  python   libc.so.6                                          [.] pthread_rwlock_wrlock@@GLIBC_2.34
+     0.16%  python   libcuda.so.610.57.04                               [.] 0x00000000003f06da
+     0.15%  python   libc10.so                                          [.] __tls_get_addr@plt
+     0.15%  python   libc.so.6                                          [.] pthread_getspecific@@GLIBC_2.34
+     0.15%  python   python3.11                                         [.] _PyLong_New
+     0.15%  python   libc10.so                                          [.] c10::impl::ExcludeDispatchKeyGuard::ExcludeDispatchKeyGuard(c10::DispatchKeySet)
+     0.15%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] _npy_parse_arguments
+     0.15%  python   python3.11                                         [.] method_vectorcall_VARARGS_KEYWORDS
+     0.15%  python   libtorch_cpu.so                                    [.] torch::ADInplaceOrView::(anonymous namespace)::slice_Tensor(c10::DispatchKeySet, at::Tensor const&, long, std::optional<c10::SymInt>, std::optional<c10::SymInt>, c10::SymInt)
+     0.15%  python   python3.11                                         [.] _PyObject_GC_New
+     0.15%  python   python3.11                                         [.] object_isinstance
+     0.15%  python   libc.so.6                                          [.] __parse_one_specmb
+     0.15%  python   libcudart.so.13                                    [.] pthread_once@plt
+     0.15%  python   libc10.so                                          [.] c10::TensorImpl::TensorImpl(c10::Storage&&, c10::DispatchKeySet, caffe2::TypeMeta)
+     0.15%  python   libhdf5.so.1000.0.0                                [.] H5SL_first
+     0.15%  python   libcuda.so.610.57.04                               [.] 0x00000000002710d9
+     0.15%  python   libc10_cuda.so                                     [.] c10::cuda::CUDACachingAllocator::Native::DeviceCachingAllocator::try_merge_blocks(c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::BlockPool&) [clone .isra.0]
+     0.15%  python   libtorch_cpu.so                                    [.] at::getStepCallbacksUnlessEmpty(at::RecordScope)
+     0.15%  python   libcuda.so.610.57.04                               [.] 0x00000000002710bf
+     0.15%  python   python3.11                                         [.] unicode_decode_utf8
+     0.15%  python   libcuda.so.610.57.04                               [.] 0x0000000000287087
+     0.15%  python   [vdso]                                             [.] 0x0000000000000b7f
+     0.15%  python   libcuda.so.610.57.04                               [.] 0x0000000000287062
+     0.15%  python   libhdf5.so.1000.0.0                                [.] H5C__load_entry
+     0.15%  python   libc10.so                                          [.] c10::SymInt::guard_int(char const*, long) const
+     0.14%  python   python3.11                                         [.] PyThread_tss_get
+     0.14%  python   libcuda.so.610.57.04                               [.] 0x00000000002c74dc
+     0.14%  python   python3.11                                         [.] PyType_GenericAlloc
+     0.14%  python   python3.11                                         [.] _PyErr_NormalizeException
+     0.14%  python   libtorch_cuda.so                                   [.] at::cuda::getCUDADeviceAllocator()
+     0.14%  python   libtorch_cpu.so                                    [.] torch::jit::tracer::getTracingState()
+     0.14%  python   libtorch_cpu.so                                    [.] at::get_overlap_status(c10::TensorImpl const*, c10::TensorImpl const*)
+     0.14%  python   python3.11                                         [.] list_dealloc
+     0.14%  python   libcuda.so.610.57.04                               [.] 0x000000000035c4ae
+     0.14%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] _typenum_fromtypeobj
+     0.14%  python   libhdf5.so.1000.0.0                                [.] H5SL_search
+     0.14%  python   python3.11                                         [.] subtype_dealloc
+     0.14%  python   libtorch_cpu.so                                    [.] at::_ops::_to_copy::call(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>)
+     0.14%  python   python3.11                                         [.] _PyObject_LookupSpecial
+     0.14%  python   libtorch_cpu.so                                    [.] c10::intrusive_ptr<c10::StorageImpl, c10::detail::intrusive_target_default_null_type<c10::StorageImpl> >::reset_not_null_(c10::StorageImpl*)
+     0.14%  python   libcudart.so.13                                    [.] 0x000000000003dd03
+     0.14%  python   libtorch_cuda.so                                   [.] at::native::copy_device_to_device(at::TensorIterator&, bool, bool)
+     0.14%  python   libtorch_cpu.so                                    [.] at::globalContext()
+     0.14%  python   libc10.so                                          [.] c10::InferenceMode::is_enabled()
+     0.14%  python   libcuda.so.610.57.04                               [.] 0x000000000028706d
+     0.14%  python   python3.11                                         [.] _Py_Dealloc
+     0.14%  python   libtorch_cpu.so                                    [.] at::_ops::copy_::call(at::Tensor&, at::Tensor const&, bool)
+     0.14%  python   libtorch_python.so                                 [.] THPDevice_type(THPDevice*, _object*)
+     0.14%  python   python3.11                                         [.] PyContextVar_Get
+     0.14%  python   libcuda.so.610.57.04                               [.] 0x00000000002c7496
+     0.14%  python   libc.so.6                                          [.] __strchr_avx2
+     0.14%  python   python3.11                                         [.] PyTuple_New
+     0.14%  python   libc10_cuda.so                                     [.] c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::BlockComparatorAddress(c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block const*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block const*)
+     0.14%  python   libtorch_python.so                                 [.] torch::utils::store_scalar(void*, c10::ScalarType, _object*)
+     0.14%  python   libc10_cuda.so                                     [.] c10::cuda::get_p2p_access(signed char, signed char)
+     0.14%  python   python3.11                                         [.] builtin_issubclass
+     0.14%  python   libtorch_cpu.so                                    [.] at::native::view(at::Tensor const&, c10::ArrayRef<long>)
+     0.14%  python   _objects.cpython-311-x86_64-linux-gnu.so           [.] __pyx_pw_4h5py_8_objects_9with_phil_1wrapper
+     0.14%  python   libcudart.so.13                                    [.] cudaMemcpyAsync
+     0.14%  python   [vdso]                                             [.] 0x0000000000000af7
+     0.14%  python   libcudart.so.13                                    [.] 0x0000000000026e3f
+     0.14%  python   libcuda.so.610.57.04                               [.] cuCtxGetDevice_v2
+     0.14%  python   python3.11                                         [.] PyImport_Import
+     0.14%  python   libcufile.so.0                                     [.] operator delete(void*, unsigned long)
+     0.14%  python   libtorch_cpu.so                                    [.] torch::autograd::DifferentiableViewMeta::DifferentiableViewMeta(c10::TensorImpl*, std::optional<torch::autograd::ViewInfo>, std::optional<torch::autograd::ViewInfo>, bool, torch::autograd::CreationMeta)
+     0.14%  python   libtorch_cuda.so                                   [.] void at::native::gpu_reduce_kernel<c10::complex<float>, c10::complex<float>, 4, 4, at::native::func_wrapper_t<c10::complex<float>, __nv_hdl_wrapper_t<false, true, false, __nv_dl_tag<void (at::native::sum_functor<c10::complex<float>, c10::complex<float>, c10::complex<float> >::*)(at::TensorIterator&), &at::native::sum_functor<c10::complex<float>, c10::complex<float>, c10::complex<float> >::operator(), 1u>, c10::complex<float> (c10::complex<float>, c10::complex<float>)> >, double>(at::TensorIterator&, at::native::func_wrapper_t<c10::complex<float>, __nv_hdl_wrapper_t<false, true, false, __nv_dl_tag<void (at::native::sum_functor<c10::complex<float>, c10::complex<float>, c10::complex<float> >::*)(at::TensorIterator&), &at::native::sum_functor<c10::complex<float>, c10::complex<float>, c10::complex<float> >::operator(), 1u>, c10::complex<float> (c10::complex<float>, c10::complex<float>)> > const&, double, at::native::AccumulationBuffer*, long) [clone .isra.0]
+     0.14%  python   libtorch_python.so                                 [.] torch::FunctionParameter::_check(_object*, std::vector<_object*, std::allocator<_object*> >&, int, pybind11::object*)
+     0.14%  python   libtorch_cpu.so                                    [.] at::TensorIteratorConfig::is_tensor_const(unsigned long)
+     0.14%  python   python3.11                                         [.] PyDict_GetItemWithError
+     0.14%  python   python3.11                                         [.] dict_subscript
+     0.14%  python   python3.11                                         [.] PyEval_AcquireThread
+     0.14%  python   libhdf5.so.1000.0.0                                [.] H5FL_reg_malloc
+     0.14%  python   libcuda.so.610.57.04                               [.] 0x00000000001c46c9
+     0.14%  python   libc10_cuda.so                                     [.] std::pair<ska::detailv3::sherwood_v3_table<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*, std::hash<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, ska::detailv3::functor_storage<unsigned long, std::hash<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> >, std::equal_to<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, ska::detailv3::functor_storage<bool, std::equal_to<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> >, std::allocator<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, std::allocator<ska::detailv3::sherwood_v3_entry<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> > >::templated_iterator<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, bool> ska::detailv3::sherwood_v3_table<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*, std::hash<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, ska::detailv3::functor_storage<unsigned long, std::hash<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> >, std::equal_to<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, ska::detailv3::functor_storage<bool, std::equal_to<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> >, std::allocator<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, std::allocator<ska::detailv3::sherwood_v3_entry<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> > >::emplace<c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block* const&>(c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block* const&)
+     0.14%  python   python3.11                                         [.] dictresize
+     0.14%  python   libcuda.so.610.57.04                               [.] 0x00000000002710a8
+     0.14%  python   python3.11                                         [.] property_descr_get
+     0.14%  python   libcuda.so.610.57.04                               [.] 0x00000000001be04b
+     0.14%  python   libc10_cuda.so                                     [.] c10::cuda::GetDevice(signed char*)
+     0.14%  python   python3.11                                         [.] dict_repr
+     0.14%  python   libc10.so                                          [.] c10::alloc_cpu(unsigned long)
+     0.14%  python   python3.11                                         [.] enum_next
+     0.14%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::build(at::TensorIteratorConfig&)
+     0.14%  python   [vdso]                                             [.] 0x0000000000000b11
+     0.14%  python   libcuda.so.610.57.04                               [.] cuMemcpyHtoDAsync_v2
+     0.14%  python   libtorch_cpu.so                                    [.] c10::SymInt::operator*(c10::SymInt const&) const
+     0.14%  python   libc10_cuda.so                                     [.] c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::BlockComparatorSizeCounterAddress(c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block const*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block const*)
+     0.14%  python   libcuda.so.610.57.04                               [.] 0x0000000000453dea
+     0.14%  python   libtorch_python.so                                 [.] torch::autograd::THPVariable_getitem(_object*, _object*)
+     0.14%  python   libc.so.6                                          [.] __memmove_avx_unaligned
+     0.14%  python   libtorch_cpu.so                                    [.] c10::TensorImpl::set_sizes_and_strides(c10::ArrayRef<long>, c10::ArrayRef<long>, std::optional<long>) [clone .isra.0]
+     0.14%  python   libtorch_cpu.so                                    [.] at::assert_no_internal_overlap(c10::TensorImpl*)
+     0.14%  python   libc10_cuda.so                                     [.] c10::cuda::CUDACachingAllocator::Native::DeviceCachingAllocator::alloc_found_block(c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::AllocParams const&, unsigned long, std::shared_ptr<c10::GatheredContext>, bool)
+     0.14%  python   libtorch_cpu.so                                    [.] c10::SymInt::release_() [clone .isra.0]
+     0.14%  python   libtorch_cpu.so                                    [.] at::_ops::empty_memory_format::redispatch(c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>)
+     0.14%  python   libc10.so                                          [.] c10::TensorImpl::_fw_grad(unsigned long, at::TensorBase const&) const
+     0.14%  python   libcuda.so.610.57.04                               [.] 0x00000000002710bb
+     0.14%  python   python3.11                                         [.] vgetargs1_impl
+     0.14%  python   libtorch_cuda.so                                   [.] at::(anonymous namespace)::structured_index_out_functional::set_output_raw_strided(long, c10::ArrayRef<long>, c10::ArrayRef<long>, c10::TensorOptions)
+     0.14%  python   libc10.so                                          [.] c10::TensorImpl::~TensorImpl()
+     0.14%  python   libc10_cuda.so                                     [.] c10::cuda::(anonymous namespace)::check_gpu(signed char)
+     0.14%  python   libtorch_cuda.so                                   [.] at::detail::empty_cuda(c10::ArrayRef<long>, c10::ScalarType, std::optional<c10::Device>, std::optional<c10::MemoryFormat>)
+     0.14%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::compute_fast_setup_type(at::TensorIteratorConfig const&)
+     0.14%  python   libtorch_cpu.so                                    [.] at::native::DispatchStubImpl::try_get_call_ptr(c10::DeviceType, void*, void*, void*)
+     0.14%  python   libtorch_python.so                                 [.] torch::PyWarningHandler::~PyWarningHandler()
+     0.14%  python   libtorch_cuda.so                                   [.] c10::impl::InlineDeviceGuard<c10::impl::VirtualGuardImpl>::InlineDeviceGuard(c10::Device)
+     0.14%  python   libcuda.so.610.57.04                               [.] 0x00000000002f2552
+     0.13%  python   python3.11                                         [.] PyUnicode_Substring
+     0.08%  python   libtorch_cpu.so                                    [.] torch::autograd::ViewInfo::chain(at::Tensor const&, at::Tensor const&, std::unique_ptr<torch::autograd::ViewFunc, std::default_delete<torch::autograd::ViewFunc> >, std::function<at::Tensor (at::Tensor const&)>) const
+     0.08%  python   python3.11                                         [.] method_vectorcall
+     0.08%  python   libcudart.so.13                                    [.] 0x0000000000036bf3
+     0.08%  python   libtorch_python.so                                 [.] c10::intrusive_ptr<c10::TensorImpl, c10::UndefinedTensorImpl>::reset_not_null_(c10::TensorImpl*)
+     0.08%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::mark_outputs()
+     0.08%  python   libcuda.so.610.57.04                               [.] 0x000000000021d096
+     0.08%  python   libcuda.so.610.57.04                               [.] 0x00000000001c76e1
+     0.07%  python   h5t.cpython-311-x86_64-linux-gnu.so                [.] __Pyx_PyObject_FastCallDict.constprop.0
+     0.07%  python   python3.11                                         [.] convertsimple
+     0.07%  python   libtorch_cuda.so                                   [.] at::native::conj_kernel_cuda(at::TensorIteratorBase&)
+     0.07%  python   libm.so.6                                          [.] pow@GLIBC_2.2.5
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000273b83
+     0.07%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::coalesce_dimensions()
+     0.07%  python   python3.11                                         [.] _PyLong_Frexp
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001bb77e
+     0.07%  python   libtorch_python.so                                 [.] GetterBase<PropertyReal>::getter(THPVariable*, void*)
+     0.07%  python   python3.11                                         [.] long_richcompare
+     0.07%  python   libtorch_cpu.so                                    [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::_to_copy>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat> > >, at::Tensor (at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>)
+     0.07%  python   libc.so.6                                          [.] __strnlen_avx2
+     0.07%  python   libcudart.so.13                                    [.] 0x000000000003cc53
+     0.07%  python   libhdf5.so.1000.0.0                                [.] H5T_close
+     0.07%  python   libtorch_cuda.so                                   [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CUDA__empty_strided>, at::Tensor, c10::guts::typelist::typelist<c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool> > >, at::Tensor (c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000132e240
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000001336050
+     0.07%  python   libtorch_cpu.so                                    [.] c10::SymInt::release_() [clone .isra.0]
+     0.07%  python   libtorch_cuda.so                                   [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor& (c10::Scalar const&, c10::Scalar const&, c10::Scalar const&, at::Tensor&), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CUDA_start_out_arange_out>, at::Tensor&, c10::guts::typelist::typelist<c10::Scalar const&, c10::Scalar const&, c10::Scalar const&, at::Tensor&> >, at::Tensor& (c10::Scalar const&, c10::Scalar const&, c10::Scalar const&, at::Tensor&)>::call(c10::OperatorKernel*, c10::DispatchKeySet, c10::Scalar const&, c10::Scalar const&, c10::Scalar const&, at::Tensor&)
+     0.07%  python   libhdf5.so.1000.0.0                                [.] H5C_unprotect
+     0.07%  python   python3.11                                         [.] _PyUnicodeWriter_PrepareInternal
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000132a869
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002c74da
+     0.07%  python   libtorch_cuda.so                                   [.] at::detail::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::ScalarType, std::optional<c10::Device>)
+     0.07%  python   libtorch_python.so                                 [.] pybind11::detail::get_internals()
+     0.07%  python   libc.so.6                                          [.] __wcslen_avx2
+     0.07%  python   libtorch_cpu.so                                    [.] at::_ops::zero_::call(at::Tensor&)
+     0.07%  python   libc10.so                                          [.] c10::operator==(c10::SymInt const&, int)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000132a851
+     0.07%  python   libc10.so                                          [.] c10::WarningUtils::set_warning_handler(c10::WarningHandler*)
+     0.07%  python   libhdf5.so.1000.0.0                                [.] H5O_protect
+     0.07%  python   libtorch_cuda.so                                   [.] void at::native::nonzero_cuda_out_impl<bool>(at::Tensor const&, at::Tensor&)
+     0.07%  python   libc10.so                                          [.] c10::CachingAllocator::AcceleratorAllocatorConfig::instance()
+     0.07%  python   libtorch_python.so                                 [.] pybind11::cpp_function::initialize<torch::jit::tracer::initPythonTracerBindings(_object*)::{lambda()#2}, std::shared_ptr<torch::jit::tracer::TracingState>, , pybind11::name, pybind11::scope, pybind11::sibling>(torch::jit::tracer::initPythonTracerBindings(_object*)::{lambda()#2}&&, std::shared_ptr<torch::jit::tracer::TracingState> (*)(), pybind11::name const&, pybind11::scope const&, pybind11::sibling const&)::{lambda(pybind11::detail::function_call&)#1}::_FUN(pybind11::detail::function_call&)
+     0.07%  python   libhdf5.so.1000.0.0                                [.] H5C__pin_entry_from_client
+     0.07%  python   libtorch_cpu.so                                    [.] at::detail::empty_cpu(c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>)
+     0.07%  python   libtorch_python.so                                 [.] torch::toDevice(_object*)
+     0.07%  python   libc.so.6                                          [.] realloc
+     0.07%  python   libcudart.so.13                                    [.] 0x0000000000026e5c
+     0.07%  python   libhdf5.so.1000.0.0                                [.] H5O_loc_copy_shallow
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000029950c
+     0.07%  python   libtorch_cuda.so                                   [.] at::native::empty_cuda(c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>)
+     0.07%  python   python3.11                                         [.] list_iter
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000021fba8
+     0.07%  python   python3.11                                         [.] PyObject_Malloc
+     0.07%  python   libtorch_cuda.so                                   [.] at::native::add_kernel(at::TensorIteratorBase&, c10::Scalar const&)
+     0.07%  python   libtorch_cpu.so                                    [.] at::native::empty_cpu(c10::ArrayRef<long>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, std::optional<c10::MemoryFormat>)
+     0.07%  python   libcufft.so.12                                     [.] cufftXtExec
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000301380
+     0.07%  python   _errors.cpython-311-x86_64-linux-gnu.so            [.] __pyx_f_4h5py_7_errors_set_default_error_handler
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000271054
+     0.07%  python   libhdf5.so.1000.0.0                                [.] H5T_patch_file
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] PyArray_GetCastingImpl
+     0.07%  python   python3.11                                         [.] _PyObject_GC_Resize
+     0.07%  python   libtorch_cuda.so                                   [.] at::native::(anonymous namespace)::pow_tensor_scalar_kernel(at::TensorIteratorBase&, c10::Scalar const&)
+     0.07%  python   libtorch_cpu.so                                    [.] bool at::native::_resize_output_check<long>(at::Tensor const&, c10::ArrayRef<long>)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000001334d2f
+     0.07%  python   python3.11                                         [.] thread_get_ident
+     0.07%  python   libtorch_python.so                                 [.] THPModule_has_torch_function_unary(_object*, _object*)
+     0.07%  python   h5d.cpython-311-x86_64-linux-gnu.so                [.] __pyx_pw_4h5py_3h5d_9DatasetID_15get_create_plist
+     0.07%  python   libhdf5.so.1000.0.0                                [.] H5O_msg_read_oh
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000452c20
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000026c754
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] void_to_void_resolve_descriptors
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002e60b4
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000001334c7b
+     0.07%  python   python3.11                                         [.] PyUnicode_New
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000001334bcf
+     0.07%  python   libtorch_cpu.so                                    [.] c10::SmallVectorImpl<long>::operator=(c10::SmallVectorImpl<long>&&) [clone .isra.0]
+     0.07%  python   libcudart.so.13                                    [.] 0x0000000000028dd1
+     0.07%  python   [unknown]                                          [k] 0xffffffff855263d7
+     0.07%  python   [unknown]                                          [k] 0xffffffff85432b66
+     0.07%  python   libtorch_cpu.so                                    [.] at::native::to(at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, bool, std::optional<c10::MemoryFormat>)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000458d00
+     0.07%  python   python3.11                                         [.] converttuple.constprop.0
+     0.07%  python   libtorch_python.so                                 [.] pybind11::gil_scoped_acquire::dec_ref()
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000458e6f
+     0.07%  python   [unknown]                                          [k] 0xffffffff86400155
+     0.07%  python   python3.11                                         [.] PyObject_GetAttrString
+     0.07%  python   libc10.so                                          [.] c10::TensorImpl::TensorImpl(c10::TensorImpl::ImplType, c10::Storage&&, c10::DispatchKeySet, caffe2::TypeMeta)
+     0.07%  python   python3.11                                         [.] PyObject_IsInstance
+     0.07%  python   libtriton.so                                       [.] (anonymous namespace)::handle_tensor(_object*, _object*, bool, bool, bool)
+     0.07%  python   python3.11                                         [.] object_new
+     0.07%  python   h5t.cpython-311-x86_64-linux-gnu.so                [.] __pyx_f_4h5py_3h5t_11TypeFloatID_py_dtype
+     0.07%  python   python3.11                                         [.] PyThread_get_thread_ident
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000031b6b6
+     0.07%  python   python3.11                                         [.] PyObject_RichCompare
+     0.07%  python   libcudart.so.13                                    [.] 0x0000000000082775
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000134b318
+     0.07%  python   python3.11                                         [.] make_gen
+     0.07%  python   libhdf5.so.1000.0.0                                [.] H5C_protect
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001c4a27
+     0.07%  python   libhdf5.so.1000.0.0                                [.] H5O__assert
+     0.07%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::fast_set_up(at::TensorIteratorConfig const&)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001c49e6
+     0.07%  python   python3.11                                         [.] cfunction_vectorcall_FASTCALL_KEYWORDS
+     0.07%  python   python3.11                                         [.] slot_tp_init
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000305f99
+     0.07%  python   libtorch_python.so                                 [.] pybind11::gil_scoped_acquire::~gil_scoped_acquire()
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] _field_transfer_data_free
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000418322
+     0.07%  python   python3.11                                         [.] object_vacall
+     0.07%  python   libtorch_cpu.so                                    [.] at::detail::computeStorageNbytesContiguous(c10::ArrayRef<long>, unsigned long, unsigned long)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000458e57
+     0.07%  python   libtorch_cpu.so                                    [.] at::meta::structured_pow_Tensor_Scalar::meta(at::Tensor const&, c10::Scalar const&)
+     0.07%  python   python3.11                                         [.] tupleiter_dealloc
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002710c6
+     0.07%  python   [vdso]                                             [.] 0x0000000000000ae9
+     0.07%  python   libcudart.so.13                                    [.] cudaGetDevice
+     0.07%  python   libtorch_cuda.so                                   [.] at::(anonymous namespace)::structured_sum_out_functional::set_output_raw_strided(long, c10::ArrayRef<long>, c10::ArrayRef<long>, c10::TensorOptions)
+     0.07%  python   python3.11                                         [.] take_gil
+     0.07%  python   libtorch_cpu.so                                    [.] torch::ADInplaceOrView::(anonymous namespace)::select_int(c10::DispatchKeySet, at::Tensor const&, long, c10::SymInt)
+     0.07%  python   libc10_cuda.so                                     [.] c10::cuda::CUDAKernelLaunchRegistry::has_failed() const
+     0.07%  python   python3.11                                         [.] unicode_dealloc
+     0.07%  python   libtorch_cpu.so                                    [.] at::native::as_strided_tensorimpl(at::Tensor const&, c10::ArrayRef<long>, c10::ArrayRef<long>, std::optional<long>)
+     0.07%  python   [unknown]                                          [k] 0xffffffff8542e120
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000355893
+     0.07%  python   libhdf5.so.1000.0.0                                [.] H5O__pline_reset
+     0.07%  python   python3.11                                         [.] _PyFunction_Vectorcall
+     0.07%  python   python3.11                                         [.] _PyObject_New
+     0.07%  python   libstdc++.so.6.0.32                                [.] std::ios_base::_M_init()
+     0.07%  python   python3.11                                         [.] PyLong_FromLong
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000271090
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000043229d
+     0.07%  python   libc10_cuda.so                                     [.] c10::cuda::CUDAKernelLaunchRegistry::get_singleton_ref()
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000132d58b
+     0.07%  python   libtorch_cpu.so                                    [.] c10::computeDispatchKey(std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>) [clone .isra.0]
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000004aefc1
+     0.07%  python   libhdf5.so.1000.0.0                                [.] H5O__dtype_decode
+     0.07%  python   libtorch_cpu.so                                    [.] c10::intrusive_ptr<c10::TensorImpl, c10::UndefinedTensorImpl>::retain_()
+     0.07%  python   libtorch_cuda.so                                   [.] c10::asIntArrayRefSlow(c10::ArrayRef<c10::SymInt>, char const*, long) [clone .constprop.0]
+     0.07%  python   python3.11                                         [.] tupletraverse
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000034dd7e
+     0.07%  python   python3.11                                         [.] _PyObject_GenericSetAttrWithDict
+     0.07%  python   libcudart.so.13                                    [.] 0x0000000000044124
+     0.07%  python   libtorch_python.so                                 [.] pybind11::cpp_function::dispatcher(_object*, _object* const*, unsigned long, _object*)
+     0.07%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::build_borrowing_binary_op(at::TensorBase const&, at::TensorBase const&, at::TensorBase const&)
+     0.07%  python   libtorch_cuda.so                                   [.] at::native::set_storage_cuda_(at::Tensor&, c10::Storage, long, c10::ArrayRef<long>, c10::ArrayRef<long>)
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] _buffer_info_free
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000001334bdc
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000031733c
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] PyArray_AssignArray
+     0.07%  python   libtorch_cuda.so                                   [.] c10::intrusive_ptr<c10::TensorImpl, c10::UndefinedTensorImpl>::reset_not_null_(c10::TensorImpl*)
+     0.07%  python   libc.so.6                                          [.] __GI___pthread_self
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000031b24e
+     0.07%  python   libc10.so                                          [.] c10::TensorImpl::incref_pyobject() const
+     0.07%  python   libtorch_python.so                                 [.] THPVariable_device(THPVariable*, void*)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000035c4b9
+     0.07%  python   libtorch_cpu.so                                    [.] at::native::detach(at::Tensor const&)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000133510c
+     0.07%  python   libtorch_cpu.so                                    [.] torch::autograd::isFwGradDefined(std::optional<at::Tensor> const&) [clone .constprop.0]
+     0.07%  python   python3.11                                         [.] method_vectorcall_NOARGS
+     0.07%  python   python3.11                                         [.] _PyUnicode_FromASCII
+     0.07%  python   libtorch_cpu.so                                    [.] at::_ops::new_empty::call(at::Tensor const&, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)
+     0.07%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::~TensorIteratorBase()
+     0.07%  python   libtorch_python.so                                 [.] torch::autograd::THPVariable_stride(_object*, _object*, _object*)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000001334c70
+     0.07%  python   libtorch_cpu.so                                    [.] at::_ops::t::call(at::Tensor const&)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000026cf9e
+     0.07%  python   libtorch_cpu.so                                    [.] at::meta::resize_reduction(at::impl::MetaBase&, at::Tensor const&, c10::OptionalArrayRef<long>, bool, c10::ScalarType, bool)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002c3af4
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000132e1f7
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002710c2
+     0.07%  python   python3.11                                         [.] PySys_Audit
+     0.07%  python   defs.cpython-311-x86_64-linux-gnu.so               [.] H5Dget_create_plist@plt
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000004183ac
+     0.07%  python   python3.11                                         [.] PyCode_Addr2Line
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] gentype_alloc
+     0.07%  python   python3.11                                         [.] unicode_hash
+     0.07%  python   libc.so.6                                          [.] __printf_buffer
+     0.07%  python   libstdc++.so.6.0.32                                [.] std::num_put<char, std::ostreambuf_iterator<char, std::char_traits<char> > > const* std::__try_use_facet<std::num_put<char, std::ostreambuf_iterator<char, std::char_traits<char> > > >(std::locale const&)
+     0.07%  python   libtorch_cpu.so                                    [.] torch::autograd::as_view(at::Tensor const&, at::Tensor const&, bool, bool, std::unique_ptr<torch::autograd::ViewFunc, std::default_delete<torch::autograd::ViewFunc> >, std::function<at::Tensor (at::Tensor const&)>, torch::autograd::CreationMeta, bool)
+     0.07%  python   [vdso]                                             [.] 0x0000000000000b3a
+     0.07%  python   libtorch_cpu.so                                    [.] at::_ops::arange::redispatch(c10::DispatchKeySet, c10::Scalar const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000458d3c
+     0.07%  python   libc10_cuda.so                                     [.] c10::cuda::CUDACachingAllocator::Native::DeviceCachingAllocator::record_trace(c10::CachingDeviceAllocator::TraceEntry::Action, unsigned long, unsigned long, CUstream_st*, signed char, std::pair<unsigned long long, unsigned long long>, std::shared_ptr<c10::GatheredContext>)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000041b495
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000271c74
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001bb6c1
+     0.07%  python   [unknown]                                          [k] 0xffffffff86259838
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000026d686
+     0.07%  python   libhdf5.so.1000.0.0                                [.] H5D__chunk_lock
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002f85a9
+     0.07%  python   libc.so.6                                          [.] clock_gettime@@GLIBC_2.17
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000035c453
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000041b841
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000001349cc5
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000031b450
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000041b3b8
+     0.07%  python   libtorch_cuda.so                                   [.] std::mutex::lock()
+     0.07%  python   libstdc++.so.6.0.32                                [.] std::ios_base::_M_dispose_callbacks()
+     0.07%  python   libtorch_cpu.so                                    [.] at::impl::PythonTorchFunctionTLS::exchange_skip_next(bool)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000301332
+     0.07%  python   libtorch_cuda.so                                   [.] c10::TensorImpl::empty_tensor_restride(c10::MemoryFormat)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000003314c1
+     0.07%  python   python3.11                                         [.] cfunction_vectorcall_NOARGS
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000001334f57
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000271060
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000452d7a
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002918d9
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000004592c9
+     0.07%  python   libstdc++.so.6.0.32                                [.] std::basic_ostream<char, std::char_traits<char> >& std::__ostream_insert<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*, long)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001bb78c
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002c74bf
+     0.07%  python   libtorch_cpu.so                                    [.] at::_ops::index_Tensor::redispatch(c10::DispatchKeySet, at::Tensor const&, c10::List<std::optional<at::Tensor> > const&)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000001334ad2
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000003314ec
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001fef83
+     0.07%  python   python3.11                                         [.] getset_get
+     0.07%  python   libtorch_python.so                                 [.] torch::PythonArgs::scalar_slow(int)
+     0.07%  python   libtorch_cpu.so                                    [.] std::vector<c10::SymInt, std::allocator<c10::SymInt> >::~vector()
+     0.07%  python   libtorch_cpu.so                                    [.] at::_ops::mul_Tensor::call(at::Tensor const&, at::Tensor const&)
+     0.07%  python   libtorch_cuda.so                                   [.] at::native::_fft_c2c_cufft_out(at::Tensor const&, c10::ArrayRef<long>, long, bool, at::Tensor&)
+     0.07%  python   libtorch_cpu.so                                    [.] at::native::(anonymous namespace)::inferUnsqueezeGeometry_symint(at::Tensor const&, long)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000273abd
+     0.07%  python   libcudart.so.13                                    [.] 0x000000000004220f
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001c7dd5
+     0.07%  python   python3.11                                         [.] slice_dealloc
+     0.07%  python   python3.11                                         [.] PyUnicode_FromString
+     0.07%  python   libtorch_python.so                                 [.] torch::utils::aten_to_numpy_dtype(c10::ScalarType)
+     0.07%  python   libtorch_cuda.so                                   [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CUDA__nonzero>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&> >, at::Tensor (at::Tensor const&)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&)
+     0.07%  python   libcudart.so.13                                    [.] 0x000000000003ddb1
+     0.07%  python   libcudart.so.13                                    [.] 0x000000000003cc62
+     0.07%  python   libtorch_python.so                                 [.] std::vector<at::Tensor, std::allocator<at::Tensor> >::resize(unsigned long)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000041b164
+     0.07%  python   libtorch.so                                        [.] std::__cxx11::basic_ostringstream<char, std::char_traits<char>, std::allocator<char> >::basic_ostringstream()
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000029954f
+     0.07%  python   libtorch_cpu.so                                    [.] c10::SymInt::sym_le(c10::SymInt const&) const
+     0.07%  python   libhdf5.so.1000.0.0                                [.] H5FL_arr_malloc
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002c72d1
+     0.07%  python   python3.11                                         [.] _get_impl
+     0.07%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::reorder_dimensions()
+     0.07%  python   libcudart.so.13                                    [.] 0x000000000008274b
+     0.07%  python   libtorch_cpu.so                                    [.] torch::autograd::VariableType::(anonymous namespace)::mul_Tensor(c10::DispatchKeySet, at::Tensor const&, at::Tensor const&)
+     0.07%  python   libtorch_cuda.so                                   [.] void at::native::gpu_kernel<__nv_hdl_wrapper_t<false, true, false, __nv_dl_tag<void (*)(at::TensorIteratorBase&), &at::native::direct_copy_kernel_cuda, 18u>, c10::complex<float> (c10::complex<float>)> >(at::TensorIteratorBase&, __nv_hdl_wrapper_t<false, true, false, __nv_dl_tag<void (*)(at::TensorIteratorBase&), &at::native::direct_copy_kernel_cuda, 18u>, c10::complex<float> (c10::complex<float>)> const&) [clone .isra.0]
+     0.07%  python   libtorch_cpu.so                                    [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor& (c10::DispatchKeySet, at::Tensor&, c10::Storage), &torch::autograd::VariableType::(anonymous namespace)::set__source_Storage>, at::Tensor&, c10::guts::typelist::typelist<c10::DispatchKeySet, at::Tensor&, c10::Storage> >, at::Tensor& (c10::DispatchKeySet, at::Tensor&, c10::Storage)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor&, c10::Storage)
+     0.07%  python   libtorch_cpu.so                                    [.] c10::SymInt::release_() [clone .isra.0]
+     0.07%  python   libtorch_cpu.so                                    [.] __tls_get_addr@plt
+     0.07%  python   python3.11                                         [.] unicode_find
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000031b48c
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002c72fe
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000418325
+     0.07%  python   libtorch_cpu.so                                    [.] at::_ops::empty_strided::call(c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)
+     0.07%  python   libtorch_python.so                                 [.] at::indexing::handleDimInMultiDimIndexing(at::Tensor const&, at::Tensor const&, at::indexing::TensorIndex const&, long*, long*, long, std::vector<at::Tensor, std::allocator<at::Tensor> >&, bool, c10::Device const&, std::optional<c10::ArrayRef<c10::SymInt> > const&)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000031b6ab
+     0.07%  python   libstdc++.so.6.0.32                                [.] std::_Rb_tree_rebalance_for_erase(std::_Rb_tree_node_base*, std::_Rb_tree_node_base&)
+     0.07%  python   libc.so.6                                          [.] __strlen_avx2
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001b5618
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000003ee374
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000013350e1
+     0.07%  python   python3.11                                         [.] divrem1
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] DOUBLE_setitem
+     0.07%  python   libtorch_cpu.so                                    [.] at::has_internal_overlap(c10::TensorImpl*)
+     0.07%  python   libtorch_cpu.so                                    [.] torch::autograd::VariableType::(anonymous namespace)::add_Tensor(c10::DispatchKeySet, at::Tensor const&, at::Tensor const&, c10::Scalar const&)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001c1c50
+     0.07%  python   libcufft.so.12                                     [.] cufftSetWorkArea
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] string_converter_helper
+     0.07%  python   libtorch_python.so                                 [.] torch::autograd::set_grad_enabled(_object*, _object*, _object*)
+     0.07%  python   libcudart.so.13                                    [.] cudaLaunchKernel
+     0.07%  python   libcudart.so.13                                    [.] __cudaLaunchKernel
+     0.07%  python   libc10.so                                          [.] c10::TensorImpl::has_storage() const
+     0.07%  python   libtorch_cuda.so                                   [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor& (at::Tensor&, c10::Storage), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CUDA_source_Storage_set_>, at::Tensor&, c10::guts::typelist::typelist<at::Tensor&, c10::Storage> >, at::Tensor& (at::Tensor&, c10::Storage)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor&, c10::Storage)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000001334bcb
+     0.07%  python   python3.11                                         [.] vectorcall_maybe.constprop.0
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] simple_cast_resolve_descriptors
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000021cd71
+     0.07%  python   python3.11                                         [.] PyList_New
+     0.07%  python   libtorch_python.so                                 [.] at::indexing::get_item(at::Tensor const&, c10::ArrayRef<at::indexing::TensorIndex> const&, bool)
+     0.07%  python   libc10.so                                          [.] c10::SymBool::expect_true(char const*, long) const
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000032a903
+     0.07%  python   python3.11                                         [.] PyObject_Free
+     0.07%  python   python3.11                                         [.] PyUnicode_Format
+     0.07%  python   libstdc++.so.6.0.32                                [.] std::locale::id::_M_id() const@plt
+     0.07%  python   cuda_utils.cpython-311-x86_64-linux-gnu.so         [.] extractArgs
+     0.07%  python   libc.so.6                                          [.] __tz_convert
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000003015c3
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000001329c91
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000003172d7
+     0.07%  python   libtorch_cuda.so                                   [.] at::(anonymous namespace)::structured_special_shifted_chebyshev_polynomial_w_out_functional::maybe_get_output(long)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000458cdb
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000301866
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000021d34a
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000026ce6f
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000041b16f
+     0.07%  python   python3.11                                         [.] _abc__abc_instancecheck
+     0.07%  python   [unknown]                                          [k] 0xffffffff861da328
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002710fb
+     0.07%  python   python3.11                                         [.] PyLong_AsLongLongAndOverflow
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001ff3c7
+     0.07%  python   libhdf5.so.1000.0.0                                [.] H5CX__pop_common
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000013130a1
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] FLOAT_add_FMA3__AVX2
+     0.07%  python   libtorch_cpu.so                                    [.] at::native::clone(at::Tensor const&, std::optional<c10::MemoryFormat>)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000003ec4ec
+     0.07%  python   python3.11                                         [.] meth_dealloc
+     0.07%  python   libc10_cuda.so                                     [.] __tls_get_addr@plt
+     0.07%  python   [unknown]                                          [k] 0xffffffff851a7c71
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000134b6be
+     0.07%  python   libtorch_cpu.so                                    [.] torch::autograd::AutogradMeta::AutogradMeta(c10::TensorImpl*, bool, torch::autograd::Edge)
+     0.07%  python   python3.11                                         [.] PySequence_Size
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001b825c
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000003edb91
+     0.07%  python   [vdso]                                             [.] 0x0000000000000b3d
+     0.07%  python   libtorch_python.so                                 [.] THPPointer<_object>::free()
+     0.07%  python   python3.11                                         [.] PyDict_Size
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001b55b7
+     0.07%  python   python3.11                                         [.] cell_dealloc
+     0.07%  python   libtorch_cpu.so                                    [.] at::storage_copy(c10::Storage&, c10::Storage const&, bool)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001b847e
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000032af0f
+     0.07%  python   python3.11                                         [.] PyDict_SetItem
+     0.07%  python   python3.11                                         [.] resize_compact
+     0.07%  python   python3.11                                         [.] PySequence_Fast
+     0.07%  python   libtorch_cpu.so                                    [.] at::meta::structured_add_Tensor::meta(at::Tensor const&, at::Tensor const&, c10::Scalar const&)
+     0.07%  python   [vdso]                                             [.] 0x0000000000000ae0
+     0.07%  python   libtorch_cpu.so                                    [.] at::Tensor c10::Dispatcher::redispatch<at::Tensor, at::Tensor const&, long, std::optional<c10::SymInt>, std::optional<c10::SymInt>, c10::SymInt>(c10::TypedOperatorHandle<at::Tensor (at::Tensor const&, long, std::optional<c10::SymInt>, std::optional<c10::SymInt>, c10::SymInt)> const&, c10::DispatchKeySet, at::Tensor const&, long, std::optional<c10::SymInt>, std::optional<c10::SymInt>, c10::SymInt) const [clone .isra.0]
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002f7def
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] PyArray_DescrFromType
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002c751f
+     0.07%  python   libtorch_cuda.so                                   [.] c10::TensorOptions::device() const
+     0.07%  python   libtorch_python.so                                 [.] torch::PyWarningHandler::PyWarningHandler()
+     0.07%  python   libtorch_cpu.so                                    [.] torch::autograd::VariableType::(anonymous namespace)::detach(c10::DispatchKeySet, at::Tensor const&)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002994d9
+     0.07%  python   libtorch_python.so                                 [.] torch::autograd::dispatch_to(at::Tensor const&, c10::Device, bool, bool, std::optional<c10::MemoryFormat>)
+     0.07%  python   libtorch_python.so                                 [.] torch::utils::is_numpy_available()
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000001349d54
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] array_result_type
+     0.07%  python   libtorch_cpu.so                                    [.] void at::native::checkInBoundsForStorage<long>(c10::ArrayRef<long>, c10::ArrayRef<long>, long, caffe2::TypeMeta const&, c10::Storage const&)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002710b3
+     0.07%  python   _datetime.cpython-311-x86_64-linux-gnu.so          [.] datetime_astimezone
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000001334c9c
+     0.07%  python   libc10_cuda.so                                     [.] c10::cuda::impl::CUDAGuardImpl::uncheckedSetDevice(c10::Device) const
+     0.07%  python   libtorch_cpu.so                                    [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::DispatchKeySet, at::Tensor const&, long, c10::SymInt), &torch::ADInplaceOrView::(anonymous namespace)::select_int>, at::Tensor, c10::guts::typelist::typelist<c10::DispatchKeySet, at::Tensor const&, long, c10::SymInt> >, at::Tensor (c10::DispatchKeySet, at::Tensor const&, long, c10::SymInt)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, long, c10::SymInt)
+     0.07%  python   libtorch_cpu.so                                    [.] at::detail::check_size_nonnegative(c10::ArrayRef<long>)
+     0.07%  python   libcudart.so.13                                    [.] 0x0000000000082823
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000134b551
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000031b234
+     0.07%  python   libtorch_cuda.so                                   [.] at::cuda::(anonymous namespace)::initCUDAContextVectors()
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001c7882
+     0.07%  python   libtorch_cpu.so                                    [.] at::detail::computeStorageNbytes(c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, c10::SymInt const&, c10::SymInt const&)
+     0.07%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::compute_shape(at::TensorIteratorConfig const&)
+     0.07%  python   libc.so.6                                          [.] __memchr_avx2
+     0.07%  python   libtorch_cpu.so                                    [.] at::internal::OpaqueOptionalTensorRef::~OpaqueOptionalTensorRef()
+     0.07%  python   libc10.so                                          [.] c10::memoryProfilingEnabled()
+     0.07%  python   python3.11                                         [.] tuplerichcompare
+     0.07%  python   python3.11                                         [.] PyDict_GetItem
+     0.07%  python   _objects.cpython-311-x86_64-linux-gnu.so           [.] __pyx_tp_new_4h5py_8_objects_ObjectID
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002c74c8
+     0.07%  python   libtorch_python.so                                 [.] c10::TensorImpl::device() const
+     0.07%  python   libtorch_cpu.so                                    [.] at::impl::torch_function_mode_enabled()
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000031b3d2
+     0.07%  python   python3.11                                         [.] PyObject_Str
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002f28ef
+     0.07%  python   libtorch_cpu.so                                    [.] std::_Function_handler<at::Tensor (at::Tensor const&), torch::ADInplaceOrView::(anonymous namespace)::view_as_real(c10::DispatchKeySet, at::Tensor const&)::{lambda(at::Tensor const&)#1}>::_M_manager(std::_Any_data&, std::_Any_data const&, std::_Manager_operation)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000273b9e
+     0.07%  python   libtorch_cuda.so                                   [.] c10::cuda::impl::CUDAGuardImpl::uncheckedSetDevice(c10::Device) const
+     0.07%  python   libtorch_cuda.so                                   [.] at::(anonymous namespace)::structured_ufunc_add_CUDA_functional::set_output_raw_strided(long, c10::ArrayRef<long>, c10::ArrayRef<long>, c10::TensorOptions)
+     0.07%  python   python3.11                                         [.] vectorcall_method
+     0.07%  python   libtorch_cuda.so                                   [.] at::native::(anonymous namespace)::_exec_fft(at::Tensor&, at::Tensor const&, c10::ArrayRef<long>, c10::ArrayRef<long>, bool) [clone .isra.0]
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000134b314
+     0.07%  python   libcudart.so.13                                    [.] 0x000000000003741d
+     0.07%  python   [vdso]                                             [.] 0x0000000000000b56
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000021c760
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000034dcc1
+     0.07%  python   libtorch_python.so                                 [.] torch::autograd::THPVariable_le(_object*, _object*, _object*)
+     0.07%  python   libcudart.so.13                                    [.] 0x0000000000028def
+     0.07%  python   libtorch_python.so                                 [.] torch::autograd::THPVariable_set_(_object*, _object*, _object*)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000273b2b
+     0.07%  python   libtorch_cpu.so                                    [.] at::_ops::set__source_Storage::call(at::Tensor&, c10::Storage)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000271c83
+     0.07%  python   libtorch_cpu.so                                    [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (at::Tensor const&, c10::ScalarType, bool, bool, std::optional<c10::MemoryFormat>), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CompositeImplicitAutograd_dtype_to>, at::Tensor, c10::guts::typelist::typelist<at::Tensor const&, c10::ScalarType, bool, bool, std::optional<c10::MemoryFormat> > >, at::Tensor (at::Tensor const&, c10::ScalarType, bool, bool, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, c10::ScalarType, bool, bool, std::optional<c10::MemoryFormat>)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000031b390
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000418201
+     0.07%  python   libtorch_cpu.so                                    [.] at::_ops::div_Tensor::call(at::Tensor const&, at::Tensor const&)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000134a027
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000013354b1
+     0.07%  python   python3.11                                         [.] dict_merge
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] PyArray_Scalar
+     0.07%  python   libtorch_cuda.so                                   [.] cudaError at_cuda_detail::cub::DeviceReduce::Sum<thrust::THRUST_300001_SM_750_800_860_900_1000_1200_NS::transform_iterator<at::native::(anonymous namespace)::NonZeroOp<bool>, bool const*, thrust::THRUST_300001_SM_750_800_860_900_1000_1200_NS::use_default, thrust::THRUST_300001_SM_750_800_860_900_1000_1200_NS::use_default>, int*, long>(void*, unsigned long&, thrust::THRUST_300001_SM_750_800_860_900_1000_1200_NS::transform_iterator<at::native::(anonymous namespace)::NonZeroOp<bool>, bool const*, thrust::THRUST_300001_SM_750_800_860_900_1000_1200_NS::use_default, thrust::THRUST_300001_SM_750_800_860_900_1000_1200_NS::use_default>, int*, long, CUstream_st*) [clone .isra.0]
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] FLOAT_setitem
+     0.07%  python   libtorch_cuda.so                                   [.] void at::native::gpu_kernel_impl_nocast<__nv_hdl_wrapper_t<false, false, false, __nv_dl_tag<void (*)(at::TensorIteratorBase&, float), &(void at::native::(anonymous namespace)::pow_tensor_scalar_kernel_impl<float, float>(at::TensorIteratorBase&, float)), 1u>, float (float)> >(at::TensorIteratorBase&, __nv_hdl_wrapper_t<false, false, false, __nv_dl_tag<void (*)(at::TensorIteratorBase&, float), &(void at::native::(anonymous namespace)::pow_tensor_scalar_kernel_impl<float, float>(at::TensorIteratorBase&, float)), 1u>, float (float)> const&)
+     0.07%  python   python3.11                                         [.] object_get_class
+     0.07%  python   libtorch_python.so                                 [.] torch::utils::is_numpy_scalar(_object*)
+     0.07%  python   libtorch_cpu.so                                    [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::Scalar const&, c10::Scalar const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>), &at::(anonymous namespace)::arange_start>, at::Tensor, c10::guts::typelist::typelist<c10::Scalar const&, c10::Scalar const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool> > >, at::Tensor (c10::Scalar const&, c10::Scalar const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, c10::Scalar const&, c10::Scalar const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)
+     0.07%  python   libtorch_cpu.so                                    [.] torch::autograd::VariableType::(anonymous namespace)::checked_cast_variable(at::Tensor const&, char const*, int)
+     0.07%  python   h5t.cpython-311-x86_64-linux-gnu.so                [.] __pyx_pw_4h5py_3h5t_21string_dtype
+     0.07%  python   python3.11                                         [.] _in_weak_set
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000003f402e
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000031b54b
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000032acca
+     0.07%  python   libtorch_cpu.so                                    [.] void std::_Optional_payload_base<c10::SymInt>::_M_construct<c10::SymInt const&>(c10::SymInt const&) [clone .isra.0]
+     0.07%  python   libc.so.6                                          [.] __gconv_transform_utf8_internal
+     0.07%  python   libc10.so                                          [.] void std::__introsort_loop<long*, long, __gnu_cxx::__ops::_Iter_comp_iter<c10::_compute_non_overlapping_and_dense<long>(c10::ArrayRef<long>, c10::ArrayRef<long>)::{lambda(long, long)#1}> >(long*, long*, long, __gnu_cxx::__ops::_Iter_comp_iter<c10::_compute_non_overlapping_and_dense<long>(c10::ArrayRef<long>, c10::ArrayRef<long>)::{lambda(long, long)#1}>)
+     0.07%  python   libc10_cuda.so                                     [.] c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::BlockPool::insert_into_blocks(c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*)
+     0.07%  python   python3.11                                         [.] PyNumber_Remainder
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000041b4aa
+     0.07%  python   python3.11                                         [.] siphash13
+     0.07%  python   python3.11                                         [.] method_dealloc
+     0.07%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::mark_resize_outputs(at::TensorIteratorConfig const&)
+     0.07%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::can_use_32bit_indexing() const
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002e6107
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000020263d
+     0.07%  python   libtorch_python.so                                 [.] torch::utils::maybe_initialize_device(c10::Device&) [clone .isra.0]
+     0.07%  python   [unknown]                                          [k] 0xffffffff861d6511
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] ufunc_generic_fastcall
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000004542c6
+     0.07%  python   libc10.so                                          [.] c10::monitor::GaugeHandle::record(long)
+     0.07%  python   libtorch_cuda.so                                   [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor& (at::Tensor&, at::Tensor const&, c10::Scalar const&), &at::(anonymous namespace)::(anonymous namespace)::wrapper_CUDA_Scalar_masked_fill_>, at::Tensor&, c10::guts::typelist::typelist<at::Tensor&, at::Tensor const&, c10::Scalar const&> >, at::Tensor& (at::Tensor&, at::Tensor const&, c10::Scalar const&)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor&, at::Tensor const&, c10::Scalar const&)
+     0.07%  python   [unknown]                                          [k] 0xffffffff862595c1
+     0.07%  python   python3.11                                         [.] PyObject_GetItem
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001b565a
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000041b19b
+     0.07%  python   _multiarray_umath.cpython-311-x86_64-linux-gnu.so  [.] dispatcher_vectorcall
+     0.07%  python   libtorch_cuda.so                                   [.] at::native::eq_kernel_cuda(at::TensorIteratorBase&)
+     0.07%  python   libc10_cuda.so                                     [.] c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::BlockPool::erase_from_blocks(c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*) [clone .isra.0]
+     0.07%  python   python3.11                                         [.] _PyDict_Contains_KnownHash
+     0.07%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::is_scalar(long) const
+     0.07%  python   libtorch_cpu.so                                    [.] at::_ops::pow_Tensor_Scalar::redispatch(c10::DispatchKeySet, at::Tensor const&, c10::Scalar const&)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000034dd82
+     0.07%  python   libtorch_python.so                                 [.] torch::autograd::applySlicing(at::Tensor const&, _object*, std::vector<at::Tensor, std::allocator<at::Tensor> >&, bool, c10::Device const&, std::optional<long> const&, long) [clone .constprop.0]
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000134b4ff
+     0.07%  python   libhdf5.so.1000.0.0                                [.] H5O_close
+     0.07%  python   libtorch_cpu.so                                    [.] c10::TensorImpl::empty_tensor_restride(c10::MemoryFormat)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000458e5a
+     0.07%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::compute_mem_overlaps(at::TensorIteratorConfig const&)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000004b4129
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002c72f2
+     0.07%  python   libtorch_cpu.so                                    [.] at::_ops::to_dtype::call(at::Tensor const&, c10::ScalarType, bool, bool, std::optional<c10::MemoryFormat>)
+     0.07%  python   libtorch_cpu.so                                    [.] at::_ops::fft_ifft_out::call(at::Tensor const&, std::optional<c10::SymInt>, long, std::optional<std::basic_string_view<char, std::char_traits<char> > >, at::Tensor&)
+     0.07%  python   python3.11                                         [.] _PyObject_GetMethod
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000001b8526
+     0.07%  python   libc.so.6                                          [.] __memcmp_avx2_movbe
+     0.07%  python   libc10.so                                          [.] c10::GradMode::is_enabled()
+     0.07%  python   libc10_cuda.so                                     [.] std::pair<ska::detailv3::sherwood_v3_table<std::pair<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, void*, std::hash<void*>, ska::detailv3::KeyOrValueHasher<void*, std::pair<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, std::hash<void*> >, std::equal_to<void*>, ska::detailv3::KeyOrValueEquality<void*, std::pair<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, std::equal_to<void*> >, std::allocator<std::pair<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> >, std::allocator<ska::detailv3::sherwood_v3_entry<std::pair<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> > > >::templated_iterator<std::pair<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> >, bool> ska::detailv3::sherwood_v3_table<std::pair<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, void*, std::hash<void*>, ska::detailv3::KeyOrValueHasher<void*, std::pair<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, std::hash<void*> >, std::equal_to<void*>, ska::detailv3::KeyOrValueEquality<void*, std::pair<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*>, std::equal_to<void*> >, std::allocator<std::pair<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> >, std::allocator<ska::detailv3::sherwood_v3_entry<std::pair<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> > > >::emplace_new_key<void* const&, ska::flat_hash_map<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*, std::hash<void*>, std::equal_to<void*>, std::allocator<std::pair<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> > >::convertible_to_value>(signed char, ska::detailv3::sherwood_v3_entry<std::pair<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> >*, void* const&, ska::flat_hash_map<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*, std::hash<void*>, std::equal_to<void*>, std::allocator<std::pair<void*, c10::cuda::CUDACachingAllocator::Native::(anonymous namespace)::Block*> > >::convertible_to_value&&) [clone .isra.0]
+     0.07%  python   libc10_cuda.so                                     [.] c10::cuda::CUDAKernelLaunchRegistry::has_failed() const@plt
+     0.07%  python   libtorch_cpu.so                                    [.] at::native::resize_output(at::Tensor const&, c10::ArrayRef<long>)
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002c7233
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000001334818
+     0.07%  python   libtorch_cpu.so                                    [.] at::_ops::fill__Scalar::call(at::Tensor&, c10::Scalar const&)
+     0.07%  python   python3.11                                         [.] sys_audit_tstate
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000458d39
+     0.07%  python   python3.11                                         [.] PyErr_Clear
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x000000000132cae1
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000301930
+     0.07%  python   python3.11                                         [.] member_get
+     0.07%  python   python3.11                                         [.] va_build_stack
+     0.07%  python   libc.so.6                                          [.] __tzstring_len
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x00000000002994ec
+     0.07%  python   libcuda.so.610.57.04                               [.] 0x0000000000452890
+     0.07%  python   libtorch_cpu.so                                    [.] c10::impl::wrap_kernel_functor_unboxed_<c10::impl::detail::WrapFunctionIntoFunctor_<c10::CompileTimeFunctionPointer<at::Tensor (c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>), &torch::autograd::VariableType::(anonymous namespace)::_to_copy>, at::Tensor, c10::guts::typelist::typelist<c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat> > >, at::Tensor (c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>)>::call(c10::OperatorKernel*, c10::DispatchKeySet, at::Tensor const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>, bool, std::optional<c10::MemoryFormat>)
+     0.07%  python   libc10_cuda.so                                     [.] c10::cuda::CUDACachingAllocator::Native::forceUncachedAllocator()
+     0.07%  python   h5t.cpython-311-x86_64-linux-gnu.so                [.] __pyx_f_4h5py_3h5t__c_float
+     0.07%  python   libtorch_cpu.so                                    [.] c10::fromIntArrayRefSlow(c10::ArrayRef<long>)
+     0.07%  python   libc10.so                                          [.] c10::tls_debug_info::{lambda()#1}::_FUN()
+     0.07%  python   libtorch_cpu.so                                    [.] at::_ops::abs_out::call(at::Tensor const&, at::Tensor&)@plt
+     0.07%  python   python3.11                                         [.] listreviter_dealloc
+     0.07%  python   libc10.so                                          [.] c10::TensorImpl::set_autograd_meta(std::unique_ptr<c10::AutogradMetaInterface, std::default_delete<c10::AutogradMetaInterface> >)
+     0.07%  python   python3.11                                         [.] _sre_SRE_Pattern_match
+     0.06%  python   python3.11                                         [.] bounded_lru_cache_wrapper
+     0.06%  python   python3.11                                         [.] PyNumber_Add
+     0.06%  python   libcuda.so.610.57.04                               [.] 0x000000000032ae8e
+     0.06%  python   libtorch_cpu.so                                    [.] at::_ops::full::call(c10::ArrayRef<c10::SymInt>, c10::Scalar const&, std::optional<c10::ScalarType>, std::optional<c10::Layout>, std::optional<c10::Device>, std::optional<bool>)
+     0.06%  python   python3.11                                         [.] compiler_visit_expr
+     0.05%  python   libcuda.so.610.57.04                               [.] 0x00000000002a3b90
+     0.05%  python   python3.11                                         [.] star_targets_rule
+     0.05%  python   [unknown]                                          [k] 0xffffffff86400ba0
+     0.05%  python   libcuda.so.610.57.04                               [.] 0x0000000000457a71
+     0.05%  python   python3.11                                         [.] PyMem_Calloc
+     0.05%  python   python3.11                                         [.] bitwise_or_rule
+     0.04%  python   [unknown]                                          [k] 0xffffffff85460b5a
+     0.04%  python   libcuda.so.610.57.04                               [.] 0x000000000130b671
+     0.04%  python   libcuda.so.610.57.04                               [.] 0x000000000028f31c
+     0.04%  python   libcuda.so.610.57.04                               [.] 0x0000000000273948
+     0.04%  python   libcuda.so.610.57.04                               [.] 0x000000000131306d
+     0.03%  python   libc10.so                                          [.] c10::SymInt::release_() [clone .isra.0]
+     0.03%  python   libcuda.so.610.57.04                               [.] 0x0000000000250f99
+     0.03%  python   libcuda.so.610.57.04                               [.] 0x000000000130aec4
+     0.03%  python   libcuda.so.610.57.04                               [.] 0x000000000130b373
+     0.03%  python   [unknown]                                          [k] 0xffffffff853ff909
+     0.03%  python   libcuda.so.610.57.04                               [.] 0x00000000002a3c6c
+     0.03%  python   libtorch_cpu.so                                    [.] at::TensorIteratorBase::numel() const
+     0.03%  python   libcuda.so.610.57.04                               [.] 0x00000000004136a8
+     0.03%  python   libcuda.so.610.57.04                               [.] 0x000000000130b6b8
+     0.02%  python   libcuda.so.610.57.04                               [.] 0x00000000013447f4
+     0.02%  python   [unknown]                                          [k] 0xffffffff861b82e7
+     0.02%  python   [unknown]                                          [k] 0xffffffff85432ad0
+     0.02%  python   libcuda.so.610.57.04                               [.] 0x0000000000271c7e
+     0.02%  python   [unknown]                                          [k] 0xffffffff851a6e49
+     0.02%  python   libcuda.so.610.57.04                               [.] 0x00000000003f06e1
+     0.02%  python   [unknown]                                          [k] 0xffffffff854609fd
+     0.02%  python   [unknown]                                          [k] 0xffffffff85460cf1
+     0.01%  python   [unknown]                                          [k] 0xffffffff861d9bb7
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#

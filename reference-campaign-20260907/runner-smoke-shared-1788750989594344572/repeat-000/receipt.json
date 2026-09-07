@@ -1,0 +1,93 @@
+{
+  "barrier_release_monotonic_seconds": 547413.603599988,
+  "cleaned_process_groups": [],
+  "metrics": {
+    "allocated_physical_cores": 4,
+    "makespan_seconds": 0.19699540094006807,
+    "template_seconds_per_wall_second_per_physical_core": 5.076260639730519,
+    "total_template_seconds": 4.0
+  },
+  "status": "completed",
+  "workers": [
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-c",
+        "import os,json,pathlib,time; pathlib.Path(\"probe.json\").write_text(json.dumps(dict(affinity=sorted(os.sched_getaffinity(0)),threads={k:os.environ[k] for k in (\"OMP_NUM_THREADS\",\"MKL_NUM_THREADS\",\"OPENBLAS_NUM_THREADS\")}))); time.sleep(0.15)"
+      ],
+      "cpu": 0,
+      "cwd": "/home/xangma/pycbc-torch-reference-protocol-20260907/runner-smoke-shared-1788750989594344572/repeat-000/worker-000",
+      "exit_monotonic_seconds": 547413.800595389,
+      "observed_affinity": [
+        0
+      ],
+      "pid": 3961160,
+      "returncode": 0,
+      "stderr": "/home/xangma/pycbc-torch-reference-protocol-20260907/runner-smoke-shared-1788750989594344572/repeat-000/worker-000/stderr.log",
+      "stdout": "/home/xangma/pycbc-torch-reference-protocol-20260907/runner-smoke-shared-1788750989594344572/repeat-000/worker-000/stdout.log",
+      "template_seconds": 1.0,
+      "template_seconds_per_wall_second_per_physical_core": 5.076260639730519,
+      "wall_seconds": 0.19699540094006807
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-c",
+        "import os,json,pathlib,time; pathlib.Path(\"probe.json\").write_text(json.dumps(dict(affinity=sorted(os.sched_getaffinity(0)),threads={k:os.environ[k] for k in (\"OMP_NUM_THREADS\",\"MKL_NUM_THREADS\",\"OPENBLAS_NUM_THREADS\")}))); time.sleep(0.15)"
+      ],
+      "cpu": 1,
+      "cwd": "/home/xangma/pycbc-torch-reference-protocol-20260907/runner-smoke-shared-1788750989594344572/repeat-000/worker-001",
+      "exit_monotonic_seconds": 547413.790668861,
+      "observed_affinity": [
+        1
+      ],
+      "pid": 3961161,
+      "returncode": 0,
+      "stderr": "/home/xangma/pycbc-torch-reference-protocol-20260907/runner-smoke-shared-1788750989594344572/repeat-000/worker-001/stderr.log",
+      "stdout": "/home/xangma/pycbc-torch-reference-protocol-20260907/runner-smoke-shared-1788750989594344572/repeat-000/worker-001/stdout.log",
+      "template_seconds": 1.0,
+      "template_seconds_per_wall_second_per_physical_core": 5.345624764455059,
+      "wall_seconds": 0.18706887296866626
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-c",
+        "import os,json,pathlib,time; pathlib.Path(\"probe.json\").write_text(json.dumps(dict(affinity=sorted(os.sched_getaffinity(0)),threads={k:os.environ[k] for k in (\"OMP_NUM_THREADS\",\"MKL_NUM_THREADS\",\"OPENBLAS_NUM_THREADS\")}))); time.sleep(0.15)"
+      ],
+      "cpu": 2,
+      "cwd": "/home/xangma/pycbc-torch-reference-protocol-20260907/runner-smoke-shared-1788750989594344572/repeat-000/worker-002",
+      "exit_monotonic_seconds": 547413.799834977,
+      "observed_affinity": [
+        2
+      ],
+      "pid": 3961162,
+      "returncode": 0,
+      "stderr": "/home/xangma/pycbc-torch-reference-protocol-20260907/runner-smoke-shared-1788750989594344572/repeat-000/worker-002/stderr.log",
+      "stdout": "/home/xangma/pycbc-torch-reference-protocol-20260907/runner-smoke-shared-1788750989594344572/repeat-000/worker-002/stdout.log",
+      "template_seconds": 1.0,
+      "template_seconds_per_wall_second_per_physical_core": 5.095931185350146,
+      "wall_seconds": 0.19623498897999525
+    },
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-c",
+        "import os,json,pathlib,time; pathlib.Path(\"probe.json\").write_text(json.dumps(dict(affinity=sorted(os.sched_getaffinity(0)),threads={k:os.environ[k] for k in (\"OMP_NUM_THREADS\",\"MKL_NUM_THREADS\",\"OPENBLAS_NUM_THREADS\")}))); time.sleep(0.15)"
+      ],
+      "cpu": 3,
+      "cwd": "/home/xangma/pycbc-torch-reference-protocol-20260907/runner-smoke-shared-1788750989594344572/repeat-000/worker-003",
+      "exit_monotonic_seconds": 547413.793808024,
+      "observed_affinity": [
+        3
+      ],
+      "pid": 3961165,
+      "returncode": 0,
+      "stderr": "/home/xangma/pycbc-torch-reference-protocol-20260907/runner-smoke-shared-1788750989594344572/repeat-000/worker-003/stderr.log",
+      "stdout": "/home/xangma/pycbc-torch-reference-protocol-20260907/runner-smoke-shared-1788750989594344572/repeat-000/worker-003/stdout.log",
+      "template_seconds": 1.0,
+      "template_seconds_per_wall_second_per_physical_core": 5.257401427924038,
+      "wall_seconds": 0.19020803598687053
+    }
+  ]
+}

@@ -1,0 +1,198 @@
+[
+  {
+    "case": "qual-selected-corrected-cpu",
+    "mode": "qualify",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "cpu:1",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "qual-selected-torch-cpu",
+    "mode": "qualify",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cpu:1",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "qual-selected-torch-cuda",
+    "mode": "qualify",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cuda:0",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "interval-original-cpu",
+    "mode": "filter-timing",
+    "source": "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original",
+    "scheme": "cpu:1",
+    "runner": "run-observed-case.py"
+  },
+  {
+    "case": "interval-corrected-cpu",
+    "mode": "filter-timing",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "cpu:1",
+    "runner": "run-observed-case.py"
+  },
+  {
+    "case": "interval-torch-cpu",
+    "mode": "filter-timing",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cpu:1",
+    "runner": "run-observed-case.py"
+  },
+  {
+    "case": "interval-torch-cuda",
+    "mode": "filter-timing",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cuda:0",
+    "runner": "run-observed-case.py"
+  },
+  {
+    "case": "matched-original-cpu-r1",
+    "mode": "timing",
+    "source": "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original",
+    "scheme": "cpu:1",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "matched-corrected-cpu-r1",
+    "mode": "timing",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "cpu:1",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "matched-torch-cpu-r1",
+    "mode": "timing",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cpu:1",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "matched-torch-cuda-r1",
+    "mode": "timing",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cuda:0",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "matched-corrected-cpu-r2",
+    "mode": "timing",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "cpu:1",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "matched-torch-cpu-r2",
+    "mode": "timing",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cpu:1",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "matched-torch-cuda-r2",
+    "mode": "timing",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cuda:0",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "matched-original-cpu-r2",
+    "mode": "timing",
+    "source": "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original",
+    "scheme": "cpu:1",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "matched-torch-cpu-r3",
+    "mode": "timing",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cpu:1",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "matched-torch-cuda-r3",
+    "mode": "timing",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cuda:0",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "matched-original-cpu-r3",
+    "mode": "timing",
+    "source": "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original",
+    "scheme": "cpu:1",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "matched-corrected-cpu-r3",
+    "mode": "timing",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "cpu:1",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "profile-corrected-cpu-cprofile",
+    "mode": "cprofile",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "cpu:1",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "profile-corrected-cpu-filter-cprofile",
+    "mode": "filter-cprofile",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "cpu:1",
+    "runner": "run-profile-case.py"
+  },
+  {
+    "case": "profile-corrected-cpu-filter-perf",
+    "mode": "filter-perf",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "cpu:1",
+    "runner": "run-profile-case.py"
+  },
+  {
+    "case": "profile-torch-cpu-cprofile",
+    "mode": "cprofile",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cpu:1",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "profile-torch-cpu-filter-cprofile",
+    "mode": "filter-cprofile",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cpu:1",
+    "runner": "run-profile-case.py"
+  },
+  {
+    "case": "profile-torch-cpu-filter-perf",
+    "mode": "filter-perf",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cpu:1",
+    "runner": "run-profile-case.py"
+  },
+  {
+    "case": "profile-torch-cuda-cprofile",
+    "mode": "cprofile",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cuda:0",
+    "runner": "run-case.py"
+  },
+  {
+    "case": "profile-torch-cuda-filter-cprofile",
+    "mode": "filter-cprofile",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cuda:0",
+    "runner": "run-profile-case.py"
+  },
+  {
+    "case": "profile-torch-cuda-filter-perf",
+    "mode": "filter-perf",
+    "source": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6",
+    "scheme": "torch:cuda:0",
+    "runner": "run-profile-case.py"
+  }
+]

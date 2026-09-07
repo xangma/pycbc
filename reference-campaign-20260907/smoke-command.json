@@ -1,0 +1,1 @@
+["/usr/bin/python3", "-c", "import os,json,pathlib,time; pathlib.Path(\"probe.json\").write_text(json.dumps(dict(affinity=sorted(os.sched_getaffinity(0)),threads={k:os.environ[k] for k in (\"OMP_NUM_THREADS\",\"MKL_NUM_THREADS\",\"OPENBLAS_NUM_THREADS\")}))); time.sleep(0.15)"]

@@ -1,0 +1,30 @@
+{
+  "barrier_release_monotonic_seconds": 547756.118548476,
+  "cleaned_process_groups": [
+    4113823
+  ],
+  "error": "TimeoutError: Worker execution exceeded timeout",
+  "metrics": null,
+  "status": "failed",
+  "workers": [
+    {
+      "argv": [
+        "/usr/bin/python3",
+        "-c",
+        "import subprocess,sys,pathlib,time; p=subprocess.Popen([sys.executable,\"-c\",\"import time; time.sleep(60)\"]); pathlib.Path(\"descendant.pid\").write_text(str(p.pid)); time.sleep(60)"
+      ],
+      "cpu": 0,
+      "cwd": "/home/xangma/pycbc-torch-reference-protocol-20260907/runner-smoke-timeout-1788751332122950328/repeat-000/worker-000",
+      "exit_monotonic_seconds": 547757.065241367,
+      "observed_affinity": [
+        0
+      ],
+      "pid": 4113823,
+      "returncode": -15,
+      "stderr": "/home/xangma/pycbc-torch-reference-protocol-20260907/runner-smoke-timeout-1788751332122950328/repeat-000/worker-000/stderr.log",
+      "stdout": "/home/xangma/pycbc-torch-reference-protocol-20260907/runner-smoke-timeout-1788751332122950328/repeat-000/worker-000/stdout.log",
+      "template_seconds": 1.0,
+      "wall_seconds": 0.9466928909532726
+    }
+  ]
+}

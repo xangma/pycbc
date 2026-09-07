@@ -1,0 +1,2486 @@
+{
+  "comparisons": [
+    {
+      "baseline": "/home/xangma/pycbc-torch-reference-protocol-20260907/runs/matched-original-cpu-r1/triggers.hdf",
+      "baseline_receipt_sha256": "c1017b9378f86c12cd71b3144d40d2e7fc7a4c131ba24a5dbd5d16b69613c638",
+      "baseline_sha256": "2eb56e305df25c7af0ca76fecd2b21be3bf444e9cb00d3323b09b6b666f19c9f",
+      "candidate": "/home/xangma/pycbc-torch-reference-protocol-20260907/runs/matched-torch-cpu-r1/triggers.hdf",
+      "candidate_receipt_sha256": "da06db5515ce8aa81cba1798cbf30d40427a7b048abc8b1b1f4c40d362769f1e",
+      "candidate_sha256": "d0c249ac16c42a85063d0d7feb79733ca64f5819f632cfceebcf237a6cb30216",
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1991,
+          "matched_count": 1959,
+          "metrics": {
+            "bank_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "bank_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "chisq": {
+              "baseline_value": 28.028657913208008,
+              "budget_at_worst": 0.0037972707366943363,
+              "candidate_value": 37.87270736694336,
+              "max_absolute_error": 9.844049453735352,
+              "max_relative_error": 0.25992463011312433,
+              "violations": 1951,
+              "worst_identity": [
+                -2126366565482007403,
+                4861988164405
+              ]
+            },
+            "chisq_dof": {
+              "baseline_value": 16.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 16.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "coa_phase": {
+              "baseline_value": -2.5574662685394287,
+              "budget_at_worst": 0.0001,
+              "candidate_value": -2.557587146759033,
+              "max_absolute_error": 0.0001208782196044922,
+              "max_relative_error": 0.034621101871598156,
+              "violations": 22,
+              "worst_identity": [
+                1260664243110379185,
+                4861986645536
+              ]
+            },
+            "cont_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "cont_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sg_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sigmasq": {
+              "baseline_value": 10427837.0,
+              "budget_at_worst": 104.27886000000001,
+              "candidate_value": 10427886.0,
+              "max_absolute_error": 49.0,
+              "max_relative_error": 4.698938979578411e-06,
+              "violations": 0,
+              "worst_identity": [
+                3137770323868241004,
+                4861982045819
+              ]
+            },
+            "snr": {
+              "baseline_value": 5.570728778839111,
+              "budget_at_worst": 0.0005670728778839111,
+              "candidate_value": 5.57001256942749,
+              "max_absolute_error": 0.0007162094116210938,
+              "max_relative_error": 0.00012856655566174328,
+              "violations": 10,
+              "worst_identity": [
+                5173167354145275339,
+                4861982469878
+              ]
+            },
+            "template_duration": {
+              "baseline_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758,
+              "candidate_value": 37.44173049926758,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "classifications": {
+                "unexplained_mismatch": 29
+              },
+              "count": 29,
+              "examples": [
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007968.317627,
+                  "gps_sample_tick": 4861984638229,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1066564,
+                  "snr": 5.60625696182251,
+                  "template_hash": -7181991947907977315
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007201.4284668,
+                  "gps_sample_tick": 4861981497051,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 1688665,
+                  "snr": 5.539468765258789,
+                  "template_hash": -7165348744408480873
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008770.557129,
+                  "gps_sample_tick": 4861987924202,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -856993,
+                  "snr": 5.561619758605957,
+                  "template_hash": -6567042328987826803
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007800.75708,
+                  "gps_sample_tick": 4861983951901,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -116815,
+                  "snr": 5.524919033050537,
+                  "template_hash": -5963460109972533451
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008477.4887695,
+                  "gps_sample_tick": 4861986723794,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -2088676,
+                  "snr": 5.598695755004883,
+                  "template_hash": -5934879221955148907
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008772.6877441,
+                  "gps_sample_tick": 4861987932929,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 9268,
+                  "snr": 5.564938068389893,
+                  "template_hash": -5178096382281007317
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008770.5610352,
+                  "gps_sample_tick": 4861987924218,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -16571,
+                  "snr": 5.6290130615234375,
+                  "template_hash": -4998367400819783185
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007312.7753906,
+                  "gps_sample_tick": 4861981953128,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 864584,
+                  "snr": 5.875364780426025,
+                  "template_hash": -4695993811833931683
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008841.364746,
+                  "gps_sample_tick": 4861988214230,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -641986,
+                  "snr": 5.575496673583984,
+                  "template_hash": -4055176971796855720
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008640.6535645,
+                  "gps_sample_tick": 4861987392117,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 229779,
+                  "snr": 5.564450740814209,
+                  "template_hash": -3147409681897922532
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007353.3986816,
+                  "gps_sample_tick": 4861982119521,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -179721,
+                  "snr": 5.763233661651611,
+                  "template_hash": -3110603659142667602
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007882.7363281,
+                  "gps_sample_tick": 4861984287688,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -42714,
+                  "snr": 5.594320774078369,
+                  "template_hash": -2725569140561696380
+                }
+              ]
+            },
+            "candidate_only": {
+              "classifications": {
+                "near_threshold_requires_review": 2,
+                "unexplained_mismatch": 30
+              },
+              "count": 32,
+              "examples": [
+                {
+                  "classification": "near_threshold_requires_review",
+                  "end_time": 1187007708.4345703,
+                  "gps_sample_tick": 4861983573748,
+                  "near_thresholds": [
+                    {
+                      "absolute_distance": 0.0001125335693359375,
+                      "band": 0.0005600000000000001,
+                      "statistic": "snr",
+                      "threshold": 5.5,
+                      "value": 5.500112533569336
+                    }
+                  ],
+                  "nearest_same_template_delta_samples": 256623,
+                  "snr": 5.500112533569336,
+                  "template_hash": -8900663754632545598
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007446.2529297,
+                  "gps_sample_tick": 4861982499852,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1026174,
+                  "snr": 5.508003234863281,
+                  "template_hash": -8660435872545199746
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007757.8486328,
+                  "gps_sample_tick": 4861983776148,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 431306,
+                  "snr": 5.523138523101807,
+                  "template_hash": -6633315965868948702
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008058.2502441,
+                  "gps_sample_tick": 4861985006593,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -25215,
+                  "snr": 5.554582118988037,
+                  "template_hash": -6565366494966343500
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007535.8361816,
+                  "gps_sample_tick": 4861982866785,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 531731,
+                  "snr": 5.531952381134033,
+                  "template_hash": -5008805154614134207
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008823.428955,
+                  "gps_sample_tick": 4861988140765,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -216563,
+                  "snr": 5.572027683258057,
+                  "template_hash": -3110603659142667602
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007832.6035156,
+                  "gps_sample_tick": 4861984082344,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 568546,
+                  "snr": 5.501036167144775,
+                  "template_hash": -3021755972813798441
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007283.4326172,
+                  "gps_sample_tick": 4861981832940,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -172195,
+                  "snr": 5.646286487579346,
+                  "template_hash": -1906928442344696145
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007483.8481445,
+                  "gps_sample_tick": 4861982653842,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 483605,
+                  "snr": 5.565576076507568,
+                  "template_hash": -1687024759190033225
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008754.3430176,
+                  "gps_sample_tick": 4861987857789,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -673021,
+                  "snr": 5.507723331451416,
+                  "template_hash": -291345402897050286
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007655.6450195,
+                  "gps_sample_tick": 4861983357522,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 2190222,
+                  "snr": 5.578214168548584,
+                  "template_hash": 25732923710508636
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007871.8535156,
+                  "gps_sample_tick": 4861984243112,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 834471,
+                  "snr": 5.5233659744262695,
+                  "template_hash": 666200130799432153
+                }
+              ]
+            }
+          },
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ]
+        }
+      },
+      "failures": [
+        "configuration mismatch: consumed_input_sha256",
+        "configuration mismatch: source_snapshot",
+        "H1/chisq: 1951 numerical violations",
+        "H1/coa_phase: 22 numerical violations",
+        "H1/snr: 10 numerical violations",
+        "H1/baseline_only: 29 unexplained triggers",
+        "H1/candidate_only: 30 unexplained triggers"
+      ],
+      "review_reasons": [
+        "H1/candidate_only: 2 threshold-adjacent triggers"
+      ],
+      "sample_rate": 4096,
+      "status": "fail"
+    },
+    {
+      "baseline": "/home/xangma/pycbc-torch-reference-protocol-20260907/runs/matched-original-cpu-r1/triggers.hdf",
+      "baseline_receipt_sha256": "c1017b9378f86c12cd71b3144d40d2e7fc7a4c131ba24a5dbd5d16b69613c638",
+      "baseline_sha256": "2eb56e305df25c7af0ca76fecd2b21be3bf444e9cb00d3323b09b6b666f19c9f",
+      "candidate": "/home/xangma/pycbc-torch-reference-protocol-20260907/runs/matched-torch-cpu-r2/triggers.hdf",
+      "candidate_receipt_sha256": "1e8243090b92ff0bdcda7dd518811f62000b5556f7ef646e793ccae6762cc8f2",
+      "candidate_sha256": "a87449637055b266f0f6fdfa063b1ba12cc19e25dacfb0fbd2e6a0e33705ddab",
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1991,
+          "matched_count": 1959,
+          "metrics": {
+            "bank_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "bank_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "chisq": {
+              "baseline_value": 28.028657913208008,
+              "budget_at_worst": 0.0037972707366943363,
+              "candidate_value": 37.87270736694336,
+              "max_absolute_error": 9.844049453735352,
+              "max_relative_error": 0.25992463011312433,
+              "violations": 1951,
+              "worst_identity": [
+                -2126366565482007403,
+                4861988164405
+              ]
+            },
+            "chisq_dof": {
+              "baseline_value": 16.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 16.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "coa_phase": {
+              "baseline_value": -2.5574662685394287,
+              "budget_at_worst": 0.0001,
+              "candidate_value": -2.557587146759033,
+              "max_absolute_error": 0.0001208782196044922,
+              "max_relative_error": 0.034621101871598156,
+              "violations": 22,
+              "worst_identity": [
+                1260664243110379185,
+                4861986645536
+              ]
+            },
+            "cont_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "cont_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sg_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sigmasq": {
+              "baseline_value": 10427837.0,
+              "budget_at_worst": 104.27886000000001,
+              "candidate_value": 10427886.0,
+              "max_absolute_error": 49.0,
+              "max_relative_error": 4.698938979578411e-06,
+              "violations": 0,
+              "worst_identity": [
+                3137770323868241004,
+                4861982045819
+              ]
+            },
+            "snr": {
+              "baseline_value": 5.570728778839111,
+              "budget_at_worst": 0.0005670728778839111,
+              "candidate_value": 5.57001256942749,
+              "max_absolute_error": 0.0007162094116210938,
+              "max_relative_error": 0.00012856655566174328,
+              "violations": 10,
+              "worst_identity": [
+                5173167354145275339,
+                4861982469878
+              ]
+            },
+            "template_duration": {
+              "baseline_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758,
+              "candidate_value": 37.44173049926758,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "classifications": {
+                "unexplained_mismatch": 29
+              },
+              "count": 29,
+              "examples": [
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007968.317627,
+                  "gps_sample_tick": 4861984638229,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1066564,
+                  "snr": 5.60625696182251,
+                  "template_hash": -7181991947907977315
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007201.4284668,
+                  "gps_sample_tick": 4861981497051,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 1688665,
+                  "snr": 5.539468765258789,
+                  "template_hash": -7165348744408480873
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008770.557129,
+                  "gps_sample_tick": 4861987924202,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -856993,
+                  "snr": 5.561619758605957,
+                  "template_hash": -6567042328987826803
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007800.75708,
+                  "gps_sample_tick": 4861983951901,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -116815,
+                  "snr": 5.524919033050537,
+                  "template_hash": -5963460109972533451
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008477.4887695,
+                  "gps_sample_tick": 4861986723794,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -2088676,
+                  "snr": 5.598695755004883,
+                  "template_hash": -5934879221955148907
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008772.6877441,
+                  "gps_sample_tick": 4861987932929,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 9268,
+                  "snr": 5.564938068389893,
+                  "template_hash": -5178096382281007317
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008770.5610352,
+                  "gps_sample_tick": 4861987924218,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -16571,
+                  "snr": 5.6290130615234375,
+                  "template_hash": -4998367400819783185
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007312.7753906,
+                  "gps_sample_tick": 4861981953128,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 864584,
+                  "snr": 5.875364780426025,
+                  "template_hash": -4695993811833931683
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008841.364746,
+                  "gps_sample_tick": 4861988214230,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -641986,
+                  "snr": 5.575496673583984,
+                  "template_hash": -4055176971796855720
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008640.6535645,
+                  "gps_sample_tick": 4861987392117,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 229779,
+                  "snr": 5.564450740814209,
+                  "template_hash": -3147409681897922532
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007353.3986816,
+                  "gps_sample_tick": 4861982119521,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -179721,
+                  "snr": 5.763233661651611,
+                  "template_hash": -3110603659142667602
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007882.7363281,
+                  "gps_sample_tick": 4861984287688,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -42714,
+                  "snr": 5.594320774078369,
+                  "template_hash": -2725569140561696380
+                }
+              ]
+            },
+            "candidate_only": {
+              "classifications": {
+                "near_threshold_requires_review": 2,
+                "unexplained_mismatch": 30
+              },
+              "count": 32,
+              "examples": [
+                {
+                  "classification": "near_threshold_requires_review",
+                  "end_time": 1187007708.4345703,
+                  "gps_sample_tick": 4861983573748,
+                  "near_thresholds": [
+                    {
+                      "absolute_distance": 0.0001125335693359375,
+                      "band": 0.0005600000000000001,
+                      "statistic": "snr",
+                      "threshold": 5.5,
+                      "value": 5.500112533569336
+                    }
+                  ],
+                  "nearest_same_template_delta_samples": 256623,
+                  "snr": 5.500112533569336,
+                  "template_hash": -8900663754632545598
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007446.2529297,
+                  "gps_sample_tick": 4861982499852,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1026174,
+                  "snr": 5.508003234863281,
+                  "template_hash": -8660435872545199746
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007757.8486328,
+                  "gps_sample_tick": 4861983776148,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 431306,
+                  "snr": 5.523138523101807,
+                  "template_hash": -6633315965868948702
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008058.2502441,
+                  "gps_sample_tick": 4861985006593,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -25215,
+                  "snr": 5.554582118988037,
+                  "template_hash": -6565366494966343500
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007535.8361816,
+                  "gps_sample_tick": 4861982866785,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 531731,
+                  "snr": 5.531952381134033,
+                  "template_hash": -5008805154614134207
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008823.428955,
+                  "gps_sample_tick": 4861988140765,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -216563,
+                  "snr": 5.572027683258057,
+                  "template_hash": -3110603659142667602
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007832.6035156,
+                  "gps_sample_tick": 4861984082344,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 568546,
+                  "snr": 5.501036167144775,
+                  "template_hash": -3021755972813798441
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007283.4326172,
+                  "gps_sample_tick": 4861981832940,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -172195,
+                  "snr": 5.646286487579346,
+                  "template_hash": -1906928442344696145
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007483.8481445,
+                  "gps_sample_tick": 4861982653842,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 483605,
+                  "snr": 5.565576076507568,
+                  "template_hash": -1687024759190033225
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008754.3430176,
+                  "gps_sample_tick": 4861987857789,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -673021,
+                  "snr": 5.507723331451416,
+                  "template_hash": -291345402897050286
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007655.6450195,
+                  "gps_sample_tick": 4861983357522,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 2190222,
+                  "snr": 5.578214168548584,
+                  "template_hash": 25732923710508636
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007871.8535156,
+                  "gps_sample_tick": 4861984243112,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 834471,
+                  "snr": 5.5233659744262695,
+                  "template_hash": 666200130799432153
+                }
+              ]
+            }
+          },
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ]
+        }
+      },
+      "failures": [
+        "configuration mismatch: consumed_input_sha256",
+        "configuration mismatch: source_snapshot",
+        "H1/chisq: 1951 numerical violations",
+        "H1/coa_phase: 22 numerical violations",
+        "H1/snr: 10 numerical violations",
+        "H1/baseline_only: 29 unexplained triggers",
+        "H1/candidate_only: 30 unexplained triggers"
+      ],
+      "review_reasons": [
+        "H1/candidate_only: 2 threshold-adjacent triggers"
+      ],
+      "sample_rate": 4096,
+      "status": "fail"
+    },
+    {
+      "baseline": "/home/xangma/pycbc-torch-reference-protocol-20260907/runs/matched-original-cpu-r1/triggers.hdf",
+      "baseline_receipt_sha256": "c1017b9378f86c12cd71b3144d40d2e7fc7a4c131ba24a5dbd5d16b69613c638",
+      "baseline_sha256": "2eb56e305df25c7af0ca76fecd2b21be3bf444e9cb00d3323b09b6b666f19c9f",
+      "candidate": "/home/xangma/pycbc-torch-reference-protocol-20260907/runs/matched-torch-cpu-r3/triggers.hdf",
+      "candidate_receipt_sha256": "9a995d41e843c9fa12f09db630d16313f19818f5a7fb79d132b824f0f27fcf03",
+      "candidate_sha256": "c04a2acb6a8d8248b38010f3c3d65bbbc1c0eafab1cd8af4a93702c49c0661bd",
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1991,
+          "matched_count": 1959,
+          "metrics": {
+            "bank_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "bank_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "chisq": {
+              "baseline_value": 28.028657913208008,
+              "budget_at_worst": 0.0037972707366943363,
+              "candidate_value": 37.87270736694336,
+              "max_absolute_error": 9.844049453735352,
+              "max_relative_error": 0.25992463011312433,
+              "violations": 1951,
+              "worst_identity": [
+                -2126366565482007403,
+                4861988164405
+              ]
+            },
+            "chisq_dof": {
+              "baseline_value": 16.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 16.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "coa_phase": {
+              "baseline_value": -2.5574662685394287,
+              "budget_at_worst": 0.0001,
+              "candidate_value": -2.557587146759033,
+              "max_absolute_error": 0.0001208782196044922,
+              "max_relative_error": 0.034621101871598156,
+              "violations": 22,
+              "worst_identity": [
+                1260664243110379185,
+                4861986645536
+              ]
+            },
+            "cont_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "cont_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sg_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sigmasq": {
+              "baseline_value": 10427837.0,
+              "budget_at_worst": 104.27886000000001,
+              "candidate_value": 10427886.0,
+              "max_absolute_error": 49.0,
+              "max_relative_error": 4.698938979578411e-06,
+              "violations": 0,
+              "worst_identity": [
+                3137770323868241004,
+                4861982045819
+              ]
+            },
+            "snr": {
+              "baseline_value": 5.570728778839111,
+              "budget_at_worst": 0.0005670728778839111,
+              "candidate_value": 5.57001256942749,
+              "max_absolute_error": 0.0007162094116210938,
+              "max_relative_error": 0.00012856655566174328,
+              "violations": 10,
+              "worst_identity": [
+                5173167354145275339,
+                4861982469878
+              ]
+            },
+            "template_duration": {
+              "baseline_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758,
+              "candidate_value": 37.44173049926758,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "classifications": {
+                "unexplained_mismatch": 29
+              },
+              "count": 29,
+              "examples": [
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007968.317627,
+                  "gps_sample_tick": 4861984638229,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1066564,
+                  "snr": 5.60625696182251,
+                  "template_hash": -7181991947907977315
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007201.4284668,
+                  "gps_sample_tick": 4861981497051,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 1688665,
+                  "snr": 5.539468765258789,
+                  "template_hash": -7165348744408480873
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008770.557129,
+                  "gps_sample_tick": 4861987924202,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -856993,
+                  "snr": 5.561619758605957,
+                  "template_hash": -6567042328987826803
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007800.75708,
+                  "gps_sample_tick": 4861983951901,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -116815,
+                  "snr": 5.524919033050537,
+                  "template_hash": -5963460109972533451
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008477.4887695,
+                  "gps_sample_tick": 4861986723794,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -2088676,
+                  "snr": 5.598695755004883,
+                  "template_hash": -5934879221955148907
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008772.6877441,
+                  "gps_sample_tick": 4861987932929,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 9268,
+                  "snr": 5.564938068389893,
+                  "template_hash": -5178096382281007317
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008770.5610352,
+                  "gps_sample_tick": 4861987924218,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -16571,
+                  "snr": 5.6290130615234375,
+                  "template_hash": -4998367400819783185
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007312.7753906,
+                  "gps_sample_tick": 4861981953128,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 864584,
+                  "snr": 5.875364780426025,
+                  "template_hash": -4695993811833931683
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008841.364746,
+                  "gps_sample_tick": 4861988214230,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -641986,
+                  "snr": 5.575496673583984,
+                  "template_hash": -4055176971796855720
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008640.6535645,
+                  "gps_sample_tick": 4861987392117,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 229779,
+                  "snr": 5.564450740814209,
+                  "template_hash": -3147409681897922532
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007353.3986816,
+                  "gps_sample_tick": 4861982119521,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -179721,
+                  "snr": 5.763233661651611,
+                  "template_hash": -3110603659142667602
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007882.7363281,
+                  "gps_sample_tick": 4861984287688,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -42714,
+                  "snr": 5.594320774078369,
+                  "template_hash": -2725569140561696380
+                }
+              ]
+            },
+            "candidate_only": {
+              "classifications": {
+                "near_threshold_requires_review": 2,
+                "unexplained_mismatch": 30
+              },
+              "count": 32,
+              "examples": [
+                {
+                  "classification": "near_threshold_requires_review",
+                  "end_time": 1187007708.4345703,
+                  "gps_sample_tick": 4861983573748,
+                  "near_thresholds": [
+                    {
+                      "absolute_distance": 0.0001125335693359375,
+                      "band": 0.0005600000000000001,
+                      "statistic": "snr",
+                      "threshold": 5.5,
+                      "value": 5.500112533569336
+                    }
+                  ],
+                  "nearest_same_template_delta_samples": 256623,
+                  "snr": 5.500112533569336,
+                  "template_hash": -8900663754632545598
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007446.2529297,
+                  "gps_sample_tick": 4861982499852,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1026174,
+                  "snr": 5.508003234863281,
+                  "template_hash": -8660435872545199746
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007757.8486328,
+                  "gps_sample_tick": 4861983776148,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 431306,
+                  "snr": 5.523138523101807,
+                  "template_hash": -6633315965868948702
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008058.2502441,
+                  "gps_sample_tick": 4861985006593,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -25215,
+                  "snr": 5.554582118988037,
+                  "template_hash": -6565366494966343500
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007535.8361816,
+                  "gps_sample_tick": 4861982866785,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 531731,
+                  "snr": 5.531952381134033,
+                  "template_hash": -5008805154614134207
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008823.428955,
+                  "gps_sample_tick": 4861988140765,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -216563,
+                  "snr": 5.572027683258057,
+                  "template_hash": -3110603659142667602
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007832.6035156,
+                  "gps_sample_tick": 4861984082344,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 568546,
+                  "snr": 5.501036167144775,
+                  "template_hash": -3021755972813798441
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007283.4326172,
+                  "gps_sample_tick": 4861981832940,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -172195,
+                  "snr": 5.646286487579346,
+                  "template_hash": -1906928442344696145
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007483.8481445,
+                  "gps_sample_tick": 4861982653842,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 483605,
+                  "snr": 5.565576076507568,
+                  "template_hash": -1687024759190033225
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008754.3430176,
+                  "gps_sample_tick": 4861987857789,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -673021,
+                  "snr": 5.507723331451416,
+                  "template_hash": -291345402897050286
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007655.6450195,
+                  "gps_sample_tick": 4861983357522,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 2190222,
+                  "snr": 5.578214168548584,
+                  "template_hash": 25732923710508636
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007871.8535156,
+                  "gps_sample_tick": 4861984243112,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 834471,
+                  "snr": 5.5233659744262695,
+                  "template_hash": 666200130799432153
+                }
+              ]
+            }
+          },
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ]
+        }
+      },
+      "failures": [
+        "configuration mismatch: consumed_input_sha256",
+        "configuration mismatch: source_snapshot",
+        "H1/chisq: 1951 numerical violations",
+        "H1/coa_phase: 22 numerical violations",
+        "H1/snr: 10 numerical violations",
+        "H1/baseline_only: 29 unexplained triggers",
+        "H1/candidate_only: 30 unexplained triggers"
+      ],
+      "review_reasons": [
+        "H1/candidate_only: 2 threshold-adjacent triggers"
+      ],
+      "sample_rate": 4096,
+      "status": "fail"
+    },
+    {
+      "baseline": "/home/xangma/pycbc-torch-reference-protocol-20260907/runs/matched-original-cpu-r1/triggers.hdf",
+      "baseline_receipt_sha256": "c1017b9378f86c12cd71b3144d40d2e7fc7a4c131ba24a5dbd5d16b69613c638",
+      "baseline_sha256": "2eb56e305df25c7af0ca76fecd2b21be3bf444e9cb00d3323b09b6b666f19c9f",
+      "candidate": "/home/xangma/pycbc-torch-reference-protocol-20260907/runs/matched-torch-cuda-r1/triggers.hdf",
+      "candidate_receipt_sha256": "fc804e7ff21b9f36ef1a257adce3ebb00e36768622d392d3ebf7ec5759f05ee8",
+      "candidate_sha256": "99056dcc86e4b5219d37e1dc90ba3a7412cd04d2793fab8e5e8a8b4a769f90aa",
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1991,
+          "matched_count": 1959,
+          "metrics": {
+            "bank_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "bank_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "chisq": {
+              "baseline_value": 28.028657913208008,
+              "budget_at_worst": 0.0037972718811035157,
+              "candidate_value": 37.872718811035156,
+              "max_absolute_error": 9.844060897827148,
+              "max_relative_error": 0.25992485374350355,
+              "violations": 1951,
+              "worst_identity": [
+                -2126366565482007403,
+                4861988164405
+              ]
+            },
+            "chisq_dof": {
+              "baseline_value": 16.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 16.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "coa_phase": {
+              "baseline_value": -2.5574662685394287,
+              "budget_at_worst": 0.0001,
+              "candidate_value": -2.557587146759033,
+              "max_absolute_error": 0.0001208782196044922,
+              "max_relative_error": 0.03459457406335826,
+              "violations": 22,
+              "worst_identity": [
+                1260664243110379185,
+                4861986645536
+              ]
+            },
+            "cont_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "cont_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sg_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sigmasq": {
+              "baseline_value": 10427837.0,
+              "budget_at_worst": 104.27886000000001,
+              "candidate_value": 10427886.0,
+              "max_absolute_error": 49.0,
+              "max_relative_error": 4.698938979578411e-06,
+              "violations": 0,
+              "worst_identity": [
+                3137770323868241004,
+                4861982045819
+              ]
+            },
+            "snr": {
+              "baseline_value": 5.570728778839111,
+              "budget_at_worst": 0.0005670728778839111,
+              "candidate_value": 5.570012092590332,
+              "max_absolute_error": 0.0007166862487792969,
+              "max_relative_error": 0.00012865215256964058,
+              "violations": 10,
+              "worst_identity": [
+                5173167354145275339,
+                4861982469878
+              ]
+            },
+            "template_duration": {
+              "baseline_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758,
+              "candidate_value": 37.44173049926758,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "classifications": {
+                "unexplained_mismatch": 29
+              },
+              "count": 29,
+              "examples": [
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007968.317627,
+                  "gps_sample_tick": 4861984638229,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1066564,
+                  "snr": 5.60625696182251,
+                  "template_hash": -7181991947907977315
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007201.4284668,
+                  "gps_sample_tick": 4861981497051,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 1688665,
+                  "snr": 5.539468765258789,
+                  "template_hash": -7165348744408480873
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008770.557129,
+                  "gps_sample_tick": 4861987924202,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -856993,
+                  "snr": 5.561619758605957,
+                  "template_hash": -6567042328987826803
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007800.75708,
+                  "gps_sample_tick": 4861983951901,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -116815,
+                  "snr": 5.524919033050537,
+                  "template_hash": -5963460109972533451
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008477.4887695,
+                  "gps_sample_tick": 4861986723794,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -2088676,
+                  "snr": 5.598695755004883,
+                  "template_hash": -5934879221955148907
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008772.6877441,
+                  "gps_sample_tick": 4861987932929,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 9268,
+                  "snr": 5.564938068389893,
+                  "template_hash": -5178096382281007317
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008770.5610352,
+                  "gps_sample_tick": 4861987924218,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -16571,
+                  "snr": 5.6290130615234375,
+                  "template_hash": -4998367400819783185
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007312.7753906,
+                  "gps_sample_tick": 4861981953128,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 864584,
+                  "snr": 5.875364780426025,
+                  "template_hash": -4695993811833931683
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008841.364746,
+                  "gps_sample_tick": 4861988214230,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -641986,
+                  "snr": 5.575496673583984,
+                  "template_hash": -4055176971796855720
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008640.6535645,
+                  "gps_sample_tick": 4861987392117,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 229779,
+                  "snr": 5.564450740814209,
+                  "template_hash": -3147409681897922532
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007353.3986816,
+                  "gps_sample_tick": 4861982119521,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -179721,
+                  "snr": 5.763233661651611,
+                  "template_hash": -3110603659142667602
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007882.7363281,
+                  "gps_sample_tick": 4861984287688,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -42714,
+                  "snr": 5.594320774078369,
+                  "template_hash": -2725569140561696380
+                }
+              ]
+            },
+            "candidate_only": {
+              "classifications": {
+                "near_threshold_requires_review": 2,
+                "unexplained_mismatch": 30
+              },
+              "count": 32,
+              "examples": [
+                {
+                  "classification": "near_threshold_requires_review",
+                  "end_time": 1187007708.4345703,
+                  "gps_sample_tick": 4861983573748,
+                  "near_thresholds": [
+                    {
+                      "absolute_distance": 0.00011205673217773438,
+                      "band": 0.0005600000000000001,
+                      "statistic": "snr",
+                      "threshold": 5.5,
+                      "value": 5.500112056732178
+                    }
+                  ],
+                  "nearest_same_template_delta_samples": 256623,
+                  "snr": 5.500112056732178,
+                  "template_hash": -8900663754632545598
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007446.2529297,
+                  "gps_sample_tick": 4861982499852,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1026174,
+                  "snr": 5.508003234863281,
+                  "template_hash": -8660435872545199746
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007757.8486328,
+                  "gps_sample_tick": 4861983776148,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 431306,
+                  "snr": 5.523138046264648,
+                  "template_hash": -6633315965868948702
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008058.2502441,
+                  "gps_sample_tick": 4861985006593,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -25215,
+                  "snr": 5.554581165313721,
+                  "template_hash": -6565366494966343500
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007535.8361816,
+                  "gps_sample_tick": 4861982866785,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 531731,
+                  "snr": 5.531951427459717,
+                  "template_hash": -5008805154614134207
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008823.428955,
+                  "gps_sample_tick": 4861988140765,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -216563,
+                  "snr": 5.57202672958374,
+                  "template_hash": -3110603659142667602
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007832.6035156,
+                  "gps_sample_tick": 4861984082344,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 568546,
+                  "snr": 5.501035213470459,
+                  "template_hash": -3021755972813798441
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007283.4326172,
+                  "gps_sample_tick": 4861981832940,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -172195,
+                  "snr": 5.6462860107421875,
+                  "template_hash": -1906928442344696145
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007483.8481445,
+                  "gps_sample_tick": 4861982653842,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 483605,
+                  "snr": 5.56557559967041,
+                  "template_hash": -1687024759190033225
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008754.3430176,
+                  "gps_sample_tick": 4861987857789,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -673021,
+                  "snr": 5.507721424102783,
+                  "template_hash": -291345402897050286
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007655.6450195,
+                  "gps_sample_tick": 4861983357522,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 2190222,
+                  "snr": 5.578213214874268,
+                  "template_hash": 25732923710508636
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007871.8535156,
+                  "gps_sample_tick": 4861984243112,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 834471,
+                  "snr": 5.5233659744262695,
+                  "template_hash": 666200130799432153
+                }
+              ]
+            }
+          },
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ]
+        }
+      },
+      "failures": [
+        "configuration mismatch: consumed_input_sha256",
+        "configuration mismatch: source_snapshot",
+        "H1/chisq: 1951 numerical violations",
+        "H1/coa_phase: 22 numerical violations",
+        "H1/snr: 10 numerical violations",
+        "H1/baseline_only: 29 unexplained triggers",
+        "H1/candidate_only: 30 unexplained triggers"
+      ],
+      "review_reasons": [
+        "H1/candidate_only: 2 threshold-adjacent triggers"
+      ],
+      "sample_rate": 4096,
+      "status": "fail"
+    },
+    {
+      "baseline": "/home/xangma/pycbc-torch-reference-protocol-20260907/runs/matched-original-cpu-r1/triggers.hdf",
+      "baseline_receipt_sha256": "c1017b9378f86c12cd71b3144d40d2e7fc7a4c131ba24a5dbd5d16b69613c638",
+      "baseline_sha256": "2eb56e305df25c7af0ca76fecd2b21be3bf444e9cb00d3323b09b6b666f19c9f",
+      "candidate": "/home/xangma/pycbc-torch-reference-protocol-20260907/runs/matched-torch-cuda-r2/triggers.hdf",
+      "candidate_receipt_sha256": "75471106271c16a3b8a8fd368a4086d70af7cd5d545fc596504c8769d30d8877",
+      "candidate_sha256": "26bb87aa3cc2642668589d7e4762fdd24fd3917ae54675d4ef40bc6a703a35d8",
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1991,
+          "matched_count": 1959,
+          "metrics": {
+            "bank_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "bank_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "chisq": {
+              "baseline_value": 28.028657913208008,
+              "budget_at_worst": 0.0037972718811035157,
+              "candidate_value": 37.872718811035156,
+              "max_absolute_error": 9.844060897827148,
+              "max_relative_error": 0.25992485374350355,
+              "violations": 1951,
+              "worst_identity": [
+                -2126366565482007403,
+                4861988164405
+              ]
+            },
+            "chisq_dof": {
+              "baseline_value": 16.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 16.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "coa_phase": {
+              "baseline_value": -2.5574662685394287,
+              "budget_at_worst": 0.0001,
+              "candidate_value": -2.557587146759033,
+              "max_absolute_error": 0.0001208782196044922,
+              "max_relative_error": 0.03459457406335826,
+              "violations": 22,
+              "worst_identity": [
+                1260664243110379185,
+                4861986645536
+              ]
+            },
+            "cont_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "cont_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sg_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sigmasq": {
+              "baseline_value": 10427837.0,
+              "budget_at_worst": 104.27886000000001,
+              "candidate_value": 10427886.0,
+              "max_absolute_error": 49.0,
+              "max_relative_error": 4.698938979578411e-06,
+              "violations": 0,
+              "worst_identity": [
+                3137770323868241004,
+                4861982045819
+              ]
+            },
+            "snr": {
+              "baseline_value": 5.570728778839111,
+              "budget_at_worst": 0.0005670728778839111,
+              "candidate_value": 5.570012092590332,
+              "max_absolute_error": 0.0007166862487792969,
+              "max_relative_error": 0.00012865215256964058,
+              "violations": 10,
+              "worst_identity": [
+                5173167354145275339,
+                4861982469878
+              ]
+            },
+            "template_duration": {
+              "baseline_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758,
+              "candidate_value": 37.44173049926758,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "classifications": {
+                "unexplained_mismatch": 29
+              },
+              "count": 29,
+              "examples": [
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007968.317627,
+                  "gps_sample_tick": 4861984638229,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1066564,
+                  "snr": 5.60625696182251,
+                  "template_hash": -7181991947907977315
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007201.4284668,
+                  "gps_sample_tick": 4861981497051,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 1688665,
+                  "snr": 5.539468765258789,
+                  "template_hash": -7165348744408480873
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008770.557129,
+                  "gps_sample_tick": 4861987924202,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -856993,
+                  "snr": 5.561619758605957,
+                  "template_hash": -6567042328987826803
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007800.75708,
+                  "gps_sample_tick": 4861983951901,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -116815,
+                  "snr": 5.524919033050537,
+                  "template_hash": -5963460109972533451
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008477.4887695,
+                  "gps_sample_tick": 4861986723794,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -2088676,
+                  "snr": 5.598695755004883,
+                  "template_hash": -5934879221955148907
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008772.6877441,
+                  "gps_sample_tick": 4861987932929,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 9268,
+                  "snr": 5.564938068389893,
+                  "template_hash": -5178096382281007317
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008770.5610352,
+                  "gps_sample_tick": 4861987924218,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -16571,
+                  "snr": 5.6290130615234375,
+                  "template_hash": -4998367400819783185
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007312.7753906,
+                  "gps_sample_tick": 4861981953128,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 864584,
+                  "snr": 5.875364780426025,
+                  "template_hash": -4695993811833931683
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008841.364746,
+                  "gps_sample_tick": 4861988214230,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -641986,
+                  "snr": 5.575496673583984,
+                  "template_hash": -4055176971796855720
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008640.6535645,
+                  "gps_sample_tick": 4861987392117,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 229779,
+                  "snr": 5.564450740814209,
+                  "template_hash": -3147409681897922532
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007353.3986816,
+                  "gps_sample_tick": 4861982119521,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -179721,
+                  "snr": 5.763233661651611,
+                  "template_hash": -3110603659142667602
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007882.7363281,
+                  "gps_sample_tick": 4861984287688,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -42714,
+                  "snr": 5.594320774078369,
+                  "template_hash": -2725569140561696380
+                }
+              ]
+            },
+            "candidate_only": {
+              "classifications": {
+                "near_threshold_requires_review": 2,
+                "unexplained_mismatch": 30
+              },
+              "count": 32,
+              "examples": [
+                {
+                  "classification": "near_threshold_requires_review",
+                  "end_time": 1187007708.4345703,
+                  "gps_sample_tick": 4861983573748,
+                  "near_thresholds": [
+                    {
+                      "absolute_distance": 0.00011205673217773438,
+                      "band": 0.0005600000000000001,
+                      "statistic": "snr",
+                      "threshold": 5.5,
+                      "value": 5.500112056732178
+                    }
+                  ],
+                  "nearest_same_template_delta_samples": 256623,
+                  "snr": 5.500112056732178,
+                  "template_hash": -8900663754632545598
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007446.2529297,
+                  "gps_sample_tick": 4861982499852,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1026174,
+                  "snr": 5.508003234863281,
+                  "template_hash": -8660435872545199746
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007757.8486328,
+                  "gps_sample_tick": 4861983776148,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 431306,
+                  "snr": 5.523138046264648,
+                  "template_hash": -6633315965868948702
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008058.2502441,
+                  "gps_sample_tick": 4861985006593,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -25215,
+                  "snr": 5.554581165313721,
+                  "template_hash": -6565366494966343500
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007535.8361816,
+                  "gps_sample_tick": 4861982866785,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 531731,
+                  "snr": 5.531951427459717,
+                  "template_hash": -5008805154614134207
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008823.428955,
+                  "gps_sample_tick": 4861988140765,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -216563,
+                  "snr": 5.57202672958374,
+                  "template_hash": -3110603659142667602
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007832.6035156,
+                  "gps_sample_tick": 4861984082344,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 568546,
+                  "snr": 5.501035213470459,
+                  "template_hash": -3021755972813798441
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007283.4326172,
+                  "gps_sample_tick": 4861981832940,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -172195,
+                  "snr": 5.6462860107421875,
+                  "template_hash": -1906928442344696145
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007483.8481445,
+                  "gps_sample_tick": 4861982653842,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 483605,
+                  "snr": 5.56557559967041,
+                  "template_hash": -1687024759190033225
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008754.3430176,
+                  "gps_sample_tick": 4861987857789,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -673021,
+                  "snr": 5.507721424102783,
+                  "template_hash": -291345402897050286
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007655.6450195,
+                  "gps_sample_tick": 4861983357522,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 2190222,
+                  "snr": 5.578213214874268,
+                  "template_hash": 25732923710508636
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007871.8535156,
+                  "gps_sample_tick": 4861984243112,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 834471,
+                  "snr": 5.5233659744262695,
+                  "template_hash": 666200130799432153
+                }
+              ]
+            }
+          },
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ]
+        }
+      },
+      "failures": [
+        "configuration mismatch: consumed_input_sha256",
+        "configuration mismatch: source_snapshot",
+        "H1/chisq: 1951 numerical violations",
+        "H1/coa_phase: 22 numerical violations",
+        "H1/snr: 10 numerical violations",
+        "H1/baseline_only: 29 unexplained triggers",
+        "H1/candidate_only: 30 unexplained triggers"
+      ],
+      "review_reasons": [
+        "H1/candidate_only: 2 threshold-adjacent triggers"
+      ],
+      "sample_rate": 4096,
+      "status": "fail"
+    },
+    {
+      "baseline": "/home/xangma/pycbc-torch-reference-protocol-20260907/runs/matched-original-cpu-r1/triggers.hdf",
+      "baseline_receipt_sha256": "c1017b9378f86c12cd71b3144d40d2e7fc7a4c131ba24a5dbd5d16b69613c638",
+      "baseline_sha256": "2eb56e305df25c7af0ca76fecd2b21be3bf444e9cb00d3323b09b6b666f19c9f",
+      "candidate": "/home/xangma/pycbc-torch-reference-protocol-20260907/runs/matched-torch-cuda-r3/triggers.hdf",
+      "candidate_receipt_sha256": "fdb3eb27d6361a8777191f5ad36fd579bf244c3376bf8a35a63247c6ac545f84",
+      "candidate_sha256": "c360adf423ed2f5f567a0a278b851ba2d537305e24738a348ee4580df1722d0f",
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1991,
+          "matched_count": 1959,
+          "metrics": {
+            "bank_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "bank_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "chisq": {
+              "baseline_value": 28.028657913208008,
+              "budget_at_worst": 0.0037972718811035157,
+              "candidate_value": 37.872718811035156,
+              "max_absolute_error": 9.844060897827148,
+              "max_relative_error": 0.25992485374350355,
+              "violations": 1951,
+              "worst_identity": [
+                -2126366565482007403,
+                4861988164405
+              ]
+            },
+            "chisq_dof": {
+              "baseline_value": 16.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 16.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "coa_phase": {
+              "baseline_value": -2.5574662685394287,
+              "budget_at_worst": 0.0001,
+              "candidate_value": -2.557587146759033,
+              "max_absolute_error": 0.0001208782196044922,
+              "max_relative_error": 0.03459457406335826,
+              "violations": 22,
+              "worst_identity": [
+                1260664243110379185,
+                4861986645536
+              ]
+            },
+            "cont_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "cont_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sg_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sigmasq": {
+              "baseline_value": 10427837.0,
+              "budget_at_worst": 104.27886000000001,
+              "candidate_value": 10427886.0,
+              "max_absolute_error": 49.0,
+              "max_relative_error": 4.698938979578411e-06,
+              "violations": 0,
+              "worst_identity": [
+                3137770323868241004,
+                4861982045819
+              ]
+            },
+            "snr": {
+              "baseline_value": 5.570728778839111,
+              "budget_at_worst": 0.0005670728778839111,
+              "candidate_value": 5.570012092590332,
+              "max_absolute_error": 0.0007166862487792969,
+              "max_relative_error": 0.00012865215256964058,
+              "violations": 10,
+              "worst_identity": [
+                5173167354145275339,
+                4861982469878
+              ]
+            },
+            "template_duration": {
+              "baseline_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758,
+              "candidate_value": 37.44173049926758,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "classifications": {
+                "unexplained_mismatch": 29
+              },
+              "count": 29,
+              "examples": [
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007968.317627,
+                  "gps_sample_tick": 4861984638229,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1066564,
+                  "snr": 5.60625696182251,
+                  "template_hash": -7181991947907977315
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007201.4284668,
+                  "gps_sample_tick": 4861981497051,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 1688665,
+                  "snr": 5.539468765258789,
+                  "template_hash": -7165348744408480873
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008770.557129,
+                  "gps_sample_tick": 4861987924202,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -856993,
+                  "snr": 5.561619758605957,
+                  "template_hash": -6567042328987826803
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007800.75708,
+                  "gps_sample_tick": 4861983951901,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -116815,
+                  "snr": 5.524919033050537,
+                  "template_hash": -5963460109972533451
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008477.4887695,
+                  "gps_sample_tick": 4861986723794,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -2088676,
+                  "snr": 5.598695755004883,
+                  "template_hash": -5934879221955148907
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008772.6877441,
+                  "gps_sample_tick": 4861987932929,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 9268,
+                  "snr": 5.564938068389893,
+                  "template_hash": -5178096382281007317
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008770.5610352,
+                  "gps_sample_tick": 4861987924218,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -16571,
+                  "snr": 5.6290130615234375,
+                  "template_hash": -4998367400819783185
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007312.7753906,
+                  "gps_sample_tick": 4861981953128,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 864584,
+                  "snr": 5.875364780426025,
+                  "template_hash": -4695993811833931683
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008841.364746,
+                  "gps_sample_tick": 4861988214230,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -641986,
+                  "snr": 5.575496673583984,
+                  "template_hash": -4055176971796855720
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008640.6535645,
+                  "gps_sample_tick": 4861987392117,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 229779,
+                  "snr": 5.564450740814209,
+                  "template_hash": -3147409681897922532
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007353.3986816,
+                  "gps_sample_tick": 4861982119521,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -179721,
+                  "snr": 5.763233661651611,
+                  "template_hash": -3110603659142667602
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007882.7363281,
+                  "gps_sample_tick": 4861984287688,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -42714,
+                  "snr": 5.594320774078369,
+                  "template_hash": -2725569140561696380
+                }
+              ]
+            },
+            "candidate_only": {
+              "classifications": {
+                "near_threshold_requires_review": 2,
+                "unexplained_mismatch": 30
+              },
+              "count": 32,
+              "examples": [
+                {
+                  "classification": "near_threshold_requires_review",
+                  "end_time": 1187007708.4345703,
+                  "gps_sample_tick": 4861983573748,
+                  "near_thresholds": [
+                    {
+                      "absolute_distance": 0.00011205673217773438,
+                      "band": 0.0005600000000000001,
+                      "statistic": "snr",
+                      "threshold": 5.5,
+                      "value": 5.500112056732178
+                    }
+                  ],
+                  "nearest_same_template_delta_samples": 256623,
+                  "snr": 5.500112056732178,
+                  "template_hash": -8900663754632545598
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007446.2529297,
+                  "gps_sample_tick": 4861982499852,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1026174,
+                  "snr": 5.508003234863281,
+                  "template_hash": -8660435872545199746
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007757.8486328,
+                  "gps_sample_tick": 4861983776148,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 431306,
+                  "snr": 5.523138046264648,
+                  "template_hash": -6633315965868948702
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008058.2502441,
+                  "gps_sample_tick": 4861985006593,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -25215,
+                  "snr": 5.554581165313721,
+                  "template_hash": -6565366494966343500
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007535.8361816,
+                  "gps_sample_tick": 4861982866785,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 531731,
+                  "snr": 5.531951427459717,
+                  "template_hash": -5008805154614134207
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008823.428955,
+                  "gps_sample_tick": 4861988140765,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -216563,
+                  "snr": 5.57202672958374,
+                  "template_hash": -3110603659142667602
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007832.6035156,
+                  "gps_sample_tick": 4861984082344,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 568546,
+                  "snr": 5.501035213470459,
+                  "template_hash": -3021755972813798441
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007283.4326172,
+                  "gps_sample_tick": 4861981832940,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -172195,
+                  "snr": 5.6462860107421875,
+                  "template_hash": -1906928442344696145
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007483.8481445,
+                  "gps_sample_tick": 4861982653842,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 483605,
+                  "snr": 5.56557559967041,
+                  "template_hash": -1687024759190033225
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187008754.3430176,
+                  "gps_sample_tick": 4861987857789,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -673021,
+                  "snr": 5.507721424102783,
+                  "template_hash": -291345402897050286
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007655.6450195,
+                  "gps_sample_tick": 4861983357522,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 2190222,
+                  "snr": 5.578213214874268,
+                  "template_hash": 25732923710508636
+                },
+                {
+                  "classification": "unexplained_mismatch",
+                  "end_time": 1187007871.8535156,
+                  "gps_sample_tick": 4861984243112,
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 834471,
+                  "snr": 5.5233659744262695,
+                  "template_hash": 666200130799432153
+                }
+              ]
+            }
+          },
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ]
+        }
+      },
+      "failures": [
+        "configuration mismatch: consumed_input_sha256",
+        "configuration mismatch: source_snapshot",
+        "H1/chisq: 1951 numerical violations",
+        "H1/coa_phase: 22 numerical violations",
+        "H1/snr: 10 numerical violations",
+        "H1/baseline_only: 29 unexplained triggers",
+        "H1/candidate_only: 30 unexplained triggers"
+      ],
+      "review_reasons": [
+        "H1/candidate_only: 2 threshold-adjacent triggers"
+      ],
+      "sample_rate": 4096,
+      "status": "fail"
+    }
+  ],
+  "schema_version": 1,
+  "scope": "Same analysis configuration only; unmatched triggers never pass.",
+  "status": "fail",
+  "tolerances": {
+    "atol": 1e-05,
+    "max_examples": 12,
+    "phase_atol": 0.0001,
+    "rtol": 0.0001,
+    "sigmasq_rtol": 1e-05
+  }
+}

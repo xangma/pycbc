@@ -1,0 +1,34 @@
+{
+  "state": "complete",
+  "pid": 2895087,
+  "pgid": 2895087,
+  "started": 1788748600.0132475,
+  "completed": [
+    "qual-selected-original",
+    "profile-original-cprofile",
+    "profile-original-filter-cprofile",
+    "profile-original-filter-perf"
+  ],
+  "current": "profile-original-filter-perf",
+  "command": [
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-reference-protocol-20260907/run-profile-case.py",
+    "--config",
+    "/home/xangma/pycbc-torch-reference-protocol-20260907/config.json",
+    "--case",
+    "profile-original-filter-perf",
+    "--mode",
+    "filter-perf",
+    "--scheme",
+    "cpu:1",
+    "--source",
+    "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original",
+    "--bank",
+    "/home/xangma/pycbc-torch-reference-protocol-20260907/inputs/bank-compressed.hdf",
+    "--segment-length",
+    "512",
+    "--start-pad",
+    "112"
+  ],
+  "finished": 1788750160.7924466
+}

@@ -1,0 +1,40 @@
+{
+  "source_order": "Tune and profile original CPU before running Torch.",
+  "sources": {
+    "original": "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original",
+    "final": "/home/xangma/pycbc-torch-inspiral-reference-20260906/source-v6"
+  },
+  "threads": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "MKL_DYNAMIC": "FALSE",
+    "MKL_THREADING_LAYER": "GNU",
+    "OPENBLAS_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+    "BLIS_NUM_THREADS": "1",
+    "PYTHONHASHSEED": "0"
+  },
+  "core": 8,
+  "bank_templates": 384,
+  "bns_templates": 256,
+  "nsbh_templates": 128,
+  "valid_detector_seconds": 1904,
+  "end_pad_seconds": 16,
+  "lengths_seconds": [
+    256,
+    512,
+    1024
+  ],
+  "start_pads_seconds": [
+    96,
+    112
+  ],
+  "repetitions": 3,
+  "ordering": "Cyclic rotation of six candidates each repeat.",
+  "selection": "Lowest full-process median; if within 3% choose larger start padding, then smaller FFT.",
+  "limits": "Finite candidate sweep, no global optimality claim; fixed end pad conservatively covers the 16-s inverse-spectrum kernel.",
+  "science": "Qualification must confirm compression, complete work and intervals. Compare final Torch against original at identical settings and retain failures.",
+  "profiles": "Separate cProfile and native perf, both full-process and filtering-window attribution. Never use profiled runs for timing medians.",
+  "expected_profile": "FFTs expected to dominate filtering. Report measured shares; do not force the proposed three/four kernels near 10%."
+}

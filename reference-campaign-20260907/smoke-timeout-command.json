@@ -1,0 +1,1 @@
+["/usr/bin/python3", "-c", "import subprocess,sys,pathlib,time; p=subprocess.Popen([sys.executable,\"-c\",\"import time; time.sleep(60)\"]); pathlib.Path(\"descendant.pid\").write_text(str(p.pid)); time.sleep(60)"]
