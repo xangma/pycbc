@@ -1,0 +1,171 @@
+{
+  "scope": "Shared-host finite workload: 384 templates, 1904 valid seconds; identical startup verification included in full executable wall time",
+  "science_parity": "pass",
+  "metrics": {
+    "baseline": [
+      {
+        "templates": 384,
+        "full_wall_seconds": 114.27083158493042,
+        "internal_seconds": 109.82917928695679,
+        "setup_seconds": 15.181039571762085,
+        "outside_internal_seconds": 4.441652297973633,
+        "overhead_fraction": 0.17172091598153277,
+        "template_seconds_per_wall_second": 6398.273206374559,
+        "case": "baseline-r1",
+        "receipt": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/runs/baseline-r1/receipt.json",
+        "scheme": "torch:cpu:1",
+        "trigger_sha256": "83f724d9c217b2ae0bc0c487bf544b99a768898b14bde33a4e490d309f10cc40",
+        "valid_intervals": [
+          [
+            1187007160.0,
+            1187009064.0
+          ]
+        ],
+        "inferred_templates": 384.00000000000006,
+        "inferred_segments": 5.0,
+        "qualification": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/runs/qualify-baseline/qualification.json",
+        "receipt_sha256": "b850d9e48886795862c00879861c2fc46d1554bf16ba195ed7a4beddbab5b87c"
+      },
+      {
+        "templates": 384,
+        "full_wall_seconds": 114.57070896099322,
+        "internal_seconds": 110.07946181297302,
+        "setup_seconds": 15.07903265953064,
+        "outside_internal_seconds": 4.491247148020193,
+        "overhead_fraction": 0.17081398888972343,
+        "template_seconds_per_wall_second": 6381.5263659485845,
+        "case": "baseline-r2",
+        "receipt": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/runs/baseline-r2/receipt.json",
+        "scheme": "torch:cpu:1",
+        "trigger_sha256": "a265bc62c9274ac3adcc57ad7cc9c7c02f5896fb7cca296b50beaafe95fe8111",
+        "valid_intervals": [
+          [
+            1187007160.0,
+            1187009064.0
+          ]
+        ],
+        "inferred_templates": 384.0,
+        "inferred_segments": 5.0,
+        "qualification": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/runs/qualify-baseline/qualification.json",
+        "receipt_sha256": "fa86f682553edf6a260e92e6fea9215a32e70d2fd47b1504135d026d7e2a4cae"
+      },
+      {
+        "templates": 384,
+        "full_wall_seconds": 114.16503749694675,
+        "internal_seconds": 109.68811082839966,
+        "setup_seconds": 15.17689323425293,
+        "outside_internal_seconds": 4.476926668547094,
+        "overhead_fraction": 0.17215270396005125,
+        "template_seconds_per_wall_second": 6404.2023375111985,
+        "case": "baseline-r3",
+        "receipt": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/runs/baseline-r3/receipt.json",
+        "scheme": "torch:cpu:1",
+        "trigger_sha256": "26198de01bf84befc8f5591440928f4a0a665a496b400651486d406cce5d6f81",
+        "valid_intervals": [
+          [
+            1187007160.0,
+            1187009064.0
+          ]
+        ],
+        "inferred_templates": 384.0,
+        "inferred_segments": 5.0,
+        "qualification": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/runs/qualify-baseline/qualification.json",
+        "receipt_sha256": "f808fac8f03cdb345a73ed1bc3bfb8f7c4d04c2804c6dc213678d3c1d8120f3d"
+      }
+    ],
+    "candidate": [
+      {
+        "templates": 384,
+        "full_wall_seconds": 114.11689610499889,
+        "internal_seconds": 109.6413266658783,
+        "setup_seconds": 15.139410972595215,
+        "outside_internal_seconds": 4.475569439120591,
+        "overhead_fraction": 0.17188498006174366,
+        "template_seconds_per_wall_second": 6406.90401645066,
+        "case": "candidate-r1",
+        "receipt": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/runs/candidate-r1/receipt.json",
+        "scheme": "torch:cpu:1",
+        "trigger_sha256": "75f70eabf432fd4e69cc017d80afce11e955bb2a8a862900435bfb3556c8cb05",
+        "valid_intervals": [
+          [
+            1187007160.0,
+            1187009064.0
+          ]
+        ],
+        "inferred_templates": 384.0,
+        "inferred_segments": 5.0,
+        "qualification": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/runs/qualify-candidate/qualification.json",
+        "receipt_sha256": "316b41bd467988926a4f555f618b8e348d5f831ab558526af63c69498c76a27e"
+      },
+      {
+        "templates": 384,
+        "full_wall_seconds": 114.30855599604547,
+        "internal_seconds": 109.84402441978455,
+        "setup_seconds": 15.17030358314514,
+        "outside_internal_seconds": 4.464531576260924,
+        "overhead_fraction": 0.17177047674441218,
+        "template_seconds_per_wall_second": 6396.161631376865,
+        "case": "candidate-r2",
+        "receipt": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/runs/candidate-r2/receipt.json",
+        "scheme": "torch:cpu:1",
+        "trigger_sha256": "115b4c54a4a86f0179a96fa8eb115d6f0ad2a63514842358e3074a6fb137694e",
+        "valid_intervals": [
+          [
+            1187007160.0,
+            1187009064.0
+          ]
+        ],
+        "inferred_templates": 384.00000000000006,
+        "inferred_segments": 5.0,
+        "qualification": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/runs/qualify-candidate/qualification.json",
+        "receipt_sha256": "a6dc6f226396b07f10340a5df3f4926d2e37cd4164f1ae0e97318fa526927178"
+      },
+      {
+        "templates": 384,
+        "full_wall_seconds": 114.25199266895652,
+        "internal_seconds": 109.68323802947998,
+        "setup_seconds": 15.152178525924684,
+        "outside_internal_seconds": 4.568754639476538,
+        "overhead_fraction": 0.17260909595285867,
+        "template_seconds_per_wall_second": 6399.328212317976,
+        "case": "candidate-r3",
+        "receipt": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/runs/candidate-r3/receipt.json",
+        "scheme": "torch:cpu:1",
+        "trigger_sha256": "21d38b728a3474f404790d29d2c96458cc71cf580b0b2221e74492a6504cc0f8",
+        "valid_intervals": [
+          [
+            1187007160.0,
+            1187009064.0
+          ]
+        ],
+        "inferred_templates": 384.0,
+        "inferred_segments": 5.0,
+        "qualification": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/runs/qualify-candidate/qualification.json",
+        "receipt_sha256": "125d9d9af0a49e353a149cdcdebe0934915b5c43792ce1a991a27491e1cf785c"
+      }
+    ]
+  },
+  "full_wall": {
+    "baseline": {
+      "seconds": [
+        114.27083158493042,
+        114.57070896099322,
+        114.16503749694675
+      ],
+      "median": 114.27083158493042,
+      "minimum": 114.16503749694675,
+      "maximum": 114.57070896099322
+    },
+    "candidate": {
+      "seconds": [
+        114.11689610499889,
+        114.30855599604547,
+        114.25199266895652
+      ],
+      "median": 114.25199266895652,
+      "minimum": 114.11689610499889,
+      "maximum": 114.30855599604547
+    }
+  },
+  "ratio": 1.0001648891676531
+}

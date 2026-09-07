@@ -1,0 +1,174 @@
+{
+  "baseline": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/runs/baseline-r2/triggers.hdf",
+  "baseline_receipt_sha256": "fa86f682553edf6a260e92e6fea9215a32e70d2fd47b1504135d026d7e2a4cae",
+  "baseline_sha256": "a265bc62c9274ac3adcc57ad7cc9c7c02f5896fb7cca296b50beaafe95fe8111",
+  "candidate": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/runs/candidate-r2/triggers.hdf",
+  "candidate_receipt_sha256": "a6dc6f226396b07f10340a5df3f4926d2e37cd4164f1ae0e97318fa526927178",
+  "candidate_sha256": "115b4c54a4a86f0179a96fa8eb115d6f0ad2a63514842358e3074a6fb137694e",
+  "detectors": {
+    "H1": {
+      "baseline_count": 1991,
+      "candidate_count": 1991,
+      "matched_count": 1991,
+      "metrics": {
+        "bank_chisq": {
+          "baseline_value": 0.0,
+          "budget_at_worst": 1e-05,
+          "candidate_value": 0.0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "violations": 0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ]
+        },
+        "bank_chisq_dof": {
+          "baseline_value": 0.0,
+          "budget_at_worst": 0.0,
+          "candidate_value": 0.0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "violations": 0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ]
+        },
+        "chisq": {
+          "baseline_value": 38.07310104370117,
+          "budget_at_worst": 0.0038173101043701176,
+          "candidate_value": 38.07310104370117,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "violations": 0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ]
+        },
+        "chisq_dof": {
+          "baseline_value": 16.0,
+          "budget_at_worst": 0.0,
+          "candidate_value": 16.0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "violations": 0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ]
+        },
+        "coa_phase": {
+          "baseline_value": 2.1825671195983887,
+          "budget_at_worst": 0.0001,
+          "candidate_value": 2.1825671195983887,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "violations": 0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ]
+        },
+        "cont_chisq": {
+          "baseline_value": 0.0,
+          "budget_at_worst": 1e-05,
+          "candidate_value": 0.0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "violations": 0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ]
+        },
+        "cont_chisq_dof": {
+          "baseline_value": 0.0,
+          "budget_at_worst": 0.0,
+          "candidate_value": 0.0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "violations": 0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ]
+        },
+        "sg_chisq": {
+          "baseline_value": 0.0,
+          "budget_at_worst": 1e-05,
+          "candidate_value": 0.0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "violations": 0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ]
+        },
+        "sigmasq": {
+          "baseline_value": 3547529.75,
+          "budget_at_worst": 35.4752975,
+          "candidate_value": 3547529.75,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "violations": 0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ]
+        },
+        "snr": {
+          "baseline_value": 5.890352725982666,
+          "budget_at_worst": 0.0005990352725982667,
+          "candidate_value": 5.890352725982666,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "violations": 0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ]
+        },
+        "template_duration": {
+          "baseline_value": 37.44173049926758,
+          "budget_at_worst": 0.003754173049926758,
+          "candidate_value": 37.44173049926758,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "violations": 0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ]
+        }
+      },
+      "unmatched": {
+        "baseline_only": {
+          "classifications": {},
+          "count": 0,
+          "examples": []
+        },
+        "candidate_only": {
+          "classifications": {},
+          "count": 0,
+          "examples": []
+        }
+      },
+      "valid_intervals": [
+        [
+          1187007160.0,
+          1187009064.0
+        ]
+      ]
+    }
+  },
+  "failures": [
+    "configuration mismatch: consumed_input_sha256",
+    "configuration mismatch: source_snapshot"
+  ],
+  "review_reasons": [],
+  "sample_rate": 4096,
+  "status": "fail"
+}

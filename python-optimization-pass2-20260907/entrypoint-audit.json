@@ -1,0 +1,188 @@
+[
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/acquisition/api-worker.py",
+    "sha256": "8097d5d93de1622008608d274dfaaa7e01ed86262f3ff8b89d547185532a2445",
+    "entry": [
+      "if __name__ == '__main__':\n    main()"
+    ],
+    "returns": []
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/acquisition/benchmark-squared-norm.py",
+    "sha256": "289683e3662405c6e5d441b2cdc289c4fd9f4d7906281d5de92f7a7ce8d749a7",
+    "entry": [
+      "if __name__ == '__main__':\n    main()"
+    ],
+    "returns": []
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/acquisition/campaign_controls.py",
+    "sha256": "efc82d6a72c42ef6e66060a9d7cd5131b42e527455fde39456b977dd410e4ba0",
+    "entry": [
+      "if __name__ == '__main__':\n    sys.exit(main())"
+    ],
+    "returns": [
+      "return 0",
+      "return 0",
+      "return"
+    ]
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/acquisition/checked-inspiral.py",
+    "sha256": "1b7e1efed640ec77c0579289a80a7946a34f1c42861d07cfe8c01794c25be735",
+    "entry": [
+      "if __name__ == '__main__':\n    main()"
+    ],
+    "returns": [
+      "return original(self, index)"
+    ]
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/acquisition/compare-candidate.py",
+    "sha256": "3464f728b5297452a3172e5cbbc8ba92fc237eb0a5b48a1da89cb79d89ea31b0",
+    "entry": [
+      "if __name__ == '__main__':\n    sys.exit(main())"
+    ],
+    "returns": [
+      "return {'pass': 0, 'fail': 1, 'review': 2}[result['status']]",
+      "return 0"
+    ]
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/acquisition/compare-triggers.py",
+    "sha256": "f0af115a2bf2d3a5a85152cb1f61d9b7570a460efd6d420566c5a2b74ac8f1b5",
+    "entry": [
+      "if __name__ == '__main__':\n    try:\n        sys.exit(main())\n    except (OSError, ValueError, KeyError, TypeError, AssertionError) as error:\n        print(json.dumps({'status': 'fail', 'error': str(error)}, sort_keys=True))\n        sys.exit(1)"
+    ],
+    "returns": [
+      "return {'pass': 0, 'fail': 1, 'review': 2}[report['status']]"
+    ]
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/acquisition/optimize-campaign.py",
+    "sha256": "4eba2b7ea17dbbbb0683ccafa870f777da50928f26cf8ef03bfb8892ae5ccd4c",
+    "entry": [
+      "if __name__ == '__main__':\n    main()"
+    ],
+    "returns": [
+      "return"
+    ]
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/acquisition/qualify-inspiral.py",
+    "sha256": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+    "entry": [
+      "if __name__ == '__main__':\n    raise SystemExit(main())"
+    ],
+    "returns": [
+      "return 0 if receipt['status'] == 'success' else exit_code or 1"
+    ]
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/acquisition/run-case-verified.py",
+    "sha256": "9bd95de06906a43aaad78285ca8fc9aa0a1eed410491049d63662e2d4de42b1f",
+    "entry": [
+      "if __name__ == '__main__':\n    sys.exit(main())"
+    ],
+    "returns": [
+      "return code"
+    ]
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/acquisition/run-case.py",
+    "sha256": "243eef653386a76d1ead4b92542bc84088e882df9011faab5a8154154da9c456",
+    "entry": [
+      "if __name__ == '__main__':\n    sys.exit(main())"
+    ],
+    "returns": [
+      "return code"
+    ]
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/acquisition/stage-sources.py",
+    "sha256": "e3c2bcb1cc3e173589ea725137c5ddbefef6f506395ed000412ddb182df929f5",
+    "entry": [
+      "if __name__ == '__main__':\n    main()"
+    ],
+    "returns": []
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/acquisition/threadpoolctl.py",
+    "sha256": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b",
+    "entry": [
+      "if __name__ == '__main__':\n    _main()"
+    ],
+    "returns": []
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/check-worker-exit-status.py",
+    "sha256": "e069bbaf01e7181afe4fccab00e2d577f318138544a310d46a51eaf1647ea285",
+    "entry": [
+      "if __name__ == '__main__':\n    raise SystemExit(main())"
+    ],
+    "returns": []
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/prepare-acquisition.py",
+    "sha256": "7e155c1c69d689df51cb10b7ac61412df15947d71a6768afeb1d4e75756bde7b",
+    "entry": [
+      "if __name__ == '__main__':\n    main()"
+    ],
+    "returns": []
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/prepare-environment.py",
+    "sha256": "fe8c1e9064cfcb55a7ad7fa1f23a9c675c69d506b9745c87341a339356c6ebcc",
+    "entry": [
+      "if __name__ == '__main__':\n    main()"
+    ],
+    "returns": []
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/probe-allocation.py",
+    "sha256": "5476df39d16473c4b2fd4d86e682beca8a6c3c71bfc32343730461f1be85cd16",
+    "entry": [
+      "if __name__ == '__main__':\n    print('pid', os.getpid(), 'pgid', os.getpgrp(), flush=True)\n    main()"
+    ],
+    "returns": []
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/probe-dispatch.py",
+    "sha256": "77d0bd06e15e8548516e2dd0bb3e185421da683490a737b7032b7b82c0736158",
+    "entry": [
+      "if __name__ == '__main__':\n    main()"
+    ],
+    "returns": []
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/validate-baseline.py",
+    "sha256": "1a0ceb41ebe0f6abd34cd2236629114ff2e858df9160320c0603f07d691b2b99",
+    "entry": [
+      "if __name__ == '__main__':\n    raise SystemExit(main())"
+    ],
+    "returns": [
+      "return worker()",
+      "return state['returncode']"
+    ]
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/validate-candidate-acquired.py",
+    "sha256": "02da9761c4556958975bc1a9c0bf7a9d380404a0078faa3eddb436c66bec27d6",
+    "entry": [
+      "if __name__ == '__main__':\n    main()"
+    ],
+    "returns": [
+      "return worker(sys.argv[1])"
+    ]
+  },
+  {
+    "file": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/validate-candidate.py",
+    "sha256": "ca55ec4d7da9be78e43b61bdf7586a33441418885f322e18bc0d58c41dfc2a21",
+    "entry": [
+      "if __name__ == '__main__':\n    raise SystemExit(main())"
+    ],
+    "returns": [
+      "return worker(sys.argv[1])"
+    ]
+  }
+]

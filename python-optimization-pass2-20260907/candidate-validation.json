@@ -1,0 +1,118 @@
+{
+  "host": "client-3792.default.vpn.port.ac.uk",
+  "cwd": "/private/tmp/pycbc-torch-python-optimization-pass2-20260907",
+  "pid": 3813,
+  "pgid": 3813,
+  "started": 1788812576.37293,
+  "state": "complete",
+  "timeout_per_worker_seconds": 300,
+  "source_before": {
+    "revision": "d2647addb884ead3249914ebc980f3c132076d93",
+    "status": " M pycbc/types/array_torch.py\n M test/test_torch_squared_norm.py\n",
+    "diff_sha256": "9a40ff5b1af3bb920582872d81c26390b13ebfffb3edfa90c28792718a7b3358",
+    "sha256": {
+      "pycbc/types/array_torch.py": "fe26a42d634f43e6bc319547f401772ccc429ddcbdc6689d322bd0f8bb1b12ce",
+      "test/test_torch_squared_norm.py": "482494191f3c138477968838420ccd73b85f956e160c4f2b8b653032aa66983f",
+      "test/test_array_torch_reductions.py": "a0640d523d40c804eb500ceb2a29761a21dc59b83706df6d4d2a9c456370e537",
+      "test/test_chisq_precision.py": "917d98d5b2db0920f76d22d74db8152fbebfde646c2db04b2ca887d3add55be6",
+      "test/test_sigmasq_series_precision.py": "a294cbbe29ea4f4120b3ef38e2c696bdc4708391c813c3356cbac310dcbc691a",
+      "test/test_live_batch_torch_peaks.py": "143e021709569f0a3d790c12f6bac6a87220058fafbec496f110178205a4ee10",
+      "test/test_live_batch_veto_reuse.py": "a533c59ded12010e123aea65d18590ae0ac5f1f176b263a5d3f7a897c429cf1d",
+      "test/test_live_batch_torch_fft_integration.py": "57c7874c6e74445cea8dcf3408bb638b2b5932efdb952149a4a5cd54bc7c01da",
+      "test/test_array.py": "30248fc00a8b9643fac745d8e246de658f2c81577fc90678267ffeba7aec6e76",
+      "test/test_torch_ops.py": "84115052fd992ec01f38ded0cd136fd7d4131b9cdb0814a3d572b7ad14897e98",
+      "test/test_torch_backend_protocol.py": "3df4e5922056c00566c0cb51421f88071c8068813872312cc0166b6a6ded822a",
+      "test/test_torch_backend_coercion.py": "b752a978d165fd2009956baa43b7392efc6f41a54dc212e72b5471749e76f589",
+      "test/test_torch_context_conversion.py": "b2397895f461337f7b728d4d847c2bc49456e5f3699508ed0adc1d6b5d76470f",
+      "test/test_torch_filter_pipeline.py": "fe864e1aa22f0a51051fc17eb31f85ba0c758643f08ef7131174ab747b67285f",
+      "test/test_torch_psd_pipeline.py": "f46a04e8077a863c1fceefbf1f95299061fc9446faae99eff67e2acc427e1c79",
+      "test/test_torch_search_kernels.py": "6abbd1248f84e61ec9f19a962449146e23a0e075e58c1409f85101775821e81c"
+    }
+  },
+  "runs": [
+    {
+      "role": "candidate-focused",
+      "started": 1788812576.494864,
+      "command": [
+        "/private/tmp/pycbc-python-optimization-pass2-20260907-venv/bin/python",
+        "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/validate-candidate.py",
+        "candidate-focused"
+      ],
+      "environment": {
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "PYTHONPATH": "/private/tmp/pycbc-torch-python-optimization-pass2-20260907",
+        "PYCBC_TEST_SCHEME": null
+      },
+      "pid": 3835,
+      "pgid": 3835,
+      "returncode": 0,
+      "finished": 1788812602.24911
+    },
+    {
+      "role": "baseline-focused",
+      "started": 1788812602.2500522,
+      "command": [
+        "/private/tmp/pycbc-python-optimization-pass2-20260907-venv/bin/python",
+        "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/validate-candidate.py",
+        "baseline-focused"
+      ],
+      "environment": {
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "PYTHONPATH": "/private/tmp/pycbc-torch-python-optimization-pass2-20260907",
+        "PYCBC_TEST_SCHEME": null
+      },
+      "pid": 4904,
+      "pgid": 4904,
+      "returncode": 0,
+      "finished": 1788812626.8308558
+    },
+    {
+      "role": "candidate-broad",
+      "started": 1788812626.832086,
+      "command": [
+        "/private/tmp/pycbc-python-optimization-pass2-20260907-venv/bin/python",
+        "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/validate-candidate.py",
+        "candidate-broad"
+      ],
+      "environment": {
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "PYTHONPATH": "/private/tmp/pycbc-torch-python-optimization-pass2-20260907",
+        "PYCBC_TEST_SCHEME": "torch:cpu"
+      },
+      "pid": 5824,
+      "pgid": 5824,
+      "returncode": 0,
+      "finished": 1788812636.693887
+    }
+  ],
+  "source_after": {
+    "revision": "d2647addb884ead3249914ebc980f3c132076d93",
+    "status": " M pycbc/types/array_torch.py\n M test/test_torch_squared_norm.py\n",
+    "diff_sha256": "9a40ff5b1af3bb920582872d81c26390b13ebfffb3edfa90c28792718a7b3358",
+    "sha256": {
+      "pycbc/types/array_torch.py": "fe26a42d634f43e6bc319547f401772ccc429ddcbdc6689d322bd0f8bb1b12ce",
+      "test/test_torch_squared_norm.py": "482494191f3c138477968838420ccd73b85f956e160c4f2b8b653032aa66983f",
+      "test/test_array_torch_reductions.py": "a0640d523d40c804eb500ceb2a29761a21dc59b83706df6d4d2a9c456370e537",
+      "test/test_chisq_precision.py": "917d98d5b2db0920f76d22d74db8152fbebfde646c2db04b2ca887d3add55be6",
+      "test/test_sigmasq_series_precision.py": "a294cbbe29ea4f4120b3ef38e2c696bdc4708391c813c3356cbac310dcbc691a",
+      "test/test_live_batch_torch_peaks.py": "143e021709569f0a3d790c12f6bac6a87220058fafbec496f110178205a4ee10",
+      "test/test_live_batch_veto_reuse.py": "a533c59ded12010e123aea65d18590ae0ac5f1f176b263a5d3f7a897c429cf1d",
+      "test/test_live_batch_torch_fft_integration.py": "57c7874c6e74445cea8dcf3408bb638b2b5932efdb952149a4a5cd54bc7c01da",
+      "test/test_array.py": "30248fc00a8b9643fac745d8e246de658f2c81577fc90678267ffeba7aec6e76",
+      "test/test_torch_ops.py": "84115052fd992ec01f38ded0cd136fd7d4131b9cdb0814a3d572b7ad14897e98",
+      "test/test_torch_backend_protocol.py": "3df4e5922056c00566c0cb51421f88071c8068813872312cc0166b6a6ded822a",
+      "test/test_torch_backend_coercion.py": "b752a978d165fd2009956baa43b7392efc6f41a54dc212e72b5471749e76f589",
+      "test/test_torch_context_conversion.py": "b2397895f461337f7b728d4d847c2bc49456e5f3699508ed0adc1d6b5d76470f",
+      "test/test_torch_filter_pipeline.py": "fe864e1aa22f0a51051fc17eb31f85ba0c758643f08ef7131174ab747b67285f",
+      "test/test_torch_psd_pipeline.py": "f46a04e8077a863c1fceefbf1f95299061fc9446faae99eff67e2acc427e1c79",
+      "test/test_torch_search_kernels.py": "6abbd1248f84e61ec9f19a962449146e23a0e075e58c1409f85101775821e81c"
+    }
+  },
+  "finished": 1788812636.750646
+}

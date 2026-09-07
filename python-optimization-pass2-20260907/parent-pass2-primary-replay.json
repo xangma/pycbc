@@ -1,0 +1,112 @@
+{
+  "state": "pass",
+  "archived_file_hashes": 202,
+  "fresh_serial_workers": 8,
+  "comparisons": [
+    {
+      "case": "qualification",
+      "kind": "bounded-cross-revision",
+      "status": "pass",
+      "matched": 1991,
+      "fields": 11,
+      "max_absolute_error": 0
+    },
+    {
+      "case": "r1",
+      "kind": "bounded-cross-revision",
+      "status": "pass",
+      "matched": 1991,
+      "fields": 11,
+      "max_absolute_error": 0
+    },
+    {
+      "case": "r2",
+      "kind": "bounded-cross-revision",
+      "status": "pass",
+      "matched": 1991,
+      "fields": 11,
+      "max_absolute_error": 0
+    },
+    {
+      "case": "r3",
+      "kind": "bounded-cross-revision",
+      "status": "pass",
+      "matched": 1991,
+      "fields": 11,
+      "max_absolute_error": 0
+    },
+    {
+      "case": "baseline-r1",
+      "kind": "strict-within-revision",
+      "status": "pass",
+      "matched": 1991,
+      "fields": 11,
+      "max_absolute_error": 0
+    },
+    {
+      "case": "baseline-r2",
+      "kind": "strict-within-revision",
+      "status": "pass",
+      "matched": 1991,
+      "fields": 11,
+      "max_absolute_error": 0
+    },
+    {
+      "case": "baseline-r3",
+      "kind": "strict-within-revision",
+      "status": "pass",
+      "matched": 1991,
+      "fields": 11,
+      "max_absolute_error": 0
+    },
+    {
+      "case": "candidate-r1",
+      "kind": "strict-within-revision",
+      "status": "pass",
+      "matched": 1991,
+      "fields": 11,
+      "max_absolute_error": 0
+    },
+    {
+      "case": "candidate-r2",
+      "kind": "strict-within-revision",
+      "status": "pass",
+      "matched": 1991,
+      "fields": 11,
+      "max_absolute_error": 0
+    },
+    {
+      "case": "candidate-r3",
+      "kind": "strict-within-revision",
+      "status": "pass",
+      "matched": 1991,
+      "fields": 11,
+      "max_absolute_error": 0
+    }
+  ],
+  "full_wall": {
+    "baseline": {
+      "seconds": [
+        114.27083158493042,
+        114.57070896099322,
+        114.16503749694675
+      ],
+      "median": 114.27083158493042,
+      "minimum": 114.16503749694675,
+      "maximum": 114.57070896099322
+    },
+    "candidate": {
+      "seconds": [
+        114.11689610499889,
+        114.30855599604547,
+        114.25199266895652
+      ],
+      "median": 114.25199266895652,
+      "minimum": 114.11689610499889,
+      "maximum": 114.30855599604547
+    }
+  },
+  "ratio": 1.0001648891676531,
+  "source_window_validated": true,
+  "archived_evidence_root": "/Users/xangma/repos/pycbc/artifacts/torch-python-optimization-pass2-20260907/remote-evidence"
+}

@@ -1,0 +1,87 @@
+{
+  "active_owned_processes": [],
+  "independent_lock_reacquired": true,
+  "native_source_lineage_sha256": "f6cfd1c2a13cb134bb8310da0cf39ab025dc9977346bab896745b2314614a7f0",
+  "owned_groups": [
+    2639220,
+    2820111,
+    2820113
+  ],
+  "source_snapshot": {
+    "changed_files": [
+      "pycbc/types/array_torch.py",
+      "test/test_torch_squared_norm.py"
+    ],
+    "diff_sha256": "cba88c8de4dd93df8c0c72c2aec3a661aa22f4745b91d80a94922d23729956e8",
+    "finished_at": 1788814312.958233,
+    "helpers": {
+      "checked-inspiral.py": "1b7e1efed640ec77c0579289a80a7946a34f1c42861d07cfe8c01794c25be735",
+      "compare-candidate.py": "3464f728b5297452a3172e5cbbc8ba92fc237eb0a5b48a1da89cb79d89ea31b0",
+      "compare-triggers.py": "f0af115a2bf2d3a5a85152cb1f61d9b7570a460efd6d420566c5a2b74ac8f1b5",
+      "config.json": "2cdf795f4c5c902823d039beb1a6f29a64a441e4c4ab781cb414c92257b5fbe4",
+      "native-provenance.json": "bd43422b8082e26f42cde0c03af4d34a8457679f24177d3df37f1d8452cc1dfd",
+      "qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+      "run-case-verified.py": "9bd95de06906a43aaad78285ca8fc9aa0a1eed410491049d63662e2d4de42b1f",
+      "run-case.py": "243eef653386a76d1ead4b92542bc84088e882df9011faab5a8154154da9c456",
+      "threadpoolctl-LICENSE": "81ac619075248b06e53660b652d10e485f4675f5d0ae0f97ea22370da1f7e23b",
+      "threadpoolctl.py": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b"
+    },
+    "hostname": "len",
+    "input_sha256": {
+      "/home/xangma/pycbc-torch-reference-protocol-20260907/inputs/bank-compressed.hdf": "26050d48322a1d71092bb0e024e71a89ace56b3e7b1c5e4cf20c7b769213fb7f",
+      "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865"
+    },
+    "sources": {
+      "baseline": {
+        "executable_sha256": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+        "module_sha256": "bde2a213bc135fd3f2ee2d1414ffbbf0a2aaa4da72ec722f9fab94eed37102d5",
+        "native_sha256": {
+          "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+          "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+          "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+          "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+          "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+          "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+          "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+          "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+          "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+          "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+          "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc"
+        },
+        "path": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/source-baseline",
+        "source_snapshot": {
+          "commit": "d2647addb884ead3249914ebc980f3c132076d93",
+          "status": "",
+          "tracked_diff": ""
+        }
+      },
+      "candidate": {
+        "executable_sha256": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+        "module_sha256": "fe26a42d634f43e6bc319547f401772ccc429ddcbdc6689d322bd0f8bb1b12ce",
+        "native_sha256": {
+          "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+          "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+          "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+          "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+          "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+          "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+          "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+          "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+          "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+          "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+          "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc"
+        },
+        "path": "/home/xangma/pycbc-torch-python-optimization-pass2-20260907/source-candidate",
+        "source_snapshot": {
+          "commit": "af4f0bd598ec1e2d7c6ce702d6c05850d7871039",
+          "status": "",
+          "tracked_diff": ""
+        }
+      }
+    },
+    "started_at": 1788814312.6564193
+  },
+  "source_staging_sha256": "3cf678c9e1c27c0ef67cf4d3d48de005a910f20ee9008eb5e2a5c9c7e6b63afc",
+  "state": "validated-complete",
+  "utc": 1788814312.960131
+}
