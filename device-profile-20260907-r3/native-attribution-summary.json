@@ -1,0 +1,499 @@
+{
+  "note": "Rounded no-children cycles:u event-period shares; only symbols >=0.5% are reported. Categories sum displayed rows only.",
+  "reports": {
+    "perf-filter-report-cpu": {
+      "rows": [
+        {
+          "percent": 21.47,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cRadix4Inv_32fc"
+        },
+        {
+          "percent": 16.09,
+          "command": "python",
+          "object": "chisq_cpu.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "__pyx_fuse_1_0__pyx_pw_5pycbc_6vetoes_9chisq_cpu_25point_chisq_code(_object*, _object*, _object*)"
+        },
+        {
+          "percent": 10.56,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFftInv_Fact8_32fc"
+        },
+        {
+          "percent": 9.39,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFft_BlkMerge_32fc"
+        },
+        {
+          "percent": 9.1,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFft_BlkSplit_32fc"
+        },
+        {
+          "percent": 5.71,
+          "command": "python",
+          "object": "simd_threshold_cython.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "_max_simple(float*, float*, float*, long*, long, long)"
+        },
+        {
+          "percent": 4.41,
+          "command": "python",
+          "object": "matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "__pyx_pf_5pycbc_6filter_17matchedfilter_cpu_12_correlate(_object*, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice) [clone ._omp_fn.0]"
+        },
+        {
+          "percent": 4.12,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFftInv_Fact4_32fc"
+        },
+        {
+          "percent": 3.15,
+          "command": "python",
+          "object": "decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "void _decomp_main_loop<float, std::complex<float> >(int, std::complex<float>*, double, long, long, float*, float*, float*, long, long)"
+        },
+        {
+          "percent": 2.98,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cBitRev1_Blk"
+        },
+        {
+          "percent": 2.82,
+          "command": "python",
+          "object": "_multiarray_umath.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "DOUBLE_add_FMA3__AVX2"
+        },
+        {
+          "percent": 1.36,
+          "command": "python",
+          "object": "_multiarray_umath.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "FLOAT_square_SSE41"
+        },
+        {
+          "percent": 1.24,
+          "command": "python",
+          "object": "_multiarray_umath.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "_strided_to_contig_size8"
+        },
+        {
+          "percent": 0.74,
+          "command": "python",
+          "object": "_multiarray_umath.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "_aligned_contig_cast_float_to_double"
+        },
+        {
+          "percent": 0.66,
+          "command": "python",
+          "object": "python3.11",
+          "symbol": "_PyEval_EvalFrameDefault"
+        }
+      ],
+      "grouped_reported_percent": {
+        "MKL FFT": 57.62,
+        "chi-square": 16.09,
+        "threshold": 5.71,
+        "correlation": 4.41,
+        "decompression": 3.15,
+        "other reported symbols": 6.82
+      },
+      "omitted_below_threshold_percent": 6.2,
+      "stderr": ""
+    },
+    "perf-filter-report-torchcpu": {
+      "rows": [
+        {
+          "percent": 22.1,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cRadix4Inv_64fc"
+        },
+        {
+          "percent": 15.89,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFft_BlkMerge_64fc"
+        },
+        {
+          "percent": 10.93,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFftInv_Fact8_64fc"
+        },
+        {
+          "percent": 10.8,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFft_BlkSplit_64fc"
+        },
+        {
+          "percent": 8.28,
+          "command": "python",
+          "object": "chisq_cpu.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "__pyx_fuse_1_0__pyx_pw_5pycbc_6vetoes_9chisq_cpu_25point_chisq_code(_object*, _object*, _object*)"
+        },
+        {
+          "percent": 4.93,
+          "command": "python",
+          "object": "libtorch_cpu.so",
+          "symbol": "void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)"
+        },
+        {
+          "percent": 4.31,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFftInv_Fact4_64fc"
+        },
+        {
+          "percent": 4.03,
+          "command": "python",
+          "object": "libtorch_cpu.so",
+          "symbol": "void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)"
+        },
+        {
+          "percent": 3.26,
+          "command": "python",
+          "object": "simd_threshold_cython.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "_max_simple(float*, float*, float*, long*, long, long)"
+        },
+        {
+          "percent": 2.01,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_zBitRev1_Blk"
+        },
+        {
+          "percent": 1.77,
+          "command": "python",
+          "object": "libtorch_cpu.so",
+          "symbol": "void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#16}::operator()() const::{lambda(c10::complex<float>, c10::complex<float>)#1}, at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#16}::operator()() const::{lambda(at::vec::AVX2::Vectorized<c10::complex<float> >, at::vec::AVX2::Vectorized<c10::complex<float> >)#1}> >(long, char**, long const*, long, long)"
+        },
+        {
+          "percent": 1.67,
+          "command": "python",
+          "object": "decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "void _decomp_main_loop<float, std::complex<float> >(int, std::complex<float>*, double, long, long, float*, float*, float*, long, long)"
+        },
+        {
+          "percent": 1.52,
+          "command": "python",
+          "object": "libtorch_cpu.so",
+          "symbol": "void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::AVX2::conj_kernel(at::TensorIteratorBase&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(c10::complex<float>)#1}, at::native::AVX2::conj_kernel(at::TensorIteratorBase&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(at::vec::AVX2::Vectorized<c10::complex<float> >)#1}> >(long, char**, long const*, long, long)"
+        },
+        {
+          "percent": 1.11,
+          "command": "python",
+          "object": "libtorch_cpu.so",
+          "symbol": "void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::AVX2::pow_tensor_scalar_optimized_kernel<float, double, double>(at::TensorIteratorBase&, double)::{lambda(float)#1}, at::native::AVX2::pow_tensor_scalar_optimized_kernel<float, double, double>(at::TensorIteratorBase&, double)::{lambda(at::vec::AVX2::Vectorized<float>)#2}> >(long, char**, long const*, long, long)"
+        },
+        {
+          "percent": 0.82,
+          "command": "python",
+          "object": "python3.11",
+          "symbol": "_PyEval_EvalFrameDefault"
+        },
+        {
+          "percent": 0.54,
+          "command": "python",
+          "object": "libtorch_cpu.so",
+          "symbol": "void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#15}::operator()() const::{lambda()#1}::operator()() const::{lambda()#16}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#15}::operator()() const::{lambda()#1}::operator()() const::{lambda()#16}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)"
+        },
+        {
+          "percent": 0.52,
+          "command": "python",
+          "object": "libtorch_cpu.so",
+          "symbol": "void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::fill_kernel(at::TensorIterator&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#9}::operator()() const::{lambda()#1}, at::native::(anonymous namespace)::fill_kernel(at::TensorIterator&, c10::Scalar const&)::{lambda()#1}::operator()() const::{lambda()#9}::operator()() const::{lambda()#2}> >(long, char**, long const*, long, long)"
+        }
+      ],
+      "grouped_reported_percent": {
+        "MKL FFT": 66.04,
+        "chi-square": 8.28,
+        "Torch copy": 9.5,
+        "threshold": 3.26,
+        "other reported symbols": 5.74,
+        "decompression": 1.67
+      },
+      "omitted_below_threshold_percent": 5.51,
+      "stderr": ""
+    },
+    "perf-full-report-cpu": {
+      "rows": [
+        {
+          "percent": 16.05,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cRadix4Inv_32fc"
+        },
+        {
+          "percent": 11.97,
+          "command": "python",
+          "object": "chisq_cpu.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "__pyx_fuse_1_0__pyx_pw_5pycbc_6vetoes_9chisq_cpu_25point_chisq_code(_object*, _object*, _object*)"
+        },
+        {
+          "percent": 7.87,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFftInv_Fact8_32fc"
+        },
+        {
+          "percent": 7.15,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFft_BlkMerge_32fc"
+        },
+        {
+          "percent": 6.86,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFft_BlkSplit_32fc"
+        },
+        {
+          "percent": 6.28,
+          "command": "python",
+          "object": "libframel-9cd69e87.so.8.43.1",
+          "symbol": "Frz_inflate_fast"
+        },
+        {
+          "percent": 4.25,
+          "command": "python",
+          "object": "simd_threshold_cython.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "_max_simple(float*, float*, float*, long*, long, long)"
+        },
+        {
+          "percent": 3.28,
+          "command": "python",
+          "object": "matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "__pyx_pf_5pycbc_6filter_17matchedfilter_cpu_12_correlate(_object*, __Pyx_memviewslice, __Pyx_memviewslice, __Pyx_memviewslice) [clone ._omp_fn.0]"
+        },
+        {
+          "percent": 3.07,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFftInv_Fact4_32fc"
+        },
+        {
+          "percent": 2.35,
+          "command": "python",
+          "object": "decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "void _decomp_main_loop<float, std::complex<float> >(int, std::complex<float>*, double, long, long, float*, float*, float*, long, long)"
+        },
+        {
+          "percent": 2.24,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cBitRev1_Blk"
+        },
+        {
+          "percent": 2.1,
+          "command": "python",
+          "object": "_multiarray_umath.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "DOUBLE_add_FMA3__AVX2"
+        },
+        {
+          "percent": 1.84,
+          "command": "python",
+          "object": "libmkl_core.so",
+          "symbol": "mkl_serv_libm_sincospif"
+        },
+        {
+          "percent": 1.82,
+          "command": "python",
+          "object": "libmkl_core.so",
+          "symbol": "mkl_serv_libm_sincospi"
+        },
+        {
+          "percent": 1.62,
+          "command": "python",
+          "object": "libframel-9cd69e87.so.8.43.1",
+          "symbol": "FrCksumGnu"
+        },
+        {
+          "percent": 1.31,
+          "command": "python",
+          "object": "python3.11",
+          "symbol": "_PyEval_EvalFrameDefault"
+        },
+        {
+          "percent": 1.01,
+          "command": "python",
+          "object": "_multiarray_umath.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "FLOAT_square_SSE41"
+        },
+        {
+          "percent": 0.92,
+          "command": "python",
+          "object": "_multiarray_umath.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "_strided_to_contig_size8"
+        },
+        {
+          "percent": 0.73,
+          "command": "python",
+          "object": "libframel-9cd69e87.so.8.43.1",
+          "symbol": "Frz_adler32"
+        },
+        {
+          "percent": 0.69,
+          "command": "python",
+          "object": "libmkl_core.so",
+          "symbol": "mkl_serv_libm_sin"
+        },
+        {
+          "percent": 0.59,
+          "command": "python",
+          "object": "libmkl_core.so",
+          "symbol": "mkl_serv_libm_cos"
+        },
+        {
+          "percent": 0.55,
+          "command": "python",
+          "object": "_multiarray_umath.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "_aligned_contig_cast_float_to_double"
+        }
+      ],
+      "grouped_reported_percent": {
+        "MKL FFT": 43.24,
+        "chi-square": 11.97,
+        "other reported symbols": 19.46,
+        "threshold": 4.25,
+        "correlation": 3.28,
+        "decompression": 2.35
+      },
+      "omitted_below_threshold_percent": 15.45,
+      "stderr": ""
+    },
+    "perf-full-report-torchcpu": {
+      "rows": [
+        {
+          "percent": 18.88,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cRadix4Inv_64fc"
+        },
+        {
+          "percent": 13.58,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFft_BlkMerge_64fc"
+        },
+        {
+          "percent": 9.34,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFftInv_Fact8_64fc"
+        },
+        {
+          "percent": 9.22,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFft_BlkSplit_64fc"
+        },
+        {
+          "percent": 7.07,
+          "command": "python",
+          "object": "chisq_cpu.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "__pyx_fuse_1_0__pyx_pw_5pycbc_6vetoes_9chisq_cpu_25point_chisq_code(_object*, _object*, _object*)"
+        },
+        {
+          "percent": 4.21,
+          "command": "python",
+          "object": "libtorch_cpu.so",
+          "symbol": "void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)"
+        },
+        {
+          "percent": 3.68,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_cFftInv_Fact4_64fc"
+        },
+        {
+          "percent": 3.58,
+          "command": "python",
+          "object": "libframel-9cd69e87.so.8.43.1",
+          "symbol": "Frz_inflate_fast"
+        },
+        {
+          "percent": 3.44,
+          "command": "python",
+          "object": "libtorch_cpu.so",
+          "symbol": "void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::TensorIteratorBase::loop_2d_from_1d<at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda(char**, long const*, long)#1}>(at::native::AVX2::copy_kernel(at::TensorIterator&, bool)::{lambda()#1}::operator()() const::{lambda()#18}::operator()() const::{lambda()#1}::operator()() const::{lambda()#17}::operator()() const::{lambda(char**, long const*, long)#1} const&)::{lambda(char**, long const*, long, long)#1}>(long, char**, long const*, long, long)"
+        },
+        {
+          "percent": 2.78,
+          "command": "python",
+          "object": "simd_threshold_cython.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "_max_simple(float*, float*, float*, long*, long, long)"
+        },
+        {
+          "percent": 1.72,
+          "command": "python",
+          "object": "libmkl_def.so",
+          "symbol": "mkl_dft_def_owns_zBitRev1_Blk"
+        },
+        {
+          "percent": 1.51,
+          "command": "python",
+          "object": "libtorch_cpu.so",
+          "symbol": "void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#16}::operator()() const::{lambda(c10::complex<float>, c10::complex<float>)#1}, at::native::(anonymous namespace)::mul_kernel(at::TensorIteratorBase&)::{lambda()#2}::operator()() const::{lambda()#16}::operator()() const::{lambda(at::vec::AVX2::Vectorized<c10::complex<float> >, at::vec::AVX2::Vectorized<c10::complex<float> >)#1}> >(long, char**, long const*, long, long)"
+        },
+        {
+          "percent": 1.42,
+          "command": "python",
+          "object": "decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so",
+          "symbol": "void _decomp_main_loop<float, std::complex<float> >(int, std::complex<float>*, double, long, long, float*, float*, float*, long, long)"
+        },
+        {
+          "percent": 1.3,
+          "command": "python",
+          "object": "libtorch_cpu.so",
+          "symbol": "void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::AVX2::conj_kernel(at::TensorIteratorBase&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(c10::complex<float>)#1}, at::native::AVX2::conj_kernel(at::TensorIteratorBase&)::{lambda()#1}::operator()() const::{lambda()#12}::operator()() const::{lambda(at::vec::AVX2::Vectorized<c10::complex<float> >)#1}> >(long, char**, long const*, long, long)"
+        },
+        {
+          "percent": 1.14,
+          "command": "python",
+          "object": "python3.11",
+          "symbol": "_PyEval_EvalFrameDefault"
+        },
+        {
+          "percent": 1.11,
+          "command": "python",
+          "object": "libmkl_core.so",
+          "symbol": "mkl_serv_libm_sincospif"
+        },
+        {
+          "percent": 0.97,
+          "command": "python",
+          "object": "libframel-9cd69e87.so.8.43.1",
+          "symbol": "FrCksumGnu"
+        },
+        {
+          "percent": 0.95,
+          "command": "python",
+          "object": "libtorch_cpu.so",
+          "symbol": "void c10::function_ref<void (char**, long const*, long, long)>::callback_fn<at::native::AVX2::VectorizedLoop2d<at::native::AVX2::pow_tensor_scalar_optimized_kernel<float, double, double>(at::TensorIteratorBase&, double)::{lambda(float)#1}, at::native::AVX2::pow_tensor_scalar_optimized_kernel<float, double, double>(at::TensorIteratorBase&, double)::{lambda(at::vec::AVX2::Vectorized<float>)#2}> >(long, char**, long const*, long, long)"
+        },
+        {
+          "percent": 0.58,
+          "command": "python",
+          "object": "libframel-9cd69e87.so.8.43.1",
+          "symbol": "Frz_adler32"
+        }
+      ],
+      "grouped_reported_percent": {
+        "MKL FFT": 56.42,
+        "chi-square": 7.07,
+        "Torch copy": 7.65,
+        "other reported symbols": 11.14,
+        "threshold": 2.78,
+        "decompression": 1.42
+      },
+      "omitted_below_threshold_percent": 13.52,
+      "stderr": "addr2line /home/xangma/.debug/.build-id/6f/499a3aaee10694e5878e5cc861feb97c47b351/elf: could not read first record\naddr2line /home/xangma/.debug/.build-id/6f/499a3aaee10694e5878e5cc861feb97c47b351/elf: could not read first record\naddr2line /home/xangma/.debug/.build-id/6f/499a3aaee10694e5878e5cc861feb97c47b351/elf: could not read first record\naddr2line /home/xangma/.debug/.build-id/6f/499a3aaee10694e5878e5cc861feb97c47b351/elf: could not read first record\naddr2line /home/xangma/.debug/.build-id/6f/499a3aaee10694e5878e5cc861feb97c47b351/elf: could not read first record\n"
+    }
+  }
+}

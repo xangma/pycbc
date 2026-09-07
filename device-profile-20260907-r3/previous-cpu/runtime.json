@@ -1,0 +1,129 @@
+{
+  "state": "complete",
+  "pid": 2676378,
+  "command": [
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/source/bin/pycbc_inspiral",
+    "--verbose",
+    "--frame-files",
+    "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf",
+    "--channel-name",
+    "H1:LOSC-STRAIN",
+    "--gps-start-time",
+    "1187007048",
+    "--gps-end-time",
+    "1187009080",
+    "--trig-start-time",
+    "1187007160",
+    "--trig-end-time",
+    "1187009064",
+    "--sample-rate",
+    "4096",
+    "--low-frequency-cutoff",
+    "30",
+    "--strain-high-pass",
+    "25",
+    "--pad-data",
+    "8",
+    "--autogating-threshold",
+    "100",
+    "--autogating-cluster",
+    "5",
+    "--autogating-width",
+    "0.25",
+    "--autogating-taper",
+    "0.25",
+    "--autogating-pad",
+    "16",
+    "--autogating-max-iterations",
+    "1",
+    "--psd-estimation",
+    "median",
+    "--psd-segment-length",
+    "32",
+    "--psd-segment-stride",
+    "16",
+    "--psd-num-segments",
+    "126",
+    "--psd-inverse-length",
+    "16",
+    "--invpsd-trunc-method",
+    "hann",
+    "--invpsd-trunc-which-spectrum",
+    "invasd",
+    "--approximant",
+    "IMRPhenomD",
+    "--order",
+    "-1",
+    "--use-compressed-waveforms",
+    "--waveform-decompression-method",
+    "inline_linear",
+    "--snr-threshold",
+    "5.5",
+    "--newsnr-threshold",
+    "5",
+    "--chisq-bins",
+    "16",
+    "--cluster-window",
+    "1",
+    "--cluster-function",
+    "symmetric",
+    "--fft-backends",
+    "mkl",
+    "--bank-file",
+    "/home/xangma/pycbc-torch-reference-protocol-20260907/inputs/bank-compressed.hdf",
+    "--processing-scheme",
+    "cpu:1",
+    "--segment-length",
+    "512",
+    "--segment-start-pad",
+    "112",
+    "--segment-end-pad",
+    "16",
+    "--output",
+    "/home/xangma/pycbc-torch-device-profile-20260907-r2/runs/unprofiled-current-cpu/triggers.hdf"
+  ],
+  "helper_sha256": "cd9892a43766e2c4a7cebd30ce7602c9b77fc26f4dc8bccd10498854f84d2c8e",
+  "torch_version": "2.13.0+cu130",
+  "cuda_version": "13.0",
+  "environment": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "MKL_DYNAMIC": "FALSE",
+    "OMP_DYNAMIC": "FALSE",
+    "OPENBLAS_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+    "BLIS_NUM_THREADS": "1",
+    "CUDA_VISIBLE_DEVICES": "0"
+  },
+  "before_executable": {
+    "intra_op": 1,
+    "inter_op": 1,
+    "affinity": [
+      8
+    ],
+    "smt_siblings": {
+      "8": "8,72"
+    }
+  },
+  "at_first_bank": {
+    "intra_op": 1,
+    "inter_op": 1,
+    "affinity": [
+      8
+    ],
+    "smt_siblings": {
+      "8": "8,72"
+    }
+  },
+  "after_executable": {
+    "intra_op": 1,
+    "inter_op": 1,
+    "affinity": [
+      8
+    ],
+    "smt_siblings": {
+      "8": "8,72"
+    }
+  }
+}

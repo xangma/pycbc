@@ -1,0 +1,137 @@
+{
+  "state": "complete",
+  "revision": "d2647addb884ead3249914ebc980f3c132076d93",
+  "remote_root": "/home/xangma/pycbc-torch-profile-20260907-r3",
+  "evidence_root": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/remote-evidence",
+  "report": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/REPORT.md",
+  "release": {
+    "state": "validated-release",
+    "host": "len",
+    "utc": 1788813535.3973777,
+    "profile_status_sha256": "e8767efdcf7470f403b2665e2bccef18b885d780e09223d48e224cee67cb78fa",
+    "terminal_audit_sha256": "3617d50a45f6f09693b608d5318a6ba2b1b51cbf20e28de0292585338c1c779b",
+    "archive_sha256": "a86204f5163c40f9ce011406cbc9f025209b48bbc9d95b18d0784bdce4772375",
+    "export_status_sha256": "9cd15747a5c0b7ecf6300216a8d35cfd022f792c6c4d4dab821fab2fec69451e",
+    "archive_stage_sha256": "8a13a3ad922f6023829ad926c0f245c68b3ed986cda5190de0812a84eb10c72b",
+    "owned_groups": [
+      1591583,
+      1591861,
+      1593211,
+      1593303,
+      1593615,
+      1625035,
+      1676106,
+      1687463,
+      1687732,
+      1687979,
+      1721097,
+      1721340,
+      1774706,
+      1774995,
+      1788802,
+      1789048,
+      1820716,
+      1820990,
+      1873028,
+      1873276,
+      1885498,
+      1885808,
+      1918243,
+      1918502,
+      1926859,
+      1929462,
+      1981988,
+      1982254,
+      1993703,
+      1998184,
+      2018856,
+      2019128,
+      2027373,
+      2058871,
+      2059289,
+      2110184,
+      2110440,
+      2121731,
+      2121978,
+      2173143,
+      2173416,
+      2184685,
+      2184940,
+      2216257,
+      2216514,
+      2227817,
+      2228088,
+      2259557,
+      2259807,
+      2310719,
+      2357490,
+      2357594
+    ],
+    "active_owned_processes": [],
+    "independent_lock_reacquired": true,
+    "source_unchanged": true,
+    "all_source_native_input_helper_pins_unchanged": true
+  },
+  "timing": {
+    "cpu": {
+      "median_wall_seconds": 70.21928841096815,
+      "min_wall_seconds": 69.919939822983,
+      "max_wall_seconds": 70.27193644607905,
+      "median_template_seconds_per_wall_second": 10412.181845548263,
+      "relative_range": 0.005012819569403026
+    },
+    "torchcpu": {
+      "median_wall_seconds": 114.16322376404423,
+      "min_wall_seconds": 114.03204136504792,
+      "max_wall_seconds": 114.46158287592698,
+      "median_template_seconds_per_wall_second": 6404.304082294772,
+      "relative_range": 0.003762520860192689
+    },
+    "cuda": {
+      "median_wall_seconds": 25.009828306967393,
+      "min_wall_seconds": 24.989980745944194,
+      "max_wall_seconds": 25.016770540038124,
+      "median_template_seconds_per_wall_second": 29233.94719172525,
+      "relative_range": 0.0010711706519978773
+    }
+  },
+  "classification": "Shared-host 384-template finite workload; no old-versus-new speedup claim",
+  "uncertainty": "Three fresh workers per route; observed min/max, not confidence intervals",
+  "numerical_budgets": {
+    "rtol": 0.0001,
+    "atol": 1e-05,
+    "sigmasq_rtol": 1e-05,
+    "phase_atol": 0.0001,
+    "max_examples": 12
+  },
+  "ranked_targets": [
+    {
+      "rank": 1,
+      "target": "Promoted MKL FFT and conversion copies",
+      "scope": "Separate FFT review; preserve corrected precision route"
+    },
+    {
+      "rank": 2,
+      "target": "Trigger-result deepcopy",
+      "full_profile_cumulative_seconds": 1.188420962,
+      "scope": "Bounded Python candidate; preserve ownership and metadata"
+    },
+    {
+      "rank": 3,
+      "target": "CPU squared_norm",
+      "filtering_cumulative_seconds": 1.452575955,
+      "scope": "Guard changes have little measured headroom; operator cost remains"
+    },
+    {
+      "rank": 4,
+      "target": "CUDA chi-square and host synchronization",
+      "recorded_device_seconds": 1.377271875,
+      "scope": "Investigate without extending claims to GPU occupancy"
+    },
+    {
+      "rank": 5,
+      "target": "Frame I/O and initialization",
+      "scope": "Separate amortization and lifetime analysis"
+    }
+  ]
+}

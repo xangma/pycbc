@@ -1,0 +1,869 @@
+{
+  "scope": "Recorded cProfile only; nested/recursive cumulative edge durations must not be summed",
+  "edge_fields": [
+    "total_calls",
+    "primitive_calls",
+    "self_seconds",
+    "cumulative_seconds"
+  ],
+  "profiles": {
+    "runs/cprofile-torchcpu/profile.pstats": {
+      "sha256": "111f80b19bbc1f820afd6b1a6eb3f588d62c18c0ded2d9f643d71bb4420dba34",
+      "total_seconds": 118.06882383700064,
+      "selected": [
+        {
+          "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+          "line": 128,
+          "function": "deepcopy",
+          "primitive_calls": 3172,
+          "calls": 187894,
+          "self_seconds": 0.345574227,
+          "cumulative_seconds": 1.2492523530000001,
+          "callers": [
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 227,
+              "function": "_deepcopy_dict",
+              "raw_cprofile_edge": [
+                90364,
+                37828,
+                0.17735808900000002,
+                1.1959156290000001
+              ]
+            },
+            {
+              "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/bin/pycbc_inspiral",
+              "line": 240,
+              "function": "template_triggers",
+              "raw_cprofile_edge": [
+                1309,
+                1309,
+                0.005891067000000001,
+                1.1884209620000001
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 259,
+              "function": "_reconstruct",
+              "raw_cprofile_edge": [
+                15121,
+                5910,
+                0.031882376000000004,
+                1.026964996
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 211,
+              "function": "<listcomp>",
+              "raw_cprofile_edge": [
+                42944,
+                11528,
+                0.056287729,
+                0.7951565780000001
+              ]
+            },
+            {
+              "file": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/storage.py",
+              "line": 1145,
+              "function": "_deepcopy",
+              "raw_cprofile_edge": [
+                5236,
+                5236,
+                0.017398168000000002,
+                0.130750197
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 264,
+              "function": "<genexpr>",
+              "raw_cprofile_edge": [
+                24486,
+                24486,
+                0.03580378,
+                0.049028321
+              ]
+            },
+            {
+              "file": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/_tensor.py",
+              "line": 134,
+              "function": "__deepcopy__",
+              "raw_cprofile_edge": [
+                5236,
+                5236,
+                0.012705656000000001,
+                0.029001278000000002
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 201,
+              "function": "_deepcopy_list",
+              "raw_cprofile_edge": [
+                1303,
+                1303,
+                0.00376253,
+                0.028038563000000002
+              ]
+            },
+            {
+              "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/io/record.py",
+              "line": 803,
+              "function": "<listcomp>",
+              "raw_cprofile_edge": [
+                54,
+                54,
+                0.00010722100000000001,
+                0.023326016
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/astropy/coordinates/baseframe.py",
+              "line": 216,
+              "function": "__init_subclass__",
+              "raw_cprofile_edge": [
+                32,
+                32,
+                9.613400000000001e-05,
+                0.010790531
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/astropy/io/ascii/ui.py",
+              "line": 486,
+              "function": "_guess",
+              "raw_cprofile_edge": [
+                1024,
+                1024,
+                0.0018843080000000001,
+                0.010578028000000001
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/scipy/_lib/_docscrape.py",
+              "line": 140,
+              "function": "__init__",
+              "raw_cprofile_edge": [
+                52,
+                52,
+                0.000137775,
+                0.006738115
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/astropy/table/table.py",
+              "line": 408,
+              "function": "__get__",
+              "raw_cprofile_edge": [
+                42,
+                42,
+                0.00024358300000000002,
+                0.0019042000000000002
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/astropy/utils/data_info.py",
+              "line": 372,
+              "function": "__set__",
+              "raw_cprofile_edge": [
+                332,
+                332,
+                0.000831626,
+                0.0017660970000000001
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/astropy/table/table.py",
+              "line": 689,
+              "function": "__init__",
+              "raw_cprofile_edge": [
+                8,
+                8,
+                4.6971e-05,
+                0.001593215
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/astropy/table/column.py",
+              "line": 508,
+              "function": "__new__",
+              "raw_cprofile_edge": [
+                214,
+                214,
+                0.0006355520000000001,
+                0.001365504
+              ]
+            }
+          ],
+          "callees": [
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 227,
+              "function": "_deepcopy_dict",
+              "raw_cprofile_edge": [
+                18165,
+                2365,
+                0.064777785,
+                1.2168264240000002
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 259,
+              "function": "_reconstruct",
+              "raw_cprofile_edge": [
+                15319,
+                6132,
+                0.079306626,
+                1.090697097
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 210,
+              "function": "_deepcopy_tuple",
+              "raw_cprofile_edge": [
+                9691,
+                5764,
+                0.03138731,
+                0.8166507040000001
+              ]
+            },
+            {
+              "file": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/_tensor.py",
+              "line": 134,
+              "function": "__deepcopy__",
+              "raw_cprofile_edge": [
+                5236,
+                5236,
+                0.09755613,
+                0.502454838
+              ]
+            },
+            {
+              "file": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/storage.py",
+              "line": 237,
+              "function": "__deepcopy__",
+              "raw_cprofile_edge": [
+                5236,
+                5236,
+                0.011452919,
+                0.099351059
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 243,
+              "function": "_keep_alive",
+              "raw_cprofile_edge": [
+                52200,
+                52200,
+                0.040668286000000005,
+                0.054220074
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<method 'get' of 'dict' objects>",
+              "raw_cprofile_edge": [
+                385775,
+                385775,
+                0.051284091000000004,
+                0.051284091000000004
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<method '__reduce_ex__' of 'object' objects>",
+              "raw_cprofile_edge": [
+                15319,
+                15319,
+                0.041242587000000004,
+                0.041849085
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 201,
+              "function": "_deepcopy_list",
+              "raw_cprofile_edge": [
+                1619,
+                1619,
+                0.0024139120000000003,
+                0.030801058000000003
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.id>",
+              "raw_cprofile_edge": [
+                187894,
+                187894,
+                0.021080905,
+                0.021080905
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 182,
+              "function": "_deepcopy_atomic",
+              "raw_cprofile_edge": [
+                124285,
+                124285,
+                0.015692016,
+                0.015692016
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.getattr>",
+              "raw_cprofile_edge": [
+                44121,
+                44121,
+                0.011822085000000001,
+                0.011822085000000001
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.issubclass>",
+              "raw_cprofile_edge": [
+                29036,
+                29036,
+                0.0050235160000000004,
+                0.0050235160000000004
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<method '__deepcopy__' of 'numpy.ndarray' objects>",
+              "raw_cprofile_edge": [
+                1309,
+                1309,
+                0.004703016,
+                0.004703016
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.isinstance>",
+              "raw_cprofile_edge": [
+                15319,
+                15319,
+                0.0032960650000000004,
+                0.0032960650000000004
+              ]
+            },
+            {
+              "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/scheme.py",
+              "line": 238,
+              "function": "__deepcopy__",
+              "raw_cprofile_edge": [
+                1309,
+                1309,
+                0.001193377,
+                0.0013757910000000001
+              ]
+            }
+          ]
+        },
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'copy_' of 'torch._C.TensorBase' objects>",
+          "primitive_calls": 4223,
+          "calls": 4223,
+          "self_seconds": 8.814482561,
+          "cumulative_seconds": 8.814482561,
+          "callers": [
+            {
+              "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/torchfft.py",
+              "line": 271,
+              "function": "execute",
+              "raw_cprofile_edge": [
+                3840,
+                3840,
+                8.635062333,
+                8.635062333
+              ]
+            },
+            {
+              "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/types/array_torch.py",
+              "line": 1045,
+              "function": "_copy",
+              "raw_cprofile_edge": [
+                383,
+                383,
+                0.17942022800000001,
+                0.17942022800000001
+              ]
+            }
+          ],
+          "callees": []
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/types/array_torch.py",
+          "line": 1021,
+          "function": "squared_norm",
+          "primitive_calls": 765,
+          "calls": 765,
+          "self_seconds": 0.38143350000000004,
+          "cumulative_seconds": 1.4687198220000002,
+          "callers": [
+            {
+              "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/scheme.py",
+              "line": 438,
+              "function": "_scheming_function",
+              "raw_cprofile_edge": [
+                765,
+                765,
+                0.38143350000000004,
+                1.4687198220000002
+              ]
+            }
+          ],
+          "callees": [
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<method 'square' of 'torch._C.TensorBase' objects>",
+              "raw_cprofile_edge": [
+                1530,
+                1530,
+                1.0774590080000002,
+                1.0774590080000002
+              ]
+            },
+            {
+              "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/types/array_torch.py",
+              "line": 54,
+              "function": "__init__",
+              "raw_cprofile_edge": [
+                765,
+                765,
+                0.006421807000000001,
+                0.008156730000000001
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<method 'numel' of 'torch._C.TensorBase' objects>",
+              "raw_cprofile_edge": [
+                765,
+                765,
+                0.000805013,
+                0.000805013
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<method 'is_complex' of 'torch._C.TensorBase' objects>",
+              "raw_cprofile_edge": [
+                765,
+                765,
+                0.000532419,
+                0.000532419
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<method 'is_conj' of 'torch._C.TensorBase' objects>",
+              "raw_cprofile_edge": [
+                765,
+                765,
+                0.000333152,
+                0.000333152
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "runs/filter-cprofile-torchcpu/filtering.pstats": {
+      "sha256": "c95eb86f4b1fe9d398c081ffb3ddcade5c940ee5d2e402ca899f8878a05b49bf",
+      "total_seconds": 96.89038506499998,
+      "selected": [
+        {
+          "file": "~",
+          "line": 0,
+          "function": "<method 'copy_' of 'torch._C.TensorBase' objects>",
+          "primitive_calls": 4221,
+          "calls": 4221,
+          "self_seconds": 8.873855760000001,
+          "cumulative_seconds": 8.873855760000001,
+          "callers": [
+            {
+              "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/torchfft.py",
+              "line": 271,
+              "function": "execute",
+              "raw_cprofile_edge": [
+                3840,
+                3840,
+                8.698897518,
+                8.698897518
+              ]
+            },
+            {
+              "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/types/array_torch.py",
+              "line": 1045,
+              "function": "_copy",
+              "raw_cprofile_edge": [
+                381,
+                381,
+                0.174958242,
+                0.174958242
+              ]
+            }
+          ],
+          "callees": []
+        },
+        {
+          "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+          "line": 128,
+          "function": "deepcopy",
+          "primitive_calls": 1309,
+          "calls": 168861,
+          "self_seconds": 0.315028225,
+          "cumulative_seconds": 1.160979769,
+          "callers": [
+            {
+              "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/bin/pycbc_inspiral",
+              "line": 240,
+              "function": "template_triggers",
+              "raw_cprofile_edge": [
+                1306,
+                1306,
+                0.005816455000000001,
+                1.15808777
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 227,
+              "function": "_deepcopy_dict",
+              "raw_cprofile_edge": [
+                78540,
+                26180,
+                0.16153508600000002,
+                1.137023323
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 259,
+              "function": "_reconstruct",
+              "raw_cprofile_edge": [
+                14399,
+                5236,
+                0.030749375000000002,
+                0.9917718010000001
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 211,
+              "function": "<listcomp>",
+              "raw_cprofile_edge": [
+                41888,
+                10472,
+                0.055650798,
+                0.7746945340000001
+              ]
+            },
+            {
+              "file": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/storage.py",
+              "line": 1145,
+              "function": "_deepcopy",
+              "raw_cprofile_edge": [
+                5236,
+                5236,
+                0.01634882,
+                0.128058683
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 264,
+              "function": "<genexpr>",
+              "raw_cprofile_edge": [
+                22253,
+                22253,
+                0.032489567000000004,
+                0.044382352
+              ]
+            },
+            {
+              "file": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/_tensor.py",
+              "line": 134,
+              "function": "__deepcopy__",
+              "raw_cprofile_edge": [
+                5236,
+                5236,
+                0.012423565000000001,
+                0.028261024000000003
+              ]
+            }
+          ],
+          "callees": [
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 227,
+              "function": "_deepcopy_dict",
+              "raw_cprofile_edge": [
+                17017,
+                1309,
+                0.058728075000000005,
+                1.1523291420000001
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 259,
+              "function": "_reconstruct",
+              "raw_cprofile_edge": [
+                14399,
+                5236,
+                0.07388391300000001,
+                1.04311939
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 210,
+              "function": "_deepcopy_tuple",
+              "raw_cprofile_edge": [
+                9163,
+                5236,
+                0.030912690000000003,
+                0.794776761
+              ]
+            },
+            {
+              "file": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/_tensor.py",
+              "line": 134,
+              "function": "__deepcopy__",
+              "raw_cprofile_edge": [
+                5236,
+                5236,
+                0.09182356600000001,
+                0.48377860100000003
+              ]
+            },
+            {
+              "file": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/storage.py",
+              "line": 237,
+              "function": "__deepcopy__",
+              "raw_cprofile_edge": [
+                5236,
+                5236,
+                0.011918214,
+                0.09832146
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 243,
+              "function": "_keep_alive",
+              "raw_cprofile_edge": [
+                48433,
+                48433,
+                0.037013046,
+                0.04956713
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<method 'get' of 'dict' objects>",
+              "raw_cprofile_edge": [
+                346885,
+                346885,
+                0.046884985000000004,
+                0.046884985000000004
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<method '__reduce_ex__' of 'object' objects>",
+              "raw_cprofile_edge": [
+                14399,
+                14399,
+                0.037996007000000005,
+                0.038010254
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.id>",
+              "raw_cprofile_edge": [
+                168861,
+                168861,
+                0.01886938,
+                0.01886938
+              ]
+            },
+            {
+              "file": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/copy.py",
+              "line": 182,
+              "function": "_deepcopy_atomic",
+              "raw_cprofile_edge": [
+                109956,
+                109956,
+                0.013614844000000001,
+                0.013614844000000001
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.getattr>",
+              "raw_cprofile_edge": [
+                41888,
+                41888,
+                0.009917677000000001,
+                0.009917677000000001
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<method '__deepcopy__' of 'numpy.ndarray' objects>",
+              "raw_cprofile_edge": [
+                1309,
+                1309,
+                0.004760587,
+                0.004760587
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.issubclass>",
+              "raw_cprofile_edge": [
+                27489,
+                27489,
+                0.004723836,
+                0.004723836
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<built-in method builtins.isinstance>",
+              "raw_cprofile_edge": [
+                14399,
+                14399,
+                0.003232537,
+                0.003232537
+              ]
+            },
+            {
+              "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/scheme.py",
+              "line": 238,
+              "function": "__deepcopy__",
+              "raw_cprofile_edge": [
+                1309,
+                1309,
+                0.0010117490000000002,
+                0.0011824960000000001
+              ]
+            }
+          ]
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/types/array_torch.py",
+          "line": 1021,
+          "function": "squared_norm",
+          "primitive_calls": 765,
+          "calls": 765,
+          "self_seconds": 0.37619408600000004,
+          "cumulative_seconds": 1.4525759550000001,
+          "callers": [
+            {
+              "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/scheme.py",
+              "line": 438,
+              "function": "_scheming_function",
+              "raw_cprofile_edge": [
+                765,
+                765,
+                0.37619408600000004,
+                1.4525759550000001
+              ]
+            }
+          ],
+          "callees": [
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<method 'square' of 'torch._C.TensorBase' objects>",
+              "raw_cprofile_edge": [
+                1530,
+                1530,
+                1.066910674,
+                1.066910674
+              ]
+            },
+            {
+              "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/types/array_torch.py",
+              "line": 54,
+              "function": "__init__",
+              "raw_cprofile_edge": [
+                765,
+                765,
+                0.00606192,
+                0.007769410000000001
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<method 'numel' of 'torch._C.TensorBase' objects>",
+              "raw_cprofile_edge": [
+                765,
+                765,
+                0.0008155570000000001,
+                0.0008155570000000001
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<method 'is_complex' of 'torch._C.TensorBase' objects>",
+              "raw_cprofile_edge": [
+                765,
+                765,
+                0.000512759,
+                0.000512759
+              ]
+            },
+            {
+              "file": "~",
+              "line": 0,
+              "function": "<method 'is_conj' of 'torch._C.TensorBase' objects>",
+              "raw_cprofile_edge": [
+                765,
+                765,
+                0.000373469,
+                0.000373469
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "state": "pass",
+  "timing": {
+    "cpu": {
+      "median_wall_seconds": 70.21928841096815,
+      "min_wall_seconds": 69.919939822983,
+      "max_wall_seconds": 70.27193644607905,
+      "median_template_seconds_per_wall_second": 10412.181845548263,
+      "relative_range": 0.005012819569403026
+    },
+    "torchcpu": {
+      "median_wall_seconds": 114.16322376404423,
+      "min_wall_seconds": 114.03204136504792,
+      "max_wall_seconds": 114.46158287592698,
+      "median_template_seconds_per_wall_second": 6404.304082294772,
+      "relative_range": 0.003762520860192689
+    },
+    "cuda": {
+      "median_wall_seconds": 25.009828306967393,
+      "min_wall_seconds": 24.989980745944194,
+      "max_wall_seconds": 25.016770540038124,
+      "median_template_seconds_per_wall_second": 29233.94719172525,
+      "relative_range": 0.0010711706519978773
+    }
+  },
+  "comparisons": 20,
+  "trace": "reproduced",
+  "profiles": {
+    "summarize-profiles.py": "pass",
+    "summarize-callers.py": "pass"
+  },
+  "previous_comparison": "pass"
+}

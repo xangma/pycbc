@@ -1,0 +1,76 @@
+{
+  "state": "pass",
+  "scope": "Local publication assembly checks; final sealed-manifest restore receipt is supplied separately by the publisher",
+  "original_archive_sha256": "a86204f5163c40f9ce011406cbc9f025209b48bbc9d95b18d0784bdce4772375",
+  "bootstrap_fresh_restore": {
+    "state": "pass",
+    "archive_sha256": "a86204f5163c40f9ce011406cbc9f025209b48bbc9d95b18d0784bdce4772375",
+    "archive_bytes": 224392604,
+    "publication_files": 49,
+    "parts": 9,
+    "archive_member_count": 1831,
+    "file_count": 1633,
+    "directory_count": 194,
+    "symlink_count": 4,
+    "restored_root": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/publication-restore",
+    "all_member_hashes_match": true,
+    "all_publication_hashes_match": true,
+    "symlink_targets_internal": true,
+    "source_executable_bits_preserved": true,
+    "supplemental_previous_cpu_files": 3,
+    "science_executed": false
+  },
+  "offline_replay": {
+    "current_hdf_comparisons": 20,
+    "previous_cpu_comparison": "pass",
+    "qualification_records": 3,
+    "timing_workers": 9,
+    "cuda_attribution": "reproduced exactly",
+    "pstats_and_callers": {
+      "summarize-profiles.py": "pass",
+      "summarize-callers.py": "pass"
+    },
+    "external_input_bytes_rechecked": false,
+    "new_scientific_acquisition": false
+  },
+  "environment": {
+    "python": "3.14.6",
+    "numpy": "2.5.3",
+    "h5py": "3.16.0",
+    "platform": "macOS-26.6-arm64-arm-64bit-Mach-O"
+  },
+  "failure_controls": {
+    "result": "pass",
+    "unittest_cases": 7,
+    "log": "publication-controls.log",
+    "scope": "Missing/corrupt/unlisted files; canonical paths; internal and escaping links; link descendants; duplicate members; hardlinks and special files"
+  },
+  "helper_lint": {
+    "result": "pass",
+    "selection": "F,E9",
+    "helpers": [
+      "verify_bundle.py",
+      "replay_evidence.py",
+      "test_verify_bundle.py"
+    ]
+  },
+  "byte_preserved": {
+    "handoff.json": "f48a0ba19a3a9cc85a662a1a85580025852822cbd50ccee0df558c296949e1f3",
+    "evidence-verification.json": "8b02ff2ef4df7546226d5c63a6c2e47b93568eb39138675a8a0e2abff678c59d"
+  },
+  "publication_report": {
+    "sha256": "4ba39f4d6da5f926b1374138b87a85d6bf87cb0ecc2acd71c554398af616be0f",
+    "changes": "Clarified selected Python/native per-worker hashing and portable publication replay; original acquired report preserved outside the publication"
+  },
+  "checked_files": {
+    "publication-restore-check.json": "f029b2179d5cead95ba3196621761ae8a40ab3e5720ce7c285534bd2649e6229",
+    "publication-replay.json": "dd5decac427ddad2fd6b5295156ac4979846996f3850d8b9e323b6e932a8d6aa",
+    "publication-replay.log": "8ca001efd9b983590f7fa09fede27d07c34d787dea44af9968309cfcc1966e03",
+    "publication-controls.log": "74c03fc16fde9a2dfeff03db0ec8f472a5a8dfed04e9e982a912b4b7f64faee3",
+    "verify_bundle.py": "f1fc8964ae36a4e02eef4024fd9aa60dd6e15dfe65d8eb5b48e84fd2aa531962",
+    "replay_evidence.py": "6d969ce74eb62eaa0071cb4aed4ecfdd7cb80c4f7782abbfb6001015d3149b64",
+    "test_verify_bundle.py": "414460d2001a7ca5a5a9cfac3d5120bdb5efc1ce1bdd3511c49ddb7cd7dd3c79",
+    "summarize-profiles.py": "4c226db9fe405e29de564b27a4828c60bf1c7073ff033b0d7488d1b70d1abbe3",
+    "summarize-callers.py": "2bcbfe6fe743ceff2d98d1f37ac1c63cbdfdeb3b932e36e72519522e966ae125"
+  }
+}

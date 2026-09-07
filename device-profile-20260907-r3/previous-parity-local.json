@@ -1,0 +1,375 @@
+{
+  "raw_strict": {
+    "status": "fail",
+    "baseline": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r2/pycbc-torch-device-profile-20260907-r2/runs/unprofiled-current-cpu/triggers.hdf",
+    "candidate": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/remote-evidence/runs/qualify-cpu/triggers.hdf",
+    "baseline_sha256": "90c4e7fe61ebaa161f36574e66701001783fd8674ed128a49bbcd55cf863b6a2",
+    "candidate_sha256": "317ae8340adb23a523625eb411a6c6bbce5d4b3eb10fa4e8f851648602b3c0d4",
+    "baseline_receipt_sha256": "75ed6858de094725406710eb346a3386bd22be34352390fe56f8844e9e985c42",
+    "candidate_receipt_sha256": "12da5a017c5629a16f35087389614200b229796d97641f461d3abea3b2349122",
+    "sample_rate": 4096,
+    "failures": [
+      "configuration mismatch: consumed_input_sha256",
+      "configuration mismatch: source_snapshot"
+    ],
+    "review_reasons": [],
+    "detectors": {
+      "H1": {
+        "baseline_count": 1991,
+        "candidate_count": 1991,
+        "matched_count": 1991,
+        "valid_intervals": [
+          [
+            1187007160.0,
+            1187009064.0
+          ]
+        ],
+        "metrics": {
+          "bank_chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 1e-05
+          },
+          "bank_chisq_dof": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 0.0
+          },
+          "chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 38.073089599609375,
+            "candidate_value": 38.073089599609375,
+            "budget_at_worst": 0.0038173089599609377
+          },
+          "chisq_dof": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 16.0,
+            "candidate_value": 16.0,
+            "budget_at_worst": 0.0
+          },
+          "coa_phase": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 2.1825671195983887,
+            "candidate_value": 2.1825671195983887,
+            "budget_at_worst": 0.0001
+          },
+          "cont_chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 1e-05
+          },
+          "cont_chisq_dof": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 0.0
+          },
+          "sg_chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 1e-05
+          },
+          "sigmasq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 3547529.75,
+            "candidate_value": 3547529.75,
+            "budget_at_worst": 35.4752975
+          },
+          "snr": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 5.890353679656982,
+            "candidate_value": 5.890353679656982,
+            "budget_at_worst": 0.0005990353679656983
+          },
+          "template_duration": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 37.44173049926758,
+            "candidate_value": 37.44173049926758,
+            "budget_at_worst": 0.003754173049926758
+          }
+        },
+        "unmatched": {
+          "baseline_only": {
+            "count": 0,
+            "classifications": {},
+            "examples": []
+          },
+          "candidate_only": {
+            "count": 0,
+            "classifications": {},
+            "examples": []
+          }
+        }
+      }
+    }
+  },
+  "substitutions": [
+    {
+      "original_source": {
+        "commit": "9578a710479b924e882857c4dffab6ed372a634b",
+        "status": "",
+        "tracked_diff": ""
+      },
+      "executable_path": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/source/bin/pycbc_inspiral",
+      "executable_sha256": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a"
+    },
+    {
+      "original_source": {
+        "commit": "d2647addb884ead3249914ebc980f3c132076d93",
+        "status": "",
+        "tracked_diff": ""
+      },
+      "executable_path": "/home/xangma/pycbc-torch-profile-20260907-r3/source/bin/pycbc_inspiral",
+      "executable_sha256": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a"
+    }
+  ],
+  "tolerances": {
+    "rtol": 0.0001,
+    "atol": 1e-05,
+    "sigmasq_rtol": 1e-05,
+    "phase_atol": 0.0001,
+    "max_examples": 12
+  },
+  "status": "pass",
+  "comparison": {
+    "status": "pass",
+    "baseline": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r2/pycbc-torch-device-profile-20260907-r2/runs/unprofiled-current-cpu/triggers.hdf",
+    "candidate": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/remote-evidence/runs/qualify-cpu/triggers.hdf",
+    "baseline_sha256": "90c4e7fe61ebaa161f36574e66701001783fd8674ed128a49bbcd55cf863b6a2",
+    "candidate_sha256": "317ae8340adb23a523625eb411a6c6bbce5d4b3eb10fa4e8f851648602b3c0d4",
+    "baseline_receipt_sha256": "75ed6858de094725406710eb346a3386bd22be34352390fe56f8844e9e985c42",
+    "candidate_receipt_sha256": "12da5a017c5629a16f35087389614200b229796d97641f461d3abea3b2349122",
+    "sample_rate": 4096,
+    "failures": [],
+    "review_reasons": [],
+    "detectors": {
+      "H1": {
+        "baseline_count": 1991,
+        "candidate_count": 1991,
+        "matched_count": 1991,
+        "valid_intervals": [
+          [
+            1187007160.0,
+            1187009064.0
+          ]
+        ],
+        "metrics": {
+          "bank_chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 1e-05
+          },
+          "bank_chisq_dof": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 0.0
+          },
+          "chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 38.073089599609375,
+            "candidate_value": 38.073089599609375,
+            "budget_at_worst": 0.0038173089599609377
+          },
+          "chisq_dof": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 16.0,
+            "candidate_value": 16.0,
+            "budget_at_worst": 0.0
+          },
+          "coa_phase": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 2.1825671195983887,
+            "candidate_value": 2.1825671195983887,
+            "budget_at_worst": 0.0001
+          },
+          "cont_chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 1e-05
+          },
+          "cont_chisq_dof": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 0.0
+          },
+          "sg_chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 1e-05
+          },
+          "sigmasq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 3547529.75,
+            "candidate_value": 3547529.75,
+            "budget_at_worst": 35.4752975
+          },
+          "snr": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 5.890353679656982,
+            "candidate_value": 5.890353679656982,
+            "budget_at_worst": 0.0005990353679656983
+          },
+          "template_duration": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 37.44173049926758,
+            "candidate_value": 37.44173049926758,
+            "budget_at_worst": 0.003754173049926758
+          }
+        },
+        "unmatched": {
+          "baseline_only": {
+            "count": 0,
+            "classifications": {},
+            "examples": []
+          },
+          "candidate_only": {
+            "count": 0,
+            "classifications": {},
+            "examples": []
+          }
+        }
+      }
+    }
+  }
+}

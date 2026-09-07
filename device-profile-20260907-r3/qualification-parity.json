@@ -1,0 +1,356 @@
+{
+  "comparisons": [
+    {
+      "baseline": "/home/xangma/pycbc-torch-profile-20260907-r3/runs/qualify-cpu/triggers.hdf",
+      "baseline_receipt_sha256": "12da5a017c5629a16f35087389614200b229796d97641f461d3abea3b2349122",
+      "baseline_sha256": "317ae8340adb23a523625eb411a6c6bbce5d4b3eb10fa4e8f851648602b3c0d4",
+      "candidate": "/home/xangma/pycbc-torch-profile-20260907-r3/runs/qualify-torchcpu/triggers.hdf",
+      "candidate_receipt_sha256": "f65d8da6e87d918f3a30c5f0076368d4b070dbe466213507251ea585626964cc",
+      "candidate_sha256": "b40d6a42bdfad8bb3ea388514e22e9a24899a7cb8aaa47b2a6237b3c2e8e47b5",
+      "detectors": {
+        "H1": {
+          "baseline_count": 1991,
+          "candidate_count": 1991,
+          "matched_count": 1991,
+          "metrics": {
+            "bank_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "bank_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "chisq": {
+              "baseline_value": 188.2814178466797,
+              "budget_at_worst": 0.01883814483642578,
+              "candidate_value": 188.2814483642578,
+              "max_absolute_error": 3.0517578125e-05,
+              "max_relative_error": 9.475932899276645e-07,
+              "violations": 0,
+              "worst_identity": [
+                -6432567624025632805,
+                4861988382511
+              ]
+            },
+            "chisq_dof": {
+              "baseline_value": 16.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 16.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "coa_phase": {
+              "baseline_value": 2.483060359954834,
+              "budget_at_worst": 0.0001,
+              "candidate_value": 2.483060598373413,
+              "max_absolute_error": 2.384185791015625e-07,
+              "max_relative_error": 3.510818470088294e-05,
+              "violations": 0,
+              "worst_identity": [
+                -8813937367194466122,
+                4861986619373
+              ]
+            },
+            "cont_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "cont_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sg_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sigmasq": {
+              "baseline_value": 3547529.75,
+              "budget_at_worst": 35.4752975,
+              "candidate_value": 3547529.75,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "snr": {
+              "baseline_value": 5.871374130249023,
+              "budget_at_worst": 0.0005971374130249024,
+              "candidate_value": 5.871372222900391,
+              "max_absolute_error": 1.9073486328125e-06,
+              "max_relative_error": 3.3811238280813493e-07,
+              "violations": 0,
+              "worst_identity": [
+                -2873349777082751080,
+                4861984962457
+              ]
+            },
+            "template_duration": {
+              "baseline_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758,
+              "candidate_value": 37.44173049926758,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "classifications": {},
+              "count": 0,
+              "examples": []
+            },
+            "candidate_only": {
+              "classifications": {},
+              "count": 0,
+              "examples": []
+            }
+          },
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ]
+        }
+      },
+      "failures": [],
+      "review_reasons": [],
+      "sample_rate": 4096,
+      "status": "pass"
+    },
+    {
+      "baseline": "/home/xangma/pycbc-torch-profile-20260907-r3/runs/qualify-cpu/triggers.hdf",
+      "baseline_receipt_sha256": "12da5a017c5629a16f35087389614200b229796d97641f461d3abea3b2349122",
+      "baseline_sha256": "317ae8340adb23a523625eb411a6c6bbce5d4b3eb10fa4e8f851648602b3c0d4",
+      "candidate": "/home/xangma/pycbc-torch-profile-20260907-r3/runs/qualify-cuda/triggers.hdf",
+      "candidate_receipt_sha256": "031b608c50ce1cb4df2bb520217c1ef05c9687b6af8f465eed33ae8af8d3a56c",
+      "candidate_sha256": "b10dd6b53dd503500fae85054b636e3c78e8a104fb21f95fa8d224e6cc6fcedd",
+      "detectors": {
+        "H1": {
+          "baseline_count": 1991,
+          "candidate_count": 1991,
+          "matched_count": 1991,
+          "metrics": {
+            "bank_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "bank_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "chisq": {
+              "baseline_value": 188.2814178466797,
+              "budget_at_worst": 0.018838150939941407,
+              "candidate_value": 188.28150939941406,
+              "max_absolute_error": 9.1552734375e-05,
+              "max_relative_error": 1.8990432289943939e-06,
+              "violations": 0,
+              "worst_identity": [
+                -6432567624025632805,
+                4861988382511
+              ]
+            },
+            "chisq_dof": {
+              "baseline_value": 16.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 16.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "coa_phase": {
+              "baseline_value": 2.833223819732666,
+              "budget_at_worst": 0.0001,
+              "candidate_value": 2.833224296569824,
+              "max_absolute_error": 4.76837158203125e-07,
+              "max_relative_error": 3.302878860272565e-05,
+              "violations": 0,
+              "worst_identity": [
+                1692951192463016022,
+                4861985847226
+              ]
+            },
+            "cont_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "cont_chisq_dof": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 0.0,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sg_chisq": {
+              "baseline_value": 0.0,
+              "budget_at_worst": 1e-05,
+              "candidate_value": 0.0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "sigmasq": {
+              "baseline_value": 3547529.75,
+              "budget_at_worst": 35.4752975,
+              "candidate_value": 3547529.75,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            },
+            "snr": {
+              "baseline_value": 5.805393218994141,
+              "budget_at_worst": 0.0005905393218994141,
+              "candidate_value": 5.805389881134033,
+              "max_absolute_error": 3.337860107421875e-06,
+              "max_relative_error": 5.749584879971667e-07,
+              "violations": 0,
+              "worst_identity": [
+                5451446987749980443,
+                4861988214233
+              ]
+            },
+            "template_duration": {
+              "baseline_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758,
+              "candidate_value": 37.44173049926758,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "violations": 0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ]
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "classifications": {},
+              "count": 0,
+              "examples": []
+            },
+            "candidate_only": {
+              "classifications": {},
+              "count": 0,
+              "examples": []
+            }
+          },
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ]
+        }
+      },
+      "failures": [],
+      "review_reasons": [],
+      "sample_rate": 4096,
+      "status": "pass"
+    }
+  ],
+  "schema_version": 1,
+  "scope": "Same analysis configuration only; unmatched triggers never pass.",
+  "status": "pass",
+  "tolerances": {
+    "atol": 1e-05,
+    "max_examples": 12,
+    "phase_atol": 0.0001,
+    "rtol": 0.0001,
+    "sigmasq_rtol": 1e-05
+  }
+}
