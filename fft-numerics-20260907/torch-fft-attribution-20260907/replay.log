@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/home/xangma/pycbc-torch-fft-attribution-20260907/replay.py", line 116, in <module>
+    std_ref = mkl_replay(std_corr)
+              ^^^^^^^^^^^^^^^^^^^^
+  File "/home/xangma/pycbc-torch-fft-attribution-20260907/replay.py", line 73, in mkl_replay
+    cpu_in[:] = corr
+    ~~~~~~^^^
+  File "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/source/pycbc/types/array.py", line 157, in convert
+    return func(self, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/source/pycbc/types/array.py", line 1864, in __setitem__
+    raise TypeError("Can only copy data from another Array")
+TypeError: Can only copy data from another Array

@@ -1,0 +1,39 @@
+{
+  "revision": "9578a710479b924e882857c4dffab6ed372a634b",
+  "batches": [
+    1,
+    8,
+    32,
+    128,
+    512,
+    1024
+  ],
+  "routes": [
+    "branch_standard",
+    "torch_cpu",
+    "torch_cuda"
+  ],
+  "bank_templates": 1024,
+  "fft_samples": 131072,
+  "blocks": 3,
+  "replicates": 3,
+  "warmups": 2,
+  "samples": 5,
+  "seed": 7101,
+  "physical_core_logical_cpu": 8,
+  "smt_sibling": 72,
+  "numerical_threads": 1,
+  "qualification": "Separate processes; compare every complex filter sample and structured triggers to same-revision standard CPU batch 1, using the same fixed bank and strain for every batch.",
+  "timing": "Public LiveBatchMatchedFilter.process_data calls, uninstrumented; three fresh processes per cell, two warmups and five timed calls per process. Timing summaries are published only when all required qualifications pass.",
+  "scope": "shared-host diagnostic; no exclusive reservation",
+  "excludes": [
+    "frame I/O",
+    "PSD estimation",
+    "waveform generation",
+    "bank loading",
+    "CLI startup/teardown",
+    "full-machine capacity"
+  ],
+  "ordering": "Batch order rotates between replicates; route order rotates and reverses between cells.",
+  "worker_timeout_seconds": 3600
+}

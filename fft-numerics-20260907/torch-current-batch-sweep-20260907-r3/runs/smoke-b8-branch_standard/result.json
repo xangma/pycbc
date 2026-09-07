@@ -1,0 +1,1424 @@
+{
+  "affinity": [
+    8
+  ],
+  "arguments": {
+    "bank_size": 8,
+    "batch": 8,
+    "cuda_device": 0,
+    "mode": "qualify",
+    "num_blocks": 3,
+    "output_dir": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/runs/smoke-b8-branch_standard",
+    "reference_dir": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/runs/smoke-b1-branch_standard",
+    "route": "branch_standard",
+    "samples": 5,
+    "seed": 7101,
+    "size": 32768,
+    "source_root": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/source",
+    "threads": 1,
+    "warmups": 2
+  },
+  "batch": 8,
+  "cwd": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3",
+  "elapsed_seconds": 3.5419902650173753,
+  "exit_code": 0,
+  "expected_head": "9578a710479b924e882857c4dffab6ed372a634b",
+  "failures": [],
+  "fft_plans": [
+    {
+      "class": "pycbc.fft.mkl.IFFT",
+      "group_size": 8,
+      "nbatch": 8
+    }
+  ],
+  "filter_setup_ms": 12.642794,
+  "finished_utc": "2026-09-07T09:47:41.297611+00:00",
+  "group_layout": [
+    [
+      1000,
+      1001,
+      1002,
+      1003,
+      1004,
+      1005,
+      1006,
+      1007
+    ]
+  ],
+  "host": "len",
+  "input_sha256": "7d8664ebc8da81f9153f79b51858deb42ccc76b5c7e268e27a27caa9cc24020f",
+  "inputs": {
+    "bank_parameters_sha256": "deaa5328e8ccf068dc50ee281da761b076bd6fc678d53628eac239ab63e12879",
+    "geometry": {
+      "bank_templates": 8,
+      "blocks": 3,
+      "blocksize": 14.0,
+      "delta_f": 0.0625,
+      "epoch": 0.0,
+      "f_lower": 30.0,
+      "fft_samples": 32768,
+      "reader_start_time": 1000000000.0,
+      "sample_rate": 2048.0,
+      "template_nonzero_stop": 12800,
+      "trim_padding": 1024,
+      "valid_end": 31744,
+      "valid_start": 3072
+    },
+    "injections": [
+      [
+        {
+          "nominal_snr": 8.0,
+          "peak_index": 8806,
+          "template_id": 1000
+        },
+        {
+          "nominal_snr": 9.5,
+          "peak_index": 14540,
+          "template_id": 1001
+        },
+        {
+          "nominal_snr": 11.0,
+          "peak_index": 20275,
+          "template_id": 1004
+        },
+        {
+          "nominal_snr": 12.5,
+          "peak_index": 26009,
+          "template_id": 1007
+        }
+      ],
+      [
+        {
+          "nominal_snr": 9.5,
+          "peak_index": 8806,
+          "template_id": 1000
+        },
+        {
+          "nominal_snr": 11.0,
+          "peak_index": 14540,
+          "template_id": 1001
+        },
+        {
+          "nominal_snr": 12.5,
+          "peak_index": 20275,
+          "template_id": 1004
+        },
+        {
+          "nominal_snr": 8.0,
+          "peak_index": 26009,
+          "template_id": 1007
+        }
+      ],
+      [
+        {
+          "nominal_snr": 11.0,
+          "peak_index": 8806,
+          "template_id": 1000
+        },
+        {
+          "nominal_snr": 12.5,
+          "peak_index": 14540,
+          "template_id": 1001
+        },
+        {
+          "nominal_snr": 8.0,
+          "peak_index": 20275,
+          "template_id": 1004
+        },
+        {
+          "nominal_snr": 9.5,
+          "peak_index": 26009,
+          "template_id": 1007
+        }
+      ]
+    ],
+    "overwhitened_block_sha256": [
+      "ffa27ba0ad61ff6eeae8ee52bc71d789eb1615f84b4554a08831924f491b62a2",
+      "53aab45380f0a6bc9e69a8fcaaf24e54d7ead52b2c13c27607946293f7f8ab26",
+      "b00ef129befe819287cedc2070c5f68a9c609e31e3df7cd18f1248ba75a06abb"
+    ],
+    "psd_sha256": "281e459a65ded558ee22b6d0210ff93bec51db97d0c4ecaaef520817250b77c2",
+    "science": {
+      "bank": "deterministic synthetic complex64 frequency templates; no waveform generation",
+      "chisq_bins": "16",
+      "chisq_output": "reduced power chisq; chisq_dof=30",
+      "max_triggers_in_batch": null,
+      "newsnr_threshold": null,
+      "scope": "public live matched filter and vetoes, excludes PSD estimation and frame IO",
+      "sg_activation": "two tiles per trigger; execution conditions checked after each call (enabled, matched settings, zero threshold, valid tile support)",
+      "sg_constructor": "SingleDetSGChisq(bank, '16', 0.0, ['mass1>0:8-20,12-40'])",
+      "sg_enabled": true,
+      "snr_abort_threshold": null,
+      "snr_threshold": 5.5,
+      "strain": "complex64 frequency noise plus coherent injections, divided by PSD"
+    },
+    "seed": 7101,
+    "sigmasq_sha256": "066e831e069f51133735e6600de08d869f6c41381c243a64780301dda4563136",
+    "template_bank_sha256": "0fc742752b9d6aa26bb725a8d40a70a27d537013a7dd3044fba6091360e79e6a"
+  },
+  "mode": "qualify",
+  "pid": 1840648,
+  "pointwise_blocks": [
+    {
+      "block": 0,
+      "failed_samples": 0,
+      "max_abs_error": 0.0,
+      "max_tolerance_ratio": 0.0,
+      "nonfinite_actual": 0,
+      "nonfinite_reference": 0,
+      "processed_once": true,
+      "processing_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "rows": [
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "b2e713a214578c126068a5fbbf8060258af399b6933b09ccd727c89f7ada4abb",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "b2e713a214578c126068a5fbbf8060258af399b6933b09ccd727c89f7ada4abb",
+          "template_id": 1000
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "1744cd852703c164d0dde5b9ce8df8d1438c56495193c46b52ad83f0ce2669bb",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "1744cd852703c164d0dde5b9ce8df8d1438c56495193c46b52ad83f0ce2669bb",
+          "template_id": 1001
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "3a012c9dabd3462991a97a07420fc4ca16ae495d16681f3828e3307cbd524670",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "3a012c9dabd3462991a97a07420fc4ca16ae495d16681f3828e3307cbd524670",
+          "template_id": 1002
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "0ceee9e808cf18c597cb98d0b3d6ddbcae56c2c14392e86a6b8e2cf381b52164",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "0ceee9e808cf18c597cb98d0b3d6ddbcae56c2c14392e86a6b8e2cf381b52164",
+          "template_id": 1003
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "7a3a06ecd67c9c29db5940fa0831a3e6bcf17cf47a7f6745094f47e226d12880",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "7a3a06ecd67c9c29db5940fa0831a3e6bcf17cf47a7f6745094f47e226d12880",
+          "template_id": 1004
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "b36ffe71b07c3bf09649078d6a8482ff6edfd2d7f0f179c794479e857a432b22",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "b36ffe71b07c3bf09649078d6a8482ff6edfd2d7f0f179c794479e857a432b22",
+          "template_id": 1005
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "a485e6e673073bd074c9ba163f2483159ce57fb3b742931dcf6853c46307332e",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "a485e6e673073bd074c9ba163f2483159ce57fb3b742931dcf6853c46307332e",
+          "template_id": 1006
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "fad5599d96df09a4cdb385a2633605bfc2df172f1ceeb08c32c638207214f2ba",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "fad5599d96df09a4cdb385a2633605bfc2df172f1ceeb08c32c638207214f2ba",
+          "template_id": 1007
+        }
+      ],
+      "samples": 262144
+    },
+    {
+      "block": 1,
+      "failed_samples": 0,
+      "max_abs_error": 0.0,
+      "max_tolerance_ratio": 0.0,
+      "nonfinite_actual": 0,
+      "nonfinite_reference": 0,
+      "processed_once": true,
+      "processing_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "rows": [
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "36b420f5c946d0f2de652a00279115419ff2cbbad37395b6b77ff8cd084a7d23",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "36b420f5c946d0f2de652a00279115419ff2cbbad37395b6b77ff8cd084a7d23",
+          "template_id": 1000
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "f2e0b744b43c62760701ccc236523cb75952f8a50702e884706930f363637d78",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "f2e0b744b43c62760701ccc236523cb75952f8a50702e884706930f363637d78",
+          "template_id": 1001
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "acea1c50278b85abad63529868b494b2a45abf7f12920955c3cadef863b18247",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "acea1c50278b85abad63529868b494b2a45abf7f12920955c3cadef863b18247",
+          "template_id": 1002
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "650a5556bd1cc94ddf0bff1603acbf2e13112fa2f3c1c33abe94b7b16a0af8ff",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "650a5556bd1cc94ddf0bff1603acbf2e13112fa2f3c1c33abe94b7b16a0af8ff",
+          "template_id": 1003
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "6f43f19d78665c8a664d50756026e671f08f08bff4191222296e37c3f14fd8aa",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "6f43f19d78665c8a664d50756026e671f08f08bff4191222296e37c3f14fd8aa",
+          "template_id": 1004
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "b061b7842c5ed08bba2de4d3f057ac921d46204cdfd419cefeaf81439583b15a",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "b061b7842c5ed08bba2de4d3f057ac921d46204cdfd419cefeaf81439583b15a",
+          "template_id": 1005
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "f5e490f11b9ed09254dd401f83afbabf39d75048586d36032c3dd79cdb305ef2",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "f5e490f11b9ed09254dd401f83afbabf39d75048586d36032c3dd79cdb305ef2",
+          "template_id": 1006
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "e09233014efe23ab54cd3e94689ec370c8e1fcdcf6485335683d32d59f5c023e",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "e09233014efe23ab54cd3e94689ec370c8e1fcdcf6485335683d32d59f5c023e",
+          "template_id": 1007
+        }
+      ],
+      "samples": 262144
+    },
+    {
+      "block": 2,
+      "failed_samples": 0,
+      "max_abs_error": 0.0,
+      "max_tolerance_ratio": 0.0,
+      "nonfinite_actual": 0,
+      "nonfinite_reference": 0,
+      "processed_once": true,
+      "processing_counts": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "rows": [
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "c3e85921076e53e9b2d3936a1c4face5698ecf065011378fdd372129eb1a1d87",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "c3e85921076e53e9b2d3936a1c4face5698ecf065011378fdd372129eb1a1d87",
+          "template_id": 1000
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "ff9faa1b117e2ccaa155c0274d7bd0af62de9bcc77c74e781b7f7c67d551ed9d",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "ff9faa1b117e2ccaa155c0274d7bd0af62de9bcc77c74e781b7f7c67d551ed9d",
+          "template_id": 1001
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "ecf125c95a91d0fb3831553d006dcbd761382826a6ac033010c98cd7d3c6f353",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "ecf125c95a91d0fb3831553d006dcbd761382826a6ac033010c98cd7d3c6f353",
+          "template_id": 1002
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "46bfd5ea8137aaf37fc35f1df663e855e20ced0aa81ce9c67e212ec278995d65",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "46bfd5ea8137aaf37fc35f1df663e855e20ced0aa81ce9c67e212ec278995d65",
+          "template_id": 1003
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "05a80e07853ee4083c3b18d457b102761cc5ea499487779af0d6113adbe24b4f",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "05a80e07853ee4083c3b18d457b102761cc5ea499487779af0d6113adbe24b4f",
+          "template_id": 1004
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "4dbe258fd2021c6553cc17fd21fc7d4fe9ed937d9839ff32e1c4fba048fe9842",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "4dbe258fd2021c6553cc17fd21fc7d4fe9ed937d9839ff32e1c4fba048fe9842",
+          "template_id": 1005
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "863191c7bde3168558b0cd1b816a58e59276cedee7f4a632d471bcb1623ef592",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "863191c7bde3168558b0cd1b816a58e59276cedee7f4a632d471bcb1623ef592",
+          "template_id": 1006
+        },
+        {
+          "failed_samples": 0,
+          "max_abs_error": 0.0,
+          "max_tolerance_ratio": 0.0,
+          "nonfinite_actual": 0,
+          "nonfinite_reference": 0,
+          "reference_sha256": "a2c22387400a9879789354a7785e0ead17e38f3d274ccf630244ceaf5d73bc74",
+          "relative_l2_error": 0.0,
+          "samples": 32768,
+          "sha256": "a2c22387400a9879789354a7785e0ead17e38f3d274ccf630244ceaf5d73bc74",
+          "template_id": 1007
+        }
+      ],
+      "samples": 262144
+    }
+  ],
+  "qualification": "compared_all_samples_and_triggers",
+  "reference": {
+    "created": false,
+    "directory": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/runs/smoke-b1-branch_standard",
+    "dtype": "complex64",
+    "filename": "outputs.npy",
+    "quantity": "raw complex IFFT output; SNR = output * 4*delta_f/sqrt(sigmasq)",
+    "shape": [
+      3,
+      8,
+      32768
+    ]
+  },
+  "reference_directory": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/runs/smoke-b1-branch_standard",
+  "reference_result_sha256": "bb2841064eb47a22d7bf600d7228654baafcf0b34ef1827fd480b545a18612dc",
+  "removed_environment_flags": [],
+  "route": "branch_standard",
+  "routing": {
+    "backend": "standard_cpu",
+    "device": "cpu",
+    "experimental": false,
+    "feature_flags": {
+      "PYCBC_BATCH_MAXELEMENTS": {
+        "applies_to_route": false,
+        "effective_value": "batch_templates * fft_samples",
+        "enabled": null,
+        "environment_value": null,
+        "package_default": null,
+        "selection": "constructor_argument"
+      },
+      "PYCBC_ENABLE_CUDA_GRAPHS": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_ASYNC_STREAMS": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_CPU_FFTW_BATCH": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_CPU_MKL_IFFT": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": true,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_CPU_NATIVE_BATCH_CORRELATE": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_CUDA_GRAPH": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_CUDA_NATIVE_BATCH_CORRELATE": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_CUDA_NATIVE_BATCH_PEAK": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_CUDA_PROMOTED_ROWS": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_DIRECT_BATCH_IFFT": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": null,
+        "selection": "package_default"
+      },
+      "PYCBC_TORCH_ONDEVICE_PEAKS": {
+        "applies_to_route": false,
+        "enabled": null,
+        "environment_value": null,
+        "package_default": false,
+        "selection": "package_default"
+      }
+    },
+    "label": "Branch standard CPU",
+    "routing_mode": "production_default"
+  },
+  "runtime": {
+    "cuda": null,
+    "device": "cpu",
+    "numpy": "1.26.4",
+    "pycbc": "0.0a9313",
+    "pycbc_path": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/source/pycbc/__init__.py",
+    "python": "3.11.9 | packaged by conda-forge | (main, Apr 19 2024, 18:36:13) [GCC 12.3.0]",
+    "torch": null,
+    "torch_num_interop_threads": null,
+    "torch_num_threads": null
+  },
+  "schema_version": 1,
+  "science": {
+    "bank": "deterministic synthetic complex64 frequency templates; no waveform generation",
+    "chisq_bins": "16",
+    "chisq_output": "reduced power chisq; chisq_dof=30",
+    "max_triggers_in_batch": null,
+    "newsnr_threshold": null,
+    "scope": "public live matched filter and vetoes, excludes PSD estimation and frame IO",
+    "sg_activation": "two tiles per trigger; execution conditions checked after each call (enabled, matched settings, zero threshold, valid tile support)",
+    "sg_constructor": "SingleDetSGChisq(bank, '16', 0.0, ['mass1>0:8-20,12-40'])",
+    "sg_enabled": true,
+    "snr_abort_threshold": null,
+    "snr_threshold": 5.5,
+    "strain": "complex64 frequency noise plus coherent injections, divided by PSD"
+  },
+  "source": {
+    "file_sha256": {
+      "pycbc/fft/mkl.py": "8362642e359f48f17a89e0877757a29124a3c2b231e4debfa77d5520c2bb9fc3",
+      "pycbc/fft/torchfft.py": "d0d3bbe544df5a9d0cbdc7452c539316a2962bd70024a6c378045eb0757bfc7a",
+      "pycbc/filter/matchedfilter.py": "e3da807d239cf28cba97e90ea4174afd1c90a372693418c4918227277bedf1c5",
+      "pycbc/filter/matchedfilter_torch.py": "a7e5a56cd5255fbf0f7b88663f6ec32bdbd31e4757f00b93a8b7d2c9fa5ed533",
+      "pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+      "pycbc/vetoes/chisq_torch.py": "6f61bd09869c86441b717ce28a62ba1532b24f273bce73a226268f269644cf84",
+      "pycbc/vetoes/sgchisq.py": "b7c0309713d84813635ce60279b3f5646daf7a03e1aac53564139f5a4435f8e7",
+      "tools/bench_production_live_batch.py": "079ab813e3ed76902b007882611cf495eb2c63b8f75560a0666d956c350fdffe"
+    },
+    "revision": "9578a710479b924e882857c4dffab6ed372a634b",
+    "root": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/source",
+    "tracked_dirty": false
+  },
+  "started_utc": "2026-09-07T09:47:37.755606+00:00",
+  "status": "pass",
+  "thread_environment": {
+    "BLIS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "NUMBA_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1"
+  },
+  "tolerance_policy": {
+    "chisq": {
+      "atol": 0.0001,
+      "rtol": 0.0001
+    },
+    "coa_phase": {
+      "atol": 0.001,
+      "circular": true,
+      "rtol": 0.0
+    },
+    "comparison": "abs(actual-reference) <= atol + rtol*abs(reference)",
+    "exact_fields": [
+      "template_id",
+      "peak_index",
+      "end_time",
+      "chisq_dof",
+      "mass1",
+      "mass2",
+      "template_hash"
+    ],
+    "finite": "all complex samples and all numeric trigger fields",
+    "pointwise_complex": {
+      "atol": 1e-06,
+      "rtol": 0.0001
+    },
+    "sg_chisq": {
+      "atol": 3e-05,
+      "rtol": 3e-05
+    },
+    "sigmasq": {
+      "atol": 0.0,
+      "rtol": 0.001
+    },
+    "snr": {
+      "atol": 0.001,
+      "rtol": 0.0
+    },
+    "sources": {
+      "chisq": "test/test_chisq_torch.py:test_power_chisq_cuda_triton_fused (1e-4 envelope applied to reduced chisq)",
+      "exact_indices": "test/test_torch_large_batches.py:test_public_live_filter_full_batch",
+      "pointwise_complex": "predeclared campaign policy rtol=1e-4, atol=1e-6; not a repository-test tolerance",
+      "sg_chisq": "test/test_chisq_torch.py:test_sine_gaussian_chisq_stays_on_torch",
+      "snr_phase_sigmasq": "tools/bench_production_live_batch.py:_verify_parity"
+    },
+    "version": 1
+  },
+  "trigger_blocks": [
+    {
+      "block": 0,
+      "count": 4,
+      "fields": {
+        "chisq": [
+          0.02065105177462101,
+          0.011905083432793617,
+          0.019538406282663345,
+          0.014683512970805168
+        ],
+        "chisq_dof": [
+          30,
+          30,
+          30,
+          30
+        ],
+        "coa_phase": [
+          0.009492550045251846,
+          0.0004493474552873522,
+          0.009167042560875416,
+          -0.011632471345365047
+        ],
+        "end_time": [
+          1000000002.7998047,
+          1000000005.5996094,
+          1000000008.3999023,
+          1000000011.199707
+        ],
+        "mass1": [
+          10.0,
+          10.010000228881836,
+          10.039999961853027,
+          10.069999694824219
+        ],
+        "mass2": [
+          10.0,
+          10.0,
+          10.0,
+          10.0
+        ],
+        "peak_index": [
+          8806,
+          14540,
+          20275,
+          26009
+        ],
+        "sg_chisq": [
+          7.037034083623439e-05,
+          0.0005144607275724411,
+          0.009945600293576717,
+          0.011460414156317711
+        ],
+        "sigmasq": [
+          1.0,
+          1.265625,
+          2.25,
+          3.515624761581421
+        ],
+        "snr": [
+          8.171392440795898,
+          9.357488632202148,
+          11.045055389404297,
+          12.288318634033203
+        ],
+        "template_hash": [
+          1000,
+          1001,
+          1004,
+          1007
+        ],
+        "template_id": [
+          1000,
+          1001,
+          1004,
+          1007
+        ]
+      },
+      "nonfinite_fields": {
+        "chisq": 0,
+        "chisq_dof": 0,
+        "coa_phase": 0,
+        "end_time": 0,
+        "mass1": 0,
+        "mass2": 0,
+        "sg_chisq": 0,
+        "sigmasq": 0,
+        "snr": 0,
+        "template_hash": 0,
+        "template_id": 0
+      },
+      "sg_activation": [
+        {
+          "chisq_bins_sha256": "d22c8095ddcc7497b23e156383cfe78e6a5a8070a199e9edc527a1087d9a554b",
+          "template_id": 1000,
+          "tiles": [
+            {
+              "center_hz": 800.5625,
+              "high_hz": 850.5625,
+              "low_hz": 750.5625,
+              "q": 8.0
+            },
+            {
+              "center_hz": 820.5625,
+              "high_hz": 870.5625,
+              "low_hz": 770.5625,
+              "q": 12.0
+            }
+          ]
+        },
+        {
+          "chisq_bins_sha256": "e51868109bccb859f7f160fdfadabf8ce8fd37fe4be3c725d689caa254329991",
+          "template_id": 1001,
+          "tiles": [
+            {
+              "center_hz": 802.5,
+              "high_hz": 852.5,
+              "low_hz": 752.5,
+              "q": 8.0
+            },
+            {
+              "center_hz": 822.5,
+              "high_hz": 872.5,
+              "low_hz": 772.5,
+              "q": 12.0
+            }
+          ]
+        },
+        {
+          "chisq_bins_sha256": "702739e0bd44dbe4f5a391710fc1c507df64141eba5d174e7e113aafb7ab8a08",
+          "template_id": 1004,
+          "tiles": [
+            {
+              "center_hz": 794.1875,
+              "high_hz": 844.1875,
+              "low_hz": 744.1875,
+              "q": 8.0
+            },
+            {
+              "center_hz": 814.1875,
+              "high_hz": 864.1875,
+              "low_hz": 764.1875,
+              "q": 12.0
+            }
+          ]
+        },
+        {
+          "chisq_bins_sha256": "7af317719dcaa4b37af521395fb919c09e82b174a47707aa54d8cc744a9c5be1",
+          "template_id": 1007,
+          "tiles": [
+            {
+              "center_hz": 793.4375,
+              "high_hz": 843.4375,
+              "low_hz": 743.4375,
+              "q": 8.0
+            },
+            {
+              "center_hz": 813.4375,
+              "high_hz": 863.4375,
+              "low_hz": 763.4375,
+              "q": 12.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 1,
+      "count": 4,
+      "fields": {
+        "chisq": [
+          0.01720779947936535,
+          0.008715795353055,
+          0.015300962142646313,
+          0.019418267533183098
+        ],
+        "chisq_dof": [
+          30,
+          30,
+          30,
+          30
+        ],
+        "coa_phase": [
+          0.006163718178868294,
+          -0.0021126263309270144,
+          0.006370333023369312,
+          -0.02118559740483761
+        ],
+        "end_time": [
+          1000000016.7998047,
+          1000000019.5996094,
+          1000000022.3999023,
+          1000000025.199707
+        ],
+        "mass1": [
+          10.0,
+          10.010000228881836,
+          10.039999961853027,
+          10.069999694824219
+        ],
+        "mass2": [
+          10.0,
+          10.0,
+          10.0,
+          10.0
+        ],
+        "peak_index": [
+          8806,
+          14540,
+          20275,
+          26009
+        ],
+        "sg_chisq": [
+          0.00031376679544337094,
+          0.0007751281373202801,
+          0.007708902470767498,
+          0.011744332499802113
+        ],
+        "sigmasq": [
+          1.0,
+          1.265625,
+          2.25,
+          3.515624761581421
+        ],
+        "snr": [
+          9.748005867004395,
+          10.94692325592041,
+          12.549180030822754,
+          7.753790378570557
+        ],
+        "template_hash": [
+          1000,
+          1001,
+          1004,
+          1007
+        ],
+        "template_id": [
+          1000,
+          1001,
+          1004,
+          1007
+        ]
+      },
+      "nonfinite_fields": {
+        "chisq": 0,
+        "chisq_dof": 0,
+        "coa_phase": 0,
+        "end_time": 0,
+        "mass1": 0,
+        "mass2": 0,
+        "sg_chisq": 0,
+        "sigmasq": 0,
+        "snr": 0,
+        "template_hash": 0,
+        "template_id": 0
+      },
+      "sg_activation": [
+        {
+          "chisq_bins_sha256": "d22c8095ddcc7497b23e156383cfe78e6a5a8070a199e9edc527a1087d9a554b",
+          "template_id": 1000,
+          "tiles": [
+            {
+              "center_hz": 800.5625,
+              "high_hz": 850.5625,
+              "low_hz": 750.5625,
+              "q": 8.0
+            },
+            {
+              "center_hz": 820.5625,
+              "high_hz": 870.5625,
+              "low_hz": 770.5625,
+              "q": 12.0
+            }
+          ]
+        },
+        {
+          "chisq_bins_sha256": "e51868109bccb859f7f160fdfadabf8ce8fd37fe4be3c725d689caa254329991",
+          "template_id": 1001,
+          "tiles": [
+            {
+              "center_hz": 802.5,
+              "high_hz": 852.5,
+              "low_hz": 752.5,
+              "q": 8.0
+            },
+            {
+              "center_hz": 822.5,
+              "high_hz": 872.5,
+              "low_hz": 772.5,
+              "q": 12.0
+            }
+          ]
+        },
+        {
+          "chisq_bins_sha256": "702739e0bd44dbe4f5a391710fc1c507df64141eba5d174e7e113aafb7ab8a08",
+          "template_id": 1004,
+          "tiles": [
+            {
+              "center_hz": 794.1875,
+              "high_hz": 844.1875,
+              "low_hz": 744.1875,
+              "q": 8.0
+            },
+            {
+              "center_hz": 814.1875,
+              "high_hz": 864.1875,
+              "low_hz": 764.1875,
+              "q": 12.0
+            }
+          ]
+        },
+        {
+          "chisq_bins_sha256": "7af317719dcaa4b37af521395fb919c09e82b174a47707aa54d8cc744a9c5be1",
+          "template_id": 1007,
+          "tiles": [
+            {
+              "center_hz": 793.4375,
+              "high_hz": 843.4375,
+              "low_hz": 743.4375,
+              "q": 8.0
+            },
+            {
+              "center_hz": 813.4375,
+              "high_hz": 863.4375,
+              "low_hz": 763.4375,
+              "q": 12.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "block": 2,
+      "count": 4,
+      "fields": {
+        "chisq": [
+          0.0155166145414114,
+          0.007567388471215963,
+          0.02046457678079605,
+          0.01722344011068344
+        ],
+        "chisq_dof": [
+          30,
+          30,
+          30,
+          30
+        ],
+        "coa_phase": [
+          0.0022556495387107134,
+          0.0028332467190921307,
+          0.011293169111013412,
+          -0.016685303300619125
+        ],
+        "end_time": [
+          1000000030.7998047,
+          1000000033.5996094,
+          1000000036.3999023,
+          1000000039.199707
+        ],
+        "mass1": [
+          10.0,
+          10.010000228881836,
+          10.039999961853027,
+          10.069999694824219
+        ],
+        "mass2": [
+          10.0,
+          10.0,
+          10.0,
+          10.0
+        ],
+        "peak_index": [
+          8806,
+          14540,
+          20275,
+          26009
+        ],
+        "sg_chisq": [
+          0.0003004679165314883,
+          0.0005835961201228201,
+          0.008923238143324852,
+          0.010692173615098
+        ],
+        "sigmasq": [
+          1.0,
+          1.265625,
+          2.25,
+          3.515624761581421
+        ],
+        "snr": [
+          11.209933280944824,
+          12.471837997436523,
+          8.05788803100586,
+          9.212411880493164
+        ],
+        "template_hash": [
+          1000,
+          1001,
+          1004,
+          1007
+        ],
+        "template_id": [
+          1000,
+          1001,
+          1004,
+          1007
+        ]
+      },
+      "nonfinite_fields": {
+        "chisq": 0,
+        "chisq_dof": 0,
+        "coa_phase": 0,
+        "end_time": 0,
+        "mass1": 0,
+        "mass2": 0,
+        "sg_chisq": 0,
+        "sigmasq": 0,
+        "snr": 0,
+        "template_hash": 0,
+        "template_id": 0
+      },
+      "sg_activation": [
+        {
+          "chisq_bins_sha256": "d22c8095ddcc7497b23e156383cfe78e6a5a8070a199e9edc527a1087d9a554b",
+          "template_id": 1000,
+          "tiles": [
+            {
+              "center_hz": 800.5625,
+              "high_hz": 850.5625,
+              "low_hz": 750.5625,
+              "q": 8.0
+            },
+            {
+              "center_hz": 820.5625,
+              "high_hz": 870.5625,
+              "low_hz": 770.5625,
+              "q": 12.0
+            }
+          ]
+        },
+        {
+          "chisq_bins_sha256": "e51868109bccb859f7f160fdfadabf8ce8fd37fe4be3c725d689caa254329991",
+          "template_id": 1001,
+          "tiles": [
+            {
+              "center_hz": 802.5,
+              "high_hz": 852.5,
+              "low_hz": 752.5,
+              "q": 8.0
+            },
+            {
+              "center_hz": 822.5,
+              "high_hz": 872.5,
+              "low_hz": 772.5,
+              "q": 12.0
+            }
+          ]
+        },
+        {
+          "chisq_bins_sha256": "702739e0bd44dbe4f5a391710fc1c507df64141eba5d174e7e113aafb7ab8a08",
+          "template_id": 1004,
+          "tiles": [
+            {
+              "center_hz": 794.1875,
+              "high_hz": 844.1875,
+              "low_hz": 744.1875,
+              "q": 8.0
+            },
+            {
+              "center_hz": 814.1875,
+              "high_hz": 864.1875,
+              "low_hz": 764.1875,
+              "q": 12.0
+            }
+          ]
+        },
+        {
+          "chisq_bins_sha256": "7af317719dcaa4b37af521395fb919c09e82b174a47707aa54d8cc744a9c5be1",
+          "template_id": 1007,
+          "tiles": [
+            {
+              "center_hz": 793.4375,
+              "high_hz": 843.4375,
+              "low_hz": 743.4375,
+              "q": 8.0
+            },
+            {
+              "center_hz": 813.4375,
+              "high_hz": 863.4375,
+              "low_hz": 763.4375,
+              "q": 12.0
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "trigger_comparisons": [
+    {
+      "fields": {
+        "chisq": {
+          "failed_values": 0,
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "chisq_dof": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "coa_phase": {
+          "failed_values": 0,
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "end_time": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "mass1": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "mass2": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "peak_index": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "sg_chisq": {
+          "failed_values": 0,
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "sigmasq": {
+          "failed_values": 0,
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "snr": {
+          "failed_values": 0,
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "template_hash": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "template_id": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        }
+      },
+      "nonempty": true,
+      "passed": true
+    },
+    {
+      "fields": {
+        "chisq": {
+          "failed_values": 0,
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "chisq_dof": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "coa_phase": {
+          "failed_values": 0,
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "end_time": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "mass1": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "mass2": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "peak_index": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "sg_chisq": {
+          "failed_values": 0,
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "sigmasq": {
+          "failed_values": 0,
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "snr": {
+          "failed_values": 0,
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "template_hash": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "template_id": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        }
+      },
+      "nonempty": true,
+      "passed": true
+    },
+    {
+      "fields": {
+        "chisq": {
+          "failed_values": 0,
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "chisq_dof": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "coa_phase": {
+          "failed_values": 0,
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "end_time": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "mass1": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "mass2": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "peak_index": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "sg_chisq": {
+          "failed_values": 0,
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "sigmasq": {
+          "failed_values": 0,
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "snr": {
+          "failed_values": 0,
+          "max_abs_error": 0.0,
+          "passed": true
+        },
+        "template_hash": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        },
+        "template_id": {
+          "comparison": "exact",
+          "failed_values": 0,
+          "passed": true
+        }
+      },
+      "nonempty": true,
+      "passed": true
+    }
+  ],
+  "worker_sha256": "9db8937df960f92161b16f55e6453bc6985b81a14194bbfc33478b4bebdec954"
+}

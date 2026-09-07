@@ -1,0 +1,42 @@
+{
+  "pid": 1933459,
+  "pgid": 1933459,
+  "state": "complete",
+  "started": 1788784069.3132572,
+  "completed": [
+    {
+      "name": "b1-torch_cpu",
+      "exit_code": 0
+    },
+    {
+      "name": "b1-torch_cuda",
+      "exit_code": 0
+    },
+    {
+      "name": "b8-torch_cpu",
+      "exit_code": 0
+    },
+    {
+      "name": "b8-torch_cuda",
+      "exit_code": 0
+    }
+  ],
+  "current": "b8-torch_cuda",
+  "command": [
+    "taskset",
+    "-c",
+    "8",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "/home/xangma/pycbc-torch-fft-precision-20260907/diagnose.py",
+    "--campaign-root",
+    "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3",
+    "--output-root",
+    "/home/xangma/pycbc-torch-fft-precision-20260907/b8-torch_cuda",
+    "--route",
+    "torch_cuda",
+    "--batch",
+    "8"
+  ],
+  "log": "/home/xangma/pycbc-torch-fft-precision-20260907/b8-torch_cuda.log",
+  "finished": 1788784127.567073
+}

@@ -1,0 +1,70 @@
+{
+  "affinity": [
+    8
+  ],
+  "cuda": "13.0",
+  "input_hashes_verified": true,
+  "numpy": "1.26.4",
+  "pgid": 989583,
+  "pid": 989595,
+  "plans": {
+    "b1-torch_cpu": {
+      "class": "IFFT",
+      "direct_batch": false,
+      "fftw": "_FFTWCPUDirectPlan",
+      "fftw_batch": "NoneType",
+      "mkl": "NoneType",
+      "promoted_batch": "NoneType",
+      "promoted_dtype": null
+    },
+    "b1-torch_cuda": {
+      "class": "IFFT",
+      "direct_batch": false,
+      "fftw": "NoneType",
+      "fftw_batch": "NoneType",
+      "mkl": "NoneType",
+      "promoted_batch": "NoneType",
+      "promoted_dtype": null
+    },
+    "b8-torch_cpu": {
+      "class": "IFFT",
+      "direct_batch": false,
+      "fftw": "NoneType",
+      "fftw_batch": "NoneType",
+      "mkl": "NoneType",
+      "promoted_batch": "_TorchPromotedBatchPlan",
+      "promoted_dtype": "torch.complex128"
+    },
+    "b8-torch_cuda": {
+      "class": "IFFT",
+      "direct_batch": true,
+      "fftw": "NoneType",
+      "fftw_batch": "NoneType",
+      "mkl": "NoneType",
+      "promoted_batch": "NoneType",
+      "promoted_dtype": null
+    }
+  },
+  "purpose": "Replay frozen correlations to isolate FFT arithmetic; diagnostic only.",
+  "qualification_authorized": false,
+  "rows": [],
+  "script_sha256": "71a65345d56f80a5da3eae3d1cf15ff9b6847407f507408edfe5f4f1e02a371f",
+  "source": {
+    "file_sha256": {
+      "pycbc/fft/mkl.py": "8362642e359f48f17a89e0877757a29124a3c2b231e4debfa77d5520c2bb9fc3",
+      "pycbc/fft/torchfft.py": "d0d3bbe544df5a9d0cbdc7452c539316a2962bd70024a6c378045eb0757bfc7a",
+      "pycbc/filter/matchedfilter.py": "e3da807d239cf28cba97e90ea4174afd1c90a372693418c4918227277bedf1c5",
+      "pycbc/filter/matchedfilter_torch.py": "a7e5a56cd5255fbf0f7b88663f6ec32bdbd31e4757f00b93a8b7d2c9fa5ed533",
+      "pycbc/vetoes/chisq.py": "b27366b495a6fc46f0b742930ab1d74caf44286c99715fb30712f755526ac71c",
+      "pycbc/vetoes/chisq_torch.py": "6f61bd09869c86441b717ce28a62ba1532b24f273bce73a226268f269644cf84",
+      "pycbc/vetoes/sgchisq.py": "b7c0309713d84813635ce60279b3f5646daf7a03e1aac53564139f5a4435f8e7",
+      "tools/bench_production_live_batch.py": "079ab813e3ed76902b007882611cf495eb2c63b8f75560a0666d956c350fdffe"
+    },
+    "revision": "9578a710479b924e882857c4dffab6ed372a634b",
+    "root": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/source",
+    "tracked_dirty": false
+  },
+  "started": 1788791361.471577,
+  "state": "running",
+  "torch": "2.13.0+cu130"
+}

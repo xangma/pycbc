@@ -1,0 +1,73 @@
+{
+  "observed_at": "2026-09-07T09:49:03.845297+00:00",
+  "status": {
+    "state": "running",
+    "pid": 1834195,
+    "pgid": 1834195,
+    "host": "len",
+    "cwd": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3",
+    "started": 1788774443.43066,
+    "command": [
+      "taskset",
+      "-c",
+      "8",
+      "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+      "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/batch-worker.py",
+      "--source-root",
+      "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/source",
+      "--route",
+      "branch_standard",
+      "--batch",
+      "1",
+      "--mode",
+      "qualify",
+      "--output-dir",
+      "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/runs/qual-b1-branch_standard",
+      "--seed",
+      "7101",
+      "--size",
+      "131072",
+      "--bank-size",
+      "1024",
+      "--num-blocks",
+      "3",
+      "--warmups",
+      "2",
+      "--samples",
+      "5",
+      "--cuda-device",
+      "0"
+    ],
+    "scope": "shared-host diagnostic; no exclusive reservation",
+    "completed": [
+      "smoke-b1-branch_standard",
+      "smoke-b1-torch_cpu",
+      "smoke-b1-torch_cuda",
+      "smoke-b8-branch_standard",
+      "smoke-b8-torch_cpu",
+      "smoke-b8-torch_cuda"
+    ],
+    "stop_command": "kill -TERM 1834195",
+    "next_check_seconds": 5,
+    "launcher_command": [
+      "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/batch-campaign.py",
+      "--shared-host"
+    ],
+    "phase": "qualification",
+    "dependency": "/home/xangma/pycbc-torch-convergence-20260907/convergence-status.json",
+    "dependency_deadline": 1788796043.431798,
+    "current": "qual-b1-branch_standard",
+    "log": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/stages/qual-b1-branch_standard.log",
+    "stage_receipt": "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/stages/qual-b1-branch_standard.json",
+    "child_pid": 1846971,
+    "child_pgid": 1846971
+  },
+  "smoke_statuses": {
+    "smoke-b1-branch_standard": "pass",
+    "smoke-b1-torch_cpu": "pass",
+    "smoke-b1-torch_cuda": "pass",
+    "smoke-b8-branch_standard": "pass",
+    "smoke-b8-torch_cpu": "pass",
+    "smoke-b8-torch_cuda": "pass"
+  }
+}

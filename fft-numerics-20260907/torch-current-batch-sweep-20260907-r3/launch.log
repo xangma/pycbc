@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/batch-campaign.py", line 394, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/batch-campaign.py", line 381, in main
+    run(campaign)
+  File "/home/xangma/pycbc-torch-current-batch-sweep-20260907-r3/batch-campaign.py", line 326, in run
+    raise ValueError(f'Qualification failures; timing skipped: {failures}')
+ValueError: Qualification failures; timing skipped: ['qual-b1-torch_cpu', 'qual-b1-torch_cuda', 'qual-b8-torch_cpu', 'qual-b8-torch_cuda', 'qual-b32-torch_cpu', 'qual-b32-torch_cuda', 'qual-b128-torch_cpu', 'qual-b128-torch_cuda', 'qual-b512-torch_cpu', 'qual-b512-torch_cuda', 'qual-b1024-torch_cpu', 'qual-b1024-torch_cuda']

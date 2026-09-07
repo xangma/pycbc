@@ -1,0 +1,214 @@
+{
+  "purpose": "Read frozen B1 evidence and compare selected rows to a complex128 DFT.\n\nThis diagnostic does not change campaign tolerances or qualify timings.\n",
+  "source": "9578a710479b924e882857c4dffab6ed372a634b",
+  "worker_sha256": "9db8937df960f92161b16f55e6453bc6985b81a14194bbfc33478b4bebdec954",
+  "numpy": "2.3.5",
+  "torch": "2.9.1",
+  "rows": [
+    {
+      "template_id": 1141,
+      "local_torch_matches_frozen_linux_sha256": false,
+      "cpu_reference_vs_complex128": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "ef8ff63824ff3b3d02032d5eb6ce084a92d7199eaf1bf6f4da0e3e890dba733e",
+        "failed_samples": 0,
+        "nonfinite_reference": 0,
+        "max_abs_error": 5.489712094878755e-06,
+        "max_tolerance_ratio": 0.25188983711761564,
+        "relative_l2_error": 1.7344834694937718e-07,
+        "reference_sha256": "1e33519a7a5ff9dec65e95b13ccfce455035b7c1ab8fc5171710001576a896b1"
+      },
+      "local_torch_vs_complex128": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "d9f7199f197e8394124442e8d163ab69fd5e42560335a653788a16cb1b8e6208",
+        "failed_samples": 1,
+        "nonfinite_reference": 0,
+        "max_abs_error": 4.281939502687851e-06,
+        "max_tolerance_ratio": 1.2440237893858312,
+        "relative_l2_error": 1.4771301077043992e-07,
+        "reference_sha256": "1e33519a7a5ff9dec65e95b13ccfce455035b7c1ab8fc5171710001576a896b1"
+      },
+      "local_torch_vs_same_float32_correlation_complex128_fft": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "d9f7199f197e8394124442e8d163ab69fd5e42560335a653788a16cb1b8e6208",
+        "failed_samples": 1,
+        "nonfinite_reference": 0,
+        "max_abs_error": 4.195153526162149e-06,
+        "max_tolerance_ratio": 1.242040894345296,
+        "relative_l2_error": 1.4443130484901076e-07,
+        "reference_sha256": "2676420c1851ecc5c88af17e3d561545d18b4e4b534547d94ddd7c02a0807d13"
+      },
+      "local_torch_vs_cpu_reference": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "d9f7199f197e8394124442e8d163ab69fd5e42560335a653788a16cb1b8e6208",
+        "failed_samples": 1,
+        "nonfinite_reference": 0,
+        "max_abs_error": 7.662848796838854e-06,
+        "max_tolerance_ratio": 1.3288294327832557,
+        "relative_l2_error": 2.3351013505615894e-07,
+        "reference_sha256": "ef8ff63824ff3b3d02032d5eb6ce084a92d7199eaf1bf6f4da0e3e890dba733e"
+      },
+      "selected_pairwise_failures": [
+        {
+          "sample": 57293,
+          "reference_magnitude": 0.0044653029181063175,
+          "pairwise_error": 1.922192041092785e-06,
+          "cpu_reference_error_vs_complex128": 1.331438299515388e-07,
+          "local_torch_error_vs_complex128": 1.7995053929668324e-06
+        }
+      ]
+    },
+    {
+      "template_id": 1144,
+      "local_torch_matches_frozen_linux_sha256": false,
+      "cpu_reference_vs_complex128": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "a9d58ee6e7a83b91c6b93eb6fe9ba8ac053a5e33bf43b33ac6dd5392329c1389",
+        "failed_samples": 0,
+        "nonfinite_reference": 0,
+        "max_abs_error": 5.34521920415828e-06,
+        "max_tolerance_ratio": 0.7693151742190368,
+        "relative_l2_error": 1.7386883007268871e-07,
+        "reference_sha256": "9e5dcb9ef9a5e3c96e6e83bf409dfb9ddff43837d5cc7e4c1bc0b588551f7176"
+      },
+      "local_torch_vs_complex128": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "674e5c31fa5dda4c57ee6bedd49cfad6b68bfe1b90722bbc0a09a9db60c20164",
+        "failed_samples": 0,
+        "nonfinite_reference": 0,
+        "max_abs_error": 4.4205572227790625e-06,
+        "max_tolerance_ratio": 0.266729003476294,
+        "relative_l2_error": 1.4695535303493748e-07,
+        "reference_sha256": "9e5dcb9ef9a5e3c96e6e83bf409dfb9ddff43837d5cc7e4c1bc0b588551f7176"
+      },
+      "local_torch_vs_same_float32_correlation_complex128_fft": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "674e5c31fa5dda4c57ee6bedd49cfad6b68bfe1b90722bbc0a09a9db60c20164",
+        "failed_samples": 0,
+        "nonfinite_reference": 0,
+        "max_abs_error": 4.4128235719873384e-06,
+        "max_tolerance_ratio": 0.3390782009529629,
+        "relative_l2_error": 1.4373092399605404e-07,
+        "reference_sha256": "3a1f31d83655b993ff18c0b8868255916ab6dc23607380bdc31d9d60068988e1"
+      },
+      "local_torch_vs_cpu_reference": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "674e5c31fa5dda4c57ee6bedd49cfad6b68bfe1b90722bbc0a09a9db60c20164",
+        "failed_samples": 0,
+        "nonfinite_reference": 0,
+        "max_abs_error": 7.864199877963372e-06,
+        "max_tolerance_ratio": 0.9057945391382555,
+        "relative_l2_error": 2.3327593094884598e-07,
+        "reference_sha256": "a9d58ee6e7a83b91c6b93eb6fe9ba8ac053a5e33bf43b33ac6dd5392329c1389"
+      },
+      "selected_pairwise_failures": []
+    },
+    {
+      "template_id": 1008,
+      "local_torch_matches_frozen_linux_sha256": false,
+      "cpu_reference_vs_complex128": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "d8ee32bedc0bc7eddc8a6fa8a6525a1d4a5282c7f33417afabfba8e62cb87106",
+        "failed_samples": 0,
+        "nonfinite_reference": 0,
+        "max_abs_error": 2.3356280196789547e-06,
+        "max_tolerance_ratio": 0.6477861553932985,
+        "relative_l2_error": 1.7423468319997195e-07,
+        "reference_sha256": "8d313abf8ac999933735d26ce9bc5a83de99e6ea905ffea060bdcb8084c8a23e"
+      },
+      "local_torch_vs_complex128": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "7417ff53210b52ec9f30492356a54d79b182bbbf65315ca5842591e79463a68c",
+        "failed_samples": 0,
+        "nonfinite_reference": 0,
+        "max_abs_error": 2.506830215249327e-06,
+        "max_tolerance_ratio": 0.37751158353219133,
+        "relative_l2_error": 1.475365012613561e-07,
+        "reference_sha256": "8d313abf8ac999933735d26ce9bc5a83de99e6ea905ffea060bdcb8084c8a23e"
+      },
+      "local_torch_vs_same_float32_correlation_complex128_fft": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "7417ff53210b52ec9f30492356a54d79b182bbbf65315ca5842591e79463a68c",
+        "failed_samples": 0,
+        "nonfinite_reference": 0,
+        "max_abs_error": 2.560945734067417e-06,
+        "max_tolerance_ratio": 0.3126517076207629,
+        "relative_l2_error": 1.4426470648189064e-07,
+        "reference_sha256": "60b0302bbf7152805a2ed3f4d63155751b2092b0fd68791ce287a1f2cb411b98"
+      },
+      "local_torch_vs_cpu_reference": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "7417ff53210b52ec9f30492356a54d79b182bbbf65315ca5842591e79463a68c",
+        "failed_samples": 0,
+        "nonfinite_reference": 0,
+        "max_abs_error": 3.337860107421875e-06,
+        "max_tolerance_ratio": 0.458686067054337,
+        "relative_l2_error": 2.34648655202047e-07,
+        "reference_sha256": "d8ee32bedc0bc7eddc8a6fa8a6525a1d4a5282c7f33417afabfba8e62cb87106"
+      },
+      "selected_pairwise_failures": []
+    },
+    {
+      "template_id": 1000,
+      "local_torch_matches_frozen_linux_sha256": false,
+      "cpu_reference_vs_complex128": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "3f19d72abbca83e99f2056752d4740485fa2e723adbe8480b8cc277eb3d0496c",
+        "failed_samples": 0,
+        "nonfinite_reference": 0,
+        "max_abs_error": 1.038450091695495e-05,
+        "max_tolerance_ratio": 0.24733612882599046,
+        "relative_l2_error": 1.728961510907169e-07,
+        "reference_sha256": "cf006dd083318883723e054f49c7c7fcbc48c4e8ae6ca322cae78d0bcf15605d"
+      },
+      "local_torch_vs_complex128": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "da7eff70afa165fee0c62f6ad3f331ab519632dcaced0f738bef9ac35a62afd1",
+        "failed_samples": 0,
+        "nonfinite_reference": 0,
+        "max_abs_error": 6.436741656112246e-06,
+        "max_tolerance_ratio": 0.18450007870654733,
+        "relative_l2_error": 1.4506239360442927e-07,
+        "reference_sha256": "cf006dd083318883723e054f49c7c7fcbc48c4e8ae6ca322cae78d0bcf15605d"
+      },
+      "local_torch_vs_same_float32_correlation_complex128_fft": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "da7eff70afa165fee0c62f6ad3f331ab519632dcaced0f738bef9ac35a62afd1",
+        "failed_samples": 0,
+        "nonfinite_reference": 0,
+        "max_abs_error": 6.428957479058145e-06,
+        "max_tolerance_ratio": 0.1743332945225873,
+        "relative_l2_error": 1.4170638042707384e-07,
+        "reference_sha256": "bf6d8d20a884ce906623d86892f21e5984b3fe8444de859600709a7a4c2d8800"
+      },
+      "local_torch_vs_cpu_reference": {
+        "samples": 131072,
+        "nonfinite_actual": 0,
+        "sha256": "da7eff70afa165fee0c62f6ad3f331ab519632dcaced0f738bef9ac35a62afd1",
+        "failed_samples": 0,
+        "nonfinite_reference": 0,
+        "max_abs_error": 1.1449678368746367e-05,
+        "max_tolerance_ratio": 0.25006563975453383,
+        "relative_l2_error": 2.3113648539350477e-07,
+        "reference_sha256": "3f19d72abbca83e99f2056752d4740485fa2e723adbe8480b8cc277eb3d0496c"
+      },
+      "selected_pairwise_failures": []
+    }
+  ],
+  "scope": "Selected block-zero rows only; local Torch may differ from Linux. No campaign pass or timing authorization."
+}

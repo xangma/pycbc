@@ -1,0 +1,2355 @@
+{
+  "R3_completed_stages": 24,
+  "logical_inputs": {
+    "README.md": {
+      "bytes": 11488,
+      "mode": 420,
+      "sha256": "9c62e7a491a60856831e72ff29b14464e89b159d18cb157a8f19f0a3ad986c36"
+    },
+    "packaging/ARCHIVE_TRANSPORT.md": {
+      "bytes": 2524,
+      "mode": 420,
+      "sha256": "50c3e7426ff3aa65e82feeeffab2a2599a286440560c4555c019a1400135fe0a"
+    },
+    "packaging/archive_transport.py": {
+      "bytes": 11696,
+      "mode": 420,
+      "sha256": "fbad8fc04e36788d4cf2ed9d42c6556568d4a44c028def25b5cb6260ffdbf11e"
+    },
+    "packaging/stage-diagnostic-archive.py": {
+      "bytes": 27868,
+      "mode": 420,
+      "sha256": "b37a91cf57a50c21a4564e387c1e1f111c5fed9cafbaf976cd07f9be4db7a23d"
+    },
+    "torch-current-batch-sweep-20260907-r3/PREPARATION.md": {
+      "bytes": 418,
+      "mode": 420,
+      "sha256": "542cdb68cc67bcf8afad1845790411dd68650250cb8ab8c2ead1dc7e82abfacc"
+    },
+    "torch-current-batch-sweep-20260907-r3/RUN.md": {
+      "bytes": 4521,
+      "mode": 420,
+      "sha256": "0deeaf6d558de217ec7185c2d35c2204a385e581c28f9de0534e69fdb87eed1e"
+    },
+    "torch-current-batch-sweep-20260907-r3/batch-campaign.py": {
+      "bytes": 20280,
+      "mode": 420,
+      "sha256": "77b269ab78a2890f637123325b8631253f14a88c5c28567f6f16cd2cfeea5989"
+    },
+    "torch-current-batch-sweep-20260907-r3/batch-plan.json": {
+      "bytes": 1214,
+      "mode": 436,
+      "sha256": "b2b204bca6c38284daff88a58ad5d933eecd15541aab6b0422ffe7ea67333a56"
+    },
+    "torch-current-batch-sweep-20260907-r3/batch-status.json": {
+      "bytes": 2781,
+      "mode": 436,
+      "sha256": "936db2b56d7d42f0724daab8a06dae4c01aeac9b873362c1bc5aecba8077bdd5"
+    },
+    "torch-current-batch-sweep-20260907-r3/batch-worker.py": {
+      "bytes": 34142,
+      "mode": 420,
+      "sha256": "9db8937df960f92161b16f55e6453bc6985b81a14194bbfc33478b4bebdec954"
+    },
+    "torch-current-batch-sweep-20260907-r3/campaign_controls.py": {
+      "bytes": 32311,
+      "mode": 420,
+      "sha256": "8fd1d90757de96db461950af19cae81dd81fe1fe1eabc709c28384194242ecc3"
+    },
+    "torch-current-batch-sweep-20260907-r3/capacity.json": {
+      "bytes": 110,
+      "mode": 436,
+      "sha256": "7091d78b7606f86a621fb31381e7773d3c27fc5ad719e2f941969d35a519e541"
+    },
+    "torch-current-batch-sweep-20260907-r3/dependency-receipt.json": {
+      "bytes": 2642,
+      "mode": 436,
+      "sha256": "9842ce07220b5589dbf38303ea01549e5e0ca71eea8c8a22dfa112e4c9c19d2a"
+    },
+    "torch-current-batch-sweep-20260907-r3/launch-receipt.json": {
+      "bytes": 549,
+      "mode": 436,
+      "sha256": "ffa262450bc227be8a943ab3e2e2b0c35fe585e6c0ba38b49cbc4328bd03ab12"
+    },
+    "torch-current-batch-sweep-20260907-r3/launch.log": {
+      "bytes": 809,
+      "mode": 436,
+      "sha256": "d900c8e515707b724fa1d73df89bac058cdb2e161b0e801abb6dda5b63843824"
+    },
+    "torch-current-batch-sweep-20260907-r3/native-provenance.json": {
+      "bytes": 5921,
+      "mode": 436,
+      "sha256": "acff3ecb7b67a2bf8f9f302f5e5b7978ac882c3fea9332c62c4dc3b240f2820e"
+    },
+    "torch-current-batch-sweep-20260907-r3/provenance.json": {
+      "bytes": 8212,
+      "mode": 436,
+      "sha256": "8f6865b009e47f45ef2419b005f3da4c33abe86a7187b684e92a80c09327528f"
+    },
+    "torch-current-batch-sweep-20260907-r3/qualifications.json": {
+      "bytes": 31008543,
+      "mode": 436,
+      "sha256": "b4e0af18d1b99de36d1e95e463672566e9ccbf02c84a493d1bb3f3babdfe2b4b"
+    },
+    "torch-current-batch-sweep-20260907-r3/queued-inputs.json": {
+      "bytes": 373,
+      "mode": 436,
+      "sha256": "bb99926eb975fa2a2e2b3b778b15cbd44b16f420316b80130ccea045375632e1"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b1-branch_standard/acquisition.json": {
+      "bytes": 255,
+      "mode": 436,
+      "sha256": "76dcdd254e90b259a71e35fb0a22fb716a0b6fecb7d4e15f13a756f88a88d696"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b1-branch_standard/result.json": {
+      "bytes": 1324873,
+      "mode": 436,
+      "sha256": "947a4ffa432207fcace5d32676dccc7d68791d0c7ccdf52d93b700e909ec2cbc"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b1-torch_cpu/acquisition.json": {
+      "bytes": 250,
+      "mode": 436,
+      "sha256": "e077b14111cfc22e816b34d950cb51b4c6f3922360a8dcae63dfe33908ca7586"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b1-torch_cpu/result.json": {
+      "bytes": 1795360,
+      "mode": 436,
+      "sha256": "8489faa1eeec08f323721e69abc9f81cec2de6338404fab05bd63a96e4184a81"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b1-torch_cuda/acquisition.json": {
+      "bytes": 249,
+      "mode": 436,
+      "sha256": "58c3effa1dd0d1e53c8ada080d9dd062435100bce0ccbcf01aecd0a630807bcf"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b1-torch_cuda/result.json": {
+      "bytes": 1794803,
+      "mode": 436,
+      "sha256": "7f9d1e95a215df49918ec17a990f418f33de277055f6461af9d23e4a58658a8b"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b1024-branch_standard/acquisition.json": {
+      "bytes": 259,
+      "mode": 436,
+      "sha256": "8634346df174ce32c4d346af5ec87adb109f2013b8506a1d5db6ab494bf22c94"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b1024-branch_standard/result.json": {
+      "bytes": 1525447,
+      "mode": 436,
+      "sha256": "ca5ba20e1cd934f8ce641baee4207cf0ee48e6c6650758040a9a109b2ea1a0db"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b1024-torch_cpu/acquisition.json": {
+      "bytes": 252,
+      "mode": 436,
+      "sha256": "c82444d0e7a481d88234f16633f088ab90b7fec9b463f2e8f95f412f8018fa76"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b1024-torch_cpu/result.json": {
+      "bytes": 1686636,
+      "mode": 436,
+      "sha256": "ce1d5b70ee80008ac5330aef6cb55a32291f52daf1306a710810f8452083526e"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b1024-torch_cuda/acquisition.json": {
+      "bytes": 254,
+      "mode": 436,
+      "sha256": "06cab7528147dd5d77b8c1671b51cd67ba0fd3eba6ea0f792001b14820b69f4a"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b1024-torch_cuda/result.json": {
+      "bytes": 1684286,
+      "mode": 436,
+      "sha256": "934508083725944df30a6d994cfe942496f9bd2594ea1d6158a793e380a0eab0"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b128-branch_standard/acquisition.json": {
+      "bytes": 258,
+      "mode": 436,
+      "sha256": "f904d18bcbdc6a6ec917882bf17614983bf4ea9a0123cde8dab96c37d5c08909"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b128-branch_standard/result.json": {
+      "bytes": 1526215,
+      "mode": 436,
+      "sha256": "60c57762a035715f939a278b7d51ad088cb6d0575e210893de81173fe98ed5cb"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b128-torch_cpu/acquisition.json": {
+      "bytes": 252,
+      "mode": 436,
+      "sha256": "c7b4aa1686cedc3543acae2db1403f56230bdedbe785fba860f8c300bb75e005"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b128-torch_cpu/result.json": {
+      "bytes": 1687438,
+      "mode": 436,
+      "sha256": "2a1e1137c2ec2ece39cf4bf91a514c7c71adabf99ab0df917da2837d8a356487"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b128-torch_cuda/acquisition.json": {
+      "bytes": 253,
+      "mode": 436,
+      "sha256": "1817618c22b016fafcea5e2a36562d073dd3f051046c21daf85078e4a06e28c2"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b128-torch_cuda/result.json": {
+      "bytes": 1685090,
+      "mode": 436,
+      "sha256": "839603def657208b2c5733d6251d6d4fac9d21b5bfb3dd7cb9e7aea342b40660"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b32-branch_standard/acquisition.json": {
+      "bytes": 256,
+      "mode": 436,
+      "sha256": "b1e593511ca978c41bc6e1a3c6ddc6b12018ec1b69cf6b29d345becd82e3ad32"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b32-branch_standard/result.json": {
+      "bytes": 1528716,
+      "mode": 436,
+      "sha256": "f2a5fc6546d6f861940726a19a7a310265e70572df02de7989e1976aea542ba9"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b32-torch_cpu/acquisition.json": {
+      "bytes": 251,
+      "mode": 436,
+      "sha256": "e9052e676c37a1ab50e5bdeab266081bb2d7c4e60b5be5744f98a469620ae92f"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b32-torch_cpu/result.json": {
+      "bytes": 1690059,
+      "mode": 436,
+      "sha256": "3d7f5ec0ee4fc24e4b278fdb5f20b549ef8e9a2d435e526e58a03cc774e82a86"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b32-torch_cuda/acquisition.json": {
+      "bytes": 252,
+      "mode": 436,
+      "sha256": "01404bd7c21262280490e1e95677eb0784aef001c9d9ced560abe0ff66ad13a6"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b32-torch_cuda/result.json": {
+      "bytes": 1687709,
+      "mode": 436,
+      "sha256": "8bb53e462609c6d6d0a5d14f15e57b1630a52c9073e1c7be0d8ed3d77cc46a41"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b512-branch_standard/acquisition.json": {
+      "bytes": 256,
+      "mode": 436,
+      "sha256": "f44a09763457c0a9b0822a4fc0e595763a80b9b51a6068e5463f3f5344caffb9"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b512-branch_standard/result.json": {
+      "bytes": 1525549,
+      "mode": 436,
+      "sha256": "bea447a646a9c861a0d7da5326cfaefeba5354043f4d8947436b6218114c8dab"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b512-torch_cpu/acquisition.json": {
+      "bytes": 252,
+      "mode": 436,
+      "sha256": "907020c31de7afdcb937d92315a7a0693aeeec20243279abf40218f084fad78d"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b512-torch_cpu/result.json": {
+      "bytes": 1686743,
+      "mode": 436,
+      "sha256": "3a263980ddd54c409a24b5df859f6c47059a9d689cee33732e7d6459d1651c6f"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b512-torch_cuda/acquisition.json": {
+      "bytes": 252,
+      "mode": 436,
+      "sha256": "82ed63dbe23a185002a61f39f8a44cc0df78f7e1c5316ae3b36ad3cca7903585"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b512-torch_cuda/result.json": {
+      "bytes": 1684394,
+      "mode": 436,
+      "sha256": "97d3e62d6cc942eb14626df3d8ff1bd454c34bcdabe39cd1c0b918592eb01b9e"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b8-branch_standard/acquisition.json": {
+      "bytes": 255,
+      "mode": 436,
+      "sha256": "b51b2caddb351fea43697a494eff7a006759208a70cc5318075a79eaf9ee6402"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b8-branch_standard/result.json": {
+      "bytes": 1538537,
+      "mode": 436,
+      "sha256": "2d591ff96c7ee5b3943b2cfe32b4d372528f8caf3044120b2a75c3a380e3db83"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b8-torch_cpu/acquisition.json": {
+      "bytes": 250,
+      "mode": 436,
+      "sha256": "e5b2f53f5b6d03f3c1b30652b6feb435c9ab31495719b9fb57d468316e1ed38b"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b8-torch_cpu/result.json": {
+      "bytes": 1700361,
+      "mode": 436,
+      "sha256": "a0100e0004066540dbd35efb4efee7c85a9290ca8ad1df060b6a70a86bc6ceb3"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b8-torch_cuda/acquisition.json": {
+      "bytes": 250,
+      "mode": 436,
+      "sha256": "d9b35a40d32ae9daa80bcd58155e46f4f412fb77dcc3028020097b8b58187e5d"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/qual-b8-torch_cuda/result.json": {
+      "bytes": 1698010,
+      "mode": 436,
+      "sha256": "7f429f265c5e3b2ad1fa539e613725e4ba1e3c723d4ae64dd4191b67ec0331fc"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/smoke-b1-branch_standard/acquisition.json": {
+      "bytes": 256,
+      "mode": 436,
+      "sha256": "c07620125c4af269563f6e0189da490c8d58ccf72af06b9b992350f155f0189a"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/smoke-b1-branch_standard/result.json": {
+      "bytes": 34228,
+      "mode": 436,
+      "sha256": "bb2841064eb47a22d7bf600d7228654baafcf0b34ef1827fd480b545a18612dc"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/smoke-b1-torch_cpu/acquisition.json": {
+      "bytes": 248,
+      "mode": 436,
+      "sha256": "4f388f82ede1d4b8f6061954f3dc4b78487be17d5ceaae9a4a32cc5f6e3d0dd3"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/smoke-b1-torch_cpu/result.json": {
+      "bytes": 41739,
+      "mode": 436,
+      "sha256": "c9df71289a01f47fd94c1ca0efef5e401796b62265f2b2c6c7dc03315082cff0"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/smoke-b1-torch_cuda/acquisition.json": {
+      "bytes": 251,
+      "mode": 436,
+      "sha256": "a27df3669bf7aca1a2a5e3e66da2c3df6936786a513d405a5149c4344efde0a1"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/smoke-b1-torch_cuda/result.json": {
+      "bytes": 43250,
+      "mode": 436,
+      "sha256": "bedad5a3deb90c0f22ebfb248614df53afa006f9b211344afed30f3f9505b674"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/smoke-b8-branch_standard/acquisition.json": {
+      "bytes": 256,
+      "mode": 436,
+      "sha256": "d574e510af6d6823397706393df6f8dd6eeba7e768df5ef1773da6ffe726088f"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/smoke-b8-branch_standard/result.json": {
+      "bytes": 40734,
+      "mode": 436,
+      "sha256": "a3c9c0993cd11725a8e0eed50ff75bb41dc2d856705a2d37e598de42e70d8040"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/smoke-b8-torch_cpu/acquisition.json": {
+      "bytes": 250,
+      "mode": 436,
+      "sha256": "3843b4786fa494cf06f5a39488de38e8d64eb404ac99cf4cfe4dfa90d993d110"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/smoke-b8-torch_cpu/result.json": {
+      "bytes": 42311,
+      "mode": 436,
+      "sha256": "2d5f9780f3df72de0dc7560175ebd3410cb71405076ab5d7d5b14ced9f70ac92"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/smoke-b8-torch_cuda/acquisition.json": {
+      "bytes": 251,
+      "mode": 436,
+      "sha256": "34ff1162673e363e09e4342ad709332f568e054ff2ddf6cfbc367b0857c8e01f"
+    },
+    "torch-current-batch-sweep-20260907-r3/runs/smoke-b8-torch_cuda/result.json": {
+      "bytes": 42444,
+      "mode": 436,
+      "sha256": "67a1ff9a88f22cad84bf5d563d766f46442790ff379327a4d7a86ff70bdc8ce4"
+    },
+    "torch-current-batch-sweep-20260907-r3/smoke-qualifications.json": {
+      "bytes": 261813,
+      "mode": 436,
+      "sha256": "95f1de7046396fd0d8a964ceec20dcba4b732321e6de6401b1f225ff3dcd932c"
+    },
+    "torch-current-batch-sweep-20260907-r3/stage-source.py": {
+      "bytes": 4160,
+      "mode": 420,
+      "sha256": "ea9f82077873892c9e9e59c773ac733ec15dab3b8621a6f00fe6310943bf691f"
+    },
+    "torch-current-batch-sweep-20260907-r3/staged-files.json": {
+      "bytes": 643,
+      "mode": 420,
+      "sha256": "56abfaa7829d8b054adeba2579647232762944083ed9225c64dd015b2b06aa35"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b1-branch_standard.json": {
+      "bytes": 2407,
+      "mode": 436,
+      "sha256": "ae5cd2382e1a60ca0ee3f36fb88cbd5b52a366ad4ba5aac004a36ad131b1843e"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b1-branch_standard.log": {
+      "bytes": 276,
+      "mode": 436,
+      "sha256": "c3f284c07c7a0f6cb4f030900e8af3c5ff4350f017b42cefce389a7c84f2fddb"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b1-torch_cpu.json": {
+      "bytes": 2494,
+      "mode": 436,
+      "sha256": "070aabc4a92d67128041d97bc61e7dcdfc6c475a724c1fcb9286674631cbc158"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b1-torch_cpu.log": {
+      "bytes": 270,
+      "mode": 436,
+      "sha256": "a4064e743cfa68d557cd7d6ee1e7473ee5d88fa50a3c4c4bb670c5c12a8f2e9d"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b1-torch_cuda.json": {
+      "bytes": 2497,
+      "mode": 436,
+      "sha256": "864ed752aff9cc65e601d5d9b5dd951f26672ff4bd727874385c115ebda0e176"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b1-torch_cuda.log": {
+      "bytes": 271,
+      "mode": 436,
+      "sha256": "364eeed101757255e5a21af66127fab66b68e56f6faaeda10df494260e676ab5"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b1024-branch_standard.json": {
+      "bytes": 2539,
+      "mode": 436,
+      "sha256": "3ffd124c91d970934e67903b5371b873e472c1692c4fef0da933d07367f7e1a6"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b1024-branch_standard.log": {
+      "bytes": 279,
+      "mode": 436,
+      "sha256": "fae080e94c32bccd57a520820c760f1c18a2880b28a5b0637cb31d215e2dd205"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b1024-torch_cpu.json": {
+      "bytes": 2506,
+      "mode": 436,
+      "sha256": "51e10a44f532e5d75c8d8f3a428136e3f0f489ec37de1cb0fd1f743a608fd883"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b1024-torch_cpu.log": {
+      "bytes": 273,
+      "mode": 436,
+      "sha256": "446bf51a6c9432a1f841336855cf29a331a6b4a64e0b24713302b18d0830339d"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b1024-torch_cuda.json": {
+      "bytes": 2513,
+      "mode": 436,
+      "sha256": "317b890bdb55d81cefb0f778e73c0dbfa62a1383688715e00cd7fc70435d75a9"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b1024-torch_cuda.log": {
+      "bytes": 274,
+      "mode": 436,
+      "sha256": "5ea73c6b7481b73e662ba1aa554ee7386b4b639a9be8a2a318f120af08180695"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b128-branch_standard.json": {
+      "bytes": 2533,
+      "mode": 436,
+      "sha256": "4f3d9af2f132c96d4c91e6355409ddd90d2c3a36ce11566f9a2141dcf1056897"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b128-branch_standard.log": {
+      "bytes": 278,
+      "mode": 436,
+      "sha256": "a54199fd430602f986b2f943761cbbd309788c7f1d502653c612ad99533e2b51"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b128-torch_cpu.json": {
+      "bytes": 2504,
+      "mode": 436,
+      "sha256": "057caa14a91af1a7faf669a484e9670e99f081537f5580dc086be9847179e139"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b128-torch_cpu.log": {
+      "bytes": 272,
+      "mode": 436,
+      "sha256": "b1c0f1b90095ec978fb0ceb528edeb65dac6c8cc5c38ded582e02b6901075950"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b128-torch_cuda.json": {
+      "bytes": 2509,
+      "mode": 436,
+      "sha256": "178d1c2272ac24529d5a43d1a09495d68027ba8b7e5589ae7e8a16d70875abb6"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b128-torch_cuda.log": {
+      "bytes": 273,
+      "mode": 436,
+      "sha256": "f22ff582a4eb7bbc32e23e5131eb8badb2342b5419998b2e7812752e345368af"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b32-branch_standard.json": {
+      "bytes": 2528,
+      "mode": 436,
+      "sha256": "9486b6361429fc089c567497c998f49c11ae041efc4eb30962670883118b686b"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b32-branch_standard.log": {
+      "bytes": 277,
+      "mode": 436,
+      "sha256": "b3e5ef710b1c3445d4af0e866fb2581f45a7a47f538f08dfd5fa842785a29e2d"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b32-torch_cpu.json": {
+      "bytes": 2499,
+      "mode": 436,
+      "sha256": "ab454dbfdf1f3641c2e9e00baacc367ea64d2d63138f341a50d39aecae47c8ad"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b32-torch_cpu.log": {
+      "bytes": 271,
+      "mode": 436,
+      "sha256": "7ec0b2661fb3a4d4da00c51732b3086b0da84e403d228ef294ef30880b023e09"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b32-torch_cuda.json": {
+      "bytes": 2504,
+      "mode": 436,
+      "sha256": "972ded3f2c7c5351fd04784816b18cf4dcf7737a171ef910c336136f2956f4a9"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b32-torch_cuda.log": {
+      "bytes": 272,
+      "mode": 436,
+      "sha256": "52b64c71ccd094864a2954adf97203f90bacb829a384191ae80a6ef276c67a37"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b512-branch_standard.json": {
+      "bytes": 2530,
+      "mode": 436,
+      "sha256": "87b300afea97bc35c799c4a64237acef9fb086db065e24303ec9c5c6f980854a"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b512-branch_standard.log": {
+      "bytes": 278,
+      "mode": 436,
+      "sha256": "0d37b12b95d0a7fb3af38de07b971f3697e9aca5f163a23b8e582b32e1500467"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b512-torch_cpu.json": {
+      "bytes": 2504,
+      "mode": 436,
+      "sha256": "44893ecc78f0f5d2ae097f5f45efe8a39babb9f0c3731430e247e9c59f194585"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b512-torch_cpu.log": {
+      "bytes": 272,
+      "mode": 436,
+      "sha256": "ef844f92b2ac5a32fcd873827f42fff0b31fcc93dc833d18882882e72c50444e"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b512-torch_cuda.json": {
+      "bytes": 2508,
+      "mode": 436,
+      "sha256": "817534d2a9cb3dde75717bed1faa2828829ee85a578bad4367a7bdef8a732878"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b512-torch_cuda.log": {
+      "bytes": 273,
+      "mode": 436,
+      "sha256": "b00f6c0587e2a3bc2ae5dc8a01b1198986aec560c89e9d4d69a034e771f4f81a"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b8-branch_standard.json": {
+      "bytes": 2522,
+      "mode": 436,
+      "sha256": "965df5021ca3702ddcb8624a70c866dfbd071c8a06f0abfc7d5f9bc8dbff9a57"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b8-branch_standard.log": {
+      "bytes": 276,
+      "mode": 436,
+      "sha256": "1aefa3235b118edc463dc0a789af6ead7969ad1b94288731afe26eba08c2fe5b"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b8-torch_cpu.json": {
+      "bytes": 2494,
+      "mode": 436,
+      "sha256": "a5402d7c4c12d6946d9e6d5f7695e7505ec6e689f2154ef63d9decb0ad4e5928"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b8-torch_cpu.log": {
+      "bytes": 270,
+      "mode": 436,
+      "sha256": "df1f2735899583d7c0a2954072b361a25ca87114ba0e3fcff12c237f0006d246"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b8-torch_cuda.json": {
+      "bytes": 2497,
+      "mode": 436,
+      "sha256": "e112931dc18a56b6e15da5074aa1f360149add3957b46c9248437840ad70dcc3"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/qual-b8-torch_cuda.log": {
+      "bytes": 271,
+      "mode": 436,
+      "sha256": "2d6031a6a167fe8bdb5a5963447d9b4b0a982e331050557293c01bdca1ce6ede"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/smoke-b1-branch_standard.json": {
+      "bytes": 2404,
+      "mode": 436,
+      "sha256": "076e2fab68d22b8d5cacab552529df82338c3455c5147d3728a61bb3c9cabb2a"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/smoke-b1-branch_standard.log": {
+      "bytes": 277,
+      "mode": 436,
+      "sha256": "c2811d9f68e94af0d4551f644392b931c7fb3183a1fa9168c12a6068eca9d006"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/smoke-b1-torch_cpu.json": {
+      "bytes": 2492,
+      "mode": 436,
+      "sha256": "f09d91156404dcb03e93109b83b8102fb65779bc70e6118b1812d42e4ab58216"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/smoke-b1-torch_cpu.log": {
+      "bytes": 271,
+      "mode": 436,
+      "sha256": "7aa1daca1549e773c1f27e320541d51e7e48471720c8dfa00d66f7cbdf08d3cb"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/smoke-b1-torch_cuda.json": {
+      "bytes": 2499,
+      "mode": 436,
+      "sha256": "3a192ff9892e84db624160cc70a2428957fbc1e17ace6b85a61e81d1f9b13a11"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/smoke-b1-torch_cuda.log": {
+      "bytes": 272,
+      "mode": 436,
+      "sha256": "2a140befce378acd5fdf8a82a63b8cb8caee5b72e4fe06332c46d295d16edfd0"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/smoke-b8-branch_standard.json": {
+      "bytes": 2524,
+      "mode": 436,
+      "sha256": "b68b48e322e400e86cf13daecb14b4c4bf42697eadbb962344b929d8036d6465"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/smoke-b8-branch_standard.log": {
+      "bytes": 277,
+      "mode": 436,
+      "sha256": "7fb8ac0a0ec209680dd38f462d375a293d00267eaf48008d5804d085026b58f5"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/smoke-b8-torch_cpu.json": {
+      "bytes": 2492,
+      "mode": 436,
+      "sha256": "86f6607b71751488dc4a92d1c029f252d196860b68f5019e4ce1a311ab0d997a"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/smoke-b8-torch_cpu.log": {
+      "bytes": 271,
+      "mode": 436,
+      "sha256": "6bb7de450400350a8c54fdf2be387b312127d4c6d92513d3d39ac2a51603bb60"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/smoke-b8-torch_cuda.json": {
+      "bytes": 2499,
+      "mode": 436,
+      "sha256": "92a019364db6060312b1275ce0460609b0b9c15694fd497220eb4c51b9350c84"
+    },
+    "torch-current-batch-sweep-20260907-r3/stages/smoke-b8-torch_cuda.log": {
+      "bytes": 272,
+      "mode": 436,
+      "sha256": "a6215129f5ef85d24a20228c396e593ea0722b55ccb0705c052d4132b04197b4"
+    },
+    "torch-current-batch-sweep-20260907-r3/staging-receipt.json": {
+      "bytes": 1672,
+      "mode": 436,
+      "sha256": "853cb1d67a799ca6dc6cee0e78505f0ac86d561d0a332a872a638f0350750e04"
+    },
+    "torch-current-batch-sweep-20260907-r3/test_batch_campaign.py": {
+      "bytes": 9134,
+      "mode": 420,
+      "sha256": "85e810f8169199293357e088a2c6fff1e30662fa88ddd5709ab498575a9b6ac0"
+    },
+    "torch-current-batch-sweep-20260907-r3/test_batch_worker.py": {
+      "bytes": 4003,
+      "mode": 420,
+      "sha256": "baa26ca891d7fcffdefba0cd69e13cc9f65fa39cbc85c382ebe61a0e2ee06c78"
+    },
+    "torch-current-batch-sweep-20260907-r3/validation/check_fft_precision.py": {
+      "bytes": 4032,
+      "mode": 420,
+      "sha256": "812df697835e1e02cac677ad1b6e0e0f6da70e7e9ca96ec6a2ffdde91215d8e5"
+    },
+    "torch-current-batch-sweep-20260907-r3/validation/fft-precision-diagnostic.json": {
+      "bytes": 9464,
+      "mode": 420,
+      "sha256": "1002ca9773fb05acca81b7ad4031d6f0bb4992f0b9b28e41c06f60d5cc261ce3"
+    },
+    "torch-current-batch-sweep-20260907-r3/validation/fft-precision-diagnostic.log": {
+      "bytes": 1098,
+      "mode": 420,
+      "sha256": "9e1cedf79f1b82021d3f542abe2ce9b68328271d941fdb707422c248373d5cd6"
+    },
+    "torch-current-batch-sweep-20260907-r3/validation/helper-tests.log": {
+      "bytes": 99,
+      "mode": 420,
+      "sha256": "b13697f3be1515f947bfcb05afa88a22078f8332740ad1be62c98d70b3efadfd"
+    },
+    "torch-current-batch-sweep-20260907-r3/validation/observed-smoke-status.json": {
+      "bytes": 2223,
+      "mode": 420,
+      "sha256": "b1533c5cea6b5a6b5842bb68c5c0876a5d15deb2fe7f7a92595f0cd188ce2d6f"
+    },
+    "torch-current-batch-sweep-20260907-r3/validation/runtime-tests.log": {
+      "bytes": 110,
+      "mode": 420,
+      "sha256": "0465ab394d8e0d86135948abec1978015a9dfbb08473cf0a19e6c02fd1fa5fc2"
+    },
+    "torch-fft-attribution-20260907-r2/REPORT.md": {
+      "bytes": 9047,
+      "mode": 420,
+      "sha256": "7474320ae04cd4b8408b2f91d24c5355253208b9507175e42c2746392add7610"
+    },
+    "torch-fft-attribution-20260907-r2/launch.json": {
+      "bytes": 536,
+      "mode": 436,
+      "sha256": "2260f9eadc72e1c18f324b12839e6ca64555f14d4d5c084d1f4b3b20894653c5"
+    },
+    "torch-fft-attribution-20260907-r2/launch.log": {
+      "bytes": 0,
+      "mode": 436,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "torch-fft-attribution-20260907-r2/replay.json": {
+      "bytes": 894159,
+      "mode": 436,
+      "sha256": "543e4488af7e013342ec82fd6f764eef2a748d0ba84172acc9f70f56daad9c30"
+    },
+    "torch-fft-attribution-20260907-r2/replay.log": {
+      "bytes": 251,
+      "mode": 436,
+      "sha256": "febdbf5fefb88ae08936b40b4f2dd342f67e5c2699a97fd7de4fd83974cbd65f"
+    },
+    "torch-fft-attribution-20260907-r2/replay.py": {
+      "bytes": 9228,
+      "mode": 420,
+      "sha256": "74396f7183e6d2213f8b1b3ebcfc00d48f24ed0cd6204b16807ba5ecccb6e3d7"
+    },
+    "torch-fft-attribution-20260907-r2/run.py": {
+      "bytes": 1019,
+      "mode": 420,
+      "sha256": "16bf27dbfc4d6103988a58a5b61ea5eac06cef072e3c8ff3e962d24312c1e87f"
+    },
+    "torch-fft-attribution-20260907-r2/status.json": {
+      "bytes": 409,
+      "mode": 436,
+      "sha256": "f187a250f0bf476ded828b6e0822503231fb12c82de1a2e95cb96362a11e6fc9"
+    },
+    "torch-fft-attribution-20260907-r2/summary.json": {
+      "bytes": 12128,
+      "mode": 420,
+      "sha256": "b6c5e7a97cd10d60107529cfdb45f786c6bae7224502cba8d05a2f56cbbf6013"
+    },
+    "torch-fft-attribution-20260907/launch.json": {
+      "bytes": 527,
+      "mode": 436,
+      "sha256": "3e821f044d9e2c0c44a3fdaf0f3e28a9bd37edd74b9916dcaeed4a786b11d5b8"
+    },
+    "torch-fft-attribution-20260907/launch.log": {
+      "bytes": 0,
+      "mode": 436,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "torch-fft-attribution-20260907/replay.json": {
+      "bytes": 2460,
+      "mode": 436,
+      "sha256": "0b39dfc957800dd5a6351df6e0158a31ecfaff19eea243136f27e129112b6aaa"
+    },
+    "torch-fft-attribution-20260907/replay.log": {
+      "bytes": 750,
+      "mode": 436,
+      "sha256": "008e9314826ff9df255256e29c00e2fe4115914f386ac4f0000f4748055cba52"
+    },
+    "torch-fft-attribution-20260907/replay.py": {
+      "bytes": 9223,
+      "mode": 420,
+      "sha256": "71a65345d56f80a5da3eae3d1cf15ff9b6847407f507408edfe5f4f1e02a371f"
+    },
+    "torch-fft-attribution-20260907/run.py": {
+      "bytes": 1019,
+      "mode": 420,
+      "sha256": "16bf27dbfc4d6103988a58a5b61ea5eac06cef072e3c8ff3e962d24312c1e87f"
+    },
+    "torch-fft-attribution-20260907/status.json": {
+      "bytes": 399,
+      "mode": 436,
+      "sha256": "72cfd8fe526203a88785239396ece48d75c6b23c32fab6043d794827def6604a"
+    },
+    "torch-fft-precision-20260907/RUN.md": {
+      "bytes": 2936,
+      "mode": 420,
+      "sha256": "7a474b4847dadb1bbb4f611bb0aca85a19f11ba66cb0c5597dd02d69a417ab1f"
+    },
+    "torch-fft-precision-20260907/assess-normalized-error.py": {
+      "bytes": 2528,
+      "mode": 420,
+      "sha256": "a14dc8b8a69b599ece08e50595c7a0e9f44026e901226ee292cc5fe4076784e8"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu.log": {
+      "bytes": 317,
+      "mode": 436,
+      "sha256": "a634fc49d0008d92653e982a7259ef7a792f247f1ff7458977223b1ed729a956"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block0-template1000.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "3bd96abd26a0061036ba57081f337157eba9cc1291ee59752ceddcd179d502fc"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block0-template1249.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "f2fecfbdc198bb909a842186e59ef59d94549a363c76601da5d234cea8f2a4af"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block0-template1431.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "65cbd5514884b47649bd4f0b883e040e72d1f2ea1c97b0a963166b02e79c5a67"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block0-template1463.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "29f704446a91cb3656bf69b332525112ebebe18bbb9d806a9dbd85bedf9f6c9e"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block0-template1485.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "f8e2f8264d77d986fff4e32610dc43f651719eaac0cdf6a5978d676742af4a49"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block0-template1508.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "d6d4aefb561228d289933f8e99bce09d93a566a98fc172e29986dc2fab5fcf77"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block0-template1510.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "0cb0fb7e60fcc173d6a4122618c4157c1345bb98c1cd7a4c376bff51dcd36efe"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block0-template1606.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "cb8a7794aab46eb93464e153ec827a5f89ae09d5f7123e4e18b775dd9eea1939"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block0-template1674.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "c9c568989eedae9aaa07f63c52980980dbf26bc8c40efa20d35e2dd4be9dbb10"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block0-template1708.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "7761237e5c397fb7bc00f584f9d3ed4d1a3bca45413dc6904127e68623937db6"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block0-template1806.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "19cebc875372f0e13c27ef582673d0c575146fba50e0b98a1a921023156bfe92"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block0-template2023.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "398643a3a250f2fcfb5e91a86b5a1dbb905d67e19f1b7deac12c2a73ce397de3"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block1-template1000.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "3b8696e1d779a1d39afa950a2734c0e88a90a502f219ac7dd6b800c57968964a"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block1-template1019.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "94124ded3178715547ca528d94ece3df083b79e28845f185d58d908f0f562d9d"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block1-template1056.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "7c719c271413dbd6d6963a85e7e4310bfa5b5a487a51d433daa57c4944fc4741"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block1-template1143.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "22211eeea1f15ee11084303635a1b7a64d528b002c70af563320859d41df8b4f"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block1-template1161.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "b0a4cbea0462b34f703a05e0e4775b42f6f617efa9a2b3041051066c7d879452"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block1-template1509.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "20bc5224b5b03981f13b085bb47a12180a32e5e2eac1efa97f9b0292e628d505"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block1-template1510.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "edafbb65193d1e765d984fee4085752743aa206972f50438623b10a3dffaacf1"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block1-template1606.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "97a4b986a19f6d9cbaaa822e206f1c007047ad28f3ea0cd33dc5a3347ae8668a"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block1-template1663.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "4bc630d7676f50c67b2dca66b605bf9734d58359802f404d350d7c7b41c1c066"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block1-template1674.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "375e78d75e2b85722da01afef626d07cf97fbecb0f2a9c09a43c76b1c3e31d82"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block1-template1949.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "54629b91e38a644d2ae120def41f6fbe8e3f1c7e404150c93195d7951b77b35e"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block1-template2023.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "2bde17685ce66f5fab02b52bbbb85218c53b68caa5ddea7262cbfb056d95a7b2"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block2-template1000.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "6645674edc6e065bbcd75791e8f07b0f99891ffc6ca876f9c5f113a37a4a6992"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block2-template1434.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "aa998e178dece3714a22920ef3fdd5c32f90d81a573e3bbc1c3487a30c731440"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block2-template1455.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "2b06849dc03f03e20f35657feab8bd2199aef9644b9176012c1ee1cfe7c39d8d"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block2-template1510.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "f92556a17b166ef03b0e1414c578798c4230e8980baa609f6518fb8d24b37615"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block2-template1607.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "2bfb19f256562ad5ef674434f2eaf82815c4868628b2076e853f46eaa728f2b5"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block2-template1674.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "dc21fdd00f87f74d58b438f50f4affa1b4f4352a2bebfb6c1a324fdfe0f1228a"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block2-template1749.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "609bcf8667d3b02b03d9439fdfac3e682a6983e824b70fcc334c981c665def7a"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block2-template1805.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "3b51d6d4a99b0326784cdae3f76ef6b122da872bab49b305044ec74d3e5532e7"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block2-template1866.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "145d6e855f18fe102d27c85e89224d459b7debfcdda6abdeb9afa64e48fb9b72"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block2-template1869.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "6131dc280bf2c3e2fc987161248a15a7999995386bd555ec5878fb0ea3758991"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block2-template2005.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "323b89a412d3d697c3bfea8f7bd34d82e0dee7afe4e048c38706897ad8f28129"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/block2-template2023.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "9845f14701cf5beb58bed14a2e907b6fe309e6a349e7552247f615b07c0db30d"
+    },
+    "torch-fft-precision-20260907/b1-torch_cpu/diagnostic.json": {
+      "bytes": 119472,
+      "mode": 436,
+      "sha256": "f55421f5c451ea1ca007664feb0ffa988bfb83d4349e5173a2735cd6d6d29e6e"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda.log": {
+      "bytes": 317,
+      "mode": 436,
+      "sha256": "08a020800fc425b37f1bce0f227485510ec47f964163fb02f9752d3e49c6c641"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block0-template1000.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "858b2e2f56730994fdf2a0bd05e519c647d28331a67b3904aa4e323fdbeb5ee1"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block0-template1463.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "4c4295dbeb48a7284511c138d13c3e4bc16582484295d35244bf039ac1aa8063"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block0-template1510.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "1db29447e0f0af03193a821dfdad75c1b2f2ab4a761c1b3721f14c29d3378dfe"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block0-template1633.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "7e7987ba3429625938ef5ffa0a44dff20ff0878a86e73016463cfa3ea7d12a84"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block0-template1659.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "1f20765af0a5d288e99e626bac0b25e0698690c0c0d34c9bc2215bc45f86d8bb"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block0-template1662.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "c379a383624a5766733d01b0c42ea7cd8a604db5bf0abf67d4d27033b1c420dd"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block0-template1674.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "ed73110feee5008400cc94d1497593acded24c8606c14f1fcefb809a6e36265b"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block0-template1780.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "7c358a9bff2f2d9faaf4fdc85bdbd4134e126ec5b0ab4747a9d43ab5233b08b1"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block0-template1808.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "c44d3e63f0c834ef01ff1283b7c5ec3349da6aebd4d88578855378c306fd8eac"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block0-template1896.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "6732a79ecb90b7217edf7136c37d8fe483a9e53766cefb9832930855452dd028"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block0-template2023.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "092af5e26009c8d9ac3b82839bf4bd961630a081c1bd1a9ed700b880148dfbdb"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block1-template1000.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "ba4d28784c795606769f2640b601ce37333720321d0bc11bb1bcdfa15c970a95"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block1-template1056.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "e40afb67c0271fbd74b4014501c27aa9b799cb283e360cb749bacc53fa28f721"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block1-template1510.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "ac1538df7ef98bbf91264c285f298210522a030926d0571a74b04d103c702f6a"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block1-template1633.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "5d9360f3d039d08f724a1fdf00fba5a0bd687b2546b8952ccbba1015cb1adec7"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block1-template1663.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "e4fbb641bcae8b97b58c7d7744f91e096a87dc2f27a2e77e9806f0623a65f2fb"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block1-template1674.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "1ba3e842c5ccdb5d077173fa2f8c8744727b3d1b030dc614fa86d2b30dc87f3d"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block1-template1686.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "6082ec1cb1b82ee765b4d11f26070a5c4e803c210cd086692e890c660ababccb"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block1-template1753.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "1c230d3cacdb2ac76e3b9915c7dff8148b8a12e772864ab22fae6403e84ecfbe"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block1-template1868.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "7c11831362786bcb793ccaac2a161a34e6d3a9c45a9e4737ab46532d026dbccf"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block1-template1998.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "fea901add9dc1ca8229c67399cbd470fd2100669fdebf9191b44199a20d8c103"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block1-template2023.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "b073f401b8cf5548512a76661030497682e19052560af11d02e5d2c251362c95"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block2-template1000.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "a2f611cc4c871ddc10262ca369d832a76fbfe7417913d7bca7a82163d50c3d93"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block2-template1055.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "e53fe757c283b6183dd4c3b090193fa8d852a63d5b1c4cdfbe56d7e9b47b6b5f"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block2-template1110.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "7acae55ecdf8c914150b6fad2487578740241291ab7d3eb42cee7bd72d1cd136"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block2-template1202.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "88903a345c2bb0362186f410ecb9226eff8f806ff8d35464f6d874341fe876a8"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block2-template1510.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "943d2c0d117ed6077884826a67687548c09f8fe93f9d5c4e83630f1d9c269473"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block2-template1607.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "469d0d1ea070c4995219c89bdbbda9fd8dece5ed97fda59bcd8b23c64ce368c3"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block2-template1674.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "7c9d77cd6b35a6af8dd34220cbd129c0a72414e658a11261882e5b8e73c1e1ff"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block2-template1689.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "b5fb0b3d5bb480778bcc307f46a80d6a052c4e59c547860c6849fe353f850fda"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block2-template1749.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "93ceaa3766d13bc35a6b3dcbda5d2bf62fab6e732b6a2c40df015098fefc4b68"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block2-template1777.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "66da5d4e1758ec14d7b8480b10e484589f6674c3f63f29a554188d0723b5bbfc"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/block2-template2023.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "7b567fe0f299eee1b9c7fbbcc4f409d6136b564ad1b86d7fc61fed2da56a8849"
+    },
+    "torch-fft-precision-20260907/b1-torch_cuda/diagnostic.json": {
+      "bytes": 114129,
+      "mode": 436,
+      "sha256": "b412d66f4672c391cbaba0b40589546bc1377056664489a99561237ad0b312ba"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu.log": {
+      "bytes": 317,
+      "mode": 436,
+      "sha256": "a634fc49d0008d92653e982a7259ef7a792f247f1ff7458977223b1ed729a956"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block0-template1000.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "b1d3ae0772201e459451e67790a20a4073e92c35ad5cb8ce8fddb331bf0c8192"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block0-template1433.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "16cdd3573be12e7106357264fe66434d8210afab6e2f163f12a07336716f3f07"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block0-template1463.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "9bdc6c667307c1516c8a699583da3e441eb4bcb5fcae98cdb253624ab5d656b7"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block0-template1510.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "27270d98f3823ba06764f6c45c05aac30724202c3d536c013cf292412b74f9d5"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block0-template1606.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "89ce8d92dd7b9ff28f90c06d5b274ec98172d1d3eda1f6ed5b8a33256def2df2"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block0-template1662.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "2a82eaefa44560a53186b17c9e02b515cdbe8b343ee7d2f1b22d288a45cddda8"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block0-template1674.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "1647e8114370433cd82d4e6d036cc2bd5f9cc8a37f7cb0b6d6c4c9a5dbaba71e"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block0-template1711.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "381e6f60ad4487df324abb1db27326ba6138d6f66d72fe45126145d5aae891da"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block0-template1748.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "04d0a7fbda878b647bd3dcc5afbceac4fce42fff422954f8645619339e65ae70"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block0-template1779.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "ef5052598640cc14f7f6320ba0c26f3f7d9ac2ff8587c90676bb168c16ea6f24"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block0-template1806.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "c66d4a2ea52338d4ea9b3f07f8f834842764bc3517f78016e0102e24faa86d30"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block0-template2023.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "edd93c3989b86cf2bce2097a2695c9529eb0543e24813ed054e5340897e69ac4"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block1-template1000.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "9dc50c9bbcbdac73253736c83558e548f197e43413f292240a7f0f3ac29e56cd"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block1-template1161.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "947cd3c0b37f90f6bf575bdb11f93e3201fc7fd3b9b1702a0072f910ececebe9"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block1-template1227.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "b846b821288bc52231f96da5e0921dd5386a3030c112826008d0ea329f34943f"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block1-template1483.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "779f7950690fe06003568cf6a045ad4d74eb3f15b901cf5f4b33c8398fc6df07"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block1-template1510.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "ba8f577f54e48ce2604ff278f9f8e4aed340ea8c92a89ce55fafb15ae53679d5"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block1-template1606.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "4f416f481187b2b1b1213d0b0cf0ee95eac41e7a60d9750c8cf30a8d05a015b2"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block1-template1663.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "01bff657118d64a09284db9578810fc1e92968e32bd1b8935f7dc28f475d70b8"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block1-template1674.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "4749d8cfecc01d521506ed3a760d53af7a7634d1a6d3608dde8e6ed5c5acf687"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block1-template1753.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "e1aa4003d0b2a20ba2b0f50dd1d1bb31229a5c92d0ee7a7c852e86d52d944b30"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block1-template1864.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "7d38af04d08ecc49cf434032a91249d6a8983957a0920622ebb69994b0534ef1"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block1-template1949.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "5f3d70582fae382e35a89ed877a04f8d6323f4a514edff753124eaba6b4a304c"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block1-template2023.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "adc386b90b10fb406b12d7cd026ee127847d07c0ead6ee7aedc45ed9c130b3da"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block2-template1000.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "d1dea49a833047b4c54187be7505e1a2c315dd79a92dc7e62cadfc795c4c2d14"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block2-template1046.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "567dcadea52d5985d114dc322ee4eb2ad0182e951e25fc442197e392111e0049"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block2-template1050.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "12d76e68c64808ebe742f4672d4a1160f4d1e63c150bd913e15fa7ee1162253c"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block2-template1226.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "a9bb58b753b989bcb35833c8b5bdcd42c6ffa4904c78559afedc821dd4328349"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block2-template1510.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "efe3ccc9de6373fb093283593fe90ab416291549e018e436eb691c564f0cdedc"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block2-template1607.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "d42ec369a34b814fe8c156280602cb3169a23a9f1c2f9bc5cca3c63edb81576f"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block2-template1674.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "6fd914ce97de8f034ef082420ec427744a16484e99cda2b439a69c43040f5aa1"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block2-template1749.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "9834963824ebfeb59cd751aa5a44b0badcb99c1b635b38bfc2f1e5676ab407a4"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block2-template1803.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "8d249e01ac56e9c4391f0af3710f993380b792b8894ac203d1ecb4e95227b158"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block2-template1837.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "a20715fc267275b37844b2a14ba947c6cee7da62ecba2c56e9f35b4ee43df888"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block2-template1955.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "dd2c5631fcf5560dc83a206c5adf337f1a8a939aaf6e8679876b0166e2e0603e"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/block2-template2023.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "a2d7684946db34377dcb7bce00f5a2da5653b2bedba8a122289815f7a79956b5"
+    },
+    "torch-fft-precision-20260907/b8-torch_cpu/diagnostic.json": {
+      "bytes": 116266,
+      "mode": 436,
+      "sha256": "ea408fad00cb27480efad5f2106ae2765d6e7a88b12edbaa2e2ac4ea4efc727f"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda.log": {
+      "bytes": 317,
+      "mode": 436,
+      "sha256": "08a020800fc425b37f1bce0f227485510ec47f964163fb02f9752d3e49c6c641"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block0-template1000.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "858b2e2f56730994fdf2a0bd05e519c647d28331a67b3904aa4e323fdbeb5ee1"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block0-template1463.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "4c4295dbeb48a7284511c138d13c3e4bc16582484295d35244bf039ac1aa8063"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block0-template1510.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "1db29447e0f0af03193a821dfdad75c1b2f2ab4a761c1b3721f14c29d3378dfe"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block0-template1633.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "7e7987ba3429625938ef5ffa0a44dff20ff0878a86e73016463cfa3ea7d12a84"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block0-template1659.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "1f20765af0a5d288e99e626bac0b25e0698690c0c0d34c9bc2215bc45f86d8bb"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block0-template1662.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "c379a383624a5766733d01b0c42ea7cd8a604db5bf0abf67d4d27033b1c420dd"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block0-template1674.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "ed73110feee5008400cc94d1497593acded24c8606c14f1fcefb809a6e36265b"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block0-template1780.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "7c358a9bff2f2d9faaf4fdc85bdbd4134e126ec5b0ab4747a9d43ab5233b08b1"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block0-template1808.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "c44d3e63f0c834ef01ff1283b7c5ec3349da6aebd4d88578855378c306fd8eac"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block0-template1896.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "6732a79ecb90b7217edf7136c37d8fe483a9e53766cefb9832930855452dd028"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block0-template2023.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "092af5e26009c8d9ac3b82839bf4bd961630a081c1bd1a9ed700b880148dfbdb"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block1-template1000.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "ba4d28784c795606769f2640b601ce37333720321d0bc11bb1bcdfa15c970a95"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block1-template1056.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "e40afb67c0271fbd74b4014501c27aa9b799cb283e360cb749bacc53fa28f721"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block1-template1510.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "ac1538df7ef98bbf91264c285f298210522a030926d0571a74b04d103c702f6a"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block1-template1633.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "5d9360f3d039d08f724a1fdf00fba5a0bd687b2546b8952ccbba1015cb1adec7"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block1-template1663.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "e4fbb641bcae8b97b58c7d7744f91e096a87dc2f27a2e77e9806f0623a65f2fb"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block1-template1674.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "1ba3e842c5ccdb5d077173fa2f8c8744727b3d1b030dc614fa86d2b30dc87f3d"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block1-template1686.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "6082ec1cb1b82ee765b4d11f26070a5c4e803c210cd086692e890c660ababccb"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block1-template1753.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "1c230d3cacdb2ac76e3b9915c7dff8148b8a12e772864ab22fae6403e84ecfbe"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block1-template1868.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "7c11831362786bcb793ccaac2a161a34e6d3a9c45a9e4737ab46532d026dbccf"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block1-template1998.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "fea901add9dc1ca8229c67399cbd470fd2100669fdebf9191b44199a20d8c103"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block1-template2023.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "b073f401b8cf5548512a76661030497682e19052560af11d02e5d2c251362c95"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block2-template1000.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "a2f611cc4c871ddc10262ca369d832a76fbfe7417913d7bca7a82163d50c3d93"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block2-template1055.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "e53fe757c283b6183dd4c3b090193fa8d852a63d5b1c4cdfbe56d7e9b47b6b5f"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block2-template1110.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "7acae55ecdf8c914150b6fad2487578740241291ab7d3eb42cee7bd72d1cd136"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block2-template1202.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "88903a345c2bb0362186f410ecb9226eff8f806ff8d35464f6d874341fe876a8"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block2-template1510.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "943d2c0d117ed6077884826a67687548c09f8fe93f9d5c4e83630f1d9c269473"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block2-template1607.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "469d0d1ea070c4995219c89bdbbda9fd8dece5ed97fda59bcd8b23c64ce368c3"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block2-template1674.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "7c9d77cd6b35a6af8dd34220cbd129c0a72414e658a11261882e5b8e73c1e1ff"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block2-template1689.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "b5fb0b3d5bb480778bcc307f46a80d6a052c4e59c547860c6849fe353f850fda"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block2-template1749.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "93ceaa3766d13bc35a6b3dcbda5d2bf62fab6e732b6a2c40df015098fefc4b68"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block2-template1777.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "66da5d4e1758ec14d7b8480b10e484589f6674c3f63f29a554188d0723b5bbfc"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/block2-template2023.npz": {
+      "bytes": 5243916,
+      "mode": 436,
+      "sha256": "7b567fe0f299eee1b9c7fbbcc4f409d6136b564ad1b86d7fc61fed2da56a8849"
+    },
+    "torch-fft-precision-20260907/b8-torch_cuda/diagnostic.json": {
+      "bytes": 114128,
+      "mode": 436,
+      "sha256": "ab50663e1c8ae85615d5f88ece587a2c8f8727c36c41c6d081ed093fd4580118"
+    },
+    "torch-fft-precision-20260907/current-batch-accuracy.png": {
+      "bytes": 123434,
+      "mode": 420,
+      "sha256": "02eb10b066b4fe6292e1cc8b8a555ca00627362564077255ba5a092cfa925be4"
+    },
+    "torch-fft-precision-20260907/current-batch-accuracy.svg": {
+      "bytes": 102012,
+      "mode": 420,
+      "sha256": "4a245d9efacbb718b14ba18333d298e5019cc22f63d1c844f25b743063dd20f0"
+    },
+    "torch-fft-precision-20260907/diagnose.py": {
+      "bytes": 6759,
+      "mode": 420,
+      "sha256": "4d508e0f9961dcbce501c8166c23cf72e553e347d17c3aa3909f80eac7ae26b5"
+    },
+    "torch-fft-precision-20260907/launch.json": {
+      "bytes": 528,
+      "mode": 436,
+      "sha256": "fa165589454bec6f81aa8a9ca97b297d1bbee86978b8a76260d8e0d1601002fc"
+    },
+    "torch-fft-precision-20260907/launch.log": {
+      "bytes": 0,
+      "mode": 436,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "torch-fft-precision-20260907/normalized-error-audit.json": {
+      "bytes": 9451,
+      "mode": 420,
+      "sha256": "c35b0295166788fa94d1aed680ebf52267460b69fda895a5e28e0357ba616a47"
+    },
+    "torch-fft-precision-20260907/plot-accuracy.py": {
+      "bytes": 2379,
+      "mode": 420,
+      "sha256": "f71dd3e32df863ab61965f06352dd63bb7ea0d28b0faa549a0d8909007ce05a0"
+    },
+    "torch-fft-precision-20260907/run.py": {
+      "bytes": 1593,
+      "mode": 420,
+      "sha256": "3ce9ca30bba13eb3f821766012027fa361849d03390353c833d3b76a876aa851"
+    },
+    "torch-fft-precision-20260907/status.json": {
+      "bytes": 933,
+      "mode": 436,
+      "sha256": "61dd28c70cfb282a0c992a307d309bb7719a485ad44b07c8068508c95194798c"
+    }
+  },
+  "offline_capture_validation": {
+    "R3_array_hash_comparisons": 276,
+    "array_hashes": {
+      "torch-fft-precision-20260907/b1-torch_cpu/block0-template1000.npz": {
+        "actual": "c7a170691fbdcf8cfc007912dff0a4a09b7adaf7e2c713227d99a1a2dd505fe0",
+        "correlation": "68ec703413fa272895c9d1717a4789146f27c2f8ade4a6eb1fe2da7948c7dffb",
+        "exact_correlation": "d76bbddca8d19bc4a4f44f1082405025323c4dfc10203b4dc8c854dcc4ab7c5e",
+        "reference": "3f19d72abbca83e99f2056752d4740485fa2e723adbe8480b8cc277eb3d0496c"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block0-template1249.npz": {
+        "actual": "fc9f595b9a4af8a785f48d0b52054ff90cfa1ac894793ecf5b5207ee5dd178dc",
+        "correlation": "b5e8a2b81e46746a7834fbcab41cba5d33f696decb23d7ff2ab729a9947857e0",
+        "exact_correlation": "df7636f7ace21ba838772a38695eca520e0769837087b7cd7a8ae9b301057886",
+        "reference": "a0f9cdda10a9ae8fca160f685df0621a41a484f11c01537c7a91e0236e099363"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block0-template1431.npz": {
+        "actual": "b6775273943b6dbf8abf4e920a425bc960a8e9d557931f5c84cb5bf47e07b34a",
+        "correlation": "b7f79d32913ebfd79e0a98f86c269a729490c7ecfc101fdb7caac73511f6ee13",
+        "exact_correlation": "e52c04e6be3098e24c041f65c774fbf98b03ffa5ffdfb4729a7ae978fa2177e1",
+        "reference": "c5e8e773d9e63edcbfa0419511008c5ff9b16c4282eb4387554eadb507f76ccd"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block0-template1463.npz": {
+        "actual": "77ddbc0e90a8aeddc70557daeb9130baa8af6595f5d5a6a22fb2bd8dab6b9cdc",
+        "correlation": "bdd0a593d8c4a421c66c469a6491432530aeb53d2d29c3801e01f12a62386fab",
+        "exact_correlation": "cb732eb3820634a91dc54988b1f7cf70f26175eaa6794d7dd3f293bc1e9537a1",
+        "reference": "18e6bce4824e52b4a9e3bf29d340a62464a6d743132d85bf1656101f4b772233"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block0-template1485.npz": {
+        "actual": "999f5f51ebc03642959d46935b17abb04c2fd54625f3d82caedabb9af5b30b1d",
+        "correlation": "37c2267bed2b744f171c06f5f78a7343d6cf8ca10f919d4a1997892b84d2d2de",
+        "exact_correlation": "204b3a4d33afc1f643fa5f3268387c6cf777a3960c0c12fa2dc12dfe1f8851f9",
+        "reference": "6809a57419e7b2036e59f6e7f31e86ed51f5ce12d02bf7f859cdeb7d63910837"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block0-template1508.npz": {
+        "actual": "5eacd0d54e414fc7df16cc271a7d3cf3c7364039e46292c2ef3138eab5d9917e",
+        "correlation": "0a6cbd524e6fdb7a0f52f1a70c747344f76185e9eae75a4c69a0d5304bec0273",
+        "exact_correlation": "0a7b7ded8110df0df541e162b7bfc43d9184c60ec87cb2ddd491e8c58ae4d046",
+        "reference": "5f08262e0ee1a6283e2a470f8dc10ec5941797ac473a0b4caf89162e1a5b7fb8"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block0-template1510.npz": {
+        "actual": "314eac6e0dd59956f5e269a8934b46519854c9a83b0fd90c687f6d228a9fad7b",
+        "correlation": "04efb251567627ac27f2037206a170f5bc52d6d9f10d924e7ccecf7ef5ca35fc",
+        "exact_correlation": "71159c27c74375ed7ae72c6705140d032dc29ed1c0a4ccd2c68e13aa2356c664",
+        "reference": "b48d7531f4ec8c9830bcc2614b67d18ae6889c0a0d58a27965132b308a181490"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block0-template1606.npz": {
+        "actual": "e1b7a399d56330441a877e5492fb50de8399354312b31d62496887d1bf4088fa",
+        "correlation": "2fc92755a6ebb2e1ccf0aa55e1f59135e6748d71d646b904dc775087cfe41a4b",
+        "exact_correlation": "a735b5db101424651fb2aa1f63eaf934c6dd48fbf70407c9c1ebb0883f122373",
+        "reference": "75c69763d38a9daf833e935e90ced367702b5bb46f548dc11f432a79c0a2530d"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block0-template1674.npz": {
+        "actual": "9aa8e586d8eedc6f5e496ada37e0f63c4223033b89a0d4530640157a2dd2c4b7",
+        "correlation": "956666f2f259992a407e4b4672efa53c06331a8deaec1a73bfe3d7dff8d0a8d4",
+        "exact_correlation": "6d8a7c6c298e05980a96a4ed421ee5378517eededc75f4d0a9ada258bf34dcb9",
+        "reference": "0c58d35dc0be9e0102f4cfeccbf779cfac0e7b2aa33ee97bed52f4d6e3b4c62c"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block0-template1708.npz": {
+        "actual": "abfa547afc2faf7f86d7025a60f39488fdfe1946f218386a73f78c70eec57d22",
+        "correlation": "b490b630a021be0087c9e3db889a897c484b224276ed051a0e278d7798b1de02",
+        "exact_correlation": "79f2442a2f1791fc5ede321b98ed09a2261b4ef8f0e6bcc2465ff8172bb4932d",
+        "reference": "49e8efb90450b230af3c34d6c6c193b52648bb535062b156bbb74180a6ad9511"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block0-template1806.npz": {
+        "actual": "6147150a18f24c098240e90035f537cbc8476f7c065754945056d8067ed75677",
+        "correlation": "8a2df6a67aaff4be7ed23c5a6be794ea31c8f30b206d13b03d05654ba0545c45",
+        "exact_correlation": "4b8bf1b044bcc3986b06cd263541ca012ee315c98b697e60f7de1af14225fc96",
+        "reference": "bceba1c55143b075def99a2f6b93a0923aa95f3ae009d7d1cd51962b22ae3e8a"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block0-template2023.npz": {
+        "actual": "ef15ebf83bfd492a3d5aefd30ba4c6d2910d61d441e0b7cdd486bcf22e23dd4e",
+        "correlation": "215cb104bf33b8c373d4b29f302e230f156b18091d116df32aeb3741ffa953fd",
+        "exact_correlation": "314ad64507f84288f44072a22f12f719f41a2c7cde583f600e9df5e5dc4f4262",
+        "reference": "39b8494d82c56ee030d62cb0a9f21d9280062a30ae8c481c666ed30eb3fe1a37"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block1-template1000.npz": {
+        "actual": "ec62e912793ce161142a75a5822da2657e1cf2702cb1c0618257a9a0cfb33861",
+        "correlation": "264cedbdb4658be1b1c27db019c0cd7acb9380583ba507ec607c56e3d9a8a8fe",
+        "exact_correlation": "f662144b092c303ae5e097fb077906acee18fd0d26d3ff08302ed0faaecb086f",
+        "reference": "873eedf532af858d6f98aa4548fc50cf15acf24035b18efb52001a892ee9c5ff"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block1-template1019.npz": {
+        "actual": "a204b4c54774d077fcdb15ce780a3932d8136838dc8586b1500efd9e58023c05",
+        "correlation": "858a716460afbb4d41589ef30966a55d90a35464806fac92c68523e1ce059e69",
+        "exact_correlation": "cb4e6814380540a50e12d24f9db0abf04fe81f65fafb230da7da201f7fbac228",
+        "reference": "946a10e22ec1f3bba2f5f626f65c793d8e80066bb23b7127891c2cfe3b38c7c4"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block1-template1056.npz": {
+        "actual": "a44b9c3467ab94b7186a9cc264a5e56eb6d495154d61ac74af54c55fab35a43d",
+        "correlation": "f688680194e70dc054f92470728aa42d0c8ee86c160a9cfc2a8ae954433dbc77",
+        "exact_correlation": "bf265e5a5a7ff13b827a8e9c959422236183f1e8cf60a281c92ec8b7d1c14b59",
+        "reference": "9840504095b375717a16edaa759b417eabc03472b7a4a4f0acd859c1d7322dc5"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block1-template1143.npz": {
+        "actual": "23cfe782cfb2fac83196eb9e171027ed814862032df2d297ea171d24c111bcf6",
+        "correlation": "ff19df7ad1b44a321feeef9e9be349e646c74ebb396c22ff3b7662d6ddea0115",
+        "exact_correlation": "3cce816dbb3f8925c352ede67086f7a9790f09f39756b852c13346760de726e4",
+        "reference": "7dfefadd7823b5427699273655e58d25238b9d849f5df87ac23d521b5f90b545"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block1-template1161.npz": {
+        "actual": "346472e124a0178e78a2ff350e6d7d10947594d6536c7b6ff7531641bcd3f438",
+        "correlation": "ff29d7a9d0557183d03580b0a12d20a2be40fef5243243b9f9ec7ea8dcb9945b",
+        "exact_correlation": "16a064e9eb9eabe994d95670e90b5ea4edcf27d3c7f1d2a2b5c18a8bfba5f1e4",
+        "reference": "4017f2ee6113929721f6b68d8e7e70123455216340c8607789965aaa926b0dcb"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block1-template1509.npz": {
+        "actual": "5d04563159cf2eef05cc91d06a04e5e83d8d48cffa4ff40cbbf58d2ccce28dc0",
+        "correlation": "686ac844039aa4c39e81eee5ada0c9fbfa5e9d4b06e0a05f36faf077ddaf30d9",
+        "exact_correlation": "ce24dbd43d6e48e3fa894841c34a7a8aaa40f93200777ca6c0a5cff507a34697",
+        "reference": "f6eb220bfad2527d5476849598dcf902393cc3d3d3f25665c5638409f0ec6475"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block1-template1510.npz": {
+        "actual": "c02e51f5b48d4e037697fd30f27035b4e1a0dbd96af27a501d376d1b8222734f",
+        "correlation": "29fbb44946aec05d968a1f9942fa94f42f80105460e972499e9a3a1d82ce8d83",
+        "exact_correlation": "d06dea05354c3890603f7f85c31880df65187ef3baf0335c47a91f43f79fbb48",
+        "reference": "971def92a2139cf3f244943e7285b8c9762c391d4b3f0eba204fdc7ef344b5cb"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block1-template1606.npz": {
+        "actual": "461a4b32730608b5777c118d8760626b529ea80f502ff8d0e871a8a4991eac01",
+        "correlation": "c103ecdf4552415764e5048b82a3ab133d40ca234fae1734429bbb47f6402d76",
+        "exact_correlation": "9b72a9d24b0f57b2e60916b8bb8e767119bd415b4d5763d23801c641593fe414",
+        "reference": "0211397b66786d94db80c3eff811401fac752b24144bcecf28a3566461f8a5cb"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block1-template1663.npz": {
+        "actual": "9ae7f121286671e0c96c0c6d9166c0ed48589d9b05466e52451973951e99541c",
+        "correlation": "af8052d0798277f7f34a146acade266cd8b31db7dd57ae03333abc0f99a87038",
+        "exact_correlation": "33ce6fb437ef85aca9a14e137ab18e36fcaf436b19d3372f7a7a30467c5a2e9b",
+        "reference": "e46c6b678febf992f9f337e28a57857418e129f943a7370268f778f989af4d2a"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block1-template1674.npz": {
+        "actual": "ed1487309f6f0a350d05a90ce955facaecb840e910733fe71bc076789979eb1e",
+        "correlation": "483c8e074ab976979d74701e1e86b5a42fef1d10762677902bcb8da18eb2f5e5",
+        "exact_correlation": "f02d58784bcc7d579c3de6831ffd782ba7f49795211c357c9b65a5e3e4883d1a",
+        "reference": "9afdf7bd7c2b5c805c57045acd1189d423112eadedea9c9a0da91c6ea0f3c971"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block1-template1949.npz": {
+        "actual": "b618349218cab63243cb8aef9a047d4c297525d95220f345ba1282c43ab835fd",
+        "correlation": "c22915959b2d7a0da33cecc4e6f8cf3b1b1f233ef2607b1907b893ff44b7af4a",
+        "exact_correlation": "95227b89e13b945352b7c3c241cfd60be0df4774245a20d0e67aedf252241d7d",
+        "reference": "ff2e8df25e1a81499de6db4b4c628e8f8f773b6357bf6a709ddcff506fd0b5b5"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block1-template2023.npz": {
+        "actual": "a54c16e1e649c560f96776b5f1016349c0138bfce85ebe81b790302611c9d5dc",
+        "correlation": "d8a9787316749588e286d9e3c5d28ef7ce33d828e2888bca9c24d92052c41cc7",
+        "exact_correlation": "349c7acef3126020954bc1993b7eebe7858f7ccc7ecef6a353ecb5e5ab519820",
+        "reference": "fd36bc11d85111773fbe623cd11657617c619e249c95dd4a870f2dd0b0eed31f"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block2-template1000.npz": {
+        "actual": "26b6c9c1edbb33ddacca490de47087fc1915cf4f694ebaa96d228106c862bdb0",
+        "correlation": "2a6e6de6587e3b388ab0774ffd4be0f0e05b3a9bad11acde46a1bce8e60460e3",
+        "exact_correlation": "0158f5b92f9010cb5f0170df0d00cc9b9b764406c473a8d0daefe2a9f3d83a53",
+        "reference": "2e75c6f0ce4e2c608c497aff1e12ff05a18d1ebe5c3994cbc11cdecdb7cbbadb"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block2-template1434.npz": {
+        "actual": "9582e246bd65622762e91e3f5d19a96e466bc7c8bc5d19e9c28b59079e16f078",
+        "correlation": "859a3c9726b2c58c426a3022a52356b224feaa62e015359ad9428e23c75b676e",
+        "exact_correlation": "d56051c5f95143bb09877bc877cd564734eba46552febef5238a158f1d63204c",
+        "reference": "d7470a4018e1916c951e443f3c77f106c1bd515578bb68fc6a631e93f61c0d45"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block2-template1455.npz": {
+        "actual": "ce586d295352fc9146d4f836318e7606986059936483e4f0204d7c438b02fca7",
+        "correlation": "6201fe2e6ab95e54f9ec9411c4fb86edc20becec9d7514d831fb2a207ee42e8e",
+        "exact_correlation": "52f17ebe14964125383907729b458449062e3f74d750e1f2b2ad7655c6c5f8da",
+        "reference": "b5e6ec15b7362b34505f16aa19fde15a972183ae070cb0f0a01c648b6dec6db6"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block2-template1510.npz": {
+        "actual": "37b8b3026d5c195c0159721e2dd1fd6247b2e9b7fc99d05aaf3a02d6a9959173",
+        "correlation": "3c298524f23e94237c40dd8f67aa266df30b202dbbbec9cb2febf51be6f5c69f",
+        "exact_correlation": "72eaeb2201d1898506f914367b47e080e9a6fffd2ec93ace4cac6ec77916abc0",
+        "reference": "5eab9291addb37c328e10f952e05ac0e48e0514e24493619921e9458e2f4a9ab"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block2-template1607.npz": {
+        "actual": "278434dde6a0d82b20d38f4c097c5eee7018857b8564c2f2d40efe6fec0fbfe5",
+        "correlation": "976221579fbff50bc1cc3fa8c60c29b7fdd482231abb0dd9a681e04de1dcf593",
+        "exact_correlation": "78fd7056cc897aa0cf757f2145f54275a05ac346230496b2bdcaa11bc1ab751e",
+        "reference": "48592f581cb5b4a306ca7c272dade185da3be9e114e0bc8d24d87c8b06697101"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block2-template1674.npz": {
+        "actual": "2aca3d05ad5c5e2ef53f84165b33dfd36564408ceba3ca1b78de8805a63a3457",
+        "correlation": "e29fa8a9e7184f8c2aafc4d6edd7a7bc13afc6212ba37c8de09ed850c72a50e9",
+        "exact_correlation": "712cb01122910021388acacb939777aa9db8b157c8cb76cae449f2f6ccf01625",
+        "reference": "b05ca5ada8862acbc320b3c51528dbf594463542a25524240e7653207679bff8"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block2-template1749.npz": {
+        "actual": "a413c7220cef5f6f119f4ce3fe809571b0b3451bffd7644cb472c4a9c66a45c0",
+        "correlation": "5766769c9f1213a2f60e60fbfa6488845a310869f5f6279f41e33fd0eef911e0",
+        "exact_correlation": "e3ced5fe5cd1ad7332e62c96a3e1dbdc01ce2f754028f51c67aec36b2d1ba2a7",
+        "reference": "ff2f66a1947fb537290ac66bce0285d2920dd0b7ce935a95bb4dbf1d2209ef4c"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block2-template1805.npz": {
+        "actual": "36bcd278728117264983fe3f789395d3c9a33cd1ffdda0ee6be4395f32e26624",
+        "correlation": "1eeda30160eba955cfcd96b67eea428e8812e0e22ffeb130ad43dc167515c00a",
+        "exact_correlation": "0f02e86220c6ce2aade7a89935d8557a752eda5534427fd2b926b0ee25757b7f",
+        "reference": "ef62366f3473f3f46d1af9195ccf52dc78f207640ec2c6228f9e975c9ccdf8ce"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block2-template1866.npz": {
+        "actual": "3f2289d0bd8b9a4dc600a96f7805bb0b5289bdd44194ee82d6417896521099f6",
+        "correlation": "b794d481f906dcf044e992a4e5670858d56b91a95cfe7924d3153520d229fb87",
+        "exact_correlation": "6cd0b1e92cc6adcaa94bbd52165f62fd73bdd46c6e17c32a65eaaff30dca7b8e",
+        "reference": "786cd2ef3fd7a195450a9580e49c6fc94db2e9a90ad1251845e0d75ea1f96be9"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block2-template1869.npz": {
+        "actual": "66f217f95f829ba403f0b77005e078ddcdb1086dbf020c640010808d2ac6ac50",
+        "correlation": "b7f596e9da6613b2538524de665f5e852519f77775c548b45b6b53aa258a2c44",
+        "exact_correlation": "67820fa659d97b623371d5bc96620cf7bd9fd3cab5b8105fc03f992efee97c51",
+        "reference": "b39fe02e7ffddbbfc0bd6ec87246ed6a4556b576d9da4536133d6336872d3dbb"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block2-template2005.npz": {
+        "actual": "c2e31831b0a806b5fb613ffc63f33857e79b904bb49fc017830e9f1b81838bbe",
+        "correlation": "64d69fcef863f66c64f356cca5e4d17a928cef045deed81b3a06190e85b1a3f1",
+        "exact_correlation": "baa8242d201e34cdb1577d4eb5a47f1d1dafb61b1e9cc1c6f401c8a8e0c9d7c3",
+        "reference": "193ca9bce3846d95e83c0f352dc08ddb03558737a82413288c42a79b37bc0eed"
+      },
+      "torch-fft-precision-20260907/b1-torch_cpu/block2-template2023.npz": {
+        "actual": "5da155e46f5a7f312978baeb8c2805c6939ba01a84985fceca623a923bda9e40",
+        "correlation": "6ba4ded2da77172f0eff22281a99cbfd6cbdf7d098dda850476d6d381b53ea63",
+        "exact_correlation": "731e61c3c5522bae183354a6a9bafe64afdb4b97c90edbad946a4a2ab5a86838",
+        "reference": "b6d63ab385fc4302e87fe84d31c042c777a1b11e51de7f398ea41531ae1a6a76"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block0-template1000.npz": {
+        "actual": "f4a366ac493090b53524161a211d3ca885d4c316653edcce77afd50ed1e71601",
+        "correlation": "6986ef2203ccc9729d03004835975b69abcfa93a39d30ab2ad68e63c690d595d",
+        "exact_correlation": "d76bbddca8d19bc4a4f44f1082405025323c4dfc10203b4dc8c854dcc4ab7c5e",
+        "reference": "3f19d72abbca83e99f2056752d4740485fa2e723adbe8480b8cc277eb3d0496c"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block0-template1463.npz": {
+        "actual": "36f61892c4c6ac99139bf3bceb7e1a15c08bb49553745594cc86e34c32d6f855",
+        "correlation": "2b5377d786d4ac74936ecfcc3238836808a2644b6650e9a26767d09a05678ceb",
+        "exact_correlation": "cb732eb3820634a91dc54988b1f7cf70f26175eaa6794d7dd3f293bc1e9537a1",
+        "reference": "18e6bce4824e52b4a9e3bf29d340a62464a6d743132d85bf1656101f4b772233"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block0-template1510.npz": {
+        "actual": "7e6a7e0040fa40f9e5081c10a389b15d7a186762ab716cc44c02b959e826ec79",
+        "correlation": "48b1bbc3cb191773ef9abf72ec21005c50346d39ce5c8f1e09b211d99bb693ff",
+        "exact_correlation": "71159c27c74375ed7ae72c6705140d032dc29ed1c0a4ccd2c68e13aa2356c664",
+        "reference": "b48d7531f4ec8c9830bcc2614b67d18ae6889c0a0d58a27965132b308a181490"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block0-template1633.npz": {
+        "actual": "04305ee2f48df6b2dd44a43a9d1b307105c8fe6591535c50b87ccded08f41b58",
+        "correlation": "db98311e72a372b6d8ddea1ba373096baed3e836dd66d183a4b51c6e5e2459dc",
+        "exact_correlation": "aab5d34c7cc057db046fa94fcd7f63cd820c172b7dabc106e4c23f2c1f308375",
+        "reference": "e029a2bb51112a92563330c064167c6318ba29f0f42a432d2344b18ff77e186d"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block0-template1659.npz": {
+        "actual": "d2e661e708c24cda86240f1e17e2750ab0340124ac56ab63bbebea8df3e4e3f6",
+        "correlation": "cb73831a2e6c6fbedd14cf2bc05d9353a8980f8150d8f262f422c93ff0b772a2",
+        "exact_correlation": "8a8202aadf70144edd2bbcd908f0f2004acf844fcdec7f50a5ae2cb2e1367f41",
+        "reference": "1fbd5c828b2c0e42c8a39d3aaa948bf8bf1fe707cacb9b95d1f8c8e04906410f"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block0-template1662.npz": {
+        "actual": "5c7683b975a987b82d637338eadd6667b14ad87618a484c07472aa4eaaee77b6",
+        "correlation": "6cfb380afbe250009448b9389ab5cd7a863917090ff76098c7cbd9f363cb3bc9",
+        "exact_correlation": "6c9c5e99c8c2d75671e392f949c0e96ae895d5fb1a3fb808f554ab5b68c6e533",
+        "reference": "c6af2dca5fd0988932ec15fe8bec30fa0310e1c344be0183655a7591f0dfdc82"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block0-template1674.npz": {
+        "actual": "f4313dcf7a83b5604dd945a836d63186ac4431a3e5b718b273f37887969a52b4",
+        "correlation": "067869a78ec72578b4e309cfbce674da883b598db1d10ab72dbe4ae90cf0186b",
+        "exact_correlation": "6d8a7c6c298e05980a96a4ed421ee5378517eededc75f4d0a9ada258bf34dcb9",
+        "reference": "0c58d35dc0be9e0102f4cfeccbf779cfac0e7b2aa33ee97bed52f4d6e3b4c62c"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block0-template1780.npz": {
+        "actual": "d7283d91bb84b07e9b1c9852c1f793d94088df189a44a739c9c9ecf6bc3d20c2",
+        "correlation": "cb79b84fe8f5cb1aa0b0b2729e792822bcc32cf86ee93d300b25d559d0f42f78",
+        "exact_correlation": "d75f0bbfbff13c7b433242239dcb55af6319a56ee1bdea433913e1999dc09c65",
+        "reference": "3ae6cef16e5cd2a00b7e74d7127e019205cbd078e97bbf8b46e69453c6727bd6"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block0-template1808.npz": {
+        "actual": "051197472a365faef8bf54c4d97be011223c92747d11b8dd2eba583680470796",
+        "correlation": "5aa8cb9aca6df634d7a9597ead4dca05ef39f0393038ffda818b97e38f4cc147",
+        "exact_correlation": "2ea3d17eb34f583f47f393dbf5852ceaecc47cc96e14a4a4f23323f4803eab30",
+        "reference": "453b74bb540cb7b9fe366f6ebac6e7ddaac897a79790dcf505202eac4257bccd"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block0-template1896.npz": {
+        "actual": "c55aef3cb590833705565b75e00479bc158edb6a25d932aa03104c3276309545",
+        "correlation": "0b8067ac95c688b39d6cee5fefd699655034687c0b416cc9444b634ddda29e01",
+        "exact_correlation": "444de20b3d4097bddaca67258f6fb22cad9184ade0e3110a7dd38e168f0fc506",
+        "reference": "ca8ba4f50cae970d80b67b66b98c511f7ff653d4e5dd9cdb9cc375374f3dbe18"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block0-template2023.npz": {
+        "actual": "ff37aba27446bc78eb0f5b34654ba34f5d46d6fea3dd98ec7dcfe84578edc406",
+        "correlation": "adab534bf85dcc45891db2f28619d9b38762cc59e9e1d60649a4889fa46aa2a8",
+        "exact_correlation": "314ad64507f84288f44072a22f12f719f41a2c7cde583f600e9df5e5dc4f4262",
+        "reference": "39b8494d82c56ee030d62cb0a9f21d9280062a30ae8c481c666ed30eb3fe1a37"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block1-template1000.npz": {
+        "actual": "424a7d55182fafbb50e4ab24017083f4a99e4e29f1bbcc0937664ad417615e7e",
+        "correlation": "5845187e68e434df61a4122c2dd15a9da330755cfed7b2014e4be8740356034c",
+        "exact_correlation": "f662144b092c303ae5e097fb077906acee18fd0d26d3ff08302ed0faaecb086f",
+        "reference": "873eedf532af858d6f98aa4548fc50cf15acf24035b18efb52001a892ee9c5ff"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block1-template1056.npz": {
+        "actual": "cfc31d33a2c421e25caf21c247ff00ed4c5969868f4599d5bebae42f44a83dc5",
+        "correlation": "694b870ef2a1c91ad248efaadf8e3b82de645ebb34a4120d56dc51ed2044b17a",
+        "exact_correlation": "bf265e5a5a7ff13b827a8e9c959422236183f1e8cf60a281c92ec8b7d1c14b59",
+        "reference": "9840504095b375717a16edaa759b417eabc03472b7a4a4f0acd859c1d7322dc5"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block1-template1510.npz": {
+        "actual": "e3ef8fef8308742132914c2d62ad13c0ddf1b24a635c3f5f599ec22cf766ce16",
+        "correlation": "b983f2b9c05a4ba99ede125aff39cd9b9b9b8f8281c2cb1880bd554a38725f4a",
+        "exact_correlation": "d06dea05354c3890603f7f85c31880df65187ef3baf0335c47a91f43f79fbb48",
+        "reference": "971def92a2139cf3f244943e7285b8c9762c391d4b3f0eba204fdc7ef344b5cb"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block1-template1633.npz": {
+        "actual": "7a24981a4e2c0d9f1450612b6947f1aeceb39e28fba61822eb26200bf2693844",
+        "correlation": "585224717df38270a35a7efe28db0b0c1b3961809ba2aa823c929c5f8f6aa346",
+        "exact_correlation": "f486fd9104c6173b57d81965e40d2d40553e247090f7ef5afe30c305e66aa936",
+        "reference": "256ad821bab3d034fb395c3beeb75189566933e3d43546fa13f16509bef6c842"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block1-template1663.npz": {
+        "actual": "8f54986846fef56ed7fe9578f59317c7839fb97326739adb442227eadddbb8de",
+        "correlation": "11f4a2495907c03ed2a5bfc5823b907f8feaca66482f07122acc3164930f2899",
+        "exact_correlation": "33ce6fb437ef85aca9a14e137ab18e36fcaf436b19d3372f7a7a30467c5a2e9b",
+        "reference": "e46c6b678febf992f9f337e28a57857418e129f943a7370268f778f989af4d2a"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block1-template1674.npz": {
+        "actual": "82f1e1912c21e5f991ccb21b36164ec3a94519e013e77644959f9e1325380f7c",
+        "correlation": "a95c595da5f59e5893cd9347f97b0f5727917fdb8f4b0c14bbe2aa26d2a53835",
+        "exact_correlation": "f02d58784bcc7d579c3de6831ffd782ba7f49795211c357c9b65a5e3e4883d1a",
+        "reference": "9afdf7bd7c2b5c805c57045acd1189d423112eadedea9c9a0da91c6ea0f3c971"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block1-template1686.npz": {
+        "actual": "91e136a7ce4e53512be71493f16d3a23887dfe29518e7c30238db99a1a247950",
+        "correlation": "087c96804ac9e32b33172a707f11479d029936b55b7c3dbb676d5e3073ebd209",
+        "exact_correlation": "ccbf6f3a36d9825ac301e1b4c7da8a3d0396487c72304ffa2c0fd3477d377d36",
+        "reference": "97e8c126142d3220f9cc58509d0494644c35c0cd0dd6d33efb36221d4b9e455d"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block1-template1753.npz": {
+        "actual": "6c7b0d6054fbaa3891e43d2357a83bc0d2aafe012c74bac2689329bb7086f451",
+        "correlation": "b1a337cc446cf7e92bccc68f119988454f580f9517558e6e576c0142b62b469c",
+        "exact_correlation": "b1f50fb6b8ce08b32a90b534ce67c580d7ca3bb48e53fd1062766fcf283a6795",
+        "reference": "836d69965e56cc941babae707540dfb7461d2133b1632012f543b008d2975990"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block1-template1868.npz": {
+        "actual": "b33fbc203f2402c0a3e2c2fb022b39f0bdd9b3ecf37b0a35687c5b7ea4e72495",
+        "correlation": "cdc82ed7dc88e01f56cf5603f2ee106c7d0a713d8492cfef3968b81ad1851bc2",
+        "exact_correlation": "4b58f962f88a314258d6602484b41f702e57705bd5e4cc2ed4e3ee4df4f937af",
+        "reference": "f259f3dd810a4109bdc3eba85a4f14dff02e4d70f8db6280a679f548eb121b90"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block1-template1998.npz": {
+        "actual": "ea2a0e6bf420f40be739d8b7f9381740021f0d370cb6c8fe41a3d71b4dd72fa8",
+        "correlation": "7e14e7d7432c8470bb642c20f57e3c25eb2bceabc06592ef6586d3601d41a07c",
+        "exact_correlation": "395c706da9755ab4c25a7658dc8e07eef605cbdca316f55a304e545a16ac7f6d",
+        "reference": "e326ebeb92e356c807e4f28f21c9e06308cc7b38eca65b78cdb60fc66f92103f"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block1-template2023.npz": {
+        "actual": "69a952501a9d363e322722b139a1bc592e8d65fe7e08fee8df592126349c8d31",
+        "correlation": "541e60a7508500c70e091c45fce3c83e9de2ca2e392bc81ef69dc82f31e451c5",
+        "exact_correlation": "349c7acef3126020954bc1993b7eebe7858f7ccc7ecef6a353ecb5e5ab519820",
+        "reference": "fd36bc11d85111773fbe623cd11657617c619e249c95dd4a870f2dd0b0eed31f"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block2-template1000.npz": {
+        "actual": "7c76039199c07a3612b8e784f1d6b9de5f4723f85efcd2e876723e2b40d90ff7",
+        "correlation": "91baf2ca28dcd3644cd8c90e0598644150392faa0e27679cad3e4e836d1b7460",
+        "exact_correlation": "0158f5b92f9010cb5f0170df0d00cc9b9b764406c473a8d0daefe2a9f3d83a53",
+        "reference": "2e75c6f0ce4e2c608c497aff1e12ff05a18d1ebe5c3994cbc11cdecdb7cbbadb"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block2-template1055.npz": {
+        "actual": "e44adb1c79e0e017d1266aa43ecb1d414e5c3b5a21dda3a5f85f5876228c7961",
+        "correlation": "fc002bf334b5379655198b65b13230486db16bdde9d59dacb36e5626055e24b2",
+        "exact_correlation": "f9efb6f5d684894dacbb4ba80dcac83873fbcb61f989cf67ffa9d6ccd4b44434",
+        "reference": "c1630ec145ad06a4e5b54ba46845ab602d5729d070534bae9593fcbfd8391628"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block2-template1110.npz": {
+        "actual": "4a3fa58c671e1d036f62683b1c104b5d2e4ee99d2c0c65d0cf9749ad54bc4e99",
+        "correlation": "a938f0c83ce769e7af8c8674860c4769c6a3010d7de63b426914923994737726",
+        "exact_correlation": "bb31392b34baf943e33b7219cae25f517c4a5163d8535489e8d93db2d738b22d",
+        "reference": "c19e384fcd4508886d3474477fba83acfac91046beba3aa345f08c9760382788"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block2-template1202.npz": {
+        "actual": "c0f9985b7923634f8d0f3c8c7f39ad53ae1df5ccfb11e2a287ee4ff6d80b214d",
+        "correlation": "ad1510420c267109a4a8cb04c8ec25922bf7a2b31472828a88718e2896ab4325",
+        "exact_correlation": "0afbdd63a1625374a5e45345c19a6caec6fb146e905c9cb9d10abfecd2668734",
+        "reference": "3c903a7720d9b6dd37d051c70664f3c8c5c58d80f420fa7a22ff2d13b9482826"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block2-template1510.npz": {
+        "actual": "c7bf1553355b64b16beefac61716aede6d16c62a4a22b1c7cc1d5733e20f22dc",
+        "correlation": "f606a32847549147940e45986951213d05a656608357a4d44c72d0c7d09a4b49",
+        "exact_correlation": "72eaeb2201d1898506f914367b47e080e9a6fffd2ec93ace4cac6ec77916abc0",
+        "reference": "5eab9291addb37c328e10f952e05ac0e48e0514e24493619921e9458e2f4a9ab"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block2-template1607.npz": {
+        "actual": "ac2ee393d1cc9da98c016cfbd83d06c500cfe2625469d2145554d8876d336549",
+        "correlation": "f91ff453dff09ec65b014a1962ac44da23904909fc5ee8b37f1dc181cda84b33",
+        "exact_correlation": "78fd7056cc897aa0cf757f2145f54275a05ac346230496b2bdcaa11bc1ab751e",
+        "reference": "48592f581cb5b4a306ca7c272dade185da3be9e114e0bc8d24d87c8b06697101"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block2-template1674.npz": {
+        "actual": "c99257c93f8bfcda1be67348520d9eae48dcb3421db5105541d063646a9d94c6",
+        "correlation": "402ea0031e1f81ccaae30eee6111edf9a0b04a577ef52d6a987f9a9e578194f8",
+        "exact_correlation": "712cb01122910021388acacb939777aa9db8b157c8cb76cae449f2f6ccf01625",
+        "reference": "b05ca5ada8862acbc320b3c51528dbf594463542a25524240e7653207679bff8"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block2-template1689.npz": {
+        "actual": "c1d8102e7d081f91080c4e4a2facecd7e3d828c34ac4678d6305e6f5454c4806",
+        "correlation": "0762ab24b7696c46072bee61cdb361f3d7f156d122207e8e646e07bcc012bb17",
+        "exact_correlation": "6b7083806fb752c9f338b0174b230318dcf28dbbb2872aeebf115a27472cfa08",
+        "reference": "c66c3bee4dd441c7b5e72c639f1c6652c5af8cd4cc6cca1f61f96a566d2e7b13"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block2-template1749.npz": {
+        "actual": "05d5f1573b6e1c2b79dcb63c8d2d97901619993114d8f1119be4ea05c198a9ae",
+        "correlation": "56aa6046b67f1b9dfd1b4733b299ff40a332a05cae5662e4113ddf52ff91806a",
+        "exact_correlation": "e3ced5fe5cd1ad7332e62c96a3e1dbdc01ce2f754028f51c67aec36b2d1ba2a7",
+        "reference": "ff2f66a1947fb537290ac66bce0285d2920dd0b7ce935a95bb4dbf1d2209ef4c"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block2-template1777.npz": {
+        "actual": "7e0fd2d4a3e49a3e45b69611b9b5df4f826b62303eb46b3164f5df495b0455d2",
+        "correlation": "6b758204e940e00c7614b412f5c6d7d619286f25f3571ddec21e2f40cff9c114",
+        "exact_correlation": "1e137139c8a1b7d89c78614d339858a5561b694a9b2afa1df573be5de1c254fc",
+        "reference": "bd9c7435f815eb91cdebc33d2e9417f654e6492e59e5dd415d4dcc69a48b29c4"
+      },
+      "torch-fft-precision-20260907/b1-torch_cuda/block2-template2023.npz": {
+        "actual": "054461ef22bcff6782123d98d760d55dc86f684a04c10ffd08beb28a67cb2f34",
+        "correlation": "463a30fe5c16f5f26dd8e1191196d518aad45b6900036f49e969f21732076eb6",
+        "exact_correlation": "731e61c3c5522bae183354a6a9bafe64afdb4b97c90edbad946a4a2ab5a86838",
+        "reference": "b6d63ab385fc4302e87fe84d31c042c777a1b11e51de7f398ea41531ae1a6a76"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block0-template1000.npz": {
+        "actual": "24dcaaac64c697dc67c83e92ae498622ab4863f6c64e389044efc87fb8cdfe41",
+        "correlation": "68ec703413fa272895c9d1717a4789146f27c2f8ade4a6eb1fe2da7948c7dffb",
+        "exact_correlation": "d76bbddca8d19bc4a4f44f1082405025323c4dfc10203b4dc8c854dcc4ab7c5e",
+        "reference": "3f19d72abbca83e99f2056752d4740485fa2e723adbe8480b8cc277eb3d0496c"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block0-template1433.npz": {
+        "actual": "6cf20261d1919d2ed7232425334e535da46e63d9bf09d71290b67d237a2aed72",
+        "correlation": "69033b0f7f734a6c4c9a6075e34101f914f963578be2fb5bfa69655cceea2817",
+        "exact_correlation": "3a6a40898dbaac12bf0d87b827d20145365a4430aca997ee3e0965984d47493e",
+        "reference": "fb87312e060f5f0a41cc3387bd99a1d59b6a9d4d6652cfbad4bbb382598d0bed"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block0-template1463.npz": {
+        "actual": "1c607908c640fdc1d2b2bc75c6029ee12b78c9e5b0e598d4643d46a4b8dff49c",
+        "correlation": "bdd0a593d8c4a421c66c469a6491432530aeb53d2d29c3801e01f12a62386fab",
+        "exact_correlation": "cb732eb3820634a91dc54988b1f7cf70f26175eaa6794d7dd3f293bc1e9537a1",
+        "reference": "18e6bce4824e52b4a9e3bf29d340a62464a6d743132d85bf1656101f4b772233"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block0-template1510.npz": {
+        "actual": "7df8133285a49a79abda894bc9a30793551d5bfacb4d7825fe7e64f927ebc8ea",
+        "correlation": "04efb251567627ac27f2037206a170f5bc52d6d9f10d924e7ccecf7ef5ca35fc",
+        "exact_correlation": "71159c27c74375ed7ae72c6705140d032dc29ed1c0a4ccd2c68e13aa2356c664",
+        "reference": "b48d7531f4ec8c9830bcc2614b67d18ae6889c0a0d58a27965132b308a181490"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block0-template1606.npz": {
+        "actual": "08d39e2413e21b78ca53902ea0c4a4dc2da2026af95eff7b02c09d66ff51390d",
+        "correlation": "2fc92755a6ebb2e1ccf0aa55e1f59135e6748d71d646b904dc775087cfe41a4b",
+        "exact_correlation": "a735b5db101424651fb2aa1f63eaf934c6dd48fbf70407c9c1ebb0883f122373",
+        "reference": "75c69763d38a9daf833e935e90ced367702b5bb46f548dc11f432a79c0a2530d"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block0-template1662.npz": {
+        "actual": "929b0e1df0618dcd238439c09d787b439ba1008c83a758edd656314f95d86412",
+        "correlation": "a3696622e80a128212811c2cece20004066a7b51076967f62194b4084273d3c6",
+        "exact_correlation": "6c9c5e99c8c2d75671e392f949c0e96ae895d5fb1a3fb808f554ab5b68c6e533",
+        "reference": "c6af2dca5fd0988932ec15fe8bec30fa0310e1c344be0183655a7591f0dfdc82"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block0-template1674.npz": {
+        "actual": "3d7a39b4db1e91b88adb16a29cd2832d83d78ebc6d9f931a6c53d1267520d970",
+        "correlation": "956666f2f259992a407e4b4672efa53c06331a8deaec1a73bfe3d7dff8d0a8d4",
+        "exact_correlation": "6d8a7c6c298e05980a96a4ed421ee5378517eededc75f4d0a9ada258bf34dcb9",
+        "reference": "0c58d35dc0be9e0102f4cfeccbf779cfac0e7b2aa33ee97bed52f4d6e3b4c62c"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block0-template1711.npz": {
+        "actual": "8342564bddedc39daf37b8ea6997867cb7279b3a36495a39f709af88d30860be",
+        "correlation": "085039fe901cf0dff8cea081099653dec50a0ee5a34f9814ba20b44f52cb8482",
+        "exact_correlation": "3236b9d0dab6c354a5b40956663386878196424068b7c71ada1b7f5ed726896e",
+        "reference": "f9e344fb93be8aaf99c59df31d2399a5f6b09dba2d247a95ec2fd2e6afe75041"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block0-template1748.npz": {
+        "actual": "75c0a6a6c198f8d0e5566ca94c8534666fa7fb3016ec6c9d3c65858447d3bdb0",
+        "correlation": "9c50e7967e39643c317f841ee53f54749f5e1650c02d773ccb4142a86c59d723",
+        "exact_correlation": "b43f827ce98255c5c9eda0dc9d591db1f4b6afd341514868719f6077a9bd71c8",
+        "reference": "2d17eb3bfa2a8edd3658b9755aae106c674e201eb4d2f5c532885a105f247634"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block0-template1779.npz": {
+        "actual": "2f1e3c031825a598def391db6f8778280ec8c880c227f1b5f808f30539a14ade",
+        "correlation": "16fdd1b47d780c9bf61d3b0ff3a3eb6eae6908673a03f1e060c358ab810c9489",
+        "exact_correlation": "bba10fb6245085a3429410a6563bdee5444b79fef442e44b59a691a69395dcdf",
+        "reference": "f1a288d73d2563356f641ec5cc20c175a0fc310c0ea87fea99bb70eb53783475"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block0-template1806.npz": {
+        "actual": "55c0649dca3a512c2eab2825e910ab16ccfdfba96273e84486f7d542969049a8",
+        "correlation": "8a2df6a67aaff4be7ed23c5a6be794ea31c8f30b206d13b03d05654ba0545c45",
+        "exact_correlation": "4b8bf1b044bcc3986b06cd263541ca012ee315c98b697e60f7de1af14225fc96",
+        "reference": "bceba1c55143b075def99a2f6b93a0923aa95f3ae009d7d1cd51962b22ae3e8a"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block0-template2023.npz": {
+        "actual": "e7d0034f8abbe034f28d2e529a1443f8d0cd64360444362388ab743c4dc7d2ae",
+        "correlation": "215cb104bf33b8c373d4b29f302e230f156b18091d116df32aeb3741ffa953fd",
+        "exact_correlation": "314ad64507f84288f44072a22f12f719f41a2c7cde583f600e9df5e5dc4f4262",
+        "reference": "39b8494d82c56ee030d62cb0a9f21d9280062a30ae8c481c666ed30eb3fe1a37"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block1-template1000.npz": {
+        "actual": "d028da7189c54206f5c524e78421b292da59b7c7e3f93b65ff7372454394b831",
+        "correlation": "264cedbdb4658be1b1c27db019c0cd7acb9380583ba507ec607c56e3d9a8a8fe",
+        "exact_correlation": "f662144b092c303ae5e097fb077906acee18fd0d26d3ff08302ed0faaecb086f",
+        "reference": "873eedf532af858d6f98aa4548fc50cf15acf24035b18efb52001a892ee9c5ff"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block1-template1161.npz": {
+        "actual": "cb967edcbc73aed173b9bdf3cae3ddc2d245f172608e533e79072c9df610e5ae",
+        "correlation": "ff29d7a9d0557183d03580b0a12d20a2be40fef5243243b9f9ec7ea8dcb9945b",
+        "exact_correlation": "16a064e9eb9eabe994d95670e90b5ea4edcf27d3c7f1d2a2b5c18a8bfba5f1e4",
+        "reference": "4017f2ee6113929721f6b68d8e7e70123455216340c8607789965aaa926b0dcb"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block1-template1227.npz": {
+        "actual": "40dcd2af884a334213314562a89120e0e3c0b19cf662590ede342c86907a4e5c",
+        "correlation": "ffff5f6b69c8e120162d6f86802abb4a102f44084e5a8d1a265ae1cad429358a",
+        "exact_correlation": "74129fec91c7ad24bc19da92976a5348bf8effb11c90d0707b59668368fa08e8",
+        "reference": "2669cecb90a8e9538cbbcc62bfa17a63176b973503a192eb8f6ddf9d0165f13b"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block1-template1483.npz": {
+        "actual": "b0297ab8ad4ff571911b082024b03b83df818477bd6727fcfaa62efe65059a0d",
+        "correlation": "fb9bad61d5dcdc52cf520c5b4f5ae076320869183d55ecfc20309755141926d4",
+        "exact_correlation": "3b4e48448063eddc35a716878bc59e34ba38e36122f21385f4a3cafc8b784f64",
+        "reference": "cd80458ba6cbdc847f10a7e6e1a6c25d45be2d6c206a4a0ac37e031f0a3bcb3f"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block1-template1510.npz": {
+        "actual": "f9a0dba922236ddbe3228f73a995e982bc10804a0d426e590f837ace4dee663d",
+        "correlation": "29fbb44946aec05d968a1f9942fa94f42f80105460e972499e9a3a1d82ce8d83",
+        "exact_correlation": "d06dea05354c3890603f7f85c31880df65187ef3baf0335c47a91f43f79fbb48",
+        "reference": "971def92a2139cf3f244943e7285b8c9762c391d4b3f0eba204fdc7ef344b5cb"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block1-template1606.npz": {
+        "actual": "91e302871b92c47b5a215394588363eb7b39af8fd46e52e0a6be88c530fa27ca",
+        "correlation": "c103ecdf4552415764e5048b82a3ab133d40ca234fae1734429bbb47f6402d76",
+        "exact_correlation": "9b72a9d24b0f57b2e60916b8bb8e767119bd415b4d5763d23801c641593fe414",
+        "reference": "0211397b66786d94db80c3eff811401fac752b24144bcecf28a3566461f8a5cb"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block1-template1663.npz": {
+        "actual": "4604fbc10966d1e34ece7515b7433289e81c3fe499dc9347d76e279b19773692",
+        "correlation": "af8052d0798277f7f34a146acade266cd8b31db7dd57ae03333abc0f99a87038",
+        "exact_correlation": "33ce6fb437ef85aca9a14e137ab18e36fcaf436b19d3372f7a7a30467c5a2e9b",
+        "reference": "e46c6b678febf992f9f337e28a57857418e129f943a7370268f778f989af4d2a"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block1-template1674.npz": {
+        "actual": "5e60a51ca57b5f2d713ac09ffe872fb4ca8adbe37bc87145a88ae03164997655",
+        "correlation": "483c8e074ab976979d74701e1e86b5a42fef1d10762677902bcb8da18eb2f5e5",
+        "exact_correlation": "f02d58784bcc7d579c3de6831ffd782ba7f49795211c357c9b65a5e3e4883d1a",
+        "reference": "9afdf7bd7c2b5c805c57045acd1189d423112eadedea9c9a0da91c6ea0f3c971"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block1-template1753.npz": {
+        "actual": "9252733855f1d61ae9f67b0d12f0dd67abefc3b7866aa939933b3b6d5f0439e8",
+        "correlation": "b2b8f3ed1b5e6bf0ab7cf448f8e0a1fdca23cb8539364c0a37eb271b7b49117c",
+        "exact_correlation": "b1f50fb6b8ce08b32a90b534ce67c580d7ca3bb48e53fd1062766fcf283a6795",
+        "reference": "836d69965e56cc941babae707540dfb7461d2133b1632012f543b008d2975990"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block1-template1864.npz": {
+        "actual": "77556631f9bac2e9aff2e46c8fb5a42a0ddef38a1b13199fc4b0032dcb9303d6",
+        "correlation": "1fd45e0537885a5eb221d034826705b0ddb28aa622774f9d7e224703ec285e54",
+        "exact_correlation": "71b3fdc80e5c4362bc92652d752b29a034898d18df62b5cb3ad1dd1e8981e38e",
+        "reference": "31f4ade177394a2a5cbe708baa68bb6e9ba48baad1292002c40e364996c4f961"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block1-template1949.npz": {
+        "actual": "5b53f746669e34632008387efa28b88ac7b6fe4f100b875b51d762f62f1044e6",
+        "correlation": "c22915959b2d7a0da33cecc4e6f8cf3b1b1f233ef2607b1907b893ff44b7af4a",
+        "exact_correlation": "95227b89e13b945352b7c3c241cfd60be0df4774245a20d0e67aedf252241d7d",
+        "reference": "ff2e8df25e1a81499de6db4b4c628e8f8f773b6357bf6a709ddcff506fd0b5b5"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block1-template2023.npz": {
+        "actual": "7e1e2e436d16d44b41088b7decb415f872570cf0db01052e75b0baf9a65a4370",
+        "correlation": "d8a9787316749588e286d9e3c5d28ef7ce33d828e2888bca9c24d92052c41cc7",
+        "exact_correlation": "349c7acef3126020954bc1993b7eebe7858f7ccc7ecef6a353ecb5e5ab519820",
+        "reference": "fd36bc11d85111773fbe623cd11657617c619e249c95dd4a870f2dd0b0eed31f"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block2-template1000.npz": {
+        "actual": "47c7def373a49434fc80115b4381e3ab702815071da8047a91beefe9311987cd",
+        "correlation": "2a6e6de6587e3b388ab0774ffd4be0f0e05b3a9bad11acde46a1bce8e60460e3",
+        "exact_correlation": "0158f5b92f9010cb5f0170df0d00cc9b9b764406c473a8d0daefe2a9f3d83a53",
+        "reference": "2e75c6f0ce4e2c608c497aff1e12ff05a18d1ebe5c3994cbc11cdecdb7cbbadb"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block2-template1046.npz": {
+        "actual": "b470cb972ec241c4798a9bdf448d40a6b105c126a0d2e85a4387b23372230395",
+        "correlation": "de377e9036f94ea77ab640f9d906e761cb02eea772494214668a0f9b7952831c",
+        "exact_correlation": "4da74a57638da53e40a8cf70a9057fc12910626d17ea2fbfa97eb3a56c157cca",
+        "reference": "159d9d391cbb44e9ad4b99dc58958620d6fea246d9e08586a22d90a1b2555bf4"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block2-template1050.npz": {
+        "actual": "18a9fc7308122bf5f250727ce36cfa3934672923dd83dbd0f40706204adf684e",
+        "correlation": "178a1e2b8da8674c847af249291b4661fbbf158ad4f5192b713f56e478829a0e",
+        "exact_correlation": "bf3cd5062581b50767047d36943f57384deb97d565d0f2b8e925b6bc8aef2421",
+        "reference": "dd4622bfefc1cd9ac2d4cdb22de02227dc325afe83f0a1f3803924d42b12d065"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block2-template1226.npz": {
+        "actual": "985e9e9640cea1e28e0164c1929b05659361c17024754a85044acc1287de6977",
+        "correlation": "6e2bc21f42408d1d7fa58a9f5723c7115741873a477daa3eb9e0fc92cef68d7d",
+        "exact_correlation": "df5fa1573a87b0fa0825a9a19a5457e37cdd00cbe1cabe0fbc714c0eed88352c",
+        "reference": "d2cc33d6a8bd7ae5241b38b8e439d8d74612b8465aaa6b28acd8aa3aef901d66"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block2-template1510.npz": {
+        "actual": "6ab21e64fa86312071e5e9f782ae20d8ecc2ffb7dcc69f404e9c534c8b1c6897",
+        "correlation": "3c298524f23e94237c40dd8f67aa266df30b202dbbbec9cb2febf51be6f5c69f",
+        "exact_correlation": "72eaeb2201d1898506f914367b47e080e9a6fffd2ec93ace4cac6ec77916abc0",
+        "reference": "5eab9291addb37c328e10f952e05ac0e48e0514e24493619921e9458e2f4a9ab"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block2-template1607.npz": {
+        "actual": "4ae4e6ae359a08699a20b6c4ea7452dc89282246faf126cc32d30133eddbfd5c",
+        "correlation": "976221579fbff50bc1cc3fa8c60c29b7fdd482231abb0dd9a681e04de1dcf593",
+        "exact_correlation": "78fd7056cc897aa0cf757f2145f54275a05ac346230496b2bdcaa11bc1ab751e",
+        "reference": "48592f581cb5b4a306ca7c272dade185da3be9e114e0bc8d24d87c8b06697101"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block2-template1674.npz": {
+        "actual": "281df4264f83fcea55b7ede58a093b6456ef50376816c893708d54e12410858e",
+        "correlation": "e29fa8a9e7184f8c2aafc4d6edd7a7bc13afc6212ba37c8de09ed850c72a50e9",
+        "exact_correlation": "712cb01122910021388acacb939777aa9db8b157c8cb76cae449f2f6ccf01625",
+        "reference": "b05ca5ada8862acbc320b3c51528dbf594463542a25524240e7653207679bff8"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block2-template1749.npz": {
+        "actual": "8996647c78e37e0410e275e6f2d42af351829862e11eb7364be413bb878c0902",
+        "correlation": "5766769c9f1213a2f60e60fbfa6488845a310869f5f6279f41e33fd0eef911e0",
+        "exact_correlation": "e3ced5fe5cd1ad7332e62c96a3e1dbdc01ce2f754028f51c67aec36b2d1ba2a7",
+        "reference": "ff2f66a1947fb537290ac66bce0285d2920dd0b7ce935a95bb4dbf1d2209ef4c"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block2-template1803.npz": {
+        "actual": "0f3a12839a7eb20304856d8dd62ba1909d0ca945558511ca69695fa42071b2a7",
+        "correlation": "c1a8e011a5bafbb1f1ef54be9145e3035155211c6af566cc7500d88b472500cf",
+        "exact_correlation": "783627b061bfa2820f35f0f7303bcb940b05b4b9c973a4116227a3f883c3c722",
+        "reference": "a64133463ad6dc4b6125af7a4e71c28d045707c5f9e45951efc372acb4b3370f"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block2-template1837.npz": {
+        "actual": "8e62a97afcf0cf0775e703483ba3ca5f38fefa6ce77950e1ad7b8c46a31c42c9",
+        "correlation": "e878b4e7a5bc760dc86602f2ff62213e31a626e3d3f8df449a7d6dc8cc344c61",
+        "exact_correlation": "d3615fde256c4de24538c19bc03ef4549a88ea3fce82f15606abe821341b971e",
+        "reference": "0986fda8a325e98a8aadf90e3f322bffa2540395f12ea02cd11c2dfd789c1c0e"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block2-template1955.npz": {
+        "actual": "b68850140718173456a2dbcd6cc104813689682bda7d1d2fe40aa33cad4488b0",
+        "correlation": "4f4f207a7ae53d79884412da0cf374139d5ba6670dc55d2cedc6c79920c13a4f",
+        "exact_correlation": "28458d2d212dfea9ead4cb750410414370ef77d3381bdb693f7e39cdc2e8b3fb",
+        "reference": "5864ed66ae218a84ad77e18d1ccf83754b5bc53062d4ed285e4e62d5eb19f960"
+      },
+      "torch-fft-precision-20260907/b8-torch_cpu/block2-template2023.npz": {
+        "actual": "04fc4076e40c7e55d214fbd15e5ebfaf629780c99f64f95ec26d2b258ad3118a",
+        "correlation": "6ba4ded2da77172f0eff22281a99cbfd6cbdf7d098dda850476d6d381b53ea63",
+        "exact_correlation": "731e61c3c5522bae183354a6a9bafe64afdb4b97c90edbad946a4a2ab5a86838",
+        "reference": "b6d63ab385fc4302e87fe84d31c042c777a1b11e51de7f398ea41531ae1a6a76"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block0-template1000.npz": {
+        "actual": "f4a366ac493090b53524161a211d3ca885d4c316653edcce77afd50ed1e71601",
+        "correlation": "6986ef2203ccc9729d03004835975b69abcfa93a39d30ab2ad68e63c690d595d",
+        "exact_correlation": "d76bbddca8d19bc4a4f44f1082405025323c4dfc10203b4dc8c854dcc4ab7c5e",
+        "reference": "3f19d72abbca83e99f2056752d4740485fa2e723adbe8480b8cc277eb3d0496c"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block0-template1463.npz": {
+        "actual": "36f61892c4c6ac99139bf3bceb7e1a15c08bb49553745594cc86e34c32d6f855",
+        "correlation": "2b5377d786d4ac74936ecfcc3238836808a2644b6650e9a26767d09a05678ceb",
+        "exact_correlation": "cb732eb3820634a91dc54988b1f7cf70f26175eaa6794d7dd3f293bc1e9537a1",
+        "reference": "18e6bce4824e52b4a9e3bf29d340a62464a6d743132d85bf1656101f4b772233"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block0-template1510.npz": {
+        "actual": "7e6a7e0040fa40f9e5081c10a389b15d7a186762ab716cc44c02b959e826ec79",
+        "correlation": "48b1bbc3cb191773ef9abf72ec21005c50346d39ce5c8f1e09b211d99bb693ff",
+        "exact_correlation": "71159c27c74375ed7ae72c6705140d032dc29ed1c0a4ccd2c68e13aa2356c664",
+        "reference": "b48d7531f4ec8c9830bcc2614b67d18ae6889c0a0d58a27965132b308a181490"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block0-template1633.npz": {
+        "actual": "04305ee2f48df6b2dd44a43a9d1b307105c8fe6591535c50b87ccded08f41b58",
+        "correlation": "db98311e72a372b6d8ddea1ba373096baed3e836dd66d183a4b51c6e5e2459dc",
+        "exact_correlation": "aab5d34c7cc057db046fa94fcd7f63cd820c172b7dabc106e4c23f2c1f308375",
+        "reference": "e029a2bb51112a92563330c064167c6318ba29f0f42a432d2344b18ff77e186d"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block0-template1659.npz": {
+        "actual": "d2e661e708c24cda86240f1e17e2750ab0340124ac56ab63bbebea8df3e4e3f6",
+        "correlation": "cb73831a2e6c6fbedd14cf2bc05d9353a8980f8150d8f262f422c93ff0b772a2",
+        "exact_correlation": "8a8202aadf70144edd2bbcd908f0f2004acf844fcdec7f50a5ae2cb2e1367f41",
+        "reference": "1fbd5c828b2c0e42c8a39d3aaa948bf8bf1fe707cacb9b95d1f8c8e04906410f"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block0-template1662.npz": {
+        "actual": "5c7683b975a987b82d637338eadd6667b14ad87618a484c07472aa4eaaee77b6",
+        "correlation": "6cfb380afbe250009448b9389ab5cd7a863917090ff76098c7cbd9f363cb3bc9",
+        "exact_correlation": "6c9c5e99c8c2d75671e392f949c0e96ae895d5fb1a3fb808f554ab5b68c6e533",
+        "reference": "c6af2dca5fd0988932ec15fe8bec30fa0310e1c344be0183655a7591f0dfdc82"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block0-template1674.npz": {
+        "actual": "f4313dcf7a83b5604dd945a836d63186ac4431a3e5b718b273f37887969a52b4",
+        "correlation": "067869a78ec72578b4e309cfbce674da883b598db1d10ab72dbe4ae90cf0186b",
+        "exact_correlation": "6d8a7c6c298e05980a96a4ed421ee5378517eededc75f4d0a9ada258bf34dcb9",
+        "reference": "0c58d35dc0be9e0102f4cfeccbf779cfac0e7b2aa33ee97bed52f4d6e3b4c62c"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block0-template1780.npz": {
+        "actual": "d7283d91bb84b07e9b1c9852c1f793d94088df189a44a739c9c9ecf6bc3d20c2",
+        "correlation": "cb79b84fe8f5cb1aa0b0b2729e792822bcc32cf86ee93d300b25d559d0f42f78",
+        "exact_correlation": "d75f0bbfbff13c7b433242239dcb55af6319a56ee1bdea433913e1999dc09c65",
+        "reference": "3ae6cef16e5cd2a00b7e74d7127e019205cbd078e97bbf8b46e69453c6727bd6"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block0-template1808.npz": {
+        "actual": "051197472a365faef8bf54c4d97be011223c92747d11b8dd2eba583680470796",
+        "correlation": "5aa8cb9aca6df634d7a9597ead4dca05ef39f0393038ffda818b97e38f4cc147",
+        "exact_correlation": "2ea3d17eb34f583f47f393dbf5852ceaecc47cc96e14a4a4f23323f4803eab30",
+        "reference": "453b74bb540cb7b9fe366f6ebac6e7ddaac897a79790dcf505202eac4257bccd"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block0-template1896.npz": {
+        "actual": "c55aef3cb590833705565b75e00479bc158edb6a25d932aa03104c3276309545",
+        "correlation": "0b8067ac95c688b39d6cee5fefd699655034687c0b416cc9444b634ddda29e01",
+        "exact_correlation": "444de20b3d4097bddaca67258f6fb22cad9184ade0e3110a7dd38e168f0fc506",
+        "reference": "ca8ba4f50cae970d80b67b66b98c511f7ff653d4e5dd9cdb9cc375374f3dbe18"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block0-template2023.npz": {
+        "actual": "ff37aba27446bc78eb0f5b34654ba34f5d46d6fea3dd98ec7dcfe84578edc406",
+        "correlation": "adab534bf85dcc45891db2f28619d9b38762cc59e9e1d60649a4889fa46aa2a8",
+        "exact_correlation": "314ad64507f84288f44072a22f12f719f41a2c7cde583f600e9df5e5dc4f4262",
+        "reference": "39b8494d82c56ee030d62cb0a9f21d9280062a30ae8c481c666ed30eb3fe1a37"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block1-template1000.npz": {
+        "actual": "424a7d55182fafbb50e4ab24017083f4a99e4e29f1bbcc0937664ad417615e7e",
+        "correlation": "5845187e68e434df61a4122c2dd15a9da330755cfed7b2014e4be8740356034c",
+        "exact_correlation": "f662144b092c303ae5e097fb077906acee18fd0d26d3ff08302ed0faaecb086f",
+        "reference": "873eedf532af858d6f98aa4548fc50cf15acf24035b18efb52001a892ee9c5ff"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block1-template1056.npz": {
+        "actual": "cfc31d33a2c421e25caf21c247ff00ed4c5969868f4599d5bebae42f44a83dc5",
+        "correlation": "694b870ef2a1c91ad248efaadf8e3b82de645ebb34a4120d56dc51ed2044b17a",
+        "exact_correlation": "bf265e5a5a7ff13b827a8e9c959422236183f1e8cf60a281c92ec8b7d1c14b59",
+        "reference": "9840504095b375717a16edaa759b417eabc03472b7a4a4f0acd859c1d7322dc5"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block1-template1510.npz": {
+        "actual": "e3ef8fef8308742132914c2d62ad13c0ddf1b24a635c3f5f599ec22cf766ce16",
+        "correlation": "b983f2b9c05a4ba99ede125aff39cd9b9b9b8f8281c2cb1880bd554a38725f4a",
+        "exact_correlation": "d06dea05354c3890603f7f85c31880df65187ef3baf0335c47a91f43f79fbb48",
+        "reference": "971def92a2139cf3f244943e7285b8c9762c391d4b3f0eba204fdc7ef344b5cb"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block1-template1633.npz": {
+        "actual": "7a24981a4e2c0d9f1450612b6947f1aeceb39e28fba61822eb26200bf2693844",
+        "correlation": "585224717df38270a35a7efe28db0b0c1b3961809ba2aa823c929c5f8f6aa346",
+        "exact_correlation": "f486fd9104c6173b57d81965e40d2d40553e247090f7ef5afe30c305e66aa936",
+        "reference": "256ad821bab3d034fb395c3beeb75189566933e3d43546fa13f16509bef6c842"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block1-template1663.npz": {
+        "actual": "8f54986846fef56ed7fe9578f59317c7839fb97326739adb442227eadddbb8de",
+        "correlation": "11f4a2495907c03ed2a5bfc5823b907f8feaca66482f07122acc3164930f2899",
+        "exact_correlation": "33ce6fb437ef85aca9a14e137ab18e36fcaf436b19d3372f7a7a30467c5a2e9b",
+        "reference": "e46c6b678febf992f9f337e28a57857418e129f943a7370268f778f989af4d2a"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block1-template1674.npz": {
+        "actual": "82f1e1912c21e5f991ccb21b36164ec3a94519e013e77644959f9e1325380f7c",
+        "correlation": "a95c595da5f59e5893cd9347f97b0f5727917fdb8f4b0c14bbe2aa26d2a53835",
+        "exact_correlation": "f02d58784bcc7d579c3de6831ffd782ba7f49795211c357c9b65a5e3e4883d1a",
+        "reference": "9afdf7bd7c2b5c805c57045acd1189d423112eadedea9c9a0da91c6ea0f3c971"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block1-template1686.npz": {
+        "actual": "91e136a7ce4e53512be71493f16d3a23887dfe29518e7c30238db99a1a247950",
+        "correlation": "087c96804ac9e32b33172a707f11479d029936b55b7c3dbb676d5e3073ebd209",
+        "exact_correlation": "ccbf6f3a36d9825ac301e1b4c7da8a3d0396487c72304ffa2c0fd3477d377d36",
+        "reference": "97e8c126142d3220f9cc58509d0494644c35c0cd0dd6d33efb36221d4b9e455d"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block1-template1753.npz": {
+        "actual": "6c7b0d6054fbaa3891e43d2357a83bc0d2aafe012c74bac2689329bb7086f451",
+        "correlation": "b1a337cc446cf7e92bccc68f119988454f580f9517558e6e576c0142b62b469c",
+        "exact_correlation": "b1f50fb6b8ce08b32a90b534ce67c580d7ca3bb48e53fd1062766fcf283a6795",
+        "reference": "836d69965e56cc941babae707540dfb7461d2133b1632012f543b008d2975990"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block1-template1868.npz": {
+        "actual": "b33fbc203f2402c0a3e2c2fb022b39f0bdd9b3ecf37b0a35687c5b7ea4e72495",
+        "correlation": "cdc82ed7dc88e01f56cf5603f2ee106c7d0a713d8492cfef3968b81ad1851bc2",
+        "exact_correlation": "4b58f962f88a314258d6602484b41f702e57705bd5e4cc2ed4e3ee4df4f937af",
+        "reference": "f259f3dd810a4109bdc3eba85a4f14dff02e4d70f8db6280a679f548eb121b90"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block1-template1998.npz": {
+        "actual": "ea2a0e6bf420f40be739d8b7f9381740021f0d370cb6c8fe41a3d71b4dd72fa8",
+        "correlation": "7e14e7d7432c8470bb642c20f57e3c25eb2bceabc06592ef6586d3601d41a07c",
+        "exact_correlation": "395c706da9755ab4c25a7658dc8e07eef605cbdca316f55a304e545a16ac7f6d",
+        "reference": "e326ebeb92e356c807e4f28f21c9e06308cc7b38eca65b78cdb60fc66f92103f"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block1-template2023.npz": {
+        "actual": "69a952501a9d363e322722b139a1bc592e8d65fe7e08fee8df592126349c8d31",
+        "correlation": "541e60a7508500c70e091c45fce3c83e9de2ca2e392bc81ef69dc82f31e451c5",
+        "exact_correlation": "349c7acef3126020954bc1993b7eebe7858f7ccc7ecef6a353ecb5e5ab519820",
+        "reference": "fd36bc11d85111773fbe623cd11657617c619e249c95dd4a870f2dd0b0eed31f"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block2-template1000.npz": {
+        "actual": "7c76039199c07a3612b8e784f1d6b9de5f4723f85efcd2e876723e2b40d90ff7",
+        "correlation": "91baf2ca28dcd3644cd8c90e0598644150392faa0e27679cad3e4e836d1b7460",
+        "exact_correlation": "0158f5b92f9010cb5f0170df0d00cc9b9b764406c473a8d0daefe2a9f3d83a53",
+        "reference": "2e75c6f0ce4e2c608c497aff1e12ff05a18d1ebe5c3994cbc11cdecdb7cbbadb"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block2-template1055.npz": {
+        "actual": "e44adb1c79e0e017d1266aa43ecb1d414e5c3b5a21dda3a5f85f5876228c7961",
+        "correlation": "fc002bf334b5379655198b65b13230486db16bdde9d59dacb36e5626055e24b2",
+        "exact_correlation": "f9efb6f5d684894dacbb4ba80dcac83873fbcb61f989cf67ffa9d6ccd4b44434",
+        "reference": "c1630ec145ad06a4e5b54ba46845ab602d5729d070534bae9593fcbfd8391628"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block2-template1110.npz": {
+        "actual": "4a3fa58c671e1d036f62683b1c104b5d2e4ee99d2c0c65d0cf9749ad54bc4e99",
+        "correlation": "a938f0c83ce769e7af8c8674860c4769c6a3010d7de63b426914923994737726",
+        "exact_correlation": "bb31392b34baf943e33b7219cae25f517c4a5163d8535489e8d93db2d738b22d",
+        "reference": "c19e384fcd4508886d3474477fba83acfac91046beba3aa345f08c9760382788"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block2-template1202.npz": {
+        "actual": "c0f9985b7923634f8d0f3c8c7f39ad53ae1df5ccfb11e2a287ee4ff6d80b214d",
+        "correlation": "ad1510420c267109a4a8cb04c8ec25922bf7a2b31472828a88718e2896ab4325",
+        "exact_correlation": "0afbdd63a1625374a5e45345c19a6caec6fb146e905c9cb9d10abfecd2668734",
+        "reference": "3c903a7720d9b6dd37d051c70664f3c8c5c58d80f420fa7a22ff2d13b9482826"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block2-template1510.npz": {
+        "actual": "c7bf1553355b64b16beefac61716aede6d16c62a4a22b1c7cc1d5733e20f22dc",
+        "correlation": "f606a32847549147940e45986951213d05a656608357a4d44c72d0c7d09a4b49",
+        "exact_correlation": "72eaeb2201d1898506f914367b47e080e9a6fffd2ec93ace4cac6ec77916abc0",
+        "reference": "5eab9291addb37c328e10f952e05ac0e48e0514e24493619921e9458e2f4a9ab"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block2-template1607.npz": {
+        "actual": "ac2ee393d1cc9da98c016cfbd83d06c500cfe2625469d2145554d8876d336549",
+        "correlation": "f91ff453dff09ec65b014a1962ac44da23904909fc5ee8b37f1dc181cda84b33",
+        "exact_correlation": "78fd7056cc897aa0cf757f2145f54275a05ac346230496b2bdcaa11bc1ab751e",
+        "reference": "48592f581cb5b4a306ca7c272dade185da3be9e114e0bc8d24d87c8b06697101"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block2-template1674.npz": {
+        "actual": "c99257c93f8bfcda1be67348520d9eae48dcb3421db5105541d063646a9d94c6",
+        "correlation": "402ea0031e1f81ccaae30eee6111edf9a0b04a577ef52d6a987f9a9e578194f8",
+        "exact_correlation": "712cb01122910021388acacb939777aa9db8b157c8cb76cae449f2f6ccf01625",
+        "reference": "b05ca5ada8862acbc320b3c51528dbf594463542a25524240e7653207679bff8"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block2-template1689.npz": {
+        "actual": "c1d8102e7d081f91080c4e4a2facecd7e3d828c34ac4678d6305e6f5454c4806",
+        "correlation": "0762ab24b7696c46072bee61cdb361f3d7f156d122207e8e646e07bcc012bb17",
+        "exact_correlation": "6b7083806fb752c9f338b0174b230318dcf28dbbb2872aeebf115a27472cfa08",
+        "reference": "c66c3bee4dd441c7b5e72c639f1c6652c5af8cd4cc6cca1f61f96a566d2e7b13"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block2-template1749.npz": {
+        "actual": "05d5f1573b6e1c2b79dcb63c8d2d97901619993114d8f1119be4ea05c198a9ae",
+        "correlation": "56aa6046b67f1b9dfd1b4733b299ff40a332a05cae5662e4113ddf52ff91806a",
+        "exact_correlation": "e3ced5fe5cd1ad7332e62c96a3e1dbdc01ce2f754028f51c67aec36b2d1ba2a7",
+        "reference": "ff2f66a1947fb537290ac66bce0285d2920dd0b7ce935a95bb4dbf1d2209ef4c"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block2-template1777.npz": {
+        "actual": "7e0fd2d4a3e49a3e45b69611b9b5df4f826b62303eb46b3164f5df495b0455d2",
+        "correlation": "6b758204e940e00c7614b412f5c6d7d619286f25f3571ddec21e2f40cff9c114",
+        "exact_correlation": "1e137139c8a1b7d89c78614d339858a5561b694a9b2afa1df573be5de1c254fc",
+        "reference": "bd9c7435f815eb91cdebc33d2e9417f654e6492e59e5dd415d4dcc69a48b29c4"
+      },
+      "torch-fft-precision-20260907/b8-torch_cuda/block2-template2023.npz": {
+        "actual": "054461ef22bcff6782123d98d760d55dc86f684a04c10ffd08beb28a67cb2f34",
+        "correlation": "463a30fe5c16f5f26dd8e1191196d518aad45b6900036f49e969f21732076eb6",
+        "exact_correlation": "731e61c3c5522bae183354a6a9bafe64afdb4b97c90edbad946a4a2ab5a86838",
+        "reference": "b6d63ab385fc4302e87fe84d31c042c777a1b11e51de7f398ea41531ae1a6a76"
+      }
+    },
+    "arrays_checked_finite": 552,
+    "captures": 138,
+    "numpy": "2.5.3",
+    "scope": "Offline identity/shape/finiteness checks; no FFT, input regeneration or acquisition.",
+    "unique_reference_pairs": 65
+  },
+  "omissions": {
+    ".git/ .agents/ __pycache__/ and bytecode": "Local checkout, agent and interpreter state are excluded without traversal.",
+    "R4": "Separately adopted policy and ongoing campaign; no R4 inputs, results or timing are included.",
+    "all .npy arrays": "No full R3 output array archive; outputs.npy is omitted, as is validation/selected-reference-rows.npy.",
+    "packaging/": "Local review plans and transport cache are not original scientific evidence.",
+    "precision/TRANSFER.md, transfer.log, transfer-receipt.json": "Ancillary local download records; not frozen diagnostic acquisition.",
+    "source/ and source.bundle": "No source checkout, Git data/bundles, or compiled natives; source/native identities and staged-file hashes remain in original receipts."
+  },
+  "original_R3_state": "failed",
+  "schema": "fft-numerics-evidence-v1",
+  "source_commit_url": "https://github.com/xangma/pycbc/commit/9578a710479b924e882857c4dffab6ed372a634b",
+  "source_revision": "9578a710479b924e882857c4dffab6ed372a634b"
+}
