@@ -293,15 +293,15 @@ def test_batch_plan_destructor_is_fork_safe(monkeypatch):
 
     calls = []
 
-    class FakeFFTW:
-        @staticmethod
-        def _destroy_plan(destroy, plan):
-            calls.append((destroy, plan))
+    monkeypatch.setattr(
+        torchfft, "_destroy_fftw_plan",
+        lambda destroy, plan: calls.append((destroy, plan)),
+    )
 
     monkeypatch.setattr(torchfft.os, "getpid", lambda: 42)
-    torchfft._destroy_batch_plan_in_owner(FakeFFTW, "destroy", "plan", 41)
+    torchfft._destroy_batch_plan_in_owner(None, "destroy", "plan", 41)
     assert calls == []
-    torchfft._destroy_batch_plan_in_owner(FakeFFTW, "destroy", "plan", 42)
+    torchfft._destroy_batch_plan_in_owner(None, "destroy", "plan", 42)
     assert calls == [("destroy", "plan")]
     gc.collect()
 
