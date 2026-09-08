@@ -25,7 +25,7 @@ import numpy, logging, math, pycbc.fft
 
 from pycbc.types import zeros, real_same_precision_as, TimeSeries, complex_same_precision_as
 from pycbc.filter import sigmasq_series, make_frequency_series, matched_filter_core, get_cutoff_indices
-from pycbc.scheme import schemed
+from pycbc.scheme import schemed, mgr, CPUScheme
 import pycbc.pnutils
 
 BACKEND_PREFIX="pycbc.vetoes.chisq_"
@@ -134,6 +134,27 @@ def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
         An array containing only the chisq at the selected points.
     """
     num_bins = len(bins) - 1
+    if isinstance(mgr.state, CPUScheme):
+        from .chisq_cpu import point_chisq_code
+
+        # The real fused type controls phase recurrence and accumulation.
+        # Use double precision without copying the correlation, and correct
+        # for the shortened pi literal in the existing kernel.
+        shifts = numpy.asarray(indices, dtype=numpy.float64)
+        shifts = shifts * (numpy.pi / 3.141592653)
+        chisq = numpy.zeros(len(shifts), dtype=numpy.float64)
+        point_chisq_code(
+            chisq, corr.data, len(shifts), len(corr), shifts,
+            numpy.asarray(bins, dtype=numpy.uint32), num_bins,
+        )
+        snr_values = numpy.asarray(snr)
+        output_dtype = numpy.result_type(
+            real_same_precision_as(corr), snr_values.real.dtype, snr_norm**2.0
+        )
+        snr_values = snr_values.astype(numpy.complex128)
+        chisq = (chisq * num_bins - abs(snr_values)**2) * (snr_norm**2.0)
+        return chisq.astype(output_dtype)
+
     chisq = shift_sum(corr, indices, bins) # pylint:disable=assignment-from-no-return
     return (chisq * num_bins - (snr.conj() * snr).real) * (snr_norm ** 2.0)
 
