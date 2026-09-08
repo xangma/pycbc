@@ -1,0 +1,320 @@
+{
+  "all_references_resolve": true,
+  "failures": [],
+  "documents": {
+    "torch_parity": {
+      "sha256": "3699c4b70ec30159182ea2202e657e36d6baf9233d38009a9365b4391d82c91c",
+      "references": [
+        {
+          "role": "ref",
+          "target": "torch-test-groups",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-parity-matrix",
+          "exists": true
+        },
+        {
+          "role": "doc",
+          "target": "waveform",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-performance",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-testing",
+          "exists": true
+        }
+      ]
+    },
+    "torch_batch_numerics": {
+      "sha256": "ba1c23671e0f3b58a93c12f8f28483ae4c86cd4be4e912dd51e421d09207151e",
+      "references": [
+        {
+          "role": "ref",
+          "target": "torch-batch-throughput",
+          "exists": true
+        },
+        {
+          "role": "download",
+          "target": "images/torch-batch-r4-20260907/batch-accuracy.svg",
+          "exists": true
+        },
+        {
+          "role": "download",
+          "target": "images/torch-batch-r4-20260907/manifest.json",
+          "exists": true
+        },
+        {
+          "role": "image",
+          "target": "images/torch-batch-r4-20260907/batch-accuracy.png",
+          "exists": true
+        }
+      ]
+    },
+    "torch_performance": {
+      "sha256": "7623ade64606981fc84102cc4c64a86acdc63a84209ee000065f1cced475a404",
+      "references": [
+        {
+          "role": "ref",
+          "target": "torch-integrated-qualification",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-cpu-precision-cost",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-reference-campaign",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-profile-attribution",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-followup-evidence",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-batch-numerics",
+          "exists": true
+        },
+        {
+          "role": "download",
+          "target": "images/torch-batch-r4-20260907/batch-throughput.svg",
+          "exists": true
+        },
+        {
+          "role": "download",
+          "target": "images/torch-batch-r4-20260907/manifest.json",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-reference-campaign",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-batch-numerics",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-profile-attribution",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-followup-evidence",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-benchmark-protocol",
+          "exists": true
+        },
+        {
+          "role": "image",
+          "target": "images/torch-executable-20260908/executable-wall.png",
+          "exists": true
+        },
+        {
+          "role": "image",
+          "target": "images/torch-executable-20260908/prototype-followups.png",
+          "exists": true
+        },
+        {
+          "role": "image",
+          "target": "images/torch-batch-r4-20260907/batch-throughput.png",
+          "exists": true
+        }
+      ]
+    },
+    "torch_benchmark_protocol": {
+      "sha256": "09fed8aacfa6ad71ec6f80bc5e41f606e2e4ea0897cba04e8f9929df3a7f895e",
+      "references": [
+        {
+          "role": "ref",
+          "target": "torch-performance",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-batch-throughput",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-batch-accuracy",
+          "exists": true
+        }
+      ]
+    },
+    "torch_reference_campaign": {
+      "sha256": "8a81e35de66e175f23036e3e198e33f57af01cb2c097ccc4db0971d0b3d4362b",
+      "references": [
+        {
+          "role": "ref",
+          "target": "torch-performance",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-profile-attribution",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-benchmark-protocol",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-followup-evidence",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-followup-plot-reproduction",
+          "exists": true
+        }
+      ]
+    },
+    "torch_profile_attribution": {
+      "sha256": "bf2be5a8df388739abd7e4cb9afd278db89e9fc478273bb7933ac9f17b9e399b",
+      "references": [
+        {
+          "role": "ref",
+          "target": "torch-reference-campaign",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-followup-evidence",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-benchmark-protocol",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-reference-campaign",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-followup-plot-reproduction",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-performance",
+          "exists": true
+        }
+      ]
+    },
+    "torch_optimizations": {
+      "sha256": "36c2c4234f993fd9aea1b00e117513711b444708dbace2bb73e5ac02c5f00c7d",
+      "references": [
+        {
+          "role": "ref",
+          "target": "torch-runtime",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-performance",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-scheme",
+          "exists": true
+        },
+        {
+          "role": "doc",
+          "target": "torch_search",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-benchmark-protocol",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-parity",
+          "exists": true
+        }
+      ]
+    },
+    "torch_followups": {
+      "sha256": "c059a178476f51ff9d1384901f9fdc4259e5ccda7443c13bb684c1cfb7c6739e",
+      "references": [
+        {
+          "role": "ref",
+          "target": "torch-performance",
+          "exists": true
+        },
+        {
+          "role": "doc",
+          "target": "torch_search",
+          "exists": true
+        },
+        {
+          "role": "ref",
+          "target": "torch-optimizations",
+          "exists": true
+        },
+        {
+          "role": "download",
+          "target": "data/torch-20260908/loader-v1-summary.json",
+          "exists": true
+        },
+        {
+          "role": "download",
+          "target": "data/torch-20260908/descriptor-reuse-timing-v1-summary.json",
+          "exists": true
+        },
+        {
+          "role": "download",
+          "target": "data/torch-20260908/graph-v2-timing-summary.json",
+          "exists": true
+        },
+        {
+          "role": "download",
+          "target": "images/torch-executable-20260908/executable-wall.svg",
+          "exists": true
+        },
+        {
+          "role": "download",
+          "target": "images/torch-executable-20260908/prototype-followups.svg",
+          "exists": true
+        },
+        {
+          "role": "download",
+          "target": "images/torch-executable-20260908/manifest.json",
+          "exists": true
+        }
+      ]
+    }
+  },
+  "focused_test_counts": {
+    "test.test_plot_torch_batch_sweep": 32,
+    "test.test_plot_torch_executable": 83
+  }
+}

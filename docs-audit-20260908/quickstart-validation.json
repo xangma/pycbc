@@ -1,0 +1,25 @@
+{
+  "quickstart": "passed",
+  "thread_restoration": "passed",
+  "waveform_batch": "passed",
+  "shape": [
+    2,
+    129
+  ],
+  "first_bins": [
+    20,
+    24
+  ],
+  "end_bins": [
+    129,
+    129
+  ],
+  "torch": "2.9.1",
+  "device": "cpu",
+  "pycbc_source": "/private/tmp/pycbc-torch-publication-20260908/pycbc/__init__.py",
+  "tracked_runtime_files_byte_identical": 370,
+  "initial_attempts": [
+    "Unbuilt audit checkout lacked native extensions; used matching built editable checkout.",
+    "An assertion treated the TorchArrayData wrapper dtype as torch.dtype; corrected assertion to use the public numpy() conversion."
+  ]
+}

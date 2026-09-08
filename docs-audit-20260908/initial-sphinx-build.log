@@ -1,0 +1,312 @@
+Running Sphinx v8.2.3
+loading translations [en]... done
+making output directory... done
+Converting `source_suffix = '.rst'` to `source_suffix = {'.rst': 'restructuredtext'}`.
+[autosummary] generating autosummary for: api.rst, index.rst, install.rst, install_cuda.rst, install_lalsuite.rst, install_virtualenv.rst, torch.rst, torch_batch_numerics.rst, torch_benchmark_protocol.rst, torch_filtering.rst, ..., torch_parity.rst, torch_performance.rst, torch_profile_attribution.rst, torch_reference_campaign.rst, torch_runtime.rst, torch_search.rst, torch_testing.rst, torch_workflows.rst, waveform.rst, waveform_plugin.rst
+building [mo]: targets for 0 po files that are out of date
+writing output... 
+building [html]: targets for 22 source files that are out of date
+updating environment: [new config] 22 added, 0 changed, 0 removed
+reading sources... [  5%] api
+reading sources... [  9%] index
+reading sources... [ 14%] install
+reading sources... [ 18%] install_cuda
+reading sources... [ 23%] install_lalsuite
+reading sources... [ 27%] install_virtualenv
+reading sources... [ 32%] torch
+reading sources... [ 36%] torch_batch_numerics
+reading sources... [ 41%] torch_benchmark_protocol
+reading sources... [ 45%] torch_filtering
+reading sources... [ 50%] torch_followups
+reading sources... [ 55%] torch_optimizations
+reading sources... [ 59%] torch_parity
+reading sources... [ 64%] torch_performance
+reading sources... [ 68%] torch_profile_attribution
+reading sources... [ 73%] torch_reference_campaign
+reading sources... [ 77%] torch_runtime
+reading sources... [ 82%] torch_search
+reading sources... [ 86%] torch_testing
+reading sources... [ 91%] torch_workflows
+reading sources... [ 95%] waveform
+reading sources... [100%] waveform_plugin
+
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/install.rst:99: WARNING: toctree contains reference to nonexisting document 'docker' [toc.not_readable]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/waveform.rst:17: WARNING: Exception occurred in plotting plot_waveform
+ from /Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/../examples/waveform/plot_waveform.py:
+Traceback (most recent call last):
+  File "/Users/xangma/miniconda3/envs/pycbc313/lib/python3.13/site-packages/matplotlib/sphinxext/plot_directive.py", line 552, in _run_code
+    exec(code, ns)
+    ~~~~^^^^^^^^^^
+  File "<string>", line 6, in <module>
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/waveform/waveform.py", line 865, in get_td_waveform
+    hp, hc = wav_gen(**input_params)
+             ~~~~~~~^^^^^^^^^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/waveform/waveform.py", line 1195, in get_td_waveform_from_fd
+    return _base_get_td_waveform_from_fd(None, rwrap, **params)
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/waveform/waveform.py", line 1147, in _base_get_td_waveform_from_fd
+    hp = wfutils.fd_to_td(
+        hp,
+        delta_t=params["delta_t"],
+        left_window=(nparams["f_lower"], params["f_lower"]),
+    )
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/waveform/utils.py", line 611, in fd_to_td
+    return htilde.to_timeseries(delta_t=delta_t)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/types/array.py", line 177, in noreal
+    return func(self, *args, **kwargs)
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/types/frequencyseries.py", line 495, in to_timeseries
+    ifft(tmp, f)
+    ~~~~^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/func_api.py", line 82, in ifft
+    backend.ifft(invec, outvec, prec, itype, otype)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 253, in ifft
+    _execute_function("ifft", invec, outvec, prec, itype, otype)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 219, in _execute_function
+    descriptor = create_descriptor(
+        max(len(invec), len(outvec)),
+    ...<2 lines>...
+        invec.ptr == outvec.ptr,
+    )
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 99, in create_descriptor
+    check_status(status)
+    ~~~~~~~~~~~~^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 86, in check_status
+    raise RuntimeError(msg)
+RuntimeError: <MagicMock name='mock().DftiErrorMessage()' id='5205267456'> [docutils]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/waveform.rst:39: WARNING: Exception occurred in plotting higher_modes
+ from /Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/../examples/waveform/higher_modes.py:
+Traceback (most recent call last):
+  File "/Users/xangma/miniconda3/envs/pycbc313/lib/python3.13/site-packages/matplotlib/sphinxext/plot_directive.py", line 552, in _run_code
+    exec(code, ns)
+    ~~~~^^^^^^^^^^
+  File "<string>", line 20, in <module>
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/waveform/waveform.py", line 865, in get_td_waveform
+    hp, hc = wav_gen(**input_params)
+             ~~~~~~~^^^^^^^^^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/waveform/waveform.py", line 1195, in get_td_waveform_from_fd
+    return _base_get_td_waveform_from_fd(None, rwrap, **params)
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/waveform/waveform.py", line 1147, in _base_get_td_waveform_from_fd
+    hp = wfutils.fd_to_td(
+        hp,
+        delta_t=params["delta_t"],
+        left_window=(nparams["f_lower"], params["f_lower"]),
+    )
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/waveform/utils.py", line 611, in fd_to_td
+    return htilde.to_timeseries(delta_t=delta_t)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/types/array.py", line 177, in noreal
+    return func(self, *args, **kwargs)
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/types/frequencyseries.py", line 495, in to_timeseries
+    ifft(tmp, f)
+    ~~~~^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/func_api.py", line 82, in ifft
+    backend.ifft(invec, outvec, prec, itype, otype)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 253, in ifft
+    _execute_function("ifft", invec, outvec, prec, itype, otype)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 219, in _execute_function
+    descriptor = create_descriptor(
+        max(len(invec), len(outvec)),
+    ...<2 lines>...
+        invec.ptr == outvec.ptr,
+    )
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 99, in create_descriptor
+    check_status(status)
+    ~~~~~~~~~~~~^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 86, in check_status
+    raise RuntimeError(msg)
+RuntimeError: <MagicMock name='mock().DftiErrorMessage()' id='5205267456'> [docutils]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/waveform.rst:53: WARNING: Exception occurred in plotting plot_fd_td
+ from /Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/../examples/waveform/plot_fd_td.py:
+Traceback (most recent call last):
+  File "/Users/xangma/miniconda3/envs/pycbc313/lib/python3.13/site-packages/matplotlib/sphinxext/plot_directive.py", line 552, in _run_code
+    exec(code, ns)
+    ~~~~^^^^^^^^^^
+  File "<string>", line 22, in <module>
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/func_api.py", line 82, in ifft
+    backend.ifft(invec, outvec, prec, itype, otype)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 253, in ifft
+    _execute_function("ifft", invec, outvec, prec, itype, otype)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 219, in _execute_function
+    descriptor = create_descriptor(
+        max(len(invec), len(outvec)),
+    ...<2 lines>...
+        invec.ptr == outvec.ptr,
+    )
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 99, in create_descriptor
+    check_status(status)
+    ~~~~~~~~~~~~^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 86, in check_status
+    raise RuntimeError(msg)
+RuntimeError: <MagicMock name='mock().DftiErrorMessage()' id='5205267456'> [docutils]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/waveform.rst:78: WARNING: Exception occurred in plotting add_waveform
+ from /Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/../examples/waveform/add_waveform.py:
+Traceback (most recent call last):
+  File "/Users/xangma/miniconda3/envs/pycbc313/lib/python3.13/site-packages/matplotlib/sphinxext/plot_directive.py", line 552, in _run_code
+    exec(code, ns)
+    ~~~~^^^^^^^^^^
+  File "<string>", line 43, in <module>
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/types/array.py", line 166, in nocomplex
+    return func(self, *args, **kwargs)
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/types/timeseries.py", line 1863, in to_frequencyseries
+    fft(tmp, f)
+    ~~~^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/func_api.py", line 52, in fft
+    backend.fft(invec, outvec, prec, itype, otype)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 249, in fft
+    _execute_function("fft", invec, outvec, prec, itype, otype)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 219, in _execute_function
+    descriptor = create_descriptor(
+        max(len(invec), len(outvec)),
+    ...<2 lines>...
+        invec.ptr == outvec.ptr,
+    )
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 99, in create_descriptor
+    check_status(status)
+    ~~~~~~~~~~~~^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 86, in check_status
+    raise RuntimeError(msg)
+RuntimeError: <MagicMock name='mock().DftiErrorMessage()' id='5205267456'> [docutils]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/waveform_plugin.rst:34: WARNING: Exception occurred in plotting add_waveform
+ from /Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/../examples/waveform/add_waveform.py:
+Traceback (most recent call last):
+  File "/Users/xangma/miniconda3/envs/pycbc313/lib/python3.13/site-packages/matplotlib/sphinxext/plot_directive.py", line 552, in _run_code
+    exec(code, ns)
+    ~~~~^^^^^^^^^^
+  File "<string>", line 43, in <module>
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/types/array.py", line 166, in nocomplex
+    return func(self, *args, **kwargs)
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/types/timeseries.py", line 1863, in to_frequencyseries
+    fft(tmp, f)
+    ~~~^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/func_api.py", line 52, in fft
+    backend.fft(invec, outvec, prec, itype, otype)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 249, in fft
+    _execute_function("fft", invec, outvec, prec, itype, otype)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 219, in _execute_function
+    descriptor = create_descriptor(
+        max(len(invec), len(outvec)),
+    ...<2 lines>...
+        invec.ptr == outvec.ptr,
+    )
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 99, in create_descriptor
+    check_status(status)
+    ~~~~~~~~~~~~^^^^^^^^
+  File "/private/tmp/pycbc-torch-publication-20260908/pycbc/fft/mkl.py", line 86, in check_status
+    raise RuntimeError(msg)
+RuntimeError: <MagicMock name='mock().DftiErrorMessage()' id='5205267456'> [docutils]
+looking for now-outdated files... none found
+pickling environment... done
+checking consistency... done
+preparing documents... done
+copying assets... 
+copying downloadable files... [  4%] images/torch-batch-r4-20260907/batch-accuracy.svg
+copying downloadable files... [  8%] images/torch-batch-r4-20260907/manifest.json
+copying downloadable files... [ 12%] data/torch-20260908/loader-v1-summary.json
+copying downloadable files... [ 16%] data/torch-20260908/descriptor-reuse-timing-v1-summary.json
+copying downloadable files... [ 20%] data/torch-20260908/graph-v2-timing-summary.json
+copying downloadable files... [ 24%] images/torch-executable-20260908/executable-wall.svg
+copying downloadable files... [ 28%] images/torch-executable-20260908/prototype-followups.svg
+copying downloadable files... [ 32%] images/torch-executable-20260908/manifest.json
+copying downloadable files... [ 36%] images/torch-batch-r4-20260907/batch-throughput.svg
+copying downloadable files... [ 40%] ../html/examples/waveform/plot_waveform.py
+copying downloadable files... [ 44%] ../html/examples/waveform/plot_detwaveform.py
+copying downloadable files... [ 48%] ../html/examples/waveform/plot_detwaveform.png
+copying downloadable files... [ 52%] ../html/examples/waveform/plot_detwaveform.hires.png
+copying downloadable files... [ 56%] ../html/examples/waveform/plot_detwaveform.pdf
+copying downloadable files... [ 60%] ../html/examples/waveform/higher_modes.py
+copying downloadable files... [ 64%] ../html/examples/waveform/plot_fd_td.py
+copying downloadable files... [ 68%] ../html/examples/waveform/plot_phase.py
+copying downloadable files... [ 72%] ../html/examples/waveform/plot_phase.png
+copying downloadable files... [ 76%] ../html/examples/waveform/plot_phase.hires.png
+copying downloadable files... [ 80%] ../html/examples/waveform/plot_phase.pdf
+copying downloadable files... [ 84%] ../html/examples/waveform/plot_freq.py
+copying downloadable files... [ 88%] ../html/examples/waveform/plot_freq.png
+copying downloadable files... [ 92%] ../html/examples/waveform/plot_freq.hires.png
+copying downloadable files... [ 96%] ../html/examples/waveform/plot_freq.pdf
+copying downloadable files... [100%] ../html/examples/waveform/add_waveform.py
+
+copying static files... 
+Writing evaluated template result to /Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/html/_static/basic.css
+Writing evaluated template result to /Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/html/_static/language_data.js
+Writing evaluated template result to /Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/html/_static/documentation_options.js
+Writing evaluated template result to /Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/html/_static/js/versions.js
+copying static files: done
+copying extra files... 
+copying extra files: done
+copying assets: done
+writing output... [  5%] api
+writing output... [  9%] index
+writing output... [ 14%] install
+writing output... [ 18%] install_cuda
+writing output... [ 23%] install_lalsuite
+writing output... [ 27%] install_virtualenv
+writing output... [ 32%] torch
+writing output... [ 36%] torch_batch_numerics
+writing output... [ 41%] torch_benchmark_protocol
+writing output... [ 45%] torch_filtering
+writing output... [ 50%] torch_followups
+writing output... [ 55%] torch_optimizations
+writing output... [ 59%] torch_parity
+writing output... [ 64%] torch_performance
+writing output... [ 68%] torch_profile_attribution
+writing output... [ 73%] torch_reference_campaign
+writing output... [ 77%] torch_runtime
+writing output... [ 82%] torch_search
+writing output... [ 86%] torch_testing
+writing output... [ 91%] torch_workflows
+writing output... [ 95%] waveform
+writing output... [100%] waveform_plugin
+
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: array [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: array [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: array [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: {None [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: FrequencySeries} [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: {None [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: float} [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: {None [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: float} [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: {'inline_linear' [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: 'inline_quadratic' [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: 'inline_cubic' [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: function [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: False [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: False [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: array-like [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: {None [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: lal.LIGOTimeGPS [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: float64} [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: optional [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: {None [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: data-type} [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: optional [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: boolean [ref.class]
+/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render/docs/api.rst:2: WARNING: py:class reference target not found: optional [ref.class]
+generating indices... genindex done
+highlighting module code... [ 25%] pycbc.scheme
+highlighting module code... [ 50%] pycbc.types.frequencyseries
+highlighting module code... [ 75%] pycbc.waveform.compress
+highlighting module code... [100%] pycbc.waveform.plugin
+
+writing additional pages... search done
+copying images... [ 14%] images/torch-batch-r4-20260907/batch-accuracy.png
+copying images... [ 29%] images/torch-executable-20260908/executable-wall.png
+copying images... [ 43%] images/torch-executable-20260908/prototype-followups.png
+copying images... [ 57%] images/torch-batch-r4-20260907/batch-throughput.png
+copying images... [ 71%] ../html/examples/waveform/plot_detwaveform.png
+copying images... [ 86%] ../html/examples/waveform/plot_phase.png
+copying images... [100%] ../html/examples/waveform/plot_freq.png
+
+dumping search index in English (code: en)... done
+dumping object inventory... done
+build finished with problems, 31 warnings (with warnings treated as errors).

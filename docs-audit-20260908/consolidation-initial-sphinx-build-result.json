@@ -1,0 +1,40 @@
+{
+  "command": [
+    "/private/tmp/pycbc-torch-publication-20260908-venv/bin/python",
+    "-m",
+    "sphinx",
+    "-b",
+    "html",
+    "-E",
+    "-a",
+    "-W",
+    "--keep-going",
+    "/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render-final/docs",
+    "/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/render-final/html"
+  ],
+  "returncode": 1,
+  "pages": [
+    "torch_search.rst",
+    "torch_optimizations.rst",
+    "torch.rst",
+    "torch_parity.rst",
+    "torch_benchmark_protocol.rst",
+    "torch_performance.rst",
+    "torch_workflows.rst",
+    "torch_testing.rst",
+    "torch_filtering.rst",
+    "torch_batch_numerics.rst",
+    "torch_runtime.rst",
+    "torch_reference_campaign.rst",
+    "waveform.rst",
+    "waveform_plugin.rst",
+    "install.rst",
+    "install_cuda.rst",
+    "install_lalsuite.rst",
+    "install_virtualenv.rst",
+    "docker.rst"
+  ],
+  "source_head": "9d4e4f6905d9f109d559284326d62173a854264f",
+  "finished": 1788862052.23873,
+  "scope": "All remaining Torch pages plus actual waveform/plugin/installation dependencies; repository extensions and theme, real plot/command directives; generated targeted API context; excludes unrelated manual and _include generators, no external intersphinx inventory."
+}

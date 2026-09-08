@@ -1,0 +1,159 @@
+{
+  "host": "client-3792.default.vpn.port.ac.uk",
+  "cwd": "/private/tmp/pycbc-torch-doc-audit-20260908",
+  "python": "3.13.9 | packaged by conda-forge | (main, Oct 22 2025, 23:38:18) [Clang 19.1.7 ]",
+  "interpreter": "/private/tmp/pycbc-torch-publication-20260908-venv/bin/python",
+  "import_root": "/private/tmp/pycbc-torch-publication-20260908",
+  "torch": "2.9.1",
+  "cuda": false,
+  "mps": true,
+  "source_revision": "9d4e4f6905d9f109d559284326d62173a854264f",
+  "pages": {
+    "torch_runtime.rst": {
+      "syntax_checked_blocks": 3,
+      "verified_paths": []
+    },
+    "torch_filtering.rst": {
+      "syntax_checked_blocks": 0,
+      "verified_paths": [],
+      "verified_bare_test_names": [
+        "test_chisq_torch.py",
+        "test_qtransform.py",
+        "test_torch_filter_pipeline.py",
+        "test_torch_search_kernels.py"
+      ]
+    },
+    "torch_search.rst": {
+      "syntax_checked_blocks": 0,
+      "verified_paths": [
+        "test/test_torch_offline_cuda_graph.py"
+      ],
+      "verified_bare_test_names": [
+        "test_live_batch_torch_fft_integration.py",
+        "test_live_batch_torch_peaks.py",
+        "test_live_batch_veto_reuse.py",
+        "test_torch_cuda_native_peaks.py",
+        "test_torch_cuda_peak_host_read.py",
+        "test_torch_event_kernels.py",
+        "test_torch_event_pipeline.py",
+        "test_torch_peak_contracts.py"
+      ]
+    },
+    "torch_workflows.rst": {
+      "syntax_checked_blocks": 0,
+      "verified_paths": []
+    },
+    "torch_testing.rst": {
+      "syntax_checked_blocks": 11,
+      "verified_paths": [
+        "test/test_array_torch_reductions.py",
+        "test/test_chisq_precision.py",
+        "test/test_decompress.py",
+        "test/test_detector_torch_geometry.py",
+        "test/test_live_batch_torch_fft_integration.py",
+        "test/test_live_batch_torch_peaks.py",
+        "test/test_live_batch_veto_reuse.py",
+        "test/test_mkl_function_cache.py",
+        "test/test_scheme_runtime.py",
+        "test/test_sigmasq_series_precision.py",
+        "test/test_strain_psd_precision.py",
+        "test/test_torch_backend_protocol.py",
+        "test/test_torch_batch_overlap_scaling.py",
+        "test/test_torch_batched_fft.py",
+        "test/test_torch_cuda_native_peaks.py",
+        "test/test_torch_cuda_peak_host_read.py",
+        "test/test_torch_decompress_cpu.py",
+        "test/test_torch_domain_compat.py",
+        "test/test_torch_event_kernels.py",
+        "test/test_torch_event_pipeline.py",
+        "test/test_torch_fft_cpu_native.py",
+        "test/test_torch_fft_cuda_workspace.py",
+        "test/test_torch_fft_writes.py",
+        "test/test_torch_filter_pipeline.py",
+        "test/test_torch_gaussian_noise.py",
+        "test/test_torch_inference_cli.py",
+        "test/test_torch_inference_core.py",
+        "test/test_torch_inference_tools.py",
+        "test/test_torch_large_batches.py",
+        "test/test_torch_large_ifft.py",
+        "test/test_torch_marginalized_gaussian.py",
+        "test/test_torch_offline_cuda_graph.py",
+        "test/test_torch_optional.py",
+        "test/test_torch_parity_artifacts.py",
+        "test/test_torch_peak_contracts.py",
+        "test/test_torch_performance_artifacts.py",
+        "test/test_torch_prior_compat.py",
+        "test/test_torch_psd_pipeline.py",
+        "test/test_torch_relative_binning.py",
+        "test/test_torch_runtime_transfers.py",
+        "test/test_torch_waveform_generator.py",
+        "test/utils.py",
+        "test/waveform/test_taylorf2_batch.py",
+        "test/waveform/test_taylorf2_phase_evaluation.py",
+        "test/waveform/test_taylorf2_torch.py",
+        "test/waveform/test_taylorf2ecc_torch.py",
+        "test/waveform/test_taylorf2nltides_torch.py",
+        "test/waveform/test_taylorf2redspin_torch.py",
+        "test/waveform/test_torch_waveform_registry.py",
+        "tools/bench_production_live_batch.py",
+        "tools/benchmark_artifact.py",
+        "tools/generate_torch_performance_plots.py",
+        "tools/torch_parity/compare.py",
+        "tools/torch_parity/generate.py",
+        "tools/torch_parity/manifest.py",
+        "tools/torch_parity/policy.json",
+        "tools/torch_parity/run_matrix.sh",
+        "tools/verify_lal_torch_parity.py"
+      ]
+    }
+  },
+  "runtime_source_files_equal": [
+    "pycbc/scheme.py",
+    "pycbc/types/array.py",
+    "pycbc/types/array_torch.py",
+    "pycbc/types/backend.py",
+    "pycbc/types/timeseries.py",
+    "pycbc/filter/_torch_cuda_graph.py",
+    "pycbc/events/threshold_torch.py",
+    "test/test_scheme_runtime.py",
+    "test/test_scheme_selection.py",
+    "test/test_torch_offline_cuda_graph.py"
+  ],
+  "runtime_example": "PASS: values, metadata, tensor storage, CPU threads and restoration",
+  "pytest": {
+    "command": [
+      "/private/tmp/pycbc-torch-publication-20260908-venv/bin/python",
+      "-I",
+      "-m",
+      "pytest",
+      "-q",
+      "-ra",
+      "test/test_scheme_runtime.py",
+      "test/test_scheme_selection.py",
+      "test/test_torch_offline_cuda_graph.py"
+    ],
+    "returncode": 0,
+    "log": "/Users/xangma/repos/pycbc/artifacts/torch-doc-audit-20260908/runtime-pytest.log"
+  },
+  "sphinx_config_review": {
+    "real_cpu_backends": [
+      "fftw",
+      "numpy"
+    ],
+    "selected_backend": "pycbc.fft.fftw",
+    "post_mock_fft": "PASS",
+    "scope": "minimal local import-order/FFT check; no Sphinx build"
+  },
+  "documented_static_checks": {
+    "python_compiled_in_memory": [
+      "tools/benchmark_artifact.py",
+      "tools/bench_production_live_batch.py",
+      "tools/generate_torch_performance_plots.py",
+      "tools/torch_parity/compare.py",
+      "tools/torch_parity/generate.py",
+      "tools/torch_parity/manifest.py"
+    ],
+    "bash_syntax": "PASS",
+    "policy_json": "PASS"
+  }
+}
