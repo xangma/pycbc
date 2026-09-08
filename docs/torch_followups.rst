@@ -197,7 +197,7 @@ Evidence and figure reproduction
 --------------------------------
 
 The publication archive is being prepared; its immutable URL will be supplied
-before publication. **Archive URL pending: TORCH_20260908_EVIDENCE_URL.**
+before publication. **Archive URL pending: https://github.com/xangma/pycbc/tree/c4bfea522807742388dc8bcddc86473b9c03b047/optimization-evidence-20260908.**
 The archive inventory covers ``torch-fft-optimization-20260908``,
 ``torch-residual-optimization-20260908``, ``torch-offline-cuda-graph-20260908``,
 ``torch-cpu-workspace-policy-20260908`` and the profiling investigation.
