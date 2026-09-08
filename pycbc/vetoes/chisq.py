@@ -608,6 +608,132 @@ class SingleDetSkyMaxPowerChisq(SingleDetPowerChisq):
             Number of statistical degrees of freedom for the chisq test
             in the given template
         """
+        if _torch_tensor(corr_plus) is not None:
+            return self._values_torch(
+                corr_plus,
+                corr_cross,
+                snrv,
+                psd,
+                indices,
+                template_plus,
+                template_cross,
+                u_vals,
+                hplus_cross_corr,
+                hpnorm,
+                hcnorm,
+            )
+
+        if self.do:
+            num_above = len(indices)
+            if self.snr_threshold:
+                above = abs(snrv) > self.snr_threshold
+                num_above = above.sum()
+                logging.info("%s above chisq activation threshold" % num_above)
+                above_indices = indices[above]
+                above_snrv = snrv[above]
+                u_vals = u_vals[above]
+                rchisq = numpy.zeros(len(indices), dtype=numpy.float32)
+                dof = -100
+            else:
+                above_indices = indices
+                above_snrv = snrv
+
+            if num_above > 0:
+                chisq = []
+                curr_tmplt_mult_fac = 0.0
+                curr_corr_mult_fac = 0.0
+                if self.template_mem is None or (
+                    not len(self.template_mem) == len(template_plus)
+                ):
+                    self.template_mem = zeros(
+                        len(template_plus), dtype=complex_same_precision_as(corr_plus)
+                    )
+                if self.corr_mem is None or (not len(self.corr_mem) == len(corr_plus)):
+                    self.corr_mem = zeros(
+                        len(corr_plus), dtype=complex_same_precision_as(corr_plus)
+                    )
+
+                tmplt_data = template_cross.data
+                corr_data = corr_cross.data
+                numpy.copyto(self.template_mem.data, template_cross.data)
+                numpy.copyto(self.corr_mem.data, corr_cross.data)
+                template_cross._data = self.template_mem.data
+                corr_cross._data = self.corr_mem.data
+
+                for lidx, index in enumerate(above_indices):
+                    above_local_indices = numpy.array([index])
+                    above_local_snr = numpy.array([above_snrv[lidx]])
+                    local_u_val = u_vals[lidx]
+                    # Construct template from _plus and _cross
+                    # Note that this modifies in place, so we store that and
+                    # revert on the next pass.
+                    template = template_cross.multiply_and_add(
+                        template_plus, local_u_val - curr_tmplt_mult_fac
+                    )
+                    curr_tmplt_mult_fac = local_u_val
+
+                    template.f_lower = template_plus.f_lower
+                    template.params = template_plus.params
+                    # Construct the corr vector
+                    norm_fac = local_u_val * local_u_val + 1
+                    norm_fac += 2 * local_u_val * hplus_cross_corr
+                    norm_fac = hcnorm / (norm_fac**0.5)
+                    hp_fac = local_u_val * hpnorm / hcnorm
+                    corr = corr_cross.multiply_and_add(
+                        corr_plus, hp_fac - curr_corr_mult_fac
+                    )
+                    curr_corr_mult_fac = hp_fac
+
+                    bins = self.calculate_chisq_bins(template, psd)
+                    dof = (len(bins) - 1) * 2 - 2
+                    curr_chisq = power_chisq_at_points_from_precomputed(
+                        corr,
+                        above_local_snr / norm_fac,
+                        norm_fac,
+                        bins,
+                        above_local_indices,
+                    )
+                    chisq.append(curr_chisq[0])
+                chisq = numpy.array(chisq)
+                # Must reset corr and template to original values!
+                template_cross._data = tmplt_data
+                corr_cross._data = corr_data
+
+            if self.snr_threshold:
+                if num_above > 0:
+                    rchisq[above] = chisq
+            else:
+                rchisq = chisq
+
+            return rchisq, numpy.repeat(dof, len(indices))
+        else:
+            return None, None
+
+    def _values_torch(
+        self,
+        corr_plus,
+        corr_cross,
+        snrv,
+        psd,
+        indices,
+        template_plus,
+        template_cross,
+        u_vals,
+        hplus_cross_corr,
+        hpnorm,
+        hcnorm,
+    ):
+        """Calculate the chisq at points given by indices.
+
+        Returns
+        -------
+        chisq: Array
+            Chisq values, one for each sample index
+
+        chisq_dof: Array
+            Number of statistical degrees of freedom for the chisq test
+            in the given template
+        """
         if self.do:
             num_above = len(indices)
             dof = -100
