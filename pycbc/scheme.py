@@ -27,7 +27,6 @@ This modules provides python contexts that set the default behavior for PyCBC
 objects.
 """
 
-import ctypes
 import logging
 import os
 from functools import lru_cache, wraps
@@ -43,6 +42,8 @@ logger = logging.getLogger("pycbc.scheme")
 @lru_cache(maxsize=1)
 def _resolve_libgomp():
     """Resolve the process-global GNU OpenMP runtime once."""
+    import ctypes
+
     return get_ctypes_library("gomp", ["gomp"], mode=ctypes.RTLD_GLOBAL)
 
 
@@ -202,6 +203,8 @@ class TorchScheme(Scheme):
         if not pycbc.HAVE_TORCH:
             raise RuntimeError("Install PyTorch to use the Torch processing scheme.")
 
+        # Selecting Torch may load GNU OpenMP; keep this opt-in.
+        os.environ.setdefault("MKL_THREADING_LAYER", "GNU")
         try:
             import torch
         except Exception as exc:
@@ -296,44 +299,35 @@ class TorchScheme(Scheme):
 class CPUScheme(Scheme):
     def __init__(self, num_threads=1):
         if isinstance(num_threads, int):
-            self.num_threads = num_threads
-        elif num_threads == "env" and "PYCBC_NUM_THREADS" in os.environ:
+            self.num_threads=num_threads
+        elif num_threads == 'env' and "PYCBC_NUM_THREADS" in os.environ:
             self.num_threads = int(os.environ["PYCBC_NUM_THREADS"])
         else:
             import multiprocessing
-
             self.num_threads = multiprocessing.cpu_count()
         self._libgomp = None
 
     def __enter__(self):
         Scheme.__enter__(self)
-        # CPUScheme loads libgomp globally below.  If MKL keeps its default
-        # Intel OpenMP layer, threaded DFTI calls can silently return corrupt
-        # data once libgomp (including Torch's copy) is present. Default to
-        # the compatible GNU layer, preserving explicit process settings.
-        if pycbc.HAVE_MKL:
-            os.environ.setdefault("MKL_THREADING_LAYER", "GNU")
+        # Preserve legacy CPU runtime resolution; ctypes is local to Torch.
         try:
-            self._libgomp = _resolve_libgomp()
-        except Exception:
+            self._libgomp = get_ctypes_library("gomp", ['gomp'],
+                                               mode=ctypes.RTLD_GLOBAL)  # noqa: F821
+        except:
             # Should we fail or give a warning if we cannot import
             # libgomp? Seems to work even for MKL scheme, but
             # not entirely sure why...
             pass
 
-        num_threads_str = str(self.num_threads)
-        if os.environ.get("OMP_NUM_THREADS") != num_threads_str:
-            os.environ["OMP_NUM_THREADS"] = num_threads_str
+        os.environ["OMP_NUM_THREADS"] = str(self.num_threads)
         if self._libgomp is not None:
-            self._libgomp.omp_set_num_threads(int(self.num_threads))
+            self._libgomp.omp_set_num_threads( int(self.num_threads) )
 
     def __exit__(self, type, value, traceback):
-        if os.environ.get("OMP_NUM_THREADS") != "1":
-            os.environ["OMP_NUM_THREADS"] = "1"
+        os.environ["OMP_NUM_THREADS"] = "1"
         if self._libgomp is not None:
             self._libgomp.omp_set_num_threads(1)
         Scheme.__exit__(self, type, value, traceback)
-
 
 class MKLScheme(CPUScheme):
     def __init__(self, num_threads=1):

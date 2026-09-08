@@ -209,11 +209,6 @@ DYN_RANGE_FAC = 5.9029581035870565e20
 VARARGS_DELIM = "+"
 
 # Check for optional components of the PyCBC Package
-# Torch and CPUScheme both load GNU OpenMP, while MKL otherwise selects its
-# Intel OpenMP layer.  Mixing those runtimes can silently corrupt threaded
-# DFTI output, so default to MKL's compatible layer before either runtime
-# loads. An explicit process configuration remains authoritative.
-os.environ.setdefault("MKL_THREADING_LAYER", "GNU")
 
 try:
     # check if pycuda is installed

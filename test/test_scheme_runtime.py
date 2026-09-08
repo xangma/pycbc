@@ -30,7 +30,7 @@ def _clear_libgomp_cache():
 
 
 @pytest.mark.parametrize("explicit", (None, "INTEL", "SEQUENTIAL", "GNU"))
-def test_pycbc_defaults_mkl_threading_without_overriding_user(explicit):
+def test_pycbc_preserves_mkl_threading_configuration(explicit):
     env = os.environ.copy()
     env.pop("MKL_THREADING_LAYER", None)
     if explicit is not None:
@@ -41,8 +41,8 @@ def test_pycbc_defaults_mkl_threading_without_overriding_user(explicit):
             "-c",
             (
                 "import os; import pycbc; "
-                "assert os.environ['MKL_THREADING_LAYER'] == "
-                f"{explicit or 'GNU'!r}"
+                "assert os.environ.get('MKL_THREADING_LAYER') == "
+                f"{explicit!r}"
             ),
         ],
         check=True,
@@ -56,10 +56,13 @@ def test_cpu_scheme_preserves_mkl_threading_configuration(monkeypatch, explicit)
     if explicit is not None:
         monkeypatch.setenv("MKL_THREADING_LAYER", explicit)
     monkeypatch.setattr(scheme.pycbc, "HAVE_MKL", True)
-    monkeypatch.setattr(scheme, "_resolve_libgomp", lambda: _OpenMPRuntime())
+    def no_cpu_runtime_load():
+        pytest.fail("CPU entry must not adopt Torch OpenMP setup")
+
+    monkeypatch.setattr(scheme, "_resolve_libgomp", no_cpu_runtime_load)
     with scheme.CPUScheme():
-        assert os.environ["MKL_THREADING_LAYER"] == (explicit or "GNU")
-    assert os.environ["MKL_THREADING_LAYER"] == (explicit or "GNU")
+        assert os.environ.get("MKL_THREADING_LAYER") == explicit
+    assert os.environ.get("MKL_THREADING_LAYER") == explicit
 
 
 def test_torch_scheme_num_threads_validation():
