@@ -1,0 +1,17 @@
+..s..............................s.s......................s.....s..s..s. [ 63%]
+..........................................                               [100%]
+=============================== warnings summary ===============================
+test/test_torch_decompress_cpu.py::test_unsupported_storage_keeps_torch_route[readonly_input]
+  /private/tmp/pycbc-torch-publication-20260908/pycbc/waveform/decompress_torch.py:37: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /Users/runner/work/pytorch/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:212.)
+    return torch.as_tensor(numpy.asarray(value), device=device, dtype=dtype)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] test/test_decompress.py:224: Torch CUDA is unavailable
+SKIPPED [1] test/test_torch_decompress_cpu.py:276: Torch cuda is unavailable
+SKIPPED [1] test/test_torch_decompress_cpu.py:288: CUDA unavailable
+SKIPPED [1] test/waveform/test_spherical_harmonics_torch.py:39: Torch CUDA device is unavailable
+SKIPPED [1] test/waveform/test_torch_ringdown.py:90: Torch CUDA device unavailable
+SKIPPED [1] test/waveform/test_torch_ringdown.py:111: Torch CUDA device unavailable
+SKIPPED [1] test/waveform/test_torch_ringdown.py:149: Torch CUDA device unavailable
+107 passed, 7 skipped, 1 warning in 3.70s

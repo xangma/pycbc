@@ -1,0 +1,1710 @@
+commit 3e88711c1453d2ffab5eca42ec3207d34c50ddef
+Author:     xangma <xangma@users.noreply.github.com>
+AuthorDate: Sun Sep 6 22:19:34 2026 +0100
+Commit:     xangma <xangma@users.noreply.github.com>
+CommitDate: Sun Sep 6 22:19:34 2026 +0100
+
+    Add optional CPU peak, sparse chi-square and FFT optimizations
+
+diff --git a/.github/workflows/basic-tests.yml b/.github/workflows/basic-tests.yml
+index 72e376f5e3..4f47e9374e 100644
+--- a/.github/workflows/basic-tests.yml
++++ b/.github/workflows/basic-tests.yml
+@@ -106,6 +106,9 @@ jobs:
+           test/test_sigmasq_series_precision.py \
+           test/test_chisq_precision.py \
+           test/test_torch_cpu_native_batch.py \
++          test/test_cpu_batch_peaks.py \
++          test/test_torch_cpu_native_peaks.py \
++          test/test_torch_cpu_fft_tuning.py \
+           test/test_torch_search_kernels.py \
+           test/test_torch_event_kernels.py \
+           test/test_torch_event_pipeline.py \
+diff --git a/docs/torch_optimizations.rst b/docs/torch_optimizations.rst
+index 486ea26d29..3b0ccf6a3a 100644
+--- a/docs/torch_optimizations.rst
++++ b/docs/torch_optimizations.rst
+@@ -79,8 +79,10 @@ FFT, precision, and batch sizing
+    * - ``PYCBC_TORCH_CPU_MKL_IFFT``
+      - On
+      - Considers the direct MKL CPU inverse-FFT route for validated Linux
+-       x86-64, ``complex64``, and size 32768. Otherwise the established FFT
+-       route is used.
++       x86-64, ``complex64``, and power-of-two sizes from 32768 through 524288.
++       Sizes 1048576, 2097152 and 4194304 use qualified double-precision
++       workspaces with one Torch thread; other thread counts retain the fallback.
++       Otherwise the established FFT route is used.
+    * - ``PYCBC_TORCH_DIRECT_BATCH_IFFT``
+      - CUDA: on; CPU/MPS: off
+      - Considers direct batched inverse FFT for eligible ``complex64`` batches
+@@ -122,6 +124,9 @@ Filtering, thresholding, and execution
+    * - ``PYCBC_TORCH_CUDA_NATIVE_BATCH_CORRELATE``
+      - Off
+      - Requests the experimental native CUDA batched-correlation route.
++   * - ``PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK``
++     - Off
++     - Requests native CPU batched peak extraction.
+    * - ``PYCBC_TORCH_CUDA_NATIVE_BATCH_PEAK``
+      - Context-dependent when unset
+      - Eligible Triton batch threshold reduction treats unset as enabled; the
+diff --git a/pycbc/fft/torchfft.py b/pycbc/fft/torchfft.py
+index 0ac5c3c4b3..33cd0d35a2 100644
+--- a/pycbc/fft/torchfft.py
++++ b/pycbc/fft/torchfft.py
+@@ -79,7 +79,7 @@ _TORCH_FFT_PREFERRED_CPU_SIZES = (
+ _MKL_DIRECT_PLATFORM_SUPPORTED = (
+     platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"}
+ )
+-_MKL_DIRECT_IFFT_SIZES = frozenset({32768})
++_MKL_DIRECT_IFFT_SIZES = frozenset({32768, 65536, 131072, 262144, 524288})
+ # These large inverse sizes passed the Linux/x86-64 single-thread precision
+ # and timing matrix. Promotion retains float64 arithmetic without extending
+ # the direct float32 route, whose legacy-FFTW error gate remains unchanged.
+@@ -155,6 +155,7 @@ class _MKLCPUDirectIFFTPlan:
+         self._target_ptr = target.data_ptr()
+         self._size = size
+         self._nthreads = nthreads
++        self._torch_threads = torch.get_num_threads()
+         self._promote = promote
+         if promote:
+             # Keep both private pointers for the entire descriptor lifetime.
+@@ -241,7 +242,8 @@ class _MKLCPUDirectIFFTPlan:
+         # reusable matched-filter plan.
+         return (
+             getattr(self, "_pid", os.getpid()) == os.getpid()
+-            and torch.get_num_threads() == self._nthreads
++            and torch.get_num_threads()
++            == getattr(self, "_torch_threads", self._nthreads)
+             and source is self._source
+             and target is self._target
+             and source.data_ptr() == self._source_ptr
+@@ -962,6 +964,11 @@ def _can_use_mkl_cpu_ifft(fftobj):
+ def _setup_mkl_cpu_ifft_plan(fftobj):
+     fftobj._mkl_plan = None
+     if _can_use_mkl_cpu_ifft(fftobj):
++        from pycbc.hardware import get_optimal_1d_fft_threads
++
++        optimal_threads = get_optimal_1d_fft_threads(
++            fftobj.size, torch.get_num_threads()
++        )
+         kwargs = {}
+         if fftobj.size in _MKL_PROMOTED_IFFT_SIZES:
+             kwargs["promote"] = True
+@@ -969,7 +976,7 @@ def _setup_mkl_cpu_ifft_plan(fftobj):
+             fftobj.size,
+             fftobj.invec._data.tensor,
+             fftobj.outvec._data.tensor,
+-            nthreads=torch.get_num_threads(),
++            nthreads=optimal_threads,
+             **kwargs,
+         )
+ 
+diff --git a/pycbc/filter/matchedfilter.py b/pycbc/filter/matchedfilter.py
+index f76b2b5581..c914be70c2 100644
+--- a/pycbc/filter/matchedfilter.py
++++ b/pycbc/filter/matchedfilter.py
+@@ -28,6 +28,7 @@ utilities.
+ 
+ import logging
+ import os
++import threading
+ from math import sqrt
+ 
+ import numpy
+@@ -49,10 +50,12 @@ from pycbc.types.backend import backend_array, wrap_backend_array
+ 
+ logger = logging.getLogger("pycbc.filter.matchedfilter")
+ 
++_TORCH_CPU_NATIVE_BATCH_PEAK_GATE = "PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK"
+ _TORCH_CUDA_NATIVE_BATCH_PEAK_GATE = "PYCBC_TORCH_CUDA_NATIVE_BATCH_PEAK"
+ _TORCH_ONDEVICE_PEAKS_GATE = "PYCBC_TORCH_ONDEVICE_PEAKS"
+ _TORCH_FEATURE_TRUE = {"1", "true", "yes", "on"}
+ _TORCH_FEATURE_FALSE = {"0", "false", "no", "off"}
++_TORCH_CPU_NATIVE_BATCH_PEAK_MAX_LENGTH = 2**32 - 1
+ _TORCH_ASYNC_STREAMS_GATE = "PYCBC_TORCH_ASYNC_STREAMS"
+ 
+ 
+@@ -1970,6 +1973,108 @@ def quadratic_interpolate_peak(left, middle, right):
+     return bin_offset, peak_value
+ 
+ 
++def _torch_cpu_native_batch_peak_enabled():
++    """Read the strict, default-off native Torch-CPU peak gate."""
++    value = os.environ.get(_TORCH_CPU_NATIVE_BATCH_PEAK_GATE)
++    if value is None:
++        return False
++    normalized = value.strip().lower()
++    if normalized in _TORCH_FEATURE_TRUE:
++        return True
++    if normalized in _TORCH_FEATURE_FALSE:
++        return False
++    choices = ", ".join(sorted(_TORCH_FEATURE_TRUE | _TORCH_FEATURE_FALSE))
++    raise ValueError(
++        f"{_TORCH_CPU_NATIVE_BATCH_PEAK_GATE} must be one of: {choices}; got {value!r}"
++    )
++
++
++def _try_torch_cpu_native_batch_peak_values(
++    output, tensor, template_count, template_size, segment
++):
++    """Return exact standard-CPU peaks, or request the Torch fallback."""
++    if not _torch_cpu_native_batch_peak_enabled():
++        return None
++
++    # Imports remain behind the explicit gate.  In particular, standard CPU,
++    # CUDA, MPS, and gate-off Torch filtering retain their established route.
++    try:
++        from . import matchedfilter_cpu, matchedfilter_torch
++
++        if template_count < 1:
++            return None
++        total = template_count * template_size
++        if (
++            total > _TORCH_CPU_NATIVE_BATCH_PEAK_MAX_LENGTH
++            or template_count > _TORCH_CPU_NATIVE_BATCH_PEAK_MAX_LENGTH
++            or template_size > _TORCH_CPU_NATIVE_BATCH_PEAK_MAX_LENGTH
++            or not matchedfilter_torch._batch_tensor_contract(tensor, total)
++        ):
++            return None
++
++        start, stop, step = segment.indices(template_size)
++        if step != 1 or start >= stop:
++            return None
++        runtime = matchedfilter_torch._cpu_native_openmp_runtime(matchedfilter_cpu)
++        if not matchedfilter_torch._cpu_native_batch_runtime_is_stable(runtime):
++            return None
++
++        owner_tensor = tensor
++        pointer = tensor.data_ptr()
++        version = tensor._version
++        pid = os.getpid()
++        thread_id = threading.get_ident()
++        values = tensor.detach().numpy()
++        if values.__array_interface__["data"][0] != pointer:
++            return None
++        indices = numpy.empty(template_count, dtype=numpy.int64)
++        peaks = numpy.empty(template_count, dtype=numpy.complex64)
++
++        # Revalidate immediately before crossing the opaque Cython boundary.
++        # The local owners keep the Tensor and its storage alive for the call.
++        if (
++            os.getpid() != pid
++            or threading.get_ident() != thread_id
++            or backend_array(output, "torch") is not owner_tensor
++            or owner_tensor.data_ptr() != pointer
++            or owner_tensor._version != version
++            or not matchedfilter_torch._batch_tensor_contract(owner_tensor, total)
++            or not matchedfilter_torch._cpu_native_batch_runtime_is_stable(runtime)
++        ):
++            return None
++
++        matchedfilter_cpu._batch_abs_arg_max_complex64(
++            values,
++            indices,
++            peaks,
++            template_size,
++            start,
++            stop,
++            template_count,
++        )
++        if (
++            os.getpid() != pid
++            or threading.get_ident() != thread_id
++            or backend_array(output, "torch") is not owner_tensor
++            or owner_tensor.data_ptr() != pointer
++            or owner_tensor._version != version
++        ):
++            return None
++        return indices, peaks
++    except (
++        AttributeError,
++        ImportError,
++        OSError,
++        OverflowError,
++        RuntimeError,
++        TypeError,
++        ValueError,
++    ):
++        # Only private result arrays can have been written.  The established
++        # Torch helper below remains safe after every admission/setup failure.
++        return None
++
++
+ def _torch_cuda_native_batch_peak_enabled():
+     """Read the strict, default-off native Torch-CUDA peak gate."""
+     value = os.environ.get(_TORCH_CUDA_NATIVE_BATCH_PEAK_GATE)
+@@ -2126,7 +2231,17 @@ def _torch_batch_peak_values(output, template_count, template_size, segment):
+     if segment.step not in (None, 1):
+         return None
+ 
+-    if tensor.device.type == "cuda":
++    if tensor.device.type == "cpu":
++        native = _try_torch_cpu_native_batch_peak_values(
++            output,
++            tensor,
++            template_count,
++            template_size,
++            segment,
++        )
++        if native is not None:
++            return native
++    elif tensor.device.type == "cuda":
+         native = _try_torch_cuda_native_batch_peak_values(
+             output,
+             tensor,
+@@ -2173,6 +2288,62 @@ def _torch_batch_peak_values(output, template_count, template_size, segment):
+     )
+ 
+ 
++def _cpu_batch_peak_values(output, template_count, template_size, segment):
++    """Materialize one peak index and value per contiguous CPU output.
++
++    Uses Cython OpenMP _batch_abs_arg_max_complex64 for direct vectorized
++    peak extraction on standard CPU / NumPy memory, bypassing per-template
++    slice allocations and Python-level scheme conversions.
++    """
++    if not _torch_cpu_native_batch_peak_enabled():
++        return None
++
++    if template_count <= 1:
++        return None
++
++    if segment.step not in (None, 1):
++        return None
++
++    raw = backend_array(output)
++    if not isinstance(raw, numpy.ndarray):
++        return None
++    if raw.dtype != numpy.complex64:
++        return None
++    if not raw.flags.c_contiguous:
++        return None
++
++    template_count = int(template_count)
++    template_size = int(template_size)
++    if (
++        template_count < 1
++        or template_size < 1
++        or raw.size != template_count * template_size
++    ):
++        return None
++
++    start, stop, step = segment.indices(template_size)
++    if step != 1 or start >= stop:
++        return None
++
++    try:
++        from . import matchedfilter_cpu
++
++        indices = numpy.empty(template_count, dtype=numpy.int64)
++        peaks = numpy.empty(template_count, dtype=numpy.complex64)
++        matchedfilter_cpu._batch_abs_arg_max_complex64(
++            raw.ravel(),
++            indices,
++            peaks,
++            template_size,
++            start,
++            stop,
++            template_count,
++        )
++        return indices, peaks
++    except Exception:
++        return None
++
++
+ def _torch_batch_peak_magnitudes(peak_values):
+     """Materialize live-batch magnitudes with scalar-loop precision.
+ 
+@@ -3097,6 +3268,10 @@ class LiveBatchMatchedFilter(object):
+                 batch_peaks = _torch_batch_peak_values(
+                     self.out_mem[mid], len(tgroup), psize, seg
+                 )
++                if batch_peaks is None:
++                    batch_peaks = _cpu_batch_peak_values(
++                        self.out_mem[mid], len(tgroup), psize, seg
++                    )
+ 
+             # LiveBatch retains only one peak per template.  Materialize their
+             # magnitudes in bulk for groups above the crossover threshold.
+diff --git a/pycbc/filter/matchedfilter_cpu.pyx b/pycbc/filter/matchedfilter_cpu.pyx
+index aea47af4ad..4cd7b08179 100644
+--- a/pycbc/filter/matchedfilter_cpu.pyx
++++ b/pycbc/filter/matchedfilter_cpu.pyx
+@@ -31,6 +31,92 @@ ctypedef fused COMPLEXTYPE:
+     float complex
+     double complex
+ 
++
++cdef inline void _abs_arg_max_complex64_row(
++        float complex* values,
++        numpy.int64_t* indices,
++        float complex* peaks,
++        unsigned int row,
++        unsigned int row_size,
++        unsigned int start,
++        unsigned int stop) noexcept nogil:
++    """Store the legacy complex abs-arg-max result for one row segment."""
++    cdef unsigned int offset = row * row_size + start
++    cdef unsigned int length = stop - start
++    cdef unsigned int index
++    cdef unsigned int best = 0
++    cdef float complex value
++    cdef double mag
++    cdef double magmax = 0
++
++    for index in range(length):
++        value = values[offset + index]
++        mag = (
++            value.real * value.real
++            + value.imag * value.imag
++        )
++        if mag > magmax:
++            magmax = mag
++            best = index
++
++    indices[row] = best
++    peaks[row] = values[offset + best]
++
++
++@cython.boundscheck(False)
++@cython.wraparound(False)
++def _batch_abs_arg_max_complex64(
++        numpy.ndarray [float complex, ndim=1, mode="c"] values,
++        numpy.ndarray [numpy.int64_t, ndim=1, mode="c"] indices,
++        numpy.ndarray [float complex, ndim=1, mode="c"] peaks,
++        row_size,
++        start,
++        stop,
++        num_vectors):
++    """Find exact legacy peak indices and values for complex64 rows.
++
++    Indices are relative to ``[start:stop]``, matching the scalar
++    ``Array.abs_arg_max`` call used by ``LiveBatchMatchedFilter``.
++    """
++    row_size = int(row_size)
++    start = int(start)
++    stop = int(stop)
++    num_vectors = int(num_vectors)
++    if (
++        num_vectors < 1
++        or row_size < 1
++        or start < 0
++        or start >= stop
++        or stop > row_size
++        or num_vectors > 0xffffffff
++        or row_size > 0xffffffff
++        or num_vectors * row_size > 0xffffffff
++        or values.shape[0] != num_vectors * row_size
++        or indices.shape[0] != num_vectors
++        or peaks.shape[0] != num_vectors
++    ):
++        raise ValueError("invalid batched peak geometry")
++
++    cdef unsigned int nvec = num_vectors
++    cdef unsigned int vsize = row_size
++    cdef unsigned int begin = start
++    cdef unsigned int end = stop
++    cdef unsigned int row
++    cdef float complex* value_ptr = <float complex*> values.data
++    cdef numpy.int64_t* index_ptr = <numpy.int64_t*> indices.data
++    cdef float complex* peak_ptr = <float complex*> peaks.data
++
++    for row in prange(nvec, nogil=True, schedule="static"):
++        _abs_arg_max_complex64_row(
++            value_ptr,
++            index_ptr,
++            peak_ptr,
++            row,
++            vsize,
++            begin,
++            end,
++        )
++
+ @cython.boundscheck(False)
+ @cython.wraparound(False)
+ def _batch_correlate(numpy.ndarray [long, ndim=1] x,
+diff --git a/pycbc/hardware.py b/pycbc/hardware.py
+index 0a53b17ae9..ba0bfdb164 100644
+--- a/pycbc/hardware.py
++++ b/pycbc/hardware.py
+@@ -247,3 +247,81 @@ def get_optimal_batch_tile_size(
+ 
+     power = 2 ** int(round(math.log2(optimal)))
+     return max(min_tile, min(max_tile, power))
++
++
++@functools.lru_cache(maxsize=1)
++def get_cpu_cores_per_numa_node():
++    """Return the number of CPU cores/threads sharing a single L3 cache/NUMA node."""
++    import multiprocessing
++
++    # 1. Linux sysfs inspection
++    try:
++        shared_list = "/sys/devices/system/cpu/cpu0/cache/index3/shared_cpu_list"
++        if not os.path.exists(shared_list):
++            shared_list = "/sys/devices/system/cpu/cpu0/cache/index2/shared_cpu_list"
++        if os.path.exists(shared_list):
++            with open(shared_list) as f:
++                content = f.read().strip()
++            total = 0
++            for part in content.split(","):
++                if "-" in part:
++                    start, end = part.split("-")
++                    total += int(end) - int(start) + 1
++                elif part.isdigit():
++                    total += 1
++            if total > 0:
++                return total
++    except Exception:
++        pass
++
++    # 2. Darwin sysctl inspection
++    if sys.platform == "darwin":
++        import subprocess
++
++        for key in ("hw.perflevel0.logicalcpu", "hw.logicalcpu"):
++            try:
++                out = subprocess.check_output(
++                    ["sysctl", "-n", key],
++                    text=True,
++                    stderr=subprocess.DEVNULL,
++                ).strip()
++                if out and int(out) > 0:
++                    return int(out)
++            except Exception:
++                pass
++
++    return min(8, multiprocessing.cpu_count())
++
++
++@functools.lru_cache(maxsize=64)
++def get_optimal_1d_fft_threads(transform_size, requested_threads=None):
++    """Compute the optimal thread count for a single 1D FFT to prevent cache thrashing.
++
++    Parameters
++    ----------
++    transform_size : int
++        Number of complex frequency/time domain samples (e.g., 131,072).
++    requested_threads : int, optional
++        User-requested or scheme-active thread count.
++
++    Returns
++    -------
++    int
++        Optimal thread team size for the 1D transform.
++    """
++    if requested_threads is None:
++        import multiprocessing
++
++        requested_threads = multiprocessing.cpu_count()
++    requested_threads = int(max(1, requested_threads))
++
++    # Working set for single complex64 in/out pair: 2 * transform_size * 8 bytes
++    working_set_bytes = 2 * int(transform_size) * 8
++    ccx_cache_bytes = get_cpu_l3_cache_size(per_ccx=True)
++
++    if working_set_bytes <= ccx_cache_bytes:
++        # Fits inside a single CCD/L3 cache domain: bound to cores in this domain
++        cores_in_node = get_cpu_cores_per_numa_node()
++        return max(1, min(requested_threads, cores_in_node))
++
++    return requested_threads
+diff --git a/pycbc/vetoes/chisq_cpu.pyx b/pycbc/vetoes/chisq_cpu.pyx
+index 15dece5585..ad59331432 100644
+--- a/pycbc/vetoes/chisq_cpu.pyx
++++ b/pycbc/vetoes/chisq_cpu.pyx
+@@ -129,6 +129,63 @@ def point_chisq_code(numpy.ndarray[REALTYPE, ndim=1] chisq,
+     free(outr_tmp)
+     free(outi_tmp)
+ 
++
++@boundscheck(False)
++@wraparound(False)
++@cdivision(True)
++def point_chisq_code_single_double(
++        numpy.ndarray[numpy.complex64_t, ndim=1] v1,
++        numpy.ndarray[numpy.complex64_t, ndim=1] snr,
++        int slen, double shift,
++        numpy.ndarray[numpy.uint32_t, ndim=1] bins,
++        int num_bins, double snr_norm):
++    """Fused high-precision pointwise chi-square for one search point.
++
++    This is the common sparse-search specialization of ``point_chisq_code``.
++    Scalar state avoids its eight heap arrays and the inner point loop while
++    retaining the same double-precision phase recurrence and accumulation.
++    """
++    cdef int bstart, bend, i, j
++    cdef float complex v
++    cdef double outr, outi, pr, pi, vsr, vsi
++    cdef double vr, vi, t1, t2, k1, k2, k3, vs, va
++    cdef double snr_real = snr[0].real
++    cdef double snr_imag = snr[0].imag
++    cdef double chisq = -(snr_real * snr_real + snr_imag * snr_imag) \
++                        / num_bins
++
++    vsr = cos(2 * 3.141592653 * shift / slen)
++    vsi = sin(2 * 3.141592653 * shift / slen)
++    for i in range(num_bins):
++        bstart = bins[i]
++        bend = bins[i + 1]
++        pr = cos(2 * 3.141592653 * shift * bstart / slen)
++        pi = sin(2 * 3.141592653 * shift * bstart / slen)
++        outr = 0.
++        outi = 0.
++
++        for j in range(bstart, bend):
++            v = v1[j]
++            vr = v.real
++            vi = v.imag
++            vs = vr + vi
++            va = vi - vr
++            t1 = pr
++            t2 = pi
++
++            k1 = vr * (t1 + t2)
++            k2 = t1 * va
++            k3 = t2 * vs
++            outr += k1 - k3
++            outi += k1 + k2
++
++            pr = t1 * vsr - t2 * vsi
++            pi = t1 * vsi + t2 * vsr
++
++        chisq += outr * outr + outi * outi
++
++    return chisq * (num_bins * snr_norm * snr_norm)
++
+ def chisq_accum_bin_numpy(chisq, q):
+     chisq += q.squared_norm()
+ 
+diff --git a/pycbc/vetoes/chisq_torch.py b/pycbc/vetoes/chisq_torch.py
+index 153963bdd6..8af8e7342c 100644
+--- a/pycbc/vetoes/chisq_torch.py
++++ b/pycbc/vetoes/chisq_torch.py
+@@ -289,6 +289,25 @@ def _cpu_native_sparse_search_eligible(corr, points, bin_edges, snr):
+     )
+ 
+ 
++def _cpu_native_single_point_chisq(corr, point, bin_edges, snr, snr_norm):
++    """Run the high-precision scalar search kernel and return Torch storage."""
++    from .chisq_cpu import point_chisq_code_single_double
++
++    corrected_point = float(point) * _CPU_POINT_CHISQ_SHIFT_SCALE
++    value = point_chisq_code_single_double(
++        # Eligibility excludes autograd, forward-AD, conjugate, and negative
++        # views, so these are safe zero-copy NumPy ABI views.
++        corr.numpy(),
++        snr.numpy(),
++        corr.numel(),
++        corrected_point,
++        _cpu_native_bins(bin_edges),
++        len(bin_edges) - 1,
++        float(snr_norm),
++    )
++    return torch.tensor([value], device="cpu", dtype=corr.real.dtype)
++
++
+ def _cpu_native_point_chisq(corr, pts, bin_edges, snr=None, snr_norm=None):
+     """Run the fused CPU kernel on zero-copy views of sparse storage.
+ 
+@@ -707,13 +726,22 @@ def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
+         and norm_value is not None
+     )
+     if native_snr:
+-        chisq_t = _cpu_native_point_chisq(
+-            corr._data.tensor,
+-            native_indices,
+-            bin_edges,
+-            snr=snr_t,
+-            snr_norm=norm_value,
+-        )
++        if native_indices.size == 1:
++            chisq_t = _cpu_native_single_point_chisq(
++                corr._data.tensor,
++                native_indices[0],
++                bin_edges,
++                snr_t,
++                norm_value,
++            )
++        else:
++            chisq_t = _cpu_native_point_chisq(
++                corr._data.tensor,
++                native_indices,
++                bin_edges,
++                snr=snr_t,
++                snr_norm=norm_value,
++            )
+         return Array(TorchArrayData(chisq_t), copy=False)
+ 
+     pts = _point_tensor(corr._data.tensor, indices)
+diff --git a/test/test_cpu_batch_peaks.py b/test/test_cpu_batch_peaks.py
+new file mode 100644
+index 0000000000..89f473d360
+--- /dev/null
++++ b/test/test_cpu_batch_peaks.py
+@@ -0,0 +1,185 @@
++import types
++import numpy as np
++
++from pycbc import scheme
++from pycbc.filter import matchedfilter
++from pycbc.types import Array
++
++
++def _build_cpu_batch(rows, threshold=2.5, abort_threshold=None):
++    rows = np.asarray(rows, dtype=np.complex64)
++    template_count, template_size = rows.shape
++    output = Array(rows.reshape(-1))
++    templates = []
++    for index in range(template_count):
++        params = np.array(
++            [(20.0 + index,)], dtype=[("mass1", np.float32)]
++        )[0]
++        template = types.SimpleNamespace(
++            delta_f=0.25,
++            id=10 + index,
++            params=params,
++            out=output[index * template_size:(index + 1) * template_size],
++            sigmasq=lambda _psd: 1.0,
++        )
++        templates.append(template)
++
++    mid = ("test", template_count)
++    calls = {"correlate": 0, "ifft": 0}
++    batch = object.__new__(matchedfilter.LiveBatchMatchedFilter)
++    batch.block_id = 0
++    batch.tgroups = [templates]
++    batch.chunk_tsamples = [template_size]
++    batch.mids = [mid]
++    batch.out_mem = {mid: output}
++    batch.corr = [types.SimpleNamespace(
++        execute=lambda _data: calls.__setitem__(
++            "correlate", calls["correlate"] + 1
++        )
++    )]
++    batch.ifts = {mid: types.SimpleNamespace(
++        execute=lambda: calls.__setitem__("ifft", calls["ifft"] + 1)
++    )}
++    batch.data = types.SimpleNamespace(
++        overwhitened_data=lambda _delta_f: types.SimpleNamespace(psd=object()),
++        trim_padding=1,
++        blocksize=4,
++        sample_rate=1,
++        start_time=100.0,
++    )
++    batch.snr_threshold = threshold
++    batch.snr_abort_threshold = abort_threshold
++    return batch, templates, calls
++
++
++def _legacy_cpu_peaks(templates, seg=slice(3, 7)):
++    peaks = []
++    for template in templates:
++        relative_index = template.out[seg].abs_arg_max()
++        peaks.append((relative_index,
++                      template.out[relative_index + seg.start]))
++    return peaks
++
++
++def test_cpu_batch_peak_values_direct(monkeypatch):
++    monkeypatch.setenv("PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK", "1")
++    rng = np.random.default_rng(42)
++    template_count = 16
++    template_size = 128
++    seg = slice(20, 100)
++
++    raw = (
++        rng.standard_normal((template_count, template_size))
++        + 1j * rng.standard_normal((template_count, template_size))
++    ).astype(np.complex64)
++    arr = Array(raw.reshape(-1))
++
++    indices, peaks = matchedfilter._cpu_batch_peak_values(
++        arr, template_count, template_size, seg
++    )
++
++    assert indices is not None
++    assert peaks is not None
++    assert len(indices) == template_count
++    assert len(peaks) == template_count
++
++    for i in range(template_count):
++        row_slice = raw[i, 20:100]
++        mags = row_slice.real**2 + row_slice.imag**2
++        expected_idx = np.argmax(mags)
++        assert indices[i] == expected_idx
++        assert peaks[i] == row_slice[expected_idx]
++
++
++def test_cpu_batch_peak_values_fallbacks(monkeypatch):
++    monkeypatch.setenv("PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK", "1")
++    arr = np.ones((4, 32), dtype=np.complex64)
++    # Single template fallback
++    assert matchedfilter._cpu_batch_peak_values(
++        arr, 1, 32, slice(0, 10)
++    ) is None
++    # Step != 1 fallback
++    assert matchedfilter._cpu_batch_peak_values(
++        arr, 4, 32, slice(0, 10, 2)
++    ) is None
++    # Wrong size fallback
++    assert matchedfilter._cpu_batch_peak_values(
++        arr, 4, 16, slice(0, 10)
++    ) is None
++    # Wrong dtype fallback
++    arr_f32 = np.ones((4, 32), dtype=np.float32)
++    assert matchedfilter._cpu_batch_peak_values(
++        arr_f32, 4, 32, slice(0, 10)
++    ) is None
++
++
++def test_cpu_live_batch_peak_reduction_parity(monkeypatch):
++    monkeypatch.setenv("PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK", "1")
++    rows = np.array([
++        [99, 0, 0, 0, 0, 0, 0, 99],
++        [99, 0, 0, 1, 3, -3, 2, 99],
++        [99, 0, 0, 1, 2, np.nan, 3, 99],
++        [99, 0, 0, 1, 2, 3, -4j, 99],
++    ], dtype=np.complex64)
++
++    with scheme.CPUScheme():
++        batch, templates, calls = _build_cpu_batch(rows, threshold=2.5)
++        legacy_peaks = _legacy_cpu_peaks(templates)
++
++        # Run with vectorized CPU peak finding
++        result, veto_info = batch._process_batch()
++
++    assert legacy_peaks[0][0] == 0
++    assert legacy_peaks[1][0] == 1
++    assert legacy_peaks[3][0] == 3
++    assert legacy_peaks[0][1] == 0
++    assert legacy_peaks[1][1] == 3
++    assert legacy_peaks[3][1] == -4j
++
++    assert calls == {"correlate": 1, "ifft": 1}
++    assert batch.block_id == 1
++
++    # Derive the survivors from the scalar implementation under test.  In
++    # particular, its compiled complex argmax defines how non-finite samples
++    # are handled; this test verifies that the batched path preserves that
++    # behavior instead of imposing a separate NaN policy.
++    survivor_indices = [
++        index for index, (_peak_index, peak) in enumerate(legacy_peaks)
++        if not (abs(peak) < batch.snr_threshold)
++    ]
++
++    np.testing.assert_array_equal(
++        result["template_id"],
++        [templates[index].id for index in survivor_indices],
++    )
++    np.testing.assert_array_equal(
++        result["mass1"],
++        [templates[index].params["mass1"] for index in survivor_indices],
++    )
++
++    expected_peaks = np.asarray(
++        [legacy_peaks[index][1] for index in survivor_indices],
++        dtype=np.complex64,
++    )
++    np.testing.assert_allclose(
++        result["snr"], np.abs(expected_peaks), equal_nan=True
++    )
++    np.testing.assert_allclose(
++        result["coa_phase"], np.angle(expected_peaks), equal_nan=True
++    )
++    expected_indices = [
++        legacy_peaks[index][0] for index in survivor_indices
++    ]
++    np.testing.assert_array_equal(
++        result["end_time"], 100 + np.asarray(expected_indices)
++    )
++    np.testing.assert_array_equal(
++        result["sigmasq"], np.ones(len(survivor_indices))
++    )
++    assert [info[2] for info in veto_info] == [
++        3 + index for index in expected_indices
++    ]
++    assert all(info[0].dtype == np.dtype(np.complex128) for info in veto_info)
++    np.testing.assert_allclose(
++        [info[0][0] for info in veto_info], expected_peaks, equal_nan=True
++    )
+diff --git a/test/test_torch_chisq_cpu_optimization.py b/test/test_torch_chisq_cpu_optimization.py
+index d28fcc6932..5fe80f0b8c 100644
+--- a/test/test_torch_chisq_cpu_optimization.py
++++ b/test/test_torch_chisq_cpu_optimization.py
+@@ -423,6 +423,153 @@ def test_cpu_native_power_chisq_preserves_autograd_fallback(monkeypatch):
+     assert torch.count_nonzero(snr_grad) > 0
+ 
+ 
++def test_cpu_native_single_power_chisq_is_zero_copy_and_bitwise(monkeypatch):
++    from pycbc.vetoes import chisq_cpu, chisq_torch
++
++    rng = np.random.default_rng(9891)
++    values = (
++        rng.normal(size=4096) + 1j * rng.normal(size=4096)
++    ).astype(np.complex64)
++    points = np.array([701], dtype=np.int64)
++    bins = (29, 211, 619, 1481, 3073)
++    norm = 0.117
++    observed = {}
++    original_single = chisq_cpu.point_chisq_code_single_double
++
++    def record_single(corr, snr, length, shift, edges, num_bins, snr_norm):
++        observed.update(
++            corr_pointer=corr.__array_interface__["data"][0],
++            snr_pointer=snr.__array_interface__["data"][0],
++            corr_owner=isinstance(corr.base, torch.Tensor),
++            snr_owner=isinstance(snr.base, torch.Tensor),
++            corr_dtype=corr.dtype,
++            snr_dtype=snr.dtype,
++            shift=shift,
++            edge_dtype=edges.dtype,
++        )
++        return original_single(
++            corr, snr, length, shift, edges, num_bins, snr_norm
++        )
++
++    with scheme.TorchScheme("cpu"):
++        correlation = FrequencySeries(values, delta_f=0.125)
++        snr_tensor = torch.tensor([1.25 - 0.75j], dtype=torch.complex64)
++        generic_points = torch.as_tensor(points, dtype=torch.float64)
++        expected = chisq_torch._cpu_native_point_chisq(
++            correlation._data.tensor,
++            generic_points,
++            bins,
++            snr=snr_tensor,
++            snr_norm=norm,
++        )
++
++        def fail_generic(*args, **kwargs):
++            raise AssertionError("single search point used the generic kernel")
++
++        monkeypatch.setattr(
++            chisq_cpu, "point_chisq_code_single_double", record_single
++        )
++        monkeypatch.setattr(chisq_cpu, "point_chisq_code", fail_generic)
++        result = chisq_torch.power_chisq_at_points_from_precomputed(
++            correlation,
++            TorchArrayData(snr_tensor),
++            norm,
++            bins,
++            points,
++        )
++
++    assert torch.equal(result._data.tensor, expected)
++    assert observed["corr_pointer"] == correlation._data.tensor.data_ptr()
++    assert observed["snr_pointer"] == snr_tensor.data_ptr()
++    assert observed["corr_owner"]
++    assert observed["snr_owner"]
++    assert observed["corr_dtype"] == np.complex64
++    assert observed["snr_dtype"] == np.complex64
++    assert observed["edge_dtype"] == np.uint32
++    assert observed["shift"] == pytest.approx(
++        points[0] * np.pi / chisq_torch._CPU_POINT_CHISQ_PI,
++        rel=0,
++        abs=1e-12,
++    )
++    original_count = result._data.tensor.numel()
++    result._data.tensor.resize_(original_count + 1)
++    result._data.tensor.resize_(original_count)
++
++
++@pytest.mark.parametrize("point", (0, 701, 2047, 4095))
++def test_cpu_native_single_kernel_matches_generic_high_precision(point):
++    from pycbc.vetoes import chisq_torch
++
++    rng = np.random.default_rng(9911 + point)
++    correlation = torch.from_numpy(
++        (
++            rng.normal(size=4096) + 1j * rng.normal(size=4096)
++        ).astype(np.complex64)
++    )
++    snr = torch.tensor([0.625 + 1.75j], dtype=torch.complex64)
++    points = torch.tensor([point], dtype=torch.float64)
++    bins = (29, 211, 211, 619, 1481, 3073)
++    norm = 0.083
++
++    generic = chisq_torch._cpu_native_point_chisq(
++        correlation, points, bins, snr=snr, snr_norm=norm
++    )
++    specialized = chisq_torch._cpu_native_single_point_chisq(
++        correlation, point, bins, snr, norm
++    )
++
++    assert torch.equal(specialized, generic)
++
++
++@pytest.mark.parametrize(
++    "points",
++    (
++        np.array([701, 1701], dtype=np.int64),
++        np.array([701], dtype=np.int32),
++    ),
++)
++def test_cpu_native_single_power_chisq_preserves_generic_fallback(
++    points, monkeypatch
++):
++    from pycbc.vetoes import chisq_cpu, chisq_torch
++
++    rng = np.random.default_rng(9991 + points.size)
++    values = (
++        rng.normal(size=4096) + 1j * rng.normal(size=4096)
++    ).astype(np.complex64)
++    bins = (29, 211, 619, 1481, 3073)
++    snr_tensor = torch.full(
++        (points.size,), 1.25 - 0.75j, dtype=torch.complex64
++    )
++    generic_calls = []
++    original_generic = chisq_cpu.point_chisq_code
++
++    def fail_single(*args, **kwargs):
++        raise AssertionError("unsupported points used the scalar kernel")
++
++    def record_generic(*args, **kwargs):
++        generic_calls.append(True)
++        return original_generic(*args, **kwargs)
++
++    with scheme.TorchScheme("cpu"):
++        correlation = FrequencySeries(values, delta_f=0.125)
++        monkeypatch.setattr(
++            chisq_cpu, "point_chisq_code_single_double", fail_single
++        )
++        monkeypatch.setattr(chisq_cpu, "point_chisq_code", record_generic)
++        result = chisq_torch.power_chisq_at_points_from_precomputed(
++            correlation,
++            TorchArrayData(snr_tensor),
++            0.117,
++            bins,
++            points,
++        )
++
++    assert generic_calls == [True]
++    assert result._data.tensor.shape == (points.size,)
++    assert torch.isfinite(result._data.tensor).all()
++
++
+ @pytest.mark.parametrize("dual_input", ("correlation", "snr", "norm"))
+ def test_cpu_native_power_chisq_preserves_forward_ad_fallback(
+     dual_input, monkeypatch
+@@ -651,7 +798,7 @@ def test_torch_int64_array_dispatches_single_search_with_bitwise_parity(
+     bins = (29, 211, 619, 1481, 3073)
+     norm = 0.117
+     calls = []
+-    original_point = chisq_torch._cpu_native_point_chisq
++    original_single = chisq_torch._cpu_native_single_point_chisq
+ 
+     with scheme.TorchScheme("cpu"):
+         correlation = FrequencySeries(values, delta_f=0.125)
+@@ -669,12 +816,18 @@ def test_torch_int64_array_dispatches_single_search_with_bitwise_parity(
+             snr_norm=norm,
+         )
+ 
+-        def record_point(*args, **kwargs):
++        def record_single(*args, **kwargs):
+             calls.append(True)
+-            return original_point(*args, **kwargs)
++            return original_single(*args, **kwargs)
++
++        def fail_generic(*args, **kwargs):
++            raise AssertionError("eligible Torch int64 index missed scalar path")
+ 
+         monkeypatch.setattr(
+-            chisq_torch, "_cpu_native_point_chisq", record_point
++            chisq_torch, "_cpu_native_single_point_chisq", record_single
++        )
++        monkeypatch.setattr(
++            chisq_torch, "_cpu_native_point_chisq", fail_generic
+         )
+         result = chisq_torch.power_chisq_at_points_from_precomputed(
+             correlation,
+@@ -887,6 +1040,9 @@ def test_cpu_native_power_chisq_rejects_special_tensor_dispatch(
+ 
+     original_point = chisq_torch._cpu_native_point_chisq
+ 
++    def fail_single(*args, **kwargs):
++        raise AssertionError("special tensor entered native power-chisq path")
++
+     def reject_power_only(*args, **kwargs):
+         # The fallback may still use the safe native shift-sum calculation;
+         # it does not consume snr or snr_norm. Only reject the fused native
+@@ -897,6 +1053,9 @@ def test_cpu_native_power_chisq_rejects_special_tensor_dispatch(
+             )
+         return original_point(*args, **kwargs)
+ 
++    monkeypatch.setattr(
++        chisq_torch, "_cpu_native_single_point_chisq", fail_single
++    )
+     monkeypatch.setattr(
+         chisq_torch, "_cpu_native_point_chisq", reject_power_only
+     )
+@@ -1003,6 +1162,9 @@ def test_empty_correlation_requires_empty_points(
+         raise AssertionError("empty correlation reached native chi-squared")
+ 
+     monkeypatch.setattr(chisq_torch, "_cpu_native_point_chisq", fail_native)
++    monkeypatch.setattr(
++        chisq_torch, "_cpu_native_single_point_chisq", fail_native
++    )
+     with scheme.TorchScheme("cpu"):
+         correlation = Array(np.empty(0, dtype=dtype))
+         points = np.zeros(point_count, dtype=np.int64)
+diff --git a/test/test_torch_cpu_fft_tuning.py b/test/test_torch_cpu_fft_tuning.py
+new file mode 100644
+index 0000000000..ada73ea5e8
+--- /dev/null
++++ b/test/test_torch_cpu_fft_tuning.py
+@@ -0,0 +1,142 @@
++# Copyright (C) 2026  The PyCBC Collaboration
++#
++# This program is free software; you can redistribute it and/or modify it
++# under the terms of the GNU General Public License as published by the
++# Free Software Foundation; either version 3 of the License, or (at your
++# option) any later version.
++
++"""CPU FFT specialization eligibility and descriptor thread selection."""
++
++from types import SimpleNamespace
++
++import numpy as np
++import pytest
++
++from pycbc import hardware, scheme
++from pycbc.types import zeros
++
++torch = pytest.importorskip("torch")
++
++
++@pytest.fixture
++def cache_domain(monkeypatch):
++    monkeypatch.setattr(hardware, "get_cpu_l3_cache_size", lambda **kw: 2**24)
++    monkeypatch.setattr(hardware, "get_cpu_cores_per_numa_node", lambda: 8)
++    hardware.get_optimal_1d_fft_threads.cache_clear()
++    yield
++    hardware.get_optimal_1d_fft_threads.cache_clear()
++
++
++@pytest.mark.parametrize(
++    "size, requested, expected",
++    ((32768, 32, 8), (1048576, 32, 8), (1048577, 32, 32),
++     (32768, 4, 4), (32768, 0, 1)),
++)
++def test_descriptor_thread_selection_respects_cache_and_request(
++    cache_domain, size, requested, expected
++):
++    assert hardware.get_optimal_1d_fft_threads(size, requested) == expected
++
++
++@pytest.mark.parametrize(
++    "size, eligible",
++    ((32768, True), (65536, True), (131072, True), (262144, True),
++     (524288, True), (1048576, False), (16384, False)),
++)
++def test_expanded_mkl_sizes_use_selected_descriptor_threads(
++    monkeypatch, cache_domain, size, eligible
++):
++    from pycbc.fft import torchfft
++
++    monkeypatch.setenv("PYCBC_TORCH_CPU_MKL_IFFT", "1")
++    monkeypatch.setattr(torchfft, "_MKL_DIRECT_PLATFORM_SUPPORTED", True)
++    monkeypatch.setattr(torch, "get_num_threads", lambda: 32)
++    calls = []
++    plan = object()
++
++    def create_plan(length, source, target, nthreads):
++        calls.append((length, nthreads))
++        return plan
++
++    monkeypatch.setattr(torchfft, "_create_mkl_cpu_ifft_plan", create_plan)
++    with scheme.TorchScheme("cpu"):
++        fftobj = SimpleNamespace(
++            invec=zeros(size, dtype=np.complex64),
++            outvec=zeros(size, dtype=np.complex64),
++            size=size, nbatch=1, forward=False, prec="single",
++            itype="complex", otype="complex",
++        )
++        torchfft._setup_mkl_cpu_ifft_plan(fftobj)
++
++    assert calls == ([(size, 8)] if eligible else [])
++    assert fftobj._mkl_plan is (plan if eligible else None)
++
++
++@pytest.mark.parametrize("size", (1048576, 2097152, 4194304))
++@pytest.mark.parametrize("threads", (1, 4))
++def test_large_sizes_require_qualified_promoted_dispatch(
++    monkeypatch, cache_domain, size, threads
++):
++    from pycbc.fft import torchfft
++
++    monkeypatch.setenv("PYCBC_TORCH_CPU_MKL_IFFT", "1")
++    monkeypatch.setattr(torchfft, "_MKL_DIRECT_PLATFORM_SUPPORTED", True)
++    monkeypatch.setattr(torch, "get_num_threads", lambda: threads)
++    calls = []
++    plan = object()
++
++    def create_plan(length, source, target, nthreads, **kwargs):
++        calls.append((length, nthreads, kwargs))
++        return plan
++
++    monkeypatch.setattr(torchfft, "_create_mkl_cpu_ifft_plan", create_plan)
++    with scheme.TorchScheme("cpu"):
++        fftobj = SimpleNamespace(
++            invec=zeros(size, dtype=np.complex64),
++            outvec=zeros(size, dtype=np.complex64),
++            size=size, nbatch=1, forward=False, prec="single",
++            itype="complex", otype="complex",
++        )
++        torchfft._setup_mkl_cpu_ifft_plan(fftobj)
++
++    assert calls == ([(size, 1, {"promote": True})] if threads == 1 else [])
++    assert fftobj._mkl_plan is (plan if threads == 1 else None)
++
++
++def test_plan_tracks_active_threads_separately_from_descriptor_limit(monkeypatch):
++    from pycbc.fft import torchfft
++
++    properties = []
++
++    def success(*args):
++        return 0
++
++    def create_descriptor(reference, *args):
++        reference._obj.value = 9999
++        return 0
++
++    def set_value(descriptor, parameter, value):
++        properties.append((parameter, value))
++        return 0
++
++    mkl = SimpleNamespace(
++        DFTI_COMPLEX=32, DFTI_PLACEMENT=11, DFTI_NOT_INPLACE=44,
++        DFTI_THREAD_LIMIT=27,
++        lib=SimpleNamespace(
++            DftiFreeDescriptor=success, DftiSetValue=set_value,
++            DftiCommitDescriptor=success, DftiComputeBackward=success,
++        ),
++        mkl_descriptor={"single": create_descriptor},
++        check_status=success,
++    )
++    source = torch.empty(64, dtype=torch.complex64)
++    target = torch.empty_like(source)
++    monkeypatch.setattr(torch, "get_num_threads", lambda: 4)
++    plan = torchfft._MKLCPUDirectIFFTPlan(mkl, 64, source, target, nthreads=2)
++
++    assert (mkl.DFTI_THREAD_LIMIT, 2) in properties
++    assert plan.can_execute(source, target)
++    monkeypatch.setattr(torch, "get_num_threads", lambda: 2)
++    assert not plan.can_execute(source, target)
++    monkeypatch.setattr(torch, "get_num_threads", lambda: 4)
++    assert plan.can_execute(source, target)
+diff --git a/test/test_torch_cpu_native_peaks.py b/test/test_torch_cpu_native_peaks.py
+new file mode 100644
+index 0000000000..57ed292eeb
+--- /dev/null
++++ b/test/test_torch_cpu_native_peaks.py
+@@ -0,0 +1,446 @@
++# Copyright (C) 2026  The PyCBC Collaboration
++#
++# This program is free software; you can redistribute it and/or modify it
++# under the terms of the GNU General Public License as published by the
++# Free Software Foundation; either version 3 of the License, or (at your
++# option) any later version.
++
++"""Qualification tests for optional native CPU peak extraction."""
++
++import os
++import types
++
++import numpy as np
++import pytest
++
++import pycbc
++from pycbc import scheme
++from pycbc.filter import matchedfilter
++from pycbc.types import Array
++from pycbc.types.array_torch import TorchArrayData
++
++torch = pytest.importorskip("torch")
++
++if not pycbc.HAVE_TORCH:
++    pytest.skip("PyCBC built without torch support", allow_module_level=True)
++
++PEAK_GATE = "PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK"
++
++
++def _complex_values(rows, size, seed):
++    rng = np.random.default_rng(seed)
++    return (
++        rng.normal(size=(rows, size))
++        + 1j * rng.normal(size=(rows, size))
++    ).astype(np.complex64)
++
++
++def _enable_native_peak(monkeypatch):
++    from pycbc.filter import matchedfilter_torch
++
++    monkeypatch.setenv(PEAK_GATE, "1")
++    monkeypatch.setattr(
++        matchedfilter_torch,
++        "_cpu_native_batch_runtime_is_stable",
++        lambda runtime: True,
++    )
++
++
++
++def _standard_peak_values(rows, segment):
++    from pycbc.types import array_cpu
++
++    start, stop, step = segment.indices(rows.shape[1])
++    assert step == 1 and start < stop
++    indices = np.empty(len(rows), dtype=np.int64)
++    peaks = np.empty(len(rows), dtype=np.complex64)
++    for row_index, row in enumerate(rows):
++        values = np.ascontiguousarray(row[start:stop])
++        index = array_cpu.abs_arg_max_complex(values)
++        indices[row_index] = index
++        peaks[row_index] = row[start + index]
++    return indices, peaks
++
++
++
++class _TensorSubclass(torch.Tensor):
++    pass
++
++
++
++def _peak_test_rows():
++    rows = np.zeros((6, 12), dtype=np.complex64)
++    rows[:, 0] = np.complex64(300 + 400j)
++    rows[:, 11] = np.complex64(-600j)
++    rows[0, 2:10] = np.array(
++        [0, -0j, 3 + 4j, -3 - 4j, 1, 2, 4, 0],
++        dtype=np.complex64,
++    )
++    rows[1, 2:10] = np.array(
++        [1, np.nan + 0j, 6, 5, 4, 3, 2, 1],
++        dtype=np.complex64,
++    )
++    rows[2, 2:10] = np.array(
++        [1, 2, np.inf + 0j, -np.inf + 0j, 9, 8, 7, 6],
++        dtype=np.complex64,
++    )
++    rows[3, 2:10] = np.array(
++        [np.nan + 1j, np.nan - 2j, 0, -0j, 0, 0, 0, 0],
++        dtype=np.complex64,
++    )
++    rows[4, 2:10] = np.array(
++        [1e20 + 1e20j, -2e20 + 0j, 3, 4, 5, 6, 7, 8],
++        dtype=np.complex64,
++    )
++    rows[5, 2:10] = np.array(
++        [complex(-0.0, 0.0), complex(0.0, -0.0), 0, 0, 0, 0, 0, 0],
++        dtype=np.complex64,
++    )
++    return rows
++
++
++
++def test_native_batch_peak_is_zero_copy_standard_exact_and_reusable(
++    monkeypatch,
++):
++    from pycbc.filter import matchedfilter_cpu
++
++    _enable_native_peak(monkeypatch)
++    rows = _peak_test_rows()
++    segment = slice(-10, -2)
++    expected_indices, expected_peaks = _standard_peak_values(rows, segment)
++    calls = []
++    native = matchedfilter_cpu._batch_abs_arg_max_complex64
++
++    def capture_native(values, indices, peaks, *geometry):
++        calls.append(
++            (
++                values.__array_interface__["data"][0],
++                indices.dtype,
++                peaks.dtype,
++                geometry,
++            )
++        )
++        return native(values, indices, peaks, *geometry)
++
++    monkeypatch.setattr(
++        matchedfilter_cpu,
++        "_batch_abs_arg_max_complex64",
++        capture_native,
++    )
++    with scheme.TorchScheme("cpu"):
++        output = Array(rows.reshape(-1))
++        tensor = output._data.tensor
++        pointer = tensor.data_ptr()
++        version = tensor._version
++        indices, peaks = matchedfilter._torch_batch_peak_values(
++            output, len(rows), rows.shape[1], segment
++        )
++
++        assert calls == [
++            (
++                pointer,
++                np.dtype(np.int64),
++                np.dtype(np.complex64),
++                (rows.shape[1], 2, 10, len(rows)),
++            )
++        ]
++        assert tensor.data_ptr() == pointer
++        assert tensor._version == version
++        np.testing.assert_array_equal(indices, expected_indices)
++        np.testing.assert_array_equal(
++            peaks.view(np.uint64), expected_peaks.view(np.uint64)
++        )
++
++        # Reusing the workspace with new contents must read the current bytes.
++        tensor[2] = 11 - 13j
++        current = tensor.detach().numpy().reshape(rows.shape).copy()
++        expected_indices, expected_peaks = _standard_peak_values(
++            current, segment
++        )
++        version = tensor._version
++        indices, peaks = matchedfilter._torch_batch_peak_values(
++            output, len(rows), rows.shape[1], segment
++        )
++        assert tensor._version == version
++        np.testing.assert_array_equal(indices, expected_indices)
++        np.testing.assert_array_equal(
++            peaks.view(np.uint64), expected_peaks.view(np.uint64)
++        )
++
++
++
++def test_native_batch_peak_gate_is_strict_default_off_and_corrects_nan(
++    monkeypatch,
++):
++    from pycbc.filter import matchedfilter_cpu
++
++    native = matchedfilter_cpu._batch_abs_arg_max_complex64
++    rows = np.zeros((2, 8), dtype=np.complex64)
++    rows[0, 2:6] = [1, np.nan, 3, 2]
++    rows[1, 2:6] = [2, -2, 1, 0]
++    segment = slice(2, 6)
++    with scheme.TorchScheme("cpu"):
++        output = Array(rows.reshape(-1))
++        monkeypatch.delenv(PEAK_GATE, raising=False)
++
++        def fail_default_off(*args):
++            raise AssertionError("default-off route entered native code")
++
++        monkeypatch.setattr(
++            matchedfilter_cpu,
++            "_batch_abs_arg_max_complex64",
++            fail_default_off,
++        )
++        helper_indices, helper_peaks = (
++            matchedfilter._torch_batch_peak_values(output, 2, 8, segment)
++        )
++        assert helper_indices[0] == 1
++        assert np.isnan(helper_peaks[0])
++
++        monkeypatch.setenv(PEAK_GATE, "sometimes")
++        with pytest.raises(ValueError, match=PEAK_GATE):
++            matchedfilter._torch_batch_peak_values(output, 2, 8, segment)
++
++    monkeypatch.setattr(
++        matchedfilter_cpu,
++        "_batch_abs_arg_max_complex64",
++        native,
++    )
++    _enable_native_peak(monkeypatch)
++    expected_indices, expected_peaks = _standard_peak_values(rows, segment)
++    with scheme.TorchScheme("cpu"):
++        output = Array(rows.reshape(-1))
++        indices, peaks = matchedfilter._torch_batch_peak_values(
++            output, 2, 8, segment
++        )
++    np.testing.assert_array_equal(indices, expected_indices)
++    np.testing.assert_array_equal(
++        peaks.view(np.uint64), expected_peaks.view(np.uint64)
++    )
++    assert indices[0] == expected_indices[0]
++
++
++
++def test_native_batch_peak_supports_single_batch(monkeypatch):
++    from pycbc.filter import matchedfilter_cpu
++
++    _enable_native_peak(monkeypatch)
++    rows = _complex_values(1, 16, seed=6751)
++    calls = []
++    native = matchedfilter_cpu._batch_abs_arg_max_complex64
++
++    def capture_native(values, indices, peaks, *geometry):
++        calls.append(
++            (
++                values.__array_interface__["data"][0],
++                indices.dtype,
++                peaks.dtype,
++                geometry,
++            )
++        )
++        return native(values, indices, peaks, *geometry)
++
++    monkeypatch.setattr(
++        matchedfilter_cpu,
++        "_batch_abs_arg_max_complex64",
++        capture_native,
++    )
++    with scheme.TorchScheme("cpu"):
++        output = Array(rows.reshape(-1))
++        tensor = output._data.tensor
++        pointer = tensor.data_ptr()
++        result = matchedfilter._torch_batch_peak_values(
++            output, 1, 16, slice(2, 14)
++        )
++    assert calls == [
++        (
++            pointer,
++            np.dtype(np.int64),
++            np.dtype(np.complex64),
++            (16, 2, 14, 1),
++        )
++    ]
++    expected_index = int(np.argmax(np.abs(rows[0, 2:14])))
++    assert result[0].tolist() == [expected_index]
++    assert result[1][0] == rows[0, 2 + expected_index]
++
++
++
++@pytest.mark.parametrize(
++    "contract",
++    ("unaligned", "noncontiguous", "subclass", "requires_grad"),
++)
++def test_native_batch_peak_unsafe_tensor_contracts_use_helper(
++    monkeypatch, contract
++):
++    from pycbc.filter import matchedfilter_cpu
++
++    rows = _complex_values(3, 16, seed=6801)
++    flat = torch.from_numpy(rows.reshape(-1).copy())
++    with scheme.TorchScheme("cpu"):
++        if contract == "unaligned":
++            storage = torch.empty(flat.numel() + 1, dtype=torch.complex64)
++            tensor = storage[1:]
++            tensor.copy_(flat)
++            assert tensor.is_contiguous()
++            assert tensor.data_ptr() % pycbc.PYCBC_ALIGNMENT != 0
++        elif contract == "noncontiguous":
++            storage = torch.empty(flat.numel() * 2, dtype=torch.complex64)
++            tensor = storage[::2]
++            tensor.copy_(flat)
++            assert not tensor.is_contiguous()
++        elif contract == "subclass":
++            tensor = flat.as_subclass(_TensorSubclass)
++        else:
++            tensor = flat.requires_grad_(True)
++        output = Array(TorchArrayData(tensor), copy=False)
++
++        monkeypatch.setenv(PEAK_GATE, "0")
++        expected_indices, expected_peaks = (
++            matchedfilter._torch_batch_peak_values(
++                output, 3, 16, slice(2, 14)
++            )
++        )
++        _enable_native_peak(monkeypatch)
++
++        def fail_native(*args):
++            raise AssertionError("unsafe tensor entered native code")
++
++        monkeypatch.setattr(
++            matchedfilter_cpu,
++            "_batch_abs_arg_max_complex64",
++            fail_native,
++        )
++        indices, peaks = matchedfilter._torch_batch_peak_values(
++            output, 3, 16, slice(2, 14)
++        )
++
++    np.testing.assert_array_equal(indices, expected_indices)
++    np.testing.assert_array_equal(
++        peaks.view(np.uint64), expected_peaks.view(np.uint64)
++    )
++
++
++
++def test_native_batch_peak_rejects_forward_ad_and_inference(monkeypatch):
++    _enable_native_peak(monkeypatch)
++    rows = _complex_values(2, 16, seed=6802)
++    with scheme.TorchScheme("cpu"):
++        output = Array(rows.reshape(-1))
++        with torch.autograd.forward_ad.dual_level():
++            dual = torch.autograd.forward_ad.make_dual(
++                output._data.tensor,
++                torch.ones_like(output._data.tensor),
++            )
++            dual_output = Array(TorchArrayData(dual), copy=False)
++            assert matchedfilter._try_torch_cpu_native_batch_peak_values(
++                dual_output, dual, 2, 16, slice(2, 14)
++            ) is None
++
++    with torch.inference_mode(), scheme.TorchScheme("cpu"):
++        output = Array(rows.reshape(-1))
++        tensor = output._data.tensor
++        assert matchedfilter._try_torch_cpu_native_batch_peak_values(
++            output, tensor, 2, 16, slice(2, 14)
++        ) is None
++        result = matchedfilter._torch_batch_peak_values(
++            output, 2, 16, slice(2, 14)
++        )
++        assert result[0].dtype == np.int64
++        assert result[1].dtype == np.complex64
++
++
++
++@pytest.mark.parametrize(
++    "drift", ("mutation", "rebind", "pid", "thread", "openmp", "failure")
++)
++def test_native_batch_peak_drift_and_failure_use_helper(monkeypatch, drift):
++    from pycbc.filter import matchedfilter_cpu, matchedfilter_torch
++
++    rows = _complex_values(3, 16, seed=6803)
++    _enable_native_peak(monkeypatch)
++    with scheme.TorchScheme("cpu"):
++        output = Array(rows.reshape(-1))
++        tensor = output._data.tensor
++        monkeypatch.setenv(PEAK_GATE, "0")
++        expected_indices, expected_peaks = (
++            matchedfilter._torch_batch_peak_values(
++                output, 3, 16, slice(2, 14)
++            )
++        )
++        monkeypatch.setenv(PEAK_GATE, "1")
++
++        if drift in ("mutation", "rebind"):
++            real_empty = np.empty
++            calls = 0
++
++            def drift_during_setup(*args, **kwargs):
++                nonlocal calls
++                calls += 1
++                result = real_empty(*args, **kwargs)
++                if calls == 1:
++                    if drift == "mutation":
++                        tensor.add_(0)
++                    else:
++                        output._data._set_tensor(tensor.clone())
++                return result
++
++            numpy_proxy = types.SimpleNamespace(
++                empty=drift_during_setup,
++                int64=np.int64,
++                complex64=np.complex64,
++            )
++            monkeypatch.setattr(matchedfilter, "numpy", numpy_proxy)
++        elif drift == "pid":
++            pids = iter((101, 102))
++            os_proxy = types.SimpleNamespace(
++                environ=os.environ,
++                getpid=lambda: next(pids, 102),
++            )
++            monkeypatch.setattr(matchedfilter, "os", os_proxy)
++        elif drift == "thread":
++            identities = iter((201, 202))
++            threading_proxy = types.SimpleNamespace(
++                get_ident=lambda: next(identities, 202)
++            )
++            monkeypatch.setattr(matchedfilter, "threading", threading_proxy)
++        elif drift == "openmp":
++            monkeypatch.setattr(
++                matchedfilter_torch,
++                "_cpu_native_batch_runtime_is_stable",
++                lambda runtime: False,
++            )
++        else:
++            calls = 0
++
++            def fail_native(*args):
++                nonlocal calls
++                calls += 1
++                raise RuntimeError("synthetic private-kernel failure")
++
++            monkeypatch.setattr(
++                matchedfilter_cpu,
++                "_batch_abs_arg_max_complex64",
++                fail_native,
++            )
++
++        if drift != "failure":
++            def reject_native(*args):
++                raise AssertionError("invalidated native route executed")
++
++            monkeypatch.setattr(
++                matchedfilter_cpu,
++                "_batch_abs_arg_max_complex64",
++                reject_native,
++            )
++        indices, peaks = matchedfilter._torch_batch_peak_values(
++            output, 3, 16, slice(2, 14)
++        )
++        if drift == "failure":
++            assert calls == 1
++
++    np.testing.assert_array_equal(indices, expected_indices)
++    np.testing.assert_array_equal(
++        peaks.view(np.uint64), expected_peaks.view(np.uint64)
++    )
+diff --git a/test/test_torch_large_ifft.py b/test/test_torch_large_ifft.py
+index 59ffe64bd3..55dfd837a4 100644
+--- a/test/test_torch_large_ifft.py
++++ b/test/test_torch_large_ifft.py
+@@ -231,7 +231,10 @@ def test_promoted_mkl_setup_selects_double_without_expanding_direct_sizes(
+ ):
+     from pycbc.fft import torchfft
+ 
+-    assert torchfft._MKL_DIRECT_IFFT_SIZES == frozenset({32768})
++    assert 32768 in torchfft._MKL_DIRECT_IFFT_SIZES
++    assert torchfft._MKL_DIRECT_IFFT_SIZES.isdisjoint(
++        torchfft._MKL_PROMOTED_IFFT_SIZES
++    )
+     calls = []
+     monkeypatch.setattr(torchfft, "_MKL_PROMOTED_IFFT_SIZES", frozenset({64}))
+     monkeypatch.setattr(torchfft, "_can_use_mkl_cpu_ifft", lambda obj: True)
+diff --git a/test/test_torch_performance_artifacts.py b/test/test_torch_performance_artifacts.py
+index ee1b7adada..b08d593f99 100644
+--- a/test/test_torch_performance_artifacts.py
++++ b/test/test_torch_performance_artifacts.py
+@@ -108,11 +108,11 @@ def test_default_and_native_routes_have_isolated_feature_flags():
+     )
+     assert native_env["PYCBC_TORCH_CPU_NATIVE_BATCH_CORRELATE"] == "1"
+     assert native_env["PYCBC_TORCH_CPU_FFTW_BATCH"] == "1"
++    assert native_env["PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK"] == "1"
+     assert "PYCBC_TORCH_CUDA_NATIVE_BATCH_CORRELATE" not in native_env
+ 
+     production = live_batch.route_configuration("torch_cpu")
+     native = live_batch.route_configuration("torch_cpu_native")
+-    assert "PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK" not in native["feature_flags"]
+     cuda = live_batch.route_configuration("torch_cuda")
+     assert production["routing_mode"] == "production_default"
+     assert native["routing_mode"] == "experimental_native"
+diff --git a/tools/bench_production_live_batch.py b/tools/bench_production_live_batch.py
+index 673df95cba..acc96b8cd0 100644
+--- a/tools/bench_production_live_batch.py
++++ b/tools/bench_production_live_batch.py
+@@ -76,6 +76,7 @@ EXPERIMENTAL_ROUTES = (
+ FEATURE_FLAG_DEFAULTS = {
+     "PYCBC_TORCH_CPU_NATIVE_BATCH_CORRELATE": False,
+     "PYCBC_TORCH_CPU_FFTW_BATCH": False,
++    "PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK": False,
+     "PYCBC_TORCH_CPU_MKL_IFFT": True,
+     "PYCBC_TORCH_CUDA_NATIVE_BATCH_CORRELATE": False,
+     "PYCBC_TORCH_CUDA_NATIVE_BATCH_PEAK": False,
+@@ -92,6 +93,7 @@ CPU_TORCH_FLAGS = frozenset(
+     {
+         "PYCBC_TORCH_CPU_NATIVE_BATCH_CORRELATE",
+         "PYCBC_TORCH_CPU_FFTW_BATCH",
++        "PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK",
+         "PYCBC_TORCH_CPU_MKL_IFFT",
+     }
+ )
+@@ -140,6 +142,7 @@ ROUTE_CONFIGS = {
+         "feature_flags": {
+             "PYCBC_TORCH_CPU_NATIVE_BATCH_CORRELATE": "1",
+             "PYCBC_TORCH_CPU_FFTW_BATCH": "1",
++            "PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK": "1",
+         },
+     },
+     "torch_cuda": {

@@ -1,0 +1,3048 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "qlty",
+          "informationUri": "https://github.com/qlty/qlty",
+          "semanticVersion": "0.644.0",
+          "version": "0.644.0 macos-arm64 (338acb3 2026-08-28)",
+          "releaseDateUtc": "2026-08-28",
+          "rules": [
+            {
+              "id": "ruff:F401",
+              "helpUri": "https://docs.astral.sh/ruff/rules/unused-import"
+            },
+            {
+              "id": "ruff:E402",
+              "helpUri": "https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file"
+            },
+            {
+              "id": "ruff:B028",
+              "helpUri": "https://docs.astral.sh/ruff/rules/no-explicit-stacklevel"
+            },
+            {
+              "id": "ruff:F821",
+              "helpUri": "https://docs.astral.sh/ruff/rules/undefined-name"
+            },
+            {
+              "id": "ruff:F541",
+              "helpUri": "https://docs.astral.sh/ruff/rules/f-string-missing-placeholders"
+            },
+            {
+              "id": "ruff:B904",
+              "helpUri": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+            },
+            {
+              "id": "ruff:E741",
+              "helpUri": "https://docs.astral.sh/ruff/rules/ambiguous-variable-name"
+            },
+            {
+              "id": "ruff:E731",
+              "helpUri": "https://docs.astral.sh/ruff/rules/lambda-assignment"
+            },
+            {
+              "id": "ruff:B905",
+              "helpUri": "https://docs.astral.sh/ruff/rules/zip-without-explicit-strict"
+            },
+            {
+              "id": "ruff:B010",
+              "helpUri": "https://docs.astral.sh/ruff/rules/set-attr-with-constant"
+            },
+            {
+              "id": "ruff:F403",
+              "helpUri": "https://docs.astral.sh/ruff/rules/undefined-local-with-import-star"
+            },
+            {
+              "id": "ruff:F405",
+              "helpUri": "https://docs.astral.sh/ruff/rules/undefined-local-with-import-star-usage"
+            },
+            {
+              "id": "ruff:B008",
+              "helpUri": "https://docs.astral.sh/ruff/rules/function-call-in-default-argument"
+            },
+            {
+              "id": "ruff:E721",
+              "helpUri": "https://docs.astral.sh/ruff/rules/type-comparison"
+            },
+            {
+              "id": "ruff:F841",
+              "helpUri": "https://docs.astral.sh/ruff/rules/unused-variable"
+            },
+            {
+              "id": "ruff:E713",
+              "helpUri": "https://docs.astral.sh/ruff/rules/not-in-test"
+            },
+            {
+              "id": "ripgrep:FIXME"
+            }
+          ],
+          "notifications": [
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ruff in 0.03s [Et41c1]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ruff in 0.03s [Et41c1]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ripgrep in 0.01s [khMQap]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ripgrep in 0.01s [khMQap]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ripgrep in 0.02s [nNUpKe]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ripgrep in 0.02s [nNUpKe]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ruff in 0.03s [u6Vewp]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ruff in 0.03s [u6Vewp]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ruff in 0.03s [vxKdag]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ruff in 0.03s [vxKdag]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ruff in 0.03s [pSyAEW]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ruff in 0.03s [pSyAEW]"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "ruff:F401",
+          "level": "warning",
+          "message": {
+            "text": "`subprocess` imported but unused"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/__init__.py"
+                },
+                "region": {
+                  "startLine": 29,
+                  "startColumn": 8,
+                  "endLine": 29,
+                  "endColumn": 18
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E402",
+          "level": "warning",
+          "message": {
+            "text": "Module level import not at top of file"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/__init__.py"
+                },
+                "region": {
+                  "startLine": 36,
+                  "startColumn": 1,
+                  "endLine": 36,
+                  "endColumn": 27
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E402",
+          "level": "warning",
+          "message": {
+            "text": "Module level import not at top of file"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/__init__.py"
+                },
+                "region": {
+                  "startLine": 37,
+                  "startColumn": 1,
+                  "endLine": 37,
+                  "endColumn": 22
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B028",
+          "level": "warning",
+          "message": {
+            "text": "No explicit `stacklevel` keyword argument found"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/__init__.py"
+                },
+                "region": {
+                  "startLine": 232,
+                  "startColumn": 9,
+                  "endLine": 232,
+                  "endColumn": 22
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 233,
+                    "startColumn": 79,
+                    "endLine": 233,
+                    "endColumn": 79
+                  },
+                  "insertedContent": {
+                    "text": ", stacklevel=2"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F821",
+          "level": "warning",
+          "message": {
+            "text": "Undefined name `Emchirp`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/conversions.py"
+                },
+                "region": {
+                  "startLine": 652,
+                  "startColumn": 69,
+                  "endLine": 652,
+                  "endColumn": 76
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F541",
+          "level": "warning",
+          "message": {
+            "text": "f-string without any placeholders"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/conversions.py"
+                },
+                "region": {
+                  "startLine": 899,
+                  "startColumn": 34,
+                  "endLine": 899,
+                  "endColumn": 59
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 899,
+                    "startColumn": 34,
+                    "endLine": 899,
+                    "endColumn": 59
+                  },
+                  "insertedContent": {
+                    "text": "\"Require mass1 >= mass2\""
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/conversions.py"
+                },
+                "region": {
+                  "startLine": 902,
+                  "startColumn": 17,
+                  "endLine": 902,
+                  "endColumn": 79
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E741",
+          "level": "warning",
+          "message": {
+            "text": "Ambiguous variable name: `l`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/conversions.py"
+                },
+                "region": {
+                  "startLine": 1402,
+                  "startColumn": 30,
+                  "endLine": 1402,
+                  "endColumn": 31
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E741",
+          "level": "warning",
+          "message": {
+            "text": "Ambiguous variable name: `l`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/conversions.py"
+                },
+                "region": {
+                  "startLine": 1432,
+                  "startColumn": 17,
+                  "endLine": 1432,
+                  "endColumn": 18
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/detector/ground.py"
+                },
+                "region": {
+                  "startLine": 191,
+                  "startColumn": 13,
+                  "endLine": 193,
+                  "endColumn": 14
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/detector/ground.py"
+                },
+                "region": {
+                  "startLine": 199,
+                  "startColumn": 13,
+                  "endLine": 201,
+                  "endColumn": 14
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/distributions/arbitrary.py"
+                },
+                "region": {
+                  "startLine": 279,
+                  "startColumn": 13,
+                  "endLine": 279,
+                  "endColumn": 48
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B028",
+          "level": "warning",
+          "message": {
+            "text": "No explicit `stacklevel` keyword argument found"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/distributions/bounded.py"
+                },
+                "region": {
+                  "startLine": 229,
+                  "startColumn": 17,
+                  "endLine": 229,
+                  "endColumn": 30
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 232,
+                    "startColumn": 61,
+                    "endLine": 232,
+                    "endColumn": 61
+                  },
+                  "insertedContent": {
+                    "text": ", stacklevel=2"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/distributions/bounded.py"
+                },
+                "region": {
+                  "startLine": 253,
+                  "startColumn": 13,
+                  "endLine": 255,
+                  "endColumn": 14
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E731",
+          "level": "warning",
+          "message": {
+            "text": "Do not assign a `lambda` expression, use a `def`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/events/coinc.py"
+                },
+                "region": {
+                  "startLine": 84,
+                  "startColumn": 17,
+                  "endLine": 84,
+                  "endColumn": 77
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 84,
+                    "startColumn": 17,
+                    "endLine": 84,
+                    "endColumn": 77
+                  },
+                  "insertedContent": {
+                    "text": "def member_func(vals, bd=boundary):\n                    return vals < float(bd[2:])"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E731",
+          "level": "warning",
+          "message": {
+            "text": "Do not assign a `lambda` expression, use a `def`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/events/coinc.py"
+                },
+                "region": {
+                  "startLine": 86,
+                  "startColumn": 17,
+                  "endLine": 86,
+                  "endColumn": 77
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 86,
+                    "startColumn": 17,
+                    "endLine": 86,
+                    "endColumn": 77
+                  },
+                  "insertedContent": {
+                    "text": "def member_func(vals, bd=boundary):\n                    return vals > float(bd[2:])"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B905",
+          "level": "warning",
+          "message": {
+            "text": "`zip()` without an explicit `strict=` parameter"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/events/coinc.py"
+                },
+                "region": {
+                  "startLine": 1232,
+                  "startColumn": 48,
+                  "endLine": 1236,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 1235,
+                    "startColumn": 31,
+                    "endLine": 1235,
+                    "endColumn": 31
+                  },
+                  "insertedContent": {
+                    "text": ", strict=False"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/fft/fftw.py"
+                },
+                "region": {
+                  "startLine": 121,
+                  "startColumn": 9,
+                  "endLine": 123,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/filter/matchedfilter.py"
+                },
+                "region": {
+                  "startLine": 1233,
+                  "startColumn": 13,
+                  "endLine": 1233,
+                  "endColumn": 75
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B010",
+          "level": "warning",
+          "message": {
+            "text": "Do not call `setattr` with a constant attribute value. It is not any safer than normal property access."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/inference/models/gaussian_noise.py"
+                },
+                "region": {
+                  "startLine": 979,
+                  "startColumn": 13,
+                  "endLine": 979,
+                  "endColumn": 70
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 979,
+                    "startColumn": 13,
+                    "endLine": 979,
+                    "endColumn": 70
+                  },
+                  "insertedContent": {
+                    "text": "self._current_stats.loglikelihood = -numpy.inf"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B010",
+          "level": "warning",
+          "message": {
+            "text": "Do not call `setattr` with a constant attribute value. It is not any safer than normal property access."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/inference/models/marginalized_gaussian_noise.py"
+                },
+                "region": {
+                  "startLine": 154,
+                  "startColumn": 9,
+                  "endLine": 154,
+                  "endColumn": 66
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 154,
+                    "startColumn": 9,
+                    "endLine": 154,
+                    "endColumn": 66
+                  },
+                  "insertedContent": {
+                    "text": "self._current_stats.loglikelihood = -numpy.inf"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B010",
+          "level": "warning",
+          "message": {
+            "text": "Do not call `setattr` with a constant attribute value. It is not any safer than normal property access."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/inference/models/marginalized_gaussian_noise.py"
+                },
+                "region": {
+                  "startLine": 156,
+                  "startColumn": 9,
+                  "endLine": 156,
+                  "endColumn": 62
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 156,
+                    "startColumn": 9,
+                    "endLine": 156,
+                    "endColumn": 62
+                  },
+                  "insertedContent": {
+                    "text": "self._current_stats.maxl_phase = numpy.nan"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B010",
+          "level": "warning",
+          "message": {
+            "text": "Do not call `setattr` with a constant attribute value. It is not any safer than normal property access."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/inference/models/marginalized_gaussian_noise.py"
+                },
+                "region": {
+                  "startLine": 476,
+                  "startColumn": 9,
+                  "endLine": 476,
+                  "endColumn": 58
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 476,
+                    "startColumn": 9,
+                    "endLine": 476,
+                    "endColumn": 58
+                  },
+                  "insertedContent": {
+                    "text": "self._current_stats.loglr = -numpy.inf"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B010",
+          "level": "warning",
+          "message": {
+            "text": "Do not call `setattr` with a constant attribute value. It is not any safer than normal property access."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/inference/models/marginalized_gaussian_noise.py"
+                },
+                "region": {
+                  "startLine": 478,
+                  "startColumn": 9,
+                  "endLine": 478,
+                  "endColumn": 69
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 478,
+                    "startColumn": 9,
+                    "endLine": 478,
+                    "endColumn": 69
+                  },
+                  "insertedContent": {
+                    "text": "self._current_stats.maxl_polarization = numpy.nan"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B010",
+          "level": "warning",
+          "message": {
+            "text": "Do not call `setattr` with a constant attribute value. It is not any safer than normal property access."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/inference/models/marginalized_gaussian_noise.py"
+                },
+                "region": {
+                  "startLine": 556,
+                  "startColumn": 9,
+                  "endLine": 556,
+                  "endColumn": 87
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 556,
+                    "startColumn": 9,
+                    "endLine": 556,
+                    "endColumn": 87
+                  },
+                  "insertedContent": {
+                    "text": "self._current_stats.maxl_polarization = params[\"polarization\"][idx]"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B010",
+          "level": "warning",
+          "message": {
+            "text": "Do not call `setattr` with a constant attribute value. It is not any safer than normal property access."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/inference/models/marginalized_gaussian_noise.py"
+                },
+                "region": {
+                  "startLine": 557,
+                  "startColumn": 9,
+                  "endLine": 557,
+                  "endColumn": 57
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 557,
+                    "startColumn": 9,
+                    "endLine": 557,
+                    "endColumn": 57
+                  },
+                  "insertedContent": {
+                    "text": "self._current_stats.maxl_loglr = maxl"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B010",
+          "level": "warning",
+          "message": {
+            "text": "Do not call `setattr` with a constant attribute value. It is not any safer than normal property access."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/inference/models/marginalized_gaussian_noise.py"
+                },
+                "region": {
+                  "startLine": 693,
+                  "startColumn": 9,
+                  "endLine": 693,
+                  "endColumn": 69
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 693,
+                    "startColumn": 9,
+                    "endLine": 693,
+                    "endColumn": 69
+                  },
+                  "insertedContent": {
+                    "text": "self._current_stats.maxl_polarization = numpy.nan"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B010",
+          "level": "warning",
+          "message": {
+            "text": "Do not call `setattr` with a constant attribute value. It is not any safer than normal property access."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/inference/models/marginalized_gaussian_noise.py"
+                },
+                "region": {
+                  "startLine": 694,
+                  "startColumn": 9,
+                  "endLine": 694,
+                  "endColumn": 62
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 694,
+                    "startColumn": 9,
+                    "endLine": 694,
+                    "endColumn": 62
+                  },
+                  "insertedContent": {
+                    "text": "self._current_stats.maxl_phase = numpy.nan"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B010",
+          "level": "warning",
+          "message": {
+            "text": "Do not call `setattr` with a constant attribute value. It is not any safer than normal property access."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/inference/models/marginalized_gaussian_noise.py"
+                },
+                "region": {
+                  "startLine": 874,
+                  "startColumn": 9,
+                  "endLine": 874,
+                  "endColumn": 73
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 874,
+                    "startColumn": 9,
+                    "endLine": 874,
+                    "endColumn": 73
+                  },
+                  "insertedContent": {
+                    "text": "self._current_stats.maxl_polarization = self.pol[idx]"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B010",
+          "level": "warning",
+          "message": {
+            "text": "Do not call `setattr` with a constant attribute value. It is not any safer than normal property access."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/inference/models/marginalized_gaussian_noise.py"
+                },
+                "region": {
+                  "startLine": 875,
+                  "startColumn": 9,
+                  "endLine": 875,
+                  "endColumn": 68
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 875,
+                    "startColumn": 9,
+                    "endLine": 875,
+                    "endColumn": 68
+                  },
+                  "insertedContent": {
+                    "text": "self._current_stats.maxl_phase = self.phase[idx]"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B905",
+          "level": "warning",
+          "message": {
+            "text": "`zip()` without an explicit `strict=` parameter"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/inference/models/relbin.py"
+                },
+                "region": {
+                  "startLine": 111,
+                  "startColumn": 61,
+                  "endLine": 111,
+                  "endColumn": 74
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 111,
+                    "startColumn": 73,
+                    "endLine": 111,
+                    "endColumn": 73
+                  },
+                  "insertedContent": {
+                    "text": ", strict=False"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E741",
+          "level": "warning",
+          "message": {
+            "text": "Ambiguous variable name: `l`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/inference/models/relbin.py"
+                },
+                "region": {
+                  "startLine": 433,
+                  "startColumn": 67,
+                  "endLine": 433,
+                  "endColumn": 68
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E741",
+          "level": "warning",
+          "message": {
+            "text": "Ambiguous variable name: `l`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/inference/models/relbin.py"
+                },
+                "region": {
+                  "startLine": 439,
+                  "startColumn": 21,
+                  "endLine": 439,
+                  "endColumn": 22
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B028",
+          "level": "warning",
+          "message": {
+            "text": "No explicit `stacklevel` keyword argument found"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/inference/models/tools.py"
+                },
+                "region": {
+                  "startLine": 137,
+                  "startColumn": 13,
+                  "endLine": 137,
+                  "endColumn": 26
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 139,
+                    "startColumn": 35,
+                    "endLine": 139,
+                    "endColumn": 35
+                  },
+                  "insertedContent": {
+                    "text": ", stacklevel=2"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F403",
+          "level": "warning",
+          "message": {
+            "text": "`from pycbc.psd.read import *` used; unable to detect undefined names"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/__init__.py"
+                },
+                "region": {
+                  "startLine": 23,
+                  "startColumn": 1,
+                  "endLine": 23,
+                  "endColumn": 29
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F401",
+          "level": "warning",
+          "message": {
+            "text": "`pycbc.types.MultiDetOptionAppendAction` imported but unused; consider removing, adding to `__all__`, or using a redundant alias"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/__init__.py"
+                },
+                "region": {
+                  "startLine": 29,
+                  "startColumn": 5,
+                  "endLine": 29,
+                  "endColumn": 31
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F405",
+          "level": "warning",
+          "message": {
+            "text": "`from_string` may be undefined, or defined from star imports"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/__init__.py"
+                },
+                "region": {
+                  "startLine": 107,
+                  "startColumn": 19,
+                  "endLine": 107,
+                  "endColumn": 30
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F405",
+          "level": "warning",
+          "message": {
+            "text": "`from_txt` may be undefined, or defined from star imports"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/__init__.py"
+                },
+                "region": {
+                  "startLine": 117,
+                  "startColumn": 23,
+                  "endLine": 117,
+                  "endColumn": 31
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F405",
+          "level": "warning",
+          "message": {
+            "text": "`from_xml` may be undefined, or defined from star imports"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/__init__.py"
+                },
+                "region": {
+                  "startLine": 126,
+                  "startColumn": 23,
+                  "endLine": 126,
+                  "endColumn": 31
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F405",
+          "level": "warning",
+          "message": {
+            "text": "`welch` may be undefined, or defined from star imports"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/__init__.py"
+                },
+                "region": {
+                  "startLine": 143,
+                  "startColumn": 15,
+                  "endLine": 143,
+                  "endColumn": 20
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F405",
+          "level": "warning",
+          "message": {
+            "text": "`inverse_spectrum_truncation` may be undefined, or defined from star imports"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/__init__.py"
+                },
+                "region": {
+                  "startLine": 168,
+                  "startColumn": 15,
+                  "endLine": 168,
+                  "endColumn": 42
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F405",
+          "level": "warning",
+          "message": {
+            "text": "`get_psd_model_list` may be undefined, or defined from star imports"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/__init__.py"
+                },
+                "region": {
+                  "startLine": 249,
+                  "startColumn": 17,
+                  "endLine": 249,
+                  "endColumn": 35
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F405",
+          "level": "warning",
+          "message": {
+            "text": "`get_psd_model_list` may be undefined, or defined from star imports"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/__init__.py"
+                },
+                "region": {
+                  "startLine": 433,
+                  "startColumn": 39,
+                  "endLine": 433,
+                  "endColumn": 57
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B008",
+          "level": "warning",
+          "message": {
+            "text": "Do not perform function call `np.sqrt` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/analytical_space.py"
+                },
+                "region": {
+                  "startLine": 429,
+                  "startColumn": 13,
+                  "endLine": 429,
+                  "endColumn": 23
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B008",
+          "level": "warning",
+          "message": {
+            "text": "Do not perform function call `np.sqrt` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/analytical_space.py"
+                },
+                "region": {
+                  "startLine": 707,
+                  "startColumn": 13,
+                  "endLine": 707,
+                  "endColumn": 23
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B008",
+          "level": "warning",
+          "message": {
+            "text": "Do not perform function call `np.sqrt` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/analytical_space.py"
+                },
+                "region": {
+                  "startLine": 895,
+                  "startColumn": 13,
+                  "endLine": 895,
+                  "endColumn": 23
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B008",
+          "level": "warning",
+          "message": {
+            "text": "Do not perform function call `np.sqrt` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/analytical_space.py"
+                },
+                "region": {
+                  "startLine": 1051,
+                  "startColumn": 52,
+                  "endLine": 1051,
+                  "endColumn": 62
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B008",
+          "level": "warning",
+          "message": {
+            "text": "Do not perform function call `np.sqrt` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/analytical_space.py"
+                },
+                "region": {
+                  "startLine": 1133,
+                  "startColumn": 46,
+                  "endLine": 1133,
+                  "endColumn": 56
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B008",
+          "level": "warning",
+          "message": {
+            "text": "Do not perform function call `np.sqrt` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/analytical_space.py"
+                },
+                "region": {
+                  "startLine": 1247,
+                  "startColumn": 13,
+                  "endLine": 1247,
+                  "endColumn": 23
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B008",
+          "level": "warning",
+          "message": {
+            "text": "Do not perform function call `np.sqrt` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/analytical_space.py"
+                },
+                "region": {
+                  "startLine": 1613,
+                  "startColumn": 13,
+                  "endLine": 1613,
+                  "endColumn": 23
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B008",
+          "level": "warning",
+          "message": {
+            "text": "Do not perform function call `np.sqrt` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/analytical_space.py"
+                },
+                "region": {
+                  "startLine": 1834,
+                  "startColumn": 47,
+                  "endLine": 1834,
+                  "endColumn": 57
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B008",
+          "level": "warning",
+          "message": {
+            "text": "Do not perform function call `np.sqrt` in argument defaults; instead, perform the call within the function, or read the default from a module-level singleton variable"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/psd/analytical_space.py"
+                },
+                "region": {
+                  "startLine": 1987,
+                  "startColumn": 13,
+                  "endLine": 1987,
+                  "endColumn": 23
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F821",
+          "level": "warning",
+          "message": {
+            "text": "Undefined name `ctypes`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/scheme.py"
+                },
+                "region": {
+                  "startLine": 202,
+                  "startColumn": 40,
+                  "endLine": 202,
+                  "endColumn": 46
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F821",
+          "level": "warning",
+          "message": {
+            "text": "Undefined name `fn`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/scheme.py"
+                },
+                "region": {
+                  "startLine": 312,
+                  "startColumn": 17,
+                  "endLine": 312,
+                  "endColumn": 19
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E402",
+          "level": "warning",
+          "message": {
+            "text": "Module level import not at top of file"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/types/array.py"
+                },
+                "region": {
+                  "startLine": 36,
+                  "startColumn": 1,
+                  "endLine": 36,
+                  "endColumn": 64
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E402",
+          "level": "warning",
+          "message": {
+            "text": "Module level import not at top of file"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/types/array.py"
+                },
+                "region": {
+                  "startLine": 41,
+                  "startColumn": 1,
+                  "endLine": 41,
+                  "endColumn": 38
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E402",
+          "level": "warning",
+          "message": {
+            "text": "Module level import not at top of file"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/types/array.py"
+                },
+                "region": {
+                  "startLine": 42,
+                  "startColumn": 1,
+                  "endLine": 42,
+                  "endColumn": 42
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E721",
+          "level": "warning",
+          "message": {
+            "text": "Use `is` and `is not` for type comparisons, or `isinstance()` for isinstance checks"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/types/array.py"
+                },
+                "region": {
+                  "startLine": 349,
+                  "startColumn": 44,
+                  "endLine": 349,
+                  "endColumn": 66
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/types/frequencyseries.py"
+                },
+                "region": {
+                  "startLine": 58,
+                  "startColumn": 17,
+                  "endLine": 60,
+                  "endColumn": 18
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/types/frequencyseries.py"
+                },
+                "region": {
+                  "startLine": 76,
+                  "startColumn": 17,
+                  "endLine": 76,
+                  "endColumn": 54
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/types/timeseries.py"
+                },
+                "region": {
+                  "startLine": 67,
+                  "startColumn": 17,
+                  "endLine": 69,
+                  "endColumn": 18
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F841",
+          "level": "warning",
+          "message": {
+            "text": "Local variable `o` is assigned to but never used"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/compress.py"
+                },
+                "region": {
+                  "startLine": 370,
+                  "startColumn": 9,
+                  "endLine": 370,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 370,
+                    "startColumn": 9,
+                    "endLine": 370,
+                    "endColumn": 13
+                  },
+                  "insertedContent": {
+                    "text": ""
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/generator.py"
+                },
+                "region": {
+                  "startLine": 172,
+                  "startColumn": 13,
+                  "endLine": 175,
+                  "endColumn": 14
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F541",
+          "level": "warning",
+          "message": {
+            "text": "f-string without any placeholders"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/generator.py"
+                },
+                "region": {
+                  "startLine": 1470,
+                  "startColumn": 22,
+                  "endLine": 1470,
+                  "endColumn": 88
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 1470,
+                    "startColumn": 22,
+                    "endLine": 1470,
+                    "endColumn": 88
+                  },
+                  "insertedContent": {
+                    "text": "\"No time-domain generator found for approximant: {approximant}\""
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:F541",
+          "level": "warning",
+          "message": {
+            "text": "f-string without any placeholders"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/generator.py"
+                },
+                "region": {
+                  "startLine": 1486,
+                  "startColumn": 9,
+                  "endLine": 1486,
+                  "endColumn": 80
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 1486,
+                    "startColumn": 9,
+                    "endLine": 1486,
+                    "endColumn": 80
+                  },
+                  "insertedContent": {
+                    "text": "\"No frequency-domain generator found for approximant: {approximant}\""
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E402",
+          "level": "warning",
+          "message": {
+            "text": "Module level import not at top of file"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/ringdown.py"
+                },
+                "region": {
+                  "startLine": 33,
+                  "startColumn": 1,
+                  "endLine": 33,
+                  "endColumn": 55
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E402",
+          "level": "warning",
+          "message": {
+            "text": "Module level import not at top of file"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/ringdown.py"
+                },
+                "region": {
+                  "startLine": 35,
+                  "startColumn": 1,
+                  "endLine": 35,
+                  "endColumn": 80
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E402",
+          "level": "warning",
+          "message": {
+            "text": "Module level import not at top of file"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/ringdown.py"
+                },
+                "region": {
+                  "startLine": 36,
+                  "startColumn": 1,
+                  "endLine": 36,
+                  "endColumn": 50
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/ringdown.py"
+                },
+                "region": {
+                  "startLine": 168,
+                  "startColumn": 13,
+                  "endLine": 170,
+                  "endColumn": 14
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/ringdown.py"
+                },
+                "region": {
+                  "startLine": 182,
+                  "startColumn": 21,
+                  "endLine": 182,
+                  "endColumn": 71
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/ringdown.py"
+                },
+                "region": {
+                  "startLine": 186,
+                  "startColumn": 17,
+                  "endLine": 186,
+                  "endColumn": 67
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/ringdown.py"
+                },
+                "region": {
+                  "startLine": 205,
+                  "startColumn": 17,
+                  "endLine": 205,
+                  "endColumn": 66
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B904",
+          "level": "warning",
+          "message": {
+            "text": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/ringdown.py"
+                },
+                "region": {
+                  "startLine": 209,
+                  "startColumn": 17,
+                  "endLine": 209,
+                  "endColumn": 68
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E741",
+          "level": "warning",
+          "message": {
+            "text": "Ambiguous variable name: `l`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/ringdown.py"
+                },
+                "region": {
+                  "startLine": 401,
+                  "startColumn": 5,
+                  "endLine": 401,
+                  "endColumn": 6
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E741",
+          "level": "warning",
+          "message": {
+            "text": "Ambiguous variable name: `l`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/ringdown.py"
+                },
+                "region": {
+                  "startLine": 498,
+                  "startColumn": 5,
+                  "endLine": 498,
+                  "endColumn": 6
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E741",
+          "level": "warning",
+          "message": {
+            "text": "Ambiguous variable name: `l`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/ringdown.py"
+                },
+                "region": {
+                  "startLine": 656,
+                  "startColumn": 5,
+                  "endLine": 656,
+                  "endColumn": 6
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:B028",
+          "level": "warning",
+          "message": {
+            "text": "No explicit `stacklevel` keyword argument found"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/spa_tmplt.py"
+                },
+                "region": {
+                  "startLine": 267,
+                  "startColumn": 13,
+                  "endLine": 267,
+                  "endColumn": 26
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 268,
+                    "startColumn": 82,
+                    "endLine": 268,
+                    "endColumn": 82
+                  },
+                  "insertedContent": {
+                    "text": ", stacklevel=2"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E741",
+          "level": "warning",
+          "message": {
+            "text": "Ambiguous variable name: `l`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/utils.py"
+                },
+                "region": {
+                  "startLine": 109,
+                  "startColumn": 8,
+                  "endLine": 109,
+                  "endColumn": 9
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E741",
+          "level": "warning",
+          "message": {
+            "text": "Ambiguous variable name: `l`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/waveform.py"
+                },
+                "region": {
+                  "startLine": 188,
+                  "startColumn": 13,
+                  "endLine": 188,
+                  "endColumn": 14
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E713",
+          "level": "warning",
+          "message": {
+            "text": "Test for membership should be `not in`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/waveform.py"
+                },
+                "region": {
+                  "startLine": 808,
+                  "startColumn": 12,
+                  "endLine": 808,
+                  "endColumn": 36
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 808,
+                    "startColumn": 8,
+                    "endLine": 808,
+                    "endColumn": 36
+                  },
+                  "insertedContent": {
+                    "text": "\"taper_method\" not in params"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E713",
+          "level": "warning",
+          "message": {
+            "text": "Test for membership should be `not in`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/waveform.py"
+                },
+                "region": {
+                  "startLine": 847,
+                  "startColumn": 12,
+                  "endLine": 847,
+                  "endColumn": 36
+                }
+              }
+            }
+          ],
+          "fixes": [
+            {
+              "description": {
+                "text": ""
+              },
+              "replacements": [
+                {
+                  "deletedRegion": {
+                    "startLine": 847,
+                    "startColumn": 8,
+                    "endLine": 847,
+                    "endColumn": 36
+                  },
+                  "insertedContent": {
+                    "text": "\"taper_method\" not in params"
+                  }
+                }
+              ]
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ripgrep:FIXME",
+          "level": "note",
+          "message": {
+            "text": "# FIXME We should try to get this length directly somehow"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/waveform.py"
+                },
+                "region": {
+                  "startLine": 1073,
+                  "startColumn": 7,
+                  "endLine": 1073,
+                  "endColumn": 12
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E402",
+          "level": "warning",
+          "message": {
+            "text": "Module level import not at top of file"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/waveform.py"
+                },
+                "region": {
+                  "startLine": 1295,
+                  "startColumn": 1,
+                  "endLine": 1295,
+                  "endColumn": 41
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E741",
+          "level": "warning",
+          "message": {
+            "text": "Ambiguous variable name: `l`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/waveform_modes.py"
+                },
+                "region": {
+                  "startLine": 108,
+                  "startColumn": 26,
+                  "endLine": 108,
+                  "endColumn": 27
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        },
+        {
+          "ruleId": "ruff:E741",
+          "level": "warning",
+          "message": {
+            "text": "Ambiguous variable name: `l`"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "pycbc/waveform/waveform_modes.py"
+                },
+                "region": {
+                  "startLine": 372,
+                  "startColumn": 9,
+                  "endLine": 372,
+                  "endColumn": 10
+                }
+              }
+            }
+          ],
+          "taxa": [
+            {
+              "id": "lint",
+              "name": "lint"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

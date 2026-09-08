@@ -1,0 +1,322 @@
+{
+  "archive": {
+    "commit": "a742e59004779b35e3caea1a088ad5854042b704",
+    "directory": "device-profile-20260907-r3",
+    "repository": "xangma/pycbc",
+    "url": "https://github.com/xangma/pycbc/tree/a742e59004779b35e3caea1a088ad5854042b704/device-profile-20260907-r3"
+  },
+  "consumed_files": {
+    "evidence-verification.json": {
+      "bytes": 137153,
+      "sha256": "8b02ff2ef4df7546226d5c63a6c2e47b93568eb39138675a8a0e2abff678c59d"
+    },
+    "handoff.json": {
+      "bytes": 4006,
+      "sha256": "f48a0ba19a3a9cc85a662a1a85580025852822cbd50ccee0df558c296949e1f3"
+    }
+  },
+  "images": {
+    "executable-wall.png": {
+      "bytes": 181255,
+      "sha256": "dd7f01d5d4f41e3548b4d0995d2dd5be67cda437ffa0757523d63d81d429463c"
+    },
+    "executable-wall.svg": {
+      "bytes": 17510,
+      "sha256": "f4d839711d3e1dc6fcb33a101c8a777ff352982563a9e5cebfd014ad1c998b16"
+    }
+  },
+  "renderer": {
+    "bytes": 20011,
+    "path": "tools/plot_torch_executable.py",
+    "sha256": "4ac4702eb44799c384d1abca75e5536be544f0ed72c968ab9994cb1c83243724"
+  },
+  "result": {
+    "backends": {
+      "cpu": "cpu:1",
+      "cuda": "torch:cuda:0",
+      "torchcpu": "torch:cpu:1"
+    },
+    "full_wall": {
+      "cpu": {
+        "max_wall_seconds": 70.27193644607905,
+        "median_template_seconds_per_wall_second": 10412.181845548263,
+        "median_wall_seconds": 70.21928841096815,
+        "min_wall_seconds": 69.919939822983,
+        "relative_range": 0.005012819569403026
+      },
+      "cuda": {
+        "max_wall_seconds": 25.016770540038124,
+        "median_template_seconds_per_wall_second": 29233.94719172525,
+        "median_wall_seconds": 25.009828306967393,
+        "min_wall_seconds": 24.989980745944194,
+        "relative_range": 0.0010711706519978773
+      },
+      "torchcpu": {
+        "max_wall_seconds": 114.46158287592698,
+        "median_template_seconds_per_wall_second": 6404.304082294772,
+        "median_wall_seconds": 114.16322376404423,
+        "min_wall_seconds": 114.03204136504792,
+        "relative_range": 0.003762520860192689
+      }
+    },
+    "numerical_budgets": {
+      "atol": 1e-05,
+      "max_examples": 12,
+      "phase_atol": 0.0001,
+      "rtol": 0.0001,
+      "sigmasq_rtol": 1e-05
+    },
+    "qualifications": {
+      "cpu": {
+        "checks": {
+          "all_decompressions_succeeded": true,
+          "all_interpolations_observed": true,
+          "all_segment_psds_saved": true,
+          "all_segment_psds_valid_for_filter": true,
+          "bank_0_all_templates_once": true,
+          "bank_0_compression_enabled": true,
+          "conditioned_strain_recorded": true,
+          "no_generation_fallback": true,
+          "nonempty_segments": true,
+          "one_compressed_bank": true,
+          "one_scalar_controller": true,
+          "recorded_geometry_matches_controller": true,
+          "scalar_ifft_executed_for_every_pair": true
+        },
+        "segments": 5,
+        "sha256": "8a0dcd765014f357712b1d93ef6a86e80349390a9d04e8c408ba69330d0b1a2d",
+        "templates": 384,
+        "valid_seconds": 1904
+      },
+      "cuda": {
+        "checks": {
+          "all_decompressions_succeeded": true,
+          "all_interpolations_observed": true,
+          "all_segment_psds_saved": true,
+          "all_segment_psds_valid_for_filter": true,
+          "bank_0_all_templates_once": true,
+          "bank_0_compression_enabled": true,
+          "conditioned_strain_recorded": true,
+          "no_generation_fallback": true,
+          "nonempty_segments": true,
+          "one_compressed_bank": true,
+          "one_scalar_controller": true,
+          "recorded_geometry_matches_controller": true,
+          "scalar_ifft_executed_for_every_pair": true
+        },
+        "segments": 5,
+        "sha256": "aad923ac99d91821e55d16122fb531ae02401d977e95f424adf1adbbac562606",
+        "templates": 384,
+        "valid_seconds": 1904
+      },
+      "torchcpu": {
+        "checks": {
+          "all_decompressions_succeeded": true,
+          "all_interpolations_observed": true,
+          "all_segment_psds_saved": true,
+          "all_segment_psds_valid_for_filter": true,
+          "bank_0_all_templates_once": true,
+          "bank_0_compression_enabled": true,
+          "conditioned_strain_recorded": true,
+          "no_generation_fallback": true,
+          "nonempty_segments": true,
+          "one_compressed_bank": true,
+          "one_scalar_controller": true,
+          "recorded_geometry_matches_controller": true,
+          "scalar_ifft_executed_for_every_pair": true
+        },
+        "segments": 5,
+        "sha256": "c59504bd82725abfbc33e5ba22fa71d9e51ebfe0489e4b178625448e3b6d341a",
+        "templates": 384,
+        "valid_seconds": 1904
+      }
+    },
+    "revision": "d2647addb884ead3249914ebc980f3c132076d93",
+    "samples": {
+      "cpu": [
+        {
+          "case": "timing-1-cpu",
+          "full_wall_seconds": 70.21928841096815,
+          "receipt_sha256": "39645b67daee728db91836e8b9ee315c244c97f035379d43cdd16057bd099073",
+          "template_seconds_per_wall_second": 10412.181845548263,
+          "trigger_sha256": "6d8e082e8ce4cba050ab308118bef241e209c762c02a581779932cb64ccebb75"
+        },
+        {
+          "case": "timing-2-cpu",
+          "full_wall_seconds": 69.919939822983,
+          "receipt_sha256": "c135580976c73ef85e9ca965c251c89dfdebd34a19b88d015a3ada4248e269b7",
+          "template_seconds_per_wall_second": 10456.75957174769,
+          "trigger_sha256": "0046d224b6361b3369781b467fef3a63b854d7cf1b8779096196b984397658ea"
+        },
+        {
+          "case": "timing-3-cpu",
+          "full_wall_seconds": 70.27193644607905,
+          "receipt_sha256": "339f228361bf2acbd92d074241387156e338c5ad0496fb5c6b00b7e1cab9879a",
+          "template_seconds_per_wall_second": 10404.380994410394,
+          "trigger_sha256": "29c140d0734a11394cb88a60c214f09adeadb0031e4d53885385e0f1d315c76f"
+        }
+      ],
+      "cuda": [
+        {
+          "case": "timing-1-cuda",
+          "full_wall_seconds": 24.989980745944194,
+          "receipt_sha256": "156b70a332bd4837f1385e9fe1a589f1076ba0b53105a5095d13d866391f3ec3",
+          "template_seconds_per_wall_second": 29257.165398923382,
+          "trigger_sha256": "5125ce3aafcd66f7e33f4fc7e3b4e75388dbfa2152c1610d3768f05e197a635d"
+        },
+        {
+          "case": "timing-2-cuda",
+          "full_wall_seconds": 25.009828306967393,
+          "receipt_sha256": "dc43b99c26364da8b3d9b163943a85969aaf24879d617b7c25054d1f6d7d1130",
+          "template_seconds_per_wall_second": 29233.94719172525,
+          "trigger_sha256": "a9d48b56f2a20eb15847f9b4b2e5088dc0fdb704bc5ef25fbb37146b4be947f3"
+        },
+        {
+          "case": "timing-3-cuda",
+          "full_wall_seconds": 25.016770540038124,
+          "receipt_sha256": "c8fee0c70c7df47cbadd2ef4ba7de99c847817bcbb4b2f7a0039b5aa7fcb18fe",
+          "template_seconds_per_wall_second": 29225.83467877488,
+          "trigger_sha256": "fb4dbac37c655a55aa50f9384d5f0ac7cf0925c354a334db0195502d6e573398"
+        }
+      ],
+      "torchcpu": [
+        {
+          "case": "timing-1-torchcpu",
+          "full_wall_seconds": 114.16322376404423,
+          "receipt_sha256": "73acd45f02c053ff72647107e4d9e30e20b61973458c8aad568a24c1f0816157",
+          "template_seconds_per_wall_second": 6404.304082294772,
+          "trigger_sha256": "595367bf80db8663ba6f9e01f20e575be63da24e9945a2d28b0b5268c05e4601"
+        },
+        {
+          "case": "timing-2-torchcpu",
+          "full_wall_seconds": 114.46158287592698,
+          "receipt_sha256": "c9fd07fa0d28b4535fb1948803c2223661c9cb05572cd2ece1fe7a3ddebf43f8",
+          "template_seconds_per_wall_second": 6387.6104246481555,
+          "trigger_sha256": "7dc2f3a6d5255350c0e552dd8efa116a9b9e951a306ffa1800a1f6cea46e3770"
+        },
+        {
+          "case": "timing-3-torchcpu",
+          "full_wall_seconds": 114.03204136504792,
+          "receipt_sha256": "291088224c484aa39ebc61fbb5c2254655b934f9c70ebd443901ab804507de4b",
+          "template_seconds_per_wall_second": 6411.671590263237,
+          "trigger_sha256": "fa6635c553d0feb63c9dc05519a4a2f6275be447c9634f24c030cefa656437d6"
+        }
+      ]
+    },
+    "science": {
+      "cprofile-cpu": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "cprofile-cuda": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "cprofile-torchcpu": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "cuda-trace": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "filter-cprofile-cpu": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "filter-cprofile-cuda": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "filter-cprofile-torchcpu": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "filter-perf-cpu": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "filter-perf-torchcpu": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "qualify-cuda": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "qualify-torchcpu": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "timing-1-cpu": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "timing-1-cuda": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "timing-1-torchcpu": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "timing-2-cpu": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "timing-2-cuda": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "timing-2-torchcpu": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "timing-3-cpu": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "timing-3-cuda": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      },
+      "timing-3-torchcpu": {
+        "compared_fields": 11,
+        "matched_triggers": 1991,
+        "status": "pass"
+      }
+    },
+    "template_seconds": 731136
+  },
+  "schema_version": 1,
+  "scope": {
+    "compressed_templates": 384,
+    "detector": "H1",
+    "executable": "pycbc_inspiral",
+    "interpretation": "Three samples per backend; median and observed range. Not confidence intervals or sustained capacity. No old-versus-new speedup comparison.",
+    "resources": "One host core / one thread; CUDA uses one RTX 4090; shared len, no exclusive reservation.",
+    "segments_per_template": 5,
+    "timing": "Fresh unprofiled full-process wall time: immediately before checked-worker launch through child exit, including runtime wrapper, startup, setup, filtering and HDF output.",
+    "unique_valid_seconds": 1904,
+    "validation": "Offline presentation validation of two hash-pinned summaries. No scientific replay or re-audit of archived receipts, source/native binaries or HDF outputs; no benchmark execution."
+  }
+}

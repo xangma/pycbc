@@ -1,0 +1,22 @@
+{
+  "head": "f844e9295f570956fbb34407ff7bce459f0869c6",
+  "original": "3d15380f836f9fe17d1d317837465693335a712d",
+  "original_patch_id": "be1b8c81e9e1b82e50a44de394eb9ae6fa49e6ba",
+  "replayed_patch_id": "be1b8c81e9e1b82e50a44de394eb9ae6fa49e6ba",
+  "same_patch": true,
+  "files": [
+    "bin/pycbc_live",
+    "pycbc/fft/__init__.py",
+    "pycbc/fft/cufft.py",
+    "pycbc/fft/cupyfft.py",
+    "pycbc/fft/fftw.py",
+    "pycbc/fft/npfft.py",
+    "pycbc/fft/parser_support.py",
+    "pycbc/fft/torchfft.py",
+    "pycbc/fft/wisdom_cache.py",
+    "test/test_fft_batched_backends.py",
+    "test/test_fft_cli_wisdom.py",
+    "test/test_fftw_wisdom_cache.py"
+  ],
+  "integration_review": "Wisdom cache lifecycle additions merged onto current FFT runtime. Current promoted in-place MKL workspace and main runtime changes retained; optional patch adds no C/CUDA changes."
+}

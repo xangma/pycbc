@@ -1,0 +1,76 @@
+{
+  "state": "complete",
+  "host": "len",
+  "cwd": "/home/xangma/pycbc-torch-residual-production-20260908/native-v1",
+  "pid": 1555597,
+  "pgid": 1555597,
+  "started": 1788857960.7405486,
+  "runs": [
+    {
+      "name": "contracts",
+      "command": [
+        "taskset",
+        "-c",
+        "8",
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "test/test_mkl_function_cache.py",
+        "test/test_torch_offline_cuda_graph.py",
+        "--junitxml=/home/xangma/pycbc-torch-residual-production-20260908/native-v1/contracts.xml"
+      ],
+      "log": "/home/xangma/pycbc-torch-residual-production-20260908/native-v1/contracts.log",
+      "started": 1788857963.4483821,
+      "pid": 1556861,
+      "returncode": 0,
+      "finished": 1788857979.0885723,
+      "counts": {
+        "tests": 43,
+        "errors": 0,
+        "failures": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "name": "regression",
+      "command": [
+        "taskset",
+        "-c",
+        "8",
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "test/test_matched_filter_symm.py",
+        "test/test_torch_fft_writes.py",
+        "test/test_torch_fft_cpu_native.py",
+        "test/test_torch_fft_cuda_workspace.py",
+        "test/test_torch_batched_fft.py",
+        "test/test_torch_filter_pipeline.py",
+        "test/test_torch_peak_contracts.py",
+        "test/test_torch_search_kernels.py",
+        "--junitxml=/home/xangma/pycbc-torch-residual-production-20260908/native-v1/regression.xml"
+      ],
+      "log": "/home/xangma/pycbc-torch-residual-production-20260908/native-v1/regression.log",
+      "started": 1788857979.089556,
+      "pid": 1563934,
+      "returncode": 0,
+      "finished": 1788857990.7737331,
+      "counts": {
+        "tests": 292,
+        "errors": 0,
+        "failures": 0,
+        "skipped": 52
+      }
+    }
+  ],
+  "lock": {
+    "path": "/home/xangma/pycbc-torch-performance-coordination-20260907/len-benchmark.lock",
+    "fd": 3,
+    "inode": 25195466
+  },
+  "preflight": "/home/xangma/pycbc-torch-residual-production-20260908/native-v1/source/pycbc/__init__.py 2.13.0+cu130 13.0 3.7.1 libmkl_rt.so\n",
+  "source_unchanged": true,
+  "finished": 1788857990.8394012
+}

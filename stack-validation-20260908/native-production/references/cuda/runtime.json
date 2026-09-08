@@ -1,0 +1,343 @@
+{
+  "state": "complete",
+  "pid": 3013965,
+  "hostname": "len",
+  "command": [
+    "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/run_reuse.py",
+    "--reuse",
+    "yes",
+    "--receipt",
+    "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-cuda-cached/descriptors.json",
+    "--",
+    "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/qualify-inspiral.py",
+    "--receipt",
+    "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-cuda-cached/qualification.json",
+    "--",
+    "/home/xangma/pycbc-torch-fft-optimization-20260908/loader-v1/source-candidate/bin/pycbc_inspiral",
+    "--verbose",
+    "--frame-files",
+    "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf",
+    "--channel-name",
+    "H1:LOSC-STRAIN",
+    "--gps-start-time",
+    "1187007048",
+    "--gps-end-time",
+    "1187009080",
+    "--trig-start-time",
+    "1187007160",
+    "--trig-end-time",
+    "1187009064",
+    "--sample-rate",
+    "4096",
+    "--low-frequency-cutoff",
+    "30",
+    "--strain-high-pass",
+    "25",
+    "--pad-data",
+    "8",
+    "--autogating-threshold",
+    "100",
+    "--autogating-cluster",
+    "5",
+    "--autogating-width",
+    "0.25",
+    "--autogating-taper",
+    "0.25",
+    "--autogating-pad",
+    "16",
+    "--autogating-max-iterations",
+    "1",
+    "--psd-estimation",
+    "median",
+    "--psd-segment-length",
+    "32",
+    "--psd-segment-stride",
+    "16",
+    "--psd-num-segments",
+    "126",
+    "--psd-inverse-length",
+    "16",
+    "--invpsd-trunc-method",
+    "hann",
+    "--invpsd-trunc-which-spectrum",
+    "invasd",
+    "--approximant",
+    "IMRPhenomD",
+    "--order",
+    "-1",
+    "--use-compressed-waveforms",
+    "--waveform-decompression-method",
+    "inline_linear",
+    "--snr-threshold",
+    "5.5",
+    "--newsnr-threshold",
+    "5",
+    "--chisq-bins",
+    "16",
+    "--cluster-window",
+    "1",
+    "--cluster-function",
+    "symmetric",
+    "--fft-backends",
+    "mkl",
+    "--bank-file",
+    "/home/xangma/pycbc-torch-reference-protocol-20260907/inputs/bank-compressed.hdf",
+    "--processing-scheme",
+    "torch:cuda:0",
+    "--segment-length",
+    "512",
+    "--segment-start-pad",
+    "112",
+    "--segment-end-pad",
+    "16",
+    "--output",
+    "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-cuda-cached/triggers.hdf"
+  ],
+  "source": "/home/xangma/pycbc-torch-fft-optimization-20260908/loader-v1/source-candidate",
+  "started_at": 1788842537.338872,
+  "helper_sha256": "6cec38e384ae532d63099df1941cf1f73dcb65750d43e7796d517ea4cd3454ba",
+  "environment": {
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "MKL_DYNAMIC": "FALSE",
+    "MKL_THREADING_LAYER": "GNU",
+    "OPENBLAS_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+    "BLIS_NUM_THREADS": "1",
+    "PYTHONHASHSEED": "0",
+    "CUDA_VISIBLE_DEVICES": "0",
+    "OMP_DYNAMIC": "FALSE",
+    "PYTHONPATH": "/home/xangma/pycbc-torch-fft-optimization-20260908/loader-v1/source-candidate",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "inherited_lock": {
+    "fd": 3,
+    "device": 43,
+    "inode": 25195466
+  },
+  "torch_version": "2.13.0+cu130",
+  "torch_cuda_version": "13.0",
+  "imported_source": "/home/xangma/pycbc-torch-fft-optimization-20260908/loader-v1/source-candidate",
+  "processing_scheme": "torch:cuda:0",
+  "source_modules": {
+    "/home/xangma/pycbc-torch-fft-optimization-20260908/loader-v1/source-candidate/pycbc/types/array_torch.py": "bde2a213bc135fd3f2ee2d1414ffbbf0a2aaa4da72ec722f9fab94eed37102d5",
+    "/home/xangma/pycbc-torch-fft-optimization-20260908/loader-v1/source-candidate/pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+    "/home/xangma/pycbc-torch-fft-optimization-20260908/loader-v1/source-candidate/pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+    "/home/xangma/pycbc-torch-fft-optimization-20260908/loader-v1/source-candidate/pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca"
+  },
+  "before_executable": {
+    "intra_op": 1,
+    "inter_op": 1,
+    "torch_imported": true,
+    "affinity": [
+      8
+    ],
+    "smt_siblings": {
+      "8": "8,72"
+    },
+    "scheme": "DefaultScheme",
+    "device": "",
+    "threadpools": [
+      {
+        "user_api": "openmp",
+        "internal_api": "openmp",
+        "num_threads": 1,
+        "prefix": "libgomp",
+        "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+        "version": null
+      },
+      {
+        "user_api": "blas",
+        "internal_api": "openblas",
+        "num_threads": 1,
+        "prefix": "libopenblas",
+        "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+        "version": "0.3.25",
+        "threading_layer": "pthreads",
+        "architecture": "Zen"
+      },
+      {
+        "user_api": "blas",
+        "internal_api": "mkl",
+        "num_threads": 1,
+        "prefix": "libmkl_rt",
+        "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+        "version": "2020.0.4",
+        "threading_layer": "gnu"
+      },
+      {
+        "user_api": "openmp",
+        "internal_api": "openmp",
+        "num_threads": 1,
+        "prefix": "libgomp",
+        "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+        "version": null
+      }
+    ],
+    "threadpoolctl": {
+      "path": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/threadpoolctl.py",
+      "version": "3.6.0",
+      "sha256": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b"
+    },
+    "environment": {
+      "BLIS_NUM_THREADS": "1",
+      "CUDA_VISIBLE_DEVICES": "0",
+      "MKL_DYNAMIC": "FALSE",
+      "MKL_NUM_THREADS": "1",
+      "MKL_THREADING_LAYER": "GNU",
+      "NUMEXPR_NUM_THREADS": "1",
+      "OMP_DYNAMIC": "FALSE",
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONHASHSEED": "0",
+      "PYTHONPATH": "/home/xangma/pycbc-torch-fft-optimization-20260908/loader-v1/source-candidate",
+      "VECLIB_MAXIMUM_THREADS": "1"
+    },
+    "observed_at": 1788842540.8110292
+  },
+  "at_first_bank": {
+    "intra_op": 1,
+    "inter_op": 1,
+    "torch_imported": true,
+    "affinity": [
+      8
+    ],
+    "smt_siblings": {
+      "8": "8,72"
+    },
+    "scheme": "TorchScheme",
+    "device": "cuda:0",
+    "threadpools": [
+      {
+        "user_api": "openmp",
+        "internal_api": "openmp",
+        "num_threads": 1,
+        "prefix": "libgomp",
+        "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+        "version": null
+      },
+      {
+        "user_api": "blas",
+        "internal_api": "openblas",
+        "num_threads": 1,
+        "prefix": "libopenblas",
+        "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+        "version": "0.3.25",
+        "threading_layer": "pthreads",
+        "architecture": "Zen"
+      },
+      {
+        "user_api": "blas",
+        "internal_api": "mkl",
+        "num_threads": 1,
+        "prefix": "libmkl_rt",
+        "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+        "version": "2020.0.4",
+        "threading_layer": "gnu"
+      },
+      {
+        "user_api": "openmp",
+        "internal_api": "openmp",
+        "num_threads": 1,
+        "prefix": "libgomp",
+        "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+        "version": null
+      }
+    ],
+    "threadpoolctl": {
+      "path": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/threadpoolctl.py",
+      "version": "3.6.0",
+      "sha256": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b"
+    },
+    "environment": {
+      "BLIS_NUM_THREADS": "1",
+      "CUDA_VISIBLE_DEVICES": "0",
+      "MKL_DYNAMIC": "FALSE",
+      "MKL_NUM_THREADS": "1",
+      "MKL_THREADING_LAYER": "GNU",
+      "NUMEXPR_NUM_THREADS": "1",
+      "OMP_DYNAMIC": "FALSE",
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONHASHSEED": "0",
+      "PYTHONPATH": "/home/xangma/pycbc-torch-fft-optimization-20260908/loader-v1/source-candidate",
+      "VECLIB_MAXIMUM_THREADS": "1"
+    },
+    "observed_at": 1788842549.6285079
+  },
+  "after_executable": {
+    "intra_op": 1,
+    "inter_op": 1,
+    "torch_imported": true,
+    "affinity": [
+      8
+    ],
+    "smt_siblings": {
+      "8": "8,72"
+    },
+    "scheme": "DefaultScheme",
+    "device": "",
+    "threadpools": [
+      {
+        "user_api": "openmp",
+        "internal_api": "openmp",
+        "num_threads": 1,
+        "prefix": "libgomp",
+        "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+        "version": null
+      },
+      {
+        "user_api": "blas",
+        "internal_api": "openblas",
+        "num_threads": 1,
+        "prefix": "libopenblas",
+        "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+        "version": "0.3.25",
+        "threading_layer": "pthreads",
+        "architecture": "Zen"
+      },
+      {
+        "user_api": "blas",
+        "internal_api": "mkl",
+        "num_threads": 1,
+        "prefix": "libmkl_rt",
+        "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+        "version": "2020.0.4",
+        "threading_layer": "gnu"
+      },
+      {
+        "user_api": "openmp",
+        "internal_api": "openmp",
+        "num_threads": 1,
+        "prefix": "libgomp",
+        "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+        "version": null
+      }
+    ],
+    "threadpoolctl": {
+      "path": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/threadpoolctl.py",
+      "version": "3.6.0",
+      "sha256": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b"
+    },
+    "environment": {
+      "BLIS_NUM_THREADS": "1",
+      "CUDA_VISIBLE_DEVICES": "0",
+      "MKL_DYNAMIC": "FALSE",
+      "MKL_NUM_THREADS": "1",
+      "MKL_THREADING_LAYER": "GNU",
+      "NUMEXPR_NUM_THREADS": "1",
+      "OMP_DYNAMIC": "FALSE",
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "PYTHONDONTWRITEBYTECODE": "1",
+      "PYTHONHASHSEED": "0",
+      "PYTHONPATH": "/home/xangma/pycbc-torch-fft-optimization-20260908/loader-v1/source-candidate",
+      "VECLIB_MAXIMUM_THREADS": "1"
+    },
+    "observed_at": 1788842556.7803433
+  },
+  "finished_at": 1788842556.7841072
+}

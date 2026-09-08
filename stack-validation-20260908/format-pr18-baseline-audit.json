@@ -1,0 +1,30 @@
+{
+  "state": "pass",
+  "previous_head": "54da49346a233ceb36f8e5004a25a17376d887c3",
+  "head": "5444d9fa9ead578a43a3c0c02de641f2869f394b",
+  "previous_findings": 85,
+  "current_findings": 86,
+  "additional_exposed_finding": [
+    [
+      "ruff:B904",
+      "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+      "pycbc/frame/frame.py"
+    ]
+  ],
+  "additional_finding_confirmed_in_unchanged_parent": true,
+  "new_formatted_files": [
+    {
+      "path": "pycbc/frame/frame.py",
+      "before_sha256": "c4a75f65ade1012f823d88e9bafc584125f9ebeabd1ab8a2cb77da8132bb1c29",
+      "after_sha256": "96573c49c8ec45b70022fbb2ddd6b3a0b9a725be2dc5e84ed28ff5218b9b8ccb",
+      "normalized_ast_identical": true
+    },
+    {
+      "path": "pycbc/fft/mkl.py",
+      "before_sha256": "8362642e359f48f17a89e0877757a29124a3c2b231e4debfa77d5520c2bb9fc3",
+      "after_sha256": "11b70fe27e0027238bb5f48943c1a2d32014070593f7405cd210d0aea3e4d997",
+      "normalized_ast_identical": true
+    }
+  ],
+  "formatting_findings": 0
+}

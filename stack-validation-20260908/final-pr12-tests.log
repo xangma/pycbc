@@ -1,0 +1,20 @@
+........s.s.s.s.s.s............ssssssssssss.s.s..s..s...........         [100%]
+=============================== warnings summary ===============================
+test/test_torch_domain_compat.py::test_distance_and_volume_interpolation_match_numpy_with_gradients[cpu]
+  /Users/xangma/miniconda3/envs/pycbc313/lib/python3.13/site-packages/astropy/cosmology/_src/funcs/optimize.py:134: AstropyUserWarning: fval is not bracketed by func(zmin)=3.6309071075062355e-13 Mpc3 and func(zmax)=3763143105730.4414 Mpc3. This means either there is no solution, or that there is more than one solution between zmin and zmax satisfying fval = func(z).
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] test/test_torch_domain_compat.py:28: CUDA is unavailable
+SKIPPED [1] test/test_torch_domain_compat.py:61: CUDA is unavailable
+SKIPPED [1] test/test_torch_domain_compat.py:88: CUDA is unavailable
+SKIPPED [1] test/test_torch_domain_compat.py:128: CUDA is unavailable
+SKIPPED [1] test/test_torch_domain_compat.py:150: CUDA is unavailable
+SKIPPED [1] test/test_torch_domain_compat.py:196: CUDA is unavailable
+SKIPPED [12] test/test_torch_domain_compat.py:222: CUDA is unavailable
+SKIPPED [1] test/test_torch_domain_compat.py:252: CUDA is unavailable
+SKIPPED [1] test/test_torch_domain_protocol.py:27: CUDA unavailable
+SKIPPED [1] test/test_torch_domain_protocol.py:42: CUDA unavailable
+SKIPPED [1] test/test_torch_domain_protocol.py:50: CUDA unavailable
+42 passed, 22 skipped, 1 warning in 18.85s

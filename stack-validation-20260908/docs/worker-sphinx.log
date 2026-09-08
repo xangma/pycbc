@@ -1,0 +1,53 @@
+Running Sphinx v9.1.0
+loading translations [en]... done
+loading pickled environment... done
+building [mo]: targets for 0 po files that are out of date
+writing output... 
+building [html]: targets for 0 source files that are out of date
+updating environment: 0 added, 2 changed, 0 removed
+reading sources... [ 50%] torch_followups
+reading sources... [100%] torch_performance
+
+looking for now-outdated files... none found
+pickling environment... done
+checking consistency... /private/tmp/pycbc-torch-docs-validation-20260908/sphinx-source/torch_batch_numerics.rst: document is referenced in multiple toctrees: ['index', 'torch_benchmark_protocol'], selecting: torch_benchmark_protocol <- torch_batch_numerics
+/private/tmp/pycbc-torch-docs-validation-20260908/sphinx-source/torch_followups.rst: document is referenced in multiple toctrees: ['index', 'torch_benchmark_protocol'], selecting: torch_benchmark_protocol <- torch_followups
+/private/tmp/pycbc-torch-docs-validation-20260908/sphinx-source/torch_profile_attribution.rst: document is referenced in multiple toctrees: ['index', 'torch_benchmark_protocol'], selecting: torch_benchmark_protocol <- torch_profile_attribution
+done
+preparing documents... done
+copying assets... 
+copying downloadable files... [ 11%] images/torch-batch-r4-20260907/batch-accuracy.svg
+copying downloadable files... [ 22%] images/torch-batch-r4-20260907/manifest.json
+copying downloadable files... [ 33%] data/torch-20260908/loader-v1-summary.json
+copying downloadable files... [ 44%] data/torch-20260908/descriptor-reuse-timing-v1-summary.json
+copying downloadable files... [ 56%] data/torch-20260908/graph-v2-timing-summary.json
+copying downloadable files... [ 67%] images/torch-executable-20260908/executable-wall.svg
+copying downloadable files... [ 78%] images/torch-executable-20260908/prototype-followups.svg
+copying downloadable files... [ 89%] images/torch-executable-20260908/manifest.json
+copying downloadable files... [100%] images/torch-batch-r4-20260907/batch-throughput.svg
+
+copying static files... 
+Writing evaluated template result to /private/tmp/pycbc-torch-docs-validation-20260908/html/_static/basic.css
+Writing evaluated template result to /private/tmp/pycbc-torch-docs-validation-20260908/html/_static/language_data.js
+Writing evaluated template result to /private/tmp/pycbc-torch-docs-validation-20260908/html/_static/documentation_options.js
+Writing evaluated template result to /private/tmp/pycbc-torch-docs-validation-20260908/html/_static/alabaster.css
+copying static files: done
+copying extra files... 
+copying extra files: done
+copying assets: done
+writing output... [ 25%] index
+writing output... [ 50%] torch_benchmark_protocol
+writing output... [ 75%] torch_followups
+writing output... [100%] torch_performance
+
+generating indices... genindex done
+writing additional pages... search done
+copying images... [ 33%] images/torch-executable-20260908/executable-wall.png
+copying images... [ 67%] images/torch-executable-20260908/prototype-followups.png
+copying images... [100%] images/torch-batch-r4-20260907/batch-throughput.png
+
+dumping search index in English (code: en)... done
+dumping object inventory... done
+build succeeded.
+
+The HTML pages are in ../pycbc-torch-docs-validation-20260908/html.

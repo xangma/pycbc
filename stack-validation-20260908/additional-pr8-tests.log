@@ -1,0 +1,43 @@
+...........s..s.............................s................... [ 16%]
+....................s.........................................s.s.s.s.s. [ 34%]
+s.s.s.s.s.s.s...................s..s...ss......ssss......ss...s...ss...s [ 52%]
+..s..s....ssssss..ss........ssssssss.s.s.s.s........ssssssss..ssssss.... [ 70%]
+....ssssssss.sss.sss........ssssssss.sss.sss............................ [ 89%]
+........................................s.s                              [100%]
+=============================== warnings summary ===============================
+test/test_torch_cpu_native_batch.py::test_native_batch_correlation_real_thread_and_fork_decline
+  /private/tmp/pycbc-torch-publication-20260908/test/test_torch_cpu_native_batch.py:461: DeprecationWarning: This process (pid=79596) is multi-threaded, use of fork() may lead to deadlocks in the child.
+    child = os.fork()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] test/test_torch_cuda_native_batch.py:27: CUDA device is required
+SKIPPED [1] test/test_chisq_torch.py:295: CUDA not available
+SKIPPED [1] test/test_matched_filter_symm.py:195: CUDA not available
+SKIPPED [1] test/test_qtransform.py:247: CUDA device is unavailable
+SKIPPED [1] test/test_torch_chisq_cpu_optimization.py:635: Torch CUDA device unavailable
+SKIPPED [12] test/test_torch_cpu_native_batch.py:220: CUDA is unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:83: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:124: Torch CUDA device unavailable
+SKIPPED [2] test/test_torch_filter_pipeline.py:142: Torch CUDA device unavailable
+SKIPPED [4] test/test_torch_filter_pipeline.py:183: Torch CUDA device unavailable
+SKIPPED [2] test/test_torch_filter_pipeline.py:237: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:283: Torch CUDA device unavailable
+SKIPPED [2] test/test_torch_filter_pipeline.py:323: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:352: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:391: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:435: Torch CUDA device unavailable
+SKIPPED [3] test/test_torch_filter_pipeline.py:471: Torch CUDA device unavailable
+SKIPPED [3] test/test_torch_filter_pipeline.py:486: Torch MPS PyCBC arrays do not support complex dtypes
+SKIPPED [1] test/test_torch_filter_pipeline.py:595: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_filter_pipeline.py:599: Glitch detection requires complex PyCBC arrays on MPS
+SKIPPED [8] test/test_torch_filter_pipeline.py:644: Torch CUDA device unavailable
+SKIPPED [4] test/test_torch_filter_pipeline.py:651: Torch MPS does not support float64
+SKIPPED [8] test/test_torch_filter_pipeline.py:712: Torch CUDA device unavailable
+SKIPPED [6] test/test_torch_filter_pipeline.py:725: Torch MPS only supports float32 PyCBC arrays
+SKIPPED [8] test/test_torch_filter_pipeline.py:784: Torch CUDA device unavailable
+SKIPPED [6] test/test_torch_filter_pipeline.py:792: Torch MPS only supports float32 PyCBC arrays
+SKIPPED [8] test/test_torch_filter_pipeline.py:836: Torch CUDA device unavailable
+SKIPPED [6] test/test_torch_filter_pipeline.py:851: Torch MPS only supports float32 PyCBC arrays
+SKIPPED [2] test/test_torch_search_kernels.py:1162: CUDA is unavailable
+299 passed, 97 skipped, 1 warning, 8 subtests passed in 8.62s

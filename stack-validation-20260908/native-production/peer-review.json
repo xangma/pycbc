@@ -1,0 +1,24 @@
+{
+  "reviewer_task": "01a07ac4-9675-7983-9923-90de72db82d5",
+  "production_commit": "fad7d8440bfde083f2e94ee62a0017492dfc4013",
+  "native_contracts": {
+    "passed": 43,
+    "skipped": 0
+  },
+  "native_regression": {
+    "passed": 240,
+    "skipped": 52,
+    "skip_reason": "Torch MPS device unavailable"
+  },
+  "production_findings_closed": [
+    "DFTI_CONJUGATE_EVEN_STORAGE requires COMPLEX_COMPLEX39; independent original descriptor oracle and all7nativecases passed",
+    "Original storage retained and record_stream called on capture/replay; actual pending-allocation protected/omission negative probe passed"
+  ],
+  "qualification_review": {
+    "v1_blocker": "eager-first oracle could fill output and threshold scratch before observed production call",
+    "resolution": "production-first full/sparse snapshot followed by independent eager oracle, retention checks, original production sparse objects returned to actual consumer",
+    "v2_graph_sha256": "e4b5a4f7d1fc79529ccd81dfe212e261c2b98cd669bf60abc4883fc0fcfd3322",
+    "cross_revision_adapter": "Reviewed: raw verdict and explicit provenance substitutions retained; clean pinned source commits, identical executable bytes and bank/frame hashes required; numerical arrays and budgets unchanged",
+    "negative_probe_reporting_fix": "v2 checked stderr although donor stores AssertionError in qualification.json.error; v3 validates saved error type/message and six-replay/five-capture/five-comparison counters; original attempted evidence preserved"
+  }
+}

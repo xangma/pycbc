@@ -1,0 +1,1782 @@
+commit 3d15380f836f9fe17d1d317837465693335a712d
+Author:     xangma <xangma@users.noreply.github.com>
+AuthorDate: Sun Sep 6 22:19:34 2026 +0100
+Commit:     xangma <xangma@users.noreply.github.com>
+CommitDate: Sun Sep 6 22:19:34 2026 +0100
+
+    Add optional FFTW wisdom caching and general FFT batch fixes
+
+diff --git a/bin/pycbc_live b/bin/pycbc_live
+index 00454ae541..d12fc70a55 100755
+--- a/bin/pycbc_live
++++ b/bin/pycbc_live
+@@ -1123,16 +1123,7 @@ if evnt.rank == 0 and args.enable_gracedb_upload:
+ # I'm not the root, so do some actual filtering.
+ with ctx:
+     try:
+-        # Import system wisdom.
+-        if args.fftw_import_system_wisdom:
+-            fft.fftw.import_sys_wisdom()
+-
+-        # Read specified user-provided wisdom files
+-        if args.fftw_input_float_wisdom_file is not None:
+-            fft.fftw.import_single_wisdom_from_filename(args.fftw_input_float_wisdom_file)
+-
+-        if args.fftw_input_double_wisdom_file is not None:
+-            fft.fftw.import_double_wisdom_from_filename(args.fftw_input_double_wisdom_file)
++        fft.import_wisdom_from_cli(args)
+ 
+         if args.fftw_planning_limit:
+             fft.fftw.set_planning_limit(args.fftw_planning_limit)
+@@ -1459,11 +1450,7 @@ with ctx:
+                 logging.error('I/O error writing status JSON file!')
+ 
+ if evnt.rank == 1:
+-    if args.fftw_output_float_wisdom_file:
+-        fft.fftw.export_single_wisdom_to_filename(args.fftw_output_float_wisdom_file)
+-
+-    if args.fftw_output_double_wisdom_file:
+-        fft.fftw.export_double_wisdom_to_filename(args.fftw_output_double_wisdom_file)
++    fft.export_wisdom_from_cli(args)
+ 
+ if args.enable_profiling is not None and evnt.rank == args.enable_profiling:
+     pr.dump_stats(f'profiling_rank_{evnt.rank:03d}')
+diff --git a/pycbc/fft/__init__.py b/pycbc/fft/__init__.py
+index ae496f8aed..3e36a1996e 100644
+--- a/pycbc/fft/__init__.py
++++ b/pycbc/fft/__init__.py
+@@ -14,11 +14,23 @@
+ # with this program; if not, write to the Free Software Foundation, Inc.,
+ # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ 
+-from .backend_support import get_backend_names as get_backend_names
+-from .class_api import FFT as FFT
+-from .class_api import IFFT as IFFT
+-from .func_api import fft as fft
+-from .func_api import ifft as ifft
+-from .parser_support import from_cli as from_cli
+-from .parser_support import insert_fft_option_group as insert_fft_option_group
+-from .parser_support import verify_fft_options as verify_fft_options
++from .backend_support import get_backend_names  # noqa: F401 - public re-export
++from .class_api import FFT as FFT  # noqa: F401 - public re-export
++from .class_api import IFFT as IFFT  # noqa: F401 - public re-export
++from .func_api import fft as fft  # noqa: F401 - public re-export
++from .func_api import ifft as ifft  # noqa: F401 - public re-export
++from .parser_support import (  # noqa: F401 - public re-export
++    export_wisdom_from_cli as export_wisdom_from_cli,
++)
++from .parser_support import (  # noqa: F401 - public re-export
++    from_cli as from_cli,
++)
++from .parser_support import (  # noqa: F401 - public re-export
++    import_wisdom_from_cli as import_wisdom_from_cli,
++)
++from .parser_support import (  # noqa: F401 - public re-export
++    insert_fft_option_group as insert_fft_option_group,
++)
++from .parser_support import (  # noqa: F401 - public re-export
++    verify_fft_options as verify_fft_options,
++)
+diff --git a/pycbc/fft/cufft.py b/pycbc/fft/cufft.py
+index b75aac86a9..219e5923e7 100644
+--- a/pycbc/fft/cufft.py
++++ b/pycbc/fft/cufft.py
+@@ -60,7 +60,7 @@ def _get_fwd_plan(itype, otype, inlen, batch=1):
+         theplan = _forward_plans[(itype, otype, inlen, batch)]
+     except KeyError:
+         theplan = cu_fft.Plan((inlen,), itype, otype, batch=batch)
+-        _forward_plans.update({(itype, otype, inlen): theplan})
++        _forward_plans.update({(itype, otype, inlen, batch): theplan})
+ 
+     return theplan
+ 
+@@ -72,7 +72,7 @@ def _get_inv_plan(itype, otype, outlen, batch=1):
+         theplan = _reverse_plans[(itype, otype, outlen, batch)]
+     except KeyError:
+         theplan = cu_fft.Plan((outlen,), itype, otype, batch=batch)
+-        _reverse_plans.update({(itype, otype, outlen): theplan})
++        _reverse_plans.update({(itype, otype, outlen, batch): theplan})
+ 
+     return theplan
+ 
+@@ -90,7 +90,7 @@ def ifft(invec, outvec, prec, itype, otype):
+ class FFT(_BaseFFT):
+     def __init__(self, invec, outvec, nbatch=1, size=None):
+         super(FFT, self).__init__(invec, outvec, nbatch, size)
+-        self.plan = _get_fwd_plan(invec.dtype, outvec.dtype, len(invec), batch=nbatch)
++        self.plan = _get_fwd_plan(invec.dtype, outvec.dtype, self.size, batch=nbatch)
+         self.invec = invec.data
+         self.outvec = outvec.data
+ 
+@@ -101,7 +101,7 @@ class FFT(_BaseFFT):
+ class IFFT(_BaseIFFT):
+     def __init__(self, invec, outvec, nbatch=1, size=None):
+         super(IFFT, self).__init__(invec, outvec, nbatch, size)
+-        self.plan = _get_inv_plan(invec.dtype, outvec.dtype, len(outvec), batch=nbatch)
++        self.plan = _get_inv_plan(invec.dtype, outvec.dtype, self.size, batch=nbatch)
+ 
+         self.invec = invec.data
+         self.outvec = outvec.data
+diff --git a/pycbc/fft/cupyfft.py b/pycbc/fft/cupyfft.py
+index 1807e90c53..b1b527e0b7 100644
+--- a/pycbc/fft/cupyfft.py
++++ b/pycbc/fft/cupyfft.py
+@@ -66,6 +66,43 @@ def ifft(invec, outvec, _, itype, otype):
+         raise ValueError(_INV_FFT_MSG.format("IFFT", itype, otype))
+ 
+ 
++def _batch_fft(fftobj):
++    """Execute independent transforms for the class-based batch API."""
++    if fftobj.invec.ptr == fftobj.outvec.ptr:
++        raise NotImplementedError(
++            "cupy backend of pycbc.fft does not support in-place transforms"
++        )
++
++    input_data = fftobj.invec.data.reshape(fftobj.nbatch, fftobj.idist)
++    output_data = fftobj.outvec.data.reshape(fftobj.nbatch, fftobj.odist)
++    if fftobj.itype == "complex" and fftobj.otype == "complex":
++        result = cupy.fft.fft(input_data, n=fftobj.size, axis=-1)
++    elif fftobj.itype == "real" and fftobj.otype == "complex":
++        result = cupy.fft.rfft(input_data, n=fftobj.size, axis=-1)
++    else:
++        raise ValueError(_INV_FFT_MSG.format("FFT", fftobj.itype, fftobj.otype))
++    output_data[:] = cupy.asarray(result, dtype=fftobj.outvec.dtype)
++
++
++def _batch_ifft(fftobj):
++    """Execute independent unnormalised inverse batch transforms."""
++    if fftobj.invec.ptr == fftobj.outvec.ptr:
++        raise NotImplementedError(
++            "cupy backend of pycbc.fft does not support in-place transforms"
++        )
++
++    input_data = fftobj.invec.data.reshape(fftobj.nbatch, fftobj.idist)
++    output_data = fftobj.outvec.data.reshape(fftobj.nbatch, fftobj.odist)
++    if fftobj.itype == "complex" and fftobj.otype == "complex":
++        result = cupy.fft.ifft(input_data, n=fftobj.size, axis=-1)
++    elif fftobj.itype == "complex" and fftobj.otype == "real":
++        result = cupy.fft.irfft(input_data, n=fftobj.size, axis=-1)
++    else:
++        raise ValueError(_INV_FFT_MSG.format("IFFT", fftobj.itype, fftobj.otype))
++    result *= fftobj.size
++    output_data[:] = cupy.asarray(result, dtype=fftobj.outvec.dtype)
++
++
+ class FFT(_BaseFFT):
+     """
+     Class for performing FFTs via the cupy interface.
+@@ -76,7 +113,10 @@ class FFT(_BaseFFT):
+         self.prec, self.itype, self.otype = _check_fft_args(invec, outvec)
+ 
+     def execute(self):
+-        fft(self.invec, self.outvec, self.prec, self.itype, self.otype)
++        if self.nbatch == 1:
++            fft(self.invec, self.outvec, self.prec, self.itype, self.otype)
++        else:
++            _batch_fft(self)
+ 
+ 
+ class IFFT(_BaseIFFT):
+@@ -89,4 +129,7 @@ class IFFT(_BaseIFFT):
+         self.prec, self.itype, self.otype = _check_fft_args(invec, outvec)
+ 
+     def execute(self):
+-        ifft(self.invec, self.outvec, self.prec, self.itype, self.otype)
++        if self.nbatch == 1:
++            ifft(self.invec, self.outvec, self.prec, self.itype, self.otype)
++        else:
++            _batch_ifft(self)
+diff --git a/pycbc/fft/fftw.py b/pycbc/fft/fftw.py
+index 4ca256fca6..9c5c61f023 100644
+--- a/pycbc/fft/fftw.py
++++ b/pycbc/fft/fftw.py
+@@ -732,6 +732,31 @@ def insert_fft_options(optgroup):
+         help="If given, call fftw[f]_import_system_wisdom()",
+         action="store_true",
+     )
++    optgroup.add_argument(
++        "--fftw-wisdom-cache",
++        dest="fftw_wisdom_cache",
++        action="store_true",
++        default=True,
++        help=(
++            "Automatically cache the qualified sequential Torch CPU search "
++            "IFFT plan (enabled by default). Manual wisdom options take "
++            "precedence."
++        ),
++    )
++    optgroup.add_argument(
++        "--no-fftw-wisdom-cache",
++        dest="fftw_wisdom_cache",
++        action="store_false",
++        help="Disable automatic FFTW wisdom caching.",
++    )
++    optgroup.add_argument(
++        "--fftw-wisdom-cache-dir",
++        default=None,
++        help=(
++            "Directory for automatic FFTW wisdom. Defaults to "
++            "$XDG_CACHE_HOME/pycbc/fftw or ~/.cache/pycbc/fftw."
++        ),
++    )
+ 
+ 
+ def verify_fft_options(opt, parser):
+@@ -766,6 +791,14 @@ def verify_fft_options(opt, parser):
+                 "Invalid threads backend; must be 'openmp', 'pthreads' or 'unthreaded'"
+             )
+ 
++    if (
++        not getattr(opt, "fftw_wisdom_cache", True)
++        and getattr(opt, "fftw_wisdom_cache_dir", None) is not None
++    ):
++        parser.error(
++            "--fftw-wisdom-cache-dir cannot be used with --no-fftw-wisdom-cache"
++        )
++
+ 
+ def from_cli(opt):
+     # Since opt.fftw_threads_backend defaults to None, the following is always
+diff --git a/pycbc/fft/npfft.py b/pycbc/fft/npfft.py
+index 35f79e7745..3fb5d902b4 100644
+--- a/pycbc/fft/npfft.py
++++ b/pycbc/fft/npfft.py
+@@ -70,14 +70,6 @@ def ifft(invec, outvec, _, itype, otype):
+         raise ValueError(_INV_FFT_MSG.format("IFFT", itype, otype))
+ 
+ 
+-WARN_MSG = (
+-    "You are using the class-based PyCBC FFT API, with the numpy "
+-    "backed. This is provided for convenience only. If performance is "
+-    "important use the class-based API with one of the other backends "
+-    "(for e.g. MKL or FFTW)"
+-)
+-
+-
+ def _batched_view(vec, nbatch, dist):
+     """View a flat pycbc array as its nbatch transform rows, each `dist`
+     apart. nbatch=1 is just a single row, so this also covers the unbatched
+@@ -86,6 +78,51 @@ def _batched_view(vec, nbatch, dist):
+     return vec.data[: nbatch * dist].reshape(nbatch, dist)
+ 
+ 
++def _batch_fft(fftobj):
++    """Execute independent transforms for the class-based batch API."""
++    if fftobj.invec.ptr == fftobj.outvec.ptr:
++        raise NotImplementedError(
++            "numpy backend of pycbc.fft does not support in-place transforms"
++        )
++
++    input_data = _batched_view(fftobj.invec, fftobj.nbatch, fftobj.idist)
++    output_data = _batched_view(fftobj.outvec, fftobj.nbatch, fftobj.odist)
++    if fftobj.itype == "complex" and fftobj.otype == "complex":
++        result = numpy.fft.fft(input_data, n=fftobj.size, axis=-1)
++    elif fftobj.itype == "real" and fftobj.otype == "complex":
++        result = numpy.fft.rfft(input_data, n=fftobj.size, axis=-1)
++    else:
++        raise ValueError(_INV_FFT_MSG.format("FFT", fftobj.itype, fftobj.otype))
++    output_data[:] = numpy.asarray(result, dtype=fftobj.outvec.dtype)
++
++
++def _batch_ifft(fftobj):
++    """Execute independent unnormalised inverse batch transforms."""
++    if fftobj.invec.ptr == fftobj.outvec.ptr:
++        raise NotImplementedError(
++            "numpy backend of pycbc.fft does not support in-place transforms"
++        )
++
++    input_data = _batched_view(fftobj.invec, fftobj.nbatch, fftobj.idist)
++    output_data = _batched_view(fftobj.outvec, fftobj.nbatch, fftobj.odist)
++    if fftobj.itype == "complex" and fftobj.otype == "complex":
++        result = numpy.fft.ifft(input_data, n=fftobj.size, axis=-1)
++    elif fftobj.itype == "complex" and fftobj.otype == "real":
++        result = numpy.fft.irfft(input_data, n=fftobj.size, axis=-1)
++    else:
++        raise ValueError(_INV_FFT_MSG.format("IFFT", fftobj.itype, fftobj.otype))
++    result *= fftobj.size
++    output_data[:] = numpy.asarray(result, dtype=fftobj.outvec.dtype)
++
++
++WARN_MSG = (
++    "You are using the class-based PyCBC FFT API, with the numpy "
++    "backed. This is provided for convenience only. If performance is "
++    "important use the class-based API with one of the other backends "
++    "(for e.g. MKL or FFTW)"
++)
++
++
+ class FFT(_BaseFFT):
+     """
+     Class for performing FFTs via the numpy interface.
+@@ -97,22 +134,10 @@ class FFT(_BaseFFT):
+         self.prec, self.itype, self.otype = _check_fft_args(invec, outvec)
+ 
+     def execute(self):
+-        # nbatch independent transforms of length self.size, laid out
+-        # contiguously. Previously the whole buffer was handed to numpy.fft
+-        # as ONE transform of length nbatch*size whenever nbatch > 1,
+-        # silently returning wrong results for every batched caller.
+-        if self.invec.ptr == self.outvec.ptr:
+-            raise NotImplementedError(
+-                "numpy backend of pycbc.fft does not support in-place transforms"
+-            )
+-        inp = _batched_view(self.invec, self.nbatch, self.idist)
+-        out = _batched_view(self.outvec, self.nbatch, self.odist)
+-        if self.itype == "complex" and self.otype == "complex":
+-            out[:] = numpy.fft.fft(inp[:, : self.size], axis=-1)
+-        elif self.itype == "real" and self.otype == "complex":
+-            out[:] = numpy.fft.rfft(inp[:, : self.size], axis=-1)
++        if self.nbatch == 1:
++            fft(self.invec, self.outvec, self.prec, self.itype, self.otype)
+         else:
+-            raise ValueError(_INV_FFT_MSG.format("FFT", self.itype, self.otype))
++            _batch_fft(self)
+ 
+ 
+ class IFFT(_BaseIFFT):
+@@ -126,23 +151,7 @@ class IFFT(_BaseIFFT):
+         self.prec, self.itype, self.otype = _check_fft_args(invec, outvec)
+ 
+     def execute(self):
+-        # See FFT.execute. The un-normalization below is by self.size, the
+-        # length of a single transform, not len(outvec) (which is nbatch
+-        # times too large for nbatch > 1).
+-        if self.invec.ptr == self.outvec.ptr:
+-            raise NotImplementedError(
+-                "numpy backend of pycbc.fft does not support in-place transforms"
+-            )
+-        inp = _batched_view(self.invec, self.nbatch, self.idist)
+-        out = _batched_view(self.outvec, self.nbatch, self.odist)
+-        if self.itype == "complex" and self.otype == "complex":
+-            out[:, : self.size] = numpy.fft.ifft(inp[:, : self.size], axis=-1)
+-        elif self.itype == "complex" and self.otype == "real":
+-            out[:, : self.size] = numpy.fft.irfft(
+-                inp[:, : self.idist], n=self.size, axis=-1
+-            )
++        if self.nbatch == 1:
++            ifft(self.invec, self.outvec, self.prec, self.itype, self.otype)
+         else:
+-            raise ValueError(_INV_FFT_MSG.format("IFFT", self.itype, self.otype))
+-        # pycbc's class-based IFFT is unnormalized (matching MKL/FFTW), while
+-        # numpy.fft.ifft divides by n.
+-        out[:, : self.size] *= self.size
++            _batch_ifft(self)
+diff --git a/pycbc/fft/parser_support.py b/pycbc/fft/parser_support.py
+index a7d0024ecc..8096274798 100644
+--- a/pycbc/fft/parser_support.py
++++ b/pycbc/fft/parser_support.py
+@@ -37,6 +37,59 @@ from .backend_support import (
+ # from the command line.
+ 
+ 
++def _load_fftw_for_wisdom():
++    """Import FFTW only when a caller requested wisdom I/O."""
++    from importlib import import_module
++
++    return import_module(".fftw", __package__)
++
++
++def _load_wisdom_cache():
++    """Import the lightweight automatic wisdom-cache coordinator."""
++    from importlib import import_module
++
++    return import_module(".wisdom_cache", __package__)
++
++
++def import_wisdom_from_cli(opt):
++    """Import the FFTW wisdom requested by parsed command-line options."""
++    wisdom_cache = _load_wisdom_cache()
++    wisdom_cache.configure_from_cli(opt)
++    system_wisdom = getattr(opt, "fftw_import_system_wisdom", False)
++    float_wisdom = getattr(opt, "fftw_input_float_wisdom_file", None)
++    double_wisdom = getattr(opt, "fftw_input_double_wisdom_file", None)
++
++    if not system_wisdom and float_wisdom is None and double_wisdom is None:
++        return
++
++    fftw = _load_fftw_for_wisdom()
++    if system_wisdom:
++        fftw.import_sys_wisdom()
++    if float_wisdom is not None:
++        fftw.import_single_wisdom_from_filename(float_wisdom)
++    if double_wisdom is not None:
++        fftw.import_double_wisdom_from_filename(double_wisdom)
++
++
++def export_wisdom_from_cli(opt):
++    """Export the FFTW wisdom requested by parsed command-line options."""
++    float_wisdom = getattr(opt, "fftw_output_float_wisdom_file", None)
++    double_wisdom = getattr(opt, "fftw_output_double_wisdom_file", None)
++
++    wisdom_cache = _load_wisdom_cache()
++    automatic_wisdom = wisdom_cache.has_pending_export()
++    if not float_wisdom and not double_wisdom and not automatic_wisdom:
++        return
++
++    fftw = _load_fftw_for_wisdom()
++    if float_wisdom:
++        fftw.export_single_wisdom_to_filename(float_wisdom)
++    if double_wisdom:
++        fftw.export_double_wisdom_to_filename(double_wisdom)
++    if automatic_wisdom:
++        wisdom_cache.export_pending(fftw)
++
++
+ def insert_fft_option_group(parser):
+     """
+     Adds the options used to choose an FFT backend. This should be used
+diff --git a/pycbc/fft/torchfft.py b/pycbc/fft/torchfft.py
+index 0ac5c3c4b3..d79002c719 100644
+--- a/pycbc/fft/torchfft.py
++++ b/pycbc/fft/torchfft.py
+@@ -668,6 +668,8 @@ def _create_fftw_cpu_plan(
+     target=None,
+ ):
+     """Create a guarded FFTW plan, or return None when unavailable."""
++    cache_entry = None
++    wisdom_cache = None
+     try:
+         from . import fftw
+ 
+@@ -675,6 +677,25 @@ def _create_fftw_cpu_plan(
+         with fftw._FFTW_PLANNING_LOCK:
+             measure_level = fftw.get_measure_level()
+             requested_measure_level = measure_level
++            if (
++                direct
++                and aligned
++                and nthreads == 1
++                and not forward
++                and size in _FFTW_RETAINED_WORKSPACE_IFFT_SIZES
++            ):
++                from . import wisdom_cache
++
++                measure_level, cache_entry = wisdom_cache.prepare_plan(
++                    fftw,
++                    size=size,
++                    forward=forward,
++                    direct=direct,
++                    aligned=aligned,
++                    nthreads=nthreads,
++                    batch=1,
++                    requested_measure_level=measure_level,
++                )
+             # Direct FFTW_ESTIMATE is the default.  A user-selected MEASURE
+             # plan is also precision-qualified for the retained production
+             # search IFFT; PATIENT/EXHAUSTIVE and all other non-default cases
+@@ -694,6 +715,8 @@ def _create_fftw_cpu_plan(
+                         measure_level,
+                         nthreads=nthreads,
+                     )
++                    if cache_entry is not None:
++                        wisdom_cache.record_plan(fftw, cache_entry, measure_level)
+                     return plan
+                 except (AttributeError, KeyError, RuntimeError, ValueError):
+                     # A native alignment-class mismatch (or unavailable
+@@ -707,6 +730,9 @@ def _create_fftw_cpu_plan(
+             return _FFTWCPUWorkPlan(fftw, size, forward, requested_measure_level)
+     except (ImportError, OSError, AttributeError, KeyError, RuntimeError, ValueError):
+         return None
++    finally:
++        if cache_entry is not None and wisdom_cache is not None:
++            wisdom_cache.cancel_plan(cache_entry)
+ 
+ 
+ def _create_mkl_cpu_ifft_plan(size, source, target, nthreads=None, *, promote=False):
+diff --git a/pycbc/fft/wisdom_cache.py b/pycbc/fft/wisdom_cache.py
+new file mode 100644
+index 0000000000..ee30a6307d
+--- /dev/null
++++ b/pycbc/fft/wisdom_cache.py
+@@ -0,0 +1,452 @@
++# Copyright (C) 2026
++#
++# This program is free software; you can redistribute it and/or modify it
++# under the terms of the GNU General Public License as published by the
++# Free Software Foundation; either version 3 of the License, or (at your
++# option) any later version.
++
++"""Automatic FFTW wisdom caching for qualified Torch CPU plans.
++
++The cache is intentionally narrower than FFTW's general wisdom interface.
++Only the precision- and performance-qualified sequential search IFFT may
++request an automatic plan.  Explicit command-line wisdom options continue to
++use :mod:`pycbc.fft.fftw` directly and disable this cache.
++"""
++
++import ctypes
++import hashlib
++import json
++import logging
++import os
++import platform
++import sys
++import tempfile
++from dataclasses import dataclass, field
++from pathlib import Path
++
++try:
++    import fcntl
++except ImportError:  # pragma: no cover - unavailable on Windows
++    fcntl = None
++
++
++logger = logging.getLogger("pycbc.fft.wisdom_cache")
++
++_CACHE_SCHEMA = 1
++_ROUTE_VERSION = 1
++_SEARCH_IFFT_SIZE = 131072
++_CPUINFO_KEYS = (
++    "vendor_id",
++    "cpu family",
++    "model",
++    "model name",
++    "stepping",
++    "microcode",
++    "flags",
++)
++
++
++@dataclass
++class _CacheEntry:
++    """State for one exact cache fingerprint."""
++
++    path: Path
++    ready: bool = False
++    dirty: bool = False
++    lock_file: object | None = None
++
++
++@dataclass
++class _CacheConfig:
++    """Process-local automatic cache configuration."""
++
++    enabled: bool = False
++    cache_dir: Path | None = None
++    entries: dict[str, _CacheEntry] = field(default_factory=dict)
++
++
++_config = _CacheConfig()
++
++
++def _has_explicit_wisdom_options(opt):
++    """Return whether the caller selected any manual wisdom operation."""
++    return bool(
++        getattr(opt, "fftw_import_system_wisdom", False)
++        or getattr(opt, "fftw_input_float_wisdom_file", None) is not None
++        or getattr(opt, "fftw_input_double_wisdom_file", None) is not None
++        or getattr(opt, "fftw_output_float_wisdom_file", None) is not None
++        or getattr(opt, "fftw_output_double_wisdom_file", None) is not None
++    )
++
++
++def _default_cache_dir():
++    """Return the per-user cache location, following the XDG convention."""
++    xdg_cache = os.environ.get("XDG_CACHE_HOME")
++    if xdg_cache and os.path.isabs(xdg_cache):
++        root = Path(xdg_cache)
++    else:
++        root = Path.home() / ".cache"
++    return root / "pycbc" / "fftw"
++
++
++def configure_from_cli(opt):
++    """Reset and configure the automatic cache from parsed CLI options."""
++    global _config
++
++    for entry in _config.entries.values():
++        _release_lock(entry)
++    enabled = bool(getattr(opt, "fftw_wisdom_cache", False))
++    enabled = enabled and not _has_explicit_wisdom_options(opt)
++    cache_dir = getattr(opt, "fftw_wisdom_cache_dir", None)
++    try:
++        if cache_dir is None:
++            cache_dir = _default_cache_dir()
++        else:
++            cache_dir = Path(cache_dir).expanduser().resolve()
++    except (OSError, RuntimeError) as exc:
++        logger.warning("FFTW wisdom cache is unavailable: %s", exc)
++        enabled = False
++        cache_dir = None
++    _config = _CacheConfig(enabled=enabled, cache_dir=cache_dir)
++
++
++def _hash_file(path):
++    """Hash a binary or source file without retaining its contents."""
++    digest = hashlib.sha256()
++    with path.open("rb") as fp:
++        for block in iter(lambda: fp.read(1024 * 1024), b""):
++            digest.update(block)
++    return digest.hexdigest()
++
++
++def _file_identity(path):
++    """Return a content-bound identity for a program or shared library."""
++    candidate = Path(path).expanduser()
++    try:
++        candidate = candidate.resolve(strict=True)
++        stat = candidate.stat()
++        return {
++            "path": str(candidate),
++            "size": stat.st_size,
++            "sha256": _hash_file(candidate),
++        }
++    except (OSError, RuntimeError):
++        return {"path": str(path), "unresolved": True}
++
++
++def _loaded_library_path(library, fragment):
++    """Resolve a ctypes library name, including Linux loader aliases."""
++    name = str(getattr(library, "_name", ""))
++    if name and Path(name).is_file():
++        return name
++    requested_name = Path(name).name
++    maps = Path("/proc/self/maps")
++    try:
++        exact_candidates = set()
++        fallback_candidates = set()
++        for line in maps.read_text(encoding="utf-8").splitlines():
++            fields = line.split()
++            if fields and fields[-1].startswith("/"):
++                path = fields[-1]
++                candidate_name = Path(path).name
++                if requested_name and (
++                    candidate_name == requested_name
++                    or candidate_name.startswith(f"{requested_name}.")
++                    or requested_name in candidate_name
++                ):
++                    exact_candidates.add(path)
++                elif candidate_name == fragment or candidate_name.startswith(
++                    f"{fragment}."
++                ):
++                    fallback_candidates.add(path)
++        if exact_candidates:
++            return sorted(exact_candidates)[0]
++        if fallback_candidates:
++            return sorted(fallback_candidates)[0]
++    except OSError:
++        pass
++    return name
++
++
++def _fftw_version(library):
++    """Read FFTW's exported version string without adding a C binding."""
++    try:
++        first = ctypes.c_char.in_dll(library, "fftwf_version")
++        raw = ctypes.string_at(ctypes.addressof(first), 256)
++        return raw.split(b"\0", 1)[0].decode("ascii", "replace")
++    except (AttributeError, TypeError, ValueError, OSError):
++        return "unknown"
++
++
++def _cpu_identity():
++    """Return stable CPU characteristics relevant to FFTW planning."""
++    identity = {
++        "machine": platform.machine(),
++        "processor": platform.processor(),
++        "logical_cpus": os.cpu_count(),
++    }
++    cpuinfo = Path("/proc/cpuinfo")
++    try:
++        first_cpu = cpuinfo.read_text(encoding="utf-8").split("\n\n", 1)[0]
++        values = {}
++        for line in first_cpu.splitlines():
++            key, separator, value = line.partition(":")
++            if separator and key.strip() in _CPUINFO_KEYS:
++                values[key.strip()] = value.strip()
++        identity["linux_cpuinfo"] = values
++    except OSError:
++        pass
++    return identity
++
++
++def _fingerprint_payload(fftw, *, aligned, nthreads):
++    """Build the complete compatibility identity for cached wisdom."""
++    import numpy
++    import torch
++
++    import pycbc
++
++    source_dir = Path(__file__).resolve().parent
++    float_library = _loaded_library_path(fftw.float_lib, "libfftw3f")
++    threaded_library = getattr(fftw, "_float_threaded_lib", None)
++    if threaded_library is None:
++        threaded_identity = None
++    else:
++        threaded_path = _loaded_library_path(threaded_library, "libfftw3f")
++        threaded_identity = _file_identity(threaded_path)
++
++    return {
++        "schema": _CACHE_SCHEMA,
++        "route_version": _ROUTE_VERSION,
++        "host": {
++            "system": platform.system(),
++            "release": platform.release(),
++            "cpu": _cpu_identity(),
++        },
++        "program": {
++            "python": _file_identity(sys.executable),
++            "pycbc_version": pycbc.__version__,
++            "pycbc_git_hash": pycbc.git_hash,
++            "numpy_version": numpy.__version__,
++            "torch_version": torch.__version__,
++            "torchfft_source": _file_identity(source_dir / "torchfft.py"),
++            "fftw_wrapper_source": _file_identity(source_dir / "fftw.py"),
++        },
++        "fftw": {
++            "version": _fftw_version(fftw.float_lib),
++            "float_library": _file_identity(float_library),
++            "thread_backend": getattr(fftw, "_fftw_threaded_lib", None),
++            "thread_library": threaded_identity,
++        },
++        "plan": {
++            "precision": "float32",
++            "kind": "complex-to-complex",
++            "direction": "backward",
++            "length": _SEARCH_IFFT_SIZE,
++            "batch": 1,
++            "input_stride": 1,
++            "output_stride": 1,
++            "input_distance": _SEARCH_IFFT_SIZE,
++            "output_distance": _SEARCH_IFFT_SIZE,
++            "in_place": False,
++            "aligned": aligned,
++            "pycbc_alignment": pycbc.PYCBC_ALIGNMENT,
++            "nthreads": nthreads,
++            "planner_rigor": "measure",
++        },
++    }
++
++
++def _cache_entry(fftw, *, aligned, nthreads):
++    """Return the cache entry for an exact plan fingerprint."""
++    payload = _fingerprint_payload(fftw, aligned=aligned, nthreads=nthreads)
++    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
++    fingerprint = hashlib.sha256(encoded).hexdigest()
++    entry = _config.entries.get(fingerprint)
++    if entry is None:
++        filename = f"torch-b1-search-ifft-{fingerprint}.wisdom"
++        entry = _CacheEntry(_config.cache_dir / filename)
++        _config.entries[fingerprint] = entry
++    return entry
++
++
++def _release_lock(entry):
++    """Release this process's single-writer lock, if any."""
++    lock_file = entry.lock_file
++    entry.lock_file = None
++    if lock_file is None:
++        return
++    try:
++        if fcntl is not None:
++            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
++    except (OSError, ValueError) as exc:
++        logger.warning("Could not release FFTW wisdom cache lock: %s", exc)
++    try:
++        lock_file.close()
++    except OSError as exc:
++        logger.warning("Could not close FFTW wisdom cache lock: %s", exc)
++
++
++def _acquire_lock(entry):
++    """Serialize a cold measurement for this exact fingerprint."""
++    if fcntl is None or entry.lock_file is not None:
++        return
++    lock_path = entry.path.with_suffix(f"{entry.path.suffix}.lock")
++    lock_file = lock_path.open("a+b")
++    try:
++        os.fchmod(lock_file.fileno(), 0o600)
++        fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
++    except BaseException:
++        lock_file.close()
++        raise
++    entry.lock_file = lock_file
++
++
++def _import_entry(fftw, entry, *, report_failure):
++    """Try importing one complete atomic cache file."""
++    if not entry.path.is_file():
++        return False
++    try:
++        fftw.import_single_wisdom_from_filename(str(entry.path))
++    except (OSError, RuntimeError) as exc:
++        if report_failure:
++            logger.warning(
++                "Ignoring unusable cached FFTW wisdom %s: %s",
++                entry.path,
++                exc,
++            )
++        return False
++    entry.ready = True
++    logger.info("Imported cached FFTW wisdom from %s", entry.path)
++    return True
++
++
++def prepare_plan(
++    fftw,
++    *,
++    size,
++    forward,
++    direct,
++    aligned,
++    nthreads,
++    batch,
++    requested_measure_level,
++):
++    """Import a compatible plan or request one bounded measurement.
++
++    Returns the effective measure level and an opaque entry token.  The caller
++    must pass the token to :func:`record_plan` only after direct-plan creation
++    succeeds.
++    """
++    eligible = (
++        _config.enabled
++        and size == _SEARCH_IFFT_SIZE
++        and not forward
++        and direct
++        and aligned
++        and nthreads == 1
++        and batch == 1
++        and requested_measure_level in (0, 1)
++    )
++    if not eligible:
++        return requested_measure_level, None
++
++    try:
++        _config.cache_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
++        if not fftw._fftw_threaded_set:
++            fftw.set_threads_backend()
++        entry = _cache_entry(fftw, aligned=aligned, nthreads=nthreads)
++    except (
++        AttributeError,
++        ImportError,
++        OSError,
++        RuntimeError,
++        TypeError,
++        ValueError,
++    ) as exc:
++        logger.warning("FFTW wisdom cache is unavailable: %s", exc)
++        return requested_measure_level, None
++
++    if entry.ready:
++        return requested_measure_level, entry
++    # A warm reader never waits for the lock: atomic rename guarantees that it
++    # sees either the old complete file or the new complete file.  Only cold
++    # writers serialize, then recheck after acquiring the lock in case another
++    # process published the plan while this process was waiting.
++    if _import_entry(fftw, entry, report_failure=False):
++        return requested_measure_level, entry
++    try:
++        _acquire_lock(entry)
++        if _import_entry(fftw, entry, report_failure=True):
++            _release_lock(entry)
++            return requested_measure_level, entry
++    except (OSError, RuntimeError) as exc:
++        logger.warning("FFTW wisdom cache locking is unavailable: %s", exc)
++        _release_lock(entry)
++    return 1, entry
++
++
++def record_plan(fftw, entry, measure_level):
++    """Publish a successfully measured cache-backed direct plan."""
++    if entry is None:
++        return
++    try:
++        if not entry.ready and measure_level == 1:
++            entry.ready = True
++            entry.dirty = True
++            _export_entry(fftw, entry)
++    finally:
++        _release_lock(entry)
++
++
++def cancel_plan(entry):
++    """Release a cold-writer lock after direct-plan construction failed."""
++    if entry is not None:
++        _release_lock(entry)
++
++
++def has_pending_export():
++    """Return whether a newly measured automatic plan needs persistence."""
++    return any(entry.dirty for entry in _config.entries.values())
++
++
++def _atomic_export(fftw, path):
++    """Export single-precision wisdom through a same-directory rename."""
++    fd, temporary = tempfile.mkstemp(
++        prefix=f".{path.name}.", suffix=".tmp", dir=path.parent
++    )
++    os.close(fd)
++    try:
++        fftw.export_single_wisdom_to_filename(temporary)
++        os.chmod(temporary, 0o600)
++        with open(temporary, "rb") as fp:
++            os.fsync(fp.fileno())
++        os.replace(temporary, path)
++    finally:
++        try:
++            os.unlink(temporary)
++        except FileNotFoundError:
++            pass
++
++
++def _export_entry(fftw, entry):
++    """Atomically export one entry while preserving application progress."""
++    try:
++        _atomic_export(fftw, entry.path)
++    except (OSError, RuntimeError) as exc:
++        logger.warning(
++            "Could not update automatic FFTW wisdom cache %s: %s",
++            entry.path,
++            exc,
++        )
++        return
++    entry.dirty = False
++    logger.info("Updated automatic FFTW wisdom cache %s", entry.path)
++
++
++def export_pending(fftw):
++    """Persist all newly measured cache entries without failing the job."""
++    for entry in _config.entries.values():
++        if not entry.dirty:
++            continue
++        _export_entry(fftw, entry)
+diff --git a/test/test_fft_batched_backends.py b/test/test_fft_batched_backends.py
+new file mode 100644
+index 0000000000..8c7426cebb
+--- /dev/null
++++ b/test/test_fft_batched_backends.py
+@@ -0,0 +1,222 @@
++# Copyright (C) 2026  The PyCBC Collaboration
++#
++# This program is free software; you can redistribute it and/or modify it
++# under the terms of the GNU General Public License as published by the
++# Free Software Foundation; either version 3 of the License, or (at your
++# option) any later version.
++
++"""Batch correctness tests for NumPy-, CuPy-, and cuFFT-based FFTs."""
++
++import importlib.util
++import sys
++import types
++from pathlib import Path
++
++import numpy as np
++import pytest
++
++from pycbc.types import Array, zeros
++
++
++def _load_backend(alias, filename):
++    path = Path(__file__).parents[1] / "pycbc" / "fft" / filename
++    spec = importlib.util.spec_from_file_location(alias, path)
++    module = importlib.util.module_from_spec(spec)
++    sys.modules[alias] = module
++    spec.loader.exec_module(module)
++    return module
++
++
++@pytest.fixture(params=["numpy", "cupy"])
++def array_fft_backend(request, monkeypatch):
++    if request.param == "numpy":
++        from pycbc.fft import npfft
++
++        yield npfft
++        return
++
++    fake_cupy = types.ModuleType("cupy")
++    fake_cupy.__path__ = []
++    fake_fft = types.ModuleType("cupy.fft")
++    fake_fft.fft = np.fft.fft
++    fake_fft.ifft = np.fft.ifft
++    fake_fft.rfft = np.fft.rfft
++    fake_fft.irfft = np.fft.irfft
++    fake_cupy.fft = fake_fft
++    fake_cupy.asarray = np.asarray
++    monkeypatch.setitem(sys.modules, "cupy", fake_cupy)
++    monkeypatch.setitem(sys.modules, "cupy.fft", fake_fft)
++
++    alias = "pycbc.fft._test_cupyfft"
++    try:
++        yield _load_backend(alias, "cupyfft.py")
++    finally:
++        sys.modules.pop(alias, None)
++
++
++@pytest.fixture
++def fake_cufft(monkeypatch):
++    class Plan:
++        created = []
++
++        def __init__(self, shape, itype, otype, batch=1):
++            self.shape = shape
++            self.itype = itype
++            self.otype = otype
++            self.batch = batch
++            self.created.append(self)
++
++    fake_fft = types.ModuleType("skcuda.fft")
++    fake_fft.Plan = Plan
++    fake_fft.fft = lambda invec, outvec, plan: None
++    fake_fft.ifft = lambda invec, outvec, plan: None
++    fake_skcuda = types.ModuleType("skcuda")
++    fake_skcuda.__path__ = []
++    fake_skcuda.fft = fake_fft
++    monkeypatch.setitem(sys.modules, "skcuda", fake_skcuda)
++    monkeypatch.setitem(sys.modules, "skcuda.fft", fake_fft)
++
++    import pycbc.scheme
++
++    monkeypatch.setattr(pycbc.scheme, "register_clean_cuda", lambda _: None)
++    alias = "pycbc.fft._test_cufft"
++    try:
++        yield _load_backend(alias, "cufft.py")
++    finally:
++        sys.modules.pop(alias, None)
++
++
++def _complex_values(rows, size, dtype, seed):
++    rng = np.random.default_rng(seed)
++    return (rng.normal(size=(rows, size)) + 1j * rng.normal(size=(rows, size))).astype(
++        dtype
++    )
++
++
++@pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
++@pytest.mark.parametrize("inverse", [False, True])
++def test_array_backends_execute_independent_complex_batches(
++    array_fft_backend, dtype, inverse
++):
++    rows, size = 3, 13
++    values = _complex_values(rows, size, dtype, seed=2201)
++    source = Array(values.ravel())
++    target = zeros(rows * size, dtype=dtype)
++    source_before = source.numpy().copy()
++
++    if inverse:
++        engine = array_fft_backend.IFFT(source, target, nbatch=rows, size=size)
++        expected = np.fft.ifft(values, axis=-1) * size
++    else:
++        engine = array_fft_backend.FFT(source, target, nbatch=rows, size=size)
++        expected = np.fft.fft(values, axis=-1)
++    engine.execute()
++
++    np.testing.assert_array_equal(source.numpy(), source_before)
++    np.testing.assert_allclose(
++        target.numpy().reshape(rows, size),
++        expected,
++        rtol=2e-6 if dtype == np.complex64 else 2e-13,
++        atol=2e-6 if dtype == np.complex64 else 2e-13,
++    )
++
++    replacement = _complex_values(rows, size, dtype, seed=2202)
++    source[:] = Array(replacement.ravel())
++    engine.execute()
++    if inverse:
++        expected = np.fft.ifft(replacement, axis=-1) * size
++    else:
++        expected = np.fft.fft(replacement, axis=-1)
++    np.testing.assert_allclose(
++        target.numpy().reshape(rows, size),
++        expected,
++        rtol=2e-6 if dtype == np.complex64 else 2e-13,
++        atol=2e-6 if dtype == np.complex64 else 2e-13,
++    )
++
++
++@pytest.mark.parametrize("dtype", [np.float32, np.float64])
++@pytest.mark.parametrize("size", [12, 13])
++def test_array_backends_execute_independent_real_batches(
++    array_fft_backend, dtype, size
++):
++    rows = 3
++    complex_dtype = np.complex64 if dtype == np.float32 else np.complex128
++    rng = np.random.default_rng(2301 + size)
++    real_values = rng.normal(size=(rows, size)).astype(dtype)
++    frequency_values = _complex_values(
++        rows, size // 2 + 1, complex_dtype, seed=2401 + size
++    )
++
++    real_input = Array(real_values.ravel())
++    frequency_output = zeros(rows * (size // 2 + 1), dtype=complex_dtype)
++    array_fft_backend.FFT(
++        real_input, frequency_output, nbatch=rows, size=size
++    ).execute()
++
++    frequency_input = Array(frequency_values.ravel())
++    real_output = zeros(rows * size, dtype=dtype)
++    array_fft_backend.IFFT(
++        frequency_input, real_output, nbatch=rows, size=size
++    ).execute()
++
++    tolerance = 2e-6 if dtype == np.float32 else 2e-13
++    np.testing.assert_allclose(
++        frequency_output.numpy().reshape(rows, -1),
++        np.fft.rfft(real_values, axis=-1),
++        rtol=tolerance,
++        atol=tolerance,
++    )
++    np.testing.assert_allclose(
++        real_output.numpy().reshape(rows, size),
++        np.fft.irfft(frequency_values, n=size, axis=-1) * size,
++        rtol=tolerance,
++        atol=tolerance,
++    )
++
++
++def test_array_backends_preserve_inplace_rejection(array_fft_backend):
++    values = Array(np.zeros(24, dtype=np.complex64))
++    engine = array_fft_backend.FFT(values, values, nbatch=3, size=8)
++
++    with pytest.raises(NotImplementedError, match="in-place transforms"):
++        engine.execute()
++
++
++@pytest.mark.parametrize(
++    ("input_dtype", "output_dtype", "inverse"),
++    [
++        (np.complex64, np.complex64, False),
++        (np.float32, np.complex64, False),
++        (np.complex64, np.complex64, True),
++        (np.complex64, np.float32, True),
++    ],
++)
++def test_cufft_batch_plans_use_transform_size(
++    fake_cufft, input_dtype, output_dtype, inverse
++):
++    rows, size = 3, 14
++    if input_dtype == np.complex64 and output_dtype == np.float32:
++        input_size, output_size = size // 2 + 1, size
++    elif input_dtype == np.float32 and output_dtype == np.complex64:
++        input_size, output_size = size, size // 2 + 1
++    else:
++        input_size = output_size = size
++    source = zeros(rows * input_size, dtype=input_dtype)
++    target = zeros(rows * output_size, dtype=output_dtype)
++
++    engine_type = fake_cufft.IFFT if inverse else fake_cufft.FFT
++    engine = engine_type(source, target, nbatch=rows, size=size)
++
++    assert engine.plan.shape == (size,)
++    assert engine.plan.batch == rows
++
++
++@pytest.mark.parametrize("getter_name", ["_get_fwd_plan", "_get_inv_plan"])
++def test_cufft_plan_cache_keys_include_batch(fake_cufft, getter_name):
++    getter = getattr(fake_cufft, getter_name)
++    dtype = np.dtype(np.complex64)
++
++    first = getter(dtype, dtype, 16, batch=2)
++    assert getter(dtype, dtype, 16, batch=2) is first
++    assert getter(dtype, dtype, 16, batch=3) is not first
+diff --git a/test/test_fft_cli_wisdom.py b/test/test_fft_cli_wisdom.py
+new file mode 100644
+index 0000000000..80743fcd87
+--- /dev/null
++++ b/test/test_fft_cli_wisdom.py
+@@ -0,0 +1,368 @@
++"""Tests for the shared FFTW command-line wisdom helpers."""
++
++import argparse
++import ast
++from pathlib import Path
++from types import SimpleNamespace
++
++import pytest
++
++import pycbc.fft
++from pycbc.fft import fftw, parser_support
++
++
++BACKEND_SHAPES = ([], ["fftw"], ["torch"])
++
++
++class RecordingFFTW:
++    """Small FFTW stand-in that records wisdom operations in order."""
++
++    def __init__(self):
++        self.calls = []
++
++    def import_sys_wisdom(self):
++        self.calls.append(("import_system",))
++
++    def import_single_wisdom_from_filename(self, filename):
++        self.calls.append(("import_float", filename))
++
++    def import_double_wisdom_from_filename(self, filename):
++        self.calls.append(("import_double", filename))
++
++    def export_single_wisdom_to_filename(self, filename):
++        self.calls.append(("export_float", filename))
++
++    def export_double_wisdom_to_filename(self, filename):
++        self.calls.append(("export_double", filename))
++
++    def set_planning_limit(self, limit):
++        self.calls.append(("planning_limit", limit))
++
++
++class RecordingCache:
++    """Automatic-cache stand-in used to check parser lifecycle wiring."""
++
++    def __init__(self, pending=False):
++        self.pending = pending
++        self.calls = []
++
++    def configure_from_cli(self, opt):
++        self.calls.append(("configure", opt))
++
++    def has_pending_export(self):
++        self.calls.append(("pending",))
++        return self.pending
++
++    def export_pending(self, fftw):
++        self.calls.append(("export", fftw))
++
++
++@pytest.fixture(scope="module")
++def live_wisdom_code():
++    """Execute the real CLI lifecycle without starting MPI or data services."""
++    path = Path(__file__).resolve().parents[1] / "bin" / "pycbc_live"
++    tree = ast.parse(path.read_text(), filename=str(path))
++    startup = [
++        node
++        for node in ast.walk(tree)
++        if isinstance(node, ast.Try)
++        and any(
++            isinstance(child, ast.Call)
++            and isinstance(child.func, ast.Attribute)
++            and child.func.attr == "set_planning_limit"
++            for child in ast.walk(node)
++        )
++    ]
++    shutdown = [
++        node
++        for node in tree.body
++        if isinstance(node, ast.If) and ast.unparse(node.test) == "evnt.rank == 1"
++    ]
++    assert len(startup) == len(shutdown) == 1
++    return tuple(
++        compile(ast.Module(body=nodes, type_ignores=[]), str(path), "exec")
++        for nodes in (startup, shutdown)
++    )
++
++
++@pytest.mark.parametrize("enabled", (False, True))
++def test_live_initializes_automatic_wisdom_cache(
++    monkeypatch, live_wisdom_code, enabled
++):
++    cache = RecordingCache()
++    loads = []
++    monkeypatch.setattr(parser_support, "_load_wisdom_cache", lambda: cache)
++    monkeypatch.setattr(
++        parser_support, "_load_fftw_for_wisdom", lambda: loads.append("fftw")
++    )
++    opt = SimpleNamespace(
++        fftw_wisdom_cache=enabled,
++        fftw_import_system_wisdom=False,
++        fftw_input_float_wisdom_file=None,
++        fftw_input_double_wisdom_file=None,
++        fftw_planning_limit=None,
++    )
++
++    exec(live_wisdom_code[0], {"args": opt, "fft": pycbc.fft})
++
++    assert cache.calls == [("configure", opt)]
++    assert loads == []
++
++
++@pytest.mark.parametrize("rank", (0, 1, 2))
++def test_live_preserves_manual_wisdom_order_and_export_rank(
++    monkeypatch, live_wisdom_code, rank
++):
++    cache = RecordingCache()
++    native = RecordingFFTW()
++    monkeypatch.setattr(parser_support, "_load_wisdom_cache", lambda: cache)
++    monkeypatch.setattr(parser_support, "_load_fftw_for_wisdom", lambda: native)
++    monkeypatch.setattr(pycbc.fft, "fftw", native)
++    opt = SimpleNamespace(
++        fftw_import_system_wisdom=True,
++        fftw_input_float_wisdom_file="input.float",
++        fftw_input_double_wisdom_file="input.double",
++        fftw_output_float_wisdom_file="output.float",
++        fftw_output_double_wisdom_file="output.double",
++        fftw_planning_limit=3,
++    )
++    namespace = {
++        "args": opt,
++        "fft": pycbc.fft,
++        "evnt": SimpleNamespace(rank=rank),
++    }
++
++    for block in live_wisdom_code:
++        exec(block, namespace)
++
++    expected = [
++        ("import_system",),
++        ("import_float", "input.float"),
++        ("import_double", "input.double"),
++        ("planning_limit", 3),
++    ]
++    if rank == 1:
++        expected += [
++            ("export_float", "output.float"),
++            ("export_double", "output.double"),
++        ]
++    assert native.calls == expected
++    assert cache.calls == [("configure", opt)] + ([("pending",)] if rank == 1 else [])
++
++
++@pytest.mark.parametrize("rank", (0, 1, 2))
++def test_live_exports_pending_automatic_wisdom(monkeypatch, live_wisdom_code, rank):
++    cache = RecordingCache(pending=True)
++    native = RecordingFFTW()
++    monkeypatch.setattr(parser_support, "_load_wisdom_cache", lambda: cache)
++    monkeypatch.setattr(parser_support, "_load_fftw_for_wisdom", lambda: native)
++
++    exec(
++        live_wisdom_code[1],
++        {
++            "args": SimpleNamespace(),
++            "fft": pycbc.fft,
++            "evnt": SimpleNamespace(rank=rank),
++        },
++    )
++
++    assert cache.calls == ([("pending",), ("export", native)] if rank == 1 else [])
++    assert native.calls == []
++
++
++def test_export_wisdom_skips_empty_manual_filenames(monkeypatch):
++    cache = RecordingCache()
++    loads = []
++    monkeypatch.setattr(parser_support, "_load_wisdom_cache", lambda: cache)
++    monkeypatch.setattr(
++        parser_support, "_load_fftw_for_wisdom", lambda: loads.append("fftw")
++    )
++
++    parser_support.export_wisdom_from_cli(
++        SimpleNamespace(
++            fftw_output_float_wisdom_file="",
++            fftw_output_double_wisdom_file="",
++        )
++    )
++
++    assert loads == []
++
++
++@pytest.mark.parametrize("fft_backends", BACKEND_SHAPES)
++@pytest.mark.parametrize("options_present", (False, True))
++def test_wisdom_helpers_ignore_backend_shape_and_absent_options(
++    monkeypatch, fft_backends, options_present
++):
++    loads = []
++    monkeypatch.setattr(
++        parser_support,
++        "_load_fftw_for_wisdom",
++        lambda: loads.append("fftw"),
++    )
++    options = {"fft_backends": fft_backends}
++    if options_present:
++        options.update(
++            fftw_import_system_wisdom=False,
++            fftw_input_float_wisdom_file=None,
++            fftw_input_double_wisdom_file=None,
++            fftw_output_float_wisdom_file=None,
++            fftw_output_double_wisdom_file=None,
++        )
++    opt = SimpleNamespace(**options)
++
++    assert parser_support.import_wisdom_from_cli(opt) is None
++    assert parser_support.export_wisdom_from_cli(opt) is None
++    assert loads == []
++
++
++@pytest.mark.parametrize("fft_backends", BACKEND_SHAPES)
++def test_import_wisdom_from_cli_uses_required_order(monkeypatch, fft_backends):
++    fftw = RecordingFFTW()
++    monkeypatch.setattr(parser_support, "_load_fftw_for_wisdom", lambda: fftw)
++    opt = SimpleNamespace(
++        fft_backends=fft_backends,
++        fftw_import_system_wisdom=True,
++        fftw_input_float_wisdom_file="float.wisdom",
++        fftw_input_double_wisdom_file="double.wisdom",
++    )
++
++    parser_support.import_wisdom_from_cli(opt)
++
++    assert fftw.calls == [
++        ("import_system",),
++        ("import_float", "float.wisdom"),
++        ("import_double", "double.wisdom"),
++    ]
++
++
++@pytest.mark.parametrize("fft_backends", BACKEND_SHAPES)
++def test_export_wisdom_from_cli_uses_required_order(monkeypatch, fft_backends):
++    fftw = RecordingFFTW()
++    monkeypatch.setattr(parser_support, "_load_fftw_for_wisdom", lambda: fftw)
++    opt = SimpleNamespace(
++        fft_backends=fft_backends,
++        fftw_output_float_wisdom_file="float.wisdom",
++        fftw_output_double_wisdom_file="double.wisdom",
++    )
++
++    parser_support.export_wisdom_from_cli(opt)
++
++    assert fftw.calls == [
++        ("export_float", "float.wisdom"),
++        ("export_double", "double.wisdom"),
++    ]
++
++
++@pytest.mark.parametrize(
++    ("helper", "opt"),
++    (
++        (
++            parser_support.import_wisdom_from_cli,
++            SimpleNamespace(fftw_import_system_wisdom=True),
++        ),
++        (
++            parser_support.export_wisdom_from_cli,
++            SimpleNamespace(fftw_output_float_wisdom_file="float.wisdom"),
++        ),
++    ),
++)
++def test_wisdom_helpers_propagate_unavailable_fftw(monkeypatch, helper, opt):
++    failure = ImportError("FFTW is unavailable")
++
++    def fail_load():
++        raise failure
++
++    monkeypatch.setattr(parser_support, "_load_fftw_for_wisdom", fail_load)
++
++    with pytest.raises(ImportError) as exc_info:
++        helper(opt)
++    assert exc_info.value is failure
++
++
++@pytest.mark.parametrize(
++    ("helper", "opt", "method"),
++    (
++        (
++            parser_support.import_wisdom_from_cli,
++            SimpleNamespace(fftw_input_float_wisdom_file="float.wisdom"),
++            "import_single_wisdom_from_filename",
++        ),
++        (
++            parser_support.export_wisdom_from_cli,
++            SimpleNamespace(fftw_output_double_wisdom_file="double.wisdom"),
++            "export_double_wisdom_to_filename",
++        ),
++    ),
++)
++def test_wisdom_helpers_propagate_native_failures(monkeypatch, helper, opt, method):
++    fftw = RecordingFFTW()
++    failure = RuntimeError("wisdom operation failed")
++
++    def fail_operation(_filename):
++        raise failure
++
++    setattr(fftw, method, fail_operation)
++    monkeypatch.setattr(parser_support, "_load_fftw_for_wisdom", lambda: fftw)
++
++    with pytest.raises(RuntimeError) as exc_info:
++        helper(opt)
++    assert exc_info.value is failure
++
++
++def test_wisdom_helpers_are_exported_from_fft_package():
++    assert pycbc.fft.import_wisdom_from_cli is parser_support.import_wisdom_from_cli
++    assert pycbc.fft.export_wisdom_from_cli is parser_support.export_wisdom_from_cli
++
++
++def test_automatic_cache_configures_without_eager_fftw_load(monkeypatch):
++    cache = RecordingCache()
++    fftw_loads = []
++    monkeypatch.setattr(parser_support, "_load_wisdom_cache", lambda: cache)
++    monkeypatch.setattr(
++        parser_support,
++        "_load_fftw_for_wisdom",
++        lambda: fftw_loads.append("fftw"),
++    )
++    opt = SimpleNamespace(fftw_wisdom_cache=True)
++
++    parser_support.import_wisdom_from_cli(opt)
++
++    assert cache.calls == [("configure", opt)]
++    assert fftw_loads == []
++
++
++def test_automatic_cache_exports_through_shared_lifecycle(monkeypatch):
++    cache = RecordingCache(pending=True)
++    fftw = RecordingFFTW()
++    monkeypatch.setattr(parser_support, "_load_wisdom_cache", lambda: cache)
++    monkeypatch.setattr(parser_support, "_load_fftw_for_wisdom", lambda: fftw)
++
++    parser_support.export_wisdom_from_cli(SimpleNamespace())
++
++    assert cache.calls == [("pending",), ("export", fftw)]
++
++
++def test_automatic_cache_cli_defaults_and_overrides(tmp_path):
++    parser = argparse.ArgumentParser()
++    fftw.insert_fft_options(parser)
++
++    assert parser.parse_args([]).fftw_wisdom_cache is True
++    assert parser.parse_args(["--no-fftw-wisdom-cache"]).fftw_wisdom_cache is False
++    assert parser.parse_args(
++        ["--fftw-wisdom-cache-dir", str(tmp_path)]
++    ).fftw_wisdom_cache_dir == str(tmp_path)
++
++
++def test_automatic_cache_cli_rejects_directory_when_disabled(tmp_path):
++    parser = argparse.ArgumentParser()
++    fftw.insert_fft_options(parser)
++    options = parser.parse_args(
++        [
++            "--no-fftw-wisdom-cache",
++            "--fftw-wisdom-cache-dir",
++            str(tmp_path),
++        ]
++    )
++
++    with pytest.raises(SystemExit):
++        fftw.verify_fft_options(options, parser)
+diff --git a/test/test_fftw_wisdom_cache.py b/test/test_fftw_wisdom_cache.py
+new file mode 100644
+index 0000000000..cf04213430
+--- /dev/null
++++ b/test/test_fftw_wisdom_cache.py
+@@ -0,0 +1,231 @@
++"""Tests for the bounded automatic FFTW wisdom cache."""
++
++import logging
++from pathlib import Path
++from types import SimpleNamespace
++
++import pytest
++
++from pycbc.fft import wisdom_cache
++
++
++class FakeFFTW:
++    """Small FFTW stand-in with file-backed import/export operations."""
++
++    _fftw_threaded_set = True
++    _fftw_threaded_lib = "pthreads"
++    _float_threaded_lib = None
++    float_lib = object()
++
++    def __init__(self, import_failure=None, export_failure=None):
++        self.calls = []
++        self.import_failure = import_failure
++        self.export_failure = export_failure
++
++    def import_single_wisdom_from_filename(self, filename):
++        self.calls.append(("import", filename))
++        if self.import_failure is not None:
++            raise self.import_failure
++
++    def export_single_wisdom_to_filename(self, filename):
++        self.calls.append(("export", filename))
++        if self.export_failure is not None:
++            raise self.export_failure
++        Path(filename).write_bytes(b"qualified-wisdom")
++
++
++def _options(tmp_path, **overrides):
++    values = {
++        "fftw_wisdom_cache": True,
++        "fftw_wisdom_cache_dir": str(tmp_path),
++        "fftw_import_system_wisdom": False,
++        "fftw_input_float_wisdom_file": None,
++        "fftw_input_double_wisdom_file": None,
++        "fftw_output_float_wisdom_file": None,
++        "fftw_output_double_wisdom_file": None,
++    }
++    values.update(overrides)
++    return SimpleNamespace(**values)
++
++
++def _prepare(fftw, **overrides):
++    values = {
++        "size": 131072,
++        "forward": False,
++        "direct": True,
++        "aligned": True,
++        "nthreads": 1,
++        "batch": 1,
++        "requested_measure_level": 0,
++    }
++    values.update(overrides)
++    return wisdom_cache.prepare_plan(fftw, **values)
++
++
++@pytest.fixture(autouse=True)
++def _reset_cache():
++    wisdom_cache.configure_from_cli(SimpleNamespace(fftw_wisdom_cache=False))
++    yield
++    wisdom_cache.configure_from_cli(SimpleNamespace(fftw_wisdom_cache=False))
++
++
++@pytest.fixture
++def stable_fingerprint(monkeypatch):
++    monkeypatch.setattr(
++        wisdom_cache,
++        "_fingerprint_payload",
++        lambda *_args, **_kwargs: {"fingerprint": "stable"},
++    )
++
++
++def test_cache_miss_measure_export_and_warm_import(
++    monkeypatch, tmp_path, stable_fingerprint
++):
++    fftw = FakeFFTW()
++    wisdom_cache.configure_from_cli(_options(tmp_path))
++
++    level, entry = _prepare(fftw)
++
++    assert level == 1
++    assert entry is not None
++    assert fftw.calls == []
++    wisdom_cache.record_plan(fftw, entry, level)
++    assert not wisdom_cache.has_pending_export()
++    cache_files = list(tmp_path.glob("*.wisdom"))
++    assert cache_files == [entry.path]
++    assert entry.path.read_bytes() == b"qualified-wisdom"
++    assert entry.path.stat().st_mode & 0o777 == 0o600
++    assert list(tmp_path.glob("*.tmp")) == []
++
++    warm_fftw = FakeFFTW()
++    wisdom_cache.configure_from_cli(_options(tmp_path))
++    warm_level, warm_entry = _prepare(warm_fftw)
++
++    assert warm_level == 0
++    assert warm_entry.path == entry.path
++    assert warm_fftw.calls == [("import", str(entry.path))]
++    assert not wisdom_cache.has_pending_export()
++
++
++def test_cancelled_plan_releases_cold_writer_lock(tmp_path, stable_fingerprint):
++    fftw = FakeFFTW()
++    wisdom_cache.configure_from_cli(_options(tmp_path))
++
++    _, entry = _prepare(fftw)
++    wisdom_cache.cancel_plan(entry)
++
++    assert entry.lock_file is None
++    assert list(tmp_path.glob("*.wisdom")) == []
++
++
++def test_failed_immediate_export_is_retried_by_cli_lifecycle(
++    tmp_path, stable_fingerprint
++):
++    failure = OSError("temporary cache failure")
++    fftw = FakeFFTW(export_failure=failure)
++    wisdom_cache.configure_from_cli(_options(tmp_path))
++    level, entry = _prepare(fftw)
++
++    wisdom_cache.record_plan(fftw, entry, level)
++
++    assert entry.lock_file is None
++    assert wisdom_cache.has_pending_export()
++    assert not entry.path.exists()
++
++    fftw.export_failure = None
++    wisdom_cache.export_pending(fftw)
++
++    assert not wisdom_cache.has_pending_export()
++    assert entry.path.read_bytes() == b"qualified-wisdom"
++
++
++def test_corrupt_cache_falls_back_to_bounded_measurement(
++    caplog, tmp_path, stable_fingerprint
++):
++    caplog.set_level(logging.WARNING, logger=wisdom_cache.logger.name)
++    wisdom_cache.configure_from_cli(_options(tmp_path))
++    _, seed_entry = _prepare(FakeFFTW())
++    seed_entry.path.write_bytes(b"corrupt")
++
++    failure = RuntimeError("invalid wisdom")
++    fftw = FakeFFTW(import_failure=failure)
++    wisdom_cache.configure_from_cli(_options(tmp_path))
++    level, entry = _prepare(fftw)
++
++    assert level == 1
++    assert entry.path == seed_entry.path
++    assert fftw.calls == [
++        ("import", str(entry.path)),
++        ("import", str(entry.path)),
++    ]
++    assert "Ignoring unusable cached FFTW wisdom" in caplog.text
++
++
++@pytest.mark.parametrize(
++    "override",
++    (
++        {"size": 65536},
++        {"forward": True},
++        {"direct": False},
++        {"aligned": False},
++        {"nthreads": 2},
++        {"batch": 2},
++        {"requested_measure_level": 2},
++        {"requested_measure_level": 3},
++    ),
++)
++def test_cache_never_changes_unqualified_plans(tmp_path, stable_fingerprint, override):
++    wisdom_cache.configure_from_cli(_options(tmp_path))
++    requested = override.get("requested_measure_level", 0)
++
++    level, entry = _prepare(FakeFFTW(), **override)
++
++    assert level == requested
++    assert entry is None
++    assert list(tmp_path.iterdir()) == []
++
++
++@pytest.mark.parametrize(
++    "explicit",
++    (
++        {"fftw_import_system_wisdom": True},
++        {"fftw_input_float_wisdom_file": "manual.wisdom"},
++        {"fftw_input_double_wisdom_file": "manual.wisdom"},
++        {"fftw_output_float_wisdom_file": "manual.wisdom"},
++        {"fftw_output_double_wisdom_file": "manual.wisdom"},
++    ),
++)
++def test_manual_wisdom_options_take_precedence(tmp_path, stable_fingerprint, explicit):
++    wisdom_cache.configure_from_cli(_options(tmp_path, **explicit))
++
++    level, entry = _prepare(FakeFFTW())
++
++    assert level == 0
++    assert entry is None
++    assert list(tmp_path.iterdir()) == []
++
++
++def test_fingerprint_change_selects_a_new_cache_file(monkeypatch, tmp_path):
++    identity = {"value": "first"}
++    monkeypatch.setattr(
++        wisdom_cache,
++        "_fingerprint_payload",
++        lambda *_args, **_kwargs: identity.copy(),
++    )
++    wisdom_cache.configure_from_cli(_options(tmp_path))
++    _, first = _prepare(FakeFFTW())
++    identity["value"] = "second"
++    _, second = _prepare(FakeFFTW())
++
++    assert first.path != second.path
++
++
++def test_default_cache_directory_honors_absolute_xdg_home(monkeypatch, tmp_path):
++    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
++    assert wisdom_cache._default_cache_dir() == tmp_path / "pycbc" / "fftw"
++
++    monkeypatch.setenv("XDG_CACHE_HOME", "relative-cache")
++    monkeypatch.setattr(Path, "home", lambda: tmp_path / "home")
++    assert wisdom_cache._default_cache_dir() == (
++        tmp_path / "home" / ".cache" / "pycbc" / "fftw"
++    )

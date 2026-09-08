@@ -1,0 +1,22 @@
+..............................s......................sss................ [ 15%]
+................................................................ [ 28%]
+........................................................................ [ 44%]
+........................................................................ [ 59%]
+........................................................................ [ 75%]
+........................................................................ [ 90%]
+.............................................                                                    [100%]
+=============================== warnings summary ===============================
+test/test_torch_decompress_cpu.py::test_unsupported_storage_keeps_torch_route[readonly_input]
+  /private/tmp/pycbc-torch-publication-optional-20260908/pycbc/waveform/decompress_torch.py:37: UserWarning: The given NumPy array is not writable, and PyTorch does not support non-writable tensors. This means writing to this tensor will result in undefined behavior. You may want to copy the array to protect its data or make it writable before converting it to a tensor. This type of warning will be suppressed for the rest of this program. (Triggered internally at /Users/runner/work/pytorch/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:212.)
+    return torch.as_tensor(numpy.asarray(value), device=device, dtype=dtype)
+
+test/test_torch_psd_pipeline.py::test_lisa_response_psd_public_devices[cpu]
+  /private/tmp/pycbc-torch-publication-optional-20260908/pycbc/psd/read.py:99: RuntimeWarning: divide by zero encountered in log
+    slog = numpy.log(noise_data)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] test/test_torch_fft_cuda_workspace.py:24: CUDA device is required
+SKIPPED [1] test/test_torch_decompress_cpu.py:288: CUDA unavailable
+SKIPPED [3] test/test_torch_large_ifft.py:337: native MKL route is qualified only on Linux x86-64
+465 passed, 5 skipped, 178 deselected, 2 warnings, 56 subtests passed in 15.74s

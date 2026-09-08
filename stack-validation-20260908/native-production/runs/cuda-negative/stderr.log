@@ -1,0 +1,33 @@
+2026-09-08T10:16:00.821+01:00 INFO : Running with Torch support on device cuda:0
+2026-09-08T10:16:00.821+01:00 INFO : Reading Frames
+2026-09-08T10:16:04.225+01:00 INFO : Highpass Filtering
+2026-09-08T10:16:04.694+01:00 INFO : Resampling data
+2026-09-08T10:16:04.705+01:00 INFO : Converting to float32
+/home/xangma/pycbc-torch-residual-production-20260908/native-v1/source/pycbc/types/array.py:872: RuntimeWarning: divide by zero encountered in divide
+  return self._data.__rtruediv__(other)
+2026-09-08T10:16:08.214+01:00 INFO : Highpass Filtering
+2026-09-08T10:16:08.703+01:00 INFO : Remove Padding
+2026-09-08T10:16:08.729+01:00 INFO : Making frequency-domain data segments
+2026-09-08T10:16:09.413+01:00 INFO : Overwhitening frequency-domain data segments
+2026-09-08T10:16:09.414+01:00 INFO : Read in template bank
+2026-09-08T10:16:09.434+01:00 INFO : Full template bank size: 384
+2026-09-08T10:16:09.435+01:00 INFO : Template bank size after thinning: 384
+2026-09-08T10:16:09.438+01:00 INFO : 0: generating IMRPhenomD from 30.0 Hz
+2026-09-08T10:16:09.440+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-08T10:16:09.617+01:00 INFO : Filtering template 1/384 segment 1/5
+2026-09-08T10:16:10.136+01:00 INFO : 1 points above threshold
+2026-09-08T10:16:10.251+01:00 INFO : Filtering template 1/384 segment 2/5
+2026-09-08T10:16:10.357+01:00 INFO : Filtering template 1/384 segment 3/5
+2026-09-08T10:16:10.371+01:00 INFO : 1 points above threshold
+2026-09-08T10:16:10.453+01:00 INFO : Filtering template 1/384 segment 4/5
+2026-09-08T10:16:10.545+01:00 INFO : Filtering template 1/384 segment 5/5
+2026-09-08T10:16:10.560+01:00 INFO : 1 points above threshold
+2026-09-08T10:16:10.653+01:00 INFO : 1: generating IMRPhenomD from 30.0 Hz
+2026-09-08T10:16:10.655+01:00 INFO : Decompressing waveform using inline_linear
+2026-09-08T10:16:10.658+01:00 INFO : Filtering template 2/384 segment 1/5
+2026-09-08T10:16:10.667+01:00 INFO : 1 points above threshold
+Qualification failed; inspect /home/xangma/pycbc-torch-residual-production-20260908/native-v1/runs/cuda-negative/qualification.json
+No CuPy
+No CuPy or GPU PhenomHM module.
+No CuPy or GPU response available.
+No CuPy or GPU interpolation available.

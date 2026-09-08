@@ -1,0 +1,510 @@
+{
+  "result": {
+    "status": "pass",
+    "baseline": "/home/xangma/pycbc-torch-fft-optimization-20260908/loader-v1/runs/qual-cpu-candidate/triggers.hdf",
+    "candidate": "/home/xangma/pycbc-torch-residual-production-20260908/native-v1/runs/cpu/triggers.hdf",
+    "baseline_sha256": "66e56f2c263685a0ec736866c49ae03fc9efe1f9cdcf897fd9f64253e8057947",
+    "candidate_sha256": "774102ab193d474a7afc243c41753287ab8ccdb37d96319e2eafe085cc74078a",
+    "baseline_receipt_sha256": "7fcc4f640594f3dad8779ccf99464c1ee68d90f5280128bf5a969bf772a97004",
+    "candidate_receipt_sha256": "737603d2b33d4f6e9ee1502a8e131833f6d66656c95ecec6e36a4b3a17236108",
+    "sample_rate": 4096,
+    "failures": [],
+    "review_reasons": [],
+    "detectors": {
+      "H1": {
+        "baseline_count": 1991,
+        "candidate_count": 1991,
+        "matched_count": 1991,
+        "valid_intervals": [
+          [
+            1187007160.0,
+            1187009064.0
+          ]
+        ],
+        "metrics": {
+          "bank_chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 1e-05
+          },
+          "bank_chisq_dof": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 0.0
+          },
+          "chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 38.07310104370117,
+            "candidate_value": 38.07310104370117,
+            "budget_at_worst": 0.0038173101043701176
+          },
+          "chisq_dof": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 16.0,
+            "candidate_value": 16.0,
+            "budget_at_worst": 0.0
+          },
+          "coa_phase": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 2.1825671195983887,
+            "candidate_value": 2.1825671195983887,
+            "budget_at_worst": 0.0001
+          },
+          "cont_chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 1e-05
+          },
+          "cont_chisq_dof": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 0.0
+          },
+          "sg_chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 1e-05
+          },
+          "sigmasq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 3547529.75,
+            "candidate_value": 3547529.75,
+            "budget_at_worst": 35.4752975
+          },
+          "snr": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 5.890352725982666,
+            "candidate_value": 5.890352725982666,
+            "budget_at_worst": 0.0005990352725982667
+          },
+          "template_duration": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 37.44173049926758,
+            "candidate_value": 37.44173049926758,
+            "budget_at_worst": 0.003754173049926758
+          }
+        },
+        "unmatched": {
+          "baseline_only": {
+            "count": 0,
+            "classifications": {},
+            "examples": []
+          },
+          "candidate_only": {
+            "count": 0,
+            "classifications": {},
+            "examples": []
+          }
+        }
+      }
+    }
+  },
+  "raw_result": {
+    "status": "fail",
+    "baseline": "/home/xangma/pycbc-torch-fft-optimization-20260908/loader-v1/runs/qual-cpu-candidate/triggers.hdf",
+    "candidate": "/home/xangma/pycbc-torch-residual-production-20260908/native-v1/runs/cpu/triggers.hdf",
+    "baseline_sha256": "66e56f2c263685a0ec736866c49ae03fc9efe1f9cdcf897fd9f64253e8057947",
+    "candidate_sha256": "774102ab193d474a7afc243c41753287ab8ccdb37d96319e2eafe085cc74078a",
+    "baseline_receipt_sha256": "7fcc4f640594f3dad8779ccf99464c1ee68d90f5280128bf5a969bf772a97004",
+    "candidate_receipt_sha256": "737603d2b33d4f6e9ee1502a8e131833f6d66656c95ecec6e36a4b3a17236108",
+    "sample_rate": 4096,
+    "failures": [
+      "configuration mismatch: consumed_input_sha256",
+      "configuration mismatch: source_snapshot"
+    ],
+    "review_reasons": [],
+    "detectors": {
+      "H1": {
+        "baseline_count": 1991,
+        "candidate_count": 1991,
+        "matched_count": 1991,
+        "valid_intervals": [
+          [
+            1187007160.0,
+            1187009064.0
+          ]
+        ],
+        "metrics": {
+          "bank_chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 1e-05
+          },
+          "bank_chisq_dof": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 0.0
+          },
+          "chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 38.07310104370117,
+            "candidate_value": 38.07310104370117,
+            "budget_at_worst": 0.0038173101043701176
+          },
+          "chisq_dof": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 16.0,
+            "candidate_value": 16.0,
+            "budget_at_worst": 0.0
+          },
+          "coa_phase": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 2.1825671195983887,
+            "candidate_value": 2.1825671195983887,
+            "budget_at_worst": 0.0001
+          },
+          "cont_chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 1e-05
+          },
+          "cont_chisq_dof": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 0.0
+          },
+          "sg_chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 1e-05
+          },
+          "sigmasq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 3547529.75,
+            "candidate_value": 3547529.75,
+            "budget_at_worst": 35.4752975
+          },
+          "snr": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 5.890352725982666,
+            "candidate_value": 5.890352725982666,
+            "budget_at_worst": 0.0005990352725982667
+          },
+          "template_duration": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 37.44173049926758,
+            "candidate_value": 37.44173049926758,
+            "budget_at_worst": 0.003754173049926758
+          }
+        },
+        "unmatched": {
+          "baseline_only": {
+            "count": 0,
+            "classifications": {},
+            "examples": []
+          },
+          "candidate_only": {
+            "count": 0,
+            "classifications": {},
+            "examples": []
+          }
+        }
+      }
+    }
+  },
+  "provenance_substitutions": [
+    {
+      "field": "source_snapshot",
+      "before": {
+        "commit": "fad7d8440bfde083f2e94ee62a0017492dfc4013",
+        "status": "",
+        "tracked_diff": ""
+      },
+      "after": {
+        "commit": "ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f",
+        "status": "",
+        "tracked_diff": ""
+      }
+    },
+    {
+      "field": "consumed_input_sha256",
+      "before": {
+        "/home/xangma/pycbc-torch-reference-protocol-20260907/inputs/bank-compressed.hdf": "26050d48322a1d71092bb0e024e71a89ace56b3e7b1c5e4cf20c7b769213fb7f",
+        "/home/xangma/pycbc-torch-residual-production-20260908/native-v1/source/bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+        "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865"
+      },
+      "after": {
+        "/home/xangma/pycbc-torch-fft-optimization-20260908/loader-v1/source-candidate/bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+        "/home/xangma/pycbc-torch-reference-protocol-20260907/inputs/bank-compressed.hdf": "26050d48322a1d71092bb0e024e71a89ace56b3e7b1c5e4cf20c7b769213fb7f",
+        "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865"
+      }
+    }
+  ],
+  "tolerances": {
+    "rtol": 0.0001,
+    "atol": 1e-05,
+    "sigmasq_rtol": 1e-05,
+    "phase_atol": 0.0001,
+    "max_examples": 12
+  },
+  "exact_H1": {
+    "bank_chisq": {
+      "shape": [
+        1991
+      ],
+      "dtype": "<f4",
+      "sha256": "fbfc5b56f6a9d0cf63904ac7b1eb43ac6cb6960970ccf53f5879f7f41bc55439"
+    },
+    "bank_chisq_dof": {
+      "shape": [
+        1991
+      ],
+      "dtype": "<i8",
+      "sha256": "ce2058305f9c727ec9d5c7f3c24c3a949a753abc31312c40a8b2aa31209bf624"
+    },
+    "chisq": {
+      "shape": [
+        1991
+      ],
+      "dtype": "<f4",
+      "sha256": "3d9f995d00f34d6facfd5822fa49eab6eecb36c591caf28db1797f7f29246156"
+    },
+    "chisq_dof": {
+      "shape": [
+        1991
+      ],
+      "dtype": "<f8",
+      "sha256": "46b7c269b9e00cfef35bb5be3355736ae3b9f4d1b16086c619a97cab4634e6ad"
+    },
+    "coa_phase": {
+      "shape": [
+        1991
+      ],
+      "dtype": "<f4",
+      "sha256": "20685444cc9f7e29666f8ab59340664365c9de50348d69fe23dd2b6485cd881c"
+    },
+    "cont_chisq": {
+      "shape": [
+        1991
+      ],
+      "dtype": "<f4",
+      "sha256": "fbfc5b56f6a9d0cf63904ac7b1eb43ac6cb6960970ccf53f5879f7f41bc55439"
+    },
+    "cont_chisq_dof": {
+      "shape": [
+        1991
+      ],
+      "dtype": "<i8",
+      "sha256": "ce2058305f9c727ec9d5c7f3c24c3a949a753abc31312c40a8b2aa31209bf624"
+    },
+    "end_time": {
+      "shape": [
+        1991
+      ],
+      "dtype": "<f8",
+      "sha256": "15ce19695ff1e3c1e2bf50ff13dd48e8ea59c6f9788547196a8c03b22827b447"
+    },
+    "gating/auto/pad": {
+      "shape": [
+        0
+      ],
+      "dtype": "<f8",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "gating/auto/time": {
+      "shape": [
+        0
+      ],
+      "dtype": "<f8",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "gating/auto/width": {
+      "shape": [
+        0
+      ],
+      "dtype": "<f8",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "search/end_time": {
+      "shape": [
+        1
+      ],
+      "dtype": "<i8",
+      "sha256": "9d253ee5e473ecdaf50d00f365e784246399e977bf5d56baaf3c27438df757e7"
+    },
+    "search/start_time": {
+      "shape": [
+        1
+      ],
+      "dtype": "<i8",
+      "sha256": "c91345baeafb28649db2871c931e59f316ca7b06671919492d234807326a1077"
+    },
+    "sg_chisq": {
+      "shape": [
+        1991
+      ],
+      "dtype": "<f4",
+      "sha256": "fbfc5b56f6a9d0cf63904ac7b1eb43ac6cb6960970ccf53f5879f7f41bc55439"
+    },
+    "sigmasq": {
+      "shape": [
+        1991
+      ],
+      "dtype": "<f4",
+      "sha256": "46e2de82fdfe8c564278edb95073ef77e740cc26bc070163b05c02666d719c96"
+    },
+    "snr": {
+      "shape": [
+        1991
+      ],
+      "dtype": "<f4",
+      "sha256": "3ef7bd794a3db3d7ecb5b467c8715cb407a223e8cf330e6c40ad449d71991f18"
+    },
+    "template_duration": {
+      "shape": [
+        1991
+      ],
+      "dtype": "<f4",
+      "sha256": "0ea35fdf625c1bdf51b777b9bbc49f72df1409762472656b30009c3c4b5e1596"
+    },
+    "template_hash": {
+      "shape": [
+        1991
+      ],
+      "dtype": "<i8",
+      "sha256": "c4194d2de41a9bea8f50e0ef51574b1095efb2b6414d8a4ee95244d4a0b003ef"
+    }
+  }
+}

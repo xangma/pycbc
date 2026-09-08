@@ -1,0 +1,547 @@
+{
+  "origin": "Frozen published device-profile-20260907-r3 at a742e59004779b35e3caea1a088ad5854042b704; scheme-specific exact scientific records, no numerical tolerance or data normalization.",
+  "qualification_sha256": {
+    "cpu:1": "8a0dcd765014f357712b1d93ef6a86e80349390a9d04e8c408ba69330d0b1a2d",
+    "torch:cpu:1": "c59504bd82725abfbc33e5ba22fa71d9e51ebfe0489e4b178625448e3b6d341a",
+    "torch:cuda:0": "aad923ac99d91821e55d16122fb531ae02401d977e95f424adf1adbbac562606"
+  },
+  "by_scheme": {
+    "cpu:1": {
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "psd_arrays": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "bytes": 4194436,
+          "capture": "Exact final segment.psd before overwhitening; no rescaling or dtype conversion",
+          "data_sha256": "79bfcc76784fa870c273e427fbc29c3fe73f9edfd4aca734c2d0fb8d25889bdb",
+          "delta_f_hz": 0.001953125,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "dyn_range_factor": 5.902958103587057e+20,
+          "finite": true,
+          "n_samples": 1048577,
+          "nbytes": 4194308,
+          "relative_path": "arrays/qualification-psd-000.npy",
+          "scaling": "DYN_RANGE_FAC**2",
+          "segment_indices": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "sha256": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+          "shape": [
+            1048577
+          ],
+          "validity": {
+            "excluded_infinity_policy": "Positive infinity is allowed only outside the actual filter slice; inverse-spectrum truncation can produce it where the inverse spectrum vanishes.",
+            "filter_bin_start": 15360,
+            "filter_bin_stop": 1048576,
+            "filter_bins_are_half_open": true,
+            "nan_count": 0,
+            "negative_infinity_count": 0,
+            "nonpositive_count": 0,
+            "positive_infinity_count": 0,
+            "positive_infinity_first_bin": null,
+            "positive_infinity_last_bin": null,
+            "positive_infinity_only_in_excluded_bins": true,
+            "used_bins_finite_positive": true,
+            "valid_for_filter": true
+          }
+        }
+      ],
+      "segment_geometry": [
+        {
+          "bounding_span_seconds": 1904.0,
+          "delta_f_hz": 0.001953125,
+          "fft_samples": 2097152,
+          "frequency_samples": 1048577,
+          "gap_samples": 0,
+          "overlap_samples": 0,
+          "sample_origin": "Offsets relative to strain_start_time; intervals are half-open.",
+          "sample_rate_hz": 4096.0,
+          "segments": [
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                458752,
+                2019328
+              ],
+              "segment_slice": {
+                "start": 0,
+                "step": null,
+                "stop": 2097152
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                2019328,
+                3579904
+              ],
+              "segment_slice": {
+                "start": 1560576,
+                "step": null,
+                "stop": 3657728
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                3579904,
+                5140480
+              ],
+              "segment_slice": {
+                "start": 3121152,
+                "step": null,
+                "stop": 5218304
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                5140480,
+                6701056
+              ],
+              "segment_slice": {
+                "start": 4681728,
+                "step": null,
+                "stop": 6778880
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 475136,
+                "step": null,
+                "stop": 2031616
+              },
+              "analyzed_sample_interval": [
+                6701056,
+                8257536
+              ],
+              "segment_slice": {
+                "start": 6225920,
+                "step": null,
+                "stop": 8323072
+              }
+            }
+          ],
+          "strain_end_time": "1187009080.0",
+          "strain_start_time": "1187007048.0",
+          "union_analyzed_sample_intervals": [
+            [
+              458752,
+              8257536
+            ]
+          ],
+          "unique_analyzed_samples": 7798784,
+          "unique_analyzed_seconds": 1904.0
+        }
+      ]
+    },
+    "torch:cpu:1": {
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "psd_arrays": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "bytes": 4194436,
+          "capture": "Exact final segment.psd before overwhitening; no rescaling or dtype conversion",
+          "data_sha256": "2d177d2aff0fb3ec1e86293e7558a0a5a38e49e57664a277a71fcb1ed7353711",
+          "delta_f_hz": 0.001953125,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "dyn_range_factor": 5.902958103587057e+20,
+          "finite": true,
+          "n_samples": 1048577,
+          "nbytes": 4194308,
+          "relative_path": "arrays/qualification-psd-000.npy",
+          "scaling": "DYN_RANGE_FAC**2",
+          "segment_indices": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "sha256": "4b083eda5f7778779ba7b5f153a0e2b3ac0d623f6cc60d9e22b300244d5ead9a",
+          "shape": [
+            1048577
+          ],
+          "validity": {
+            "excluded_infinity_policy": "Positive infinity is allowed only outside the actual filter slice; inverse-spectrum truncation can produce it where the inverse spectrum vanishes.",
+            "filter_bin_start": 15360,
+            "filter_bin_stop": 1048576,
+            "filter_bins_are_half_open": true,
+            "nan_count": 0,
+            "negative_infinity_count": 0,
+            "nonpositive_count": 0,
+            "positive_infinity_count": 0,
+            "positive_infinity_first_bin": null,
+            "positive_infinity_last_bin": null,
+            "positive_infinity_only_in_excluded_bins": true,
+            "used_bins_finite_positive": true,
+            "valid_for_filter": true
+          }
+        }
+      ],
+      "segment_geometry": [
+        {
+          "bounding_span_seconds": 1904.0,
+          "delta_f_hz": 0.001953125,
+          "fft_samples": 2097152,
+          "frequency_samples": 1048577,
+          "gap_samples": 0,
+          "overlap_samples": 0,
+          "sample_origin": "Offsets relative to strain_start_time; intervals are half-open.",
+          "sample_rate_hz": 4096.0,
+          "segments": [
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                458752,
+                2019328
+              ],
+              "segment_slice": {
+                "start": 0,
+                "step": null,
+                "stop": 2097152
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                2019328,
+                3579904
+              ],
+              "segment_slice": {
+                "start": 1560576,
+                "step": null,
+                "stop": 3657728
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                3579904,
+                5140480
+              ],
+              "segment_slice": {
+                "start": 3121152,
+                "step": null,
+                "stop": 5218304
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                5140480,
+                6701056
+              ],
+              "segment_slice": {
+                "start": 4681728,
+                "step": null,
+                "stop": 6778880
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 475136,
+                "step": null,
+                "stop": 2031616
+              },
+              "analyzed_sample_interval": [
+                6701056,
+                8257536
+              ],
+              "segment_slice": {
+                "start": 6225920,
+                "step": null,
+                "stop": 8323072
+              }
+            }
+          ],
+          "strain_end_time": "1187009080.0",
+          "strain_start_time": "1187007048.0",
+          "union_analyzed_sample_intervals": [
+            [
+              458752,
+              8257536
+            ]
+          ],
+          "unique_analyzed_samples": 7798784,
+          "unique_analyzed_seconds": 1904.0
+        }
+      ]
+    },
+    "torch:cuda:0": {
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "psd_arrays": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "bytes": 4194436,
+          "capture": "Exact final segment.psd before overwhitening; no rescaling or dtype conversion",
+          "data_sha256": "11febcb9ab09bf022cab9d1b0afe9802306cf3dd4a2c98e31036516d20b4eebc",
+          "delta_f_hz": 0.001953125,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "dyn_range_factor": 5.902958103587057e+20,
+          "finite": true,
+          "n_samples": 1048577,
+          "nbytes": 4194308,
+          "relative_path": "arrays/qualification-psd-000.npy",
+          "scaling": "DYN_RANGE_FAC**2",
+          "segment_indices": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "sha256": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf",
+          "shape": [
+            1048577
+          ],
+          "validity": {
+            "excluded_infinity_policy": "Positive infinity is allowed only outside the actual filter slice; inverse-spectrum truncation can produce it where the inverse spectrum vanishes.",
+            "filter_bin_start": 15360,
+            "filter_bin_stop": 1048576,
+            "filter_bins_are_half_open": true,
+            "nan_count": 0,
+            "negative_infinity_count": 0,
+            "nonpositive_count": 0,
+            "positive_infinity_count": 0,
+            "positive_infinity_first_bin": null,
+            "positive_infinity_last_bin": null,
+            "positive_infinity_only_in_excluded_bins": true,
+            "used_bins_finite_positive": true,
+            "valid_for_filter": true
+          }
+        }
+      ],
+      "segment_geometry": [
+        {
+          "bounding_span_seconds": 1904.0,
+          "delta_f_hz": 0.001953125,
+          "fft_samples": 2097152,
+          "frequency_samples": 1048577,
+          "gap_samples": 0,
+          "overlap_samples": 0,
+          "sample_origin": "Offsets relative to strain_start_time; intervals are half-open.",
+          "sample_rate_hz": 4096.0,
+          "segments": [
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                458752,
+                2019328
+              ],
+              "segment_slice": {
+                "start": 0,
+                "step": null,
+                "stop": 2097152
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                2019328,
+                3579904
+              ],
+              "segment_slice": {
+                "start": 1560576,
+                "step": null,
+                "stop": 3657728
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                3579904,
+                5140480
+              ],
+              "segment_slice": {
+                "start": 3121152,
+                "step": null,
+                "stop": 5218304
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                5140480,
+                6701056
+              ],
+              "segment_slice": {
+                "start": 4681728,
+                "step": null,
+                "stop": 6778880
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 475136,
+                "step": null,
+                "stop": 2031616
+              },
+              "analyzed_sample_interval": [
+                6701056,
+                8257536
+              ],
+              "segment_slice": {
+                "start": 6225920,
+                "step": null,
+                "stop": 8323072
+              }
+            }
+          ],
+          "strain_end_time": "1187009080.0",
+          "strain_start_time": "1187007048.0",
+          "union_analyzed_sample_intervals": [
+            [
+              458752,
+              8257536
+            ]
+          ],
+          "unique_analyzed_samples": 7798784,
+          "unique_analyzed_seconds": 1904.0
+        }
+      ]
+    }
+  }
+}

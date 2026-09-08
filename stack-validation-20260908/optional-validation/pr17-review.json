@@ -1,0 +1,20 @@
+{
+  "head": "b2ce99eb214865315098fd5b7aa23f99c54243dc",
+  "original": "3e88711c1453d2ffab5eca42ec3207d34c50ddef",
+  "original_patch_id": "2c2dae1d1bd095abbf2271143fdaf3e70a64f7cd",
+  "replayed_patch_id": "91bdfee0983b7969baef179314a7bb0f70f77a47",
+  "same_patch": false,
+  "preserved_cython": {
+    "pycbc/filter/matchedfilter_cpu.pyx": {
+      "sha256": "440900feaf688eb158f913724dacab74d541015a1219fec59ec34d9f8646738b",
+      "byte_identical_to_original_feature": true
+    },
+    "pycbc/vetoes/chisq_cpu.pyx": {
+      "sha256": "d550069568e1675dfb6f40ea29b68d563c490125e629954e5c25ea2ae16a6d22",
+      "byte_identical_to_original_feature": true
+    }
+  },
+  "integration_review": "Applied independently to main. CPU peak gate remains default-off and precedes the inherited Torch fallback. Single-point chi-square specialization uses the existing eligibility and normalization contracts. FFT thread tuning retains the inherited promoted in-place workspace and plan storage/pid/AD guards. No conflict resolution or additional C/CUDA changes.",
+  "added_and_removed_lines_per_file_match_original": true,
+  "patch_id_difference": "Inherited context differs in the updated main runtime; exact added and removed lines are compared separately."
+}

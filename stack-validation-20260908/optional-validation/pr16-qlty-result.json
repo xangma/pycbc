@@ -1,0 +1,39 @@
+{
+  "label": "pr16",
+  "stage": "qlty",
+  "host": "client-3792.default.vpn.port.ac.uk",
+  "cwd": "/private/tmp/pycbc-torch-publication-optional-20260908",
+  "command": [
+    "/Users/xangma/repos/pycbc/artifacts/torch-publication-20260908/qlty-runtime/qlty-aarch64-apple-darwin/qlty",
+    "check",
+    "--no-upgrade-check",
+    "--no-fix",
+    "--sarif",
+    "--no-progress",
+    "--skip-source-fetch",
+    "--no-cache",
+    "--upstream",
+    "c4db98c8da351f4002bd070aa08e272ae3539b8d"
+  ],
+  "head": "f844e9295f570956fbb34407ff7bce459f0869c6",
+  "parent": "c4db98c8da351f4002bd070aa08e272ae3539b8d",
+  "started": 1788858398.101137,
+  "pid": 71343,
+  "controller_pid": 71310,
+  "log": "/Users/xangma/repos/pycbc/artifacts/torch-publication-20260908/optional-validation/pr16-qlty.sarif",
+  "stderr": "/Users/xangma/repos/pycbc/artifacts/torch-publication-20260908/optional-validation/pr16-qlty-stderr.log",
+  "stop_command": "kill -TERM -- -71343",
+  "environment": {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "PYCBC_TEST_SCHEME": "torch:cpu",
+    "PYTHONPATH": "/private/tmp/pycbc-torch-publication-optional-20260908",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TMPDIR": "/Users/xangma/repos/pycbc/artifacts/torch-publication-20260908/optional-validation/tmp"
+  },
+  "returncode": 0,
+  "finished": 1788858398.2159019,
+  "log_sha256": "dbf9726077835c3511fc1aa80c096a5b6a00edbfe248e3c616e0d2cfdbcbe477",
+  "stderr_sha256": "861c0a7fe3c0452054664829b4a4d764b64c11b491c70a9d6e2f41a2d1acb055"
+}

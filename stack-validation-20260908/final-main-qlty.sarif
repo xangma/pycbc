@@ -1,0 +1,99 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "qlty",
+          "informationUri": "https://github.com/qlty/qlty",
+          "semanticVersion": "0.644.0",
+          "version": "0.644.0 macos-arm64 (338acb3 2026-08-28)",
+          "releaseDateUtc": "2026-08-28",
+          "rules": [],
+          "notifications": [
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ripgrep in 0.01s [cdn8wI]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ripgrep in 0.01s [cdn8wI]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ruff in 0.04s [etEAv9]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ruff in 0.04s [etEAv9]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ruff in 0.03s [GoU767]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ruff in 0.03s [GoU767]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ripgrep in 0.01s [lxSiRd]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ripgrep in 0.01s [lxSiRd]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ruff in 0.05s [bnj4kt]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ruff in 0.05s [bnj4kt]"
+                }
+              }
+            },
+            {
+              "level": "note",
+              "message": {
+                "text": "Successfully ran ruff in 0.06s [Q9MSxy]"
+              },
+              "descriptor": {
+                "id": "qlty:message:invocation.concluded.success",
+                "name": "qlty_check::executor",
+                "shortDescription": {
+                  "text": "Successfully ran ruff in 0.06s [Q9MSxy]"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "results": []
+    }
+  ]
+}

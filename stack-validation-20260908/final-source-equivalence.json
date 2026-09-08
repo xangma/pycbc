@@ -1,0 +1,16 @@
+{
+  "state": "pass",
+  "production_revision": "fad7d8440bfde083f2e94ee62a0017492dfc4013",
+  "assembled_head": "9d4e4f6905d9f109d559284326d62173a854264f",
+  "only_runtime_differences": [
+    "pycbc/fft/torchfft.py",
+    "pycbc/frame/frame.py",
+    "pycbc/vetoes/chisq_torch.py"
+  ],
+  "comparison": "AST identity after docstring whitespace normalization; all other runtime and executable files byte-identical",
+  "test_only_difference": "test/test_array_lal.py",
+  "test_validation": [
+    "additional-pr5-tests.xml",
+    "lal-cpu-conversion.xml"
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "label": "pr19",
+  "stage": "build",
+  "host": "client-3792.default.vpn.port.ac.uk",
+  "cwd": "/private/tmp/pycbc-torch-publication-optional-20260908",
+  "command": [
+    "/Users/xangma/repos/pycbc/artifacts/torch-publication-20260908/optional-validation/venv/bin/python",
+    "-m",
+    "pip",
+    "install",
+    "--no-index",
+    "--no-deps",
+    "--no-build-isolation",
+    "--no-cache-dir",
+    "-e",
+    "/private/tmp/pycbc-torch-publication-optional-20260908"
+  ],
+  "head": "c4db98c8da351f4002bd070aa08e272ae3539b8d",
+  "parent": "542f7f3dc54db454128ef509b4e936f94a5f8072",
+  "started": 1788858285.100868,
+  "pid": 69668,
+  "controller_pid": 69656,
+  "log": "/Users/xangma/repos/pycbc/artifacts/torch-publication-20260908/optional-validation/pr19-build.log",
+  "stderr": "/Users/xangma/repos/pycbc/artifacts/torch-publication-20260908/optional-validation/pr19-build-stderr.log",
+  "stop_command": "kill -TERM -- -69668",
+  "environment": {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "PYCBC_TEST_SCHEME": "torch:cpu",
+    "PYTHONPATH": "/private/tmp/pycbc-torch-publication-optional-20260908",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TMPDIR": "/Users/xangma/repos/pycbc/artifacts/torch-publication-20260908/optional-validation/tmp"
+  },
+  "returncode": 0,
+  "finished": 1788858311.069237,
+  "log_sha256": "526631ce3ec9e37d8d89c6ed012142dc606eb1f78624f648590afbee138440ec",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
