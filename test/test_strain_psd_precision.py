@@ -1,0 +1,77 @@
+"""Strong spectral lines must not corrupt weak strain and PSD frequencies."""
+
+from types import SimpleNamespace
+
+import numpy as np
+import pytest
+from scipy.signal import welch as scipy_welch
+
+from pycbc import psd, scheme
+from pycbc.types import TimeSeries
+
+
+def line_rich_data(dtype):
+    time = np.arange(65536) / 512
+    values = np.random.default_rng(9172).normal(0, 0.001, len(time))
+    for frequency, amplitude in [(63.25, 32), (91.125, 11), (123.5, 7)]:
+        values += amplitude * np.sin(2 * np.pi * frequency * time)
+    # The numerical reference starts from these same rounded input samples.
+    return values.astype(dtype)
+
+
+def psd_options(inverse_length):
+    return SimpleNamespace(
+        psd_model=None, psd_file=None, asd_file=None, psd_estimation="median",
+        psd_low_frequency_cutoff=None, psd_segment_length=4,
+        psd_segment_stride=2, psd_num_segments=63,
+        psd_inverse_length=inverse_length, invpsd_trunc_method="hann",
+        invpsd_trunc_which_spectrum="invasd", psd_output=None,
+    )
+
+
+def reference_psd(values, inverse_length):
+    # SciPy's independent Welch estimator includes the even/odd median bias.
+    frequency, estimate = scipy_welch(
+        values.astype(np.float64), fs=512, window=np.hanning(2048),
+        nperseg=2048, noverlap=1024, detrend=False, average="median",
+    )
+    interpolated = np.interp(np.arange(16385) / 64, frequency, estimate)
+    if not inverse_length:
+        return interpolated
+    inverse_asd = np.zeros(16385, dtype=np.complex128)
+    inverse_asd[30 * 64:-1] = interpolated[30 * 64:-1] ** -0.5
+    impulse = np.fft.irfft(inverse_asd)
+    half = inverse_length * 512 // 2
+    window = np.hanning(inverse_length * 512)
+    impulse[:half] *= window[-half:]
+    impulse[-half:] *= window[:half]
+    impulse[half:-half] = 0
+    with np.errstate(divide="ignore"):
+        return 1 / np.abs(np.fft.rfft(impulse)) ** 2
+
+
+@pytest.mark.parametrize("dtype,precision", [
+    (np.float32, None), (np.float32, "double"),
+    (np.float64, None), (np.float64, "single"),
+])
+@pytest.mark.parametrize("inverse_length", [0, 2])
+def test_estimated_psd_retains_weak_frequencies(
+    dtype, precision, inverse_length
+):
+    values = line_rich_data(dtype)
+    expected = reference_psd(values, inverse_length)
+    output_dtype = (dtype if precision is None else
+                    np.float64 if precision == "double" else np.float32)
+    with scheme.CPUScheme(1):
+        strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+        actual = psd.from_cli(
+            psd_options(inverse_length), 16385, 1 / 64, 30,
+            strain=strain, precision=precision,
+        )
+        assert actual.dtype == output_dtype
+        assert actual.delta_f == 1 / 64
+        np.testing.assert_allclose(
+            actual.numpy()[30 * 64:-1], expected[30 * 64:-1],
+            rtol=3e-7 if output_dtype == np.float32 else 2e-9, atol=0,
+        )
+        np.testing.assert_array_equal(strain.numpy(), values)

@@ -15,6 +15,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 import copy
 import igwn_segments as segments
+from pycbc import scheme as _scheme
 from pycbc.psd.read import *
 from pycbc.psd.analytical import *
 from pycbc.psd.analytical_space import *
@@ -85,6 +86,7 @@ def from_cli(opt, length, delta_f, low_frequency_cutoff,
         err_msg += "'--psd-model', '--asd-file', '--psd-estimation'"
         raise ValueError(err_msg)
 
+    restore_dtype = None
     if (opt.psd_model or opt.psd_file or opt.asd_file):
         # PSD from lalsimulation or file
         if opt.psd_model:
@@ -116,7 +118,12 @@ def from_cli(opt, length, delta_f, low_frequency_cutoff,
         psd *= dyn_range_factor ** 2
 
     elif psd_estimation:
-        # estimate PSD from data
+        # Keep weak frequencies beside strong lines accurate through Welch,
+        # interpolation and inverse-spectrum truncation on the CPU.
+        if (strain.dtype == float32 and
+                isinstance(_scheme.mgr.state, _scheme.CPUScheme)):
+            restore_dtype = strain.dtype
+            strain = strain.astype(float64)
         psd = welch(strain, avg_method=opt.psd_estimation,
                     seg_len=int(opt.psd_segment_length * sample_rate + 0.5),
                     seg_stride=int(opt.psd_segment_stride * sample_rate + 0.5),
@@ -150,6 +157,8 @@ def from_cli(opt, length, delta_f, low_frequency_cutoff,
         (psd.astype(float64) / (dyn_range_factor ** 2)).save(opt.psd_output)
 
     if precision is None:
+        if restore_dtype is not None:
+            return psd.astype(restore_dtype)
         return psd
     elif precision == 'single':
         return psd.astype(float32)
