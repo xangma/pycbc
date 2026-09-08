@@ -1,3 +1,9 @@
+# Torch documentation cleanup, 2026-09-08
+
+[Cleaned guides and source mapping](torch-docs-cleanup/README.md). Documentation only; scientific evidence below is unchanged.
+
+---
+
 # Torch compatibility fixed, 2026-09-08
 
 Current results: [Torch parity fix](torch-parity-fix/README.md). All four routes produce 1988 triggers and pass the unchanged scientific gates; original CPU remains unchanged. No performance claim.
