@@ -4,7 +4,7 @@ PyTorch runtime
 ===============
 
 PyCBC provides an optional Torch processing scheme for its core arrays, time
-and frequency series and tensor-aware parameter conversions. The scheme selects
+and frequency series and FFTs. The scheme selects
 the storage backend and device for supported operations. Individual APIs
 still determine supported shapes, dtypes, and execution routes.
 
@@ -102,14 +102,22 @@ For direct access to native storage, use ``pycbc.types.backend.backend_array``
 instead of inspecting private array attributes.
 
 Torch-aware arithmetic and tensor conversions can retain autograd history.
-Explicit conversion to NumPy leaves the Torch graph and device. Verify the
+This does not promise differentiation through every PyCBC operation: in-place
+or output-buffer FFT interfaces retain Torch's autograd restrictions, and
+explicit conversion to NumPy leaves the Torch graph and device. Verify the
 forward and backward behavior of the particular operation you need.
+
+Optimized FFT routes have dtype, layout, device, and autograd eligibility
+checks. An ineligible route uses its defined fallback or raises an error;
+there is no universal host fallback for unsupported APIs. A result stored on
+an accelerator does not prove that every intermediate stayed there.
 
 MPS does not provide the double-precision types required by some operations.
 In particular, absolute ``TimeSeries.sample_times`` raises ``TypeError`` under
 an active MPS scheme; use a CPU or CUDA scheme to obtain those coordinates.
-Choose supported dtypes explicitly and retain these boundaries when
-interpreting device or performance results.
+The precision-promoted single-precision batched FFT path stages MPS data
+through CPU memory. Choose supported dtypes explicitly and retain these
+boundaries when interpreting device or performance results.
 
 Qualification
 -------------
