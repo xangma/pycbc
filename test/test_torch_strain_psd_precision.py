@@ -1,4 +1,4 @@
-"""Strong spectral lines must not corrupt weak strain and PSD frequencies."""
+"""Single-precision search conditioning must reproduce the original CPU."""
 
 from types import SimpleNamespace
 
@@ -32,6 +32,14 @@ def line_rich_data(dtype):
 @pytest.mark.parametrize("dtype", [np.float32, np.float64])
 def test_strain_segments_retain_weak_frequencies(context, dtype):
     values = line_rich_data(dtype)
+    with scheme.CPUScheme(1):
+        reference_segments = StrainSegments(
+            TimeSeries(values, delta_t=1 / 512, epoch=1234567890),
+            segment_length=64, segment_start_pad=8, segment_end_pad=8,
+            trigger_start=1234567890, trigger_end=1234568018,
+            allow_zero_padding=True,
+        )
+        cpu_outputs = [s.numpy().copy() for s in reference_segments.fourier_segments()]
     with context:
         strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
         segments = StrainSegments(
@@ -43,8 +51,8 @@ def test_strain_segments_retain_weak_frequencies(context, dtype):
         assert segments.fourier_segments() is result
         assert result[0].seg_slice.start < 0
         assert result[-1].seg_slice.stop > len(values)
-        for output, segment, analyze in zip(
-            result, segments.segment_slices, segments.analyze_slices
+        for output, segment, analyze, cpu_output in zip(
+            result, segments.segment_slices, segments.analyze_slices, cpu_outputs
         ):
             chunk = np.zeros(32768, dtype=np.float64)
             start, stop = max(segment.start, 0), min(segment.stop, len(values))
@@ -57,10 +65,12 @@ def test_strain_segments_retain_weak_frequencies(context, dtype):
             assert output.analyze == analyze
             assert output.cumulative_index == segment.start + analyze.start
             assert output.seg_slice == segment
-            np.testing.assert_allclose(
-                output.numpy(), reference,
-                rtol=2e-7 if dtype == np.float32 else 2e-11, atol=2e-11,
-            )
+            if dtype == np.float32:
+                np.testing.assert_array_equal(output.numpy(), cpu_output)
+            else:
+                np.testing.assert_allclose(
+                    output.numpy(), reference, rtol=2e-11, atol=2e-11,
+                )
         np.testing.assert_array_equal(strain.numpy(), values)
 
 
@@ -105,6 +115,12 @@ def test_estimated_psd_retains_weak_frequencies(
 ):
     values = line_rich_data(dtype)
     expected = reference_psd(values, inverse_length)
+    with scheme.CPUScheme(1):
+        cpu_output = psd.from_cli(
+            psd_options(inverse_length), 16385, 1 / 64, 30,
+            strain=TimeSeries(values, delta_t=1 / 512, epoch=1234567890),
+            precision=precision,
+        ).numpy().copy()
     output_dtype = (dtype if precision is None else
                     np.float64 if precision == "double" else np.float32)
     with context:
@@ -115,8 +131,11 @@ def test_estimated_psd_retains_weak_frequencies(
         )
         assert actual.dtype == output_dtype
         assert actual.delta_f == 1 / 64
-        np.testing.assert_allclose(
-            actual.numpy()[30 * 64:-1], expected[30 * 64:-1],
-            rtol=3e-7 if output_dtype == np.float32 else 2e-9, atol=0,
-        )
+        if dtype == np.float32:
+            np.testing.assert_array_equal(actual.numpy(), cpu_output)
+        else:
+            np.testing.assert_allclose(
+                actual.numpy()[30 * 64:-1], expected[30 * 64:-1],
+                rtol=3e-7 if output_dtype == np.float32 else 2e-9, atol=0,
+            )
         np.testing.assert_array_equal(strain.numpy(), values)
