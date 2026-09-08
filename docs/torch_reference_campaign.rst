@@ -99,23 +99,24 @@ Any allowed source or executable-path substitution must be declared separately
 from scientific fields; it must not alter the numerical tolerances or conceal
 missing triggers.
 
-The original-reference experiment used these same inputs and compared the
-unchanged baseline with a development candidate. It reported differences
-against the baseline. Later backend parity does not resolve that discrepancy
-or establish baseline equivalence for the proposed runtime. The current review
-status is stated in :ref:`torch-performance`.
+The completed unchanged-baseline/final-proposal comparison uses these inputs.
+It retains baseline trigger and numerical failures, along with full-PSD
+differences between proposed backends below the filter cutoff. Proposed trigger
+parity and exact used PSD bins do not reclassify those failures. Results and
+the disclosed descriptive timing continuation are in :ref:`torch-performance`.
 
 Commands and reproducibility
 ----------------------------
 
-The `original measurement definition and reproduction instructions
+The `completed comparison and reproduction instructions
+<https://github.com/xangma/pycbc/blob/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908/REPRODUCE.md>`_ include the clean build
+procedure, four-arm acquisition and exact commands. Its `configuration
+<https://github.com/xangma/pycbc/blob/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908/acquisition/config.json>`_ records every
+scientific argument and numerical-library thread setting; per-worker receipts
+retain expanded commands, imported-source and native-build identity, input
+hashes, output hashes and exit status. The `original CPU geometry sweep
 <https://github.com/xangma/pycbc/blob/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/REPRODUCE.md>`_
-contain the complete command, original CPU geometry sweep and acquisition
-helpers. Its `configuration
-<https://github.com/xangma/pycbc/blob/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/config.json>`_
-records every scientific argument and numerical-library thread setting;
-per-worker receipts retain expanded commands, source and native-build identity,
-input hashes, output hashes and exit status.
+records how the frozen segment geometry was selected.
 
 For a new comparison, build the explicitly named baseline and proposed commits
 in separate clean checkouts with matching dependencies. Restore the frozen bank
@@ -132,10 +133,10 @@ library limits. Keep any required runtime adapter inside the timed command
 and archive its source. Capture the complete expanded argv for all four arms,
 including unchanged data, PSD, veto, clustering and output options.
 
-The original acquisition used shared ``len`` (AMD Ryzen Threadripper PRO
+The matched acquisition used shared ``len`` (AMD Ryzen Threadripper PRO
 3995WX), CPU 8 with SMT sibling CPU 72, and an RTX 4090 for CUDA. Affinity did
 not reserve either CPU. Reproduction must record its own hardware, dependency
 versions and load observations. The fixed workload measures finite-process
 cost; sustained or full-machine capacity needs the additional experiments in
-:ref:`torch-benchmark-protocol`. Restoring an archive or verifying its figures
-does not execute a new baseline/proposed comparison.
+:ref:`torch-benchmark-protocol`. Restoring or verifying an archive does
+not execute a new baseline/proposed comparison.
