@@ -1776,7 +1776,11 @@ def match(
     N = (len(htilde) - 1) * 2
 
     global _snr, _snr_scheme_key
-    scheme_key = pycbc.scheme.current_backend_key()
+    # Original CPU calls share scratch regardless of scheme or thread count.
+    scheme_key = (
+        None if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.CPUScheme)
+        else pycbc.scheme.current_backend_key()
+    )
     if (
         _snr is None
         or _snr.dtype != htilde.dtype
