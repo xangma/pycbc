@@ -37,7 +37,7 @@ import pycbc.scheme as _scheme
 from pycbc import libutils, pnutils
 from pycbc.conversions import get_final_from_initial, tau_from_final_mass_spin
 from pycbc.fft import fft
-from pycbc.filter import interpolate_complex_frequency, resample_to_delta_t
+from pycbc.filter import interpolate_complex_frequency
 from pycbc.types import (
     Array,
     FrequencySeries,
@@ -48,6 +48,10 @@ from pycbc.types import (
 )
 from pycbc.waveform import parameters
 from pycbc.waveform import utils as wfutils
+from pycbc.waveform.torch_waveform_registry import (
+    native_approximants,
+    try_torch_native_waveform,
+)
 
 from .spa_tmplt import (
     spa_amplitude_factor,
@@ -185,8 +189,8 @@ def _check_lal_pars(p):
         lalsimulation.SimInspiralWaveformParamsInsertSideband(lal_pars, p["side_bands"])
     if p["mode_array"] is not None:
         ma = lalsimulation.SimInspiralCreateModeArray()
-        for l, m in p["mode_array"]:
-            lalsimulation.SimInspiralModeArrayActivateMode(ma, l, m)
+        for ell, m in p["mode_array"]:
+            lalsimulation.SimInspiralModeArrayActivateMode(ma, ell, m)
         lalsimulation.SimInspiralWaveformParamsInsertModeArray(lal_pars, ma)
     # TestingGR parameters:
     if p["dchi0"] is not None:
@@ -238,6 +242,31 @@ def _check_lal_pars(p):
     return lal_pars
 
 
+def _lal_output_for_active_scheme(data):
+    """Return LAL output in a dtype supported by the active scheme."""
+
+    state = _scheme.mgr.state
+    if isinstance(state, _scheme.TorchScheme) and state.torch_device.type == "mps":
+        dtype = numpy.complex64 if numpy.iscomplexobj(data) else numpy.float32
+        return numpy.asarray(data, dtype=dtype)
+    return data
+
+
+def _series_from_lal_output(
+    data,
+    series_type,
+    delta_name,
+    delta,
+    epoch,
+):
+    """Construct one regular FD/TD series from fresh LAL output."""
+
+    return series_type(
+        _lal_output_for_active_scheme(data),
+        **{delta_name: delta, "epoch": epoch},
+    )
+
+
 def _lalsim_td_waveform(**p):
     lal_pars = _check_lal_pars(p)
     # nonGRparams can be straightforwardly added if needed, however they have to
@@ -270,6 +299,8 @@ def _lalsim_td_waveform(**p):
         # For some cases failure modes can occur. Here we add waveform-specific
         # instructions to try to work with waveforms that are known to fail.
         if "SEOBNRv3" in p["approximant"]:
+            from pycbc.filter import resample_to_delta_t
+
             # Try doubling the sample time and redoing.
             # Don't want to get stuck in a loop though!
             if "delta_t_orig" not in p:
@@ -286,8 +317,20 @@ def _lalsim_td_waveform(**p):
 
     # lal.DestroyDict(lal_pars)
 
-    hp = TimeSeries(hp1.data.data[:], delta_t=hp1.deltaT, epoch=hp1.epoch)
-    hc = TimeSeries(hc1.data.data[:], delta_t=hc1.deltaT, epoch=hc1.epoch)
+    hp = _series_from_lal_output(
+        hp1.data.data[:],
+        TimeSeries,
+        "delta_t",
+        hp1.deltaT,
+        hp1.epoch,
+    )
+    hc = _series_from_lal_output(
+        hc1.data.data[:],
+        TimeSeries,
+        "delta_t",
+        hc1.deltaT,
+        hc1.epoch,
+    )
 
     return hp, hc
 
@@ -315,6 +358,14 @@ def _spintaylor_aligned_prec_swapper(**p):
 
 
 def _lalsim_fd_waveform(**p):
+    using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
+    if using_torch:
+        native_waveform = try_torch_native_waveform(
+            "fd",
+            p,
+        )
+        if native_waveform is not None:
+            return native_waveform
     lal_pars = _check_lal_pars(p)
     hp1, hc1 = lalsimulation.SimInspiralChooseFDWaveform(
         float(pnutils.solar_mass_to_kg(p["mass1"])),
@@ -339,9 +390,21 @@ def _lalsim_fd_waveform(**p):
         _lalsim_enum[p["approximant"]],
     )
 
-    hp = FrequencySeries(hp1.data.data[:], delta_f=hp1.deltaF, epoch=hp1.epoch)
+    hp = _series_from_lal_output(
+        hp1.data.data[:],
+        FrequencySeries,
+        "delta_f",
+        hp1.deltaF,
+        hp1.epoch,
+    )
 
-    hc = FrequencySeries(hc1.data.data[:], delta_f=hc1.deltaF, epoch=hc1.epoch)
+    hc = _series_from_lal_output(
+        hc1.data.data[:],
+        FrequencySeries,
+        "delta_f",
+        hc1.deltaF,
+        hc1.epoch,
+    )
     # lal.DestroyDict(lal_pars)
     return hp, hc
 
@@ -359,8 +422,16 @@ def _lalsim_sgburst_waveform(**p):
         float(p["delta_t"]),
     )
 
-    hp = TimeSeries(hp.data.data[:], delta_t=hp.deltaT, epoch=hp.epoch)
-    hc = TimeSeries(hc.data.data[:], delta_t=hc.deltaT, epoch=hc.epoch)
+    hp = TimeSeries(
+        _lal_output_for_active_scheme(hp.data.data[:]),
+        delta_t=hp.deltaT,
+        epoch=hp.epoch,
+    )
+    hc = TimeSeries(
+        _lal_output_for_active_scheme(hc.data.data[:]),
+        delta_t=hc.deltaT,
+        epoch=hc.epoch,
+    )
 
     return hp, hc
 
@@ -388,6 +459,7 @@ try:
             approx_name = lalsimulation.GetStringFromApproximant(approx_enum)
             _lalsim_enum[approx_name] = approx_enum
             _lalsim_sgburst_approximants[approx_name] = _lalsim_sgburst_waveform
+
 except ImportError:
     lalsimulation = libutils.import_optional("lalsimulation")
 
@@ -440,31 +512,39 @@ def print_sgburst_approximants():
         print("  " + approx)
 
 
-def td_approximants(scheme=_scheme.mgr.state):
+def td_approximants(scheme=None):
     """Return a list containing the available time domain approximants for
     the given processing scheme.
     """
+    if scheme is None:
+        scheme = _scheme.mgr.state
     return list(td_wav[type(scheme)].keys())
 
 
-def fd_approximants(scheme=_scheme.mgr.state):
+def fd_approximants(scheme=None):
     """Return a list containing the available fourier domain approximants for
     the given processing scheme.
     """
+    if scheme is None:
+        scheme = _scheme.mgr.state
     return list(fd_wav[type(scheme)].keys())
 
 
-def sgburst_approximants(scheme=_scheme.mgr.state):
+def sgburst_approximants(scheme=None):
     """Return a list containing the available time domain sgbursts for
     the given processing scheme.
     """
+    if scheme is None:
+        scheme = _scheme.mgr.state
     return list(sgburst_wav[type(scheme)].keys())
 
 
-def filter_approximants(scheme=_scheme.mgr.state):
+def filter_approximants(scheme=None):
     """Return a list of fourier domain approximants including those
     written specifically as templates.
     """
+    if scheme is None:
+        scheme = _scheme.mgr.state
     return list(filter_wav[type(scheme)].keys())
 
 
@@ -591,7 +671,24 @@ fd_det = {}
 
 def _lalsim_fd_sequence(**p):
     """Shim to interface to lalsimulation SimInspiralChooseFDWaveformSequence"""
+    using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
+    if using_torch:
+        native_waveform = try_torch_native_waveform(
+            "sequence",
+            p,
+        )
+        if native_waveform is not None:
+            return native_waveform
     lal_pars = _check_lal_pars(p)
+    sample_points = p["sample_points"]
+    if sample_points.dtype == numpy.dtype(numpy.float32):
+        # MPS stores real arrays as float32. The LAL sequence API requires a
+        # REAL8 vector, so widen only when this CPU fallback is actually used.
+        lal_sample_points = lal.CreateREAL8Vector(len(sample_points))
+        lal_sample_points.data[:] = sample_points.numpy()
+    else:
+        lal_sample_points = sample_points.lal()
+
     hp, hc = lalsimulation.SimInspiralChooseFDWaveformSequence(
         float(p["coa_phase"]),
         float(pnutils.solar_mass_to_kg(p["mass1"])),
@@ -607,9 +704,12 @@ def _lalsim_fd_sequence(**p):
         float(p["inclination"]),
         lal_pars,
         _lalsim_enum[p["approximant"]],
-        p["sample_points"].lal(),
+        lal_sample_points,
     )
-    return Array(hp.data.data), Array(hc.data.data)
+    return (
+        Array(_lal_output_for_active_scheme(hp.data.data)),
+        Array(_lal_output_for_active_scheme(hc.data.data)),
+    )
 
 
 _lalsim_fd_sequence.required = parameters.cbc_fd_required
@@ -642,15 +742,27 @@ def get_fd_waveform_sequence(template=None, **kwds):
     input_params = props(template, **kwds)
     input_params["delta_f"] = -1
     input_params["f_lower"] = -1
-    if input_params["approximant"] not in fd_sequence:
-        raise ValueError("Approximant %s not available" % (input_params["approximant"]))
-    wav_gen = fd_sequence[input_params["approximant"]]
+    approximant = input_params["approximant"]
+    wav_gen = fd_sequence.get(approximant)
+    if isinstance(
+        _scheme.mgr.state, _scheme.TorchScheme
+    ) and approximant in native_approximants("sequence"):
+        wav_gen = _lalsim_fd_sequence
+    if wav_gen is None:
+        raise ValueError("Approximant %s not available" % approximant)
     if hasattr(wav_gen, "required"):
         required = wav_gen.required
     else:
         required = parameters.fd_required
     if not isinstance(input_params["sample_points"], Array):
-        input_params["sample_points"] = Array(input_params["sample_points"])
+        sample_dtype = None
+        state = _scheme.mgr.state
+        if isinstance(state, _scheme.TorchScheme) and state.torch_device.type == "mps":
+            sample_dtype = numpy.float32
+        input_params["sample_points"] = Array(
+            input_params["sample_points"],
+            dtype=sample_dtype,
+        )
     check_args(input_params, required)
     return wav_gen(**input_params)
 
@@ -726,7 +838,10 @@ def get_td_waveform(template=None, **kwargs):
     else:
         required = parameters.td_required
     check_args(input_params, required)
-    return wav_gen(**input_params)
+    hp, hc = wav_gen(**input_params)
+    hp = wfutils.scheme_cast_series(hp)
+    hc = wfutils.scheme_cast_series(hc)
+    return hp, hc
 
 
 get_td_waveform.__doc__ = get_td_waveform.__doc__.format(
@@ -777,7 +892,10 @@ def get_fd_waveform(template=None, **kwargs):
     else:
         required = parameters.fd_required
     check_args(input_params, required)
-    return wav_gen(**input_params)
+    hp, hc = wav_gen(**input_params)
+    hp = wfutils.scheme_cast_series(hp)
+    hc = wfutils.scheme_cast_series(hc)
+    return hp, hc
 
 
 get_fd_waveform.__doc__ = get_fd_waveform.__doc__.format(
@@ -805,7 +923,7 @@ def get_fd_waveform_from_td(**params):
         Cross polarization time series
     """
     nparams = params.copy()
-    if not "taper_method" in params:
+    if "taper_method" not in params:
         # determine the duration to use for an automatic tapering choice.
         # If taper method specified, assume they have set f_lower as they
         # want exactly.
@@ -844,7 +962,7 @@ def get_fd_waveform_from_td(**params):
     hp.resize(tsamples)
     hc.resize(tsamples)
 
-    if not "taper_method" in params:
+    if "taper_method" not in params:
         # apply the tapering, we will use a safety factor here to allow for
         # somewhat inaccurate duration difference estimation.
         window = (full_duration - duration) * 0.8
@@ -1070,8 +1188,7 @@ def get_interpolated_fd_waveform(dtype=numpy.complex64, return_hc=True, **params
         err_msg = "Waveform duration must be greater than 0."
         raise ValueError(err_msg)
 
-    # FIXME We should try to get this length directly somehow
-    # I think this number should be conservative
+    # Use conservative padding until the ringdown duration is available.
     ringdown_padding = 0.5
 
     df_min = 1.0 / rulog2(duration + ringdown_padding)
@@ -1168,6 +1285,7 @@ filter_wav.update(
         _scheme.CPUScheme: _inspiral_fd_filters,
         _scheme.CUDAScheme: _cuda_fd_filters,
         _scheme.CUPYScheme: _cupy_fd_filters,
+        _scheme.TorchScheme: {},
     }
 )
 
@@ -1292,7 +1410,7 @@ apx_name = "SpinTaylorF2_SWAPPER"
 cpu_fd[apx_name] = _spintaylor_aligned_prec_swapper
 _filter_time_lengths[apx_name] = _filter_time_lengths["SpinTaylorF2"]
 
-from .nltides import nonlinear_tidal_spa
+from .nltides import nonlinear_tidal_spa  # noqa: E402 - register after core generators
 
 cpu_fd["TaylorF2NL"] = nonlinear_tidal_spa
 
@@ -1349,9 +1467,37 @@ for apx in list(_filter_time_lengths.keys()) + list(cpu_fd.keys()):
 
 td_wav = _scheme.ChooseBySchemeDict()
 fd_wav = _scheme.ChooseBySchemeDict()
-td_wav.update({_scheme.CPUScheme: cpu_td, _scheme.CUDAScheme: cuda_td})
-fd_wav.update({_scheme.CPUScheme: cpu_fd, _scheme.CUDAScheme: cuda_fd})
-sgburst_wav = {_scheme.CPUScheme: cpu_sgburst}
+torch_td = dict(cpu_td)
+torch_fd = dict(cpu_fd)
+for approximant in native_approximants("fd"):
+    torch_fd[approximant] = _lalsim_fd_waveform
+    if approximant in _filter_time_lengths:
+        interpolated = f"{approximant}_INTERP"
+        torch_fd[interpolated] = get_interpolated_fd_waveform
+        _filter_time_lengths[interpolated] = _filter_time_lengths[approximant]
+        torch_td[approximant] = get_td_waveform_from_fd
+
+td_wav.update(
+    {
+        _scheme.CPUScheme: cpu_td,
+        _scheme.CUDAScheme: cuda_td,
+        _scheme.TorchScheme: torch_td,
+    }
+)
+fd_wav.update(
+    {
+        _scheme.CPUScheme: cpu_fd,
+        _scheme.CUDAScheme: cuda_fd,
+        _scheme.TorchScheme: torch_fd,
+    }
+)
+sgburst_wav = _scheme.ChooseBySchemeDict()
+sgburst_wav.update(
+    {
+        _scheme.CPUScheme: cpu_sgburst,
+        _scheme.TorchScheme: cpu_sgburst,
+    }
+)
 
 
 def get_waveform_filter(out, template=None, **kwargs):
