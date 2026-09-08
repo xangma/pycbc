@@ -1,3 +1,9 @@
+# Fresh Torch benchmark, 2026-09-08
+
+Latest results: [fresh complete-executable timings](torch-fresh-benchmark/README.md). Four qualifications and 16 timed runs passed; original CPU is unchanged. Earlier sections below are historical snapshots.
+
+---
+
 # Torch documentation cleanup, 2026-09-08
 
 [Cleaned guides and source mapping](torch-docs-cleanup/README.md). Documentation only; scientific evidence below is unchanged.

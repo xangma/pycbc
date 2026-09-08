@@ -1,0 +1,23 @@
+	Command being timed: "taskset -c 8 /home/xangma/pycbc-torch-split-20260905/venv/bin/python /home/xangma/pycbc-torch-fresh-benchmark-20260908/checked-inspiral.py --receipt /home/xangma/pycbc-torch-fresh-benchmark-20260908/runs/timing-torch-cpu-r4/runtime.json --config /home/xangma/pycbc-torch-fresh-benchmark-20260908/config.json --source /home/xangma/pycbc-torch-fresh-benchmark-20260908/proposed --scheme torch:cpu:1 --lock-fd 4 -- /home/xangma/pycbc-torch-fresh-benchmark-20260908/proposed/bin/pycbc_inspiral --verbose --frame-files /home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf --channel-name H1:LOSC-STRAIN --gps-start-time 1187007048 --gps-end-time 1187009080 --trig-start-time 1187007160 --trig-end-time 1187009064 --sample-rate 4096 --low-frequency-cutoff 30 --strain-high-pass 25 --pad-data 8 --autogating-threshold 100 --autogating-cluster 5 --autogating-width 0.25 --autogating-taper 0.25 --autogating-pad 16 --autogating-max-iterations 1 --psd-estimation median --psd-segment-length 32 --psd-segment-stride 16 --psd-num-segments 126 --psd-inverse-length 16 --invpsd-trunc-method hann --invpsd-trunc-which-spectrum invasd --approximant IMRPhenomD --order -1 --use-compressed-waveforms --waveform-decompression-method inline_linear --snr-threshold 5.5 --newsnr-threshold 5 --chisq-bins 16 --cluster-window 1 --cluster-function symmetric --fft-backends mkl --bank-file /home/xangma/pycbc-torch-reference-protocol-20260907/inputs/bank-compressed.hdf --processing-scheme torch:cpu:1 --segment-length 512 --segment-start-pad 112 --segment-end-pad 16 --output /home/xangma/pycbc-torch-fresh-benchmark-20260908/runs/timing-torch-cpu-r4/triggers.hdf"
+	User time (seconds): 100.34
+	System time (seconds): 3.09
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:43.53
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1234016
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 760638
+	Voluntary context switches: 335
+	Involuntary context switches: 679
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 1408
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
