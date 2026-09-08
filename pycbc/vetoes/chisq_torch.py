@@ -302,9 +302,7 @@ def _search_compat_array_eligible(value, numpy_dtypes, torch_dtypes):
     """Whether a plain search array can be evaluated by the CPU kernel."""
     if type(value) is np.ndarray:
         return (
-            value.dtype in numpy_dtypes
-            and value.ndim == 1
-            and value.flags.c_contiguous
+            value.dtype in numpy_dtypes and value.ndim == 1 and value.flags.c_contiguous
         )
     return (
         type(value) is torch.Tensor
@@ -342,7 +340,8 @@ def _search_compat_point_chisq(corr, points, bin_edges, snr, snr_norm):
         type(snr_norm) in (float, int, np.float32, np.float64)
         and _search_compat_array_eligible(corr, (), (torch.complex64,))
         and _search_compat_array_eligible(
-            points, (np.dtype(np.int64), np.dtype(np.float64)),
+            points,
+            (np.dtype(np.int64), np.dtype(np.float64)),
             (torch.int64, torch.float64),
         )
         and _search_compat_array_eligible(
@@ -354,7 +353,9 @@ def _search_compat_point_chisq(corr, points, bin_edges, snr, snr_norm):
         and 2 <= len(bin_edges) <= _CPU_NATIVE_INT_MAX + 1
         and 0 <= bin_edges[0] <= bin_edges[-1] <= corr.numel()
         and bin_edges[-1] <= _CPU_NATIVE_UINT_MAX
-        and all(start <= end for start, end in zip(bin_edges, bin_edges[1:]))
+        and all(
+            start <= end for start, end in zip(bin_edges, bin_edges[1:], strict=False)
+        )
     ):
         return None
 
@@ -369,14 +370,17 @@ def _search_compat_point_chisq(corr, points, bin_edges, snr, snr_norm):
     num_bins = len(bin_edges) - 1
     chisq = np.zeros(len(shifts), dtype=np.float32)
     point_chisq_code(
-        chisq, corr_host, len(shifts), len(corr_host), shifts,
-        _cpu_native_bins(bin_edges), num_bins,
+        chisq,
+        corr_host,
+        len(shifts),
+        len(corr_host),
+        shifts,
+        _cpu_native_bins(bin_edges),
+        num_bins,
     )
     # Keep the original expression and scalar type: rounding the norm before
     # squaring or folding the SNR subtraction into the accumulator changes it.
-    chisq = (chisq * num_bins - (snr_host.conj() * snr_host).real) * (
-        snr_norm ** 2.0
-    )
+    chisq = (chisq * num_bins - (snr_host.conj() * snr_host).real) * (snr_norm**2.0)
     return torch.from_numpy(chisq).to(device=corr.device)
 
 
