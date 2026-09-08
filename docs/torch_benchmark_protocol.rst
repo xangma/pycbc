@@ -4,27 +4,19 @@ Controlled executable benchmark protocol
 ========================================
 
 Use this protocol for unchanged CPU
-``40e94792b3edf59f39b18b65102b28a4f74433a7`` versus the restored stack in
-:ref:`torch-performance`. Preserving existing CPU behavior is a requirement;
-CPU arithmetic changes such as PR #20 cannot become a prerequisite or replace
-the reference. A result is eligible for a
-sustained-capacity claim only after workload convergence, scientific
-qualification and host-load checks
-have passed. Missing evidence remains explicit; a plausible profile or the
+``40e94792b3edf59f39b18b65102b28a4f74433a7`` versus a candidate Torch revision.
+Check preservation of existing CPU behavior separately from Torch agreement.
+A result is eligible for a sustained-capacity claim only after workload
+convergence, scientific qualification and host-load checks have passed.
+Missing evidence remains explicit; a plausible profile or the
 expected templates/core rate is not an acceptance test.
 
 Reference and scientific scope
 ------------------------------
 
-#. Prepare clean checkouts of unchanged CPU ``40e94792b3`` and the verified
-   restored main using the same environment. Use the exact measured source
-   and receipts in :ref:`torch-current-qualification` for the Torch
-   compatibility implementation. The
-   `immutable restoration evidence <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_
-   records the historical ``aa6b795a63`` comparison, including its failures;
-   it does not qualify the later behavior changes.
-   Check the restored normal CPU against the original before interpreting
-   Torch results.
+#. Prepare clean checkouts of unchanged CPU ``40e94792b3`` and the candidate
+   revision using the same environment. Check candidate normal CPU against
+   the original before interpreting Torch results.
    Record native build provenance, executable and input hashes, dependency
    versions and the complete command. Use ``cpu:1``, MKL FFTs, compressed
    low-mass waveforms and one numerical-library thread for the normal reference.
@@ -32,8 +24,7 @@ Reference and scientific scope
    documentation changes. Record the final publication head and verify the
    exact changed-file set. For formatting-only differences, check complete
    module AST equality and byte identity outside the declared formatting and
-   documentation files. Production restoration requires its own audit and
-   tests; earlier source-equivalence receipts do not cover new changes.
+   documentation files. Behavior changes require new qualification.
 #. Declare how the CPU reference geometry was selected before measuring Torch.
    Retain the geometry already selected on unchanged CPU and record its
    input/geometry receipts for the new source pair. For a new tuning
@@ -45,13 +36,13 @@ Reference and scientific scope
    Duration bounds alone do not prove boundary correctness. A conservative
    fixed end pad is a declared constraint, not an end-padding optimum.
 #. Freeze the selected geometry for matched backend comparisons. Include
-   original CPU, restored normal CPU, Torch CPU and Torch CUDA separately.
+   original CPU, candidate normal CPU, Torch CPU and Torch CUDA separately.
    Re-tuning each backend is a different experiment and needs its own table.
    Compare trigger identities, SNR, phase and chi-square under unchanged
    tolerances. Compare full PSD arrays, conditioned strain and segment
    geometry as well as the used PSD slice. Compare the original with all
-   three restored routes, plus restored normal CPU with both Torch routes.
-   Preserve historical failures with their original source pins. Do not change
+   three candidate routes, plus candidate normal CPU with both Torch routes.
+   Preserve failed comparisons with their original source pins. Do not change
    CPU arithmetic or relax tolerances to obtain agreement with an oracle.
    Compare scientific datasets and metadata. Exclude explicitly listed runtime
    timing fields from scientific verdicts and retain their raw values separately;
@@ -63,19 +54,9 @@ Reference and scientific scope
 Require all frozen scientific gates to pass before equivalent-output timing.
 Stop on a failed gate and report it. Any separately authorized descriptive
 measurement after failure must declare its policy, scope and retained failures;
-it cannot establish equivalent-output speedup. The historical restoration
-campaign at ``aa6b795a63`` stopped after failed Torch qualification and
-collected no performance samples; original CPU versus restored normal CPU
-preservation passed. Current qualification is recorded separately in
-:ref:`torch-current-qualification`. CPU staging in the compatibility routes
-belongs inside each applicable timing boundary, including its CUDA transfers.
-Qualification processes are not new performance samples.
-
-The **superseded corrected-CPU campaign** stopped on a full-PSD failure below
-30 Hz, then used an explicitly recorded post-qualification amendment for
-descriptive timing. Retain that amendment with its historical results in
-:ref:`torch-performance`; it does not apply automatically to new source or
-new failures.
+it cannot establish equivalent-output speedup. Include host work and device
+transfers inside the applicable timing boundary. Qualification processes are
+not performance samples.
 
 Separate live-filter API measurements
 -------------------------------------
@@ -138,8 +119,6 @@ Run these distinct CPU experiments using identical per-worker commands:
 * One single-thread worker on an otherwise idle, reserved host.
 * N simultaneous single-thread workers, where N is the number of physical
   cores available on the reserved host, with one logical CPU per physical core.
-  The recorded ``len`` topology has 64 physical cores and 128 logical CPUs;
-  use 64 workers only when all those physical cores are available and reserved.
 
 Use a common start barrier, separate output directories and repeated runs.
 Report per-worker timings, the distribution across workers, concurrent
@@ -190,12 +169,9 @@ execution and planning separately, plus correlation, chi-square, thresholding,
 decompression and the measured remainder. FFT dominance is a hypothesis to
 check, not a shape to force onto results.
 
-Publish unchanged-CPU and restored-revision results together for each defined
+Publish original-CPU and candidate-revision results together for each defined
 workload, with source revisions, CPU-preservation evidence, timing boundaries,
-resource counts and every correctness verdict. Keep the CPU-correction cost
-experiment and earlier proposal comparisons explicitly superseded for the
-restored stack; their source pins, failures and timings remain historical
-evidence. Keep intermediate
-optimization experiments in the evidence archive, outside the main PR comparison. Retain
-raw successful and failed receipts, source/input hashes, qualification,
-profiles, load records and the renderer manifest in an immutable archive.
+resource counts and every correctness verdict. Keep intermediate optimization
+experiments in the evidence archive. Retain raw successful and failed
+receipts, source/input hashes, qualification, profiles, load records and the
+renderer manifest in an immutable archive.

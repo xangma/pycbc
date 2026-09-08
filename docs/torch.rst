@@ -10,18 +10,15 @@ device does not make an entire application run there.
 Quick start
 -----------
 
-These guides describe the Torch feature stack. From a checkout containing
-those changes, install the optional dependency, following :doc:`install`
-for PyCBC's other dependencies:
+From a PyCBC checkout, install the optional dependency, following
+:doc:`install` for PyCBC's other dependencies:
 
 .. code-block:: console
 
    python -m pip install -e ".[torch]"
 
-Installing a published PyCBC release does not necessarily include changes
-that are still under review. PyCBC requires Python 3.11 or newer; this
-checkout's extra declares ``torch>=2.6,<2.14``. This
-range is an installation constraint, not a guarantee that every combination
+PyCBC requires Python 3.11 or newer; the extra declares ``torch>=2.6,<2.14``.
+This range is an installation constraint, not a guarantee that every combination
 has been tested. The extra does not select a CUDA-specific wheel; use the
 `PyTorch installer <https://pytorch.org/get-started/locally/>`_ for your runtime.
 
@@ -116,9 +113,6 @@ unsupported operation with no valid route raises an error.
 
 An accelerator output does not prove that every intermediate stayed on that
 device. Support also does not imply autograd through the complete operation.
-The original-CPU compatibility routes stage eligible single-precision PSD
-estimation, strain FFT, cumulative-power and sparse chi-square work through
-host memory; see :ref:`torch-current-qualification` for their scope and evidence.
 Optional switches still obey these limits; see :ref:`torch-optimizations`
 for defaults and how to disable them.
 
@@ -197,14 +191,12 @@ corresponding maintainer guide:
    torch_parity
    torch_workflows
 
-For PR review, start with the existing-code versus proposed-Torch comparison.
-The executable definition gives the frozen workload and reproduction inputs;
-the protocol gives timing, correctness and resource controls, including the
-separate live-filter numerical method.
+For performance measurements, choose a timing boundary and workload, then
+follow the benchmark protocol for correctness and resource controls.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Torch benchmark comparison
+   :caption: Torch benchmarking
 
    torch_performance
    torch_reference_campaign

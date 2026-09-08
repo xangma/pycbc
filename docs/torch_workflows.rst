@@ -34,8 +34,7 @@ Change checklist
    CI or runner provenance.
    Include the exact source revision, command, job URL, runner metadata, and
    plot generator. Render into a review directory, publish raw artifacts with
-   the figures, and review every caption. Current results are in
-   :ref:`torch-performance`.
+   the figures, and review every caption.
 #. **Review default changes separately.** Follow the promotion policy in
    :ref:`torch-optimizations`, including automatic device CI, regression bounds,
    and a verified fallback and rollback. Limit changes to the device, dtype,
