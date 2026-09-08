@@ -234,19 +234,22 @@ def read_frame(
 
     lalframe.FrStreamSetMode(stream, stream.mode)
 
-    # determine duration of data
     if type(channels) is list:
         first_channel = channels[0]
     else:
         first_channel = channels
 
-    data_length = lalframe.FrStreamGetVectorLength(first_channel, stream)
-    channel_type = lalframe.FrStreamGetTimeSeriesType(first_channel, stream)
-    create_series_func = _fr_type_map[channel_type][2]
-    get_series_metadata_func = _fr_type_map[channel_type][3]
-    series = create_series_func(first_channel, stream.epoch, 0, 0, lal.ADCCountUnit, 0)
-    get_series_metadata_func(series, stream)
-    data_duration = (data_length + 0.5) * series.deltaT
+    # Metadata is only needed to determine bounds omitted by the caller.
+    if start_time is None or end_time is None:
+        data_length = lalframe.FrStreamGetVectorLength(first_channel, stream)
+        channel_type = lalframe.FrStreamGetTimeSeriesType(first_channel, stream)
+        create_series_func = _fr_type_map[channel_type][2]
+        get_series_metadata_func = _fr_type_map[channel_type][3]
+        series = create_series_func(
+            first_channel, stream.epoch, 0, 0, lal.ADCCountUnit, 0
+        )
+        get_series_metadata_func(series, stream)
+        data_duration = (data_length + 0.5) * series.deltaT
 
     if start_time is None:
         start_time = stream.epoch * 1

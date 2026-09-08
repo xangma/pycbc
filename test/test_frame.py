@@ -27,11 +27,17 @@ These are the unittests for the pycbc frame/cache reading functions
 
 
 import unittest
+from unittest import mock
+from pathlib import Path
+import tempfile
+import lal
+import lalframe
 import numpy
 from pycbc.io import get_file
 
 import pycbc
 import pycbc.frame
+from pycbc.frame import frame
 from pycbc.types import TimeSeries
 from utils import parse_args_cpu_only, simple_exit
 
@@ -58,6 +64,109 @@ class FrameTestBase(unittest.TestCase):
                                          epoch=self.epoch,delta_t=self.delta_t)
         self.expected_data2 = TimeSeries(self.data2,dtype=self.dtype,
                                          epoch=self.epoch,delta_t=self.delta_t)
+
+    def _write_test_frames(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        middle = self.size // 2
+        files = []
+        for number, section in enumerate((slice(None, middle),
+                                          slice(middle, None))):
+            path = root / f'frame-{number}.gwf'
+            pycbc.frame.write_frame(
+                str(path), ['channel1', 'channel2'],
+                [self.expected_data1[section], self.expected_data2[section]])
+            files.append(str(path))
+        cache = root / 'frames.cache'
+        frame_duration = int(middle * self.delta_t)
+        cache.write_text(''.join(
+            f'H TEST {int(self.epoch) + i * frame_duration} '
+            f'{frame_duration} file://localhost{path}\n'
+            for i, path in enumerate(files)))
+        return root, files, str(cache)
+
+    def test_explicit_bounds_skip_duration_metadata(self):
+        root, files, cache = self._write_test_frames()
+        middle = self.size // 2
+        across_frames = slice(middle - 3, middle + 7)
+        cases = ((files[0], 'channel1', slice(3, 11)),
+                 (list(reversed(files)), ['channel1', 'channel2'],
+                  across_frames),
+                 (str(root / '*.gwf'), ['channel1', 'channel2'],
+                  across_frames),
+                 (cache, ['channel2', 'channel1'], across_frames))
+        no_metadata = mock.Mock(side_effect=AssertionError(
+            'explicit bounds must not query duration metadata'))
+        real_get_type = lalframe.FrStreamGetTimeSeriesType
+        real_set_mode = lalframe.FrStreamSetMode
+        type_map = {key: [*value[:2], no_metadata, no_metadata, *value[4:]]
+                    for key, value in frame._fr_type_map.items()}
+        for location, channels, section in cases:
+            start = lal.LIGOTimeGPS(self.epoch + section.start * self.delta_t)
+            end = lal.LIGOTimeGPS(self.epoch + section.stop * self.delta_t)
+            with self.subTest(location=location, channels=channels), \
+                    mock.patch.object(lalframe, 'FrStreamGetVectorLength',
+                                      no_metadata), \
+                    mock.patch.dict(frame._fr_type_map, type_map), \
+                    mock.patch.object(lalframe, 'FrStreamGetTimeSeriesType',
+                                      wraps=real_get_type) as get_type, \
+                    mock.patch.object(lalframe, 'FrStreamSetMode',
+                                      wraps=real_set_mode) as mode, \
+                    mock.patch.object(lal, 'CacheSieve',
+                                      wraps=lal.CacheSieve) as sieve:
+                result = pycbc.frame.read_frame(
+                    location, channels, start_time=start, end_time=end,
+                    check_integrity=True, sieve=r'/frame-')
+                names = channels if type(channels) is list else [channels]
+                results = result if type(channels) is list else [result]
+                self.assertEqual(get_type.call_count, len(names))
+                self.assertTrue(mode.call_args.args[1] &
+                                lalframe.FR_STREAM_CHECKSUM_MODE)
+                self.assertEqual(sieve.call_args_list[0].args[-1], r'/frame-')
+                self.assertEqual(sieve.call_count, 2)
+                for name, actual in zip(names, results):
+                    expected = (self.expected_data1 if name == 'channel1'
+                                else self.expected_data2)[section]
+                    self.assertEqual(actual, expected)
+                    self.assertEqual(actual.dtype, expected.dtype)
+                    self.assertEqual(actual.start_time, expected.start_time)
+                    self.assertEqual(actual.delta_t, expected.delta_t)
+
+    def test_omitted_bounds_keep_duration_metadata(self):
+        _, files, _ = self._write_test_frames()
+        middle = self.size // 2
+        cases = (({}, slice(0, middle)),
+                 ({'start_time': self.epoch}, slice(0, middle)),
+                 ({'end_time': self.epoch + 4}, slice(0, 8)),
+                 ({'duration': 4}, slice(0, 8)),
+                 ({'start_time': self.epoch + 1, 'duration': 4}, slice(2, 10)))
+        for kwargs, section in cases:
+            with self.subTest(kwargs=kwargs), mock.patch.object(
+                    lalframe, 'FrStreamGetVectorLength',
+                    wraps=lalframe.FrStreamGetVectorLength) as metadata:
+                actual = pycbc.frame.read_frame(files[0], 'channel1', **kwargs)
+                metadata.assert_called_once()
+                expected = self.expected_data1[section]
+                self.assertEqual(actual, expected)
+                self.assertEqual(actual.dtype, expected.dtype)
+                self.assertEqual(actual.start_time, expected.start_time)
+                self.assertEqual(actual.delta_t, expected.delta_t)
+
+    def test_bounded_read_validation(self):
+        _, files, _ = self._write_test_frames()
+        for kwargs in ({'end_time': self.epoch},
+                       {'end_time': self.epoch - 1},
+                       {'end_time': self.epoch + 1, 'duration': 1}):
+            with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
+                pycbc.frame.read_frame(files[0], 'channel1',
+                                      start_time=self.epoch, **kwargs)
+        with self.assertRaises(IndexError):
+            pycbc.frame.read_frame(files[0], [], start_time=self.epoch,
+                                  end_time=self.epoch + 1)
+        with self.assertRaises(RuntimeError):
+            pycbc.frame.read_frame(files[0], 'missing', start_time=self.epoch,
+                                  end_time=self.epoch + 1)
 
     def test_frame(self):
         # TODO also test reading a cache
