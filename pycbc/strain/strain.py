@@ -53,6 +53,7 @@ from pycbc.types import (
     zeros,
 )
 from pycbc.types.backend import backend_array, is_backend, wrap_backend_array
+from pycbc.types.torch_compat import cpu_compatible, cpu_context
 from pycbc.waveform.spa_tmplt import spa_distance
 
 logger = logging.getLogger("pycbc.strain.strain")
@@ -1642,11 +1643,24 @@ class StrainSegments(object):
                 elif seg_slice.stop > len(self.strain):
                     strain_chunk = self.strain[seg_slice.start :]
                     strain_chunk.append_zeros(seg_slice.stop - len(self.strain))
-                if promote:
+                if cpu_compatible(strain_chunk):
+                    # The original single-precision CPU FFT defines search
+                    # compatibility, including rounding near strong lines.
+                    values = strain_chunk.numpy().copy()
+                    delta_t, epoch = strain_chunk.delta_t, strain_chunk.start_time
+                    with cpu_context():
+                        host_chunk = TimeSeries(values, delta_t=delta_t, epoch=epoch)
+                        host_freq = make_frequency_series(host_chunk)
+                        values = host_freq.numpy().copy()
+                        delta_f, epoch = host_freq.delta_f, host_freq.epoch
+                    freq_seg = FrequencySeries(values, delta_f=delta_f, epoch=epoch)
+                elif promote:
                     # Strong lines can obscure weak Torch FFT bins in float32.
                     # Retain the segment's public precision and device.
                     strain_chunk = strain_chunk.astype(numpy.float64)
-                freq_seg = make_frequency_series(strain_chunk)
+                    freq_seg = make_frequency_series(strain_chunk)
+                else:
+                    freq_seg = make_frequency_series(strain_chunk)
                 if promote or not isinstance(state, _scheme.CPUScheme):
                     freq_seg = freq_seg.astype(output_dtype)
                 freq_seg.analyze = ana
