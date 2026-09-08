@@ -6,4 +6,4 @@ Strict Sphinx built all 19 scoped pages successfully using the measured runtime.
 
 The separate optional CPU optimization leaf passed 266 tests with 42 skipped. Its [receipt](optional-pr17/provenance.json) pins the tested head, native sources and reused binaries; [XML](optional-pr17/pytest.xml) and logs are retained. This leaf and the optional FFT leaf remain outside the four-route executable qualification.
 
-Original CPU and the withdrawn PR20 remain outside the changes. Publication keeps all existing PR numbers, branch names, draft states and agent-assisted labels. Review descriptions and live publication verification are retained by the publishing workspace.
+Original CPU and the withdrawn PR20 remain outside the changes. Publication keeps all existing PR numbers, branch names, draft states and agent-assisted labels. [Published PR descriptions](pr-descriptions/) and the [live GitHub verification receipt](publication-verification.json) record the completed update.
