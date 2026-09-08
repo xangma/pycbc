@@ -43,6 +43,11 @@ from .array_torch_numpy import (
     _torch_round_decimals,
 )
 
+try:
+    from .array_cpu import inner_real
+except ImportError:
+    inner_real = None
+
 
 class TorchArrayData(TorchArrayNumpyCompatibilityMixin):
     """Lightweight wrapper around a torch tensor with numpy dtype semantics."""
@@ -207,53 +212,97 @@ class TorchArrayData(TorchArrayNumpyCompatibilityMixin):
         return self._wrap(torch.abs(self.tensor))
 
     def __add__(self, other):
+        if isinstance(other, (int, float, complex, np.number, np.bool_)):
+            target_np = np.result_type(self.dtype, type(other))
+            target_torch = _torch_dtype(target_np)
+            return self._wrap(self.tensor.to(dtype=target_torch) + other)
         a, b, _ = self._promote_with(other)
         return self._wrap(a + b)
 
     def __radd__(self, other):
+        if isinstance(other, (int, float, complex, np.number, np.bool_)):
+            target_np = np.result_type(self.dtype, type(other))
+            target_torch = _torch_dtype(target_np)
+            return self._wrap(other + self.tensor.to(dtype=target_torch))
         a, b, _ = self._promote_with(other)
         return self._wrap(a + b)
 
     def __iadd__(self, other):
+        if isinstance(other, (int, float, complex, np.number, np.bool_)):
+            self.tensor += other
+            return self
         other_t, _ = _tensor_from_any(other, self.tensor.device)
         self.tensor += other_t
         return self
 
     def __sub__(self, other):
+        if isinstance(other, (int, float, complex, np.number, np.bool_)):
+            target_np = np.result_type(self.dtype, type(other))
+            target_torch = _torch_dtype(target_np)
+            return self._wrap(self.tensor.to(dtype=target_torch) - other)
         a, b, _ = self._promote_with(other)
         return self._wrap(a - b)
 
     def __rsub__(self, other):
+        if isinstance(other, (int, float, complex, np.number, np.bool_)):
+            target_np = np.result_type(self.dtype, type(other))
+            target_torch = _torch_dtype(target_np)
+            return self._wrap(other - self.tensor.to(dtype=target_torch))
         a, b, _ = self._promote_with(other)
         return self._wrap(b - a)
 
     def __isub__(self, other):
+        if isinstance(other, (int, float, complex, np.number, np.bool_)):
+            self.tensor -= other
+            return self
         other_t, _ = _tensor_from_any(other, self.tensor.device)
         self.tensor -= other_t
         return self
 
     def __mul__(self, other):
+        if isinstance(other, (int, float, complex, np.number, np.bool_)):
+            target_np = np.result_type(self.dtype, type(other))
+            target_torch = _torch_dtype(target_np)
+            return self._wrap(self.tensor.to(dtype=target_torch) * other)
         a, b, _ = self._promote_with(other)
         return self._wrap(a * b)
 
     def __rmul__(self, other):
+        if isinstance(other, (int, float, complex, np.number, np.bool_)):
+            target_np = np.result_type(self.dtype, type(other))
+            target_torch = _torch_dtype(target_np)
+            return self._wrap(other * self.tensor.to(dtype=target_torch))
         a, b, _ = self._promote_with(other)
         return self._wrap(a * b)
 
     def __imul__(self, other):
+        if isinstance(other, (int, float, complex, np.number, np.bool_)):
+            self.tensor *= other
+            return self
         other_t, _ = _tensor_from_any(other, self.tensor.device)
         self.tensor *= other_t
         return self
 
     def __truediv__(self, other):
+        if isinstance(other, (int, float, complex, np.number, np.bool_)):
+            target_np = np.result_type(self.dtype, type(other))
+            target_torch = _torch_dtype(target_np)
+            return self._wrap(self.tensor.to(dtype=target_torch) / other)
         a, b, _ = self._promote_with(other)
         return self._wrap(a / b)
 
     def __rtruediv__(self, other):
+        if isinstance(other, (int, float, complex, np.number, np.bool_)):
+            target_np = np.result_type(self.dtype, type(other))
+            target_torch = _torch_dtype(target_np)
+            return self._wrap(other / self.tensor.to(dtype=target_torch))
         a, b, _ = self._promote_with(other)
         return self._wrap(b / a)
 
     def __itruediv__(self, other):
+        if isinstance(other, (int, float, complex, np.number, np.bool_)):
+            self.tensor /= other
+            return self
         other_t, _ = _tensor_from_any(other, self.tensor.device)
         self.tensor /= other_t
         return self
@@ -989,6 +1038,27 @@ def abs_arg_max(self):
     return int(idx.item())
 
 
+def _is_autograd_active(a, b):
+    if a.requires_grad or b.requires_grad:
+        return True
+    try:
+        if (
+            torch._C._functorch.is_functorch_wrapped_tensor(a)
+            or torch._C._functorch.is_functorch_wrapped_tensor(b)
+        ):
+            return True
+    except AttributeError:
+        pass
+    try:
+        if torch.autograd.forward_ad.unpack_dual(a).tangent is not None:
+            return True
+        if torch.autograd.forward_ad.unpack_dual(b).tangent is not None:
+            return True
+    except (AttributeError, RuntimeError):
+        pass
+    return False
+
+
 def inner(self, other):
     a = self._data.tensor
     b, b_np = _tensor_from_any(other, a.device)
@@ -997,13 +1067,39 @@ def inner(self, other):
     is_same = (
         self is other or a is b or (a.data_ptr() == b.data_ptr() and a.shape == b.shape)
     )
+
+    complex_result = a.dtype.is_complex or b.dtype.is_complex
+    accum_dtype = _accumulation_dtype(a, complex_result=complex_result)
+
+    if (
+        a.ndim == 1
+        and b.ndim == 1
+        and a.shape == b.shape
+        and a.dtype == b.dtype
+        and not _is_autograd_active(a, b)
+    ):
+        if is_same and a.is_complex():
+            return torch.vdot(a, a).real.item()
+        if a.dtype.is_complex:
+            if a.dtype == accum_dtype:
+                return torch.vdot(a, b).item()
+        else:
+            if (
+                a.device.type == "cpu"
+                and inner_real is not None
+                and a.dtype in (torch.float32, torch.float64)
+                and a.is_contiguous()
+                and b.is_contiguous()
+            ):
+                return float(inner_real(a.numpy(), b.numpy()))
+            if a.dtype == accum_dtype or a.dtype in (torch.int32, torch.int64):
+                return torch.dot(a, b).item()
+
     if is_same and a.is_complex():
         accum_dtype = _accumulation_dtype(a, complex_result=False)
         sq_mag = torch.view_as_real(a).square().sum(dim=-1)
         return torch.sum(sq_mag, dtype=accum_dtype).item()
 
-    complex_result = a.dtype.is_complex or b.dtype.is_complex
-    accum_dtype = _accumulation_dtype(a, complex_result=complex_result)
     if complex_result:
         acc = torch.sum(torch.conj(a) * b, dtype=accum_dtype)
     else:
@@ -1015,6 +1111,30 @@ def vdot(self, other):
     a = self._data.tensor
     b, b_np = _tensor_from_any(other, a.device)
     a, b, _ = _promote_tensors(a, self._data.dtype, b, b_np)
+
+    if (
+        a.ndim == 1
+        and b.ndim == 1
+        and a.shape == b.shape
+        and a.dtype == b.dtype
+        and not _is_autograd_active(a, b)
+    ):
+        if a.dtype.is_complex:
+            return torch.vdot(a, b).item()
+        if (
+            a.device.type == "cpu"
+            and inner_real is not None
+            and a.dtype in (torch.float32, torch.float64)
+            and a.is_contiguous()
+            and b.is_contiguous()
+        ):
+            return float(inner_real(a.numpy(), b.numpy()))
+        if a.dtype.is_floating_point or a.dtype in (torch.int32, torch.int64):
+            return torch.dot(a, b).item()
+
+    if a.ndim != 1 or b.ndim != 1:
+        a = a.reshape(-1)
+        b = b.reshape(-1)
     return torch.vdot(a, b).item()
 
 
