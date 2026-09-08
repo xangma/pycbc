@@ -105,7 +105,6 @@ modindex_common_prefix = ['pycbc.']
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-import sphinx_rtd_theme
 html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
@@ -277,6 +276,11 @@ suppress_warnings = ['image.nonlocal_uri']
 
 # autodoc mock imports
 autodoc_mock_imports = ['cupy', 'mkl', 'pycuda', 'skcuda', 'cpnest', 'foton', 'pyfft', 'pytools']
+
+# Discover real FFT backends before mocking unavailable native libraries for
+# autodoc. Otherwise executable plot examples can select a mocked MKL backend
+# instead of an installed FFTW or NumPy implementation.
+import pycbc.fft
 
 # Mock ctypes library loading so Sphinx can document modules like pycbc.fft.mkl without raising ImportError
 import pycbc.libutils

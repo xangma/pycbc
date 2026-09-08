@@ -3,7 +3,7 @@
 Controlled executable benchmark protocol
 ========================================
 
-Use this protocol when replacing the finite-workload measurements in
+Use this protocol for the existing-code versus proposed-Torch comparison in
 :ref:`torch-performance`. A result is eligible for a sustained-capacity claim
 only after workload convergence, scientific qualification and host-load checks
 have passed. Missing evidence remains explicit; a plausible profile or the
@@ -30,25 +30,18 @@ Reference and scientific scope
    tolerances. Preserve failures against original upstream. Claims about
    backend cost use the corrected CPU comparison whose outputs pass parity.
 
-Live-batch numerical qualification
-----------------------------------
+Separate live-filter API measurements
+-------------------------------------
 
-The September 2026 live-batch sweep has a separate, versioned numerical
-criterion. Policy v2 compares every complex SNR sample with both an independent
-oracle and the normalized CPU/MKL reference, while retaining the existing
-trigger and veto gates. Both fresh seed matrices must pass before timing.
-This engineering criterion does not change the executable results
-or establish a general tolerance for PyCBC operations.
-
-The completed R4 results show :ref:`torch-batch-throughput` and
-:ref:`torch-batch-accuracy`, with the measured scope and reproducible plot inputs.
+Prepared live-filter calls have their own input construction, timing boundary
+and independent numerical oracle. Apply the :ref:`live-filter method
+<torch-batch-numerics>` separately; API rates do not measure full executable
+performance or replace the baseline/proposed comparison.
 
 .. toctree::
    :maxdepth: 1
 
    torch_batch_numerics
-   torch_profile_attribution
-   torch_followups
 
 Workload convergence and timers
 -------------------------------
@@ -98,7 +91,8 @@ Run these distinct CPU experiments using identical per-worker commands:
 * One single-thread worker on an otherwise idle, reserved host.
 * N simultaneous single-thread workers, where N is the number of physical
   cores available on the reserved host, with one logical CPU per physical core.
-  For ``len`` this is 64 workers; its 128 logical CPUs include SMT siblings.
+  The recorded ``len`` topology has 64 physical cores and 128 logical CPUs;
+  use 64 workers only when all those physical cores are available and reserved.
 
 Use a common start barrier, separate output directories and repeated runs.
 Report per-worker timings, the distribution across workers, concurrent
@@ -109,11 +103,13 @@ physical cores. N threads in one process is a separate scaling experiment.
 CUDA needs an explicit GPU count and sharing policy; this CPU saturation
 experiment does not establish multi-process GPU capacity.
 
-The repository's ``tools/benchmark_cpu_campaign.py`` implements physical-core
-selection, thread limits, synchronized workers, load records and this aggregate
+The repository's Linux-only ``tools/benchmark_cpu_campaign.py`` implements
+physical-core selection, thread limits, synchronized workers, load records and this aggregate
 denominator. Supply a JSON argv array, with ``{output_dir}`` in the executable's
-output filename, and run from a clean, built checkout. The command should invoke
-the executable directly, without a second affinity or profiling wrapper.
+output filename, and run from a clean, built checkout. Workers run from their
+own output directories, so use absolute executable and input paths in that
+argv array. The command should invoke the executable directly, without a second
+affinity or profiling wrapper.
 
 .. code-block:: console
 
@@ -130,6 +126,11 @@ services merely to satisfy the benchmark. Validate HDF output intervals and
 template completion independently before accepting the runner's configured
 work counts as scientific throughput.
 
+The runner records observed idle conditions; it does not reserve the host.
+``--reservation-note`` records an existing reservation as a user assertion,
+and ``--shared-host`` explicitly permits a diagnostic despite failed idle
+checks. Neither option establishes exclusive access.
+
 Profile and presentation requirements
 -------------------------------------
 
@@ -142,8 +143,9 @@ execution and planning separately, plus correlation, chi-square, thresholding,
 decompression and the measured remainder. FFT dominance is a hypothesis to
 check, not a shape to force onto results.
 
-Publish only the latest completed result for each defined workload, with its
-actual measured source, timing boundary and resource count. Replace superseded
-plots and tables; link their immutable evidence archives for provenance. Retain
+Publish the unchanged-baseline and proposed-revision results together for each
+defined workload, with their source revisions, timing boundaries, resource
+counts and correctness verdicts. Keep intermediate optimization experiments
+in the evidence archive, outside the main PR comparison. Retain
 raw successful and failed receipts, source/input hashes, qualification,
 profiles, load records and the renderer manifest in an immutable archive.

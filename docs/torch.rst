@@ -10,15 +10,17 @@ device does not make an entire application run there.
 Quick start
 -----------
 
-Install the optional dependency, following :doc:`install` for PyCBC's other
-dependencies:
+These guides describe the Torch feature stack. From a checkout containing
+those changes, install the optional dependency, following :doc:`install`
+for PyCBC's other dependencies:
 
 .. code-block:: console
 
-   python -m pip install "pycbc[torch]"
+   python -m pip install -e ".[torch]"
 
-For a source checkout, use ``python -m pip install -e ".[torch]"``. PyCBC
-requires Python 3.11 or newer; the extra declares ``torch>=2.6,<2.14``. This
+Installing a published PyCBC release does not necessarily include changes
+that are still under review. PyCBC requires Python 3.11 or newer; this
+checkout's extra declares ``torch>=2.6,<2.14``. This
 range is an installation constraint, not a guarantee that every combination
 has been tested. The extra does not select a CUDA-specific wheel; use the
 `PyTorch installer <https://pytorch.org/get-started/locally/>`_ for your runtime.
@@ -165,3 +167,42 @@ Out of memory
 Maintainers should use :ref:`torch-parity` and :ref:`torch-testing` to qualify
 specific operations and environments. A skipped device test does not qualify
 that device, and the dependency range does not replace those results.
+
+Documentation map
+-----------------
+
+The user guides cover runtime selection and the filtering and search APIs.
+Torch waveform generation and decompression are covered in :doc:`waveform`.
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Torch user guides
+
+   torch_runtime
+   torch_filtering
+   torch_search
+
+For implementation switches, validation, or workflow configuration, use the
+corresponding maintainer guide:
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Torch maintainer guides
+
+   torch_optimizations
+   torch_testing
+   torch_parity
+   torch_workflows
+
+For PR review, start with the existing-code versus proposed-Torch comparison.
+The executable definition gives the frozen workload and reproduction inputs;
+the protocol gives timing, correctness and resource controls, including the
+separate live-filter numerical method.
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Torch benchmark comparison
+
+   torch_performance
+   torch_reference_campaign
+   torch_benchmark_protocol

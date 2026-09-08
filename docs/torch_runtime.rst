@@ -12,17 +12,15 @@ Installation
 ------------
 
 Follow :doc:`install` for PyCBC's build and scientific dependencies, including
-LALSuite. To add Torch to a source checkout, use:
+LALSuite. From the checkout containing the Torch feature stack described by
+these pages, install:
 
 .. code-block:: console
 
    python -m pip install -e ".[torch]"
 
-For a release containing this runtime, the equivalent extra is:
-
-.. code-block:: console
-
-   python -m pip install "pycbc[torch]"
+These pages describe that checkout. Installing ``pycbc[torch]`` from a package
+index selects a release and does not guarantee that it contains these changes.
 
 The extra declares ``torch>=2.6,<2.14``. This is an installation constraint;
 it does not mean every version in that interval has been qualified. The extra
@@ -127,3 +125,6 @@ cases with Python 3.11.9, Torch ``2.13.0+cu130``, CUDA 13.0, and an NVIDIA
 RTX 4090 on Linux. These results apply to the cases and environment tested;
 they do not qualify other Torch builds, GPUs, or the entire dependency range.
 MPS remains unqualified by those runs.
+
+For the later integrated CPU, CUDA and MPS checks, including their exact source
+revision and limits, see :ref:`torch-integrated-qualification`.

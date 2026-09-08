@@ -9,7 +9,8 @@ output. It processes real H1 frame data with a fixed compressed low-mass bank,
 including data conditioning, PSD estimation, waveform decompression,
 normalization, scalar matched filtering, power chi-square, clustering and
 trigger output. It does not call ``LiveBatchMatchedFilter.process_data``.
-The measured results and revisions are in :ref:`torch-performance`.
+The baseline/proposed comparison and its status are in
+:ref:`torch-performance`.
 
 Inputs and scientific settings
 ------------------------------
@@ -74,78 +75,67 @@ trigger interval is **1187007160--1187009064: 1904 seconds**.
      - Standard CPU ``cpu:1`` and Torch CPU ``torch:cpu:1`` use explicit MKL;
        Torch CUDA ``torch:cuda:0`` uses one RTX 4090
 
-The geometry was selected by a prior original-CPU sweep with repeated runs and
-a declared rule, retained in the input archive. It is fixed for this backend
-comparison. That finite grid and fixed end padding do not establish global
+The geometry was selected on the unchanged baseline by sweeping 256/512/1024
+second segments and 96/112 second start padding, with 16 second end padding.
+Each setting had three fresh processes. The rule selected the lowest median,
+treating settings within 3% as tied, then preferring more start padding and a
+smaller FFT. That selected 512/112/16 second geometry is frozen for comparison. That finite grid and fixed end padding do not establish global
 optimality or fresh boundary-injection validation for every template.
 
-What is timed and checked
--------------------------
+Scientific qualification
+------------------------
 
-The latest matched source is clean
-``ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f``. The loader campaign also measures
-its immediate baseline ``2f799f0046fc36db4215bd8b8b8a774d40c0e011`` on all
-three backends. Only the candidate's nine workers contribute to the current
-backend figure. This equal application of the loader avoids comparing an
-optimized setup on one backend against the older setup on another.
+Verify that every arm decompresses the compressed bank without waveform
+regeneration, completes all ``384 * 5 = 1920`` template/segment pairs, and
+covers the same unique valid interval. Compare trigger identities before
+comparing matched fields. Configuration and degrees of freedom must match;
+a stored zero veto field does not prove that the optional veto ran.
 
-All routes use runtime-verification wrappers with checks appropriate to the
-selected backend. Full wall time starts immediately before worker launch and
-stops at child exit. It includes verification, imports, frame reading, setup,
-filtering and HDF output. Three fresh unprofiled processes per role run in
-forward/reverse/forward role order. Report the median and observed range.
-The six instrumented qualifications and controller comparisons are separate
-from the eighteen timing workers. The earlier full-workload profiles in
-:ref:`torch-profile-attribution` measure a different revision.
+The frozen executable comparator uses relative tolerance ``1e-4`` and absolute
+tolerance ``1e-5``, sigmasq relative tolerance ``1e-5``, and circular phase
+absolute tolerance ``1e-4`` radians. Compare complete PSD references as well as
+SNR, phase, sigmasq and the available veto fields. Retain all failed verdicts.
+Any allowed source or executable-path substitution must be declared separately
+from scientific fields; it must not alter the numerical tolerances or conceal
+missing triggers.
 
-The qualifications verify compressed-template decompression without generation
-fallback, all ``384 * 5 = 1920`` scalar IFFTs and complete valid-time coverage.
-All 44 scientific comparisons pass: eight from qualification and 36 from
-timing. They preserve all 1991 H1 trigger identities. Configuration and degrees
-of freedom must match exactly. The eleven compared fields include SNR, phase,
-sigmasq and the available veto fields; a stored zero field does not imply that
-its optional veto ran.
+The original-reference experiment used these same inputs and compared the
+unchanged baseline with a development candidate. It reported differences
+against the baseline. Later backend parity does not resolve that discrepancy
+or establish baseline equivalence for the proposed runtime. The current review
+status is stated in :ref:`torch-performance`.
 
-The frozen comparator uses relative tolerance ``1e-4`` and absolute tolerance
-``1e-5``, sigmasq relative tolerance ``1e-5``, and circular phase absolute
-tolerance ``1e-4`` radians. These budgets are unchanged. Explicit revision and
-command-path substitutions allow the declared baseline/candidate comparison;
-scientific fields are not normalized. Complete per-scheme PSD references stay
-pinned, including bins outside the used filter slice. Failed earlier controller
-assumptions remain in the evidence. This campaign does not independently
-measure the compressed bank's waveform approximation error.
+Commands and reproducibility
+----------------------------
 
-All runs use ``len`` (AMD Ryzen Threadripper PRO 3995WX), CPU 8 affinity, one
-allocated host core, and one numerical-library thread. Torch routes set and
-verify both intra/inter-op pools to one. CPU 8's SMT sibling is CPU 72; neither
-is reserved. The shared lock serializes cooperating benchmark tasks, not other
-users of the machine. CUDA also uses one RTX 4090.
-Python 3.11.9, Torch 2.13.0+cu130 and NumPy 1.26.4 are pinned in the receipts.
-These full-wall measurements cover a finite workload. Sustained and full-machine
-capacity require the additional experiments in :ref:`torch-benchmark-protocol`.
+The `original measurement definition and reproduction instructions
+<https://github.com/xangma/pycbc/blob/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/REPRODUCE.md>`_
+contain the complete command, original CPU geometry sweep and acquisition
+helpers. Its `configuration
+<https://github.com/xangma/pycbc/blob/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/config.json>`_
+records every scientific argument and numerical-library thread setting;
+per-worker receipts retain expanded commands, source and native-build identity,
+input hashes, output hashes and exit status.
 
-Reproduction and archives
--------------------------
+For a new comparison, build the explicitly named baseline and proposed commits
+in separate clean checkouts with matching dependencies. Restore the frozen bank
+and frame by hash, relocate paths into new output directories, and preserve the
+scientific arguments above. Verify that each interpreter imports its intended
+checkout and that the requested processing scheme actually runs. Do not run
+acquisition scripts inside an immutable archive or reuse existing worker output.
 
-The latest loader campaign and plot sources are listed in
-:ref:`torch-followup-evidence`. Its ``loader-v1/`` directory contains the frozen
-protocol, source/input/runtime pins and acquisition helpers;
-``loader-qualification-v1.tar`` and ``loader-timing-v1.tar`` retain the raw
-receipts, logs, scientific outputs, comparisons and terminal audits.
+The normal CPU selectors are ``--processing-scheme cpu:1`` and
+``--fft-backends mkl``; Torch CPU uses ``--processing-scheme torch:cpu:1``.
+Torch CUDA uses ``--processing-scheme torch:cuda:0`` with one GPU and one host
+thread. Explicitly set and verify Torch intra/inter-op pools and the numerical
+library limits. Keep any required runtime adapter inside the timed command
+and archive its source. Capture the complete expanded argv for all four arms,
+including unchanged data, PSD, veto, clustering and output options.
 
-The `earlier executable and profile archive
-<https://github.com/xangma/pycbc/tree/a742e59004779b35e3caea1a088ad5854042b704/device-profile-20260907-r3>`_
-restores ``pycbc-torch-profile-20260907-r3/config.json`` with every scientific argument and
-thread setting, the exact source/native snapshot, frozen acquisition helpers,
-expanded per-worker commands, input hashes, all 21 HDF outputs and original
-comparison receipts. Its README gives checksum verification, omitted original
-inputs and runtime requirements, safe restoration and offline replay commands.
-
-To repeat acquisition, restore a clean built checkout at the measured revision
-and the pinned input files, then relocate the archived configuration and
-helpers to that checkout. Preserve scientific options,
-thread limits and hashes; retain new receipts for every attempt. The runtime
-adapter is part of the timed command and must be included for a like-for-like
-comparison. Archive restoration and figure verification alone do not re-run
-scientific filtering. :ref:`torch-followup-plot-reproduction` gives the separate
-commands for regenerating the current figures from verified summaries.
+The original acquisition used shared ``len`` (AMD Ryzen Threadripper PRO
+3995WX), CPU 8 with SMT sibling CPU 72, and an RTX 4090 for CUDA. Affinity did
+not reserve either CPU. Reproduction must record its own hardware, dependency
+versions and load observations. The fixed workload measures finite-process
+cost; sustained or full-machine capacity needs the additional experiments in
+:ref:`torch-benchmark-protocol`. Restoring an archive or verifying its figures
+does not execute a new baseline/proposed comparison.

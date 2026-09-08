@@ -88,11 +88,12 @@ sequence interfaces for five TaylorF2-family approximants.
 The registered approximants are ``TaylorF2``, ``TaylorF2NLTides``,
 ``TaylorF2RedSpin``, ``TaylorF2RedSpinTidal``, and ``TaylorF2Ecc``.
 
-Regular-grid rows marked ``LAL reference`` are compared with the existing LAL
-implementation. Sequence rows marked ``native extension`` have no equivalent
-LAL public interface. Those extensions accept their documented arbitrary-
-frequency contract and are validated against analytic or regular-grid behavior
-rather than a nonexistent LAL sequence result.
+Regular-grid implementations are compared with the existing LAL implementation
+where supported. The availability of an independent sequence reference depends
+on the approximant. When no equivalent sequence interface exists, validate
+against analytic identities and compatible regular-grid results, including
+frequency ordering, duplicates, and support boundaries. See :ref:`torch-parity`
+for the reference-selection rules.
 
 The global ``PYCBC_TORCH_NATIVE_PORTS`` switch and the per-approximant component
 flags can override native selection. A per-component setting takes precedence.
@@ -116,16 +117,20 @@ TaylorF2 also provides an explicit native batch interface. It is deliberately
 separate from the scalar dispatcher, so vector inputs cannot change
 ``get_fd_waveform`` return types::
 
-    with pycbc.scheme.TorchScheme("cpu"):
-        batch = pycbc.waveform.get_fd_waveform_batch(
+    from pycbc.scheme import TorchScheme
+    from pycbc.waveform import get_fd_waveform_batch
+
+    with TorchScheme("cpu"):
+        batch = get_fd_waveform_batch(
             "TaylorF2",
             mass1=[1.4, 1.5], mass2=1.3,
             f_lower=[20.0, 24.0], f_final=128.0, delta_f=1.0,
         )
 
 ``batch.hplus`` and ``batch.hcross`` are padded two-dimensional Torch tensors.
-``batch.first_bins`` and ``batch.end_bins`` give each row's exact non-zero
-frequency support; ``batch.delta_f`` and ``batch.epoch`` describe the common
+``batch.first_bins`` and ``batch.end_bins`` delimit each row's evaluated
+frequency interval, with the end bin excluded; ``batch.delta_f`` and
+``batch.epoch`` describe the common
 grid. Scalars and length-one vectors broadcast to the common batch size, while
 inconsistent vector lengths are rejected. Focused validation is provided by
 ``test/waveform/test_taylorf2_batch.py``.

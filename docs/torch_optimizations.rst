@@ -6,7 +6,7 @@ Torch optimization controls
 Use these flags to request optional implementations. Shape, dtype, device,
 version, and gradient requirements determine whether they run; an enabled
 flag can still use the established fallback. Flags do not guarantee a speedup.
-For setup, see :ref:`torch-runtime`; for measured results, see
+For setup, see :ref:`torch-runtime`; for benchmark comparison requirements, see
 :ref:`torch-performance`.
 
 Set process-wide environment flags before importing PyCBC or constructing
@@ -19,7 +19,8 @@ Waveform routes
 ---------------
 
 The component-specific setting has precedence over the global setting, which
-has precedence over the listed default.
+has precedence over the listed default. If both global flags are set,
+``PYCBC_TORCH_NATIVE_PORTS`` takes precedence over ``PYCBC_TORCH_NATIVE``.
 
 .. list-table::
    :header-rows: 1
@@ -78,9 +79,12 @@ FFT, precision, and batch sizing
      - Effect
    * - ``PYCBC_TORCH_CPU_MKL_IFFT``
      - On
-     - Considers the direct MKL CPU inverse-FFT route for validated Linux
-       x86-64, ``complex64``, and size 32768. Otherwise the established FFT
-       route is used.
+     - Considers qualified single-transform CPU IFFT plans on Linux x86-64:
+       direct ``complex64`` at 32768 samples, or promoted ``complex128`` work
+       at 1048576, 2097152 and 4194304 samples with one Torch thread. Public
+       input/output remain ``complex64``; the 2097152-sample plan uses one
+       private in-place workspace. Ineligible calls retain the established
+       FFT route.
    * - ``PYCBC_TORCH_DIRECT_BATCH_IFFT``
      - CUDA: on; CPU/MPS: off
      - Considers direct batched inverse FFT for eligible ``complex64`` batches
@@ -136,15 +140,30 @@ Filtering, thresholding, and execution
        already been validated.
    * - ``PYCBC_TORCH_ASYNC_STREAMS``
      - Off
-     - Requests eligible asynchronous CUDA stream scheduling.
+     - Requests eligible asynchronous CUDA stream scheduling. An explicit
+       ``enable_async_streams`` constructor argument takes precedence.
    * - ``PYCBC_ENABLE_CUDA_GRAPHS``
      - Off
      - Enables eligible CUDA graph capture for live-batch execution. An
        explicit constructor argument takes precedence.
    * - ``PYCBC_TORCH_CUDA_GRAPH``
      - Off
-     - Low-level CUDA graph replay request; only the exact value ``1`` enables
-       it. Capture and route eligibility are still required.
+     - Requests replay of an already captured offline symmetric-filter graph;
+       only the exact value ``1`` enables this request. It does not create a
+       capture. Explicit successful capture also enables replay; see
+       :doc:`torch_search` for the capture and clear APIs.
+
+Shared MKL descriptor reuse
+----------------------------
+
+The shared MKL function API retains at most three descriptors for qualified
+one-thread CPU transforms: float32 real-to-complex FFTs of 16,384 and
+16,777,216 samples, and the reverse 16,777,216-sample transform. Eligibility
+checks require separate contiguous NumPy buffers in the owning main process
+and thread. Other calls use independent descriptors. Cached plans retain no
+input/output buffers and can be released with
+``pycbc.fft.mkl.clear_function_cache()``; finalizers also free them at exit.
+This does not alter the class API or replace Torch's promoted IFFT workspace.
 
 Compilation
 -----------
