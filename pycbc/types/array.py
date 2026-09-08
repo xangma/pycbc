@@ -562,7 +562,9 @@ class Array(object):
     def __array__(self, dtype=None, copy=None):
         arr = self.numpy()
         if dtype is not None:
-            arr = arr.astype(dtype, copy=False)
+            # Preserve the original CPU copy when dtype is explicitly given.
+            cpu_copy = copy is None and isinstance(self._data, _numpy.ndarray)
+            arr = arr.astype(dtype, copy=cpu_copy)
         if copy:
             arr = arr.copy()
         return arr
