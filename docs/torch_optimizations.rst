@@ -9,6 +9,13 @@ flag can still use the established fallback. Flags do not guarantee a speedup.
 For setup, see :ref:`torch-runtime`; for benchmark comparison requirements, see
 :ref:`torch-performance`.
 
+The `restoration evidence
+<https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_
+records measured main ``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0`` against
+original CPU ``40e94792b3edf59f39b18b65102b28a4f74433a7``. The CPU controls
+produce identical scientific output on that workload; both Torch routes fail
+the unchanged scientific gates. No performance samples or speedup are claimed.
+
 Set process-wide environment flags before importing PyCBC or constructing
 plans, live-batch engines, and waveform generators. Some decisions are cached
 or captured at construction. Use ``0`` and ``1`` for Boolean settings: several
@@ -79,7 +86,7 @@ FFT, precision, and batch sizing
      - Effect
    * - ``PYCBC_TORCH_CPU_MKL_IFFT``
      - On
-     - Considers qualified single-transform CPU IFFT plans on Linux x86-64:
+     - Considers eligible single-transform Torch CPU IFFT plans on Linux x86-64:
        direct ``complex64`` at 32768 samples, or promoted ``complex128`` work
        at 1048576, 2097152 and 4194304 samples with one Torch thread. Public
        input/output remain ``complex64``; the 2097152-sample plan uses one
@@ -136,7 +143,7 @@ Filtering, thresholding, and execution
      - Keeps eligible peak-processing work on the selected Torch device.
    * - ``PYCBC_TORCH_CPU_THRESHOLD_TRUSTED_ARRAYS``
      - Off
-     - Enables a CPU threshold fast path that assumes its array contract has
+     - Requests a CPU threshold fast path that assumes its array contract has
        already been validated.
    * - ``PYCBC_TORCH_ASYNC_STREAMS``
      - Off
@@ -144,7 +151,7 @@ Filtering, thresholding, and execution
        ``enable_async_streams`` constructor argument takes precedence.
    * - ``PYCBC_ENABLE_CUDA_GRAPHS``
      - Off
-     - Enables eligible CUDA graph capture for live-batch execution. An
+     - Requests eligible CUDA graph capture for live-batch execution. An
        explicit constructor argument takes precedence.
    * - ``PYCBC_TORCH_CUDA_GRAPH``
      - Off
@@ -153,17 +160,18 @@ Filtering, thresholding, and execution
        capture. Explicit successful capture also enables replay; see
        :doc:`torch_search` for the capture and clear APIs.
 
-Shared MKL descriptor reuse
-----------------------------
+Original CPU FFT behavior
+-------------------------
 
-The shared MKL function API retains at most three descriptors for qualified
-one-thread CPU transforms: float32 real-to-complex FFTs of 16,384 and
-16,777,216 samples, and the reverse 16,777,216-sample transform. Eligibility
-checks require separate contiguous NumPy buffers in the owning main process
-and thread. Other calls use independent descriptors. Cached plans retain no
-input/output buffers and can be released with
-``pycbc.fft.mkl.clear_function_cache()``; finalizers also free them at exit.
-This does not alter the class API or replace Torch's promoted IFFT workspace.
+In measured main ``aa6b795a63``, the shared CPU backend files
+``pycbc/fft/mkl.py``, ``pycbc/fft/fftw.py`` and ``pycbc/fft/npfft.py`` are
+byte-identical to original CPU ``40e94792b3``. The shared MKL descriptor-cache
+addition was removed. Planner locking and retained workspaces for eligible
+Torch routes belong to the Torch FFT implementation.
+
+Optional #16 retains separate general FFT changes; optional #17 retains
+separate CPU/native changes. Neither leaf is part of the main scientific
+qualification or required to preserve its default CPU behavior.
 
 Compilation
 -----------
@@ -202,8 +210,8 @@ these variables and report cold and warm measurements separately.
 Activation and promotion policy
 -------------------------------
 
-Defaults-on routes are qualified route choices, not guarantees that an
-optimized kernel runs for every input. Defaults-off routes are experimental and
+Defaults-on routes are considered only when their eligibility checks pass;
+enabling a route does not establish scientific qualification. Defaults-off routes are experimental and
 should remain opt-in until all of the following evidence is attached to a
 specific revision:
 
