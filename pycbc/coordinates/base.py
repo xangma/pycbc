@@ -32,6 +32,8 @@ import logging
 
 import numpy
 
+from pycbc.types.backend import coerce_torch_values as _torch_values
+
 logger = logging.getLogger("pycbc.coordinates.base")
 
 
@@ -41,18 +43,22 @@ def cartesian_to_spherical_rho(x, y, z):
 
     Parameters
     ----------
-    x : {numpy.array, float}
+    x : {numpy.array, torch.Tensor, float}
         X-coordinate.
-    y : {numpy.array, float}
+    y : {numpy.array, torch.Tensor, float}
         Y-coordinate.
-    z : {numpy.array, float}
+    z : {numpy.array, torch.Tensor, float}
         Z-coordinate.
 
     Returns
     -------
-    rho : {numpy.array, float}
+    rho : {numpy.array, torch.Tensor, float}
         The radial amplitude.
     """
+    torch, values = _torch_values(x, y, z)
+    if torch is not None:
+        x, y, z = values
+        return torch.sqrt(x**2 + y**2 + z**2)
     return numpy.sqrt(x**2 + y**2 + z**2)
 
 
@@ -62,16 +68,23 @@ def cartesian_to_spherical_azimuthal(x, y):
 
     Parameters
     ----------
-    x : {numpy.array, float}
+    x : {numpy.array, torch.Tensor, float}
         X-coordinate.
-    y : {numpy.array, float}
+    y : {numpy.array, torch.Tensor, float}
         Y-coordinate.
 
     Returns
     -------
-    phi : {numpy.array, float}
+    phi : {numpy.array, torch.Tensor, float}
         The azimuthal angle.
     """
+    torch, values = _torch_values(x, y)
+    if torch is not None:
+        x, y = values
+        phi = torch.atan2(y, x)
+        two_pi = torch.as_tensor(2 * numpy.pi, device=phi.device, dtype=phi.dtype)
+        return torch.remainder(phi, two_pi)
+
     y = float(y) if isinstance(y, int) else y
     phi = numpy.arctan2(y, x)
     return phi % (2 * numpy.pi)
@@ -83,18 +96,27 @@ def cartesian_to_spherical_polar(x, y, z):
 
     Parameters
     ----------
-    x : {numpy.array, float}
+    x : {numpy.array, torch.Tensor, float}
         X-coordinate.
-    y : {numpy.array, float}
+    y : {numpy.array, torch.Tensor, float}
         Y-coordinate.
-    z : {numpy.array, float}
+    z : {numpy.array, torch.Tensor, float}
         Z-coordinate.
 
     Returns
     -------
-    theta : {numpy.array, float}
+    theta : {numpy.array, torch.Tensor, float}
         The polar angle.
     """
+    torch, values = _torch_values(x, y, z)
+    if torch is not None:
+        x, y, z = values
+        rho = torch.sqrt(x**2 + y**2 + z**2)
+        nonzero = rho != 0
+        safe_rho = torch.where(nonzero, rho, torch.ones_like(rho))
+        cosine = torch.where(nonzero, z / safe_rho, torch.ones_like(rho))
+        return torch.acos(cosine)
+
     rho = cartesian_to_spherical_rho(x, y, z)
     if numpy.isscalar(rho):
         return numpy.arccos(z / rho) if rho else 0.0
@@ -110,20 +132,20 @@ def cartesian_to_spherical(x, y, z):
 
     Parameters
     ----------
-    x : {numpy.array, float}
+    x : {numpy.array, torch.Tensor, float}
         X-coordinate.
-    y : {numpy.array, float}
+    y : {numpy.array, torch.Tensor, float}
         Y-coordinate.
-    z : {numpy.array, float}
+    z : {numpy.array, torch.Tensor, float}
         Z-coordinate.
 
     Returns
     -------
-    rho : {numpy.array, float}
+    rho : {numpy.array, torch.Tensor, float}
         The radial amplitude.
-    phi : {numpy.array, float}
+    phi : {numpy.array, torch.Tensor, float}
         The azimuthal angle.
-    theta : {numpy.array, float}
+    theta : {numpy.array, torch.Tensor, float}
         The polar angle.
     """
     rho = cartesian_to_spherical_rho(x, y, z)
@@ -138,22 +160,30 @@ def spherical_to_cartesian(rho, phi, theta):
 
     Parameters
     ----------
-    rho : {numpy.array, float}
+    rho : {numpy.array, torch.Tensor, float}
         The radial amplitude.
-    phi : {numpy.array, float}
+    phi : {numpy.array, torch.Tensor, float}
         The azimuthal angle.
-    theta : {numpy.array, float}
+    theta : {numpy.array, torch.Tensor, float}
         The polar angle.
 
     Returns
     -------
-    x : {numpy.array, float}
+    x : {numpy.array, torch.Tensor, float}
         X-coordinate.
-    y : {numpy.array, float}
+    y : {numpy.array, torch.Tensor, float}
         Y-coordinate.
-    z : {numpy.array, float}
+    z : {numpy.array, torch.Tensor, float}
         Z-coordinate.
     """
+    torch, values = _torch_values(rho, phi, theta)
+    if torch is not None:
+        rho, phi, theta = values
+        x = rho * torch.cos(phi) * torch.sin(theta)
+        y = rho * torch.sin(phi) * torch.sin(theta)
+        z = rho * torch.cos(theta)
+        return x, y, z
+
     x = rho * numpy.cos(phi) * numpy.sin(theta)
     y = rho * numpy.sin(phi) * numpy.sin(theta)
     z = rho * numpy.cos(theta)
