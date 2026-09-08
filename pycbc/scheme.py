@@ -299,11 +299,12 @@ class TorchScheme(Scheme):
 class CPUScheme(Scheme):
     def __init__(self, num_threads=1):
         if isinstance(num_threads, int):
-            self.num_threads=num_threads
-        elif num_threads == 'env' and "PYCBC_NUM_THREADS" in os.environ:
+            self.num_threads = num_threads
+        elif num_threads == "env" and "PYCBC_NUM_THREADS" in os.environ:
             self.num_threads = int(os.environ["PYCBC_NUM_THREADS"])
         else:
             import multiprocessing
+
             self.num_threads = multiprocessing.cpu_count()
         self._libgomp = None
 
@@ -311,8 +312,11 @@ class CPUScheme(Scheme):
         Scheme.__enter__(self)
         # Preserve legacy CPU runtime resolution; ctypes is local to Torch.
         try:
-            self._libgomp = get_ctypes_library("gomp", ['gomp'],
-                                               mode=ctypes.RTLD_GLOBAL)  # noqa: F821
+            self._libgomp = get_ctypes_library(
+                "gomp",
+                ["gomp"],
+                mode=ctypes.RTLD_GLOBAL,  # noqa: F821
+            )
         except:
             # Should we fail or give a warning if we cannot import
             # libgomp? Seems to work even for MKL scheme, but
@@ -321,13 +325,14 @@ class CPUScheme(Scheme):
 
         os.environ["OMP_NUM_THREADS"] = str(self.num_threads)
         if self._libgomp is not None:
-            self._libgomp.omp_set_num_threads( int(self.num_threads) )
+            self._libgomp.omp_set_num_threads(int(self.num_threads))
 
     def __exit__(self, type, value, traceback):
         os.environ["OMP_NUM_THREADS"] = "1"
         if self._libgomp is not None:
             self._libgomp.omp_set_num_threads(1)
         Scheme.__exit__(self, type, value, traceback)
+
 
 class MKLScheme(CPUScheme):
     def __init__(self, num_threads=1):
