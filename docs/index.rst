@@ -59,9 +59,6 @@ library and application suite.
    :maxdepth: 1
 
    tutorials
-   torch_runtime
-   torch_filtering
-   torch_search
    searches
    inference
    apps
@@ -74,13 +71,6 @@ library and application suite.
 
    extend
    devs
-   torch_optimizations
-   torch_testing
-   torch_parity
-   torch_workflows
-   torch_performance
-   torch_reference_campaign
-   torch_benchmark_protocol
 
 .. card:: Core Library Examples
     :link:  tutorials

@@ -3,11 +3,11 @@
 Live-filter benchmark definition and accuracy
 =============================================
 
-The completed batch sweep (R4, 7 September 2026) measures the public
-``LiveBatchMatchedFilter.process_data`` API at revision
-``9578a710479b924e882857c4dffab6ed372a634b``, before the squared-norm change.
-:ref:`torch-batch-throughput` reports the rates. This test exercises prepared
-filtering and vetoes using synthetic frequency-domain inputs.
+This method compares the public ``LiveBatchMatchedFilter.process_data`` API
+using synthetic frequency-domain inputs. It is a separate experiment from the
+complete-search comparison in :ref:`torch-performance`. Apply the same frozen
+fixture to the unchanged CPU baseline and all proposed backend arms; identify
+the source revisions in every result.
 
 Fixed workload and timing
 -------------------------
@@ -33,18 +33,20 @@ disabled. This tests their implemented behavior on the fixture, not detection
 sensitivity across an astrophysical population.
 
 Execution batches are 1, 8, 32, 128, 512 and 1024 on standard CPU/MKL, Torch CPU
-and Torch CUDA. All workers run serially on shared ``len``, pinned to CPU 8
-with one numerical thread; CUDA additionally uses one RTX 4090. Each worker
-performs one cold iteration, two warmups and five timed iterations. One
+and Torch CUDA. Run workers serially on the same recorded host, with one
+allocated host core and numerical thread; CUDA additionally uses one recorded
+GPU. Rotate route and batch order between repeats. Each worker performs one cold iteration, two warmups and five timed iterations. One
 iteration calls the prepared API for all three blocks, completing 3072
 template-block evaluations. CUDA synchronizes at both timing boundaries.
 Input creation, PSD estimation, waveform/bank preparation, executable startup
 and trigger validation are outside the clock. The reported cell rate is the
 median of three fresh-worker median rates; ranges span those three medians.
 
-Numerical qualification uses two fresh seeds, 7102 and 7103. All 12 small smoke
-and 36 full qualifications must pass before the 54 timing workers start.
-Timing uses seed 7102 and validates every call's triggers outside the clock.
+The frozen fixture uses qualification seeds 7102 and 7103 and timing seed
+7102. Qualify every source/backend/batch cell against both the independent
+oracle and its named CPU reference before timing. Adding the unchanged
+baseline adds a separate source arm; retain its verdicts too. Validate every
+timed call's triggers outside the clock.
 This establishes finite warm-API behavior under the stated controls; it does
 not establish executable or full-machine capacity.
 
@@ -53,7 +55,8 @@ not establish executable or full-machine capacity.
 Adopted complex-SNR criterion
 -----------------------------
 
-Policy v2 requires, for every block, template and complex sample:
+The fixture's normalized-SNR policy requires, for every block, template and
+complex sample:
 
 .. code-block:: text
 
@@ -93,90 +96,26 @@ and absolute ``1e-4``; and sine-Gaussian chi-square relative and absolute
 ``3e-5``. Small complex error alone cannot guarantee unchanged threshold
 decisions or peak selection near a tie, so the exact trigger gates still apply.
 
-Raw v1 metrics remain separately named diagnostics alongside relative L2 and
-FFT-only residuals. No universal norm threshold is introduced. Normalization
+Relative L2 and FFT-only residuals can be retained as separately named
+diagnostics. No universal norm threshold is introduced. Normalization
 observation and output capture run only during qualification and are restored
 on exit; timing uses the uninstrumented public ``process_data`` method.
 
-.. _torch-batch-attribution-summary:
-
-Policy provenance and evidence
-------------------------------
-
-The preceding raw-complex policy failed because FFT routes use different
-arithmetic, with an additional CUDA correlation contribution. The standard
-MKL reference itself exceeded that raw envelope against a complex128 oracle.
-The `FFT investigation archive
-<https://github.com/xangma/pycbc/tree/b26bbc1d612f92ad54377a2d687800ad207834d6/fft-numerics-20260907>`_
-retains the failed R3 verdicts, selected-row replay and its limits. Policy v2
-was adopted before R4 acquisition and changes the measured quantity to actual
-normalized complex SNR; it does not turn previous failures into passes.
-
-The `immutable R4 archive
-<https://github.com/xangma/pycbc/tree/b5cf0acf0eeddf20e6ebd51eab19500d5a83c06b/current-batch-sweep-20260907-r4>`_
-contains every worker receipt and result, frozen input construction and
-qualification helpers, policy, source/native identities and post-run audit.
-Its README provides lossless restoration and checksum verification. Full
-``.npy`` arrays and native binaries are omitted; offline JSON verification
-checks recorded results and file integrity without replaying scientific arrays.
-
-.. _torch-batch-accuracy:
-
-Completed qualification results
+Reproducing the numerical method
 --------------------------------
 
-The largest absolute complex-SNR discrepancy over both full seeds, all six
-batches and all three routes is ``3.3868e-6`` against the independent oracle
-and ``3.9178e-6`` against MKL. Both are below the adopted ``0.001`` budget.
-The standard reference itself passes the oracle gate, with maximum discrepancy
-``1.9161e-6``. Actual route normalizations are included in these comparisons.
-All required trigger and veto comparisons pass.
+The `frozen fixture and qualification policy
+<https://github.com/xangma/pycbc/tree/b5cf0acf0eeddf20e6ebd51eab19500d5a83c06b/current-batch-sweep-20260907-r4>`_
+retain deterministic input construction, normalization observation, independent
+oracle and trigger/veto comparisons. Restore them using the archive's
+instructions, then run new acquisition in separate output directories against
+the named source revisions. Preserve the original fixture and policy hashes;
+record any harness adaptation and verify that it does not alter scientific
+inputs, observed outputs or timing boundaries.
 
-.. figure:: images/torch-batch-r4-20260907/batch-accuracy.png
-   :alt: Maximum absolute complex SNR errors for every route and batch size across both full seeds, compared with the independent oracle and MKL; all are below the 0.001 budget.
-   :width: 100%
-
-   Each point is the maximum over every sample, template and block of seeds
-   7102 and 7103. The symlog axis is linear below ``1e-8`` and preserves exact
-   zero for standard CPU/MKL compatibility. The dashed line marks the v2 budget.
-
-:download:`Accuracy SVG <images/torch-batch-r4-20260907/batch-accuracy.svg>`;
-:download:`plot input and image manifest <images/torch-batch-r4-20260907/manifest.json>`.
-
-Offline plot reproduction
---------------------------
-
-For a completed R4 evidence directory, the repository provides
-``tools/plot_torch_batch_sweep.py``. Use Python 3.11 or later and Matplotlib;
-local rendering tests used Matplotlib 3.11.1. Write plots outside the evidence
-folder:
-
-.. code-block:: bash
-
-   python tools/plot_torch_batch_sweep.py --campaign /path/to/restored-r4 --output /path/to/new-plots
-   python tools/plot_torch_batch_sweep.py --campaign /path/to/restored-r4 --output /path/to/new-plots --verify-only
-
-The renderer checks the frozen helper and policy hashes, all 12 smoke and
-36 full qualification results, all 54 timing results, and their acquisition
-receipts. It recomputes the timing summary, checks that every qualification
-finished before timing started, and rejects overlapping worker intervals.
-It produces PNG/SVG throughput and accuracy figures plus a manifest of consumed
-inputs, renderer and image hashes. Existing output directories are preserved.
-Verification checks recorded JSON evidence; it does not replay the large
-``.npy`` arrays or execute scientific filtering.
-
-Throughput counts template-block evaluations per second: 1024 templates times
-three blocks per iteration. Whiskers show the observed range of three fresh
-worker medians, not confidence intervals. Accuracy takes the maximum over both
-seed matrices, including actual route normalization. Its symlog axis is linear
-below ``1e-8`` so exact-zero MKL compatibility remains visible alongside the
-``0.001`` criterion.
-
-The focused plot tests use the same frozen helper directory:
-
-.. code-block:: bash
-
-   PYCBC_BATCH_SWEEP_SCHEMA=/path/to/restored-r4 pytest -q test/test_plot_torch_batch_sweep.py
-
-Fixtures exercise metadata rejection and rendering only; passing these tests
-is separate from the measured scientific qualification.
+The archived run qualified an earlier development revision. Its rates and
+verdicts do not qualify the proposed runtime or an unchanged-baseline arm that
+it did not execute. Source-native identities, every per-worker receipt, all
+failures and the exact policy belong with each new comparison. The archive
+omits full scientific arrays; verifying recorded JSON alone does not replay
+the scientific calculation.
