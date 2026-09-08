@@ -1,0 +1,636 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Testing Torch changes &mdash; PyCBC 0.0a9340 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css?v=7f9a90b1" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f37f9c75"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/typed.min.js?v=edb71f0b"></script>
+      <script src="_static/terminal.css?v=d691274a"></script>
+      <script src="_static/theme_overrides.css?v=e4e1d026"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Torch scientific parity" href="torch_parity.html" />
+    <link rel="prev" title="Torch optimization controls" href="torch_optimizations.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+
+          
+          
+          <a href="index.html">
+            
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="torch.html">Using PyCBC with PyTorch</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="torch.html#quick-start">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#choosing-a-device">Choosing a device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#capabilities-and-fallback">Capabilities and fallback</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#mps-limitations">MPS limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="torch.html#documentation-map">Documentation map</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="torch_runtime.html">PyTorch runtime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_filtering.html">Torch filtering and vetoes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_search.html">Torch event processing and search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_optimizations.html">Torch optimization controls</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Testing Torch changes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#scheme-selection-in-tests">Scheme selection in tests</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#focused-functional-groups">Focused functional groups</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cpu-preservation-reuse-and-cuda-graph-guards">CPU preservation, reuse and CUDA graph guards</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#large-batches">Large batches</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#what-each-optimization-test-must-prove">What each optimization test must prove</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#device-and-fallback-rules">Device and fallback rules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#checked-in-ci-matrix">Checked-in CI matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parity-matrix">Parity matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#recorded-integrated-qualification">Recorded integrated qualification</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#evidence-tool-tests">Evidence-tool tests</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_parity.html">Torch scientific parity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_workflows.html">Torch maintainer workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_performance.html">Original CPU baseline and Torch execution costs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_reference_campaign.html">Executable benchmark definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_benchmark_protocol.html">Controlled executable benchmark protocol</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="waveform.html">Waveforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="waveform_plugin.html">Making new waveform approximants available to PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installing PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Referenced API objects</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyCBC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="torch.html">Using PyCBC with PyTorch</a></li>
+      <li class="breadcrumb-item active">Testing Torch changes</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/gwastro/pycbc/blob/master/docs/torch_testing.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="testing-torch-changes">
+<span id="torch-testing"></span><h1>Testing Torch changes<a class="headerlink" href="#testing-torch-changes" title="Link to this heading"></a></h1>
+<p>Run the focused tests for your changed API, then the affected project suites.
+Check scientific values and the implementation that ran before benchmarking.
+CUDA and MPS results require those physical devices; report skips separately.</p>
+<p>Current executable qualification of the Torch compatibility changes is in
+<a class="reference internal" href="torch_performance.html#torch-current-qualification"><span class="std std-ref">Torch compatibility and current qualification</span></a>. It retains the unchanged CPU reference
+and strict tolerances. It does not qualify the separate live-filter API
+benchmark or every supported device and precision.</p>
+<p>For measured source <code class="docutils literal notranslate"><span class="pre">88878b1c38c952e63002b812058a0c7316123f70</span></code>, local
+integrated tests passed <strong>535 cases plus 8 subtests</strong>, with <strong>156 skips</strong>.
+The separate no-Torch suite passed <strong>22 cases</strong>. Focused Linux CPU/CUDA
+regressions passed <strong>178 cases</strong>, with <strong>4 skips</strong>. These counts describe
+their recorded commands and environments; they do not imply universal device
+coverage. The four-arm executable campaign passed all five comparisons,
+with 1988 matched triggers per arm and byte-identical full PSD arrays.
+The source, evidence and verification scope are in
+<a class="reference internal" href="torch_performance.html#torch-current-qualification"><span class="std std-ref">Torch compatibility and current qualification</span></a>.</p>
+<p>The optional FFT leaf passed <strong>122 cases</strong> at
+<code class="docutils literal notranslate"><span class="pre">0da3f882a6c1c319364fcdbbff81525ce83172ec</span></code>. The optional native CPU leaf
+passed <strong>266 cases</strong>, with <strong>42 skips</strong>, at
+<code class="docutils literal notranslate"><span class="pre">7fd2ce7299ab91e4a4ceab4fd454218c031c3cbe</span></code>. These are separate leaf test
+receipts, outside the executable qualification of main <code class="docutils literal notranslate"><span class="pre">88878b1c38</span></code>;
+later documentation publication must retain their measured-source mapping.</p>
+<p>The following <strong>historical restoration results</strong> describe measured source
+<code class="docutils literal notranslate"><span class="pre">aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0</span></code>.
+The <a class="reference external" href="https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration">immutable restoration evidence</a> records exact
+commands, environments and receipts. Local integrated tests passed <strong>507
+cases plus 8 subtests</strong>, with <strong>143 skips</strong>; the separate no-Torch run passed
+<strong>22 tests</strong>, cached CPU chi-square passed <strong>2 tests</strong>, and the CI unused-import
+(<code class="docutils literal notranslate"><span class="pre">F401</span></code>) check passed. Linux runtime tests passed <strong>137 tests</strong>, with <strong>1
+skip</strong>, including the large-batch cases requiring LAL that were unavailable
+in the local environment. These counts describe their recorded suites, not
+universal device coverage.</p>
+<p>That executable campaign passed original-CPU preservation on its fixed
+workload: <strong>1988 triggers per CPU arm</strong> and byte-identical scientific datasets,
+PSDs and geometry. Conditioned-strain identity is supported by full-data SHA256
+and metadata equality; raw conditioned strain is not archived.
+<strong>Its Torch CPU and CUDA arms each produced 1991 triggers and
+failed the original strict scientific gates.</strong> No performance samples were
+collected. See <a class="reference internal" href="torch_performance.html#torch-performance"><span class="std std-ref">Original CPU baseline and Torch execution costs</span></a> for all five comparisons and the four
+runtime timing fields excluded from scientific verdicts. Keep their raw
+values; scientific metadata remains in scope.</p>
+<p>CPU preservation requires checks of implementation behavior, defaults,
+validation, context handling and shared FFT behavior beyond this fixed-workload
+campaign. Later publication changes must map back to their measured source:
+document the exact changed-file set and complete-module AST equivalence for
+formatting. The historical receipt for <code class="docutils literal notranslate"><span class="pre">scheme.py</span></code>, <code class="docutils literal notranslate"><span class="pre">matchedfilter.py</span></code> and
+<code class="docutils literal notranslate"><span class="pre">strain.py</span></code> does not qualify the later compatibility logic. Optional leaves
+need separate final-source checks. Historical results below qualify only
+their named source revisions.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#torch-test-groups"><span class="std std-ref">Focused functional groups</span></a>: functional test commands.</p></li>
+<li><p><a class="reference internal" href="#torch-test-ci"><span class="std std-ref">Checked-in CI matrix</span></a>: what the checked-in CPU and GPU jobs cover.</p></li>
+<li><p><a class="reference internal" href="#torch-parity-matrix"><span class="std std-ref">Parity matrix</span></a>: prepare and run a reproducible parity campaign.</p></li>
+<li><p><a class="reference internal" href="#torch-test-evidence"><span class="std std-ref">Evidence-tool tests</span></a>: check artifact tools and documentation.</p></li>
+</ul>
+<section id="scheme-selection-in-tests">
+<h2>Scheme selection in tests<a class="headerlink" href="#scheme-selection-in-tests" title="Link to this heading"></a></h2>
+<p>Choose test paths from <a class="reference internal" href="#torch-test-groups"><span class="std std-ref">Focused functional groups</span></a> below. The focused CI selections
+set the test-only <code class="docutils literal notranslate"><span class="pre">PYCBC_TEST_SCHEME</span></code> variable:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">PYCBC_TEST_SCHEME=torch:cpu python -m pytest -q TEST_PATHS</span>
+<span class="go">PYCBC_TEST_SCHEME=torch:cuda python -m pytest -q TEST_PATHS</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">parse_args_all_schemes</span></code> in <code class="docutils literal notranslate"><span class="pre">test/utils.py</span></code> reads this default, including the
+complete Torch device name. Standalone test scripts using this helper also
+accept <code class="docutils literal notranslate"><span class="pre">--scheme</span></code> (<code class="docutils literal notranslate"><span class="pre">cpu</span></code>, <code class="docutils literal notranslate"><span class="pre">cuda</span></code> or <code class="docutils literal notranslate"><span class="pre">torch</span></code>), which overrides the
+environment; <code class="docutils literal notranslate"><span class="pre">--scheme=torch</span></code> selects Torch CPU. Use <code class="docutils literal notranslate"><span class="pre">PYCBC_TEST_SCHEME</span></code>
+for the pytest commands above and for indexed Torch devices such as
+<code class="docutils literal notranslate"><span class="pre">torch:cuda:1</span></code>. This test selector does not parse the runtime’s CPU-thread
+shorthand <code class="docutils literal notranslate"><span class="pre">torch:4</span></code>. It is separate from <code class="docutils literal notranslate"><span class="pre">PYCBC_SCHEME</span></code> and
+<code class="docutils literal notranslate"><span class="pre">--processing-scheme</span></code> in <a class="reference internal" href="torch_runtime.html#torch-runtime"><span class="std std-ref">PyTorch runtime</span></a>. CPU-only helpers and tests
+with explicit contexts or device fixtures retain their own choices.</p>
+<p>Domain-compatibility, relative-binning and detector tests collect separate CPU
+and CUDA cases. Prior tests add CUDA cases only when CUDA is available; absent
+cases do not count as skips. The CUDA workflow prints case identifiers and skip
+reasons and runs CPU references alongside CUDA cases. Only executed CUDA cases
+provide CUDA coverage; assert the implementation and output device as well.
+Clear unrelated Torch feature variables and skip clearly when a required
+physical device is unavailable. Keep skips separate from passes.</p>
+</section>
+<section id="focused-functional-groups">
+<span id="torch-test-groups"></span><h2>Focused functional groups<a class="headerlink" href="#focused-functional-groups" title="Link to this heading"></a></h2>
+<p>Run the CPU preservation regressions alongside the focused runtime, array,
+FFT, filter, search and decompression tests. Representative paths are:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m pytest -q \</span>
+<span class="go">  test/test_scheme_runtime.py \</span>
+<span class="go">  test/test_cpu_array_copy.py \</span>
+<span class="go">  test/test_cpu_match_cache.py \</span>
+<span class="go">  test/test_cpu_psd_variation.py \</span>
+<span class="go">  test/test_cpu_skymax_chisq.py \</span>
+<span class="go">  test/test_cpu_strain_cache.py \</span>
+<span class="go">  test/test_fft_cpu_preservation.py \</span>
+<span class="go">  test/test_torch_optional.py \</span>
+<span class="go">  test/test_array_torch_reductions.py \</span>
+<span class="go">  test/test_torch_backend_protocol.py \</span>
+<span class="go">  test/test_torch_runtime_transfers.py \</span>
+<span class="go">  test/test_torch_cpu_compat.py \</span>
+<span class="go">  test/test_torch_search_power_scan.py \</span>
+<span class="go">  test/test_torch_sigmasq_series_precision.py \</span>
+<span class="go">  test/test_torch_strain_psd_precision.py \</span>
+<span class="go">  test/test_torch_chisq_cpu_compat.py \</span>
+<span class="go">  test/test_torch_chisq_sparse_dispatch.py \</span>
+<span class="go">  test/test_torch_batched_fft.py \</span>
+<span class="go">  test/test_torch_fft_writes.py \</span>
+<span class="go">  test/test_torch_fft_cpu_native.py \</span>
+<span class="go">  test/test_torch_fft_cuda_workspace.py \</span>
+<span class="go">  test/test_torch_psd_pipeline.py \</span>
+<span class="go">  test/test_torch_filter_pipeline.py \</span>
+<span class="go">  test/test_torch_event_kernels.py \</span>
+<span class="go">  test/test_torch_event_pipeline.py \</span>
+<span class="go">  test/test_torch_peak_contracts.py \</span>
+<span class="go">  test/test_torch_cuda_native_peaks.py \</span>
+<span class="go">  test/test_live_batch_torch_fft_integration.py \</span>
+<span class="go">  test/test_live_batch_torch_peaks.py \</span>
+<span class="go">  test/test_torch_batch_overlap_scaling.py \</span>
+<span class="go">  test/test_torch_large_ifft.py \</span>
+<span class="go">  test/test_torch_decompress_cpu.py \</span>
+<span class="go">  test/test_decompress.py</span>
+</pre></div>
+</div>
+<p>The CPU compatibility tests check original-CPU float32 cumulative power and
+bin boundaries, estimated PSDs and strain transforms, input preservation,
+output metadata and device, and restoration of scheme state after failure.
+Tensor subclasses and gradient-carrying tensors must retain their existing
+Torch dispatch. The double-precision cases retain their independent numerical
+references; these tests do not authorize changing the original CPU method.
+The sparse chi-square regressions check the unchanged CPU kernel and
+postprocessing, and preserve dispatch for unsupported shapes, special tensor
+storage and differentiable inputs.</p>
+<p>The native waveform registry, supported TaylorF2-family ports, and batch
+contract are checked with:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m pytest -q \</span>
+<span class="go">  test/waveform/test_torch_waveform_registry.py \</span>
+<span class="go">  test/waveform/test_taylorf2_torch.py \</span>
+<span class="go">  test/waveform/test_taylorf2_phase_evaluation.py \</span>
+<span class="go">  test/waveform/test_taylorf2ecc_torch.py \</span>
+<span class="go">  test/waveform/test_taylorf2nltides_torch.py \</span>
+<span class="go">  test/waveform/test_taylorf2redspin_torch.py \</span>
+<span class="go">  test/waveform/test_taylorf2_batch.py</span>
+</pre></div>
+</div>
+<p>The slim domain, detector-geometry, and inference layers use focused tests that
+match their public boundaries:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">PYCBC_TEST_SCHEME=torch python -m pytest -q \</span>
+<span class="go">  test/test_torch_domain_compat.py \</span>
+<span class="go">  test/test_torch_prior_compat.py \</span>
+<span class="go">  test/test_detector_torch_geometry.py \</span>
+<span class="go">  test/test_torch_inference_core.py \</span>
+<span class="go">  test/test_torch_inference_tools.py \</span>
+<span class="go">  test/test_torch_waveform_generator.py \</span>
+<span class="go">  test/test_torch_gaussian_noise.py \</span>
+<span class="go">  test/test_torch_relative_binning.py \</span>
+<span class="go">  test/test_torch_marginalized_gaussian.py \</span>
+<span class="go">  test/test_torch_inference_cli.py</span>
+</pre></div>
+</div>
+<p>The checked-in workflow files are authoritative for CI selections. The
+examples include the preservation/runtime tests from historical <code class="docutils literal notranslate"><span class="pre">aa6b795a63</span></code>
+and the current Torch compatibility tests. They exclude the three standalone
+PR #20 tests asserting changed CPU arithmetic. Before a performance run,
+execute the smallest relevant focused group, then every project suite affected
+by the changed public path.</p>
+</section>
+<section id="cpu-preservation-reuse-and-cuda-graph-guards">
+<h2>CPU preservation, reuse and CUDA graph guards<a class="headerlink" href="#cpu-preservation-reuse-and-cuda-graph-guards" title="Link to this heading"></a></h2>
+<p>The integrated follow-up changes also have dedicated regression files:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m pytest -q -rs \</span>
+<span class="go">  test/test_fft_cpu_preservation.py \</span>
+<span class="go">  test/test_live_batch_veto_reuse.py \</span>
+<span class="go">  test/test_torch_cuda_peak_host_read.py \</span>
+<span class="go">  test/test_torch_offline_cuda_graph.py</span>
+</pre></div>
+</div>
+<p>The CPU preservation file checks the original in-place real FFT length
+validation, including odd sizes and batches. The shared CPU MKL descriptor
+cache has been removed from the main stack; historical cache-lifecycle tests
+do not describe current behavior. The remaining files check live correlation workspace
+reuse through veto calculation, immediate host reads of CUDA peak results,
+and offline CUDA graph capture, replay, invalidation and cleanup. The live
+reuse file selects CPU, Torch CPU and available MPS; it does not select CUDA.
+CUDA graph lifecycle checks include host-side mocks, so a CPU pass does not
+qualify capture or replay. Run the actual graph and peak-transfer cases on
+CUDA; graph capture also requires Triton.</p>
+<p>The four files in this reuse/graph command are not in the explicit focused
+selections of <code class="docutils literal notranslate"><span class="pre">basic-tests.yml</span></code> or <code class="docutils literal notranslate"><span class="pre">torch-gpu.yml</span></code> at the measured source.
+Run them separately when changing these paths and retain device-specific
+results; this statement does not describe the larger example above.</p>
+</section>
+<section id="large-batches">
+<span id="torch-large-batches"></span><h2>Large batches<a class="headerlink" href="#large-batches" title="Link to this heading"></a></h2>
+<p>For 1,024-row boundary and reuse checks across FFT, filtering and inference,
+run the dedicated suite on a machine with the required devices:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \</span>
+<span class="go">  python -m pytest -q -rs test/test_torch_large_batches.py</span>
+</pre></div>
+</div>
+<p>It uses short transforms to keep memory bounded. These are correctness and
+reuse checks. The separate live-filter
+benchmark’s input and numerical method is in <a class="reference internal" href="torch_batch_numerics.html#torch-batch-numerics"><span class="std std-ref">Live-filter benchmark definition and accuracy</span></a>.
+The public live-filter check also verifies that disabled chi-square vetoes
+return zero values without raising an exception.</p>
+</section>
+<section id="what-each-optimization-test-must-prove">
+<h2>What each optimization test must prove<a class="headerlink" href="#what-each-optimization-test-must-prove" title="Link to this heading"></a></h2>
+<p>Every default-off or newly promoted route from <a class="reference internal" href="torch_optimizations.html#torch-optimizations"><span class="std std-ref">Torch optimization controls</span></a>
+needs:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 27.0%" />
+<col style="width: 73.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Case</p></th>
+<th class="head"><p>Required assertion</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Flag disabled</p></td>
+<td><p>The established route retains its numerical and metadata contract.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Flag enabled, eligible</p></td>
+<td><p>The intended route runs and passes values, metadata, output-device, and
+residency checks.</p></td>
+</tr>
+<tr class="row-even"><td><p>Flag enabled, ineligible</p></td>
+<td><p>The documented fallback or explicit unsupported error occurs without a
+partial result or silent dtype change.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Boundaries</p></td>
+<td><p>Empty/minimal and non-contiguous inputs, dtype limits, batch and FFT-size
+boundaries, threshold equality, and memory-budget edges.</p></td>
+</tr>
+<tr class="row-even"><td><p>State reuse</p></td>
+<td><p>Repeated calls, changed shapes, plan/cache reuse, context exit, and
+feature-state isolation behave consistently.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Autograd</p></td>
+<td><p>Where the public API promises gradients, forward and backward paths
+pass. Tests must not imply whole-workflow autograd otherwise.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Compilation tests must separate first-use compilation from cache reuse. CUDA
+graph and stream tests require real CUDA and must verify capture/replay or
+stream selection, not merely numerical output.</p>
+</section>
+<section id="device-and-fallback-rules">
+<h2>Device and fallback rules<a class="headerlink" href="#device-and-fallback-rules" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>CPU</dt><dd><p>Use the same-revision normal CPU scheme as a dispatch control and unchanged
+<code class="docutils literal notranslate"><span class="pre">40e94792b3edf59f39b18b65102b28a4f74433a7</span></code> as the preservation reference.
+Test restored normal CPU against that original separately; same-revision
+CPU/Torch agreement cannot establish that existing CPU behavior is unchanged.
+Do not substitute PR #20’s corrected CPU or promote CPU arithmetic to make
+an independent oracle comparison pass.
+Record <code class="docutils literal notranslate"><span class="pre">TorchScheme</span></code>, BLAS and process thread settings, affinity, topology,
+FFT library route, and oversubscription controls. Exercise hardware-aware
+defaults and explicit batch/thread overrides separately.</p>
+</dd>
+<dt>CUDA</dt><dd><p>Verify availability and the requested device index. Synchronize timed work,
+distinguish generic, native, compiled, and graph implementations, and test
+eligibility, fallback, and memory/OOM boundaries. Record the Torch build,
+driver, runtime, GPU model and memory; link the completed device job.</p>
+</dd>
+<dt>MPS</dt><dd><p>Use real Apple hardware and record macOS, SoC, memory, Python, and Torch.
+Test supported single precision, explicit tolerances, double-precision
+rejection, synchronization, and the CPU-staged promoted FFT exception.
+A skip elsewhere does not provide MPS coverage.</p>
+</dd>
+<dt>Waveform fallback</dt><dd><p>Assert whether the native registry or an established host implementation
+ran. A final tensor on the requested device is insufficient to prove native
+generation.</p>
+</dd>
+</dl>
+<p>For every performance run, preserve machine-readable test and parity output
+beside the raw timing artifact. Count pass, fail, expected-unsupported, and
+skip separately by device. Follow <a class="reference internal" href="torch_parity.html#torch-parity"><span class="std std-ref">Torch scientific parity</span></a> for the numerical
+contract and <a class="reference internal" href="torch_performance.html#torch-performance"><span class="std std-ref">Original CPU baseline and Torch execution costs</span></a> for provenance and publication.</p>
+</section>
+<section id="checked-in-ci-matrix">
+<span id="torch-test-ci"></span><h2>Checked-in CI matrix<a class="headerlink" href="#checked-in-ci-matrix" title="Link to this heading"></a></h2>
+<p>The checked-in workflows provide the coverage below. Retain each completed
+job’s exact versions, hardware, implementations, and test results.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 24.0%" />
+<col style="width: 18.0%" />
+<col style="width: 22.0%" />
+<col style="width: 36.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Lane</p></th>
+<th class="head"><p>Python</p></th>
+<th class="head"><p>Device</p></th>
+<th class="head"><p>Qualification</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>General Linux tests</p></td>
+<td><p>3.11, 3.12, 3.13</p></td>
+<td><p>CPU</p></td>
+<td><p>Broad PyCBC coverage, followed in unit-test jobs by a focused Torch CPU
+selection with <code class="docutils literal notranslate"><span class="pre">PYCBC_TEST_SCHEME=torch:cpu</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>General macOS tests</p></td>
+<td><p>3.11, 3.12, 3.13</p></td>
+<td><p>CPU</p></td>
+<td><p>Broad macOS coverage; it is not a dedicated MPS-device lane.</p></td>
+</tr>
+<tr class="row-even"><td><p>Trusted Torch GPU</p></td>
+<td><p>Workflow environment</p></td>
+<td><p>Self-hosted Linux CUDA</p></td>
+<td><p>Weekly on the default branch and manually dispatched. It requests the
+exact Torch/CUDA wheel declared in the workflow, verifies real CUDA
+availability, and runs CUDA regressions alongside CPU reference cases.
+Manual custom selectors qualify only the cases selected.</p></td>
+</tr>
+<tr class="row-odd"><td><p>MPS</p></td>
+<td><p>Not dedicated</p></td>
+<td><p>Apple MPS</p></td>
+<td><p>Conditional tests can run where MPS is available, but no checked-in
+workflow qualifies MPS automatically.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The self-hosted CUDA job accepts trusted revisions and is not a pull-request
+gate. Its result applies to the recorded Python, Torch, driver, CUDA runtime,
+GPU, and source revision.</p>
+<p>Development validation on <code class="docutils literal notranslate"><span class="pre">len</span></code> used Torch <code class="docutils literal notranslate"><span class="pre">2.13.0+cu130</span></code> with CUDA 13.0.
+Those results do not qualify the CUDA workflow’s Torch <code class="docutils literal notranslate"><span class="pre">2.13.0+cu126</span></code> with
+CUDA 12.6; retain qualification of that exact environment separately. The GPU
+selection includes the complete backend-protocol, search-kernel, filter-pipeline,
+live-batch peak, and chi-squared optimization test files so their CUDA cases run
+alongside CPU references. Explicit CPU-only tests in those files remain on CPU.</p>
+</section>
+<section id="parity-matrix">
+<span id="torch-parity-matrix"></span><h2>Parity matrix<a class="headerlink" href="#parity-matrix" title="Link to this heading"></a></h2>
+<p>The scripts under <code class="docutils literal notranslate"><span class="pre">tools/torch_parity</span></code> compare deterministic CPU and Torch
+artifacts with policy-scoped tolerances. The runner requires two clean, identified
+worktrees, separate interpreters, a dependency fingerprint, and a sealed
+deployment manifest. <code class="docutils literal notranslate"><span class="pre">manifest.py</span> <span class="pre">prepare</span></code> records these inputs after
+installation and building; the runner verifies them before generating a corpus.
+Preparation does not install, rebuild, or repair environments.</p>
+<p>For CPU preservation, set <code class="docutils literal notranslate"><span class="pre">BASELINE_SHA</span></code> to
+<code class="docutils literal notranslate"><span class="pre">40e94792b3edf59f39b18b65102b28a4f74433a7</span></code> and <code class="docutils literal notranslate"><span class="pre">CURRENT_SHA</span></code> to the verified
+restored revision. Create the worktrees with matching Python and dependency
+versions, including Torch. Keep each environment outside its source tree. See <a class="reference internal" href="torch_runtime.html#torch-runtime"><span class="std std-ref">PyTorch runtime</span></a> for installation prerequisites.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">campaign=/absolute/path/to/new-campaign</span>
+<span class="go">mkdir -p &quot;$campaign&quot;</span>
+<span class="go">git worktree add --detach &quot;$campaign/original&quot; BASELINE_SHA</span>
+<span class="go">git worktree add --detach &quot;$campaign/current&quot; CURRENT_SHA</span>
+<span class="go">python3 -m venv &quot;$campaign/original-venv&quot;</span>
+<span class="go">python3 -m venv &quot;$campaign/current-venv&quot;</span>
+</pre></div>
+</div>
+<p>Install the same resolved runtime and build requirements, including the chosen
+Torch wheel, into both environments. Install each checkout in editable mode
+and finish native builds before preparing manifests:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">requirements=/absolute/path/to/common-resolved-requirements.txt</span>
+<span class="go">for label in original current; do</span>
+<span class="go">  &quot;$campaign/$label-venv/bin/python&quot; -m pip install -r &quot;$requirements&quot;</span>
+<span class="go">  &quot;$campaign/$label-venv/bin/python&quot; -m pip install \</span>
+<span class="go">    --no-deps --no-build-isolation -e &quot;$campaign/$label&quot;</span>
+<span class="go">done</span>
+</pre></div>
+</div>
+<p>Use requirements for the chosen operating system and Torch wheel. Preparation
+rejects differing package inventories, excluding PyCBC because its source
+revisions are compared separately. It records installed versions without locking
+wheel bytes or operating-system dependencies. With both sources clean, prepare
+new manifests using the current interpreter:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">export ORIGINAL_SOURCE=&quot;$campaign/original&quot;</span>
+<span class="go">export CURRENT_SOURCE=&quot;$campaign/current&quot;</span>
+<span class="go">export ORIGINAL_PYTHON=&quot;$campaign/original-venv/bin/python&quot;</span>
+<span class="go">export CURRENT_PYTHON=&quot;$campaign/current-venv/bin/python&quot;</span>
+<span class="go">export DEPENDENCIES_FILE=&quot;$campaign/dependencies.json&quot;</span>
+<span class="go">export DEPLOYMENT_FILE=&quot;$campaign/deployment.json&quot;</span>
+<span class="go">&quot;$CURRENT_PYTHON&quot; &quot;$CURRENT_SOURCE/tools/torch_parity/manifest.py&quot; prepare \</span>
+<span class="go">  --original-source &quot;$ORIGINAL_SOURCE&quot; --current-source &quot;$CURRENT_SOURCE&quot; \</span>
+<span class="go">  --original-python &quot;$ORIGINAL_PYTHON&quot; --current-python &quot;$CURRENT_PYTHON&quot; \</span>
+<span class="go">  --dependencies &quot;$DEPENDENCIES_FILE&quot; --deployment &quot;$DEPLOYMENT_FILE&quot;</span>
+<span class="go">RESULTS_ROOT=&quot;$campaign/results&quot; \</span>
+<span class="go">  bash &quot;$CURRENT_SOURCE/tools/torch_parity/run_matrix.sh&quot;</span>
+</pre></div>
+</div>
+<p>The dependency file records installed versions and runtime. The sealed
+deployment file records source/import revisions, interpreter paths, and hashes
+of that file and ignored build artifacts, including native extensions but
+excluding bytecode and known tool caches. Keep manifests and environments
+outside both worktrees. Preparation refuses to overwrite evidence; after a
+rebuild or environment change, use new paths and retain previous receipts.</p>
+<p>Both commands discard <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code> and <code class="docutils literal notranslate"><span class="pre">PYCBC_*</span></code> for provenance probes;
+the runner selects each scheme. Set thread limits and <code class="docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES</span></code>
+before preparation and keep them unchanged: both are fingerprinted. Verification
+rejects changed commits, dirty sources, wrong editable imports, and changes to
+packages, native binaries, runtime, driver, or device. Checksums detect changes;
+they do not authenticate the machine or establish scientific correctness.</p>
+<p>Preserve <code class="docutils literal notranslate"><span class="pre">launch.json</span></code>, every generated NPZ/JSON pair, the comparison report,
+and the matrix log. A skipped CUDA cell must remain visible as a skip and must
+not be presented as device qualification. The runner reports
+<code class="docutils literal notranslate"><span class="pre">matrix_result=PASS_CPU_ONLY</span></code> when CUDA was unavailable.</p>
+<p>The matrix’s current waveform corpus has one 35+28 solar-mass TaylorF2 case.
+It does not supersede <code class="docutils literal notranslate"><span class="pre">tools/verify_lal_torch_parity.py</span></code>, which retains three
+BNS/low-mass TaylorF2 cases and PSD-weighted strain-match checks. Keep both
+suites until those cases and acceptance criteria have been migrated. Neither
+suite alone establishes parity across the entire physical parameter space.</p>
+</section>
+<section id="recorded-integrated-qualification">
+<span id="torch-integrated-qualification"></span><h2>Recorded integrated qualification<a class="headerlink" href="#recorded-integrated-qualification" title="Link to this heading"></a></h2>
+<p><strong>SUPERSEDED for the restored stack.</strong> This is historical qualification of
+only the revisions named below. It does not establish preservation of original
+CPU behavior. Historical restoration test results are recorded at the top
+of this page; current executable qualification is in
+<a class="reference internal" href="torch_performance.html#torch-performance"><span class="std std-ref">Original CPU baseline and Torch execution costs</span></a>. The superseded corrected-CPU
+campaign and its retained full-PSD failure are reported separately in
+<a class="reference internal" href="torch_performance.html#torch-performance"><span class="std std-ref">Original CPU baseline and Torch execution costs</span></a>.</p>
+<p>The <a class="reference external" href="https://github.com/xangma/pycbc/tree/06c77a19432bce561f5cbeb6c2da1dedde98274b/stack-validation-20260908">sealed integrated qualification</a>
+tests production source <code class="docutils literal notranslate"><span class="pre">fad7d8440bfde083f2e94ee62a0017492dfc4013</span></code>. Its
+runtime and executable files match reviewed runtime
+<code class="docutils literal notranslate"><span class="pre">9d4e4f6905d9f109d559284326d62173a854264f</span></code> byte for byte except for
+AST-equivalent formatting and docstring whitespace in <code class="docutils literal notranslate"><span class="pre">torchfft.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">frame.py</span></code> and <code class="docutils literal notranslate"><span class="pre">chisq_torch.py</span></code>; the source-equivalence receipt records
+that boundary.</p>
+<p>Native tests passed 283 cases: all 43 new MKL/CUDA contracts and 240
+regressions. Another 52 regression cases skipped because MPS was unavailable.
+All three executable backends produced 1991 matching trigger identities and
+passed the frozen scientific budgets. Each backend’s 18 H1 science datasets
+match its own pinned reference byte for byte. These are per-backend reference
+comparisons, not byte identity across backends, complete HDF files or the
+unchanged upstream baseline. Independently checked source and executable-path
+provenance substitutions are recorded alongside the original failed metadata
+verdicts.</p>
+<p>The CUDA qualifier snapshots production outputs before its eager oracle.
+All 1920 replays pass full and sparse comparisons, with five captures,
+output-retention checks and actual consumer use. Suppressed-replay and
+pending-allocation negative controls detect the intended failures. These
+results establish correctness within their recorded scope; they are not timing
+measurements or a complete unchanged-baseline parity result.</p>
+<p>To verify only the historical archive, from an extracted
+<code class="docutils literal notranslate"><span class="pre">stack-validation-20260908/</span></code> directory:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python3 -B -I verify.py</span>
+<span class="go">python3 -B -I native-production/verify_evidence.py</span>
+</pre></div>
+</div>
+<p>The first command checks the publication file inventory. The second requires
+Python 3.11 or later, NumPy and h5py; it verifies source and native test records,
+replays five HDF comparisons, and checks graph and negative-control records.
+Neither command reruns a scientific workload or benchmark.</p>
+</section>
+<section id="evidence-tool-tests">
+<span id="torch-test-evidence"></span><h2>Evidence-tool tests<a class="headerlink" href="#evidence-tool-tests" title="Link to this heading"></a></h2>
+<p>These tests validate artifact schemas, percentile and
+bootstrap summaries, content seals, production-artifact parsing, conditional
+plots, route labels, cold/warm separation, parity disposition, and CUDA
+allocated/reserved-memory metadata:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m pytest -q test/test_torch_performance_artifacts.py \</span>
+<span class="go">  test/test_torch_parity_artifacts.py</span>
+</pre></div>
+</div>
+<p>Negative controls reject empty records/corpora, nonfinite values, NumPy
+fallback when Torch storage was requested, and mismatched CUDA device indices.
+Output placement alone does not establish that all intermediates stayed on the
+device.
+Some storage checks require Torch and conditionally exercise MPS; retain their
+skips when the required device is unavailable.</p>
+<p>Run syntax, configuration, and documentation checks with the repository
+environment:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m py_compile \</span>
+<span class="go">  tools/benchmark_artifact.py \</span>
+<span class="go">  tools/bench_production_live_batch.py \</span>
+<span class="go">  tools/generate_torch_performance_plots.py \</span>
+<span class="go">  tools/torch_parity/compare.py \</span>
+<span class="go">  tools/torch_parity/generate.py \</span>
+<span class="go">  tools/torch_parity/manifest.py</span>
+<span class="go">bash -n tools/torch_parity/run_matrix.sh</span>
+<span class="go">python -m json.tool tools/torch_parity/policy.json &gt;/dev/null</span>
+<span class="go">pixi run -e docs test-docs</span>
+</pre></div>
+</div>
+<p>These checks establish that the evidence machinery is internally consistent.
+They do not establish a speedup, scientific parity, or accelerator residency.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="torch_optimizations.html" class="btn btn-neutral float-left" title="Torch optimization controls" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="torch_parity.html" class="btn btn-neutral float-right" title="Torch scientific parity" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015, 2016, 2017, Alexander Nitz, Ian Harry, Christopher M. Biwer, Duncan A.  Brown, Josh Willis, and Tito Dal Canton.
+      <span class="lastupdated">Last updated on Sep 08, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

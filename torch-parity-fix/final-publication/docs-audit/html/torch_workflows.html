@@ -1,0 +1,217 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Torch maintainer workflow &mdash; PyCBC 0.0a9340 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css?v=7f9a90b1" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f37f9c75"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/typed.min.js?v=edb71f0b"></script>
+      <script src="_static/terminal.css?v=d691274a"></script>
+      <script src="_static/theme_overrides.css?v=e4e1d026"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Original CPU baseline and Torch execution costs" href="torch_performance.html" />
+    <link rel="prev" title="Torch scientific parity" href="torch_parity.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+
+          
+          
+          <a href="index.html">
+            
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="torch.html">Using PyCBC with PyTorch</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="torch.html#quick-start">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#choosing-a-device">Choosing a device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#capabilities-and-fallback">Capabilities and fallback</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#mps-limitations">MPS limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="torch.html#documentation-map">Documentation map</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="torch_runtime.html">PyTorch runtime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_filtering.html">Torch filtering and vetoes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_search.html">Torch event processing and search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_optimizations.html">Torch optimization controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_testing.html">Testing Torch changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_parity.html">Torch scientific parity</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Torch maintainer workflow</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#change-checklist">Change checklist</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#testing-optional-settings">Testing optional settings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#failure-triage">Failure triage</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_performance.html">Original CPU baseline and Torch execution costs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_reference_campaign.html">Executable benchmark definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_benchmark_protocol.html">Controlled executable benchmark protocol</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="waveform.html">Waveforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="waveform_plugin.html">Making new waveform approximants available to PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installing PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Referenced API objects</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyCBC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="torch.html">Using PyCBC with PyTorch</a></li>
+      <li class="breadcrumb-item active">Torch maintainer workflow</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/gwastro/pycbc/blob/master/docs/torch_workflows.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="torch-maintainer-workflow">
+<span id="torch-workflows"></span><h1>Torch maintainer workflow<a class="headerlink" href="#torch-maintainer-workflow" title="Link to this heading"></a></h1>
+<p>Use this checklist when changing Torch support. The linked guides contain the
+test commands, numerical requirements, feature flags, and benchmark protocol.</p>
+<section id="change-checklist">
+<h2>Change checklist<a class="headerlink" href="#change-checklist" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Define the supported inputs and outputs.</strong> Record the operation, devices,
+dtypes, shapes, gradients, metadata, and output device. Update the capability
+matrix in <a class="reference internal" href="torch.html#torch-scheme"><span class="std std-ref">Using PyCBC with PyTorch</span></a> when support or fallback behavior changes.</p></li>
+<li><p><strong>Make implementation selection explicit.</strong> Use narrow eligibility checks
+and an established fallback. Raise a clear unsupported error when no correct
+fallback exists. Tests must observe the implementation that ran and any
+host/device transfers; output placement alone is insufficient.</p></li>
+<li><p><strong>Check scientific results.</strong> Follow <a class="reference internal" href="torch_parity.html#torch-parity"><span class="std std-ref">Torch scientific parity</span></a> for independent
+references, error metrics, tolerances, and metadata checks. Exercise the
+optimization disabled, enabled and eligible, and enabled but ineligible.
+Check empty/boundary inputs and make fallback behavior visible.</p></li>
+<li><p><strong>Run tests on the claimed devices.</strong> Follow <a class="reference internal" href="torch_testing.html#torch-testing"><span class="std std-ref">Testing Torch changes</span></a> for focused
+groups, composed pipelines, repeated/context reuse, affected project suites,
+and real-device CI limits. Check that plan, allocator, compiler, graph, and
+thread state do not leak into later calls. Keep pass, fail, skip, and
+expected-unsupported counts separate for each device.</p></li>
+<li><p><strong>Measure the tested workload.</strong> Use isolated processes and
+<a class="reference internal" href="torch_benchmark_protocol.html#torch-benchmark-protocol"><span class="std std-ref">Controlled executable benchmark protocol</span></a>. Preserve raw samples, parity rows, failures,
+deadline misses, and OOM cells. Separate cold and warm measurements and
+report transfer, memory, and tail costs for the claimed execution region.</p></li>
+<li><p><strong>Publish reproducible evidence.</strong> Retain immutable artifacts and validate
+their schemas, checksums, workload identities, implementation fields, and
+CI or runner provenance.
+Include the exact source revision, command, job URL, runner metadata, and
+plot generator. Render into a review directory, publish raw artifacts with
+the figures, and review every caption. Current results are in
+<a class="reference internal" href="torch_performance.html#torch-performance"><span class="std std-ref">Original CPU baseline and Torch execution costs</span></a>.</p></li>
+<li><p><strong>Review default changes separately.</strong> Follow the promotion policy in
+<a class="reference internal" href="torch_optimizations.html#torch-optimizations"><span class="std std-ref">Torch optimization controls</span></a>, including automatic device CI, regression bounds,
+and a verified fallback and rollback. Limit changes to the device, dtype,
+and shape coverage supported by the evidence.</p></li>
+</ol>
+</section>
+<section id="testing-optional-settings">
+<h2>Testing optional settings<a class="headerlink" href="#testing-optional-settings" title="Link to this heading"></a></h2>
+<p>Start from the documented defaults in <a class="reference internal" href="torch_optimizations.html#torch-optimizations"><span class="std std-ref">Torch optimization controls</span></a>. Change one
+flag at a time and record all variables. Use a fresh process for each
+configuration: compiler, FFT, allocator, graph, and dispatch state can persist.
+Test supported flag combinations as separate matrix cells.</p>
+<p>Set <code class="docutils literal notranslate"><span class="pre">PYCBC_TORCH_CUDA_NATIVE_BATCH_PEAK</span></code> explicitly because its unset behavior
+differs between threshold reduction and separate peak extraction. Keep both
+cold and warm samples when testing compilation.</p>
+</section>
+<section id="failure-triage">
+<h2>Failure triage<a class="headerlink" href="#failure-triage" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>Numerical failure</dt><dd><p>Disable optional routes individually, reproduce the exact dtype and shape,
+compare metadata before values, and locate the first divergent stage.</p>
+</dd>
+<dt>Unexpected host conversion</dt><dd><p>Instrument conversion boundaries, inspect waveform fallback and MPS
+promoted FFT behavior, and limit the residency claim to the measured region.</p>
+</dd>
+<dt>Unexpected implementation</dt><dd><p>Capture feature variables and constructor arguments, then check device,
+dtype, shape, version, and gradient requirements. A flag requests a route;
+its eligibility checks determine whether it runs.</p>
+</dd>
+<dt>Flaky latency</dt><dd><p>Preserve timestamped samples; inspect warm-up, compilation, clocks, affinity,
+competing load, synchronization, allocation, memory pressure, and deadline
+misses before summarizing.</p>
+</dd>
+<dt>Device-only failure</dt><dd><p>Report hardware, software, and skips. Establish the precision contract and
+independent error distribution before changing shared tolerances.</p>
+</dd>
+</dl>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="torch_parity.html" class="btn btn-neutral float-left" title="Torch scientific parity" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="torch_performance.html" class="btn btn-neutral float-right" title="Original CPU baseline and Torch execution costs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015, 2016, 2017, Alexander Nitz, Ian Harry, Christopher M. Biwer, Duncan A.  Brown, Josh Willis, and Tito Dal Canton.
+      <span class="lastupdated">Last updated on Sep 08, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

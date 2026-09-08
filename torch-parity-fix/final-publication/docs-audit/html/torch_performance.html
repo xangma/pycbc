@@ -1,0 +1,529 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Original CPU baseline and Torch execution costs &mdash; PyCBC 0.0a9340 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css?v=7f9a90b1" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f37f9c75"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/typed.min.js?v=edb71f0b"></script>
+      <script src="_static/terminal.css?v=d691274a"></script>
+      <script src="_static/theme_overrides.css?v=e4e1d026"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Executable benchmark definition" href="torch_reference_campaign.html" />
+    <link rel="prev" title="Torch maintainer workflow" href="torch_workflows.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+
+          
+          
+          <a href="index.html">
+            
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="torch.html">Using PyCBC with PyTorch</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="torch.html#quick-start">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#choosing-a-device">Choosing a device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#capabilities-and-fallback">Capabilities and fallback</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#mps-limitations">MPS limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="torch.html#documentation-map">Documentation map</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="torch_runtime.html">PyTorch runtime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_filtering.html">Torch filtering and vetoes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_search.html">Torch event processing and search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_optimizations.html">Torch optimization controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_testing.html">Testing Torch changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_parity.html">Torch scientific parity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_workflows.html">Torch maintainer workflow</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Original CPU baseline and Torch execution costs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#torch-compatibility-and-current-qualification">Torch compatibility and current qualification</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#historical-restoration-qualification">Historical restoration qualification</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#superseded-first-restoration-candidate">Superseded first restoration candidate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#superseded-corrected-cpu-campaign">Superseded corrected-CPU campaign</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#superseded-combined-proposal-comparison">Superseded combined-proposal comparison</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_reference_campaign.html">Executable benchmark definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_benchmark_protocol.html">Controlled executable benchmark protocol</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="waveform.html">Waveforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="waveform_plugin.html">Making new waveform approximants available to PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installing PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Referenced API objects</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyCBC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="torch.html">Using PyCBC with PyTorch</a></li>
+      <li class="breadcrumb-item active">Original CPU baseline and Torch execution costs</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/gwastro/pycbc/blob/master/docs/torch_performance.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="original-cpu-baseline-and-torch-execution-costs">
+<span id="torch-benchmark-status"></span><span id="torch-optimization-results"></span><span id="torch-inspiral-optimized"></span><span id="torch-performance-summary"></span><span id="torch-performance"></span><h1>Original CPU baseline and Torch execution costs<a class="headerlink" href="#original-cpu-baseline-and-torch-execution-costs" title="Link to this heading"></a></h1>
+<p>The required CPU reference is unchanged PyCBC
+<code class="docutils literal notranslate"><span class="pre">40e94792b3edf59f39b18b65102b28a4f74433a7</span></code>. The Torch conversion must preserve
+that revision’s existing CPU behavior. PR #20’s CPU arithmetic changes are
+excluded from the restoration and are not a prerequisite for Torch.</p>
+<p>The current Torch compatibility routes reuse original CPU arithmetic for
+eligible single-precision operations. Their executable qualification is
+reported separately from the historical restoration and corrected-CPU
+campaigns below. No performance samples have been collected for these routes,
+and no speedup is established.</p>
+<section id="torch-compatibility-and-current-qualification">
+<span id="torch-current-qualification"></span><h2>Torch compatibility and current qualification<a class="headerlink" href="#torch-compatibility-and-current-qualification" title="Link to this heading"></a></h2>
+<p>The executable qualification <strong>passes</strong> on measured source
+<code class="docutils literal notranslate"><span class="pre">88878b1c38c952e63002b812058a0c7316123f70</span></code> against unchanged CPU
+<code class="docutils literal notranslate"><span class="pre">40e94792b3edf59f39b18b65102b28a4f74433a7</span></code>. It uses the frozen bank, frame,
+512/112/16-second geometry and scientific settings in
+<a class="reference internal" href="torch_reference_campaign.html#torch-reference-campaign"><span class="std std-ref">Executable benchmark definition</span></a> on shared host <code class="docutils literal notranslate"><span class="pre">len</span></code>, CPU 8 and one RTX 4090.
+All four arms completed 1920 template/segment pairs and produced <strong>1988
+triggers</strong>, with every identity matched in each comparison.</p>
+<p>The <a class="reference external" href="https://github.com/xangma/pycbc/tree/a833342c6d895a571346071c6c4fbe2e9a4c035d/torch-parity-fix">immutable parity evidence</a>
+records source and native identities, commands, dependencies, input hashes,
+scientific arrays, raw and corrected comparison results, and independent
+verification. Earlier failed attempts remain available alongside the passing
+qualification.</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Current executable qualification</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 44.0%" />
+<col style="width: 28.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Arm</p></th>
+<th class="head"><p>Scientific qualification</p></th>
+<th class="head"><p>Timing disposition</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Original CPU <code class="docutils literal notranslate"><span class="pre">40e94792b3</span></code></p></td>
+<td><p>Reference: 1988 triggers</p></td>
+<td><p>No performance samples</p></td>
+</tr>
+<tr class="row-odd"><td><p>Proposed normal CPU <code class="docutils literal notranslate"><span class="pre">88878b1c38</span></code></p></td>
+<td><p>PASS: 18 H1 scientific datasets byte-identical to original CPU</p></td>
+<td><p>No performance samples</p></td>
+</tr>
+<tr class="row-even"><td><p>Torch CPU <code class="docutils literal notranslate"><span class="pre">88878b1c38</span></code></p></td>
+<td><p>PASS against both CPU controls: 1988 matched triggers</p></td>
+<td><p>No performance samples</p></td>
+</tr>
+<tr class="row-odd"><td><p>Torch CUDA <code class="docutils literal notranslate"><span class="pre">88878b1c38</span></code></p></td>
+<td><p>PASS against both CPU controls: 1988 matched triggers</p></td>
+<td><p>No performance samples</p></td>
+</tr>
+</tbody>
+</table>
+<p>All <strong>five comparisons pass</strong> the unchanged trigger and full-PSD gates:
+original versus proposed CPU, and each Torch arm versus both CPU controls.
+Full PSD arrays are byte-identical, including below 30 Hz; the PSD gate
+retains relative tolerance <code class="docutils literal notranslate"><span class="pre">1e-4</span></code> and zero absolute floor. Conditioned-strain
+SHA256 and metadata, and segment geometry, match exactly across the four arms.
+Raw conditioned strain is not archived. The comparator retains relative
+tolerance <code class="docutils literal notranslate"><span class="pre">1e-4</span></code>, absolute tolerance <code class="docutils literal notranslate"><span class="pre">1e-5</span></code>, sigmasq relative tolerance
+<code class="docutils literal notranslate"><span class="pre">1e-5</span></code> and circular phase absolute tolerance <code class="docutils literal notranslate"><span class="pre">1e-4</span></code> radians.</p>
+<p>Torch output has small nonzero numerical differences with no violations.
+Against original CPU, the largest absolute chi-square differences are
+<code class="docutils literal notranslate"><span class="pre">1.716614e-5</span></code> for Torch CPU and <code class="docutils literal notranslate"><span class="pre">6.484985e-5</span></code> for Torch CUDA; the largest
+SNR differences are <code class="docutils literal notranslate"><span class="pre">1.907349e-6</span></code> and <code class="docutils literal notranslate"><span class="pre">3.337860e-6</span></code>. Sigmasq matches
+exactly. Only the four elapsed-time-derived <code class="docutils literal notranslate"><span class="pre">H1/search</span></code> datasets enumerated
+in the historical restoration section below are excluded from scientific
+comparison; their raw values and the declared source/path substitutions
+remain in the receipts.</p>
+<p>An independent verifier recomputed trigger identities, numerical metrics
+and full-array PSD checks, and confirmed all 18 original-versus-proposed CPU
+scientific datasets byte for byte. It also checked source Git identities and
+receipt hashes. Native Linux binaries and external input bytes are not in the
+archive; their receipts were cross-checked without rehashing those bytes
+locally. This is qualification of one frozen workload. Its process durations
+are not performance samples, and it establishes no speedup or sustained
+capacity. The separate live-filter API benchmark remains unqualified.</p>
+<p>The measured pin remains fixed when later documentation is published; record
+that publication mapping separately. Optional FFT and native CPU leaves are
+outside this executable comparison and require their own source and test
+receipts.</p>
+<p>The original CPU implementation remains the reference. Within Torch, eligible
+PSD estimation and float32 strain-segment forward FFTs call the original CPU
+code on copies. Cumulative template power uses NumPy’s serial float32 scan.
+Eligible complex64 sparse point chi-square calls reuse the original CPU kernel
+and postprocessing; CPU correlation and SNR tensors expose NumPy views, while
+CUDA inputs are copied to the host. Public Torch output dtype and device are
+retained.</p>
+<p>These compatibility paths apply to ordinary CPU/CUDA tensors and retain
+API-specific eligibility checks. Tensor subclasses, reverse- and forward-mode
+gradients, functorch transforms, MPS and other precisions keep their existing
+routes. The sparse point bridge additionally requires contiguous 1D storage
+and scalar normalization; inference tensors, conjugate/negative views and
+tensor normalization retain the existing sparse dispatcher.</p>
+<p>These choices preserve the arithmetic sequence that affects chi-square bin
+boundaries and threshold decisions. Merely using the same formula, or
+increasing intermediate precision, did not recover the original CPU result
+in the diagnostic experiment. Reusing these CPU operations introduces host
+work and CUDA transfers; a CUDA result does not imply device residency.
+The experiment identified a sufficient compatibility recipe on the frozen
+fixture, not its performance or accuracy over every workload and device.</p>
+</section>
+<section id="historical-restoration-qualification">
+<h2>Historical restoration qualification<a class="headerlink" href="#historical-restoration-qualification" title="Link to this heading"></a></h2>
+<p><strong>HISTORICAL; superseded by the Torch compatibility changes above.</strong> The
+restored-main campaign completed on source
+<code class="docutils literal notranslate"><span class="pre">aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0</span></code>. Original-CPU preservation passed
+for this workload. Both Torch routes failed the unchanged scientific gates;
+no performance samples were collected and no speedup is established.</p>
+<p>That measured comparison uses original CPU <code class="docutils literal notranslate"><span class="pre">40e94792b3</span></code> and restored main
+<code class="docutils literal notranslate"><span class="pre">aa6b795a63</span></code> through normal CPU, Torch CPU and Torch CUDA. The main stack
+starts from the original CPU source without PR #20. Shared CPU MKL, FFTW and
+NumPy FFT backend files match the original source byte for byte.</p>
+<p>The <a class="reference external" href="https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration">immutable restoration evidence</a> records source,
+native-build and input identities, commands, environment, regression tests,
+raw outputs and comparator results. Keep these measured source pins when
+publishing later documentation and formatting changes. The three subsequent
+formatting corrections in <code class="docutils literal notranslate"><span class="pre">scheme.py</span></code>, <code class="docutils literal notranslate"><span class="pre">matchedfilter.py</span></code> and <code class="docutils literal notranslate"><span class="pre">strain.py</span></code>
+have complete-module AST equivalence receipts against the measured source;
+their file bytes differ. Final publication mapping records those corrections
+and the documentation commit separately. Optional FFT and native CPU leaves
+require their own source and validation receipts.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Historical restoration validation status</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 44.0%" />
+<col style="width: 28.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Arm</p></th>
+<th class="head"><p>Scientific qualification</p></th>
+<th class="head"><p>Timing disposition</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Original CPU <code class="docutils literal notranslate"><span class="pre">40e94792b3</span></code></p></td>
+<td><p>Reference: 1988 triggers</p></td>
+<td><p>No performance samples</p></td>
+</tr>
+<tr class="row-odd"><td><p>Restored normal CPU <code class="docutils literal notranslate"><span class="pre">aa6b795a63</span></code></p></td>
+<td><p>PASS: 1988 triggers; scientific output byte-identical to original CPU</p></td>
+<td><p>No performance samples</p></td>
+</tr>
+<tr class="row-even"><td><p>Restored Torch CPU <code class="docutils literal notranslate"><span class="pre">aa6b795a63</span></code></p></td>
+<td><p>FAIL against both CPU controls: 1991 triggers; full-PSD gate fails</p></td>
+<td><p>Stopped after qualification</p></td>
+</tr>
+<tr class="row-odd"><td><p>Restored Torch CUDA <code class="docutils literal notranslate"><span class="pre">aa6b795a63</span></code></p></td>
+<td><p>FAIL against both CPU controls: 1991 triggers; full-PSD gate fails</p></td>
+<td><p>Stopped after qualification</p></td>
+</tr>
+</tbody>
+</table>
+<p>All <strong>18 H1 scientific datasets</strong>, full PSD arrays, conditioned strain and
+segment geometry match exactly between the CPU controls. PSD arrays are
+archived; conditioned-strain identity is checked using full-data SHA256 and
+metadata, since the raw conditioned strain is not archived. Both Torch routes
+retain exact conditioned strain and geometry, but fail trigger comparison and
+the full-PSD gate against both CPU controls. All five comparison verdicts are
+retained. These failures remain under the original numerical tolerances;
+an independent higher-precision oracle does not authorize changing the CPU
+reference or relaxing the gates.</p>
+<p>The scientific comparator excludes only four elapsed-time-derived datasets:
+<code class="docutils literal notranslate"><span class="pre">H1/search/filter_rate_per_core</span></code>, <code class="docutils literal notranslate"><span class="pre">H1/search/run_time</span></code>,
+<code class="docutils literal notranslate"><span class="pre">H1/search/setup_time_fraction</span></code> and <code class="docutils literal notranslate"><span class="pre">H1/search/templates_per_core</span></code>.
+Their raw values and the original comparator verdicts remain in the evidence.
+Scientific configuration, sampling, epoch and geometry remain in scope.
+This exclusion corrects a metadata classification error, not a numerical
+tolerance. The campaign is qualification only; apply
+<a class="reference internal" href="torch_benchmark_protocol.html#torch-benchmark-protocol"><span class="std std-ref">Controlled executable benchmark protocol</span></a> before any later timing acquisition. The
+historical timing amendment below does not carry over.</p>
+</section>
+<section id="superseded-first-restoration-candidate">
+<h2>Superseded first restoration candidate<a class="headerlink" href="#superseded-first-restoration-candidate" title="Link to this heading"></a></h2>
+<p><strong>SUPERSEDED source; raw comparator failure retained.</strong> Initial candidate
+<code class="docutils literal notranslate"><span class="pre">652206d84177f658f5fb2f9cab2ee73f6d2bc95f</span></code> also produced <strong>1988 CPU triggers</strong>,
+with scientific trigger datasets, PSDs and strain byte-identical to original
+CPU. Its false CPU failure came solely from the four timing datasets listed
+above. Both Torch routes produced <strong>1991 triggers</strong> and failed the original
+strict gate. The evidence retains the raw failure and corrected comparison.
+The later <code class="docutils literal notranslate"><span class="pre">aa6b795a63</span></code> campaign is also historical; neither
+campaign’s workload-specific output identity certifies every CPU code path.</p>
+</section>
+<section id="superseded-corrected-cpu-campaign">
+<h2>Superseded corrected-CPU campaign<a class="headerlink" href="#superseded-corrected-cpu-campaign" title="Link to this heading"></a></h2>
+<p><strong>SUPERSEDED for the restored stack.</strong> The following report describes
+standalone corrected CPU <code class="docutils literal notranslate"><span class="pre">66789ac4a7468094b0cc3ca1498a1de67e0311f6</span></code> versus
+measured restacked main <code class="docutils literal notranslate"><span class="pre">f582b6fd250d0b82612492979e01e645d5c07afc</span></code> through
+normal CPU, Torch CPU and Torch CUDA. Optional FFT and CPU follow-up PRs were
+outside that comparison. Every source pin, count, verdict and timing in this
+section applies only to that historical campaign.</p>
+<p>Its five trigger comparisons passed; its full-PSD gate failed for Torch
+below 30 Hz. Timings were descriptive execution costs only. Full scientific
+equivalence across all four arms and an equivalent-output Torch speedup were
+not established. Independent verification completed with limitations;
+standalone versus restacked normal CPU passed the frozen scientific gates.
+These comparisons used changed CPU arithmetic, so they do not satisfy the
+unchanged-CPU requirement.</p>
+<section id="measured-and-publication-source">
+<h3>Measured and publication source<a class="headerlink" href="#measured-and-publication-source" title="Link to this heading"></a></h3>
+<p>The historical measured source remains frozen at <code class="docutils literal notranslate"><span class="pre">f582b6fd25</span></code>.
+Formatting-only main
+<code class="docutils literal notranslate"><span class="pre">6b47580146e73169cd130b601731e5ba40668d93</span></code> incorporates the supplied Qlty
+repair in filtering PR #8 and replays its descendants. Compared with the
+measured main, only <code class="docutils literal notranslate"><span class="pre">pycbc/filter/matchedfilter.py</span></code> and
+<code class="docutils literal notranslate"><span class="pre">pycbc/vetoes/chisq.py</span></code> differ: both complete module ASTs are identical
+after excluding source locations. Their Python source bytes do differ.
+Every other tracked file is byte-identical, including <code class="docutils literal notranslate"><span class="pre">bin/</span></code>, <code class="docutils literal notranslate"><span class="pre">test/</span></code>,
+<code class="docutils literal notranslate"><span class="pre">tools/</span></code>, <code class="docutils literal notranslate"><span class="pre">.github/</span></code> and all native sources.</p>
+<p>Historical documentation commit <code class="docutils literal notranslate"><span class="pre">1d22031fd31c6e5bcb48a68fe11772e960bd406b</span></code>
+is based on that formatted main and changes only documentation. This maps
+measured source through
+AST-equivalent formatting to the documentation-bearing publication, not a
+new benchmark run of the publication head. All timings and worker receipts
+retain the measured <code class="docutils literal notranslate"><span class="pre">f582b6fd25</span></code> pin. The archived <code class="docutils literal notranslate"><span class="pre">sources.bundle</span></code> and
+frozen bank preserve the acquired source and bank after published refs advance.</p>
+</section>
+<section id="standalone-cpu-corrections">
+<h3>Standalone CPU corrections<a class="headerlink" href="#standalone-cpu-corrections" title="Link to this heading"></a></h3>
+<p>The superseded stack used the separate CPU changes proposed in
+<a class="reference external" href="https://github.com/xangma/pycbc/pull/20">CPU draft PR #20</a> as a prerequisite.
+Those changes are excluded from the original-CPU restoration. PR #20
+promotes float32 PSD processing, cumulative template-power accumulation and
+strain-segment
+FFTs, and uses double-precision phase shifts and accumulation in the CPU
+point chi-square wrapper. Public single-precision outputs are retained.
+These historical changes have no Torch dependency and do not change native
+kernels; they nevertheless change the required CPU behavior.
+The <a class="reference external" href="https://github.com/xangma/pycbc/blob/dcd123cade49b75ce312d0a8342a8c9c5c9b6abd/cpu-review.md">immutable CPU review</a>
+records numerical references, regression tests and intentional output changes.</p>
+<p>A separate original-versus-corrected CPU experiment measured median wall time
+of 65.280 versus 68.062 seconds, a <strong>4.2611% increase</strong>, on the same finite
+workload. It measures the cost of changed arithmetic and changed output:
+the original produces 1988 triggers and corrected CPU produces 1991.
+This is not an equal-output comparison or a Torch speedup. Its four trials
+per source and shared-host limitations are in the <a class="reference external" href="https://github.com/xangma/pycbc/blob/dcd123cade49b75ce312d0a8342a8c9c5c9b6abd/cpu-cost-report.md">CPU cost report</a>.</p>
+</section>
+<section id="historical-four-arm-comparison">
+<h3>Historical four-arm comparison<a class="headerlink" href="#historical-four-arm-comparison" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Four fresh full-process repeats per arm; observed execution costs</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 19.0%" />
+<col style="width: 13.0%" />
+<col style="width: 17.0%" />
+<col style="width: 14.0%" />
+<col style="width: 22.0%" />
+<col style="width: 15.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Arm</p></th>
+<th class="head"><p>Measured source</p></th>
+<th class="head"><p>Allocation</p></th>
+<th class="head"><p>Trigger comparison</p></th>
+<th class="head"><p>Median seconds (observed range)</p></th>
+<th class="head"><p>Template-seconds / wall-second</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Corrected CPU</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">66789ac4a7</span></code></p></td>
+<td><p>1 core/thread</p></td>
+<td><p>Reference</p></td>
+<td><p>68.238 (68.174–68.487)</p></td>
+<td><p>10,714.4</p></td>
+</tr>
+<tr class="row-odd"><td><p>Restacked normal CPU</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">f582b6fd25</span></code></p></td>
+<td><p>1 core/thread</p></td>
+<td><p>PASS</p></td>
+<td><p>65.472 (65.370–65.672)</p></td>
+<td><p>11,167.1</p></td>
+</tr>
+<tr class="row-even"><td><p>Restacked Torch CPU</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">f582b6fd25</span></code></p></td>
+<td><p>1 core/thread</p></td>
+<td><p>PASS</p></td>
+<td><p>102.446 (102.207–102.728)</p></td>
+<td><p>7,136.8</p></td>
+</tr>
+<tr class="row-odd"><td><p>Restacked Torch CUDA</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">f582b6fd25</span></code></p></td>
+<td><p>1 core/thread + RTX 4090</p></td>
+<td><p>PASS</p></td>
+<td><p>20.324 (20.298–20.353)</p></td>
+<td><p>35,973.9</p></td>
+</tr>
+</tbody>
+</table>
+<p>The fixed workload is <code class="docutils literal notranslate"><span class="pre">pycbc_inspiral</span></code> over 384 distinct compressed low-mass
+templates and 1904 unique H1 seconds, with five segments and 1920
+template/segment pairs. Its scientific definition is retained in
+<a class="reference internal" href="torch_reference_campaign.html#torch-reference-campaign"><span class="std std-ref">Executable benchmark definition</span></a>; retaining the workload does not transfer
+these results to restored source. Rate is <code class="docutils literal notranslate"><span class="pre">384</span> <span class="pre">*</span> <span class="pre">1904</span> <span class="pre">/</span> <span class="pre">median_wall_seconds</span></code>.
+Each route produces 1991 triggers. All four qualification processes and
+16 timed processes completed; every sample is retained. Independent checks
+of timed outputs against their own qualifications are <strong>PASS for all 16
+outputs</strong>. Every sample, expanded command, source/native identity and
+comparison is retained in the
+<a class="reference external" href="https://github.com/xangma/pycbc/tree/e1dd5e7164a3e8ae8ee8b58ecd7b27200b8cfb9c/corrected-baseline-campaign">immutable corrected-baseline archive</a>.</p>
+</section>
+<section id="scientific-qualification-and-timing-policy">
+<h3>Scientific qualification and timing policy<a class="headerlink" href="#scientific-qualification-and-timing-policy" title="Link to this heading"></a></h3>
+<p>The five trigger comparisons are corrected CPU against each of the three
+restacked routes, plus restacked normal CPU against Torch CPU and Torch CUDA.
+All five pass the frozen identity and trigger-field gates. Conditioned-strain
+digests and segment geometry match exactly, as do PSD values on the actual
+filter slice, bins <code class="docutils literal notranslate"><span class="pre">[15360:1048576]</span></code>. Standalone and restacked normal CPU
+pass the full-PSD gate. Against either normal CPU reference, Torch CPU has
+2375 finite-bin budget violations and Torch CUDA has 3105 in every segment,
+all below the 30 Hz cutoff. The frozen full-PSD budget is <code class="docutils literal notranslate"><span class="pre">1e-4</span></code> relative
+tolerance with zero absolute floor. Exact used bins and passing trigger
+comparisons do not turn the full-array failure into a pass.</p>
+<p>The initial strict qualification controller stopped on the full-PSD failure
+before timing. An explicit policy amendment made after qualification permits
+descriptive timings after all five trigger comparisons, matching
+conditioned-strain digests and geometry, and exact used PSD bins pass. The
+original failure, full-array verdicts and policy amendment are retained;
+source, inputs,
+tolerances, worker commands and rotating order are unchanged. This
+continuation does not establish full-equivalence speedup eligibility.</p>
+</section>
+<section id="measurement-and-reproduction">
+<h3>Measurement and reproduction<a class="headerlink" href="#measurement-and-reproduction" title="Link to this heading"></a></h3>
+<p>The four arms use balanced rotating orders ABCD, BCDA, CDAB and DABC, where
+A is corrected CPU, B restacked normal CPU, C Torch CPU and D Torch CUDA.
+Every sample starts a fresh unprofiled process; qualification runs are
+excluded. The clock starts before child launch and ends after exit following
+completed HDF output, including imports, setup, frame I/O, filtering, vetoes
+and the same runtime/native verification wrapper in every arm. Parent source
+checks and post-run HDF comparisons are outside the clock. Filesystem caches
+are not flushed.</p>
+<p>The shared host is <code class="docutils literal notranslate"><span class="pre">len</span></code>, AMD Ryzen Threadripper PRO 3995WX. Each arm uses
+CPU 8 with SMT sibling 72 and one numerical thread. CUDA additionally uses
+RTX 4090 GPU 0. Selectors are <code class="docutils literal notranslate"><span class="pre">cpu:1</span></code>, <code class="docutils literal notranslate"><span class="pre">torch:cpu:1</span></code> and <code class="docutils literal notranslate"><span class="pre">torch:cuda:0</span></code>,
+with explicit MKL and verified numerical and Torch intra/inter-op thread
+limits. CUDA graph capture is disabled. The host, sibling and GPU are not
+reserved. Host, CPU, process, memory, load and GPU observations accompany
+the runs. The pinned sources use verified unchanged native binaries copied
+from the frozen build; the archive records source and binary hashes.</p>
+<p>Both sources use Python 3.11.9. The inherited distribution inventory lists
+Torch 2.1.1, while every Torch worker reports imported <code class="docutils literal notranslate"><span class="pre">2.13.0+cu130</span></code>. A
+post-acquisition diagnostic records both installations and selected file
+hashes; it explains metadata selection without retrospectively identifying
+every Torch binary loaded by the workers. The independent verifier uses
+acquisition receipts for native/input identity and conditioned-strain
+equality; tracked source bytes were independently checked against Git.</p>
+<p>The <a class="reference external" href="https://github.com/xangma/pycbc/blob/e1dd5e7164a3e8ae8ee8b58ecd7b27200b8cfb9c/corrected-baseline-campaign/REPRODUCE.md">immutable reproduction instructions</a>
+include the original strict
+stop, the subsequent timing policy, configuration, dependency/build receipts
+and all raw worker records. No sample is discarded; reported ranges are
+observed minima/maxima, not confidence intervals. This finite workload does
+not establish sustained or full-machine capacity;
+<a class="reference internal" href="torch_benchmark_protocol.html#torch-benchmark-protocol"><span class="std std-ref">Controlled executable benchmark protocol</span></a> defines those additional controls.</p>
+</section>
+</section>
+<section id="superseded-combined-proposal-comparison">
+<h2>Superseded combined-proposal comparison<a class="headerlink" href="#superseded-combined-proposal-comparison" title="Link to this heading"></a></h2>
+<p><strong>SUPERSEDED for the restored stack.</strong> The earlier comparison of unchanged
+PyCBC
+<code class="docutils literal notranslate"><span class="pre">40e94792b3edf59f39b18b65102b28a4f74433a7</span></code> with combined proposal
+<code class="docutils literal notranslate"><span class="pre">123e1fb3ef1b338cada636e71c3e9c7987002402</span></code> remains in the <a class="reference external" href="https://github.com/xangma/pycbc/tree/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908">historical benchmark
+archive</a>.
+It recorded 1988 versus 1991 triggers, with 1959 shared identities, 29
+original-only and 32 proposal-only identities. Its trigger-field failures,
+full-PSD failures and descriptive timings remain historical evidence. Those
+timings do not measure the restored stack. The original reference remains
+required, but the earlier proposal source and its verdicts cannot qualify a
+new revision. The historical CPU review above documents the arithmetic and
+output changes that the restoration must exclude.</p>
+<p>Existing <a class="reference internal" href="torch_testing.html#torch-integrated-qualification"><span class="std std-ref">native regression evidence</span></a>
+also retains its own source pins and scope. A prepared live-filter API
+excludes frame reading, PSD estimation, bank construction and executable
+startup. Its <a class="reference internal" href="torch_batch_numerics.html#torch-batch-numerics"><span class="std std-ref">input and numerical method</span></a> measures
+a different boundary and must be reported separately from complete-search
+performance.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="torch_workflows.html" class="btn btn-neutral float-left" title="Torch maintainer workflow" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="torch_reference_campaign.html" class="btn btn-neutral float-right" title="Executable benchmark definition" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015, 2016, 2017, Alexander Nitz, Ian Harry, Christopher M. Biwer, Duncan A.  Brown, Josh Willis, and Tito Dal Canton.
+      <span class="lastupdated">Last updated on Sep 08, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

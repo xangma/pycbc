@@ -1,0 +1,169 @@
+{
+  "created_utc": "2026-09-08T19:53:14.113496+00:00",
+  "head": "7fd2ce7299ab91e4a4ceab4fd454218c031c3cbe",
+  "cwd": "/private/tmp/pycbc-torch-parity-restack-v2-20260908",
+  "host": "client-3792.default.vpn.port.ac.uk",
+  "runtime": "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+  "python": "3.13.9 | packaged by conda-forge | (main, Oct 22 2025, 23:38:18) [Clang 19.1.7 ]",
+  "reused_build_root": "/private/tmp/pycbc-original-cpu-followup-validation-20260908-pr17",
+  "verified_files": [
+    {
+      "path": "pycbc/events/eventmgr_cython.pyx",
+      "sha256": "7c551d1b858dc10a3ddf792e5ecd4752e61f018830503eded25588cb42301b6b"
+    },
+    {
+      "path": "pycbc/events/simd_threshold_cython.pyx",
+      "sha256": "395a4061b1fdf0965eb9798d58b3e4fe9c7df0c2254397e793c39dde40c9acdb"
+    },
+    {
+      "path": "pycbc/fft/fftw_pruned_cython.pyx",
+      "sha256": "59a342723d9e602ea51607e0a5bb516714d80ebac332c742f5ff39721c5b40f2"
+    },
+    {
+      "path": "pycbc/filter/matchedfilter_cpu.pyx",
+      "sha256": "440900feaf688eb158f913724dacab74d541015a1219fec59ec34d9f8646738b"
+    },
+    {
+      "path": "pycbc/filter/simd_correlate_cython.pyx",
+      "sha256": "fcb9c4ae78833c46b693735b8678e9f584b759aaa52bf739378669f82c6c11f0"
+    },
+    {
+      "path": "pycbc/inference/models/relbin_cpu.pyx",
+      "sha256": "57bb88030db3fc86ec392629266407789bee3a303d3625fc3c4fcd895e68bece"
+    },
+    {
+      "path": "pycbc/types/array_cpu.pyx",
+      "sha256": "78db70390e8441effa83a11be91b9837d63b625184de1553e330d7499bd25ce2"
+    },
+    {
+      "path": "pycbc/vetoes/chisq_cpu.pyx",
+      "sha256": "d550069568e1675dfb6f40ea29b68d563c490125e629954e5c25ea2ae16a6d22"
+    },
+    {
+      "path": "pycbc/waveform/decompress_cpu_cython.pyx",
+      "sha256": "26e2316449a59a7d351e13af9dbd2739ad7f290f6d6f9941e69a3ef832e4091c"
+    },
+    {
+      "path": "pycbc/waveform/spa_tmplt_cpu.pyx",
+      "sha256": "68365ecda2c912742047b91dc7d28942a3712f987d4359602c12178c950dc9ee"
+    },
+    {
+      "path": "pycbc/waveform/utils_cpu.pyx",
+      "sha256": "7f2c8eb0d31ff458da059ac0f6a31c448fb66cd88a5696acc2722e5607a603fa"
+    },
+    {
+      "path": "pycbc/events/eventmgr_cython.cpython-313-darwin.so",
+      "sha256": "f205b8ec62517aefd4dd977de805e533d01f47b3502ab73275846809b787fa0c"
+    },
+    {
+      "path": "pycbc/events/simd_threshold_cython.cpython-313-darwin.so",
+      "sha256": "ad20ee955f8c939c31a8c597583894bfb6ad650d911664f2cafe66b0b4b9f8ab"
+    },
+    {
+      "path": "pycbc/fft/fftw_pruned_cython.cpython-313-darwin.so",
+      "sha256": "119a222bd46d28c88a093776529e71fed642048c599c06ff9e03ea69d37cdebd"
+    },
+    {
+      "path": "pycbc/filter/matchedfilter_cpu.cpython-313-darwin.so",
+      "sha256": "51a91332f63f9621742dc993c50c21371aaf4d027a0daf79fea91c227b7d54ce"
+    },
+    {
+      "path": "pycbc/filter/simd_correlate_cython.cpython-313-darwin.so",
+      "sha256": "d7c42ecb292c5747242d618d6f694135a4cc6a765093e70113679b85a4634950"
+    },
+    {
+      "path": "pycbc/inference/models/relbin_cpu.cpython-313-darwin.so",
+      "sha256": "5da8f3f44c1b4670909f4fe996b6c8d7e144b9c65f38474ea411589117829a09"
+    },
+    {
+      "path": "pycbc/types/array_cpu.cpython-313-darwin.so",
+      "sha256": "9caf0642755900093c9af706bdff110a72bccb76049c71db9c3055a8cb418844"
+    },
+    {
+      "path": "pycbc/vetoes/chisq_cpu.cpython-313-darwin.so",
+      "sha256": "43524ee3cdfd161c8cacca29132574e63cfa631f2ad9e7b3c680566c815dba1d"
+    },
+    {
+      "path": "pycbc/waveform/decompress_cpu_cython.cpython-313-darwin.so",
+      "sha256": "4a7bddc91489924845447068eb00e1460a64e540062d7611dba755d25988bcdb"
+    },
+    {
+      "path": "pycbc/waveform/spa_tmplt_cpu.cpython-313-darwin.so",
+      "sha256": "0b7b366d1ab7b1a974fcecb9f3f67dfc0b641e4973e62e91938f18316390dbb5"
+    },
+    {
+      "path": "pycbc/waveform/utils_cpu.cpython-313-darwin.so",
+      "sha256": "039b570e956f43c11f7e8a89bf6d5834e77f5ee63b13600caa3dcc9e3aa2fd3a"
+    }
+  ],
+  "pytest_command": [
+    "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+    "-m",
+    "pytest",
+    "-q",
+    "test/test_torch_chisq_cpu_compat.py",
+    "test/test_torch_chisq_sparse_dispatch.py",
+    "test/test_torch_chisq_cpu_optimization.py",
+    "test/test_torch_chisq_precision.py",
+    "test/test_torch_chisq_cuda_normalization.py",
+    "test/test_chisq_torch.py",
+    "test/test_cpu_batch_peaks.py",
+    "test/test_torch_cpu_native_peaks.py",
+    "test/test_torch_cpu_fft_tuning.py",
+    "test/test_torch_large_ifft.py",
+    "test/test_torch_performance_artifacts.py",
+    "test/test_hardware.py",
+    "--junitxml=/private/tmp/pycbc-torch-parity-restack-v2-20260908/artifacts/torch-parity-fix-20260908/optional-pr17/pytest.xml"
+  ],
+  "pytest_exit_code": 0,
+  "counts": {
+    "tests": 308,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 42,
+    "passed": 266
+  },
+  "lint": [
+    {
+      "command": [
+        "/Users/xangma/miniconda3/bin/ruff",
+        "check",
+        "--no-cache",
+        "pycbc/vetoes/chisq_torch.py",
+        "--select",
+        "F401,B905"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "/Users/xangma/miniconda3/bin/ruff",
+        "check",
+        "--no-cache",
+        "test/test_torch_chisq_cpu_optimization.py",
+        "--select",
+        "F401"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "/Users/xangma/miniconda3/bin/ruff",
+        "format",
+        "--check",
+        "--no-cache",
+        "pycbc/vetoes/chisq_torch.py"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "note": "CPU/native sources unchanged during conflict resolution. Three pre-existing B905 warnings in the test file are outside CI F401 scope."
+}

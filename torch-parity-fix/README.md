@@ -1,6 +1,6 @@
 # Torch compatibility with the original CPU — 2026-09-08
 
-The fixes are in the existing Torch stack. Original CPU reference `40e94792b3edf59f39b18b65102b28a4f74433a7` is unchanged. The executable qualification measured `88878b1c38c952e63002b812058a0c7316123f70`; subsequent documentation changes and restacked optional leaves are mapped in final-publication when available.
+The fixes are in the existing Torch stack. Original CPU reference `40e94792b3edf59f39b18b65102b28a4f74433a7` is unchanged. The executable qualification measured `88878b1c38c952e63002b812058a0c7316123f70`; subsequent documentation changes and restacked optional leaves are recorded in [final-publication](final-publication/README.md).
 
 ## Scientific result
 

@@ -1,0 +1,375 @@
+{
+  "cpu_base": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+  "status": "complete",
+  "prs": [
+    {
+      "pr": 18,
+      "parent_pr": null,
+      "published_ref": "torch-formatting-base",
+      "published_base_ref": "torch-stack-base",
+      "old_base": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+      "old_head": "2b547a271aed7e88132811c632f0a5b3d6ee77a7",
+      "new_base": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+      "new_head": "2b547a271aed7e88132811c632f0a5b3d6ee77a7",
+      "staging_ref": "codex/torch-parity-restack-v2-20260908-pr18",
+      "replayed": [],
+      "fixes": [],
+      "tested_head": "2b547a271aed7e88132811c632f0a5b3d6ee77a7"
+    },
+    {
+      "pr": 5,
+      "parent_pr": 18,
+      "published_ref": "torch-pr1-runtime",
+      "published_base_ref": "torch-formatting-base",
+      "old_base": "2b547a271aed7e88132811c632f0a5b3d6ee77a7",
+      "old_head": "16f246be7e48ad16dd9043ff6351c52ced531300",
+      "new_base": "2b547a271aed7e88132811c632f0a5b3d6ee77a7",
+      "new_head": "717efb02512ed30d7e5556dee7aba67c6787df2b",
+      "staging_ref": "codex/torch-parity-restack-v2-20260908-pr05",
+      "replayed": [
+        {
+          "old": "b383da896ccc8c706f61176b3cea35065bc3874f",
+          "new": "f9b9c7aabd71557fe639414984b9218516502cc2"
+        },
+        {
+          "old": "07872e59dade4d4de6f86152f473277010412f98",
+          "new": "10f8315da759fe7eed5363e33815460350cd36ba"
+        },
+        {
+          "old": "aa26527f7774022dfddff4793244708a767d0f4c",
+          "new": "27f32e2e9019b5e33a9a4f3fa9a0a308d224ed01"
+        },
+        {
+          "old": "fc16f7063ac2a7bec415ac5bc04218ecbfde2dcb",
+          "new": "89fea87eedaa77cf18758f861814251268373f74"
+        },
+        {
+          "old": "16f246be7e48ad16dd9043ff6351c52ced531300",
+          "new": "c3d0208920dc35ccf28c258c016316f61380f551"
+        }
+      ],
+      "fixes": [
+        "e1ae34064e8dadf485746574462aef4ba424b519",
+        "6df096c117c19aaf697de8d8f0545f78ac7e2835"
+      ],
+      "tested_head": "717efb02512ed30d7e5556dee7aba67c6787df2b"
+    },
+    {
+      "pr": 6,
+      "parent_pr": 5,
+      "published_ref": "torch-pr2-fft",
+      "published_base_ref": "torch-pr1-runtime",
+      "old_base": "16f246be7e48ad16dd9043ff6351c52ced531300",
+      "old_head": "45e75586f8cf2f9ff0a6818bed706d453a48dc20",
+      "new_base": "717efb02512ed30d7e5556dee7aba67c6787df2b",
+      "new_head": "9e4ed8472de6cd9ed57b8fe2a9e3314ed0331955",
+      "staging_ref": "codex/torch-parity-restack-v2-20260908-pr06",
+      "replayed": [
+        {
+          "old": "a9a40325ead4745bbf2160befdfdc9eabeb4c6a9",
+          "new": "f623435a1673e77795cf1c5e5e04558f478b486e"
+        },
+        {
+          "old": "a6915955bd76b866cbcf991d9040c88bc80bc220",
+          "new": "8492b2b11698b7fbf6e574e8da338d006f89bd30"
+        },
+        {
+          "old": "45e75586f8cf2f9ff0a6818bed706d453a48dc20",
+          "new": "9e4ed8472de6cd9ed57b8fe2a9e3314ed0331955"
+        }
+      ],
+      "fixes": [],
+      "tested_head": "9e4ed8472de6cd9ed57b8fe2a9e3314ed0331955"
+    },
+    {
+      "pr": 7,
+      "parent_pr": 6,
+      "published_ref": "torch-pr3-psd",
+      "published_base_ref": "torch-pr2-fft",
+      "old_base": "45e75586f8cf2f9ff0a6818bed706d453a48dc20",
+      "old_head": "2db1aa17546cc0988865757c771fe5d946ee3d83",
+      "new_base": "9e4ed8472de6cd9ed57b8fe2a9e3314ed0331955",
+      "new_head": "c5a9da521dbaf7a4a9960b2bf877118e9557355c",
+      "staging_ref": "codex/torch-parity-restack-v2-20260908-pr07",
+      "replayed": [
+        {
+          "old": "6b6e3738c66d758700105cd2fdd3c18925a53d5e",
+          "new": "5de42bd43e7af8e58d430f42466627333b4d9c9e"
+        },
+        {
+          "old": "2db1aa17546cc0988865757c771fe5d946ee3d83",
+          "new": "dec78bcc81e9bb94229753fe26cd409b036c82ed"
+        }
+      ],
+      "fixes": [
+        "2735b8f31c31eef2cb4e264afc828d81f06826f8"
+      ],
+      "tested_head": "c5a9da521dbaf7a4a9960b2bf877118e9557355c"
+    },
+    {
+      "pr": 8,
+      "parent_pr": 7,
+      "published_ref": "torch-pr4-filtering",
+      "published_base_ref": "torch-pr3-psd",
+      "old_base": "2db1aa17546cc0988865757c771fe5d946ee3d83",
+      "old_head": "941a119e00f7da3e72daa98a8ad60e5264a4ae1c",
+      "new_base": "c5a9da521dbaf7a4a9960b2bf877118e9557355c",
+      "new_head": "cee69638ac44980e5235bdf8695c97e3e397b5d5",
+      "staging_ref": "codex/torch-parity-restack-v2-20260908-pr08",
+      "replayed": [
+        {
+          "old": "d4ab210599623b3a1503c50dc8536b6ca6e7d9c3",
+          "new": "0281b5405832c68c7d91bf9da463d7e3e579ee39"
+        },
+        {
+          "old": "59d288beeda2977ca14eec350cf170cc4e7dc01a",
+          "new": "391ba74458f976376db13d16d0becba28e3de4c0"
+        },
+        {
+          "old": "941a119e00f7da3e72daa98a8ad60e5264a4ae1c",
+          "new": "16c5d7f49f2c061b4e10464bf04fecbbbc868f30"
+        }
+      ],
+      "fixes": [
+        "5e92b3256ca9f5d2615c1ddf1a3a11180634164c",
+        "895dfc7d286908b43120e60681f2f0943a6574a0",
+        "f6d4e7fa8897864aa01556c8e2a448d0620f2f87"
+      ],
+      "tested_head": "cee69638ac44980e5235bdf8695c97e3e397b5d5"
+    },
+    {
+      "pr": 9,
+      "parent_pr": 8,
+      "published_ref": "torch-pr5-search",
+      "published_base_ref": "torch-pr4-filtering",
+      "old_base": "941a119e00f7da3e72daa98a8ad60e5264a4ae1c",
+      "old_head": "307d349013a058ad6b2aa61a111cb9c75882427c",
+      "new_base": "cee69638ac44980e5235bdf8695c97e3e397b5d5",
+      "new_head": "29bdbe4d6e6075bd10dfcb6bcf9c367a85eb884a",
+      "staging_ref": "codex/torch-parity-restack-v2-20260908-pr09",
+      "replayed": [
+        {
+          "old": "90d8aec6ad8706ec4f984ebd8346b920e099ae48",
+          "new": "10f262516d42f4be9c6e1b7d1c62a2a805febfc2"
+        },
+        {
+          "old": "e77fb599810c01c60fd7098b6ac789b4f169dda0",
+          "new": "2cbff2ef6877b5b30dc06377ca9a0b909ffe2c54"
+        },
+        {
+          "old": "307d349013a058ad6b2aa61a111cb9c75882427c",
+          "new": "9ef13e1da4307fe86f15e53c733d6c6ed45dc246"
+        }
+      ],
+      "fixes": [
+        "f60c325d79bfe1ae09b0c0176575e20dcd9067c5"
+      ],
+      "tested_head": "29bdbe4d6e6075bd10dfcb6bcf9c367a85eb884a"
+    },
+    {
+      "pr": 10,
+      "parent_pr": 9,
+      "published_ref": "torch-pr6-waveform",
+      "published_base_ref": "torch-pr5-search",
+      "old_base": "307d349013a058ad6b2aa61a111cb9c75882427c",
+      "old_head": "1bd71a607336a2455892134762f45192f4c92a27",
+      "new_base": "29bdbe4d6e6075bd10dfcb6bcf9c367a85eb884a",
+      "new_head": "6d180a1aa61a22e913ab014dd6b5a90d85fa2348",
+      "staging_ref": "codex/torch-parity-restack-v2-20260908-pr10",
+      "replayed": [
+        {
+          "old": "1bd71a607336a2455892134762f45192f4c92a27",
+          "new": "6d180a1aa61a22e913ab014dd6b5a90d85fa2348"
+        }
+      ],
+      "fixes": [],
+      "tested_head": "6d180a1aa61a22e913ab014dd6b5a90d85fa2348"
+    },
+    {
+      "pr": 11,
+      "parent_pr": 10,
+      "published_ref": "torch-pr7-taylorf2",
+      "published_base_ref": "torch-pr6-waveform",
+      "old_base": "1bd71a607336a2455892134762f45192f4c92a27",
+      "old_head": "5118e069edeb6a0e6e84f4b7b5ea33a2e82e67c1",
+      "new_base": "6d180a1aa61a22e913ab014dd6b5a90d85fa2348",
+      "new_head": "27e31362ebb242ef4c23eaab7f0ac7c1f048fecb",
+      "staging_ref": "codex/torch-parity-restack-v2-20260908-pr11",
+      "replayed": [
+        {
+          "old": "5118e069edeb6a0e6e84f4b7b5ea33a2e82e67c1",
+          "new": "27e31362ebb242ef4c23eaab7f0ac7c1f048fecb"
+        }
+      ],
+      "fixes": [],
+      "tested_head": "27e31362ebb242ef4c23eaab7f0ac7c1f048fecb"
+    },
+    {
+      "pr": 12,
+      "parent_pr": 11,
+      "published_ref": "torch-pr8-domain-compat",
+      "published_base_ref": "torch-pr7-taylorf2",
+      "old_base": "5118e069edeb6a0e6e84f4b7b5ea33a2e82e67c1",
+      "old_head": "c55f151be551bad01974f77beed7c384845ca1cb",
+      "new_base": "27e31362ebb242ef4c23eaab7f0ac7c1f048fecb",
+      "new_head": "f03dbb665efdc7110f6acbedc42f8be3d95031ec",
+      "staging_ref": "codex/torch-parity-restack-v2-20260908-pr12",
+      "replayed": [
+        {
+          "old": "c55f151be551bad01974f77beed7c384845ca1cb",
+          "new": "f03dbb665efdc7110f6acbedc42f8be3d95031ec"
+        }
+      ],
+      "fixes": [],
+      "tested_head": "f03dbb665efdc7110f6acbedc42f8be3d95031ec"
+    },
+    {
+      "pr": 13,
+      "parent_pr": 12,
+      "published_ref": "torch-pr9-detector",
+      "published_base_ref": "torch-pr8-domain-compat",
+      "old_base": "c55f151be551bad01974f77beed7c384845ca1cb",
+      "old_head": "86f27da509f91c90a8e6c78db025b43e7a32444e",
+      "new_base": "f03dbb665efdc7110f6acbedc42f8be3d95031ec",
+      "new_head": "aa63ba1a8187b4c914baebcf5ff87f71394b7baf",
+      "staging_ref": "codex/torch-parity-restack-v2-20260908-pr13",
+      "replayed": [
+        {
+          "old": "86f27da509f91c90a8e6c78db025b43e7a32444e",
+          "new": "aa63ba1a8187b4c914baebcf5ff87f71394b7baf"
+        }
+      ],
+      "fixes": [],
+      "tested_head": "aa63ba1a8187b4c914baebcf5ff87f71394b7baf"
+    },
+    {
+      "pr": 14,
+      "parent_pr": 13,
+      "published_ref": "torch-pr10-inference",
+      "published_base_ref": "torch-pr9-detector",
+      "old_base": "86f27da509f91c90a8e6c78db025b43e7a32444e",
+      "old_head": "0a2f38a5c6fa1e07924d111c9dba49b3e429efa1",
+      "new_base": "aa63ba1a8187b4c914baebcf5ff87f71394b7baf",
+      "new_head": "90375bb3322fbf456dc4591ab1d23a1e1b980a5a",
+      "staging_ref": "codex/torch-parity-restack-v2-20260908-pr14",
+      "replayed": [
+        {
+          "old": "0a2f38a5c6fa1e07924d111c9dba49b3e429efa1",
+          "new": "90375bb3322fbf456dc4591ab1d23a1e1b980a5a"
+        }
+      ],
+      "fixes": [],
+      "tested_head": "90375bb3322fbf456dc4591ab1d23a1e1b980a5a"
+    },
+    {
+      "pr": 15,
+      "parent_pr": 14,
+      "published_ref": "torch-pr11-performance-evidence",
+      "published_base_ref": "torch-pr10-inference",
+      "old_base": "0a2f38a5c6fa1e07924d111c9dba49b3e429efa1",
+      "old_head": "8f71727e28ede9de3e3bbed82bb616eab710cbe7",
+      "new_base": "90375bb3322fbf456dc4591ab1d23a1e1b980a5a",
+      "new_head": "7a72fba101b80467ebcdabe33ee973b9816094fb",
+      "staging_ref": "codex/torch-parity-final-20260908-pr15",
+      "replayed": [
+        {
+          "old": "323d10c611ddbca81f52c43f7956517954613d30",
+          "new": "f1b4d4a2bccca685929467116fca8e7c6e3585e9"
+        },
+        {
+          "old": "e0878529bda61f395e09ab756adce5135b5bc629",
+          "new": "c921f53f4fe7a9c968bee22405e5375e9e23c0d2"
+        },
+        {
+          "old": "22fc2eb0e5abf67902f6e9662b2119ef9bba858e",
+          "new": "0570caca1d88b97d2a58a41855a3d5281cc721b4"
+        },
+        {
+          "old": "13e9f91d8884926c21eb3780176f77eebf2a5a8d",
+          "new": "0f786d734b880d0172f6436acaffe847a88370ad"
+        },
+        {
+          "old": "aedf66ce1a1ea4cfa3b2f05a52529b44846ffeb9",
+          "new": "4a4e740c848162aabaca2bb87a442c15f29efd10"
+        },
+        {
+          "old": "11ebb762daed40758432af7044708b44ade5b7d2",
+          "new": "85780cbe4560f246a10444b0f5c96930ed9340b0"
+        },
+        {
+          "old": "cf82e8d7b841b48e204737a8a3e66c8a4c53f737",
+          "new": "0804937e6660d488ad8c8dc75c0074bd26008533"
+        },
+        {
+          "old": "8f71727e28ede9de3e3bbed82bb616eab710cbe7",
+          "new": "88878b1c38c952e63002b812058a0c7316123f70"
+        }
+      ],
+      "fixes": [],
+      "tested_head": "88878b1c38c952e63002b812058a0c7316123f70"
+    },
+    {
+      "pr": 19,
+      "parent_pr": 15,
+      "published_ref": "torch-fft-formatting-base",
+      "published_base_ref": "torch-pr11-performance-evidence",
+      "old_base": "8f71727e28ede9de3e3bbed82bb616eab710cbe7",
+      "old_head": "7716afbef0e0a993469fa256ef8bffd1fb4dcfd3",
+      "new_base": "7a72fba101b80467ebcdabe33ee973b9816094fb",
+      "new_head": "63e20f41ada75b8f74d73d4ada644c72cdae257c",
+      "staging_ref": "codex/torch-parity-final-20260908-pr19",
+      "replayed": [
+        {
+          "old": "7716afbef0e0a993469fa256ef8bffd1fb4dcfd3",
+          "new": "232758030472bf14ac35b6a83650297f390e8148"
+        }
+      ],
+      "fixes": [],
+      "tested_head": "232758030472bf14ac35b6a83650297f390e8148"
+    },
+    {
+      "pr": 16,
+      "parent_pr": 19,
+      "published_ref": "torch-followup-fft-optimizations",
+      "published_base_ref": "torch-fft-formatting-base",
+      "old_base": "7716afbef0e0a993469fa256ef8bffd1fb4dcfd3",
+      "old_head": "8edcd6fece317f9e1c9a2f24656050c18e97ff34",
+      "new_base": "63e20f41ada75b8f74d73d4ada644c72cdae257c",
+      "new_head": "8063beef45b713d3b682279ef5fb8d2b991c2758",
+      "staging_ref": "codex/torch-parity-final-20260908-pr16",
+      "replayed": [
+        {
+          "old": "079bddfea762ec6549f17d48ddbead16f67d6546",
+          "new": "12662f23af0708b1bab8f3167f201a36fd7340fe"
+        },
+        {
+          "old": "8edcd6fece317f9e1c9a2f24656050c18e97ff34",
+          "new": "0da3f882a6c1c319364fcdbbff81525ce83172ec"
+        }
+      ],
+      "fixes": [],
+      "tested_head": "0da3f882a6c1c319364fcdbbff81525ce83172ec"
+    },
+    {
+      "pr": 17,
+      "parent_pr": 15,
+      "published_ref": "torch-followup-cpu-optimizations",
+      "published_base_ref": "torch-pr11-performance-evidence",
+      "old_base": "8f71727e28ede9de3e3bbed82bb616eab710cbe7",
+      "old_head": "95ed021935cdae7803f74715e4591333f11b5ce4",
+      "new_base": "7a72fba101b80467ebcdabe33ee973b9816094fb",
+      "new_head": "83cdc9971841b4ba26796fdbf53e034f3a764fa2",
+      "staging_ref": "codex/torch-parity-final-20260908-pr17",
+      "replayed": [
+        {
+          "old": "95ed021935cdae7803f74715e4591333f11b5ce4",
+          "new": "7fd2ce7299ab91e4a4ceab4fd454218c031c3cbe"
+        }
+      ],
+      "fixes": [],
+      "conflict_resolution": "Preserve original optional single-point helper after inherited compatibility dispatch; tensor normalization tests target optional route.",
+      "tested_head": "7fd2ce7299ab91e4a4ceab4fd454218c031c3cbe"
+    }
+  ],
+  "documentation_commit": "e1cb3a081d4059d14df37e1fb828deba4b68b5ba"
+}
