@@ -1,0 +1,26 @@
+Previous HEAD position was 123e1fb3ef Focus Torch documentation on baseline versus proposed-code review
+Switched to a new branch 'codex/torch-baseline-final-pr19-20260908'
+[codex/torch-baseline-final-pr19-20260908 1b81a82b84] Format existing modules used by optional FFT changes
+ Date: Sun Sep 6 22:19:33 2026 +0100
+ 5 files changed, 123 insertions(+), 82 deletions(-)
+Switched to a new branch 'codex/torch-baseline-final-pr16-20260908'
+[codex/torch-baseline-final-pr16-20260908 52bb474266] Add optional FFTW wisdom caching and general FFT batch fixes
+ Date: Sun Sep 6 22:19:34 2026 +0100
+ 12 files changed, 1507 insertions(+), 71 deletions(-)
+ create mode 100644 pycbc/fft/wisdom_cache.py
+ create mode 100644 test/test_fft_batched_backends.py
+ create mode 100644 test/test_fft_cli_wisdom.py
+ create mode 100644 test/test_fftw_wisdom_cache.py
+Switched to a new branch 'codex/torch-baseline-final-pr17-20260908'
+[codex/torch-baseline-final-pr17-20260908 b213a6aeff] Add optional CPU peak, sparse chi-square and FFT optimizations
+ Date: Sun Sep 6 22:19:34 2026 +0100
+ 15 files changed, 1400 insertions(+), 22 deletions(-)
+ create mode 100644 test/test_cpu_batch_peaks.py
+ create mode 100644 test/test_torch_cpu_fft_tuning.py
+ create mode 100644 test/test_torch_cpu_native_peaks.py
+{
+  "15": "bd2d956f5c4e7c69b957181340d62d76a25717ac",
+  "19": "1b81a82b84814d6cdc6cc6d27cf47b1b4e195fde",
+  "16": "52bb4742667671f178314b2bd1a23f83029cab32",
+  "17": "b213a6aeffa69ba0f249c8b5c883434d2371cecf"
+}
