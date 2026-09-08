@@ -1062,10 +1062,6 @@ class TorchThresholdCluster(_BaseThresholdCluster):
                 or not _TORCH_IS_INFERENCE(self._magnitude_component)
             )
         )
-        thresh_sq = torch.as_tensor(
-            threshold, device=self.series.device, dtype=self.series.real.dtype
-        )
-        thresh_sq = thresh_sq * thresh_sq
         # Reusable ``out=`` storage is a CPU-only eager optimization. The
         # compiled route is restricted to a single contiguous CUDA search
         # series, where the native accelerator magnitude operation is retained.
@@ -1095,8 +1091,16 @@ class TorchThresholdCluster(_BaseThresholdCluster):
                 out_max=self._triton_block_max,
                 out_idx=self._triton_block_idx,
             )
-            keep = _symmetric_cluster_mask(block_max, thresh_sq, out=self._triton_keep)
+            thresh_f = float(threshold)
+            thresh_sq_val = float(np.float32(thresh_f) ** 2.0)
+            keep = _symmetric_cluster_mask(
+                block_max, thresh_sq_val, out=self._triton_keep
+            )
         elif use_scratch:
+            thresh_sq = torch.as_tensor(
+                threshold, device=self.series.device, dtype=self.series.real.dtype
+            )
+            thresh_sq = thresh_sq * thresh_sq
             mag_sq = _magnitude_squared(
                 self.series,
                 out=self._magnitude,
@@ -1105,6 +1109,10 @@ class TorchThresholdCluster(_BaseThresholdCluster):
             block_max, block_idx = _cluster_candidates(mag_sq, window)
             keep = _symmetric_cluster_mask(block_max, thresh_sq)
         else:
+            thresh_sq = torch.as_tensor(
+                threshold, device=self.series.device, dtype=self.series.real.dtype
+            )
+            thresh_sq = thresh_sq * thresh_sq
             _, block_idx, keep = _run_threshold_core(
                 self.series,
                 thresh_sq,

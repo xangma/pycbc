@@ -18,7 +18,6 @@
 
 import sys
 import os
-import copy
 import logging
 import argparse
 import numpy
@@ -270,22 +269,23 @@ def template_triggers(t_num):
             continue
 
         out_vals = out_vals_ref.copy()
+        idx_shifted = idx + stilde.analyze.start
         out_vals['bank_chisq'], out_vals['bank_chisq_dof'] = \
               bank_chisq.values(template, stilde.psd, stilde, snrv, norm,
-                                idx+stilde.analyze.start)
+                                idx_shifted)
 
         out_vals['chisq'], out_vals['chisq_dof'] = \
               power_chisq.values(corr, snrv, norm, stilde.psd,
-                                 idx+stilde.analyze.start, template)
+                                 idx_shifted, template)
 
         out_vals['sg_chisq'] = sg_chisq.values(stilde, template, stilde.psd,
                                       snrv, norm,
                                       out_vals['chisq'],
                                       out_vals['chisq_dof'],
-                                      idx+stilde.analyze.start)
+                                      idx_shifted)
 
         out_vals['cont_chisq'], _ = \
-              autochisq.values(snr, idx+stilde.analyze.start, template,
+              autochisq.values(snr, idx_shifted, template,
                                stilde.psd, norm, stilde=stilde,
                                low_frequency_cutoff=flow)
 
@@ -301,7 +301,7 @@ def template_triggers(t_num):
                                       opt.gps_start_time, opt.sample_rate)
         #print(idx, out_vals['time_index'])
 
-        out_vals_all.append(copy.deepcopy(out_vals))
+        out_vals_all.append(out_vals.copy())
         #print(out_vals_all)
     return out_vals_all, tparam
 
