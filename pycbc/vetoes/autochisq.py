@@ -19,8 +19,70 @@ import numpy as np
 
 from pycbc.filter import make_frequency_series, matched_filter_core
 from pycbc.types import Array
+from pycbc.types.array import _convert_to_scheme
+from pycbc.types.backend import (
+    backend_array,
+    is_backend,
+    wrap_backend_array,
+)
 
 BACKEND_PREFIX = "pycbc.vetoes.autochisq_"
+
+
+def _torch_autochisq(
+    sn, corr_sn, hautocorr, indices, achisq_idx_list, twophase, maxvalued
+):
+    """Evaluate all requested auto-chi-squared values on a Torch device."""
+    import torch
+
+    sn_tensor = backend_array(sn, "torch")
+    corr_tensor = backend_array(corr_sn, "torch")
+    hauto_tensor = backend_array(hautocorr, "torch")
+    device = sn_tensor.device
+
+    if isinstance(indices, Array):
+        _convert_to_scheme(indices)
+        index_tensor = backend_array(indices, "torch").to(
+            device=device, dtype=torch.long
+        )
+    else:
+        index_tensor = torch.as_tensor(indices, device=device, dtype=torch.long)
+
+    offset_tensor = torch.as_tensor(achisq_idx_list, device=device, dtype=torch.long)
+    selected_snr = sn_tensor[index_tensor]
+    snrabs = torch.abs(selected_snr)
+    cphi = selected_snr.real / snrabs
+    sphi = selected_snr.imag / snrabs
+    snr_ind = selected_snr.real * cphi + selected_snr.imag * sphi
+
+    wrapped_indices = torch.remainder(
+        index_tensor[:, None] + offset_tensor[None, :], len(sn)
+    )
+    selected_corr = corr_tensor[wrapped_indices]
+    hauto_corr = hauto_tensor[offset_tensor]
+    hauto_real = hauto_corr.real
+    hauto_imag = (
+        hauto_corr.imag
+        if torch.is_complex(hauto_corr)
+        else torch.zeros_like(hauto_corr)
+    )
+    hauto_norm = hauto_real.square() + hauto_imag.square()
+    norm = 1.0 - hauto_norm
+
+    z = selected_corr.real * cphi[:, None] + selected_corr.imag * sphi[:, None]
+    dz = z - hauto_real[None, :] * snr_ind[:, None]
+    values = dz.square() / norm[None, :]
+
+    if twophase:
+        z = -selected_corr.real * sphi[:, None] + selected_corr.imag * cphi[:, None]
+        dz = z - hauto_imag[None, :] * snr_ind[:, None]
+        values += dz.square() / norm[None, :]
+
+    if maxvalued:
+        values = values.amax(dim=1)
+    else:
+        values = values.sum(dim=1)
+    return Array(wrap_backend_array(values), copy=False)
 
 
 def autochisq_from_precomputed(
@@ -77,16 +139,11 @@ def autochisq_from_precomputed(
     """
     Nsnr = len(sn)
 
-    achisq = np.zeros(len(indices))
     num_points_all = int(Nsnr / stride)
     if num_points is None:
         num_points = num_points_all
     if num_points > num_points_all:
         num_points = num_points_all
-
-    snrabs = np.abs(sn[indices])
-    cphi_array = (sn[indices]).real / snrabs
-    sphi_array = (sn[indices]).imag / snrabs
 
     start_point = -stride * num_points
     end_point = stride * num_points + 1
@@ -99,46 +156,55 @@ def autochisq_from_precomputed(
         achisq_idx_list_pt2 = np.arange(stride, end_point, stride)
         achisq_idx_list = np.append(achisq_idx_list_pt1, achisq_idx_list_pt2)
 
-    hauto_corr_vec = hautocorr[achisq_idx_list]
-    hauto_norm = hauto_corr_vec.real * hauto_corr_vec.real
-    # REMOVE THIS LINE TO REPRODUCE OLD RESULTS
-    hauto_norm += hauto_corr_vec.imag * hauto_corr_vec.imag
-    chisq_norm = 1.0 - hauto_norm
-
-    for ip, ind in enumerate(indices):
-        curr_achisq_idx_list = achisq_idx_list + ind
-
-        cphi = cphi_array[ip]
-        sphi = sphi_array[ip]
-        # By construction, the other "phase" of the SNR is 0
-        snr_ind = sn[ind].real * cphi + sn[ind].imag * sphi
-
-        # Wrap index if needed (maybe should fail in this case?)
-        if curr_achisq_idx_list[0] < 0:
-            curr_achisq_idx_list[curr_achisq_idx_list < 0] += Nsnr
-        if curr_achisq_idx_list[-1] > (Nsnr - 1):
-            curr_achisq_idx_list[curr_achisq_idx_list > (Nsnr - 1)] -= Nsnr
-
-        z = (
-            corr_sn[curr_achisq_idx_list].real * cphi
-            + corr_sn[curr_achisq_idx_list].imag * sphi
+    for array in (sn, corr_sn, hautocorr):
+        _convert_to_scheme(array)
+    if all(is_backend(array, "torch") for array in (sn, corr_sn, hautocorr)):
+        achisq = _torch_autochisq(
+            sn, corr_sn, hautocorr, indices, achisq_idx_list, twophase, maxvalued
         )
-        dz = z - hauto_corr_vec.real * snr_ind
-        curr_achisq_list = dz * dz / chisq_norm
+    else:
+        achisq = np.zeros(len(indices))
+        snrabs = np.abs(sn[indices])
+        cphi_array = (sn[indices]).real / snrabs
+        sphi_array = (sn[indices]).imag / snrabs
+        hauto_corr_vec = hautocorr[achisq_idx_list]
+        hauto_norm = hauto_corr_vec.real * hauto_corr_vec.real
+        # REMOVE THIS LINE TO REPRODUCE OLD RESULTS
+        hauto_norm += hauto_corr_vec.imag * hauto_corr_vec.imag
+        chisq_norm = 1.0 - hauto_norm
 
-        if twophase:
-            chisq_norm = 1.0 - hauto_norm
+        for ip, ind in enumerate(indices):
+            curr_achisq_idx_list = achisq_idx_list + ind
+
+            cphi = cphi_array[ip]
+            sphi = sphi_array[ip]
+            # By construction, the other "phase" of the SNR is 0
+            snr_ind = sn[ind].real * cphi + sn[ind].imag * sphi
+
+            # Wrap index if needed (maybe should fail in this case?)
+            if curr_achisq_idx_list[0] < 0:
+                curr_achisq_idx_list[curr_achisq_idx_list < 0] += Nsnr
+            if curr_achisq_idx_list[-1] > (Nsnr - 1):
+                curr_achisq_idx_list[curr_achisq_idx_list > (Nsnr - 1)] -= Nsnr
+
             z = (
-                -corr_sn[curr_achisq_idx_list].real * sphi
-                + corr_sn[curr_achisq_idx_list].imag * cphi
+                corr_sn[curr_achisq_idx_list].real * cphi
+                + corr_sn[curr_achisq_idx_list].imag * sphi
             )
-            dz = z - hauto_corr_vec.imag * snr_ind
-            curr_achisq_list += dz * dz / chisq_norm
+            dz = z - hauto_corr_vec.real * snr_ind
+            curr_achisq_list = dz * dz / chisq_norm
 
-        if maxvalued:
-            achisq[ip] = curr_achisq_list.max()
-        else:
-            achisq[ip] = curr_achisq_list.sum()
+            if twophase:
+                chisq_norm = 1.0 - hauto_norm
+                z = (
+                    -corr_sn[curr_achisq_idx_list].real * sphi
+                    + corr_sn[curr_achisq_idx_list].imag * cphi
+                )
+                dz = z - hauto_corr_vec.imag * snr_ind
+                curr_achisq_list += dz * dz / chisq_norm
+
+            val = curr_achisq_list.max() if maxvalued else curr_achisq_list.sum()
+            achisq[ip] = val
 
     dof = num_points
     if oneside is None:
@@ -316,13 +382,11 @@ class SingleDetAutoChisq(object):
         else:
             correlation_snr = sn
 
-        achi_list = np.array([])
-        index_list = np.array(indices)
         dof, achi_list = autochisq_from_precomputed(
             sn,
             correlation_snr,
             self._autocor,
-            index_list,
+            indices,
             stride=self.stride,
             num_points=self.num_points,
             oneside=self.one_sided,

@@ -60,6 +60,7 @@ library and application suite.
 
    tutorials
    torch_runtime
+   torch_filtering
    searches
    inference
    apps
