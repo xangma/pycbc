@@ -9,13 +9,19 @@ output. It processes real H1 frame data with a fixed compressed low-mass bank,
 including data conditioning, PSD estimation, waveform decompression,
 normalization, scalar matched filtering, power chi-square, clustering and
 trigger output. It does not call ``LiveBatchMatchedFilter.process_data``.
-The current reference is standalone corrected CPU
-``66789ac4a7468094b0cc3ca1498a1de67e0311f6``. The campaign measured restacked main
-``f582b6fd250d0b82612492979e01e645d5c07afc`` using normal CPU, Torch CPU and
-Torch CUDA as separate arms. The mapping to formatted main
-``6b47580146e73169cd130b601731e5ba40668d93`` and its documentation commit,
-the separate CPU corrections, and current versus historical results are in
-:ref:`torch-performance`.
+The required reference is unchanged CPU
+``40e94792b3edf59f39b18b65102b28a4f74433a7``. Compare it with restored normal
+CPU, Torch CPU and Torch CUDA as separate arms; CPU arithmetic changes in
+PR #20 are excluded. The replacement source pin is
+``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0``. New results and the explicitly
+superseded historical campaigns are distinguished in :ref:`torch-performance`.
+
+The completed restoration campaign used the frozen inputs and geometry
+below. The `immutable restoration evidence <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_ contains
+their identities and workload checks. Original and restored normal CPU each
+produced 1988 triggers with byte-identical scientific output. Both Torch
+routes produced 1991 triggers and failed the unchanged strict comparisons;
+no performance samples were collected.
 
 Inputs and scientific settings
 ------------------------------
@@ -85,8 +91,9 @@ sweeping 256/512/1024 second segments and 96/112 second start padding, with
 16 second end padding.
 Each setting had three fresh processes. The rule selected the lowest median,
 treating settings within 3% as tied, then preferring more start padding and a
-smaller FFT. The selected 512/112/16 second geometry remains frozen for the
-corrected-baseline comparison; it was not re-tuned on corrected CPU or Torch.
+smaller FFT. Retain the selected 512/112/16 second geometry for the
+original-CPU/restored-stack comparison. The superseded corrected-CPU
+campaign also used this geometry without re-tuning it on corrected CPU or Torch.
 That finite grid and fixed end padding do not establish global optimality or
 fresh boundary-injection validation for every template.
 
@@ -105,47 +112,60 @@ absolute tolerance ``1e-4`` radians. Compare complete PSD references as well as
 SNR, phase, sigmasq and the available veto fields. Retain all failed verdicts.
 Any allowed source or executable-path substitution must be declared separately
 from scientific fields; it must not alter the numerical tolerances or conceal
-missing triggers.
+missing triggers. Runtime timing metadata is outside scientific comparison:
+exclude only explicitly enumerated timing-field paths, retain their raw values,
+and continue checking scientific metadata such as sampling, epoch and geometry.
+The first restoration comparison mistakenly included four ``H1/search`` timing
+fields; retain both its raw verdict and corrected scientific comparison as
+described in :ref:`torch-performance`.
 
-Current qualification passes all five trigger comparisons: corrected CPU
-against all three restacked routes, and restacked normal CPU against both
-Torch routes. Conditioned-strain digests, segment geometry and used PSD bins
-match exactly. The standalone and restacked normal CPU full PSDs pass. The
-full-PSD gate fails for Torch below 30 Hz, with 2375 budget violations per
-segment for Torch CPU and 3105 for Torch CUDA against either normal CPU
-reference. The strict controller
-stopped; a policy amendment made after qualification permits descriptive
-timings while retaining that failure and unchanged tolerances. Passing
-trigger gates does not establish full scientific equivalence. Results and
-the disclosed timing continuation are in :ref:`torch-performance`.
+The completed comparison passes original CPU versus restored normal CPU:
+all 18 H1 scientific datasets, full PSD arrays, conditioned strain and
+geometry are byte-identical. PSD arrays are archived; conditioned-strain
+identity uses full-data SHA256 and metadata, with no archived raw strain.
+Both Torch routes fail against both CPU controls,
+including trigger comparison and the full-PSD gate with relative tolerance
+``1e-4`` and zero absolute floor. Conditioned strain and geometry remain exact
+for both Torch routes. The evidence retains all five verdicts, arrays and
+raw and corrected comparator outputs. The four excluded timing paths are
+enumerated in :ref:`torch-performance`. Qualification stopped before any
+performance sampling; historical timing permission does not apply.
 
 Commands and reproducibility
 ----------------------------
 
-Current corrected-baseline `reproduction instructions
+The `restoration campaign archive <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_ records all four
+expanded source/backend commands, source/native identities, dependencies and
+output hashes. Reproduce into a new acquisition directory.
+
+**SUPERSEDED for the restored stack:** corrected-baseline `reproduction instructions
 <https://github.com/xangma/pycbc/blob/e1dd5e7164a3e8ae8ee8b58ecd7b27200b8cfb9c/corrected-baseline-campaign/REPRODUCE.md>`_ and `configuration
 <https://github.com/xangma/pycbc/blob/e1dd5e7164a3e8ae8ee8b58ecd7b27200b8cfb9c/corrected-baseline-campaign/acquisition/config.json>`_ retain expanded
 commands, imported-source and native-build identity, input/output hashes,
 exit status, the strict qualification stop and subsequent timing policy.
-This campaign copies unchanged native binaries from the frozen build after
-verifying source and binary hashes in both separate source checkouts.
+That historical campaign copied unchanged native binaries from the frozen
+build after verifying source and binary hashes in both separate checkouts.
 The archive includes the acquired ``sources.bundle`` and hash-verified frozen
 bank. The bundle preserves both measured commits after published branches
 advance; the reproduction instructions identify its required frozen base.
+Those receipts reproduce historical source only; the bundle contains no new
+restoration or qualification.
 
-The `historical comparison instructions
+The **superseded combined-proposal** `historical comparison instructions
 <https://github.com/xangma/pycbc/blob/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908/REPRODUCE.md>`_
 and `historical configuration
 <https://github.com/xangma/pycbc/blob/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908/acquisition/config.json>`_
-describe the earlier ``40e94792b3``/``123e1fb3ef`` run, not the current source
-pair. The `original CPU geometry sweep
+describe only the earlier ``40e94792b3``/``123e1fb3ef`` run. The
+`original CPU geometry sweep
 <https://github.com/xangma/pycbc/blob/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/REPRODUCE.md>`_
 records how the frozen segment geometry was selected.
 
-To reproduce the recorded comparison, prepare the explicitly named corrected
-baseline and measured ``f582b6fd25`` commits in separate clean checkouts with
-matching dependencies. Record any substitution of the formatted publication
-head and its AST/source mapping separately.
+To reproduce the measured comparison, prepare unchanged ``40e94792b3`` and
+``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0`` in separate clean checkouts with
+matching dependencies. Record later publication mapping separately, including
+documentation changes and complete-module AST checks for declared formatting
+changes. Behavior changes require new qualification; historical formatting
+receipts cannot cover them.
 Build native modules with recorded flags, or verify native-source identity
 and copied binary hashes if reusing a frozen build. Restore the frozen bank
 and frame by hash, relocate paths into new output directories, and preserve the
@@ -161,8 +181,8 @@ library limits. Keep any required runtime adapter inside the timed command
 and archive its source. Capture the complete expanded argv for all four arms,
 including unchanged data, PSD, veto, clustering and output options.
 
-The matched acquisition used shared ``len`` (AMD Ryzen Threadripper PRO
-3995WX), CPU 8 with SMT sibling CPU 72, and an RTX 4090 for CUDA. Affinity did
+The superseded corrected-CPU acquisition used shared ``len`` (AMD Ryzen
+Threadripper PRO 3995WX), CPU 8 with SMT sibling CPU 72, and an RTX 4090 for CUDA. Affinity did
 not reserve either CPU. Reproduction must record its own hardware, dependency
 versions and load observations. The fixed workload measures finite-process
 cost; sustained or full-machine capacity needs the additional experiments in

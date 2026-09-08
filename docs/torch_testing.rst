@@ -7,6 +7,34 @@ Run the focused tests for your changed API, then the affected project suites.
 Check scientific values and the implementation that ran before benchmarking.
 CUDA and MPS results require those physical devices; report skips separately.
 
+Measured restored main is ``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0``.
+The `immutable restoration evidence <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_ records exact
+commands, environments and receipts. Local integrated tests passed **507
+cases plus 8 subtests**, with **143 skips**; the separate no-Torch run passed
+**22 tests**, cached CPU chi-square passed **2 tests**, and the CI unused-import
+(``F401``) check passed. Linux runtime tests passed **137 tests**, with **1
+skip**, including the large-batch cases requiring LAL that were unavailable
+in the local environment. These counts describe their recorded suites, not
+universal device coverage.
+
+The executable campaign passes original-CPU preservation on its fixed
+workload: **1988 triggers per CPU arm** and byte-identical scientific datasets,
+PSDs and geometry. Conditioned-strain identity is supported by full-data SHA256
+and metadata equality; raw conditioned strain is not archived.
+**Torch CPU and CUDA each produce 1991 triggers and
+fail the original strict scientific gates.** No performance samples were
+collected. See :ref:`torch-performance` for all five comparisons and the four
+runtime timing fields excluded from scientific verdicts. Keep their raw
+values; scientific metadata remains in scope.
+
+CPU preservation requires checks of implementation behavior, defaults,
+validation, context handling and shared FFT behavior beyond this fixed-workload
+campaign. Later publication changes must map
+back to the measured source: document the exact file set and complete-module
+AST equivalence for formatting in ``scheme.py``, ``matchedfilter.py`` and
+``strain.py``. Optional leaves need separate final-source checks. Historical
+results below qualify only their named source revisions.
+
 * :ref:`torch-test-groups`: functional test commands.
 * :ref:`torch-test-ci`: what the checked-in CPU and GPU jobs cover.
 * :ref:`torch-parity-matrix`: prepare and run a reproducible parity campaign.
@@ -46,13 +74,19 @@ physical device is unavailable. Keep skips separate from passes.
 Focused functional groups
 -------------------------
 
-The CPU workflow keeps the stack's focused runtime, array, FFT, filter, search,
-decompression, and native-waveform tests together. Representative paths are:
+Run the CPU preservation regressions alongside the focused runtime, array,
+FFT, filter, search and decompression tests. Representative paths are:
 
 .. code-block:: console
 
    python -m pytest -q \
      test/test_scheme_runtime.py \
+     test/test_cpu_array_copy.py \
+     test/test_cpu_match_cache.py \
+     test/test_cpu_psd_variation.py \
+     test/test_cpu_skymax_chisq.py \
+     test/test_cpu_strain_cache.py \
+     test/test_fft_cpu_preservation.py \
      test/test_torch_optional.py \
      test/test_array_torch_reductions.py \
      test/test_torch_backend_protocol.py \
@@ -62,9 +96,6 @@ decompression, and native-waveform tests together. Representative paths are:
      test/test_torch_fft_cpu_native.py \
      test/test_torch_fft_cuda_workspace.py \
      test/test_torch_psd_pipeline.py \
-     test/test_strain_psd_precision.py \
-     test/test_sigmasq_series_precision.py \
-     test/test_chisq_precision.py \
      test/test_torch_filter_pipeline.py \
      test/test_torch_event_kernels.py \
      test/test_torch_event_pipeline.py \
@@ -108,35 +139,40 @@ match their public boundaries:
      test/test_torch_marginalized_gaussian.py \
      test/test_torch_inference_cli.py
 
-The checked-in workflow files are authoritative when paths evolve. Before a
-performance run, execute the smallest relevant focused group, then every
-project suite affected by the changed public path.
+The checked-in workflow files are authoritative for CI selections. The
+examples include the seven preservation/runtime test files verified at
+``aa6b795a63`` and exclude the three standalone PR #20 tests asserting changed
+CPU arithmetic. Before a performance run, execute the smallest relevant
+focused group, then every project suite affected by the changed public path.
 
-Production reuse and CUDA graph guards
---------------------------------------
+CPU preservation, reuse and CUDA graph guards
+---------------------------------------------
 
 The integrated follow-up changes also have dedicated regression files:
 
 .. code-block:: console
 
    python -m pytest -q -rs \
-     test/test_mkl_function_cache.py \
+     test/test_fft_cpu_preservation.py \
      test/test_live_batch_veto_reuse.py \
      test/test_torch_cuda_peak_host_read.py \
      test/test_torch_offline_cuda_graph.py
 
-These cover MKL descriptor reuse and cleanup, live correlation workspace reuse
-through veto calculation, immediate reads of CUDA peak results on the host,
-and offline CUDA graph capture, replay, invalidation and cleanup. The MKL file
-includes mocked lifecycle checks and native checks that require MKL. The live
+The CPU preservation file checks the original in-place real FFT length
+validation, including odd sizes and batches. The shared CPU MKL descriptor
+cache has been removed from the main stack; historical cache-lifecycle tests
+do not describe current behavior. The remaining files check live correlation workspace
+reuse through veto calculation, immediate host reads of CUDA peak results,
+and offline CUDA graph capture, replay, invalidation and cleanup. The live
 reuse file selects CPU, Torch CPU and available MPS; it does not select CUDA.
 CUDA graph lifecycle checks include host-side mocks, so a CPU pass does not
 qualify capture or replay. Run the actual graph and peak-transfer cases on
 CUDA; graph capture also requires Triton.
 
-These four files are not in the explicit focused selections of
-``basic-tests.yml`` or ``torch-gpu.yml``. Run them separately when changing
-these paths and retain the device-specific results.
+The four files in this reuse/graph command are not in the explicit focused
+selections of ``basic-tests.yml`` or ``torch-gpu.yml`` at the measured source.
+Run them separately when changing these paths and retain device-specific
+results; this statement does not describe the larger example above.
 
 .. _torch-large-batches:
 
@@ -195,7 +231,12 @@ Device and fallback rules
 -------------------------
 
 CPU
-   Use the established CPU scheme at the same source revision as the control.
+   Use the same-revision normal CPU scheme as a dispatch control and unchanged
+   ``40e94792b3edf59f39b18b65102b28a4f74433a7`` as the preservation reference.
+   Test restored normal CPU against that original separately; same-revision
+   CPU/Torch agreement cannot establish that existing CPU behavior is unchanged.
+   Do not substitute PR #20's corrected CPU or promote CPU arithmetic to make
+   an independent oracle comparison pass.
    Record ``TorchScheme``, BLAS and process thread settings, affinity, topology,
    FFT library route, and oversubscription controls. Exercise hardware-aware
    defaults and explicit batch/thread overrides separately.
@@ -283,9 +324,10 @@ deployment manifest. ``manifest.py prepare`` records these inputs after
 installation and building; the runner verifies them before generating a corpus.
 Preparation does not install, rebuild, or repair environments.
 
-Create baseline and current worktrees at explicit commits, with matching Python
-and dependency versions, including Torch. Keep each environment outside its
-source tree. See :ref:`torch-runtime` for installation prerequisites.
+For CPU preservation, set ``BASELINE_SHA`` to
+``40e94792b3edf59f39b18b65102b28a4f74433a7`` and ``CURRENT_SHA`` to the verified
+restored revision. Create the worktrees with matching Python and dependency
+versions, including Torch. Keep each environment outside its source tree. See :ref:`torch-runtime` for installation prerequisites.
 
 .. code-block:: console
 
@@ -360,9 +402,13 @@ suite alone establishes parity across the entire physical parameter space.
 Recorded integrated qualification
 ---------------------------------
 
-This is historical qualification of the revisions named below. The current
-corrected-CPU/restacked-main campaign and its retained full-PSD failure are
-reported separately in :ref:`torch-performance`.
+**SUPERSEDED for the restored stack.** This is historical qualification of
+only the revisions named below. It does not establish preservation of original
+CPU behavior. Current measured-source test results are recorded at the top
+of this page; the completed executable comparison is in
+:ref:`torch-performance`. The superseded corrected-CPU
+campaign and its retained full-PSD failure are reported separately in
+:ref:`torch-performance`.
 
 The `sealed integrated qualification
 <https://github.com/xangma/pycbc/tree/06c77a19432bce561f5cbeb6c2da1dedde98274b/stack-validation-20260908>`_
@@ -390,7 +436,8 @@ pending-allocation negative controls detect the intended failures. These
 results establish correctness within their recorded scope; they are not timing
 measurements or a complete unchanged-baseline parity result.
 
-From a restored ``stack-validation-20260908/`` directory:
+To verify only the historical archive, from an extracted
+``stack-validation-20260908/`` directory:
 
 .. code-block:: console
 
