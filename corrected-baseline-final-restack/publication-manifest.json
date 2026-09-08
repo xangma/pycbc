@@ -1,0 +1,1390 @@
+{
+  "status": "reviewed_ready_for_publication",
+  "cpu_base": "66789ac4a7468094b0cc3ca1498a1de67e0311f6",
+  "measured_main": "f582b6fd250d0b82612492979e01e645d5c07afc",
+  "formatted_main": "6b47580146e73169cd130b601731e5ba40668d93",
+  "publication_main": "1d22031fd31c6e5bcb48a68fe11772e960bd406b",
+  "prs": [
+    {
+      "pr": 18,
+      "url": "https://github.com/xangma/pycbc/pull/18",
+      "published_ref": "torch-formatting-base",
+      "published_base_ref": "torch-stack-base",
+      "parent_pr": null,
+      "old_ref": "codex/cpu-base-restack-20260908-pr18",
+      "old_head": "5444d9fa9ead578a43a3c0c02de641f2869f394b",
+      "old_base": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+      "new_base": "66789ac4a7468094b0cc3ca1498a1de67e0311f6",
+      "staging_ref": "codex/corrected-baseline-publish-20260908-pr18",
+      "commits": [
+        {
+          "old": "11a896824159d49bc4b7661ccbd5e39c399d9ea8",
+          "new": "11a896824159d49bc4b7661ccbd5e39c399d9ea8"
+        },
+        {
+          "old": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+          "new": "f2eb803de6f2d34f2227e69e35d460bd481fff05"
+        }
+      ],
+      "new_head": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+      "formatted_head": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+      "formatted_base": "66789ac4a7468094b0cc3ca1498a1de67e0311f6",
+      "format_ref": "codex/corrected-baseline-final-20260908-pr18",
+      "format_commits": [
+        {
+          "old": "11a896824159d49bc4b7661ccbd5e39c399d9ea8",
+          "new": "11a896824159d49bc4b7661ccbd5e39c399d9ea8"
+        },
+        {
+          "old": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+          "new": "f2eb803de6f2d34f2227e69e35d460bd481fff05"
+        }
+      ],
+      "format_equivalence": {
+        "status": "PASS",
+        "changed_files": [],
+        "files": {},
+        "all_other_tracked_paths_identical": true
+      },
+      "documentation_inheritance": {
+        "status": "PASS",
+        "changed_from_formatted": [],
+        "all_other_tracked_files_and_modes_identical": true
+      },
+      "equivalence": {
+        "status": "PASS",
+        "changed_files": [],
+        "full_module_ast_identical_excluding_locations": true,
+        "all_other_tracked_files_and_modes_identical": true,
+        "native_sources_unchanged": true,
+        "identical_namespace_tree_ids": {
+          "bin": "be92950a41b062d83d0a867ea2fd65247c943a43",
+          "test": "006e92bbf9e382d8bd8b145421e0d7cfebc79cf6",
+          "tools": "056e1cb74ce350f1b430eaab771f3b4b919bc894",
+          ".github": "1e91f79a539e00da67b0197d496ce40653a0fb3f"
+        }
+      },
+      "frozen_head": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+      "frozen_base": "66789ac4a7468094b0cc3ca1498a1de67e0311f6",
+      "cpu_restack_commits": [
+        {
+          "old": "54da49346a233ceb36f8e5004a25a17376d887c3",
+          "new": "11a896824159d49bc4b7661ccbd5e39c399d9ea8",
+          "subject": "Format existing Python files used by the Torch stack"
+        },
+        {
+          "old": "5444d9fa9ead578a43a3c0c02de641f2869f394b",
+          "new": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+          "subject": "Format frame and MKL baselines before behavior changes"
+        }
+      ],
+      "final_restack_commits": [
+        {
+          "old": "11a896824159d49bc4b7661ccbd5e39c399d9ea8",
+          "new": "11a896824159d49bc4b7661ccbd5e39c399d9ea8"
+        },
+        {
+          "old": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+          "new": "f2eb803de6f2d34f2227e69e35d460bd481fff05"
+        }
+      ]
+    },
+    {
+      "pr": 5,
+      "url": "https://github.com/xangma/pycbc/pull/5",
+      "published_ref": "torch-pr1-runtime",
+      "published_base_ref": "torch-formatting-base",
+      "parent_pr": 18,
+      "old_ref": "codex/cpu-base-restack-20260908-pr5",
+      "old_head": "13cd5a9e4dfe5bc220cbca80e54471a18d770fe1",
+      "old_base": "5444d9fa9ead578a43a3c0c02de641f2869f394b",
+      "new_base": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+      "staging_ref": "codex/corrected-baseline-publish-20260908-pr5",
+      "commits": [
+        {
+          "old": "dc5ee744b247679d3df892c3994e91f601cf4c6e",
+          "new": "dc5ee744b247679d3df892c3994e91f601cf4c6e"
+        },
+        {
+          "old": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+          "new": "4ae42eb20638704dae2ec47882387df3d81b0b08"
+        }
+      ],
+      "new_head": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+      "formatted_head": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+      "formatted_base": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+      "format_ref": "codex/corrected-baseline-final-20260908-pr5",
+      "format_commits": [
+        {
+          "old": "dc5ee744b247679d3df892c3994e91f601cf4c6e",
+          "new": "dc5ee744b247679d3df892c3994e91f601cf4c6e"
+        },
+        {
+          "old": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+          "new": "4ae42eb20638704dae2ec47882387df3d81b0b08"
+        }
+      ],
+      "format_equivalence": {
+        "status": "PASS",
+        "changed_files": [],
+        "files": {},
+        "all_other_tracked_paths_identical": true
+      },
+      "documentation_inheritance": {
+        "status": "PASS",
+        "changed_from_formatted": [],
+        "all_other_tracked_files_and_modes_identical": true
+      },
+      "equivalence": {
+        "status": "PASS",
+        "changed_files": [],
+        "full_module_ast_identical_excluding_locations": true,
+        "all_other_tracked_files_and_modes_identical": true,
+        "native_sources_unchanged": true,
+        "identical_namespace_tree_ids": {
+          "bin": "be92950a41b062d83d0a867ea2fd65247c943a43",
+          "test": "b8ca7c798e2e96e3dc7976442ba56139f6de46b4",
+          "tools": "056e1cb74ce350f1b430eaab771f3b4b919bc894",
+          ".github": "1e91f79a539e00da67b0197d496ce40653a0fb3f"
+        }
+      },
+      "frozen_head": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+      "frozen_base": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+      "cpu_restack_commits": [
+        {
+          "old": "e8e6aa5904bcc741dd1220a0fc0bea8b775253d3",
+          "new": "dc5ee744b247679d3df892c3994e91f601cf4c6e",
+          "subject": "Restack Torch PR 5 with validated owner-scoped improvements"
+        },
+        {
+          "old": "13cd5a9e4dfe5bc220cbca80e54471a18d770fe1",
+          "new": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+          "subject": "Skip unsupported Torch LAL conversions through unittest"
+        }
+      ],
+      "final_restack_commits": [
+        {
+          "old": "dc5ee744b247679d3df892c3994e91f601cf4c6e",
+          "new": "dc5ee744b247679d3df892c3994e91f601cf4c6e"
+        },
+        {
+          "old": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+          "new": "4ae42eb20638704dae2ec47882387df3d81b0b08"
+        }
+      ]
+    },
+    {
+      "pr": 6,
+      "url": "https://github.com/xangma/pycbc/pull/6",
+      "published_ref": "torch-pr2-fft",
+      "published_base_ref": "torch-pr1-runtime",
+      "parent_pr": 5,
+      "old_ref": "codex/cpu-base-restack-20260908-pr6",
+      "old_head": "27870cb163e8ba9f518ebf5ecff4fd0213fb993b",
+      "old_base": "13cd5a9e4dfe5bc220cbca80e54471a18d770fe1",
+      "new_base": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+      "staging_ref": "codex/corrected-baseline-publish-20260908-pr6",
+      "commits": [
+        {
+          "old": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+          "new": "4865162eaa0c6f2332ec398bc30fc45773cb565c"
+        }
+      ],
+      "new_head": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+      "formatted_head": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+      "formatted_base": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+      "format_ref": "codex/corrected-baseline-final-20260908-pr6",
+      "format_commits": [
+        {
+          "old": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+          "new": "4865162eaa0c6f2332ec398bc30fc45773cb565c"
+        }
+      ],
+      "format_equivalence": {
+        "status": "PASS",
+        "changed_files": [],
+        "files": {},
+        "all_other_tracked_paths_identical": true
+      },
+      "documentation_inheritance": {
+        "status": "PASS",
+        "changed_from_formatted": [],
+        "all_other_tracked_files_and_modes_identical": true
+      },
+      "equivalence": {
+        "status": "PASS",
+        "changed_files": [],
+        "full_module_ast_identical_excluding_locations": true,
+        "all_other_tracked_files_and_modes_identical": true,
+        "native_sources_unchanged": true,
+        "identical_namespace_tree_ids": {
+          "bin": "be92950a41b062d83d0a867ea2fd65247c943a43",
+          "test": "836ddb0d499662f6fc876d3dff7bd2308d500bd9",
+          "tools": "056e1cb74ce350f1b430eaab771f3b4b919bc894",
+          ".github": "1e91f79a539e00da67b0197d496ce40653a0fb3f"
+        }
+      },
+      "frozen_head": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+      "frozen_base": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+      "cpu_restack_commits": [
+        {
+          "old": "27870cb163e8ba9f518ebf5ecff4fd0213fb993b",
+          "new": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+          "subject": "Restack Torch PR 6 with validated owner-scoped improvements"
+        }
+      ],
+      "final_restack_commits": [
+        {
+          "old": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+          "new": "4865162eaa0c6f2332ec398bc30fc45773cb565c"
+        }
+      ]
+    },
+    {
+      "pr": 7,
+      "url": "https://github.com/xangma/pycbc/pull/7",
+      "published_ref": "torch-pr3-psd",
+      "published_base_ref": "torch-pr2-fft",
+      "parent_pr": 6,
+      "old_ref": "codex/cpu-base-restack-20260908-pr7",
+      "old_head": "f8b9256650ecee25b34ea193dad10e6c19eed7b0",
+      "old_base": "27870cb163e8ba9f518ebf5ecff4fd0213fb993b",
+      "new_base": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+      "staging_ref": "codex/corrected-baseline-publish-20260908-pr7",
+      "commits": [
+        {
+          "old": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+          "new": "92648253222205205c6ff96045ff1eb9ad6e30c1"
+        }
+      ],
+      "new_head": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+      "formatted_head": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+      "formatted_base": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+      "format_ref": "codex/corrected-baseline-final-20260908-pr7",
+      "format_commits": [
+        {
+          "old": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+          "new": "92648253222205205c6ff96045ff1eb9ad6e30c1"
+        }
+      ],
+      "format_equivalence": {
+        "status": "PASS",
+        "changed_files": [],
+        "files": {},
+        "all_other_tracked_paths_identical": true
+      },
+      "documentation_inheritance": {
+        "status": "PASS",
+        "changed_from_formatted": [],
+        "all_other_tracked_files_and_modes_identical": true
+      },
+      "equivalence": {
+        "status": "PASS",
+        "changed_files": [],
+        "full_module_ast_identical_excluding_locations": true,
+        "all_other_tracked_files_and_modes_identical": true,
+        "native_sources_unchanged": true,
+        "identical_namespace_tree_ids": {
+          "bin": "be92950a41b062d83d0a867ea2fd65247c943a43",
+          "test": "4eab196994d217f5f5f07497528b57dd36b0920f",
+          "tools": "056e1cb74ce350f1b430eaab771f3b4b919bc894",
+          ".github": "1e91f79a539e00da67b0197d496ce40653a0fb3f"
+        }
+      },
+      "frozen_head": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+      "frozen_base": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+      "cpu_restack_commits": [
+        {
+          "old": "f8b9256650ecee25b34ea193dad10e6c19eed7b0",
+          "new": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+          "subject": "Restack Torch PR 7 with validated owner-scoped improvements"
+        }
+      ],
+      "final_restack_commits": [
+        {
+          "old": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+          "new": "92648253222205205c6ff96045ff1eb9ad6e30c1"
+        }
+      ]
+    },
+    {
+      "pr": 8,
+      "url": "https://github.com/xangma/pycbc/pull/8",
+      "published_ref": "torch-pr4-filtering",
+      "published_base_ref": "torch-pr3-psd",
+      "parent_pr": 7,
+      "old_ref": "codex/cpu-base-restack-20260908-pr8",
+      "old_head": "d5df3d23fc2ed6a54f7376b7932e473184d6f063",
+      "old_base": "f8b9256650ecee25b34ea193dad10e6c19eed7b0",
+      "new_base": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+      "staging_ref": "codex/corrected-baseline-publish-20260908-pr8",
+      "commits": [
+        {
+          "old": "026f4e8c9418e18cef1a44af36520936b2b2450c",
+          "new": "026f4e8c9418e18cef1a44af36520936b2b2450c"
+        }
+      ],
+      "added_formatting_commit": "6e1e08084c9d9be0e62fd701aaa662e61f1ad119",
+      "new_head": "6e1e08084c9d9be0e62fd701aaa662e61f1ad119",
+      "formatted_head": "6e1e08084c9d9be0e62fd701aaa662e61f1ad119",
+      "formatted_base": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+      "format_ref": "codex/corrected-baseline-final-20260908-pr8",
+      "format_commits": [
+        {
+          "old": "026f4e8c9418e18cef1a44af36520936b2b2450c",
+          "new": "026f4e8c9418e18cef1a44af36520936b2b2450c"
+        }
+      ],
+      "format_equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "files": {
+          "pycbc/filter/matchedfilter.py": {
+            "before_sha256": "3bb9367a7a808b741362036decf479a24e46597954293a598ef49add9bd310f0",
+            "after_sha256": "bbbdffedd661a8a6d7243e982659390da1612a80e74268f5fcddad99b0dbcd52",
+            "full_module_ast_identical": true
+          },
+          "pycbc/vetoes/chisq.py": {
+            "before_sha256": "0013e1127bd6d4ae2336f22982f7f47bccc2efb3fb7343ed36bcf35ccd17ed05",
+            "after_sha256": "356021040ecf0c78777e9ca1b193c795b5a03cb636069f41317a49f973c84eab",
+            "full_module_ast_identical": true
+          }
+        },
+        "all_other_tracked_paths_identical": true
+      },
+      "documentation_inheritance": {
+        "status": "PASS",
+        "changed_from_formatted": [],
+        "all_other_tracked_files_and_modes_identical": true
+      },
+      "equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "full_module_ast_identical_excluding_locations": true,
+        "all_other_tracked_files_and_modes_identical": true,
+        "native_sources_unchanged": true,
+        "identical_namespace_tree_ids": {
+          "bin": "be92950a41b062d83d0a867ea2fd65247c943a43",
+          "test": "dc9ba0092ba2d15f2a7bed051053bdd2bb8292e9",
+          "tools": "056e1cb74ce350f1b430eaab771f3b4b919bc894",
+          ".github": "1e91f79a539e00da67b0197d496ce40653a0fb3f"
+        }
+      },
+      "frozen_head": "026f4e8c9418e18cef1a44af36520936b2b2450c",
+      "frozen_base": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+      "cpu_restack_commits": [
+        {
+          "old": "d5df3d23fc2ed6a54f7376b7932e473184d6f063",
+          "new": "026f4e8c9418e18cef1a44af36520936b2b2450c",
+          "subject": "Restack Torch PR 8 with validated owner-scoped improvements"
+        }
+      ],
+      "final_restack_commits": [
+        {
+          "old": "026f4e8c9418e18cef1a44af36520936b2b2450c",
+          "new": "026f4e8c9418e18cef1a44af36520936b2b2450c"
+        }
+      ]
+    },
+    {
+      "pr": 9,
+      "url": "https://github.com/xangma/pycbc/pull/9",
+      "published_ref": "torch-pr5-search",
+      "published_base_ref": "torch-pr4-filtering",
+      "parent_pr": 8,
+      "old_ref": "codex/cpu-base-restack-20260908-pr9",
+      "old_head": "6c6de2a31d62465feaf2c2c876e1e60dc3418407",
+      "old_base": "d5df3d23fc2ed6a54f7376b7932e473184d6f063",
+      "new_base": "6e1e08084c9d9be0e62fd701aaa662e61f1ad119",
+      "staging_ref": "codex/corrected-baseline-publish-20260908-pr9",
+      "commits": [
+        {
+          "old": "5fea7897c352b2952581308707af6236539421ba",
+          "new": "586d4f09d2962fe61287ba704e6c7ec971a8922f"
+        }
+      ],
+      "new_head": "586d4f09d2962fe61287ba704e6c7ec971a8922f",
+      "formatted_head": "586d4f09d2962fe61287ba704e6c7ec971a8922f",
+      "formatted_base": "6e1e08084c9d9be0e62fd701aaa662e61f1ad119",
+      "format_ref": "codex/corrected-baseline-final-20260908-pr9",
+      "format_commits": [
+        {
+          "old": "5fea7897c352b2952581308707af6236539421ba",
+          "new": "586d4f09d2962fe61287ba704e6c7ec971a8922f"
+        }
+      ],
+      "format_equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "files": {
+          "pycbc/filter/matchedfilter.py": {
+            "before_sha256": "7a4c72efa65bc2887d895da00ee640b2922ace2e60c7e267bcf91ad753a5a720",
+            "after_sha256": "e3c51ff2918387f0dab8e555275537a891868e4d58797bdae55d61f6158e0b38",
+            "full_module_ast_identical": true
+          },
+          "pycbc/vetoes/chisq.py": {
+            "before_sha256": "0013e1127bd6d4ae2336f22982f7f47bccc2efb3fb7343ed36bcf35ccd17ed05",
+            "after_sha256": "356021040ecf0c78777e9ca1b193c795b5a03cb636069f41317a49f973c84eab",
+            "full_module_ast_identical": true
+          }
+        },
+        "all_other_tracked_paths_identical": true
+      },
+      "documentation_inheritance": {
+        "status": "PASS",
+        "changed_from_formatted": [],
+        "all_other_tracked_files_and_modes_identical": true
+      },
+      "equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "full_module_ast_identical_excluding_locations": true,
+        "all_other_tracked_files_and_modes_identical": true,
+        "native_sources_unchanged": true,
+        "identical_namespace_tree_ids": {
+          "bin": "d2125660b2a166dd4d12d8ec7d0bb3da62868f48",
+          "test": "5277fef2244cd3f8af52498b8d6447ff54160593",
+          "tools": "056e1cb74ce350f1b430eaab771f3b4b919bc894",
+          ".github": "1e91f79a539e00da67b0197d496ce40653a0fb3f"
+        }
+      },
+      "frozen_head": "5fea7897c352b2952581308707af6236539421ba",
+      "frozen_base": "026f4e8c9418e18cef1a44af36520936b2b2450c",
+      "cpu_restack_commits": [
+        {
+          "old": "6c6de2a31d62465feaf2c2c876e1e60dc3418407",
+          "new": "5fea7897c352b2952581308707af6236539421ba",
+          "subject": "Restack Torch PR 9 with validated owner-scoped improvements"
+        }
+      ],
+      "final_restack_commits": [
+        {
+          "old": "5fea7897c352b2952581308707af6236539421ba",
+          "new": "586d4f09d2962fe61287ba704e6c7ec971a8922f"
+        }
+      ]
+    },
+    {
+      "pr": 10,
+      "url": "https://github.com/xangma/pycbc/pull/10",
+      "published_ref": "torch-pr6-waveform",
+      "published_base_ref": "torch-pr5-search",
+      "parent_pr": 9,
+      "old_ref": "codex/cpu-base-restack-20260908-pr10",
+      "old_head": "f27a4802cf577569062bd55603f77f5a1146d3eb",
+      "old_base": "6c6de2a31d62465feaf2c2c876e1e60dc3418407",
+      "new_base": "586d4f09d2962fe61287ba704e6c7ec971a8922f",
+      "staging_ref": "codex/corrected-baseline-publish-20260908-pr10",
+      "commits": [
+        {
+          "old": "4d1901a58577c40ef393650d4d134a82fa9a69f0",
+          "new": "6f67dc170811ff69fd6ec50816974bc4285d145b"
+        }
+      ],
+      "new_head": "6f67dc170811ff69fd6ec50816974bc4285d145b",
+      "formatted_head": "6f67dc170811ff69fd6ec50816974bc4285d145b",
+      "formatted_base": "586d4f09d2962fe61287ba704e6c7ec971a8922f",
+      "format_ref": "codex/corrected-baseline-final-20260908-pr10",
+      "format_commits": [
+        {
+          "old": "4d1901a58577c40ef393650d4d134a82fa9a69f0",
+          "new": "6f67dc170811ff69fd6ec50816974bc4285d145b"
+        }
+      ],
+      "format_equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "files": {
+          "pycbc/filter/matchedfilter.py": {
+            "before_sha256": "7a4c72efa65bc2887d895da00ee640b2922ace2e60c7e267bcf91ad753a5a720",
+            "after_sha256": "e3c51ff2918387f0dab8e555275537a891868e4d58797bdae55d61f6158e0b38",
+            "full_module_ast_identical": true
+          },
+          "pycbc/vetoes/chisq.py": {
+            "before_sha256": "0013e1127bd6d4ae2336f22982f7f47bccc2efb3fb7343ed36bcf35ccd17ed05",
+            "after_sha256": "356021040ecf0c78777e9ca1b193c795b5a03cb636069f41317a49f973c84eab",
+            "full_module_ast_identical": true
+          }
+        },
+        "all_other_tracked_paths_identical": true
+      },
+      "documentation_inheritance": {
+        "status": "PASS",
+        "changed_from_formatted": [],
+        "all_other_tracked_files_and_modes_identical": true
+      },
+      "equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "full_module_ast_identical_excluding_locations": true,
+        "all_other_tracked_files_and_modes_identical": true,
+        "native_sources_unchanged": true,
+        "identical_namespace_tree_ids": {
+          "bin": "d2125660b2a166dd4d12d8ec7d0bb3da62868f48",
+          "test": "6689003db3a80ae6f606da820cd6383caa1df9d6",
+          "tools": "056e1cb74ce350f1b430eaab771f3b4b919bc894",
+          ".github": "1e91f79a539e00da67b0197d496ce40653a0fb3f"
+        }
+      },
+      "frozen_head": "4d1901a58577c40ef393650d4d134a82fa9a69f0",
+      "frozen_base": "5fea7897c352b2952581308707af6236539421ba",
+      "cpu_restack_commits": [
+        {
+          "old": "f27a4802cf577569062bd55603f77f5a1146d3eb",
+          "new": "4d1901a58577c40ef393650d4d134a82fa9a69f0",
+          "subject": "Restack Torch PR 10 with validated owner-scoped improvements"
+        }
+      ],
+      "final_restack_commits": [
+        {
+          "old": "4d1901a58577c40ef393650d4d134a82fa9a69f0",
+          "new": "6f67dc170811ff69fd6ec50816974bc4285d145b"
+        }
+      ]
+    },
+    {
+      "pr": 11,
+      "url": "https://github.com/xangma/pycbc/pull/11",
+      "published_ref": "torch-pr7-taylorf2",
+      "published_base_ref": "torch-pr6-waveform",
+      "parent_pr": 10,
+      "old_ref": "codex/cpu-base-restack-20260908-pr11",
+      "old_head": "e5c9b865c56f4e7052163af965e0a3406657bd8a",
+      "old_base": "f27a4802cf577569062bd55603f77f5a1146d3eb",
+      "new_base": "6f67dc170811ff69fd6ec50816974bc4285d145b",
+      "staging_ref": "codex/corrected-baseline-publish-20260908-pr11",
+      "commits": [
+        {
+          "old": "971f2b6036c3fddc10099481efb83377cfcb788c",
+          "new": "69a96d515f1af056f74c25ef350255d89273f310"
+        }
+      ],
+      "new_head": "69a96d515f1af056f74c25ef350255d89273f310",
+      "formatted_head": "69a96d515f1af056f74c25ef350255d89273f310",
+      "formatted_base": "6f67dc170811ff69fd6ec50816974bc4285d145b",
+      "format_ref": "codex/corrected-baseline-final-20260908-pr11",
+      "format_commits": [
+        {
+          "old": "971f2b6036c3fddc10099481efb83377cfcb788c",
+          "new": "69a96d515f1af056f74c25ef350255d89273f310"
+        }
+      ],
+      "format_equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "files": {
+          "pycbc/filter/matchedfilter.py": {
+            "before_sha256": "7a4c72efa65bc2887d895da00ee640b2922ace2e60c7e267bcf91ad753a5a720",
+            "after_sha256": "e3c51ff2918387f0dab8e555275537a891868e4d58797bdae55d61f6158e0b38",
+            "full_module_ast_identical": true
+          },
+          "pycbc/vetoes/chisq.py": {
+            "before_sha256": "0013e1127bd6d4ae2336f22982f7f47bccc2efb3fb7343ed36bcf35ccd17ed05",
+            "after_sha256": "356021040ecf0c78777e9ca1b193c795b5a03cb636069f41317a49f973c84eab",
+            "full_module_ast_identical": true
+          }
+        },
+        "all_other_tracked_paths_identical": true
+      },
+      "documentation_inheritance": {
+        "status": "PASS",
+        "changed_from_formatted": [],
+        "all_other_tracked_files_and_modes_identical": true
+      },
+      "equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "full_module_ast_identical_excluding_locations": true,
+        "all_other_tracked_files_and_modes_identical": true,
+        "native_sources_unchanged": true,
+        "identical_namespace_tree_ids": {
+          "bin": "d2125660b2a166dd4d12d8ec7d0bb3da62868f48",
+          "test": "a9334625be6df1313778469c4c6c870dac2f1ef7",
+          "tools": "4e7331071160afeb03303f0253ae2d798d38fd18",
+          ".github": "1e91f79a539e00da67b0197d496ce40653a0fb3f"
+        }
+      },
+      "frozen_head": "971f2b6036c3fddc10099481efb83377cfcb788c",
+      "frozen_base": "4d1901a58577c40ef393650d4d134a82fa9a69f0",
+      "cpu_restack_commits": [
+        {
+          "old": "e5c9b865c56f4e7052163af965e0a3406657bd8a",
+          "new": "971f2b6036c3fddc10099481efb83377cfcb788c",
+          "subject": "Restack Torch PR 11 with validated owner-scoped improvements"
+        }
+      ],
+      "final_restack_commits": [
+        {
+          "old": "971f2b6036c3fddc10099481efb83377cfcb788c",
+          "new": "69a96d515f1af056f74c25ef350255d89273f310"
+        }
+      ]
+    },
+    {
+      "pr": 12,
+      "url": "https://github.com/xangma/pycbc/pull/12",
+      "published_ref": "torch-pr8-domain-compat",
+      "published_base_ref": "torch-pr7-taylorf2",
+      "parent_pr": 11,
+      "old_ref": "codex/cpu-base-restack-20260908-pr12",
+      "old_head": "3c71bb58a7972a05779590824cd859e394ea6377",
+      "old_base": "e5c9b865c56f4e7052163af965e0a3406657bd8a",
+      "new_base": "69a96d515f1af056f74c25ef350255d89273f310",
+      "staging_ref": "codex/corrected-baseline-publish-20260908-pr12",
+      "commits": [
+        {
+          "old": "a8181bd598f9775ef44fb277a9ac8348cba356ce",
+          "new": "1219fe1a6fa9ee530bf2d5e57ec192b784c99474"
+        }
+      ],
+      "new_head": "1219fe1a6fa9ee530bf2d5e57ec192b784c99474",
+      "formatted_head": "1219fe1a6fa9ee530bf2d5e57ec192b784c99474",
+      "formatted_base": "69a96d515f1af056f74c25ef350255d89273f310",
+      "format_ref": "codex/corrected-baseline-final-20260908-pr12",
+      "format_commits": [
+        {
+          "old": "a8181bd598f9775ef44fb277a9ac8348cba356ce",
+          "new": "1219fe1a6fa9ee530bf2d5e57ec192b784c99474"
+        }
+      ],
+      "format_equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "files": {
+          "pycbc/filter/matchedfilter.py": {
+            "before_sha256": "7a4c72efa65bc2887d895da00ee640b2922ace2e60c7e267bcf91ad753a5a720",
+            "after_sha256": "e3c51ff2918387f0dab8e555275537a891868e4d58797bdae55d61f6158e0b38",
+            "full_module_ast_identical": true
+          },
+          "pycbc/vetoes/chisq.py": {
+            "before_sha256": "0013e1127bd6d4ae2336f22982f7f47bccc2efb3fb7343ed36bcf35ccd17ed05",
+            "after_sha256": "356021040ecf0c78777e9ca1b193c795b5a03cb636069f41317a49f973c84eab",
+            "full_module_ast_identical": true
+          }
+        },
+        "all_other_tracked_paths_identical": true
+      },
+      "documentation_inheritance": {
+        "status": "PASS",
+        "changed_from_formatted": [],
+        "all_other_tracked_files_and_modes_identical": true
+      },
+      "equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "full_module_ast_identical_excluding_locations": true,
+        "all_other_tracked_files_and_modes_identical": true,
+        "native_sources_unchanged": true,
+        "identical_namespace_tree_ids": {
+          "bin": "d2125660b2a166dd4d12d8ec7d0bb3da62868f48",
+          "test": "b7d279419fb8b082d9ac77cee6f105466dee9b11",
+          "tools": "4e7331071160afeb03303f0253ae2d798d38fd18",
+          ".github": "1e91f79a539e00da67b0197d496ce40653a0fb3f"
+        }
+      },
+      "frozen_head": "a8181bd598f9775ef44fb277a9ac8348cba356ce",
+      "frozen_base": "971f2b6036c3fddc10099481efb83377cfcb788c",
+      "cpu_restack_commits": [
+        {
+          "old": "3c71bb58a7972a05779590824cd859e394ea6377",
+          "new": "a8181bd598f9775ef44fb277a9ac8348cba356ce",
+          "subject": "Restack Torch PR 12 with validated owner-scoped improvements"
+        }
+      ],
+      "final_restack_commits": [
+        {
+          "old": "a8181bd598f9775ef44fb277a9ac8348cba356ce",
+          "new": "1219fe1a6fa9ee530bf2d5e57ec192b784c99474"
+        }
+      ]
+    },
+    {
+      "pr": 13,
+      "url": "https://github.com/xangma/pycbc/pull/13",
+      "published_ref": "torch-pr9-detector",
+      "published_base_ref": "torch-pr8-domain-compat",
+      "parent_pr": 12,
+      "old_ref": "codex/cpu-base-restack-20260908-pr13",
+      "old_head": "48a22169bf90800908f04d7ee23566b4ee4dbae0",
+      "old_base": "3c71bb58a7972a05779590824cd859e394ea6377",
+      "new_base": "1219fe1a6fa9ee530bf2d5e57ec192b784c99474",
+      "staging_ref": "codex/corrected-baseline-publish-20260908-pr13",
+      "commits": [
+        {
+          "old": "f1d02414dbe13a0c689d7eb37b0180182e603b20",
+          "new": "424133803568b403cd6d30e7c54816dda2e93133"
+        }
+      ],
+      "new_head": "424133803568b403cd6d30e7c54816dda2e93133",
+      "formatted_head": "424133803568b403cd6d30e7c54816dda2e93133",
+      "formatted_base": "1219fe1a6fa9ee530bf2d5e57ec192b784c99474",
+      "format_ref": "codex/corrected-baseline-final-20260908-pr13",
+      "format_commits": [
+        {
+          "old": "f1d02414dbe13a0c689d7eb37b0180182e603b20",
+          "new": "424133803568b403cd6d30e7c54816dda2e93133"
+        }
+      ],
+      "format_equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "files": {
+          "pycbc/filter/matchedfilter.py": {
+            "before_sha256": "7a4c72efa65bc2887d895da00ee640b2922ace2e60c7e267bcf91ad753a5a720",
+            "after_sha256": "e3c51ff2918387f0dab8e555275537a891868e4d58797bdae55d61f6158e0b38",
+            "full_module_ast_identical": true
+          },
+          "pycbc/vetoes/chisq.py": {
+            "before_sha256": "0013e1127bd6d4ae2336f22982f7f47bccc2efb3fb7343ed36bcf35ccd17ed05",
+            "after_sha256": "356021040ecf0c78777e9ca1b193c795b5a03cb636069f41317a49f973c84eab",
+            "full_module_ast_identical": true
+          }
+        },
+        "all_other_tracked_paths_identical": true
+      },
+      "documentation_inheritance": {
+        "status": "PASS",
+        "changed_from_formatted": [],
+        "all_other_tracked_files_and_modes_identical": true
+      },
+      "equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "full_module_ast_identical_excluding_locations": true,
+        "all_other_tracked_files_and_modes_identical": true,
+        "native_sources_unchanged": true,
+        "identical_namespace_tree_ids": {
+          "bin": "d2125660b2a166dd4d12d8ec7d0bb3da62868f48",
+          "test": "fff85f1739227e1325d4e5e402c9f1839baf4ca7",
+          "tools": "4e7331071160afeb03303f0253ae2d798d38fd18",
+          ".github": "1e91f79a539e00da67b0197d496ce40653a0fb3f"
+        }
+      },
+      "frozen_head": "f1d02414dbe13a0c689d7eb37b0180182e603b20",
+      "frozen_base": "a8181bd598f9775ef44fb277a9ac8348cba356ce",
+      "cpu_restack_commits": [
+        {
+          "old": "48a22169bf90800908f04d7ee23566b4ee4dbae0",
+          "new": "f1d02414dbe13a0c689d7eb37b0180182e603b20",
+          "subject": "Restack Torch PR 13 with validated owner-scoped improvements"
+        }
+      ],
+      "final_restack_commits": [
+        {
+          "old": "f1d02414dbe13a0c689d7eb37b0180182e603b20",
+          "new": "424133803568b403cd6d30e7c54816dda2e93133"
+        }
+      ]
+    },
+    {
+      "pr": 14,
+      "url": "https://github.com/xangma/pycbc/pull/14",
+      "published_ref": "torch-pr10-inference",
+      "published_base_ref": "torch-pr9-detector",
+      "parent_pr": 13,
+      "old_ref": "codex/cpu-base-restack-20260908-pr14",
+      "old_head": "22410cd57e2bfb3a087c96917a0b93155cf80cac",
+      "old_base": "48a22169bf90800908f04d7ee23566b4ee4dbae0",
+      "new_base": "424133803568b403cd6d30e7c54816dda2e93133",
+      "staging_ref": "codex/corrected-baseline-publish-20260908-pr14",
+      "commits": [
+        {
+          "old": "d196f687230e1a1f3e1c7b75d25b97db1cbac924",
+          "new": "5b413c12b889e1869a897d022f67db1075c95c6d"
+        }
+      ],
+      "new_head": "5b413c12b889e1869a897d022f67db1075c95c6d",
+      "formatted_head": "5b413c12b889e1869a897d022f67db1075c95c6d",
+      "formatted_base": "424133803568b403cd6d30e7c54816dda2e93133",
+      "format_ref": "codex/corrected-baseline-final-20260908-pr14",
+      "format_commits": [
+        {
+          "old": "d196f687230e1a1f3e1c7b75d25b97db1cbac924",
+          "new": "5b413c12b889e1869a897d022f67db1075c95c6d"
+        }
+      ],
+      "format_equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "files": {
+          "pycbc/filter/matchedfilter.py": {
+            "before_sha256": "7a4c72efa65bc2887d895da00ee640b2922ace2e60c7e267bcf91ad753a5a720",
+            "after_sha256": "e3c51ff2918387f0dab8e555275537a891868e4d58797bdae55d61f6158e0b38",
+            "full_module_ast_identical": true
+          },
+          "pycbc/vetoes/chisq.py": {
+            "before_sha256": "0013e1127bd6d4ae2336f22982f7f47bccc2efb3fb7343ed36bcf35ccd17ed05",
+            "after_sha256": "356021040ecf0c78777e9ca1b193c795b5a03cb636069f41317a49f973c84eab",
+            "full_module_ast_identical": true
+          }
+        },
+        "all_other_tracked_paths_identical": true
+      },
+      "documentation_inheritance": {
+        "status": "PASS",
+        "changed_from_formatted": [],
+        "all_other_tracked_files_and_modes_identical": true
+      },
+      "equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "full_module_ast_identical_excluding_locations": true,
+        "all_other_tracked_files_and_modes_identical": true,
+        "native_sources_unchanged": true,
+        "identical_namespace_tree_ids": {
+          "bin": "5def1fa80afa24bee09b46d533841b89824fa80d",
+          "test": "c68528d5d3843fc0c4d3e726ac07baeaf9efbff4",
+          "tools": "4e7331071160afeb03303f0253ae2d798d38fd18",
+          ".github": "1e91f79a539e00da67b0197d496ce40653a0fb3f"
+        }
+      },
+      "frozen_head": "d196f687230e1a1f3e1c7b75d25b97db1cbac924",
+      "frozen_base": "f1d02414dbe13a0c689d7eb37b0180182e603b20",
+      "cpu_restack_commits": [
+        {
+          "old": "22410cd57e2bfb3a087c96917a0b93155cf80cac",
+          "new": "d196f687230e1a1f3e1c7b75d25b97db1cbac924",
+          "subject": "Restack Torch PR 14 with validated owner-scoped improvements"
+        }
+      ],
+      "final_restack_commits": [
+        {
+          "old": "d196f687230e1a1f3e1c7b75d25b97db1cbac924",
+          "new": "5b413c12b889e1869a897d022f67db1075c95c6d"
+        }
+      ]
+    },
+    {
+      "pr": 15,
+      "url": "https://github.com/xangma/pycbc/pull/15",
+      "published_ref": "torch-pr11-performance-evidence",
+      "published_base_ref": "torch-pr10-inference",
+      "parent_pr": 14,
+      "old_ref": "codex/cpu-base-restack-20260908-pr15",
+      "old_head": "bd2d956f5c4e7c69b957181340d62d76a25717ac",
+      "old_base": "22410cd57e2bfb3a087c96917a0b93155cf80cac",
+      "new_base": "5b413c12b889e1869a897d022f67db1075c95c6d",
+      "staging_ref": "codex/corrected-baseline-publish-20260908-pr15",
+      "commits": [
+        {
+          "old": "a4f558d789ffedf9a84717ea148fb2651cbc1e70",
+          "new": "c87c68908484fd6b01c4f85f09eef0251bd71623"
+        },
+        {
+          "old": "ca6af13e22626d2cb39bf9ff83301ef3e9bc1dcb",
+          "new": "4fa6a66b1baa3aa3df4398983dc3629186cc4a0e"
+        },
+        {
+          "old": "353f3e6052f61e07056a069af8f5fb136c19712b",
+          "new": "8dcaeca83a4066547b9289c37e352c3cbd9cd9c9"
+        },
+        {
+          "old": "ed86ee986b529ba9d4924acdcd3b834dd2b03af1",
+          "new": "a160eac9693c9f8752c66d54bb6ba694348823f1"
+        },
+        {
+          "old": "871c7be045f97378d7f6b9bab278948b20008d9e",
+          "new": "eb90feb74800dd51fdfb2543687a9d451559b6ac"
+        },
+        {
+          "old": "f582b6fd250d0b82612492979e01e645d5c07afc",
+          "new": "6b47580146e73169cd130b601731e5ba40668d93"
+        }
+      ],
+      "new_head": "1d22031fd31c6e5bcb48a68fe11772e960bd406b",
+      "formatted_head": "6b47580146e73169cd130b601731e5ba40668d93",
+      "formatted_base": "5b413c12b889e1869a897d022f67db1075c95c6d",
+      "format_ref": "codex/corrected-baseline-final-20260908-pr15",
+      "format_commits": [
+        {
+          "old": "a4f558d789ffedf9a84717ea148fb2651cbc1e70",
+          "new": "c87c68908484fd6b01c4f85f09eef0251bd71623"
+        },
+        {
+          "old": "ca6af13e22626d2cb39bf9ff83301ef3e9bc1dcb",
+          "new": "4fa6a66b1baa3aa3df4398983dc3629186cc4a0e"
+        },
+        {
+          "old": "353f3e6052f61e07056a069af8f5fb136c19712b",
+          "new": "8dcaeca83a4066547b9289c37e352c3cbd9cd9c9"
+        },
+        {
+          "old": "ed86ee986b529ba9d4924acdcd3b834dd2b03af1",
+          "new": "a160eac9693c9f8752c66d54bb6ba694348823f1"
+        },
+        {
+          "old": "871c7be045f97378d7f6b9bab278948b20008d9e",
+          "new": "eb90feb74800dd51fdfb2543687a9d451559b6ac"
+        },
+        {
+          "old": "f582b6fd250d0b82612492979e01e645d5c07afc",
+          "new": "6b47580146e73169cd130b601731e5ba40668d93"
+        }
+      ],
+      "format_equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "files": {
+          "pycbc/filter/matchedfilter.py": {
+            "before_sha256": "7a4c72efa65bc2887d895da00ee640b2922ace2e60c7e267bcf91ad753a5a720",
+            "after_sha256": "e3c51ff2918387f0dab8e555275537a891868e4d58797bdae55d61f6158e0b38",
+            "full_module_ast_identical": true
+          },
+          "pycbc/vetoes/chisq.py": {
+            "before_sha256": "0013e1127bd6d4ae2336f22982f7f47bccc2efb3fb7343ed36bcf35ccd17ed05",
+            "after_sha256": "356021040ecf0c78777e9ca1b193c795b5a03cb636069f41317a49f973c84eab",
+            "full_module_ast_identical": true
+          }
+        },
+        "all_other_tracked_paths_identical": true
+      },
+      "added_documentation_commit": "1d22031fd31c6e5bcb48a68fe11772e960bd406b",
+      "documentation_inheritance": {
+        "status": "PASS",
+        "changed_from_formatted": [
+          "docs/torch_batch_numerics.rst",
+          "docs/torch_benchmark_protocol.rst",
+          "docs/torch_performance.rst",
+          "docs/torch_reference_campaign.rst",
+          "docs/torch_testing.rst"
+        ],
+        "all_other_tracked_files_and_modes_identical": true
+      },
+      "equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "docs/torch_batch_numerics.rst",
+          "docs/torch_benchmark_protocol.rst",
+          "docs/torch_performance.rst",
+          "docs/torch_reference_campaign.rst",
+          "docs/torch_testing.rst",
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "full_module_ast_identical_excluding_locations": true,
+        "all_other_tracked_files_and_modes_identical": true,
+        "native_sources_unchanged": true,
+        "identical_namespace_tree_ids": {
+          "bin": "5def1fa80afa24bee09b46d533841b89824fa80d",
+          "test": "14616fa6513eded3bf9910b952dae9c382a17089",
+          "tools": "99dff5b700047c230f07886e1350e8433ff180e5",
+          ".github": "e48c636eec0b962f23dfb5395a8c777e7ef3a5a7"
+        }
+      },
+      "frozen_head": "f582b6fd250d0b82612492979e01e645d5c07afc",
+      "frozen_base": "d196f687230e1a1f3e1c7b75d25b97db1cbac924",
+      "cpu_restack_commits": [
+        {
+          "old": "ab8c4311cdf655754d6d420980f25e4acf640e88",
+          "new": "a4f558d789ffedf9a84717ea148fb2651cbc1e70",
+          "subject": "Restack Torch PR 15 with validated owner-scoped improvements"
+        },
+        {
+          "old": "c1654121f1f13a44e451fe6f3de8e26d74d296ba",
+          "new": "ca6af13e22626d2cb39bf9ff83301ef3e9bc1dcb",
+          "subject": "Refresh matched executable results and document separate optimization followups"
+        },
+        {
+          "old": "45b2879d47f52674810420f0320ea1a6b73f4346",
+          "new": "353f3e6052f61e07056a069af8f5fb136c19712b",
+          "subject": "Pin September optimization evidence to immutable archive"
+        },
+        {
+          "old": "9d4e4f6905d9f109d559284326d62173a854264f",
+          "new": "ed86ee986b529ba9d4924acdcd3b834dd2b03af1",
+          "subject": "Document integrated cache and offline graph ownership controls"
+        },
+        {
+          "old": "123e1fb3ef1b338cada636e71c3e9c7987002402",
+          "new": "871c7be045f97378d7f6b9bab278948b20008d9e",
+          "subject": "Focus Torch documentation on baseline versus proposed-code review"
+        },
+        {
+          "old": "bd2d956f5c4e7c69b957181340d62d76a25717ac",
+          "new": "f582b6fd250d0b82612492979e01e645d5c07afc",
+          "subject": "Replace benchmark status with unchanged-baseline comparison"
+        }
+      ],
+      "final_restack_commits": [
+        {
+          "old": "a4f558d789ffedf9a84717ea148fb2651cbc1e70",
+          "new": "c87c68908484fd6b01c4f85f09eef0251bd71623"
+        },
+        {
+          "old": "ca6af13e22626d2cb39bf9ff83301ef3e9bc1dcb",
+          "new": "4fa6a66b1baa3aa3df4398983dc3629186cc4a0e"
+        },
+        {
+          "old": "353f3e6052f61e07056a069af8f5fb136c19712b",
+          "new": "8dcaeca83a4066547b9289c37e352c3cbd9cd9c9"
+        },
+        {
+          "old": "ed86ee986b529ba9d4924acdcd3b834dd2b03af1",
+          "new": "a160eac9693c9f8752c66d54bb6ba694348823f1"
+        },
+        {
+          "old": "871c7be045f97378d7f6b9bab278948b20008d9e",
+          "new": "eb90feb74800dd51fdfb2543687a9d451559b6ac"
+        },
+        {
+          "old": "f582b6fd250d0b82612492979e01e645d5c07afc",
+          "new": "6b47580146e73169cd130b601731e5ba40668d93"
+        }
+      ]
+    },
+    {
+      "pr": 19,
+      "url": "https://github.com/xangma/pycbc/pull/19",
+      "published_ref": "torch-fft-formatting-base",
+      "published_base_ref": "torch-pr11-performance-evidence",
+      "parent_pr": 15,
+      "old_ref": "codex/cpu-base-restack-20260908-pr19",
+      "old_head": "1b81a82b84814d6cdc6cc6d27cf47b1b4e195fde",
+      "old_base": "bd2d956f5c4e7c69b957181340d62d76a25717ac",
+      "new_base": "1d22031fd31c6e5bcb48a68fe11772e960bd406b",
+      "staging_ref": "codex/corrected-baseline-publish-20260908-pr19",
+      "commits": [
+        {
+          "old": "52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7",
+          "new": "0b5eb0c970e7d3edd726e8b3bc7abd3d6c63ddda"
+        }
+      ],
+      "new_head": "0b5eb0c970e7d3edd726e8b3bc7abd3d6c63ddda",
+      "formatted_head": "269f5e94c7036300d9be3c5cbf0de2bf0d1ac93c",
+      "formatted_base": "6b47580146e73169cd130b601731e5ba40668d93",
+      "format_ref": "codex/corrected-baseline-final-20260908-pr19",
+      "format_commits": [
+        {
+          "old": "52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7",
+          "new": "269f5e94c7036300d9be3c5cbf0de2bf0d1ac93c"
+        }
+      ],
+      "format_equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "files": {
+          "pycbc/filter/matchedfilter.py": {
+            "before_sha256": "7a4c72efa65bc2887d895da00ee640b2922ace2e60c7e267bcf91ad753a5a720",
+            "after_sha256": "e3c51ff2918387f0dab8e555275537a891868e4d58797bdae55d61f6158e0b38",
+            "full_module_ast_identical": true
+          },
+          "pycbc/vetoes/chisq.py": {
+            "before_sha256": "0013e1127bd6d4ae2336f22982f7f47bccc2efb3fb7343ed36bcf35ccd17ed05",
+            "after_sha256": "356021040ecf0c78777e9ca1b193c795b5a03cb636069f41317a49f973c84eab",
+            "full_module_ast_identical": true
+          }
+        },
+        "all_other_tracked_paths_identical": true
+      },
+      "formatted_to_final_commits": [
+        {
+          "formatted": "269f5e94c7036300d9be3c5cbf0de2bf0d1ac93c",
+          "final": "0b5eb0c970e7d3edd726e8b3bc7abd3d6c63ddda"
+        }
+      ],
+      "documentation_inheritance": {
+        "status": "PASS",
+        "changed_from_formatted": [
+          "docs/torch_batch_numerics.rst",
+          "docs/torch_benchmark_protocol.rst",
+          "docs/torch_performance.rst",
+          "docs/torch_reference_campaign.rst",
+          "docs/torch_testing.rst"
+        ],
+        "all_other_tracked_files_and_modes_identical": true
+      },
+      "equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "docs/torch_batch_numerics.rst",
+          "docs/torch_benchmark_protocol.rst",
+          "docs/torch_performance.rst",
+          "docs/torch_reference_campaign.rst",
+          "docs/torch_testing.rst",
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "full_module_ast_identical_excluding_locations": true,
+        "all_other_tracked_files_and_modes_identical": true,
+        "native_sources_unchanged": true,
+        "identical_namespace_tree_ids": {
+          "bin": "5def1fa80afa24bee09b46d533841b89824fa80d",
+          "test": "14616fa6513eded3bf9910b952dae9c382a17089",
+          "tools": "99dff5b700047c230f07886e1350e8433ff180e5",
+          ".github": "e48c636eec0b962f23dfb5395a8c777e7ef3a5a7"
+        }
+      },
+      "frozen_head": "52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7",
+      "frozen_base": "f582b6fd250d0b82612492979e01e645d5c07afc",
+      "cpu_restack_commits": [
+        {
+          "old": "1b81a82b84814d6cdc6cc6d27cf47b1b4e195fde",
+          "new": "52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7",
+          "subject": "Format existing modules used by optional FFT changes"
+        }
+      ],
+      "final_restack_commits": [
+        {
+          "old": "52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7",
+          "new": "0b5eb0c970e7d3edd726e8b3bc7abd3d6c63ddda"
+        }
+      ]
+    },
+    {
+      "pr": 16,
+      "url": "https://github.com/xangma/pycbc/pull/16",
+      "published_ref": "torch-followup-fft-optimizations",
+      "published_base_ref": "torch-fft-formatting-base",
+      "parent_pr": 19,
+      "old_ref": "codex/cpu-base-restack-20260908-pr16",
+      "old_head": "52bb4742667671f178314b2bd1a23f83029cab32",
+      "old_base": "1b81a82b84814d6cdc6cc6d27cf47b1b4e195fde",
+      "new_base": "0b5eb0c970e7d3edd726e8b3bc7abd3d6c63ddda",
+      "staging_ref": "codex/corrected-baseline-publish-20260908-pr16",
+      "commits": [
+        {
+          "old": "d4699798e44d8e4b4935d3d50c53279acde0c0b2",
+          "new": "0a3bc0bd366c1c7fc5a4a8f06a4d0b5dc8239a36"
+        }
+      ],
+      "new_head": "0a3bc0bd366c1c7fc5a4a8f06a4d0b5dc8239a36",
+      "formatted_head": "019441ce7563835b58d7e659fd00bad025523122",
+      "formatted_base": "269f5e94c7036300d9be3c5cbf0de2bf0d1ac93c",
+      "format_ref": "codex/corrected-baseline-final-20260908-pr16",
+      "format_commits": [
+        {
+          "old": "d4699798e44d8e4b4935d3d50c53279acde0c0b2",
+          "new": "019441ce7563835b58d7e659fd00bad025523122"
+        }
+      ],
+      "format_equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "files": {
+          "pycbc/filter/matchedfilter.py": {
+            "before_sha256": "7a4c72efa65bc2887d895da00ee640b2922ace2e60c7e267bcf91ad753a5a720",
+            "after_sha256": "e3c51ff2918387f0dab8e555275537a891868e4d58797bdae55d61f6158e0b38",
+            "full_module_ast_identical": true
+          },
+          "pycbc/vetoes/chisq.py": {
+            "before_sha256": "0013e1127bd6d4ae2336f22982f7f47bccc2efb3fb7343ed36bcf35ccd17ed05",
+            "after_sha256": "356021040ecf0c78777e9ca1b193c795b5a03cb636069f41317a49f973c84eab",
+            "full_module_ast_identical": true
+          }
+        },
+        "all_other_tracked_paths_identical": true
+      },
+      "formatted_to_final_commits": [
+        {
+          "formatted": "019441ce7563835b58d7e659fd00bad025523122",
+          "final": "0a3bc0bd366c1c7fc5a4a8f06a4d0b5dc8239a36"
+        }
+      ],
+      "documentation_inheritance": {
+        "status": "PASS",
+        "changed_from_formatted": [
+          "docs/torch_batch_numerics.rst",
+          "docs/torch_benchmark_protocol.rst",
+          "docs/torch_performance.rst",
+          "docs/torch_reference_campaign.rst",
+          "docs/torch_testing.rst"
+        ],
+        "all_other_tracked_files_and_modes_identical": true
+      },
+      "equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "docs/torch_batch_numerics.rst",
+          "docs/torch_benchmark_protocol.rst",
+          "docs/torch_performance.rst",
+          "docs/torch_reference_campaign.rst",
+          "docs/torch_testing.rst",
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "full_module_ast_identical_excluding_locations": true,
+        "all_other_tracked_files_and_modes_identical": true,
+        "native_sources_unchanged": true,
+        "identical_namespace_tree_ids": {
+          "bin": "126810eb9e290a7e2f8f2a3aa224d3818b6ceb1a",
+          "test": "5ab3b3006750bf71fe6d5cd086ba4b9bd1fdaab2",
+          "tools": "99dff5b700047c230f07886e1350e8433ff180e5",
+          ".github": "e48c636eec0b962f23dfb5395a8c777e7ef3a5a7"
+        }
+      },
+      "frozen_head": "d4699798e44d8e4b4935d3d50c53279acde0c0b2",
+      "frozen_base": "52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7",
+      "cpu_restack_commits": [
+        {
+          "old": "52bb4742667671f178314b2bd1a23f83029cab32",
+          "new": "d4699798e44d8e4b4935d3d50c53279acde0c0b2",
+          "subject": "Add optional FFTW wisdom caching and general FFT batch fixes"
+        }
+      ],
+      "final_restack_commits": [
+        {
+          "old": "d4699798e44d8e4b4935d3d50c53279acde0c0b2",
+          "new": "0a3bc0bd366c1c7fc5a4a8f06a4d0b5dc8239a36"
+        }
+      ]
+    },
+    {
+      "pr": 17,
+      "url": "https://github.com/xangma/pycbc/pull/17",
+      "published_ref": "torch-followup-cpu-optimizations",
+      "published_base_ref": "torch-pr11-performance-evidence",
+      "parent_pr": 15,
+      "old_ref": "codex/cpu-base-restack-20260908-pr17",
+      "old_head": "b213a6aeffa69ba0f249c8b5c883434d2371cecf",
+      "old_base": "bd2d956f5c4e7c69b957181340d62d76a25717ac",
+      "new_base": "1d22031fd31c6e5bcb48a68fe11772e960bd406b",
+      "staging_ref": "codex/corrected-baseline-publish-20260908-pr17",
+      "commits": [
+        {
+          "old": "db8c849bdc4e6eb63e84e67ae11a9efd2f10db9f",
+          "new": "f2180c07d7a23cf90ab597ebc1e02ab75e7d5b59"
+        }
+      ],
+      "new_head": "f2180c07d7a23cf90ab597ebc1e02ab75e7d5b59",
+      "formatted_head": "8f3ba35e5fa93122130504c863fac7ee9a150322",
+      "formatted_base": "6b47580146e73169cd130b601731e5ba40668d93",
+      "format_ref": "codex/corrected-baseline-final-20260908-pr17",
+      "format_commits": [
+        {
+          "old": "db8c849bdc4e6eb63e84e67ae11a9efd2f10db9f",
+          "new": "8f3ba35e5fa93122130504c863fac7ee9a150322"
+        }
+      ],
+      "format_equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "files": {
+          "pycbc/filter/matchedfilter.py": {
+            "before_sha256": "99da1828e3273971a0436f7937fe9bc1f2a2c30eba9658dab6318dc08ff4bcb3",
+            "after_sha256": "ce4b436dfc22d0e0b7a924ebcf8c6b4a8c965784e2b79d26b9604991bf94542d",
+            "full_module_ast_identical": true
+          },
+          "pycbc/vetoes/chisq.py": {
+            "before_sha256": "0013e1127bd6d4ae2336f22982f7f47bccc2efb3fb7343ed36bcf35ccd17ed05",
+            "after_sha256": "356021040ecf0c78777e9ca1b193c795b5a03cb636069f41317a49f973c84eab",
+            "full_module_ast_identical": true
+          }
+        },
+        "all_other_tracked_paths_identical": true
+      },
+      "formatted_to_final_commits": [
+        {
+          "formatted": "8f3ba35e5fa93122130504c863fac7ee9a150322",
+          "final": "f2180c07d7a23cf90ab597ebc1e02ab75e7d5b59"
+        }
+      ],
+      "documentation_inheritance": {
+        "status": "PASS",
+        "changed_from_formatted": [
+          "docs/torch_batch_numerics.rst",
+          "docs/torch_benchmark_protocol.rst",
+          "docs/torch_performance.rst",
+          "docs/torch_reference_campaign.rst",
+          "docs/torch_testing.rst"
+        ],
+        "all_other_tracked_files_and_modes_identical": true
+      },
+      "equivalence": {
+        "status": "PASS",
+        "changed_files": [
+          "docs/torch_batch_numerics.rst",
+          "docs/torch_benchmark_protocol.rst",
+          "docs/torch_performance.rst",
+          "docs/torch_reference_campaign.rst",
+          "docs/torch_testing.rst",
+          "pycbc/filter/matchedfilter.py",
+          "pycbc/vetoes/chisq.py"
+        ],
+        "full_module_ast_identical_excluding_locations": true,
+        "all_other_tracked_files_and_modes_identical": true,
+        "native_sources_unchanged": true,
+        "identical_namespace_tree_ids": {
+          "bin": "5def1fa80afa24bee09b46d533841b89824fa80d",
+          "test": "8d261b4fe05377deb1a6e146be553a0435eb7800",
+          "tools": "751c09d33a72454650f56b07ccb6ff9a0a2e13bb",
+          ".github": "72b1423b5afc818ad4a6fe91e0cb7f69892e5ac6"
+        }
+      },
+      "frozen_head": "db8c849bdc4e6eb63e84e67ae11a9efd2f10db9f",
+      "frozen_base": "f582b6fd250d0b82612492979e01e645d5c07afc",
+      "cpu_restack_commits": [
+        {
+          "old": "b213a6aeffa69ba0f249c8b5c883434d2371cecf",
+          "new": "db8c849bdc4e6eb63e84e67ae11a9efd2f10db9f",
+          "subject": "Add optional CPU peak, sparse chi-square and FFT optimizations"
+        }
+      ],
+      "final_restack_commits": [
+        {
+          "old": "db8c849bdc4e6eb63e84e67ae11a9efd2f10db9f",
+          "new": "f2180c07d7a23cf90ab597ebc1e02ab75e7d5b59"
+        }
+      ]
+    }
+  ],
+  "mapping_semantics": "old_head/base are published pre-restack objects. frozen_head/base identify measured CPU-based restack. Ordered maps are preserved separately for each stage.",
+  "inputs": {
+    "cpu-base-restack/manifest.json": "db054b3c41fe2827b9c8f2cc71d703adca2f1c1aa9e877f5021c5646d1a34658",
+    "corrected-baseline-final-restack/manifest.json": "52a86bcee03b8bfbfbdeada0f0249d856f6e1c23515672c4ea29b83e4e7fc9dc",
+    "live-prs-before-cpu-restack.json": "bc0a22a3d139e2a471f86edb5607ae6b84f1a6350a9d27c512ead848e164731a"
+  }
+}

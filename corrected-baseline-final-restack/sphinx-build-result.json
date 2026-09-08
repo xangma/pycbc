@@ -1,0 +1,57 @@
+{
+  "command": [
+    "/private/tmp/pycbc-torch-publication-20260908-venv/bin/python",
+    "-m",
+    "sphinx",
+    "-b",
+    "html",
+    "-E",
+    "-a",
+    "-W",
+    "--keep-going",
+    "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/render-final/docs",
+    "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/render-final/html"
+  ],
+  "returncode": 0,
+  "pages": [
+    "torch.rst",
+    "torch_batch_numerics.rst",
+    "torch_benchmark_protocol.rst",
+    "torch_filtering.rst",
+    "torch_optimizations.rst",
+    "torch_parity.rst",
+    "torch_performance.rst",
+    "torch_reference_campaign.rst",
+    "torch_runtime.rst",
+    "torch_search.rst",
+    "torch_testing.rst",
+    "torch_workflows.rst",
+    "waveform.rst",
+    "waveform_plugin.rst",
+    "install.rst",
+    "install_cuda.rst",
+    "install_lalsuite.rst",
+    "install_virtualenv.rst",
+    "docker.rst"
+  ],
+  "runtime": {
+    "pycbc": "/private/tmp/pycbc-cpu-base-restack-20260908/pycbc/__init__.py",
+    "version": "f582b6fd250d0b82612492979e01e645d5c07afc",
+    "sphinx": "8.2.3"
+  },
+  "documentation_base": "6b47580146e73169cd130b601731e5ba40668d93",
+  "measured_runtime": "f582b6fd250d0b82612492979e01e645d5c07afc",
+  "source_mapping": "Two complete module ASTs identical excluding locations; all other tracked source files byte-identical; documentation-only changes after formatted main.",
+  "source_head": "6b47580146e73169cd130b601731e5ba40668d93",
+  "finished": 1788881405.374352,
+  "environment": {
+    "PYTHONPATH": "/private/tmp/pycbc-cpu-base-restack-20260908",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "SKIP_PYCBC_DOCS_INCLUDE": "1",
+    "MPLBACKEND": "Agg",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+  },
+  "scope": "All actual Torch pages plus waveform/plugin/installation dependencies, repository extensions and theme, real plot/command directives, targeted API context; excludes unrelated manual and _include generators, no external intersphinx inventory or remote logo."
+}

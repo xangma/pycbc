@@ -1,0 +1,511 @@
+diff --git a/docs/torch_batch_numerics.rst b/docs/torch_batch_numerics.rst
+index 1ab7664798..f17fd14538 100644
+--- a/docs/torch_batch_numerics.rst
++++ b/docs/torch_batch_numerics.rst
+@@ -6,8 +6,9 @@ Live-filter benchmark definition and accuracy
+ This method compares the public ``LiveBatchMatchedFilter.process_data`` API
+ using synthetic frequency-domain inputs. It is a separate experiment from the
+ complete-search comparison in :ref:`torch-performance`. Apply the same frozen
+-fixture to the unchanged CPU baseline and all proposed backend arms; identify
+-the source revisions in every result.
++fixture to the named CPU reference and all backend arms; identify the source
++revisions in every result. The current executable campaign uses a corrected
++CPU reference; its results do not qualify this separate API experiment.
+ 
+ Fixed workload and timing
+ -------------------------
+@@ -44,9 +45,9 @@ median of three fresh-worker median rates; ranges span those three medians.
+ 
+ The frozen fixture uses qualification seeds 7102 and 7103 and timing seed
+ 7102. Qualify every source/backend/batch cell against both the independent
+-oracle and its named CPU reference before timing. Adding the unchanged
+-baseline adds a separate source arm; retain its verdicts too. Validate every
+-timed call's triggers outside the clock.
++oracle and its named CPU reference before timing. Adding an original or
++corrected CPU revision adds a separate source arm; retain its verdicts too.
++Validate every timed call's triggers outside the clock.
+ This establishes finite warm-API behavior under the stated controls; it does
+ not establish executable or full-machine capacity.
+ 
+@@ -114,7 +115,7 @@ record any harness adaptation and verify that it does not alter scientific
+ inputs, observed outputs or timing boundaries.
+ 
+ The archived run qualified an earlier development revision. Its rates and
+-verdicts do not qualify the proposed runtime or an unchanged-baseline arm that
++verdicts do not qualify the restacked runtime or a CPU-reference arm that
+ it did not execute. Source-native identities, every per-worker receipt, all
+ failures and the exact policy belong with each new comparison. The archive
+ omits full scientific arrays; verifying recorded JSON alone does not replay
+diff --git a/docs/torch_benchmark_protocol.rst b/docs/torch_benchmark_protocol.rst
+index f09615355b..1c14c6fd66 100644
+--- a/docs/torch_benchmark_protocol.rst
++++ b/docs/torch_benchmark_protocol.rst
+@@ -3,32 +3,53 @@
+ Controlled executable benchmark protocol
+ ========================================
+ 
+-Use this protocol for the existing-code versus proposed-Torch comparison in
+-:ref:`torch-performance`. A result is eligible for a sustained-capacity claim
+-only after workload convergence, scientific qualification and host-load checks
++Use this protocol for the corrected-CPU versus restacked-Torch comparison in
++:ref:`torch-performance`. Keep the original-versus-corrected CPU arithmetic
++and output changes in a separate experiment. A result is eligible for a
++sustained-capacity claim only after workload convergence, scientific
++qualification and host-load checks
+ have passed. Missing evidence remains explicit; a plausible profile or the
+ expected templates/core rate is not an acceptance test.
+ 
+ Reference and scientific scope
+ ------------------------------
+ 
+-#. Build clean, pinned original and final checkouts using the same environment.
++#. Prepare clean, pinned corrected-CPU and restacked-main checkouts using
++   the same environment.
+    Record native build provenance, executable and input hashes, dependency
+    versions and the complete command. Use ``cpu:1``, MKL FFTs, compressed
+    low-mass waveforms and one numerical-library thread for the normal reference.
+-#. Tune original CPU before measuring Torch. Sweep segment length and safe
+-   start/end padding, holding bank, PSD, vetoes and unique output interval
++   Preserve measured source pins when publishing later formatting or
++   documentation changes. Record the final publication head and verify the
++   exact changed-file set, full module AST equality for formatting, and byte
++   identity of executable, test, tool, CI and native files separately.
++#. Declare how the CPU reference geometry was selected before measuring Torch.
++   This campaign retains the geometry selected on historical unchanged CPU;
++   it does not claim a fresh optimum for corrected CPU. For a new tuning
++   experiment, sweep segment length and safe start/end padding, holding bank,
++   PSD, vetoes and unique output interval
+    fixed. Record repeated unprofiled wall times and a selection rule before
+    running candidates. Check longest-waveform duration, inverse-spectrum
+    support, completed segments, boundary injections and unique search time.
+    Duration bounds alone do not prove boundary correctness. A conservative
+    fixed end pad is a declared constraint, not an end-padding optimum.
+ #. Freeze the selected geometry for matched backend comparisons. Include
+-   original CPU, proposed normal CPU, Torch CPU and Torch CUDA separately.
++   corrected CPU, restacked normal CPU, Torch CPU and Torch CUDA separately.
+    Re-tuning each backend is a different experiment and needs its own table.
+    Compare trigger identities, SNR, phase and chi-square under unchanged
+-   tolerances. Preserve failures against original upstream. Claims about
+-   backend cost use the proposed CPU comparison whose outputs pass parity.
++   tolerances. Compare full PSD arrays, conditioned strain and segment
++   geometry as well as the used PSD slice. Preserve the separate historical
++   failures against unchanged CPU; a corrected reference does not erase them.
++   Report each gate independently. Trigger parity alone does not establish
++   full scientific equivalence or qualify an equivalent-output speedup.
++
++The current campaign's initial strict controller stopped on a full-PSD
++failure for Torch below 30 Hz. Its explicitly recorded policy amendment,
++made after qualification, permits descriptive timings after all five
++trigger comparisons and exact conditioned strain, geometry and used PSD
++bins pass. Preserve both the initial stop and amendment; do not present the
++continuation as the original policy or reclassify full-array failures.
++Results under that amendment are finite-workload execution costs only.
+ 
+ Separate live-filter API measurements
+ -------------------------------------
+@@ -57,7 +78,7 @@ Predeclare a convergence criterion; for example, require less than 5% change
+ in median capacity at two successive workload doublings. In every repeat at
+ each of the final three sizes, setup plus time outside the internal timer must
+ also remain below 10% of full wall time. The criterion is specific to the tested
+-backend, bank distribution and host; original-CPU convergence alone does not
++backend, bank distribution and host; CPU-reference convergence alone does not
+ establish CUDA convergence. If it fails, show the scaling curve and report
+ finite-workload capacity.
+ 
+@@ -143,9 +164,11 @@ execution and planning separately, plus correlation, chi-square, thresholding,
+ decompression and the measured remainder. FFT dominance is a hypothesis to
+ check, not a shape to force onto results.
+ 
+-Publish the unchanged-baseline and proposed-revision results together for each
++Publish the corrected-baseline and restacked-revision results together for each
+ defined workload, with their source revisions, timing boundaries, resource
+-counts and correctness verdicts. Keep intermediate optimization experiments
+-in the evidence archive, outside the main PR comparison. Retain
++counts and correctness verdicts. Publish the separate cost of CPU precision
++corrections with its intentional arithmetic/output changes. Label earlier
++unchanged-baseline comparisons as historical evidence. Keep intermediate
++optimization experiments in the evidence archive, outside the main PR comparison. Retain
+ raw successful and failed receipts, source/input hashes, qualification,
+ profiles, load records and the renderer manifest in an immutable archive.
+diff --git a/docs/torch_performance.rst b/docs/torch_performance.rst
+index 0f09cf4cb3..b2eca46a39 100644
+--- a/docs/torch_performance.rst
++++ b/docs/torch_performance.rst
+@@ -4,118 +4,172 @@
+ .. _torch-optimization-results:
+ .. _torch-benchmark-status:
+ 
+-Comparing existing PyCBC with Torch
+-===================================
+-
+-The 8 September 2026 benchmark compares unchanged PyCBC
+-``40e94792b3edf59f39b18b65102b28a4f74433a7`` with the final main Torch proposal
+-``123e1fb3ef1b338cada636e71c3e9c7987002402``, using separate clean native builds,
+-matching dependencies and the same scientific workload. The proposed normal
+-CPU route separates shared changes from the cost of selecting Torch. Optional
+-FFT and CPU follow-up PRs are outside this comparison.
+-
+-**The timing comparison is complete; scientific equivalence to unchanged
+-PyCBC fails.** The table reports descriptive execution costs, with every failed
+-scientific comparison retained. It does not establish an equivalent-output
+-speedup over the baseline.
++Corrected CPU baseline and Torch execution costs
++================================================
+ 
+-Measured comparison
+--------------------
++The current comparison uses standalone corrected CPU
++``66789ac4a7468094b0cc3ca1498a1de67e0311f6`` as the reference for measured
++restacked main ``f582b6fd250d0b82612492979e01e645d5c07afc``. It runs that
++source through normal CPU, Torch CPU and Torch CUDA separately. Optional
++FFT and CPU follow-up PRs are outside this comparison.
+ 
+-.. list-table:: Four fresh full-process repeats per arm
++**All five trigger comparisons pass, but the full-PSD gate fails for Torch
++below 30 Hz. Timings are descriptive execution costs only; full scientific
++equivalence and an equivalent-output speedup are not established.** Final
++timing results and the immutable campaign archive are pending verification.
++
++Measured and publication source
++-------------------------------
++
++The measured source remains frozen at ``f582b6fd25``. Formatting-only main
++``6b47580146e73169cd130b601731e5ba40668d93`` incorporates the supplied Qlty
++repair in filtering PR #8 and replays its descendants. Compared with the
++measured main, only ``pycbc/filter/matchedfilter.py`` and
++``pycbc/vetoes/chisq.py`` differ: both complete module ASTs are identical
++after excluding source locations. Their Python source bytes do differ.
++Every other tracked file is byte-identical, including ``bin/``, ``test/``,
++``tools/``, ``.github/`` and all native sources.
++
++The documentation commit is based on that formatted main and changes only
++documentation. This is an explicit mapping from measured source through
++AST-equivalent formatting to the documentation-bearing publication, not a
++new benchmark run of the publication head. All timings and worker receipts
++retain the measured ``f582b6fd25`` pin. The archived ``sources.bundle`` and
++frozen bank preserve the acquired source and bank after published refs advance.
++
++Standalone CPU corrections
++--------------------------
++
++The corrected reference is a separate prerequisite, proposed in
++`CPU draft PR #20 <https://github.com/xangma/pycbc/pull/20>`_. It promotes float32
++PSD processing, cumulative template-power accumulation and strain-segment
++FFTs, and uses double-precision phase shifts and accumulation in the CPU
++point chi-square wrapper. Public single-precision outputs are retained.
++These changes have no Torch dependency and do not change native kernels.
++The `immutable CPU review
++<https://github.com/xangma/pycbc/blob/dcd123cade49b75ce312d0a8342a8c9c5c9b6abd/cpu-review.md>`_
++records numerical references, regression tests and intentional output changes.
++
++A separate original-versus-corrected CPU experiment measured median wall time
++of 65.280 versus 68.062 seconds, a **4.2611% increase**, on the same finite
++workload. It measures the cost of changed arithmetic and changed output:
++the original produces 1988 triggers and corrected CPU produces 1991.
++This is not an equal-output comparison or a Torch speedup. Its four trials
++per source and shared-host limitations are in the `CPU cost report
++<https://github.com/xangma/pycbc/blob/dcd123cade49b75ce312d0a8342a8c9c5c9b6abd/cpu-cost-report.md>`_.
++
++Current four-arm comparison
++--------------------------
++
++.. list-table:: Four fresh full-process repeats per arm; final timings pending
+    :header-rows: 1
+-   :widths: 18 13 18 17 21 13
++   :widths: 19 13 17 14 22 15
+ 
+    * - Arm
+-     - Source
++     - Measured source
+      - Allocation
+-     - Triggers / baseline verdict
++     - Trigger comparison
+      - Median seconds (observed range)
+      - Template-seconds / wall-second
+-   * - Existing CPU
+-     - ``40e94792b3``
++   * - Corrected CPU
++     - ``66789ac4a7``
+      - 1 core/thread
+-     - 1988 / reference
+-     - 67.833 (66.377--76.056)
+-     - 10,778.5
+-   * - Proposed CPU
+-     - ``123e1fb3ef``
++     - Reference
++     - **PENDING_FINAL_TIMINGS**
++     - **PENDING_FINAL_RATE**
++   * - Restacked normal CPU
++     - ``f582b6fd25``
+      - 1 core/thread
+-     - 1991 / FAIL
+-     - 66.626 (65.531--70.279)
+-     - 10,973.7
+-   * - Proposed Torch CPU
+-     - ``123e1fb3ef``
++     - PASS
++     - **PENDING_FINAL_TIMINGS**
++     - **PENDING_FINAL_RATE**
++   * - Restacked Torch CPU
++     - ``f582b6fd25``
+      - 1 core/thread
+-     - 1991 / FAIL
+-     - 106.597 (102.795--112.295)
+-     - 6,858.9
+-   * - Proposed Torch CUDA
+-     - ``123e1fb3ef``
++     - PASS
++     - **PENDING_FINAL_TIMINGS**
++     - **PENDING_FINAL_RATE**
++   * - Restacked Torch CUDA
++     - ``f582b6fd25``
+      - 1 core/thread + RTX 4090
+-     - 1991 / FAIL
+-     - 20.926 (20.351--26.063)
+-     - 34,939.6
++     - PASS
++     - **PENDING_FINAL_TIMINGS**
++     - **PENDING_FINAL_RATE**
+ 
+ The fixed workload is ``pycbc_inspiral`` over 384 distinct compressed low-mass
+ templates and 1904 unique H1 seconds, with five segments and 1920
+-template/segment pairs. Its complete scientific definition is in
++template/segment pairs. Its scientific definition is in
+ :ref:`torch-reference-campaign`. Rate is ``384 * 1904 / median_wall_seconds``.
+-All 16 timed outputs pass against their own separate qualification. Every
+-sample, exact command, build identity and comparison is in the
+-`immutable benchmark archive <https://github.com/xangma/pycbc/tree/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908>`_.
+-
+-Scientific comparison
+----------------------
+-
+-The baseline produces 1988 triggers; each proposed route produces 1991. There
+-are 1959 matched identities, 29 baseline-only and 32 proposal-only identities.
+-Each baseline/proposal comparison has 1951 chi-square, 22 phase and 10 SNR
+-budget violations among matched triggers. These failures require scientific
+-review before this proposal can be described as preserving baseline output.
+-
+-The three proposed routes agree on all 1991 trigger identities and pass the
+-frozen trigger-field budgets. Conditioned strain digests, gating and geometry
+-match across all four arms. Proposed PSDs match exactly on the actual filter
+-slice, bins ``[15360:1048576]``. Full PSD arrays differ below the 30 Hz cutoff:
+-2375 finite-bin budget violations for Torch CPU and 3105 for CUDA relative to
+-proposed CPU. The full-PSD check remains failed.
+-
+-The initial controller stopped on that full-PSD failure before timing. A
+-separately reviewed continuation collected descriptive timings after checking
+-proposed trigger parity and exact strain, geometry and used PSD bins. The
+-archive preserves this decision made after qualification, the original stop,
+-all full-array failures and unchanged tolerances. Its independent verifier
+-includes full PSD and conditioning checks and rejects equivalent-output
+-speedup eligibility. Existing :ref:`native regression evidence
+-<torch-integrated-qualification>` remains separate from baseline equivalence.
++The pending values above are not estimates or reused historical samples.
++Final verification of all 16 timed outputs against their own qualifications
++is **PENDING_FINAL_TIMING_VERIFICATION**. The archive containing every sample,
++expanded command, source/native identity and comparison is
++**PENDING_IMMUTABLE_CAMPAIGN_LINK**.
++
++Scientific qualification and timing policy
++------------------------------------------
++
++The five trigger comparisons are corrected CPU against each of the three
++restacked routes, plus restacked normal CPU against Torch CPU and Torch CUDA.
++All five pass the frozen identity and trigger-field gates. Conditioned strain
++and segment geometry match exactly, as do PSD values on the actual filter
++slice, bins ``[15360:1048576]``. Full PSD arrays still fail the frozen budget
++for Torch below the 30 Hz cutoff. Exact used bins and passing trigger
++comparisons do not turn the full-array failure into a pass.
++
++The initial strict qualification controller stopped on the full-PSD failure
++before timing. An explicit policy amendment made after qualification permits
++descriptive timings after all five trigger comparisons, exact conditioned
++strain and geometry, and exact used PSD bins pass. The original failure,
++full-array verdicts and policy amendment are retained; source, inputs,
++tolerances, worker commands and rotating order are unchanged. This
++continuation does not establish full-equivalence speedup eligibility.
+ 
+ Measurement and reproduction
+ ----------------------------
+ 
+-The four arms ran in balanced rotating orders ABCD, BCDA, CDAB and DABC, where
+-A is existing CPU, B proposed CPU, C Torch CPU and D Torch CUDA. Every sample
+-starts a fresh unprofiled process. Qualification runs are excluded. The clock
+-starts before child launch and stops after exit following completed HDF output,
+-including imports, setup, frame I/O, filtering, vetoes and the same runtime/hash
+-verification wrapper in every arm. Parent source checks and post-run HDF
+-comparisons are outside that clock. Filesystem caches were not flushed.
+-
+-The shared host is ``len``, AMD Ryzen Threadripper PRO 3995WX. Each arm uses CPU
+-8 with SMT sibling 72 and one numerical thread. CUDA additionally uses RTX 4090
+-GPU 0. Selectors are ``cpu:1``, ``torch:cpu:1`` and ``torch:cuda:0``, with explicit
+-MKL. All observed numerical and Torch intra/inter-op pools are single-threaded;
+-CUDA graph capture is disabled. The host, sibling and GPU are not reserved.
+-CPU, process, memory, load and GPU observations accompany every run.
+-
+-The archive's `reproduction instructions
+-<https://github.com/xangma/pycbc/blob/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908/REPRODUCE.md>`_ and expanded worker receipts
+-define the exact builds, commands and frozen inputs. No sample is discarded;
+-the ranges are observed minima/maxima, not confidence intervals. This finite
+-workload does not establish sustained or full-machine capacity;
++The four arms use balanced rotating orders ABCD, BCDA, CDAB and DABC, where
++A is corrected CPU, B restacked normal CPU, C Torch CPU and D Torch CUDA.
++Every sample starts a fresh unprofiled process; qualification runs are
++excluded. The clock starts before child launch and ends after exit following
++completed HDF output, including imports, setup, frame I/O, filtering, vetoes
++and the same runtime/native verification wrapper in every arm. Parent source
++checks and post-run HDF comparisons are outside the clock. Filesystem caches
++are not flushed.
++
++The shared host is ``len``, AMD Ryzen Threadripper PRO 3995WX. Each arm uses
++CPU 8 with SMT sibling 72 and one numerical thread. CUDA additionally uses
++RTX 4090 GPU 0. Selectors are ``cpu:1``, ``torch:cpu:1`` and ``torch:cuda:0``,
++with explicit MKL and verified numerical and Torch intra/inter-op thread
++limits. CUDA graph capture is disabled. The host, sibling and GPU are not
++reserved. Host, CPU, process, memory, load and GPU observations accompany
++the runs. The pinned sources use verified unchanged native binaries copied
++from the frozen build; the archive records source and binary hashes.
++
++Current campaign reproduction instructions are
++**PENDING_IMMUTABLE_REPRODUCTION_LINK**. They must include the original strict
++stop, the subsequent timing policy, configuration, dependency/build receipts
++and all raw worker records. No sample is discarded; reported ranges are
++observed minima/maxima, not confidence intervals. This finite workload does
++not establish sustained or full-machine capacity;
+ :ref:`torch-benchmark-protocol` defines those additional controls.
+ 
+-A prepared live-filter API excludes frame reading, PSD estimation, bank
+-construction and executable startup. Its :ref:`input and numerical method
+-<torch-batch-numerics>` measures a different boundary and must be reported
+-separately from complete-search performance.
++Historical unchanged-baseline comparison
++----------------------------------------
++
++The earlier comparison of unchanged PyCBC
++``40e94792b3edf59f39b18b65102b28a4f74433a7`` with combined proposal
++``123e1fb3ef1b338cada636e71c3e9c7987002402`` remains in the `historical benchmark
++archive <https://github.com/xangma/pycbc/tree/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908>`_.
++It recorded 1988 versus 1991 triggers, with 1959 shared identities, 29
++original-only and 32 proposal-only identities. Its trigger-field failures,
++full-PSD failures and descriptive timings remain historical evidence. Those
++timings do not measure the current corrected-CPU-versus-Torch comparison.
++The separate CPU review above explains the arithmetic and output changes.
++
++Existing :ref:`native regression evidence <torch-integrated-qualification>`
++also retains its own source pins and scope. A prepared live-filter API
++excludes frame reading, PSD estimation, bank construction and executable
++startup. Its :ref:`input and numerical method <torch-batch-numerics>` measures
++a different boundary and must be reported separately from complete-search
++performance.
+diff --git a/docs/torch_reference_campaign.rst b/docs/torch_reference_campaign.rst
+index c98e5eb56e..e95ae19f8b 100644
+--- a/docs/torch_reference_campaign.rst
++++ b/docs/torch_reference_campaign.rst
+@@ -9,7 +9,12 @@ output. It processes real H1 frame data with a fixed compressed low-mass bank,
+ including data conditioning, PSD estimation, waveform decompression,
+ normalization, scalar matched filtering, power chi-square, clustering and
+ trigger output. It does not call ``LiveBatchMatchedFilter.process_data``.
+-The baseline/proposed comparison and its status are in
++The current reference is standalone corrected CPU
++``66789ac4a7468094b0cc3ca1498a1de67e0311f6``. The campaign measured restacked main
++``f582b6fd250d0b82612492979e01e645d5c07afc`` using normal CPU, Torch CPU and
++Torch CUDA as separate arms. The mapping to formatted main
++``6b47580146e73169cd130b601731e5ba40668d93`` and its documentation commit,
++the separate CPU corrections, and current versus historical results are in
+ :ref:`torch-performance`.
+ 
+ Inputs and scientific settings
+@@ -75,12 +80,15 @@ trigger interval is **1187007160--1187009064: 1904 seconds**.
+      - Standard CPU ``cpu:1`` and Torch CPU ``torch:cpu:1`` use explicit MKL;
+        Torch CUDA ``torch:cuda:0`` uses one RTX 4090
+ 
+-The geometry was selected on the unchanged baseline by sweeping 256/512/1024
+-second segments and 96/112 second start padding, with 16 second end padding.
++The geometry was selected on historical unchanged CPU ``40e94792b3`` by
++sweeping 256/512/1024 second segments and 96/112 second start padding, with
++16 second end padding.
+ Each setting had three fresh processes. The rule selected the lowest median,
+ treating settings within 3% as tied, then preferring more start padding and a
+-smaller FFT. That selected 512/112/16 second geometry is frozen for comparison. That finite grid and fixed end padding do not establish global
+-optimality or fresh boundary-injection validation for every template.
++smaller FFT. The selected 512/112/16 second geometry remains frozen for the
++corrected-baseline comparison; it was not re-tuned on corrected CPU or Torch.
++That finite grid and fixed end padding do not establish global optimality or
++fresh boundary-injection validation for every template.
+ 
+ Scientific qualification
+ ------------------------
+@@ -99,27 +107,44 @@ Any allowed source or executable-path substitution must be declared separately
+ from scientific fields; it must not alter the numerical tolerances or conceal
+ missing triggers.
+ 
+-The completed unchanged-baseline/final-proposal comparison uses these inputs.
+-It retains baseline trigger and numerical failures, along with full-PSD
+-differences between proposed backends below the filter cutoff. Proposed trigger
+-parity and exact used PSD bins do not reclassify those failures. Results and
+-the disclosed descriptive timing continuation are in :ref:`torch-performance`.
++Current qualification passes all five trigger comparisons: corrected CPU
++against all three restacked routes, and restacked normal CPU against both
++Torch routes. Conditioned strain, segment geometry and used PSD bins match
++exactly. The full-PSD gate fails for Torch below 30 Hz. The strict controller
++stopped; a policy amendment made after qualification permits descriptive
++timings while retaining that failure and unchanged tolerances. Passing
++trigger gates does not establish full scientific equivalence. Results and
++the disclosed timing continuation are in :ref:`torch-performance`.
+ 
+ Commands and reproducibility
+ ----------------------------
+ 
+-The `completed comparison and reproduction instructions
+-<https://github.com/xangma/pycbc/blob/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908/REPRODUCE.md>`_ include the clean build
+-procedure, four-arm acquisition and exact commands. Its `configuration
+-<https://github.com/xangma/pycbc/blob/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908/acquisition/config.json>`_ records every
+-scientific argument and numerical-library thread setting; per-worker receipts
+-retain expanded commands, imported-source and native-build identity, input
+-hashes, output hashes and exit status. The `original CPU geometry sweep
++Current corrected-baseline campaign instructions and configuration are
++**PENDING_IMMUTABLE_REPRODUCTION_LINK** and
++**PENDING_IMMUTABLE_CONFIGURATION_LINK**. The evidence must retain expanded
++commands, imported-source and native-build identity, input/output hashes,
++exit status, the strict qualification stop and subsequent timing policy.
++This campaign copies unchanged native binaries from the frozen build after
++verifying source and binary hashes in both separate source checkouts.
++The archive includes the acquired ``sources.bundle`` and hash-verified frozen
++bank. The bundle preserves both measured commits after published branches
++advance; the reproduction instructions identify its required frozen base.
++
++The `historical comparison instructions
++<https://github.com/xangma/pycbc/blob/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908/REPRODUCE.md>`_
++and `historical configuration
++<https://github.com/xangma/pycbc/blob/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908/acquisition/config.json>`_
++describe the earlier ``40e94792b3``/``123e1fb3ef`` run, not the current source
++pair. The `original CPU geometry sweep
+ <https://github.com/xangma/pycbc/blob/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/REPRODUCE.md>`_
+ records how the frozen segment geometry was selected.
+ 
+-For a new comparison, build the explicitly named baseline and proposed commits
+-in separate clean checkouts with matching dependencies. Restore the frozen bank
++To reproduce the recorded comparison, prepare the explicitly named corrected
++baseline and measured ``f582b6fd25`` commits in separate clean checkouts with
++matching dependencies. Record any substitution of the formatted publication
++head and its AST/source mapping separately.
++Build native modules with recorded flags, or verify native-source identity
++and copied binary hashes if reusing a frozen build. Restore the frozen bank
+ and frame by hash, relocate paths into new output directories, and preserve the
+ scientific arguments above. Verify that each interpreter imports its intended
+ checkout and that the requested processing scheme actually runs. Do not run
+diff --git a/docs/torch_testing.rst b/docs/torch_testing.rst
+index e9c45859bc..05789911d3 100644
+--- a/docs/torch_testing.rst
++++ b/docs/torch_testing.rst
+@@ -360,6 +360,10 @@ suite alone establishes parity across the entire physical parameter space.
+ Recorded integrated qualification
+ ---------------------------------
+ 
++This is historical qualification of the revisions named below. The current
++corrected-CPU/restacked-main campaign and its retained full-PSD failure are
++reported separately in :ref:`torch-performance`.
++
+ The `sealed integrated qualification
+ <https://github.com/xangma/pycbc/tree/06c77a19432bce561f5cbeb6c2da1dedde98274b/stack-validation-20260908>`_
+ tests production source ``fad7d8440bfde083f2e94ee62a0017492dfc4013``. Its

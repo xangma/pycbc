@@ -1,0 +1,35 @@
+diff --git a/pycbc/filter/matchedfilter.py b/pycbc/filter/matchedfilter.py
+index 45a22ce966..bff428157d 100644
+--- a/pycbc/filter/matchedfilter.py
++++ b/pycbc/filter/matchedfilter.py
+@@ -1449,9 +1449,7 @@ def sigmasq_series(
+     if (
+         mag.dtype == numpy.float32
+         and isinstance(pycbc.scheme.mgr.state, pycbc.scheme.CPUScheme)
+-    ) or (
+-        tensor is not None and tensor.device.type != "mps"
+-    ):
++    ) or (tensor is not None and tensor.device.type != "mps"):
+         # Long single-precision scans lose small tail contributions and can
+         # shift equal-power chi-squared bins. Keep the public output dtype.
+         mag = mag.astype(numpy.float64)
+diff --git a/pycbc/vetoes/chisq.py b/pycbc/vetoes/chisq.py
+index 82c6af8863..b9d650a862 100644
+--- a/pycbc/vetoes/chisq.py
++++ b/pycbc/vetoes/chisq.py
+@@ -265,8 +265,13 @@ def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
+         shifts = shifts * (numpy.pi / 3.141592653)
+         chisq = numpy.zeros(len(shifts), dtype=numpy.float64)
+         point_chisq_code(
+-            chisq, corr.data, len(shifts), len(corr), shifts,
+-            numpy.asarray(bins, dtype=numpy.uint32), num_bins,
++            chisq,
++            corr.data,
++            len(shifts),
++            len(corr),
++            shifts,
++            numpy.asarray(bins, dtype=numpy.uint32),
++            num_bins,
+         )
+         snr_values = numpy.asarray(snr)
+         output_dtype = numpy.result_type(

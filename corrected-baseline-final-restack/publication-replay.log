@@ -1,0 +1,58 @@
+git branch codex/corrected-baseline-publish-20260908-pr18 f2eb803de6f2d34f2227e69e35d460bd481fff05
+
+git branch codex/corrected-baseline-publish-20260908-pr5 4ae42eb20638704dae2ec47882387df3d81b0b08
+
+git branch codex/corrected-baseline-publish-20260908-pr6 4865162eaa0c6f2332ec398bc30fc45773cb565c
+
+git branch codex/corrected-baseline-publish-20260908-pr7 92648253222205205c6ff96045ff1eb9ad6e30c1
+
+git branch codex/corrected-baseline-publish-20260908-pr8 6e1e08084c9d9be0e62fd701aaa662e61f1ad119
+
+git branch codex/corrected-baseline-publish-20260908-pr9 586d4f09d2962fe61287ba704e6c7ec971a8922f
+
+git branch codex/corrected-baseline-publish-20260908-pr10 6f67dc170811ff69fd6ec50816974bc4285d145b
+
+git branch codex/corrected-baseline-publish-20260908-pr11 69a96d515f1af056f74c25ef350255d89273f310
+
+git branch codex/corrected-baseline-publish-20260908-pr12 1219fe1a6fa9ee530bf2d5e57ec192b784c99474
+
+git branch codex/corrected-baseline-publish-20260908-pr13 424133803568b403cd6d30e7c54816dda2e93133
+
+git branch codex/corrected-baseline-publish-20260908-pr14 5b413c12b889e1869a897d022f67db1075c95c6d
+
+git branch codex/corrected-baseline-publish-20260908-pr15 1d22031fd31c6e5bcb48a68fe11772e960bd406b
+
+git switch -c codex/corrected-baseline-publish-20260908-pr19 1d22031fd31c6e5bcb48a68fe11772e960bd406b
+Switched to a new branch 'codex/corrected-baseline-publish-20260908-pr19'
+
+git cherry-pick -x 269f5e94c7036300d9be3c5cbf0de2bf0d1ac93c
+[codex/corrected-baseline-publish-20260908-pr19 0b5eb0c970] Format existing modules used by optional FFT changes
+ Date: Sun Sep 6 22:19:33 2026 +0100
+ 5 files changed, 123 insertions(+), 82 deletions(-)
+
+git switch -c codex/corrected-baseline-publish-20260908-pr16 0b5eb0c970e7d3edd726e8b3bc7abd3d6c63ddda
+Switched to a new branch 'codex/corrected-baseline-publish-20260908-pr16'
+
+git cherry-pick -x 019441ce7563835b58d7e659fd00bad025523122
+[codex/corrected-baseline-publish-20260908-pr16 0a3bc0bd36] Add optional FFTW wisdom caching and general FFT batch fixes
+ Date: Sun Sep 6 22:19:34 2026 +0100
+ 12 files changed, 1507 insertions(+), 71 deletions(-)
+ create mode 100644 pycbc/fft/wisdom_cache.py
+ create mode 100644 test/test_fft_batched_backends.py
+ create mode 100644 test/test_fft_cli_wisdom.py
+ create mode 100644 test/test_fftw_wisdom_cache.py
+
+git switch -c codex/corrected-baseline-publish-20260908-pr17 1d22031fd31c6e5bcb48a68fe11772e960bd406b
+Switched to a new branch 'codex/corrected-baseline-publish-20260908-pr17'
+
+git cherry-pick -x 8f3ba35e5fa93122130504c863fac7ee9a150322
+[codex/corrected-baseline-publish-20260908-pr17 f2180c07d7] Add optional CPU peak, sparse chi-square and FFT optimizations
+ Date: Sun Sep 6 22:19:34 2026 +0100
+ 15 files changed, 1400 insertions(+), 22 deletions(-)
+ create mode 100644 test/test_cpu_batch_peaks.py
+ create mode 100644 test/test_torch_cpu_fft_tuning.py
+ create mode 100644 test/test_torch_cpu_native_peaks.py
+
+git switch codex/corrected-baseline-publish-20260908-pr15
+Switched to branch 'codex/corrected-baseline-publish-20260908-pr15'
+

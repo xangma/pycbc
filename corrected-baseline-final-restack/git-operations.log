@@ -1,0 +1,264 @@
+git rev-parse HEAD
+git diff --cached --name-only
+git diff --name-only
+git diff --binary
+git for-each-ref --format=%(refname) %(objectname)
+git branch --show-current
+git worktree add --detach /private/tmp/pycbc-corrected-baseline-final-restack-20260908 66789ac4a7468094b0cc3ca1498a1de67e0311f6
+Preparing worktree (detached HEAD 66789ac4a7)
+git rev-list --reverse 66789ac4a7468094b0cc3ca1498a1de67e0311f6..f2eb803de6f2d34f2227e69e35d460bd481fff05
+git switch -c codex/corrected-baseline-final-20260908-pr18 f2eb803de6f2d34f2227e69e35d460bd481fff05
+Previous HEAD position was 66789ac4a7 Transform CPU float32 strain segments in double precision
+Switched to a new branch 'codex/corrected-baseline-final-20260908-pr18'
+git rev-parse HEAD
+git diff --name-only f2eb803de6f2d34f2227e69e35d460bd481fff05 f2eb803de6f2d34f2227e69e35d460bd481fff05
+git diff --check f2eb803de6f2d34f2227e69e35d460bd481fff05 f2eb803de6f2d34f2227e69e35d460bd481fff05
+git merge-base --is-ancestor 66789ac4a7468094b0cc3ca1498a1de67e0311f6 f2eb803de6f2d34f2227e69e35d460bd481fff05
+git status --porcelain
+git rev-list --reverse f2eb803de6f2d34f2227e69e35d460bd481fff05..4ae42eb20638704dae2ec47882387df3d81b0b08
+git switch -c codex/corrected-baseline-final-20260908-pr5 4ae42eb20638704dae2ec47882387df3d81b0b08
+Switched to a new branch 'codex/corrected-baseline-final-20260908-pr5'
+git rev-parse HEAD
+git diff --name-only 4ae42eb20638704dae2ec47882387df3d81b0b08 4ae42eb20638704dae2ec47882387df3d81b0b08
+git diff --check 4ae42eb20638704dae2ec47882387df3d81b0b08 4ae42eb20638704dae2ec47882387df3d81b0b08
+git merge-base --is-ancestor f2eb803de6f2d34f2227e69e35d460bd481fff05 4ae42eb20638704dae2ec47882387df3d81b0b08
+git status --porcelain
+git rev-list --reverse 4ae42eb20638704dae2ec47882387df3d81b0b08..4865162eaa0c6f2332ec398bc30fc45773cb565c
+git switch -c codex/corrected-baseline-final-20260908-pr6 4865162eaa0c6f2332ec398bc30fc45773cb565c
+Switched to a new branch 'codex/corrected-baseline-final-20260908-pr6'
+git rev-parse HEAD
+git diff --name-only 4865162eaa0c6f2332ec398bc30fc45773cb565c 4865162eaa0c6f2332ec398bc30fc45773cb565c
+git diff --check 4865162eaa0c6f2332ec398bc30fc45773cb565c 4865162eaa0c6f2332ec398bc30fc45773cb565c
+git merge-base --is-ancestor 4ae42eb20638704dae2ec47882387df3d81b0b08 4865162eaa0c6f2332ec398bc30fc45773cb565c
+git status --porcelain
+git rev-list --reverse 4865162eaa0c6f2332ec398bc30fc45773cb565c..92648253222205205c6ff96045ff1eb9ad6e30c1
+git switch -c codex/corrected-baseline-final-20260908-pr7 92648253222205205c6ff96045ff1eb9ad6e30c1
+Switched to a new branch 'codex/corrected-baseline-final-20260908-pr7'
+git rev-parse HEAD
+git diff --name-only 92648253222205205c6ff96045ff1eb9ad6e30c1 92648253222205205c6ff96045ff1eb9ad6e30c1
+git diff --check 92648253222205205c6ff96045ff1eb9ad6e30c1 92648253222205205c6ff96045ff1eb9ad6e30c1
+git merge-base --is-ancestor 4865162eaa0c6f2332ec398bc30fc45773cb565c 92648253222205205c6ff96045ff1eb9ad6e30c1
+git status --porcelain
+git rev-list --reverse 92648253222205205c6ff96045ff1eb9ad6e30c1..026f4e8c9418e18cef1a44af36520936b2b2450c
+git switch -c codex/corrected-baseline-final-20260908-pr8 026f4e8c9418e18cef1a44af36520936b2b2450c
+Switched to a new branch 'codex/corrected-baseline-final-20260908-pr8'
+git apply --check /Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/format.patch
+git apply /Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/format.patch
+git diff --name-only
+git show 026f4e8c9418e18cef1a44af36520936b2b2450c:pycbc/filter/matchedfilter.py
+git rev-parse HEAD
+git diff --cached --name-only
+git diff --name-only
+git diff --binary
+git rev-parse codex/corrected-baseline-final-20260908-pr18
+git rev-parse codex/corrected-baseline-final-20260908-pr5
+git rev-parse codex/corrected-baseline-final-20260908-pr6
+git rev-parse codex/corrected-baseline-final-20260908-pr7
+git rev-list --reverse 92648253222205205c6ff96045ff1eb9ad6e30c1..026f4e8c9418e18cef1a44af36520936b2b2450c
+git branch --show-current
+git diff --name-only
+git show 026f4e8c9418e18cef1a44af36520936b2b2450c:pycbc/filter/matchedfilter.py
+git show 026f4e8c9418e18cef1a44af36520936b2b2450c:pycbc/vetoes/chisq.py
+git apply /Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/format.patch
+git show 026f4e8c9418e18cef1a44af36520936b2b2450c:pycbc/filter/matchedfilter.py
+git show 026f4e8c9418e18cef1a44af36520936b2b2450c:pycbc/vetoes/chisq.py
+git diff --check
+git add -- pycbc/filter/matchedfilter.py pycbc/vetoes/chisq.py
+git commit -m Format corrected CPU filtering wrappers
+git rev-parse HEAD
+git rev-parse HEAD
+git diff --name-only 026f4e8c9418e18cef1a44af36520936b2b2450c 6e1e08084c9d9be0e62fd701aaa662e61f1ad119
+git show 026f4e8c9418e18cef1a44af36520936b2b2450c:pycbc/filter/matchedfilter.py
+git show 026f4e8c9418e18cef1a44af36520936b2b2450c:pycbc/vetoes/chisq.py
+git apply /Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/format.patch
+git show 026f4e8c9418e18cef1a44af36520936b2b2450c:pycbc/filter/matchedfilter.py
+git show 6e1e08084c9d9be0e62fd701aaa662e61f1ad119:pycbc/filter/matchedfilter.py
+git show 026f4e8c9418e18cef1a44af36520936b2b2450c:pycbc/vetoes/chisq.py
+git show 6e1e08084c9d9be0e62fd701aaa662e61f1ad119:pycbc/vetoes/chisq.py
+git diff --check 026f4e8c9418e18cef1a44af36520936b2b2450c 6e1e08084c9d9be0e62fd701aaa662e61f1ad119
+git merge-base --is-ancestor 92648253222205205c6ff96045ff1eb9ad6e30c1 6e1e08084c9d9be0e62fd701aaa662e61f1ad119
+git status --porcelain
+git rev-list --reverse 026f4e8c9418e18cef1a44af36520936b2b2450c..5fea7897c352b2952581308707af6236539421ba
+git switch -c codex/corrected-baseline-final-20260908-pr9 6e1e08084c9d9be0e62fd701aaa662e61f1ad119
+Switched to a new branch 'codex/corrected-baseline-final-20260908-pr9'
+git cherry-pick 5fea7897c352b2952581308707af6236539421ba
+git rev-parse HEAD
+git rev-parse HEAD
+git diff --name-only 5fea7897c352b2952581308707af6236539421ba 586d4f09d2962fe61287ba704e6c7ec971a8922f
+git show 5fea7897c352b2952581308707af6236539421ba:pycbc/filter/matchedfilter.py
+git show 5fea7897c352b2952581308707af6236539421ba:pycbc/vetoes/chisq.py
+git apply /Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/format.patch
+git show 5fea7897c352b2952581308707af6236539421ba:pycbc/filter/matchedfilter.py
+git show 586d4f09d2962fe61287ba704e6c7ec971a8922f:pycbc/filter/matchedfilter.py
+git show 5fea7897c352b2952581308707af6236539421ba:pycbc/vetoes/chisq.py
+git show 586d4f09d2962fe61287ba704e6c7ec971a8922f:pycbc/vetoes/chisq.py
+git diff --check 5fea7897c352b2952581308707af6236539421ba 586d4f09d2962fe61287ba704e6c7ec971a8922f
+git merge-base --is-ancestor 6e1e08084c9d9be0e62fd701aaa662e61f1ad119 586d4f09d2962fe61287ba704e6c7ec971a8922f
+git status --porcelain
+git rev-list --reverse 5fea7897c352b2952581308707af6236539421ba..4d1901a58577c40ef393650d4d134a82fa9a69f0
+git switch -c codex/corrected-baseline-final-20260908-pr10 586d4f09d2962fe61287ba704e6c7ec971a8922f
+Switched to a new branch 'codex/corrected-baseline-final-20260908-pr10'
+git cherry-pick 4d1901a58577c40ef393650d4d134a82fa9a69f0
+git rev-parse HEAD
+git rev-parse HEAD
+git diff --name-only 4d1901a58577c40ef393650d4d134a82fa9a69f0 6f67dc170811ff69fd6ec50816974bc4285d145b
+git show 4d1901a58577c40ef393650d4d134a82fa9a69f0:pycbc/filter/matchedfilter.py
+git show 4d1901a58577c40ef393650d4d134a82fa9a69f0:pycbc/vetoes/chisq.py
+git apply /Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/format.patch
+git show 4d1901a58577c40ef393650d4d134a82fa9a69f0:pycbc/filter/matchedfilter.py
+git show 6f67dc170811ff69fd6ec50816974bc4285d145b:pycbc/filter/matchedfilter.py
+git show 4d1901a58577c40ef393650d4d134a82fa9a69f0:pycbc/vetoes/chisq.py
+git show 6f67dc170811ff69fd6ec50816974bc4285d145b:pycbc/vetoes/chisq.py
+git diff --check 4d1901a58577c40ef393650d4d134a82fa9a69f0 6f67dc170811ff69fd6ec50816974bc4285d145b
+git merge-base --is-ancestor 586d4f09d2962fe61287ba704e6c7ec971a8922f 6f67dc170811ff69fd6ec50816974bc4285d145b
+git status --porcelain
+git rev-list --reverse 4d1901a58577c40ef393650d4d134a82fa9a69f0..971f2b6036c3fddc10099481efb83377cfcb788c
+git switch -c codex/corrected-baseline-final-20260908-pr11 6f67dc170811ff69fd6ec50816974bc4285d145b
+Switched to a new branch 'codex/corrected-baseline-final-20260908-pr11'
+git cherry-pick 971f2b6036c3fddc10099481efb83377cfcb788c
+git rev-parse HEAD
+git rev-parse HEAD
+git diff --name-only 971f2b6036c3fddc10099481efb83377cfcb788c 69a96d515f1af056f74c25ef350255d89273f310
+git show 971f2b6036c3fddc10099481efb83377cfcb788c:pycbc/filter/matchedfilter.py
+git show 971f2b6036c3fddc10099481efb83377cfcb788c:pycbc/vetoes/chisq.py
+git apply /Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/format.patch
+git show 971f2b6036c3fddc10099481efb83377cfcb788c:pycbc/filter/matchedfilter.py
+git show 69a96d515f1af056f74c25ef350255d89273f310:pycbc/filter/matchedfilter.py
+git show 971f2b6036c3fddc10099481efb83377cfcb788c:pycbc/vetoes/chisq.py
+git show 69a96d515f1af056f74c25ef350255d89273f310:pycbc/vetoes/chisq.py
+git diff --check 971f2b6036c3fddc10099481efb83377cfcb788c 69a96d515f1af056f74c25ef350255d89273f310
+git merge-base --is-ancestor 6f67dc170811ff69fd6ec50816974bc4285d145b 69a96d515f1af056f74c25ef350255d89273f310
+git status --porcelain
+git rev-list --reverse 971f2b6036c3fddc10099481efb83377cfcb788c..a8181bd598f9775ef44fb277a9ac8348cba356ce
+git switch -c codex/corrected-baseline-final-20260908-pr12 69a96d515f1af056f74c25ef350255d89273f310
+Switched to a new branch 'codex/corrected-baseline-final-20260908-pr12'
+git cherry-pick a8181bd598f9775ef44fb277a9ac8348cba356ce
+git rev-parse HEAD
+git rev-parse HEAD
+git diff --name-only a8181bd598f9775ef44fb277a9ac8348cba356ce 1219fe1a6fa9ee530bf2d5e57ec192b784c99474
+git show a8181bd598f9775ef44fb277a9ac8348cba356ce:pycbc/filter/matchedfilter.py
+git show a8181bd598f9775ef44fb277a9ac8348cba356ce:pycbc/vetoes/chisq.py
+git apply /Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/format.patch
+git show a8181bd598f9775ef44fb277a9ac8348cba356ce:pycbc/filter/matchedfilter.py
+git show 1219fe1a6fa9ee530bf2d5e57ec192b784c99474:pycbc/filter/matchedfilter.py
+git show a8181bd598f9775ef44fb277a9ac8348cba356ce:pycbc/vetoes/chisq.py
+git show 1219fe1a6fa9ee530bf2d5e57ec192b784c99474:pycbc/vetoes/chisq.py
+git diff --check a8181bd598f9775ef44fb277a9ac8348cba356ce 1219fe1a6fa9ee530bf2d5e57ec192b784c99474
+git merge-base --is-ancestor 69a96d515f1af056f74c25ef350255d89273f310 1219fe1a6fa9ee530bf2d5e57ec192b784c99474
+git status --porcelain
+git rev-list --reverse a8181bd598f9775ef44fb277a9ac8348cba356ce..f1d02414dbe13a0c689d7eb37b0180182e603b20
+git switch -c codex/corrected-baseline-final-20260908-pr13 1219fe1a6fa9ee530bf2d5e57ec192b784c99474
+Switched to a new branch 'codex/corrected-baseline-final-20260908-pr13'
+git cherry-pick f1d02414dbe13a0c689d7eb37b0180182e603b20
+git rev-parse HEAD
+git rev-parse HEAD
+git diff --name-only f1d02414dbe13a0c689d7eb37b0180182e603b20 424133803568b403cd6d30e7c54816dda2e93133
+git show f1d02414dbe13a0c689d7eb37b0180182e603b20:pycbc/filter/matchedfilter.py
+git show f1d02414dbe13a0c689d7eb37b0180182e603b20:pycbc/vetoes/chisq.py
+git apply /Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/format.patch
+git show f1d02414dbe13a0c689d7eb37b0180182e603b20:pycbc/filter/matchedfilter.py
+git show 424133803568b403cd6d30e7c54816dda2e93133:pycbc/filter/matchedfilter.py
+git show f1d02414dbe13a0c689d7eb37b0180182e603b20:pycbc/vetoes/chisq.py
+git show 424133803568b403cd6d30e7c54816dda2e93133:pycbc/vetoes/chisq.py
+git diff --check f1d02414dbe13a0c689d7eb37b0180182e603b20 424133803568b403cd6d30e7c54816dda2e93133
+git merge-base --is-ancestor 1219fe1a6fa9ee530bf2d5e57ec192b784c99474 424133803568b403cd6d30e7c54816dda2e93133
+git status --porcelain
+git rev-list --reverse f1d02414dbe13a0c689d7eb37b0180182e603b20..d196f687230e1a1f3e1c7b75d25b97db1cbac924
+git switch -c codex/corrected-baseline-final-20260908-pr14 424133803568b403cd6d30e7c54816dda2e93133
+Switched to a new branch 'codex/corrected-baseline-final-20260908-pr14'
+git cherry-pick d196f687230e1a1f3e1c7b75d25b97db1cbac924
+git rev-parse HEAD
+git rev-parse HEAD
+git diff --name-only d196f687230e1a1f3e1c7b75d25b97db1cbac924 5b413c12b889e1869a897d022f67db1075c95c6d
+git show d196f687230e1a1f3e1c7b75d25b97db1cbac924:pycbc/filter/matchedfilter.py
+git show d196f687230e1a1f3e1c7b75d25b97db1cbac924:pycbc/vetoes/chisq.py
+git apply /Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/format.patch
+git show d196f687230e1a1f3e1c7b75d25b97db1cbac924:pycbc/filter/matchedfilter.py
+git show 5b413c12b889e1869a897d022f67db1075c95c6d:pycbc/filter/matchedfilter.py
+git show d196f687230e1a1f3e1c7b75d25b97db1cbac924:pycbc/vetoes/chisq.py
+git show 5b413c12b889e1869a897d022f67db1075c95c6d:pycbc/vetoes/chisq.py
+git diff --check d196f687230e1a1f3e1c7b75d25b97db1cbac924 5b413c12b889e1869a897d022f67db1075c95c6d
+git merge-base --is-ancestor 424133803568b403cd6d30e7c54816dda2e93133 5b413c12b889e1869a897d022f67db1075c95c6d
+git status --porcelain
+git rev-list --reverse d196f687230e1a1f3e1c7b75d25b97db1cbac924..f582b6fd250d0b82612492979e01e645d5c07afc
+git switch -c codex/corrected-baseline-final-20260908-pr15 5b413c12b889e1869a897d022f67db1075c95c6d
+Switched to a new branch 'codex/corrected-baseline-final-20260908-pr15'
+git cherry-pick a4f558d789ffedf9a84717ea148fb2651cbc1e70
+git rev-parse HEAD
+git cherry-pick ca6af13e22626d2cb39bf9ff83301ef3e9bc1dcb
+git rev-parse HEAD
+git cherry-pick 353f3e6052f61e07056a069af8f5fb136c19712b
+git rev-parse HEAD
+git cherry-pick ed86ee986b529ba9d4924acdcd3b834dd2b03af1
+git rev-parse HEAD
+git cherry-pick 871c7be045f97378d7f6b9bab278948b20008d9e
+git rev-parse HEAD
+git cherry-pick f582b6fd250d0b82612492979e01e645d5c07afc
+git rev-parse HEAD
+git rev-parse HEAD
+git diff --name-only f582b6fd250d0b82612492979e01e645d5c07afc 6b47580146e73169cd130b601731e5ba40668d93
+git show f582b6fd250d0b82612492979e01e645d5c07afc:pycbc/filter/matchedfilter.py
+git show f582b6fd250d0b82612492979e01e645d5c07afc:pycbc/vetoes/chisq.py
+git apply /Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/format.patch
+git show f582b6fd250d0b82612492979e01e645d5c07afc:pycbc/filter/matchedfilter.py
+git show 6b47580146e73169cd130b601731e5ba40668d93:pycbc/filter/matchedfilter.py
+git show f582b6fd250d0b82612492979e01e645d5c07afc:pycbc/vetoes/chisq.py
+git show 6b47580146e73169cd130b601731e5ba40668d93:pycbc/vetoes/chisq.py
+git diff --check f582b6fd250d0b82612492979e01e645d5c07afc 6b47580146e73169cd130b601731e5ba40668d93
+git merge-base --is-ancestor 5b413c12b889e1869a897d022f67db1075c95c6d 6b47580146e73169cd130b601731e5ba40668d93
+git status --porcelain
+git rev-list --reverse f582b6fd250d0b82612492979e01e645d5c07afc..52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7
+git switch -c codex/corrected-baseline-final-20260908-pr19 6b47580146e73169cd130b601731e5ba40668d93
+Switched to a new branch 'codex/corrected-baseline-final-20260908-pr19'
+git cherry-pick 52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7
+git rev-parse HEAD
+git rev-parse HEAD
+git diff --name-only 52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7 269f5e94c7036300d9be3c5cbf0de2bf0d1ac93c
+git show 52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7:pycbc/filter/matchedfilter.py
+git show 52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7:pycbc/vetoes/chisq.py
+git apply /Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/format.patch
+git show 52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7:pycbc/filter/matchedfilter.py
+git show 269f5e94c7036300d9be3c5cbf0de2bf0d1ac93c:pycbc/filter/matchedfilter.py
+git show 52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7:pycbc/vetoes/chisq.py
+git show 269f5e94c7036300d9be3c5cbf0de2bf0d1ac93c:pycbc/vetoes/chisq.py
+git diff --check 52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7 269f5e94c7036300d9be3c5cbf0de2bf0d1ac93c
+git merge-base --is-ancestor 6b47580146e73169cd130b601731e5ba40668d93 269f5e94c7036300d9be3c5cbf0de2bf0d1ac93c
+git status --porcelain
+git rev-list --reverse 52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7..d4699798e44d8e4b4935d3d50c53279acde0c0b2
+git switch -c codex/corrected-baseline-final-20260908-pr16 269f5e94c7036300d9be3c5cbf0de2bf0d1ac93c
+Switched to a new branch 'codex/corrected-baseline-final-20260908-pr16'
+git cherry-pick d4699798e44d8e4b4935d3d50c53279acde0c0b2
+git rev-parse HEAD
+git rev-parse HEAD
+git diff --name-only d4699798e44d8e4b4935d3d50c53279acde0c0b2 019441ce7563835b58d7e659fd00bad025523122
+git show d4699798e44d8e4b4935d3d50c53279acde0c0b2:pycbc/filter/matchedfilter.py
+git show d4699798e44d8e4b4935d3d50c53279acde0c0b2:pycbc/vetoes/chisq.py
+git apply /Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/format.patch
+git show d4699798e44d8e4b4935d3d50c53279acde0c0b2:pycbc/filter/matchedfilter.py
+git show 019441ce7563835b58d7e659fd00bad025523122:pycbc/filter/matchedfilter.py
+git show d4699798e44d8e4b4935d3d50c53279acde0c0b2:pycbc/vetoes/chisq.py
+git show 019441ce7563835b58d7e659fd00bad025523122:pycbc/vetoes/chisq.py
+git diff --check d4699798e44d8e4b4935d3d50c53279acde0c0b2 019441ce7563835b58d7e659fd00bad025523122
+git merge-base --is-ancestor 269f5e94c7036300d9be3c5cbf0de2bf0d1ac93c 019441ce7563835b58d7e659fd00bad025523122
+git status --porcelain
+git rev-list --reverse f582b6fd250d0b82612492979e01e645d5c07afc..db8c849bdc4e6eb63e84e67ae11a9efd2f10db9f
+git switch -c codex/corrected-baseline-final-20260908-pr17 6b47580146e73169cd130b601731e5ba40668d93
+Switched to a new branch 'codex/corrected-baseline-final-20260908-pr17'
+git cherry-pick db8c849bdc4e6eb63e84e67ae11a9efd2f10db9f
+git rev-parse HEAD
+git rev-parse HEAD
+git diff --name-only db8c849bdc4e6eb63e84e67ae11a9efd2f10db9f 8f3ba35e5fa93122130504c863fac7ee9a150322
+git show db8c849bdc4e6eb63e84e67ae11a9efd2f10db9f:pycbc/filter/matchedfilter.py
+git show db8c849bdc4e6eb63e84e67ae11a9efd2f10db9f:pycbc/vetoes/chisq.py
+git apply /Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-final-restack/format.patch
+git show db8c849bdc4e6eb63e84e67ae11a9efd2f10db9f:pycbc/filter/matchedfilter.py
+git show 8f3ba35e5fa93122130504c863fac7ee9a150322:pycbc/filter/matchedfilter.py
+git show db8c849bdc4e6eb63e84e67ae11a9efd2f10db9f:pycbc/vetoes/chisq.py
+git show 8f3ba35e5fa93122130504c863fac7ee9a150322:pycbc/vetoes/chisq.py
+git diff --check db8c849bdc4e6eb63e84e67ae11a9efd2f10db9f 8f3ba35e5fa93122130504c863fac7ee9a150322
+git merge-base --is-ancestor 6b47580146e73169cd130b601731e5ba40668d93 8f3ba35e5fa93122130504c863fac7ee9a150322
+git status --porcelain
+git for-each-ref --format=%(refname) %(objectname)
+git switch codex/corrected-baseline-final-20260908-pr15
+Switched to branch 'codex/corrected-baseline-final-20260908-pr15'
+git diff --binary f582b6fd250d0b82612492979e01e645d5c07afc 6b47580146e73169cd130b601731e5ba40668d93
