@@ -1,19 +1,23 @@
 .. _torch-profile-attribution:
 
-Current profiling and optimization evidence
-===========================================
+Profiling evidence and timer scopes
+===================================
 
-The latest profiles measure clean
+The full-workload profiles on this page measure clean
 ``d2647addb884ead3249914ebc980f3c132076d93`` on 7 September 2026, including the
 integrated CPU squared-norm change. Its ``pycbc/`` and ``bin/`` trees match
 ``9e6a688a5190d6e1ddc655fbe352cc206085d5c6``; later documentation changes are
 outside the frozen acquisition. Every profile uses the complete 384-template,
-1904-second workload defined in :ref:`torch-reference-campaign`.
+1904-second workload defined in :ref:`torch-reference-campaign`. They precede
+the later CPU FFT workspace and frame-loader changes. Their attribution remains
+useful, but their wall times are **historical**, not the current headline.
+:ref:`torch-followup-evidence` records the later measurements and source pins.
 
 Promoted MKL FFT work and conversion copies dominate Torch CPU. Squared norm
 and trigger-result copying are much smaller targets. CUDA chi-square owns the
 largest recorded device duration. These are instrumented observations; only
-the separate nine unprofiled workers contribute to :ref:`torch-performance`.
+the separate unprofiled workers contribute to their campaign's wall-time
+comparison. None of these profiles is a component of the latest wall timer.
 
 Python and native call ownership
 --------------------------------
@@ -96,7 +100,8 @@ time. Unmatched events remain unattributed.
 Relating internal and full-process clocks
 ------------------------------------------
 
-These values come from each backend's actual median-wall worker. Setup plus
+These historical values come from each backend's actual median-wall worker at
+``d2647add``. Setup plus
 the remainder of the internal timer plus the outside-clock residual equals
 that worker's full wall time. The residual includes process/wrapper startup,
 shutdown and other work outside PyCBC's internal clock; it is not pure startup.
@@ -142,7 +147,7 @@ all 15 frozen comparator fixtures pass. The final audit independently acquires
 the lock after all 52 owned science/export process groups exit. Source, native
 extension, input and helper pins remain fixed throughout acquisition and copy.
 
-The `current executable and profiling evidence
+The `7 September executable and profiling evidence
 <https://github.com/xangma/pycbc/tree/a742e59004779b35e3caea1a088ad5854042b704/device-profile-20260907-r3>`_
 contains the source/native snapshot, six raw pstats files, two native profiles
 with full/window reports, the CUDA trace, all 21 HDF outputs, helpers, receipts
@@ -151,7 +156,7 @@ archive SHA256 is
 ``a86204f5163c40f9ce011406cbc9f025209b48bbc9d95b18d0784bdce4772375``.
 
 After restoring the publication, use Python 3.11 or later with Matplotlib to
-regenerate the current executable figure from its pinned summaries:
+regenerate that historical executable figure from its pinned summaries:
 
 .. code-block:: console
 
@@ -164,8 +169,8 @@ files. This offline presentation check does not rerun the executable, repeat
 HDF comparisons or replay raw profiles. Follow the archive's README for those
 separate checks.
 
-:download:`Executable SVG <images/torch-executable/executable-wall.svg>`;
-:download:`figure manifest <images/torch-executable/manifest.json>`.
+The current figures and their reproduction commands are in
+:ref:`torch-followup-plot-reproduction`.
 
 .. _torch-squared-norm-optimization:
 
@@ -182,8 +187,8 @@ individual API sizes. The `original optimization comparison and contracts
 remain available in the immutable archive. Superseded figures and detailed
 timing tables are omitted from active documentation.
 
-Latest optimization pass
--------------------------
+Earlier second squared-norm pass
+--------------------------------
 
 A second allocation experiment used the fresh real-square result as the
 in-place addition destination. Its public-API measurements improved all 14
@@ -191,8 +196,8 @@ changed-path cases, while its three baseline and three candidate executable
 workers had overlapping wall-time ranges and no demonstrated end-to-end gain.
 Both qualifications and all ten scientific comparisons passed, with exact
 trigger identities and numerical fields. The candidate remains isolated and
-is **not integrated**; the measured source and current backend figure above
-remain valid. The `complete second-pass evidence
+is **not integrated**. The later source in :ref:`torch-performance` retains the
+first squared-norm implementation. The `complete second-pass evidence
 <https://github.com/xangma/pycbc/tree/5ef0db0adea356b7a1657e92ab14e8fb11ad4761/python-optimization-pass2-20260907>`_
 retains the candidate patch, every timing sample, contract checks, original
 strict metadata failures and their bounded comparison receipts.

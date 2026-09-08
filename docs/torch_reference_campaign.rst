@@ -82,31 +82,38 @@ optimality or fresh boundary-injection validation for every template.
 What is timed and checked
 -------------------------
 
-The measured source is clean ``d2647addb884ead3249914ebc980f3c132076d93``.
-All routes use the same runtime-verification adapter, with checks appropriate
-to the selected backend. Full wall time starts immediately before worker launch
-and stops at child exit. It includes verification, imports, frame reading,
-setup, filtering and HDF output. Three fresh unprofiled processes per backend
-run in rotated backend order. Report the median and observed range. The three
-instrumented qualifications, six cProfiles, two native profiles and CUDA trace
-are separate and excluded from the nine timing samples.
+The latest matched source is clean
+``ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f``. The loader campaign also measures
+its immediate baseline ``2f799f0046fc36db4215bd8b8b8a774d40c0e011`` on all
+three backends. Only the candidate's nine workers contribute to the current
+backend figure. This equal application of the loader avoids comparing an
+optimized setup on one backend against the older setup on another.
 
-Three qualifications verify that every template decompresses exactly once without
-waveform-generation fallback, all ``384 * 5 = 1920`` scalar IFFTs execute, and
-valid-time coverage has no gap or overlap. The fresh standard-CPU qualification
-is the reference for the other 20 HDF outputs. Every comparison matches all
-1991 H1 trigger identities, with no unmatched triggers. Configuration and
-degrees of freedom must match exactly. The eleven compared fields include SNR,
-phase, sigmasq and the available veto fields; a stored zero field does not imply
-that its optional veto ran.
+All routes use runtime-verification wrappers with checks appropriate to the
+selected backend. Full wall time starts immediately before worker launch and
+stops at child exit. It includes verification, imports, frame reading, setup,
+filtering and HDF output. Three fresh unprofiled processes per role run in
+forward/reverse/forward role order. Report the median and observed range.
+The six instrumented qualifications and controller comparisons are separate
+from the eighteen timing workers. The earlier full-workload profiles in
+:ref:`torch-profile-attribution` measure a different revision.
+
+The qualifications verify compressed-template decompression without generation
+fallback, all ``384 * 5 = 1920`` scalar IFFTs and complete valid-time coverage.
+All 44 scientific comparisons pass: eight from qualification and 36 from
+timing. They preserve all 1991 H1 trigger identities. Configuration and degrees
+of freedom must match exactly. The eleven compared fields include SNR, phase,
+sigmasq and the available veto fields; a stored zero field does not imply that
+its optional veto ran.
 
 The frozen comparator uses relative tolerance ``1e-4`` and absolute tolerance
 ``1e-5``, sigmasq relative tolerance ``1e-5``, and circular phase absolute
-tolerance ``1e-4`` radians. These budgets are unchanged. The previous corrected
-CPU output also agrees with zero numerical differences after an exact
-revision-pair and byte-identical executable-path metadata substitution; its
-original strict metadata failure remains archived. This campaign does not
-independently measure the compressed bank's waveform approximation error.
+tolerance ``1e-4`` radians. These budgets are unchanged. Explicit revision and
+command-path substitutions allow the declared baseline/candidate comparison;
+scientific fields are not normalized. Complete per-scheme PSD references stay
+pinned, including bins outside the used filter slice. Failed earlier controller
+assumptions remain in the evidence. This campaign does not independently
+measure the compressed bank's waveform approximation error.
 
 All runs use ``len`` (AMD Ryzen Threadripper PRO 3995WX), CPU 8 affinity, one
 allocated host core, and one numerical-library thread. Torch routes set and
@@ -120,7 +127,13 @@ capacity require the additional experiments in :ref:`torch-benchmark-protocol`.
 Reproduction and archives
 -------------------------
 
-The `current executable and profile archive
+The latest loader campaign and plot sources are listed in
+:ref:`torch-followup-evidence`. Its ``loader-v1/`` directory contains the frozen
+protocol, source/input/runtime pins and acquisition helpers;
+``loader-qualification-v1.tar`` and ``loader-timing-v1.tar`` retain the raw
+receipts, logs, scientific outputs, comparisons and terminal audits.
+
+The `earlier executable and profile archive
 <https://github.com/xangma/pycbc/tree/a742e59004779b35e3caea1a088ad5854042b704/device-profile-20260907-r3>`_
 restores ``pycbc-torch-profile-20260907-r3/config.json`` with every scientific argument and
 thread setting, the exact source/native snapshot, frozen acquisition helpers,
@@ -134,5 +147,5 @@ helpers to that checkout. Preserve scientific options,
 thread limits and hashes; retain new receipts for every attempt. The runtime
 adapter is part of the timed command and must be included for a like-for-like
 comparison. Archive restoration and figure verification alone do not re-run
-scientific filtering. :ref:`torch-profile-attribution` gives the separate
-commands for regenerating the current figure from verified summaries.
+scientific filtering. :ref:`torch-followup-plot-reproduction` gives the separate
+commands for regenerating the current figures from verified summaries.
