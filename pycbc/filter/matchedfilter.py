@@ -1778,7 +1778,8 @@ def match(
     global _snr, _snr_scheme_key
     # Original CPU calls share scratch regardless of scheme or thread count.
     scheme_key = (
-        None if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.CPUScheme)
+        None
+        if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.CPUScheme)
         else pycbc.scheme.current_backend_key()
     )
     if (
