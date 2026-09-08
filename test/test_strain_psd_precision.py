@@ -7,6 +7,7 @@ import pytest
 from scipy.signal import welch as scipy_welch
 
 from pycbc import psd, scheme
+from pycbc.strain.strain import StrainSegments
 from pycbc.types import TimeSeries
 
 
@@ -17,6 +18,45 @@ def line_rich_data(dtype):
         values += amplitude * np.sin(2 * np.pi * frequency * time)
     # The numerical reference starts from these same rounded input samples.
     return values.astype(dtype)
+
+
+@pytest.mark.parametrize("dtype", [np.float32, np.float64])
+def test_strain_segments_retain_weak_frequencies(dtype):
+    values = line_rich_data(dtype)
+    with scheme.CPUScheme(1):
+        strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+        segments = StrainSegments(
+            strain, segment_length=64, segment_start_pad=8, segment_end_pad=8,
+            trigger_start=1234567890, trigger_end=1234568018,
+            allow_zero_padding=True,
+        )
+        result = segments.fourier_segments()
+        assert segments.fourier_segments() is result
+        assert result[0].seg_slice.start < 0
+        assert result[-1].seg_slice.stop > len(values)
+        for output, segment, analyze in zip(
+            result, segments.segment_slices, segments.analyze_slices
+        ):
+            chunk = np.zeros(32768, dtype=np.float64)
+            start, stop = max(segment.start, 0), min(segment.stop, len(values))
+            chunk[start - segment.start:stop - segment.start] = (
+                values[start:stop]
+            )
+            reference = np.fft.rfft(chunk) / 512
+            expected_dtype = (
+                np.complex64 if dtype == np.float32 else np.complex128
+            )
+            assert output.dtype == expected_dtype
+            assert output.delta_f == 1 / 64
+            assert float(output.epoch) == 1234567890 + segment.start / 512
+            assert output.analyze == analyze
+            assert output.cumulative_index == segment.start + analyze.start
+            assert output.seg_slice == segment
+            np.testing.assert_allclose(
+                output.numpy(), reference,
+                rtol=2e-7 if dtype == np.float32 else 2e-11, atol=2e-11,
+            )
+        np.testing.assert_array_equal(strain.numpy(), values)
 
 
 def psd_options(inverse_length):

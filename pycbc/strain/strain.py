@@ -24,6 +24,7 @@ import numpy
 from scipy.signal import kaiserord
 
 import pycbc.types
+from pycbc import scheme as _scheme
 from pycbc.types import TimeSeries, zeros
 from pycbc.types import Array, FrequencySeries
 from pycbc.types import MultiDetOptionAppendAction, MultiDetOptionAction
@@ -1201,19 +1202,29 @@ class StrainSegments(object):
         """
         if not self._fourier_segments:
             self._fourier_segments = []
+            promote = (
+                self.strain.dtype == numpy.float32 and
+                isinstance(_scheme.mgr.state, _scheme.CPUScheme)
+            )
             for seg_slice, ana in zip(self.segment_slices, self.analyze_slices):
                 if seg_slice.start >= 0 and seg_slice.stop <= len(self.strain):
-                    freq_seg = make_frequency_series(self.strain[seg_slice])
+                    strain_chunk = self.strain[seg_slice]
                 # Assume that we cannot have a case where we both zero-pad on
                 # both sides
                 elif seg_slice.start < 0:
                     strain_chunk = self.strain[:seg_slice.stop]
                     strain_chunk.prepend_zeros(-seg_slice.start)
-                    freq_seg = make_frequency_series(strain_chunk)
                 elif seg_slice.stop > len(self.strain):
                     strain_chunk = self.strain[seg_slice.start:]
                     strain_chunk.append_zeros(seg_slice.stop - len(self.strain))
-                    freq_seg = make_frequency_series(strain_chunk)
+                if promote:
+                    # Strong lines can obscure weak FFT bins in float32.
+                    strain_chunk = strain_chunk.astype(numpy.float64)
+                freq_seg = make_frequency_series(strain_chunk)
+                if promote:
+                    freq_seg = freq_seg.astype(
+                        complex_same_precision_as(self.strain)
+                    )
                 freq_seg.analyze = ana
                 freq_seg.cumulative_index = seg_slice.start + ana.start
                 freq_seg.seg_slice = seg_slice
