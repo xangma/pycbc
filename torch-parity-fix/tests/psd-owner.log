@@ -1,0 +1,33 @@
+.....s..s..s..s...s...s............s.......ss...s..ss.s..s..s..s...s.... [ 80%]
+..................                                                       [100%]
+=============================== warnings summary ===============================
+test/test_torch_psd_pipeline.py::test_lisa_response_psd_public_devices[cpu]
+test/test_torch_psd_pipeline.py::test_lisa_response_psd_public_devices[mps]
+  /private/tmp/pycbc-torch-parity-validation-20260908/pycbc/psd/read.py:99: RuntimeWarning: divide by zero encountered in log
+    slog = numpy.log(noise_data)
+
+test/test_torch_psd_pipeline.py::test_live_psd_variation_stays_on_device[cpu]
+test/test_torch_psd_pipeline.py::test_live_psd_variation_stays_on_device[mps]
+test/test_torch_psd_pipeline.py::test_offline_psd_variation_stays_on_device[cpu]
+  /private/tmp/pycbc-torch-parity-validation-20260908/pycbc/psd/variation.py:197: RuntimeWarning: divide by zero encountered in power
+    fweight = freqs ** (-7.0 / 6.0) * filt / numpy.sqrt(plong)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] test/test_torch_psd_pipeline.py:236: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:275: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:314: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:339: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:448: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:534: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:610: Torch CUDA device unavailable
+SKIPPED [2] test/test_torch_psd_pipeline.py:699: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:742: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:822: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_pipeline.py:825: Welch requires complex PyCBC arrays, unsupported on MPS
+SKIPPED [1] test/test_torch_psd_pipeline.py:885: Torch CUDA device unavailable
+SKIPPED [1] test/test_torch_psd_protocol.py:25: CUDA is unavailable
+SKIPPED [1] test/test_torch_psd_protocol.py:54: CUDA is unavailable
+SKIPPED [1] test/test_torch_psd_protocol.py:87: CUDA is unavailable
+SKIPPED [1] test/test_torch_versioned_data_psd.py:136: Torch CUDA device unavailable
+73 passed, 17 skipped, 5 warnings in 3.17s

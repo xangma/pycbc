@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/home/xangma/pycbc-torch-parity-fix-20260908/checked-inspiral.py", line 199, in <module>
+    main()
+  File "/home/xangma/pycbc-torch-parity-fix-20260908/checked-inspiral.py", line 152, in main
+    record['before_executable'] = snapshot(torch)
+                                  ^^^^^^^^^^^^^^^
+  File "/home/xangma/pycbc-torch-parity-fix-20260908/checked-inspiral.py", line 54, in snapshot
+    import threadpoolctl
+ModuleNotFoundError: No module named 'threadpoolctl'

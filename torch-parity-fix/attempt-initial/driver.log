@@ -1,0 +1,14 @@
+{"host": "len", "cwd": "/home/xangma/pycbc-torch-parity-fix-20260908", "pid": 2345815, "pgid": 2345815, "log": "/home/xangma/pycbc-torch-parity-fix-20260908/status.json", "command": "/home/xangma/pycbc-torch-split-20260905/venv/bin/python -u campaign.py"}
+Traceback (most recent call last):
+  File "/home/xangma/pycbc-torch-parity-fix-20260908/campaign.py", line 351, in <module>
+    main()
+  File "/home/xangma/pycbc-torch-parity-fix-20260908/campaign.py", line 289, in main
+    qualified = {arm: run_case(arm, 'qualify', lock) for arm in ROUTES}
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/xangma/pycbc-torch-parity-fix-20260908/campaign.py", line 289, in <dictcomp>
+    qualified = {arm: run_case(arm, 'qualify', lock) for arm in ROUTES}
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/xangma/pycbc-torch-parity-fix-20260908/campaign.py", line 255, in run_case
+    assert code == 0, (case, code)
+           ^^^^^^^^^
+AssertionError: ('qual-original-cpu', 1)

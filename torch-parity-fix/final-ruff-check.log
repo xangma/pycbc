@@ -1,0 +1,286 @@
+[
+  {
+    "cell": null,
+    "code": "B904",
+    "end_location": {
+      "column": 68,
+      "row": 1658
+    },
+    "filename": "/private/tmp/pycbc-torch-parity-fix-20260908/pycbc/filter/matchedfilter.py",
+    "fix": null,
+    "location": {
+      "column": 17,
+      "row": 1658
+    },
+    "message": "Within an `except` clause, raise exceptions with `raise ... from err` or `raise ... from None` to distinguish them from errors in exception handling",
+    "noqa_row": 1658,
+    "url": "https://docs.astral.sh/ruff/rules/raise-without-from-inside-except"
+  },
+  {
+    "cell": null,
+    "code": "B905",
+    "end_location": {
+      "column": 46,
+      "row": 2461
+    },
+    "filename": "/private/tmp/pycbc-torch-parity-fix-20260908/pycbc/filter/matchedfilter.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": ", strict=False",
+          "end_location": {
+            "column": 45,
+            "row": 2461
+          },
+          "location": {
+            "column": 45,
+            "row": 2461
+          }
+        }
+      ],
+      "message": "Add explicit value for parameter `strict=`"
+    },
+    "location": {
+      "column": 28,
+      "row": 2461
+    },
+    "message": "`zip()` without an explicit `strict=` parameter",
+    "noqa_row": 2461,
+    "url": "https://docs.astral.sh/ruff/rules/zip-without-explicit-strict"
+  },
+  {
+    "cell": null,
+    "code": "B905",
+    "end_location": {
+      "column": 72,
+      "row": 2478
+    },
+    "filename": "/private/tmp/pycbc-torch-parity-fix-20260908/pycbc/filter/matchedfilter.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": ", strict=False",
+          "end_location": {
+            "column": 71,
+            "row": 2478
+          },
+          "location": {
+            "column": 71,
+            "row": 2478
+          }
+        }
+      ],
+      "message": "Add explicit value for parameter `strict=`"
+    },
+    "location": {
+      "column": 39,
+      "row": 2478
+    },
+    "message": "`zip()` without an explicit `strict=` parameter",
+    "noqa_row": 2478,
+    "url": "https://docs.astral.sh/ruff/rules/zip-without-explicit-strict"
+  },
+  {
+    "cell": null,
+    "code": "B905",
+    "end_location": {
+      "column": 46,
+      "row": 2479
+    },
+    "filename": "/private/tmp/pycbc-torch-parity-fix-20260908/pycbc/filter/matchedfilter.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": ", strict=False",
+          "end_location": {
+            "column": 45,
+            "row": 2479
+          },
+          "location": {
+            "column": 45,
+            "row": 2479
+          }
+        }
+      ],
+      "message": "Add explicit value for parameter `strict=`"
+    },
+    "location": {
+      "column": 25,
+      "row": 2479
+    },
+    "message": "`zip()` without an explicit `strict=` parameter",
+    "noqa_row": 2479,
+    "url": "https://docs.astral.sh/ruff/rules/zip-without-explicit-strict"
+  },
+  {
+    "cell": null,
+    "code": "F403",
+    "end_location": {
+      "column": 35,
+      "row": 22
+    },
+    "filename": "/private/tmp/pycbc-torch-parity-fix-20260908/pycbc/psd/__init__.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 22
+    },
+    "message": "`from pycbc.psd.analytical import *` used; unable to detect undefined names",
+    "noqa_row": 22,
+    "url": "https://docs.astral.sh/ruff/rules/undefined-local-with-import-star"
+  },
+  {
+    "cell": null,
+    "code": "F403",
+    "end_location": {
+      "column": 41,
+      "row": 23
+    },
+    "filename": "/private/tmp/pycbc-torch-parity-fix-20260908/pycbc/psd/__init__.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 23
+    },
+    "message": "`from pycbc.psd.analytical_space import *` used; unable to detect undefined names",
+    "noqa_row": 23,
+    "url": "https://docs.astral.sh/ruff/rules/undefined-local-with-import-star"
+  },
+  {
+    "cell": null,
+    "code": "F403",
+    "end_location": {
+      "column": 33,
+      "row": 24
+    },
+    "filename": "/private/tmp/pycbc-torch-parity-fix-20260908/pycbc/psd/__init__.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 24
+    },
+    "message": "`from pycbc.psd.estimate import *` used; unable to detect undefined names",
+    "noqa_row": 24,
+    "url": "https://docs.astral.sh/ruff/rules/undefined-local-with-import-star"
+  },
+  {
+    "cell": null,
+    "code": "F403",
+    "end_location": {
+      "column": 34,
+      "row": 26
+    },
+    "filename": "/private/tmp/pycbc-torch-parity-fix-20260908/pycbc/psd/__init__.py",
+    "fix": null,
+    "location": {
+      "column": 1,
+      "row": 26
+    },
+    "message": "`from pycbc.psd.variation import *` used; unable to detect undefined names",
+    "noqa_row": 26,
+    "url": "https://docs.astral.sh/ruff/rules/undefined-local-with-import-star"
+  },
+  {
+    "cell": null,
+    "code": "F405",
+    "end_location": {
+      "column": 30,
+      "row": 193
+    },
+    "filename": "/private/tmp/pycbc-torch-parity-fix-20260908/pycbc/psd/__init__.py",
+    "fix": null,
+    "location": {
+      "column": 19,
+      "row": 193
+    },
+    "message": "`interpolate` may be undefined, or defined from star imports",
+    "noqa_row": 193,
+    "url": "https://docs.astral.sh/ruff/rules/undefined-local-with-import-star-usage"
+  },
+  {
+    "cell": null,
+    "code": "E741",
+    "end_location": {
+      "column": 10,
+      "row": 420
+    },
+    "filename": "/private/tmp/pycbc-torch-parity-fix-20260908/pycbc/strain/strain.py",
+    "fix": null,
+    "location": {
+      "column": 9,
+      "row": 420
+    },
+    "message": "Ambiguous variable name: `l`",
+    "noqa_row": 420,
+    "url": "https://docs.astral.sh/ruff/rules/ambiguous-variable-name"
+  },
+  {
+    "cell": null,
+    "code": "B905",
+    "end_location": {
+      "column": 70,
+      "row": 1585
+    },
+    "filename": "/private/tmp/pycbc-torch-parity-fix-20260908/pycbc/strain/strain.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": ", strict=False",
+          "end_location": {
+            "column": 69,
+            "row": 1585
+          },
+          "location": {
+            "column": 69,
+            "row": 1585
+          }
+        }
+      ],
+      "message": "Add explicit value for parameter `strict=`"
+    },
+    "location": {
+      "column": 25,
+      "row": 1585
+    },
+    "message": "`zip()` without an explicit `strict=` parameter",
+    "noqa_row": 1585,
+    "url": "https://docs.astral.sh/ruff/rules/zip-without-explicit-strict"
+  },
+  {
+    "cell": null,
+    "code": "B905",
+    "end_location": {
+      "column": 80,
+      "row": 1635
+    },
+    "filename": "/private/tmp/pycbc-torch-parity-fix-20260908/pycbc/strain/strain.py",
+    "fix": {
+      "applicability": "safe",
+      "edits": [
+        {
+          "content": ", strict=False",
+          "end_location": {
+            "column": 79,
+            "row": 1635
+          },
+          "location": {
+            "column": 79,
+            "row": 1635
+          }
+        }
+      ],
+      "message": "Add explicit value for parameter `strict=`"
+    },
+    "location": {
+      "column": 35,
+      "row": 1635
+    },
+    "message": "`zip()` without an explicit `strict=` parameter",
+    "noqa_row": 1635,
+    "url": "https://docs.astral.sh/ruff/rules/zip-without-explicit-strict"
+  }
+]

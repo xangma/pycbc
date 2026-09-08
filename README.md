@@ -1,3 +1,9 @@
+# Torch compatibility fixed, 2026-09-08
+
+Current results: [Torch parity fix](torch-parity-fix/README.md). All four routes produce 1988 triggers and pass the unchanged scientific gates; original CPU remains unchanged. No performance claim.
+
+---
+
 # Original CPU restoration, 2026-09-08
 
 Current results are in [original-cpu-restoration](original-cpu-restoration/README.md): original CPU preserved; Torch scientific comparison fails; no current speedup claim. The CPU precision proposal below is withdrawn from the Torch stack.

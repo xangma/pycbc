@@ -1,0 +1,3107 @@
+{
+  "status": "pass",
+  "verified_at_utc": "2026-09-08T19:47:32.371136+00:00",
+  "archive": "/Users/xangma/repos/pycbc/artifacts/torch-parity-fix-20260908/remote",
+  "archive_file_sha256": {
+    "__pycache__/benchmark_cpu_campaign.cpython-311.pyc": "8170a046362f09bcd73cad34951db35d141245d557b7e9b1cdaede6437784bed",
+    "__pycache__/checked-inspiral.cpython-311.pyc": "ea392f4ccb1b6d8fd6c48c131e6638437277c48e0728695623d262ecf535ec6b",
+    "__pycache__/compare-triggers.cpython-311.pyc": "80c781706959cbdb320d90f89ba9ca135c0b6c0980f7a7415f1e781c1d791d93",
+    "benchmark_cpu_campaign.py": "3ee6008a54da44599665d3a02633fa2328b53d97b81718327b24bb35b9ffff9e",
+    "campaign.py": "ecaa0b96ad09bafe1aa14be5ce29b99769c86b244fba553c817f051be829a2cd",
+    "checked-inspiral.py": "9181ff0515fb3cdacdd4246166bf90fea0da66232605922040ccc98c63d38b29",
+    "compare-triggers.py": "f0af115a2bf2d3a5a85152cb1f61d9b7570a460efd6d420566c5a2b74ac8f1b5",
+    "comparisons/original-cpu-vs-proposed-cpu-conditioning.json": "ee1c726ca81dc26ca68beb7bf0f4c9b90ed3b34ffe27ea737b8766c5b19ff504",
+    "comparisons/original-cpu-vs-proposed-cpu-raw.json": "59a7776fd646db1f2658455f693444630e561690389349dda4c2284eab500ece",
+    "comparisons/original-cpu-vs-proposed-cpu.json": "594a89a7f596b7899fca77a5486a49b897ce060bebc64e5b7044742edbb8a139",
+    "comparisons/original-cpu-vs-torch-cpu-conditioning.json": "ee1c726ca81dc26ca68beb7bf0f4c9b90ed3b34ffe27ea737b8766c5b19ff504",
+    "comparisons/original-cpu-vs-torch-cpu-raw.json": "636540b4ada6a40e76f6810e2d35d784130f10a1cc89ff89f8d39aeab6615e33",
+    "comparisons/original-cpu-vs-torch-cpu.json": "17ff096312e9d5ac57b86c6166ee344b536743f84ea16804ca3142ab2dae2f09",
+    "comparisons/original-cpu-vs-torch-cuda-conditioning.json": "ee1c726ca81dc26ca68beb7bf0f4c9b90ed3b34ffe27ea737b8766c5b19ff504",
+    "comparisons/original-cpu-vs-torch-cuda-raw.json": "6f6465580a46a5df04ff72e90ddc3117c0d491007fdd0809159cafe7d755d114",
+    "comparisons/original-cpu-vs-torch-cuda.json": "52f2700ce8787798df67c9f41c486d71dc69b2bff1ff1add7a62ab9471d33d8b",
+    "comparisons/proposed-cpu-vs-torch-cpu-conditioning.json": "ee1c726ca81dc26ca68beb7bf0f4c9b90ed3b34ffe27ea737b8766c5b19ff504",
+    "comparisons/proposed-cpu-vs-torch-cpu-raw.json": "04b67d7d21bd01c1527e61ff66d946fb8071c42aa528c9b0fd40485b9ffaef48",
+    "comparisons/proposed-cpu-vs-torch-cpu.json": "0399d15552ca6bceed721aabf05eee07c61bd27c17fd6ae57c97e8d4b3fae7ec",
+    "comparisons/proposed-cpu-vs-torch-cuda-conditioning.json": "ee1c726ca81dc26ca68beb7bf0f4c9b90ed3b34ffe27ea737b8766c5b19ff504",
+    "comparisons/proposed-cpu-vs-torch-cuda-raw.json": "596a68483957b2edebdeded9174e4bc9f00466eea77c067bfc612b5bc3440dae",
+    "comparisons/proposed-cpu-vs-torch-cuda.json": "ed55265a7337dc83050fa77756324c3e5752be2951d10531ffc794854681d40f",
+    "config.json": "5253c18c0cbc19d72e869e60a1a2d718b32d40e67e070d1770803bd7246d89c9",
+    "dependencies.json": "ecbeb9363b47dc395e1c0ac157687be614732fc06f4365db6ba8baf3be7c8d7c",
+    "driver.py": "35799cb18fc19cb848f09d4d2c21419a490b1c7c1147daef19915fbb1ff1b75f",
+    "harness-pins.json": "a6713d031e26191565af013a61ef334201ea5e1ab6de09d5e28d68c4fac672ad",
+    "machine.json": "ce1566c6e35d895ff22b0997f864acd43dac1b8369d2d21afe7f2af8381b4e13",
+    "original-build.json": "8dbc355aa431dde457789f3bb741d1a33cdb3bbb4a07df1e0cfa3c867a48b3f6",
+    "output-manifest.json": "b292745f2a3bf62cdc3cc9d466c39909f2005c244bc7f565f9c8b5bedf8aaea5",
+    "proposed-build.json": "9aadfe75338c671e67d5b67ba16e65f08100544a1d7b8f968b251ded19e12342",
+    "qualification-summary.json": "2b5823dc513dfc773fd152972d637fe49f295b1a8d34bf4bcfd1ae0dace3dfde",
+    "qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+    "runs/qual-original-cpu/arrays/qualification-psd-000.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+    "runs/qual-original-cpu/gpu-after.json": "f5e7f1fc774f8f617a95c3a16274838271edf044453accf8f940c35f31ba040c",
+    "runs/qual-original-cpu/gpu-before.json": "f5e7f1fc774f8f617a95c3a16274838271edf044453accf8f940c35f31ba040c",
+    "runs/qual-original-cpu/gpu-during.jsonl": "85d248b779547bf87549879144eceade42bedc50ec6e46ca43a07b218ac51cab",
+    "runs/qual-original-cpu/host-samples.jsonl": "48a6c8764278f6e241b50ee3776f192b9b7d2e0879a17d9e37419a86de66c000",
+    "runs/qual-original-cpu/qualification.json": "3ad492a236c7853703c86d2e40ea6f556377fa41f3d29acd17666be35efa636a",
+    "runs/qual-original-cpu/receipt.json": "eef29e735122494f765e132acac41aa68e2188d8b0d27b7c1d79d61705495e1a",
+    "runs/qual-original-cpu/runtime.json": "889d0f214c411fbdc49444ea2a5c38aa5fa94749415f74c0e833459498b10d53",
+    "runs/qual-original-cpu/stderr.log": "e4a0f8769653279defa127f164d5683e1ae91b5f9a3ddb68315ed7130b6d8b39",
+    "runs/qual-original-cpu/stdout.log": "fd48547b7cfdfbb878d44cdc387195d0c3863a10a5efbe0f6b9ad5c1bed0ec1d",
+    "runs/qual-original-cpu/time.txt": "5b4f3a979b492b3c15b4c8723f31f97459da98f698ad4c26c074e550752df67a",
+    "runs/qual-original-cpu/triggers.hdf": "1e7e65432af46fe65e6ed74bb5b1c513ec25259b13a47d6ad0842300734da9dc",
+    "runs/qual-original-cpu/workload-check.json": "841733f905f4ef4b7be2d58986543e424dddf654625ab12c93d763e64caf6c82",
+    "runs/qual-proposed-cpu/arrays/qualification-psd-000.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+    "runs/qual-proposed-cpu/gpu-after.json": "f5e7f1fc774f8f617a95c3a16274838271edf044453accf8f940c35f31ba040c",
+    "runs/qual-proposed-cpu/gpu-before.json": "f5e7f1fc774f8f617a95c3a16274838271edf044453accf8f940c35f31ba040c",
+    "runs/qual-proposed-cpu/gpu-during.jsonl": "a75f161ab3955a52472353182dc5691ede0de5988add9b5b8dce137601928589",
+    "runs/qual-proposed-cpu/host-samples.jsonl": "f7dc1f017c8d7f96246b015025cd4d6ff96b2fb07856c2f6a3eb78ec8e02d8cc",
+    "runs/qual-proposed-cpu/qualification.json": "bda3980dc4c088e9025ba8d2f1717d9369a1bcb51882aabfc211a39d3938aa6b",
+    "runs/qual-proposed-cpu/receipt.json": "32b9ca68971a9a085e8f358ff13eb8c933818942835bae77e127a5983f547c8a",
+    "runs/qual-proposed-cpu/runtime.json": "325c33db3b4dc31971b1d93f7385c3ecf447e1de8568bf41364578f9429ce3fe",
+    "runs/qual-proposed-cpu/stderr.log": "348247209c9f0ba7086c16dce19b1843fa4d12989d0370cd7d2a490f248b0701",
+    "runs/qual-proposed-cpu/stdout.log": "fd48547b7cfdfbb878d44cdc387195d0c3863a10a5efbe0f6b9ad5c1bed0ec1d",
+    "runs/qual-proposed-cpu/time.txt": "6f04c67ae52d17c3ea20a889be051807a2e6e760f8e1703e5a4398410e327b53",
+    "runs/qual-proposed-cpu/triggers.hdf": "0c4e731705cb7b33ac7b4339ee9d140daf92e8db0857b52ad09a284a8539dfe6",
+    "runs/qual-proposed-cpu/workload-check.json": "841733f905f4ef4b7be2d58986543e424dddf654625ab12c93d763e64caf6c82",
+    "runs/qual-torch-cpu/arrays/qualification-psd-000.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+    "runs/qual-torch-cpu/gpu-after.json": "f5e7f1fc774f8f617a95c3a16274838271edf044453accf8f940c35f31ba040c",
+    "runs/qual-torch-cpu/gpu-before.json": "f5e7f1fc774f8f617a95c3a16274838271edf044453accf8f940c35f31ba040c",
+    "runs/qual-torch-cpu/gpu-during.jsonl": "be09937cd04d5386151200431f5762d91f71918a1afac41d232ea3d923daf8b9",
+    "runs/qual-torch-cpu/host-samples.jsonl": "7df16206cb12d1474b22cc3859a6d0b1adcfb74206202ef754d0bcd45507f56e",
+    "runs/qual-torch-cpu/qualification.json": "1c2fd2cfc5e4087aba298ac3c6d628f3d303c890d172999869c6448500bf2391",
+    "runs/qual-torch-cpu/receipt.json": "5b87881135c37b2ea2778bba4322b9a104f706020023a1df42e508dd828c214f",
+    "runs/qual-torch-cpu/runtime.json": "d56e7ee8dbee7589bf58e415f61b005f5e32db7a53091a7003173ec445ae7c0d",
+    "runs/qual-torch-cpu/stderr.log": "ac91645866367ff8252d21befd93a04fce59c866fbb635a537baef7e59df1421",
+    "runs/qual-torch-cpu/stdout.log": "fd48547b7cfdfbb878d44cdc387195d0c3863a10a5efbe0f6b9ad5c1bed0ec1d",
+    "runs/qual-torch-cpu/time.txt": "da5ca369c82630d3f916e58cb88afefba4b08379478a4d770858e98d36deb5f3",
+    "runs/qual-torch-cpu/triggers.hdf": "1222558f8cfd3d5effa163971e51cf23557a5ab201c4a697fdafcfce842e0e1d",
+    "runs/qual-torch-cpu/workload-check.json": "841733f905f4ef4b7be2d58986543e424dddf654625ab12c93d763e64caf6c82",
+    "runs/qual-torch-cuda/arrays/qualification-psd-000.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+    "runs/qual-torch-cuda/gpu-after.json": "f5e7f1fc774f8f617a95c3a16274838271edf044453accf8f940c35f31ba040c",
+    "runs/qual-torch-cuda/gpu-before.json": "f5e7f1fc774f8f617a95c3a16274838271edf044453accf8f940c35f31ba040c",
+    "runs/qual-torch-cuda/gpu-during.jsonl": "76c20898eea2161c52728b700d2f863775c47c42a78a84a2c92174cbc25ea6c1",
+    "runs/qual-torch-cuda/host-samples.jsonl": "498731868ecf9c4bd39671ab9406bc2462f1bb498e3826b323c0fca394259db9",
+    "runs/qual-torch-cuda/qualification.json": "5802daf12e44c9256c0c91a9e4b18de3ade8c3fa66ca73f685116ee6e0e8ef19",
+    "runs/qual-torch-cuda/receipt.json": "dc00ffd0c6e39653dd1701d25efc7b69c82db8c17f714f8d412223e37285e106",
+    "runs/qual-torch-cuda/runtime.json": "0e2d9a289a2888e7fffe991eeb1898f93bb36aa2b228c6e3c3c0d369d71d89a0",
+    "runs/qual-torch-cuda/stderr.log": "80b4b8da25a9ee079cc168fe0b812747dbd26bfddc6ae240c27d6d853fd69b30",
+    "runs/qual-torch-cuda/stdout.log": "fd48547b7cfdfbb878d44cdc387195d0c3863a10a5efbe0f6b9ad5c1bed0ec1d",
+    "runs/qual-torch-cuda/time.txt": "deecdaab5e748b370c52e8a7158e2a88dcc5b682797b803642e5fe26e6ce8b82",
+    "runs/qual-torch-cuda/triggers.hdf": "3562545081df533114229bd65472382ed821e7ecb4bd19aa01a8a10505dead68",
+    "runs/qual-torch-cuda/workload-check.json": "841733f905f4ef4b7be2d58986543e424dddf654625ab12c93d763e64caf6c82",
+    "setup-remote.py": "0a62f9062a838e4a78ebc770694f246673feb4db4e00012d7fc35428a1d91c13",
+    "setup-status.json": "b582bc68b82a5ac787aa0d20e7056cd07fb63c33737f1d4549939017be4c0258",
+    "setup.log": "aa00c6bd519009168f42ed4593d8c339d12ea8792efc0d2c4b18a1868623d0fd",
+    "source-pins.json": "8908e038746f084c0613b1ae96455e9389a105c83f04db67b4a03de98dcd643b",
+    "sources.bundle": "954af676669a2c58796442f62d3d18f2afb0ca761268cf5b588757b51d9d996f",
+    "status.json": "df49098b63df1c375490753b0bf66935e3277b09bd3da9075dd7a0e468a7e2f8",
+    "summary.json": "288329b40ee3155a971300ced1ee2caab9f04807239c4505a41b67353019216c",
+    "threadpoolctl.py": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b"
+  },
+  "archive_unchanged": true,
+  "verifier_sha256": "b091861767a4748ce10ec2c9618fd7f63266883438459c78defadeb8f5ff1f6f",
+  "source_proof": {
+    "original": {
+      "commit": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+      "tracked_field_sets_and_sha256_match_git": true,
+      "symlink_policy": "Receipt hashes dereferenced file contents; four tracked example symlinks resolved entirely within the same Git tree",
+      "tracked_files": 1078,
+      "native_hashes": {
+        "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+        "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+        "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+        "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+        "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+        "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+        "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+        "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+        "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+        "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+        "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707"
+      },
+      "native_build_receipt_consistent": true,
+      "native_evidence": "receipt consistency; Linux binaries absent locally"
+    },
+    "proposed": {
+      "commit": "88878b1c38c952e63002b812058a0c7316123f70",
+      "tracked_field_sets_and_sha256_match_git": true,
+      "symlink_policy": "Receipt hashes dereferenced file contents; four tracked example symlinks resolved entirely within the same Git tree",
+      "tracked_files": 1236,
+      "native_hashes": {
+        "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+        "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+        "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+        "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+        "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+        "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+        "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+        "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+        "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+        "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+        "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707"
+      },
+      "native_build_receipt_consistent": true,
+      "native_evidence": "receipt consistency; Linux binaries absent locally"
+    }
+  },
+  "harness_hashes_verified": {
+    "qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+    "threadpoolctl.py": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b",
+    "checked-inspiral.py": "9181ff0515fb3cdacdd4246166bf90fea0da66232605922040ccc98c63d38b29",
+    "benchmark_cpu_campaign.py": "3ee6008a54da44599665d3a02633fa2328b53d97b81718327b24bb35b9ffff9e",
+    "campaign.py": "ecaa0b96ad09bafe1aa14be5ce29b99769c86b244fba553c817f051be829a2cd",
+    "setup-remote.py": "0a62f9062a838e4a78ebc770694f246673feb4db4e00012d7fc35428a1d91c13",
+    "compare-triggers.py": "f0af115a2bf2d3a5a85152cb1f61d9b7570a460efd6d420566c5a2b74ac8f1b5",
+    "driver.py": "35799cb18fc19cb848f09d4d2c21419a490b1c7c1147daef19915fbb1ff1b75f",
+    "config.json": "5253c18c0cbc19d72e869e60a1a2d718b32d40e67e070d1770803bd7246d89c9",
+    "dependencies.json": "ecbeb9363b47dc395e1c0ac157687be614732fc06f4365db6ba8baf3be7c8d7c"
+  },
+  "run_proof": {
+    "original-cpu": {
+      "status": "pass",
+      "source_commit": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+      "trigger_sha256": "1e7e65432af46fe65e6ed74bb5b1c513ec25259b13a47d6ad0842300734da9dc",
+      "input_hash_receipts_consistent": true,
+      "source_module_hash_counts": {
+        "runtime": 136,
+        "qualification": 136
+      },
+      "qualification_checks": {
+        "all_decompressions_succeeded": true,
+        "all_interpolations_observed": true,
+        "all_segment_psds_saved": true,
+        "all_segment_psds_valid_for_filter": true,
+        "bank_0_all_templates_once": true,
+        "bank_0_compression_enabled": true,
+        "conditioned_strain_recorded": true,
+        "no_generation_fallback": true,
+        "nonempty_segments": true,
+        "one_compressed_bank": true,
+        "one_scalar_controller": true,
+        "recorded_geometry_matches_controller": true,
+        "scalar_ifft_executed_for_every_pair": true
+      },
+      "independently_checked_templates": 384,
+      "template_segment_pairs": 1920,
+      "thread_stages": {
+        "before_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": null,
+          "inter_op": null,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "at_first_bank": {
+          "affinity": [
+            8
+          ],
+          "intra_op": null,
+          "inter_op": null,
+          "scheme": "CPUScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "after_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": null,
+          "inter_op": null,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        }
+      },
+      "fft_engine": {
+        "class": "pycbc.fft.mkl.IFFT",
+        "execute_attempts": 1920,
+        "execute_successes": 1920,
+        "executed_routes": {},
+        "id": 0,
+        "input_dtype": "complex64",
+        "kind": "IFFT",
+        "nbatch": 1,
+        "output_dtype": "complex64",
+        "plans_after_execution": {},
+        "plans_at_construction": {},
+        "size": 2097152
+      },
+      "psds": [
+        {
+          "file": "arrays/qualification-psd-000.npy",
+          "dtype": "<f4",
+          "shape": [
+            1048577
+          ],
+          "nbytes": 4194308,
+          "data_sha256": "fca627aa115278db74c39a4e5073c37fafc9f77290d4a51f9851882f7c7304c6",
+          "file_sha256": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+          "positive_infinity_count": 44,
+          "segments": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ],
+      "conditioned_strain_evidence": "recorded digest/schema only; raw strain not included",
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "segment_geometry": [
+        {
+          "bounding_span_seconds": 1904.0,
+          "delta_f_hz": 0.001953125,
+          "fft_samples": 2097152,
+          "frequency_samples": 1048577,
+          "gap_samples": 0,
+          "overlap_samples": 0,
+          "sample_origin": "Offsets relative to strain_start_time; intervals are half-open.",
+          "sample_rate_hz": 4096.0,
+          "segments": [
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                458752,
+                2019328
+              ],
+              "segment_slice": {
+                "start": 0,
+                "step": null,
+                "stop": 2097152
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                2019328,
+                3579904
+              ],
+              "segment_slice": {
+                "start": 1560576,
+                "step": null,
+                "stop": 3657728
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                3579904,
+                5140480
+              ],
+              "segment_slice": {
+                "start": 3121152,
+                "step": null,
+                "stop": 5218304
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                5140480,
+                6701056
+              ],
+              "segment_slice": {
+                "start": 4681728,
+                "step": null,
+                "stop": 6778880
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 475136,
+                "step": null,
+                "stop": 2031616
+              },
+              "analyzed_sample_interval": [
+                6701056,
+                8257536
+              ],
+              "segment_slice": {
+                "start": 6225920,
+                "step": null,
+                "stop": 8323072
+              }
+            }
+          ],
+          "strain_end_time": "1187009080.0",
+          "strain_start_time": "1187007048.0",
+          "union_analyzed_sample_intervals": [
+            [
+              458752,
+              8257536
+            ]
+          ],
+          "unique_analyzed_samples": 7798784,
+          "unique_analyzed_seconds": 1904.0
+        }
+      ]
+    },
+    "proposed-cpu": {
+      "status": "pass",
+      "source_commit": "88878b1c38c952e63002b812058a0c7316123f70",
+      "trigger_sha256": "0c4e731705cb7b33ac7b4339ee9d140daf92e8db0857b52ad09a284a8539dfe6",
+      "input_hash_receipts_consistent": true,
+      "source_module_hash_counts": {
+        "runtime": 145,
+        "qualification": 145
+      },
+      "qualification_checks": {
+        "all_decompressions_succeeded": true,
+        "all_interpolations_observed": true,
+        "all_segment_psds_saved": true,
+        "all_segment_psds_valid_for_filter": true,
+        "bank_0_all_templates_once": true,
+        "bank_0_compression_enabled": true,
+        "conditioned_strain_recorded": true,
+        "no_generation_fallback": true,
+        "nonempty_segments": true,
+        "one_compressed_bank": true,
+        "one_scalar_controller": true,
+        "recorded_geometry_matches_controller": true,
+        "scalar_ifft_executed_for_every_pair": true
+      },
+      "independently_checked_templates": 384,
+      "template_segment_pairs": 1920,
+      "thread_stages": {
+        "before_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": null,
+          "inter_op": null,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "at_first_bank": {
+          "affinity": [
+            8
+          ],
+          "intra_op": null,
+          "inter_op": null,
+          "scheme": "CPUScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "after_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": null,
+          "inter_op": null,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        }
+      },
+      "fft_engine": {
+        "class": "pycbc.fft.mkl.IFFT",
+        "execute_attempts": 1920,
+        "execute_successes": 1920,
+        "executed_routes": {},
+        "id": 0,
+        "input_dtype": "complex64",
+        "kind": "IFFT",
+        "nbatch": 1,
+        "output_dtype": "complex64",
+        "plans_after_execution": {},
+        "plans_at_construction": {},
+        "size": 2097152
+      },
+      "psds": [
+        {
+          "file": "arrays/qualification-psd-000.npy",
+          "dtype": "<f4",
+          "shape": [
+            1048577
+          ],
+          "nbytes": 4194308,
+          "data_sha256": "fca627aa115278db74c39a4e5073c37fafc9f77290d4a51f9851882f7c7304c6",
+          "file_sha256": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+          "positive_infinity_count": 44,
+          "segments": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ],
+      "conditioned_strain_evidence": "recorded digest/schema only; raw strain not included",
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "segment_geometry": [
+        {
+          "bounding_span_seconds": 1904.0,
+          "delta_f_hz": 0.001953125,
+          "fft_samples": 2097152,
+          "frequency_samples": 1048577,
+          "gap_samples": 0,
+          "overlap_samples": 0,
+          "sample_origin": "Offsets relative to strain_start_time; intervals are half-open.",
+          "sample_rate_hz": 4096.0,
+          "segments": [
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                458752,
+                2019328
+              ],
+              "segment_slice": {
+                "start": 0,
+                "step": null,
+                "stop": 2097152
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                2019328,
+                3579904
+              ],
+              "segment_slice": {
+                "start": 1560576,
+                "step": null,
+                "stop": 3657728
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                3579904,
+                5140480
+              ],
+              "segment_slice": {
+                "start": 3121152,
+                "step": null,
+                "stop": 5218304
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                5140480,
+                6701056
+              ],
+              "segment_slice": {
+                "start": 4681728,
+                "step": null,
+                "stop": 6778880
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 475136,
+                "step": null,
+                "stop": 2031616
+              },
+              "analyzed_sample_interval": [
+                6701056,
+                8257536
+              ],
+              "segment_slice": {
+                "start": 6225920,
+                "step": null,
+                "stop": 8323072
+              }
+            }
+          ],
+          "strain_end_time": "1187009080.0",
+          "strain_start_time": "1187007048.0",
+          "union_analyzed_sample_intervals": [
+            [
+              458752,
+              8257536
+            ]
+          ],
+          "unique_analyzed_samples": 7798784,
+          "unique_analyzed_seconds": 1904.0
+        }
+      ]
+    },
+    "torch-cpu": {
+      "status": "pass",
+      "source_commit": "88878b1c38c952e63002b812058a0c7316123f70",
+      "trigger_sha256": "1222558f8cfd3d5effa163971e51cf23557a5ab201c4a697fdafcfce842e0e1d",
+      "input_hash_receipts_consistent": true,
+      "source_module_hash_counts": {
+        "runtime": 147,
+        "qualification": 147
+      },
+      "qualification_checks": {
+        "all_decompressions_succeeded": true,
+        "all_interpolations_observed": true,
+        "all_segment_psds_saved": true,
+        "all_segment_psds_valid_for_filter": true,
+        "bank_0_all_templates_once": true,
+        "bank_0_compression_enabled": true,
+        "conditioned_strain_recorded": true,
+        "no_generation_fallback": true,
+        "nonempty_segments": true,
+        "one_compressed_bank": true,
+        "one_scalar_controller": true,
+        "recorded_geometry_matches_controller": true,
+        "scalar_ifft_executed_for_every_pair": true
+      },
+      "independently_checked_templates": 384,
+      "template_segment_pairs": 1920,
+      "thread_stages": {
+        "before_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": 1,
+          "inter_op": 1,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "at_first_bank": {
+          "affinity": [
+            8
+          ],
+          "intra_op": 1,
+          "inter_op": 1,
+          "scheme": "TorchScheme",
+          "device": "cpu",
+          "threadpools": [
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "after_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": 1,
+          "inter_op": 1,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        }
+      },
+      "fft_engine": {
+        "class": "pycbc.fft.torchfft.IFFT",
+        "execute_attempts": 1920,
+        "execute_successes": 1920,
+        "executed_routes": {
+          "pycbc.fft.torchfft._execute_mkl_cpu_ifft_plan": 1920
+        },
+        "id": 0,
+        "input_dtype": "complex64",
+        "kind": "IFFT",
+        "nbatch": 1,
+        "output_dtype": "complex64",
+        "plans_after_execution": {
+          "_mkl_plan": "pycbc.fft.torchfft._MKLCPUDirectIFFTPlan"
+        },
+        "plans_at_construction": {
+          "_mkl_plan": "pycbc.fft.torchfft._MKLCPUDirectIFFTPlan"
+        },
+        "size": 2097152
+      },
+      "psds": [
+        {
+          "file": "arrays/qualification-psd-000.npy",
+          "dtype": "<f4",
+          "shape": [
+            1048577
+          ],
+          "nbytes": 4194308,
+          "data_sha256": "fca627aa115278db74c39a4e5073c37fafc9f77290d4a51f9851882f7c7304c6",
+          "file_sha256": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+          "positive_infinity_count": 44,
+          "segments": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ],
+      "conditioned_strain_evidence": "recorded digest/schema only; raw strain not included",
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "segment_geometry": [
+        {
+          "bounding_span_seconds": 1904.0,
+          "delta_f_hz": 0.001953125,
+          "fft_samples": 2097152,
+          "frequency_samples": 1048577,
+          "gap_samples": 0,
+          "overlap_samples": 0,
+          "sample_origin": "Offsets relative to strain_start_time; intervals are half-open.",
+          "sample_rate_hz": 4096.0,
+          "segments": [
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                458752,
+                2019328
+              ],
+              "segment_slice": {
+                "start": 0,
+                "step": null,
+                "stop": 2097152
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                2019328,
+                3579904
+              ],
+              "segment_slice": {
+                "start": 1560576,
+                "step": null,
+                "stop": 3657728
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                3579904,
+                5140480
+              ],
+              "segment_slice": {
+                "start": 3121152,
+                "step": null,
+                "stop": 5218304
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                5140480,
+                6701056
+              ],
+              "segment_slice": {
+                "start": 4681728,
+                "step": null,
+                "stop": 6778880
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 475136,
+                "step": null,
+                "stop": 2031616
+              },
+              "analyzed_sample_interval": [
+                6701056,
+                8257536
+              ],
+              "segment_slice": {
+                "start": 6225920,
+                "step": null,
+                "stop": 8323072
+              }
+            }
+          ],
+          "strain_end_time": "1187009080.0",
+          "strain_start_time": "1187007048.0",
+          "union_analyzed_sample_intervals": [
+            [
+              458752,
+              8257536
+            ]
+          ],
+          "unique_analyzed_samples": 7798784,
+          "unique_analyzed_seconds": 1904.0
+        }
+      ]
+    },
+    "torch-cuda": {
+      "status": "pass",
+      "source_commit": "88878b1c38c952e63002b812058a0c7316123f70",
+      "trigger_sha256": "3562545081df533114229bd65472382ed821e7ecb4bd19aa01a8a10505dead68",
+      "input_hash_receipts_consistent": true,
+      "source_module_hash_counts": {
+        "runtime": 145,
+        "qualification": 145
+      },
+      "qualification_checks": {
+        "all_decompressions_succeeded": true,
+        "all_interpolations_observed": true,
+        "all_segment_psds_saved": true,
+        "all_segment_psds_valid_for_filter": true,
+        "bank_0_all_templates_once": true,
+        "bank_0_compression_enabled": true,
+        "conditioned_strain_recorded": true,
+        "no_generation_fallback": true,
+        "nonempty_segments": true,
+        "one_compressed_bank": true,
+        "one_scalar_controller": true,
+        "recorded_geometry_matches_controller": true,
+        "scalar_ifft_executed_for_every_pair": true
+      },
+      "independently_checked_templates": 384,
+      "template_segment_pairs": 1920,
+      "thread_stages": {
+        "before_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": 1,
+          "inter_op": 1,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "at_first_bank": {
+          "affinity": [
+            8
+          ],
+          "intra_op": 1,
+          "inter_op": 1,
+          "scheme": "TorchScheme",
+          "device": "cuda:0",
+          "threadpools": [
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "after_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": 1,
+          "inter_op": 1,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        }
+      },
+      "fft_engine": {
+        "class": "pycbc.fft.torchfft.IFFT",
+        "execute_attempts": 1920,
+        "execute_successes": 1920,
+        "executed_routes": {
+          "pycbc.fft.torchfft.ifft": 1920
+        },
+        "id": 0,
+        "input_dtype": "complex64",
+        "kind": "IFFT",
+        "nbatch": 1,
+        "output_dtype": "complex64",
+        "plans_after_execution": {},
+        "plans_at_construction": {},
+        "size": 2097152
+      },
+      "psds": [
+        {
+          "file": "arrays/qualification-psd-000.npy",
+          "dtype": "<f4",
+          "shape": [
+            1048577
+          ],
+          "nbytes": 4194308,
+          "data_sha256": "fca627aa115278db74c39a4e5073c37fafc9f77290d4a51f9851882f7c7304c6",
+          "file_sha256": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+          "positive_infinity_count": 44,
+          "segments": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ],
+      "conditioned_strain_evidence": "recorded digest/schema only; raw strain not included",
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "segment_geometry": [
+        {
+          "bounding_span_seconds": 1904.0,
+          "delta_f_hz": 0.001953125,
+          "fft_samples": 2097152,
+          "frequency_samples": 1048577,
+          "gap_samples": 0,
+          "overlap_samples": 0,
+          "sample_origin": "Offsets relative to strain_start_time; intervals are half-open.",
+          "sample_rate_hz": 4096.0,
+          "segments": [
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                458752,
+                2019328
+              ],
+              "segment_slice": {
+                "start": 0,
+                "step": null,
+                "stop": 2097152
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                2019328,
+                3579904
+              ],
+              "segment_slice": {
+                "start": 1560576,
+                "step": null,
+                "stop": 3657728
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                3579904,
+                5140480
+              ],
+              "segment_slice": {
+                "start": 3121152,
+                "step": null,
+                "stop": 5218304
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                5140480,
+                6701056
+              ],
+              "segment_slice": {
+                "start": 4681728,
+                "step": null,
+                "stop": 6778880
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 475136,
+                "step": null,
+                "stop": 2031616
+              },
+              "analyzed_sample_interval": [
+                6701056,
+                8257536
+              ],
+              "segment_slice": {
+                "start": 6225920,
+                "step": null,
+                "stop": 8323072
+              }
+            }
+          ],
+          "strain_end_time": "1187009080.0",
+          "strain_start_time": "1187007048.0",
+          "union_analyzed_sample_intervals": [
+            [
+              458752,
+              8257536
+            ]
+          ],
+          "unique_analyzed_samples": 7798784,
+          "unique_analyzed_seconds": 1904.0
+        }
+      ]
+    }
+  },
+  "h1_cpu_field_comparison": {
+    "left_dataset_names": [
+      "bank_chisq",
+      "bank_chisq_dof",
+      "chisq",
+      "chisq_dof",
+      "coa_phase",
+      "cont_chisq",
+      "cont_chisq_dof",
+      "end_time",
+      "gating/auto/pad",
+      "gating/auto/time",
+      "gating/auto/width",
+      "search/end_time",
+      "search/filter_rate_per_core",
+      "search/run_time",
+      "search/setup_time_fraction",
+      "search/start_time",
+      "search/templates_per_core",
+      "sg_chisq",
+      "sigmasq",
+      "snr",
+      "template_duration",
+      "template_hash"
+    ],
+    "right_dataset_names": [
+      "bank_chisq",
+      "bank_chisq_dof",
+      "chisq",
+      "chisq_dof",
+      "coa_phase",
+      "cont_chisq",
+      "cont_chisq_dof",
+      "end_time",
+      "gating/auto/pad",
+      "gating/auto/time",
+      "gating/auto/width",
+      "search/end_time",
+      "search/filter_rate_per_core",
+      "search/run_time",
+      "search/setup_time_fraction",
+      "search/start_time",
+      "search/templates_per_core",
+      "sg_chisq",
+      "sigmasq",
+      "snr",
+      "template_duration",
+      "template_hash"
+    ],
+    "dataset_field_sets_equal": true,
+    "scientific_field_sets_equal": true,
+    "left_only": [],
+    "right_only": [],
+    "datasets": {
+      "bank_chisq": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "c3d8455c6fc836ae8ae68944728caa652e20884230fb462bbb036e8879d197ba"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "c3d8455c6fc836ae8ae68944728caa652e20884230fb462bbb036e8879d197ba"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "bank_chisq_dof": {
+        "left": {
+          "dtype": "<i8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "0420da3cc481d969b0317d930e806b6072162221581f55973db92f3493bcd558"
+        },
+        "right": {
+          "dtype": "<i8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "0420da3cc481d969b0317d930e806b6072162221581f55973db92f3493bcd558"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "chisq": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "8b8cecb39561eb54559576e0fe3d340cf0828701164037cdc924ec484f9c47df"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "8b8cecb39561eb54559576e0fe3d340cf0828701164037cdc924ec484f9c47df"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "chisq_dof": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "b7e0a824ea1c1049571d4b20d32c8836c2c3c2eb42059902d75b2bf0167defb2"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "b7e0a824ea1c1049571d4b20d32c8836c2c3c2eb42059902d75b2bf0167defb2"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "coa_phase": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "8c020b4cdddfb7a6b4f8a3b01a443804d27fdaeb27081d15cd6bea0e861ba342"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "8c020b4cdddfb7a6b4f8a3b01a443804d27fdaeb27081d15cd6bea0e861ba342"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "cont_chisq": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "c3d8455c6fc836ae8ae68944728caa652e20884230fb462bbb036e8879d197ba"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "c3d8455c6fc836ae8ae68944728caa652e20884230fb462bbb036e8879d197ba"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "cont_chisq_dof": {
+        "left": {
+          "dtype": "<i8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "0420da3cc481d969b0317d930e806b6072162221581f55973db92f3493bcd558"
+        },
+        "right": {
+          "dtype": "<i8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "0420da3cc481d969b0317d930e806b6072162221581f55973db92f3493bcd558"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "end_time": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "e6f885037c5072c07522bda8d8b6d99ccdb0f87be1dd024b17e5b2212329f72e"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "e6f885037c5072c07522bda8d8b6d99ccdb0f87be1dd024b17e5b2212329f72e"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "gating/auto/pad": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            0
+          ],
+          "nbytes": 0,
+          "data_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            0
+          ],
+          "nbytes": 0,
+          "data_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "gating/auto/time": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            0
+          ],
+          "nbytes": 0,
+          "data_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            0
+          ],
+          "nbytes": 0,
+          "data_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "gating/auto/width": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            0
+          ],
+          "nbytes": 0,
+          "data_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            0
+          ],
+          "nbytes": 0,
+          "data_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "search/end_time": {
+        "left": {
+          "dtype": "<i8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "9d253ee5e473ecdaf50d00f365e784246399e977bf5d56baaf3c27438df757e7"
+        },
+        "right": {
+          "dtype": "<i8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "9d253ee5e473ecdaf50d00f365e784246399e977bf5d56baaf3c27438df757e7"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "search/filter_rate_per_core": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "0f06e3c03cbf90b121ebfc164168cf7c4c6cbed6df7620c0331111fe7e17ab6c"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "9849924f2eab0645bee60199bab72fb7f1f58f8e3a57d9fa536e69d2fa2a4a86"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": false,
+        "exact": false,
+        "left_value": [
+          0.07912432405720005
+        ],
+        "right_value": [
+          0.08221507278660478
+        ]
+      },
+      "search/run_time": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "a86e0f44ee4cdbf3de034d3cc0b843db635ce61d6dc03a7e00943ede23110eb5"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "ae183dba1a4d95b5cdab907706dde7478ed4fb0f573591141a50a945dd83d247"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": false,
+        "exact": false,
+        "left_value": [
+          63.19169306755066
+        ],
+        "right_value": [
+          60.81609892845154
+        ]
+      },
+      "search/setup_time_fraction": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "e6ad5541041a03b1d4ab30683d7762f66ae8a44777d4ddab97ede51a5be7e0b3"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "3abe8f3c58520276820bd0253937da0bf77800b279410e8f16facc3810ce741c"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": false,
+        "exact": false,
+        "left_value": [
+          0.23043632815328674
+        ],
+        "right_value": [
+          0.18493217730461814
+        ]
+      },
+      "search/start_time": {
+        "left": {
+          "dtype": "<i8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "c91345baeafb28649db2871c931e59f316ca7b06671919492d234807326a1077"
+        },
+        "right": {
+          "dtype": "<i8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "c91345baeafb28649db2871c931e59f316ca7b06671919492d234807326a1077"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "search/templates_per_core": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "5b7eb93fb6a49405152f1210fbd968eafcdf445c3a80c49ffea29611386cf43d"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "e4dec7634974757df114cf58ea1d6be2ce0225511806adf263c49b44029bf6c1"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": false,
+        "exact": false,
+        "left_value": [
+          11570.128358777001
+        ],
+        "right_value": [
+          12022.079891381414
+        ]
+      },
+      "sg_chisq": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "c3d8455c6fc836ae8ae68944728caa652e20884230fb462bbb036e8879d197ba"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "c3d8455c6fc836ae8ae68944728caa652e20884230fb462bbb036e8879d197ba"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "sigmasq": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "ca025a966f81ca2976877617f7b3ac4baee89591261b24b585135c80cb30fd09"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "ca025a966f81ca2976877617f7b3ac4baee89591261b24b585135c80cb30fd09"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "snr": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "1ecfc8e3301804a0c3b98b767fa9e58fbeefdd76ba867edcefdb68ac6608c470"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "1ecfc8e3301804a0c3b98b767fa9e58fbeefdd76ba867edcefdb68ac6608c470"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "template_duration": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "b5832e14e0f4dbc603757c55c4a5be355ed6cce28f1cdee92075277b6bec236e"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "b5832e14e0f4dbc603757c55c4a5be355ed6cce28f1cdee92075277b6bec236e"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "template_hash": {
+        "left": {
+          "dtype": "<i8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "50e17c1146675c05037adc6b05302be412135de12f60c8fcf6710982dfaba1cd"
+        },
+        "right": {
+          "dtype": "<i8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "50e17c1146675c05037adc6b05302be412135de12f60c8fcf6710982dfaba1cd"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      }
+    }
+  },
+  "scientific_dataset_count": 18,
+  "scientific_cpu_datasets_exact": true,
+  "timing_exclusions": [
+    "H1/search/filter_rate_per_core",
+    "H1/search/run_time",
+    "H1/search/setup_time_fraction",
+    "H1/search/templates_per_core"
+  ],
+  "archived_cpu_preserved": true,
+  "corrected_cpu_preserved": true,
+  "trigger_counts": {
+    "original-cpu": 1988,
+    "proposed-cpu": 1988,
+    "torch-cpu": 1988,
+    "torch-cuda": 1988
+  },
+  "comparison_status": {
+    "original-cpu-vs-proposed-cpu": "pass",
+    "original-cpu-vs-torch-cpu": "pass",
+    "original-cpu-vs-torch-cuda": "pass",
+    "proposed-cpu-vs-torch-cpu": "pass",
+    "proposed-cpu-vs-torch-cuda": "pass"
+  },
+  "comparisons": {
+    "original-cpu-vs-proposed-cpu": {
+      "status": "pass",
+      "baseline": "/home/xangma/pycbc-torch-parity-fix-v2-20260908/runs/qual-original-cpu/triggers.hdf",
+      "candidate": "/home/xangma/pycbc-torch-parity-fix-v2-20260908/runs/qual-proposed-cpu/triggers.hdf",
+      "baseline_sha256": "1e7e65432af46fe65e6ed74bb5b1c513ec25259b13a47d6ad0842300734da9dc",
+      "candidate_sha256": "0c4e731705cb7b33ac7b4339ee9d140daf92e8db0857b52ad09a284a8539dfe6",
+      "baseline_receipt_sha256": "eef29e735122494f765e132acac41aa68e2188d8b0d27b7c1d79d61705495e1a",
+      "candidate_receipt_sha256": "32b9ca68971a9a085e8f358ff13eb8c933818942835bae77e127a5983f547c8a",
+      "sample_rate": 4096,
+      "failures": [],
+      "review_reasons": [],
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1988,
+          "matched_count": 1988,
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "metrics": {
+            "bank_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "bank_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 35.49388122558594,
+              "candidate_value": 35.49388122558594,
+              "budget_at_worst": 0.003559388122558594
+            },
+            "chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 16.0,
+              "candidate_value": 16.0,
+              "budget_at_worst": 0.0
+            },
+            "coa_phase": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 2.1825428009033203,
+              "candidate_value": 2.1825428009033203,
+              "budget_at_worst": 0.0001
+            },
+            "cont_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "cont_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "sg_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "sigmasq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 3547517.5,
+              "candidate_value": 3547517.5,
+              "budget_at_worst": 35.475175
+            },
+            "snr": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 5.890442848205566,
+              "candidate_value": 5.890442848205566,
+              "budget_at_worst": 0.0005990442848205566
+            },
+            "template_duration": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 37.44173049926758,
+              "candidate_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            },
+            "candidate_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            }
+          }
+        }
+      }
+    },
+    "original-cpu-vs-torch-cpu": {
+      "status": "pass",
+      "baseline": "/home/xangma/pycbc-torch-parity-fix-v2-20260908/runs/qual-original-cpu/triggers.hdf",
+      "candidate": "/home/xangma/pycbc-torch-parity-fix-v2-20260908/runs/qual-torch-cpu/triggers.hdf",
+      "baseline_sha256": "1e7e65432af46fe65e6ed74bb5b1c513ec25259b13a47d6ad0842300734da9dc",
+      "candidate_sha256": "1222558f8cfd3d5effa163971e51cf23557a5ab201c4a697fdafcfce842e0e1d",
+      "baseline_receipt_sha256": "eef29e735122494f765e132acac41aa68e2188d8b0d27b7c1d79d61705495e1a",
+      "candidate_receipt_sha256": "5b87881135c37b2ea2778bba4322b9a104f706020023a1df42e508dd828c214f",
+      "sample_rate": 4096,
+      "failures": [],
+      "review_reasons": [],
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1988,
+          "matched_count": 1988,
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "metrics": {
+            "bank_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "bank_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "chisq": {
+              "violations": 0,
+              "max_absolute_error": 1.71661376953125e-05,
+              "max_relative_error": 9.59438306437879e-07,
+              "worst_identity": [
+                3965429967274226491,
+                4861983534696
+              ],
+              "baseline_value": 31.34255027770996,
+              "candidate_value": 31.342567443847656,
+              "budget_at_worst": 0.003144256744384766
+            },
+            "chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 16.0,
+              "candidate_value": 16.0,
+              "budget_at_worst": 0.0
+            },
+            "coa_phase": {
+              "violations": 0,
+              "max_absolute_error": 2.384185791015625e-07,
+              "max_relative_error": 3.0488484299238018e-05,
+              "worst_identity": [
+                -9179967720677822563,
+                4861986910594
+              ],
+              "baseline_value": 2.2686421871185303,
+              "candidate_value": 2.268641948699951,
+              "budget_at_worst": 0.0001
+            },
+            "cont_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "cont_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "sg_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "sigmasq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 3547517.5,
+              "candidate_value": 3547517.5,
+              "budget_at_worst": 35.475175
+            },
+            "snr": {
+              "violations": 0,
+              "max_absolute_error": 1.9073486328125e-06,
+              "max_relative_error": 3.2118594699066834e-07,
+              "worst_identity": [
+                -5618127328813921170,
+                4861985160599
+              ],
+              "baseline_value": 5.938456058502197,
+              "candidate_value": 5.9384541511535645,
+              "budget_at_worst": 0.0006038456058502198
+            },
+            "template_duration": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 37.44173049926758,
+              "candidate_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            },
+            "candidate_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            }
+          }
+        }
+      }
+    },
+    "original-cpu-vs-torch-cuda": {
+      "status": "pass",
+      "baseline": "/home/xangma/pycbc-torch-parity-fix-v2-20260908/runs/qual-original-cpu/triggers.hdf",
+      "candidate": "/home/xangma/pycbc-torch-parity-fix-v2-20260908/runs/qual-torch-cuda/triggers.hdf",
+      "baseline_sha256": "1e7e65432af46fe65e6ed74bb5b1c513ec25259b13a47d6ad0842300734da9dc",
+      "candidate_sha256": "3562545081df533114229bd65472382ed821e7ecb4bd19aa01a8a10505dead68",
+      "baseline_receipt_sha256": "eef29e735122494f765e132acac41aa68e2188d8b0d27b7c1d79d61705495e1a",
+      "candidate_receipt_sha256": "dc00ffd0c6e39653dd1701d25efc7b69c82db8c17f714f8d412223e37285e106",
+      "sample_rate": 4096,
+      "failures": [],
+      "review_reasons": [],
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1988,
+          "matched_count": 1988,
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "metrics": {
+            "bank_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "bank_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "chisq": {
+              "violations": 0,
+              "max_absolute_error": 6.4849853515625e-05,
+              "max_relative_error": 2.663734298799794e-06,
+              "worst_identity": [
+                -3514334480441128962,
+                4861984346532
+              ],
+              "baseline_value": 42.50741958618164,
+              "candidate_value": 42.507484436035156,
+              "budget_at_worst": 0.004260748443603515
+            },
+            "chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 16.0,
+              "candidate_value": 16.0,
+              "budget_at_worst": 0.0
+            },
+            "coa_phase": {
+              "violations": 0,
+              "max_absolute_error": 4.76837158203125e-07,
+              "max_relative_error": 6.820895114592006e-05,
+              "worst_identity": [
+                -6514814985332751899,
+                4861988389795
+              ],
+              "baseline_value": -2.1039814949035645,
+              "candidate_value": -2.1039810180664062,
+              "budget_at_worst": 0.0001
+            },
+            "cont_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "cont_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "sg_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "sigmasq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 3547517.5,
+              "candidate_value": 3547517.5,
+              "budget_at_worst": 35.475175
+            },
+            "snr": {
+              "violations": 0,
+              "max_absolute_error": 3.337860107421875e-06,
+              "max_relative_error": 5.265167367635949e-07,
+              "worst_identity": [
+                -3769364983360661655,
+                4861987057541
+              ],
+              "baseline_value": 6.431103706359863,
+              "candidate_value": 6.431100368499756,
+              "budget_at_worst": 0.0006531103706359864
+            },
+            "template_duration": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 37.44173049926758,
+              "candidate_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            },
+            "candidate_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            }
+          }
+        }
+      }
+    },
+    "proposed-cpu-vs-torch-cpu": {
+      "status": "pass",
+      "baseline": "/home/xangma/pycbc-torch-parity-fix-v2-20260908/runs/qual-proposed-cpu/triggers.hdf",
+      "candidate": "/home/xangma/pycbc-torch-parity-fix-v2-20260908/runs/qual-torch-cpu/triggers.hdf",
+      "baseline_sha256": "0c4e731705cb7b33ac7b4339ee9d140daf92e8db0857b52ad09a284a8539dfe6",
+      "candidate_sha256": "1222558f8cfd3d5effa163971e51cf23557a5ab201c4a697fdafcfce842e0e1d",
+      "baseline_receipt_sha256": "32b9ca68971a9a085e8f358ff13eb8c933818942835bae77e127a5983f547c8a",
+      "candidate_receipt_sha256": "5b87881135c37b2ea2778bba4322b9a104f706020023a1df42e508dd828c214f",
+      "sample_rate": 4096,
+      "failures": [],
+      "review_reasons": [],
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1988,
+          "matched_count": 1988,
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "metrics": {
+            "bank_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "bank_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "chisq": {
+              "violations": 0,
+              "max_absolute_error": 1.71661376953125e-05,
+              "max_relative_error": 9.59438306437879e-07,
+              "worst_identity": [
+                3965429967274226491,
+                4861983534696
+              ],
+              "baseline_value": 31.34255027770996,
+              "candidate_value": 31.342567443847656,
+              "budget_at_worst": 0.003144256744384766
+            },
+            "chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 16.0,
+              "candidate_value": 16.0,
+              "budget_at_worst": 0.0
+            },
+            "coa_phase": {
+              "violations": 0,
+              "max_absolute_error": 2.384185791015625e-07,
+              "max_relative_error": 3.0488484299238018e-05,
+              "worst_identity": [
+                -9179967720677822563,
+                4861986910594
+              ],
+              "baseline_value": 2.2686421871185303,
+              "candidate_value": 2.268641948699951,
+              "budget_at_worst": 0.0001
+            },
+            "cont_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "cont_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "sg_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "sigmasq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 3547517.5,
+              "candidate_value": 3547517.5,
+              "budget_at_worst": 35.475175
+            },
+            "snr": {
+              "violations": 0,
+              "max_absolute_error": 1.9073486328125e-06,
+              "max_relative_error": 3.2118594699066834e-07,
+              "worst_identity": [
+                -5618127328813921170,
+                4861985160599
+              ],
+              "baseline_value": 5.938456058502197,
+              "candidate_value": 5.9384541511535645,
+              "budget_at_worst": 0.0006038456058502198
+            },
+            "template_duration": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 37.44173049926758,
+              "candidate_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            },
+            "candidate_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            }
+          }
+        }
+      }
+    },
+    "proposed-cpu-vs-torch-cuda": {
+      "status": "pass",
+      "baseline": "/home/xangma/pycbc-torch-parity-fix-v2-20260908/runs/qual-proposed-cpu/triggers.hdf",
+      "candidate": "/home/xangma/pycbc-torch-parity-fix-v2-20260908/runs/qual-torch-cuda/triggers.hdf",
+      "baseline_sha256": "0c4e731705cb7b33ac7b4339ee9d140daf92e8db0857b52ad09a284a8539dfe6",
+      "candidate_sha256": "3562545081df533114229bd65472382ed821e7ecb4bd19aa01a8a10505dead68",
+      "baseline_receipt_sha256": "32b9ca68971a9a085e8f358ff13eb8c933818942835bae77e127a5983f547c8a",
+      "candidate_receipt_sha256": "dc00ffd0c6e39653dd1701d25efc7b69c82db8c17f714f8d412223e37285e106",
+      "sample_rate": 4096,
+      "failures": [],
+      "review_reasons": [],
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1988,
+          "matched_count": 1988,
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "metrics": {
+            "bank_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "bank_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "chisq": {
+              "violations": 0,
+              "max_absolute_error": 6.4849853515625e-05,
+              "max_relative_error": 2.663734298799794e-06,
+              "worst_identity": [
+                -3514334480441128962,
+                4861984346532
+              ],
+              "baseline_value": 42.50741958618164,
+              "candidate_value": 42.507484436035156,
+              "budget_at_worst": 0.004260748443603515
+            },
+            "chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 16.0,
+              "candidate_value": 16.0,
+              "budget_at_worst": 0.0
+            },
+            "coa_phase": {
+              "violations": 0,
+              "max_absolute_error": 4.76837158203125e-07,
+              "max_relative_error": 6.820895114592006e-05,
+              "worst_identity": [
+                -6514814985332751899,
+                4861988389795
+              ],
+              "baseline_value": -2.1039814949035645,
+              "candidate_value": -2.1039810180664062,
+              "budget_at_worst": 0.0001
+            },
+            "cont_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "cont_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "sg_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "sigmasq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 3547517.5,
+              "candidate_value": 3547517.5,
+              "budget_at_worst": 35.475175
+            },
+            "snr": {
+              "violations": 0,
+              "max_absolute_error": 3.337860107421875e-06,
+              "max_relative_error": 5.265167367635949e-07,
+              "worst_identity": [
+                -3769364983360661655,
+                4861987057541
+              ],
+              "baseline_value": 6.431103706359863,
+              "candidate_value": 6.431100368499756,
+              "budget_at_worst": 0.0006531103706359864
+            },
+            "template_duration": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 37.44173049926758,
+              "candidate_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            },
+            "candidate_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            }
+          }
+        }
+      }
+    }
+  },
+  "independent_array_checks": {
+    "original-cpu-vs-proposed-cpu": {
+      "scientific_field_sets_equal": true,
+      "event_field_sets_equal": true,
+      "independently_recomputed_metric_fields": [
+        "bank_chisq",
+        "bank_chisq_dof",
+        "chisq",
+        "chisq_dof",
+        "coa_phase",
+        "cont_chisq",
+        "cont_chisq_dof",
+        "sg_chisq",
+        "sigmasq",
+        "snr",
+        "template_duration"
+      ],
+      "baseline_only_identities": [],
+      "candidate_only_identities": []
+    },
+    "original-cpu-vs-torch-cpu": {
+      "scientific_field_sets_equal": true,
+      "event_field_sets_equal": true,
+      "independently_recomputed_metric_fields": [
+        "bank_chisq",
+        "bank_chisq_dof",
+        "chisq",
+        "chisq_dof",
+        "coa_phase",
+        "cont_chisq",
+        "cont_chisq_dof",
+        "sg_chisq",
+        "sigmasq",
+        "snr",
+        "template_duration"
+      ],
+      "baseline_only_identities": [],
+      "candidate_only_identities": []
+    },
+    "original-cpu-vs-torch-cuda": {
+      "scientific_field_sets_equal": true,
+      "event_field_sets_equal": true,
+      "independently_recomputed_metric_fields": [
+        "bank_chisq",
+        "bank_chisq_dof",
+        "chisq",
+        "chisq_dof",
+        "coa_phase",
+        "cont_chisq",
+        "cont_chisq_dof",
+        "sg_chisq",
+        "sigmasq",
+        "snr",
+        "template_duration"
+      ],
+      "baseline_only_identities": [],
+      "candidate_only_identities": []
+    },
+    "proposed-cpu-vs-torch-cpu": {
+      "scientific_field_sets_equal": true,
+      "event_field_sets_equal": true,
+      "independently_recomputed_metric_fields": [
+        "bank_chisq",
+        "bank_chisq_dof",
+        "chisq",
+        "chisq_dof",
+        "coa_phase",
+        "cont_chisq",
+        "cont_chisq_dof",
+        "sg_chisq",
+        "sigmasq",
+        "snr",
+        "template_duration"
+      ],
+      "baseline_only_identities": [],
+      "candidate_only_identities": []
+    },
+    "proposed-cpu-vs-torch-cuda": {
+      "scientific_field_sets_equal": true,
+      "event_field_sets_equal": true,
+      "independently_recomputed_metric_fields": [
+        "bank_chisq",
+        "bank_chisq_dof",
+        "chisq",
+        "chisq_dof",
+        "coa_phase",
+        "cont_chisq",
+        "cont_chisq_dof",
+        "sg_chisq",
+        "sigmasq",
+        "snr",
+        "template_duration"
+      ],
+      "baseline_only_identities": [],
+      "candidate_only_identities": []
+    }
+  },
+  "conditioning": {
+    "original-cpu-vs-proposed-cpu": {
+      "conditioned_strain_exact": true,
+      "geometry_exact": true,
+      "psds": [
+        {
+          "exact": true,
+          "nonfinite_masks_equal": true,
+          "relative_budget": 0.0001,
+          "absolute_floor": 0,
+          "violations": 0,
+          "max_absolute_difference": 0.0
+        }
+      ]
+    },
+    "original-cpu-vs-torch-cpu": {
+      "conditioned_strain_exact": true,
+      "geometry_exact": true,
+      "psds": [
+        {
+          "exact": true,
+          "nonfinite_masks_equal": true,
+          "relative_budget": 0.0001,
+          "absolute_floor": 0,
+          "violations": 0,
+          "max_absolute_difference": 0.0
+        }
+      ]
+    },
+    "original-cpu-vs-torch-cuda": {
+      "conditioned_strain_exact": true,
+      "geometry_exact": true,
+      "psds": [
+        {
+          "exact": true,
+          "nonfinite_masks_equal": true,
+          "relative_budget": 0.0001,
+          "absolute_floor": 0,
+          "violations": 0,
+          "max_absolute_difference": 0.0
+        }
+      ]
+    },
+    "proposed-cpu-vs-torch-cpu": {
+      "conditioned_strain_exact": true,
+      "geometry_exact": true,
+      "psds": [
+        {
+          "exact": true,
+          "nonfinite_masks_equal": true,
+          "relative_budget": 0.0001,
+          "absolute_floor": 0,
+          "violations": 0,
+          "max_absolute_difference": 0.0
+        }
+      ]
+    },
+    "proposed-cpu-vs-torch-cuda": {
+      "conditioned_strain_exact": true,
+      "geometry_exact": true,
+      "psds": [
+        {
+          "exact": true,
+          "nonfinite_masks_equal": true,
+          "relative_budget": 0.0001,
+          "absolute_floor": 0,
+          "violations": 0,
+          "max_absolute_difference": 0.0
+        }
+      ]
+    }
+  },
+  "scientific_gates_pass": true,
+  "equal_output_speedup_eligible": false,
+  "performance_claim": false,
+  "limitations": [
+    "Conditioned strain equality is established by recorded digest/schema; raw strain is not archived.",
+    "Native Linux .so and external input bytes are not included; their receipts are cross-checked, not locally rehashed."
+  ]
+}
