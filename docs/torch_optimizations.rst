@@ -9,15 +9,6 @@ flag can still use the established fallback. Flags do not guarantee a speedup.
 For setup, see :ref:`torch-runtime`; for benchmark comparison requirements, see
 :ref:`torch-performance`.
 
-The `restoration evidence
-<https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_
-records historical main ``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0`` against
-original CPU ``40e94792b3edf59f39b18b65102b28a4f74433a7``. Its CPU controls
-produced identical scientific output on that workload; both Torch routes
-failed the unchanged scientific gates. The later Torch compatibility changes
-and their qualification are in :ref:`torch-current-qualification`.
-No new performance samples or speedup are claimed.
-
 Set process-wide environment flags before importing PyCBC or constructing
 plans, live-batch engines, and waveform generators. Some decisions are cached
 or captured at construction. Use ``0`` and ``1`` for Boolean settings: several
@@ -161,33 +152,6 @@ Filtering, thresholding, and execution
        only the exact value ``1`` enables this request. It does not create a
        capture. Explicit successful capture also enables replay; see
        :doc:`torch_search` for the capture and clear APIs.
-
-Original CPU compatibility within Torch
-----------------------------------------
-
-Eligible ordinary Torch tensors on CPU/CUDA use the original CPU PSD
-estimation pipeline and float32 strain-segment forward FFT on copies, NumPy's
-serial float32 cumulative-power scan, and the original complex64 sparse point
-chi-square calculation and postprocessing. The point calculation uses CPU
-views or copies from CUDA. These are Torch-side compatibility routes; the
-original CPU implementation is unchanged. They preserve the output dtype and
-device, with host work and transfers for CUDA inputs. Specialized storage,
-gradient-aware and MPS routes keep their existing eligibility and behavior.
-See :ref:`torch-current-qualification` for the measured scope. Existing
-optimization flags do not establish that the calculation stayed on the GPU.
-
-Original CPU FFT behavior
--------------------------
-
-In historical measured main ``aa6b795a63``, the shared CPU backend files
-``pycbc/fft/mkl.py``, ``pycbc/fft/fftw.py`` and ``pycbc/fft/npfft.py`` are
-byte-identical to original CPU ``40e94792b3``. The shared MKL descriptor-cache
-addition was removed. Planner locking and retained workspaces for eligible
-Torch routes belong to the Torch FFT implementation.
-
-Optional #16 retains separate general FFT changes; optional #17 retains
-separate CPU/native changes. Neither leaf is part of the main scientific
-qualification or required to preserve its default CPU behavior.
 
 Compilation
 -----------

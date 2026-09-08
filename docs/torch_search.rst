@@ -60,6 +60,4 @@ controller in the process that will use it.
 Retained sparse indices and values own their storage. Copy full SNR or
 correlation arrays if they must survive the controller's next operation, since
 those arrays use its scratch workspace. Real CUDA coverage is in
-``test/test_torch_offline_cuda_graph.py``. The recorded integrated correctness
-checks are in :ref:`torch-integrated-qualification`; the baseline/proposed
-performance comparison is described in :ref:`torch-performance`.
+``test/test_torch_offline_cuda_graph.py``.

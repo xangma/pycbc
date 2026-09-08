@@ -5,17 +5,10 @@ Live-filter benchmark definition and accuracy
 
 This method compares the public ``LiveBatchMatchedFilter.process_data`` API
 using synthetic frequency-domain inputs. It is a separate experiment from the
-complete-search comparison in :ref:`torch-performance`. Apply the same frozen
-fixture to unchanged CPU ``40e94792b3edf59f39b18b65102b28a4f74433a7`` and all
-restored backend arms; identify the source revisions in every result. Preserve
-the original CPU behavior. The executable campaign does not qualify this
-separate API experiment. This API benchmark has not been rerun for the Torch
-compatibility implementation described in :ref:`torch-current-qualification`
-and remains unqualified for that source. It was also not rerun for restored main
-``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0`` and remains unqualified for that
-historical source. The `restoration evidence <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_ concerns the historical executable
-campaign; the archived development run below provides no current-source
-API qualification.
+complete-search benchmark in :ref:`torch-reference-campaign`. Use the same
+frozen fixture for the original CPU reference and each candidate backend;
+record the source revisions and qualify every source/backend combination
+before collecting timings.
 
 Fixed workload and timing
 -------------------------
@@ -52,7 +45,7 @@ median of three fresh-worker median rates; ranges span those three medians.
 
 The frozen fixture uses qualification seeds 7102 and 7103 and timing seed
 7102. Qualify every source/backend/batch cell against both the independent
-oracle and the unchanged CPU reference before timing. Include restored
+oracle and the unchanged CPU reference before timing. Include candidate
 normal CPU to check preservation separately from Torch agreement. A changed
 CPU implementation may be studied only as a separately labeled experiment;
 it cannot replace the required original reference.
@@ -125,10 +118,8 @@ the named source revisions. Preserve the original fixture and policy hashes;
 record any harness adaptation and verify that it does not alter scientific
 inputs, observed outputs or timing boundaries.
 
-**SUPERSEDED for the restored stack:** the archived run qualified an earlier
-development revision. Its rates and verdicts do not qualify restored source
-or a CPU-reference arm that it did not execute. Source-native identities,
-every per-worker receipt, all failures and the exact policy belong with each
-new comparison. The archive
-omits full scientific arrays; verifying recorded JSON alone does not replay
-the scientific calculation.
+The archive provides the fixture and method; its recorded results apply only
+to the source revisions it measured. Retain source and native-build
+identities, per-worker receipts, failures and the exact policy with each
+new comparison. Full scientific arrays are omitted from that archive;
+verifying recorded JSON alone does not replay the calculation.
