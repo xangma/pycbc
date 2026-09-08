@@ -1911,7 +1911,11 @@ def create_memory_and_engine_for_class_based_fft(
         delta_t=delta_t,
         ifft=ifft,
         uid=uid,
-        scheme_key=pycbc.scheme.current_backend_key(),
+        # Keep the original shared CPU cache; isolate other backends.
+        scheme_key=(
+            None if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.CPUScheme)
+            else pycbc.scheme.current_backend_key()
+        ),
     )
 
 
