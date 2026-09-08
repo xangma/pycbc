@@ -5,21 +5,19 @@ import pytest
 
 from pycbc import scheme
 from pycbc.types import Array, FrequencySeries
-from pycbc.vetoes.chisq import power_chisq_at_points_from_precomputed
 
 
 @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
 @pytest.mark.parametrize("array_indices", [False, True])
-def test_long_point_chisq_matches_direct_phases(
+def test_long_shift_sum_matches_direct_phases(
     dtype, array_indices, monkeypatch
 ):
     triton_launches = []
     torch = pytest.importorskip("torch")
+    from pycbc.vetoes import chisq_torch
     if not torch.cuda.is_available():
         pytest.skip("CUDA not available")
     if dtype == np.complex64:
-        from pycbc.vetoes import chisq_torch
-
         if not chisq_torch._HAS_TRITON:
             pytest.skip("Triton not available")
         kernel = chisq_torch._triton_pointwise_chisq_bin_kernel
@@ -49,19 +47,14 @@ def test_long_point_chisq_matches_direct_phases(
             phases = np.exp(2j * np.pi * points[:, None] * frequencies[None, :] / size)
             bin_sums[:, column] += np.sum(values[None, first:last] * phases, axis=1)
 
-    snr = bin_sums.sum(axis=1).astype(dtype)
-    norm = float(1 / np.sqrt(size))
-    expected = (
-        (len(bins) - 1) * np.sum(abs(bin_sums) ** 2, axis=1)
-        - abs(snr.astype(np.complex128)) ** 2
-    ) * norm**2
+    # The mathematical shift-sum API keeps full-pi direct phases. Ordinary
+    # power-chi-square searches separately preserve the historical CPU method.
+    expected = np.sum(abs(bin_sums) ** 2, axis=1)
 
     with processing_scheme:
         correlation = FrequencySeries(values, delta_f=1 / 512)
         indices = Array(points) if array_indices else points
-        actual = power_chisq_at_points_from_precomputed(
-            correlation, snr, norm, bins, indices
-        )
+        actual = chisq_torch.shift_sum(correlation, indices, bins)
         assert actual._data.tensor.device.type == "cuda"
         actual = actual.numpy()
 
