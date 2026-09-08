@@ -46,6 +46,7 @@ from pycbc.types import (
     zeros,
 )
 from pycbc.types.backend import backend_array, wrap_backend_array
+from pycbc.types.torch_compat import cpu_compatible
 
 logger = logging.getLogger("pycbc.filter.matchedfilter")
 
@@ -1412,11 +1413,17 @@ def sigmasq_series(
 
     mag = mag[kmin:kmax]
     tensor = _torch_data_tensor(mag)
-    if tensor is not None and tensor.device.type != "mps":
+    if cpu_compatible(mag):
+        # Equal-power bin edges depend on NumPy's serial float32 scan.
+        # Torch's parallel scan differs even when its dtype is float32.
+        sigma_vec[kmin:kmax] = Array(mag.numpy().cumsum())
+    elif tensor is not None and tensor.device.type != "mps":
         # Long single-precision scans lose small tail contributions and can
         # shift equal-power chi-squared bins. Keep the public output dtype.
         mag = mag.astype(numpy.float64)
-    sigma_vec[kmin:kmax] = mag.cumsum()
+        sigma_vec[kmin:kmax] = mag.cumsum()
+    else:
+        sigma_vec[kmin:kmax] = mag.cumsum()
 
     return sigma_vec * norm
 
