@@ -24,11 +24,11 @@ Reference and scientific scope
    Duration bounds alone do not prove boundary correctness. A conservative
    fixed end pad is a declared constraint, not an end-padding optimum.
 #. Freeze the selected geometry for matched backend comparisons. Include
-   original CPU, corrected normal CPU, Torch CPU and Torch CUDA separately.
+   original CPU, proposed normal CPU, Torch CPU and Torch CUDA separately.
    Re-tuning each backend is a different experiment and needs its own table.
    Compare trigger identities, SNR, phase and chi-square under unchanged
    tolerances. Preserve failures against original upstream. Claims about
-   backend cost use the corrected CPU comparison whose outputs pass parity.
+   backend cost use the proposed CPU comparison whose outputs pass parity.
 
 Separate live-filter API measurements
 -------------------------------------
