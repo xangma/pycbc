@@ -1,0 +1,12 @@
+--- post-corrections:bin/inference/pycbc_inference
++++ main:bin/inference/pycbc_inference
+@@ -35,8 +35,8 @@
+ logging.info('Using seed %i', opts.seed)
+ numpy.seterr(divide='ignore', invalid='ignore')
+ ctx = scheme.from_cli(opts)
+-fft.from_cli(opts)
+ with ctx:
++    fft.from_cli(opts)
+     cp_original = configuration.WorkflowConfigParser.from_cli(opts)
+     cp = cp_original.__deepcopy__(cp_original)
+     condor_ckpt = cp.has_option('sampler', 'checkpoint-signal')

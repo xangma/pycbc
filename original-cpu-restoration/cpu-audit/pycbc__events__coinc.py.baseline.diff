@@ -1,0 +1,126 @@
+--- baseline:pycbc/events/coinc.py
++++ main:pycbc/events/coinc.py
+@@ -1,20 +1,17 @@
++import copy
++import logging
++import threading
++import time as timemod
+ import numpy
+-import logging
+-import copy
+-import time as timemod
+-import threading
+ import pycbc.pnutils
++from pycbc import conversions as conv
+ from pycbc.detector import Detector, ppdets
+-from pycbc import conversions as conv
+ from . import stat as pycbcstat
+-from .eventmgr_cython import coincbuffer_expireelements
+-from .eventmgr_cython import coincbuffer_numgreater
+-from .eventmgr_cython import timecoincidence_constructidxs
+-from .eventmgr_cython import timecoincidence_constructfold
+-from .eventmgr_cython import timecoincidence_getslideint
+-from .eventmgr_cython import timecoincidence_findidxlen
+-from .eventmgr_cython import timecluster_cython
++from .eventmgr_cython import coincbuffer_expireelements, coincbuffer_numgreater, timecluster_cython, timecoincidence_constructfold, timecoincidence_constructidxs, timecoincidence_findidxlen, timecoincidence_getslideint
+ logger = logging.getLogger('pycbc.events.coinc')
++
++def _detector(name, feature=None):
++    return Detector(name)
+ 
+ def background_bin_from_string(background_bins, data):
+     used = numpy.array([], dtype=numpy.uint32)
+@@ -27,9 +24,13 @@
+         boundary_list = boundary_list.split(',')
+         for bin_type, boundary in zip(bin_type_list, boundary_list):
+             if boundary[0:2] == 'lt':
+-                member_func = lambda vals, bd=boundary: vals < float(bd[2:])
++
++                def member_func(vals, bd=boundary):
++                    return vals < float(bd[2:])
+             elif boundary[0:2] == 'gt':
+-                member_func = lambda vals, bd=boundary: vals > float(bd[2:])
++
++                def member_func(vals, bd=boundary):
++                    return vals > float(bd[2:])
+             else:
+                 raise RuntimeError("Can't parse boundary condition! Must begin with 'lt' or 'gt'")
+             if bin_type in cached_values:
+@@ -76,7 +77,17 @@
+         durations.append(abs((seg1 & seg2).coalesce()))
+     return numpy.array(durations)
+ 
++def _torch_coinc_backend(*values):
++    from pycbc.types.backend import is_backend
++    if any((is_backend(value, 'torch') for value in values)):
++        from . import coinc_torch
++        return coinc_torch
++    return None
++
+ def time_coincidence(t1, t2, window, slide_step=0):
++    backend = _torch_coinc_backend(t1, t2)
++    if backend is not None:
++        return backend.time_coincidence(t1, t2, window, slide_step)
+     if slide_step:
+         length1 = len(t1)
+         length2 = len(t2)
+@@ -108,8 +119,9 @@
+ def time_multi_coincidence(times, slide_step=0, slop=0.003, pivot='H1', fixed='L1'):
+ 
+     def win(ifo1, ifo2):
+-        d1 = Detector(ifo1)
+-        d2 = Detector(ifo2)
++        feature = 'multi-detector coincidence timing'
++        d1 = _detector(ifo1, feature)
++        d2 = _detector(ifo2, feature)
+         return d1.light_travel_time_to_detector(d2) + slop
+     pivot_id, fix_id, slide = time_coincidence(times[pivot], times[fixed], win(pivot, fixed), slide_step=slide_step)
+     fixed_time = times[fixed][fix_id]
+@@ -141,6 +153,9 @@
+     return (ids, slide)
+ 
+ def cluster_coincs(stat, time1, time2, timeslide_id, slide, window, **kwargs):
++    backend = _torch_coinc_backend(stat, time1, time2, timeslide_id)
++    if backend is not None:
++        return backend.cluster_coincs(stat, time1, time2, timeslide_id, slide, window, **kwargs)
+     if len(time1) == 0 or len(time2) == 0:
+         logger.info('No coinc triggers in one, or both, ifos.')
+         return numpy.array([])
+@@ -158,6 +173,9 @@
+     return cidx
+ 
+ def cluster_coincs_multiifo(stat, time_coincs, timeslide_id, slide, window, **kwargs):
++    backend = _torch_coinc_backend(stat, *time_coincs, timeslide_id)
++    if backend is not None:
++        return backend.cluster_coincs_multiifo(stat, time_coincs, timeslide_id, slide, window, **kwargs)
+     time_coinc_zip = list(zip(*time_coincs))
+     if len(time_coinc_zip) == 0:
+         logger.info('No coincident triggers.')
+@@ -186,6 +204,9 @@
+     return (vals[above_zero].mean(), above_zero.sum())
+ 
+ def cluster_over_time(stat, time, window, method='python', argmax=numpy.argmax):
++    backend = _torch_coinc_backend(stat, time)
++    if backend is not None:
++        return backend.cluster_over_time(stat, time, window, method=method, argmax=argmax)
+     indices = []
+     time_sorting = time.argsort()
+     stat = stat[time_sorting]
+@@ -387,7 +408,7 @@
+             raise ValueError('Only a two ifo analysis is supported at this time')
+         self.lookback_time = (ifar_limit / conv.sec_to_year(1.0) * timeslide_interval) ** 0.5
+         self.buffer_size = int(numpy.ceil(self.lookback_time / analysis_block))
+-        self.dets = {ifo: Detector(ifo) for ifo in ifos}
++        self.dets = {ifo: _detector(ifo, 'live coincidence detector timing') for ifo in ifos}
+         self.time_window = self.dets[ifos[0]].light_travel_time_to_detector(self.dets[ifos[1]]) + coinc_window_pad
+         self.coincs = CoincExpireBuffer(self.buffer_size, self.ifos)
+         self.singles = {}
+@@ -509,7 +530,7 @@
+         single_expire = {self.ifos[0]: [], self.ifos[1]: []}
+         template_ids = [[]]
+         trigger_ids = {self.ifos[0]: [[]], self.ifos[1]: [[]]}
+-        for fixed_ifo, shift_ifo, shift_vec in zip([self.ifos[0], self.ifos[1]], [self.ifos[1], self.ifos[0]], [[0, -1], [-1, 0]]):
++        for fixed_ifo, shift_ifo, shift_vec in zip([self.ifos[0], self.ifos[1]], [self.ifos[1], self.ifos[0]], [[0, -1], [-1, 0]], strict=True):
+             if fixed_ifo not in valid_ifos:
+                 continue
+             trigs = results[fixed_ifo]

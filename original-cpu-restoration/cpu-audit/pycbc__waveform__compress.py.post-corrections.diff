@@ -1,0 +1,39 @@
+--- post-corrections:pycbc/waveform/compress.py
++++ main:pycbc/waveform/compress.py
+@@ -1,11 +1,14 @@
+-import numpy, logging, h5py, time
++import logging
++import time
++import h5py
++import numpy
+ from scipy import interpolate
+ from pycbc import filter
+-from pycbc.types import FrequencySeries, real_same_precision_as
++from pycbc.constants import MTSUN_SI
++from pycbc.io.hdf import HFile
++from pycbc.scheme import schemed
++from pycbc.types import FrequencySeries, real_same_precision_as, zeros
+ from pycbc.waveform import utils
+-from pycbc.scheme import schemed
+-from pycbc.io.hdf import HFile
+-from pycbc.constants import MTSUN_SI
+ 
+ def rough_time_estimate(m1, m2, flow, fudge_length=1.1, fudge_min=0.02):
+     m = m1 + m2
+@@ -109,7 +112,6 @@
+         htime = time.time() - t1
+         s1 = filter.sigma(hdecomp, psd=psd, low_frequency_cutoff=fmin)
+         mismatch = 1.0 - abs(filter.overlap_cplx(hdecomp / s1, htilde2, low_frequency_cutoff=fmin, normalized=False))
+-        o = filter.overlap_cplx(hdecomp / s1, htilde2, low_frequency_cutoff=fmin, normalized=False)
+         if mismatch <= tolerance:
+             mismatch = 1.0 - abs(filter.overlap_cplx(hdecomp / s1, htilde2, low_frequency_cutoff=fmin, normalized=False))
+         else:
+@@ -150,7 +152,7 @@
+         if df is None:
+             raise ValueError('Either provide output memory or a df')
+         hlen = int(numpy.ceil(sample_frequencies.max() / df + 1))
+-        out = FrequencySeries(numpy.zeros(hlen, dtype=_complex_dtypes[precision]), copy=False, delta_f=df)
++        out = FrequencySeries(zeros(hlen, dtype=_complex_dtypes[precision]), copy=False, delta_f=df)
+     else:
+         if out.precision != precision:
+             precision = out.precision

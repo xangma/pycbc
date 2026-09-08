@@ -1,0 +1,29 @@
+--- baseline:pycbc/filter/qtransform.py
++++ main:pycbc/filter/qtransform.py
+@@ -1,10 +1,14 @@
+ import numpy
+-from numpy import ceil, log, exp
+-from pycbc.types.timeseries import FrequencySeries, TimeSeries
++from numpy import ceil, exp, log
+ from pycbc.fft import ifft
+ from pycbc.types import zeros
++from pycbc.types.backend import is_backend
++from pycbc.types.timeseries import FrequencySeries, TimeSeries
+ 
+ def qplane(qplane_tile_dict, fseries, return_complex=False):
++    if is_backend(fseries, 'torch'):
++        from pycbc.filter.qtransform_torch import qplane as torch_qplane
++        return torch_qplane(qplane_tile_dict, fseries, return_complex=return_complex)
+     qplanes = {}
+     max_energy, max_key = (None, None)
+     for i, q in enumerate(qplane_tile_dict):
+@@ -53,6 +57,9 @@
+     return
+ 
+ def qseries(fseries, Q, f0, return_complex=False):
++    if is_backend(fseries, 'torch'):
++        from pycbc.filter.qtransform_torch import qseries as torch_qseries
++        return torch_qseries(fseries, Q, f0, return_complex=return_complex)
+     qprime = Q / 11 ** (1 / 2.0)
+     norm = numpy.sqrt(315.0 * qprime / (128.0 * f0))
+     window_size = 2 * int(f0 / qprime * fseries.duration) + 1

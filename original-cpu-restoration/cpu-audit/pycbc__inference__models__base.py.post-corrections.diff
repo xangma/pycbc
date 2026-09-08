@@ -1,0 +1,94 @@
+--- post-corrections:pycbc/inference/models/base.py
++++ main:pycbc/inference/models/base.py
+@@ -1,9 +1,35 @@
+-import numpy
+ import logging
+ from abc import ABCMeta, abstractmethod
+ from configparser import NoSectionError
+-from pycbc import transforms, distributions
++import numpy
++from pycbc import distributions, transforms
+ from pycbc.io import FieldArray
++from pycbc.types.backend import backend_array
++
++def _torch_tensor(value):
++    return backend_array(value, 'torch')
++
++def _replace_nan_with_neginf(value):
++    tensor = _torch_tensor(value)
++    if tensor is None:
++        return -numpy.inf if numpy.isnan(value) else value
++    import torch
++    return torch.where(torch.isnan(tensor), tensor.new_full((), -torch.inf), tensor)
++
++def _is_neginf_scalar(value):
++    tensor = _torch_tensor(value)
++    if tensor is None:
++        return value == -numpy.inf
++    if tensor.numel() != 1:
++        raise ValueError('model statistics must be scalar values')
++    import torch
++    return bool(torch.isneginf(tensor.detach()))
++
++def _public_stat_value(value):
++    tensor = _torch_tensor(value)
++    if tensor is value and tensor.ndim == 0:
++        return tensor.detach().item()
++    return value
+ 
+ class _NoPrior(object):
+ 
+@@ -12,6 +38,10 @@
+         return params
+ 
+     def __call__(self, **params):
++        for value in params.values():
++            tensor = _torch_tensor(value)
++            if tensor is not None:
++                return tensor.new_zeros(())
+         return 0.0
+ 
+ class ModelStats(object):
+@@ -21,7 +51,7 @@
+         return list(self.__dict__.keys())
+ 
+     def getstats(self, names, default=numpy.nan):
+-        return tuple((getattr(self, n, default) for n in names))
++        return tuple((_public_stat_value(getattr(self, n, default)) for n in names))
+ 
+     def getstatsdict(self, names, default=numpy.nan):
+         return dict(zip(names, self.getstats(names, default=default)))
+@@ -36,7 +66,11 @@
+         self.sampling_transforms = sampling_transforms
+ 
+     def logjacobian(self, **params):
+-        return numpy.log(abs(transforms.compute_jacobian(params, self.sampling_transforms, inverse=True)))
++        jacobian = transforms.compute_jacobian(params, self.sampling_transforms, inverse=True)
++        tensor = _torch_tensor(jacobian)
++        if tensor is not None:
++            return tensor.abs().log()
++        return numpy.log(abs(jacobian))
+ 
+     def apply(self, samples, inverse=False):
+         return transforms.apply_transforms(samples, self.sampling_transforms, inverse=inverse)
+@@ -178,17 +212,14 @@
+     def _logprior(self):
+         logj = self.logjacobian
+         logp = self.prior_distribution(**self.current_params) + logj
+-        if numpy.isnan(logp):
+-            logp = -numpy.inf
+-        return logp
++        return _replace_nan_with_neginf(logp)
+ 
+     @property
+     def logposterior(self):
+         logp = self.logprior
+-        if logp == -numpy.inf:
++        if _is_neginf_scalar(logp):
+             return logp
+-        else:
+-            return logp + self.loglikelihood
++        return logp + self.loglikelihood
+ 
+     def prior_rvs(self, size=1, prior=None):
+         if prior is None:

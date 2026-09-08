@@ -1,0 +1,11 @@
+--- post-corrections:pycbc/fft/backend_support.py
++++ main:pycbc/fft/backend_support.py
+@@ -27,7 +27,7 @@
+     err_msg = 'This function is a stub that should be overridden using '
+     err_msg += "the scheme. You shouldn't be seeing this error!"
+     raise ValueError(err_msg)
+-for scheme_name in ['cpu', 'mkl', 'cuda', 'cupy']:
++for scheme_name in ['cpu', 'mkl', 'cuda', 'cupy', 'torch']:
+     try:
+         mod = __import__('pycbc.fft.backend_' + scheme_name, fromlist=['_alist', '_adict'])
+         _alist = getattr(mod, '_alist')

@@ -1,0 +1,28 @@
+{
+  "tested_head": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0",
+  "qlty_exit_before_format": 1,
+  "formatting_fixes": {
+    "5": {
+      "commit": "5fd0a09b5d53e0bb738a97bd1c3d45e84387dadb",
+      "file": "pycbc/scheme.py",
+      "ast_unchanged": true
+    },
+    "8": {
+      "commit": "fd332c5a3d2fc1ac786ffb1b73a12505e568ccb9",
+      "file": "pycbc/filter/matchedfilter.py",
+      "ast_unchanged": true
+    },
+    "9": {
+      "commit": "e757d454227301f5c2a2a98618c686c1caf91604",
+      "file": "pycbc/strain/strain.py",
+      "ast_unchanged": true
+    }
+  },
+  "remaining_issue": {
+    "rule": "ruff:B904",
+    "path": "pycbc/frame/frame.py",
+    "line": 629,
+    "source_byte_identical_to_prior_published_main": "1d22031fd31c6e5bcb48a68fe11772e960bd406b",
+    "assessment": "Pre-existing in unchanged file; outside CPU restoration scope. Not reported as a green Qlty gate."
+  }
+}

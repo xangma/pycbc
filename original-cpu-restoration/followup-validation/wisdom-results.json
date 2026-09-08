@@ -1,0 +1,22 @@
+[
+  {
+    "mode": "cold",
+    "returncode": 0,
+    "output": "{\"mode\": \"cold\", \"plan\": \"_FFTWCPUDirectPlan\", \"measure_level\": 1, \"calls\": [\"export_single_wisdom_to_filename\"], \"planning_seconds\": 0.05801049992442131, \"destructor_serialized\": true, \"max_abs_error\": 0.0003066978824790567, \"source\": \"/private/tmp/pycbc-original-cpu-followup-validation-20260908-pr16/pycbc/fft/fftw.py\", \"library\": \"/usr/local/lib/libfftw3f.dylib\"}\n"
+  },
+  {
+    "mode": "warm",
+    "returncode": 0,
+    "output": "{\"mode\": \"warm\", \"plan\": \"_FFTWCPUDirectPlan\", \"measure_level\": 0, \"calls\": [\"import_single_wisdom_from_filename\"], \"planning_seconds\": 0.04845200013369322, \"destructor_serialized\": true, \"max_abs_error\": 0.0003066978824790567, \"source\": \"/private/tmp/pycbc-original-cpu-followup-validation-20260908-pr16/pycbc/fft/fftw.py\", \"library\": \"/usr/local/lib/libfftw3f.dylib\"}\n"
+  },
+  {
+    "mode": "fallback",
+    "returncode": 0,
+    "output": "{\"mode\": \"fallback\", \"plan\": \"_FFTWCPUWorkPlan\", \"measure_level\": 0, \"calls\": [], \"planning_seconds\": 0.049083624966442585, \"destructor_serialized\": true, \"max_abs_error\": 0.0, \"source\": \"/private/tmp/pycbc-original-cpu-followup-validation-20260908-pr16/pycbc/fft/fftw.py\", \"library\": \"/usr/local/lib/libfftw3f.dylib\"}\n"
+  },
+  {
+    "mode": "disabled",
+    "returncode": 0,
+    "output": "{\"mode\": \"disabled\", \"plan\": \"_FFTWCPUDirectPlan\", \"measure_level\": 0, \"calls\": [], \"planning_seconds\": 0.047031624941155314, \"destructor_serialized\": true, \"max_abs_error\": 0.00037748157046735287, \"source\": \"/private/tmp/pycbc-original-cpu-followup-validation-20260908-pr16/pycbc/fft/fftw.py\", \"library\": \"/usr/local/lib/libfftw3f.dylib\"}\n"
+  }
+]

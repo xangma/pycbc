@@ -1,0 +1,11 @@
+{"case": "qual-original-cpu", "elapsed_wall_seconds": 65.97313498705626, "returncode": 0}
+{"case": "qual-proposed-cpu", "elapsed_wall_seconds": 63.57337876094971, "returncode": 0}
+{"case": "qual-torch-cpu", "elapsed_wall_seconds": 102.73525098804384, "returncode": 0}
+{"case": "qual-torch-cuda", "elapsed_wall_seconds": 20.452547213993967, "returncode": 0}
+Traceback (most recent call last):
+  File "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/campaign.py", line 343, in <module>
+    main()
+  File "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/campaign.py", line 328, in main
+    assert cpu_preserved, 'Original CPU preservation failed; see complete comparisons'
+           ^^^^^^^^^^^^^
+AssertionError: Original CPU preservation failed; see complete comparisons

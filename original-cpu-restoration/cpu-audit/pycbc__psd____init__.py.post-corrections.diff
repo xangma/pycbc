@@ -1,0 +1,42 @@
+--- post-corrections:pycbc/psd/__init__.py
++++ main:pycbc/psd/__init__.py
+@@ -1,17 +1,15 @@
+-import copy
+-import igwn_segments as segments
++try:
++    import igwn_segments as segments
++except ImportError:
++    segments = None
+ from pycbc import scheme as _scheme
+-from pycbc.psd.read import *
+ from pycbc.psd.analytical import *
+ from pycbc.psd.analytical_space import *
+ from pycbc.psd.estimate import *
++from pycbc.psd.read import *
+ from pycbc.psd.variation import *
+-from pycbc.types import float32, float64
+-from pycbc.types import MultiDetOptionAppendAction, MultiDetOptionAction
+-from pycbc.types import DictOptionAction, MultiDetDictOptionAction
+-from pycbc.types import copy_opts_for_single_ifo
+-from pycbc.types import required_opts, required_opts_multi_ifo
+-from pycbc.types import ensure_one_opt, ensure_one_opt_multi_ifo
++from pycbc.types import DictOptionAction, MultiDetDictOptionAction, MultiDetOptionAction, copy_opts_for_single_ifo, ensure_one_opt, ensure_one_opt_multi_ifo, float32, float64, required_opts, required_opts_multi_ifo
++from pycbc.types import MultiDetOptionAppendAction as MultiDetOptionAppendAction
+ 
+ def from_cli(opt, length, delta_f, low_frequency_cutoff, strain=None, dyn_range_factor=1, precision=None):
+     if opt.psd_low_frequency_cutoff is not None:
+@@ -49,8 +47,12 @@
+             psd[0:kmin] = psd[kmin]
+         psd *= dyn_range_factor ** 2
+     elif psd_estimation:
+-        if strain.dtype == float32 and isinstance(_scheme.mgr.state, _scheme.CPUScheme):
+-            restore_dtype = strain.dtype
++        strain_dtype = strain.dtype
++        state = _scheme.mgr.state
++        if not isinstance(state, _scheme.CPUScheme):
++            restore_dtype = strain_dtype
++        if strain_dtype == float32 and (isinstance(state, _scheme.CPUScheme) or (isinstance(state, _scheme.TorchScheme) and state.torch_device.type != 'mps')):
++            restore_dtype = strain_dtype
+             strain = strain.astype(float64)
+         psd = welch(strain, avg_method=opt.psd_estimation, seg_len=int(opt.psd_segment_length * sample_rate + 0.5), seg_stride=int(opt.psd_segment_stride * sample_rate + 0.5), num_segments=opt.psd_num_segments, require_exact_data_fit=False)
+         if delta_f != psd.delta_f:

@@ -1,0 +1,23 @@
+--- baseline:pycbc/inference/models/base_data.py
++++ main:pycbc/inference/models/base_data.py
+@@ -1,6 +1,5 @@
+-import numpy
+ from abc import ABCMeta, abstractmethod
+-from .base import BaseModel
++from .base import BaseModel, _is_neginf_scalar
+ 
+ class BaseDataModel(BaseModel, metaclass=ABCMeta):
+ 
+@@ -44,10 +43,9 @@
+     @property
+     def logplr(self):
+         logp = self.logprior
+-        if logp == -numpy.inf:
++        if _is_neginf_scalar(logp):
+             return logp
+-        else:
+-            return logp + self.loglr
++        return logp + self.loglr
+ 
+     @property
+     def detectors(self):

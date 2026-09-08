@@ -1,0 +1,53 @@
+{
+  "pid": 1683876,
+  "head": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0",
+  "cwd": "/home/xangma/pycbc-torch-original-cpu-restoration-v2-20260908/proposed",
+  "state": "complete",
+  "results": [
+    {
+      "name": "runtime",
+      "command": [
+        "taskset",
+        "-c",
+        "8",
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "-B",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "test/test_scheme_runtime.py",
+        "test/test_scheme_selection.py",
+        "test/test_torch_optional.py",
+        "test/test_torch_fft_cpu_native.py",
+        "test/test_torch_fft_writes.py",
+        "test/test_torch_large_ifft.py",
+        "test/test_torch_large_batches.py",
+        "test/test_fft_cpu_preservation.py",
+        "--junitxml=/home/xangma/pycbc-torch-original-cpu-restoration-v2-20260908/linux-checks/runtime.xml"
+      ],
+      "returncode": 0
+    },
+    {
+      "name": "qlty",
+      "command": [
+        "taskset",
+        "-c",
+        "9",
+        "/home/xangma/pycbc-torch-finish-20260904/qlty/qlty-x86_64-unknown-linux-gnu/qlty",
+        "check",
+        "--no-upgrade-check",
+        "--no-fix",
+        "--sarif",
+        "--no-progress",
+        "--jobs",
+        "1",
+        "--upstream",
+        "40e94792b3edf59f39b18b65102b28a4f74433a7"
+      ],
+      "returncode": 1
+    }
+  ],
+  "current": "qlty",
+  "finished_utc": "2026-09-08T16:43:06.013408+00:00"
+}

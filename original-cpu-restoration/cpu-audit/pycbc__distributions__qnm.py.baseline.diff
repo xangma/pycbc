@@ -1,0 +1,23 @@
+--- baseline:pycbc/distributions/qnm.py
++++ main:pycbc/distributions/qnm.py
+@@ -2,8 +2,8 @@
+ import re
+ import numpy
+ import pycbc
+-from pycbc import conversions, boundaries
+-from . import uniform, bounded
++from pycbc import boundaries, conversions
++from . import bounded, uniform
+ logger = logging.getLogger('pycbc.distributions.qnm')
+ 
+ class UniformF0Tau(uniform.Uniform):
+@@ -37,6 +37,9 @@
+ 
+     def __contains__(self, params):
+         isin = super(UniformF0Tau, self).__contains__(params)
++        torch, _ = bounded._torch_module_and_reference(params.values())
++        if torch is not None:
++            return isin & self._constraints(params)
+         if isin:
+             isin &= self._constraints(params)
+         return isin

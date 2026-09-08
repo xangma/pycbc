@@ -1,0 +1,208 @@
+{
+  "result": {
+    "status": "pass",
+    "baseline": "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/runs/qual-original-cpu/triggers.hdf",
+    "candidate": "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/runs/qual-proposed-cpu/triggers.hdf",
+    "baseline_sha256": "6ac1cd9ef8c474f6c82f686eb5df9a1d3a4691c13a9d1d704805338bd5ff94a9",
+    "candidate_sha256": "f7024b9a5628e62873ec5829991c4f329e40123b851fd99dd4b6ff0b9fb955e3",
+    "baseline_receipt_sha256": "d96e4333dbf54c0e590e46a6c7824f8148ecf527f3f10465b46b4b4da24885aa",
+    "candidate_receipt_sha256": "1e68c8fc044b093acf843946a6a6a2bc2e87e95b1d0f5b0c9933e6650d315654",
+    "sample_rate": 4096,
+    "failures": [],
+    "review_reasons": [],
+    "detectors": {
+      "H1": {
+        "baseline_count": 1988,
+        "candidate_count": 1988,
+        "matched_count": 1988,
+        "valid_intervals": [
+          [
+            1187007160.0,
+            1187009064.0
+          ]
+        ],
+        "metrics": {
+          "bank_chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 1e-05
+          },
+          "bank_chisq_dof": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 0.0
+          },
+          "chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 35.49388122558594,
+            "candidate_value": 35.49388122558594,
+            "budget_at_worst": 0.003559388122558594
+          },
+          "chisq_dof": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 16.0,
+            "candidate_value": 16.0,
+            "budget_at_worst": 0.0
+          },
+          "coa_phase": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 2.1825428009033203,
+            "candidate_value": 2.1825428009033203,
+            "budget_at_worst": 0.0001
+          },
+          "cont_chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 1e-05
+          },
+          "cont_chisq_dof": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 0.0
+          },
+          "sg_chisq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 0.0,
+            "candidate_value": 0.0,
+            "budget_at_worst": 1e-05
+          },
+          "sigmasq": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 3547517.5,
+            "candidate_value": 3547517.5,
+            "budget_at_worst": 35.475175
+          },
+          "snr": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 5.890442848205566,
+            "candidate_value": 5.890442848205566,
+            "budget_at_worst": 0.0005990442848205566
+          },
+          "template_duration": {
+            "violations": 0,
+            "max_absolute_error": 0.0,
+            "max_relative_error": 0.0,
+            "worst_identity": [
+              -9182911012498157318,
+              4861984505656
+            ],
+            "baseline_value": 37.44173049926758,
+            "candidate_value": 37.44173049926758,
+            "budget_at_worst": 0.003754173049926758
+          }
+        },
+        "unmatched": {
+          "baseline_only": {
+            "count": 0,
+            "classifications": {},
+            "examples": []
+          },
+          "candidate_only": {
+            "count": 0,
+            "classifications": {},
+            "examples": []
+          }
+        }
+      }
+    }
+  },
+  "provenance_substitutions": [
+    {
+      "field": "source_snapshot",
+      "before": {
+        "commit": "652206d84177f658f5fb2f9cab2ee73f6d2bc95f",
+        "status": "",
+        "tracked_diff": ""
+      },
+      "after": {
+        "commit": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+        "status": "",
+        "tracked_diff": ""
+      }
+    },
+    {
+      "field": "consumed_input_sha256",
+      "before": {
+        "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/proposed/bin/pycbc_inspiral": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a",
+        "/home/xangma/pycbc-torch-reference-protocol-20260907/inputs/bank-compressed.hdf": "26050d48322a1d71092bb0e024e71a89ace56b3e7b1c5e4cf20c7b769213fb7f",
+        "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865"
+      },
+      "after": {
+        "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/original/bin/pycbc_inspiral": "5a714f6b5b7c945683837e4287538cb9fc1ed2e3f3d2c93b176df0ebdab9bc3e",
+        "/home/xangma/pycbc-torch-reference-protocol-20260907/inputs/bank-compressed.hdf": "26050d48322a1d71092bb0e024e71a89ace56b3e7b1c5e4cf20c7b769213fb7f",
+        "/home/xangma/pycbc_bench_repo/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865"
+      }
+    }
+  ],
+  "tolerances": {
+    "rtol": 0.0001,
+    "atol": 1e-05,
+    "sigmasq_rtol": 1e-05,
+    "phase_atol": 0.0001,
+    "max_examples": 12
+  }
+}

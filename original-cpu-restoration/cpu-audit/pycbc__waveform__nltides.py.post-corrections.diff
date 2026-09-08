@@ -1,0 +1,43 @@
+--- post-corrections:pycbc/waveform/nltides.py
++++ main:pycbc/waveform/nltides.py
+@@ -1,8 +1,22 @@
+ import numpy
+ import pycbc.conversions
++import pycbc.scheme as _scheme
+ from pycbc.constants import PI
+ 
++def _torch_backend(value=None):
++    if value is not None:
++        from pycbc.types.backend import is_backend
++        if not is_backend(value, 'torch'):
++            return None
++    if value is None and _scheme.current_prefix() != 'torch':
++        return None
++    from pycbc.waveform import nltides_torch
++    return nltides_torch
++
+ def nltides_fourier_phase_difference(f, delta_f, f0, amplitude, n, m1, m2):
++    backend = _torch_backend(f)
++    if backend is not None:
++        return backend.nltides_fourier_phase_difference(f, delta_f, f0, amplitude, n, m1, m2)
+     kmin = int(f0 / delta_f)
+     kmax = len(f)
+     f_ref, t_of_f_factor, phi_of_f_factor = pycbc.conversions.nltides_coefs(amplitude, n, m1, m2)
+@@ -14,12 +28,16 @@
+     return numpy.concatenate((delta_psi_f_le_f0, delta_psi_f_gt_f0), axis=0)
+ 
+ def nonlinear_tidal_spa(**kwds):
++    backend = _torch_backend()
++    if backend is not None:
++        return backend.nonlinear_tidal_spa(**kwds)
+     from pycbc import waveform
+     from pycbc.types import Array
+     kwds.pop('approximant')
+     hp, hc = waveform.get_fd_waveform(approximant='TaylorF2', **kwds)
+     f = numpy.arange(len(hp)) * hp.delta_f
+-    pd = Array(numpy.exp(-1j * nltides_fourier_phase_difference(f, hp.delta_f, kwds['f0'], kwds['amplitude'], kwds['n'], kwds['mass1'], kwds['mass2'])), dtype=hp.dtype)
++    phase_difference = nltides_fourier_phase_difference(f, hp.delta_f, kwds['f0'], kwds['amplitude'], kwds['n'], kwds['mass1'], kwds['mass2'])
++    pd = Array(numpy.exp(-1j * phase_difference), dtype=hp.dtype)
+     hp *= pd
+     hc *= pd
+     return (hp, hc)

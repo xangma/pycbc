@@ -1,0 +1,5095 @@
+{
+  "status": "pass",
+  "verified_at_utc": "2026-09-08T16:48:55.895405+00:00",
+  "archive": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/campaign-initial",
+  "archive_file_sha256": {
+    "benchmark_cpu_campaign.py": "3ee6008a54da44599665d3a02633fa2328b53d97b81718327b24bb35b9ffff9e",
+    "campaign.py": "9069f3ad0f18a842fff0266ed4fef7f2dbf76b6d71f78417963e6b897144f478",
+    "checked-inspiral.py": "9181ff0515fb3cdacdd4246166bf90fea0da66232605922040ccc98c63d38b29",
+    "compare-triggers.py": "f0af115a2bf2d3a5a85152cb1f61d9b7570a460efd6d420566c5a2b74ac8f1b5",
+    "comparisons/original-cpu-vs-proposed-cpu-conditioning.json": "ee1c726ca81dc26ca68beb7bf0f4c9b90ed3b34ffe27ea737b8766c5b19ff504",
+    "comparisons/original-cpu-vs-proposed-cpu-raw.json": "fae1d3793fcc9c506eb828a63cf25945c7b925e4d7f61d7f500ad6ba73b7fb0a",
+    "comparisons/original-cpu-vs-proposed-cpu.json": "6a11ecf25c1e17f2337df3b1fe20c4c29e629672b3442ea841882514fe71647b",
+    "comparisons/original-cpu-vs-torch-cpu-conditioning.json": "1a6cc3b786e5ddd3a680acf117e047f2b827634a12e7f21cdd834c302c6b558c",
+    "comparisons/original-cpu-vs-torch-cpu-raw.json": "38da28d305b1e92734e5251c68b5a179abd8e6b1896bd8b273e45678611a379a",
+    "comparisons/original-cpu-vs-torch-cpu.json": "941a722a3b8f65d9379b449c529290e6b9a81ec8d2c58ed0095555a5606e94c8",
+    "comparisons/original-cpu-vs-torch-cuda-conditioning.json": "5df72994d3da0b59d2b3cee8d712b1b7097b4aae5947b8fd3d8243b029e70183",
+    "comparisons/original-cpu-vs-torch-cuda-raw.json": "98cc39a7079a5caa874d53bb82726ed6e8059765850c60b21e4f52b657432e0c",
+    "comparisons/original-cpu-vs-torch-cuda.json": "4ef9212a1446dabdadcea9c34f0e5ba6e0d463477960edcd252948613bb8179d",
+    "comparisons/proposed-cpu-vs-torch-cpu-conditioning.json": "1a6cc3b786e5ddd3a680acf117e047f2b827634a12e7f21cdd834c302c6b558c",
+    "comparisons/proposed-cpu-vs-torch-cpu-raw.json": "064c7d00be4d42d8994294a6e1ba25ff79d021840cf792fa72fc835ceaa42147",
+    "comparisons/proposed-cpu-vs-torch-cpu.json": "7cb87866244311ebe501add6ef7196761744c5d403dfb6a0f5ccaf48840b3183",
+    "comparisons/proposed-cpu-vs-torch-cuda-conditioning.json": "5df72994d3da0b59d2b3cee8d712b1b7097b4aae5947b8fd3d8243b029e70183",
+    "comparisons/proposed-cpu-vs-torch-cuda-raw.json": "6381973bec0ae355a80d3c57a1f31dcb7f94aa55de7c91d1a29195892346a42e",
+    "comparisons/proposed-cpu-vs-torch-cuda.json": "f8a5ad31a4425443b100f80eb382823f42382ddac98ff5af2bdf1fdd6f2d036f",
+    "config.json": "dc09fe65b9e870dfb7f304f857700adb5ea714ac5403d60a717430a6d190eed2",
+    "controller.log": "e9636e7ede80fd9488e992999e9f6d5b0f2b003066e855a2c00e21f37c50117d",
+    "dependencies.json": "ecbeb9363b47dc395e1c0ac157687be614732fc06f4365db6ba8baf3be7c8d7c",
+    "harness-pins.json": "e858c84b194d50ed4a4981db49d1e84dc87ab79f1efb57e9ba055a94d8509f60",
+    "machine.json": "a4991cc64318a6db7e861083dbf5a64108715cfb4f677eb598e88de7443fc91b",
+    "original-build.json": "cfc0a3ba70f0cdb4802d6eb275ac77f4f55b1d96696a374c89816bee5acf6d58",
+    "proposed-build.json": "76676e7d8f6e8bcb9bd6d19286efcf3234da48dbd90ff3b63cad8c07c02278d8",
+    "qualification-summary.json": "5571ffa83f361861a01f1342cbe782d5ad4621897d9001c7ddb9a4b0edd5d4e5",
+    "qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+    "runs/qual-original-cpu/arrays/qualification-psd-000.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+    "runs/qual-original-cpu/gpu-after.json": "f5e7f1fc774f8f617a95c3a16274838271edf044453accf8f940c35f31ba040c",
+    "runs/qual-original-cpu/gpu-before.json": "de6ad2fe69c9c91e9dafad7bd87037afe2c6fd12e73c6badd4a21e97c8df095e",
+    "runs/qual-original-cpu/gpu-during.jsonl": "855de03f2c34b98f0c4bcdf2f352c6f4f267c33bce4316fc7b90a6e54f29e770",
+    "runs/qual-original-cpu/host-samples.jsonl": "05b1fdddb6a1f2101b7a27fa3eec750f89733e3e3e8afb952dca67363f4542bc",
+    "runs/qual-original-cpu/qualification.json": "998922cfb6791bea23dfc9a2c8cfd4df844a4aa3a7d422523cb89df1118551a5",
+    "runs/qual-original-cpu/receipt.json": "d96e4333dbf54c0e590e46a6c7824f8148ecf527f3f10465b46b4b4da24885aa",
+    "runs/qual-original-cpu/runtime.json": "a974e9d8baeb40d516c34b7294efb92691f1cca54ca0fc7b5e40558a5f440e3b",
+    "runs/qual-original-cpu/stderr.log": "46201cbf8cba5881a58d49cc23115540505fa94d834d9a82b4805e9a84fda485",
+    "runs/qual-original-cpu/stdout.log": "fd48547b7cfdfbb878d44cdc387195d0c3863a10a5efbe0f6b9ad5c1bed0ec1d",
+    "runs/qual-original-cpu/time.txt": "41e427c92aa1a9bb8e189a41cb9a39b59ab8b9d97b79803864d3bd169d51e713",
+    "runs/qual-original-cpu/triggers.hdf": "6ac1cd9ef8c474f6c82f686eb5df9a1d3a4691c13a9d1d704805338bd5ff94a9",
+    "runs/qual-original-cpu/workload-check.json": "841733f905f4ef4b7be2d58986543e424dddf654625ab12c93d763e64caf6c82",
+    "runs/qual-proposed-cpu/arrays/qualification-psd-000.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+    "runs/qual-proposed-cpu/gpu-after.json": "f5e7f1fc774f8f617a95c3a16274838271edf044453accf8f940c35f31ba040c",
+    "runs/qual-proposed-cpu/gpu-before.json": "f5e7f1fc774f8f617a95c3a16274838271edf044453accf8f940c35f31ba040c",
+    "runs/qual-proposed-cpu/gpu-during.jsonl": "f2dade93546557f0758b5d5171c8905bab8b40881ccb04f1eca5ee97af2358f0",
+    "runs/qual-proposed-cpu/host-samples.jsonl": "96d2492975d2f19be56f919145622556c80a47ce1262c5bb74813a42add52fe0",
+    "runs/qual-proposed-cpu/qualification.json": "666ed2f45f0147ace6b95da097a9d0890861d704a10f501a965f8b6ca2b5c9d2",
+    "runs/qual-proposed-cpu/receipt.json": "1e68c8fc044b093acf843946a6a6a2bc2e87e95b1d0f5b0c9933e6650d315654",
+    "runs/qual-proposed-cpu/runtime.json": "e4471e59d18a60c77a79fa61f02f9b0aa5a76d3f60bd8dee283df903d54b71fa",
+    "runs/qual-proposed-cpu/stderr.log": "6083892b067c803c2dfacfff88991563e2b4f26b4653fb89d4c296c25820bc23",
+    "runs/qual-proposed-cpu/stdout.log": "fd48547b7cfdfbb878d44cdc387195d0c3863a10a5efbe0f6b9ad5c1bed0ec1d",
+    "runs/qual-proposed-cpu/time.txt": "a8a40c1aee1fe8c34eb3a332a082d4d7f3b03b8dc66d818e1291ee3d220348a6",
+    "runs/qual-proposed-cpu/triggers.hdf": "f7024b9a5628e62873ec5829991c4f329e40123b851fd99dd4b6ff0b9fb955e3",
+    "runs/qual-proposed-cpu/workload-check.json": "841733f905f4ef4b7be2d58986543e424dddf654625ab12c93d763e64caf6c82",
+    "runs/qual-torch-cpu/arrays/qualification-psd-000.npy": "4b083eda5f7778779ba7b5f153a0e2b3ac0d623f6cc60d9e22b300244d5ead9a",
+    "runs/qual-torch-cpu/gpu-after.json": "f5e7f1fc774f8f617a95c3a16274838271edf044453accf8f940c35f31ba040c",
+    "runs/qual-torch-cpu/gpu-before.json": "f5e7f1fc774f8f617a95c3a16274838271edf044453accf8f940c35f31ba040c",
+    "runs/qual-torch-cpu/gpu-during.jsonl": "fcfb95167243fc072c3a79624dd7e693a1f9c999db88b902fb96b14f9e502070",
+    "runs/qual-torch-cpu/host-samples.jsonl": "d356042e2213e7f3eabf2831187503253c50d34270408d87e4440c07097fc717",
+    "runs/qual-torch-cpu/qualification.json": "421cad5f1659a9b30ee2542fc2d22e8a802efd682ab3763302406739de62ba07",
+    "runs/qual-torch-cpu/receipt.json": "38cb62e7a5359ecadb3ede8307b1425a38544f6f8591b44dc301bb1e256a90be",
+    "runs/qual-torch-cpu/runtime.json": "fbacfe5accaf460accd370bb9689f1ccfa0d31aac981989342212edf29afd33b",
+    "runs/qual-torch-cpu/stderr.log": "c1da0a40c66e11e0a93de3ce8a701e06f9b7d5a87ab69b010fd74e44ea0dc757",
+    "runs/qual-torch-cpu/stdout.log": "fd48547b7cfdfbb878d44cdc387195d0c3863a10a5efbe0f6b9ad5c1bed0ec1d",
+    "runs/qual-torch-cpu/time.txt": "ad6b1d72b359cfd3283caf0d18252166b9ea87b142c7423b4be0e3a91c3ce6fe",
+    "runs/qual-torch-cpu/triggers.hdf": "4f61362b39c7cf937377f4cc30307431c118789ed436cdccccb2361a577659d3",
+    "runs/qual-torch-cpu/workload-check.json": "841733f905f4ef4b7be2d58986543e424dddf654625ab12c93d763e64caf6c82",
+    "runs/qual-torch-cuda/arrays/qualification-psd-000.npy": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf",
+    "runs/qual-torch-cuda/gpu-after.json": "f5e7f1fc774f8f617a95c3a16274838271edf044453accf8f940c35f31ba040c",
+    "runs/qual-torch-cuda/gpu-before.json": "f5e7f1fc774f8f617a95c3a16274838271edf044453accf8f940c35f31ba040c",
+    "runs/qual-torch-cuda/gpu-during.jsonl": "b6e4841e4c9844a3541c228523303d7a2b40b1d20b9af70ab808dbc0e663fd4f",
+    "runs/qual-torch-cuda/host-samples.jsonl": "db6aa17adbe93042fd7c572d8e4fd3bfbeb611757e77e43656d9947760ebd4f2",
+    "runs/qual-torch-cuda/qualification.json": "1bc4b7546cdabf480ed74e6e60b4e9e2a2945c2c3fbeb3a8256ece795cd6be45",
+    "runs/qual-torch-cuda/receipt.json": "306f035cd127296a8b524e739cd1ce9e8596f92327ca44ee9a00cdf9585d911f",
+    "runs/qual-torch-cuda/runtime.json": "27e8b418e0fc2bd478d4f78f30f7fb757be3839d476faa6b774a62c03af8dffe",
+    "runs/qual-torch-cuda/stderr.log": "478074132a119ca69130d91713057a2312f62f651d5c7aad0b74379f4e0561ad",
+    "runs/qual-torch-cuda/stdout.log": "fd48547b7cfdfbb878d44cdc387195d0c3863a10a5efbe0f6b9ad5c1bed0ec1d",
+    "runs/qual-torch-cuda/time.txt": "79af2162c4a7ad3a3c862d7a4eb8ff9493612e11a96add608babf0011192b073",
+    "runs/qual-torch-cuda/triggers.hdf": "ba4b9a04f74be219450c592f21d10297bb449fc9d8f2c59a100523fdc4d81609",
+    "runs/qual-torch-cuda/workload-check.json": "841733f905f4ef4b7be2d58986543e424dddf654625ab12c93d763e64caf6c82",
+    "setup-remote.py": "42e953a735fa6f2adb815770bf63d4d4f209f58b9e577ca7ae26ad8ad6c93ba2",
+    "setup-status.json": "7b91fa6042544edd34ebf87de1569361a0fbac1374f4620fbbe52db4ca0bc1fc",
+    "setup.log": "b3d06fbc3915be66cfcb81a1a11acae488f5a7794a189c039118326b4d7b1f3b",
+    "source-pins.json": "b66eb06fc743f8d7ead11bba9e352f26280e292b09403ae0dc3aa0847dc116b4",
+    "status.json": "08f66c1e2d68f39a6b89594ef00da4a30e0783e14ec80b527803456b5d8360fa",
+    "summary.json": "6be769d78e8bef2f0a5fa6a3ce6f04ca35f7208dc6fa041cf343f0f9f149542c",
+    "threadpoolctl.py": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b"
+  },
+  "archive_unchanged": true,
+  "verifier_sha256": "185c796a3a560e2f9ab00d744d4d45f3eb5054bd30d6be306892f3aabd94164a",
+  "source_proof": {
+    "original": {
+      "commit": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+      "tracked_field_sets_and_sha256_match_git": true,
+      "symlink_policy": "Receipt hashes dereferenced file contents; four tracked example symlinks resolved entirely within the same Git tree",
+      "tracked_files": 1078,
+      "native_hashes": {
+        "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+        "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+        "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+        "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+        "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+        "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+        "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+        "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+        "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+        "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+        "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707"
+      },
+      "native_build_receipt_consistent": true,
+      "native_evidence": "receipt consistency; Linux binaries absent locally"
+    },
+    "proposed": {
+      "commit": "652206d84177f658f5fb2f9cab2ee73f6d2bc95f",
+      "tracked_field_sets_and_sha256_match_git": true,
+      "symlink_policy": "Receipt hashes dereferenced file contents; four tracked example symlinks resolved entirely within the same Git tree",
+      "tracked_files": 1227,
+      "native_hashes": {
+        "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+        "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+        "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+        "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+        "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+        "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+        "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+        "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+        "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+        "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc",
+        "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707"
+      },
+      "native_build_receipt_consistent": true,
+      "native_evidence": "receipt consistency; Linux binaries absent locally"
+    }
+  },
+  "harness_hashes_verified": {
+    "benchmark_cpu_campaign.py": "3ee6008a54da44599665d3a02633fa2328b53d97b81718327b24bb35b9ffff9e",
+    "campaign.py": "9069f3ad0f18a842fff0266ed4fef7f2dbf76b6d71f78417963e6b897144f478",
+    "checked-inspiral.py": "9181ff0515fb3cdacdd4246166bf90fea0da66232605922040ccc98c63d38b29",
+    "compare-triggers.py": "f0af115a2bf2d3a5a85152cb1f61d9b7570a460efd6d420566c5a2b74ac8f1b5",
+    "qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+    "setup-remote.py": "42e953a735fa6f2adb815770bf63d4d4f209f58b9e577ca7ae26ad8ad6c93ba2",
+    "threadpoolctl.py": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b",
+    "config.json": "dc09fe65b9e870dfb7f304f857700adb5ea714ac5403d60a717430a6d190eed2",
+    "dependencies.json": "ecbeb9363b47dc395e1c0ac157687be614732fc06f4365db6ba8baf3be7c8d7c"
+  },
+  "run_proof": {
+    "original-cpu": {
+      "status": "pass",
+      "source_commit": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+      "trigger_sha256": "6ac1cd9ef8c474f6c82f686eb5df9a1d3a4691c13a9d1d704805338bd5ff94a9",
+      "input_hash_receipts_consistent": true,
+      "source_module_hash_counts": {
+        "runtime": 136,
+        "qualification": 136
+      },
+      "qualification_checks": {
+        "all_decompressions_succeeded": true,
+        "all_interpolations_observed": true,
+        "all_segment_psds_saved": true,
+        "all_segment_psds_valid_for_filter": true,
+        "bank_0_all_templates_once": true,
+        "bank_0_compression_enabled": true,
+        "conditioned_strain_recorded": true,
+        "no_generation_fallback": true,
+        "nonempty_segments": true,
+        "one_compressed_bank": true,
+        "one_scalar_controller": true,
+        "recorded_geometry_matches_controller": true,
+        "scalar_ifft_executed_for_every_pair": true
+      },
+      "independently_checked_templates": 384,
+      "template_segment_pairs": 1920,
+      "thread_stages": {
+        "before_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": null,
+          "inter_op": null,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "at_first_bank": {
+          "affinity": [
+            8
+          ],
+          "intra_op": null,
+          "inter_op": null,
+          "scheme": "CPUScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "after_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": null,
+          "inter_op": null,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        }
+      },
+      "fft_engine": {
+        "class": "pycbc.fft.mkl.IFFT",
+        "execute_attempts": 1920,
+        "execute_successes": 1920,
+        "executed_routes": {},
+        "id": 0,
+        "input_dtype": "complex64",
+        "kind": "IFFT",
+        "nbatch": 1,
+        "output_dtype": "complex64",
+        "plans_after_execution": {},
+        "plans_at_construction": {},
+        "size": 2097152
+      },
+      "psds": [
+        {
+          "file": "arrays/qualification-psd-000.npy",
+          "dtype": "<f4",
+          "shape": [
+            1048577
+          ],
+          "nbytes": 4194308,
+          "data_sha256": "fca627aa115278db74c39a4e5073c37fafc9f77290d4a51f9851882f7c7304c6",
+          "file_sha256": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+          "positive_infinity_count": 44,
+          "segments": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ],
+      "conditioned_strain_evidence": "recorded digest/schema only; raw strain not included",
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "segment_geometry": [
+        {
+          "bounding_span_seconds": 1904.0,
+          "delta_f_hz": 0.001953125,
+          "fft_samples": 2097152,
+          "frequency_samples": 1048577,
+          "gap_samples": 0,
+          "overlap_samples": 0,
+          "sample_origin": "Offsets relative to strain_start_time; intervals are half-open.",
+          "sample_rate_hz": 4096.0,
+          "segments": [
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                458752,
+                2019328
+              ],
+              "segment_slice": {
+                "start": 0,
+                "step": null,
+                "stop": 2097152
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                2019328,
+                3579904
+              ],
+              "segment_slice": {
+                "start": 1560576,
+                "step": null,
+                "stop": 3657728
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                3579904,
+                5140480
+              ],
+              "segment_slice": {
+                "start": 3121152,
+                "step": null,
+                "stop": 5218304
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                5140480,
+                6701056
+              ],
+              "segment_slice": {
+                "start": 4681728,
+                "step": null,
+                "stop": 6778880
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 475136,
+                "step": null,
+                "stop": 2031616
+              },
+              "analyzed_sample_interval": [
+                6701056,
+                8257536
+              ],
+              "segment_slice": {
+                "start": 6225920,
+                "step": null,
+                "stop": 8323072
+              }
+            }
+          ],
+          "strain_end_time": "1187009080.0",
+          "strain_start_time": "1187007048.0",
+          "union_analyzed_sample_intervals": [
+            [
+              458752,
+              8257536
+            ]
+          ],
+          "unique_analyzed_samples": 7798784,
+          "unique_analyzed_seconds": 1904.0
+        }
+      ]
+    },
+    "proposed-cpu": {
+      "status": "pass",
+      "source_commit": "652206d84177f658f5fb2f9cab2ee73f6d2bc95f",
+      "trigger_sha256": "f7024b9a5628e62873ec5829991c4f329e40123b851fd99dd4b6ff0b9fb955e3",
+      "input_hash_receipts_consistent": true,
+      "source_module_hash_counts": {
+        "runtime": 144,
+        "qualification": 144
+      },
+      "qualification_checks": {
+        "all_decompressions_succeeded": true,
+        "all_interpolations_observed": true,
+        "all_segment_psds_saved": true,
+        "all_segment_psds_valid_for_filter": true,
+        "bank_0_all_templates_once": true,
+        "bank_0_compression_enabled": true,
+        "conditioned_strain_recorded": true,
+        "no_generation_fallback": true,
+        "nonempty_segments": true,
+        "one_compressed_bank": true,
+        "one_scalar_controller": true,
+        "recorded_geometry_matches_controller": true,
+        "scalar_ifft_executed_for_every_pair": true
+      },
+      "independently_checked_templates": 384,
+      "template_segment_pairs": 1920,
+      "thread_stages": {
+        "before_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": null,
+          "inter_op": null,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "at_first_bank": {
+          "affinity": [
+            8
+          ],
+          "intra_op": null,
+          "inter_op": null,
+          "scheme": "CPUScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "after_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": null,
+          "inter_op": null,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        }
+      },
+      "fft_engine": {
+        "class": "pycbc.fft.mkl.IFFT",
+        "execute_attempts": 1920,
+        "execute_successes": 1920,
+        "executed_routes": {},
+        "id": 0,
+        "input_dtype": "complex64",
+        "kind": "IFFT",
+        "nbatch": 1,
+        "output_dtype": "complex64",
+        "plans_after_execution": {},
+        "plans_at_construction": {},
+        "size": 2097152
+      },
+      "psds": [
+        {
+          "file": "arrays/qualification-psd-000.npy",
+          "dtype": "<f4",
+          "shape": [
+            1048577
+          ],
+          "nbytes": 4194308,
+          "data_sha256": "fca627aa115278db74c39a4e5073c37fafc9f77290d4a51f9851882f7c7304c6",
+          "file_sha256": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+          "positive_infinity_count": 44,
+          "segments": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ],
+      "conditioned_strain_evidence": "recorded digest/schema only; raw strain not included",
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "segment_geometry": [
+        {
+          "bounding_span_seconds": 1904.0,
+          "delta_f_hz": 0.001953125,
+          "fft_samples": 2097152,
+          "frequency_samples": 1048577,
+          "gap_samples": 0,
+          "overlap_samples": 0,
+          "sample_origin": "Offsets relative to strain_start_time; intervals are half-open.",
+          "sample_rate_hz": 4096.0,
+          "segments": [
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                458752,
+                2019328
+              ],
+              "segment_slice": {
+                "start": 0,
+                "step": null,
+                "stop": 2097152
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                2019328,
+                3579904
+              ],
+              "segment_slice": {
+                "start": 1560576,
+                "step": null,
+                "stop": 3657728
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                3579904,
+                5140480
+              ],
+              "segment_slice": {
+                "start": 3121152,
+                "step": null,
+                "stop": 5218304
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                5140480,
+                6701056
+              ],
+              "segment_slice": {
+                "start": 4681728,
+                "step": null,
+                "stop": 6778880
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 475136,
+                "step": null,
+                "stop": 2031616
+              },
+              "analyzed_sample_interval": [
+                6701056,
+                8257536
+              ],
+              "segment_slice": {
+                "start": 6225920,
+                "step": null,
+                "stop": 8323072
+              }
+            }
+          ],
+          "strain_end_time": "1187009080.0",
+          "strain_start_time": "1187007048.0",
+          "union_analyzed_sample_intervals": [
+            [
+              458752,
+              8257536
+            ]
+          ],
+          "unique_analyzed_samples": 7798784,
+          "unique_analyzed_seconds": 1904.0
+        }
+      ]
+    },
+    "torch-cpu": {
+      "status": "pass",
+      "source_commit": "652206d84177f658f5fb2f9cab2ee73f6d2bc95f",
+      "trigger_sha256": "4f61362b39c7cf937377f4cc30307431c118789ed436cdccccb2361a577659d3",
+      "input_hash_receipts_consistent": true,
+      "source_module_hash_counts": {
+        "runtime": 146,
+        "qualification": 146
+      },
+      "qualification_checks": {
+        "all_decompressions_succeeded": true,
+        "all_interpolations_observed": true,
+        "all_segment_psds_saved": true,
+        "all_segment_psds_valid_for_filter": true,
+        "bank_0_all_templates_once": true,
+        "bank_0_compression_enabled": true,
+        "conditioned_strain_recorded": true,
+        "no_generation_fallback": true,
+        "nonempty_segments": true,
+        "one_compressed_bank": true,
+        "one_scalar_controller": true,
+        "recorded_geometry_matches_controller": true,
+        "scalar_ifft_executed_for_every_pair": true
+      },
+      "independently_checked_templates": 384,
+      "template_segment_pairs": 1920,
+      "thread_stages": {
+        "before_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": 1,
+          "inter_op": 1,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "at_first_bank": {
+          "affinity": [
+            8
+          ],
+          "intra_op": 1,
+          "inter_op": 1,
+          "scheme": "TorchScheme",
+          "device": "cpu",
+          "threadpools": [
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "after_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": 1,
+          "inter_op": 1,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        }
+      },
+      "fft_engine": {
+        "class": "pycbc.fft.torchfft.IFFT",
+        "execute_attempts": 1920,
+        "execute_successes": 1920,
+        "executed_routes": {
+          "pycbc.fft.torchfft._execute_mkl_cpu_ifft_plan": 1920
+        },
+        "id": 0,
+        "input_dtype": "complex64",
+        "kind": "IFFT",
+        "nbatch": 1,
+        "output_dtype": "complex64",
+        "plans_after_execution": {
+          "_mkl_plan": "pycbc.fft.torchfft._MKLCPUDirectIFFTPlan"
+        },
+        "plans_at_construction": {
+          "_mkl_plan": "pycbc.fft.torchfft._MKLCPUDirectIFFTPlan"
+        },
+        "size": 2097152
+      },
+      "psds": [
+        {
+          "file": "arrays/qualification-psd-000.npy",
+          "dtype": "<f4",
+          "shape": [
+            1048577
+          ],
+          "nbytes": 4194308,
+          "data_sha256": "2d177d2aff0fb3ec1e86293e7558a0a5a38e49e57664a277a71fcb1ed7353711",
+          "file_sha256": "4b083eda5f7778779ba7b5f153a0e2b3ac0d623f6cc60d9e22b300244d5ead9a",
+          "positive_infinity_count": 0,
+          "segments": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ],
+      "conditioned_strain_evidence": "recorded digest/schema only; raw strain not included",
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "segment_geometry": [
+        {
+          "bounding_span_seconds": 1904.0,
+          "delta_f_hz": 0.001953125,
+          "fft_samples": 2097152,
+          "frequency_samples": 1048577,
+          "gap_samples": 0,
+          "overlap_samples": 0,
+          "sample_origin": "Offsets relative to strain_start_time; intervals are half-open.",
+          "sample_rate_hz": 4096.0,
+          "segments": [
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                458752,
+                2019328
+              ],
+              "segment_slice": {
+                "start": 0,
+                "step": null,
+                "stop": 2097152
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                2019328,
+                3579904
+              ],
+              "segment_slice": {
+                "start": 1560576,
+                "step": null,
+                "stop": 3657728
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                3579904,
+                5140480
+              ],
+              "segment_slice": {
+                "start": 3121152,
+                "step": null,
+                "stop": 5218304
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                5140480,
+                6701056
+              ],
+              "segment_slice": {
+                "start": 4681728,
+                "step": null,
+                "stop": 6778880
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 475136,
+                "step": null,
+                "stop": 2031616
+              },
+              "analyzed_sample_interval": [
+                6701056,
+                8257536
+              ],
+              "segment_slice": {
+                "start": 6225920,
+                "step": null,
+                "stop": 8323072
+              }
+            }
+          ],
+          "strain_end_time": "1187009080.0",
+          "strain_start_time": "1187007048.0",
+          "union_analyzed_sample_intervals": [
+            [
+              458752,
+              8257536
+            ]
+          ],
+          "unique_analyzed_samples": 7798784,
+          "unique_analyzed_seconds": 1904.0
+        }
+      ]
+    },
+    "torch-cuda": {
+      "status": "pass",
+      "source_commit": "652206d84177f658f5fb2f9cab2ee73f6d2bc95f",
+      "trigger_sha256": "ba4b9a04f74be219450c592f21d10297bb449fc9d8f2c59a100523fdc4d81609",
+      "input_hash_receipts_consistent": true,
+      "source_module_hash_counts": {
+        "runtime": 143,
+        "qualification": 143
+      },
+      "qualification_checks": {
+        "all_decompressions_succeeded": true,
+        "all_interpolations_observed": true,
+        "all_segment_psds_saved": true,
+        "all_segment_psds_valid_for_filter": true,
+        "bank_0_all_templates_once": true,
+        "bank_0_compression_enabled": true,
+        "conditioned_strain_recorded": true,
+        "no_generation_fallback": true,
+        "nonempty_segments": true,
+        "one_compressed_bank": true,
+        "one_scalar_controller": true,
+        "recorded_geometry_matches_controller": true,
+        "scalar_ifft_executed_for_every_pair": true
+      },
+      "independently_checked_templates": 384,
+      "template_segment_pairs": 1920,
+      "thread_stages": {
+        "before_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": 1,
+          "inter_op": 1,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "at_first_bank": {
+          "affinity": [
+            8
+          ],
+          "intra_op": 1,
+          "inter_op": 1,
+          "scheme": "TorchScheme",
+          "device": "cuda:0",
+          "threadpools": [
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        },
+        "after_executable": {
+          "affinity": [
+            8
+          ],
+          "intra_op": 1,
+          "inter_op": 1,
+          "scheme": "DefaultScheme",
+          "device": "",
+          "threadpools": [
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ]
+        }
+      },
+      "fft_engine": {
+        "class": "pycbc.fft.torchfft.IFFT",
+        "execute_attempts": 1920,
+        "execute_successes": 1920,
+        "executed_routes": {
+          "pycbc.fft.torchfft.ifft": 1920
+        },
+        "id": 0,
+        "input_dtype": "complex64",
+        "kind": "IFFT",
+        "nbatch": 1,
+        "output_dtype": "complex64",
+        "plans_after_execution": {},
+        "plans_at_construction": {},
+        "size": 2097152
+      },
+      "psds": [
+        {
+          "file": "arrays/qualification-psd-000.npy",
+          "dtype": "<f4",
+          "shape": [
+            1048577
+          ],
+          "nbytes": 4194308,
+          "data_sha256": "11febcb9ab09bf022cab9d1b0afe9802306cf3dd4a2c98e31036516d20b4eebc",
+          "file_sha256": "bbe49d4395afa718421844455f47c1c126cdac969f4b4bbcc531b52db21077bf",
+          "positive_infinity_count": 0,
+          "segments": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ],
+      "conditioned_strain_evidence": "recorded digest/schema only; raw strain not included",
+      "conditioned_strain": [
+        {
+          "byte_order": "C order; dtype_str records endianness",
+          "capture": "Final conditioned strain supplied to StrainSegments before Fourier transforms",
+          "data_sha256": "6dade3ac060902e014dec94a1e761993191bb5e396ec77f74b7be838f88ba2f4",
+          "delta_t_seconds": 0.000244140625,
+          "dtype": "float32",
+          "dtype_str": "<f4",
+          "end_time": "1187009080.0",
+          "gating_info": {
+            "hash_encoding": "UTF-8 JSON, sorted keys, separators (comma, colon), NumPy values converted to lists",
+            "sha256": "64822fb8615d1f92ea230bc926e926db736cdf27f7784b1b849d632de101452d",
+            "summary": {
+              "auto": {
+                "entries": 0
+              }
+            },
+            "values": {
+              "auto": []
+            }
+          },
+          "n_samples": 8323072,
+          "nbytes": 33292288,
+          "sample_rate_hz": 4096.0,
+          "shape": [
+            8323072
+          ],
+          "start_time": "1187007048.0"
+        }
+      ],
+      "segment_geometry": [
+        {
+          "bounding_span_seconds": 1904.0,
+          "delta_f_hz": 0.001953125,
+          "fft_samples": 2097152,
+          "frequency_samples": 1048577,
+          "gap_samples": 0,
+          "overlap_samples": 0,
+          "sample_origin": "Offsets relative to strain_start_time; intervals are half-open.",
+          "sample_rate_hz": 4096.0,
+          "segments": [
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                458752,
+                2019328
+              ],
+              "segment_slice": {
+                "start": 0,
+                "step": null,
+                "stop": 2097152
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                2019328,
+                3579904
+              ],
+              "segment_slice": {
+                "start": 1560576,
+                "step": null,
+                "stop": 3657728
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                3579904,
+                5140480
+              ],
+              "segment_slice": {
+                "start": 3121152,
+                "step": null,
+                "stop": 5218304
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 458752,
+                "step": null,
+                "stop": 2019328
+              },
+              "analyzed_sample_interval": [
+                5140480,
+                6701056
+              ],
+              "segment_slice": {
+                "start": 4681728,
+                "step": null,
+                "stop": 6778880
+              }
+            },
+            {
+              "analyze_slice": {
+                "start": 475136,
+                "step": null,
+                "stop": 2031616
+              },
+              "analyzed_sample_interval": [
+                6701056,
+                8257536
+              ],
+              "segment_slice": {
+                "start": 6225920,
+                "step": null,
+                "stop": 8323072
+              }
+            }
+          ],
+          "strain_end_time": "1187009080.0",
+          "strain_start_time": "1187007048.0",
+          "union_analyzed_sample_intervals": [
+            [
+              458752,
+              8257536
+            ]
+          ],
+          "unique_analyzed_samples": 7798784,
+          "unique_analyzed_seconds": 1904.0
+        }
+      ]
+    }
+  },
+  "h1_cpu_field_comparison": {
+    "left_dataset_names": [
+      "bank_chisq",
+      "bank_chisq_dof",
+      "chisq",
+      "chisq_dof",
+      "coa_phase",
+      "cont_chisq",
+      "cont_chisq_dof",
+      "end_time",
+      "gating/auto/pad",
+      "gating/auto/time",
+      "gating/auto/width",
+      "search/end_time",
+      "search/filter_rate_per_core",
+      "search/run_time",
+      "search/setup_time_fraction",
+      "search/start_time",
+      "search/templates_per_core",
+      "sg_chisq",
+      "sigmasq",
+      "snr",
+      "template_duration",
+      "template_hash"
+    ],
+    "right_dataset_names": [
+      "bank_chisq",
+      "bank_chisq_dof",
+      "chisq",
+      "chisq_dof",
+      "coa_phase",
+      "cont_chisq",
+      "cont_chisq_dof",
+      "end_time",
+      "gating/auto/pad",
+      "gating/auto/time",
+      "gating/auto/width",
+      "search/end_time",
+      "search/filter_rate_per_core",
+      "search/run_time",
+      "search/setup_time_fraction",
+      "search/start_time",
+      "search/templates_per_core",
+      "sg_chisq",
+      "sigmasq",
+      "snr",
+      "template_duration",
+      "template_hash"
+    ],
+    "dataset_field_sets_equal": true,
+    "scientific_field_sets_equal": true,
+    "left_only": [],
+    "right_only": [],
+    "datasets": {
+      "bank_chisq": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "c3d8455c6fc836ae8ae68944728caa652e20884230fb462bbb036e8879d197ba"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "c3d8455c6fc836ae8ae68944728caa652e20884230fb462bbb036e8879d197ba"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "bank_chisq_dof": {
+        "left": {
+          "dtype": "<i8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "0420da3cc481d969b0317d930e806b6072162221581f55973db92f3493bcd558"
+        },
+        "right": {
+          "dtype": "<i8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "0420da3cc481d969b0317d930e806b6072162221581f55973db92f3493bcd558"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "chisq": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "8b8cecb39561eb54559576e0fe3d340cf0828701164037cdc924ec484f9c47df"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "8b8cecb39561eb54559576e0fe3d340cf0828701164037cdc924ec484f9c47df"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "chisq_dof": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "b7e0a824ea1c1049571d4b20d32c8836c2c3c2eb42059902d75b2bf0167defb2"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "b7e0a824ea1c1049571d4b20d32c8836c2c3c2eb42059902d75b2bf0167defb2"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "coa_phase": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "8c020b4cdddfb7a6b4f8a3b01a443804d27fdaeb27081d15cd6bea0e861ba342"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "8c020b4cdddfb7a6b4f8a3b01a443804d27fdaeb27081d15cd6bea0e861ba342"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "cont_chisq": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "c3d8455c6fc836ae8ae68944728caa652e20884230fb462bbb036e8879d197ba"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "c3d8455c6fc836ae8ae68944728caa652e20884230fb462bbb036e8879d197ba"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "cont_chisq_dof": {
+        "left": {
+          "dtype": "<i8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "0420da3cc481d969b0317d930e806b6072162221581f55973db92f3493bcd558"
+        },
+        "right": {
+          "dtype": "<i8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "0420da3cc481d969b0317d930e806b6072162221581f55973db92f3493bcd558"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "end_time": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "e6f885037c5072c07522bda8d8b6d99ccdb0f87be1dd024b17e5b2212329f72e"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "e6f885037c5072c07522bda8d8b6d99ccdb0f87be1dd024b17e5b2212329f72e"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "gating/auto/pad": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            0
+          ],
+          "nbytes": 0,
+          "data_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            0
+          ],
+          "nbytes": 0,
+          "data_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "gating/auto/time": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            0
+          ],
+          "nbytes": 0,
+          "data_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            0
+          ],
+          "nbytes": 0,
+          "data_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "gating/auto/width": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            0
+          ],
+          "nbytes": 0,
+          "data_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            0
+          ],
+          "nbytes": 0,
+          "data_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "search/end_time": {
+        "left": {
+          "dtype": "<i8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "9d253ee5e473ecdaf50d00f365e784246399e977bf5d56baaf3c27438df757e7"
+        },
+        "right": {
+          "dtype": "<i8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "9d253ee5e473ecdaf50d00f365e784246399e977bf5d56baaf3c27438df757e7"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "search/filter_rate_per_core": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "d5b1cbaa970879a17f52e9986128ba9d4d78d86bd95892abbd1a85ffb16a4954"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "7dbc8a089d5f2d0ed88352ddaa9167ab62884c67838c3e8a8a747ccfee64d79b"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": false,
+        "exact": false,
+        "left_value": [
+          0.07902835615282242
+        ],
+        "right_value": [
+          0.08479971518418415
+        ]
+      },
+      "search/run_time": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "37c84ab6c4a83b826f1a46de3fe5167384407be7d34e55447064d942eba61f15"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "a9900e633dee31d52afdfec7bd8845470e5b26e6d3387ce9f831954d3965b745"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": false,
+        "exact": false,
+        "left_value": [
+          63.26842975616455
+        ],
+        "right_value": [
+          58.962462186813354
+        ]
+      },
+      "search/setup_time_fraction": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "f72c516c93f464204f303f0e789a1f97637956027d7aac1e316b054ed456dcdf"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "7aaa85ba501037655ed48f6a079133eae7f319b2bd87ecb73c8b87cebf976197"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": false,
+        "exact": false,
+        "left_value": [
+          0.2295161062737606
+        ],
+        "right_value": [
+          0.16523588133398406
+        ]
+      },
+      "search/start_time": {
+        "left": {
+          "dtype": "<i8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "c91345baeafb28649db2871c931e59f316ca7b06671919492d234807326a1077"
+        },
+        "right": {
+          "dtype": "<i8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "c91345baeafb28649db2871c931e59f316ca7b06671919492d234807326a1077"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "search/templates_per_core": {
+        "left": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "1e4023f156a2449940f8dc04ff0d4cd245934b877c19abc37dc78864ea0e4713"
+        },
+        "right": {
+          "dtype": "<f8",
+          "shape": [
+            1
+          ],
+          "nbytes": 8,
+          "data_sha256": "4f31a97a5af5c55e76cc157d2114adecccc6b8847e36ae6517ba412385114a09"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": false,
+        "exact": false,
+        "left_value": [
+          11556.095240829995
+        ],
+        "right_value": [
+          12400.024912180732
+        ]
+      },
+      "sg_chisq": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "c3d8455c6fc836ae8ae68944728caa652e20884230fb462bbb036e8879d197ba"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "c3d8455c6fc836ae8ae68944728caa652e20884230fb462bbb036e8879d197ba"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "sigmasq": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "ca025a966f81ca2976877617f7b3ac4baee89591261b24b585135c80cb30fd09"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "ca025a966f81ca2976877617f7b3ac4baee89591261b24b585135c80cb30fd09"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "snr": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "1ecfc8e3301804a0c3b98b767fa9e58fbeefdd76ba867edcefdb68ac6608c470"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "1ecfc8e3301804a0c3b98b767fa9e58fbeefdd76ba867edcefdb68ac6608c470"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "template_duration": {
+        "left": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "b5832e14e0f4dbc603757c55c4a5be355ed6cce28f1cdee92075277b6bec236e"
+        },
+        "right": {
+          "dtype": "<f4",
+          "shape": [
+            1988
+          ],
+          "nbytes": 7952,
+          "data_sha256": "b5832e14e0f4dbc603757c55c4a5be355ed6cce28f1cdee92075277b6bec236e"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      },
+      "template_hash": {
+        "left": {
+          "dtype": "<i8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "50e17c1146675c05037adc6b05302be412135de12f60c8fcf6710982dfaba1cd"
+        },
+        "right": {
+          "dtype": "<i8",
+          "shape": [
+            1988
+          ],
+          "nbytes": 15904,
+          "data_sha256": "50e17c1146675c05037adc6b05302be412135de12f60c8fcf6710982dfaba1cd"
+        },
+        "dtype_equal": true,
+        "shape_equal": true,
+        "bytes_equal": true,
+        "exact": true
+      }
+    }
+  },
+  "scientific_dataset_count": 18,
+  "scientific_cpu_datasets_exact": true,
+  "timing_exclusions": [
+    "H1/search/filter_rate_per_core",
+    "H1/search/run_time",
+    "H1/search/setup_time_fraction",
+    "H1/search/templates_per_core"
+  ],
+  "archived_cpu_preserved": false,
+  "corrected_cpu_preserved": true,
+  "trigger_counts": {
+    "original-cpu": 1988,
+    "proposed-cpu": 1988,
+    "torch-cpu": 1991,
+    "torch-cuda": 1991
+  },
+  "comparison_status": {
+    "original-cpu-vs-proposed-cpu": "pass",
+    "original-cpu-vs-torch-cpu": "fail",
+    "original-cpu-vs-torch-cuda": "fail",
+    "proposed-cpu-vs-torch-cpu": "fail",
+    "proposed-cpu-vs-torch-cuda": "fail"
+  },
+  "comparisons": {
+    "original-cpu-vs-proposed-cpu": {
+      "status": "pass",
+      "baseline": "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/runs/qual-original-cpu/triggers.hdf",
+      "candidate": "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/runs/qual-proposed-cpu/triggers.hdf",
+      "baseline_sha256": "6ac1cd9ef8c474f6c82f686eb5df9a1d3a4691c13a9d1d704805338bd5ff94a9",
+      "candidate_sha256": "f7024b9a5628e62873ec5829991c4f329e40123b851fd99dd4b6ff0b9fb955e3",
+      "baseline_receipt_sha256": "d96e4333dbf54c0e590e46a6c7824f8148ecf527f3f10465b46b4b4da24885aa",
+      "candidate_receipt_sha256": "1e68c8fc044b093acf843946a6a6a2bc2e87e95b1d0f5b0c9933e6650d315654",
+      "sample_rate": 4096,
+      "failures": [],
+      "review_reasons": [],
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1988,
+          "matched_count": 1988,
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "metrics": {
+            "bank_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "bank_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 35.49388122558594,
+              "candidate_value": 35.49388122558594,
+              "budget_at_worst": 0.003559388122558594
+            },
+            "chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 16.0,
+              "candidate_value": 16.0,
+              "budget_at_worst": 0.0
+            },
+            "coa_phase": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 2.1825428009033203,
+              "candidate_value": 2.1825428009033203,
+              "budget_at_worst": 0.0001
+            },
+            "cont_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "cont_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "sg_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "sigmasq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 3547517.5,
+              "candidate_value": 3547517.5,
+              "budget_at_worst": 35.475175
+            },
+            "snr": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 5.890442848205566,
+              "candidate_value": 5.890442848205566,
+              "budget_at_worst": 0.0005990442848205566
+            },
+            "template_duration": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 37.44173049926758,
+              "candidate_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            },
+            "candidate_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            }
+          }
+        }
+      }
+    },
+    "original-cpu-vs-torch-cpu": {
+      "status": "fail",
+      "baseline": "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/runs/qual-original-cpu/triggers.hdf",
+      "candidate": "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/runs/qual-torch-cpu/triggers.hdf",
+      "baseline_sha256": "6ac1cd9ef8c474f6c82f686eb5df9a1d3a4691c13a9d1d704805338bd5ff94a9",
+      "candidate_sha256": "4f61362b39c7cf937377f4cc30307431c118789ed436cdccccb2361a577659d3",
+      "baseline_receipt_sha256": "d96e4333dbf54c0e590e46a6c7824f8148ecf527f3f10465b46b4b4da24885aa",
+      "candidate_receipt_sha256": "38cb62e7a5359ecadb3ede8307b1425a38544f6f8591b44dc301bb1e256a90be",
+      "sample_rate": 4096,
+      "failures": [
+        "H1/chisq: 1951 numerical violations",
+        "H1/coa_phase: 22 numerical violations",
+        "H1/snr: 10 numerical violations",
+        "H1/baseline_only: 29 unexplained triggers",
+        "H1/candidate_only: 30 unexplained triggers"
+      ],
+      "review_reasons": [
+        "H1/candidate_only: 2 threshold-adjacent triggers"
+      ],
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1991,
+          "matched_count": 1959,
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "metrics": {
+            "bank_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "bank_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "chisq": {
+              "violations": 1951,
+              "max_absolute_error": 9.844049453735352,
+              "max_relative_error": 0.25992463011312433,
+              "worst_identity": [
+                -2126366565482007403,
+                4861988164405
+              ],
+              "baseline_value": 28.028657913208008,
+              "candidate_value": 37.87270736694336,
+              "budget_at_worst": 0.0037972707366943363
+            },
+            "chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 16.0,
+              "candidate_value": 16.0,
+              "budget_at_worst": 0.0
+            },
+            "coa_phase": {
+              "violations": 22,
+              "max_absolute_error": 0.0001208782196044922,
+              "max_relative_error": 0.034621101871598156,
+              "worst_identity": [
+                1260664243110379185,
+                4861986645536
+              ],
+              "baseline_value": -2.5574662685394287,
+              "candidate_value": -2.557587146759033,
+              "budget_at_worst": 0.0001
+            },
+            "cont_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "cont_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "sg_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "sigmasq": {
+              "violations": 0,
+              "max_absolute_error": 49.0,
+              "max_relative_error": 4.698938979578411e-06,
+              "worst_identity": [
+                3137770323868241004,
+                4861982045819
+              ],
+              "baseline_value": 10427837.0,
+              "candidate_value": 10427886.0,
+              "budget_at_worst": 104.27886000000001
+            },
+            "snr": {
+              "violations": 10,
+              "max_absolute_error": 0.0007162094116210938,
+              "max_relative_error": 0.00012856655566174328,
+              "worst_identity": [
+                5173167354145275339,
+                4861982469878
+              ],
+              "baseline_value": 5.570728778839111,
+              "candidate_value": 5.57001256942749,
+              "budget_at_worst": 0.0005670728778839111
+            },
+            "template_duration": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 37.44173049926758,
+              "candidate_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "count": 29,
+              "classifications": {
+                "unexplained_mismatch": 29
+              },
+              "examples": [
+                {
+                  "template_hash": -7181991947907977315,
+                  "gps_sample_tick": 4861984638229,
+                  "end_time": 1187007968.317627,
+                  "snr": 5.60625696182251,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1066564
+                },
+                {
+                  "template_hash": -7165348744408480873,
+                  "gps_sample_tick": 4861981497051,
+                  "end_time": 1187007201.4284668,
+                  "snr": 5.539468765258789,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 1688665
+                },
+                {
+                  "template_hash": -6567042328987826803,
+                  "gps_sample_tick": 4861987924202,
+                  "end_time": 1187008770.557129,
+                  "snr": 5.561619758605957,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -856993
+                },
+                {
+                  "template_hash": -5963460109972533451,
+                  "gps_sample_tick": 4861983951901,
+                  "end_time": 1187007800.75708,
+                  "snr": 5.524919033050537,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -116815
+                },
+                {
+                  "template_hash": -5934879221955148907,
+                  "gps_sample_tick": 4861986723794,
+                  "end_time": 1187008477.4887695,
+                  "snr": 5.598695755004883,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -2088676
+                },
+                {
+                  "template_hash": -5178096382281007317,
+                  "gps_sample_tick": 4861987932929,
+                  "end_time": 1187008772.6877441,
+                  "snr": 5.564938068389893,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 9268
+                },
+                {
+                  "template_hash": -4998367400819783185,
+                  "gps_sample_tick": 4861987924218,
+                  "end_time": 1187008770.5610352,
+                  "snr": 5.6290130615234375,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -16571
+                },
+                {
+                  "template_hash": -4695993811833931683,
+                  "gps_sample_tick": 4861981953128,
+                  "end_time": 1187007312.7753906,
+                  "snr": 5.875364780426025,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 864584
+                },
+                {
+                  "template_hash": -4055176971796855720,
+                  "gps_sample_tick": 4861988214230,
+                  "end_time": 1187008841.364746,
+                  "snr": 5.575496673583984,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -641986
+                },
+                {
+                  "template_hash": -3147409681897922532,
+                  "gps_sample_tick": 4861987392117,
+                  "end_time": 1187008640.6535645,
+                  "snr": 5.564450740814209,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 229779
+                },
+                {
+                  "template_hash": -3110603659142667602,
+                  "gps_sample_tick": 4861982119521,
+                  "end_time": 1187007353.3986816,
+                  "snr": 5.763233661651611,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -179721
+                },
+                {
+                  "template_hash": -2725569140561696380,
+                  "gps_sample_tick": 4861984287688,
+                  "end_time": 1187007882.7363281,
+                  "snr": 5.594320774078369,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -42714
+                }
+              ]
+            },
+            "candidate_only": {
+              "count": 32,
+              "classifications": {
+                "near_threshold_requires_review": 2,
+                "unexplained_mismatch": 30
+              },
+              "examples": [
+                {
+                  "template_hash": -8900663754632545598,
+                  "gps_sample_tick": 4861983573748,
+                  "end_time": 1187007708.4345703,
+                  "snr": 5.500112533569336,
+                  "classification": "near_threshold_requires_review",
+                  "near_thresholds": [
+                    {
+                      "statistic": "snr",
+                      "value": 5.500112533569336,
+                      "threshold": 5.5,
+                      "absolute_distance": 0.0001125335693359375,
+                      "band": 0.0005600000000000001
+                    }
+                  ],
+                  "nearest_same_template_delta_samples": 256623
+                },
+                {
+                  "template_hash": -8660435872545199746,
+                  "gps_sample_tick": 4861982499852,
+                  "end_time": 1187007446.2529297,
+                  "snr": 5.508003234863281,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1026174
+                },
+                {
+                  "template_hash": -6633315965868948702,
+                  "gps_sample_tick": 4861983776148,
+                  "end_time": 1187007757.8486328,
+                  "snr": 5.523138523101807,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 431306
+                },
+                {
+                  "template_hash": -6565366494966343500,
+                  "gps_sample_tick": 4861985006593,
+                  "end_time": 1187008058.2502441,
+                  "snr": 5.554582118988037,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -25215
+                },
+                {
+                  "template_hash": -5008805154614134207,
+                  "gps_sample_tick": 4861982866785,
+                  "end_time": 1187007535.8361816,
+                  "snr": 5.531952381134033,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 531731
+                },
+                {
+                  "template_hash": -3110603659142667602,
+                  "gps_sample_tick": 4861988140765,
+                  "end_time": 1187008823.428955,
+                  "snr": 5.572027683258057,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -216563
+                },
+                {
+                  "template_hash": -3021755972813798441,
+                  "gps_sample_tick": 4861984082344,
+                  "end_time": 1187007832.6035156,
+                  "snr": 5.501036167144775,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 568546
+                },
+                {
+                  "template_hash": -1906928442344696145,
+                  "gps_sample_tick": 4861981832940,
+                  "end_time": 1187007283.4326172,
+                  "snr": 5.646286487579346,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -172195
+                },
+                {
+                  "template_hash": -1687024759190033225,
+                  "gps_sample_tick": 4861982653842,
+                  "end_time": 1187007483.8481445,
+                  "snr": 5.565576076507568,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 483605
+                },
+                {
+                  "template_hash": -291345402897050286,
+                  "gps_sample_tick": 4861987857789,
+                  "end_time": 1187008754.3430176,
+                  "snr": 5.507723331451416,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -673021
+                },
+                {
+                  "template_hash": 25732923710508636,
+                  "gps_sample_tick": 4861983357522,
+                  "end_time": 1187007655.6450195,
+                  "snr": 5.578214168548584,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 2190222
+                },
+                {
+                  "template_hash": 666200130799432153,
+                  "gps_sample_tick": 4861984243112,
+                  "end_time": 1187007871.8535156,
+                  "snr": 5.5233659744262695,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 834471
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "original-cpu-vs-torch-cuda": {
+      "status": "fail",
+      "baseline": "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/runs/qual-original-cpu/triggers.hdf",
+      "candidate": "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/runs/qual-torch-cuda/triggers.hdf",
+      "baseline_sha256": "6ac1cd9ef8c474f6c82f686eb5df9a1d3a4691c13a9d1d704805338bd5ff94a9",
+      "candidate_sha256": "ba4b9a04f74be219450c592f21d10297bb449fc9d8f2c59a100523fdc4d81609",
+      "baseline_receipt_sha256": "d96e4333dbf54c0e590e46a6c7824f8148ecf527f3f10465b46b4b4da24885aa",
+      "candidate_receipt_sha256": "306f035cd127296a8b524e739cd1ce9e8596f92327ca44ee9a00cdf9585d911f",
+      "sample_rate": 4096,
+      "failures": [
+        "H1/chisq: 1951 numerical violations",
+        "H1/coa_phase: 22 numerical violations",
+        "H1/snr: 10 numerical violations",
+        "H1/baseline_only: 29 unexplained triggers",
+        "H1/candidate_only: 30 unexplained triggers"
+      ],
+      "review_reasons": [
+        "H1/candidate_only: 2 threshold-adjacent triggers"
+      ],
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1991,
+          "matched_count": 1959,
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "metrics": {
+            "bank_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "bank_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "chisq": {
+              "violations": 1951,
+              "max_absolute_error": 9.844060897827148,
+              "max_relative_error": 0.25992485374350355,
+              "worst_identity": [
+                -2126366565482007403,
+                4861988164405
+              ],
+              "baseline_value": 28.028657913208008,
+              "candidate_value": 37.872718811035156,
+              "budget_at_worst": 0.0037972718811035157
+            },
+            "chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 16.0,
+              "candidate_value": 16.0,
+              "budget_at_worst": 0.0
+            },
+            "coa_phase": {
+              "violations": 22,
+              "max_absolute_error": 0.0001208782196044922,
+              "max_relative_error": 0.03459457406335826,
+              "worst_identity": [
+                1260664243110379185,
+                4861986645536
+              ],
+              "baseline_value": -2.5574662685394287,
+              "candidate_value": -2.557587146759033,
+              "budget_at_worst": 0.0001
+            },
+            "cont_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "cont_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "sg_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "sigmasq": {
+              "violations": 0,
+              "max_absolute_error": 49.0,
+              "max_relative_error": 4.698938979578411e-06,
+              "worst_identity": [
+                3137770323868241004,
+                4861982045819
+              ],
+              "baseline_value": 10427837.0,
+              "candidate_value": 10427886.0,
+              "budget_at_worst": 104.27886000000001
+            },
+            "snr": {
+              "violations": 10,
+              "max_absolute_error": 0.0007166862487792969,
+              "max_relative_error": 0.00012865215256964058,
+              "worst_identity": [
+                5173167354145275339,
+                4861982469878
+              ],
+              "baseline_value": 5.570728778839111,
+              "candidate_value": 5.570012092590332,
+              "budget_at_worst": 0.0005670728778839111
+            },
+            "template_duration": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 37.44173049926758,
+              "candidate_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "count": 29,
+              "classifications": {
+                "unexplained_mismatch": 29
+              },
+              "examples": [
+                {
+                  "template_hash": -7181991947907977315,
+                  "gps_sample_tick": 4861984638229,
+                  "end_time": 1187007968.317627,
+                  "snr": 5.60625696182251,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1066564
+                },
+                {
+                  "template_hash": -7165348744408480873,
+                  "gps_sample_tick": 4861981497051,
+                  "end_time": 1187007201.4284668,
+                  "snr": 5.539468765258789,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 1688665
+                },
+                {
+                  "template_hash": -6567042328987826803,
+                  "gps_sample_tick": 4861987924202,
+                  "end_time": 1187008770.557129,
+                  "snr": 5.561619758605957,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -856993
+                },
+                {
+                  "template_hash": -5963460109972533451,
+                  "gps_sample_tick": 4861983951901,
+                  "end_time": 1187007800.75708,
+                  "snr": 5.524919033050537,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -116815
+                },
+                {
+                  "template_hash": -5934879221955148907,
+                  "gps_sample_tick": 4861986723794,
+                  "end_time": 1187008477.4887695,
+                  "snr": 5.598695755004883,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -2088676
+                },
+                {
+                  "template_hash": -5178096382281007317,
+                  "gps_sample_tick": 4861987932929,
+                  "end_time": 1187008772.6877441,
+                  "snr": 5.564938068389893,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 9268
+                },
+                {
+                  "template_hash": -4998367400819783185,
+                  "gps_sample_tick": 4861987924218,
+                  "end_time": 1187008770.5610352,
+                  "snr": 5.6290130615234375,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -16571
+                },
+                {
+                  "template_hash": -4695993811833931683,
+                  "gps_sample_tick": 4861981953128,
+                  "end_time": 1187007312.7753906,
+                  "snr": 5.875364780426025,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 864584
+                },
+                {
+                  "template_hash": -4055176971796855720,
+                  "gps_sample_tick": 4861988214230,
+                  "end_time": 1187008841.364746,
+                  "snr": 5.575496673583984,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -641986
+                },
+                {
+                  "template_hash": -3147409681897922532,
+                  "gps_sample_tick": 4861987392117,
+                  "end_time": 1187008640.6535645,
+                  "snr": 5.564450740814209,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 229779
+                },
+                {
+                  "template_hash": -3110603659142667602,
+                  "gps_sample_tick": 4861982119521,
+                  "end_time": 1187007353.3986816,
+                  "snr": 5.763233661651611,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -179721
+                },
+                {
+                  "template_hash": -2725569140561696380,
+                  "gps_sample_tick": 4861984287688,
+                  "end_time": 1187007882.7363281,
+                  "snr": 5.594320774078369,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -42714
+                }
+              ]
+            },
+            "candidate_only": {
+              "count": 32,
+              "classifications": {
+                "near_threshold_requires_review": 2,
+                "unexplained_mismatch": 30
+              },
+              "examples": [
+                {
+                  "template_hash": -8900663754632545598,
+                  "gps_sample_tick": 4861983573748,
+                  "end_time": 1187007708.4345703,
+                  "snr": 5.500112056732178,
+                  "classification": "near_threshold_requires_review",
+                  "near_thresholds": [
+                    {
+                      "statistic": "snr",
+                      "value": 5.500112056732178,
+                      "threshold": 5.5,
+                      "absolute_distance": 0.00011205673217773438,
+                      "band": 0.0005600000000000001
+                    }
+                  ],
+                  "nearest_same_template_delta_samples": 256623
+                },
+                {
+                  "template_hash": -8660435872545199746,
+                  "gps_sample_tick": 4861982499852,
+                  "end_time": 1187007446.2529297,
+                  "snr": 5.508003234863281,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1026174
+                },
+                {
+                  "template_hash": -6633315965868948702,
+                  "gps_sample_tick": 4861983776148,
+                  "end_time": 1187007757.8486328,
+                  "snr": 5.523138046264648,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 431306
+                },
+                {
+                  "template_hash": -6565366494966343500,
+                  "gps_sample_tick": 4861985006593,
+                  "end_time": 1187008058.2502441,
+                  "snr": 5.554581165313721,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -25215
+                },
+                {
+                  "template_hash": -5008805154614134207,
+                  "gps_sample_tick": 4861982866785,
+                  "end_time": 1187007535.8361816,
+                  "snr": 5.531951427459717,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 531731
+                },
+                {
+                  "template_hash": -3110603659142667602,
+                  "gps_sample_tick": 4861988140765,
+                  "end_time": 1187008823.428955,
+                  "snr": 5.57202672958374,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -216563
+                },
+                {
+                  "template_hash": -3021755972813798441,
+                  "gps_sample_tick": 4861984082344,
+                  "end_time": 1187007832.6035156,
+                  "snr": 5.501035213470459,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 568546
+                },
+                {
+                  "template_hash": -1906928442344696145,
+                  "gps_sample_tick": 4861981832940,
+                  "end_time": 1187007283.4326172,
+                  "snr": 5.6462860107421875,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -172195
+                },
+                {
+                  "template_hash": -1687024759190033225,
+                  "gps_sample_tick": 4861982653842,
+                  "end_time": 1187007483.8481445,
+                  "snr": 5.56557559967041,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 483605
+                },
+                {
+                  "template_hash": -291345402897050286,
+                  "gps_sample_tick": 4861987857789,
+                  "end_time": 1187008754.3430176,
+                  "snr": 5.507721424102783,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -673021
+                },
+                {
+                  "template_hash": 25732923710508636,
+                  "gps_sample_tick": 4861983357522,
+                  "end_time": 1187007655.6450195,
+                  "snr": 5.578213214874268,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 2190222
+                },
+                {
+                  "template_hash": 666200130799432153,
+                  "gps_sample_tick": 4861984243112,
+                  "end_time": 1187007871.8535156,
+                  "snr": 5.5233659744262695,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 834471
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "proposed-cpu-vs-torch-cpu": {
+      "status": "fail",
+      "baseline": "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/runs/qual-proposed-cpu/triggers.hdf",
+      "candidate": "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/runs/qual-torch-cpu/triggers.hdf",
+      "baseline_sha256": "f7024b9a5628e62873ec5829991c4f329e40123b851fd99dd4b6ff0b9fb955e3",
+      "candidate_sha256": "4f61362b39c7cf937377f4cc30307431c118789ed436cdccccb2361a577659d3",
+      "baseline_receipt_sha256": "1e68c8fc044b093acf843946a6a6a2bc2e87e95b1d0f5b0c9933e6650d315654",
+      "candidate_receipt_sha256": "38cb62e7a5359ecadb3ede8307b1425a38544f6f8591b44dc301bb1e256a90be",
+      "sample_rate": 4096,
+      "failures": [
+        "H1/chisq: 1951 numerical violations",
+        "H1/coa_phase: 22 numerical violations",
+        "H1/snr: 10 numerical violations",
+        "H1/baseline_only: 29 unexplained triggers",
+        "H1/candidate_only: 30 unexplained triggers"
+      ],
+      "review_reasons": [
+        "H1/candidate_only: 2 threshold-adjacent triggers"
+      ],
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1991,
+          "matched_count": 1959,
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "metrics": {
+            "bank_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "bank_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "chisq": {
+              "violations": 1951,
+              "max_absolute_error": 9.844049453735352,
+              "max_relative_error": 0.25992463011312433,
+              "worst_identity": [
+                -2126366565482007403,
+                4861988164405
+              ],
+              "baseline_value": 28.028657913208008,
+              "candidate_value": 37.87270736694336,
+              "budget_at_worst": 0.0037972707366943363
+            },
+            "chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 16.0,
+              "candidate_value": 16.0,
+              "budget_at_worst": 0.0
+            },
+            "coa_phase": {
+              "violations": 22,
+              "max_absolute_error": 0.0001208782196044922,
+              "max_relative_error": 0.034621101871598156,
+              "worst_identity": [
+                1260664243110379185,
+                4861986645536
+              ],
+              "baseline_value": -2.5574662685394287,
+              "candidate_value": -2.557587146759033,
+              "budget_at_worst": 0.0001
+            },
+            "cont_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "cont_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "sg_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "sigmasq": {
+              "violations": 0,
+              "max_absolute_error": 49.0,
+              "max_relative_error": 4.698938979578411e-06,
+              "worst_identity": [
+                3137770323868241004,
+                4861982045819
+              ],
+              "baseline_value": 10427837.0,
+              "candidate_value": 10427886.0,
+              "budget_at_worst": 104.27886000000001
+            },
+            "snr": {
+              "violations": 10,
+              "max_absolute_error": 0.0007162094116210938,
+              "max_relative_error": 0.00012856655566174328,
+              "worst_identity": [
+                5173167354145275339,
+                4861982469878
+              ],
+              "baseline_value": 5.570728778839111,
+              "candidate_value": 5.57001256942749,
+              "budget_at_worst": 0.0005670728778839111
+            },
+            "template_duration": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 37.44173049926758,
+              "candidate_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "count": 29,
+              "classifications": {
+                "unexplained_mismatch": 29
+              },
+              "examples": [
+                {
+                  "template_hash": -7181991947907977315,
+                  "gps_sample_tick": 4861984638229,
+                  "end_time": 1187007968.317627,
+                  "snr": 5.60625696182251,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1066564
+                },
+                {
+                  "template_hash": -7165348744408480873,
+                  "gps_sample_tick": 4861981497051,
+                  "end_time": 1187007201.4284668,
+                  "snr": 5.539468765258789,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 1688665
+                },
+                {
+                  "template_hash": -6567042328987826803,
+                  "gps_sample_tick": 4861987924202,
+                  "end_time": 1187008770.557129,
+                  "snr": 5.561619758605957,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -856993
+                },
+                {
+                  "template_hash": -5963460109972533451,
+                  "gps_sample_tick": 4861983951901,
+                  "end_time": 1187007800.75708,
+                  "snr": 5.524919033050537,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -116815
+                },
+                {
+                  "template_hash": -5934879221955148907,
+                  "gps_sample_tick": 4861986723794,
+                  "end_time": 1187008477.4887695,
+                  "snr": 5.598695755004883,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -2088676
+                },
+                {
+                  "template_hash": -5178096382281007317,
+                  "gps_sample_tick": 4861987932929,
+                  "end_time": 1187008772.6877441,
+                  "snr": 5.564938068389893,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 9268
+                },
+                {
+                  "template_hash": -4998367400819783185,
+                  "gps_sample_tick": 4861987924218,
+                  "end_time": 1187008770.5610352,
+                  "snr": 5.6290130615234375,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -16571
+                },
+                {
+                  "template_hash": -4695993811833931683,
+                  "gps_sample_tick": 4861981953128,
+                  "end_time": 1187007312.7753906,
+                  "snr": 5.875364780426025,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 864584
+                },
+                {
+                  "template_hash": -4055176971796855720,
+                  "gps_sample_tick": 4861988214230,
+                  "end_time": 1187008841.364746,
+                  "snr": 5.575496673583984,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -641986
+                },
+                {
+                  "template_hash": -3147409681897922532,
+                  "gps_sample_tick": 4861987392117,
+                  "end_time": 1187008640.6535645,
+                  "snr": 5.564450740814209,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 229779
+                },
+                {
+                  "template_hash": -3110603659142667602,
+                  "gps_sample_tick": 4861982119521,
+                  "end_time": 1187007353.3986816,
+                  "snr": 5.763233661651611,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -179721
+                },
+                {
+                  "template_hash": -2725569140561696380,
+                  "gps_sample_tick": 4861984287688,
+                  "end_time": 1187007882.7363281,
+                  "snr": 5.594320774078369,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -42714
+                }
+              ]
+            },
+            "candidate_only": {
+              "count": 32,
+              "classifications": {
+                "near_threshold_requires_review": 2,
+                "unexplained_mismatch": 30
+              },
+              "examples": [
+                {
+                  "template_hash": -8900663754632545598,
+                  "gps_sample_tick": 4861983573748,
+                  "end_time": 1187007708.4345703,
+                  "snr": 5.500112533569336,
+                  "classification": "near_threshold_requires_review",
+                  "near_thresholds": [
+                    {
+                      "statistic": "snr",
+                      "value": 5.500112533569336,
+                      "threshold": 5.5,
+                      "absolute_distance": 0.0001125335693359375,
+                      "band": 0.0005600000000000001
+                    }
+                  ],
+                  "nearest_same_template_delta_samples": 256623
+                },
+                {
+                  "template_hash": -8660435872545199746,
+                  "gps_sample_tick": 4861982499852,
+                  "end_time": 1187007446.2529297,
+                  "snr": 5.508003234863281,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1026174
+                },
+                {
+                  "template_hash": -6633315965868948702,
+                  "gps_sample_tick": 4861983776148,
+                  "end_time": 1187007757.8486328,
+                  "snr": 5.523138523101807,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 431306
+                },
+                {
+                  "template_hash": -6565366494966343500,
+                  "gps_sample_tick": 4861985006593,
+                  "end_time": 1187008058.2502441,
+                  "snr": 5.554582118988037,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -25215
+                },
+                {
+                  "template_hash": -5008805154614134207,
+                  "gps_sample_tick": 4861982866785,
+                  "end_time": 1187007535.8361816,
+                  "snr": 5.531952381134033,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 531731
+                },
+                {
+                  "template_hash": -3110603659142667602,
+                  "gps_sample_tick": 4861988140765,
+                  "end_time": 1187008823.428955,
+                  "snr": 5.572027683258057,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -216563
+                },
+                {
+                  "template_hash": -3021755972813798441,
+                  "gps_sample_tick": 4861984082344,
+                  "end_time": 1187007832.6035156,
+                  "snr": 5.501036167144775,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 568546
+                },
+                {
+                  "template_hash": -1906928442344696145,
+                  "gps_sample_tick": 4861981832940,
+                  "end_time": 1187007283.4326172,
+                  "snr": 5.646286487579346,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -172195
+                },
+                {
+                  "template_hash": -1687024759190033225,
+                  "gps_sample_tick": 4861982653842,
+                  "end_time": 1187007483.8481445,
+                  "snr": 5.565576076507568,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 483605
+                },
+                {
+                  "template_hash": -291345402897050286,
+                  "gps_sample_tick": 4861987857789,
+                  "end_time": 1187008754.3430176,
+                  "snr": 5.507723331451416,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -673021
+                },
+                {
+                  "template_hash": 25732923710508636,
+                  "gps_sample_tick": 4861983357522,
+                  "end_time": 1187007655.6450195,
+                  "snr": 5.578214168548584,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 2190222
+                },
+                {
+                  "template_hash": 666200130799432153,
+                  "gps_sample_tick": 4861984243112,
+                  "end_time": 1187007871.8535156,
+                  "snr": 5.5233659744262695,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 834471
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "proposed-cpu-vs-torch-cuda": {
+      "status": "fail",
+      "baseline": "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/runs/qual-proposed-cpu/triggers.hdf",
+      "candidate": "/home/xangma/pycbc-torch-original-cpu-restoration-20260908/runs/qual-torch-cuda/triggers.hdf",
+      "baseline_sha256": "f7024b9a5628e62873ec5829991c4f329e40123b851fd99dd4b6ff0b9fb955e3",
+      "candidate_sha256": "ba4b9a04f74be219450c592f21d10297bb449fc9d8f2c59a100523fdc4d81609",
+      "baseline_receipt_sha256": "1e68c8fc044b093acf843946a6a6a2bc2e87e95b1d0f5b0c9933e6650d315654",
+      "candidate_receipt_sha256": "306f035cd127296a8b524e739cd1ce9e8596f92327ca44ee9a00cdf9585d911f",
+      "sample_rate": 4096,
+      "failures": [
+        "H1/chisq: 1951 numerical violations",
+        "H1/coa_phase: 22 numerical violations",
+        "H1/snr: 10 numerical violations",
+        "H1/baseline_only: 29 unexplained triggers",
+        "H1/candidate_only: 30 unexplained triggers"
+      ],
+      "review_reasons": [
+        "H1/candidate_only: 2 threshold-adjacent triggers"
+      ],
+      "detectors": {
+        "H1": {
+          "baseline_count": 1988,
+          "candidate_count": 1991,
+          "matched_count": 1959,
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "metrics": {
+            "bank_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "bank_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "chisq": {
+              "violations": 1951,
+              "max_absolute_error": 9.844060897827148,
+              "max_relative_error": 0.25992485374350355,
+              "worst_identity": [
+                -2126366565482007403,
+                4861988164405
+              ],
+              "baseline_value": 28.028657913208008,
+              "candidate_value": 37.872718811035156,
+              "budget_at_worst": 0.0037972718811035157
+            },
+            "chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 16.0,
+              "candidate_value": 16.0,
+              "budget_at_worst": 0.0
+            },
+            "coa_phase": {
+              "violations": 22,
+              "max_absolute_error": 0.0001208782196044922,
+              "max_relative_error": 0.03459457406335826,
+              "worst_identity": [
+                1260664243110379185,
+                4861986645536
+              ],
+              "baseline_value": -2.5574662685394287,
+              "candidate_value": -2.557587146759033,
+              "budget_at_worst": 0.0001
+            },
+            "cont_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "cont_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "sg_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "sigmasq": {
+              "violations": 0,
+              "max_absolute_error": 49.0,
+              "max_relative_error": 4.698938979578411e-06,
+              "worst_identity": [
+                3137770323868241004,
+                4861982045819
+              ],
+              "baseline_value": 10427837.0,
+              "candidate_value": 10427886.0,
+              "budget_at_worst": 104.27886000000001
+            },
+            "snr": {
+              "violations": 10,
+              "max_absolute_error": 0.0007166862487792969,
+              "max_relative_error": 0.00012865215256964058,
+              "worst_identity": [
+                5173167354145275339,
+                4861982469878
+              ],
+              "baseline_value": 5.570728778839111,
+              "candidate_value": 5.570012092590332,
+              "budget_at_worst": 0.0005670728778839111
+            },
+            "template_duration": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 37.44173049926758,
+              "candidate_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "count": 29,
+              "classifications": {
+                "unexplained_mismatch": 29
+              },
+              "examples": [
+                {
+                  "template_hash": -7181991947907977315,
+                  "gps_sample_tick": 4861984638229,
+                  "end_time": 1187007968.317627,
+                  "snr": 5.60625696182251,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1066564
+                },
+                {
+                  "template_hash": -7165348744408480873,
+                  "gps_sample_tick": 4861981497051,
+                  "end_time": 1187007201.4284668,
+                  "snr": 5.539468765258789,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 1688665
+                },
+                {
+                  "template_hash": -6567042328987826803,
+                  "gps_sample_tick": 4861987924202,
+                  "end_time": 1187008770.557129,
+                  "snr": 5.561619758605957,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -856993
+                },
+                {
+                  "template_hash": -5963460109972533451,
+                  "gps_sample_tick": 4861983951901,
+                  "end_time": 1187007800.75708,
+                  "snr": 5.524919033050537,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -116815
+                },
+                {
+                  "template_hash": -5934879221955148907,
+                  "gps_sample_tick": 4861986723794,
+                  "end_time": 1187008477.4887695,
+                  "snr": 5.598695755004883,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -2088676
+                },
+                {
+                  "template_hash": -5178096382281007317,
+                  "gps_sample_tick": 4861987932929,
+                  "end_time": 1187008772.6877441,
+                  "snr": 5.564938068389893,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 9268
+                },
+                {
+                  "template_hash": -4998367400819783185,
+                  "gps_sample_tick": 4861987924218,
+                  "end_time": 1187008770.5610352,
+                  "snr": 5.6290130615234375,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -16571
+                },
+                {
+                  "template_hash": -4695993811833931683,
+                  "gps_sample_tick": 4861981953128,
+                  "end_time": 1187007312.7753906,
+                  "snr": 5.875364780426025,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 864584
+                },
+                {
+                  "template_hash": -4055176971796855720,
+                  "gps_sample_tick": 4861988214230,
+                  "end_time": 1187008841.364746,
+                  "snr": 5.575496673583984,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -641986
+                },
+                {
+                  "template_hash": -3147409681897922532,
+                  "gps_sample_tick": 4861987392117,
+                  "end_time": 1187008640.6535645,
+                  "snr": 5.564450740814209,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 229779
+                },
+                {
+                  "template_hash": -3110603659142667602,
+                  "gps_sample_tick": 4861982119521,
+                  "end_time": 1187007353.3986816,
+                  "snr": 5.763233661651611,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -179721
+                },
+                {
+                  "template_hash": -2725569140561696380,
+                  "gps_sample_tick": 4861984287688,
+                  "end_time": 1187007882.7363281,
+                  "snr": 5.594320774078369,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -42714
+                }
+              ]
+            },
+            "candidate_only": {
+              "count": 32,
+              "classifications": {
+                "near_threshold_requires_review": 2,
+                "unexplained_mismatch": 30
+              },
+              "examples": [
+                {
+                  "template_hash": -8900663754632545598,
+                  "gps_sample_tick": 4861983573748,
+                  "end_time": 1187007708.4345703,
+                  "snr": 5.500112056732178,
+                  "classification": "near_threshold_requires_review",
+                  "near_thresholds": [
+                    {
+                      "statistic": "snr",
+                      "value": 5.500112056732178,
+                      "threshold": 5.5,
+                      "absolute_distance": 0.00011205673217773438,
+                      "band": 0.0005600000000000001
+                    }
+                  ],
+                  "nearest_same_template_delta_samples": 256623
+                },
+                {
+                  "template_hash": -8660435872545199746,
+                  "gps_sample_tick": 4861982499852,
+                  "end_time": 1187007446.2529297,
+                  "snr": 5.508003234863281,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -1026174
+                },
+                {
+                  "template_hash": -6633315965868948702,
+                  "gps_sample_tick": 4861983776148,
+                  "end_time": 1187007757.8486328,
+                  "snr": 5.523138046264648,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 431306
+                },
+                {
+                  "template_hash": -6565366494966343500,
+                  "gps_sample_tick": 4861985006593,
+                  "end_time": 1187008058.2502441,
+                  "snr": 5.554581165313721,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -25215
+                },
+                {
+                  "template_hash": -5008805154614134207,
+                  "gps_sample_tick": 4861982866785,
+                  "end_time": 1187007535.8361816,
+                  "snr": 5.531951427459717,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 531731
+                },
+                {
+                  "template_hash": -3110603659142667602,
+                  "gps_sample_tick": 4861988140765,
+                  "end_time": 1187008823.428955,
+                  "snr": 5.57202672958374,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -216563
+                },
+                {
+                  "template_hash": -3021755972813798441,
+                  "gps_sample_tick": 4861984082344,
+                  "end_time": 1187007832.6035156,
+                  "snr": 5.501035213470459,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 568546
+                },
+                {
+                  "template_hash": -1906928442344696145,
+                  "gps_sample_tick": 4861981832940,
+                  "end_time": 1187007283.4326172,
+                  "snr": 5.6462860107421875,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -172195
+                },
+                {
+                  "template_hash": -1687024759190033225,
+                  "gps_sample_tick": 4861982653842,
+                  "end_time": 1187007483.8481445,
+                  "snr": 5.56557559967041,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 483605
+                },
+                {
+                  "template_hash": -291345402897050286,
+                  "gps_sample_tick": 4861987857789,
+                  "end_time": 1187008754.3430176,
+                  "snr": 5.507721424102783,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": -673021
+                },
+                {
+                  "template_hash": 25732923710508636,
+                  "gps_sample_tick": 4861983357522,
+                  "end_time": 1187007655.6450195,
+                  "snr": 5.578213214874268,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 2190222
+                },
+                {
+                  "template_hash": 666200130799432153,
+                  "gps_sample_tick": 4861984243112,
+                  "end_time": 1187007871.8535156,
+                  "snr": 5.5233659744262695,
+                  "classification": "unexplained_mismatch",
+                  "near_thresholds": [],
+                  "nearest_same_template_delta_samples": 834471
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "independent_array_checks": {
+    "original-cpu-vs-proposed-cpu": {
+      "scientific_field_sets_equal": true,
+      "event_field_sets_equal": true,
+      "independently_recomputed_metric_fields": [
+        "bank_chisq",
+        "bank_chisq_dof",
+        "chisq",
+        "chisq_dof",
+        "coa_phase",
+        "cont_chisq",
+        "cont_chisq_dof",
+        "sg_chisq",
+        "sigmasq",
+        "snr",
+        "template_duration"
+      ],
+      "baseline_only_identities": [],
+      "candidate_only_identities": []
+    },
+    "original-cpu-vs-torch-cpu": {
+      "scientific_field_sets_equal": true,
+      "event_field_sets_equal": true,
+      "independently_recomputed_metric_fields": [
+        "bank_chisq",
+        "bank_chisq_dof",
+        "chisq",
+        "chisq_dof",
+        "coa_phase",
+        "cont_chisq",
+        "cont_chisq_dof",
+        "sg_chisq",
+        "sigmasq",
+        "snr",
+        "template_duration"
+      ],
+      "baseline_only_identities": [
+        [
+          -7181991947907977315,
+          4861984638229
+        ],
+        [
+          -7165348744408480873,
+          4861981497051
+        ],
+        [
+          -6567042328987826803,
+          4861987924202
+        ],
+        [
+          -5963460109972533451,
+          4861983951901
+        ],
+        [
+          -5934879221955148907,
+          4861986723794
+        ],
+        [
+          -5178096382281007317,
+          4861987932929
+        ],
+        [
+          -4998367400819783185,
+          4861987924218
+        ],
+        [
+          -4695993811833931683,
+          4861981953128
+        ],
+        [
+          -4055176971796855720,
+          4861988214230
+        ],
+        [
+          -3147409681897922532,
+          4861987392117
+        ],
+        [
+          -3110603659142667602,
+          4861982119521
+        ],
+        [
+          -2725569140561696380,
+          4861984287688
+        ],
+        [
+          93038011929850331,
+          4861982750230
+        ],
+        [
+          187382032970812913,
+          4861981534903
+        ],
+        [
+          666200130799432153,
+          4861987458564
+        ],
+        [
+          1166511448714078231,
+          4861983803958
+        ],
+        [
+          1598055406485528054,
+          4861986312304
+        ],
+        [
+          2751584180605273171,
+          4861981974009
+        ],
+        [
+          3833317720381408592,
+          4861987924217
+        ],
+        [
+          4620770771193223007,
+          4861986910592
+        ],
+        [
+          4641366874216406973,
+          4861987392118
+        ],
+        [
+          4845319676883197567,
+          4861981839351
+        ],
+        [
+          4917576617425171381,
+          4861987409820
+        ],
+        [
+          6361075354752035920,
+          4861988413493
+        ],
+        [
+          6555151911501386125,
+          4861986892983
+        ],
+        [
+          6879701643023291349,
+          4861984360667
+        ],
+        [
+          6912306963145366519,
+          4861982825911
+        ],
+        [
+          8171021383260206400,
+          4861987057545
+        ],
+        [
+          9059421408528824695,
+          4861984899123
+        ]
+      ],
+      "candidate_only_identities": [
+        [
+          -8900663754632545598,
+          4861983573748
+        ],
+        [
+          -8660435872545199746,
+          4861982499852
+        ],
+        [
+          -6633315965868948702,
+          4861983776148
+        ],
+        [
+          -6565366494966343500,
+          4861985006593
+        ],
+        [
+          -5008805154614134207,
+          4861982866785
+        ],
+        [
+          -3110603659142667602,
+          4861988140765
+        ],
+        [
+          -3021755972813798441,
+          4861984082344
+        ],
+        [
+          -1906928442344696145,
+          4861981832940
+        ],
+        [
+          -1687024759190033225,
+          4861982653842
+        ],
+        [
+          -291345402897050286,
+          4861987857789
+        ],
+        [
+          25732923710508636,
+          4861983357522
+        ],
+        [
+          666200130799432153,
+          4861984243112
+        ],
+        [
+          1157385120274370809,
+          4861983519495
+        ],
+        [
+          1566472787125737745,
+          4861982844750
+        ],
+        [
+          2005056965311648235,
+          4861984379603
+        ],
+        [
+          2212190759553504900,
+          4861987475515
+        ],
+        [
+          2751584180605273171,
+          4861982383849
+        ],
+        [
+          2773674355113755704,
+          4861984370852
+        ],
+        [
+          3112056692470282087,
+          4861981713744
+        ],
+        [
+          3601141310485453327,
+          4861984629976
+        ],
+        [
+          3823406381110902376,
+          4861986984433
+        ],
+        [
+          4455807630672617521,
+          4861987902572
+        ],
+        [
+          5161845493166695895,
+          4861984031041
+        ],
+        [
+          6227862140491667656,
+          4861987572258
+        ],
+        [
+          7129199098092931097,
+          4861982777751
+        ],
+        [
+          7362945564587470163,
+          4861987392116
+        ],
+        [
+          7644706596313879549,
+          4861987057546
+        ],
+        [
+          7840955492635775745,
+          4861987924195
+        ],
+        [
+          7898529154250901079,
+          4861981927227
+        ],
+        [
+          7989398146552021048,
+          4861984778888
+        ],
+        [
+          9106676396349373387,
+          4861981421718
+        ],
+        [
+          9106676396349373387,
+          4861981450909
+        ]
+      ]
+    },
+    "original-cpu-vs-torch-cuda": {
+      "scientific_field_sets_equal": true,
+      "event_field_sets_equal": true,
+      "independently_recomputed_metric_fields": [
+        "bank_chisq",
+        "bank_chisq_dof",
+        "chisq",
+        "chisq_dof",
+        "coa_phase",
+        "cont_chisq",
+        "cont_chisq_dof",
+        "sg_chisq",
+        "sigmasq",
+        "snr",
+        "template_duration"
+      ],
+      "baseline_only_identities": [
+        [
+          -7181991947907977315,
+          4861984638229
+        ],
+        [
+          -7165348744408480873,
+          4861981497051
+        ],
+        [
+          -6567042328987826803,
+          4861987924202
+        ],
+        [
+          -5963460109972533451,
+          4861983951901
+        ],
+        [
+          -5934879221955148907,
+          4861986723794
+        ],
+        [
+          -5178096382281007317,
+          4861987932929
+        ],
+        [
+          -4998367400819783185,
+          4861987924218
+        ],
+        [
+          -4695993811833931683,
+          4861981953128
+        ],
+        [
+          -4055176971796855720,
+          4861988214230
+        ],
+        [
+          -3147409681897922532,
+          4861987392117
+        ],
+        [
+          -3110603659142667602,
+          4861982119521
+        ],
+        [
+          -2725569140561696380,
+          4861984287688
+        ],
+        [
+          93038011929850331,
+          4861982750230
+        ],
+        [
+          187382032970812913,
+          4861981534903
+        ],
+        [
+          666200130799432153,
+          4861987458564
+        ],
+        [
+          1166511448714078231,
+          4861983803958
+        ],
+        [
+          1598055406485528054,
+          4861986312304
+        ],
+        [
+          2751584180605273171,
+          4861981974009
+        ],
+        [
+          3833317720381408592,
+          4861987924217
+        ],
+        [
+          4620770771193223007,
+          4861986910592
+        ],
+        [
+          4641366874216406973,
+          4861987392118
+        ],
+        [
+          4845319676883197567,
+          4861981839351
+        ],
+        [
+          4917576617425171381,
+          4861987409820
+        ],
+        [
+          6361075354752035920,
+          4861988413493
+        ],
+        [
+          6555151911501386125,
+          4861986892983
+        ],
+        [
+          6879701643023291349,
+          4861984360667
+        ],
+        [
+          6912306963145366519,
+          4861982825911
+        ],
+        [
+          8171021383260206400,
+          4861987057545
+        ],
+        [
+          9059421408528824695,
+          4861984899123
+        ]
+      ],
+      "candidate_only_identities": [
+        [
+          -8900663754632545598,
+          4861983573748
+        ],
+        [
+          -8660435872545199746,
+          4861982499852
+        ],
+        [
+          -6633315965868948702,
+          4861983776148
+        ],
+        [
+          -6565366494966343500,
+          4861985006593
+        ],
+        [
+          -5008805154614134207,
+          4861982866785
+        ],
+        [
+          -3110603659142667602,
+          4861988140765
+        ],
+        [
+          -3021755972813798441,
+          4861984082344
+        ],
+        [
+          -1906928442344696145,
+          4861981832940
+        ],
+        [
+          -1687024759190033225,
+          4861982653842
+        ],
+        [
+          -291345402897050286,
+          4861987857789
+        ],
+        [
+          25732923710508636,
+          4861983357522
+        ],
+        [
+          666200130799432153,
+          4861984243112
+        ],
+        [
+          1157385120274370809,
+          4861983519495
+        ],
+        [
+          1566472787125737745,
+          4861982844750
+        ],
+        [
+          2005056965311648235,
+          4861984379603
+        ],
+        [
+          2212190759553504900,
+          4861987475515
+        ],
+        [
+          2751584180605273171,
+          4861982383849
+        ],
+        [
+          2773674355113755704,
+          4861984370852
+        ],
+        [
+          3112056692470282087,
+          4861981713744
+        ],
+        [
+          3601141310485453327,
+          4861984629976
+        ],
+        [
+          3823406381110902376,
+          4861986984433
+        ],
+        [
+          4455807630672617521,
+          4861987902572
+        ],
+        [
+          5161845493166695895,
+          4861984031041
+        ],
+        [
+          6227862140491667656,
+          4861987572258
+        ],
+        [
+          7129199098092931097,
+          4861982777751
+        ],
+        [
+          7362945564587470163,
+          4861987392116
+        ],
+        [
+          7644706596313879549,
+          4861987057546
+        ],
+        [
+          7840955492635775745,
+          4861987924195
+        ],
+        [
+          7898529154250901079,
+          4861981927227
+        ],
+        [
+          7989398146552021048,
+          4861984778888
+        ],
+        [
+          9106676396349373387,
+          4861981421718
+        ],
+        [
+          9106676396349373387,
+          4861981450909
+        ]
+      ]
+    },
+    "proposed-cpu-vs-torch-cpu": {
+      "scientific_field_sets_equal": true,
+      "event_field_sets_equal": true,
+      "independently_recomputed_metric_fields": [
+        "bank_chisq",
+        "bank_chisq_dof",
+        "chisq",
+        "chisq_dof",
+        "coa_phase",
+        "cont_chisq",
+        "cont_chisq_dof",
+        "sg_chisq",
+        "sigmasq",
+        "snr",
+        "template_duration"
+      ],
+      "baseline_only_identities": [
+        [
+          -7181991947907977315,
+          4861984638229
+        ],
+        [
+          -7165348744408480873,
+          4861981497051
+        ],
+        [
+          -6567042328987826803,
+          4861987924202
+        ],
+        [
+          -5963460109972533451,
+          4861983951901
+        ],
+        [
+          -5934879221955148907,
+          4861986723794
+        ],
+        [
+          -5178096382281007317,
+          4861987932929
+        ],
+        [
+          -4998367400819783185,
+          4861987924218
+        ],
+        [
+          -4695993811833931683,
+          4861981953128
+        ],
+        [
+          -4055176971796855720,
+          4861988214230
+        ],
+        [
+          -3147409681897922532,
+          4861987392117
+        ],
+        [
+          -3110603659142667602,
+          4861982119521
+        ],
+        [
+          -2725569140561696380,
+          4861984287688
+        ],
+        [
+          93038011929850331,
+          4861982750230
+        ],
+        [
+          187382032970812913,
+          4861981534903
+        ],
+        [
+          666200130799432153,
+          4861987458564
+        ],
+        [
+          1166511448714078231,
+          4861983803958
+        ],
+        [
+          1598055406485528054,
+          4861986312304
+        ],
+        [
+          2751584180605273171,
+          4861981974009
+        ],
+        [
+          3833317720381408592,
+          4861987924217
+        ],
+        [
+          4620770771193223007,
+          4861986910592
+        ],
+        [
+          4641366874216406973,
+          4861987392118
+        ],
+        [
+          4845319676883197567,
+          4861981839351
+        ],
+        [
+          4917576617425171381,
+          4861987409820
+        ],
+        [
+          6361075354752035920,
+          4861988413493
+        ],
+        [
+          6555151911501386125,
+          4861986892983
+        ],
+        [
+          6879701643023291349,
+          4861984360667
+        ],
+        [
+          6912306963145366519,
+          4861982825911
+        ],
+        [
+          8171021383260206400,
+          4861987057545
+        ],
+        [
+          9059421408528824695,
+          4861984899123
+        ]
+      ],
+      "candidate_only_identities": [
+        [
+          -8900663754632545598,
+          4861983573748
+        ],
+        [
+          -8660435872545199746,
+          4861982499852
+        ],
+        [
+          -6633315965868948702,
+          4861983776148
+        ],
+        [
+          -6565366494966343500,
+          4861985006593
+        ],
+        [
+          -5008805154614134207,
+          4861982866785
+        ],
+        [
+          -3110603659142667602,
+          4861988140765
+        ],
+        [
+          -3021755972813798441,
+          4861984082344
+        ],
+        [
+          -1906928442344696145,
+          4861981832940
+        ],
+        [
+          -1687024759190033225,
+          4861982653842
+        ],
+        [
+          -291345402897050286,
+          4861987857789
+        ],
+        [
+          25732923710508636,
+          4861983357522
+        ],
+        [
+          666200130799432153,
+          4861984243112
+        ],
+        [
+          1157385120274370809,
+          4861983519495
+        ],
+        [
+          1566472787125737745,
+          4861982844750
+        ],
+        [
+          2005056965311648235,
+          4861984379603
+        ],
+        [
+          2212190759553504900,
+          4861987475515
+        ],
+        [
+          2751584180605273171,
+          4861982383849
+        ],
+        [
+          2773674355113755704,
+          4861984370852
+        ],
+        [
+          3112056692470282087,
+          4861981713744
+        ],
+        [
+          3601141310485453327,
+          4861984629976
+        ],
+        [
+          3823406381110902376,
+          4861986984433
+        ],
+        [
+          4455807630672617521,
+          4861987902572
+        ],
+        [
+          5161845493166695895,
+          4861984031041
+        ],
+        [
+          6227862140491667656,
+          4861987572258
+        ],
+        [
+          7129199098092931097,
+          4861982777751
+        ],
+        [
+          7362945564587470163,
+          4861987392116
+        ],
+        [
+          7644706596313879549,
+          4861987057546
+        ],
+        [
+          7840955492635775745,
+          4861987924195
+        ],
+        [
+          7898529154250901079,
+          4861981927227
+        ],
+        [
+          7989398146552021048,
+          4861984778888
+        ],
+        [
+          9106676396349373387,
+          4861981421718
+        ],
+        [
+          9106676396349373387,
+          4861981450909
+        ]
+      ]
+    },
+    "proposed-cpu-vs-torch-cuda": {
+      "scientific_field_sets_equal": true,
+      "event_field_sets_equal": true,
+      "independently_recomputed_metric_fields": [
+        "bank_chisq",
+        "bank_chisq_dof",
+        "chisq",
+        "chisq_dof",
+        "coa_phase",
+        "cont_chisq",
+        "cont_chisq_dof",
+        "sg_chisq",
+        "sigmasq",
+        "snr",
+        "template_duration"
+      ],
+      "baseline_only_identities": [
+        [
+          -7181991947907977315,
+          4861984638229
+        ],
+        [
+          -7165348744408480873,
+          4861981497051
+        ],
+        [
+          -6567042328987826803,
+          4861987924202
+        ],
+        [
+          -5963460109972533451,
+          4861983951901
+        ],
+        [
+          -5934879221955148907,
+          4861986723794
+        ],
+        [
+          -5178096382281007317,
+          4861987932929
+        ],
+        [
+          -4998367400819783185,
+          4861987924218
+        ],
+        [
+          -4695993811833931683,
+          4861981953128
+        ],
+        [
+          -4055176971796855720,
+          4861988214230
+        ],
+        [
+          -3147409681897922532,
+          4861987392117
+        ],
+        [
+          -3110603659142667602,
+          4861982119521
+        ],
+        [
+          -2725569140561696380,
+          4861984287688
+        ],
+        [
+          93038011929850331,
+          4861982750230
+        ],
+        [
+          187382032970812913,
+          4861981534903
+        ],
+        [
+          666200130799432153,
+          4861987458564
+        ],
+        [
+          1166511448714078231,
+          4861983803958
+        ],
+        [
+          1598055406485528054,
+          4861986312304
+        ],
+        [
+          2751584180605273171,
+          4861981974009
+        ],
+        [
+          3833317720381408592,
+          4861987924217
+        ],
+        [
+          4620770771193223007,
+          4861986910592
+        ],
+        [
+          4641366874216406973,
+          4861987392118
+        ],
+        [
+          4845319676883197567,
+          4861981839351
+        ],
+        [
+          4917576617425171381,
+          4861987409820
+        ],
+        [
+          6361075354752035920,
+          4861988413493
+        ],
+        [
+          6555151911501386125,
+          4861986892983
+        ],
+        [
+          6879701643023291349,
+          4861984360667
+        ],
+        [
+          6912306963145366519,
+          4861982825911
+        ],
+        [
+          8171021383260206400,
+          4861987057545
+        ],
+        [
+          9059421408528824695,
+          4861984899123
+        ]
+      ],
+      "candidate_only_identities": [
+        [
+          -8900663754632545598,
+          4861983573748
+        ],
+        [
+          -8660435872545199746,
+          4861982499852
+        ],
+        [
+          -6633315965868948702,
+          4861983776148
+        ],
+        [
+          -6565366494966343500,
+          4861985006593
+        ],
+        [
+          -5008805154614134207,
+          4861982866785
+        ],
+        [
+          -3110603659142667602,
+          4861988140765
+        ],
+        [
+          -3021755972813798441,
+          4861984082344
+        ],
+        [
+          -1906928442344696145,
+          4861981832940
+        ],
+        [
+          -1687024759190033225,
+          4861982653842
+        ],
+        [
+          -291345402897050286,
+          4861987857789
+        ],
+        [
+          25732923710508636,
+          4861983357522
+        ],
+        [
+          666200130799432153,
+          4861984243112
+        ],
+        [
+          1157385120274370809,
+          4861983519495
+        ],
+        [
+          1566472787125737745,
+          4861982844750
+        ],
+        [
+          2005056965311648235,
+          4861984379603
+        ],
+        [
+          2212190759553504900,
+          4861987475515
+        ],
+        [
+          2751584180605273171,
+          4861982383849
+        ],
+        [
+          2773674355113755704,
+          4861984370852
+        ],
+        [
+          3112056692470282087,
+          4861981713744
+        ],
+        [
+          3601141310485453327,
+          4861984629976
+        ],
+        [
+          3823406381110902376,
+          4861986984433
+        ],
+        [
+          4455807630672617521,
+          4861987902572
+        ],
+        [
+          5161845493166695895,
+          4861984031041
+        ],
+        [
+          6227862140491667656,
+          4861987572258
+        ],
+        [
+          7129199098092931097,
+          4861982777751
+        ],
+        [
+          7362945564587470163,
+          4861987392116
+        ],
+        [
+          7644706596313879549,
+          4861987057546
+        ],
+        [
+          7840955492635775745,
+          4861987924195
+        ],
+        [
+          7898529154250901079,
+          4861981927227
+        ],
+        [
+          7989398146552021048,
+          4861984778888
+        ],
+        [
+          9106676396349373387,
+          4861981421718
+        ],
+        [
+          9106676396349373387,
+          4861981450909
+        ]
+      ]
+    }
+  },
+  "conditioning": {
+    "original-cpu-vs-proposed-cpu": {
+      "conditioned_strain_exact": true,
+      "geometry_exact": true,
+      "psds": [
+        {
+          "exact": true,
+          "nonfinite_masks_equal": true,
+          "relative_budget": 0.0001,
+          "absolute_floor": 0,
+          "violations": 0,
+          "max_absolute_difference": 0.0
+        }
+      ]
+    },
+    "original-cpu-vs-torch-cpu": {
+      "conditioned_strain_exact": true,
+      "geometry_exact": true,
+      "psds": [
+        {
+          "exact": false,
+          "nonfinite_masks_equal": false,
+          "relative_budget": 0.0001,
+          "absolute_floor": 0,
+          "violations": 22473,
+          "max_absolute_difference": 1.5240568441974556e+18
+        }
+      ]
+    },
+    "original-cpu-vs-torch-cuda": {
+      "conditioned_strain_exact": true,
+      "geometry_exact": true,
+      "psds": [
+        {
+          "exact": false,
+          "nonfinite_masks_equal": false,
+          "relative_budget": 0.0001,
+          "absolute_floor": 0,
+          "violations": 22473,
+          "max_absolute_difference": 1.5242061029008978e+18
+        }
+      ]
+    },
+    "proposed-cpu-vs-torch-cpu": {
+      "conditioned_strain_exact": true,
+      "geometry_exact": true,
+      "psds": [
+        {
+          "exact": false,
+          "nonfinite_masks_equal": false,
+          "relative_budget": 0.0001,
+          "absolute_floor": 0,
+          "violations": 22473,
+          "max_absolute_difference": 1.5240568441974556e+18
+        }
+      ]
+    },
+    "proposed-cpu-vs-torch-cuda": {
+      "conditioned_strain_exact": true,
+      "geometry_exact": true,
+      "psds": [
+        {
+          "exact": false,
+          "nonfinite_masks_equal": false,
+          "relative_budget": 0.0001,
+          "absolute_floor": 0,
+          "violations": 22473,
+          "max_absolute_difference": 1.5242061029008978e+18
+        }
+      ]
+    }
+  },
+  "scientific_gates_pass": false,
+  "equal_output_speedup_eligible": false,
+  "performance_claim": false,
+  "limitations": [
+    "Conditioned strain equality is established by recorded digest/schema; raw strain is not archived.",
+    "Native Linux .so and external input bytes are not included; their receipts are cross-checked, not locally rehashed."
+  ],
+  "harness_delta": {
+    "files": {
+      "benchmark_cpu_campaign.py": {
+        "initial_sha256": "3ee6008a54da44599665d3a02633fa2328b53d97b81718327b24bb35b9ffff9e",
+        "v2_sha256": "3ee6008a54da44599665d3a02633fa2328b53d97b81718327b24bb35b9ffff9e",
+        "identical": true
+      },
+      "campaign.py": {
+        "initial_sha256": "9069f3ad0f18a842fff0266ed4fef7f2dbf76b6d71f78417963e6b897144f478",
+        "v2_sha256": "ecaa0b96ad09bafe1aa14be5ce29b99769c86b244fba553c817f051be829a2cd",
+        "identical": false,
+        "diff": "--- initial/campaign.py\n+++ v2/campaign.py\n@@ -302,12 +302,18 @@\n         import h5py\n         import numpy as np\n         cpu_exact = {}\n+        runtime_metadata = {}\n+        runtime_fields = {\n+            'search/filter_rate_per_core', 'search/run_time',\n+            'search/setup_time_fraction', 'search/templates_per_core',\n+        }\n         with h5py.File(qualified['original-cpu'] / 'triggers.hdf') as a, h5py.File(qualified['proposed-cpu'] / 'triggers.hdf') as b:\n             def visit(name, obj):\n                 if isinstance(obj, h5py.Dataset):\n                     other = b['H1'][name]\n                     av, bv = obj[...], other[...]\n-                    cpu_exact[name] = bool(av.dtype == bv.dtype and av.shape == bv.shape and av.tobytes() == bv.tobytes())\n+                    result = bool(av.dtype == bv.dtype and av.shape == bv.shape and av.tobytes() == bv.tobytes())\n+                    (runtime_metadata if name in runtime_fields else cpu_exact)[name] = result\n             a['H1'].visititems(visit)\n         cc = conditioning['original-cpu-vs-proposed-cpu']\n         cpu_preserved = bool(cpu_exact and all(cpu_exact.values()) and\n@@ -320,6 +326,8 @@\n             for c in conditioning.values())\n         save(ROOT / 'qualification-summary.json', dict(comparisons=comparisons, conditioning=conditioning))\n         save(ROOT / 'summary.json', dict(cpu_preserved=cpu_preserved, cpu_exact_datasets=cpu_exact,\n+            runtime_metadata_exact=runtime_metadata,\n+            runtime_metadata_policy='Exclude only four elapsed-time-derived H1/search fields from byte-exact scientific comparisons; all scientific tolerances unchanged.',\n             trigger_counts=counts, comparison_status={k:r['status'] for k,r in comparisons.items()},\n             scientific_gates_pass=scientific_pass, equal_output_speedup_eligible=False,\n             timing_policy='Qualification only; no timing samples or performance claims.',\n"
+      },
+      "checked-inspiral.py": {
+        "initial_sha256": "9181ff0515fb3cdacdd4246166bf90fea0da66232605922040ccc98c63d38b29",
+        "v2_sha256": "9181ff0515fb3cdacdd4246166bf90fea0da66232605922040ccc98c63d38b29",
+        "identical": true
+      },
+      "compare-triggers.py": {
+        "initial_sha256": "f0af115a2bf2d3a5a85152cb1f61d9b7570a460efd6d420566c5a2b74ac8f1b5",
+        "v2_sha256": "f0af115a2bf2d3a5a85152cb1f61d9b7570a460efd6d420566c5a2b74ac8f1b5",
+        "identical": true
+      },
+      "qualify-inspiral.py": {
+        "initial_sha256": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+        "v2_sha256": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+        "identical": true
+      },
+      "setup-remote.py": {
+        "initial_sha256": "42e953a735fa6f2adb815770bf63d4d4f209f58b9e577ca7ae26ad8ad6c93ba2",
+        "v2_sha256": "4e733acc6d64a3ca95f3724061794f68c536df190762f36b37a85bb5db360429",
+        "identical": false,
+        "diff": "--- initial/setup-remote.py\n+++ v2/setup-remote.py\n@@ -36,7 +36,7 @@\n         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)\n         run('git', 'clone', '--shared', '--no-checkout', str(FROZEN / 'original'), str(ROOT / 'repo'))\n         run('git', '-C', str(ROOT / 'repo'), 'fetch', str(ROOT / 'sources.bundle'),\n-            'refs/heads/codex/original-cpu-restoration-20260908-pr15')\n+            'refs/heads/codex/original-cpu-restoration-v2-20260908-pr15')\n         for name, head in CONFIG['source_commits'].items():\n             source, reference = ROOT / name, REFERENCES[name]\n             assert not run('git', '-C', str(reference), 'status', '--porcelain')\n"
+      },
+      "threadpoolctl.py": {
+        "initial_sha256": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b",
+        "v2_sha256": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b",
+        "identical": true
+      }
+    },
+    "config_changes": {
+      "source_commits": {
+        "initial": {
+          "original": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+          "proposed": "652206d84177f658f5fb2f9cab2ee73f6d2bc95f"
+        },
+        "v2": {
+          "original": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+          "proposed": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0"
+        }
+      }
+    },
+    "interpretation": "Scientific comparison logic changes only the four timing-metadata exclusions; setup also selects the v2 staging source ref and config selects its commit. Comparator and numerical tolerances are unchanged."
+  }
+}

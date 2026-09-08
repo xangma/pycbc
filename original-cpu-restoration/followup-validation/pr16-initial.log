@@ -1,0 +1,11 @@
+........................................................................ [ 27%]
+........................................................................ [ 55%]
+.............sss........................................................ [ 83%]
+..s.s.s.s.s.s.s.s.s.s.s.s.................                               [100%]
+=============================== warnings summary ===============================
+test/test_torch_cpu_native_batch.py::test_native_batch_correlation_real_thread_and_fork_decline
+  /private/tmp/pycbc-original-cpu-followup-validation-20260908-pr16/test/test_torch_cpu_native_batch.py:461: DeprecationWarning: This process (pid=24620) is multi-threaded, use of fork() may lead to deadlocks in the child.
+    child = os.fork()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+243 passed, 16 skipped, 1 warning in 7.34s

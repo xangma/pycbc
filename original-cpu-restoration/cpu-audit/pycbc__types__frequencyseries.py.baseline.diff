@@ -1,0 +1,63 @@
+--- baseline:pycbc/types/frequencyseries.py
++++ main:pycbc/types/frequencyseries.py
+@@ -1,10 +1,10 @@
+ import os as _os
+ import h5py
+ import numpy as _numpy
+-from pycbc.types.array import Array, _convert, zeros, _noreal
++from pycbc.libutils import import_optional
++from pycbc.types import float64
++from pycbc.types.array import Array, _convert, _noreal, _regular_grid, zeros
+ from pycbc.types.utils import determine_epoch
+-from pycbc.types import float64
+-from pycbc.libutils import import_optional
+ _lal = import_optional('lal')
+ 
+ class FrequencySeries(Array):
+@@ -16,7 +16,7 @@
+             try:
+                 delta_f = initial_array.delta_f
+             except AttributeError:
+-                raise TypeError('must provide either an initial_array with a delta_f attribute, or a value for delta_f')
++                raise TypeError('must provide either an initial_array with a delta_f attribute, or a value for delta_f') from None
+         if not delta_f > 0:
+             raise ValueError('delta_f must be a positive number')
+         Array.__init__(self, initial_array, dtype=dtype, copy=copy)
+@@ -31,7 +31,7 @@
+             try:
+                 _numpy.testing.assert_almost_equal(other._delta_f, self._delta_f)
+             except:
+-                raise ValueError('different delta_f')
++                raise ValueError('different delta_f') from None
+ 
+     def get_delta_f(self):
+         return self._delta_f
+@@ -42,7 +42,7 @@
+     epoch = property(get_epoch, doc='Frequency series epoch.')
+ 
+     def get_sample_frequencies(self):
+-        return Array(range(len(self))) * self._delta_f
++        return _regular_grid(len(self), self._delta_f)
+     sample_frequencies = property(get_sample_frequencies, doc='Array of the sample frequencies.')
+ 
+     def _getslice(self, index):
+@@ -137,8 +137,8 @@
+                 output = _numpy.vstack((self.sample_frequencies.numpy(), self.numpy().real, self.numpy().imag)).T
+             _numpy.savetxt(path, output)
+         elif ext == '.xml' or path.endswith('.xml.gz'):
++            from igwn_ligolw import utils
+             from pycbc.io.ligolw import make_psd_xmldoc
+-            from igwn_ligolw import utils
+             if self.kind != 'real':
+                 raise ValueError('XML only supports real frequency series')
+             output = self.lal()
+@@ -191,8 +191,8 @@
+         return data
+ 
+     def match(self, other, psd=None, low_frequency_cutoff=None, high_frequency_cutoff=None):
++        from pycbc.filter import match
+         from pycbc.types import TimeSeries
+-        from pycbc.filter import match
+         if isinstance(other, TimeSeries):
+             if other.duration != self.duration:
+                 other = other.copy()

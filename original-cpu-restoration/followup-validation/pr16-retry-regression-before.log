@@ -1,0 +1,24 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+_________________ test_pending_export_uses_torch_planner_lock __________________
+test/test_fftw_wisdom_cache.py:173: in test_pending_export_uses_torch_planner_lock
+    parser_support.export_wisdom_from_cli(SimpleNamespace())
+pycbc/fft/parser_support.py:90: in export_wisdom_from_cli
+    wisdom_cache.export_pending(fftw)
+pycbc/fft/wisdom_cache.py:452: in export_pending
+    _export_entry(fftw, entry)
+pycbc/fft/wisdom_cache.py:435: in _export_entry
+    _atomic_export(fftw, entry.path)
+pycbc/fft/wisdom_cache.py:420: in _atomic_export
+    fftw.export_single_wisdom_to_filename(temporary)
+test/test_fftw_wisdom_cache.py:167: in export
+    assert lock_events == ["acquire"]
+E   AssertionError: assert [] == ['acquire']
+E     
+E     Right contains one more item: 'acquire'
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  pycbc.fft.wisdom_cache:wisdom_cache.py:437 Could not update automatic FFTW wisdom cache /private/var/folders/l0/3dr1pyw15ln58b6xh74j_41w0000gn/T/pytest-of-xangma/pytest-1812/test_pending_export_uses_torch0/torch-b1-search-ifft-754ab43a3425d5fa600fedfa3d5a77f2783f828759ac7405c876ae07f5f65d94.wisdom: temporary cache failure
+=========================== short test summary info ============================
+FAILED test/test_fftw_wisdom_cache.py::test_pending_export_uses_torch_planner_lock
+1 failed, 1 passed, 19 deselected in 0.87s

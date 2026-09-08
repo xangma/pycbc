@@ -1,0 +1,33 @@
+--- baseline:pycbc/inference/models/data_utils.py
++++ main:pycbc/inference/models/data_utils.py
+@@ -6,11 +6,12 @@
+     from mpi4py import MPI
+ except ImportError:
+     MPI = None
++from pycbc import dq, strain
++from pycbc.psd import from_cli_multi_ifos as psd_from_cli_multi_ifos
++from pycbc.psd import insert_psd_option_group_multi_ifo, verify_psd_options_multi_ifo
++from pycbc.strain import apply_gates_to_fd, apply_gates_to_td, gates_from_cli, psd_gates_from_cli, verify_strain_options_multi_ifo
+ from pycbc.types import MultiDetOptionAction
+-from pycbc.psd import insert_psd_option_group_multi_ifo, from_cli_multi_ifos as psd_from_cli_multi_ifos, verify_psd_options_multi_ifo
+-from pycbc import strain
+-from pycbc.strain import gates_from_cli, psd_gates_from_cli, apply_gates_to_td, apply_gates_to_fd, verify_strain_options_multi_ifo
+-from pycbc import dq
++from pycbc.types.backend import backend_array
+ 
+ def strain_from_cli_multi_ifos(*args, **kwargs):
+     count = 0
+@@ -86,7 +87,12 @@
+ 
+ def check_for_nans(strain_dict):
+     for det, ts in strain_dict.items():
+-        if numpy.isnan(ts.numpy()).any():
++        tensor = backend_array(ts, 'torch')
++        if tensor is not None:
++            has_nans = tensor.isnan().any().item()
++        else:
++            has_nans = numpy.isnan(ts.numpy()).any()
++        if has_nans:
+             raise ValueError('NaN found in strain from {}'.format(det))
+ 
+ def data_opts_from_config(cp, section, filter_flow):

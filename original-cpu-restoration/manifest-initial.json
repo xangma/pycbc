@@ -1,0 +1,304 @@
+{
+  "status": "replay_complete_docs_and_validation_pending",
+  "cpu_base": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+  "prs": [
+    {
+      "pr": 18,
+      "parent_pr": null,
+      "published_ref": "torch-formatting-base",
+      "published_base_ref": "torch-stack-base",
+      "old_head": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+      "old_base": "66789ac4a7468094b0cc3ca1498a1de67e0311f6",
+      "old_base_ref": "codex/cpu-precision-corrections-20260908",
+      "new_base": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+      "new_head": "5444d9fa9ead578a43a3c0c02de641f2869f394b",
+      "staging_ref": "codex/original-cpu-restoration-20260908-pr18",
+      "commits": []
+    },
+    {
+      "pr": 5,
+      "parent_pr": 18,
+      "published_ref": "torch-pr1-runtime",
+      "published_base_ref": "torch-formatting-base",
+      "old_head": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+      "old_base": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+      "old_base_ref": "torch-formatting-base",
+      "new_base": "5444d9fa9ead578a43a3c0c02de641f2869f394b",
+      "new_head": "0a67b20bed7365a561e6a39b93ad270221580874",
+      "staging_ref": "codex/original-cpu-restoration-20260908-pr05",
+      "commits": [
+        {
+          "old": "dc5ee744b247679d3df892c3994e91f601cf4c6e",
+          "new": "c8b5ffd1e26da9bfa0e37f75be032dc74d6de492"
+        },
+        {
+          "old": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+          "new": "0a67b20bed7365a561e6a39b93ad270221580874"
+        }
+      ]
+    },
+    {
+      "pr": 6,
+      "parent_pr": 5,
+      "published_ref": "torch-pr2-fft",
+      "published_base_ref": "torch-pr1-runtime",
+      "old_head": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+      "old_base": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+      "old_base_ref": "torch-pr1-runtime",
+      "new_base": "0a67b20bed7365a561e6a39b93ad270221580874",
+      "new_head": "01adf0ce25986b5b9ba7830a7e1f87cb51d4f476",
+      "staging_ref": "codex/original-cpu-restoration-20260908-pr06",
+      "commits": [
+        {
+          "old": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+          "new": "01adf0ce25986b5b9ba7830a7e1f87cb51d4f476"
+        }
+      ]
+    },
+    {
+      "pr": 7,
+      "parent_pr": 6,
+      "published_ref": "torch-pr3-psd",
+      "published_base_ref": "torch-pr2-fft",
+      "old_head": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+      "old_base": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+      "old_base_ref": "torch-pr2-fft",
+      "new_base": "01adf0ce25986b5b9ba7830a7e1f87cb51d4f476",
+      "new_head": "616fe0e642a9330bb507a6af410c07569b74ae55",
+      "staging_ref": "codex/original-cpu-restoration-20260908-pr07",
+      "commits": [
+        {
+          "old": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+          "new": "616fe0e642a9330bb507a6af410c07569b74ae55"
+        }
+      ]
+    },
+    {
+      "pr": 8,
+      "parent_pr": 7,
+      "published_ref": "torch-pr4-filtering",
+      "published_base_ref": "torch-pr3-psd",
+      "old_head": "6e1e08084c9d9be0e62fd701aaa662e61f1ad119",
+      "old_base": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+      "old_base_ref": "torch-pr3-psd",
+      "new_base": "616fe0e642a9330bb507a6af410c07569b74ae55",
+      "new_head": "86c3ed5542f6ef6db9fd8b9d58b89695089bd740",
+      "staging_ref": "codex/original-cpu-restoration-20260908-pr08",
+      "commits": [
+        {
+          "old": "026f4e8c9418e18cef1a44af36520936b2b2450c",
+          "new": "86c3ed5542f6ef6db9fd8b9d58b89695089bd740"
+        },
+        {
+          "old": "6e1e08084c9d9be0e62fd701aaa662e61f1ad119",
+          "new": null,
+          "reason": "Only formats removed CPU numerical corrections"
+        }
+      ]
+    },
+    {
+      "pr": 9,
+      "parent_pr": 8,
+      "published_ref": "torch-pr5-search",
+      "published_base_ref": "torch-pr4-filtering",
+      "old_head": "586d4f09d2962fe61287ba704e6c7ec971a8922f",
+      "old_base": "6e1e08084c9d9be0e62fd701aaa662e61f1ad119",
+      "old_base_ref": "torch-pr4-filtering",
+      "new_base": "86c3ed5542f6ef6db9fd8b9d58b89695089bd740",
+      "new_head": "3b9ca4f6ad5430abee78d125b53a4ffddd3fcba4",
+      "staging_ref": "codex/original-cpu-restoration-20260908-pr09",
+      "commits": [
+        {
+          "old": "586d4f09d2962fe61287ba704e6c7ec971a8922f",
+          "new": "3b9ca4f6ad5430abee78d125b53a4ffddd3fcba4"
+        }
+      ]
+    },
+    {
+      "pr": 10,
+      "parent_pr": 9,
+      "published_ref": "torch-pr6-waveform",
+      "published_base_ref": "torch-pr5-search",
+      "old_head": "6f67dc170811ff69fd6ec50816974bc4285d145b",
+      "old_base": "586d4f09d2962fe61287ba704e6c7ec971a8922f",
+      "old_base_ref": "torch-pr5-search",
+      "new_base": "3b9ca4f6ad5430abee78d125b53a4ffddd3fcba4",
+      "new_head": "8a48c85d199853f6549db15c6396bfe26842e1e4",
+      "staging_ref": "codex/original-cpu-restoration-20260908-pr10",
+      "commits": [
+        {
+          "old": "6f67dc170811ff69fd6ec50816974bc4285d145b",
+          "new": "8a48c85d199853f6549db15c6396bfe26842e1e4"
+        }
+      ]
+    },
+    {
+      "pr": 11,
+      "parent_pr": 10,
+      "published_ref": "torch-pr7-taylorf2",
+      "published_base_ref": "torch-pr6-waveform",
+      "old_head": "69a96d515f1af056f74c25ef350255d89273f310",
+      "old_base": "6f67dc170811ff69fd6ec50816974bc4285d145b",
+      "old_base_ref": "torch-pr6-waveform",
+      "new_base": "8a48c85d199853f6549db15c6396bfe26842e1e4",
+      "new_head": "daab2977084dc2f3379aa2d3f452eff2ed8209bb",
+      "staging_ref": "codex/original-cpu-restoration-20260908-pr11",
+      "commits": [
+        {
+          "old": "69a96d515f1af056f74c25ef350255d89273f310",
+          "new": "daab2977084dc2f3379aa2d3f452eff2ed8209bb"
+        }
+      ]
+    },
+    {
+      "pr": 12,
+      "parent_pr": 11,
+      "published_ref": "torch-pr8-domain-compat",
+      "published_base_ref": "torch-pr7-taylorf2",
+      "old_head": "1219fe1a6fa9ee530bf2d5e57ec192b784c99474",
+      "old_base": "69a96d515f1af056f74c25ef350255d89273f310",
+      "old_base_ref": "torch-pr7-taylorf2",
+      "new_base": "daab2977084dc2f3379aa2d3f452eff2ed8209bb",
+      "new_head": "d863f5d1d73e7d6ddc2965dfdecfc38662c39f35",
+      "staging_ref": "codex/original-cpu-restoration-20260908-pr12",
+      "commits": [
+        {
+          "old": "1219fe1a6fa9ee530bf2d5e57ec192b784c99474",
+          "new": "d863f5d1d73e7d6ddc2965dfdecfc38662c39f35"
+        }
+      ]
+    },
+    {
+      "pr": 13,
+      "parent_pr": 12,
+      "published_ref": "torch-pr9-detector",
+      "published_base_ref": "torch-pr8-domain-compat",
+      "old_head": "424133803568b403cd6d30e7c54816dda2e93133",
+      "old_base": "1219fe1a6fa9ee530bf2d5e57ec192b784c99474",
+      "old_base_ref": "torch-pr8-domain-compat",
+      "new_base": "d863f5d1d73e7d6ddc2965dfdecfc38662c39f35",
+      "new_head": "ae0cf53ba57bb5708e0672b811f62695d8fe998b",
+      "staging_ref": "codex/original-cpu-restoration-20260908-pr13",
+      "commits": [
+        {
+          "old": "424133803568b403cd6d30e7c54816dda2e93133",
+          "new": "ae0cf53ba57bb5708e0672b811f62695d8fe998b"
+        }
+      ]
+    },
+    {
+      "pr": 14,
+      "parent_pr": 13,
+      "published_ref": "torch-pr10-inference",
+      "published_base_ref": "torch-pr9-detector",
+      "old_head": "5b413c12b889e1869a897d022f67db1075c95c6d",
+      "old_base": "424133803568b403cd6d30e7c54816dda2e93133",
+      "old_base_ref": "torch-pr9-detector",
+      "new_base": "ae0cf53ba57bb5708e0672b811f62695d8fe998b",
+      "new_head": "042d4123b6254745eb94f3de64e976cbefdd7ef1",
+      "staging_ref": "codex/original-cpu-restoration-20260908-pr14",
+      "commits": [
+        {
+          "old": "5b413c12b889e1869a897d022f67db1075c95c6d",
+          "new": "042d4123b6254745eb94f3de64e976cbefdd7ef1"
+        }
+      ]
+    },
+    {
+      "pr": 15,
+      "parent_pr": 14,
+      "published_ref": "torch-pr11-performance-evidence",
+      "published_base_ref": "torch-pr10-inference",
+      "old_head": "1d22031fd31c6e5bcb48a68fe11772e960bd406b",
+      "old_base": "5b413c12b889e1869a897d022f67db1075c95c6d",
+      "old_base_ref": "torch-pr10-inference",
+      "new_base": "042d4123b6254745eb94f3de64e976cbefdd7ef1",
+      "new_head": "652206d84177f658f5fb2f9cab2ee73f6d2bc95f",
+      "staging_ref": "codex/original-cpu-restoration-20260908-pr15",
+      "commits": [
+        {
+          "old": "c87c68908484fd6b01c4f85f09eef0251bd71623",
+          "new": "2aa57460e66f15fa33f83ae4bcc3d64c411c22d0"
+        },
+        {
+          "old": "4fa6a66b1baa3aa3df4398983dc3629186cc4a0e",
+          "new": "716f8ecea11512eaa1f4e9d6aba34544f0a8d2ac"
+        },
+        {
+          "old": "8dcaeca83a4066547b9289c37e352c3cbd9cd9c9",
+          "new": "c37fc970e03fa025aa86a1d9ca3421b4f21af374"
+        },
+        {
+          "old": "a160eac9693c9f8752c66d54bb6ba694348823f1",
+          "new": "cd14bedef975a4aee0e99513464a1471be153ed4"
+        },
+        {
+          "old": "eb90feb74800dd51fdfb2543687a9d451559b6ac",
+          "new": "991a578785105990f88ada3a5d8f3671abbb1fa2"
+        },
+        {
+          "old": "6b47580146e73169cd130b601731e5ba40668d93",
+          "new": "0240db4d023f38c7e0d69182b0ef78d3e946d887"
+        },
+        {
+          "old": "1d22031fd31c6e5bcb48a68fe11772e960bd406b",
+          "new": "652206d84177f658f5fb2f9cab2ee73f6d2bc95f"
+        }
+      ]
+    },
+    {
+      "pr": 19,
+      "parent_pr": 15,
+      "published_ref": "torch-fft-formatting-base",
+      "published_base_ref": "torch-pr11-performance-evidence",
+      "old_head": "0b5eb0c970e7d3edd726e8b3bc7abd3d6c63ddda",
+      "old_base": "1d22031fd31c6e5bcb48a68fe11772e960bd406b",
+      "old_base_ref": "torch-pr11-performance-evidence",
+      "new_base": "652206d84177f658f5fb2f9cab2ee73f6d2bc95f",
+      "new_head": "2bc1bf37c5db4e55a13d932577167f90923b35c6",
+      "staging_ref": "codex/original-cpu-restoration-20260908-pr19",
+      "commits": [
+        {
+          "old": "0b5eb0c970e7d3edd726e8b3bc7abd3d6c63ddda",
+          "new": "2bc1bf37c5db4e55a13d932577167f90923b35c6"
+        }
+      ]
+    },
+    {
+      "pr": 16,
+      "parent_pr": 19,
+      "published_ref": "torch-followup-fft-optimizations",
+      "published_base_ref": "torch-fft-formatting-base",
+      "old_head": "0a3bc0bd366c1c7fc5a4a8f06a4d0b5dc8239a36",
+      "old_base": "0b5eb0c970e7d3edd726e8b3bc7abd3d6c63ddda",
+      "old_base_ref": "torch-fft-formatting-base",
+      "new_base": "2bc1bf37c5db4e55a13d932577167f90923b35c6",
+      "new_head": "185c0bf451f6fb3645f8fd6e0e2499c5d7e3a749",
+      "staging_ref": "codex/original-cpu-restoration-20260908-pr16",
+      "commits": [
+        {
+          "old": "0a3bc0bd366c1c7fc5a4a8f06a4d0b5dc8239a36",
+          "new": "185c0bf451f6fb3645f8fd6e0e2499c5d7e3a749"
+        }
+      ]
+    },
+    {
+      "pr": 17,
+      "parent_pr": 15,
+      "published_ref": "torch-followup-cpu-optimizations",
+      "published_base_ref": "torch-pr11-performance-evidence",
+      "old_head": "f2180c07d7a23cf90ab597ebc1e02ab75e7d5b59",
+      "old_base": "1d22031fd31c6e5bcb48a68fe11772e960bd406b",
+      "old_base_ref": "torch-pr11-performance-evidence",
+      "new_base": "652206d84177f658f5fb2f9cab2ee73f6d2bc95f",
+      "new_head": "29bd2fa92b544f88a1378e13eb9ca060e7045753",
+      "staging_ref": "codex/original-cpu-restoration-20260908-pr17",
+      "commits": [
+        {
+          "old": "f2180c07d7a23cf90ab597ebc1e02ab75e7d5b59",
+          "new": "29bd2fa92b544f88a1378e13eb9ca060e7045753"
+        }
+      ]
+    }
+  ]
+}

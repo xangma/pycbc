@@ -1,0 +1,107 @@
+From dcef154a13d2d51d27d7d0b6454ff4e751e37489 Mon Sep 17 00:00:00 2001
+From: xangma <xangma@users.noreply.github.com>
+Date: Tue, 8 Sep 2026 17:49:11 +0100
+Subject: [PATCH] Serialize automatic wisdom export retries with Torch planning
+
+---
+ pycbc/fft/wisdom_cache.py      | 16 ++++++++---
+ test/test_fftw_wisdom_cache.py | 52 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 64 insertions(+), 4 deletions(-)
+
+diff --git a/pycbc/fft/wisdom_cache.py b/pycbc/fft/wisdom_cache.py
+index ee30a6307d..3fd225688d 100644
+--- a/pycbc/fft/wisdom_cache.py
++++ b/pycbc/fft/wisdom_cache.py
+@@ -446,7 +446,15 @@ def _export_entry(fftw, entry):
+ 
+ def export_pending(fftw):
+     """Persist all newly measured cache entries without failing the job."""
+-    for entry in _config.entries.values():
+-        if not entry.dirty:
+-            continue
+-        _export_entry(fftw, entry)
++    if not has_pending_export():
++        return
++
++    # CLI retries run outside plan creation. Serialize their native wisdom
++    # access with Torch planning/destruction while keeping empty-cache CPU
++    # calls independent of Torch and the legacy FFTW wrapper unchanged.
++    from .torchfft import _FFTW_PLANNING_LOCK
++
++    with _FFTW_PLANNING_LOCK:
++        for entry in _config.entries.values():
++            if entry.dirty:
++                _export_entry(fftw, entry)
+diff --git a/test/test_fftw_wisdom_cache.py b/test/test_fftw_wisdom_cache.py
+index cf04213430..bd59ae4ed1 100644
+--- a/test/test_fftw_wisdom_cache.py
++++ b/test/test_fftw_wisdom_cache.py
+@@ -121,6 +121,7 @@ def test_cancelled_plan_releases_cold_writer_lock(tmp_path, stable_fingerprint):
+ def test_failed_immediate_export_is_retried_by_cli_lifecycle(
+     tmp_path, stable_fingerprint
+ ):
++    pytest.importorskip("torch")
+     failure = OSError("temporary cache failure")
+     fftw = FakeFFTW(export_failure=failure)
+     wisdom_cache.configure_from_cli(_options(tmp_path))
+@@ -139,6 +140,57 @@ def test_failed_immediate_export_is_retried_by_cli_lifecycle(
+     assert entry.path.read_bytes() == b"qualified-wisdom"
+ 
+ 
++def test_pending_export_uses_torch_planner_lock(
++    monkeypatch, tmp_path, stable_fingerprint
++):
++    pytest.importorskip("torch")
++    from contextlib import contextmanager
++    from pycbc.fft import parser_support, torchfft
++
++    fftw = FakeFFTW(export_failure=OSError("temporary cache failure"))
++    wisdom_cache.configure_from_cli(_options(tmp_path))
++    level, entry = _prepare(fftw)
++    wisdom_cache.record_plan(fftw, entry, level)
++    assert wisdom_cache.has_pending_export()
++
++    lock_events = []
++
++    @contextmanager
++    def planner_lock():
++        lock_events.append("acquire")
++        try:
++            yield
++        finally:
++            lock_events.append("release")
++
++    def export(filename):
++        assert lock_events == ["acquire"]
++        Path(filename).write_bytes(b"retried-wisdom")
++
++    monkeypatch.setattr(torchfft, "_FFTW_PLANNING_LOCK", planner_lock())
++    monkeypatch.setattr(fftw, "export_single_wisdom_to_filename", export)
++    monkeypatch.setattr(parser_support, "_load_fftw_for_wisdom", lambda: fftw)
++    parser_support.export_wisdom_from_cli(SimpleNamespace())
++
++    assert lock_events == ["acquire", "release"]
++    assert not wisdom_cache.has_pending_export()
++    assert entry.path.read_bytes() == b"retried-wisdom"
++
++
++def test_empty_pending_export_does_not_import_torch(monkeypatch):
++    import builtins
++
++    original_import = builtins.__import__
++
++    def guarded_import(name, *args, **kwargs):
++        if name in ("torch", "torchfft"):
++            raise AssertionError("empty cache export imported Torch")
++        return original_import(name, *args, **kwargs)
++
++    monkeypatch.setattr(builtins, "__import__", guarded_import)
++    wisdom_cache.export_pending(FakeFFTW())
++
++
+ def test_corrupt_cache_falls_back_to_bounded_measurement(
+     caplog, tmp_path, stable_fingerprint
+ ):
+-- 
+2.50.1 (Apple Git-155)
+

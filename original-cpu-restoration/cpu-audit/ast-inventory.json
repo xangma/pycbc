@@ -1,0 +1,4984 @@
+{
+  "bin/inference/pycbc_inference": [],
+  "bin/pycbc_inspiral": [],
+  "pycbc/__init__.py": [],
+  "pycbc/boundaries.py": [
+    {
+      "symbol": "Bounds.apply_conditions",
+      "status": "changed",
+      "base_line": 365,
+      "main_line": 392,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Bounds.contains_conditioned",
+      "status": "changed",
+      "base_line": 412,
+      "main_line": 443,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_reflect_tensor",
+      "status": "added",
+      "main_line": 39
+    }
+  ],
+  "pycbc/conversions.py": [
+    {
+      "symbol": "_torch_qnm_spline",
+      "status": "added",
+      "main_line": 66
+    },
+    {
+      "symbol": "_torch_real_cuberoot",
+      "status": "added",
+      "main_line": 395
+    },
+    {
+      "symbol": "_torch_values",
+      "status": "added",
+      "main_line": 54
+    },
+    {
+      "symbol": "chi_eff_from_spherical",
+      "status": "changed",
+      "base_line": 1010,
+      "main_line": 1434,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "chi_p_from_spherical",
+      "status": "changed",
+      "base_line": 1018,
+      "main_line": 1450,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "chi_p_from_xi1_xi2",
+      "status": "changed",
+      "base_line": 1099,
+      "main_line": 1549,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "chi_perp_from_spinx_spiny",
+      "status": "changed",
+      "base_line": 1083,
+      "main_line": 1529,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "delta_lambda_tilde",
+      "status": "changed",
+      "base_line": 679,
+      "main_line": 904,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "det_tc",
+      "status": "changed",
+      "base_line": 1234,
+      "main_line": 1720,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "dquadmon_from_lambda",
+      "status": "changed",
+      "base_line": 1172,
+      "main_line": 1651,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "ensure_obj1_is_primary",
+      "status": "changed",
+      "base_line": 762,
+      "main_line": 1072,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "ensurearray",
+      "status": "changed",
+      "base_line": 57,
+      "main_line": 73,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "final_mass_from_f0_tau",
+      "status": "changed",
+      "base_line": 1560,
+      "main_line": 2113,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "final_spin_from_f0_tau",
+      "status": "changed",
+      "base_line": 1516,
+      "main_line": 2062,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "formatreturn",
+      "status": "changed",
+      "base_line": 85,
+      "main_line": 107,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "freqlmn_from_other_lmn",
+      "status": "changed",
+      "base_line": 1591,
+      "main_line": 2153,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_lm_f0tau",
+      "status": "changed",
+      "base_line": 1361,
+      "main_line": 1862,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "hypertriangle",
+      "status": "changed",
+      "base_line": 105,
+      "main_line": 130,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "lambda1_from_delta_lambda_tilde_lambda_tilde",
+      "status": "changed",
+      "base_line": 702,
+      "main_line": 944,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "lambda2_from_delta_lambda_tilde_lambda_tilde",
+      "status": "changed",
+      "base_line": 725,
+      "main_line": 981,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "lambda_from_mass_tov_file",
+      "status": "changed",
+      "base_line": 749,
+      "main_line": 1018,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "lambda_tilde",
+      "status": "changed",
+      "base_line": 661,
+      "main_line": 872,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "mass2_from_mchirp_mass1",
+      "status": "added",
+      "main_line": 402
+    },
+    {
+      "symbol": "mass_from_knownmass_eta",
+      "status": "added",
+      "main_line": 514
+    },
+    {
+      "symbol": "mchirp_from_eccmchirp_eccentricity",
+      "status": "changed",
+      "base_line": 578,
+      "main_line": 784,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "nltides_coefs",
+      "status": "changed",
+      "base_line": 1929,
+      "main_line": 2569,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "nltides_gw_phase_diff_isco",
+      "status": "changed",
+      "base_line": 2013,
+      "main_line": 2664,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "nltides_gw_phase_difference",
+      "status": "changed",
+      "base_line": 1971,
+      "main_line": 2614,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "optimal_orientation_from_detector",
+      "status": "changed",
+      "base_line": 1274,
+      "main_line": 1763,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "phi_from_spinx_spiny",
+      "status": "changed",
+      "base_line": 1123,
+      "main_line": 1576,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "primary_mass",
+      "status": "changed",
+      "base_line": 172,
+      "main_line": 234,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "primary_spin",
+      "status": "changed",
+      "base_line": 1030,
+      "main_line": 1470,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "remnant_mass_from_mass1_mass2_cartesian_spin_eos",
+      "status": "changed",
+      "base_line": 897,
+      "main_line": 1292,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "remnant_mass_from_mass1_mass2_spherical_spin_eos",
+      "status": "changed",
+      "base_line": 812,
+      "main_line": 1133,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "secondary_mass",
+      "status": "changed",
+      "base_line": 183,
+      "main_line": 249,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "secondary_spin",
+      "status": "changed",
+      "base_line": 1040,
+      "main_line": 1484,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "snr_from_loglr",
+      "status": "changed",
+      "base_line": 1327,
+      "main_line": 1820,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "spin1x_from_xi1_phi_a_phi_s",
+      "status": "changed",
+      "base_line": 1142,
+      "main_line": 1599,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "spin1y_from_xi1_phi_a_phi_s",
+      "status": "changed",
+      "base_line": 1149,
+      "main_line": 1611,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "spin2x_from_mass1_mass2_xi2_phi_a_phi_s",
+      "status": "changed",
+      "base_line": 1156,
+      "main_line": 1623,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "spin2y_from_mass1_mass2_xi2_phi_a_phi_s",
+      "status": "changed",
+      "base_line": 1164,
+      "main_line": 1637,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "taulmn_from_other_lmn",
+      "status": "changed",
+      "base_line": 1629,
+      "main_line": 2201,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/coordinates/base.py": [
+    {
+      "symbol": "cartesian_to_spherical_azimuthal",
+      "status": "changed",
+      "base_line": 57,
+      "main_line": 65,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "cartesian_to_spherical_polar",
+      "status": "changed",
+      "base_line": 78,
+      "main_line": 93,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "cartesian_to_spherical_rho",
+      "status": "changed",
+      "base_line": 36,
+      "main_line": 40,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "spherical_to_cartesian",
+      "status": "changed",
+      "base_line": 132,
+      "main_line": 157,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/cosmology.py": [
+    {
+      "symbol": "ComovingVolInterpolator.__init__",
+      "status": "changed",
+      "base_line": 370,
+      "main_line": 456,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "ComovingVolInterpolator._create_interpolant",
+      "status": "changed",
+      "base_line": 387,
+      "main_line": 477,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "ComovingVolInterpolator._get_torch_grids",
+      "status": "added",
+      "main_line": 509
+    },
+    {
+      "symbol": "ComovingVolInterpolator._get_value_from_logv_torch",
+      "status": "added",
+      "main_line": 537
+    },
+    {
+      "symbol": "ComovingVolInterpolator._torch_linear_interp",
+      "status": "added",
+      "main_line": 526
+    },
+    {
+      "symbol": "ComovingVolInterpolator.get_value",
+      "status": "changed",
+      "base_line": 447,
+      "main_line": 607,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "ComovingVolInterpolator.get_value_from_logv",
+      "status": "changed",
+      "base_line": 416,
+      "main_line": 570,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "ComovingVolInterpolator.setup_interpolant",
+      "status": "changed",
+      "base_line": 402,
+      "main_line": 494,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "DistToZ.__init__",
+      "status": "changed",
+      "base_line": 244,
+      "main_line": 253,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "DistToZ._get_redshift_torch",
+      "status": "added",
+      "main_line": 316
+    },
+    {
+      "symbol": "DistToZ._get_torch_grids",
+      "status": "added",
+      "main_line": 288
+    },
+    {
+      "symbol": "DistToZ._torch_linear_interp",
+      "status": "added",
+      "main_line": 305
+    },
+    {
+      "symbol": "DistToZ.get_redshift",
+      "status": "changed",
+      "base_line": 270,
+      "main_line": 345,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "DistToZ.setup_interpolant",
+      "status": "changed",
+      "base_line": 254,
+      "main_line": 266,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/detector/ground.py": [
+    {
+      "symbol": "Detector._apply_response",
+      "status": "changed",
+      "base_line": 213,
+      "main_line": 349,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Detector.antenna_pattern",
+      "status": "changed",
+      "base_line": 327,
+      "main_line": 464,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Detector.antenna_pattern_and_time_delay",
+      "status": "added",
+      "main_line": 582
+    },
+    {
+      "symbol": "Detector.effective_distance",
+      "status": "changed",
+      "base_line": 652,
+      "main_line": 947,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Detector.time_delay_from_location",
+      "status": "changed",
+      "base_line": 434,
+      "main_line": 699,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "NetworkGeometry.__getitem__",
+      "status": "added",
+      "main_line": 1068
+    },
+    {
+      "symbol": "NetworkGeometry.__init__",
+      "status": "added",
+      "main_line": 1049
+    },
+    {
+      "symbol": "NetworkGeometry.__len__",
+      "status": "added",
+      "main_line": 1065
+    },
+    {
+      "symbol": "NetworkGeometry.antenna_pattern",
+      "status": "added",
+      "main_line": 1129
+    },
+    {
+      "symbol": "NetworkGeometry.antenna_pattern_and_time_delay",
+      "status": "added",
+      "main_line": 1095
+    },
+    {
+      "symbol": "NetworkGeometry.gmst_estimate",
+      "status": "added",
+      "main_line": 1086
+    },
+    {
+      "symbol": "NetworkGeometry.set_gmst_reference",
+      "status": "added",
+      "main_line": 1076
+    },
+    {
+      "symbol": "NetworkGeometry.time_delay_from_earth_center",
+      "status": "added",
+      "main_line": 1136
+    },
+    {
+      "symbol": "NetworkGeometry.to_dict",
+      "status": "added",
+      "main_line": 1143
+    },
+    {
+      "symbol": "_numpy_network_antenna_pattern_and_time_delay",
+      "status": "added",
+      "main_line": 119
+    },
+    {
+      "symbol": "_scalar_antenna_pattern_and_time_delay",
+      "status": "added",
+      "main_line": 54
+    },
+    {
+      "symbol": "_torch_backend",
+      "status": "added",
+      "main_line": 101
+    },
+    {
+      "symbol": "load_detector_config",
+      "status": "changed",
+      "base_line": 159,
+      "main_line": 293,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "single_arm_frequency_response",
+      "status": "changed",
+      "base_line": 147,
+      "main_line": 276,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/distributions/angular.py": [
+    {
+      "symbol": "CosAngle._cdfinv_param",
+      "status": "changed",
+      "base_line": 260,
+      "main_line": 334,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "CosAngle._torch_dfunc",
+      "status": "added",
+      "main_line": 330
+    },
+    {
+      "symbol": "SinAngle._cdfinv_param",
+      "status": "changed",
+      "base_line": 209,
+      "main_line": 232,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "SinAngle._logpdf",
+      "status": "changed",
+      "base_line": 229,
+      "main_line": 280,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "SinAngle._pdf",
+      "status": "changed",
+      "base_line": 218,
+      "main_line": 257,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "SinAngle._torch_dfunc",
+      "status": "added",
+      "main_line": 253
+    }
+  ],
+  "pycbc/distributions/arbitrary.py": [
+    {
+      "symbol": "Arbitrary.__init__",
+      "status": "changed",
+      "base_line": 49,
+      "main_line": 53,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Arbitrary._logpdf",
+      "status": "changed",
+      "base_line": 130,
+      "main_line": 136,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Arbitrary._pdf",
+      "status": "changed",
+      "base_line": 91,
+      "main_line": 96,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Arbitrary._torch_kde_tensors",
+      "status": "added",
+      "main_line": 152
+    },
+    {
+      "symbol": "Arbitrary._torch_logpdf",
+      "status": "added",
+      "main_line": 193
+    },
+    {
+      "symbol": "Arbitrary.set_bandwidth",
+      "status": "changed",
+      "base_line": 140,
+      "main_line": 286,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "FromFile.get_arrays_from_file",
+      "status": "changed",
+      "base_line": 257,
+      "main_line": 405,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/distributions/bounded.py": [
+    {
+      "symbol": "BoundedDist.__contains__",
+      "status": "changed",
+      "base_line": 241,
+      "main_line": 278,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "BoundedDist.__init__",
+      "status": "changed",
+      "base_line": 214,
+      "main_line": 248,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_torch_as_tensor",
+      "status": "added",
+      "main_line": 39
+    },
+    {
+      "symbol": "_torch_module_and_reference",
+      "status": "added",
+      "main_line": 30
+    },
+    {
+      "symbol": "_torch_where",
+      "status": "added",
+      "main_line": 48
+    }
+  ],
+  "pycbc/distributions/constraints.py": [
+    {
+      "symbol": "Constraint.__call__",
+      "status": "changed",
+      "base_line": 57,
+      "main_line": 61,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Constraint.__init__",
+      "status": "changed",
+      "base_line": 35,
+      "main_line": 38,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "SupernovaeConvexHull.__call__",
+      "status": "added",
+      "main_line": 152
+    },
+    {
+      "symbol": "SupernovaeConvexHull.__init__",
+      "status": "changed",
+      "base_line": 94,
+      "main_line": 129,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "SupernovaeConvexHull._constraint",
+      "status": "changed",
+      "base_line": 112,
+      "main_line": 237,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "SupernovaeConvexHull._torch_constraint",
+      "status": "added",
+      "main_line": 188
+    },
+    {
+      "symbol": "SupernovaeConvexHull._torch_transform",
+      "status": "added",
+      "main_line": 174
+    }
+  ],
+  "pycbc/distributions/external.py": [
+    {
+      "symbol": "DistributionFunctionFromFile.__init__",
+      "status": "changed",
+      "base_line": 159,
+      "main_line": 161,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "DistributionFunctionFromFile._cdf",
+      "status": "changed",
+      "base_line": 197,
+      "main_line": 297,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "DistributionFunctionFromFile._cdfinv",
+      "status": "changed",
+      "base_line": 212,
+      "main_line": 328,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "DistributionFunctionFromFile._ensure_cdf_interpolator",
+      "status": "added",
+      "main_line": 308
+    },
+    {
+      "symbol": "DistributionFunctionFromFile._ensure_cdfinv_interpolator",
+      "status": "added",
+      "main_line": 342
+    },
+    {
+      "symbol": "DistributionFunctionFromFile._ensure_pdf_interpolator",
+      "status": "added",
+      "main_line": 186
+    },
+    {
+      "symbol": "DistributionFunctionFromFile._logpdf",
+      "status": "changed",
+      "base_line": 192,
+      "main_line": 289,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "DistributionFunctionFromFile._pdf",
+      "status": "changed",
+      "base_line": 176,
+      "main_line": 265,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "DistributionFunctionFromFile._torch_interpolation_tables",
+      "status": "added",
+      "main_line": 217
+    },
+    {
+      "symbol": "DistributionFunctionFromFile._torch_linear_interpolate",
+      "status": "added",
+      "main_line": 246
+    },
+    {
+      "symbol": "DistributionFunctionFromFile._torch_pdf_tables",
+      "status": "added",
+      "main_line": 213
+    }
+  ],
+  "pycbc/distributions/fixedsamples.py": [
+    {
+      "symbol": "FixedSamples.__init__",
+      "status": "changed",
+      "base_line": 51,
+      "main_line": 55,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "FixedSamples._cdfinv_torch",
+      "status": "added",
+      "main_line": 186
+    },
+    {
+      "symbol": "FixedSamples._draw_shape",
+      "status": "added",
+      "main_line": 117
+    },
+    {
+      "symbol": "FixedSamples._torch_state",
+      "status": "added",
+      "main_line": 83
+    },
+    {
+      "symbol": "FixedSamples.cdfinv",
+      "status": "changed",
+      "base_line": 71,
+      "main_line": 139,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "FixedSamples.from_config",
+      "status": "changed",
+      "base_line": 120,
+      "main_line": 240,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "FixedSamples.rvs",
+      "status": "changed",
+      "base_line": 66,
+      "main_line": 125,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/distributions/gaussian.py": [
+    {
+      "symbol": "Gaussian._cdfinv_param",
+      "status": "changed",
+      "base_line": 165,
+      "main_line": 185,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Gaussian._logpdf",
+      "status": "changed",
+      "base_line": 188,
+      "main_line": 216,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Gaussian._normalcdf",
+      "status": "changed",
+      "base_line": 139,
+      "main_line": 141,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Gaussian._normalcdfinv",
+      "status": "changed",
+      "base_line": 159,
+      "main_line": 174,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Gaussian._pdf",
+      "status": "changed",
+      "base_line": 180,
+      "main_line": 207,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Gaussian.cdf",
+      "status": "changed",
+      "base_line": 145,
+      "main_line": 152,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/distributions/joint.py": [
+    {
+      "symbol": "JointDistribution.__call__",
+      "status": "changed",
+      "base_line": 281,
+      "main_line": 353,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "JointDistribution._return_atomic",
+      "status": "changed",
+      "base_line": 167,
+      "main_line": 188,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "JointDistribution._torch_module_and_reference",
+      "status": "added",
+      "main_line": 177
+    },
+    {
+      "symbol": "JointDistribution.contains",
+      "status": "changed",
+      "base_line": 249,
+      "main_line": 298,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "JointDistribution.within_constraints",
+      "status": "changed",
+      "base_line": 224,
+      "main_line": 248,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/distributions/mass.py": [
+    {
+      "symbol": "QfromUniformMass1Mass2.__init__",
+      "status": "changed",
+      "base_line": 141,
+      "main_line": 141,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "QfromUniformMass1Mass2._cdfinv_param",
+      "status": "changed",
+      "base_line": 206,
+      "main_line": 237,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "QfromUniformMass1Mass2._logpdf",
+      "status": "changed",
+      "base_line": 177,
+      "main_line": 192,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "QfromUniformMass1Mass2._pdf",
+      "status": "changed",
+      "base_line": 160,
+      "main_line": 170,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/distributions/power_law.py": [
+    {
+      "symbol": "UniformPowerLaw._logpdf",
+      "status": "changed",
+      "base_line": 165,
+      "main_line": 173,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "UniformPowerLaw._pdf",
+      "status": "changed",
+      "base_line": 148,
+      "main_line": 154,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/distributions/qnm.py": [
+    {
+      "symbol": "UniformF0Tau.__contains__",
+      "status": "changed",
+      "base_line": 145,
+      "main_line": 158,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/distributions/spins.py": [
+    {
+      "symbol": "IndependentChiPChiEff.__contains__",
+      "status": "changed",
+      "base_line": 170,
+      "main_line": 206,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "IndependentChiPChiEff._constraints",
+      "status": "changed",
+      "base_line": 138,
+      "main_line": 160,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/distributions/uniform.py": [
+    {
+      "symbol": "Uniform._logpdf",
+      "status": "changed",
+      "base_line": 119,
+      "main_line": 127,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Uniform._pdf",
+      "status": "changed",
+      "base_line": 109,
+      "main_line": 113,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/distributions/uniform_log.py": [
+    {
+      "symbol": "UniformLog10._cdfinv_param",
+      "status": "changed",
+      "base_line": 46,
+      "main_line": 51,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "UniformLog10._logpdf",
+      "status": "changed",
+      "base_line": 64,
+      "main_line": 89,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "UniformLog10._pdf",
+      "status": "changed",
+      "base_line": 52,
+      "main_line": 73,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/events/coinc.py": [
+    {
+      "symbol": "LiveCoincTimeslideBackgroundEstimator.__init__",
+      "status": "changed",
+      "base_line": 835,
+      "main_line": 892,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "LiveCoincTimeslideBackgroundEstimator._find_coincs",
+      "status": "changed",
+      "base_line": 1149,
+      "main_line": 1241,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_detector",
+      "status": "added",
+      "main_line": 53
+    },
+    {
+      "symbol": "_torch_coinc_backend",
+      "status": "added",
+      "main_line": 197
+    },
+    {
+      "symbol": "background_bin_from_string",
+      "status": "changed",
+      "base_line": 50,
+      "main_line": 58,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "cluster_coincs",
+      "status": "changed",
+      "base_line": 358,
+      "main_line": 391,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "cluster_coincs_multiifo",
+      "status": "changed",
+      "base_line": 404,
+      "main_line": 444,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "cluster_over_time",
+      "status": "changed",
+      "base_line": 483,
+      "main_line": 529,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "time_coincidence",
+      "status": "changed",
+      "base_line": 186,
+      "main_line": 208,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "time_multi_coincidence",
+      "status": "changed",
+      "base_line": 249,
+      "main_line": 279,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/events/coinc_rate.py": [
+    {
+      "symbol": "_detector_class",
+      "status": "added",
+      "main_line": 29
+    },
+    {
+      "symbol": "_torch_combination_noise",
+      "status": "added",
+      "main_line": 81
+    },
+    {
+      "symbol": "_torch_rate_tensors",
+      "status": "added",
+      "main_line": 34
+    },
+    {
+      "symbol": "combination_noise_lograte",
+      "status": "changed",
+      "base_line": 95,
+      "main_line": 186,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "combination_noise_rate",
+      "status": "changed",
+      "base_line": 67,
+      "main_line": 149,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "multiifo_noise_coincident_area",
+      "status": "changed",
+      "base_line": 126,
+      "main_line": 221,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "multiifo_signal_coincident_area",
+      "status": "changed",
+      "base_line": 178,
+      "main_line": 275,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/events/cuts.py": [
+    {
+      "symbol": "_torch_cut_mask",
+      "status": "added",
+      "main_line": 121
+    },
+    {
+      "symbol": "_torch_cut_tensor",
+      "status": "added",
+      "main_line": 78
+    },
+    {
+      "symbol": "_torch_cut_vector",
+      "status": "added",
+      "main_line": 100
+    },
+    {
+      "symbol": "_torch_trigger_cut_state",
+      "status": "added",
+      "main_line": 83
+    },
+    {
+      "symbol": "_wrap_torch_cut_indices",
+      "status": "added",
+      "main_line": 143
+    },
+    {
+      "symbol": "apply_trigger_cuts",
+      "status": "changed",
+      "base_line": 233,
+      "main_line": 340,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/events/eventmgr.py": [
+    {
+      "symbol": "_torch_cluster_positions",
+      "status": "added",
+      "main_line": 163
+    },
+    {
+      "symbol": "_torch_tensor",
+      "status": "added",
+      "main_line": 158
+    },
+    {
+      "symbol": "cluster_reduce",
+      "status": "changed",
+      "base_line": 160,
+      "main_line": 214,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "findchirp_cluster_over_window",
+      "status": "changed",
+      "base_line": 130,
+      "main_line": 179,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "threshold_and_cluster_findchirp",
+      "status": "added",
+      "main_line": 251
+    },
+    {
+      "symbol": "threshold_real",
+      "status": "added",
+      "main_line": 77
+    },
+    {
+      "symbol": "threshold_real_and_cluster_findchirp",
+      "status": "added",
+      "main_line": 263
+    }
+  ],
+  "pycbc/events/ranking.py": [
+    {
+      "symbol": "_format_ranking_output",
+      "status": "added",
+      "main_line": 381
+    },
+    {
+      "symbol": "_torch_newsnr",
+      "status": "added",
+      "main_line": 47
+    },
+    {
+      "symbol": "_torch_newsnr_sgveto",
+      "status": "added",
+      "main_line": 110
+    },
+    {
+      "symbol": "_torch_ranking_dtype",
+      "status": "added",
+      "main_line": 20
+    },
+    {
+      "symbol": "_torch_ranking_tensors",
+      "status": "added",
+      "main_line": 63
+    },
+    {
+      "symbol": "effsnr",
+      "status": "changed",
+      "base_line": 10,
+      "main_line": 27,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_newsnr",
+      "status": "changed",
+      "base_line": 186,
+      "main_line": 388,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_newsnr_sgveto",
+      "status": "changed",
+      "base_line": 210,
+      "main_line": 409,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_newsnr_sgveto_psdvar",
+      "status": "changed",
+      "base_line": 235,
+      "main_line": 432,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_newsnr_sgveto_psdvar_scaled",
+      "status": "changed",
+      "base_line": 288,
+      "main_line": 488,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_newsnr_sgveto_psdvar_scaled_threshold",
+      "status": "changed",
+      "base_line": 315,
+      "main_line": 516,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_newsnr_sgveto_psdvar_threshold",
+      "status": "changed",
+      "base_line": 262,
+      "main_line": 460,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_snr",
+      "status": "changed",
+      "base_line": 168,
+      "main_line": 362,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "newsnr",
+      "status": "changed",
+      "base_line": 25,
+      "main_line": 127,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "newsnr_sgveto",
+      "status": "changed",
+      "base_line": 45,
+      "main_line": 150,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "newsnr_sgveto_psdvar",
+      "status": "changed",
+      "base_line": 65,
+      "main_line": 174,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "newsnr_sgveto_psdvar_scaled",
+      "status": "changed",
+      "base_line": 120,
+      "main_line": 273,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "newsnr_sgveto_psdvar_scaled_threshold",
+      "status": "changed",
+      "base_line": 145,
+      "main_line": 314,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "newsnr_sgveto_psdvar_threshold",
+      "status": "changed",
+      "base_line": 91,
+      "main_line": 216,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/events/significance.py": [
+    {
+      "symbol": "_torch_count_n_louder",
+      "status": "added",
+      "main_line": 112
+    },
+    {
+      "symbol": "_torch_n_louder_from_fit",
+      "status": "added",
+      "main_line": 143
+    },
+    {
+      "symbol": "_torch_significance_result",
+      "status": "added",
+      "main_line": 105
+    },
+    {
+      "symbol": "_torch_significance_tensors",
+      "status": "added",
+      "main_line": 48
+    },
+    {
+      "symbol": "apply_far_limit",
+      "status": "changed",
+      "base_line": 445,
+      "main_line": 687,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "count_n_louder",
+      "status": "changed",
+      "base_line": 38,
+      "main_line": 205,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_far",
+      "status": "changed",
+      "base_line": 217,
+      "main_line": 436,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_n_louder",
+      "status": "changed",
+      "base_line": 193,
+      "main_line": 384,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "n_louder_from_fit",
+      "status": "changed",
+      "base_line": 94,
+      "main_line": 269,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/events/single.py": [
+    {
+      "symbol": "LiveSingle.check",
+      "status": "changed",
+      "base_line": 252,
+      "main_line": 340,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "LiveSingle.from_cli",
+      "status": "changed",
+      "base_line": 227,
+      "main_line": 315,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_scalar_at",
+      "status": "added",
+      "main_line": 43
+    },
+    {
+      "symbol": "_select",
+      "status": "added",
+      "main_line": 52
+    },
+    {
+      "symbol": "_torch_tensor",
+      "status": "added",
+      "main_line": 23
+    },
+    {
+      "symbol": "_torch_vectors",
+      "status": "added",
+      "main_line": 28
+    }
+  ],
+  "pycbc/events/stat.py": [
+    {
+      "symbol": "QuadratureSumStatistic.coinc_lim_for_thresh",
+      "status": "changed",
+      "base_line": 343,
+      "main_line": 352,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "QuadratureSumStatistic.rank_stat_coinc",
+      "status": "changed",
+      "base_line": 316,
+      "main_line": 312,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/events/trigger_fits.py": [
+    {
+      "symbol": "KS_test",
+      "status": "changed",
+      "base_line": 228,
+      "main_line": 497,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_ks_test_result",
+      "status": "added",
+      "main_line": 179
+    },
+    {
+      "symbol": "_torch_fit_result",
+      "status": "added",
+      "main_line": 124
+    },
+    {
+      "symbol": "_torch_fit_tensors",
+      "status": "added",
+      "main_line": 67
+    },
+    {
+      "symbol": "_torch_fit_values",
+      "status": "added",
+      "main_line": 148
+    },
+    {
+      "symbol": "_torch_fitalpha",
+      "status": "added",
+      "main_line": 131
+    },
+    {
+      "symbol": "_torch_ks_test",
+      "status": "added",
+      "main_line": 193
+    },
+    {
+      "symbol": "cum_fit",
+      "status": "changed",
+      "base_line": 193,
+      "main_line": 448,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "fit_above_thresh",
+      "status": "changed",
+      "base_line": 94,
+      "main_line": 305,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "fit_fn",
+      "status": "changed",
+      "base_line": 160,
+      "main_line": 409,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "tail_threshold",
+      "status": "changed",
+      "base_line": 219,
+      "main_line": 480,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/events/veto.py": [
+    {
+      "symbol": "_ligolw_modules",
+      "status": "added",
+      "main_line": 24
+    },
+    {
+      "symbol": "_torch_coalesced_segments",
+      "status": "added",
+      "main_line": 74
+    },
+    {
+      "symbol": "_torch_complement_indices",
+      "status": "added",
+      "main_line": 139
+    },
+    {
+      "symbol": "_torch_indices_outside_times",
+      "status": "added",
+      "main_line": 126
+    },
+    {
+      "symbol": "_torch_indices_within_times",
+      "status": "added",
+      "main_line": 105
+    },
+    {
+      "symbol": "_torch_veto_tensor",
+      "status": "added",
+      "main_line": 32
+    },
+    {
+      "symbol": "_torch_veto_vectors",
+      "status": "added",
+      "main_line": 45
+    },
+    {
+      "symbol": "_wrap_torch_veto_result",
+      "status": "added",
+      "main_line": 37
+    },
+    {
+      "symbol": "get_segment_definer_comments",
+      "status": "changed",
+      "base_line": 205,
+      "main_line": 378,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "indices_outside_segments",
+      "status": "changed",
+      "base_line": 178,
+      "main_line": 345,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "indices_outside_times",
+      "status": "changed",
+      "base_line": 74,
+      "main_line": 230,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "indices_within_segments",
+      "status": "changed",
+      "base_line": 143,
+      "main_line": 306,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "indices_within_times",
+      "status": "changed",
+      "base_line": 43,
+      "main_line": 194,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "select_segments_by_definer",
+      "status": "changed",
+      "base_line": 96,
+      "main_line": 257,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "start_end_from_segments",
+      "status": "changed",
+      "base_line": 19,
+      "main_line": 169,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/fft/backend_support.py": [],
+  "pycbc/fft/core.py": [
+    {
+      "symbol": "_check_fwd_args",
+      "status": "changed",
+      "base_line": 96,
+      "main_line": 95,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/fft/fftw.py": [
+    {
+      "symbol": "_destroy_plan",
+      "status": "added",
+      "main_line": 419
+    },
+    {
+      "symbol": "_fftw_plan_with_nthreads",
+      "status": "changed",
+      "base_line": 66,
+      "main_line": 77,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_fftw_setup",
+      "status": "changed",
+      "base_line": 418,
+      "main_line": 658,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_fftw_setup_unlocked",
+      "status": "added",
+      "main_line": 601
+    },
+    {
+      "symbol": "_init_threads",
+      "status": "changed",
+      "base_line": 89,
+      "main_line": 171,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_init_threads_unlocked",
+      "status": "added",
+      "main_line": 109
+    },
+    {
+      "symbol": "_plan",
+      "status": "added",
+      "main_line": 346
+    },
+    {
+      "symbol": "import_sys_wisdom",
+      "status": "changed",
+      "base_line": 168,
+      "main_line": 213,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "plan",
+      "status": "changed",
+      "base_line": 267,
+      "main_line": 425,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "set_measure_level",
+      "status": "changed",
+      "base_line": 187,
+      "main_line": 237,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "set_planning_limit",
+      "status": "changed",
+      "base_line": 238,
+      "main_line": 304,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "set_threads_backend",
+      "status": "changed",
+      "base_line": 149,
+      "main_line": 177,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "wisdom_io",
+      "status": "changed",
+      "base_line": 210,
+      "main_line": 268,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/fft/mkl.py": [
+    {
+      "symbol": "_FunctionDescriptor.__init__",
+      "status": "added",
+      "main_line": 140
+    },
+    {
+      "symbol": "_execute_function",
+      "status": "added",
+      "main_line": 213
+    },
+    {
+      "symbol": "_free_function_descriptor",
+      "status": "added",
+      "main_line": 133
+    },
+    {
+      "symbol": "_function_cache_key",
+      "status": "added",
+      "main_line": 177
+    },
+    {
+      "symbol": "clear_function_cache",
+      "status": "added",
+      "main_line": 152
+    },
+    {
+      "symbol": "create_descriptor",
+      "status": "changed",
+      "base_line": 76,
+      "main_line": 89,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "fft",
+      "status": "changed",
+      "base_line": 102,
+      "main_line": 248,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "ifft",
+      "status": "changed",
+      "base_line": 111,
+      "main_line": 252,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/filter/autocorrelation.py": [
+    {
+      "symbol": "_is_torch_array",
+      "status": "added",
+      "main_line": 49
+    },
+    {
+      "symbol": "_torch_acf",
+      "status": "added",
+      "main_line": 53
+    },
+    {
+      "symbol": "calculate_acf",
+      "status": "changed",
+      "base_line": 33,
+      "main_line": 87,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "calculate_acl",
+      "status": "changed",
+      "base_line": 110,
+      "main_line": 168,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/filter/matchedfilter.py": [
+    {
+      "symbol": "BatchCorrelator.__init__",
+      "status": "changed",
+      "base_line": 55,
+      "main_line": 88,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "BatchCorrelator.mark_dirty",
+      "status": "added",
+      "main_line": 109
+    },
+    {
+      "symbol": "LiveBatchMatchedFilter.__init__",
+      "status": "changed",
+      "base_line": 1527,
+      "main_line": 2346,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "LiveBatchMatchedFilter._process_batch",
+      "status": "changed",
+      "base_line": 1705,
+      "main_line": 2822,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "LiveBatchMatchedFilter._process_vetoes",
+      "status": "changed",
+      "base_line": 1670,
+      "main_line": 2577,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "LiveBatchMatchedFilter._try_cuda_graph_batch",
+      "status": "added",
+      "main_line": 2662
+    },
+    {
+      "symbol": "LiveBatchMatchedFilter.process_all",
+      "status": "changed",
+      "base_line": 1646,
+      "main_line": 2550,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "LiveBatchMatchedFilter.set_data",
+      "status": "changed",
+      "base_line": 1629,
+      "main_line": 2532,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "MatchedFilterControl.__init__",
+      "status": "changed",
+      "base_line": 130,
+      "main_line": 171,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "MatchedFilterControl.capture_cuda_graph_symm",
+      "status": "added",
+      "main_line": 386
+    },
+    {
+      "symbol": "MatchedFilterControl.clear_cuda_graphs",
+      "status": "added",
+      "main_line": 402
+    },
+    {
+      "symbol": "MatchedFilterControl.full_matched_filter_and_cluster_fc",
+      "status": "changed",
+      "base_line": 288,
+      "main_line": 409,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "MatchedFilterControl.full_matched_filter_and_cluster_symm",
+      "status": "changed",
+      "base_line": 243,
+      "main_line": 312,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "MatchedFilterControl.full_matched_filter_thresh_only",
+      "status": "changed",
+      "base_line": 335,
+      "main_line": 462,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "MatchedFilterControl.hierarchical_matched_filter_and_cluster",
+      "status": "changed",
+      "base_line": 378,
+      "main_line": 510,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "MatchedFilterSkyMaxControl.full_matched_filter_and_cluster",
+      "status": "changed",
+      "base_line": 873,
+      "main_line": 1223,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_array_from_torch_tensor",
+      "status": "added",
+      "main_line": 633
+    },
+    {
+      "symbol": "_can_batch_torch_vetoes",
+      "status": "added",
+      "main_line": 2216
+    },
+    {
+      "symbol": "_count_louder_background",
+      "status": "added",
+      "main_line": 3287
+    },
+    {
+      "symbol": "_is_cuda_scheme",
+      "status": "added",
+      "main_line": 2311
+    },
+    {
+      "symbol": "_materialize_torch_veto_results",
+      "status": "added",
+      "main_line": 2232
+    },
+    {
+      "symbol": "_sky_max_threshold_locations",
+      "status": "added",
+      "main_line": 638
+    },
+    {
+      "symbol": "_torch_batch_peak_and_threshold_gpu",
+      "status": "added",
+      "main_line": 2060
+    },
+    {
+      "symbol": "_torch_batch_peak_magnitudes",
+      "status": "added",
+      "main_line": 2189
+    },
+    {
+      "symbol": "_torch_batch_peak_values",
+      "status": "added",
+      "main_line": 2115
+    },
+    {
+      "symbol": "_torch_cuda_native_batch_peak_enabled",
+      "status": "added",
+      "main_line": 1986
+    },
+    {
+      "symbol": "_torch_data_tensor",
+      "status": "added",
+      "main_line": 628
+    },
+    {
+      "symbol": "_torch_inference_mode_context",
+      "status": "added",
+      "main_line": 59
+    },
+    {
+      "symbol": "_torch_ondevice_peaks_enabled",
+      "status": "added",
+      "main_line": 2043
+    },
+    {
+      "symbol": "_try_torch_cuda_native_batch_peak_values",
+      "status": "added",
+      "main_line": 2002
+    },
+    {
+      "symbol": "compute_max_snr_over_sky_loc_stat",
+      "status": "changed",
+      "base_line": 475,
+      "main_line": 697,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "compute_max_snr_over_sky_loc_stat_no_phase",
+      "status": "changed",
+      "base_line": 666,
+      "main_line": 968,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "compute_u_val_for_sky_loc_stat",
+      "status": "changed",
+      "base_line": 617,
+      "main_line": 883,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "compute_u_val_for_sky_loc_stat_no_phase",
+      "status": "changed",
+      "base_line": 801,
+      "main_line": 1122,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "followup_event_significance",
+      "status": "changed",
+      "base_line": 1801,
+      "main_line": 3309,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "make_frequency_series",
+      "status": "changed",
+      "base_line": 995,
+      "main_line": 1371,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "match",
+      "status": "changed",
+      "base_line": 1328,
+      "main_line": 1753,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "matched_filter_core",
+      "status": "changed",
+      "base_line": 1180,
+      "main_line": 1575,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "optimized_match",
+      "status": "changed",
+      "base_line": 2075,
+      "main_line": 3583,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "sigmasq",
+      "status": "changed",
+      "base_line": 1068,
+      "main_line": 1461,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "sigmasq_series",
+      "status": "changed",
+      "base_line": 1024,
+      "main_line": 1403,
+      "known_correction_changes_symbol": true,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/filter/qtransform.py": [
+    {
+      "symbol": "qplane",
+      "status": "changed",
+      "base_line": 38,
+      "main_line": 44,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "qseries",
+      "status": "changed",
+      "base_line": 183,
+      "main_line": 205,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/filter/resample.py": [
+    {
+      "symbol": "_butterworth_resample_sos",
+      "status": "added",
+      "main_line": 73
+    },
+    {
+      "symbol": "_butterworth_sos",
+      "status": "added",
+      "main_line": 84
+    },
+    {
+      "symbol": "_torch_butterworth_filter",
+      "status": "added",
+      "main_line": 171
+    },
+    {
+      "symbol": "_torch_butterworth_resample",
+      "status": "added",
+      "main_line": 131
+    },
+    {
+      "symbol": "_torch_lfilter",
+      "status": "added",
+      "main_line": 237
+    },
+    {
+      "symbol": "_torch_lfilter_work_dtype",
+      "status": "added",
+      "main_line": 221
+    },
+    {
+      "symbol": "_torch_zero_phase_sos",
+      "status": "added",
+      "main_line": 121
+    },
+    {
+      "symbol": "highpass",
+      "status": "changed",
+      "base_line": 311,
+      "main_line": 592,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "lfilter",
+      "status": "changed",
+      "base_line": 54,
+      "main_line": 292,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "lowpass",
+      "status": "changed",
+      "base_line": 354,
+      "main_line": 648,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "resample_to_delta_t",
+      "status": "changed",
+      "base_line": 166,
+      "main_line": 420,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/filter/zpk.py": [
+    {
+      "symbol": "_torch_sosfilt",
+      "status": "added",
+      "main_line": 108
+    },
+    {
+      "symbol": "_torch_sosfilt_section",
+      "status": "added",
+      "main_line": 45
+    },
+    {
+      "symbol": "filter_zpk",
+      "status": "changed",
+      "base_line": 30,
+      "main_line": 131,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/frame/frame.py": [
+    {
+      "symbol": "read_frame",
+      "status": "changed",
+      "base_line": 155,
+      "main_line": 164,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/inference/models/base.py": [
+    {
+      "symbol": "BaseModel._logprior",
+      "status": "changed",
+      "base_line": 563,
+      "main_line": 640,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "BaseModel.logposterior",
+      "status": "changed",
+      "base_line": 572,
+      "main_line": 647,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "ModelStats.getstats",
+      "status": "changed",
+      "base_line": 64,
+      "main_line": 118,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "SamplingTransforms.logjacobian",
+      "status": "changed",
+      "base_line": 126,
+      "main_line": 185,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_NoPrior.__call__",
+      "status": "changed",
+      "base_line": 52,
+      "main_line": 102,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_is_neginf_scalar",
+      "status": "added",
+      "main_line": 62
+    },
+    {
+      "symbol": "_public_stat_value",
+      "status": "added",
+      "main_line": 78
+    },
+    {
+      "symbol": "_replace_nan_with_neginf",
+      "status": "added",
+      "main_line": 51
+    },
+    {
+      "symbol": "_torch_tensor",
+      "status": "added",
+      "main_line": 46
+    }
+  ],
+  "pycbc/inference/models/base_data.py": [
+    {
+      "symbol": "BaseDataModel.logplr",
+      "status": "changed",
+      "base_line": 126,
+      "main_line": 133,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/inference/models/data_utils.py": [
+    {
+      "symbol": "check_for_nans",
+      "status": "changed",
+      "base_line": 284,
+      "main_line": 351,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/inference/models/gaussian_noise.py": [
+    {
+      "symbol": "BaseGaussianNoise.__init__",
+      "status": "changed",
+      "base_line": 137,
+      "main_line": 143,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "BaseGaussianNoise._batched_loglr",
+      "status": "added",
+      "main_line": 589
+    },
+    {
+      "symbol": "BaseGaussianNoise._parse_batched_params",
+      "status": "added",
+      "main_line": 497
+    },
+    {
+      "symbol": "BaseGaussianNoise.batched_loglikelihood",
+      "status": "added",
+      "main_line": 518
+    },
+    {
+      "symbol": "BaseGaussianNoise.batched_loglr",
+      "status": "added",
+      "main_line": 548
+    },
+    {
+      "symbol": "BaseGaussianNoise.psds",
+      "status": "changed",
+      "base_line": 261,
+      "main_line": 291,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "GaussianNoise._batched_loglr",
+      "status": "added",
+      "main_line": 1248
+    },
+    {
+      "symbol": "GaussianNoise._loglr",
+      "status": "changed",
+      "base_line": 986,
+      "main_line": 1154,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "GaussianNoise._nowaveform_handler",
+      "status": "changed",
+      "base_line": 925,
+      "main_line": 1096,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "GaussianNoise.det_cplx_loglr",
+      "status": "changed",
+      "base_line": 1031,
+      "main_line": 1199,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "GaussianNoise.det_optimal_snrsq",
+      "status": "changed",
+      "base_line": 1053,
+      "main_line": 1224,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_batched_value_shape",
+      "status": "added",
+      "main_line": 1284
+    },
+    {
+      "symbol": "_batched_waveform_inner_products",
+      "status": "added",
+      "main_line": 1337
+    },
+    {
+      "symbol": "_detector_frame_batch_size",
+      "status": "added",
+      "main_line": 1290
+    }
+  ],
+  "pycbc/inference/models/marginalized_gaussian_noise.py": [
+    {
+      "symbol": "MarginalizedHMPolPhase.__init__",
+      "status": "changed",
+      "base_line": 582,
+      "main_line": 720,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "MarginalizedHMPolPhase._loglr",
+      "status": "changed",
+      "base_line": 638,
+      "main_line": 844,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "MarginalizedHMPolPhase._marginalization_grids",
+      "status": "added",
+      "main_line": 771
+    },
+    {
+      "symbol": "MarginalizedHMPolPhase._nowaveform_handler",
+      "status": "changed",
+      "base_line": 629,
+      "main_line": 836,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "MarginalizedHMPolPhase.phase_fac",
+      "status": "changed",
+      "base_line": 614,
+      "main_line": 794,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "MarginalizedPhaseGaussianNoise._batched_loglr",
+      "status": "added",
+      "main_line": 216
+    },
+    {
+      "symbol": "MarginalizedPhaseGaussianNoise._loglr",
+      "status": "changed",
+      "base_line": 143,
+      "main_line": 170,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "MarginalizedPhaseGaussianNoise._nowaveform_handler",
+      "status": "changed",
+      "base_line": 131,
+      "main_line": 159,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "MarginalizedPolarization._loglr",
+      "status": "changed",
+      "base_line": 439,
+      "main_line": 547,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "MarginalizedPolarization._nowaveform_handler",
+      "status": "changed",
+      "base_line": 427,
+      "main_line": 536,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "MarginalizedTime._loglr",
+      "status": "changed",
+      "base_line": 254,
+      "main_line": 306,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/inference/models/relbin.py": [
+    {
+      "symbol": "Relative.__init__",
+      "status": "changed",
+      "base_line": 174,
+      "main_line": 250,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Relative._get_torch_likelihood_data",
+      "status": "added",
+      "main_line": 526
+    },
+    {
+      "symbol": "Relative._get_torch_multi_likelihood_data",
+      "status": "added",
+      "main_line": 549
+    },
+    {
+      "symbol": "Relative._loglr",
+      "status": "changed",
+      "base_line": 528,
+      "main_line": 882,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Relative._multi_likelihood_parts",
+      "status": "added",
+      "main_line": 800
+    },
+    {
+      "symbol": "Relative._polarization_likelihood_parts",
+      "status": "added",
+      "main_line": 591
+    },
+    {
+      "symbol": "Relative.calculate_hihjs",
+      "status": "changed",
+      "base_line": 461,
+      "main_line": 772,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Relative.combine_layout",
+      "status": "changed",
+      "base_line": 331,
+      "main_line": 424,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Relative.get_waveforms",
+      "status": "changed",
+      "base_line": 426,
+      "main_line": 567,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Relative.max_curvature_from_reference",
+      "status": "changed",
+      "base_line": 639,
+      "main_line": 998,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Relative.multi_loglikelihood",
+      "status": "changed",
+      "base_line": 486,
+      "main_line": 863,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Relative.summary_product",
+      "status": "changed",
+      "base_line": 406,
+      "main_line": 498,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "RelativeTime._loglr",
+      "status": "changed",
+      "base_line": 735,
+      "main_line": 1141,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "RelativeTime.get_snr",
+      "status": "changed",
+      "base_line": 714,
+      "main_line": 1094,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "RelativeTimeDom._loglr",
+      "status": "changed",
+      "base_line": 843,
+      "main_line": 1242,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "RelativeTimeDom.get_snr",
+      "status": "changed",
+      "base_line": 815,
+      "main_line": 1189,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_numpy_value",
+      "status": "added",
+      "main_line": 75
+    },
+    {
+      "symbol": "_prepare_reference_data",
+      "status": "added",
+      "main_line": 99
+    },
+    {
+      "symbol": "_time_series_from_values",
+      "status": "added",
+      "main_line": 88
+    },
+    {
+      "symbol": "_uniform_frequency_grid",
+      "status": "added",
+      "main_line": 113
+    },
+    {
+      "symbol": "setup_bins",
+      "status": "changed",
+      "base_line": 54,
+      "main_line": 124,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/inference/models/tools.py": [
+    {
+      "symbol": "DistMarg.draw_sky_times",
+      "status": "changed",
+      "base_line": 438,
+      "main_line": 751,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "DistMarg.draw_times",
+      "status": "changed",
+      "base_line": 345,
+      "main_line": 654,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "DistMarg.premarg_draw",
+      "status": "changed",
+      "base_line": 293,
+      "main_line": 584,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "DistMarg.reconstruct",
+      "status": "changed",
+      "base_line": 749,
+      "main_line": 1081,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "DistMarg.setup_marginalization",
+      "status": "changed",
+      "base_line": 54,
+      "main_line": 336,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "DistMarg.setup_peak_lock",
+      "status": "changed",
+      "base_line": 600,
+      "main_line": 916,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_add_values",
+      "status": "added",
+      "main_line": 150
+    },
+    {
+      "symbol": "_device_index_matrix_to_host",
+      "status": "added",
+      "main_line": 235
+    },
+    {
+      "symbol": "_draw_device_sample_with_host_rng",
+      "status": "added",
+      "main_line": 221
+    },
+    {
+      "symbol": "_draw_sky_time_indices",
+      "status": "added",
+      "main_line": 242
+    },
+    {
+      "symbol": "_fused_inner_hd_hh",
+      "status": "added",
+      "main_line": 55
+    },
+    {
+      "symbol": "_host_indices",
+      "status": "added",
+      "main_line": 325
+    },
+    {
+      "symbol": "_inner",
+      "status": "added",
+      "main_line": 35
+    },
+    {
+      "symbol": "_last_index_at_or_below",
+      "status": "added",
+      "main_line": 161
+    },
+    {
+      "symbol": "_marginalize_likelihood_torch",
+      "status": "added",
+      "main_line": 1246
+    },
+    {
+      "symbol": "_normalize_logweights",
+      "status": "added",
+      "main_line": 317
+    },
+    {
+      "symbol": "_numpy_from_torch",
+      "status": "added",
+      "main_line": 1238
+    },
+    {
+      "symbol": "_phase_reconstruction_values",
+      "status": "added",
+      "main_line": 290
+    },
+    {
+      "symbol": "_random_permutation",
+      "status": "added",
+      "main_line": 308
+    },
+    {
+      "symbol": "_real_inner",
+      "status": "added",
+      "main_line": 45
+    },
+    {
+      "symbol": "_selected_scalar",
+      "status": "added",
+      "main_line": 300
+    },
+    {
+      "symbol": "_selected_values",
+      "status": "added",
+      "main_line": 142
+    },
+    {
+      "symbol": "_squared_norm_values",
+      "status": "added",
+      "main_line": 135
+    },
+    {
+      "symbol": "_threshold_extent",
+      "status": "added",
+      "main_line": 175
+    },
+    {
+      "symbol": "_torch_rect_bivariate_spline_evaluator",
+      "status": "added",
+      "main_line": 1224
+    },
+    {
+      "symbol": "_torch_tensor",
+      "status": "added",
+      "main_line": 21
+    },
+    {
+      "symbol": "_torch_tools",
+      "status": "added",
+      "main_line": 26
+    },
+    {
+      "symbol": "_weighted_loglr",
+      "status": "added",
+      "main_line": 282
+    },
+    {
+      "symbol": "draw_sample",
+      "status": "changed",
+      "base_line": 37,
+      "main_line": 198,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "marginalize_likelihood",
+      "status": "changed",
+      "base_line": 885,
+      "main_line": 1272,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "setup_distance_marg_interpolant",
+      "status": "changed",
+      "base_line": 804,
+      "main_line": 1136,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/pnutils.py": [
+    {
+      "symbol": "_dtdv_cutoff_velocity",
+      "status": "changed",
+      "base_line": 824,
+      "main_line": 837,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "energy",
+      "status": "changed",
+      "base_line": 937,
+      "main_line": 959,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "energy_coefficients",
+      "status": "changed",
+      "base_line": 844,
+      "main_line": 859,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "f_BKLISCO",
+      "status": "changed",
+      "base_line": 245,
+      "main_line": 251,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "hybridEnergy",
+      "status": "changed",
+      "base_line": 992,
+      "main_line": 1021,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "hybrid_meco_velocity",
+      "status": "changed",
+      "base_line": 1094,
+      "main_line": 1132,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "kerr_lightring_velocity",
+      "status": "changed",
+      "base_line": 983,
+      "main_line": 1010,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "mass1_mass2_spin1z_spin2z_to_beta_sigma_gamma",
+      "status": "changed",
+      "base_line": 158,
+      "main_line": 157,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "meco2",
+      "status": "changed",
+      "base_line": 948,
+      "main_line": 973,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "meco_velocity",
+      "status": "changed",
+      "base_line": 748,
+      "main_line": 759,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/psd/__init__.py": [
+    {
+      "symbol": "from_cli",
+      "status": "changed",
+      "base_line": 30,
+      "main_line": 44,
+      "known_correction_changes_symbol": true,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/psd/analytical.py": [
+    {
+      "symbol": "_swig_real8_compatible",
+      "status": "added",
+      "main_line": 117
+    },
+    {
+      "symbol": "flat_unity",
+      "status": "changed",
+      "base_line": 151,
+      "main_line": 253,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "from_string",
+      "status": "changed",
+      "base_line": 91,
+      "main_line": 144,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_psd_model_list",
+      "status": "changed",
+      "base_line": 64,
+      "main_line": 95,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_torch_psd_list",
+      "status": "added",
+      "main_line": 112
+    }
+  ],
+  "pycbc/psd/analytical_space.py": [
+    {
+      "symbol": "_is_torch_tensor",
+      "status": "added",
+      "main_line": 52
+    },
+    {
+      "symbol": "_load_lisa_averaged_response_data",
+      "status": "added",
+      "main_line": 1436
+    },
+    {
+      "symbol": "_torch_analytical_csd_if_active",
+      "status": "added",
+      "main_line": 144
+    },
+    {
+      "symbol": "_torch_analytical_psd_if_active",
+      "status": "added",
+      "main_line": 112
+    },
+    {
+      "symbol": "_torch_averaged_fplus_sq_if_tensor",
+      "status": "added",
+      "main_line": 57
+    },
+    {
+      "symbol": "_torch_averaged_tdi_response_if_tensor",
+      "status": "added",
+      "main_line": 85
+    },
+    {
+      "symbol": "_torch_combined_sensitivity_curve_if_active",
+      "status": "added",
+      "main_line": 226
+    },
+    {
+      "symbol": "_torch_confusion_fit_if_active",
+      "status": "added",
+      "main_line": 202
+    },
+    {
+      "symbol": "_torch_confusion_tdi_psd_if_active",
+      "status": "added",
+      "main_line": 260
+    },
+    {
+      "symbol": "_torch_sensitivity_curve_if_active",
+      "status": "added",
+      "main_line": 172
+    },
+    {
+      "symbol": "_torch_sh_transformed_psd_if_active",
+      "status": "added",
+      "main_line": 316
+    },
+    {
+      "symbol": "analytical_csd_lisa_tdi_XY",
+      "status": "changed",
+      "base_line": 537,
+      "main_line": 916,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "analytical_psd_lisa_tdi_AE",
+      "status": "changed",
+      "base_line": 620,
+      "main_line": 1023,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "analytical_psd_lisa_tdi_AE_confusion",
+      "status": "changed",
+      "base_line": 1764,
+      "main_line": 2585,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "analytical_psd_lisa_tdi_T",
+      "status": "changed",
+      "base_line": 782,
+      "main_line": 1253,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "analytical_psd_lisa_tdi_XYZ",
+      "status": "changed",
+      "base_line": 375,
+      "main_line": 691,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "analytical_psd_taiji_confusion_noise",
+      "status": "changed",
+      "base_line": 1720,
+      "main_line": 2525,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "analytical_psd_taiji_tdi_AE",
+      "status": "changed",
+      "base_line": 700,
+      "main_line": 1144,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "analytical_psd_taiji_tdi_AE_confusion",
+      "status": "changed",
+      "base_line": 1858,
+      "main_line": 2719,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "analytical_psd_taiji_tdi_T",
+      "status": "changed",
+      "base_line": 862,
+      "main_line": 1374,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "analytical_psd_taiji_tdi_XYZ",
+      "status": "changed",
+      "base_line": 455,
+      "main_line": 812,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "analytical_psd_tianqin_confusion_noise",
+      "status": "changed",
+      "base_line": 1676,
+      "main_line": 2458,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "analytical_psd_tianqin_tdi_AE",
+      "status": "changed",
+      "base_line": 659,
+      "main_line": 1082,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "analytical_psd_tianqin_tdi_AE_confusion",
+      "status": "changed",
+      "base_line": 1810,
+      "main_line": 2652,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "analytical_psd_tianqin_tdi_T",
+      "status": "changed",
+      "base_line": 821,
+      "main_line": 1312,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "analytical_psd_tianqin_tdi_XYZ",
+      "status": "changed",
+      "base_line": 414,
+      "main_line": 750,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "averaged_lisa_fplus_sq_numerical",
+      "status": "changed",
+      "base_line": 901,
+      "main_line": 1450,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "averaged_response_lisa_tdi",
+      "status": "changed",
+      "base_line": 1007,
+      "main_line": 1567,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "averaged_response_taiji_tdi",
+      "status": "changed",
+      "base_line": 1070,
+      "main_line": 1642,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "averaged_response_tianqin_tdi",
+      "status": "changed",
+      "base_line": 1040,
+      "main_line": 1604,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "averaged_tianqin_fplus_sq_numerical",
+      "status": "changed",
+      "base_line": 967,
+      "main_line": 1511,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "confusion_fit_lisa",
+      "status": "changed",
+      "base_line": 1267,
+      "main_line": 1897,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "confusion_fit_taiji",
+      "status": "changed",
+      "base_line": 1373,
+      "main_line": 2032,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "confusion_fit_tianqin",
+      "status": "changed",
+      "base_line": 1303,
+      "main_line": 1947,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "semi_analytical_psd_lisa_confusion_noise",
+      "status": "changed",
+      "base_line": 1632,
+      "main_line": 2398,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "sensitivity_curve_lisa_SciRD",
+      "status": "changed",
+      "base_line": 1234,
+      "main_line": 1856,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "sensitivity_curve_lisa_confusion",
+      "status": "changed",
+      "base_line": 1434,
+      "main_line": 2104,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "sensitivity_curve_lisa_semi_analytical",
+      "status": "changed",
+      "base_line": 1100,
+      "main_line": 1676,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "sensitivity_curve_taiji_analytical",
+      "status": "changed",
+      "base_line": 1191,
+      "main_line": 1797,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "sensitivity_curve_taiji_confusion",
+      "status": "changed",
+      "base_line": 1533,
+      "main_line": 2249,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "sensitivity_curve_tianqin_analytical",
+      "status": "changed",
+      "base_line": 1147,
+      "main_line": 1738,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "sensitivity_curve_tianqin_confusion",
+      "status": "changed",
+      "base_line": 1489,
+      "main_line": 2182,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "sh_transformed_psd_lisa_tdi_XYZ",
+      "status": "changed",
+      "base_line": 1576,
+      "main_line": 2314,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/psd/estimate.py": [
+    {
+      "symbol": "_inverse_spectrum_max_frequency",
+      "status": "added",
+      "main_line": 94
+    },
+    {
+      "symbol": "_is_torch_series",
+      "status": "added",
+      "main_line": 90
+    },
+    {
+      "symbol": "_torch_median",
+      "status": "added",
+      "main_line": 114
+    },
+    {
+      "symbol": "_torch_welch_batch_size",
+      "status": "added",
+      "main_line": 129
+    },
+    {
+      "symbol": "_torch_welch_segment_psds",
+      "status": "added",
+      "main_line": 139
+    },
+    {
+      "symbol": "interpolate",
+      "status": "changed",
+      "base_line": 320,
+      "main_line": 518,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "inverse_spectrum_truncation",
+      "status": "changed",
+      "base_line": 204,
+      "main_line": 371,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "welch",
+      "status": "changed",
+      "base_line": 66,
+      "main_line": 167,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/psd/read.py": [
+    {
+      "symbol": "from_numpy_arrays",
+      "status": "changed",
+      "base_line": 26,
+      "main_line": 29,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/psd/variation.py": [
+    {
+      "symbol": "_as_torch_tensor",
+      "status": "added",
+      "main_line": 27
+    },
+    {
+      "symbol": "_is_torch_backed",
+      "status": "added",
+      "main_line": 22
+    },
+    {
+      "symbol": "_torch_bandpass_response",
+      "status": "added",
+      "main_line": 33
+    },
+    {
+      "symbol": "_torch_create_full_filt",
+      "status": "added",
+      "main_line": 76
+    },
+    {
+      "symbol": "_torch_fftconvolve_same",
+      "status": "added",
+      "main_line": 110
+    },
+    {
+      "symbol": "_torch_interpolate_positions",
+      "status": "added",
+      "main_line": 147
+    },
+    {
+      "symbol": "_torch_replace_outliers",
+      "status": "added",
+      "main_line": 133
+    },
+    {
+      "symbol": "calc_filt_psd_variation",
+      "status": "changed",
+      "base_line": 99,
+      "main_line": 275,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "create_full_filt",
+      "status": "changed",
+      "base_line": 12,
+      "main_line": 167,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "find_trigger_value",
+      "status": "changed",
+      "base_line": 211,
+      "main_line": 431,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "live_calc_psd_variation",
+      "status": "changed",
+      "base_line": 302,
+      "main_line": 541,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "live_create_filter",
+      "status": "changed",
+      "base_line": 246,
+      "main_line": 477,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "live_find_var_value",
+      "status": "changed",
+      "base_line": 376,
+      "main_line": 651,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "mean_square",
+      "status": "changed",
+      "base_line": 50,
+      "main_line": 211,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/scheme.py": [
+    {
+      "symbol": "CPUScheme.__enter__",
+      "status": "changed",
+      "base_line": 178,
+      "main_line": 308,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "CPUScheme.__exit__",
+      "status": "changed",
+      "base_line": 193,
+      "main_line": 330,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "DefaultScheme.__init__",
+      "status": "added",
+      "main_line": 390
+    },
+    {
+      "symbol": "Scheme.__del__",
+      "status": "changed",
+      "base_line": 84,
+      "main_line": 101,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Scheme.__enter__",
+      "status": "changed",
+      "base_line": 78,
+      "main_line": 92,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Scheme.__init__",
+      "status": "changed",
+      "base_line": 72,
+      "main_line": 83,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "TorchScheme.__deepcopy__",
+      "status": "added",
+      "main_line": 238
+    },
+    {
+      "symbol": "TorchScheme.__enter__",
+      "status": "added",
+      "main_line": 258
+    },
+    {
+      "symbol": "TorchScheme.__exit__",
+      "status": "added",
+      "main_line": 289
+    },
+    {
+      "symbol": "TorchScheme.__init__",
+      "status": "added",
+      "main_line": 198
+    },
+    {
+      "symbol": "TorchScheme._restore_thread_state",
+      "status": "added",
+      "main_line": 244
+    },
+    {
+      "symbol": "_parse_torch_scheme_extra",
+      "status": "added",
+      "main_line": 372
+    },
+    {
+      "symbol": "_resolve_libgomp",
+      "status": "added",
+      "main_line": 44
+    },
+    {
+      "symbol": "_torch_device_from_cli",
+      "status": "added",
+      "main_line": 382
+    },
+    {
+      "symbol": "cpuonly",
+      "status": "changed",
+      "base_line": 274,
+      "main_line": 474,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "current_backend_key",
+      "status": "added",
+      "main_line": 421
+    },
+    {
+      "symbol": "from_cli",
+      "status": "changed",
+      "base_line": 316,
+      "main_line": 525,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/strain/strain.py": [
+    {
+      "symbol": "StrainBuffer.overwhitened_data",
+      "status": "changed",
+      "base_line": 1824,
+      "main_line": 2397,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "StrainSegments.fourier_segments",
+      "status": "changed",
+      "base_line": 1194,
+      "main_line": 1617,
+      "known_correction_changes_symbol": true,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_create_memory_and_engine_for_class_based_fft",
+      "status": "added",
+      "main_line": 1848
+    },
+    {
+      "symbol": "_hann_window_for_series",
+      "status": "added",
+      "main_line": 61
+    },
+    {
+      "symbol": "_linear_tapers_for_series",
+      "status": "added",
+      "main_line": 79
+    },
+    {
+      "symbol": "create_memory_and_engine_for_class_based_fft",
+      "status": "changed",
+      "base_line": 1348,
+      "main_line": 1902,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "detect_loud_glitches",
+      "status": "changed",
+      "base_line": 62,
+      "main_line": 120,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "from_cli",
+      "status": "changed",
+      "base_line": 180,
+      "main_line": 259,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/transforms.py": [
+    {
+      "symbol": "CustomTransform.__init__",
+      "status": "changed",
+      "base_line": 202,
+      "main_line": 498,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "CustomTransform._evaluate_torch_expression",
+      "status": "added",
+      "main_line": 513
+    },
+    {
+      "symbol": "CustomTransform.jacobian",
+      "status": "changed",
+      "base_line": 281,
+      "main_line": 595,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "CustomTransform.transform",
+      "status": "changed",
+      "base_line": 254,
+      "main_line": 559,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "LambdaFromTOVFile.__init__",
+      "status": "changed",
+      "base_line": 1298,
+      "main_line": 1610,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "LambdaFromTOVFile._lambda_from_tov_torch",
+      "status": "added",
+      "main_line": 1724
+    },
+    {
+      "symbol": "LambdaFromTOVFile._torch_tov_data",
+      "status": "added",
+      "main_line": 1695
+    },
+    {
+      "symbol": "LambdaFromTOVFile.transform",
+      "status": "changed",
+      "base_line": 1382,
+      "main_line": 1758,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Log.inverse_jacobian",
+      "status": "changed",
+      "base_line": 2052,
+      "main_line": 2521,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Log.inverse_transform",
+      "status": "changed",
+      "base_line": 2010,
+      "main_line": 2479,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Log.transform",
+      "status": "changed",
+      "base_line": 1991,
+      "main_line": 2460,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Logit.inverse_jacobian",
+      "status": "changed",
+      "base_line": 2264,
+      "main_line": 2726,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Logit.jacobian",
+      "status": "changed",
+      "base_line": 2233,
+      "main_line": 2698,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Logit.logistic",
+      "status": "changed",
+      "base_line": 2154,
+      "main_line": 2622,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Logit.logit",
+      "status": "changed",
+      "base_line": 2125,
+      "main_line": 2593,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Logit.transform",
+      "status": "changed",
+      "base_line": 2185,
+      "main_line": 2653,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "PrecessionMassSpinToCartesianSpin.inverse_transform",
+      "status": "changed",
+      "base_line": 1110,
+      "main_line": 1434,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "PrecessionMassSpinToCartesianSpin.transform",
+      "status": "changed",
+      "base_line": 1036,
+      "main_line": 1375,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_all_in_bounds",
+      "status": "added",
+      "main_line": 321
+    },
+    {
+      "symbol": "_components_from_mass_order",
+      "status": "added",
+      "main_line": 274
+    },
+    {
+      "symbol": "_evaluate_raw_torch_expression",
+      "status": "added",
+      "main_line": 197
+    },
+    {
+      "symbol": "_exp",
+      "status": "added",
+      "main_line": 315
+    },
+    {
+      "symbol": "_log",
+      "status": "added",
+      "main_line": 309
+    },
+    {
+      "symbol": "_torch_expression_context",
+      "status": "added",
+      "main_line": 131
+    }
+  ],
+  "pycbc/types/array.py": [
+    {
+      "symbol": "Array.T",
+      "status": "added",
+      "main_line": 624
+    },
+    {
+      "symbol": "Array.__and__",
+      "status": "added",
+      "main_line": 929
+    },
+    {
+      "symbol": "Array.__array__",
+      "status": "changed",
+      "base_line": 225,
+      "main_line": 562,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.__array_function__",
+      "status": "added",
+      "main_line": 351
+    },
+    {
+      "symbol": "Array.__array_ufunc__",
+      "status": "changed",
+      "base_line": 218,
+      "main_line": 320,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.__eq__",
+      "status": "changed",
+      "base_line": 457,
+      "main_line": 964,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.__ge__",
+      "status": "changed",
+      "base_line": 1069,
+      "main_line": 2079,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.__gt__",
+      "status": "changed",
+      "base_line": 1066,
+      "main_line": 2076,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.__init__",
+      "status": "changed",
+      "base_line": 147,
+      "main_line": 246,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.__invert__",
+      "status": "added",
+      "main_line": 925
+    },
+    {
+      "symbol": "Array.__le__",
+      "status": "changed",
+      "base_line": 1060,
+      "main_line": 2070,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.__lt__",
+      "status": "changed",
+      "base_line": 1057,
+      "main_line": 2067,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.__ne__",
+      "status": "changed",
+      "base_line": 1063,
+      "main_line": 2073,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.__or__",
+      "status": "added",
+      "main_line": 937
+    },
+    {
+      "symbol": "Array.__rand__",
+      "status": "added",
+      "main_line": 933
+    },
+    {
+      "symbol": "Array.__ror__",
+      "status": "added",
+      "main_line": 941
+    },
+    {
+      "symbol": "Array.__rxor__",
+      "status": "added",
+      "main_line": 949
+    },
+    {
+      "symbol": "Array.__xor__",
+      "status": "added",
+      "main_line": 945
+    },
+    {
+      "symbol": "Array._backend_arg_reduce",
+      "status": "added",
+      "main_line": 1497
+    },
+    {
+      "symbol": "Array._backend_variance",
+      "status": "added",
+      "main_line": 1391
+    },
+    {
+      "symbol": "Array._elementwise_compare",
+      "status": "added",
+      "main_line": 2038
+    },
+    {
+      "symbol": "Array._icheckother",
+      "status": "changed",
+      "base_line": 319,
+      "main_line": 792,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array._memoize_single",
+      "status": "changed",
+      "base_line": 235,
+      "main_line": 695,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array._return",
+      "status": "changed",
+      "base_line": 263,
+      "main_line": 731,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.all",
+      "status": "added",
+      "main_line": 1283
+    },
+    {
+      "symbol": "Array.almost_equal_elem",
+      "status": "changed",
+      "base_line": 515,
+      "main_line": 1021,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.almost_equal_norm",
+      "status": "changed",
+      "base_line": 583,
+      "main_line": 1092,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.any",
+      "status": "added",
+      "main_line": 1272
+    },
+    {
+      "symbol": "Array.argmax",
+      "status": "added",
+      "main_line": 1520
+    },
+    {
+      "symbol": "Array.argmin",
+      "status": "added",
+      "main_line": 1527
+    },
+    {
+      "symbol": "Array.argsort",
+      "status": "added",
+      "main_line": 1560
+    },
+    {
+      "symbol": "Array.backend",
+      "status": "added",
+      "main_line": 575
+    },
+    {
+      "symbol": "Array.backend_array",
+      "status": "added",
+      "main_line": 584
+    },
+    {
+      "symbol": "Array.clip",
+      "status": "added",
+      "main_line": 1295
+    },
+    {
+      "symbol": "Array.cumprod",
+      "status": "added",
+      "main_line": 1599
+    },
+    {
+      "symbol": "Array.cumsum",
+      "status": "changed",
+      "base_line": 736,
+      "main_line": 1593,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.data",
+      "status": "changed",
+      "base_line": 926,
+      "main_line": 1889,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.diagonal",
+      "status": "added",
+      "main_line": 651
+    },
+    {
+      "symbol": "Array.flatten",
+      "status": "added",
+      "main_line": 685
+    },
+    {
+      "symbol": "Array.max",
+      "status": "changed",
+      "base_line": 745,
+      "main_line": 1615,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.mean",
+      "status": "added",
+      "main_line": 1336
+    },
+    {
+      "symbol": "Array.min",
+      "status": "changed",
+      "base_line": 779,
+      "main_line": 1658,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.nonzero",
+      "status": "added",
+      "main_line": 1573
+    },
+    {
+      "symbol": "Array.prod",
+      "status": "added",
+      "main_line": 1250
+    },
+    {
+      "symbol": "Array.ravel",
+      "status": "added",
+      "main_line": 674
+    },
+    {
+      "symbol": "Array.repeat",
+      "status": "added",
+      "main_line": 1716
+    },
+    {
+      "symbol": "Array.reshape",
+      "status": "added",
+      "main_line": 592
+    },
+    {
+      "symbol": "Array.resize",
+      "status": "changed",
+      "base_line": 827,
+      "main_line": 1793,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.roll",
+      "status": "changed",
+      "base_line": 843,
+      "main_line": 1808,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.round",
+      "status": "added",
+      "main_line": 1738
+    },
+    {
+      "symbol": "Array.searchsorted",
+      "status": "added",
+      "main_line": 1535
+    },
+    {
+      "symbol": "Array.squeeze",
+      "status": "added",
+      "main_line": 640
+    },
+    {
+      "symbol": "Array.std",
+      "status": "added",
+      "main_line": 1469
+    },
+    {
+      "symbol": "Array.sum",
+      "status": "changed",
+      "base_line": 727,
+      "main_line": 1244,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.swapaxes",
+      "status": "added",
+      "main_line": 629
+    },
+    {
+      "symbol": "Array.take",
+      "status": "changed",
+      "base_line": 788,
+      "main_line": 1675,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.trace",
+      "status": "added",
+      "main_line": 662
+    },
+    {
+      "symbol": "Array.transpose",
+      "status": "added",
+      "main_line": 609
+    },
+    {
+      "symbol": "Array.trim_zeros",
+      "status": "changed",
+      "base_line": 1030,
+      "main_line": 1998,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "Array.var",
+      "status": "added",
+      "main_line": 1443
+    },
+    {
+      "symbol": "_array_function_arrays",
+      "status": "added",
+      "main_line": 90
+    },
+    {
+      "symbol": "_array_function_backend_value",
+      "status": "added",
+      "main_line": 102
+    },
+    {
+      "symbol": "_array_function_numpy_value",
+      "status": "added",
+      "main_line": 115
+    },
+    {
+      "symbol": "_convert_to_scheme",
+      "status": "changed",
+      "base_line": 58,
+      "main_line": 70,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_normalized_reduction_axes",
+      "status": "added",
+      "main_line": 131
+    },
+    {
+      "symbol": "_regular_grid",
+      "status": "added",
+      "main_line": 2098
+    }
+  ],
+  "pycbc/types/frequencyseries.py": [
+    {
+      "symbol": "FrequencySeries.__init__",
+      "status": "changed",
+      "base_line": 48,
+      "main_line": 51,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "FrequencySeries._typecheck",
+      "status": "changed",
+      "base_line": 66,
+      "main_line": 71,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "FrequencySeries.get_sample_frequencies",
+      "status": "changed",
+      "base_line": 92,
+      "main_line": 95,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "FrequencySeries.match",
+      "status": "changed",
+      "base_line": 495,
+      "main_line": 526,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "FrequencySeries.save",
+      "status": "changed",
+      "base_line": 347,
+      "main_line": 367,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/types/timeseries.py": [
+    {
+      "symbol": "TimeSeries.__init__",
+      "status": "changed",
+      "base_line": 53,
+      "main_line": 465,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "TimeSeries.at_time",
+      "status": "changed",
+      "base_line": 238,
+      "main_line": 652,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "TimeSeries.detrend",
+      "status": "changed",
+      "base_line": 1236,
+      "main_line": 1984,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "TimeSeries.get_sample_times",
+      "status": "changed",
+      "base_line": 228,
+      "main_line": 641,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "TimeSeries.qtransform",
+      "status": "changed",
+      "base_line": 847,
+      "main_line": 1482,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "TimeSeries.taper_timeseries",
+      "status": "changed",
+      "base_line": 563,
+      "main_line": 1092,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "TimeSeries.to_astropy",
+      "status": "changed",
+      "base_line": 69,
+      "main_line": 482,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "TimeSeries.whiten",
+      "status": "changed",
+      "base_line": 791,
+      "main_line": 1387,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_torch_apply_taper_side",
+      "status": "added",
+      "main_line": 257
+    },
+    {
+      "symbol": "_torch_at_time_host_scalar",
+      "status": "added",
+      "main_line": 113
+    },
+    {
+      "symbol": "_torch_at_time_host_scalar_numpy",
+      "status": "added",
+      "main_line": 62
+    },
+    {
+      "symbol": "_torch_constant_taper",
+      "status": "added",
+      "main_line": 389
+    },
+    {
+      "symbol": "_torch_constant_taper_parameters",
+      "status": "added",
+      "main_line": 311
+    },
+    {
+      "symbol": "_torch_has_autograd_state",
+      "status": "added",
+      "main_line": 51
+    },
+    {
+      "symbol": "_torch_lal_taper",
+      "status": "added",
+      "main_line": 280
+    },
+    {
+      "symbol": "_torch_round_sample_time_ns",
+      "status": "added",
+      "main_line": 375
+    },
+    {
+      "symbol": "_torch_taper_peak",
+      "status": "added",
+      "main_line": 204
+    },
+    {
+      "symbol": "_torch_whiten_work_dtype",
+      "status": "added",
+      "main_line": 191
+    }
+  ],
+  "pycbc/types/utils.py": [
+    {
+      "symbol": "determine_epoch",
+      "status": "changed",
+      "base_line": 11,
+      "main_line": 13,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/vetoes/autochisq.py": [
+    {
+      "symbol": "SingleDetAutoChisq.values",
+      "status": "changed",
+      "base_line": 202,
+      "main_line": 289,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_torch_autochisq",
+      "status": "added",
+      "main_line": 32
+    },
+    {
+      "symbol": "autochisq_from_precomputed",
+      "status": "changed",
+      "base_line": 25,
+      "main_line": 88,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/vetoes/bank_chisq.py": [
+    {
+      "symbol": "SingleDetBankVeto.values",
+      "status": "changed",
+      "base_line": 214,
+      "main_line": 249,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/vetoes/chisq.py": [
+    {
+      "symbol": "SingleDetPowerChisq.values",
+      "status": "changed",
+      "base_line": 358,
+      "main_line": 523,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "SingleDetSkyMaxPowerChisq.values",
+      "status": "changed",
+      "base_line": 430,
+      "main_line": 612,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_as_torch_tensor",
+      "status": "added",
+      "main_line": 58
+    },
+    {
+      "symbol": "_chisq_dof_array",
+      "status": "added",
+      "main_line": 89
+    },
+    {
+      "symbol": "_chisq_zeros",
+      "status": "added",
+      "main_line": 76
+    },
+    {
+      "symbol": "_copy_chisq_masked",
+      "status": "added",
+      "main_line": 107
+    },
+    {
+      "symbol": "_torch_array",
+      "status": "added",
+      "main_line": 70
+    },
+    {
+      "symbol": "_torch_multiply_and_add",
+      "status": "added",
+      "main_line": 121
+    },
+    {
+      "symbol": "_torch_tensor",
+      "status": "added",
+      "main_line": 53
+    },
+    {
+      "symbol": "power_chisq_at_points_from_precomputed",
+      "status": "changed",
+      "base_line": 111,
+      "main_line": 225,
+      "known_correction_changes_symbol": true,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "power_chisq_bins",
+      "status": "changed",
+      "base_line": 62,
+      "main_line": 174,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "power_chisq_bins_from_sigmasq_series",
+      "status": "changed",
+      "base_line": 33,
+      "main_line": 129,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/vetoes/sgchisq.py": [
+    {
+      "symbol": "SingleDetSGChisq.values",
+      "status": "changed",
+      "base_line": 71,
+      "main_line": 236,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_cached_gpu_sg_tile",
+      "status": "added",
+      "main_line": 22
+    },
+    {
+      "symbol": "_torch_ones",
+      "status": "added",
+      "main_line": 63
+    },
+    {
+      "symbol": "_torch_sgchisq_values",
+      "status": "added",
+      "main_line": 72
+    }
+  ],
+  "pycbc/waveform/compress.py": [
+    {
+      "symbol": "compress_waveform",
+      "status": "changed",
+      "base_line": 183,
+      "main_line": 197,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "fd_decompress",
+      "status": "changed",
+      "base_line": 582,
+      "main_line": 636,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/waveform/generator.py": [
+    {
+      "symbol": "BaseGenerator._generate_from_current",
+      "status": "changed",
+      "base_line": 141,
+      "main_line": 302,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "FDomainDetFrameGenerator.generate",
+      "status": "changed",
+      "base_line": 662,
+      "main_line": 870,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "FDomainDetFrameTwoPhaseGenerator.generate",
+      "status": "changed",
+      "base_line": 1058,
+      "main_line": 1351,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_arrival_time_and_shift",
+      "status": "added",
+      "main_line": 104
+    },
+    {
+      "symbol": "_detector_time_offset",
+      "status": "added",
+      "main_line": 162
+    },
+    {
+      "symbol": "_has_sample_axis",
+      "status": "added",
+      "main_line": 198
+    },
+    {
+      "symbol": "_torch_value",
+      "status": "added",
+      "main_line": 58
+    },
+    {
+      "symbol": "_validate_absolute_time_precision",
+      "status": "added",
+      "main_line": 63
+    },
+    {
+      "symbol": "get_fd_generator",
+      "status": "changed",
+      "base_line": 1405,
+      "main_line": 1707,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_td_generator",
+      "status": "changed",
+      "base_line": 1387,
+      "main_line": 1689,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/waveform/nltides.py": [
+    {
+      "symbol": "_torch_backend",
+      "status": "added",
+      "main_line": 10
+    },
+    {
+      "symbol": "nltides_fourier_phase_difference",
+      "status": "changed",
+      "base_line": 8,
+      "main_line": 24,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "nonlinear_tidal_spa",
+      "status": "changed",
+      "base_line": 63,
+      "main_line": 88,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/waveform/parameters.py": [],
+  "pycbc/waveform/ringdown.py": [
+    {
+      "symbol": "_torch_backend",
+      "status": "added",
+      "main_line": 52
+    },
+    {
+      "symbol": "fd_damped_sinusoid",
+      "status": "changed",
+      "base_line": 614,
+      "main_line": 694,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "fd_output_vector",
+      "status": "changed",
+      "base_line": 371,
+      "main_line": 398,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "lm_amps_phases",
+      "status": "changed",
+      "base_line": 134,
+      "main_line": 151,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "lm_freqs_taus",
+      "status": "changed",
+      "base_line": 184,
+      "main_line": 202,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "multimode_base",
+      "status": "changed",
+      "base_line": 709,
+      "main_line": 834,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "spher_harms",
+      "status": "changed",
+      "base_line": 387,
+      "main_line": 421,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "td_damped_sinusoid",
+      "status": "changed",
+      "base_line": 479,
+      "main_line": 515,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "td_output_vector",
+      "status": "changed",
+      "base_line": 344,
+      "main_line": 363,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/waveform/sinegauss.py": [
+    {
+      "symbol": "_cached_torch_arange",
+      "status": "added",
+      "main_line": 19
+    },
+    {
+      "symbol": "fd_sine_gaussian",
+      "status": "changed",
+      "base_line": 13,
+      "main_line": 25,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/waveform/spa_tmplt.py": [
+    {
+      "symbol": "_cpu_sequence_frequencies",
+      "status": "added",
+      "main_line": 239
+    },
+    {
+      "symbol": "spa_tmplt",
+      "status": "changed",
+      "base_line": 177,
+      "main_line": 277,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "spa_tmplt_norm",
+      "status": "changed",
+      "base_line": 140,
+      "main_line": 199,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "spa_tmplt_precondition",
+      "status": "changed",
+      "base_line": 128,
+      "main_line": 162,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/waveform/utils.py": [
+    {
+      "symbol": "_torch_kaiser_window",
+      "status": "added",
+      "main_line": 45
+    },
+    {
+      "symbol": "coalign_waveforms",
+      "status": "changed",
+      "base_line": 50,
+      "main_line": 130,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "fd_taper",
+      "status": "changed",
+      "base_line": 403,
+      "main_line": 518,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "scheme_cast_series",
+      "status": "added",
+      "main_line": 67
+    },
+    {
+      "symbol": "td_taper",
+      "status": "changed",
+      "base_line": 358,
+      "main_line": 457,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/waveform/waveform.py": [
+    {
+      "symbol": "_check_lal_pars",
+      "status": "changed",
+      "base_line": 77,
+      "main_line": 100,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_lal_output_for_active_scheme",
+      "status": "added",
+      "main_line": 269
+    },
+    {
+      "symbol": "_lalsim_fd_sequence",
+      "status": "changed",
+      "base_line": 482,
+      "main_line": 696,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_lalsim_fd_waveform",
+      "status": "changed",
+      "base_line": 239,
+      "main_line": 384,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_lalsim_sgburst_waveform",
+      "status": "changed",
+      "base_line": 263,
+      "main_line": 439,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_lalsim_td_waveform",
+      "status": "changed",
+      "base_line": 175,
+      "main_line": 294,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "_series_from_lal_output",
+      "status": "added",
+      "main_line": 279
+    },
+    {
+      "symbol": "fd_approximants",
+      "status": "changed",
+      "base_line": 347,
+      "main_line": 548,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "filter_approximants",
+      "status": "changed",
+      "base_line": 359,
+      "main_line": 566,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_fd_waveform",
+      "status": "changed",
+      "base_line": 615,
+      "main_line": 876,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_fd_waveform_batch",
+      "status": "added",
+      "main_line": 930
+    },
+    {
+      "symbol": "get_fd_waveform_from_td",
+      "status": "changed",
+      "base_line": 665,
+      "main_line": 962,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_fd_waveform_sequence",
+      "status": "changed",
+      "base_line": 505,
+      "main_line": 745,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_td_waveform",
+      "status": "changed",
+      "base_line": 580,
+      "main_line": 837,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "sgburst_approximants",
+      "status": "changed",
+      "base_line": 353,
+      "main_line": 557,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "td_approximants",
+      "status": "changed",
+      "base_line": 341,
+      "main_line": 539,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ],
+  "pycbc/waveform/waveform_modes.py": [
+    {
+      "symbol": "default_modes",
+      "status": "changed",
+      "base_line": 83,
+      "main_line": 128,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "fd_waveform_mode_approximants",
+      "status": "changed",
+      "base_line": 379,
+      "main_line": 471,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_imrphenomxh_modes",
+      "status": "changed",
+      "base_line": 320,
+      "main_line": 402,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_lalsimulation_modes",
+      "status": "changed",
+      "base_line": 258,
+      "main_line": 334,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_nrhybsur_modes",
+      "status": "changed",
+      "base_line": 186,
+      "main_line": 254,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "get_nrsur_modes",
+      "status": "changed",
+      "base_line": 135,
+      "main_line": 193,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "sum_modes",
+      "status": "changed",
+      "base_line": 50,
+      "main_line": 64,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    },
+    {
+      "symbol": "td_waveform_mode_approximants",
+      "status": "changed",
+      "base_line": 384,
+      "main_line": 476,
+      "known_correction_changes_symbol": false,
+      "later_stack_changes_symbol": true
+    }
+  ]
+}

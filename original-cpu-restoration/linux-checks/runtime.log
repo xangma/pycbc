@@ -1,0 +1,11 @@
+........................................................................ [ 52%]
+...............................................s..................       [100%]
+=============================== warnings summary ===============================
+test/test_torch_fft_cpu_native.py: 18 warnings
+  /home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] test/test_torch_large_batches.py:322: native threshold kernel requires CUDA and Triton
+137 passed, 1 skipped, 18 warnings in 17.14s

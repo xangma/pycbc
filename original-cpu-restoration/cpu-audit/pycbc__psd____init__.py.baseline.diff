@@ -1,0 +1,58 @@
+--- baseline:pycbc/psd/__init__.py
++++ main:pycbc/psd/__init__.py
+@@ -1,16 +1,15 @@
+-import copy
+-import igwn_segments as segments
+-from pycbc.psd.read import *
++try:
++    import igwn_segments as segments
++except ImportError:
++    segments = None
++from pycbc import scheme as _scheme
+ from pycbc.psd.analytical import *
+ from pycbc.psd.analytical_space import *
+ from pycbc.psd.estimate import *
++from pycbc.psd.read import *
+ from pycbc.psd.variation import *
+-from pycbc.types import float32, float64
+-from pycbc.types import MultiDetOptionAppendAction, MultiDetOptionAction
+-from pycbc.types import DictOptionAction, MultiDetDictOptionAction
+-from pycbc.types import copy_opts_for_single_ifo
+-from pycbc.types import required_opts, required_opts_multi_ifo
+-from pycbc.types import ensure_one_opt, ensure_one_opt_multi_ifo
++from pycbc.types import DictOptionAction, MultiDetDictOptionAction, MultiDetOptionAction, copy_opts_for_single_ifo, ensure_one_opt, ensure_one_opt_multi_ifo, float32, float64, required_opts, required_opts_multi_ifo
++from pycbc.types import MultiDetOptionAppendAction as MultiDetOptionAppendAction
+ 
+ def from_cli(opt, length, delta_f, low_frequency_cutoff, strain=None, dyn_range_factor=1, precision=None):
+     if opt.psd_low_frequency_cutoff is not None:
+@@ -27,6 +26,7 @@
+         err_msg = "You must specify exactly one of '--psd-file', "
+         err_msg += "'--psd-model', '--asd-file', '--psd-estimation'"
+         raise ValueError(err_msg)
++    restore_dtype = None
+     if opt.psd_model or opt.psd_file or opt.asd_file:
+         if opt.psd_model:
+             psd = from_string(opt.psd_model, length, delta_f, f_low, **opt.psd_extra_args)
+@@ -47,6 +47,13 @@
+             psd[0:kmin] = psd[kmin]
+         psd *= dyn_range_factor ** 2
+     elif psd_estimation:
++        strain_dtype = strain.dtype
++        state = _scheme.mgr.state
++        if not isinstance(state, _scheme.CPUScheme):
++            restore_dtype = strain_dtype
++        if strain_dtype == float32 and (isinstance(state, _scheme.CPUScheme) or (isinstance(state, _scheme.TorchScheme) and state.torch_device.type != 'mps')):
++            restore_dtype = strain_dtype
++            strain = strain.astype(float64)
+         psd = welch(strain, avg_method=opt.psd_estimation, seg_len=int(opt.psd_segment_length * sample_rate + 0.5), seg_stride=int(opt.psd_segment_stride * sample_rate + 0.5), num_segments=opt.psd_num_segments, require_exact_data_fit=False)
+         if delta_f != psd.delta_f:
+             psd = interpolate(psd, delta_f, length)
+@@ -65,6 +72,8 @@
+     if hasattr(opt, 'psd_output') and opt.psd_output:
+         (psd.astype(float64) / dyn_range_factor ** 2).save(opt.psd_output)
+     if precision is None:
++        if restore_dtype is not None:
++            return psd.astype(restore_dtype)
+         return psd
+     elif precision == 'single':
+         return psd.astype(float32)

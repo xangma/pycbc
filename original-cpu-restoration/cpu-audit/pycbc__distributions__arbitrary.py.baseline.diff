@@ -1,0 +1,143 @@
+--- baseline:pycbc/distributions/arbitrary.py
++++ main:pycbc/distributions/arbitrary.py
+@@ -1,8 +1,8 @@
+ import logging
+ import numpy
+ import scipy.stats
++import pycbc.transforms
+ from pycbc.distributions import bounded
+-import pycbc.transforms
+ from pycbc.io.hdf import HFile
+ logger = logging.getLogger('pycbc.distributions.arbitrary')
+ 
+@@ -32,6 +32,7 @@
+             elif not (~numpy.isfinite(bnds[0]) and ~numpy.isfinite(bnds[1])):
+                 raise ValueError('if specifying bounds, both bounds must be finite')
+         self._kde = self.get_kde_from_arrays(*[kwargs[p] for p in self.params])
++        self._torch_kde_cache = {}
+         self.set_bandwidth(bandwidth)
+ 
+     @property
+@@ -46,6 +47,9 @@
+         for p in self._params:
+             if p not in kwargs.keys():
+                 raise ValueError('Missing parameter {} to construct pdf.'.format(p))
++        torch_logpdf = self._torch_logpdf(kwargs)
++        if torch_logpdf is not None:
++            return torch_logpdf.exp()
+         if kwargs in self:
+             jacobian = 1.0
+             for param, tparam in self._tparams.items():
+@@ -61,20 +65,102 @@
+                 jacobian *= t.jacobian(samples)
+             this_pdf = jacobian * self._kde.evaluate([kwargs[p] for p in self._params])
+             if len(this_pdf) == 1:
+-                return float(this_pdf)
++                return this_pdf.item()
+             else:
+                 return this_pdf
+         else:
+             return 0.0
+ 
+     def _logpdf(self, **kwargs):
++        for p in self._params:
++            if p not in kwargs.keys():
++                raise ValueError('Missing parameter {} to construct pdf.'.format(p))
++        torch_logpdf = self._torch_logpdf(kwargs)
++        if torch_logpdf is not None:
++            return torch_logpdf
+         if kwargs not in self:
+             return -numpy.inf
+         else:
+             return numpy.log(self._pdf(**kwargs))
+ 
++    def _torch_kde_tensors(self, reference):
++        torch = bounded._torch_module_and_reference([reference])[0]
++        key = (reference.device.type, reference.device.index, reference.dtype)
++        try:
++            return self._torch_kde_cache[key]
++        except KeyError:
++            pass
++        dataset = torch.as_tensor(self._kde.dataset.T, device=reference.device, dtype=reference.dtype)
++        inv_cov = torch.as_tensor(self._kde.inv_cov, device=reference.device, dtype=reference.dtype)
++        weights = torch.as_tensor(self._kde.weights, device=reference.device, dtype=reference.dtype)
++        log_det = getattr(self._kde, 'log_det', None)
++        if log_det is None:
++            _, log_det = numpy.linalg.slogdet(2.0 * numpy.pi * self._kde.covariance)
++        log_det = torch.as_tensor(log_det, device=reference.device, dtype=reference.dtype)
++        dataset_inv = dataset @ inv_cov
++        cached = (dataset, inv_cov, (dataset_inv * dataset).sum(dim=1), weights.log(), log_det)
++        self._torch_kde_cache[key] = cached
++        return cached
++
++    def _torch_logpdf(self, kwargs):
++        torch, reference = bounded._torch_module_and_reference((kwargs[p] for p in self._params))
++        if torch is None:
++            return None
++        dtype = reference.dtype
++        if not dtype.is_floating_point:
++            dtype = torch.get_default_dtype()
++        values = [value.to(device=reference.device, dtype=dtype) if isinstance(value, torch.Tensor) else torch.as_tensor(value, device=reference.device, dtype=dtype) for value in (kwargs[p] for p in self._params)]
++        values = torch.broadcast_tensors(*values)
++        params = dict(zip(self._params, values, strict=True))
++        condition = torch.ones_like(values[0], dtype=torch.bool)
++        contained = self.__contains__(params)
++        if isinstance(contained, torch.Tensor):
++            condition = condition & contained
++        else:
++            condition = condition & bool(contained)
++        for value in values:
++            condition = condition & torch.isfinite(value)
++        for param in self._tparams:
++            transform = self._transforms[self._tparams[param]]
++            condition = condition & (params[param] > transform._a)
++            condition = condition & (params[param] < transform._b)
++        transformed = []
++        log_jacobian = torch.zeros_like(values[0])
++        for param in self._params:
++            value = params[param]
++            try:
++                transform = self._transforms[self._tparams[param]]
++            except KeyError:
++                safe_value = torch.where(condition, value, 0.0)
++                transformed.append(safe_value)
++            else:
++                midpoint = 0.5 * (transform._a + transform._b)
++                safe_value = torch.where(condition, value, midpoint)
++                left = safe_value - transform._a
++                right = transform._b - safe_value
++                transformed.append(left.log() - right.log())
++                log_jacobian = log_jacobian + torch.as_tensor(transform._b - transform._a, device=reference.device, dtype=dtype).log() - left.log() - right.log()
++        points = torch.stack(transformed, dim=-1)
++        output_shape = points.shape[:-1]
++        points = points.reshape(-1, len(self._params))
++        dataset, inv_cov, dataset_quad, log_weights, log_det = self._torch_kde_tensors(points)
++        if points.shape[0] == 0:
++            log_density = torch.empty(output_shape, device=reference.device, dtype=dtype)
++        else:
++            point_chunk = max(1, 4000000 // max(dataset.shape[0], 1))
++            log_densities = []
++            for start in range(0, points.shape[0], point_chunk):
++                point = points[start:start + point_chunk]
++                point_inv = point @ inv_cov
++                energy = ((point_inv * point).sum(dim=1, keepdim=True) + dataset_quad.unsqueeze(0) - 2.0 * (point_inv @ dataset.T)).clamp_min(0.0)
++                log_densities.append(torch.logsumexp(log_weights.unsqueeze(0) - 0.5 * energy, dim=1) - 0.5 * log_det)
++            log_density = torch.cat(log_densities).reshape(output_shape)
++        log_density = log_density + log_jacobian
++        return torch.where(condition, log_density, torch.full_like(log_density, -torch.inf))
++
+     def set_bandwidth(self, set_bw='scott'):
+         self._kde.set_bandwidth(set_bw)
++        self._torch_kde_cache = {}
+ 
+     def rvs(self, size=1, param=None):
+         if param is not None:
+@@ -126,7 +212,7 @@
+         try:
+             f = HFile(params_file, 'r')
+         except:
+-            raise ValueError('File not found.')
++            raise ValueError('File not found.') from None
+         if self.datagroup is not None:
+             get = f[self.datagroup]
+         else:

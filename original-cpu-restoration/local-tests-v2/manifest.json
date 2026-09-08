@@ -1,0 +1,865 @@
+{
+  "cpu_base": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+  "status": "replay_complete",
+  "prs": [
+    {
+      "pr": 18,
+      "parent_pr": null,
+      "published_ref": "torch-formatting-base",
+      "published_base_ref": "torch-stack-base",
+      "old_head": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+      "old_base": "66789ac4a7468094b0cc3ca1498a1de67e0311f6",
+      "old_base_ref": "codex/cpu-precision-corrections-20260908",
+      "new_base": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+      "new_head": "103591c4a3d5b04b6565d6e3ac964246b9b1537b",
+      "staging_ref": "codex/original-cpu-restoration-v2-20260908-pr18",
+      "commits": [],
+      "restoration_commits": [
+        {
+          "source": "54da49346a233ceb36f8e5004a25a17376d887c3",
+          "new": "12488a8677dd5d1cecbcbc3ff2239b9a53b4616c"
+        },
+        {
+          "source": "5444d9fa9ead578a43a3c0c02de641f2869f394b",
+          "new": "103591c4a3d5b04b6565d6e3ac964246b9b1537b"
+        }
+      ]
+    },
+    {
+      "pr": 5,
+      "parent_pr": 18,
+      "published_ref": "torch-pr1-runtime",
+      "published_base_ref": "torch-formatting-base",
+      "old_head": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+      "old_base": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+      "old_base_ref": "torch-formatting-base",
+      "new_base": "103591c4a3d5b04b6565d6e3ac964246b9b1537b",
+      "new_head": "bb4faee848c5749a991a4562f6e38c76fad4b92e",
+      "staging_ref": "codex/original-cpu-restoration-v2-20260908-pr05",
+      "commits": [
+        {
+          "old": "dc5ee744b247679d3df892c3994e91f601cf4c6e",
+          "new": "c8b5ffd1e26da9bfa0e37f75be032dc74d6de492"
+        },
+        {
+          "old": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+          "new": "0a67b20bed7365a561e6a39b93ad270221580874"
+        }
+      ],
+      "restoration_commits": [
+        {
+          "source": "c8b5ffd1e26da9bfa0e37f75be032dc74d6de492",
+          "new": "32ca14761a1f5902c8577505902b1ab23c7bd25a"
+        },
+        {
+          "source": "0a67b20bed7365a561e6a39b93ad270221580874",
+          "new": "d177137aa86a0148a99e3dc90e1e58fc7df177be"
+        },
+        {
+          "source": "c48f6cb6b8",
+          "new": "cfd53a824962e4bb0f9ddc4d4eb318cf2e78f32d"
+        },
+        {
+          "source": "0feaaf2cf7f0a6d693dda782d2d4907efc92ead3",
+          "new": "bb4faee848c5749a991a4562f6e38c76fad4b92e"
+        }
+      ]
+    },
+    {
+      "pr": 6,
+      "parent_pr": 5,
+      "published_ref": "torch-pr2-fft",
+      "published_base_ref": "torch-pr1-runtime",
+      "old_head": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+      "old_base": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+      "old_base_ref": "torch-pr1-runtime",
+      "new_base": "bb4faee848c5749a991a4562f6e38c76fad4b92e",
+      "new_head": "8b2b311a378dbb08114ffb80b9bfba0756ead17a",
+      "staging_ref": "codex/original-cpu-restoration-v2-20260908-pr06",
+      "commits": [
+        {
+          "old": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+          "new": "01adf0ce25986b5b9ba7830a7e1f87cb51d4f476"
+        }
+      ],
+      "restoration_commits": [
+        {
+          "source": "01adf0ce25986b5b9ba7830a7e1f87cb51d4f476",
+          "new": "29467b79994546943c3144ba265482b4681d14bb"
+        },
+        {
+          "source": "35ccd614b6",
+          "new": "ebd6fa9904be2ec4677a8138bd5c65b16e5d52ba"
+        },
+        {
+          "source": "804a3734fb",
+          "new": "8b2b311a378dbb08114ffb80b9bfba0756ead17a"
+        }
+      ]
+    },
+    {
+      "pr": 7,
+      "parent_pr": 6,
+      "published_ref": "torch-pr3-psd",
+      "published_base_ref": "torch-pr2-fft",
+      "old_head": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+      "old_base": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+      "old_base_ref": "torch-pr2-fft",
+      "new_base": "8b2b311a378dbb08114ffb80b9bfba0756ead17a",
+      "new_head": "8b90dc3dfe24108708db88615e4400704a755562",
+      "staging_ref": "codex/original-cpu-restoration-v2-20260908-pr07",
+      "commits": [
+        {
+          "old": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+          "new": "616fe0e642a9330bb507a6af410c07569b74ae55"
+        }
+      ],
+      "restoration_commits": [
+        {
+          "source": "616fe0e642a9330bb507a6af410c07569b74ae55",
+          "new": "3f0aa9a456af71611ad6ff12ae4dea90e07bb2f0"
+        },
+        {
+          "source": "7d3de03563",
+          "new": "8b90dc3dfe24108708db88615e4400704a755562"
+        }
+      ]
+    },
+    {
+      "pr": 8,
+      "parent_pr": 7,
+      "published_ref": "torch-pr4-filtering",
+      "published_base_ref": "torch-pr3-psd",
+      "old_head": "6e1e08084c9d9be0e62fd701aaa662e61f1ad119",
+      "old_base": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+      "old_base_ref": "torch-pr3-psd",
+      "new_base": "8b90dc3dfe24108708db88615e4400704a755562",
+      "new_head": "d7d8ef190519df7da8fdae0e9e6a7c9bcab976f2",
+      "staging_ref": "codex/original-cpu-restoration-v2-20260908-pr08",
+      "commits": [
+        {
+          "old": "026f4e8c9418e18cef1a44af36520936b2b2450c",
+          "new": "86c3ed5542f6ef6db9fd8b9d58b89695089bd740"
+        },
+        {
+          "old": "6e1e08084c9d9be0e62fd701aaa662e61f1ad119",
+          "new": null,
+          "reason": "Only formats removed CPU numerical corrections"
+        }
+      ],
+      "restoration_commits": [
+        {
+          "source": "86c3ed5542f6ef6db9fd8b9d58b89695089bd740",
+          "new": "53f52d3e6ba3acc1875dacb10ec293105759b424"
+        },
+        {
+          "source": "fcf63bb0e9",
+          "new": "d7d8ef190519df7da8fdae0e9e6a7c9bcab976f2"
+        }
+      ]
+    },
+    {
+      "pr": 9,
+      "parent_pr": 8,
+      "published_ref": "torch-pr5-search",
+      "published_base_ref": "torch-pr4-filtering",
+      "old_head": "586d4f09d2962fe61287ba704e6c7ec971a8922f",
+      "old_base": "6e1e08084c9d9be0e62fd701aaa662e61f1ad119",
+      "old_base_ref": "torch-pr4-filtering",
+      "new_base": "d7d8ef190519df7da8fdae0e9e6a7c9bcab976f2",
+      "new_head": "de10162d37fda2e44a435bdba4c206bf0a89768a",
+      "staging_ref": "codex/original-cpu-restoration-v2-20260908-pr09",
+      "commits": [
+        {
+          "old": "586d4f09d2962fe61287ba704e6c7ec971a8922f",
+          "new": "3b9ca4f6ad5430abee78d125b53a4ffddd3fcba4"
+        }
+      ],
+      "restoration_commits": [
+        {
+          "source": "3b9ca4f6ad5430abee78d125b53a4ffddd3fcba4",
+          "new": "939dc2c3787244ebe9da8c32262eac6669525d23"
+        },
+        {
+          "source": "6d3428c728",
+          "new": "de10162d37fda2e44a435bdba4c206bf0a89768a"
+        }
+      ]
+    },
+    {
+      "pr": 10,
+      "parent_pr": 9,
+      "published_ref": "torch-pr6-waveform",
+      "published_base_ref": "torch-pr5-search",
+      "old_head": "6f67dc170811ff69fd6ec50816974bc4285d145b",
+      "old_base": "586d4f09d2962fe61287ba704e6c7ec971a8922f",
+      "old_base_ref": "torch-pr5-search",
+      "new_base": "de10162d37fda2e44a435bdba4c206bf0a89768a",
+      "new_head": "93a64072e7109da0c4bd7888669d6e91c0e9cc7c",
+      "staging_ref": "codex/original-cpu-restoration-v2-20260908-pr10",
+      "commits": [
+        {
+          "old": "6f67dc170811ff69fd6ec50816974bc4285d145b",
+          "new": "8a48c85d199853f6549db15c6396bfe26842e1e4"
+        }
+      ],
+      "restoration_commits": [
+        {
+          "source": "8a48c85d199853f6549db15c6396bfe26842e1e4",
+          "new": "93a64072e7109da0c4bd7888669d6e91c0e9cc7c"
+        }
+      ]
+    },
+    {
+      "pr": 11,
+      "parent_pr": 10,
+      "published_ref": "torch-pr7-taylorf2",
+      "published_base_ref": "torch-pr6-waveform",
+      "old_head": "69a96d515f1af056f74c25ef350255d89273f310",
+      "old_base": "6f67dc170811ff69fd6ec50816974bc4285d145b",
+      "old_base_ref": "torch-pr6-waveform",
+      "new_base": "93a64072e7109da0c4bd7888669d6e91c0e9cc7c",
+      "new_head": "f3559182763e285da73a3f4eca546678d32f300c",
+      "staging_ref": "codex/original-cpu-restoration-v2-20260908-pr11",
+      "commits": [
+        {
+          "old": "69a96d515f1af056f74c25ef350255d89273f310",
+          "new": "daab2977084dc2f3379aa2d3f452eff2ed8209bb"
+        }
+      ],
+      "restoration_commits": [
+        {
+          "source": "daab2977084dc2f3379aa2d3f452eff2ed8209bb",
+          "new": "f3559182763e285da73a3f4eca546678d32f300c"
+        }
+      ]
+    },
+    {
+      "pr": 12,
+      "parent_pr": 11,
+      "published_ref": "torch-pr8-domain-compat",
+      "published_base_ref": "torch-pr7-taylorf2",
+      "old_head": "1219fe1a6fa9ee530bf2d5e57ec192b784c99474",
+      "old_base": "69a96d515f1af056f74c25ef350255d89273f310",
+      "old_base_ref": "torch-pr7-taylorf2",
+      "new_base": "f3559182763e285da73a3f4eca546678d32f300c",
+      "new_head": "955e2a91f10880af28cfeb1e3fec013dca174553",
+      "staging_ref": "codex/original-cpu-restoration-v2-20260908-pr12",
+      "commits": [
+        {
+          "old": "1219fe1a6fa9ee530bf2d5e57ec192b784c99474",
+          "new": "d863f5d1d73e7d6ddc2965dfdecfc38662c39f35"
+        }
+      ],
+      "restoration_commits": [
+        {
+          "source": "d863f5d1d73e7d6ddc2965dfdecfc38662c39f35",
+          "new": "955e2a91f10880af28cfeb1e3fec013dca174553"
+        }
+      ]
+    },
+    {
+      "pr": 13,
+      "parent_pr": 12,
+      "published_ref": "torch-pr9-detector",
+      "published_base_ref": "torch-pr8-domain-compat",
+      "old_head": "424133803568b403cd6d30e7c54816dda2e93133",
+      "old_base": "1219fe1a6fa9ee530bf2d5e57ec192b784c99474",
+      "old_base_ref": "torch-pr8-domain-compat",
+      "new_base": "955e2a91f10880af28cfeb1e3fec013dca174553",
+      "new_head": "ace4c7975406a123f71c340d2f0ffc01b5ab6232",
+      "staging_ref": "codex/original-cpu-restoration-v2-20260908-pr13",
+      "commits": [
+        {
+          "old": "424133803568b403cd6d30e7c54816dda2e93133",
+          "new": "ae0cf53ba57bb5708e0672b811f62695d8fe998b"
+        }
+      ],
+      "restoration_commits": [
+        {
+          "source": "ae0cf53ba57bb5708e0672b811f62695d8fe998b",
+          "new": "ace4c7975406a123f71c340d2f0ffc01b5ab6232"
+        }
+      ]
+    },
+    {
+      "pr": 14,
+      "parent_pr": 13,
+      "published_ref": "torch-pr10-inference",
+      "published_base_ref": "torch-pr9-detector",
+      "old_head": "5b413c12b889e1869a897d022f67db1075c95c6d",
+      "old_base": "424133803568b403cd6d30e7c54816dda2e93133",
+      "old_base_ref": "torch-pr9-detector",
+      "new_base": "ace4c7975406a123f71c340d2f0ffc01b5ab6232",
+      "new_head": "78f197c514955ca5a568ddfe76efac9425f4f76b",
+      "staging_ref": "codex/original-cpu-restoration-v2-20260908-pr14",
+      "commits": [
+        {
+          "old": "5b413c12b889e1869a897d022f67db1075c95c6d",
+          "new": "042d4123b6254745eb94f3de64e976cbefdd7ef1"
+        }
+      ],
+      "restoration_commits": [
+        {
+          "source": "042d4123b6254745eb94f3de64e976cbefdd7ef1",
+          "new": "78f197c514955ca5a568ddfe76efac9425f4f76b"
+        }
+      ]
+    },
+    {
+      "pr": 15,
+      "parent_pr": 14,
+      "published_ref": "torch-pr11-performance-evidence",
+      "published_base_ref": "torch-pr10-inference",
+      "old_head": "1d22031fd31c6e5bcb48a68fe11772e960bd406b",
+      "old_base": "5b413c12b889e1869a897d022f67db1075c95c6d",
+      "old_base_ref": "torch-pr10-inference",
+      "new_base": "78f197c514955ca5a568ddfe76efac9425f4f76b",
+      "new_head": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0",
+      "staging_ref": "codex/original-cpu-restoration-v2-20260908-pr15",
+      "commits": [
+        {
+          "old": "c87c68908484fd6b01c4f85f09eef0251bd71623",
+          "new": "2aa57460e66f15fa33f83ae4bcc3d64c411c22d0"
+        },
+        {
+          "old": "4fa6a66b1baa3aa3df4398983dc3629186cc4a0e",
+          "new": "716f8ecea11512eaa1f4e9d6aba34544f0a8d2ac"
+        },
+        {
+          "old": "8dcaeca83a4066547b9289c37e352c3cbd9cd9c9",
+          "new": "c37fc970e03fa025aa86a1d9ca3421b4f21af374"
+        },
+        {
+          "old": "a160eac9693c9f8752c66d54bb6ba694348823f1",
+          "new": "cd14bedef975a4aee0e99513464a1471be153ed4"
+        },
+        {
+          "old": "eb90feb74800dd51fdfb2543687a9d451559b6ac",
+          "new": "991a578785105990f88ada3a5d8f3671abbb1fa2"
+        },
+        {
+          "old": "6b47580146e73169cd130b601731e5ba40668d93",
+          "new": "0240db4d023f38c7e0d69182b0ef78d3e946d887"
+        },
+        {
+          "old": "1d22031fd31c6e5bcb48a68fe11772e960bd406b",
+          "new": "652206d84177f658f5fb2f9cab2ee73f6d2bc95f"
+        }
+      ],
+      "restoration_commits": [
+        {
+          "source": "2aa57460e66f15fa33f83ae4bcc3d64c411c22d0",
+          "new": "88ba8b454334b389caefb630d4ca7fa2aa0e3d37"
+        },
+        {
+          "source": "716f8ecea11512eaa1f4e9d6aba34544f0a8d2ac",
+          "new": "8aab015f3c81777bcf7a19245604846e9939af80"
+        },
+        {
+          "source": "c37fc970e03fa025aa86a1d9ca3421b4f21af374",
+          "new": "74517b08f14e050569a6fbecadd48d77bf2779bf"
+        },
+        {
+          "source": "cd14bedef975a4aee0e99513464a1471be153ed4",
+          "new": "4025675809fa56a7ecef81bbbc9817d1f0906527"
+        },
+        {
+          "source": "991a578785105990f88ada3a5d8f3671abbb1fa2",
+          "new": "4e06dd0b91511e52ebf4a42be3f1f464672f89d3"
+        },
+        {
+          "source": "0240db4d023f38c7e0d69182b0ef78d3e946d887",
+          "new": "d6577365e82b7f00fc5a4d9088cc9b8c5e16a715"
+        },
+        {
+          "source": "652206d84177f658f5fb2f9cab2ee73f6d2bc95f",
+          "new": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0"
+        }
+      ]
+    },
+    {
+      "pr": 19,
+      "parent_pr": 15,
+      "published_ref": "torch-fft-formatting-base",
+      "published_base_ref": "torch-pr11-performance-evidence",
+      "old_head": "0b5eb0c970e7d3edd726e8b3bc7abd3d6c63ddda",
+      "old_base": "1d22031fd31c6e5bcb48a68fe11772e960bd406b",
+      "old_base_ref": "torch-pr11-performance-evidence",
+      "new_base": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0",
+      "new_head": "8b3de1b04cdb611e4494679cdf3ea80abf0f2ad3",
+      "staging_ref": "codex/original-cpu-restoration-v2-20260908-pr19",
+      "commits": [
+        {
+          "old": "0b5eb0c970e7d3edd726e8b3bc7abd3d6c63ddda",
+          "new": "2bc1bf37c5db4e55a13d932577167f90923b35c6"
+        }
+      ],
+      "restoration_commits": [
+        {
+          "source": "2bc1bf37c5db4e55a13d932577167f90923b35c6",
+          "new": "8b3de1b04cdb611e4494679cdf3ea80abf0f2ad3"
+        }
+      ]
+    },
+    {
+      "pr": 16,
+      "parent_pr": 19,
+      "published_ref": "torch-followup-fft-optimizations",
+      "published_base_ref": "torch-fft-formatting-base",
+      "old_head": "0a3bc0bd366c1c7fc5a4a8f06a4d0b5dc8239a36",
+      "old_base": "0b5eb0c970e7d3edd726e8b3bc7abd3d6c63ddda",
+      "old_base_ref": "torch-fft-formatting-base",
+      "new_base": "8b3de1b04cdb611e4494679cdf3ea80abf0f2ad3",
+      "new_head": "4b4dca0e4d7278be78422d2d3540109b02cdf26c",
+      "staging_ref": "codex/original-cpu-restoration-v2-20260908-pr16",
+      "commits": [
+        {
+          "old": "0a3bc0bd366c1c7fc5a4a8f06a4d0b5dc8239a36",
+          "new": "185c0bf451f6fb3645f8fd6e0e2499c5d7e3a749"
+        }
+      ],
+      "restoration_commits": [
+        {
+          "source": "185c0bf451f6fb3645f8fd6e0e2499c5d7e3a749",
+          "new": "4b4dca0e4d7278be78422d2d3540109b02cdf26c"
+        }
+      ]
+    },
+    {
+      "pr": 17,
+      "parent_pr": 15,
+      "published_ref": "torch-followup-cpu-optimizations",
+      "published_base_ref": "torch-pr11-performance-evidence",
+      "old_head": "f2180c07d7a23cf90ab597ebc1e02ab75e7d5b59",
+      "old_base": "1d22031fd31c6e5bcb48a68fe11772e960bd406b",
+      "old_base_ref": "torch-pr11-performance-evidence",
+      "new_base": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0",
+      "new_head": "80aae8b29cac86eea1c7ff9278601481d70061b1",
+      "staging_ref": "codex/original-cpu-restoration-v2-20260908-pr17",
+      "commits": [
+        {
+          "old": "f2180c07d7a23cf90ab597ebc1e02ab75e7d5b59",
+          "new": "29bd2fa92b544f88a1378e13eb9ca060e7045753"
+        }
+      ],
+      "restoration_commits": [
+        {
+          "source": "29bd2fa92b544f88a1378e13eb9ca060e7045753",
+          "new": "80aae8b29cac86eea1c7ff9278601481d70061b1"
+        }
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "case": "pr15-main",
+      "pr": 15,
+      "head": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0",
+      "command": [
+        "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "test/test_matchedfilter.py",
+        "test/test_torch_chisq_precision.py",
+        "test/test_torch_sigmasq_series_precision.py",
+        "test/test_torch_strain_psd_precision.py",
+        "test/test_psd.py",
+        "test/test_torch_psd_pipeline.py",
+        "test/test_torch_psd_protocol.py",
+        "test/test_torch_versioned_data_psd.py",
+        "test/test_chisq_torch.py",
+        "test/test_torch_filter_pipeline.py",
+        "test/test_torch_chisq_sparse_dispatch.py",
+        "test/test_torch_chisq_cpu_optimization.py",
+        "test/test_torch_chisq_cuda_normalization.py",
+        "test/test_torch_matchedfilter_cpu_optimization.py",
+        "test/test_torch_search_kernels.py",
+        "test/test_torch_fft_writes.py",
+        "test/test_torch_fft_cpu_native.py",
+        "test/test_fft_cpu_preservation.py",
+        "test/test_cpu_array_copy.py",
+        "test/test_cpu_psd_variation.py",
+        "test/test_cpu_skymax_chisq.py",
+        "test/test_cpu_match_cache.py",
+        "test/test_cpu_strain_cache.py",
+        "test/test_numpy_array_protocol.py",
+        "test/test_strain.py",
+        "test/test_scheme_runtime.py",
+        "test/test_torch_scheme.py",
+        "test/test_torch_optional.py",
+        "test/test_torch_large_ifft.py",
+        "--junitxml=/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr15-main.xml"
+      ],
+      "cwd": "/private/tmp/pycbc-original-cpu-validation-20260908",
+      "environment": {
+        "PYTHONPATH": "/private/tmp/pycbc-original-cpu-validation-20260908",
+        "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "provenance": {
+        "python": "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "pycbc": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/__init__.py",
+        "head": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0",
+        "native": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/vetoes/chisq_cpu.cpython-313-darwin.so",
+        "numpy": "2.3.5",
+        "scipy": "1.16.3"
+      },
+      "exit_code": 4,
+      "seconds": 0.11627626419067383,
+      "log": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr15-main.log",
+      "junit": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr15-main.xml",
+      "counts": {
+        "tests": 0,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      "diagnostic": "Initial invocation named nonexistent test/test_torch_scheme.py. Pytest aborted with no tests collected. Corrected to test/test_scheme_selection.py and rerun successfully; the same log/XML paths now contain the successful rerun."
+    },
+    {
+      "case": "pr15-main",
+      "pr": 15,
+      "head": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0",
+      "command": [
+        "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "test/test_matchedfilter.py",
+        "test/test_torch_chisq_precision.py",
+        "test/test_torch_sigmasq_series_precision.py",
+        "test/test_torch_strain_psd_precision.py",
+        "test/test_psd.py",
+        "test/test_torch_psd_pipeline.py",
+        "test/test_torch_psd_protocol.py",
+        "test/test_torch_versioned_data_psd.py",
+        "test/test_chisq_torch.py",
+        "test/test_torch_filter_pipeline.py",
+        "test/test_torch_chisq_sparse_dispatch.py",
+        "test/test_torch_chisq_cpu_optimization.py",
+        "test/test_torch_chisq_cuda_normalization.py",
+        "test/test_torch_matchedfilter_cpu_optimization.py",
+        "test/test_torch_search_kernels.py",
+        "test/test_torch_fft_writes.py",
+        "test/test_torch_fft_cpu_native.py",
+        "test/test_fft_cpu_preservation.py",
+        "test/test_cpu_array_copy.py",
+        "test/test_cpu_psd_variation.py",
+        "test/test_cpu_skymax_chisq.py",
+        "test/test_cpu_match_cache.py",
+        "test/test_cpu_strain_cache.py",
+        "test/test_numpy_array_protocol.py",
+        "test/test_strain.py",
+        "test/test_scheme_runtime.py",
+        "test/test_scheme_selection.py",
+        "test/test_torch_optional.py",
+        "test/test_torch_large_ifft.py",
+        "--junitxml=/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr15-main.xml"
+      ],
+      "cwd": "/private/tmp/pycbc-original-cpu-validation-20260908",
+      "environment": {
+        "PYTHONPATH": "/private/tmp/pycbc-original-cpu-validation-20260908",
+        "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "provenance": {
+        "python": "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "pycbc": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/__init__.py",
+        "head": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0",
+        "native": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/vetoes/chisq_cpu.cpython-313-darwin.so",
+        "numpy": "2.3.5",
+        "scipy": "1.16.3"
+      },
+      "exit_code": 0,
+      "seconds": 13.371106624603271,
+      "log": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr15-main.log",
+      "junit": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr15-main.xml",
+      "counts": {
+        "tests": 658,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 143
+      }
+    },
+    {
+      "case": "pr15-no-torch",
+      "pr": 15,
+      "head": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0",
+      "command": [
+        "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/cpu-without-torch.py",
+        "test/test_matchedfilter.py",
+        "test/test_psd.py",
+        "--junitxml=/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr15-no-torch.xml"
+      ],
+      "cwd": "/private/tmp/pycbc-original-cpu-validation-20260908",
+      "environment": {
+        "PYTHONPATH": "/private/tmp/pycbc-original-cpu-validation-20260908",
+        "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "provenance": {
+        "python": "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "pycbc": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/__init__.py",
+        "head": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0",
+        "native": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/vetoes/chisq_cpu.cpython-313-darwin.so",
+        "numpy": "2.3.5",
+        "scipy": "1.16.3"
+      },
+      "exit_code": 0,
+      "seconds": 3.4338622093200684,
+      "log": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr15-no-torch.log",
+      "junit": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr15-no-torch.xml",
+      "counts": {
+        "tests": 22,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "case": "pr5-preservation",
+      "pr": 5,
+      "head": "bb4faee848c5749a991a4562f6e38c76fad4b92e",
+      "command": [
+        "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "test/test_cpu_array_copy.py",
+        "test/test_scheme_runtime.py",
+        "test/test_scheme_selection.py",
+        "test/test_torch_optional.py",
+        "--junitxml=/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr5-preservation.xml"
+      ],
+      "cwd": "/private/tmp/pycbc-original-cpu-validation-20260908",
+      "environment": {
+        "PYTHONPATH": "/private/tmp/pycbc-original-cpu-validation-20260908",
+        "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "provenance": {
+        "python": "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "pycbc": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/__init__.py",
+        "head": "bb4faee848c5749a991a4562f6e38c76fad4b92e",
+        "native": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/vetoes/chisq_cpu.cpython-313-darwin.so",
+        "numpy": "2.3.5",
+        "scipy": "1.16.3"
+      },
+      "exit_code": 0,
+      "seconds": 3.970659017562866,
+      "log": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr5-preservation.log",
+      "junit": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr5-preservation.xml",
+      "counts": {
+        "tests": 40,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 1
+      }
+    },
+    {
+      "case": "pr6-preservation",
+      "pr": 6,
+      "head": "8b2b311a378dbb08114ffb80b9bfba0756ead17a",
+      "command": [
+        "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "test/test_fft_cpu_preservation.py",
+        "test/test_torch_fft_cpu_native.py",
+        "test/test_torch_fft_writes.py",
+        "test/test_torch_large_ifft.py",
+        "--junitxml=/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr6-preservation.xml"
+      ],
+      "cwd": "/private/tmp/pycbc-original-cpu-validation-20260908",
+      "environment": {
+        "PYTHONPATH": "/private/tmp/pycbc-original-cpu-validation-20260908",
+        "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "provenance": {
+        "python": "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "pycbc": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/__init__.py",
+        "head": "8b2b311a378dbb08114ffb80b9bfba0756ead17a",
+        "native": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/vetoes/chisq_cpu.cpython-313-darwin.so",
+        "numpy": "2.3.5",
+        "scipy": "1.16.3"
+      },
+      "exit_code": 0,
+      "seconds": 1.9424738883972168,
+      "log": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr6-preservation.log",
+      "junit": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr6-preservation.xml",
+      "counts": {
+        "tests": 77,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 3
+      }
+    },
+    {
+      "case": "pr7-psd",
+      "pr": 7,
+      "head": "8b90dc3dfe24108708db88615e4400704a755562",
+      "command": [
+        "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "test/test_matchedfilter.py",
+        "test/test_psd.py",
+        "test/test_torch_psd_pipeline.py",
+        "test/test_torch_psd_protocol.py",
+        "test/test_torch_versioned_data_psd.py",
+        "test/test_cpu_psd_variation.py",
+        "--junitxml=/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr7-psd.xml"
+      ],
+      "cwd": "/private/tmp/pycbc-original-cpu-validation-20260908",
+      "environment": {
+        "PYTHONPATH": "/private/tmp/pycbc-original-cpu-validation-20260908",
+        "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "provenance": {
+        "python": "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "pycbc": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/__init__.py",
+        "head": "8b90dc3dfe24108708db88615e4400704a755562",
+        "native": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/vetoes/chisq_cpu.cpython-313-darwin.so",
+        "numpy": "2.3.5",
+        "scipy": "1.16.3"
+      },
+      "exit_code": 0,
+      "seconds": 4.788775205612183,
+      "log": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr7-psd.log",
+      "junit": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr7-psd.xml",
+      "counts": {
+        "tests": 101,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 17
+      }
+    },
+    {
+      "case": "pr8-filtering",
+      "pr": 8,
+      "head": "d7d8ef190519df7da8fdae0e9e6a7c9bcab976f2",
+      "command": [
+        "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "test/test_matchedfilter.py",
+        "test/test_torch_chisq_precision.py",
+        "test/test_torch_sigmasq_series_precision.py",
+        "test/test_chisq_torch.py",
+        "test/test_torch_filter_pipeline.py",
+        "test/test_torch_chisq_sparse_dispatch.py",
+        "test/test_torch_chisq_cpu_optimization.py",
+        "test/test_torch_chisq_cuda_normalization.py",
+        "test/test_torch_matchedfilter_cpu_optimization.py",
+        "test/test_cpu_skymax_chisq.py",
+        "test/test_cpu_match_cache.py",
+        "--junitxml=/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr8-filtering.xml"
+      ],
+      "cwd": "/private/tmp/pycbc-original-cpu-validation-20260908",
+      "environment": {
+        "PYTHONPATH": "/private/tmp/pycbc-original-cpu-validation-20260908",
+        "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "provenance": {
+        "python": "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "pycbc": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/__init__.py",
+        "head": "d7d8ef190519df7da8fdae0e9e6a7c9bcab976f2",
+        "native": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/vetoes/chisq_cpu.cpython-313-darwin.so",
+        "numpy": "2.3.5",
+        "scipy": "1.16.3"
+      },
+      "exit_code": 0,
+      "seconds": 6.092031955718994,
+      "log": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr8-filtering.log",
+      "junit": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr8-filtering.xml",
+      "counts": {
+        "tests": 328,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 110
+      }
+    },
+    {
+      "case": "pr9-strain",
+      "pr": 9,
+      "head": "de10162d37fda2e44a435bdba4c206bf0a89768a",
+      "command": [
+        "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-ra",
+        "test/test_matchedfilter.py",
+        "test/test_torch_chisq_precision.py",
+        "test/test_torch_sigmasq_series_precision.py",
+        "test/test_torch_strain_psd_precision.py",
+        "test/test_torch_search_kernels.py",
+        "test/test_cpu_strain_cache.py",
+        "--junitxml=/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr9-strain.xml"
+      ],
+      "cwd": "/private/tmp/pycbc-original-cpu-validation-20260908",
+      "environment": {
+        "PYTHONPATH": "/private/tmp/pycbc-original-cpu-validation-20260908",
+        "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+        "OMP_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "provenance": {
+        "python": "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+        "pycbc": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/__init__.py",
+        "head": "de10162d37fda2e44a435bdba4c206bf0a89768a",
+        "native": "/private/tmp/pycbc-original-cpu-validation-20260908/pycbc/vetoes/chisq_cpu.cpython-313-darwin.so",
+        "numpy": "2.3.5",
+        "scipy": "1.16.3"
+      },
+      "exit_code": 0,
+      "seconds": 4.053605794906616,
+      "log": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr9-strain.log",
+      "junit": "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/local-tests-v2/pr9-strain.xml",
+      "counts": {
+        "tests": 100,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 21
+      }
+    }
+  ]
+}

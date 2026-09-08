@@ -1,0 +1,70 @@
+{
+  "numpy_version": "2.3.5",
+  "kind": "isolated AST-extracted probes",
+  "baseline": {
+    "commit": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+    "probes": {
+      "explicit_same_dtype_aliases": false,
+      "inplace_r2c_size5": {
+        "6": {
+          "result": "ValueError",
+          "detail": "For R2C in-place FFT, len(invec) must be nbatch*2*(size/2+1)"
+        },
+        "7": {
+          "result": "returned",
+          "detail": null
+        }
+      },
+      "empty_sky_chisq_no_threshold": {
+        "result": "UnboundLocalError",
+        "detail": "cannot access local variable 'chisq' where it is not associated with a value"
+      },
+      "psd_variation_divide_raise": {
+        "result": "FloatingPointError",
+        "detail": "divide by zero encountered in power"
+      }
+    }
+  },
+  "candidate": {
+    "commit": "652206d84177f658f5fb2f9cab2ee73f6d2bc95f",
+    "probes": {
+      "explicit_same_dtype_aliases": true,
+      "inplace_r2c_size5": {
+        "6": {
+          "result": "returned",
+          "detail": null
+        },
+        "7": {
+          "result": "ValueError",
+          "detail": "For R2C in-place FFT, len(invec) must be nbatch*2*(size/2+1)"
+        }
+      },
+      "empty_sky_chisq_no_threshold": {
+        "result": "returned",
+        "detail": [
+          {
+            "shape": [
+              0
+            ],
+            "dtype": "float32"
+          },
+          {
+            "shape": [
+              0
+            ],
+            "dtype": "int64"
+          }
+        ]
+      },
+      "psd_variation_divide_raise": {
+        "result": "returned",
+        "detail": {
+          "shape": [
+            8
+          ],
+          "finite": true
+        }
+      }
+    }
+  }
+}

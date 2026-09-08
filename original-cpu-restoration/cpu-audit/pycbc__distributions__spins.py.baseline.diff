@@ -1,0 +1,46 @@
+--- baseline:pycbc/distributions/spins.py
++++ main:pycbc/distributions/spins.py
+@@ -1,11 +1,11 @@
+ import logging
+ import numpy
+ from pycbc import conversions
++from pycbc.distributions.angular import UniformAngle
++from pycbc.distributions.arbitrary import Arbitrary
++from pycbc.distributions.bounded import VARARGS_DELIM, BoundedDist, get_param_bounds_from_config
++from pycbc.distributions.power_law import UniformPowerLaw
+ from pycbc.distributions.uniform import Uniform
+-from pycbc.distributions.angular import UniformAngle
+-from pycbc.distributions.power_law import UniformPowerLaw
+-from pycbc.distributions.arbitrary import Arbitrary
+-from pycbc.distributions.bounded import get_param_bounds_from_config, VARARGS_DELIM, BoundedDist
+ logger = logging.getLogger('pycbc.distributions.spins')
+ 
+ class IndependentChiPChiEff(Arbitrary):
+@@ -54,7 +54,11 @@
+         super(IndependentChiPChiEff, self).__init__(mass1=rvals['mass1'], mass2=rvals['mass2'], xi1=rvals['xi1'], xi2=rvals['xi2'], chi_eff=rvals['chi_eff'], chi_a=rvals['chi_a'], phi_a=rvals['phi_a'], phi_s=rvals['phi_s'], bounds=bounds)
+ 
+     def _constraints(self, values):
+-        mass1, mass2, phi_a, phi_s, chi_eff, chi_a, xi1, xi2, _ = conversions.ensurearray(values['mass1'], values['mass2'], values['phi_a'], values['phi_s'], values['chi_eff'], values['chi_a'], values['xi1'], values['xi2'])
++        inputs = (values['mass1'], values['mass2'], values['phi_a'], values['phi_s'], values['chi_eff'], values['chi_a'], values['xi1'], values['xi2'])
++        torch, converted = conversions._torch_values(*inputs)
++        if torch is None:
++            converted = conversions.ensurearray(*inputs)[:-1]
++        mass1, mass2, phi_a, phi_s, chi_eff, chi_a, xi1, xi2 = converted
+         s1x = conversions.spin1x_from_xi1_phi_a_phi_s(xi1, phi_a, phi_s)
+         s2x = conversions.spin2x_from_mass1_mass2_xi2_phi_a_phi_s(mass1, mass2, xi2, phi_a, phi_s)
+         s1y = conversions.spin1y_from_xi1_phi_a_phi_s(xi1, phi_a, phi_s)
+@@ -65,7 +69,13 @@
+         return test
+ 
+     def __contains__(self, params):
+-        isin = all([params in dist for dist in self.distributions.values()])
++        torch, converted = conversions._torch_values(*(params[p] for p in self._params))
++        if torch is not None:
++            isin = torch.ones_like(converted[0], dtype=torch.bool)
++            for dist in self.distributions.values():
++                isin = isin & dist.__contains__(params)
++            return isin & self._constraints(params)
++        isin = all((params in dist for dist in self.distributions.values()))
+         if not isin:
+             return False
+         return self._constraints(params)

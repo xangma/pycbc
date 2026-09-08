@@ -1,0 +1,57 @@
+{
+  "cpu_preserved": true,
+  "cpu_exact_datasets": {
+    "bank_chisq": true,
+    "bank_chisq_dof": true,
+    "chisq": true,
+    "chisq_dof": true,
+    "coa_phase": true,
+    "cont_chisq": true,
+    "cont_chisq_dof": true,
+    "end_time": true,
+    "gating/auto/pad": true,
+    "gating/auto/time": true,
+    "gating/auto/width": true,
+    "search/end_time": true,
+    "search/start_time": true,
+    "sg_chisq": true,
+    "sigmasq": true,
+    "snr": true,
+    "template_duration": true,
+    "template_hash": true
+  },
+  "runtime_metadata_exact": {
+    "search/filter_rate_per_core": false,
+    "search/run_time": false,
+    "search/setup_time_fraction": false,
+    "search/templates_per_core": false
+  },
+  "runtime_metadata_policy": "Exclude only four elapsed-time-derived H1/search fields from byte-exact scientific comparisons; all scientific tolerances unchanged.",
+  "trigger_counts": {
+    "original-cpu": 1988,
+    "proposed-cpu": 1988,
+    "torch-cpu": 1991,
+    "torch-cuda": 1991
+  },
+  "comparison_status": {
+    "original-cpu-vs-proposed-cpu": "pass",
+    "original-cpu-vs-torch-cpu": "fail",
+    "original-cpu-vs-torch-cuda": "fail",
+    "proposed-cpu-vs-torch-cpu": "fail",
+    "proposed-cpu-vs-torch-cuda": "fail"
+  },
+  "scientific_gates_pass": false,
+  "equal_output_speedup_eligible": false,
+  "timing_policy": "Qualification only; no timing samples or performance claims.",
+  "source_commits": {
+    "original": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+    "proposed": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0"
+  },
+  "tolerances": {
+    "rtol": 0.0001,
+    "atol": 1e-05,
+    "sigmasq_rtol": 1e-05,
+    "phase_atol": 0.0001,
+    "max_examples": 12
+  }
+}

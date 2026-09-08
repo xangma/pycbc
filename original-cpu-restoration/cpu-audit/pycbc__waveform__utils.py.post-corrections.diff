@@ -1,0 +1,119 @@
+--- post-corrections:pycbc/waveform/utils.py
++++ main:pycbc/waveform/utils.py
+@@ -1,9 +1,52 @@
+ from math import frexp
+ import numpy
+ from scipy import signal
++import pycbc.scheme as _scheme
++from pycbc.constants import PI
+ from pycbc.scheme import schemed
+-from pycbc.types import TimeSeries, FrequencySeries, Array, complex_same_precision_as, real_same_precision_as
+-from pycbc.constants import PI
++from pycbc.types import Array, FrequencySeries, TimeSeries, complex_same_precision_as, real_same_precision_as
++from pycbc.types.backend import backend_array, wrap_backend_array
++
++def _torch_kaiser_window(data, length, beta):
++    import torch
++    dtype = data.real.dtype
++    if length <= 1:
++        return torch.ones(length, dtype=dtype, device=data.device)
++    position = torch.arange(length, dtype=dtype, device=data.device)
++    radius = 2 * position / length - 1
++    argument = float(beta) * torch.sqrt(torch.clamp(1 - radius * radius, min=0))
++    normalization = torch.i0(torch.as_tensor(float(beta), dtype=dtype, device=data.device))
++    return torch.i0(argument) / normalization
++
++def scheme_cast_series(series):
++    if not isinstance(_scheme.mgr.state, _scheme.TorchScheme):
++        return series
++    import torch
++    target_device = _scheme.mgr.state.torch_device
++    data = series
++    copy = True
++    tensor = backend_array(series, 'torch')
++    if tensor is not None:
++        same_device = tensor.device.type == target_device.type and (target_device.index is None or tensor.device.index == target_device.index)
++        needs_mps_cast = target_device.type == 'mps' and tensor.dtype in (torch.float64, torch.complex128)
++        if same_device and (not needs_mps_cast):
++            return series
++        target_dtype = tensor.dtype
++        if needs_mps_cast:
++            target_dtype = torch.complex64 if tensor.is_complex() else torch.float32
++        data = wrap_backend_array(tensor.to(device=target_device, dtype=target_dtype))
++        copy = False
++    elif target_device.type == 'mps' and series.dtype in (numpy.dtype(numpy.float64), numpy.dtype(numpy.complex128)):
++        target_dtype = numpy.complex64 if series.kind == 'complex' else numpy.float32
++        host_data = backend_array(series)
++        if hasattr(host_data, 'get'):
++            host_data = host_data.get()
++        data = numpy.asarray(host_data, dtype=target_dtype)
++    if isinstance(series, TimeSeries):
++        return TimeSeries(data, delta_t=series.delta_t, epoch=series.start_time, copy=copy)
++    if isinstance(series, FrequencySeries):
++        return FrequencySeries(data, delta_f=series.delta_f, epoch=series.epoch, copy=copy)
++    raise TypeError('Expected a TimeSeries or FrequencySeries')
+ 
+ def ceilpow2(n):
+     signif, exponent = frexp(n)
+@@ -24,10 +67,10 @@
+     elif len(h1) != len(h2) or len(h2) % 2 != 0:
+         raise ValueError('Time series must be the same size and even if you do not allow resizing')
+     snr = matched_filter(h1, h2, psd=psd, low_frequency_cutoff=low_frequency_cutoff, high_frequency_cutoff=high_frequency_cutoff)
+-    _, l = snr.abs_max_loc()
+-    rotation = snr[l] / abs(snr[l])
++    _, peak_index = snr.abs_max_loc()
++    rotation = snr[peak_index] / abs(snr[peak_index])
+     h1 = (h1.to_frequencyseries() * rotation).to_timeseries()
+-    h1.roll(l)
++    h1.roll(peak_index)
+     h1 = TimeSeries(h1, delta_t=h2.delta_t, epoch=h2.start_time)
+     return (h1, h2)
+ 
+@@ -95,9 +138,23 @@
+     out = out.copy()
+     width = end - start
+     winlen = 2 * int(width / out.delta_t)
+-    window = Array(signal.get_window(('kaiser', beta), winlen))
+     xmin = int((start - out.start_time) / out.delta_t)
+     xmax = xmin + winlen // 2
++    data = backend_array(out, 'torch')
++    if data is not None:
++        window = _torch_kaiser_window(data, winlen, beta)
++        if side == 'left':
++            data[xmin:xmax] *= window[:winlen // 2]
++            if xmin > 0:
++                data[:xmin].zero_()
++        elif side == 'right':
++            data[xmin:xmax] *= window[winlen // 2:]
++            if xmax < len(out):
++                data[xmax:].zero_()
++        else:
++            raise ValueError('unrecognized side argument {}'.format(side))
++        return out
++    window = Array(signal.get_window(('kaiser', beta), winlen))
+     if side == 'left':
+         out[xmin:xmax] *= window[:winlen // 2]
+         if xmin > 0:
+@@ -114,9 +171,21 @@
+     out = out.copy()
+     width = end - start
+     winlen = 2 * int(width / out.delta_f)
+-    window = Array(signal.get_window(('kaiser', beta), winlen))
+     kmin = int(start / out.delta_f)
+     kmax = kmin + winlen // 2
++    data = backend_array(out, 'torch')
++    if data is not None:
++        window = _torch_kaiser_window(data, winlen, beta)
++        if side == 'left':
++            data[kmin:kmax] *= window[:winlen // 2]
++            data[:kmin].zero_()
++        elif side == 'right':
++            data[kmin:kmax] *= window[winlen // 2:]
++            data[kmax:].zero_()
++        else:
++            raise ValueError('unrecognized side argument {}'.format(side))
++        return out
++    window = Array(signal.get_window(('kaiser', beta), winlen))
+     if side == 'left':
+         out[kmin:kmax] *= window[:winlen // 2]
+         out[:kmin] *= 0.0

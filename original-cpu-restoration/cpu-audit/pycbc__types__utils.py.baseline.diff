@@ -1,0 +1,16 @@
+--- baseline:pycbc/types/utils.py
++++ main:pycbc/types/utils.py
+@@ -13,7 +13,12 @@
+             return initial_array._epoch
+         except AttributeError:
+             return float64(0)
+-    is_ltg = _lal is not None and isinstance(epoch, _lal.LIGOTimeGPS)
++    is_ltg = False
++    if _lal is not None:
++        try:
++            is_ltg = isinstance(epoch, _lal.LIGOTimeGPS)
++        except (ImportError, AttributeError):
++            is_ltg = False
+     if not is_ltg and (not _numpy.isscalar(epoch)):
+         raise TypeError('epoch must be a number, not array-like')
+     try:

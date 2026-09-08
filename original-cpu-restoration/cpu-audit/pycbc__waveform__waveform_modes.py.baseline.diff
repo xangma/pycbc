@@ -1,0 +1,137 @@
+--- baseline:pycbc/waveform/waveform_modes.py
++++ main:pycbc/waveform/waveform_modes.py
+@@ -1,11 +1,11 @@
+ from string import Formatter
+ import lal
+-from pycbc import libutils, pnutils
+-from pycbc.types import TimeSeries, FrequencySeries
++from pycbc import pnutils
+ from pycbc.constants import MSUN_SI, PC_SI
+-from .waveform import props, _check_lal_pars, check_args
++from pycbc.types import FrequencySeries, TimeSeries
++from pycbc.types.backend import backend_array, wrap_backend_array
+ from . import parameters
+-lalsimulation = libutils.import_optional('lalsimulation')
++from .waveform import _check_lal_pars, _lal_output_for_active_scheme, check_args, lalsimulation, props
+ 
+ def _formatdocstr(docstr):
+     return docstr.format(**{_p[1]: getattr(parameters, _p[1]).docstr(prefix='    ', include_label=False).lstrip(' ') for _p in Formatter().parse(docstr) if _p[1] is not None})
+@@ -17,11 +17,28 @@
+     return docstr.format(params=pl)
+ 
+ def sum_modes(hlms, inclination, phi):
++    if hlms:
++        first_hlm = next(iter(hlms.values()))
++        first_tensor = backend_array(first_hlm, 'torch')
++        if isinstance(first_hlm, FrequencySeries) and first_tensor is not None:
++            for hlm in hlms.values():
++                first_hlm._typecheck(hlm)
++            modes = list(hlms.keys())
++            if all((2 <= ell <= 4 and abs(emm) <= ell for ell, emm in modes)):
++                import torch
++                from ._spherical_harmonics_torch import selected_spin_minus_two_spherical_harmonics
++                dtype = first_tensor.real.dtype
++                device = first_tensor.device
++                ylm_dict = selected_spin_minus_two_spherical_harmonics(inclination, phi, modes, dtype=dtype, device=device)
++                ylm_vector = torch.stack([ylm_dict[m] for m in modes])
++                hlm_matrix = torch.stack([backend_array(hlms[m], 'torch') for m in modes], dim=0)
++                res_tensor = torch.matmul(ylm_vector, hlm_matrix)
++                return FrequencySeries(wrap_backend_array(res_tensor), delta_f=first_hlm.delta_f, epoch=first_hlm.epoch, copy=False)
+     out = None
+     for mode in hlms:
+-        l, m = mode
+-        hlm = hlms[l, m]
+-        ylm = lal.SpinWeightedSphericalHarmonic(inclination, phi, -2, l, m)
++        ell, m = mode
++        hlm = hlms[ell, m]
++        ylm = lal.SpinWeightedSphericalHarmonic(inclination, phi, -2, ell, m)
+         if out is None:
+             out = ylm * hlm
+         else:
+@@ -31,12 +48,12 @@
+ def default_modes(approximant):
+     if approximant in ['IMRPhenomXPHM', 'IMRPhenomXHM']:
+         ma = [(2, 2), (2, 1), (3, 3), (3, 2), (4, 4)]
+-        ma += [(l, -m) for l, m in ma]
++        ma += [(ell, -m) for ell, m in ma]
+     elif approximant in ['IMRPhenomPv3HM', 'IMRPhenomHM']:
+         ma = [(2, 2), (2, 1), (3, 3), (3, 2), (4, 4), (4, 3)]
+-        ma += [(l, -m) for l, m in ma]
++        ma += [(ell, -m) for ell, m in ma]
+     elif approximant.startswith('NRSur7dq4'):
+-        ma = [(l, m) for l in [2, 3, 4] for m in range(-l, l + 1)]
++        ma = [(ell, m) for ell in [2, 3, 4] for m in range(-ell, ell + 1)]
+     elif approximant.startswith('NRHybSur3dq8'):
+         ma = [(2, 0), (2, 1), (2, 2), (3, 0), (3, 1), (3, 2), (3, 3), (4, 2), (4, 3), (4, 4), (5, 5)]
+     else:
+@@ -51,7 +68,7 @@
+     ret = lalsimulation.SimInspiralPrecessingNRSurModes(params['delta_t'], params['mass1'] * MSUN_SI, params['mass2'] * MSUN_SI, params['spin1x'], params['spin1y'], params['spin1z'], params['spin2x'], params['spin2y'], params['spin2z'], params['f_lower'], params['f_ref'], params['distance'] * 1000000.0 * PC_SI, laldict, getattr(lalsimulation, params['approximant']))
+     hlms = {}
+     while ret:
+-        hlm = TimeSeries(ret.mode.data.data, delta_t=ret.mode.deltaT, epoch=ret.mode.epoch)
++        hlm = TimeSeries(_lal_output_for_active_scheme(ret.mode.data.data), delta_t=ret.mode.deltaT, epoch=ret.mode.epoch)
+         hlms[ret.l, ret.m] = (hlm.real(), hlm.imag())
+         ret = ret.next
+     return hlms
+@@ -61,7 +78,7 @@
+     ret = lalsimulation.SimIMRNRHybSur3dq8Modes(params['delta_t'], params['mass1'] * MSUN_SI, params['mass2'] * MSUN_SI, params['spin1z'], params['spin2z'], params['f_lower'], params['f_ref'], params['distance'] * 1000000.0 * PC_SI, laldict)
+     hlms = {}
+     while ret:
+-        hlm = TimeSeries(ret.mode.data.data, delta_t=ret.mode.deltaT, epoch=ret.mode.epoch)
++        hlm = TimeSeries(_lal_output_for_active_scheme(ret.mode.data.data), delta_t=ret.mode.deltaT, epoch=ret.mode.epoch)
+         hlms[ret.l, ret.m] = (hlm.real(), hlm.imag())
+         ret = ret.next
+     return hlms
+@@ -80,7 +97,7 @@
+     ret = lalsimulation.SimInspiralChooseTDModes(params['coa_phase'], params['delta_t'], params['mass1'] * MSUN_SI, params['mass2'] * MSUN_SI, params['spin1x'], params['spin1y'], params['spin1z'], params['spin2x'], params['spin2y'], params['spin2z'], params['f_lower'], params['f_ref'], params['distance'] * 1000000.0 * PC_SI, laldict, ell_max, get_lalsimulation_approximant(params['approximant']))
+     hlms = {}
+     while ret:
+-        hlm = TimeSeries(ret.mode.data.data, delta_t=ret.mode.deltaT, epoch=ret.mode.epoch)
++        hlm = TimeSeries(_lal_output_for_active_scheme(ret.mode.data.data), delta_t=ret.mode.deltaT, epoch=ret.mode.epoch)
+         hlms[ret.l, ret.m] = (hlm.real(), hlm.imag())
+         ret = ret.next
+     return hlms
+@@ -95,25 +112,25 @@
+     if 'f_final' not in params:
+         params['f_final'] = 0.0
+     hlms = {}
+-    for l, m in mode_array:
+-        params['mode_array'] = [(l, m)]
++    for ell, m in mode_array:
++        params['mode_array'] = [(ell, m)]
+         laldict = _check_lal_pars(params)
+-        hlm = lalsimulation.SimIMRPhenomXHMGenerateFDOneMode(float(pnutils.solar_mass_to_kg(params['mass1'])), float(pnutils.solar_mass_to_kg(params['mass2'])), float(params['spin1z']), float(params['spin2z']), l, m, pnutils.megaparsecs_to_meters(float(params['distance'])), params['f_lower'], params['f_final'], params['delta_f'], params['coa_phase'], params['f_ref'], laldict)
+-        hlm = FrequencySeries(hlm.data.data, delta_f=hlm.deltaF, epoch=hlm.epoch)
++        hlm = lalsimulation.SimIMRPhenomXHMGenerateFDOneMode(float(pnutils.solar_mass_to_kg(params['mass1'])), float(pnutils.solar_mass_to_kg(params['mass2'])), float(params['spin1z']), float(params['spin2z']), ell, m, pnutils.megaparsecs_to_meters(float(params['distance'])), params['f_lower'], params['f_final'], params['delta_f'], params['coa_phase'], params['f_ref'], laldict)
++        hlm = FrequencySeries(_lal_output_for_active_scheme(hlm.data.data), delta_f=hlm.deltaF, epoch=hlm.epoch)
+         hplm = 0.5 * hlm
+         hclm = 0.5j * hlm
+         if m > 0:
+             hclm *= -1
+-        hlms[l, m] = (hplm, hclm)
++        hlms[ell, m] = (hplm, hclm)
+     return hlms
+ _mode_waveform_td = {'EOBNRv2': get_lalsimulation_modes, 'EOBNRv2HM': get_lalsimulation_modes, 'IMRPhenomTPHM': get_lalsimulation_modes, 'NRSur7dq2': get_lalsimulation_modes, 'NRSur7dq4': get_nrsur_modes, 'NRHybSur3dq8': get_nrhybsur_modes, 'pSEOBNRv4HM_PA': get_lalsimulation_modes, 'SEOBNRv4HM_PA': get_lalsimulation_modes, 'SEOBNRv4P': get_lalsimulation_modes, 'SEOBNRv4PHM': get_lalsimulation_modes, 'SpinTaylorT1': get_lalsimulation_modes, 'SpinTaylorT4': get_lalsimulation_modes, 'SpinTaylorT5': get_lalsimulation_modes, 'TaylorT1': get_lalsimulation_modes, 'TaylorT2': get_lalsimulation_modes, 'TaylorT3': get_lalsimulation_modes, 'TaylorT4': get_lalsimulation_modes}
+ _mode_waveform_fd = {'IMRPhenomXHM': get_imrphenomxh_modes}
+ 
+-def fd_waveform_mode_approximants():
+-    return sorted(_mode_waveform_fd.keys())
++def fd_waveform_mode_approximants(scheme=None):
++    return sorted(_mode_waveform_fd)
+ 
+-def td_waveform_mode_approximants():
+-    return sorted(_mode_waveform_td.keys())
++def td_waveform_mode_approximants(scheme=None):
++    return sorted(_mode_waveform_td)
+ 
+ def get_fd_waveform_modes(template=None, **kwargs):
+     params = props(template, **kwargs)
+@@ -123,7 +140,7 @@
+     if apprx not in _mode_waveform_fd:
+         raise ValueError("I don't support approximant {}, sorry".format(apprx))
+     return _mode_waveform_fd[apprx](**params)
+-get_fd_waveform_modes.__doc__ = _formatdocstrlist(get_fd_waveform_modes.__doc__, parameters.fd_waveform_params, skip_params=['inclination', 'coa_phase'])
++get_fd_waveform_modes.__doc__ = _formatdocstrlist(get_fd_waveform_modes.__doc__, parameters.fd_waveform_params, skip_params=['inclination', 'long_asc_nodes'])
+ 
+ def get_td_waveform_modes(template=None, **kwargs):
+     params = props(template, **kwargs)

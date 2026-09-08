@@ -1,0 +1,61 @@
+--- post-corrections:pycbc/distributions/bounded.py
++++ main:pycbc/distributions/bounded.py
+@@ -2,9 +2,30 @@
+ import warnings
+ from configparser import Error
+ import numpy
+-from pycbc import boundaries
+-from pycbc import VARARGS_DELIM
++from pycbc import VARARGS_DELIM, boundaries
+ logger = logging.getLogger('pycbc.distributions.bounded')
++
++def _torch_module_and_reference(values):
++    for value in values:
++        torch = boundaries._torch_module_for(value)
++        if torch is not None:
++            return (torch, value)
++    return (None, None)
++
++def _torch_as_tensor(value, reference):
++    torch = boundaries._torch_module_for(reference)
++    dtype = reference.dtype if reference.is_floating_point() else torch.get_default_dtype()
++    return torch.as_tensor(value, dtype=dtype, device=reference.device)
++
++def _torch_where(params, condition, value, outside):
++    torch, reference = _torch_module_and_reference(params.values())
++    if torch is None:
++        return None
++    if not isinstance(value, torch.Tensor):
++        value = _torch_as_tensor(value, reference)
++    if not isinstance(outside, torch.Tensor):
++        outside = _torch_as_tensor(outside, value)
++    return torch.where(condition, value, outside)
+ 
+ def get_param_bounds_from_config(cp, section, tag, param):
+     try:
+@@ -68,7 +89,7 @@
+             elif not isinstance(bnds, boundaries.Bounds):
+                 params[param] = boundaries.Bounds(bnds[0], bnds[1])
+             if isinstance(bnds, boundaries.Bounds) and (bnds.min.name == 'reflected' or bnds.max.name == 'reflected'):
+-                warnings.warn('Param {} has one or more '.format(param) + 'reflected boundaries. Reflected boundaries can cause issues when used in an MCMC.')
++                warnings.warn('Param {} has one or more '.format(param) + 'reflected boundaries. Reflected boundaries can cause issues when used in an MCMC.', stacklevel=1)
+         self._bounds = params
+         self._params = sorted(list(params.keys()))
+ 
+@@ -82,9 +103,13 @@
+ 
+     def __contains__(self, params):
+         try:
+-            return all((self._bounds[p].contains_conditioned(params[p]) for p in self._params))
+-        except KeyError:
+-            raise ValueError('must provide all parameters [%s]' % ', '.join(self._params))
++            result = None
++            for param in self._params:
++                contained = self._bounds[param].contains_conditioned(params[param])
++                result = contained if result is None else result & contained
++            return True if result is None else result
++        except KeyError as exc:
++            raise ValueError('must provide all parameters [%s]' % ', '.join(self._params)) from exc
+ 
+     def apply_boundary_conditions(self, **kwargs):
+         return dict([[p, self._bounds[p].apply_conditions(val)] for p, val in kwargs.items() if p in self._bounds])

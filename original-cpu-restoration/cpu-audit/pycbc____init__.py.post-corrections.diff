@@ -1,0 +1,55 @@
+--- post-corrections:pycbc/__init__.py
++++ main:pycbc/__init__.py
+@@ -1,16 +1,18 @@
+-import subprocess, os, sys, signal, warnings
++import os
++import signal
++import sys
++import warnings
+ warnings.filterwarnings('ignore', message='numpy.dtype size changed')
+ warnings.filterwarnings('ignore', message='numpy.ufunc size changed')
++import importlib.machinery
++import importlib.util
+ import logging
+ import random
+ import string
+-import importlib.util
+-import importlib.machinery
+ from datetime import datetime as dt
+ try:
+-    from .version import git_hash
++    from .version import PyCBCVersionAction, git_hash
+     from .version import version as pycbc_version
+-    from .version import PyCBCVersionAction
+ except:
+     git_hash = 'none'
+     pycbc_version = 'none'
+@@ -66,6 +68,7 @@
+ PYCBC_ALIGNMENT = 32
+ DYN_RANGE_FAC = 5.902958103587057e+20
+ VARARGS_DELIM = '+'
++os.environ.setdefault('MKL_THREADING_LAYER', 'GNU')
+ try:
+     import pycuda
+     if type(pycuda).__name__ in ('MagicMock', '_MockModule'):
+@@ -78,12 +81,17 @@
+         device_count = 0
+     HAVE_CUDA = device_count > 0
+     if device_count == 0:
+-        warnings.warn('PyCUDA imported but no CUDA device found; disabling CUDA support')
++        warnings.warn('PyCUDA imported but no CUDA device found; disabling CUDA support', stacklevel=1)
+ except ImportError:
+     HAVE_CUDA = False
+ try:
+-    import pycbc.fft.mkl
+-    HAVE_MKL = True
++    HAVE_TORCH = importlib.util.find_spec('torch') is not None
++except (AttributeError, ImportError, OSError, ValueError):
++    HAVE_TORCH = False
++try:
++    from .libutils import get_ctypes_library as _get_ctypes_library
++    _mkl_runtime = _get_ctypes_library('mkl_rt', [])
++    HAVE_MKL = _mkl_runtime is not None
+ except (ImportError, OSError):
+     HAVE_MKL = False
+ if sys.platform == 'darwin':

@@ -1,3 +1,9 @@
+# Original CPU restoration, 2026-09-08
+
+Current results are in [original-cpu-restoration](original-cpu-restoration/README.md): original CPU preserved; Torch scientific comparison fails; no current speedup claim. The CPU precision proposal below is withdrawn from the Torch stack.
+
+---
+
 # Standalone CPU precision validation, 2026-09-08
 
 Start with the [CPU correction review](cpu-review.md) and [runtime cost](cpu-cost-report.md). The four-commit code branch is `66789ac4a7468094b0cc3ca1498a1de67e0311f6`, based on frozen original `40e94792b3edf59f39b18b65102b28a4f74433a7`.

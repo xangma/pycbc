@@ -1,0 +1,104 @@
+--- post-corrections:pycbc/events/eventmgr.py
++++ main:pycbc/events/eventmgr.py
+@@ -1,13 +1,14 @@
+-import os.path
+ import copy
+ import itertools
+ import logging
++import os.path
+ import pickle
++import h5py
+ import numpy
+-import h5py
++from pycbc.detector import Detector
++from pycbc.scheme import schemed
+ from pycbc.types import Array
+-from pycbc.scheme import schemed
+-from pycbc.detector import Detector
++from pycbc.types.backend import backend_array
+ from . import coinc, ranking
+ from .eventmgr_cython import findchirp_cluster_over_window_cython
+ logger = logging.getLogger('pycbc.events.eventmgr')
+@@ -30,6 +31,15 @@
+     vals = arr[locs]
+     return (locs, vals)
+ 
++def threshold_real(series, value):
++    tensor = backend_array(series, 'torch')
++    if tensor is None:
++        return threshold_real_numpy(series, value)
++    mask = tensor > value
++    locs = mask.nonzero(as_tuple=False).flatten()
++    vals = tensor[locs]
++    return (locs.cpu().numpy(), vals.cpu().numpy())
++
+ @schemed('pycbc.events.threshold_')
+ def threshold_and_cluster(series, threshold, window):
+     err_msg = 'This function is a stub that should be overridden using the '
+@@ -53,8 +63,22 @@
+     def threshold_and_cluster(self, threshold, window):
+         pass
+ 
++def _torch_tensor(value):
++    return backend_array(value, 'torch')
++
++def _torch_cluster_positions(times, values, window_length):
++    time_tensor = _torch_tensor(times)
++    value_tensor = _torch_tensor(values)
++    if time_tensor is None and value_tensor is None:
++        return None
++    from .threshold_torch import _findchirp_cluster_positions
++    return _findchirp_cluster_positions(times if time_tensor is None else time_tensor, values if value_tensor is None else value_tensor, window_length)
++
+ def findchirp_cluster_over_window(times, values, window_length):
+     assert window_length > 0, 'Clustering window length is not positive'
++    torch_positions = _torch_cluster_positions(times, values, window_length)
++    if torch_positions is not None:
++        return torch_positions.cpu().numpy().astype(numpy.int32, copy=False)
+     indices = numpy.zeros(len(times), dtype=numpy.int32)
+     tlen = len(times)
+     absvalues = numpy.asarray(abs(values))
+@@ -63,8 +87,36 @@
+     return indices[0:k + 1]
+ 
+ def cluster_reduce(idx, snr, window_size):
+-    ind = findchirp_cluster_over_window(idx, snr, window_size)
+-    return (idx.take(ind), snr.take(ind))
++    torch_positions = _torch_cluster_positions(idx, snr, window_size)
++    if torch_positions is None:
++        ind = findchirp_cluster_over_window(idx, snr, window_size)
++        return (idx.take(ind), snr.take(ind))
++    host_positions = None
++
++    def _take(values):
++        nonlocal host_positions
++        if _torch_tensor(values) is not None:
++            return values.take(torch_positions)
++        if host_positions is None:
++            host_positions = torch_positions.cpu().numpy()
++        return values.take(host_positions)
++    return (_take(idx), _take(snr))
++
++def threshold_and_cluster_findchirp(series, value, window):
++    tensor = _torch_tensor(series)
++    if tensor is not None:
++        from .threshold_torch import threshold_and_cluster_findchirp as impl
++        return impl(tensor, value, window)
++    idx, snr = threshold(series, value)
++    return cluster_reduce(idx, snr, window)
++
++def threshold_real_and_cluster_findchirp(series, value, window):
++    tensor = _torch_tensor(series)
++    if tensor is not None:
++        from .threshold_torch import threshold_real_and_cluster_findchirp as impl
++        return impl(tensor, value, window)
++    idx, snr = threshold_real(series, value)
++    return cluster_reduce(idx, snr, window)
+ 
+ class H5FileSyntSugar(object):
+ 
+@@ -717,4 +769,4 @@
+                 f['search/templates_per_core'] = numpy.array([temps_per_core * time_ratio])
+                 f['search/filter_rate_per_core'] = numpy.array([filters_per_core / float(self.run_time)])
+                 f['search/setup_time_fraction'] = numpy.array([float(self.setup_time) / float(self.run_time)])
+-__all__ = ['threshold_and_cluster', 'findchirp_cluster_over_window', 'threshold', 'cluster_reduce', 'ThresholdCluster', 'threshold_real_numpy', 'threshold_only', 'EventManager', 'EventManagerMultiDet', 'EventManagerCoherent']+__all__ = ['threshold_and_cluster', 'findchirp_cluster_over_window', 'threshold_and_cluster_findchirp', 'threshold_real_and_cluster_findchirp', 'threshold', 'cluster_reduce', 'ThresholdCluster', 'threshold_real', 'threshold_real_numpy', 'threshold_only', 'EventManager', 'EventManagerMultiDet', 'EventManagerCoherent']

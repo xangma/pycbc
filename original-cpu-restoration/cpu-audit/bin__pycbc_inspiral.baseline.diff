@@ -1,0 +1,14 @@
+--- baseline:bin/pycbc_inspiral
++++ main:bin/pycbc_inspiral
+@@ -179,10 +179,7 @@
+         use_cluster = False
+     else:
+         use_cluster = True
+-    if hasattr(ctx, 'num_threads'):
+-        ncores = ctx.num_threads
+-    else:
+-        ncores = 1
++    ncores = getattr(ctx, 'num_threads', None) or 1
+     if opt.multiprocessing_nprocesses:
+         ncores *= opt.multiprocessing_nprocesses
+     matched_filter = MatchedFilterControl(opt.low_frequency_cutoff, None, opt.snr_threshold, tlen, delta_f, complex64, segments, template_mem, use_cluster, downsample_factor=opt.downsample_factor, upsample_threshold=opt.upsample_threshold, upsample_method=opt.upsample_method, gpu_callback_method=opt.gpu_callback_method, cluster_function=opt.cluster_function)

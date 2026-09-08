@@ -1,0 +1,160 @@
+--- baseline:pycbc/waveform/ringdown.py
++++ main:pycbc/waveform/ringdown.py
+@@ -1,11 +1,12 @@
+ import numpy
++import pycbc.scheme as _scheme
++from pycbc.constants import C_SI, G_SI, MSUN_SI, PC_SI
++from pycbc.conversions import get_lm_f0tau_allmodes
+ from pycbc.libutils import import_optional
++from pycbc.types import FrequencySeries, TimeSeries, complex128, float64, zeros
++from pycbc.waveform.waveform import get_obj_attrs
+ pykerr = import_optional('pykerr')
+ lal = import_optional('lal')
+-from pycbc.types import TimeSeries, FrequencySeries, float64, complex128, zeros
+-from pycbc.waveform.waveform import get_obj_attrs
+-from pycbc.conversions import get_lm_f0tau_allmodes
+-from pycbc.constants import MSUN_SI, G_SI, C_SI, PC_SI
+ qnm_required_args = ['f_0', 'tau', 'amp', 'phi']
+ mass_spin_required_args = ['final_mass', 'final_spin', 'lmns', 'inclination']
+ freqtau_required_args = ['lmns']
+@@ -16,6 +17,12 @@
+ pi = numpy.pi
+ two_pi = 2 * numpy.pi
+ pi_sq = numpy.pi * numpy.pi
++
++def _torch_backend():
++    if _scheme.current_prefix() != 'torch':
++        return None
++    from pycbc.waveform import ringdown_torch
++    return ringdown_torch
+ 
+ def props(obj, required, domain_args, **kwargs):
+     pr = get_obj_attrs(obj)
+@@ -71,7 +78,7 @@
+             ref_amp = kwargs.pop(ref_amp)
+             amps[ref_mode] = ref_amp
+         except KeyError:
+-            raise ValueError('Must provide an amplitude for the reference mode {}'.format(ref_amp))
++            raise ValueError('Must provide an amplitude for the reference mode {}'.format(ref_amp)) from None
+     else:
+         ref_mode = None
+     for lmn in lmns:
+@@ -81,11 +88,11 @@
+                 try:
+                     amps[mode] = kwargs['amp' + mode] * ref_amp
+                 except KeyError:
+-                    raise ValueError('amp{} is required'.format(mode))
++                    raise ValueError('amp{} is required'.format(mode)) from None
+             try:
+                 phis[mode] = kwargs['phi' + mode]
+             except KeyError:
+-                raise ValueError('phi{} is required'.format(mode))
++                raise ValueError('phi{} is required'.format(mode)) from None
+             dphis[mode] = kwargs.pop('dphi' + mode, ref_dphi)
+             dbetas[mode] = kwargs.pop('dbeta' + mode, ref_dbeta)
+     return (amps, phis, dbetas, dphis)
+@@ -99,11 +106,11 @@
+             try:
+                 freqs[mode] = kwargs['f_' + mode]
+             except KeyError:
+-                raise ValueError('f_{} is required'.format(mode))
++                raise ValueError('f_{} is required'.format(mode)) from None
+             try:
+                 taus[mode] = kwargs['tau_' + mode]
+             except KeyError:
+-                raise ValueError('tau_{} is required'.format(mode))
++                raise ValueError('tau_{} is required'.format(mode)) from None
+     return (freqs, taus)
+ 
+ def lm_arbitrary_harmonics(**kwargs):
+@@ -180,6 +187,9 @@
+     return delta_f
+ 
+ def td_output_vector(freqs, damping_times, taper=False, delta_t=None, t_final=None):
++    backend = _torch_backend()
++    if backend is not None:
++        return backend.td_output_vector(freqs, damping_times, taper=taper, delta_t=delta_t, t_final=t_final)
+     if not delta_t:
+         delta_t = lm_deltat(freqs, damping_times)
+     if not t_final:
+@@ -197,6 +207,9 @@
+     return (outplus, outcross)
+ 
+ def fd_output_vector(freqs, damping_times, delta_f=None, f_final=None):
++    backend = _torch_backend()
++    if backend is not None:
++        return backend.fd_output_vector(freqs, damping_times, delta_f=delta_f, f_final=f_final)
+     if not delta_f:
+         delta_f = lm_deltaf(damping_times)
+     if not f_final:
+@@ -210,8 +223,9 @@
+     if harmonics == 'spherical':
+         if lal is None:
+             raise ImportError('lal must be installed for spherical harmonics')
+-        xlm = lal.SpinWeightedSphericalHarmonic(inclination, azimuthal, -2, l, m)
+-        xlnm = lal.SpinWeightedSphericalHarmonic(inclination, azimuthal, -2, l, -m)
++        spherical_harmonic = lal.SpinWeightedSphericalHarmonic
++        xlm = spherical_harmonic(inclination, azimuthal, -2, l, m)
++        xlnm = spherical_harmonic(inclination, azimuthal, -2, l, -m)
+     elif harmonics == 'spheroidal':
+         if spin is None:
+             raise ValueError('must provide a spin for spheroidal harmonics')
+@@ -234,6 +248,9 @@
+     return mass / dist
+ 
+ def td_damped_sinusoid(f_0, tau, amp, phi, times, l=2, m=2, n=0, inclination=0.0, azimuthal=0.0, dphi=0.0, dbeta=0.0, harmonics='spherical', final_spin=None, pol=None, polnm=None):
++    backend = _torch_backend()
++    if backend is not None:
++        return backend.td_damped_sinusoid(f_0, tau, amp, phi, times, l=l, m=m, n=n, inclination=inclination, azimuthal=azimuthal, dphi=dphi, dbeta=dbeta, harmonics=harmonics, final_spin=final_spin, pol=pol, polnm=polnm)
+     xlm, xlnm = spher_harms(harmonics=harmonics, l=l, m=m, n=n, inclination=inclination, azimuthal=azimuthal, spin=final_spin, pol=pol, polnm=polnm)
+     omegalm = two_pi * f_0 * times
+     damping = -times / tau
+@@ -254,6 +271,9 @@
+     return (hlm.real, hlm.imag)
+ 
+ def fd_damped_sinusoid(f_0, tau, amp, phi, freqs, t_0=0.0, l=2, m=2, n=0, inclination=0.0, azimuthal=0.0, harmonics='spherical', final_spin=None, pol=None, polnm=None):
++    backend = _torch_backend()
++    if backend is not None:
++        return backend.fd_damped_sinusoid(f_0, tau, amp, phi, freqs, t_0=t_0, l=l, m=m, n=n, inclination=inclination, azimuthal=azimuthal, harmonics=harmonics, final_spin=final_spin, pol=pol, polnm=polnm)
+     if inclination is None:
+         inclination = 0.0
+     if azimuthal is None:
+@@ -273,6 +293,9 @@
+     return (hptilde, hctilde)
+ 
+ def multimode_base(input_params, domain, freq_tau_approximant=False):
++    backend = _torch_backend()
++    if backend is not None:
++        return backend.multimode_base(input_params, domain, freq_tau_approximant=freq_tau_approximant)
+     input_params['lmns'] = format_lmns(input_params['lmns'])
+     amps, phis, dbetas, dphis = lm_amps_phases(**input_params)
+     pols, polnms = lm_arbitrary_harmonics(**input_params)
+@@ -304,8 +327,9 @@
+         outplus, outcross = td_output_vector(freqs, taus, input_params['taper'], input_params['delta_t'], input_params['t_final'])
+         sample_times = outplus.sample_times.numpy()
+     elif domain == 'fd':
+-        kmin = int(input_params['f_lower'] / input_params['delta_f'])
+         outplus, outcross = fd_output_vector(freqs, taus, input_params['delta_f'], input_params['f_final'])
++        f_lower = input_params['f_lower'] or 0.0
++        kmin = int(f_lower / outplus.delta_f)
+         sample_freqs = outplus.sample_frequencies.numpy()[kmin:]
+     else:
+         raise ValueError('unrecognised domain argument {}; must be either fd or td'.format(domain))
+@@ -314,12 +338,12 @@
+             continue
+         if domain == 'td':
+             hplus, hcross = td_damped_sinusoid(freqs[lmn], taus[lmn], amps[lmn], phis[lmn], sample_times, l=int(lmn[0]), m=int(lmn[1]), n=int(lmn[2]), inclination=input_params['inclination'], azimuthal=input_params['azimuthal'], dphi=dphis[lmn], dbeta=dbetas[lmn], harmonics=harmonics, final_spin=final_spin, pol=pols[lmn], polnm=polnms[lmn])
+-            outplus += hplus
+-            outcross += hcross
++            outplus._data += hplus
++            outcross._data += hcross
+         elif domain == 'fd':
+-            hplus, hcross = fd_damped_sinusoid(freqs[lmn], taus[lmn], amps[lmn], phis[lmn], sample_freqs, l=int(lmn[0]), m=int(lmn[1]), n=int(lmn[2]), inclination=input_params['inclination'], azimuthal=input_params['azimuthal'], harmonics=harmonics, final_spin=final_spin, pol=pols[lmn], polnm=polnms[lmn])
+-            outplus[kmin:] += hplus
+-            outcross[kmin:] += hcross
++            hplus, hcross = fd_damped_sinusoid(freqs[lmn], taus[lmn], amps[lmn], phis[lmn], sample_freqs, t_0=input_params['t_0'], l=int(lmn[0]), m=int(lmn[1]), n=int(lmn[2]), inclination=input_params['inclination'], azimuthal=input_params['azimuthal'], harmonics=harmonics, final_spin=final_spin, pol=pols[lmn], polnm=polnms[lmn])
++            outplus._data[kmin:] += hplus
++            outcross._data[kmin:] += hcross
+     return (norm * outplus, norm * outcross)
+ 
+ def get_td_from_final_mass_spin(template=None, **kwargs):

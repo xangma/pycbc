@@ -1,0 +1,129 @@
+--- post-corrections:pycbc/events/cuts.py
++++ main:pycbc/events/cuts.py
+@@ -1,11 +1,12 @@
++import copy
+ import logging
+-import copy
+ import numpy as np
+ from pycbc.events import ranking
+-from pycbc.io import hdf
++from pycbc.io import get_chisq_from_file_choice, hdf
++from pycbc.io.hdf import ReadByTemplate
+ from pycbc.tmpltbank import bank_conversions as bank_conv
+-from pycbc.io import get_chisq_from_file_choice
+-from pycbc.io.hdf import ReadByTemplate
++from pycbc.types import Array
++from pycbc.types.backend import backend_array, wrap_backend_array
+ logger = logging.getLogger('pycbc.events.cuts')
+ sngl_rank_keys = ranking.sngls_ranking_function_dict.keys()
+ trigger_param_choices = list(sngl_rank_keys)
+@@ -15,6 +16,60 @@
+ template_param_choices = bank_conv.conversion_options + template_fit_param_choices
+ ineq_functions = {'upper': np.less, 'lower': np.greater, 'upper_inc': np.less_equal, 'lower_inc': np.greater_equal}
+ ineq_choices = list(ineq_functions.keys())
++
++def _torch_cut_tensor(value):
++    return backend_array(value, 'torch')
++
++def _torch_trigger_cut_state(triggers):
++    snr = triggers['snr']
++    reference = _torch_cut_tensor(snr)
++    if reference is None:
++        return None
++    import torch
++    if reference.ndim != 1:
++        raise ValueError('trigger columns must be one-dimensional')
++    indices = torch.arange(reference.shape[0], dtype=torch.int64, device=reference.device)
++    return (reference, indices, isinstance(snr, Array))
++
++def _torch_cut_vector(value, reference, expected_length):
++    import torch
++    tensor = _torch_cut_tensor(value)
++    if tensor is None:
++        host = value.numpy() if isinstance(value, Array) else value
++        try:
++            tensor = torch.as_tensor(host, device=reference.device)
++        except (TypeError, ValueError, RuntimeError) as exc:
++            raise TypeError('trigger cut values must be numeric vectors') from exc
++    elif tensor.device != reference.device:
++        raise ValueError('trigger columns must use one Torch device')
++    if tensor.ndim != 1 or tensor.is_complex() or tensor.dtype == torch.bool:
++        raise TypeError('trigger cut values must be one-dimensional numeric vectors')
++    if tensor.shape[0] != expected_length:
++        raise ValueError('trigger columns must have matching lengths')
++    return tensor
++
++def _torch_cut_mask(value, threshold, cut_function):
++    import torch
++    if cut_function is np.less:
++        mask = torch.lt(value, threshold)
++    elif cut_function is np.greater:
++        mask = torch.gt(value, threshold)
++    elif cut_function is np.less_equal:
++        mask = torch.le(value, threshold)
++    elif cut_function is np.greater_equal:
++        mask = torch.ge(value, threshold)
++    else:
++        mask = cut_function(value, threshold)
++    if not isinstance(mask, torch.Tensor) or mask.dtype != torch.bool:
++        raise TypeError('Torch trigger cut functions must return a boolean tensor')
++    if mask.shape != value.shape:
++        raise ValueError('trigger cut masks must match the selected values')
++    return mask
++
++def _wrap_torch_cut_indices(indices, wrap_array):
++    if not wrap_array:
++        return indices
++    return Array(wrap_backend_array(indices), copy=False)
+ 
+ def insert_cuts_option_group(parser):
+     parser.add_argument('--trigger-cuts', nargs='+', help="Cuts to apply to the triggers, supplied as PARAMETER:VALUE:LIMIT, where, PARAMETER is the parameter to be cut, VALUE is the value at which it is cut, and LIMIT is one of '" + "', '".join(ineq_choices) + "' to indicate the inequality needed. PARAMETER is one of:'" + "', '".join(trigger_param_choices) + "'. For example snr:6:LOWER removes triggers with matched filter SNR < 6")
+@@ -75,13 +130,20 @@
+     return cut_thresh * tid_med_sigma[template_ids]
+ 
+ def apply_trigger_cuts(triggers, trigger_cut_dict, statistic=None):
+-    idx_out = np.arange(len(triggers['snr']))
++    torch_state = _torch_trigger_cut_state(triggers)
++    if torch_state is None:
++        idx_out = np.arange(len(triggers['snr']))
++        torch_reference = None
++        wrap_torch_result = False
++    else:
++        torch_reference, idx_out, wrap_torch_result = torch_state
+     for parameter_cut_function, cut_thresh in trigger_cut_dict.items():
+         parameter, cut_function = parameter_cut_function
+         if parameter.endswith('_chisq'):
+             chisq_choice = parameter.split('_')[0]
+             value = get_chisq_from_file_choice(triggers, chisq_choice)
+-            value = value[idx_out]
++            if torch_reference is None:
++                value = value[idx_out]
+         elif parameter == 'sigma_multiple':
+             if isinstance(triggers, ReadByTemplate):
+                 value = np.sqrt(triggers['sigmasq'][idx_out])
+@@ -93,13 +155,22 @@
+                 raise NotImplementedError(err_msg)
+         elif not hasattr(triggers, 'file') and parameter in triggers or (hasattr(triggers, 'file') and parameter in triggers.file[triggers.ifo]):
+             value = triggers[parameter]
+-            value = value[idx_out]
++            if torch_reference is None:
++                value = value[idx_out]
+         elif parameter in sngl_rank_keys:
+             value = ranking.get_sngls_ranking_from_trigs(triggers, parameter)
+-            value = value[idx_out]
++            if torch_reference is None:
++                value = value[idx_out]
+         else:
+             raise NotImplementedError("Parameter '" + parameter + "' not recognised. Input sanitisation means this shouldn't have happened?!")
+-        idx_out = idx_out[cut_function(value, cut_thresh)]
++        if torch_reference is None:
++            idx_out = idx_out[cut_function(value, cut_thresh)]
++        else:
++            value = _torch_cut_vector(value, torch_reference, len(triggers['snr']))
++            selected = value[idx_out]
++            idx_out = idx_out[_torch_cut_mask(selected, cut_thresh, cut_function)]
++    if torch_reference is not None:
++        return _wrap_torch_cut_indices(idx_out, wrap_torch_result)
+     return idx_out
+ 
+ def apply_template_fit_cut(statistic, ifos, parameter_cut_function, cut_thresh, template_ids):

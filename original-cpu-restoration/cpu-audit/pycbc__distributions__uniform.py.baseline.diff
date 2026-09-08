@@ -1,0 +1,26 @@
+--- baseline:pycbc/distributions/uniform.py
++++ main:pycbc/distributions/uniform.py
+@@ -26,13 +26,21 @@
+         return (upper_bound - lower_bound) * value + lower_bound
+ 
+     def _pdf(self, **kwargs):
+-        if kwargs in self:
++        contained = self.__contains__(kwargs)
++        torch_result = bounded._torch_where(kwargs, contained, self._norm, 0.0)
++        if torch_result is not None:
++            return torch_result
++        if contained:
+             return self._norm
+         else:
+             return 0.0
+ 
+     def _logpdf(self, **kwargs):
+-        if kwargs in self:
++        contained = self.__contains__(kwargs)
++        torch_result = bounded._torch_where(kwargs, contained, self._lognorm, -numpy.inf)
++        if torch_result is not None:
++            return torch_result
++        if contained:
+             return self._lognorm
+         else:
+             return -numpy.inf

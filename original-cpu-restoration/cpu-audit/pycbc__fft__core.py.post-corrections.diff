@@ -1,0 +1,19 @@
+--- post-corrections:pycbc/fft/core.py
++++ main:pycbc/fft/core.py
+@@ -1,6 +1,6 @@
+ from pycbc.types import Array as _Array
++from pycbc.types import FrequencySeries as _FrequencySeries
+ from pycbc.types import TimeSeries as _TimeSeries
+-from pycbc.types import FrequencySeries as _FrequencySeries
+ 
+ def _list_available(possible_list, possible_dict):
+     available_list = []
+@@ -58,7 +58,7 @@
+         if olen / nbatch != int(size / 2 + 1):
+             raise ValueError('For R2C FFT, len(outvec) must be nbatch*(size/2 + 1)')
+         if inplace:
+-            if ilen / nbatch != int(2 * (size / 2 + 1)):
++            if ilen / nbatch != 2 * int(size / 2 + 1):
+                 raise ValueError('For R2C in-place FFT, len(invec) must be nbatch*2*(size/2+1)')
+         elif ilen / nbatch != size:
+             raise ValueError('For R2C out-of-place FFT, len(invec) must be nbatch*size')

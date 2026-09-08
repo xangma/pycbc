@@ -1,0 +1,24 @@
+--- post-corrections:pycbc/waveform/parameters.py
++++ main:pycbc/waveform/parameters.py
+@@ -104,6 +104,12 @@
+ spin_sz = Parameter('spin_sz', dtype=float, label='$\\chi_{2z}$', description='The z component of the dimensionless spin of the secondary object.')
+ lambda1 = Parameter('lambda1', dtype=float, default=None, label='$\\Lambda_1$', description='The dimensionless tidal deformability parameter of object 1.')
+ lambda2 = Parameter('lambda2', dtype=float, default=None, label='$\\Lambda_2$', description='The dimensionless tidal deformability parameter of object 2.')
++nl_tides_a1 = Parameter('nl_tides_a1', dtype=float, default=None, label='$A_{\\mathrm{NL},1}$', description='The nonlinear-tide amplitude for object 1.')
++nl_tides_n1 = Parameter('nl_tides_n1', dtype=float, default=None, label='$n_{\\mathrm{NL},1}$', description='The nonlinear-tide spectral index for object 1.')
++nl_tides_f1 = Parameter('nl_tides_f1', dtype=float, default=None, label='$f_{\\mathrm{NL},1}$', description='The nonlinear-tide turn-on frequency for object 1 (in Hz).')
++nl_tides_a2 = Parameter('nl_tides_a2', dtype=float, default=None, label='$A_{\\mathrm{NL},2}$', description='The nonlinear-tide amplitude for object 2.')
++nl_tides_n2 = Parameter('nl_tides_n2', dtype=float, default=None, label='$n_{\\mathrm{NL},2}$', description='The nonlinear-tide spectral index for object 2.')
++nl_tides_f2 = Parameter('nl_tides_f2', dtype=float, default=None, label='$f_{\\mathrm{NL},2}$', description='The nonlinear-tide turn-on frequency for object 2 (in Hz).')
+ dquad_mon1 = Parameter('dquad_mon1', dtype=float, default=None, label='$qm_1$', description='Quadrupole-monopole parameter / m_1^5 -1.')
+ dquad_mon2 = Parameter('dquad_mon2', dtype=float, default=None, label='$qm_2$', description='Quadrupole-monopole parameter / m_2^5 -1.')
+ lambda_octu1 = Parameter('lambda_octu1', dtype=float, default=None, label='$\\Lambda_3^{(1)}$', description='The octupolar tidal deformability parameter of object 1.')
+@@ -183,7 +189,7 @@
+ orientation_params = ParameterList([distance, coa_phase, inclination, long_asc_nodes, mean_per_ano])
+ extrinsic_params = orientation_params + location_params
+ testingGR_params = ParameterList([dchi0, dchi1, dchi2, dchi3, dchi4, dchi5, dchi5l, dchi6, dchi6l, dchi7, dalpha1, dalpha2, dalpha3, dalpha4, dalpha5, dbeta1, dbeta2, dbeta3])
+-cbc_intrinsic_params = ParameterList([mass1, mass2, spin1x, spin1y, spin1z, spin2x, spin2y, spin2z, eccentricity, lambda1, lambda2, dquad_mon1, dquad_mon2, lambda_octu1, lambda_octu2, quadfmode1, quadfmode2, octufmode1, octufmode2]) + testingGR_params
++cbc_intrinsic_params = ParameterList([mass1, mass2, spin1x, spin1y, spin1z, spin2x, spin2y, spin2z, eccentricity, lambda1, lambda2, nl_tides_a1, nl_tides_n1, nl_tides_f1, nl_tides_a2, nl_tides_n2, nl_tides_f2, dquad_mon1, dquad_mon2, lambda_octu1, lambda_octu2, quadfmode1, quadfmode2, octufmode1, octufmode2]) + testingGR_params
+ cbc_rframe_params = cbc_intrinsic_params + orientation_params
+ calibration_params = ParameterList([delta_fc, delta_fs, delta_qinv, kappa_c, kappa_tst_re, kappa_tst_im, kappa_pu_re, kappa_pu_im])
+ common_generation_params = ParameterList([approximant, f_ref, phase_order, spin_order, tidal_order, amplitude_order, eccentricity_order])

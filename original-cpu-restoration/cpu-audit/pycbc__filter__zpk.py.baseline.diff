@@ -1,0 +1,82 @@
+--- baseline:pycbc/filter/zpk.py
++++ main:pycbc/filter/zpk.py
+@@ -1,18 +1,63 @@
+ import numpy as np
+-from scipy.signal import zpk2sos, sosfilt
++from scipy.signal import sosfilt, zpk2sos
+ from pycbc.types import TimeSeries
++from pycbc.types.backend import backend_array, is_backend, wrap_backend_array
++try:
++    import torch
++except Exception:
++    torch = None
++_TORCH_SOS_TARGET_BLOCK_SIZE = 2 ** 18
++
++def _torch_sosfilt_section(signal, section, section_numpy, block_size):
++    b0, b1, b2, _, a1, a2 = section
++    transition = torch.stack((torch.stack((-a1, torch.ones_like(a1))), torch.stack((-a2, torch.zeros_like(a2)))))
++    drive = torch.stack((b1 - a1 * b0, b2 - a2 * b0))
++    transition_numpy = np.array([[-section_numpy[4], 1.0], [-section_numpy[5], 0.0]], dtype=np.result_type(section_numpy.dtype, np.float64))
++    powers = []
++    offset = 1
++    while offset < block_size:
++        powers.append((offset, torch.as_tensor(np.ascontiguousarray(transition_numpy), device=signal.device, dtype=signal.dtype)))
++        transition_numpy = transition_numpy @ transition_numpy
++        offset *= 2
++    state = signal.new_zeros(2)
++    output = []
++    for start in range(0, signal.numel(), block_size):
++        block = signal[start:start + block_size]
++        updates = block.unsqueeze(1) * drive.unsqueeze(0)
++        states = torch.cat((updates[:1] + (transition @ state).unsqueeze(0), updates[1:]))
++        for offset, power in powers:
++            if offset >= block.numel():
++                break
++            states = torch.cat((states[:offset], states[offset:] + states[:-offset] @ power.T))
++        previous_state = torch.cat((state[:1], states[:-1, 0]))
++        output.append(b0 * block + previous_state)
++        state = states[-1]
++    return torch.cat(output)
++
++def _torch_sosfilt(sos, signal):
++    if signal.numel() == 0:
++        return signal.clone()
++    if signal.device.type != 'mps':
++        work_dtype = {torch.float32: torch.float64, torch.complex64: torch.complex128}.get(signal.dtype, signal.dtype)
++    else:
++        work_dtype = signal.dtype
++    filtered = signal.to(work_dtype)
++    sos_numpy = np.ascontiguousarray(sos)
++    sos_tensor = torch.as_tensor(sos_numpy, device=signal.device, dtype=work_dtype)
++    block_size = min(filtered.numel(), _TORCH_SOS_TARGET_BLOCK_SIZE)
++    for section, section_numpy in zip(sos_tensor, sos_numpy, strict=True):
++        filtered = _torch_sosfilt_section(filtered, section, section_numpy, block_size)
++    return filtered.to(signal.dtype)
+ 
+ def filter_zpk(timeseries, z, p, k):
+     if not isinstance(timeseries, TimeSeries):
+         raise TypeError('Can only filter TimeSeries instances.')
+     degree = len(p) - len(z)
+     if degree < 0:
+-        raise TypeError('May not have more zeroes than poles.                          Filter is not casual.')
+-    z = np.array(z)
+-    p = np.array(p)
++        raise TypeError('May not have more zeroes than poles.                          Filter is not causal.')
++    z = np.asarray(z) * (-2 * np.pi)
++    p = np.asarray(p) * (-2 * np.pi)
+     k = float(k)
+-    z *= -2 * np.pi
+-    p *= -2 * np.pi
+     fs = 2.0 * timeseries.sample_rate
+     z_zd = (1 + z / fs) / (1 - z / fs)
+     z_zd = z_zd[np.isfinite(z_zd)]
+@@ -20,5 +65,9 @@
+     p_zd = (1 + p / fs) / (1 - p / fs)
+     k_zd = k * np.prod(fs - z) / np.prod(fs - p)
+     sos = zpk2sos(z_zd, p_zd, k_zd)
++    torch_input = torch is not None and is_backend(timeseries, 'torch')
++    if torch_input:
++        filtered_data = _torch_sosfilt(sos, backend_array(timeseries, 'torch'))
++        return TimeSeries(wrap_backend_array(filtered_data), delta_t=timeseries.delta_t, epoch=timeseries._epoch, copy=False)
+     filtered_data = sosfilt(sos, timeseries.numpy())
+     return TimeSeries(filtered_data, delta_t=timeseries.delta_t, dtype=timeseries.dtype, epoch=timeseries._epoch)

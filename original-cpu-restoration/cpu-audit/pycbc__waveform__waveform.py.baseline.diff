@@ -1,0 +1,285 @@
+--- baseline:pycbc/waveform/waveform.py
++++ main:pycbc/waveform/waveform.py
+@@ -1,17 +1,18 @@
++import inspect
+ import os
+-import lal, numpy
+-from pycbc.types import TimeSeries, FrequencySeries, zeros, Array
+-from pycbc.types import real_same_precision_as, complex_same_precision_as
++import lal
++import numpy
++import pycbc
+ import pycbc.scheme as _scheme
+-import inspect
++from pycbc import libutils, pnutils
++from pycbc.conversions import get_final_from_initial, tau_from_final_mass_spin
+ from pycbc.fft import fft
+-from pycbc import pnutils, libutils
++from pycbc.filter import interpolate_complex_frequency
++from pycbc.types import Array, FrequencySeries, TimeSeries, complex_same_precision_as, real_same_precision_as, zeros
++from pycbc.waveform import parameters
+ from pycbc.waveform import utils as wfutils
+-from pycbc.waveform import parameters
+-from pycbc.conversions import get_final_from_initial, tau_from_final_mass_spin
+-from pycbc.filter import interpolate_complex_frequency, resample_to_delta_t
+-import pycbc
+-from .spa_tmplt import spa_tmplt, spa_tmplt_norm, spa_tmplt_end, spa_tmplt_precondition, spa_amplitude_factor, spa_length_in_time
++from pycbc.waveform.torch_waveform_registry import native_approximants, try_torch_native_waveform
++from .spa_tmplt import spa_amplitude_factor, spa_length_in_time, spa_tmplt, spa_tmplt_end, spa_tmplt_norm, spa_tmplt_precondition
+ 
+ class NoWaveformError(Exception):
+     pass
+@@ -43,6 +44,18 @@
+         lalsimulation.SimInspiralWaveformParamsInsertTidalLambda1(lal_pars, p['lambda1'])
+     if p['lambda2'] is not None:
+         lalsimulation.SimInspiralWaveformParamsInsertTidalLambda2(lal_pars, p['lambda2'])
++    if p['nl_tides_a1'] is not None:
++        lalsimulation.SimInspiralWaveformParamsInsertNLTidesA1(lal_pars, p['nl_tides_a1'])
++    if p['nl_tides_n1'] is not None:
++        lalsimulation.SimInspiralWaveformParamsInsertNLTidesN1(lal_pars, p['nl_tides_n1'])
++    if p['nl_tides_f1'] is not None:
++        lalsimulation.SimInspiralWaveformParamsInsertNLTidesF1(lal_pars, p['nl_tides_f1'])
++    if p['nl_tides_a2'] is not None:
++        lalsimulation.SimInspiralWaveformParamsInsertNLTidesA2(lal_pars, p['nl_tides_a2'])
++    if p['nl_tides_n2'] is not None:
++        lalsimulation.SimInspiralWaveformParamsInsertNLTidesN2(lal_pars, p['nl_tides_n2'])
++    if p['nl_tides_f2'] is not None:
++        lalsimulation.SimInspiralWaveformParamsInsertNLTidesF2(lal_pars, p['nl_tides_f2'])
+     if p['lambda_octu1'] is not None:
+         lalsimulation.SimInspiralWaveformParamsInsertTidalOctupolarLambda1(lal_pars, p['lambda_octu1'])
+     if p['lambda_octu2'] is not None:
+@@ -69,8 +82,8 @@
+         lalsimulation.SimInspiralWaveformParamsInsertSideband(lal_pars, p['side_bands'])
+     if p['mode_array'] is not None:
+         ma = lalsimulation.SimInspiralCreateModeArray()
+-        for l, m in p['mode_array']:
+-            lalsimulation.SimInspiralModeArrayActivateMode(ma, l, m)
++        for ell, m in p['mode_array']:
++            lalsimulation.SimInspiralModeArrayActivateMode(ma, ell, m)
+         lalsimulation.SimInspiralWaveformParamsInsertModeArray(lal_pars, ma)
+     if p['dchi0'] is not None:
+         lalsimulation.SimInspiralWaveformParamsInsertNonGRDChi0(lal_pars, p['dchi0'])
+@@ -110,6 +123,16 @@
+         lalsimulation.SimInspiralWaveformParamsInsertNonGRDBeta3(lal_pars, p['dbeta3'])
+     return lal_pars
+ 
++def _lal_output_for_active_scheme(data):
++    state = _scheme.mgr.state
++    if isinstance(state, _scheme.TorchScheme) and state.torch_device.type == 'mps':
++        dtype = numpy.complex64 if numpy.iscomplexobj(data) else numpy.float32
++        return numpy.asarray(data, dtype=dtype)
++    return data
++
++def _series_from_lal_output(data, series_type, delta_name, delta, epoch):
++    return series_type(_lal_output_for_active_scheme(data), **{delta_name: delta, 'epoch': epoch})
++
+ def _lalsim_td_waveform(**p):
+     lal_pars = _check_lal_pars(p)
+     try:
+@@ -118,6 +141,7 @@
+         if not fail_tolerant_waveform_generation:
+             raise
+         if 'SEOBNRv3' in p['approximant']:
++            from pycbc.filter import resample_to_delta_t
+             if 'delta_t_orig' not in p:
+                 p['delta_t_orig'] = p['delta_t']
+             p['delta_t'] = p['delta_t'] / 2.0
+@@ -129,8 +153,8 @@
+             hc = resample_to_delta_t(hc, hc.delta_t * 2)
+             return (hp, hc)
+         raise
+-    hp = TimeSeries(hp1.data.data[:], delta_t=hp1.deltaT, epoch=hp1.epoch)
+-    hc = TimeSeries(hc1.data.data[:], delta_t=hc1.deltaT, epoch=hc1.epoch)
++    hp = _series_from_lal_output(hp1.data.data[:], TimeSeries, 'delta_t', hp1.deltaT, hp1.epoch)
++    hc = _series_from_lal_output(hc1.data.data[:], TimeSeries, 'delta_t', hc1.deltaT, hc1.epoch)
+     return (hp, hc)
+ _lalsim_td_waveform.required = parameters.cbc_td_required
+ 
+@@ -145,17 +169,22 @@
+     return (hp, hc)
+ 
+ def _lalsim_fd_waveform(**p):
++    using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
++    if using_torch:
++        native_waveform = try_torch_native_waveform('fd', p)
++        if native_waveform is not None:
++            return native_waveform
+     lal_pars = _check_lal_pars(p)
+     hp1, hc1 = lalsimulation.SimInspiralChooseFDWaveform(float(pnutils.solar_mass_to_kg(p['mass1'])), float(pnutils.solar_mass_to_kg(p['mass2'])), float(p['spin1x']), float(p['spin1y']), float(p['spin1z']), float(p['spin2x']), float(p['spin2y']), float(p['spin2z']), pnutils.megaparsecs_to_meters(float(p['distance'])), float(p['inclination']), float(p['coa_phase']), float(p['long_asc_nodes']), float(p['eccentricity']), float(p['mean_per_ano']), p['delta_f'], float(p['f_lower']), float(p['f_final']), float(p['f_ref']), lal_pars, _lalsim_enum[p['approximant']])
+-    hp = FrequencySeries(hp1.data.data[:], delta_f=hp1.deltaF, epoch=hp1.epoch)
+-    hc = FrequencySeries(hc1.data.data[:], delta_f=hc1.deltaF, epoch=hc1.epoch)
++    hp = _series_from_lal_output(hp1.data.data[:], FrequencySeries, 'delta_f', hp1.deltaF, hp1.epoch)
++    hc = _series_from_lal_output(hc1.data.data[:], FrequencySeries, 'delta_f', hc1.deltaF, hc1.epoch)
+     return (hp, hc)
+ _lalsim_fd_waveform.required = parameters.cbc_fd_required
+ 
+ def _lalsim_sgburst_waveform(**p):
+     hp, hc = lalsimulation.SimBurstSineGaussian(float(p['q']), float(p['frequency']), float(p['hrss']), float(p['eccentricity']), float(p['polarization']), float(p['delta_t']))
+-    hp = TimeSeries(hp.data.data[:], delta_t=hp.deltaT, epoch=hp.epoch)
+-    hc = TimeSeries(hc.data.data[:], delta_t=hc.deltaT, epoch=hc.epoch)
++    hp = TimeSeries(_lal_output_for_active_scheme(hp.data.data[:]), delta_t=hp.deltaT, epoch=hp.epoch)
++    hc = TimeSeries(_lal_output_for_active_scheme(hc.data.data[:]), delta_t=hc.deltaT, epoch=hc.epoch)
+     return (hp, hc)
+ try:
+     import lalsimulation
+@@ -210,16 +239,24 @@
+     for approx in _lalsim_sgburst_approximants.keys():
+         print('  ' + approx)
+ 
+-def td_approximants(scheme=_scheme.mgr.state):
++def td_approximants(scheme=None):
++    if scheme is None:
++        scheme = _scheme.mgr.state
+     return list(td_wav[type(scheme)].keys())
+ 
+-def fd_approximants(scheme=_scheme.mgr.state):
++def fd_approximants(scheme=None):
++    if scheme is None:
++        scheme = _scheme.mgr.state
+     return list(fd_wav[type(scheme)].keys())
+ 
+-def sgburst_approximants(scheme=_scheme.mgr.state):
++def sgburst_approximants(scheme=None):
++    if scheme is None:
++        scheme = _scheme.mgr.state
+     return list(sgburst_wav[type(scheme)].keys())
+ 
+-def filter_approximants(scheme=_scheme.mgr.state):
++def filter_approximants(scheme=None):
++    if scheme is None:
++        scheme = _scheme.mgr.state
+     return list(filter_wav[type(scheme)].keys())
+ 
+ def get_obj_attrs(obj):
+@@ -304,9 +341,20 @@
+ fd_det = {}
+ 
+ def _lalsim_fd_sequence(**p):
++    using_torch = isinstance(_scheme.mgr.state, _scheme.TorchScheme)
++    if using_torch:
++        native_waveform = try_torch_native_waveform('sequence', p)
++        if native_waveform is not None:
++            return native_waveform
+     lal_pars = _check_lal_pars(p)
+-    hp, hc = lalsimulation.SimInspiralChooseFDWaveformSequence(float(p['coa_phase']), float(pnutils.solar_mass_to_kg(p['mass1'])), float(pnutils.solar_mass_to_kg(p['mass2'])), float(p['spin1x']), float(p['spin1y']), float(p['spin1z']), float(p['spin2x']), float(p['spin2y']), float(p['spin2z']), float(p['f_ref']), pnutils.megaparsecs_to_meters(float(p['distance'])), float(p['inclination']), lal_pars, _lalsim_enum[p['approximant']], p['sample_points'].lal())
+-    return (Array(hp.data.data), Array(hc.data.data))
++    sample_points = p['sample_points']
++    if sample_points.dtype == numpy.dtype(numpy.float32):
++        lal_sample_points = lal.CreateREAL8Vector(len(sample_points))
++        lal_sample_points.data[:] = sample_points.numpy()
++    else:
++        lal_sample_points = sample_points.lal()
++    hp, hc = lalsimulation.SimInspiralChooseFDWaveformSequence(float(p['coa_phase']), float(pnutils.solar_mass_to_kg(p['mass1'])), float(pnutils.solar_mass_to_kg(p['mass2'])), float(p['spin1x']), float(p['spin1y']), float(p['spin1z']), float(p['spin2x']), float(p['spin2y']), float(p['spin2z']), float(p['f_ref']), pnutils.megaparsecs_to_meters(float(p['distance'])), float(p['inclination']), lal_pars, _lalsim_enum[p['approximant']], lal_sample_points)
++    return (Array(_lal_output_for_active_scheme(hp.data.data)), Array(_lal_output_for_active_scheme(hc.data.data)))
+ _lalsim_fd_sequence.required = parameters.cbc_fd_required
+ for apx in _lalsim_enum:
+     fd_sequence[apx] = _lalsim_fd_sequence
+@@ -315,15 +363,22 @@
+     input_params = props(template, **kwds)
+     input_params['delta_f'] = -1
+     input_params['f_lower'] = -1
+-    if input_params['approximant'] not in fd_sequence:
+-        raise ValueError('Approximant %s not available' % input_params['approximant'])
+-    wav_gen = fd_sequence[input_params['approximant']]
++    approximant = input_params['approximant']
++    wav_gen = fd_sequence.get(approximant)
++    if isinstance(_scheme.mgr.state, _scheme.TorchScheme) and approximant in native_approximants('sequence'):
++        wav_gen = _lalsim_fd_sequence
++    if wav_gen is None:
++        raise ValueError('Approximant %s not available' % approximant)
+     if hasattr(wav_gen, 'required'):
+         required = wav_gen.required
+     else:
+         required = parameters.fd_required
+     if not isinstance(input_params['sample_points'], Array):
+-        input_params['sample_points'] = Array(input_params['sample_points'])
++        sample_dtype = None
++        state = _scheme.mgr.state
++        if isinstance(state, _scheme.TorchScheme) and state.torch_device.type == 'mps':
++            sample_dtype = numpy.float32
++        input_params['sample_points'] = Array(input_params['sample_points'], dtype=sample_dtype)
+     check_args(input_params, required)
+     return wav_gen(**input_params)
+ 
+@@ -352,7 +407,10 @@
+     else:
+         required = parameters.td_required
+     check_args(input_params, required)
+-    return wav_gen(**input_params)
++    hp, hc = wav_gen(**input_params)
++    hp = wfutils.scheme_cast_series(hp)
++    hc = wfutils.scheme_cast_series(hc)
++    return (hp, hc)
+ get_td_waveform.__doc__ = get_td_waveform.__doc__.format(params=parameters.td_waveform_params.docstr(prefix='    ', include_label=False))
+ 
+ def get_fd_waveform(template=None, **kwargs):
+@@ -374,12 +432,21 @@
+     else:
+         required = parameters.fd_required
+     check_args(input_params, required)
+-    return wav_gen(**input_params)
++    hp, hc = wav_gen(**input_params)
++    hp = wfutils.scheme_cast_series(hp)
++    hc = wfutils.scheme_cast_series(hc)
++    return (hp, hc)
+ get_fd_waveform.__doc__ = get_fd_waveform.__doc__.format(params=parameters.fd_waveform_params.docstr(prefix='    ', include_label=False))
++
++def get_fd_waveform_batch(approximant, **params):
++    if approximant != 'TaylorF2':
++        raise ValueError(f'get_fd_waveform_batch currently supports only TaylorF2; got {approximant!r}')
++    from pycbc.waveform.taylorf2_torch import taylorf2_fd_batch
++    return taylorf2_fd_batch(**params)
+ 
+ def get_fd_waveform_from_td(**params):
+     nparams = params.copy()
+-    if not 'taper_method' in params:
++    if 'taper_method' not in params:
+         full_duration = duration = get_waveform_filter_length_in_time(**params)
+         while full_duration < duration * 1.5:
+             full_duration = get_waveform_filter_length_in_time(**nparams)
+@@ -398,7 +465,7 @@
+         raise ValueError('The frequency spacing (df = {}) is too low to generate the {} approximant from the time domain'.format(params['delta_f'], params['approximant']))
+     hp.resize(tsamples)
+     hc.resize(tsamples)
+-    if not 'taper_method' in params:
++    if 'taper_method' not in params:
+         window = (full_duration - duration) * 0.8
+         hp = wfutils.td_taper(hp, hp.start_time, hp.start_time + window)
+         hc = wfutils.td_taper(hc, hc.start_time, hc.start_time + window)
+@@ -530,7 +597,7 @@
+ _cupy_fd_filters['SPAtmplt'] = spa_tmplt
+ _inspiral_fd_filters['SPAtmplt'] = spa_tmplt
+ filter_wav = _scheme.ChooseBySchemeDict()
+-filter_wav.update({_scheme.CPUScheme: _inspiral_fd_filters, _scheme.CUDAScheme: _cuda_fd_filters, _scheme.CUPYScheme: _cupy_fd_filters})
++filter_wav.update({_scheme.CPUScheme: _inspiral_fd_filters, _scheme.CUDAScheme: _cuda_fd_filters, _scheme.CUPYScheme: _cupy_fd_filters, _scheme.TorchScheme: _inspiral_fd_filters})
+ _filter_norms = {}
+ _filter_ends = {}
+ _filter_preconditions = {}
+@@ -639,9 +706,19 @@
+     td_fd_waveform_transform(apx)
+ td_wav = _scheme.ChooseBySchemeDict()
+ fd_wav = _scheme.ChooseBySchemeDict()
+-td_wav.update({_scheme.CPUScheme: cpu_td, _scheme.CUDAScheme: cuda_td})
+-fd_wav.update({_scheme.CPUScheme: cpu_fd, _scheme.CUDAScheme: cuda_fd})
+-sgburst_wav = {_scheme.CPUScheme: cpu_sgburst}
++torch_td = dict(cpu_td)
++torch_fd = dict(cpu_fd)
++for approximant in native_approximants('fd'):
++    torch_fd[approximant] = _lalsim_fd_waveform
++    if approximant in _filter_time_lengths:
++        interpolated = f'{approximant}_INTERP'
++        torch_fd[interpolated] = get_interpolated_fd_waveform
++        _filter_time_lengths[interpolated] = _filter_time_lengths[approximant]
++        torch_td[approximant] = get_td_waveform_from_fd
++td_wav.update({_scheme.CPUScheme: cpu_td, _scheme.CUDAScheme: cuda_td, _scheme.TorchScheme: torch_td})
++fd_wav.update({_scheme.CPUScheme: cpu_fd, _scheme.CUDAScheme: cuda_fd, _scheme.TorchScheme: torch_fd})
++sgburst_wav = _scheme.ChooseBySchemeDict()
++sgburst_wav.update({_scheme.CPUScheme: cpu_sgburst, _scheme.TorchScheme: cpu_sgburst})
+ 
+ def get_waveform_filter(out, template=None, **kwargs):
+     n = len(out)
+@@ -791,4 +868,4 @@
+         return _filter_time_lengths[approximant](**kwargs)
+     else:
+         return None
+-__all__ = ['get_td_waveform', 'get_td_det_waveform_from_fd_det', 'get_fd_waveform', 'get_fd_waveform_sequence', 'get_fd_det_waveform', 'get_fd_det_waveform_sequence', 'get_fd_waveform_from_td', 'print_td_approximants', 'print_fd_approximants', 'td_approximants', 'fd_approximants', 'get_waveform_filter', 'filter_approximants', 'get_waveform_filter_norm', 'get_waveform_end_frequency', 'waveform_norm_exists', 'get_template_amplitude_norm', 'get_waveform_filter_length_in_time', 'get_sgburst_waveform', 'print_sgburst_approximants', 'sgburst_approximants', 'td_waveform_to_fd_waveform', 'get_two_pol_waveform_filter', 'NoWaveformError', 'FailedWaveformError', 'get_td_waveform_from_fd', 'cpu_fd', 'cpu_td', 'fd_sequence', 'fd_det_sequence', 'fd_det', '_filter_time_lengths']+__all__ = ['get_td_waveform', 'get_td_det_waveform_from_fd_det', 'get_fd_waveform', 'get_fd_waveform_batch', 'get_fd_waveform_sequence', 'get_fd_det_waveform', 'get_fd_det_waveform_sequence', 'get_fd_waveform_from_td', 'print_td_approximants', 'print_fd_approximants', 'td_approximants', 'fd_approximants', 'get_waveform_filter', 'filter_approximants', 'get_waveform_filter_norm', 'get_waveform_end_frequency', 'waveform_norm_exists', 'get_template_amplitude_norm', 'get_waveform_filter_length_in_time', 'get_sgburst_waveform', 'print_sgburst_approximants', 'sgburst_approximants', 'td_waveform_to_fd_waveform', 'get_two_pol_waveform_filter', 'NoWaveformError', 'FailedWaveformError', 'get_td_waveform_from_fd', 'cpu_fd', 'cpu_td', 'fd_sequence', 'fd_det_sequence', 'fd_det', '_filter_time_lengths']
