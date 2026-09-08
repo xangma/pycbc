@@ -9,7 +9,12 @@ output. It processes real H1 frame data with a fixed compressed low-mass bank,
 including data conditioning, PSD estimation, waveform decompression,
 normalization, scalar matched filtering, power chi-square, clustering and
 trigger output. It does not call ``LiveBatchMatchedFilter.process_data``.
-The baseline/proposed comparison and its status are in
+The current reference is standalone corrected CPU
+``66789ac4a7468094b0cc3ca1498a1de67e0311f6``. The campaign measured restacked main
+``f582b6fd250d0b82612492979e01e645d5c07afc`` using normal CPU, Torch CPU and
+Torch CUDA as separate arms. The mapping to formatted main
+``6b47580146e73169cd130b601731e5ba40668d93`` and its documentation commit,
+the separate CPU corrections, and current versus historical results are in
 :ref:`torch-performance`.
 
 Inputs and scientific settings
@@ -75,12 +80,15 @@ trigger interval is **1187007160--1187009064: 1904 seconds**.
      - Standard CPU ``cpu:1`` and Torch CPU ``torch:cpu:1`` use explicit MKL;
        Torch CUDA ``torch:cuda:0`` uses one RTX 4090
 
-The geometry was selected on the unchanged baseline by sweeping 256/512/1024
-second segments and 96/112 second start padding, with 16 second end padding.
+The geometry was selected on historical unchanged CPU ``40e94792b3`` by
+sweeping 256/512/1024 second segments and 96/112 second start padding, with
+16 second end padding.
 Each setting had three fresh processes. The rule selected the lowest median,
 treating settings within 3% as tied, then preferring more start padding and a
-smaller FFT. That selected 512/112/16 second geometry is frozen for comparison. That finite grid and fixed end padding do not establish global
-optimality or fresh boundary-injection validation for every template.
+smaller FFT. The selected 512/112/16 second geometry remains frozen for the
+corrected-baseline comparison; it was not re-tuned on corrected CPU or Torch.
+That finite grid and fixed end padding do not establish global optimality or
+fresh boundary-injection validation for every template.
 
 Scientific qualification
 ------------------------
@@ -99,27 +107,47 @@ Any allowed source or executable-path substitution must be declared separately
 from scientific fields; it must not alter the numerical tolerances or conceal
 missing triggers.
 
-The completed unchanged-baseline/final-proposal comparison uses these inputs.
-It retains baseline trigger and numerical failures, along with full-PSD
-differences between proposed backends below the filter cutoff. Proposed trigger
-parity and exact used PSD bins do not reclassify those failures. Results and
-the disclosed descriptive timing continuation are in :ref:`torch-performance`.
+Current qualification passes all five trigger comparisons: corrected CPU
+against all three restacked routes, and restacked normal CPU against both
+Torch routes. Conditioned-strain digests, segment geometry and used PSD bins
+match exactly. The standalone and restacked normal CPU full PSDs pass. The
+full-PSD gate fails for Torch below 30 Hz, with 2375 budget violations per
+segment for Torch CPU and 3105 for Torch CUDA against either normal CPU
+reference. The strict controller
+stopped; a policy amendment made after qualification permits descriptive
+timings while retaining that failure and unchanged tolerances. Passing
+trigger gates does not establish full scientific equivalence. Results and
+the disclosed timing continuation are in :ref:`torch-performance`.
 
 Commands and reproducibility
 ----------------------------
 
-The `completed comparison and reproduction instructions
-<https://github.com/xangma/pycbc/blob/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908/REPRODUCE.md>`_ include the clean build
-procedure, four-arm acquisition and exact commands. Its `configuration
-<https://github.com/xangma/pycbc/blob/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908/acquisition/config.json>`_ records every
-scientific argument and numerical-library thread setting; per-worker receipts
-retain expanded commands, imported-source and native-build identity, input
-hashes, output hashes and exit status. The `original CPU geometry sweep
+Current corrected-baseline `reproduction instructions
+<https://github.com/xangma/pycbc/blob/e1dd5e7164a3e8ae8ee8b58ecd7b27200b8cfb9c/corrected-baseline-campaign/REPRODUCE.md>`_ and `configuration
+<https://github.com/xangma/pycbc/blob/e1dd5e7164a3e8ae8ee8b58ecd7b27200b8cfb9c/corrected-baseline-campaign/acquisition/config.json>`_ retain expanded
+commands, imported-source and native-build identity, input/output hashes,
+exit status, the strict qualification stop and subsequent timing policy.
+This campaign copies unchanged native binaries from the frozen build after
+verifying source and binary hashes in both separate source checkouts.
+The archive includes the acquired ``sources.bundle`` and hash-verified frozen
+bank. The bundle preserves both measured commits after published branches
+advance; the reproduction instructions identify its required frozen base.
+
+The `historical comparison instructions
+<https://github.com/xangma/pycbc/blob/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908/REPRODUCE.md>`_
+and `historical configuration
+<https://github.com/xangma/pycbc/blob/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908/acquisition/config.json>`_
+describe the earlier ``40e94792b3``/``123e1fb3ef`` run, not the current source
+pair. The `original CPU geometry sweep
 <https://github.com/xangma/pycbc/blob/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/REPRODUCE.md>`_
 records how the frozen segment geometry was selected.
 
-For a new comparison, build the explicitly named baseline and proposed commits
-in separate clean checkouts with matching dependencies. Restore the frozen bank
+To reproduce the recorded comparison, prepare the explicitly named corrected
+baseline and measured ``f582b6fd25`` commits in separate clean checkouts with
+matching dependencies. Record any substitution of the formatted publication
+head and its AST/source mapping separately.
+Build native modules with recorded flags, or verify native-source identity
+and copied binary hashes if reusing a frozen build. Restore the frozen bank
 and frame by hash, relocate paths into new output directories, and preserve the
 scientific arguments above. Verify that each interpreter imports its intended
 checkout and that the requested processing scheme actually runs. Do not run

@@ -3,32 +3,53 @@
 Controlled executable benchmark protocol
 ========================================
 
-Use this protocol for the existing-code versus proposed-Torch comparison in
-:ref:`torch-performance`. A result is eligible for a sustained-capacity claim
-only after workload convergence, scientific qualification and host-load checks
+Use this protocol for the corrected-CPU versus restacked-Torch comparison in
+:ref:`torch-performance`. Keep the original-versus-corrected CPU arithmetic
+and output changes in a separate experiment. A result is eligible for a
+sustained-capacity claim only after workload convergence, scientific
+qualification and host-load checks
 have passed. Missing evidence remains explicit; a plausible profile or the
 expected templates/core rate is not an acceptance test.
 
 Reference and scientific scope
 ------------------------------
 
-#. Build clean, pinned original and final checkouts using the same environment.
+#. Prepare clean, pinned corrected-CPU and restacked-main checkouts using
+   the same environment.
    Record native build provenance, executable and input hashes, dependency
    versions and the complete command. Use ``cpu:1``, MKL FFTs, compressed
    low-mass waveforms and one numerical-library thread for the normal reference.
-#. Tune original CPU before measuring Torch. Sweep segment length and safe
-   start/end padding, holding bank, PSD, vetoes and unique output interval
+   Preserve measured source pins when publishing later formatting or
+   documentation changes. Record the final publication head and verify the
+   exact changed-file set, full module AST equality for formatting, and byte
+   identity of executable, test, tool, CI and native files separately.
+#. Declare how the CPU reference geometry was selected before measuring Torch.
+   This campaign retains the geometry selected on historical unchanged CPU;
+   it does not claim a fresh optimum for corrected CPU. For a new tuning
+   experiment, sweep segment length and safe start/end padding, holding bank,
+   PSD, vetoes and unique output interval
    fixed. Record repeated unprofiled wall times and a selection rule before
    running candidates. Check longest-waveform duration, inverse-spectrum
    support, completed segments, boundary injections and unique search time.
    Duration bounds alone do not prove boundary correctness. A conservative
    fixed end pad is a declared constraint, not an end-padding optimum.
 #. Freeze the selected geometry for matched backend comparisons. Include
-   original CPU, proposed normal CPU, Torch CPU and Torch CUDA separately.
+   corrected CPU, restacked normal CPU, Torch CPU and Torch CUDA separately.
    Re-tuning each backend is a different experiment and needs its own table.
    Compare trigger identities, SNR, phase and chi-square under unchanged
-   tolerances. Preserve failures against original upstream. Claims about
-   backend cost use the proposed CPU comparison whose outputs pass parity.
+   tolerances. Compare full PSD arrays, conditioned strain and segment
+   geometry as well as the used PSD slice. Preserve the separate historical
+   failures against unchanged CPU; a corrected reference does not erase them.
+   Report each gate independently. Trigger parity alone does not establish
+   full scientific equivalence or qualify an equivalent-output speedup.
+
+The current campaign's initial strict controller stopped on a full-PSD
+failure for Torch below 30 Hz. Its explicitly recorded policy amendment,
+made after qualification, permits descriptive timings after all five
+trigger comparisons, matching conditioned-strain digests and geometry, and
+exact used PSD bins pass. Preserve both the initial stop and amendment; do not present the
+continuation as the original policy or reclassify full-array failures.
+Results under that amendment are finite-workload execution costs only.
 
 Separate live-filter API measurements
 -------------------------------------
@@ -57,7 +78,7 @@ Predeclare a convergence criterion; for example, require less than 5% change
 in median capacity at two successive workload doublings. In every repeat at
 each of the final three sizes, setup plus time outside the internal timer must
 also remain below 10% of full wall time. The criterion is specific to the tested
-backend, bank distribution and host; original-CPU convergence alone does not
+backend, bank distribution and host; CPU-reference convergence alone does not
 establish CUDA convergence. If it fails, show the scaling curve and report
 finite-workload capacity.
 
@@ -143,9 +164,11 @@ execution and planning separately, plus correlation, chi-square, thresholding,
 decompression and the measured remainder. FFT dominance is a hypothesis to
 check, not a shape to force onto results.
 
-Publish the unchanged-baseline and proposed-revision results together for each
+Publish the corrected-baseline and restacked-revision results together for each
 defined workload, with their source revisions, timing boundaries, resource
-counts and correctness verdicts. Keep intermediate optimization experiments
-in the evidence archive, outside the main PR comparison. Retain
+counts and correctness verdicts. Publish the separate cost of CPU precision
+corrections with its intentional arithmetic/output changes. Label earlier
+unchanged-baseline comparisons as historical evidence. Keep intermediate
+optimization experiments in the evidence archive, outside the main PR comparison. Retain
 raw successful and failed receipts, source/input hashes, qualification,
 profiles, load records and the renderer manifest in an immutable archive.

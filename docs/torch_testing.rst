@@ -360,6 +360,10 @@ suite alone establishes parity across the entire physical parameter space.
 Recorded integrated qualification
 ---------------------------------
 
+This is historical qualification of the revisions named below. The current
+corrected-CPU/restacked-main campaign and its retained full-PSD failure are
+reported separately in :ref:`torch-performance`.
+
 The `sealed integrated qualification
 <https://github.com/xangma/pycbc/tree/06c77a19432bce561f5cbeb6c2da1dedde98274b/stack-validation-20260908>`_
 tests production source ``fad7d8440bfde083f2e94ee62a0017492dfc4013``. Its
