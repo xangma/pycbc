@@ -26,6 +26,7 @@ This package provides a front-end to various fast Fourier transform
 implementations within PyCBC.
 """
 
+from pycbc.scheme import TorchScheme, mgr
 from pycbc.types import Array as _Array
 from pycbc.types import FrequencySeries as _FrequencySeries
 from pycbc.types import TimeSeries as _TimeSeries
@@ -115,7 +116,10 @@ def _check_fwd_args(invec, itype, outvec, otype, nbatch, size):
         if (olen / nbatch) != int(size / 2 + 1):
             raise ValueError("For R2C FFT, len(outvec) must be nbatch*(size/2 + 1)")
         if inplace:
-            if (ilen / nbatch) != 2 * int(size / 2 + 1):
+            expected = int(2 * (size / 2 + 1))
+            if isinstance(mgr.state, TorchScheme):
+                expected = 2 * int(size / 2 + 1)
+            if (ilen / nbatch) != expected:
                 raise ValueError(
                     "For R2C in-place FFT, len(invec) must be nbatch*2*(size/2+1)"
                 )
