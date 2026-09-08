@@ -1,0 +1,324 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controlled executable benchmark protocol &mdash; PyCBC 0.0a9329 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css?v=7f9a90b1" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f545ccba"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/typed.min.js?v=edb71f0b"></script>
+      <script src="_static/terminal.css?v=d691274a"></script>
+      <script src="_static/theme_overrides.css?v=e4e1d026"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Live-filter benchmark definition and accuracy" href="torch_batch_numerics.html" />
+    <link rel="prev" title="Executable benchmark definition" href="torch_reference_campaign.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+
+          
+          
+          <a href="index.html">
+            
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="torch.html">Using PyCBC with PyTorch</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="torch.html#quick-start">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#choosing-a-device">Choosing a device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#capabilities-and-fallback">Capabilities and fallback</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#mps-limitations">MPS limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="torch.html#documentation-map">Documentation map</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="torch_runtime.html">PyTorch runtime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_filtering.html">Torch filtering and vetoes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_search.html">Torch event processing and search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_optimizations.html">Torch optimization controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_testing.html">Testing Torch changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_parity.html">Torch scientific parity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_workflows.html">Torch maintainer workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_performance.html">Original CPU baseline and Torch execution costs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_reference_campaign.html">Executable benchmark definition</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Controlled executable benchmark protocol</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#reference-and-scientific-scope">Reference and scientific scope</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#separate-live-filter-api-measurements">Separate live-filter API measurements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#workload-convergence-and-timers">Workload convergence and timers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#host-conditions-and-full-machine-throughput">Host conditions and full-machine throughput</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#profile-and-presentation-requirements">Profile and presentation requirements</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="waveform.html">Waveforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="waveform_plugin.html">Making new waveform approximants available to PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installing PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Referenced API objects</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyCBC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="torch.html">Using PyCBC with PyTorch</a></li>
+      <li class="breadcrumb-item active">Controlled executable benchmark protocol</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/gwastro/pycbc/blob/master/docs/torch_benchmark_protocol.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="controlled-executable-benchmark-protocol">
+<span id="torch-benchmark-protocol"></span><h1>Controlled executable benchmark protocol<a class="headerlink" href="#controlled-executable-benchmark-protocol" title="Link to this heading"></a></h1>
+<p>Use this protocol for unchanged CPU
+<code class="docutils literal notranslate"><span class="pre">40e94792b3edf59f39b18b65102b28a4f74433a7</span></code> versus the restored stack in
+<a class="reference internal" href="torch_performance.html#torch-performance"><span class="std std-ref">Original CPU baseline and Torch execution costs</span></a>. Preserving existing CPU behavior is a requirement;
+CPU arithmetic changes such as PR #20 cannot become a prerequisite or replace
+the reference. A result is eligible for a
+sustained-capacity claim only after workload convergence, scientific
+qualification and host-load checks
+have passed. Missing evidence remains explicit; a plausible profile or the
+expected templates/core rate is not an acceptance test.</p>
+<section id="reference-and-scientific-scope">
+<h2>Reference and scientific scope<a class="headerlink" href="#reference-and-scientific-scope" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Prepare clean checkouts of unchanged CPU <code class="docutils literal notranslate"><span class="pre">40e94792b3</span></code> and the verified
+restored main using the same environment. The measured source is
+<code class="docutils literal notranslate"><span class="pre">aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0</span></code>; its workload-specific CPU
+preservation and regression receipts are in the
+<a class="reference external" href="https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration">immutable restoration evidence</a>.
+Check the restored normal CPU against the original before interpreting
+Torch results.
+Record native build provenance, executable and input hashes, dependency
+versions and the complete command. Use <code class="docutils literal notranslate"><span class="pre">cpu:1</span></code>, MKL FFTs, compressed
+low-mass waveforms and one numerical-library thread for the normal reference.
+Preserve measured source pins when publishing later formatting or
+documentation changes. Record the final publication head and verify the
+exact changed-file set. For formatting-only differences, check complete
+module AST equality and byte identity outside the declared formatting and
+documentation files. Production restoration requires its own audit and
+tests; earlier source-equivalence receipts do not cover new changes.</p></li>
+<li><p>Declare how the CPU reference geometry was selected before measuring Torch.
+Retain the geometry already selected on unchanged CPU and record its
+input/geometry receipts for the new source pair. For a new tuning
+experiment, sweep segment length and safe start/end padding, holding bank,
+PSD, vetoes and unique output interval
+fixed. Record repeated unprofiled wall times and a selection rule before
+running candidates. Check longest-waveform duration, inverse-spectrum
+support, completed segments, boundary injections and unique search time.
+Duration bounds alone do not prove boundary correctness. A conservative
+fixed end pad is a declared constraint, not an end-padding optimum.</p></li>
+<li><p>Freeze the selected geometry for matched backend comparisons. Include
+original CPU, restored normal CPU, Torch CPU and Torch CUDA separately.
+Re-tuning each backend is a different experiment and needs its own table.
+Compare trigger identities, SNR, phase and chi-square under unchanged
+tolerances. Compare full PSD arrays, conditioned strain and segment
+geometry as well as the used PSD slice. Compare the original with all
+three restored routes, plus restored normal CPU with both Torch routes.
+Preserve historical failures with their original source pins. Do not change
+CPU arithmetic or relax tolerances to obtain agreement with an oracle.
+Compare scientific datasets and metadata. Exclude explicitly listed runtime
+timing fields from scientific verdicts and retain their raw values separately;
+do not exclude scientific configuration, sampling, epoch or geometry. Keep
+both original and corrected reports if the comparator included timing fields.
+Report each gate independently. Trigger parity alone does not establish
+full scientific equivalence or qualify an equivalent-output speedup.</p></li>
+</ol>
+<p>Require all frozen scientific gates to pass before equivalent-output timing.
+Stop on a failed gate and report it. Any separately authorized descriptive
+measurement after failure must declare its policy, scope and retained failures;
+it cannot establish equivalent-output speedup. The completed restoration
+campaign stopped after failed Torch qualification and collected no performance
+samples; original CPU versus restored normal CPU preservation passed.</p>
+<p>The <strong>superseded corrected-CPU campaign</strong> stopped on a full-PSD failure below
+30 Hz, then used an explicitly recorded post-qualification amendment for
+descriptive timing. Retain that amendment with its historical results in
+<a class="reference internal" href="torch_performance.html#torch-performance"><span class="std std-ref">Original CPU baseline and Torch execution costs</span></a>; it does not apply automatically to new source or
+new failures.</p>
+</section>
+<section id="separate-live-filter-api-measurements">
+<h2>Separate live-filter API measurements<a class="headerlink" href="#separate-live-filter-api-measurements" title="Link to this heading"></a></h2>
+<p>Prepared live-filter calls have their own input construction, timing boundary
+and independent numerical oracle. Apply the <a class="reference internal" href="torch_batch_numerics.html#torch-batch-numerics"><span class="std std-ref">live-filter method</span></a> separately; API rates do not measure full executable
+performance or replace the baseline/proposed comparison.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="torch_batch_numerics.html">Live-filter benchmark definition and accuracy</a></li>
+</ul>
+</div>
+</section>
+<section id="workload-convergence-and-timers">
+<h2>Workload convergence and timers<a class="headerlink" href="#workload-convergence-and-timers" title="Link to this heading"></a></h2>
+<p>Increase the number of distinct compressed templates or the unique valid
+detector interval geometrically. Keep the mass/spin distribution, population
+weights, sample rate, cutoff and scientific options comparable. Do not duplicate
+template identities to inflate work. For every size, retain at least three
+fresh unprofiled processes, rotate backend order and report medians and observed
+ranges. Qualify compression without generation fallback and completed work.</p>
+<p>Predeclare a convergence criterion; for example, require less than 5% change
+in median capacity at two successive workload doublings. In every repeat at
+each of the final three sizes, setup plus time outside the internal timer must
+also remain below 10% of full wall time. The criterion is specific to the tested
+backend, bank distribution and host; CPU-reference convergence alone does not
+establish CUDA convergence. If it fails, show the scaling curve and report
+finite-workload capacity.</p>
+<p>Record both full executable wall time (imports through completed HDF output)
+and a separately observed template-loop interval. The latter begins at the
+first <code class="docutils literal notranslate"><span class="pre">FilterBank</span></code> lookup and ends after final event consolidation, before
+performance metadata and output writing. It includes decompression,
+normalization, filtering, vetoes and event handling. Synchronize CUDA at both
+boundaries. An instrumented interval is supplementary and its enclosing wall
+time must not replace the fresh unprofiled wall-time samples.</p>
+<p>For one worker, completed work is the sum over templates of their <strong>unique
+valid detector seconds</strong>. For this benchmark’s common interval it is
+<code class="docutils literal notranslate"><span class="pre">templates</span> <span class="pre">*</span> <span class="pre">valid_seconds</span></code>. Divide work by full wall seconds and allocated
+physical cores to obtain templates/core at real time. Setup/analysis timer
+fractions inside PyCBC exclude some process startup and output costs; show
+that residual separately, without naming it Python overhead.</p>
+</section>
+<section id="host-conditions-and-full-machine-throughput">
+<h2>Host conditions and full-machine throughput<a class="headerlink" href="#host-conditions-and-full-machine-throughput" title="Link to this heading"></a></h2>
+<p>Record CPU model, sockets, NUMA nodes, physical cores, SMT siblings, process
+affinity, frequency governor, available memory and numerical-library thread
+limits. Collect host and per-CPU utilization and process summaries before,
+during and after each run. An affinity mask neither reserves a core nor keeps
+its sibling idle. Observed low utilization alone does not prove exclusivity;
+record the actual reservation or exclusive window separately.</p>
+<p>Run these distinct CPU experiments using identical per-worker commands:</p>
+<ul class="simple">
+<li><p>One single-thread worker on an otherwise idle, reserved host.</p></li>
+<li><p>N simultaneous single-thread workers, where N is the number of physical
+cores available on the reserved host, with one logical CPU per physical core.
+The recorded <code class="docutils literal notranslate"><span class="pre">len</span></code> topology has 64 physical cores and 128 logical CPUs;
+use 64 workers only when all those physical cores are available and reserved.</p></li>
+</ul>
+<p>Use a common start barrier, separate output directories and repeated runs.
+Report per-worker timings, the distribution across workers, concurrent
+makespan, completed work and allocated physical cores. Aggregate capacity is
+<code class="docutils literal notranslate"><span class="pre">sum(completed</span> <span class="pre">template-seconds)</span> <span class="pre">/</span> <span class="pre">(makespan</span> <span class="pre">*</span> <span class="pre">allocated</span> <span class="pre">physical</span> <span class="pre">cores)</span></code>.
+Do not sum already-normalized per-worker capacities or count SMT threads as
+physical cores. N threads in one process is a separate scaling experiment.
+CUDA needs an explicit GPU count and sharing policy; this CPU saturation
+experiment does not establish multi-process GPU capacity.</p>
+<p>The repository’s Linux-only <code class="docutils literal notranslate"><span class="pre">tools/benchmark_cpu_campaign.py</span></code> implements
+physical-core selection, thread limits, synchronized workers, load records and this aggregate
+denominator. Supply a JSON argv array, with <code class="docutils literal notranslate"><span class="pre">{output_dir}</span></code> in the executable’s
+output filename, and run from a clean, built checkout. Workers run from their
+own output directories, so use absolute executable and input paths in that
+argv array. The command should invoke the executable directly, without a second
+affinity or profiling wrapper.</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python tools/benchmark_cpu_campaign.py --command-json command.json \</span>
+<span class="go">  --output idle-run --workers 1 --repeats 3 \</span>
+<span class="go">  --templates 384 --valid-seconds 1904</span>
+<span class="go">python tools/benchmark_cpu_campaign.py --command-json command.json \</span>
+<span class="go">  --output full-machine-run --workers physical --repeats 3 \</span>
+<span class="go">  --templates 384 --valid-seconds 1904</span>
+</pre></div>
+</div>
+<p>Host-load checks must pass for controlled results. Explicit shared-host runs
+are useful diagnostics but must retain that label. Never pause unrelated
+services merely to satisfy the benchmark. Validate HDF output intervals and
+template completion independently before accepting the runner’s configured
+work counts as scientific throughput.</p>
+<p>The runner records observed idle conditions; it does not reserve the host.
+<code class="docutils literal notranslate"><span class="pre">--reservation-note</span></code> records an existing reservation as a user assertion,
+and <code class="docutils literal notranslate"><span class="pre">--shared-host</span></code> explicitly permits a diagnostic despite failed idle
+checks. Neither option establishes exclusive access.</p>
+</section>
+<section id="profile-and-presentation-requirements">
+<h2>Profile and presentation requirements<a class="headerlink" href="#profile-and-presentation-requirements" title="Link to this heading"></a></h2>
+<p>Collect full-process and template-loop cProfile and native <code class="docutils literal notranslate"><span class="pre">perf</span></code> in separate
+processes after fixing the reference. Exclude all profiled runs from wall-time
+medians. Check their outputs against unprofiled outputs. Keep cProfile exclusive
+seconds, native sampled cycles and CUDA device-event times in separate panels
+with their own denominators; cumulative call time is not additive. Report FFT
+execution and planning separately, plus correlation, chi-square, thresholding,
+decompression and the measured remainder. FFT dominance is a hypothesis to
+check, not a shape to force onto results.</p>
+<p>Publish unchanged-CPU and restored-revision results together for each defined
+workload, with source revisions, CPU-preservation evidence, timing boundaries,
+resource counts and every correctness verdict. Keep the CPU-correction cost
+experiment and earlier proposal comparisons explicitly superseded for the
+restored stack; their source pins, failures and timings remain historical
+evidence. Keep intermediate
+optimization experiments in the evidence archive, outside the main PR comparison. Retain
+raw successful and failed receipts, source/input hashes, qualification,
+profiles, load records and the renderer manifest in an immutable archive.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="torch_reference_campaign.html" class="btn btn-neutral float-left" title="Executable benchmark definition" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="torch_batch_numerics.html" class="btn btn-neutral float-right" title="Live-filter benchmark definition and accuracy" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015, 2016, 2017, Alexander Nitz, Ian Harry, Christopher M. Biwer, Duncan A.  Brown, Josh Willis, and Tito Dal Canton.
+      <span class="lastupdated">Last updated on Sep 08, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

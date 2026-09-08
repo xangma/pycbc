@@ -1,0 +1,38 @@
+{
+  "original_cpu": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+  "tested_source": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0",
+  "shared_cpu_fft": {
+    "pycbc/fft/mkl.py": {
+      "byte_identical": true,
+      "sha256": "8362642e359f48f17a89e0877757a29124a3c2b231e4debfa77d5520c2bb9fc3"
+    },
+    "pycbc/fft/fftw.py": {
+      "byte_identical": true,
+      "sha256": "286bb4efaa3d1e30ef3bcd3b0b83961c48d9d2d09053978e2a1801ad763f10b5"
+    },
+    "pycbc/fft/npfft.py": {
+      "byte_identical": true,
+      "sha256": "87c6563bdcbf73abd75761d6f2b1ff642db8d422dad5525ac99eec8246042f98"
+    }
+  },
+  "formatting": {
+    "pycbc/scheme.py": {
+      "commit": "5fd0a09b5d53e0bb738a97bd1c3d45e84387dadb",
+      "complete_module_ast_equal": true,
+      "measured_sha256": "4a9fac0184eb2cbdf09eeeb22c55a2d95cc9b219062e9cad51ebe316b01a862a",
+      "formatted_sha256": "15a718a029f4676806e7a0dca007c35a54ec8180796675d1738c15405c94dc36"
+    },
+    "pycbc/filter/matchedfilter.py": {
+      "commit": "fd332c5a3d2fc1ac786ffb1b73a12505e568ccb9",
+      "complete_module_ast_equal": true,
+      "measured_sha256": "98954c11b163330c59e9769a4511742e4b6d483bf2314893f0cf58cadcbb7520",
+      "formatted_sha256": "276d2417d46619c5011d4071f9520a2d1a94de19dfd14b9c89ac428d6f524b97"
+    },
+    "pycbc/strain/strain.py": {
+      "commit": "e757d454227301f5c2a2a98618c686c1caf91604",
+      "complete_module_ast_equal": true,
+      "measured_sha256": "bb103bf142a8451e6f6083b3052124fd4166cfb9bbc45ccd24ea4010a8da500a",
+      "formatted_sha256": "1508d5f1765edc9a3851ec97340e8a8796714d07336f88fd4561168c9e089407"
+    }
+  }
+}

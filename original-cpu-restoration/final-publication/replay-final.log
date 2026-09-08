@@ -1,0 +1,557 @@
+$ git worktree add --detach /private/tmp/pycbc-original-cpu-restoration-final-20260908 40e94792b3edf59f39b18b65102b28a4f74433a7
+HEAD is now at 40e94792b3 Try to further reduce CI failures (#5441)
+Preparing worktree (detached HEAD 40e94792b3)
+$ git checkout -b codex/original-cpu-restoration-final-20260908-pr18 40e94792b3edf59f39b18b65102b28a4f74433a7
+Switched to a new branch 'codex/original-cpu-restoration-final-20260908-pr18'
+$ git rev-list --reverse 40e94792b3edf59f39b18b65102b28a4f74433a7..103591c4a3d5b04b6565d6e3ac964246b9b1537b
+12488a8677dd5d1cecbcbc3ff2239b9a53b4616c
+103591c4a3d5b04b6565d6e3ac964246b9b1537b
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 12488a8677dd5d1cecbcbc3ff2239b9a53b4616c 40e94792b3edf59f39b18b65102b28a4f74433a7..HEAD
+$ git cherry-pick -x 12488a8677dd5d1cecbcbc3ff2239b9a53b4616c
+[codex/original-cpu-restoration-final-20260908-pr18 cd561ba405] Format existing Python files used by the Torch stack
+ Date: Sun Sep 6 09:24:22 2026 +0100
+ 81 files changed, 14519 insertions(+), 10299 deletions(-)
+$ git rev-parse HEAD
+cd561ba40583f8b6855cc2ea5b89ca72691c6567
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 103591c4a3d5b04b6565d6e3ac964246b9b1537b 40e94792b3edf59f39b18b65102b28a4f74433a7..HEAD
+$ git cherry-pick -x 103591c4a3d5b04b6565d6e3ac964246b9b1537b
+[codex/original-cpu-restoration-final-20260908-pr18 2b547a271a] Format frame and MKL baselines before behavior changes
+ Date: Tue Sep 8 10:00:12 2026 +0100
+ 2 files changed, 241 insertions(+), 166 deletions(-)
+$ git rev-parse HEAD
+2b547a271aed7e88132811c632f0a5b3d6ee77a7
+$ git rev-parse HEAD
+2b547a271aed7e88132811c632f0a5b3d6ee77a7
+$ git checkout -b codex/original-cpu-restoration-final-20260908-pr05 2b547a271aed7e88132811c632f0a5b3d6ee77a7
+Switched to a new branch 'codex/original-cpu-restoration-final-20260908-pr05'
+$ git rev-list --reverse 103591c4a3d5b04b6565d6e3ac964246b9b1537b..bb4faee848c5749a991a4562f6e38c76fad4b92e
+32ca14761a1f5902c8577505902b1ab23c7bd25a
+d177137aa86a0148a99e3dc90e1e58fc7df177be
+cfd53a824962e4bb0f9ddc4d4eb318cf2e78f32d
+bb4faee848c5749a991a4562f6e38c76fad4b92e
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 32ca14761a1f5902c8577505902b1ab23c7bd25a 2b547a271aed7e88132811c632f0a5b3d6ee77a7..HEAD
+$ git cherry-pick -x 32ca14761a1f5902c8577505902b1ab23c7bd25a
+[codex/original-cpu-restoration-final-20260908-pr05 b383da896c] Restack Torch PR 5 with validated owner-scoped improvements
+ Date: Tue Sep 8 10:00:13 2026 +0100
+ 35 files changed, 12107 insertions(+), 198 deletions(-)
+ create mode 100644 docs/torch_runtime.rst
+ create mode 100644 pycbc/conversions_torch.py
+ create mode 100644 pycbc/types/array_torch.py
+ create mode 100644 pycbc/types/array_torch_numpy.py
+ create mode 100644 pycbc/types/backend.py
+ create mode 100644 test/test_array_slice_cache.py
+ create mode 100644 test/test_array_torch_reductions.py
+ create mode 100644 test/test_numpy_array_protocol.py
+ create mode 100644 test/test_scheme_runtime.py
+ create mode 100644 test/test_scheme_selection.py
+ create mode 100644 test/test_torch_backend_coercion.py
+ create mode 100644 test/test_torch_backend_protocol.py
+ create mode 100644 test/test_torch_context_conversion.py
+ create mode 100644 test/test_torch_ops.py
+ create mode 100644 test/test_torch_optional.py
+ create mode 100644 test/test_torch_runtime_transfers.py
+ create mode 100644 test/test_torch_squared_norm.py
+ create mode 100644 test/test_torch_timeseries_at_time.py
+$ git rev-parse HEAD
+b383da896ccc8c706f61176b3cea35065bc3874f
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit d177137aa86a0148a99e3dc90e1e58fc7df177be 2b547a271aed7e88132811c632f0a5b3d6ee77a7..HEAD
+$ git cherry-pick -x d177137aa86a0148a99e3dc90e1e58fc7df177be
+[codex/original-cpu-restoration-final-20260908-pr05 07872e59da] Skip unsupported Torch LAL conversions through unittest
+ Date: Tue Sep 8 10:13:59 2026 +0100
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+$ git rev-parse HEAD
+07872e59dade4d4de6f86152f473277010412f98
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit cfd53a824962e4bb0f9ddc4d4eb318cf2e78f32d 2b547a271aed7e88132811c632f0a5b3d6ee77a7..HEAD
+$ git cherry-pick -x cfd53a824962e4bb0f9ddc4d4eb318cf2e78f32d
+[codex/original-cpu-restoration-final-20260908-pr05 aa26527f77] Keep Torch runtime setup opt-in and preserve legacy CPU context behavior
+ Date: Tue Sep 8 17:27:03 2026 +0100
+ 3 files changed, 22 insertions(+), 30 deletions(-)
+$ git rev-parse HEAD
+aa26527f7774022dfddff4793244708a767d0f4c
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit bb4faee848c5749a991a4562f6e38c76fad4b92e 2b547a271aed7e88132811c632f0a5b3d6ee77a7..HEAD
+$ git cherry-pick -x bb4faee848c5749a991a4562f6e38c76fad4b92e
+[codex/original-cpu-restoration-final-20260908-pr05 fc16f7063a] Preserve original CPU array conversion copy behavior
+ Date: Tue Sep 8 17:31:32 2026 +0100
+ 2 files changed, 26 insertions(+), 1 deletion(-)
+ create mode 100644 test/test_cpu_array_copy.py
+$ git rev-parse HEAD
+fc16f7063ac2a7bec415ac5bc04218ecbfde2dcb
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 5fd0a09b5d53e0bb738a97bd1c3d45e84387dadb 2b547a271aed7e88132811c632f0a5b3d6ee77a7..HEAD
+$ git cherry-pick -x 5fd0a09b5d53e0bb738a97bd1c3d45e84387dadb
+[codex/original-cpu-restoration-final-20260908-pr05 16f246be7e] Format restored CPU path without semantic changes
+ Date: Tue Sep 8 17:45:52 2026 +0100
+ 1 file changed, 10 insertions(+), 5 deletions(-)
+$ git rev-parse HEAD
+16f246be7e48ad16dd9043ff6351c52ced531300
+$ git rev-parse HEAD
+16f246be7e48ad16dd9043ff6351c52ced531300
+$ git checkout -b codex/original-cpu-restoration-final-20260908-pr06 16f246be7e48ad16dd9043ff6351c52ced531300
+Switched to a new branch 'codex/original-cpu-restoration-final-20260908-pr06'
+$ git rev-list --reverse bb4faee848c5749a991a4562f6e38c76fad4b92e..8b2b311a378dbb08114ffb80b9bfba0756ead17a
+29467b79994546943c3144ba265482b4681d14bb
+ebd6fa9904be2ec4677a8138bd5c65b16e5d52ba
+8b2b311a378dbb08114ffb80b9bfba0756ead17a
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 29467b79994546943c3144ba265482b4681d14bb 16f246be7e48ad16dd9043ff6351c52ced531300..HEAD
+$ git cherry-pick -x 29467b79994546943c3144ba265482b4681d14bb
+[codex/original-cpu-restoration-final-20260908-pr06 a9a40325ea] Restack Torch PR 6 with validated owner-scoped improvements
+ Date: Tue Sep 8 10:00:13 2026 +0100
+ 16 files changed, 3949 insertions(+), 108 deletions(-)
+ create mode 100644 pycbc/fft/backend_torch.py
+ create mode 100644 pycbc/fft/torchfft.py
+ create mode 100644 pycbc/hardware.py
+ create mode 100644 test/test_hardware.py
+ create mode 100644 test/test_mkl_function_cache.py
+ create mode 100644 test/test_torch_batched_fft.py
+ create mode 100644 test/test_torch_fft_cpu_native.py
+ create mode 100644 test/test_torch_fft_cuda_workspace.py
+ create mode 100644 test/test_torch_fft_writes.py
+ create mode 100644 test/test_torch_large_ifft.py
+$ git rev-parse HEAD
+a9a40325ead4745bbf2160befdfdc9eabeb4c6a9
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit ebd6fa9904be2ec4677a8138bd5c65b16e5d52ba 16f246be7e48ad16dd9043ff6351c52ced531300..HEAD
+$ git cherry-pick -x ebd6fa9904be2ec4677a8138bd5c65b16e5d52ba
+[codex/original-cpu-restoration-final-20260908-pr06 a6915955bd] Restore legacy CPU FFT implementations and confine planner coordination to Torch
+ Date: Tue Sep 8 17:27:03 2026 +0100
+ 5 files changed, 263 insertions(+), 905 deletions(-)
+ delete mode 100644 test/test_mkl_function_cache.py
+$ git rev-parse HEAD
+a6915955bd76b866cbcf991d9040c88bc80bc220
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 8b2b311a378dbb08114ffb80b9bfba0756ead17a 16f246be7e48ad16dd9043ff6351c52ced531300..HEAD
+$ git cherry-pick -x 8b2b311a378dbb08114ffb80b9bfba0756ead17a
+[codex/original-cpu-restoration-final-20260908-pr06 45e75586f8] Verify original CPU FFT validation and Torch-owned plan cleanup
+ Date: Tue Sep 8 17:28:48 2026 +0100
+ 2 files changed, 36 insertions(+), 6 deletions(-)
+ create mode 100644 test/test_fft_cpu_preservation.py
+$ git rev-parse HEAD
+45e75586f8cf2f9ff0a6818bed706d453a48dc20
+$ git rev-parse HEAD
+45e75586f8cf2f9ff0a6818bed706d453a48dc20
+$ git checkout -b codex/original-cpu-restoration-final-20260908-pr07 45e75586f8cf2f9ff0a6818bed706d453a48dc20
+Switched to a new branch 'codex/original-cpu-restoration-final-20260908-pr07'
+$ git rev-list --reverse 8b2b311a378dbb08114ffb80b9bfba0756ead17a..8b90dc3dfe24108708db88615e4400704a755562
+3f0aa9a456af71611ad6ff12ae4dea90e07bb2f0
+8b90dc3dfe24108708db88615e4400704a755562
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 3f0aa9a456af71611ad6ff12ae4dea90e07bb2f0 45e75586f8cf2f9ff0a6818bed706d453a48dc20..HEAD
+$ git cherry-pick -x 3f0aa9a456af71611ad6ff12ae4dea90e07bb2f0
+[codex/original-cpu-restoration-final-20260908-pr07 6b6e3738c6] Restack Torch PR 7 with validated owner-scoped improvements
+ Date: Tue Sep 8 10:00:13 2026 +0100
+ 19 files changed, 5060 insertions(+), 148 deletions(-)
+ create mode 100644 pycbc/psd/analytical_space_torch.py
+ create mode 100644 pycbc/psd/analytical_torch.py
+ create mode 100644 pycbc/psd/read_torch.py
+ create mode 100644 test/test_psd_lazy_imports.py
+ create mode 100644 test/test_torch_p1200087_psd.py
+ create mode 100644 test/test_torch_psd_pipeline.py
+ create mode 100644 test/test_torch_psd_protocol.py
+ create mode 100644 test/test_torch_versioned_data_psd.py
+$ git rev-parse HEAD
+6b6e3738c66d758700105cd2fdd3c18925a53d5e
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 8b90dc3dfe24108708db88615e4400704a755562 45e75586f8cf2f9ff0a6818bed706d453a48dc20..HEAD
+$ git cherry-pick -x 8b90dc3dfe24108708db88615e4400704a755562
+[codex/original-cpu-restoration-final-20260908-pr07 2db1aa1754] Restore original CPU PSD variation warning behavior
+ Date: Tue Sep 8 17:31:47 2026 +0100
+ 2 files changed, 22 insertions(+), 2 deletions(-)
+ create mode 100644 test/test_cpu_psd_variation.py
+$ git rev-parse HEAD
+2db1aa17546cc0988865757c771fe5d946ee3d83
+$ git rev-parse HEAD
+2db1aa17546cc0988865757c771fe5d946ee3d83
+$ git checkout -b codex/original-cpu-restoration-final-20260908-pr08 2db1aa17546cc0988865757c771fe5d946ee3d83
+Switched to a new branch 'codex/original-cpu-restoration-final-20260908-pr08'
+$ git rev-list --reverse 8b90dc3dfe24108708db88615e4400704a755562..d7d8ef190519df7da8fdae0e9e6a7c9bcab976f2
+53f52d3e6ba3acc1875dacb10ec293105759b424
+d7d8ef190519df7da8fdae0e9e6a7c9bcab976f2
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 53f52d3e6ba3acc1875dacb10ec293105759b424 2db1aa17546cc0988865757c771fe5d946ee3d83..HEAD
+$ git cherry-pick -x 53f52d3e6ba3acc1875dacb10ec293105759b424
+[codex/original-cpu-restoration-final-20260908-pr08 d4ab210599] Restack Torch PR 8 with validated owner-scoped improvements
+ Date: Tue Sep 8 10:00:13 2026 +0100
+ 37 files changed, 11332 insertions(+), 302 deletions(-)
+ create mode 100644 docs/torch_filtering.rst
+ create mode 100644 pycbc/events/threshold_torch.py
+ create mode 100644 pycbc/filter/matchedfilter_torch.py
+ create mode 100644 pycbc/filter/qtransform_torch.py
+ create mode 100644 pycbc/vetoes/chisq_torch.py
+ create mode 100644 pycbc/waveform/utils_torch.py
+ create mode 100644 test/test_chisq_torch.py
+ create mode 100644 test/test_matched_filter_symm.py
+ create mode 100644 test/test_qtransform.py
+ create mode 100644 test/test_torch_chisq_cpu_optimization.py
+ create mode 100644 test/test_torch_chisq_cuda_normalization.py
+ create mode 100644 test/test_torch_chisq_precision.py
+ create mode 100644 test/test_torch_chisq_sparse_dispatch.py
+ create mode 100644 test/test_torch_cpu_native_batch.py
+ create mode 100644 test/test_torch_cuda_native_batch.py
+ create mode 100644 test/test_torch_filter_pipeline.py
+ create mode 100644 test/test_torch_matchedfilter_cpu_optimization.py
+ create mode 100644 test/test_torch_search_kernels.py
+ create mode 100644 test/test_torch_sigmasq_series_precision.py
+$ git rev-parse HEAD
+d4ab210599623b3a1503c50dc8536b6ca6e7d9c3
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit d7d8ef190519df7da8fdae0e9e6a7c9bcab976f2 2db1aa17546cc0988865757c771fe5d946ee3d83..HEAD
+$ git cherry-pick -x d7d8ef190519df7da8fdae0e9e6a7c9bcab976f2
+[codex/original-cpu-restoration-final-20260908-pr08 59d288beed] Restore original CPU sky-max chi-square and match caching
+ Date: Tue Sep 8 17:31:47 2026 +0100
+ 4 files changed, 237 insertions(+), 1 deletion(-)
+ create mode 100644 test/test_cpu_match_cache.py
+ create mode 100644 test/test_cpu_skymax_chisq.py
+$ git rev-parse HEAD
+59d288beeda2977ca14eec350cf170cc4e7dc01a
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit fd332c5a3d2fc1ac786ffb1b73a12505e568ccb9 2db1aa17546cc0988865757c771fe5d946ee3d83..HEAD
+$ git cherry-pick -x fd332c5a3d2fc1ac786ffb1b73a12505e568ccb9
+Auto-merging pycbc/filter/matchedfilter.py
+[codex/original-cpu-restoration-final-20260908-pr08 941a119e00] Format restored CPU path without semantic changes
+ Date: Tue Sep 8 17:45:53 2026 +0100
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+$ git rev-parse HEAD
+941a119e00f7da3e72daa98a8ad60e5264a4ae1c
+$ git rev-parse HEAD
+941a119e00f7da3e72daa98a8ad60e5264a4ae1c
+$ git checkout -b codex/original-cpu-restoration-final-20260908-pr09 941a119e00f7da3e72daa98a8ad60e5264a4ae1c
+Switched to a new branch 'codex/original-cpu-restoration-final-20260908-pr09'
+$ git rev-list --reverse d7d8ef190519df7da8fdae0e9e6a7c9bcab976f2..de10162d37fda2e44a435bdba4c206bf0a89768a
+939dc2c3787244ebe9da8c32262eac6669525d23
+de10162d37fda2e44a435bdba4c206bf0a89768a
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 939dc2c3787244ebe9da8c32262eac6669525d23 941a119e00f7da3e72daa98a8ad60e5264a4ae1c..HEAD
+$ git cherry-pick -x 939dc2c3787244ebe9da8c32262eac6669525d23
+Auto-merging pycbc/filter/matchedfilter.py
+[codex/original-cpu-restoration-final-20260908-pr09 90d8aec6ad] Restack Torch PR 9 with validated owner-scoped improvements
+ Date: Tue Sep 8 10:00:13 2026 +0100
+ 30 files changed, 6874 insertions(+), 302 deletions(-)
+ create mode 100644 docs/torch_search.rst
+ create mode 100644 pycbc/events/coinc_torch.py
+ create mode 100644 pycbc/filter/_torch_cuda_graph.py
+ create mode 100644 test/test_live_batch_torch_fft_integration.py
+ create mode 100644 test/test_live_batch_torch_peaks.py
+ create mode 100644 test/test_live_batch_veto_reuse.py
+ create mode 100644 test/test_torch_batch_overlap_scaling.py
+ create mode 100644 test/test_torch_cuda_native_peaks.py
+ create mode 100644 test/test_torch_cuda_peak_host_read.py
+ create mode 100644 test/test_torch_event_kernels.py
+ create mode 100644 test/test_torch_event_pipeline.py
+ create mode 100644 test/test_torch_offline_cuda_graph.py
+ create mode 100644 test/test_torch_peak_contracts.py
+ create mode 100644 test/test_torch_strain_psd_precision.py
+$ git rev-parse HEAD
+90d8aec6ad8706ec4f984ebd8346b920e099ae48
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit de10162d37fda2e44a435bdba4c206bf0a89768a 941a119e00f7da3e72daa98a8ad60e5264a4ae1c..HEAD
+$ git cherry-pick -x de10162d37fda2e44a435bdba4c206bf0a89768a
+[codex/original-cpu-restoration-final-20260908-pr09 e77fb59981] Preserve shared CPU cached strain FFT resources
+ Date: Tue Sep 8 17:31:47 2026 +0100
+ 2 files changed, 44 insertions(+), 1 deletion(-)
+ create mode 100644 test/test_cpu_strain_cache.py
+$ git rev-parse HEAD
+e77fb599810c01c60fd7098b6ac789b4f169dda0
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit e757d454227301f5c2a2a98618c686c1caf91604 941a119e00f7da3e72daa98a8ad60e5264a4ae1c..HEAD
+$ git cherry-pick -x e757d454227301f5c2a2a98618c686c1caf91604
+[codex/original-cpu-restoration-final-20260908-pr09 307d349013] Format restored CPU path without semantic changes
+ Date: Tue Sep 8 17:45:53 2026 +0100
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+$ git rev-parse HEAD
+307d349013a058ad6b2aa61a111cb9c75882427c
+$ git rev-parse HEAD
+307d349013a058ad6b2aa61a111cb9c75882427c
+$ git checkout -b codex/original-cpu-restoration-final-20260908-pr10 307d349013a058ad6b2aa61a111cb9c75882427c
+Switched to a new branch 'codex/original-cpu-restoration-final-20260908-pr10'
+$ git rev-list --reverse de10162d37fda2e44a435bdba4c206bf0a89768a..93a64072e7109da0c4bd7888669d6e91c0e9cc7c
+93a64072e7109da0c4bd7888669d6e91c0e9cc7c
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 93a64072e7109da0c4bd7888669d6e91c0e9cc7c 307d349013a058ad6b2aa61a111cb9c75882427c..HEAD
+$ git cherry-pick -x 93a64072e7109da0c4bd7888669d6e91c0e9cc7c
+[codex/original-cpu-restoration-final-20260908-pr10 1bd71a6073] Restack Torch PR 10 with validated owner-scoped improvements
+ Date: Tue Sep 8 10:00:13 2026 +0100
+ 20 files changed, 2920 insertions(+), 109 deletions(-)
+ create mode 100644 pycbc/waveform/_spherical_harmonics_torch.py
+ create mode 100644 pycbc/waveform/decompress_torch.py
+ create mode 100644 pycbc/waveform/ringdown_torch.py
+ create mode 100644 pycbc/waveform/torch_switches.py
+ create mode 100644 pycbc/waveform/torch_waveform_registry.py
+ create mode 100644 test/test_decompress.py
+ create mode 100644 test/test_torch_decompress_cpu.py
+ create mode 100644 test/waveform/test_spherical_harmonics_torch.py
+ create mode 100644 test/waveform/test_torch_ringdown.py
+ create mode 100644 test/waveform/test_torch_waveform_modes.py
+ create mode 100644 test/waveform/test_torch_waveform_registry.py
+ create mode 100644 test/waveform/test_torch_waveform_utils.py
+$ git rev-parse HEAD
+1bd71a607336a2455892134762f45192f4c92a27
+$ git rev-parse HEAD
+1bd71a607336a2455892134762f45192f4c92a27
+$ git checkout -b codex/original-cpu-restoration-final-20260908-pr11 1bd71a607336a2455892134762f45192f4c92a27
+Switched to a new branch 'codex/original-cpu-restoration-final-20260908-pr11'
+$ git rev-list --reverse 93a64072e7109da0c4bd7888669d6e91c0e9cc7c..f3559182763e285da73a3f4eca546678d32f300c
+f3559182763e285da73a3f4eca546678d32f300c
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit f3559182763e285da73a3f4eca546678d32f300c 1bd71a607336a2455892134762f45192f4c92a27..HEAD
+$ git cherry-pick -x f3559182763e285da73a3f4eca546678d32f300c
+[codex/original-cpu-restoration-final-20260908-pr11 5118e069ed] Restack Torch PR 11 with validated owner-scoped improvements
+ Date: Tue Sep 8 10:00:14 2026 +0100
+ 26 files changed, 9028 insertions(+), 61 deletions(-)
+ create mode 100644 pycbc/waveform/nltides_torch.py
+ create mode 100644 pycbc/waveform/spa_tmplt_torch.py
+ create mode 100644 pycbc/waveform/taylorf2_torch.py
+ create mode 100644 pycbc/waveform/taylorf2_triton.py
+ create mode 100644 pycbc/waveform/taylorf2ecc_torch.py
+ create mode 100644 pycbc/waveform/taylorf2nltides_torch.py
+ create mode 100644 pycbc/waveform/taylorf2redspin_torch.py
+ create mode 100644 test/test_nltides_torch.py
+ create mode 100644 test/test_spatmplt_torch.py
+ create mode 100644 test/test_waveform_generate.py
+ create mode 100644 test/waveform/test_spa_tmplt_sequence_torch.py
+ create mode 100644 test/waveform/test_taylorf2_batch.py
+ create mode 100644 test/waveform/test_taylorf2_phase_evaluation.py
+ create mode 100644 test/waveform/test_taylorf2_torch.py
+ create mode 100644 test/waveform/test_taylorf2ecc_torch.py
+ create mode 100644 test/waveform/test_taylorf2nltides_torch.py
+ create mode 100644 test/waveform/test_taylorf2redspin_torch.py
+ create mode 100644 tools/verify_lal_torch_parity.py
+$ git rev-parse HEAD
+5118e069edeb6a0e6e84f4b7b5ea33a2e82e67c1
+$ git rev-parse HEAD
+5118e069edeb6a0e6e84f4b7b5ea33a2e82e67c1
+$ git checkout -b codex/original-cpu-restoration-final-20260908-pr12 5118e069edeb6a0e6e84f4b7b5ea33a2e82e67c1
+Switched to a new branch 'codex/original-cpu-restoration-final-20260908-pr12'
+$ git rev-list --reverse f3559182763e285da73a3f4eca546678d32f300c..955e2a91f10880af28cfeb1e3fec013dca174553
+955e2a91f10880af28cfeb1e3fec013dca174553
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 955e2a91f10880af28cfeb1e3fec013dca174553 5118e069edeb6a0e6e84f4b7b5ea33a2e82e67c1..HEAD
+$ git cherry-pick -x 955e2a91f10880af28cfeb1e3fec013dca174553
+[codex/original-cpu-restoration-final-20260908-pr12 c55f151be5] Restack Torch PR 12 with validated owner-scoped improvements
+ Date: Tue Sep 8 10:00:14 2026 +0100
+ 21 files changed, 2308 insertions(+), 208 deletions(-)
+ create mode 100644 test/test_torch_domain_compat.py
+ create mode 100644 test/test_torch_domain_protocol.py
+ create mode 100644 test/test_torch_prior_compat.py
+$ git rev-parse HEAD
+c55f151be551bad01974f77beed7c384845ca1cb
+$ git rev-parse HEAD
+c55f151be551bad01974f77beed7c384845ca1cb
+$ git checkout -b codex/original-cpu-restoration-final-20260908-pr13 c55f151be551bad01974f77beed7c384845ca1cb
+Switched to a new branch 'codex/original-cpu-restoration-final-20260908-pr13'
+$ git rev-list --reverse 955e2a91f10880af28cfeb1e3fec013dca174553..ace4c7975406a123f71c340d2f0ffc01b5ab6232
+ace4c7975406a123f71c340d2f0ffc01b5ab6232
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit ace4c7975406a123f71c340d2f0ffc01b5ab6232 c55f151be551bad01974f77beed7c384845ca1cb..HEAD
+$ git cherry-pick -x ace4c7975406a123f71c340d2f0ffc01b5ab6232
+[codex/original-cpu-restoration-final-20260908-pr13 86f27da509] Restack Torch PR 13 with validated owner-scoped improvements
+ Date: Tue Sep 8 10:00:14 2026 +0100
+ 3 files changed, 1452 insertions(+), 17 deletions(-)
+ create mode 100644 pycbc/detector/ground_torch.py
+ create mode 100644 test/test_detector_torch_geometry.py
+$ git rev-parse HEAD
+86f27da509f91c90a8e6c78db025b43e7a32444e
+$ git rev-parse HEAD
+86f27da509f91c90a8e6c78db025b43e7a32444e
+$ git checkout -b codex/original-cpu-restoration-final-20260908-pr14 86f27da509f91c90a8e6c78db025b43e7a32444e
+Switched to a new branch 'codex/original-cpu-restoration-final-20260908-pr14'
+$ git rev-list --reverse ace4c7975406a123f71c340d2f0ffc01b5ab6232..78f197c514955ca5a568ddfe76efac9425f4f76b
+78f197c514955ca5a568ddfe76efac9425f4f76b
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 78f197c514955ca5a568ddfe76efac9425f4f76b 86f27da509f91c90a8e6c78db025b43e7a32444e..HEAD
+$ git cherry-pick -x 78f197c514955ca5a568ddfe76efac9425f4f76b
+[codex/original-cpu-restoration-final-20260908-pr14 0a2f38a5c6] Restack Torch PR 14 with validated owner-scoped improvements
+ Date: Tue Sep 8 10:00:14 2026 +0100
+ 20 files changed, 5275 insertions(+), 389 deletions(-)
+ create mode 100644 pycbc/inference/models/relbin_torch.py
+ create mode 100644 pycbc/inference/models/tools_torch.py
+ create mode 100644 test/test_torch_gaussian_noise.py
+ create mode 100644 test/test_torch_inference_cli.py
+ create mode 100644 test/test_torch_inference_core.py
+ create mode 100644 test/test_torch_inference_tools.py
+ create mode 100644 test/test_torch_large_batches.py
+ create mode 100644 test/test_torch_marginalized_gaussian.py
+ create mode 100644 test/test_torch_relative_binning.py
+ create mode 100644 test/test_torch_waveform_generator.py
+$ git rev-parse HEAD
+0a2f38a5c6fa1e07924d111c9dba49b3e429efa1
+$ git rev-parse HEAD
+0a2f38a5c6fa1e07924d111c9dba49b3e429efa1
+$ git checkout -b codex/original-cpu-restoration-final-20260908-pr15 0a2f38a5c6fa1e07924d111c9dba49b3e429efa1
+Switched to a new branch 'codex/original-cpu-restoration-final-20260908-pr15'
+$ git rev-list --reverse 78f197c514955ca5a568ddfe76efac9425f4f76b..aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0
+88ba8b454334b389caefb630d4ca7fa2aa0e3d37
+8aab015f3c81777bcf7a19245604846e9939af80
+74517b08f14e050569a6fbecadd48d77bf2779bf
+4025675809fa56a7ecef81bbbc9817d1f0906527
+4e06dd0b91511e52ebf4a42be3f1f464672f89d3
+d6577365e82b7f00fc5a4d9088cc9b8c5e16a715
+aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 88ba8b454334b389caefb630d4ca7fa2aa0e3d37 0a2f38a5c6fa1e07924d111c9dba49b3e429efa1..HEAD
+$ git cherry-pick -x 88ba8b454334b389caefb630d4ca7fa2aa0e3d37
+[codex/original-cpu-restoration-final-20260908-pr15 323d10c611] Restack Torch PR 15 with validated owner-scoped improvements
+ Date: Tue Sep 8 10:00:14 2026 +0100
+ 43 files changed, 17679 insertions(+), 9 deletions(-)
+ create mode 100644 .github/workflows/torch-gpu.yml
+ create mode 100644 docs/images/torch-batch-r4-20260907/batch-accuracy.png
+ create mode 100644 docs/images/torch-batch-r4-20260907/batch-accuracy.svg
+ create mode 100644 docs/images/torch-batch-r4-20260907/batch-throughput.png
+ create mode 100644 docs/images/torch-batch-r4-20260907/batch-throughput.svg
+ create mode 100644 docs/images/torch-batch-r4-20260907/manifest.json
+ create mode 100644 docs/images/torch-executable/executable-wall.png
+ create mode 100644 docs/images/torch-executable/executable-wall.svg
+ create mode 100644 docs/images/torch-executable/manifest.json
+ create mode 100644 docs/torch.rst
+ create mode 100644 docs/torch_batch_numerics.rst
+ create mode 100644 docs/torch_benchmark_protocol.rst
+ create mode 100644 docs/torch_optimizations.rst
+ create mode 100644 docs/torch_parity.rst
+ create mode 100644 docs/torch_performance.rst
+ create mode 100644 docs/torch_profile_attribution.rst
+ create mode 100644 docs/torch_reference_campaign.rst
+ create mode 100644 docs/torch_testing.rst
+ create mode 100644 docs/torch_workflows.rst
+ create mode 100644 test/test_benchmark_cpu_campaign.py
+ create mode 100644 test/test_plot_torch_batch_sweep.py
+ create mode 100644 test/test_plot_torch_executable.py
+ create mode 100644 test/test_torch_parity_artifacts.py
+ create mode 100644 test/test_torch_performance_artifacts.py
+ create mode 100644 test/test_torch_profile_acquisition.py
+ create mode 100644 test/test_torch_trace_summary.py
+ create mode 100644 tools/bench_production_live_batch.py
+ create mode 100644 tools/benchmark_artifact.py
+ create mode 100644 tools/benchmark_cpu_campaign.py
+ create mode 100644 tools/generate_torch_performance_plots.py
+ create mode 100644 tools/plot_torch_batch_sweep.py
+ create mode 100644 tools/plot_torch_executable.py
+ create mode 100644 tools/profile_torch_filtering.py
+ create mode 100644 tools/summarize_torch_profiles.py
+ create mode 100644 tools/summarize_torch_trace.py
+ create mode 100755 tools/torch_parity/compare.py
+ create mode 100755 tools/torch_parity/generate.py
+ create mode 100644 tools/torch_parity/manifest.py
+ create mode 100644 tools/torch_parity/policy.json
+ create mode 100755 tools/torch_parity/run_matrix.sh
+$ git rev-parse HEAD
+323d10c611ddbca81f52c43f7956517954613d30
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 8aab015f3c81777bcf7a19245604846e9939af80 0a2f38a5c6fa1e07924d111c9dba49b3e429efa1..HEAD
+$ git cherry-pick -x 8aab015f3c81777bcf7a19245604846e9939af80
+[codex/original-cpu-restoration-final-20260908-pr15 e0878529bd] Refresh matched executable results and document separate optimization followups
+ Date: Tue Sep 8 09:51:28 2026 +0100
+ 14 files changed, 3512 insertions(+), 64 deletions(-)
+ create mode 100644 docs/data/torch-20260908/descriptor-reuse-timing-v1-summary.json
+ create mode 100644 docs/data/torch-20260908/graph-v2-timing-summary.json
+ create mode 100644 docs/data/torch-20260908/loader-v1-summary.json
+ create mode 100644 docs/images/torch-executable-20260908/executable-wall.png
+ create mode 100644 docs/images/torch-executable-20260908/executable-wall.svg
+ create mode 100644 docs/images/torch-executable-20260908/manifest.json
+ create mode 100644 docs/images/torch-executable-20260908/prototype-followups.png
+ create mode 100644 docs/images/torch-executable-20260908/prototype-followups.svg
+ create mode 100644 docs/torch_followups.rst
+ create mode 100644 tools/plot_torch_followups.py
+$ git rev-parse HEAD
+e0878529bda61f395e09ab756adce5135b5bc629
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 74517b08f14e050569a6fbecadd48d77bf2779bf 0a2f38a5c6fa1e07924d111c9dba49b3e429efa1..HEAD
+$ git cherry-pick -x 74517b08f14e050569a6fbecadd48d77bf2779bf
+[codex/original-cpu-restoration-final-20260908-pr15 22fc2eb0e5] Pin September optimization evidence to immutable archive
+ Date: Tue Sep 8 10:00:14 2026 +0100
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+$ git rev-parse HEAD
+22fc2eb0e5abf67902f6e9662b2119ef9bba858e
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 4025675809fa56a7ecef81bbbc9817d1f0906527 0a2f38a5c6fa1e07924d111c9dba49b3e429efa1..HEAD
+$ git cherry-pick -x 4025675809fa56a7ecef81bbbc9817d1f0906527
+[codex/original-cpu-restoration-final-20260908-pr15 13e9f91d88] Document integrated cache and offline graph ownership controls
+ Date: Tue Sep 8 10:02:18 2026 +0100
+ 2 files changed, 52 insertions(+), 4 deletions(-)
+$ git rev-parse HEAD
+13e9f91d8884926c21eb3780176f77eebf2a5a8d
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 4e06dd0b91511e52ebf4a42be3f1f464672f89d3 0a2f38a5c6fa1e07924d111c9dba49b3e429efa1..HEAD
+$ git cherry-pick -x 4e06dd0b91511e52ebf4a42be3f1f464672f89d3
+[codex/original-cpu-restoration-final-20260908-pr15 aedf66ce1a] Focus Torch documentation on baseline versus proposed-code review
+ Date: Tue Sep 8 11:09:28 2026 +0100
+ 28 files changed, 438 insertions(+), 8570 deletions(-)
+ delete mode 100644 docs/images/torch-batch-r4-20260907/batch-accuracy.png
+ delete mode 100644 docs/images/torch-batch-r4-20260907/batch-accuracy.svg
+ delete mode 100644 docs/images/torch-batch-r4-20260907/batch-throughput.png
+ delete mode 100644 docs/images/torch-batch-r4-20260907/batch-throughput.svg
+ delete mode 100644 docs/images/torch-batch-r4-20260907/manifest.json
+ delete mode 100644 docs/images/torch-executable-20260908/executable-wall.png
+ delete mode 100644 docs/images/torch-executable-20260908/executable-wall.svg
+ delete mode 100644 docs/images/torch-executable-20260908/manifest.json
+ delete mode 100644 docs/images/torch-executable-20260908/prototype-followups.png
+ delete mode 100644 docs/images/torch-executable-20260908/prototype-followups.svg
+ delete mode 100644 docs/images/torch-executable/executable-wall.png
+ delete mode 100644 docs/images/torch-executable/executable-wall.svg
+ delete mode 100644 docs/images/torch-executable/manifest.json
+ delete mode 100644 docs/torch_followups.rst
+ delete mode 100644 docs/torch_profile_attribution.rst
+$ git rev-parse HEAD
+aedf66ce1a1ea4cfa3b2f05a52529b44846ffeb9
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit d6577365e82b7f00fc5a4d9088cc9b8c5e16a715 0a2f38a5c6fa1e07924d111c9dba49b3e429efa1..HEAD
+$ git cherry-pick -x d6577365e82b7f00fc5a4d9088cc9b8c5e16a715
+[codex/original-cpu-restoration-final-20260908-pr15 11ebb762da] Replace benchmark status with unchanged-baseline comparison
+ Date: Tue Sep 8 12:43:12 2026 +0100
+ 3 files changed, 118 insertions(+), 97 deletions(-)
+$ git rev-parse HEAD
+11ebb762daed40758432af7044708b44ade5b7d2
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0 0a2f38a5c6fa1e07924d111c9dba49b3e429efa1..HEAD
+$ git cherry-pick -x aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0
+[codex/original-cpu-restoration-final-20260908-pr15 cf82e8d7b8] Document verified corrected-baseline campaign and source mapping
+ Date: Tue Sep 8 16:35:23 2026 +0100
+ 5 files changed, 258 insertions(+), 131 deletions(-)
+$ git rev-parse HEAD
+cf82e8d7b841b48e204737a8a3e66c8a4c53f737
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 03ada8dd924d50504179e88fd52cc3b817653dcb 0a2f38a5c6fa1e07924d111c9dba49b3e429efa1..HEAD
+$ git cherry-pick -x 03ada8dd924d50504179e88fd52cc3b817653dcb
+[codex/original-cpu-restoration-final-20260908-pr15 8f71727e28] Document original CPU preservation and strict Torch comparison failures
+ Date: Tue Sep 8 17:58:27 2026 +0100
+ 6 files changed, 342 insertions(+), 141 deletions(-)
+$ git rev-parse HEAD
+8f71727e28ede9de3e3bbed82bb616eab710cbe7
+$ git rev-parse HEAD
+8f71727e28ede9de3e3bbed82bb616eab710cbe7
+$ git checkout -b codex/original-cpu-restoration-final-20260908-pr19 8f71727e28ede9de3e3bbed82bb616eab710cbe7
+Switched to a new branch 'codex/original-cpu-restoration-final-20260908-pr19'
+$ git rev-list --reverse aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0..8b3de1b04cdb611e4494679cdf3ea80abf0f2ad3
+8b3de1b04cdb611e4494679cdf3ea80abf0f2ad3
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 8b3de1b04cdb611e4494679cdf3ea80abf0f2ad3 8f71727e28ede9de3e3bbed82bb616eab710cbe7..HEAD
+$ git cherry-pick -x 8b3de1b04cdb611e4494679cdf3ea80abf0f2ad3
+[codex/original-cpu-restoration-final-20260908-pr19 7716afbef0] Format existing modules used by optional FFT changes
+ Date: Sun Sep 6 22:19:33 2026 +0100
+ 5 files changed, 123 insertions(+), 82 deletions(-)
+$ git rev-parse HEAD
+7716afbef0e0a993469fa256ef8bffd1fb4dcfd3
+$ git rev-parse HEAD
+7716afbef0e0a993469fa256ef8bffd1fb4dcfd3
+$ git checkout -b codex/original-cpu-restoration-final-20260908-pr16 7716afbef0e0a993469fa256ef8bffd1fb4dcfd3
+Switched to a new branch 'codex/original-cpu-restoration-final-20260908-pr16'
+$ git rev-list --reverse 8b3de1b04cdb611e4494679cdf3ea80abf0f2ad3..4b4dca0e4d7278be78422d2d3540109b02cdf26c
+4b4dca0e4d7278be78422d2d3540109b02cdf26c
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 4b4dca0e4d7278be78422d2d3540109b02cdf26c 7716afbef0e0a993469fa256ef8bffd1fb4dcfd3..HEAD
+$ git cherry-pick -x 4b4dca0e4d7278be78422d2d3540109b02cdf26c
+[codex/original-cpu-restoration-final-20260908-pr16 079bddfea7] Add optional FFTW wisdom caching and general FFT batch fixes
+ Date: Sun Sep 6 22:19:34 2026 +0100
+ 12 files changed, 1508 insertions(+), 71 deletions(-)
+ create mode 100644 pycbc/fft/wisdom_cache.py
+ create mode 100644 test/test_fft_batched_backends.py
+ create mode 100644 test/test_fft_cli_wisdom.py
+ create mode 100644 test/test_fftw_wisdom_cache.py
+$ git rev-parse HEAD
+079bddfea762ec6549f17d48ddbead16f67d6546
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit dcef154a13d2d51d27d7d0b6454ff4e751e37489 7716afbef0e0a993469fa256ef8bffd1fb4dcfd3..HEAD
+$ git cherry-pick -x dcef154a13d2d51d27d7d0b6454ff4e751e37489
+[codex/original-cpu-restoration-final-20260908-pr16 8edcd6fece] Serialize automatic wisdom export retries with Torch planning
+ Date: Tue Sep 8 17:49:11 2026 +0100
+ 2 files changed, 64 insertions(+), 4 deletions(-)
+$ git rev-parse HEAD
+8edcd6fece317f9e1c9a2f24656050c18e97ff34
+$ git rev-parse HEAD
+8edcd6fece317f9e1c9a2f24656050c18e97ff34
+$ git checkout -b codex/original-cpu-restoration-final-20260908-pr17 8f71727e28ede9de3e3bbed82bb616eab710cbe7
+Switched to a new branch 'codex/original-cpu-restoration-final-20260908-pr17'
+$ git rev-list --reverse aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0..80aae8b29cac86eea1c7ff9278601481d70061b1
+80aae8b29cac86eea1c7ff9278601481d70061b1
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 80aae8b29cac86eea1c7ff9278601481d70061b1 8f71727e28ede9de3e3bbed82bb616eab710cbe7..HEAD
+$ git cherry-pick -x 80aae8b29cac86eea1c7ff9278601481d70061b1
+Auto-merging docs/torch_optimizations.rst
+CONFLICT (content): Merge conflict in docs/torch_optimizations.rst
+Auto-merging pycbc/filter/matchedfilter.py
+error: could not apply 80aae8b29c... Add optional CPU peak, sparse chi-square and FFT optimizations
+hint: After resolving the conflicts, mark them with
+hint: "git add/rm <pathspec>", then run
+hint: "git cherry-pick --continue".
+hint: You can instead skip this commit with "git cherry-pick --skip".
+hint: To abort and get back to the state before "git cherry-pick",
+hint: run "git cherry-pick --abort".
+hint: Disable this message with "git config set advice.mergeConflict false"
+$ git checkout codex/original-cpu-restoration-final-20260908-pr17
+Already on 'codex/original-cpu-restoration-final-20260908-pr17'
+$ git rev-list --reverse aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0..80aae8b29cac86eea1c7ff9278601481d70061b1
+80aae8b29cac86eea1c7ff9278601481d70061b1
+$ git log --format=%H --fixed-strings --grep=cherry picked from commit 80aae8b29cac86eea1c7ff9278601481d70061b1 8f71727e28ede9de3e3bbed82bb616eab710cbe7..HEAD
+95ed021935cdae7803f74715e4591333f11b5ce4
+$ git rev-parse HEAD
+95ed021935cdae7803f74715e4591333f11b5ce4

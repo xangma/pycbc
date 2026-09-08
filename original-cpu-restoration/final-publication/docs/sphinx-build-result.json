@@ -1,0 +1,57 @@
+{
+  "command": [
+    "/private/tmp/pycbc-torch-publication-20260908-venv/bin/python",
+    "-m",
+    "sphinx",
+    "-b",
+    "html",
+    "-E",
+    "-a",
+    "-W",
+    "--keep-going",
+    "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/docs-audit/render-final/docs",
+    "/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/original-cpu-restoration/docs-audit/render-final/html"
+  ],
+  "returncode": 0,
+  "pages": [
+    "torch.rst",
+    "torch_batch_numerics.rst",
+    "torch_benchmark_protocol.rst",
+    "torch_filtering.rst",
+    "torch_optimizations.rst",
+    "torch_parity.rst",
+    "torch_performance.rst",
+    "torch_reference_campaign.rst",
+    "torch_runtime.rst",
+    "torch_search.rst",
+    "torch_testing.rst",
+    "torch_workflows.rst",
+    "waveform.rst",
+    "waveform_plugin.rst",
+    "install.rst",
+    "install_cuda.rst",
+    "install_lalsuite.rst",
+    "install_virtualenv.rst",
+    "docker.rst"
+  ],
+  "runtime": {
+    "pycbc": "/private/tmp/pycbc-original-cpu-docs-runtime-20260908/pycbc/__init__.py",
+    "version": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0",
+    "sphinx": "8.2.3"
+  },
+  "documentation_base": "1d22031fd31c6e5bcb48a68fe11772e960bd406b",
+  "measured_runtime": "aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0",
+  "source_mapping": "Documentation base is byte-identical under docs/ to measured aa6 source before these six documentation edits. Runtime imports measured aa6 source directly. Later published-source formatting mapping is a separate receipt.",
+  "source_head": "cbbcc200f8768a514dc35d139fa45d94a3af6833",
+  "finished": 1788886981.123183,
+  "environment": {
+    "PYTHONPATH": "/private/tmp/pycbc-original-cpu-docs-runtime-20260908",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "SKIP_PYCBC_DOCS_INCLUDE": "1",
+    "MPLBACKEND": "Agg",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+  },
+  "scope": "All actual Torch pages plus waveform/plugin/installation dependencies, repository extensions and theme, real plot/command directives, targeted API context; excludes unrelated manual and _include generators, no external intersphinx inventory or remote logo."
+}

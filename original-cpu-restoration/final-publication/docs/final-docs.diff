@@ -1,0 +1,811 @@
+diff --git a/docs/torch_batch_numerics.rst b/docs/torch_batch_numerics.rst
+index f17fd14538..35f4abb089 100644
+--- a/docs/torch_batch_numerics.rst
++++ b/docs/torch_batch_numerics.rst
+@@ -6,9 +6,14 @@ Live-filter benchmark definition and accuracy
+ This method compares the public ``LiveBatchMatchedFilter.process_data`` API
+ using synthetic frequency-domain inputs. It is a separate experiment from the
+ complete-search comparison in :ref:`torch-performance`. Apply the same frozen
+-fixture to the named CPU reference and all backend arms; identify the source
+-revisions in every result. The current executable campaign uses a corrected
+-CPU reference; its results do not qualify this separate API experiment.
++fixture to unchanged CPU ``40e94792b3edf59f39b18b65102b28a4f74433a7`` and all
++restored backend arms; identify the source revisions in every result. Preserve
++the original CPU behavior. The executable campaign does not qualify this
++separate API experiment. This API benchmark was not rerun for restored main
++``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0`` and remains unqualified for that
++source. The `restoration evidence <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_ concerns the executable
++campaign; the archived development run below provides no restored-source
++API qualification.
+ 
+ Fixed workload and timing
+ -------------------------
+@@ -45,8 +50,10 @@ median of three fresh-worker median rates; ranges span those three medians.
+ 
+ The frozen fixture uses qualification seeds 7102 and 7103 and timing seed
+ 7102. Qualify every source/backend/batch cell against both the independent
+-oracle and its named CPU reference before timing. Adding an original or
+-corrected CPU revision adds a separate source arm; retain its verdicts too.
++oracle and the unchanged CPU reference before timing. Include restored
++normal CPU to check preservation separately from Torch agreement. A changed
++CPU implementation may be studied only as a separately labeled experiment;
++it cannot replace the required original reference.
+ Validate every timed call's triggers outside the clock.
+ This establishes finite warm-API behavior under the stated controls; it does
+ not establish executable or full-machine capacity.
+@@ -65,7 +72,9 @@ complex sample:
+    abs(actual_complex_SNR - MKL_complex_SNR) <= 0.001
+ 
+ Both comparisons are mandatory, with zero relative tolerance. The standard
+-CPU/MKL batch-1 reference must itself pass the independent oracle gate. The
++CPU/MKL batch-1 reference must itself pass the independent oracle gate for
++this API timing policy. If unchanged CPU fails, retain the failure and stop
++qualification; do not change its arithmetic to make the oracle gate pass. The
+ ``0.001`` budget extends the existing trigger-SNR tolerance to the full complex
+ time series: this is a new engineering acceptance criterion, not a pre-existing
+ repository guarantee or a proof of unchanged scientific decisions.
+@@ -114,9 +123,10 @@ the named source revisions. Preserve the original fixture and policy hashes;
+ record any harness adaptation and verify that it does not alter scientific
+ inputs, observed outputs or timing boundaries.
+ 
+-The archived run qualified an earlier development revision. Its rates and
+-verdicts do not qualify the restacked runtime or a CPU-reference arm that
+-it did not execute. Source-native identities, every per-worker receipt, all
+-failures and the exact policy belong with each new comparison. The archive
++**SUPERSEDED for the restored stack:** the archived run qualified an earlier
++development revision. Its rates and verdicts do not qualify restored source
++or a CPU-reference arm that it did not execute. Source-native identities,
++every per-worker receipt, all failures and the exact policy belong with each
++new comparison. The archive
+ omits full scientific arrays; verifying recorded JSON alone does not replay
+ the scientific calculation.
+diff --git a/docs/torch_benchmark_protocol.rst b/docs/torch_benchmark_protocol.rst
+index 53fd02fec5..0d7886be9a 100644
+--- a/docs/torch_benchmark_protocol.rst
++++ b/docs/torch_benchmark_protocol.rst
+@@ -3,9 +3,11 @@
+ Controlled executable benchmark protocol
+ ========================================
+ 
+-Use this protocol for the corrected-CPU versus restacked-Torch comparison in
+-:ref:`torch-performance`. Keep the original-versus-corrected CPU arithmetic
+-and output changes in a separate experiment. A result is eligible for a
++Use this protocol for unchanged CPU
++``40e94792b3edf59f39b18b65102b28a4f74433a7`` versus the restored stack in
++:ref:`torch-performance`. Preserving existing CPU behavior is a requirement;
++CPU arithmetic changes such as PR #20 cannot become a prerequisite or replace
++the reference. A result is eligible for a
+ sustained-capacity claim only after workload convergence, scientific
+ qualification and host-load checks
+ have passed. Missing evidence remains explicit; a plausible profile or the
+@@ -14,18 +16,25 @@ expected templates/core rate is not an acceptance test.
+ Reference and scientific scope
+ ------------------------------
+ 
+-#. Prepare clean, pinned corrected-CPU and restacked-main checkouts using
+-   the same environment.
++#. Prepare clean checkouts of unchanged CPU ``40e94792b3`` and the verified
++   restored main using the same environment. The measured source is
++   ``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0``; its workload-specific CPU
++   preservation and regression receipts are in the
++   `immutable restoration evidence <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_.
++   Check the restored normal CPU against the original before interpreting
++   Torch results.
+    Record native build provenance, executable and input hashes, dependency
+    versions and the complete command. Use ``cpu:1``, MKL FFTs, compressed
+    low-mass waveforms and one numerical-library thread for the normal reference.
+    Preserve measured source pins when publishing later formatting or
+    documentation changes. Record the final publication head and verify the
+-   exact changed-file set, full module AST equality for formatting, and byte
+-   identity of executable, test, tool, CI and native files separately.
++   exact changed-file set. For formatting-only differences, check complete
++   module AST equality and byte identity outside the declared formatting and
++   documentation files. Production restoration requires its own audit and
++   tests; earlier source-equivalence receipts do not cover new changes.
+ #. Declare how the CPU reference geometry was selected before measuring Torch.
+-   This campaign retains the geometry selected on historical unchanged CPU;
+-   it does not claim a fresh optimum for corrected CPU. For a new tuning
++   Retain the geometry already selected on unchanged CPU and record its
++   input/geometry receipts for the new source pair. For a new tuning
+    experiment, sweep segment length and safe start/end padding, holding bank,
+    PSD, vetoes and unique output interval
+    fixed. Record repeated unprofiled wall times and a selection rule before
+@@ -34,22 +43,33 @@ Reference and scientific scope
+    Duration bounds alone do not prove boundary correctness. A conservative
+    fixed end pad is a declared constraint, not an end-padding optimum.
+ #. Freeze the selected geometry for matched backend comparisons. Include
+-   corrected CPU, restacked normal CPU, Torch CPU and Torch CUDA separately.
++   original CPU, restored normal CPU, Torch CPU and Torch CUDA separately.
+    Re-tuning each backend is a different experiment and needs its own table.
+    Compare trigger identities, SNR, phase and chi-square under unchanged
+    tolerances. Compare full PSD arrays, conditioned strain and segment
+-   geometry as well as the used PSD slice. Preserve the separate historical
+-   failures against unchanged CPU; a corrected reference does not erase them.
++   geometry as well as the used PSD slice. Compare the original with all
++   three restored routes, plus restored normal CPU with both Torch routes.
++   Preserve historical failures with their original source pins. Do not change
++   CPU arithmetic or relax tolerances to obtain agreement with an oracle.
++   Compare scientific datasets and metadata. Exclude explicitly listed runtime
++   timing fields from scientific verdicts and retain their raw values separately;
++   do not exclude scientific configuration, sampling, epoch or geometry. Keep
++   both original and corrected reports if the comparator included timing fields.
+    Report each gate independently. Trigger parity alone does not establish
+    full scientific equivalence or qualify an equivalent-output speedup.
+ 
+-The current campaign's initial strict controller stopped on a full-PSD
+-failure for Torch below 30 Hz. Its explicitly recorded policy amendment,
+-made after qualification, permits descriptive timings after all five
+-trigger comparisons, matching conditioned-strain digests and geometry, and
+-exact used PSD bins pass. Preserve both the initial stop and amendment; do not present the
+-continuation as the original policy or reclassify full-array failures.
+-Results under that amendment are finite-workload execution costs only.
++Require all frozen scientific gates to pass before equivalent-output timing.
++Stop on a failed gate and report it. Any separately authorized descriptive
++measurement after failure must declare its policy, scope and retained failures;
++it cannot establish equivalent-output speedup. The completed restoration
++campaign stopped after failed Torch qualification and collected no performance
++samples; original CPU versus restored normal CPU preservation passed.
++
++The **superseded corrected-CPU campaign** stopped on a full-PSD failure below
++30 Hz, then used an explicitly recorded post-qualification amendment for
++descriptive timing. Retain that amendment with its historical results in
++:ref:`torch-performance`; it does not apply automatically to new source or
++new failures.
+ 
+ Separate live-filter API measurements
+ -------------------------------------
+@@ -164,11 +184,12 @@ execution and planning separately, plus correlation, chi-square, thresholding,
+ decompression and the measured remainder. FFT dominance is a hypothesis to
+ check, not a shape to force onto results.
+ 
+-Publish the corrected-baseline and restacked-revision results together for each
+-defined workload, with their source revisions, timing boundaries, resource
+-counts and correctness verdicts. Publish the separate cost of CPU precision
+-corrections with its intentional arithmetic/output changes. Label earlier
+-unchanged-baseline comparisons as historical evidence. Keep intermediate
++Publish unchanged-CPU and restored-revision results together for each defined
++workload, with source revisions, CPU-preservation evidence, timing boundaries,
++resource counts and every correctness verdict. Keep the CPU-correction cost
++experiment and earlier proposal comparisons explicitly superseded for the
++restored stack; their source pins, failures and timings remain historical
++evidence. Keep intermediate
+ optimization experiments in the evidence archive, outside the main PR comparison. Retain
+ raw successful and failed receipts, source/input hashes, qualification,
+ profiles, load records and the renderer manifest in an immutable archive.
+diff --git a/docs/torch_optimizations.rst b/docs/torch_optimizations.rst
+index e7a8930288..2007c07123 100644
+--- a/docs/torch_optimizations.rst
++++ b/docs/torch_optimizations.rst
+@@ -9,6 +9,13 @@ flag can still use the established fallback. Flags do not guarantee a speedup.
+ For setup, see :ref:`torch-runtime`; for benchmark comparison requirements, see
+ :ref:`torch-performance`.
+ 
++The `restoration evidence
++<https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_
++records measured main ``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0`` against
++original CPU ``40e94792b3edf59f39b18b65102b28a4f74433a7``. The CPU controls
++produce identical scientific output on that workload; both Torch routes fail
++the unchanged scientific gates. No performance samples or speedup are claimed.
++
+ Set process-wide environment flags before importing PyCBC or constructing
+ plans, live-batch engines, and waveform generators. Some decisions are cached
+ or captured at construction. Use ``0`` and ``1`` for Boolean settings: several
+@@ -79,7 +86,7 @@ FFT, precision, and batch sizing
+      - Effect
+    * - ``PYCBC_TORCH_CPU_MKL_IFFT``
+      - On
+-     - Considers qualified single-transform CPU IFFT plans on Linux x86-64:
++     - Considers eligible single-transform Torch CPU IFFT plans on Linux x86-64:
+        direct ``complex64`` at 32768 samples, or promoted ``complex128`` work
+        at 1048576, 2097152 and 4194304 samples with one Torch thread. Public
+        input/output remain ``complex64``; the 2097152-sample plan uses one
+@@ -136,7 +143,7 @@ Filtering, thresholding, and execution
+      - Keeps eligible peak-processing work on the selected Torch device.
+    * - ``PYCBC_TORCH_CPU_THRESHOLD_TRUSTED_ARRAYS``
+      - Off
+-     - Enables a CPU threshold fast path that assumes its array contract has
++     - Requests a CPU threshold fast path that assumes its array contract has
+        already been validated.
+    * - ``PYCBC_TORCH_ASYNC_STREAMS``
+      - Off
+@@ -144,7 +151,7 @@ Filtering, thresholding, and execution
+        ``enable_async_streams`` constructor argument takes precedence.
+    * - ``PYCBC_ENABLE_CUDA_GRAPHS``
+      - Off
+-     - Enables eligible CUDA graph capture for live-batch execution. An
++     - Requests eligible CUDA graph capture for live-batch execution. An
+        explicit constructor argument takes precedence.
+    * - ``PYCBC_TORCH_CUDA_GRAPH``
+      - Off
+@@ -153,17 +160,18 @@ Filtering, thresholding, and execution
+        capture. Explicit successful capture also enables replay; see
+        :doc:`torch_search` for the capture and clear APIs.
+ 
+-Shared MKL descriptor reuse
+-----------------------------
++Original CPU FFT behavior
++-------------------------
++
++In measured main ``aa6b795a63``, the shared CPU backend files
++``pycbc/fft/mkl.py``, ``pycbc/fft/fftw.py`` and ``pycbc/fft/npfft.py`` are
++byte-identical to original CPU ``40e94792b3``. The shared MKL descriptor-cache
++addition was removed. Planner locking and retained workspaces for eligible
++Torch routes belong to the Torch FFT implementation.
+ 
+-The shared MKL function API retains at most three descriptors for qualified
+-one-thread CPU transforms: float32 real-to-complex FFTs of 16,384 and
+-16,777,216 samples, and the reverse 16,777,216-sample transform. Eligibility
+-checks require separate contiguous NumPy buffers in the owning main process
+-and thread. Other calls use independent descriptors. Cached plans retain no
+-input/output buffers and can be released with
+-``pycbc.fft.mkl.clear_function_cache()``; finalizers also free them at exit.
+-This does not alter the class API or replace Torch's promoted IFFT workspace.
++Optional #16 retains separate general FFT changes; optional #17 retains
++separate CPU/native changes. Neither leaf is part of the main scientific
++qualification or required to preserve its default CPU behavior.
+ 
+ Compilation
+ -----------
+@@ -202,8 +210,8 @@ these variables and report cold and warm measurements separately.
+ Activation and promotion policy
+ -------------------------------
+ 
+-Defaults-on routes are qualified route choices, not guarantees that an
+-optimized kernel runs for every input. Defaults-off routes are experimental and
++Defaults-on routes are considered only when their eligibility checks pass;
++enabling a route does not establish scientific qualification. Defaults-off routes are experimental and
+ should remain opt-in until all of the following evidence is attached to a
+ specific revision:
+ 
+diff --git a/docs/torch_performance.rst b/docs/torch_performance.rst
+index f26024d7f5..d1d0f806b5 100644
+--- a/docs/torch_performance.rst
++++ b/docs/torch_performance.rst
+@@ -4,26 +4,113 @@
+ .. _torch-optimization-results:
+ .. _torch-benchmark-status:
+ 
+-Corrected CPU baseline and Torch execution costs
++Original CPU baseline and Torch execution costs
+ ================================================
+ 
+-The current comparison uses standalone corrected CPU
+-``66789ac4a7468094b0cc3ca1498a1de67e0311f6`` as the reference for measured
+-restacked main ``f582b6fd250d0b82612492979e01e645d5c07afc``. It runs that
+-source through normal CPU, Torch CPU and Torch CUDA separately. Optional
+-FFT and CPU follow-up PRs are outside this comparison.
++The required CPU reference is unchanged PyCBC
++``40e94792b3edf59f39b18b65102b28a4f74433a7``. The Torch conversion must preserve
++that revision's existing CPU behavior. PR #20's CPU arithmetic changes are
++excluded from the restoration and are not a prerequisite for Torch.
+ 
+-**All five trigger comparisons pass, but the full-PSD gate fails for Torch
+-below 30 Hz. Timings are descriptive execution costs only; full scientific
+-equivalence across all four arms and an equivalent-output Torch speedup
+-are not established.** Independent evidence verification completed with
+-limitations; standalone versus restacked normal CPU passes all frozen
+-scientific gates.
++The restored-main campaign completed on source
++``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0``. Original-CPU preservation passed
++for this workload. Both Torch routes failed the unchanged scientific gates;
++no performance samples were collected and no speedup is established.
++Earlier corrected-CPU results below are superseded for this restored stack.
++
++Restored source and qualification
++---------------------------------
++
++The measured comparison uses original CPU ``40e94792b3`` and restored main
++``aa6b795a63`` through normal CPU, Torch CPU and Torch CUDA. The main stack
++starts from the original CPU source without PR #20. Shared CPU MKL, FFTW and
++NumPy FFT backend files match the original source byte for byte.
++
++The `immutable restoration evidence <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_ records source,
++native-build and input identities, commands, environment, regression tests,
++raw outputs and comparator results. Keep these measured source pins when
++publishing later documentation and formatting changes. The three subsequent
++formatting corrections in ``scheme.py``, ``matchedfilter.py`` and ``strain.py``
++have complete-module AST equivalence receipts against the measured source;
++their file bytes differ. Final publication mapping records those corrections
++and the documentation commit separately. Optional FFT and native CPU leaves
++require their own source and validation receipts.
++
++.. list-table:: Restored-stack validation status
++   :header-rows: 1
++   :widths: 28 44 28
++
++   * - Arm
++     - Scientific qualification
++     - Timing disposition
++   * - Original CPU ``40e94792b3``
++     - Reference: 1988 triggers
++     - No performance samples
++   * - Restored normal CPU ``aa6b795a63``
++     - PASS: 1988 triggers; scientific output byte-identical to original CPU
++     - No performance samples
++   * - Restored Torch CPU ``aa6b795a63``
++     - FAIL against both CPU controls: 1991 triggers; full-PSD gate fails
++     - Stopped after qualification
++   * - Restored Torch CUDA ``aa6b795a63``
++     - FAIL against both CPU controls: 1991 triggers; full-PSD gate fails
++     - Stopped after qualification
++
++All **18 H1 scientific datasets**, full PSD arrays, conditioned strain and
++segment geometry match exactly between the CPU controls. PSD arrays are
++archived; conditioned-strain identity is checked using full-data SHA256 and
++metadata, since the raw conditioned strain is not archived. Both Torch routes
++retain exact conditioned strain and geometry, but fail trigger comparison and
++the full-PSD gate against both CPU controls. All five comparison verdicts are
++retained. These failures remain under the original numerical tolerances;
++an independent higher-precision oracle does not authorize changing the CPU
++reference or relaxing the gates.
++
++The scientific comparator excludes only four elapsed-time-derived datasets:
++``H1/search/filter_rate_per_core``, ``H1/search/run_time``,
++``H1/search/setup_time_fraction`` and ``H1/search/templates_per_core``.
++Their raw values and the original comparator verdicts remain in the evidence.
++Scientific configuration, sampling, epoch and geometry remain in scope.
++This exclusion corrects a metadata classification error, not a numerical
++tolerance. The campaign is qualification only; apply
++:ref:`torch-benchmark-protocol` before any later timing acquisition. The
++historical timing amendment below does not carry over.
++
++Superseded first restoration candidate
++--------------------------------------
++
++**SUPERSEDED source; raw comparator failure retained.** Initial candidate
++``652206d84177f658f5fb2f9cab2ee73f6d2bc95f`` also produced **1988 CPU triggers**,
++with scientific trigger datasets, PSDs and strain byte-identical to original
++CPU. Its false CPU failure came solely from the four timing datasets listed
++above. Both Torch routes produced **1991 triggers** and failed the original
++strict gate. The evidence retains the raw failure and corrected comparison.
++The completed ``aa6b795a63`` campaign is the current measured result; neither
++campaign's workload-specific output identity certifies every CPU code path.
++
++Superseded corrected-CPU campaign
++---------------------------------
++
++**SUPERSEDED for the restored stack.** The following report describes
++standalone corrected CPU ``66789ac4a7468094b0cc3ca1498a1de67e0311f6`` versus
++measured restacked main ``f582b6fd250d0b82612492979e01e645d5c07afc`` through
++normal CPU, Torch CPU and Torch CUDA. Optional FFT and CPU follow-up PRs were
++outside that comparison. Every source pin, count, verdict and timing in this
++section applies only to that historical campaign.
++
++Its five trigger comparisons passed; its full-PSD gate failed for Torch
++below 30 Hz. Timings were descriptive execution costs only. Full scientific
++equivalence across all four arms and an equivalent-output Torch speedup were
++not established. Independent verification completed with limitations;
++standalone versus restacked normal CPU passed the frozen scientific gates.
++These comparisons used changed CPU arithmetic, so they do not satisfy the
++unchanged-CPU requirement.
+ 
+ Measured and publication source
+--------------------------------
++~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+-The measured source remains frozen at ``f582b6fd25``. Formatting-only main
++The historical measured source remains frozen at ``f582b6fd25``.
++Formatting-only main
+ ``6b47580146e73169cd130b601731e5ba40668d93`` incorporates the supplied Qlty
+ repair in filtering PR #8 and replays its descendants. Compared with the
+ measured main, only ``pycbc/filter/matchedfilter.py`` and
+@@ -32,22 +119,26 @@ after excluding source locations. Their Python source bytes do differ.
+ Every other tracked file is byte-identical, including ``bin/``, ``test/``,
+ ``tools/``, ``.github/`` and all native sources.
+ 
+-The documentation commit is based on that formatted main and changes only
+-documentation. This is an explicit mapping from measured source through
++Historical documentation commit ``1d22031fd31c6e5bcb48a68fe11772e960bd406b``
++is based on that formatted main and changes only documentation. This maps
++measured source through
+ AST-equivalent formatting to the documentation-bearing publication, not a
+ new benchmark run of the publication head. All timings and worker receipts
+ retain the measured ``f582b6fd25`` pin. The archived ``sources.bundle`` and
+ frozen bank preserve the acquired source and bank after published refs advance.
+ 
+ Standalone CPU corrections
+---------------------------
++~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+-The corrected reference is a separate prerequisite, proposed in
+-`CPU draft PR #20 <https://github.com/xangma/pycbc/pull/20>`_. It promotes float32
+-PSD processing, cumulative template-power accumulation and strain-segment
++The superseded stack used the separate CPU changes proposed in
++`CPU draft PR #20 <https://github.com/xangma/pycbc/pull/20>`_ as a prerequisite.
++Those changes are excluded from the original-CPU restoration. PR #20
++promotes float32 PSD processing, cumulative template-power accumulation and
++strain-segment
+ FFTs, and uses double-precision phase shifts and accumulation in the CPU
+ point chi-square wrapper. Public single-precision outputs are retained.
+-These changes have no Torch dependency and do not change native kernels.
++These historical changes have no Torch dependency and do not change native
++kernels; they nevertheless change the required CPU behavior.
+ The `immutable CPU review
+ <https://github.com/xangma/pycbc/blob/dcd123cade49b75ce312d0a8342a8c9c5c9b6abd/cpu-review.md>`_
+ records numerical references, regression tests and intentional output changes.
+@@ -60,8 +151,8 @@ This is not an equal-output comparison or a Torch speedup. Its four trials
+ per source and shared-host limitations are in the `CPU cost report
+ <https://github.com/xangma/pycbc/blob/dcd123cade49b75ce312d0a8342a8c9c5c9b6abd/cpu-cost-report.md>`_.
+ 
+-Current four-arm comparison
+----------------------------
++Historical four-arm comparison
++~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+ .. list-table:: Four fresh full-process repeats per arm; observed execution costs
+    :header-rows: 1
+@@ -100,8 +191,9 @@ Current four-arm comparison
+ 
+ The fixed workload is ``pycbc_inspiral`` over 384 distinct compressed low-mass
+ templates and 1904 unique H1 seconds, with five segments and 1920
+-template/segment pairs. Its scientific definition is in
+-:ref:`torch-reference-campaign`. Rate is ``384 * 1904 / median_wall_seconds``.
++template/segment pairs. Its scientific definition is retained in
++:ref:`torch-reference-campaign`; retaining the workload does not transfer
++these results to restored source. Rate is ``384 * 1904 / median_wall_seconds``.
+ Each route produces 1991 triggers. All four qualification processes and
+ 16 timed processes completed; every sample is retained. Independent checks
+ of timed outputs against their own qualifications are **PASS for all 16
+@@ -111,7 +203,7 @@ comparison is retained in the
+ <https://github.com/xangma/pycbc/tree/e1dd5e7164a3e8ae8ee8b58ecd7b27200b8cfb9c/corrected-baseline-campaign>`_.
+ 
+ Scientific qualification and timing policy
+-------------------------------------------
++~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+ The five trigger comparisons are corrected CPU against each of the three
+ restacked routes, plus restacked normal CPU against Torch CPU and Torch CUDA.
+@@ -134,7 +226,7 @@ tolerances, worker commands and rotating order are unchanged. This
+ continuation does not establish full-equivalence speedup eligibility.
+ 
+ Measurement and reproduction
+-----------------------------
++~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ 
+ The four arms use balanced rotating orders ABCD, BCDA, CDAB and DABC, where
+ A is corrected CPU, B restacked normal CPU, C Torch CPU and D Torch CUDA.
+@@ -171,18 +263,21 @@ observed minima/maxima, not confidence intervals. This finite workload does
+ not establish sustained or full-machine capacity;
+ :ref:`torch-benchmark-protocol` defines those additional controls.
+ 
+-Historical unchanged-baseline comparison
+-----------------------------------------
++Superseded combined-proposal comparison
++---------------------------------------
+ 
+-The earlier comparison of unchanged PyCBC
++**SUPERSEDED for the restored stack.** The earlier comparison of unchanged
++PyCBC
+ ``40e94792b3edf59f39b18b65102b28a4f74433a7`` with combined proposal
+ ``123e1fb3ef1b338cada636e71c3e9c7987002402`` remains in the `historical benchmark
+ archive <https://github.com/xangma/pycbc/tree/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908>`_.
+ It recorded 1988 versus 1991 triggers, with 1959 shared identities, 29
+ original-only and 32 proposal-only identities. Its trigger-field failures,
+ full-PSD failures and descriptive timings remain historical evidence. Those
+-timings do not measure the current corrected-CPU-versus-Torch comparison.
+-The separate CPU review above explains the arithmetic and output changes.
++timings do not measure the restored stack. The original reference remains
++required, but the earlier proposal source and its verdicts cannot qualify a
++new revision. The historical CPU review above documents the arithmetic and
++output changes that the restoration must exclude.
+ 
+ Existing :ref:`native regression evidence <torch-integrated-qualification>`
+ also retains its own source pins and scope. A prepared live-filter API
+diff --git a/docs/torch_reference_campaign.rst b/docs/torch_reference_campaign.rst
+index 4554cb4489..037a3e211a 100644
+--- a/docs/torch_reference_campaign.rst
++++ b/docs/torch_reference_campaign.rst
+@@ -9,13 +9,19 @@ output. It processes real H1 frame data with a fixed compressed low-mass bank,
+ including data conditioning, PSD estimation, waveform decompression,
+ normalization, scalar matched filtering, power chi-square, clustering and
+ trigger output. It does not call ``LiveBatchMatchedFilter.process_data``.
+-The current reference is standalone corrected CPU
+-``66789ac4a7468094b0cc3ca1498a1de67e0311f6``. The campaign measured restacked main
+-``f582b6fd250d0b82612492979e01e645d5c07afc`` using normal CPU, Torch CPU and
+-Torch CUDA as separate arms. The mapping to formatted main
+-``6b47580146e73169cd130b601731e5ba40668d93`` and its documentation commit,
+-the separate CPU corrections, and current versus historical results are in
+-:ref:`torch-performance`.
++The required reference is unchanged CPU
++``40e94792b3edf59f39b18b65102b28a4f74433a7``. Compare it with restored normal
++CPU, Torch CPU and Torch CUDA as separate arms; CPU arithmetic changes in
++PR #20 are excluded. The replacement source pin is
++``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0``. New results and the explicitly
++superseded historical campaigns are distinguished in :ref:`torch-performance`.
++
++The completed restoration campaign used the frozen inputs and geometry
++below. The `immutable restoration evidence <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_ contains
++their identities and workload checks. Original and restored normal CPU each
++produced 1988 triggers with byte-identical scientific output. Both Torch
++routes produced 1991 triggers and failed the unchanged strict comparisons;
++no performance samples were collected.
+ 
+ Inputs and scientific settings
+ ------------------------------
+@@ -85,8 +91,9 @@ sweeping 256/512/1024 second segments and 96/112 second start padding, with
+ 16 second end padding.
+ Each setting had three fresh processes. The rule selected the lowest median,
+ treating settings within 3% as tied, then preferring more start padding and a
+-smaller FFT. The selected 512/112/16 second geometry remains frozen for the
+-corrected-baseline comparison; it was not re-tuned on corrected CPU or Torch.
++smaller FFT. Retain the selected 512/112/16 second geometry for the
++original-CPU/restored-stack comparison. The superseded corrected-CPU
++campaign also used this geometry without re-tuning it on corrected CPU or Torch.
+ That finite grid and fixed end padding do not establish global optimality or
+ fresh boundary-injection validation for every template.
+ 
+@@ -105,47 +112,60 @@ absolute tolerance ``1e-4`` radians. Compare complete PSD references as well as
+ SNR, phase, sigmasq and the available veto fields. Retain all failed verdicts.
+ Any allowed source or executable-path substitution must be declared separately
+ from scientific fields; it must not alter the numerical tolerances or conceal
+-missing triggers.
+-
+-Current qualification passes all five trigger comparisons: corrected CPU
+-against all three restacked routes, and restacked normal CPU against both
+-Torch routes. Conditioned-strain digests, segment geometry and used PSD bins
+-match exactly. The standalone and restacked normal CPU full PSDs pass. The
+-full-PSD gate fails for Torch below 30 Hz, with 2375 budget violations per
+-segment for Torch CPU and 3105 for Torch CUDA against either normal CPU
+-reference. The strict controller
+-stopped; a policy amendment made after qualification permits descriptive
+-timings while retaining that failure and unchanged tolerances. Passing
+-trigger gates does not establish full scientific equivalence. Results and
+-the disclosed timing continuation are in :ref:`torch-performance`.
++missing triggers. Runtime timing metadata is outside scientific comparison:
++exclude only explicitly enumerated timing-field paths, retain their raw values,
++and continue checking scientific metadata such as sampling, epoch and geometry.
++The first restoration comparison mistakenly included four ``H1/search`` timing
++fields; retain both its raw verdict and corrected scientific comparison as
++described in :ref:`torch-performance`.
++
++The completed comparison passes original CPU versus restored normal CPU:
++all 18 H1 scientific datasets, full PSD arrays, conditioned strain and
++geometry are byte-identical. PSD arrays are archived; conditioned-strain
++identity uses full-data SHA256 and metadata, with no archived raw strain.
++Both Torch routes fail against both CPU controls,
++including trigger comparison and the full-PSD gate with relative tolerance
++``1e-4`` and zero absolute floor. Conditioned strain and geometry remain exact
++for both Torch routes. The evidence retains all five verdicts, arrays and
++raw and corrected comparator outputs. The four excluded timing paths are
++enumerated in :ref:`torch-performance`. Qualification stopped before any
++performance sampling; historical timing permission does not apply.
+ 
+ Commands and reproducibility
+ ----------------------------
+ 
+-Current corrected-baseline `reproduction instructions
++The `restoration campaign archive <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_ records all four
++expanded source/backend commands, source/native identities, dependencies and
++output hashes. Reproduce into a new acquisition directory.
++
++**SUPERSEDED for the restored stack:** corrected-baseline `reproduction instructions
+ <https://github.com/xangma/pycbc/blob/e1dd5e7164a3e8ae8ee8b58ecd7b27200b8cfb9c/corrected-baseline-campaign/REPRODUCE.md>`_ and `configuration
+ <https://github.com/xangma/pycbc/blob/e1dd5e7164a3e8ae8ee8b58ecd7b27200b8cfb9c/corrected-baseline-campaign/acquisition/config.json>`_ retain expanded
+ commands, imported-source and native-build identity, input/output hashes,
+ exit status, the strict qualification stop and subsequent timing policy.
+-This campaign copies unchanged native binaries from the frozen build after
+-verifying source and binary hashes in both separate source checkouts.
++That historical campaign copied unchanged native binaries from the frozen
++build after verifying source and binary hashes in both separate checkouts.
+ The archive includes the acquired ``sources.bundle`` and hash-verified frozen
+ bank. The bundle preserves both measured commits after published branches
+ advance; the reproduction instructions identify its required frozen base.
++Those receipts reproduce historical source only; the bundle contains no new
++restoration or qualification.
+ 
+-The `historical comparison instructions
++The **superseded combined-proposal** `historical comparison instructions
+ <https://github.com/xangma/pycbc/blob/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908/REPRODUCE.md>`_
+ and `historical configuration
+ <https://github.com/xangma/pycbc/blob/bc88a36a225f9b89559e0480e66fac828ee3dd77/baseline-final-20260908/acquisition/config.json>`_
+-describe the earlier ``40e94792b3``/``123e1fb3ef`` run, not the current source
+-pair. The `original CPU geometry sweep
++describe only the earlier ``40e94792b3``/``123e1fb3ef`` run. The
++`original CPU geometry sweep
+ <https://github.com/xangma/pycbc/blob/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/REPRODUCE.md>`_
+ records how the frozen segment geometry was selected.
+ 
+-To reproduce the recorded comparison, prepare the explicitly named corrected
+-baseline and measured ``f582b6fd25`` commits in separate clean checkouts with
+-matching dependencies. Record any substitution of the formatted publication
+-head and its AST/source mapping separately.
++To reproduce the measured comparison, prepare unchanged ``40e94792b3`` and
++``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0`` in separate clean checkouts with
++matching dependencies. Record later publication mapping separately, including
++documentation changes and complete-module AST checks for declared formatting
++changes. Behavior changes require new qualification; historical formatting
++receipts cannot cover them.
+ Build native modules with recorded flags, or verify native-source identity
+ and copied binary hashes if reusing a frozen build. Restore the frozen bank
+ and frame by hash, relocate paths into new output directories, and preserve the
+@@ -161,8 +181,8 @@ library limits. Keep any required runtime adapter inside the timed command
+ and archive its source. Capture the complete expanded argv for all four arms,
+ including unchanged data, PSD, veto, clustering and output options.
+ 
+-The matched acquisition used shared ``len`` (AMD Ryzen Threadripper PRO
+-3995WX), CPU 8 with SMT sibling CPU 72, and an RTX 4090 for CUDA. Affinity did
++The superseded corrected-CPU acquisition used shared ``len`` (AMD Ryzen
++Threadripper PRO 3995WX), CPU 8 with SMT sibling CPU 72, and an RTX 4090 for CUDA. Affinity did
+ not reserve either CPU. Reproduction must record its own hardware, dependency
+ versions and load observations. The fixed workload measures finite-process
+ cost; sustained or full-machine capacity needs the additional experiments in
+diff --git a/docs/torch_testing.rst b/docs/torch_testing.rst
+index 05789911d3..f72290c129 100644
+--- a/docs/torch_testing.rst
++++ b/docs/torch_testing.rst
+@@ -7,6 +7,34 @@ Run the focused tests for your changed API, then the affected project suites.
+ Check scientific values and the implementation that ran before benchmarking.
+ CUDA and MPS results require those physical devices; report skips separately.
+ 
++Measured restored main is ``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0``.
++The `immutable restoration evidence <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_ records exact
++commands, environments and receipts. Local integrated tests passed **507
++cases plus 8 subtests**, with **143 skips**; the separate no-Torch run passed
++**22 tests**, cached CPU chi-square passed **2 tests**, and the CI unused-import
++(``F401``) check passed. Linux runtime tests passed **137 tests**, with **1
++skip**, including the large-batch cases requiring LAL that were unavailable
++in the local environment. These counts describe their recorded suites, not
++universal device coverage.
++
++The executable campaign passes original-CPU preservation on its fixed
++workload: **1988 triggers per CPU arm** and byte-identical scientific datasets,
++PSDs and geometry. Conditioned-strain identity is supported by full-data SHA256
++and metadata equality; raw conditioned strain is not archived.
++**Torch CPU and CUDA each produce 1991 triggers and
++fail the original strict scientific gates.** No performance samples were
++collected. See :ref:`torch-performance` for all five comparisons and the four
++runtime timing fields excluded from scientific verdicts. Keep their raw
++values; scientific metadata remains in scope.
++
++CPU preservation requires checks of implementation behavior, defaults,
++validation, context handling and shared FFT behavior beyond this fixed-workload
++campaign. Later publication changes must map
++back to the measured source: document the exact file set and complete-module
++AST equivalence for formatting in ``scheme.py``, ``matchedfilter.py`` and
++``strain.py``. Optional leaves need separate final-source checks. Historical
++results below qualify only their named source revisions.
++
+ * :ref:`torch-test-groups`: functional test commands.
+ * :ref:`torch-test-ci`: what the checked-in CPU and GPU jobs cover.
+ * :ref:`torch-parity-matrix`: prepare and run a reproducible parity campaign.
+@@ -46,13 +74,19 @@ physical device is unavailable. Keep skips separate from passes.
+ Focused functional groups
+ -------------------------
+ 
+-The CPU workflow keeps the stack's focused runtime, array, FFT, filter, search,
+-decompression, and native-waveform tests together. Representative paths are:
++Run the CPU preservation regressions alongside the focused runtime, array,
++FFT, filter, search and decompression tests. Representative paths are:
+ 
+ .. code-block:: console
+ 
+    python -m pytest -q \
+      test/test_scheme_runtime.py \
++     test/test_cpu_array_copy.py \
++     test/test_cpu_match_cache.py \
++     test/test_cpu_psd_variation.py \
++     test/test_cpu_skymax_chisq.py \
++     test/test_cpu_strain_cache.py \
++     test/test_fft_cpu_preservation.py \
+      test/test_torch_optional.py \
+      test/test_array_torch_reductions.py \
+      test/test_torch_backend_protocol.py \
+@@ -62,9 +96,6 @@ decompression, and native-waveform tests together. Representative paths are:
+      test/test_torch_fft_cpu_native.py \
+      test/test_torch_fft_cuda_workspace.py \
+      test/test_torch_psd_pipeline.py \
+-     test/test_strain_psd_precision.py \
+-     test/test_sigmasq_series_precision.py \
+-     test/test_chisq_precision.py \
+      test/test_torch_filter_pipeline.py \
+      test/test_torch_event_kernels.py \
+      test/test_torch_event_pipeline.py \
+@@ -108,35 +139,40 @@ match their public boundaries:
+      test/test_torch_marginalized_gaussian.py \
+      test/test_torch_inference_cli.py
+ 
+-The checked-in workflow files are authoritative when paths evolve. Before a
+-performance run, execute the smallest relevant focused group, then every
+-project suite affected by the changed public path.
++The checked-in workflow files are authoritative for CI selections. The
++examples include the seven preservation/runtime test files verified at
++``aa6b795a63`` and exclude the three standalone PR #20 tests asserting changed
++CPU arithmetic. Before a performance run, execute the smallest relevant
++focused group, then every project suite affected by the changed public path.
+ 
+-Production reuse and CUDA graph guards
+---------------------------------------
++CPU preservation, reuse and CUDA graph guards
++---------------------------------------------
+ 
+ The integrated follow-up changes also have dedicated regression files:
+ 
+ .. code-block:: console
+ 
+    python -m pytest -q -rs \
+-     test/test_mkl_function_cache.py \
++     test/test_fft_cpu_preservation.py \
+      test/test_live_batch_veto_reuse.py \
+      test/test_torch_cuda_peak_host_read.py \
+      test/test_torch_offline_cuda_graph.py
+ 
+-These cover MKL descriptor reuse and cleanup, live correlation workspace reuse
+-through veto calculation, immediate reads of CUDA peak results on the host,
+-and offline CUDA graph capture, replay, invalidation and cleanup. The MKL file
+-includes mocked lifecycle checks and native checks that require MKL. The live
++The CPU preservation file checks the original in-place real FFT length
++validation, including odd sizes and batches. The shared CPU MKL descriptor
++cache has been removed from the main stack; historical cache-lifecycle tests
++do not describe current behavior. The remaining files check live correlation workspace
++reuse through veto calculation, immediate host reads of CUDA peak results,
++and offline CUDA graph capture, replay, invalidation and cleanup. The live
+ reuse file selects CPU, Torch CPU and available MPS; it does not select CUDA.
+ CUDA graph lifecycle checks include host-side mocks, so a CPU pass does not
+ qualify capture or replay. Run the actual graph and peak-transfer cases on
+ CUDA; graph capture also requires Triton.
+ 
+-These four files are not in the explicit focused selections of
+-``basic-tests.yml`` or ``torch-gpu.yml``. Run them separately when changing
+-these paths and retain the device-specific results.
++The four files in this reuse/graph command are not in the explicit focused
++selections of ``basic-tests.yml`` or ``torch-gpu.yml`` at the measured source.
++Run them separately when changing these paths and retain device-specific
++results; this statement does not describe the larger example above.
+ 
+ .. _torch-large-batches:
+ 
+@@ -195,7 +231,12 @@ Device and fallback rules
+ -------------------------
+ 
+ CPU
+-   Use the established CPU scheme at the same source revision as the control.
++   Use the same-revision normal CPU scheme as a dispatch control and unchanged
++   ``40e94792b3edf59f39b18b65102b28a4f74433a7`` as the preservation reference.
++   Test restored normal CPU against that original separately; same-revision
++   CPU/Torch agreement cannot establish that existing CPU behavior is unchanged.
++   Do not substitute PR #20's corrected CPU or promote CPU arithmetic to make
++   an independent oracle comparison pass.
+    Record ``TorchScheme``, BLAS and process thread settings, affinity, topology,
+    FFT library route, and oversubscription controls. Exercise hardware-aware
+    defaults and explicit batch/thread overrides separately.
+@@ -283,9 +324,10 @@ deployment manifest. ``manifest.py prepare`` records these inputs after
+ installation and building; the runner verifies them before generating a corpus.
+ Preparation does not install, rebuild, or repair environments.
+ 
+-Create baseline and current worktrees at explicit commits, with matching Python
+-and dependency versions, including Torch. Keep each environment outside its
+-source tree. See :ref:`torch-runtime` for installation prerequisites.
++For CPU preservation, set ``BASELINE_SHA`` to
++``40e94792b3edf59f39b18b65102b28a4f74433a7`` and ``CURRENT_SHA`` to the verified
++restored revision. Create the worktrees with matching Python and dependency
++versions, including Torch. Keep each environment outside its source tree. See :ref:`torch-runtime` for installation prerequisites.
+ 
+ .. code-block:: console
+ 
+@@ -360,9 +402,13 @@ suite alone establishes parity across the entire physical parameter space.
+ Recorded integrated qualification
+ ---------------------------------
+ 
+-This is historical qualification of the revisions named below. The current
+-corrected-CPU/restacked-main campaign and its retained full-PSD failure are
+-reported separately in :ref:`torch-performance`.
++**SUPERSEDED for the restored stack.** This is historical qualification of
++only the revisions named below. It does not establish preservation of original
++CPU behavior. Current measured-source test results are recorded at the top
++of this page; the completed executable comparison is in
++:ref:`torch-performance`. The superseded corrected-CPU
++campaign and its retained full-PSD failure are reported separately in
++:ref:`torch-performance`.
+ 
+ The `sealed integrated qualification
+ <https://github.com/xangma/pycbc/tree/06c77a19432bce561f5cbeb6c2da1dedde98274b/stack-validation-20260908>`_
+@@ -390,7 +436,8 @@ pending-allocation negative controls detect the intended failures. These
+ results establish correctness within their recorded scope; they are not timing
+ measurements or a complete unchanged-baseline parity result.
+ 
+-From a restored ``stack-validation-20260908/`` directory:
++To verify only the historical archive, from an extracted
++``stack-validation-20260908/`` directory:
+ 
+ .. code-block:: console
+ 
