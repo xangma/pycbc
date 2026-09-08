@@ -35,6 +35,15 @@ from pycbc.types import aligned as aligned_array
 
 from .core import _BaseFFT, _BaseIFFT, _check_fft_args
 
+# Serialize only the plans owned by Torch. Legacy FFTW execution is unchanged.
+_FFTW_PLANNING_LOCK = threading.RLock()
+
+
+def _destroy_fftw_plan(destroy, plan):
+    with _FFTW_PLANNING_LOCK:
+        destroy(plan)
+
+
 _FFTW_MIN_LENGTH = 4096
 # Linux/x86-64 is the only platform on which the direct-plan precision and
 # performance route has been validated.  Only the explicitly measured sizes
@@ -320,7 +329,7 @@ class _FFTWWorkspaceVector:
 def _destroy_batch_plan_in_owner(fftw, destroy, plan, owner_pid):
     """Destroy an FFTW plan only in the process which created it."""
     if os.getpid() == owner_pid:
-        fftw._destroy_plan(destroy, plan)
+        _destroy_fftw_plan(destroy, plan)
 
 
 class _FFTWCPUWorkPlan:
@@ -340,7 +349,7 @@ class _FFTWCPUWorkPlan:
         # classes to match; a fixed-byte modulus cannot establish that
         # portably. Measured planners may overwrite this private workspace,
         # which is safe because execute() replaces it with the user input.
-        with fftw._FFTW_PLANNING_LOCK:
+        with _FFTW_PLANNING_LOCK:
             if not fftw._fftw_threaded_set:
                 fftw.set_threads_backend()
             if fftw._fftw_current_nthreads != self._nthreads:
@@ -595,7 +604,7 @@ class _FFTWCPUDirectBatchPlan:
         if buffers_aligned != aligned:
             raise ValueError("FFTW planner alignment does not match buffers")
 
-        # Reproduce fftw._fftw_setup_unlocked exactly for the C2C case.  In
+        # Reproduce fftw._fftw_setup exactly for the C2C case.  In
         # particular, legacy PyCBC uses total flat lengths for the rank-one
         # embedding arrays and aligned scratch storage even for an UNALIGNED
         # plan.  The resulting plan therefore has the same wisdom identity.
@@ -651,7 +660,7 @@ class _FFTWCPUDirectBatchPlan:
                 self._pid,
             )
         except BaseException:
-            fftw._destroy_plan(destroy, plan)
+            _destroy_fftw_plan(destroy, plan)
             raise
 
     def can_execute(self, source, target, *, size, batch, forward):
@@ -693,7 +702,7 @@ def _create_fftw_cpu_plan(
         from . import fftw
 
         # Use the same re-entrant planner lock as the legacy FFTW backend.
-        with fftw._FFTW_PLANNING_LOCK:
+        with _FFTW_PLANNING_LOCK:
             measure_level = fftw.get_measure_level()
             requested_measure_level = measure_level
             # Direct FFTW_ESTIMATE is the default.  A user-selected MEASURE
@@ -869,7 +878,7 @@ def _create_fftw_cpu_batch_plan(fftobj, forward):
     try:
         from . import fftw
 
-        with fftw._FFTW_PLANNING_LOCK:
+        with _FFTW_PLANNING_LOCK:
             nthreads = torch.get_num_threads()
             if not fftw._fftw_threaded_set:
                 fftw.set_threads_backend()
