@@ -1,0 +1,637 @@
+diff --git a/pycbc/filter/matchedfilter.py b/pycbc/filter/matchedfilter.py
+index 93b2cb0664..45a22ce966 100644
+--- a/pycbc/filter/matchedfilter.py
++++ b/pycbc/filter/matchedfilter.py
+@@ -1446,7 +1446,10 @@ def sigmasq_series(
+ 
+     mag = mag[kmin:kmax]
+     tensor = _torch_data_tensor(mag)
+-    if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.CPUScheme) or (
++    if (
++        mag.dtype == numpy.float32
++        and isinstance(pycbc.scheme.mgr.state, pycbc.scheme.CPUScheme)
++    ) or (
+         tensor is not None and tensor.device.type != "mps"
+     ):
+         # Long single-precision scans lose small tail contributions and can
+diff --git a/pycbc/psd/__init__.py b/pycbc/psd/__init__.py
+index 8fccdb09a1..f79cd6480b 100644
+--- a/pycbc/psd/__init__.py
++++ b/pycbc/psd/__init__.py
+@@ -105,6 +105,7 @@ def from_cli(
+         err_msg += "'--psd-model', '--asd-file', '--psd-estimation'"
+         raise ValueError(err_msg)
+ 
++    restore_dtype = None
+     if opt.psd_model or opt.psd_file or opt.asd_file:
+         # PSD from lalsimulation or file
+         if opt.psd_model:
+@@ -147,6 +148,8 @@ def from_cli(
+         # interpolation and inverse-spectrum truncation. MPS retains float32.
+         strain_dtype = strain.dtype
+         state = _scheme.mgr.state
++        if not isinstance(state, _scheme.CPUScheme):
++            restore_dtype = strain_dtype
+         if strain_dtype == float32 and (
+             isinstance(state, _scheme.CPUScheme)
+             or (
+@@ -154,6 +157,7 @@ def from_cli(
+                 and state.torch_device.type != "mps"
+             )
+         ):
++            restore_dtype = strain_dtype
+             strain = strain.astype(float64)
+         psd = welch(  # noqa: F405 - public estimate export
+             strain,
+@@ -193,8 +197,8 @@ def from_cli(
+         (psd.astype(float64) / (dyn_range_factor**2)).save(opt.psd_output)
+ 
+     if precision is None:
+-        if psd_estimation:
+-            return psd.astype(strain_dtype)
++        if restore_dtype is not None:
++            return psd.astype(restore_dtype)
+         return psd
+     elif precision == "single":
+         return psd.astype(float32)
+diff --git a/pycbc/strain/strain.py b/pycbc/strain/strain.py
+index c6e846a4bc..3223ff5d3a 100644
+--- a/pycbc/strain/strain.py
++++ b/pycbc/strain/strain.py
+@@ -1648,7 +1648,9 @@ class StrainSegments(object):
+                     # Strong lines can obscure weak FFT bins in float32.
+                     # Retain the segment's public precision and device.
+                     strain_chunk = strain_chunk.astype(numpy.float64)
+-                freq_seg = make_frequency_series(strain_chunk).astype(output_dtype)
++                freq_seg = make_frequency_series(strain_chunk)
++                if promote or not isinstance(state, _scheme.CPUScheme):
++                    freq_seg = freq_seg.astype(output_dtype)
+                 freq_seg.analyze = ana
+                 freq_seg.cumulative_index = seg_slice.start + ana.start
+                 freq_seg.seg_slice = seg_slice
+diff --git a/pycbc/vetoes/chisq.py b/pycbc/vetoes/chisq.py
+index df78834e05..82c6af8863 100644
+--- a/pycbc/vetoes/chisq.py
++++ b/pycbc/vetoes/chisq.py
+@@ -258,19 +258,15 @@ def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
+     if isinstance(mgr.state, CPUScheme):
+         from .chisq_cpu import point_chisq_code
+ 
+-        # The real fused type controls both phase recurrence and accumulation.
+-        # Use its double specialization without copying the correlation, and
+-        # compensate for the shortened pi literal in the existing kernel.
+-        shifts = numpy.asarray(indices, dtype=numpy.float64) * (numpy.pi / 3.141592653)
++        # The real fused type controls phase recurrence and accumulation.
++        # Use double precision without copying the correlation, and correct
++        # for the shortened pi literal in the existing kernel.
++        shifts = numpy.asarray(indices, dtype=numpy.float64)
++        shifts = shifts * (numpy.pi / 3.141592653)
+         chisq = numpy.zeros(len(shifts), dtype=numpy.float64)
+         point_chisq_code(
+-            chisq,
+-            corr.data,
+-            len(shifts),
+-            len(corr),
+-            shifts,
+-            numpy.asarray(bins, dtype=numpy.uint32),
+-            num_bins,
++            chisq, corr.data, len(shifts), len(corr), shifts,
++            numpy.asarray(bins, dtype=numpy.uint32), num_bins,
+         )
+         snr_values = numpy.asarray(snr)
+         output_dtype = numpy.result_type(
+diff --git a/test/test_chisq_precision.py b/test/test_chisq_precision.py
+index 2bffa441ea..7e0cd82c24 100644
+--- a/test/test_chisq_precision.py
++++ b/test/test_chisq_precision.py
+@@ -8,36 +8,9 @@ from pycbc.types import Array, FrequencySeries
+ from pycbc.vetoes.chisq import power_chisq_at_points_from_precomputed
+ 
+ 
+-@pytest.mark.parametrize("device", ["cpu", "torch-cuda"])
+ @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+ @pytest.mark.parametrize("array_indices", [False, True])
+-def test_long_point_chisq_matches_direct_phases(
+-    device, dtype, array_indices, monkeypatch
+-):
+-    triton_launches = []
+-    if device == "torch-cuda":
+-        torch = pytest.importorskip("torch")
+-        if not torch.cuda.is_available():
+-            pytest.skip("CUDA not available")
+-        if dtype == np.complex64:
+-            from pycbc.vetoes import chisq_torch
+-
+-            if not chisq_torch._HAS_TRITON:
+-                pytest.skip("Triton not available")
+-            kernel = chisq_torch._triton_pointwise_chisq_bin_kernel
+-            original_launch = kernel.run
+-
+-            def record_launch(*args, **kwargs):
+-                result = original_launch(*args, **kwargs)
+-                if not kwargs.get("warmup", False):
+-                    triton_launches.append(True)
+-                return result
+-
+-            monkeypatch.setattr(kernel, "run", record_launch)
+-        processing_scheme = scheme.TorchScheme("cuda")
+-    else:
+-        processing_scheme = scheme.CPUScheme(1)
+-
++def test_long_point_chisq_matches_direct_phases(dtype, array_indices):
+     size = 2**21
+     rng = np.random.default_rng(782)
+     values = (rng.normal(size=size) + 1j * rng.normal(size=size)).astype(dtype)
+@@ -50,8 +23,12 @@ def test_long_point_chisq_matches_direct_phases(
+         for first in range(int(start), int(end), 32768):
+             last = min(first + 32768, int(end))
+             frequencies = np.arange(first, last, dtype=np.float64)
+-            phases = np.exp(2j * np.pi * points[:, None] * frequencies[None, :] / size)
+-            bin_sums[:, column] += np.sum(values[None, first:last] * phases, axis=1)
++            phases = np.exp(
++                2j * np.pi * points[:, None] * frequencies[None, :] / size
++            )
++            bin_sums[:, column] += np.sum(
++                values[None, first:last] * phases, axis=1
++            )
+ 
+     snr = bin_sums.sum(axis=1).astype(dtype)
+     norm = float(1 / np.sqrt(size))
+@@ -60,20 +37,14 @@ def test_long_point_chisq_matches_direct_phases(
+         - abs(snr.astype(np.complex128)) ** 2
+     ) * norm**2
+ 
+-    with processing_scheme:
++    with scheme.CPUScheme(1):
+         correlation = FrequencySeries(values, delta_f=1 / 512)
+         indices = Array(points) if array_indices else points
+         actual = power_chisq_at_points_from_precomputed(
+             correlation, snr, norm, bins, indices
+         )
+-        if device == "torch-cuda":
+-            assert actual._data.tensor.device.type == "cuda"
+-            actual = actual.numpy()
+-
+-    if device == "torch-cuda" and dtype == np.complex64:
+-        # Multiple points must exercise the fused kernel, not a fallback.
+-        assert triton_launches
+ 
+-    assert actual.dtype == (np.float32 if dtype == np.complex64 else np.float64)
++    expected_dtype = np.float32 if dtype == np.complex64 else np.float64
++    assert actual.dtype == expected_dtype
+     tolerance = 3e-6 if dtype == np.complex64 else 3e-8
+     np.testing.assert_allclose(actual, expected, rtol=tolerance, atol=1e-9)
+diff --git a/test/test_sigmasq_series_precision.py b/test/test_sigmasq_series_precision.py
+index b7eec75120..1dd4b6534b 100644
+--- a/test/test_sigmasq_series_precision.py
++++ b/test/test_sigmasq_series_precision.py
+@@ -1,4 +1,4 @@
+-"""Cumulative template power must retain small contributions in long spectra."""
++"""Cumulative template power must retain small terms in long spectra."""
+ 
+ import numpy as np
+ import pytest
+@@ -11,16 +11,8 @@ from pycbc.vetoes.chisq import power_chisq_bins_from_sigmasq_series
+ 
+ @pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+ @pytest.mark.parametrize("use_psd", [False, True])
+-@pytest.mark.parametrize("backend", ["cpu", "torch-cpu", "torch-cuda"])
+-def test_long_sigmasq_series_and_equal_power_bins(dtype, use_psd, backend):
+-    if backend == "cpu":
+-        context = scheme.CPUScheme(1)
+-    else:
+-        torch = pytest.importorskip("torch")
+-        device = backend.removeprefix("torch-")
+-        if device == "cuda" and not torch.cuda.is_available():
+-            pytest.skip("CUDA is unavailable")
+-        context = scheme.TorchScheme(device=device, num_threads=1)
++def test_long_sigmasq_series_and_equal_power_bins(dtype, use_psd):
++    context = scheme.CPUScheme(1)
+     delta_f = 1 / 512
+     frequency = np.arange(1048577) * delta_f
+     low, high = 30.0, 1999.0
+@@ -44,25 +36,17 @@ def test_long_sigmasq_series_and_equal_power_bins(dtype, use_psd, backend):
+         result = sigmasq_series(template, psd, low, high)
+         bins = power_chisq_bins_from_sigmasq_series(result, 16, kmin, kmax)
+         actual = result.numpy()
+-        if backend == "torch-cuda":
+-            # A parallel float32 scan can move bin edges between identical
+-            # calls. Repeated full calculations must retain the same bins.
+-            for _ in range(20):
+-                repeated = sigmasq_series(template, psd, low, high)
+-                repeated_bins = power_chisq_bins_from_sigmasq_series(
+-                    repeated, 16, kmin, kmax
+-                )
+-                np.testing.assert_array_equal(repeated_bins, bins)
+ 
+     assert result.dtype == real_dtype
+     assert result.delta_f == delta_f
+     assert np.count_nonzero(actual[:kmin]) == 0
+     assert np.count_nonzero(actual[kmax:]) == 0
+-    # A million sequential float64 additions can be less accurate than a
+-    # parallel scan. Bound both scans by their accumulated rounding error;
+-    # longdouble gives a wider reference on platforms that support it.
++    # Bound a million sequential float64 additions by accumulated rounding
++    # error. Longdouble gives a wider reference on platforms that support it.
+     roundoff = len(reference_prefix) * np.finfo(np.float64).eps
+-    tolerance = 3e-7 if dtype == np.complex64 else 2 * roundoff / (1 - roundoff)
++    tolerance = (
++        3e-7 if dtype == np.complex64 else 2 * roundoff / (1 - roundoff)
++    )
+     np.testing.assert_allclose(
+         actual[kmin:kmax], reference_prefix * (4 * delta_f), rtol=tolerance
+     )
+@@ -75,17 +59,12 @@ def test_long_sigmasq_series_and_equal_power_bins(dtype, use_psd, backend):
+     assert np.all(abs(bin_power - equal_power) <= error_budget)
+ 
+ 
+-@pytest.mark.parametrize("device", ["cpu", "cuda"])
+-def test_equal_power_thresholds_between_adjacent_float32_values(device):
+-    torch = pytest.importorskip("torch")
+-    if device == "cuda" and not torch.cuda.is_available():
+-        pytest.skip("CUDA is unavailable")
+-    # The float32 values for thirds lie above the true thresholds. Rounding
+-    # those thresholds to float32 would incorrectly include the equal value
+-    # in searchsorted(side="right") and move both internal edges one cell.
+-    prefix = np.array([0, 0, 0.1, 1 / 3, 0.5, 2 / 3, 0.8, 1, 0], dtype=np.float32)
+-    for context in [scheme.CPUScheme(1), scheme.TorchScheme(device, num_threads=1)]:
+-        with context:
+-            series = FrequencySeries(prefix, delta_f=0.25)
+-            bins = power_chisq_bins_from_sigmasq_series(series, 3, 2, 8)
+-        np.testing.assert_array_equal(bins, [2, 3, 5, 8])
++def test_equal_power_thresholds_between_adjacent_float32_values():
++    # Float32 thirds lie above the true thresholds. Keep the thresholds in
++    # double precision so searchsorted does not move either internal edge.
++    prefix = np.array([0, 0, 0.1, 1 / 3, 0.5, 2 / 3, 0.8, 1, 0],
++                      dtype=np.float32)
++    with scheme.CPUScheme(1):
++        series = FrequencySeries(prefix, delta_f=0.25)
++        bins = power_chisq_bins_from_sigmasq_series(series, 3, 2, 8)
++    np.testing.assert_array_equal(bins, [2, 3, 5, 8])
+diff --git a/test/test_strain_psd_precision.py b/test/test_strain_psd_precision.py
+index 799d08a751..cbf0de5061 100644
+--- a/test/test_strain_psd_precision.py
++++ b/test/test_strain_psd_precision.py
+@@ -11,17 +11,6 @@ from pycbc.strain.strain import StrainSegments
+ from pycbc.types import TimeSeries
+ 
+ 
+-@pytest.fixture(params=["cpu", "torch-cpu", "torch-cuda"])
+-def context(request):
+-    if request.param == "cpu":
+-        return scheme.CPUScheme(1)
+-    torch = pytest.importorskip("torch")
+-    device = request.param.removeprefix("torch-")
+-    if device == "cuda" and not torch.cuda.is_available():
+-        pytest.skip("CUDA is unavailable")
+-    return scheme.TorchScheme(device, num_threads=1)
+-
+-
+ def line_rich_data(dtype):
+     time = np.arange(65536) / 512
+     values = np.random.default_rng(9172).normal(0, 0.001, len(time))
+@@ -32,9 +21,9 @@ def line_rich_data(dtype):
+ 
+ 
+ @pytest.mark.parametrize("dtype", [np.float32, np.float64])
+-def test_strain_segments_retain_weak_frequencies(context, dtype):
++def test_strain_segments_retain_weak_frequencies(dtype):
+     values = line_rich_data(dtype)
+-    with context:
++    with scheme.CPUScheme(1):
+         strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+         segments = StrainSegments(
+             strain, segment_length=64, segment_start_pad=8, segment_end_pad=8,
+@@ -50,9 +39,13 @@ def test_strain_segments_retain_weak_frequencies(context, dtype):
+         ):
+             chunk = np.zeros(32768, dtype=np.float64)
+             start, stop = max(segment.start, 0), min(segment.stop, len(values))
+-            chunk[start - segment.start:stop - segment.start] = values[start:stop]
++            chunk[start - segment.start:stop - segment.start] = (
++                values[start:stop]
++            )
+             reference = np.fft.rfft(chunk) / 512
+-            expected_dtype = np.complex64 if dtype == np.float32 else np.complex128
++            expected_dtype = (
++                np.complex64 if dtype == np.float32 else np.complex128
++            )
+             assert output.dtype == expected_dtype
+             assert output.delta_f == 1 / 64
+             assert float(output.epoch) == 1234567890 + segment.start / 512
+@@ -103,13 +96,13 @@ def reference_psd(values, inverse_length):
+ ])
+ @pytest.mark.parametrize("inverse_length", [0, 2])
+ def test_estimated_psd_retains_weak_frequencies(
+-    context, dtype, precision, inverse_length
++    dtype, precision, inverse_length
+ ):
+     values = line_rich_data(dtype)
+     expected = reference_psd(values, inverse_length)
+     output_dtype = (dtype if precision is None else
+                     np.float64 if precision == "double" else np.float32)
+-    with context:
++    with scheme.CPUScheme(1):
+         strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
+         actual = psd.from_cli(
+             psd_options(inverse_length), 16385, 1 / 64, 30,
+diff --git a/test/test_torch_chisq_precision.py b/test/test_torch_chisq_precision.py
+new file mode 100644
+index 0000000000..7dba57f4c9
+--- /dev/null
++++ b/test/test_torch_chisq_precision.py
+@@ -0,0 +1,74 @@
++"""Check point chi-squared phases across long correlation vectors."""
++
++import numpy as np
++import pytest
++
++from pycbc import scheme
++from pycbc.types import Array, FrequencySeries
++from pycbc.vetoes.chisq import power_chisq_at_points_from_precomputed
++
++
++@pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
++@pytest.mark.parametrize("array_indices", [False, True])
++def test_long_point_chisq_matches_direct_phases(
++    dtype, array_indices, monkeypatch
++):
++    triton_launches = []
++    torch = pytest.importorskip("torch")
++    if not torch.cuda.is_available():
++        pytest.skip("CUDA not available")
++    if dtype == np.complex64:
++        from pycbc.vetoes import chisq_torch
++
++        if not chisq_torch._HAS_TRITON:
++            pytest.skip("Triton not available")
++        kernel = chisq_torch._triton_pointwise_chisq_bin_kernel
++        original_launch = kernel.run
++
++        def record_launch(*args, **kwargs):
++            result = original_launch(*args, **kwargs)
++            if not kwargs.get("warmup", False):
++                triton_launches.append(True)
++            return result
++
++        monkeypatch.setattr(kernel, "run", record_launch)
++    processing_scheme = scheme.TorchScheme("cuda")
++
++    size = 2**21
++    rng = np.random.default_rng(782)
++    values = (rng.normal(size=size) + 1j * rng.normal(size=size)).astype(dtype)
++    points = np.array([137, 1884341, size - 3], dtype=np.int64)
++    bins = np.array([15360, 65536, 262144, 1048576], dtype=np.uint32)
++    # Evaluate direct complex128 phases independently of the recurrence. The
++    # late sample indices and long final bin expose accumulated phase error.
++    bin_sums = np.zeros((len(points), len(bins) - 1), dtype=np.complex128)
++    for column, (start, end) in enumerate(zip(bins[:-1], bins[1:])):
++        for first in range(int(start), int(end), 32768):
++            last = min(first + 32768, int(end))
++            frequencies = np.arange(first, last, dtype=np.float64)
++            phases = np.exp(2j * np.pi * points[:, None] * frequencies[None, :] / size)
++            bin_sums[:, column] += np.sum(values[None, first:last] * phases, axis=1)
++
++    snr = bin_sums.sum(axis=1).astype(dtype)
++    norm = float(1 / np.sqrt(size))
++    expected = (
++        (len(bins) - 1) * np.sum(abs(bin_sums) ** 2, axis=1)
++        - abs(snr.astype(np.complex128)) ** 2
++    ) * norm**2
++
++    with processing_scheme:
++        correlation = FrequencySeries(values, delta_f=1 / 512)
++        indices = Array(points) if array_indices else points
++        actual = power_chisq_at_points_from_precomputed(
++            correlation, snr, norm, bins, indices
++        )
++        assert actual._data.tensor.device.type == "cuda"
++        actual = actual.numpy()
++
++    if dtype == np.complex64:
++        # Multiple points must exercise the fused kernel, not a fallback.
++        assert triton_launches
++
++    assert actual.dtype == (np.float32 if dtype == np.complex64 else np.float64)
++    tolerance = 3e-6 if dtype == np.complex64 else 3e-8
++    np.testing.assert_allclose(actual, expected, rtol=tolerance, atol=1e-9)
+diff --git a/test/test_torch_sigmasq_series_precision.py b/test/test_torch_sigmasq_series_precision.py
+new file mode 100644
+index 0000000000..ec9e1ec60b
+--- /dev/null
++++ b/test/test_torch_sigmasq_series_precision.py
+@@ -0,0 +1,87 @@
++"""Cumulative template power must retain small contributions in long spectra."""
++
++import numpy as np
++import pytest
++
++from pycbc import scheme
++from pycbc.filter.matchedfilter import sigmasq_series
++from pycbc.types import FrequencySeries
++from pycbc.vetoes.chisq import power_chisq_bins_from_sigmasq_series
++
++
++@pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
++@pytest.mark.parametrize("use_psd", [False, True])
++@pytest.mark.parametrize("backend", ["torch-cpu", "torch-cuda"])
++def test_long_sigmasq_series_and_equal_power_bins(dtype, use_psd, backend):
++    torch = pytest.importorskip("torch")
++    device = backend.removeprefix("torch-")
++    if device == "cuda" and not torch.cuda.is_available():
++        pytest.skip("CUDA is unavailable")
++    context = scheme.TorchScheme(device=device, num_threads=1)
++    delta_f = 1 / 512
++    frequency = np.arange(1048577) * delta_f
++    low, high = 30.0, 1999.0
++    kmin, kmax = int(low / delta_f), int(high / delta_f)
++    # An inspiral-like amplitude gives a long, low-power tail. A sequential
++    # float32 prefix loses tail contributions after its running sum grows.
++    amplitude = (np.maximum(frequency, low) / low) ** (-7 / 6)
++    waveform = (amplitude * np.exp(0.2j * frequency)).astype(dtype)
++    real_dtype = np.float32 if dtype == np.complex64 else np.float64
++    psd_values = (1 + (frequency / 300) ** 2).astype(real_dtype)
++
++    band = waveform[kmin:kmax].astype(np.complex128)
++    reference_power = band.real**2 + band.imag**2
++    if use_psd:
++        reference_power /= psd_values[kmin:kmax].astype(np.float64)
++    reference_prefix = np.cumsum(reference_power, dtype=np.longdouble)
++
++    with context:
++        template = FrequencySeries(waveform, delta_f=delta_f)
++        psd = FrequencySeries(psd_values, delta_f=delta_f) if use_psd else None
++        result = sigmasq_series(template, psd, low, high)
++        bins = power_chisq_bins_from_sigmasq_series(result, 16, kmin, kmax)
++        actual = result.numpy()
++        if backend == "torch-cuda":
++            # A parallel float32 scan can move bin edges between identical
++            # calls. Repeated full calculations must retain the same bins.
++            for _ in range(20):
++                repeated = sigmasq_series(template, psd, low, high)
++                repeated_bins = power_chisq_bins_from_sigmasq_series(
++                    repeated, 16, kmin, kmax
++                )
++                np.testing.assert_array_equal(repeated_bins, bins)
++
++    assert result.dtype == real_dtype
++    assert result.delta_f == delta_f
++    assert np.count_nonzero(actual[:kmin]) == 0
++    assert np.count_nonzero(actual[kmax:]) == 0
++    # A million sequential float64 additions can be less accurate than a
++    # parallel scan. Bound both scans by their accumulated rounding error;
++    # longdouble gives a wider reference on platforms that support it.
++    roundoff = len(reference_prefix) * np.finfo(np.float64).eps
++    tolerance = 3e-7 if dtype == np.complex64 else 2 * roundoff / (1 - roundoff)
++    np.testing.assert_allclose(
++        actual[kmin:kmax], reference_prefix * (4 * delta_f), rtol=tolerance
++    )
++    # Assess the bins with independent double-precision power, allowing only
++    # discrete frequency-cell placement and the public output's rounding.
++    power_at_edges = np.append([0.0], reference_prefix)[bins - kmin]
++    bin_power = np.diff(power_at_edges)
++    equal_power = reference_prefix[-1] / 16
++    error_budget = 2 * reference_power.max() + 5e-6 * equal_power
++    assert np.all(abs(bin_power - equal_power) <= error_budget)
++
++
++@pytest.mark.parametrize("device", ["cpu", "cuda"])
++def test_equal_power_thresholds_between_adjacent_float32_values(device):
++    torch = pytest.importorskip("torch")
++    if device == "cuda" and not torch.cuda.is_available():
++        pytest.skip("CUDA is unavailable")
++    # The float32 values for thirds lie above the true thresholds. Rounding
++    # those thresholds to float32 would incorrectly include the equal value
++    # in searchsorted(side="right") and move both internal edges one cell.
++    prefix = np.array([0, 0, 0.1, 1 / 3, 0.5, 2 / 3, 0.8, 1, 0], dtype=np.float32)
++    with scheme.TorchScheme(device, num_threads=1):
++        series = FrequencySeries(prefix, delta_f=0.25)
++        bins = power_chisq_bins_from_sigmasq_series(series, 3, 2, 8)
++    np.testing.assert_array_equal(bins, [2, 3, 5, 8])
+diff --git a/test/test_torch_strain_psd_precision.py b/test/test_torch_strain_psd_precision.py
+new file mode 100644
+index 0000000000..0a3a789290
+--- /dev/null
++++ b/test/test_torch_strain_psd_precision.py
+@@ -0,0 +1,122 @@
++"""Strong spectral lines must not corrupt weak strain and PSD frequencies."""
++
++from types import SimpleNamespace
++
++import numpy as np
++import pytest
++from scipy.signal import welch as scipy_welch
++
++from pycbc import psd, scheme
++from pycbc.strain.strain import StrainSegments
++from pycbc.types import TimeSeries
++
++
++@pytest.fixture(params=["torch-cpu", "torch-cuda"])
++def context(request):
++    torch = pytest.importorskip("torch")
++    device = request.param.removeprefix("torch-")
++    if device == "cuda" and not torch.cuda.is_available():
++        pytest.skip("CUDA is unavailable")
++    return scheme.TorchScheme(device, num_threads=1)
++
++
++def line_rich_data(dtype):
++    time = np.arange(65536) / 512
++    values = np.random.default_rng(9172).normal(0, 0.001, len(time))
++    for frequency, amplitude in [(63.25, 32), (91.125, 11), (123.5, 7)]:
++        values += amplitude * np.sin(2 * np.pi * frequency * time)
++    # The numerical reference starts from these same rounded input samples.
++    return values.astype(dtype)
++
++
++@pytest.mark.parametrize("dtype", [np.float32, np.float64])
++def test_strain_segments_retain_weak_frequencies(context, dtype):
++    values = line_rich_data(dtype)
++    with context:
++        strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
++        segments = StrainSegments(
++            strain, segment_length=64, segment_start_pad=8, segment_end_pad=8,
++            trigger_start=1234567890, trigger_end=1234568018,
++            allow_zero_padding=True,
++        )
++        result = segments.fourier_segments()
++        assert segments.fourier_segments() is result
++        assert result[0].seg_slice.start < 0
++        assert result[-1].seg_slice.stop > len(values)
++        for output, segment, analyze in zip(
++            result, segments.segment_slices, segments.analyze_slices
++        ):
++            chunk = np.zeros(32768, dtype=np.float64)
++            start, stop = max(segment.start, 0), min(segment.stop, len(values))
++            chunk[start - segment.start:stop - segment.start] = values[start:stop]
++            reference = np.fft.rfft(chunk) / 512
++            expected_dtype = np.complex64 if dtype == np.float32 else np.complex128
++            assert output.dtype == expected_dtype
++            assert output.delta_f == 1 / 64
++            assert float(output.epoch) == 1234567890 + segment.start / 512
++            assert output.analyze == analyze
++            assert output.cumulative_index == segment.start + analyze.start
++            assert output.seg_slice == segment
++            np.testing.assert_allclose(
++                output.numpy(), reference,
++                rtol=2e-7 if dtype == np.float32 else 2e-11, atol=2e-11,
++            )
++        np.testing.assert_array_equal(strain.numpy(), values)
++
++
++def psd_options(inverse_length):
++    return SimpleNamespace(
++        psd_model=None, psd_file=None, asd_file=None, psd_estimation="median",
++        psd_low_frequency_cutoff=None, psd_segment_length=4,
++        psd_segment_stride=2, psd_num_segments=63,
++        psd_inverse_length=inverse_length, invpsd_trunc_method="hann",
++        invpsd_trunc_which_spectrum="invasd", psd_output=None,
++    )
++
++
++def reference_psd(values, inverse_length):
++    # SciPy's independent Welch estimator includes the even/odd median bias.
++    frequency, estimate = scipy_welch(
++        values.astype(np.float64), fs=512, window=np.hanning(2048),
++        nperseg=2048, noverlap=1024, detrend=False, average="median",
++    )
++    interpolated = np.interp(np.arange(16385) / 64, frequency, estimate)
++    if not inverse_length:
++        return interpolated
++    inverse_asd = np.zeros(16385, dtype=np.complex128)
++    inverse_asd[30 * 64:-1] = interpolated[30 * 64:-1] ** -0.5
++    impulse = np.fft.irfft(inverse_asd)
++    half = inverse_length * 512 // 2
++    window = np.hanning(inverse_length * 512)
++    impulse[:half] *= window[-half:]
++    impulse[-half:] *= window[:half]
++    impulse[half:-half] = 0
++    with np.errstate(divide="ignore"):
++        return 1 / np.abs(np.fft.rfft(impulse)) ** 2
++
++
++@pytest.mark.parametrize("dtype,precision", [
++    (np.float32, None), (np.float32, "double"),
++    (np.float64, None), (np.float64, "single"),
++])
++@pytest.mark.parametrize("inverse_length", [0, 2])
++def test_estimated_psd_retains_weak_frequencies(
++    context, dtype, precision, inverse_length
++):
++    values = line_rich_data(dtype)
++    expected = reference_psd(values, inverse_length)
++    output_dtype = (dtype if precision is None else
++                    np.float64 if precision == "double" else np.float32)
++    with context:
++        strain = TimeSeries(values, delta_t=1 / 512, epoch=1234567890)
++        actual = psd.from_cli(
++            psd_options(inverse_length), 16385, 1 / 64, 30,
++            strain=strain, precision=precision,
++        )
++        assert actual.dtype == output_dtype
++        assert actual.delta_f == 1 / 64
++        np.testing.assert_allclose(
++            actual.numpy()[30 * 64:-1], expected[30 * 64:-1],
++            rtol=3e-7 if output_dtype == np.float32 else 2e-9, atol=0,
++        )
++        np.testing.assert_array_equal(strain.numpy(), values)

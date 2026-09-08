@@ -1,0 +1,102 @@
+diff --git a/pycbc/filter/matchedfilter.py b/pycbc/filter/matchedfilter.py
+index 93b2cb0664..45a22ce966 100644
+--- a/pycbc/filter/matchedfilter.py
++++ b/pycbc/filter/matchedfilter.py
+@@ -1446,7 +1446,10 @@ def sigmasq_series(
+ 
+     mag = mag[kmin:kmax]
+     tensor = _torch_data_tensor(mag)
+-    if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.CPUScheme) or (
++    if (
++        mag.dtype == numpy.float32
++        and isinstance(pycbc.scheme.mgr.state, pycbc.scheme.CPUScheme)
++    ) or (
+         tensor is not None and tensor.device.type != "mps"
+     ):
+         # Long single-precision scans lose small tail contributions and can
+diff --git a/pycbc/psd/__init__.py b/pycbc/psd/__init__.py
+index 8fccdb09a1..f79cd6480b 100644
+--- a/pycbc/psd/__init__.py
++++ b/pycbc/psd/__init__.py
+@@ -105,6 +105,7 @@ def from_cli(
+         err_msg += "'--psd-model', '--asd-file', '--psd-estimation'"
+         raise ValueError(err_msg)
+ 
++    restore_dtype = None
+     if opt.psd_model or opt.psd_file or opt.asd_file:
+         # PSD from lalsimulation or file
+         if opt.psd_model:
+@@ -147,6 +148,8 @@ def from_cli(
+         # interpolation and inverse-spectrum truncation. MPS retains float32.
+         strain_dtype = strain.dtype
+         state = _scheme.mgr.state
++        if not isinstance(state, _scheme.CPUScheme):
++            restore_dtype = strain_dtype
+         if strain_dtype == float32 and (
+             isinstance(state, _scheme.CPUScheme)
+             or (
+@@ -154,6 +157,7 @@ def from_cli(
+                 and state.torch_device.type != "mps"
+             )
+         ):
++            restore_dtype = strain_dtype
+             strain = strain.astype(float64)
+         psd = welch(  # noqa: F405 - public estimate export
+             strain,
+@@ -193,8 +197,8 @@ def from_cli(
+         (psd.astype(float64) / (dyn_range_factor**2)).save(opt.psd_output)
+ 
+     if precision is None:
+-        if psd_estimation:
+-            return psd.astype(strain_dtype)
++        if restore_dtype is not None:
++            return psd.astype(restore_dtype)
+         return psd
+     elif precision == "single":
+         return psd.astype(float32)
+diff --git a/pycbc/strain/strain.py b/pycbc/strain/strain.py
+index c6e846a4bc..3223ff5d3a 100644
+--- a/pycbc/strain/strain.py
++++ b/pycbc/strain/strain.py
+@@ -1648,7 +1648,9 @@ class StrainSegments(object):
+                     # Strong lines can obscure weak FFT bins in float32.
+                     # Retain the segment's public precision and device.
+                     strain_chunk = strain_chunk.astype(numpy.float64)
+-                freq_seg = make_frequency_series(strain_chunk).astype(output_dtype)
++                freq_seg = make_frequency_series(strain_chunk)
++                if promote or not isinstance(state, _scheme.CPUScheme):
++                    freq_seg = freq_seg.astype(output_dtype)
+                 freq_seg.analyze = ana
+                 freq_seg.cumulative_index = seg_slice.start + ana.start
+                 freq_seg.seg_slice = seg_slice
+diff --git a/pycbc/vetoes/chisq.py b/pycbc/vetoes/chisq.py
+index df78834e05..82c6af8863 100644
+--- a/pycbc/vetoes/chisq.py
++++ b/pycbc/vetoes/chisq.py
+@@ -258,19 +258,15 @@ def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
+     if isinstance(mgr.state, CPUScheme):
+         from .chisq_cpu import point_chisq_code
+ 
+-        # The real fused type controls both phase recurrence and accumulation.
+-        # Use its double specialization without copying the correlation, and
+-        # compensate for the shortened pi literal in the existing kernel.
+-        shifts = numpy.asarray(indices, dtype=numpy.float64) * (numpy.pi / 3.141592653)
++        # The real fused type controls phase recurrence and accumulation.
++        # Use double precision without copying the correlation, and correct
++        # for the shortened pi literal in the existing kernel.
++        shifts = numpy.asarray(indices, dtype=numpy.float64)
++        shifts = shifts * (numpy.pi / 3.141592653)
+         chisq = numpy.zeros(len(shifts), dtype=numpy.float64)
+         point_chisq_code(
+-            chisq,
+-            corr.data,
+-            len(shifts),
+-            len(corr),
+-            shifts,
+-            numpy.asarray(bins, dtype=numpy.uint32),
+-            num_bins,
++            chisq, corr.data, len(shifts), len(corr), shifts,
++            numpy.asarray(bins, dtype=numpy.uint32), num_bins,
+         )
+         snr_values = numpy.asarray(snr)
+         output_dtype = numpy.result_type(

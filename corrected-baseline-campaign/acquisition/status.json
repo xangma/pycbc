@@ -1,0 +1,18 @@
+{
+  "state": "failed",
+  "pid": 2820930,
+  "pgid": 2820930,
+  "completed": [
+    "qual-corrected-cpu",
+    "qual-proposed-cpu",
+    "qual-torch-cpu",
+    "qual-torch-cuda"
+  ],
+  "started_utc": "2026-09-08T14:51:16.943709+00:00",
+  "lock": {
+    "path": "/home/xangma/pycbc-torch-performance-coordination-20260907/len-benchmark.lock",
+    "inode": 25195466
+  },
+  "current": "qual-torch-cuda",
+  "error": "AssertionError({'conditioned_strain_exact': True, 'geometry_exact': True, 'psds': [{'exact': False, 'nonfinite_masks_equal': True, 'relative_budget': 0.0001, 'absolute_floor': 0, 'violations': 2375, 'max_absolute_difference': 4174021016944640.0}]})"
+}

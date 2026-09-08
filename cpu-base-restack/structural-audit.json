@@ -1,0 +1,394 @@
+{
+  "status": "pass",
+  "main_old_head": "bd2d956f5c4e7c69b957181340d62d76a25717ac",
+  "main_new_head": "f582b6fd250d0b82612492979e01e645d5c07afc",
+  "changed_files": [
+    "pycbc/filter/matchedfilter.py",
+    "pycbc/psd/__init__.py",
+    "pycbc/strain/strain.py",
+    "pycbc/vetoes/chisq.py",
+    "test/test_chisq_precision.py",
+    "test/test_sigmasq_series_precision.py",
+    "test/test_strain_psd_precision.py",
+    "test/test_torch_chisq_precision.py",
+    "test/test_torch_sigmasq_series_precision.py",
+    "test/test_torch_strain_psd_precision.py"
+  ],
+  "functions": {
+    "pycbc/psd/__init__.py": {
+      "only_changed_function": "from_cli",
+      "other_module_ast_identical": true
+    },
+    "pycbc/filter/matchedfilter.py": {
+      "only_changed_function": "sigmasq_series",
+      "other_module_ast_identical": true
+    },
+    "pycbc/strain/strain.py": {
+      "only_changed_function": "fourier_segments",
+      "other_module_ast_identical": true
+    },
+    "pycbc/vetoes/chisq.py": {
+      "only_changed_function": "power_chisq_at_points_from_precomputed",
+      "other_module_ast_identical": true,
+      "cpu_body_exact_standalone_ast": true,
+      "torch_dispatch_identical_ast": true,
+      "old_new_arithmetic_identical_after_inlining_shifts": true
+    }
+  },
+  "prs": [
+    {
+      "pr": 18,
+      "old_head": "5444d9fa9ead578a43a3c0c02de641f2869f394b",
+      "new_head": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+      "native_blobs_identical": true,
+      "native_count": 14,
+      "native_manifest_sha256": "17594394395c4d12ac1779e361260096a62f65e90703813caf8a5c97574d8987",
+      "cpu_test_blobs_identical": true,
+      "docs_and_examples_identical": true,
+      "exact_replay_count": 2,
+      "delta": [
+        "M\tpycbc/filter/matchedfilter.py",
+        "M\tpycbc/psd/__init__.py",
+        "M\tpycbc/strain/strain.py",
+        "M\tpycbc/vetoes/chisq.py",
+        "A\ttest/test_chisq_precision.py",
+        "A\ttest/test_sigmasq_series_precision.py",
+        "A\ttest/test_strain_psd_precision.py"
+      ]
+    },
+    {
+      "pr": 5,
+      "old_head": "13cd5a9e4dfe5bc220cbca80e54471a18d770fe1",
+      "new_head": "4ae42eb20638704dae2ec47882387df3d81b0b08",
+      "native_blobs_identical": true,
+      "native_count": 14,
+      "native_manifest_sha256": "17594394395c4d12ac1779e361260096a62f65e90703813caf8a5c97574d8987",
+      "cpu_test_blobs_identical": true,
+      "docs_and_examples_identical": true,
+      "exact_replay_count": 2,
+      "delta": [
+        "M\tpycbc/filter/matchedfilter.py",
+        "M\tpycbc/psd/__init__.py",
+        "M\tpycbc/strain/strain.py",
+        "M\tpycbc/vetoes/chisq.py",
+        "A\ttest/test_chisq_precision.py",
+        "A\ttest/test_sigmasq_series_precision.py",
+        "A\ttest/test_strain_psd_precision.py"
+      ]
+    },
+    {
+      "pr": 6,
+      "old_head": "27870cb163e8ba9f518ebf5ecff4fd0213fb993b",
+      "new_head": "4865162eaa0c6f2332ec398bc30fc45773cb565c",
+      "native_blobs_identical": true,
+      "native_count": 14,
+      "native_manifest_sha256": "17594394395c4d12ac1779e361260096a62f65e90703813caf8a5c97574d8987",
+      "cpu_test_blobs_identical": true,
+      "docs_and_examples_identical": true,
+      "exact_replay_count": 1,
+      "delta": [
+        "M\tpycbc/filter/matchedfilter.py",
+        "M\tpycbc/psd/__init__.py",
+        "M\tpycbc/strain/strain.py",
+        "M\tpycbc/vetoes/chisq.py",
+        "A\ttest/test_chisq_precision.py",
+        "A\ttest/test_sigmasq_series_precision.py",
+        "A\ttest/test_strain_psd_precision.py"
+      ]
+    },
+    {
+      "pr": 7,
+      "old_head": "f8b9256650ecee25b34ea193dad10e6c19eed7b0",
+      "new_head": "92648253222205205c6ff96045ff1eb9ad6e30c1",
+      "native_blobs_identical": true,
+      "native_count": 14,
+      "native_manifest_sha256": "17594394395c4d12ac1779e361260096a62f65e90703813caf8a5c97574d8987",
+      "cpu_test_blobs_identical": true,
+      "docs_and_examples_identical": true,
+      "exact_replay_count": 1,
+      "delta": [
+        "M\tpycbc/filter/matchedfilter.py",
+        "M\tpycbc/psd/__init__.py",
+        "M\tpycbc/strain/strain.py",
+        "M\tpycbc/vetoes/chisq.py",
+        "A\ttest/test_chisq_precision.py",
+        "A\ttest/test_sigmasq_series_precision.py",
+        "A\ttest/test_strain_psd_precision.py"
+      ]
+    },
+    {
+      "pr": 8,
+      "old_head": "d5df3d23fc2ed6a54f7376b7932e473184d6f063",
+      "new_head": "026f4e8c9418e18cef1a44af36520936b2b2450c",
+      "native_blobs_identical": true,
+      "native_count": 14,
+      "native_manifest_sha256": "17594394395c4d12ac1779e361260096a62f65e90703813caf8a5c97574d8987",
+      "cpu_test_blobs_identical": true,
+      "docs_and_examples_identical": true,
+      "exact_replay_count": 1,
+      "delta": [
+        "M\tpycbc/filter/matchedfilter.py",
+        "M\tpycbc/psd/__init__.py",
+        "M\tpycbc/strain/strain.py",
+        "M\tpycbc/vetoes/chisq.py",
+        "M\ttest/test_chisq_precision.py",
+        "M\ttest/test_sigmasq_series_precision.py",
+        "A\ttest/test_strain_psd_precision.py",
+        "A\ttest/test_torch_chisq_precision.py",
+        "A\ttest/test_torch_sigmasq_series_precision.py"
+      ]
+    },
+    {
+      "pr": 9,
+      "old_head": "6c6de2a31d62465feaf2c2c876e1e60dc3418407",
+      "new_head": "5fea7897c352b2952581308707af6236539421ba",
+      "native_blobs_identical": true,
+      "native_count": 14,
+      "native_manifest_sha256": "17594394395c4d12ac1779e361260096a62f65e90703813caf8a5c97574d8987",
+      "cpu_test_blobs_identical": true,
+      "docs_and_examples_identical": true,
+      "exact_replay_count": 1,
+      "delta": [
+        "M\tpycbc/filter/matchedfilter.py",
+        "M\tpycbc/psd/__init__.py",
+        "M\tpycbc/strain/strain.py",
+        "M\tpycbc/vetoes/chisq.py",
+        "M\ttest/test_chisq_precision.py",
+        "M\ttest/test_sigmasq_series_precision.py",
+        "M\ttest/test_strain_psd_precision.py",
+        "A\ttest/test_torch_chisq_precision.py",
+        "A\ttest/test_torch_sigmasq_series_precision.py",
+        "A\ttest/test_torch_strain_psd_precision.py"
+      ]
+    },
+    {
+      "pr": 10,
+      "old_head": "f27a4802cf577569062bd55603f77f5a1146d3eb",
+      "new_head": "4d1901a58577c40ef393650d4d134a82fa9a69f0",
+      "native_blobs_identical": true,
+      "native_count": 14,
+      "native_manifest_sha256": "17594394395c4d12ac1779e361260096a62f65e90703813caf8a5c97574d8987",
+      "cpu_test_blobs_identical": true,
+      "docs_and_examples_identical": true,
+      "exact_replay_count": 1,
+      "delta": [
+        "M\tpycbc/filter/matchedfilter.py",
+        "M\tpycbc/psd/__init__.py",
+        "M\tpycbc/strain/strain.py",
+        "M\tpycbc/vetoes/chisq.py",
+        "M\ttest/test_chisq_precision.py",
+        "M\ttest/test_sigmasq_series_precision.py",
+        "M\ttest/test_strain_psd_precision.py",
+        "A\ttest/test_torch_chisq_precision.py",
+        "A\ttest/test_torch_sigmasq_series_precision.py",
+        "A\ttest/test_torch_strain_psd_precision.py"
+      ]
+    },
+    {
+      "pr": 11,
+      "old_head": "e5c9b865c56f4e7052163af965e0a3406657bd8a",
+      "new_head": "971f2b6036c3fddc10099481efb83377cfcb788c",
+      "native_blobs_identical": true,
+      "native_count": 14,
+      "native_manifest_sha256": "17594394395c4d12ac1779e361260096a62f65e90703813caf8a5c97574d8987",
+      "cpu_test_blobs_identical": true,
+      "docs_and_examples_identical": true,
+      "exact_replay_count": 1,
+      "delta": [
+        "M\tpycbc/filter/matchedfilter.py",
+        "M\tpycbc/psd/__init__.py",
+        "M\tpycbc/strain/strain.py",
+        "M\tpycbc/vetoes/chisq.py",
+        "M\ttest/test_chisq_precision.py",
+        "M\ttest/test_sigmasq_series_precision.py",
+        "M\ttest/test_strain_psd_precision.py",
+        "A\ttest/test_torch_chisq_precision.py",
+        "A\ttest/test_torch_sigmasq_series_precision.py",
+        "A\ttest/test_torch_strain_psd_precision.py"
+      ]
+    },
+    {
+      "pr": 12,
+      "old_head": "3c71bb58a7972a05779590824cd859e394ea6377",
+      "new_head": "a8181bd598f9775ef44fb277a9ac8348cba356ce",
+      "native_blobs_identical": true,
+      "native_count": 14,
+      "native_manifest_sha256": "17594394395c4d12ac1779e361260096a62f65e90703813caf8a5c97574d8987",
+      "cpu_test_blobs_identical": true,
+      "docs_and_examples_identical": true,
+      "exact_replay_count": 1,
+      "delta": [
+        "M\tpycbc/filter/matchedfilter.py",
+        "M\tpycbc/psd/__init__.py",
+        "M\tpycbc/strain/strain.py",
+        "M\tpycbc/vetoes/chisq.py",
+        "M\ttest/test_chisq_precision.py",
+        "M\ttest/test_sigmasq_series_precision.py",
+        "M\ttest/test_strain_psd_precision.py",
+        "A\ttest/test_torch_chisq_precision.py",
+        "A\ttest/test_torch_sigmasq_series_precision.py",
+        "A\ttest/test_torch_strain_psd_precision.py"
+      ]
+    },
+    {
+      "pr": 13,
+      "old_head": "48a22169bf90800908f04d7ee23566b4ee4dbae0",
+      "new_head": "f1d02414dbe13a0c689d7eb37b0180182e603b20",
+      "native_blobs_identical": true,
+      "native_count": 14,
+      "native_manifest_sha256": "17594394395c4d12ac1779e361260096a62f65e90703813caf8a5c97574d8987",
+      "cpu_test_blobs_identical": true,
+      "docs_and_examples_identical": true,
+      "exact_replay_count": 1,
+      "delta": [
+        "M\tpycbc/filter/matchedfilter.py",
+        "M\tpycbc/psd/__init__.py",
+        "M\tpycbc/strain/strain.py",
+        "M\tpycbc/vetoes/chisq.py",
+        "M\ttest/test_chisq_precision.py",
+        "M\ttest/test_sigmasq_series_precision.py",
+        "M\ttest/test_strain_psd_precision.py",
+        "A\ttest/test_torch_chisq_precision.py",
+        "A\ttest/test_torch_sigmasq_series_precision.py",
+        "A\ttest/test_torch_strain_psd_precision.py"
+      ]
+    },
+    {
+      "pr": 14,
+      "old_head": "22410cd57e2bfb3a087c96917a0b93155cf80cac",
+      "new_head": "d196f687230e1a1f3e1c7b75d25b97db1cbac924",
+      "native_blobs_identical": true,
+      "native_count": 14,
+      "native_manifest_sha256": "17594394395c4d12ac1779e361260096a62f65e90703813caf8a5c97574d8987",
+      "cpu_test_blobs_identical": true,
+      "docs_and_examples_identical": true,
+      "exact_replay_count": 1,
+      "delta": [
+        "M\tpycbc/filter/matchedfilter.py",
+        "M\tpycbc/psd/__init__.py",
+        "M\tpycbc/strain/strain.py",
+        "M\tpycbc/vetoes/chisq.py",
+        "M\ttest/test_chisq_precision.py",
+        "M\ttest/test_sigmasq_series_precision.py",
+        "M\ttest/test_strain_psd_precision.py",
+        "A\ttest/test_torch_chisq_precision.py",
+        "A\ttest/test_torch_sigmasq_series_precision.py",
+        "A\ttest/test_torch_strain_psd_precision.py"
+      ]
+    },
+    {
+      "pr": 15,
+      "old_head": "bd2d956f5c4e7c69b957181340d62d76a25717ac",
+      "new_head": "f582b6fd250d0b82612492979e01e645d5c07afc",
+      "native_blobs_identical": true,
+      "native_count": 14,
+      "native_manifest_sha256": "17594394395c4d12ac1779e361260096a62f65e90703813caf8a5c97574d8987",
+      "cpu_test_blobs_identical": true,
+      "docs_and_examples_identical": true,
+      "exact_replay_count": 6,
+      "delta": [
+        "M\tpycbc/filter/matchedfilter.py",
+        "M\tpycbc/psd/__init__.py",
+        "M\tpycbc/strain/strain.py",
+        "M\tpycbc/vetoes/chisq.py",
+        "M\ttest/test_chisq_precision.py",
+        "M\ttest/test_sigmasq_series_precision.py",
+        "M\ttest/test_strain_psd_precision.py",
+        "A\ttest/test_torch_chisq_precision.py",
+        "A\ttest/test_torch_sigmasq_series_precision.py",
+        "A\ttest/test_torch_strain_psd_precision.py"
+      ]
+    },
+    {
+      "pr": 19,
+      "old_head": "1b81a82b84814d6cdc6cc6d27cf47b1b4e195fde",
+      "new_head": "52425c6b8e5c8ffe79fa6bc4c1c3b70515163ea7",
+      "native_blobs_identical": true,
+      "native_count": 14,
+      "native_manifest_sha256": "17594394395c4d12ac1779e361260096a62f65e90703813caf8a5c97574d8987",
+      "cpu_test_blobs_identical": true,
+      "docs_and_examples_identical": true,
+      "exact_replay_count": 1,
+      "delta": [
+        "M\tpycbc/filter/matchedfilter.py",
+        "M\tpycbc/psd/__init__.py",
+        "M\tpycbc/strain/strain.py",
+        "M\tpycbc/vetoes/chisq.py",
+        "M\ttest/test_chisq_precision.py",
+        "M\ttest/test_sigmasq_series_precision.py",
+        "M\ttest/test_strain_psd_precision.py",
+        "A\ttest/test_torch_chisq_precision.py",
+        "A\ttest/test_torch_sigmasq_series_precision.py",
+        "A\ttest/test_torch_strain_psd_precision.py"
+      ]
+    },
+    {
+      "pr": 16,
+      "old_head": "52bb4742667671f178314b2bd1a23f83029cab32",
+      "new_head": "d4699798e44d8e4b4935d3d50c53279acde0c0b2",
+      "native_blobs_identical": true,
+      "native_count": 14,
+      "native_manifest_sha256": "17594394395c4d12ac1779e361260096a62f65e90703813caf8a5c97574d8987",
+      "cpu_test_blobs_identical": true,
+      "docs_and_examples_identical": true,
+      "exact_replay_count": 1,
+      "delta": [
+        "M\tpycbc/filter/matchedfilter.py",
+        "M\tpycbc/psd/__init__.py",
+        "M\tpycbc/strain/strain.py",
+        "M\tpycbc/vetoes/chisq.py",
+        "M\ttest/test_chisq_precision.py",
+        "M\ttest/test_sigmasq_series_precision.py",
+        "M\ttest/test_strain_psd_precision.py",
+        "A\ttest/test_torch_chisq_precision.py",
+        "A\ttest/test_torch_sigmasq_series_precision.py",
+        "A\ttest/test_torch_strain_psd_precision.py"
+      ]
+    },
+    {
+      "pr": 17,
+      "old_head": "b213a6aeffa69ba0f249c8b5c883434d2371cecf",
+      "new_head": "db8c849bdc4e6eb63e84e67ae11a9efd2f10db9f",
+      "native_blobs_identical": true,
+      "native_count": 14,
+      "native_manifest_sha256": "0790b49d3ba6da10ea585a6874644c74dcb5a16467677e928574416c24202b9d",
+      "cpu_test_blobs_identical": true,
+      "docs_and_examples_identical": true,
+      "exact_replay_count": 1,
+      "delta": [
+        "M\tpycbc/filter/matchedfilter.py",
+        "M\tpycbc/psd/__init__.py",
+        "M\tpycbc/strain/strain.py",
+        "M\tpycbc/vetoes/chisq.py",
+        "M\ttest/test_chisq_precision.py",
+        "M\ttest/test_sigmasq_series_precision.py",
+        "M\ttest/test_strain_psd_precision.py",
+        "A\ttest/test_torch_chisq_precision.py",
+        "A\ttest/test_torch_sigmasq_series_precision.py",
+        "A\ttest/test_torch_strain_psd_precision.py"
+      ]
+    }
+  ],
+  "main_native_blobs": {
+    "pycbc/events/eventmgr_cython.pyx": "c0eebebf072e4b8164c5338f9652539bd2bd1838",
+    "pycbc/events/simd_threshold_ccode.cpp": "015c023efc1521a706ccd5ea4fef716b35f160ac",
+    "pycbc/events/simd_threshold_cython.pyx": "c4a441a4ab427fe92c663a24154b554980c3dd03",
+    "pycbc/fft/fftw_pruned_cython.pyx": "8cfd716a8a593fe3edc09d0ae8f2893dd090faae",
+    "pycbc/filter/matchedfilter_cpu.pyx": "aea47af4ad000612055232c917f050b22e80e0eb",
+    "pycbc/filter/simd_correlate_ccode.cpp": "07a2a7420b2c54b221e5ff07af6144efcc0db556",
+    "pycbc/filter/simd_correlate_cython.pyx": "091ff4d8d65d0c20a8169dec567efe646d3cc7d9",
+    "pycbc/inference/models/relbin_cpu.pyx": "77df7d742ca5625bbb99f5c920893eae4f0cac2d",
+    "pycbc/types/array_cpu.pyx": "7d33b4cfe5ac82e4d6ed07f1869efb3091b0a6c6",
+    "pycbc/vetoes/chisq_cpu.pyx": "15dece5585a2d06bc3a17047d81328e981a6044c",
+    "pycbc/waveform/decompress_cpu_ccode.cpp": "9bc8be99d9aa9fdf40bb66a75d9eeb0d3e80f760",
+    "pycbc/waveform/decompress_cpu_cython.pyx": "a77cc9711fb2a7ec76514ca29df4d0d4fffdcb93",
+    "pycbc/waveform/spa_tmplt_cpu.pyx": "7e03094adaf9199b688f26ff3e407d40c55b20db",
+    "pycbc/waveform/utils_cpu.pyx": "5ace3c7e3347771c41f2145f48bff0991dae91b3"
+  },
+  "cpu_test_blobs": {
+    "test/test_chisq_precision.py": "7e0cd82c244704f676b0a4dd6d1752ce94df80ac",
+    "test/test_sigmasq_series_precision.py": "1dd4b6534b981d409cd59c768b72c7d4aed6fcab",
+    "test/test_strain_psd_precision.py": "cbf0de5061aa09fba783cdbfd3ed397bf6378224"
+  },
+  "scope": "Only four production functions and six precision test files differ from prior main; all other tracked files identical."
+}

@@ -1,0 +1,92 @@
+{
+  "corrected-vs-proposed-cpu": {
+    "conditioned_strain_exact": true,
+    "geometry_exact": true,
+    "psds": [
+      {
+        "full_psd_budget_pass": true,
+        "full_psd_finite_violations": 0,
+        "nonfinite_masks_equal": true,
+        "used_psd_exact": true,
+        "filter_bins": [
+          15360,
+          1048576
+        ],
+        "relative_budget": 0.0001,
+        "absolute_floor": 0
+      }
+    ]
+  },
+  "corrected-vs-torch-cpu": {
+    "conditioned_strain_exact": true,
+    "geometry_exact": true,
+    "psds": [
+      {
+        "full_psd_budget_pass": false,
+        "full_psd_finite_violations": 2375,
+        "nonfinite_masks_equal": true,
+        "used_psd_exact": true,
+        "filter_bins": [
+          15360,
+          1048576
+        ],
+        "relative_budget": 0.0001,
+        "absolute_floor": 0
+      }
+    ]
+  },
+  "corrected-vs-torch-cuda": {
+    "conditioned_strain_exact": true,
+    "geometry_exact": true,
+    "psds": [
+      {
+        "full_psd_budget_pass": false,
+        "full_psd_finite_violations": 3105,
+        "nonfinite_masks_equal": true,
+        "used_psd_exact": true,
+        "filter_bins": [
+          15360,
+          1048576
+        ],
+        "relative_budget": 0.0001,
+        "absolute_floor": 0
+      }
+    ]
+  },
+  "proposed-cpu-vs-torch-cpu": {
+    "conditioned_strain_exact": true,
+    "geometry_exact": true,
+    "psds": [
+      {
+        "full_psd_budget_pass": false,
+        "full_psd_finite_violations": 2375,
+        "nonfinite_masks_equal": true,
+        "used_psd_exact": true,
+        "filter_bins": [
+          15360,
+          1048576
+        ],
+        "relative_budget": 0.0001,
+        "absolute_floor": 0
+      }
+    ]
+  },
+  "proposed-cpu-vs-torch-cuda": {
+    "conditioned_strain_exact": true,
+    "geometry_exact": true,
+    "psds": [
+      {
+        "full_psd_budget_pass": false,
+        "full_psd_finite_violations": 3105,
+        "nonfinite_masks_equal": true,
+        "used_psd_exact": true,
+        "filter_bins": [
+          15360,
+          1048576
+        ],
+        "relative_budget": 0.0001,
+        "absolute_floor": 0
+      }
+    ]
+  }
+}

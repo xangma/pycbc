@@ -1,0 +1,11 @@
+{"case": "qual-corrected-cpu", "elapsed_wall_seconds": 68.02617149800062, "returncode": 0}
+{"case": "qual-proposed-cpu", "elapsed_wall_seconds": 65.48241555795539, "returncode": 0}
+{"case": "qual-torch-cpu", "elapsed_wall_seconds": 102.48672564397566, "returncode": 0}
+{"case": "qual-torch-cuda", "elapsed_wall_seconds": 20.498724160017446, "returncode": 0}
+Traceback (most recent call last):
+  File "/home/xangma/pycbc-torch-precision-validation-20260908/corrected-baseline-campaign/campaign.py", line 338, in <module>
+    main()
+  File "/home/xangma/pycbc-torch-precision-validation-20260908/corrected-baseline-campaign/campaign.py", line 297, in main
+    assert all(x['nonfinite_masks_equal'] and x['violations'] == 0 for x in condition['psds']), condition
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'conditioned_strain_exact': True, 'geometry_exact': True, 'psds': [{'exact': False, 'nonfinite_masks_equal': True, 'relative_budget': 0.0001, 'absolute_floor': 0, 'violations': 2375, 'max_absolute_difference': 4174021016944640.0}]}

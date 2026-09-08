@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "sources": [
+    {
+      "source": "corrected",
+      "commit": "66789ac4a7468094b0cc3ca1498a1de67e0311f6",
+      "tracked_count": 1081,
+      "symlink_targets": {
+        "examples/workflow/generic/multilevel_subworkflow_data/simple.ini": "examples/workflow/generic/simple_subworkflow_data/simple.ini",
+        "examples/workflow/generic/multilevel_subworkflow_data/simple.py": "examples/workflow/generic/simple_subworkflow_data/simple.py",
+        "examples/workflow/generic/multilevel_subworkflow_data/test_input.txt": "examples/workflow/generic/simple_subworkflow_data/test_input.txt",
+        "examples/workflow/inference/small_test/single.ini": "examples/inference/single/single_simple.ini"
+      },
+      "status": "PASS",
+      "tracked_hashes_exact": true
+    },
+    {
+      "source": "proposed",
+      "commit": "f582b6fd250d0b82612492979e01e645d5c07afc",
+      "tracked_count": 1230,
+      "symlink_targets": {
+        "examples/workflow/generic/multilevel_subworkflow_data/simple.ini": "examples/workflow/generic/simple_subworkflow_data/simple.ini",
+        "examples/workflow/generic/multilevel_subworkflow_data/simple.py": "examples/workflow/generic/simple_subworkflow_data/simple.py",
+        "examples/workflow/generic/multilevel_subworkflow_data/test_input.txt": "examples/workflow/generic/simple_subworkflow_data/test_input.txt",
+        "examples/workflow/inference/small_test/single.ini": "examples/inference/single/single_simple.ini"
+      },
+      "status": "PASS",
+      "tracked_hashes_exact": true
+    }
+  ],
+  "source_pins_sha256": "3745c9d356dbe2c162f7f57c681179e4f9119d001a269cb57b2089086ccaa219",
+  "scope": "All acquired tracked-file hashes match local Git objects at the measured commits, resolving tracked symlink targets inside the Git archive to match acquisition hashing. Native binary and generated-version identities remain recorded acquisition/build evidence, not Git-tracked source."
+}

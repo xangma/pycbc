@@ -1,0 +1,28 @@
+{
+  "purpose": "Complete descriptive fixed-workload timings; full-PSD failures remain failures.",
+  "initial_stop": {
+    "state": "failed",
+    "pid": 2820930,
+    "pgid": 2820930,
+    "completed": [
+      "qual-corrected-cpu",
+      "qual-proposed-cpu",
+      "qual-torch-cpu",
+      "qual-torch-cuda"
+    ],
+    "started_utc": "2026-09-08T14:51:16.943709+00:00",
+    "lock": {
+      "path": "/home/xangma/pycbc-torch-performance-coordination-20260907/len-benchmark.lock",
+      "inode": 25195466
+    },
+    "current": "qual-torch-cuda",
+    "error": "AssertionError({'conditioned_strain_exact': True, 'geometry_exact': True, 'psds': [{'exact': False, 'nonfinite_masks_equal': True, 'relative_budget': 0.0001, 'absolute_floor': 0, 'violations': 2375, 'max_absolute_difference': 4174021016944640.0}]})"
+  },
+  "initial_status_sha256": "bc1ec2422240a5471e816af4f80f023b1838a4c8eac3c386d415daaad752877d",
+  "change": "After observing excluded-bin PSD differences, allow timings only after all corrected-baseline and proposed-backend trigger comparisons, exact conditioned strain/geometry, and exact used PSD bins pass. Preserve full-array checks and prohibit full-equivalence speedup claims. No source, input, tolerance, worker command or ordering changes.",
+  "post_qualification_amendment": true,
+  "full_psd_failures_reclassified_as_pass": false,
+  "acquisition_script_sha256": "4c10272822310a6f4e07b9068f014a164d64a420ee4a1778e2316b9993316a2f",
+  "continuation_script_sha256": "f26b846eee2c87836335b3998c4a018681390f515340631249b09b15f7dadbbb",
+  "decided_at_utc": "2026-09-08T14:56:30.923411+00:00"
+}

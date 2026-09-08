@@ -1,0 +1,9 @@
+{
+  "command": [
+    "nvidia-smi",
+    "--query-gpu=name,uuid,utilization.gpu,memory.used,memory.total",
+    "--format=csv,noheader,nounits"
+  ],
+  "returncode": 0,
+  "output": "NVIDIA GeForce RTX 4090, GPU-2e198102-8223-da7b-4944-2df0e9400916, 0, 2376, 24564"
+}

@@ -1,0 +1,236 @@
+{
+  "status": "COMPLETE",
+  "verified_at_utc": "2026-09-08T15:22:02.368108+00:00",
+  "evidence_status": "PASS_WITH_LIMITATIONS",
+  "scientific_status": "FAIL",
+  "equal_output_speedup_eligible": false,
+  "source_commits": {
+    "corrected-cpu": "66789ac4a7468094b0cc3ca1498a1de67e0311f6",
+    "proposed-cpu": "f582b6fd250d0b82612492979e01e645d5c07afc",
+    "torch-cpu": "f582b6fd250d0b82612492979e01e645d5c07afc",
+    "torch-cuda": "f582b6fd250d0b82612492979e01e645d5c07afc"
+  },
+  "acquisition": {
+    "qualification_runs": 4,
+    "timing_runs": 16,
+    "repeats_per_arm": 4,
+    "comparisons": 5,
+    "own_qualification_timing_comparisons": 16,
+    "manifested_file_hashes": 292,
+    "tar_members_including_manifest": 293,
+    "consumed_evidence_files": 264,
+    "archive_sha256": "3c7cff78082c7b344a38d13d216ae1c647315720eea1b4690b4e969d618b4af6",
+    "summary_filename": "summary.json",
+    "summary_sha256": "1b856e9160adf87e692a32ec5b4c3eaa14130c5aa7fc3df5cbc104a3df2f7c83"
+  },
+  "workload": {
+    "templates": 384,
+    "segments": 5,
+    "valid_seconds": 1904,
+    "template_seconds": 731136
+  },
+  "timing_boundary": "Fresh checked-inspiral process launch through exit after HDF output, runtime receipts, and native module verification. Qualification runs excluded; no profiling.",
+  "arms": {
+    "corrected-cpu": {
+      "source": "66789ac4a7468094b0cc3ca1498a1de67e0311f6",
+      "scheme": "cpu:1",
+      "samples_seconds": [
+        68.17442439007573,
+        68.23176337894984,
+        68.24514053098392,
+        68.4866237740498
+      ],
+      "median_seconds": 68.23845195496688,
+      "min_seconds": 68.17442439007573,
+      "max_seconds": 68.4866237740498,
+      "template_seconds_per_wall_second": 10714.428288650279,
+      "trigger_count": 1991
+    },
+    "proposed-cpu": {
+      "source": "f582b6fd250d0b82612492979e01e645d5c07afc",
+      "scheme": "cpu:1",
+      "samples_seconds": [
+        65.37029141804669,
+        65.46929226501379,
+        65.47502530296333,
+        65.67205962294247
+      ],
+      "median_seconds": 65.47215878398856,
+      "min_seconds": 65.37029141804669,
+      "max_seconds": 65.67205962294247,
+      "template_seconds_per_wall_second": 11167.12834247955,
+      "trigger_count": 1991
+    },
+    "torch-cpu": {
+      "source": "f582b6fd250d0b82612492979e01e645d5c07afc",
+      "scheme": "torch:cpu:1",
+      "samples_seconds": [
+        102.45852935209405,
+        102.20710822497495,
+        102.43388797994703,
+        102.72840830602217
+      ],
+      "median_seconds": 102.44620866602054,
+      "min_seconds": 102.20710822497495,
+      "max_seconds": 102.72840830602217,
+      "template_seconds_per_wall_second": 7136.779481840444,
+      "trigger_count": 1991
+    },
+    "torch-cuda": {
+      "source": "f582b6fd250d0b82612492979e01e645d5c07afc",
+      "scheme": "torch:cuda:0",
+      "samples_seconds": [
+        20.352700738003477,
+        20.29897227603942,
+        20.298053590930067,
+        20.349123112973757
+      ],
+      "median_seconds": 20.32404769450659,
+      "min_seconds": 20.298053590930067,
+      "max_seconds": 20.352700738003477,
+      "template_seconds_per_wall_second": 35973.936441687234,
+      "trigger_count": 1991
+    }
+  },
+  "comparisons": {
+    "corrected-vs-proposed-cpu": {
+      "trigger_status": "pass",
+      "scientific_status": "PASS",
+      "eligible": true,
+      "conditioned_strain_digest_exact": true,
+      "geometry_exact": true,
+      "in_band_psd_exact": true,
+      "full_psd_pass": true,
+      "full_psd_violations_per_segment": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "descriptive_wall_ratio_left_over_right": 1.0422514427866219
+    },
+    "corrected-vs-torch-cpu": {
+      "trigger_status": "pass",
+      "scientific_status": "FAIL",
+      "eligible": false,
+      "conditioned_strain_digest_exact": true,
+      "geometry_exact": true,
+      "in_band_psd_exact": true,
+      "full_psd_pass": false,
+      "full_psd_violations_per_segment": [
+        2375,
+        2375,
+        2375,
+        2375,
+        2375
+      ],
+      "descriptive_wall_ratio_left_over_right": 0.666090554677601
+    },
+    "corrected-vs-torch-cuda": {
+      "trigger_status": "pass",
+      "scientific_status": "FAIL",
+      "eligible": false,
+      "conditioned_strain_digest_exact": true,
+      "geometry_exact": true,
+      "in_band_psd_exact": true,
+      "full_psd_pass": false,
+      "full_psd_violations_per_segment": [
+        3105,
+        3105,
+        3105,
+        3105,
+        3105
+      ],
+      "descriptive_wall_ratio_left_over_right": 3.3575227228683944
+    },
+    "proposed-cpu-vs-torch-cpu": {
+      "trigger_status": "pass",
+      "scientific_status": "FAIL",
+      "eligible": false,
+      "conditioned_strain_digest_exact": true,
+      "geometry_exact": true,
+      "in_band_psd_exact": true,
+      "full_psd_pass": false,
+      "full_psd_violations_per_segment": [
+        2375,
+        2375,
+        2375,
+        2375,
+        2375
+      ],
+      "descriptive_wall_ratio_left_over_right": 0.6390881579369216
+    },
+    "proposed-cpu-vs-torch-cuda": {
+      "trigger_status": "pass",
+      "scientific_status": "FAIL",
+      "eligible": false,
+      "conditioned_strain_digest_exact": true,
+      "geometry_exact": true,
+      "in_band_psd_exact": true,
+      "full_psd_pass": false,
+      "full_psd_violations_per_segment": [
+        3105,
+        3105,
+        3105,
+        3105,
+        3105
+      ],
+      "descriptive_wall_ratio_left_over_right": 3.221413360572122
+    }
+  },
+  "dependency_reconciliation": {
+    "status": "RECONCILED_WITH_POST_RUN_DIAGNOSTIC",
+    "manifest_torch_version": "2.1.1",
+    "runtime_torch_version": "2.13.0+cu130",
+    "runtime_cuda_version": "13.0",
+    "diagnostic_sha256": "bce26fe08f8d7f49fe1a1134ffd16bb924abbda9dd946d32cc917683f0e5e1c1",
+    "diagnostic_script_sha256": "b98136e61bbcca021250b2fdbde2f59385aaf2d2e279b17e2c806159d2e258fe",
+    "manifest_sha256": "ecbeb9363b47dc395e1c0ac157687be614732fc06f4365db6ba8baf3be7c8d7c",
+    "timing_status_sha256": "8cf15d477e7e619571b8c5f429922e753d827055be3e1f5b1ec09c808e7ebd1d",
+    "observed_at_utc": "2026-09-08T15:14:27.717615+00:00",
+    "hostname": "len",
+    "executable": "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "original_manifest_unchanged": true,
+    "explanation": "Two distinct installations have matching selected RECORD hashes. Distribution enumeration collapses duplicate torch names with last value 2.1.1; first-match metadata and the post-run import identify 2.13.0+cu130. All Torch worker runtime version receipts must match the latter.",
+    "scope": "Worker version receipts and post-run installation identity only. No retrospective hash of Torch binaries loaded by workers is available; the post-run _C hash does not establish that identity."
+  },
+  "source_proof": {
+    "status": "PASS",
+    "independently_reproduced": true,
+    "primary_report_sha256": "39a3b1c92799e16ebf0659595900572b39a32a531e699354b2c65c84485ec408",
+    "reproduction_sha256": "39a3b1c92799e16ebf0659595900572b39a32a531e699354b2c65c84485ec408",
+    "script_sha256": "6ea113a37bc18fcbeda08ce73ac3fdd7ba208f48f6ed38e5406e03bad309e381",
+    "source_pins_sha256": "3745c9d356dbe2c162f7f57c681179e4f9119d001a269cb57b2089086ccaa219"
+  },
+  "tests": {
+    "self_tests": 47,
+    "final_evidence_rejections": 13,
+    "passing_full_evidence_control": 1,
+    "flake8_select": [
+      "F401",
+      "F821",
+      "F822",
+      "F823"
+    ],
+    "flake8_status": "PASS"
+  },
+  "limitations": [
+    "Shared-host finite-workload comparison with four timed repetitions per arm; no host/GPU reservation, sustained capacity, or statistical significance claim.",
+    "CPU-versus-Torch full PSD comparisons fail the frozen rtol=1e-4, atol=0 budget. Their timing ratios are descriptive and ineligible for equal-output speedup claims.",
+    "Post-run Torch inspection explains metadata selection and checks later installation bytes; it does not retrospectively hash binary bytes loaded by benchmark workers.",
+    "Input bytes, native binaries, and conditioned-strain samples were not transferred. Native/input identity and strain equality use acquisition receipts; tracked source bytes were independently checked against Git.",
+    "Measurements apply to corrected 66789ac4a7468094b0cc3ca1498a1de67e0311f6 and proposed f582b6fd250d0b82612492979e01e645d5c07afc. Later publication formatting revisions are outside this measurement proof.",
+    "Separate Qlty execution is not a benchmark measurement; transferred auxiliary quality files were hash-checked only."
+  ],
+  "evidence_files_sha256": {
+    "final-verification-2.json": "12417766eb6c49cddde9a4f4725275aa7bc07a44d0e81fdf358381285cdf5bee",
+    "transfer-verification.json": "e5ad5c9322d5f10bcb6f4bbb632f73f5684f874c06c7693c2e9ccf34f8178935",
+    "source-proof-reproduced.json": "39a3b1c92799e16ebf0659595900572b39a32a531e699354b2c65c84485ec408",
+    "source-review.json": "ab4977b38481e4dd133fb3b838a3fc51591c51ca22b43c106f163964101d301a",
+    "source-verification.json": "0050dad055f9a1cf477ac063052c84fe9beb2cc614fada6df653ea633c84d08a",
+    "final-self-test-2.json": "636b6354dd967cbb03422f02c259975257d6c5902be88a33abf5771ff4345c40",
+    "final-evidence-rejection-tests.json": "feaae3693f3fdc258737f01f81ffe62e9da6101ed3a447f40473d3260bbed9a3"
+  },
+  "verifier_sha256": "252c6c0fb41f6230df1702a6da2d0510b148cb9cecac2811ae9df2c2b9e28f30"
+}

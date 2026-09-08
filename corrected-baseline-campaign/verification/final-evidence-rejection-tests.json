@@ -1,0 +1,90 @@
+{
+  "status": "PASS",
+  "acquisition_bytes_unchanged": true,
+  "verifier_sha256": "252c6c0fb41f6230df1702a6da2d0510b148cb9cecac2811ae9df2c2b9e28f30",
+  "checks": [
+    {
+      "name": "complete evidence preserves scientific failure and passing CPU pair",
+      "status": "PASS"
+    },
+    {
+      "name": "missing timing receipt",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "FileNotFoundError",
+      "error": "[Errno 2] No such file or directory: '/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-verifier/final-negative-fixture-_k9h37s0/runs/timing-torch-cpu-r4/receipt.json'"
+    },
+    {
+      "name": "positive corrupted final timing duration",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Perf duration disagrees with GNU time"
+    },
+    {
+      "name": "altered timing own-qualification comparison",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Recomputed comparison differs from archive: timing-torch-cpu-r4-vs-own-qualification"
+    },
+    {
+      "name": "invented summary median",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Acquired summary disagrees with its recorded algorithm/receipts"
+    },
+    {
+      "name": "summary promotes full-PSD failure to equal-output eligibility",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Acquired summary disagrees with its recorded algorithm/receipts"
+    },
+    {
+      "name": "missing diagnostic JSON while its script is present",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "FileNotFoundError",
+      "error": "[Errno 2] No such file or directory: '/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-verifier/final-negative-fixture-_k9h37s0/torch-environment-diagnostic.json'"
+    },
+    {
+      "name": "diagnostic bound to wrong dependency_manifest_sha256",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Dependency diagnostic is not bound to this completed acquisition"
+    },
+    {
+      "name": "diagnostic bound to wrong timing_status_sha256",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Dependency diagnostic is not bound to this completed acquisition"
+    },
+    {
+      "name": "diagnostic observed on a different host",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Worker host differs from post-run diagnostic host"
+    },
+    {
+      "name": "diagnostic predates timing completion",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Dependency diagnostic must postdate completed timings"
+    },
+    {
+      "name": "diagnostic selected file mismatches RECORD",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Torch installation selected file disagrees with its RECORD"
+    },
+    {
+      "name": "unreviewed diagnostic script",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Unreviewed post-run dependency diagnostic script"
+    },
+    {
+      "name": "missing timing completion with consistently rebound diagnostic",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Incomplete/out-of-order timing continuation status"
+    }
+  ],
+  "count": 14
+}

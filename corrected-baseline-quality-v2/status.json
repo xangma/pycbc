@@ -1,0 +1,25 @@
+{
+  "state": "complete",
+  "pid": 3482121,
+  "timestamp_utc": "2026-09-08T15:15:24.741443+00:00",
+  "returncode": 1,
+  "head": "f582b6fd250d0b82612492979e01e645d5c07afc",
+  "upstream": "f2eb803de6f2d34f2227e69e35d460bd481fff05",
+  "tracked_clean": true,
+  "cwd": "/home/xangma/pycbc-torch-precision-validation-20260908/corrected-baseline-quality-v2/source",
+  "command": [
+    "taskset",
+    "-c",
+    "9",
+    "/home/xangma/pycbc-torch-finish-20260904/qlty/qlty-x86_64-unknown-linux-gnu/qlty",
+    "check",
+    "--no-upgrade-check",
+    "--no-fix",
+    "--sarif",
+    "--no-progress",
+    "--jobs",
+    "1",
+    "--upstream",
+    "f2eb803de6f2d34f2227e69e35d460bd481fff05"
+  ]
+}

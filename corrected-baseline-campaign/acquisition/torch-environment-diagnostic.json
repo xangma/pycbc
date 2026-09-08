@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "kind": "post_acquisition_read_only_dependency_diagnostic",
+  "observed_at_utc": "2026-09-08T15:14:27.717615+00:00",
+  "hostname": "len",
+  "executable": "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+  "timing_status_sha256": "8cf15d477e7e619571b8c5f429922e753d827055be3e1f5b1ec09c808e7ebd1d",
+  "dependency_manifest_sha256": "ecbeb9363b47dc395e1c0ac157687be614732fc06f4365db6ba8baf3be7c8d7c",
+  "imported_torch_version": "2.13.0+cu130",
+  "imported_cuda_version": "13.0",
+  "imported_files": {
+    "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/__init__.py": "cf40c075c95864036e835795756d69b8cccfafa76f3bcde5eba9d06065ccd3d1",
+    "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/version.py": "d7662da37d4b8b037c81e7ae20381a43893b379facf17988a6d4f17a93265140",
+    "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/_C.cpython-311-x86_64-linux-gnu.so": "819a187ea3b1f4d781200fe73fba3264689835d2285f7e6d10b986257a802dce"
+  },
+  "metadata_first_match_version": "2.13.0+cu130",
+  "metadata_last_wins_torch_version": "2.1.1",
+  "distributions": [
+    {
+      "name": "torch",
+      "version": "2.13.0+cu130",
+      "metadata_path": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch-2.13.0+cu130.dist-info",
+      "metadata_sha256": {
+        "METADATA": "7477a1e61a4ecc055e52577f79be3dcc6d4d2ef6d423089469c9366cf4191a80",
+        "WHEEL": "f19924f3595b26f596e8f7e06f92c4b1b6a214882215881f27054eaf72ddce2f",
+        "RECORD": "718b4c9c293ca96e8ecbcfb655eedd89f22be60ec3719ddf69f075d66b44ffbf"
+      },
+      "selected_file_checks": [
+        {
+          "path": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/__init__.py",
+          "relative_path": "torch/__init__.py",
+          "recorded": "sha256=z0DAdclYZANug1eVdW1puMzPr6dvO83l66nQYGXM09E",
+          "observed_sha256": "cf40c075c95864036e835795756d69b8cccfafa76f3bcde5eba9d06065ccd3d1",
+          "matches_record": true
+        },
+        {
+          "path": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/version.py",
+          "relative_path": "torch/version.py",
+          "recorded": "sha256=12Yto31LiwN8geeuIDgaQ4k7N5-s8XmIptTxepMmUUA",
+          "observed_sha256": "d7662da37d4b8b037c81e7ae20381a43893b379facf17988a6d4f17a93265140",
+          "matches_record": true
+        }
+      ]
+    },
+    {
+      "name": "torch",
+      "version": "2.1.1",
+      "metadata_path": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/torch-2.1.1.dist-info",
+      "metadata_sha256": {
+        "METADATA": "308fdf017167599907eff28d6aad2f85f7472e7190a87cbcb3378578d5325a4f",
+        "WHEEL": "85e5ea3911e0033547b1211c1c7bef4e884cfd807b3263741d4410304efa08cd",
+        "RECORD": "ce952faceec8f1f6ad5b1ca30c33353514974bf1135dafc287d4e186be216f7f"
+      },
+      "selected_file_checks": [
+        {
+          "path": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/torch/__init__.py",
+          "relative_path": "torch/__init__.py",
+          "recorded": "sha256=cmETD8ydrkm7OIQ2BK4tDKuNa3J361e128FVnjXjS-E",
+          "observed_sha256": "7261130fcc9dae49bb38843604ae2d0cab8d6b7277eb57b5dbc1559e35e34be1",
+          "matches_record": true
+        },
+        {
+          "path": "/home/xangma/miniconda3/envs/pycbc3g/lib/python3.11/site-packages/torch/version.py",
+          "relative_path": "torch/version.py",
+          "recorded": "sha256=JMBsnKDMbFP0PCXKeDt8bkNf__h2grMeUR43QffItgM",
+          "observed_sha256": "24c06c9ca0cc6c53f43c25ca783b7c6e435ffff87682b31e511e3741f7c8b603",
+          "matches_record": true
+        }
+      ]
+    }
+  ],
+  "scope": "Observed after all recorded processes finished. This diagnoses metadata selection; it is not a retrospective hash of Torch binaries loaded by benchmark workers."
+}

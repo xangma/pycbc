@@ -1,0 +1,77 @@
+{
+  "status": "PASS",
+  "acquisition_bytes_unchanged": true,
+  "checks": [
+    {
+      "name": "unmodified copied qualification control",
+      "status": "PASS"
+    },
+    {
+      "name": "missing timing status prevents final verdict",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "FileNotFoundError",
+      "error": "[Errno 2] No such file or directory: '/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-verifier/negative-fixture-16l97wle/timing-status.json'"
+    },
+    {
+      "name": "corrupt HDF bytes",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Trigger HDF bytes differ from acquisition receipt: qual-corrected-cpu"
+    },
+    {
+      "name": "missing PSD array",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "FileNotFoundError",
+      "error": "[Errno 2] No such file or directory: '/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-verifier/negative-fixture-16l97wle/runs/qual-corrected-cpu/arrays/qualification-psd-000.npy'"
+    },
+    {
+      "name": "wrong source receipt",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Run identity/state/source mismatch: qual-corrected-cpu"
+    },
+    {
+      "name": "wrong reused native binary hash",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Build/source pins disagree"
+    },
+    {
+      "name": "extra native worker threads",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "ValueError",
+      "error": "A loaded native thread pool is not single-threaded"
+    },
+    {
+      "name": "CPU imports Torch",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Torch import state disagrees with the selected scheme"
+    },
+    {
+      "name": "positive but inconsistent elapsed time",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Perf duration disagrees with GNU time"
+    },
+    {
+      "name": "reclassified full PSD failure",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Continuation conditioning diagnostics differ from recomputation"
+    },
+    {
+      "name": "missing one of five trigger comparisons",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "FileNotFoundError",
+      "error": "[Errno 2] No such file or directory: '/Users/xangma/repos/pycbc/artifacts/torch-precision-validation-20260908/corrected-baseline-verifier/negative-fixture-16l97wle/comparisons/proposed-cpu-vs-torch-cuda.json'"
+    },
+    {
+      "name": "changed scientific input config",
+      "status": "REJECTED_AS_EXPECTED",
+      "error_type": "EvidenceError",
+      "error": "Frozen acquisition file mismatch: config.json"
+    }
+  ],
+  "count": 12
+}
