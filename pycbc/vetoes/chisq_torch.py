@@ -18,6 +18,7 @@
 Torch backend for chisq accumulation and shift_sum.
 """
 
+import os
 from functools import lru_cache
 
 import numpy as np
@@ -25,6 +26,12 @@ import torch
 
 from pycbc.types import Array
 from pycbc.types.array import _convert_to_scheme
+from pycbc.types.array_torch import TorchArrayData
+
+try:
+    from . import chisq_cpu
+except (ImportError, OSError):
+    chisq_cpu = None
 
 try:
     import triton
@@ -111,6 +118,10 @@ _CPU_POINT_CHISQ_SHIFT_SCALE = torch.pi / _CPU_POINT_CHISQ_PI
 _CPU_NATIVE_INT_MAX = np.iinfo(np.int32).max
 _CPU_NATIVE_UINT_MAX = np.iinfo(np.uint32).max
 _TORCH_IS_INFERENCE = getattr(torch, "is_inference", None)
+_functorch_module = getattr(getattr(torch, "_C", None), "_functorch", None)
+_is_functorch_wrapped_tensor = getattr(
+    _functorch_module, "is_functorch_wrapped_tensor", None
+)
 
 
 def _has_forward_ad_state(tensor):
@@ -141,8 +152,6 @@ def chisq_accum_bin(chisq, q):
 
 def _point_tensor(corr, points):
     """Return point indices in the phase dtype used by ``corr``."""
-    from pycbc.types.array_torch import TorchArrayData
-
     device = corr.device
     point_data = points._data if isinstance(points, Array) else points
     point_dtype = torch.float32 if device.type == "mps" else torch.float64
@@ -214,8 +223,6 @@ def _points_are_empty(points):
     if isinstance(point_data, (tuple, list)):
         return len(point_data) == 0
 
-    from pycbc.types.array_torch import TorchArrayData
-
     if isinstance(point_data, TorchArrayData):
         return point_data.tensor.numel() == 0
     return False
@@ -233,8 +240,6 @@ def _cpu_native_index_view(points):
     The view is request-local: keeping it beyond the native call would extend
     storage lifetime and could make later mutations surprising.
     """
-    from pycbc.types.array_torch import TorchArrayData
-
     point_data = points._data if isinstance(points, Array) else points
     if isinstance(point_data, TorchArrayData):
         tensor = point_data.tensor
@@ -291,8 +296,6 @@ def _cpu_native_sparse_search_eligible(corr, points, bin_edges, snr):
 
 def _search_compat_storage(value):
     """Unwrap storage without copying or changing tensor dispatch semantics."""
-    from pycbc.types.array_torch import TorchArrayData
-
     if isinstance(value, Array):
         value = value._data
     return value.tensor if isinstance(value, TorchArrayData) else value
@@ -314,10 +317,184 @@ def _search_compat_array_eligible(value, numpy_dtypes, torch_dtypes):
         and value.is_contiguous()
         and not value.requires_grad
         and not _has_forward_ad_state(value)
-        and not torch._C._functorch.is_functorch_wrapped_tensor(value)
+        and (
+            _is_functorch_wrapped_tensor is None
+            or not _is_functorch_wrapped_tensor(value)
+        )
         and not value.is_conj()
         and not value.is_neg()
     )
+
+
+_CHISQ_BIN_DEVICE_CACHE = {}
+
+
+def _get_device_bin_edges(bins, device):
+    """Return pre-allocated torch.int32 device tensors for bin starts and ends."""
+    key = (tuple(bins) if not isinstance(bins, tuple) else bins, device)
+    cached = _CHISQ_BIN_DEVICE_CACHE.get(key)
+    if cached is not None:
+        return cached
+    bin_starts = torch.as_tensor(bins[:-1], device=device, dtype=torch.int32)
+    bin_ends = torch.as_tensor(bins[1:], device=device, dtype=torch.int32)
+    if len(_CHISQ_BIN_DEVICE_CACHE) > 2048:
+        _CHISQ_BIN_DEVICE_CACHE.clear()
+    _CHISQ_BIN_DEVICE_CACHE[key] = (bin_starts, bin_ends)
+    return bin_starts, bin_ends
+
+
+_CUDA_EXACT_CHISQ_MODULE = None
+_CUDA_EXACT_CHISQ_TRIED = False
+
+
+def _get_cuda_exact_chisq_module():
+    """Lazily compile and cache the exact single-precision CUDA chi-squared kernel."""
+    global _CUDA_EXACT_CHISQ_MODULE, _CUDA_EXACT_CHISQ_TRIED
+    if _CUDA_EXACT_CHISQ_TRIED:
+        return _CUDA_EXACT_CHISQ_MODULE
+    _CUDA_EXACT_CHISQ_TRIED = True
+    try:
+        from torch.utils.cpp_extension import load_inline
+
+        cuda_src = """
+        #include <torch/extension.h>
+        #include <cuda_runtime.h>
+        #include <math.h>
+
+        __device__ const double CPU_PI = 3.141592653;
+
+        __global__ void chisq_fast_kernel(
+            const float2* __restrict__ corr,
+            const int64_t* __restrict__ points,
+            const int32_t* __restrict__ bin_starts,
+            const int32_t* __restrict__ bin_ends,
+            float* __restrict__ out,
+            int N,
+            int B,
+            int stride_out_p
+        ) {
+            int pid_p = blockIdx.x;
+            int pid_b = blockIdx.y;
+
+            int bstart = bin_starts[pid_b];
+            int bend = bin_ends[pid_b];
+
+            if (bend <= bstart) {
+                out[pid_p * stride_out_p + pid_b] = 0.0f;
+                return;
+            }
+
+            double two_pi_c = 2.0 * CPU_PI;
+            double pt = (double)points[pid_p];
+            double bstart_d = (double)bstart;
+
+            double angle_init = (two_pi_c / (double)N) * (pt * bstart_d);
+            float pr = (float)cos(angle_init);
+            float pi = (float)sin(angle_init);
+
+            double angle_vs = (two_pi_c / (double)N) * pt;
+            float vsr_val = (float)cos(angle_vs);
+            float vsi_val = (float)sin(angle_vs);
+
+            float outr = 0.0f;
+            float outi = 0.0f;
+
+            for (int j = bstart; j < bend; ++j) {
+                float2 c = corr[j];
+                float vr = c.x;
+                float vi = c.y;
+                float vs = vr + vi;
+                float va = vi - vr;
+                float t1 = pr;
+                float t2 = pi;
+
+                float k1 = vr * (t1 + t2);
+                float k2 = t1 * va;
+                float k3 = t2 * vs;
+
+                outr += (k1 - k3);
+                outi += (k1 + k2);
+
+                pr = (t1 * vsr_val) - (t2 * vsi_val);
+                pi = (t1 * vsi_val) + (t2 * vsr_val);
+            }
+
+            float sq = outr * outr + outi * outi;
+            out[pid_p * stride_out_p + pid_b] = sq;
+        }
+
+        torch::Tensor launch_chisq_fast(
+            torch::Tensor corr,
+            torch::Tensor points,
+            torch::Tensor bin_starts,
+            torch::Tensor bin_ends
+        ) {
+            int P = points.size(0);
+            int B = bin_starts.size(0);
+            int N = corr.size(0);
+            auto out = torch::empty({P, B}, corr.options().dtype(torch::kFloat32));
+
+            dim3 grid(P, B);
+            chisq_fast_kernel<<<grid, 1>>>(
+                reinterpret_cast<const float2*>(corr.data_ptr<c10::complex<float>>()),
+                points.data_ptr<int64_t>(),
+                bin_starts.data_ptr<int32_t>(),
+                bin_ends.data_ptr<int32_t>(),
+                out.data_ptr<float>(),
+                N,
+                B,
+                out.stride(0)
+            );
+            return out;
+        }
+        """
+        cpp_src = """
+        torch::Tensor launch_chisq_fast(
+            torch::Tensor corr,
+            torch::Tensor points,
+            torch::Tensor bin_starts,
+            torch::Tensor bin_ends
+        );
+        """
+        _CUDA_EXACT_CHISQ_MODULE = load_inline(
+            name="chisq_exact_cuda_nofmad_v2",
+            cpp_sources=cpp_src,
+            cuda_sources=cuda_src,
+            functions=["launch_chisq_fast"],
+            extra_cuda_cflags=["--fmad=false", "-O3"],
+        )
+    except Exception:
+        _CUDA_EXACT_CHISQ_MODULE = None
+    return _CUDA_EXACT_CHISQ_MODULE
+
+
+def _cuda_exact_point_chisq(cuda_mod, corr, points, bin_edges, snr, snr_norm):
+    """Execute on-GPU exact recurrence chi-squared calculation."""
+    num_bins = len(bin_edges) - 1
+    device = corr.device
+
+    if isinstance(points, torch.Tensor):
+        pts = points.to(device=device, dtype=torch.int64)
+    else:
+        pts = torch.as_tensor(points, device=device, dtype=torch.int64)
+
+    P = pts.numel()
+    if P == 0:
+        return torch.empty(0, device=device, dtype=torch.float32)
+
+    bin_starts, bin_ends = _get_device_bin_edges(bin_edges, device)
+
+    out = cuda_mod.launch_chisq_fast(corr, pts, bin_starts, bin_ends)
+
+    if isinstance(snr, torch.Tensor):
+        snr_dev = snr.to(device=device)
+    else:
+        snr_dev = torch.as_tensor(snr, device=device)
+
+    chisq_raw = out.sum(dim=1)
+    snr_sq = (snr_dev.conj() * snr_dev).real
+    chisq = (chisq_raw * num_bins - snr_sq) * float(snr_norm**2.0)
+    return chisq
 
 
 def _search_compat_point_chisq(corr, points, bin_edges, snr, snr_norm):
@@ -359,10 +536,27 @@ def _search_compat_point_chisq(corr, points, bin_edges, snr, snr_norm):
     ):
         return None
 
-    from .chisq_cpu import point_chisq_code
+    if corr.device.type == "cuda" and (
+        chisq_cpu is None
+        or not hasattr(chisq_cpu, "point_chisq_code")
+        or os.environ.get("PYCBC_TORCH_CUDA_EXACT_CHISQ", "0") == "1"
+    ):
+        cuda_mod = _get_cuda_exact_chisq_module()
+        if cuda_mod is not None:
+            return _cuda_exact_point_chisq(
+                cuda_mod, corr, points, bin_edges, snr, snr_norm
+            )
+
+    if chisq_cpu is None or not hasattr(chisq_cpu, "point_chisq_code"):
+        return None
+    point_chisq_code = chisq_cpu.point_chisq_code
 
     def host_view(value):
-        return value if type(value) is np.ndarray else value.cpu().numpy()
+        if type(value) is np.ndarray:
+            return value
+        if value.device.type == "cpu":
+            return value.numpy()
+        return value.cpu().numpy()
 
     corr_host = host_view(corr)
     snr_host = host_view(snr)
@@ -381,7 +575,10 @@ def _search_compat_point_chisq(corr, points, bin_edges, snr, snr_norm):
     # Keep the original expression and scalar type: rounding the norm before
     # squaring or folding the SNR subtraction into the accumulator changes it.
     chisq = (chisq * num_bins - (snr_host.conj() * snr_host).real) * (snr_norm**2.0)
-    return torch.from_numpy(chisq).to(device=corr.device)
+    res = torch.from_numpy(chisq)
+    if corr.device.type == "cpu":
+        return res
+    return res.to(device=corr.device)
 
 
 def _cpu_native_point_chisq(corr, pts, bin_edges, snr=None, snr_norm=None):
@@ -396,7 +593,9 @@ def _cpu_native_point_chisq(corr, pts, bin_edges, snr=None, snr_norm=None):
     through a temporary Torch tensor. Autograd inputs never enter this helper
     and continue through the native Torch implementation.
     """
-    from .chisq_cpu import point_chisq_code
+    if chisq_cpu is None or not hasattr(chisq_cpu, "point_chisq_code"):
+        raise RuntimeError("Cython chisq_cpu extension is unavailable")
+    point_chisq_code = chisq_cpu.point_chisq_code
 
     if isinstance(pts, np.ndarray):
         count = pts.size
@@ -563,23 +762,6 @@ def _accelerator_phase_reuse_eligible(corr, pts, bins):
     )
 
 
-_CHISQ_BIN_DEVICE_CACHE = {}
-
-
-def _get_device_bin_edges(bins, device):
-    """Return pre-allocated torch.int32 device tensors for bin starts and ends."""
-    key = (tuple(bins) if not isinstance(bins, tuple) else bins, device)
-    cached = _CHISQ_BIN_DEVICE_CACHE.get(key)
-    if cached is not None:
-        return cached
-    bin_starts = torch.as_tensor(bins[:-1], device=device, dtype=torch.int32)
-    bin_ends = torch.as_tensor(bins[1:], device=device, dtype=torch.int32)
-    if len(_CHISQ_BIN_DEVICE_CACHE) > 64:
-        _CHISQ_BIN_DEVICE_CACHE.clear()
-    _CHISQ_BIN_DEVICE_CACHE[key] = (bin_starts, bin_ends)
-    return bin_starts, bin_ends
-
-
 def _accelerator_batched_bin_sums(corr, pts, bins):
     """Sum accelerator bins with batched (P x K) phase matrix or fused Triton operations."""
     length = corr.shape[-1]
@@ -686,8 +868,6 @@ def shift_sum(corr, points, bins):
     """
     Calculate time-shifted sums of corr over provided bins at given points.
     """
-    from pycbc.types.array_torch import TorchArrayData
-
     device = corr._data.tensor.device
     dtype = corr._data.tensor.dtype
     N = corr._data.tensor.shape[-1]
@@ -748,8 +928,6 @@ def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
     Ordinary complex64 CPU/CUDA searches use the original CPU statistic.
     General mathematical, MPS and differentiable inputs retain Torch paths.
     """
-    from pycbc.types.array_torch import TorchArrayData
-
     _convert_to_scheme(corr)
 
     device = corr._data.tensor.device

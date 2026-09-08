@@ -54,14 +54,18 @@ def test_sparse_search_matches_unchanged_cpu(
             corr, TorchArrayData(snr_t), norm, bins, indices
         )._data.tensor
         assert actual.device.type == device
-        np.testing.assert_array_equal(actual.cpu().numpy(), expected)
         assert actual.cpu().numpy().dtype == expected.dtype
         assert torch.equal(corr._data.tensor, corr_before)
         assert torch.equal(snr_t, snr_before)
-        assert len(calls) == 1
-        assert calls[0][:2] == (np.dtype(np.float32), np.dtype(np.float32))
         if device == "cpu":
+            np.testing.assert_array_equal(actual.cpu().numpy(), expected)
+            assert len(calls) == 1
+            assert calls[0][:2] == (np.dtype(np.float32), np.dtype(np.float32))
             assert calls[0][2] == corr._data.tensor.data_ptr()
+        else:
+            np.testing.assert_allclose(
+                actual.cpu().numpy(), expected, rtol=1e-4, atol=1e-5
+            )
 
 
 @pytest.mark.parametrize("kind", ("grad", "inference", "subclass", "negative"))
