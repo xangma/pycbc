@@ -26,14 +26,15 @@
 
 import numpy
 
+import pycbc.scheme as _scheme
+from pycbc.constants import C_SI, G_SI, MSUN_SI, PC_SI
+from pycbc.conversions import get_lm_f0tau_allmodes
 from pycbc.libutils import import_optional
+from pycbc.types import FrequencySeries, TimeSeries, complex128, float64, zeros
+from pycbc.waveform.waveform import get_obj_attrs
 
 pykerr = import_optional("pykerr")
 lal = import_optional("lal")
-from pycbc.constants import C_SI, G_SI, MSUN_SI, PC_SI
-from pycbc.conversions import get_lm_f0tau_allmodes
-from pycbc.types import FrequencySeries, TimeSeries, complex128, float64, zeros
-from pycbc.waveform.waveform import get_obj_attrs
 
 qnm_required_args = ["f_0", "tau", "amp", "phi"]
 mass_spin_required_args = ["final_mass", "final_spin", "lmns", "inclination"]
@@ -46,6 +47,15 @@ min_dt = 1.0 / (2 * max_freq)
 pi = numpy.pi
 two_pi = 2 * numpy.pi
 pi_sq = numpy.pi * numpy.pi
+
+
+def _torch_backend():
+    """Return the lazily imported Torch ringdown backend when active."""
+    if _scheme.current_prefix() != "torch":
+        return None
+    from pycbc.waveform import ringdown_torch
+
+    return ringdown_torch
 
 
 # Input parameters ############################################################
@@ -167,7 +177,7 @@ def lm_amps_phases(**kwargs):
         except KeyError:
             raise ValueError(
                 "Must provide an amplitude for the reference mode {}".format(ref_amp)
-            )
+            ) from None
     else:
         ref_mode = None
     # Get amplitudes and phases of the modes
@@ -179,11 +189,11 @@ def lm_amps_phases(**kwargs):
                 try:
                     amps[mode] = kwargs["amp" + mode] * ref_amp
                 except KeyError:
-                    raise ValueError("amp{} is required".format(mode))
+                    raise ValueError("amp{} is required".format(mode)) from None
             try:
                 phis[mode] = kwargs["phi" + mode]
             except KeyError:
-                raise ValueError("phi{} is required".format(mode))
+                raise ValueError("phi{} is required".format(mode)) from None
             dphis[mode] = kwargs.pop("dphi" + mode, ref_dphi)
             dbetas[mode] = kwargs.pop("dbeta" + mode, ref_dbeta)
     return amps, phis, dbetas, dphis
@@ -202,11 +212,11 @@ def lm_freqs_taus(**kwargs):
             try:
                 freqs[mode] = kwargs["f_" + mode]
             except KeyError:
-                raise ValueError("f_{} is required".format(mode))
+                raise ValueError("f_{} is required".format(mode)) from None
             try:
                 taus[mode] = kwargs["tau_" + mode]
             except KeyError:
-                raise ValueError("tau_{} is required".format(mode))
+                raise ValueError("tau_{} is required".format(mode)) from None
     return freqs, taus
 
 
@@ -354,6 +364,12 @@ def td_output_vector(freqs, damping_times, taper=False, delta_t=None, t_final=No
     """Return an empty TimeSeries with the appropriate size to fit all
     the quasi-normal modes present in freqs, damping_times
     """
+    backend = _torch_backend()
+    if backend is not None:
+        return backend.td_output_vector(
+            freqs, damping_times, taper=taper, delta_t=delta_t, t_final=t_final
+        )
+
     if not delta_t:
         delta_t = lm_deltat(freqs, damping_times)
     if not t_final:
@@ -383,6 +399,12 @@ def fd_output_vector(freqs, damping_times, delta_f=None, f_final=None):
     """Return an empty FrequencySeries with the appropriate size to fit all
     the quasi-normal modes present in freqs, damping_times
     """
+    backend = _torch_backend()
+    if backend is not None:
+        return backend.fd_output_vector(
+            freqs, damping_times, delta_f=delta_f, f_final=f_final
+        )
+
     if not delta_f:
         delta_f = lm_deltaf(damping_times)
     if not f_final:
@@ -398,7 +420,7 @@ def fd_output_vector(freqs, damping_times, delta_f=None, f_final=None):
 
 def spher_harms(
     harmonics="spherical",
-    l=None,
+    l=None,  # noqa: E741 - preserve the public mode keyword
     m=None,
     n=0,
     inclination=0.0,
@@ -454,8 +476,9 @@ def spher_harms(
     if harmonics == "spherical":
         if lal is None:
             raise ImportError("lal must be installed for spherical harmonics")
-        xlm = lal.SpinWeightedSphericalHarmonic(inclination, azimuthal, -2, l, m)
-        xlnm = lal.SpinWeightedSphericalHarmonic(inclination, azimuthal, -2, l, -m)
+        spherical_harmonic = lal.SpinWeightedSphericalHarmonic
+        xlm = spherical_harmonic(inclination, azimuthal, -2, l, m)
+        xlnm = spherical_harmonic(inclination, azimuthal, -2, l, -m)
     elif harmonics == "spheroidal":
         if spin is None:
             raise ValueError("must provide a spin for spheroidal harmonics")
@@ -495,7 +518,7 @@ def td_damped_sinusoid(
     amp,
     phi,
     times,
-    l=2,
+    l=2,  # noqa: E741 - preserve the public mode keyword
     m=2,
     n=0,
     inclination=0.0,
@@ -600,11 +623,32 @@ def td_damped_sinusoid(
 
     Returns
     -------
-    hplus : numpy.ndarray
+    hplus : numpy.ndarray or torch.Tensor
         The plus polarization.
-    hcross : numpy.ndarray
+    hcross : numpy.ndarray or torch.Tensor
         The cross polarization.
     """
+    backend = _torch_backend()
+    if backend is not None:
+        return backend.td_damped_sinusoid(
+            f_0,
+            tau,
+            amp,
+            phi,
+            times,
+            l=l,
+            m=m,
+            n=n,
+            inclination=inclination,
+            azimuthal=azimuthal,
+            dphi=dphi,
+            dbeta=dbeta,
+            harmonics=harmonics,
+            final_spin=final_spin,
+            pol=pol,
+            polnm=polnm,
+        )
+
     # evaluate the harmonics
     xlm, xlnm = spher_harms(
         harmonics=harmonics,
@@ -617,6 +661,7 @@ def td_damped_sinusoid(
         pol=pol,
         polnm=polnm,
     )
+
     # generate the +/-m modes
     # we measure things as deviations from circular polarization, which occurs
     # when h_{l-m} = (-1)^l h_{lm}^*; that implies that
@@ -653,7 +698,7 @@ def fd_damped_sinusoid(
     phi,
     freqs,
     t_0=0.0,
-    l=2,
+    l=2,  # noqa: E741 - preserve the public mode keyword
     m=2,
     n=0,
     inclination=0.0,
@@ -720,11 +765,31 @@ def fd_damped_sinusoid(
 
     Returns
     -------
-    hptilde : numpy.ndarray
+    hptilde : numpy.ndarray or torch.Tensor
         The plus polarization.
-    hctilde : numpy.ndarray
+    hctilde : numpy.ndarray or torch.Tensor
         The cross polarization.
     """
+    backend = _torch_backend()
+    if backend is not None:
+        return backend.fd_damped_sinusoid(
+            f_0,
+            tau,
+            amp,
+            phi,
+            freqs,
+            t_0=t_0,
+            l=l,
+            m=m,
+            n=n,
+            inclination=inclination,
+            azimuthal=azimuthal,
+            harmonics=harmonics,
+            final_spin=final_spin,
+            pol=pol,
+            polnm=polnm,
+        )
+
     # evaluate the harmonics
     if inclination is None:
         inclination = 0.0
@@ -795,6 +860,12 @@ def multimode_base(input_params, domain, freq_tau_approximant=False):
         The cross phase of a ringdown with the lm modes specified and
         n overtones in the chosen domain (time or frequency).
     """
+    backend = _torch_backend()
+    if backend is not None:
+        return backend.multimode_base(
+            input_params, domain, freq_tau_approximant=freq_tau_approximant
+        )
+
     input_params["lmns"] = format_lmns(input_params["lmns"])
     amps, phis, dbetas, dphis = lm_amps_phases(**input_params)
     pols, polnms = lm_arbitrary_harmonics(**input_params)
@@ -843,10 +914,11 @@ def multimode_base(input_params, domain, freq_tau_approximant=False):
         )
         sample_times = outplus.sample_times.numpy()
     elif domain == "fd":
-        kmin = int(input_params["f_lower"] / input_params["delta_f"])
         outplus, outcross = fd_output_vector(
             freqs, taus, input_params["delta_f"], input_params["f_final"]
         )
+        f_lower = input_params["f_lower"] or 0.0
+        kmin = int(f_lower / outplus.delta_f)
         sample_freqs = outplus.sample_frequencies.numpy()[kmin:]
     else:
         raise ValueError(
@@ -876,8 +948,8 @@ def multimode_base(input_params, domain, freq_tau_approximant=False):
                 pol=pols[lmn],
                 polnm=polnms[lmn],
             )
-            outplus += hplus
-            outcross += hcross
+            outplus._data += hplus
+            outcross._data += hcross
         elif domain == "fd":
             hplus, hcross = fd_damped_sinusoid(
                 freqs[lmn],
@@ -885,6 +957,7 @@ def multimode_base(input_params, domain, freq_tau_approximant=False):
                 amps[lmn],
                 phis[lmn],
                 sample_freqs,
+                t_0=input_params["t_0"],
                 l=int(lmn[0]),
                 m=int(lmn[1]),
                 n=int(lmn[2]),
@@ -895,8 +968,8 @@ def multimode_base(input_params, domain, freq_tau_approximant=False):
                 pol=pols[lmn],
                 polnm=polnms[lmn],
             )
-            outplus[kmin:] += hplus
-            outcross[kmin:] += hcross
+            outplus._data[kmin:] += hplus
+            outcross._data[kmin:] += hcross
     return norm * outplus, norm * outcross
 
 
