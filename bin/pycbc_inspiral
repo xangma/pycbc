@@ -405,10 +405,8 @@ with ctx:
     else:
         use_cluster = True
 
-    if hasattr(ctx, "num_threads"):
-            ncores = ctx.num_threads
-    else:
-            ncores = 1
+    # Accelerator schemes may leave the host thread count unspecified.
+    ncores = getattr(ctx, "num_threads", None) or 1
     if opt.multiprocessing_nprocesses:
         ncores *= opt.multiprocessing_nprocesses
 
