@@ -1,14 +1,14 @@
 .. _torch-batch-numerics:
 
-Live-filter benchmark definition and accuracy
-=============================================
+Streaming batch benchmark definition and accuracy (pycbc_live)
+=============================================================
 
-This method compares the public ``LiveBatchMatchedFilter.process_data`` API
-using synthetic frequency-domain inputs. It is a separate experiment from the
-complete-search benchmark in :ref:`torch-reference-campaign`. Use the same
-frozen fixture for the original CPU reference and each candidate backend;
-record the source revisions and qualify every source/backend combination
-before collecting timings.
+This benchmark evaluates the public :class:`pycbc.filter.matchedfilter.LiveBatchMatchedFilter.process_data`
+API used in the low-latency streaming pipeline (``pycbc_live``) with synthetic frequency-domain
+inputs. It is a separate experiment from the complete-executable offline search benchmark in
+:ref:`torch-reference-campaign`. Use the same frozen fixture for the original CPU reference
+and each candidate backend; record the source revisions and qualify every source/backend
+combination before collecting timings.
 
 Fixed workload and timing
 -------------------------

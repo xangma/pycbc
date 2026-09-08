@@ -1,8 +1,8 @@
 .. _torch-reference-campaign:
 .. _torch-inspiral-reference:
 
-Executable benchmark definition
-===============================
+Complete-executable offline benchmark definition (pycbc_inspiral)
+================================================================
 
 This test runs ``pycbc_inspiral`` from process launch through completed HDF
 output. It processes real H1 frame data with a fixed compressed low-mass bank,

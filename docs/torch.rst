@@ -200,4 +200,5 @@ follow the benchmark protocol for correctness and resource controls.
 
    torch_performance
    torch_reference_campaign
+   torch_batch_numerics
    torch_benchmark_protocol
