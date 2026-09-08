@@ -6,8 +6,9 @@ Live-filter benchmark definition and accuracy
 This method compares the public ``LiveBatchMatchedFilter.process_data`` API
 using synthetic frequency-domain inputs. It is a separate experiment from the
 complete-search comparison in :ref:`torch-performance`. Apply the same frozen
-fixture to the unchanged CPU baseline and all proposed backend arms; identify
-the source revisions in every result.
+fixture to the named CPU reference and all backend arms; identify the source
+revisions in every result. The current executable campaign uses a corrected
+CPU reference; its results do not qualify this separate API experiment.
 
 Fixed workload and timing
 -------------------------
@@ -44,9 +45,9 @@ median of three fresh-worker median rates; ranges span those three medians.
 
 The frozen fixture uses qualification seeds 7102 and 7103 and timing seed
 7102. Qualify every source/backend/batch cell against both the independent
-oracle and its named CPU reference before timing. Adding the unchanged
-baseline adds a separate source arm; retain its verdicts too. Validate every
-timed call's triggers outside the clock.
+oracle and its named CPU reference before timing. Adding an original or
+corrected CPU revision adds a separate source arm; retain its verdicts too.
+Validate every timed call's triggers outside the clock.
 This establishes finite warm-API behavior under the stated controls; it does
 not establish executable or full-machine capacity.
 
@@ -114,7 +115,7 @@ record any harness adaptation and verify that it does not alter scientific
 inputs, observed outputs or timing boundaries.
 
 The archived run qualified an earlier development revision. Its rates and
-verdicts do not qualify the proposed runtime or an unchanged-baseline arm that
+verdicts do not qualify the restacked runtime or a CPU-reference arm that
 it did not execute. Source-native identities, every per-worker receipt, all
 failures and the exact policy belong with each new comparison. The archive
 omits full scientific arrays; verifying recorded JSON alone does not replay
