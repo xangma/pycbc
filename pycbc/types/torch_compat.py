@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from functools import lru_cache
 
 from pycbc import scheme
+
 from .backend import backend_array, torch_module_for
 
 
