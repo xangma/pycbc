@@ -39,6 +39,7 @@ from pycbc.types import (
 from pycbc.types import (  # noqa: F401 - public re-export
     MultiDetOptionAppendAction as MultiDetOptionAppendAction,
 )
+from pycbc.types.torch_compat import cpu_compatible, cpu_context
 
 
 def from_cli(
@@ -104,6 +105,28 @@ def from_cli(
         err_msg = "You must specify exactly one of '--psd-file', "
         err_msg += "'--psd-model', '--asd-file', '--psd-estimation'"
         raise ValueError(err_msg)
+
+    if psd_estimation and strain is not None and cpu_compatible(strain):
+        # Search parity depends on the complete CPU PSD pipeline, including
+        # float32 FFT rounding and inverse-spectrum truncation near weak bins.
+        from pycbc.types import FrequencySeries, TimeSeries
+
+        values = strain.numpy().copy()
+        delta_t, epoch = strain.delta_t, strain.start_time
+        with cpu_context():
+            host_strain = TimeSeries(values, delta_t=delta_t, epoch=epoch)
+            host_psd = from_cli(
+                opt,
+                length,
+                delta_f,
+                low_frequency_cutoff,
+                strain=host_strain,
+                dyn_range_factor=dyn_range_factor,
+                precision=precision,
+            )
+            values = host_psd.numpy().copy()
+            psd_delta_f, psd_epoch = host_psd.delta_f, host_psd.epoch
+        return FrequencySeries(values, delta_f=psd_delta_f, epoch=psd_epoch)
 
     restore_dtype = None
     if opt.psd_model or opt.psd_file or opt.asd_file:
