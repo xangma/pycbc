@@ -61,6 +61,29 @@ diagnostic found a 5.76% reduction at 2M samples / 32 points, about 39
 microseconds. That API result is not a live-batch or executable speedup.
 The CUDA peak-transfer correctness fix is retained independently of timing.
 
+Integrated runtime controls
+---------------------------
+
+The stack includes production descriptor reuse from ``abf2528b367e`` and the
+guarded offline graph controller from ``fad7d8440bfd``. Native qualification
+passed all 43 new MKL and CUDA contracts without skips. The historical R and G
+plots below measure their pinned prototype helpers; no new timing campaign
+has measured this integrated implementation.
+
+The shared MKL function API retains at most three descriptors for qualified
+one-thread CPU transforms: float32 real-to-complex FFTs of 16,384 and
+16,777,216 samples, and the reverse 16,777,216-sample transform. Eligibility
+checks require separate contiguous NumPy buffers in the owning main process
+and thread. Other calls use independent descriptors. Cached plans retain no
+input/output buffers and can be released with
+``pycbc.fft.mkl.clear_function_cache()``; finalizers also free them at exit.
+This does not alter the class API or replace Torch's promoted IFFT workspace.
+
+Offline CUDA graph use is explicit and documented in :doc:`torch_search`.
+Bindings, window, stream and storage ownership are checked on replay; changed
+bindings release the capture and use eager execution. Sparse outputs own their
+storage. Full SNR and correlation outputs remain reusable scratch buffers.
+
 R: descriptor reuse prototype
 -----------------------------
 
@@ -196,8 +219,9 @@ performance comparison. The frozen rejection remains preserved.
 Evidence and figure reproduction
 --------------------------------
 
-The publication archive is being prepared; its immutable URL will be supplied
-before publication. **Archive URL pending: https://github.com/xangma/pycbc/tree/c4bfea522807742388dc8bcddc86473b9c03b047/optimization-evidence-20260908.**
+The `immutable optimization evidence archive
+<https://github.com/xangma/pycbc/tree/c4bfea522807742388dc8bcddc86473b9c03b047/optimization-evidence-20260908>`_
+contains all five packages and their offline checksum and reconstruction tools.
 The archive inventory covers ``torch-fft-optimization-20260908``,
 ``torch-residual-optimization-20260908``, ``torch-offline-cuda-graph-20260908``,
 ``torch-cpu-workspace-policy-20260908`` and the profiling investigation.
