@@ -321,15 +321,13 @@ def _same_array_tensors(arrays, tensors, *args):
         for array, owner, tensor, pointer in zip(
             arrays, owners, tensors, pointers, strict=False
         ):
+            if array is not owner:
+                return False
             try:
                 current = array._data.tensor
             except AttributeError:
                 return False
-            if (
-                array is not owner
-                or current is not tensor
-                or current.data_ptr() != pointer
-            ):
+            if current is not tensor or current.data_ptr() != pointer:
                 return False
         return True
 
@@ -993,8 +991,8 @@ class TorchCorrelator(_BaseCorrelator):
         tensors = (self.x, self.y, self.z)
         views = (x_view, y_view, z_view)
         if not _cpu_native_static_eligible(*tensors) or any(
-            tensor.data_ptr() != view.__array_interface__["data"][0]
-            or tuple(tensor.shape) != view.shape
+            tensor.data_ptr() != view.ctypes.data
+            or tensor.shape != view.shape
             for tensor, view in zip(tensors, views, strict=True)
         ):
             return self._correlate_torch()
@@ -1104,9 +1102,22 @@ def batch_correlate_execute(self, y):
                         )
                         return self
                     elif cached_conj_x is not None and num_vectors <= 1024:
-                        out_2d = torch.mul(cached_conj_x, y_sub)
+                        cached_packed_z = getattr(self, "_cached_packed_z", None)
+                        if (
+                            cached_packed_z is None
+                            or cached_packed_z.shape != (num_vectors, size)
+                            or cached_packed_z.device != target_device
+                            or cached_packed_z.dtype != y_sub.dtype
+                        ):
+                            cached_packed_z = torch.empty(
+                                (num_vectors, size),
+                                dtype=y_sub.dtype,
+                                device=target_device,
+                            )
+                            self._cached_packed_z = cached_packed_z
+                        torch.mul(cached_conj_x, y_sub, out=cached_packed_z)
                         for i, z_t in enumerate(z_tensors):
-                            z_t[:size].copy_(out_2d[i])
+                            z_t[:size].copy_(cached_packed_z[i])
                         return self
         except Exception:
             pass
