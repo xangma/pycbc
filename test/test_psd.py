@@ -98,7 +98,8 @@ class TestPSD(unittest.TestCase):
                 self.psd_low_freq_cutoff,
                 is_asd_file=True,
             )
-            self.assertAlmostEqual(abs(psd - test_data[:, 1] ** 2).max(), 0)
+            # torch scheme returns torch-backed arrays; compare in numpy space
+            self.assertAlmostEqual(abs(psd.numpy() - test_data[:, 1] ** 2).max(), 0)
         os.unlink(file_name)
 
     def test_estimate_welch(self):
