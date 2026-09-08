@@ -37,6 +37,7 @@ import numpy
 from pycbc.detector import Detector
 from pycbc.scheme import schemed
 from pycbc.types import Array
+from pycbc.types.backend import backend_array
 
 from . import coinc, ranking
 from .eventmgr_cython import findchirp_cluster_over_window_cython
@@ -46,7 +47,10 @@ logger = logging.getLogger("pycbc.events.eventmgr")
 
 @schemed("pycbc.events.threshold_")
 def threshold(series, value):
-    """Return list of values and indices values over threshold in series."""
+    """Return locations and values over the threshold in ``series``.
+
+    Device backends may return backend-resident PyCBC arrays.
+    """
     err_msg = "This function is a stub that should be overridden using the "
     err_msg += "scheme. You shouldn't be seeing this error!"
     raise ValueError(err_msg)
@@ -68,6 +72,23 @@ def threshold_real_numpy(series, value):
     locs = numpy.where(arr > value)[0]
     vals = arr[locs]
     return locs, vals
+
+
+def threshold_real(series, value):
+    """Threshold a real series without copying Torch storage to the host.
+
+    Trigger locations and values are intentionally returned as NumPy arrays;
+    downstream clustering consumes those sparse candidates on the CPU.  The
+    full input series remains on its Torch device.
+    """
+    tensor = backend_array(series, "torch")
+    if tensor is None:
+        return threshold_real_numpy(series, value)
+
+    mask = tensor > value
+    locs = mask.nonzero(as_tuple=False).flatten()
+    vals = tensor[locs]
+    return locs.cpu().numpy(), vals.cpu().numpy()
 
 
 @schemed("pycbc.events.threshold_")
@@ -124,12 +145,35 @@ class _BaseThresholdCluster(object):
 
         Returns:
         --------
-        event_vals : complex64
-          Numpy array, complex values of the clustered events
-        event_locs : uint32
-          Numpy array, indices into series of location of events
+        event_vals : array-like
+          Complex values of the clustered events. Device backends may keep
+          these in backend-resident PyCBC arrays.
+        event_locs : array-like
+          Indices into the series at the event locations. Device backends may
+          keep these in backend-resident PyCBC arrays.
         """
         pass
+
+
+def _torch_tensor(value):
+    """Return the tensor backing a Torch PyCBC object, if present."""
+    return backend_array(value, "torch")
+
+
+def _torch_cluster_positions(times, values, window_length):
+    """Return device survivor positions when either input is Torch-backed."""
+    time_tensor = _torch_tensor(times)
+    value_tensor = _torch_tensor(values)
+    if time_tensor is None and value_tensor is None:
+        return None
+
+    from .threshold_torch import _findchirp_cluster_positions
+
+    return _findchirp_cluster_positions(
+        times if time_tensor is None else time_tensor,
+        values if value_tensor is None else value_tensor,
+        window_length,
+    )
 
 
 def findchirp_cluster_over_window(times, values, window_length):
@@ -151,6 +195,10 @@ def findchirp_cluster_over_window(times, values, window_length):
         The reduced list of indices of the SNR values
     """
     assert window_length > 0, "Clustering window length is not positive"
+
+    torch_positions = _torch_cluster_positions(times, values, window_length)
+    if torch_positions is not None:
+        return torch_positions.cpu().numpy().astype(numpy.int32, copy=False)
 
     indices = numpy.zeros(len(times), dtype=numpy.int32)
     tlen = len(times)
@@ -182,8 +230,48 @@ def cluster_reduce(idx, snr, window_size):
     snr: Array
         The list of SNR values
     """
-    ind = findchirp_cluster_over_window(idx, snr, window_size)
-    return idx.take(ind), snr.take(ind)
+    torch_positions = _torch_cluster_positions(idx, snr, window_size)
+    if torch_positions is None:
+        ind = findchirp_cluster_over_window(idx, snr, window_size)
+        return idx.take(ind), snr.take(ind)
+
+    host_positions = None
+
+    def _take(values):
+        nonlocal host_positions
+        if _torch_tensor(values) is not None:
+            return values.take(torch_positions)
+        if host_positions is None:
+            host_positions = torch_positions.cpu().numpy()
+        return values.take(host_positions)
+
+    return _take(idx), _take(snr)
+
+
+def threshold_and_cluster_findchirp(series, value, window):
+    """Threshold and FindChirp-cluster, retaining Torch candidates on-device."""
+    tensor = _torch_tensor(series)
+    if tensor is not None:
+        from .threshold_torch import threshold_and_cluster_findchirp as impl
+
+        return impl(tensor, value, window)
+
+    idx, snr = threshold(series, value)
+    return cluster_reduce(idx, snr, window)
+
+
+def threshold_real_and_cluster_findchirp(series, value, window):
+    """Real-valued counterpart of :func:`threshold_and_cluster_findchirp`."""
+    tensor = _torch_tensor(series)
+    if tensor is not None:
+        from .threshold_torch import (
+            threshold_real_and_cluster_findchirp as impl,
+        )
+
+        return impl(tensor, value, window)
+
+    idx, snr = threshold_real(series, value)
+    return cluster_reduce(idx, snr, window)
 
 
 class H5FileSyntSugar(object):
@@ -1258,9 +1346,12 @@ class EventManagerMultiDet(EventManagerMultiDetBase):
 __all__ = [
     "threshold_and_cluster",
     "findchirp_cluster_over_window",
+    "threshold_and_cluster_findchirp",
+    "threshold_real_and_cluster_findchirp",
     "threshold",
     "cluster_reduce",
     "ThresholdCluster",
+    "threshold_real",
     "threshold_real_numpy",
     "threshold_only",
     "EventManager",

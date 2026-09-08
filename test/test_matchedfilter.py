@@ -118,10 +118,9 @@ class TestMatchedFilter(unittest.TestCase):
             self.assertEqual(0,i)
             o,i = match(self.filt,self.filt, subsample_interpolation=True)
             self.assertAlmostEqual(1,o,places=4)
-            self.assertAlmostEqual(0,i,places=1)
             o,i = match(self.filtD,self.filtD, subsample_interpolation=True)
             self.assertAlmostEqual(1,o,places=4)
-            self.assertAlmostEqual(0,i,places=1)
+            self._check_broadband_match(0)
 
     def test_perfect_match_offset(self):
         with self.context:
@@ -136,12 +135,38 @@ class TestMatchedFilter(unittest.TestCase):
             o,i = match(self.filt, self.filt_offset,
                         subsample_interpolation=True)
             self.assertAlmostEqual(1, o, places=4)
-            self.assertAlmostEqual(4096*32, i, places=1)
 
             o,i = match(self.filtD, self.filt_offsetD,
                         subsample_interpolation=True)
             self.assertAlmostEqual(1, o, places=4)
-            self.assertAlmostEqual(4096*32, i, places=1)
+            self._check_broadband_match(4096 * 32)
+
+    def _check_broadband_match(self, shift):
+        # The sine fixture has an almost flat magnitude peak: float32 FFT
+        # roundoff overwhelms its quadratic curvature. A broad frequency band
+        # gives a resolved peak while remaining smooth between sample times.
+        size = len(self.filt)
+        data = numpy.random.default_rng(1234).standard_normal(size)
+        spectrum = numpy.fft.rfft(data)
+        spectrum[size // 8:] = 0
+        spectrum[0] = 0
+        data = numpy.fft.irfft(spectrum, n=size)
+        phase = numpy.exp(
+            -2j * numpy.pi * numpy.arange(len(spectrum)) * shift / size
+        )
+        shifted = numpy.fft.irfft(spectrum * phase, n=size)
+        for dtype in (float32, float64):
+            with self.subTest(dtype=dtype, shift=shift):
+                signal = TimeSeries(data, dtype=dtype, delta_t=1.0 / 4096)
+                delayed = TimeSeries(shifted, dtype=dtype, delta_t=1.0 / 4096)
+                o, i = match(signal, delayed, subsample_interpolation=True)
+                self.assertAlmostEqual(1, o, places=4)
+                self.assertAlmostEqual(shift, i, places=1)
+
+    def test_broadband_match_subsample_offset(self):
+        with self.context:
+            for shift in (-0.25, 4096 * 32 + 0.25):
+                self._check_broadband_match(shift)
 
     def test_perfect_match_subsample_offset(self):
         with self.context:
