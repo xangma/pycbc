@@ -12,11 +12,18 @@ trigger output. It does not call ``LiveBatchMatchedFilter.process_data``.
 The required reference is unchanged CPU
 ``40e94792b3edf59f39b18b65102b28a4f74433a7``. Compare it with restored normal
 CPU, Torch CPU and Torch CUDA as separate arms; CPU arithmetic changes in
-PR #20 are excluded. The replacement source pin is
-``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0``. New results and the explicitly
-superseded historical campaigns are distinguished in :ref:`torch-performance`.
+PR #20 are excluded. The measured source and evidence for the current Torch
+compatibility implementation are in :ref:`torch-current-qualification`.
+Historical source pins and verdicts remain in :ref:`torch-performance`.
 
-The completed restoration campaign used the frozen inputs and geometry
+The current campaign at ``88878b1c38c952e63002b812058a0c7316123f70`` uses
+the frozen inputs and geometry below. All four arms produced 1988 triggers;
+all five strict scientific comparisons passed, with byte-identical full PSD
+arrays. The evidence and limits are in :ref:`torch-current-qualification`.
+No performance samples were collected.
+
+The **historical restoration campaign** at
+``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0`` used the frozen inputs and geometry
 below. The `immutable restoration evidence <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_ contains
 their identities and workload checks. Original and restored normal CPU each
 produced 1988 triggers with byte-identical scientific output. Both Torch
@@ -119,24 +126,43 @@ The first restoration comparison mistakenly included four ``H1/search`` timing
 fields; retain both its raw verdict and corrected scientific comparison as
 described in :ref:`torch-performance`.
 
-The completed comparison passes original CPU versus restored normal CPU:
+The current ``88878b1c38`` qualification passes all five comparisons with
+every trigger identity matched and no numerical-tolerance violations.
+Original and proposed normal CPU have all 18 H1 scientific datasets
+byte-identical. All four arms have identical full PSD arrays, including below
+the filtering cutoff, and identical conditioned-strain SHA256, metadata and
+geometry. PSD arrays are archived; raw conditioned strain is not.
+
+The historical restoration comparison passed original CPU versus restored
+normal CPU:
 all 18 H1 scientific datasets, full PSD arrays, conditioned strain and
 geometry are byte-identical. PSD arrays are archived; conditioned-strain
 identity uses full-data SHA256 and metadata, with no archived raw strain.
-Both Torch routes fail against both CPU controls,
+Both historical Torch routes failed against both CPU controls,
 including trigger comparison and the full-PSD gate with relative tolerance
 ``1e-4`` and zero absolute floor. Conditioned strain and geometry remain exact
-for both Torch routes. The evidence retains all five verdicts, arrays and
+for both Torch routes. That evidence retains all five verdicts, arrays and
 raw and corrected comparator outputs. The four excluded timing paths are
 enumerated in :ref:`torch-performance`. Qualification stopped before any
-performance sampling; historical timing permission does not apply.
+performance sampling. The later Torch compatibility qualification is recorded
+in :ref:`torch-current-qualification`; historical timing permission does not
+apply to it.
 
 Commands and reproducibility
 ----------------------------
 
-The `restoration campaign archive <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_ records all four
+The `current parity campaign archive
+<https://github.com/xangma/pycbc/tree/a833342c6d895a571346071c6c4fbe2e9a4c035d/torch-parity-fix>`_
+records the ``88878b1c38`` qualification commands, source/native identities,
+input pins, workload checks, raw outputs and independent verification.
+Use those receipts to reproduce the current comparison in a new acquisition
+directory. The historical archives below retain their original source pins.
+
+The `historical restoration campaign archive <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_ records all four
 expanded source/backend commands, source/native identities, dependencies and
-output hashes. Reproduce into a new acquisition directory.
+output hashes for ``aa6b795a63``. Reproduce into a new acquisition directory;
+use the current source receipts in :ref:`torch-current-qualification` when
+evaluating the Torch compatibility changes.
 
 **SUPERSEDED for the restored stack:** corrected-baseline `reproduction instructions
 <https://github.com/xangma/pycbc/blob/e1dd5e7164a3e8ae8ee8b58ecd7b27200b8cfb9c/corrected-baseline-campaign/REPRODUCE.md>`_ and `configuration
@@ -160,9 +186,11 @@ describe only the earlier ``40e94792b3``/``123e1fb3ef`` run. The
 <https://github.com/xangma/pycbc/blob/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/REPRODUCE.md>`_
 records how the frozen segment geometry was selected.
 
-To reproduce the measured comparison, prepare unchanged ``40e94792b3`` and
-``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0`` in separate clean checkouts with
-matching dependencies. Record later publication mapping separately, including
+To reproduce a comparison, prepare unchanged ``40e94792b3`` and that
+comparison's exact measured Torch source in separate clean checkouts with
+matching dependencies. The historical restoration uses ``aa6b795a63``;
+current qualification uses the pin in :ref:`torch-current-qualification`.
+Record later publication mapping separately, including
 documentation changes and complete-module AST checks for declared formatting
 changes. Behavior changes require new qualification; historical formatting
 receipts cannot cover them.

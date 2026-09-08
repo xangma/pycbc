@@ -17,10 +17,12 @@ Reference and scientific scope
 ------------------------------
 
 #. Prepare clean checkouts of unchanged CPU ``40e94792b3`` and the verified
-   restored main using the same environment. The measured source is
-   ``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0``; its workload-specific CPU
-   preservation and regression receipts are in the
-   `immutable restoration evidence <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_.
+   restored main using the same environment. Use the exact measured source
+   and receipts in :ref:`torch-current-qualification` for the Torch
+   compatibility implementation. The
+   `immutable restoration evidence <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_
+   records the historical ``aa6b795a63`` comparison, including its failures;
+   it does not qualify the later behavior changes.
    Check the restored normal CPU against the original before interpreting
    Torch results.
    Record native build provenance, executable and input hashes, dependency
@@ -61,9 +63,13 @@ Reference and scientific scope
 Require all frozen scientific gates to pass before equivalent-output timing.
 Stop on a failed gate and report it. Any separately authorized descriptive
 measurement after failure must declare its policy, scope and retained failures;
-it cannot establish equivalent-output speedup. The completed restoration
-campaign stopped after failed Torch qualification and collected no performance
-samples; original CPU versus restored normal CPU preservation passed.
+it cannot establish equivalent-output speedup. The historical restoration
+campaign at ``aa6b795a63`` stopped after failed Torch qualification and
+collected no performance samples; original CPU versus restored normal CPU
+preservation passed. Current qualification is recorded separately in
+:ref:`torch-current-qualification`. CPU staging in the compatibility routes
+belongs inside each applicable timing boundary, including its CUDA transfers.
+Qualification processes are not new performance samples.
 
 The **superseded corrected-CPU campaign** stopped on a full-PSD failure below
 30 Hz, then used an explicitly recorded post-qualification amendment for

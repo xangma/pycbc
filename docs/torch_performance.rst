@@ -12,16 +12,117 @@ The required CPU reference is unchanged PyCBC
 that revision's existing CPU behavior. PR #20's CPU arithmetic changes are
 excluded from the restoration and are not a prerequisite for Torch.
 
-The restored-main campaign completed on source
+The current Torch compatibility routes reuse original CPU arithmetic for
+eligible single-precision operations. Their executable qualification is
+reported separately from the historical restoration and corrected-CPU
+campaigns below. No performance samples have been collected for these routes,
+and no speedup is established.
+
+.. _torch-current-qualification:
+
+Torch compatibility and current qualification
+---------------------------------------------
+
+The executable qualification **passes** on measured source
+``88878b1c38c952e63002b812058a0c7316123f70`` against unchanged CPU
+``40e94792b3edf59f39b18b65102b28a4f74433a7``. It uses the frozen bank, frame,
+512/112/16-second geometry and scientific settings in
+:ref:`torch-reference-campaign` on shared host ``len``, CPU 8 and one RTX 4090.
+All four arms completed 1920 template/segment pairs and produced **1988
+triggers**, with every identity matched in each comparison.
+
+The `immutable parity evidence
+<https://github.com/xangma/pycbc/tree/a833342c6d895a571346071c6c4fbe2e9a4c035d/torch-parity-fix>`_
+records source and native identities, commands, dependencies, input hashes,
+scientific arrays, raw and corrected comparison results, and independent
+verification. Earlier failed attempts remain available alongside the passing
+qualification.
+
+.. list-table:: Current executable qualification
+   :header-rows: 1
+   :widths: 28 44 28
+
+   * - Arm
+     - Scientific qualification
+     - Timing disposition
+   * - Original CPU ``40e94792b3``
+     - Reference: 1988 triggers
+     - No performance samples
+   * - Proposed normal CPU ``88878b1c38``
+     - PASS: 18 H1 scientific datasets byte-identical to original CPU
+     - No performance samples
+   * - Torch CPU ``88878b1c38``
+     - PASS against both CPU controls: 1988 matched triggers
+     - No performance samples
+   * - Torch CUDA ``88878b1c38``
+     - PASS against both CPU controls: 1988 matched triggers
+     - No performance samples
+
+All **five comparisons pass** the unchanged trigger and full-PSD gates:
+original versus proposed CPU, and each Torch arm versus both CPU controls.
+Full PSD arrays are byte-identical, including below 30 Hz; the PSD gate
+retains relative tolerance ``1e-4`` and zero absolute floor. Conditioned-strain
+SHA256 and metadata, and segment geometry, match exactly across the four arms.
+Raw conditioned strain is not archived. The comparator retains relative
+tolerance ``1e-4``, absolute tolerance ``1e-5``, sigmasq relative tolerance
+``1e-5`` and circular phase absolute tolerance ``1e-4`` radians.
+
+Torch output has small nonzero numerical differences with no violations.
+Against original CPU, the largest absolute chi-square differences are
+``1.716614e-5`` for Torch CPU and ``6.484985e-5`` for Torch CUDA; the largest
+SNR differences are ``1.907349e-6`` and ``3.337860e-6``. Sigmasq matches
+exactly. Only the four elapsed-time-derived ``H1/search`` datasets enumerated
+in the historical restoration section below are excluded from scientific
+comparison; their raw values and the declared source/path substitutions
+remain in the receipts.
+
+An independent verifier recomputed trigger identities, numerical metrics
+and full-array PSD checks, and confirmed all 18 original-versus-proposed CPU
+scientific datasets byte for byte. It also checked source Git identities and
+receipt hashes. Native Linux binaries and external input bytes are not in the
+archive; their receipts were cross-checked without rehashing those bytes
+locally. This is qualification of one frozen workload. Its process durations
+are not performance samples, and it establishes no speedup or sustained
+capacity. The separate live-filter API benchmark remains unqualified.
+
+The measured pin remains fixed when later documentation is published; record
+that publication mapping separately. Optional FFT and native CPU leaves are
+outside this executable comparison and require their own source and test
+receipts.
+
+The original CPU implementation remains the reference. Within Torch, eligible
+PSD estimation and float32 strain-segment forward FFTs call the original CPU
+code on copies. Cumulative template power uses NumPy's serial float32 scan.
+Eligible complex64 sparse point chi-square calls reuse the original CPU kernel
+and postprocessing; CPU correlation and SNR tensors expose NumPy views, while
+CUDA inputs are copied to the host. Public Torch output dtype and device are
+retained.
+
+These compatibility paths apply to ordinary CPU/CUDA tensors and retain
+API-specific eligibility checks. Tensor subclasses, reverse- and forward-mode
+gradients, functorch transforms, MPS and other precisions keep their existing
+routes. The sparse point bridge additionally requires contiguous 1D storage
+and scalar normalization; inference tensors, conjugate/negative views and
+tensor normalization retain the existing sparse dispatcher.
+
+These choices preserve the arithmetic sequence that affects chi-square bin
+boundaries and threshold decisions. Merely using the same formula, or
+increasing intermediate precision, did not recover the original CPU result
+in the diagnostic experiment. Reusing these CPU operations introduces host
+work and CUDA transfers; a CUDA result does not imply device residency.
+The experiment identified a sufficient compatibility recipe on the frozen
+fixture, not its performance or accuracy over every workload and device.
+
+Historical restoration qualification
+-------------------------------------
+
+**HISTORICAL; superseded by the Torch compatibility changes above.** The
+restored-main campaign completed on source
 ``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0``. Original-CPU preservation passed
 for this workload. Both Torch routes failed the unchanged scientific gates;
 no performance samples were collected and no speedup is established.
-Earlier corrected-CPU results below are superseded for this restored stack.
 
-Restored source and qualification
----------------------------------
-
-The measured comparison uses original CPU ``40e94792b3`` and restored main
+That measured comparison uses original CPU ``40e94792b3`` and restored main
 ``aa6b795a63`` through normal CPU, Torch CPU and Torch CUDA. The main stack
 starts from the original CPU source without PR #20. Shared CPU MKL, FFTW and
 NumPy FFT backend files match the original source byte for byte.
@@ -36,7 +137,7 @@ their file bytes differ. Final publication mapping records those corrections
 and the documentation commit separately. Optional FFT and native CPU leaves
 require their own source and validation receipts.
 
-.. list-table:: Restored-stack validation status
+.. list-table:: Historical restoration validation status
    :header-rows: 1
    :widths: 28 44 28
 
@@ -85,7 +186,7 @@ with scientific trigger datasets, PSDs and strain byte-identical to original
 CPU. Its false CPU failure came solely from the four timing datasets listed
 above. Both Torch routes produced **1991 triggers** and failed the original
 strict gate. The evidence retains the raw failure and corrected comparison.
-The completed ``aa6b795a63`` campaign is the current measured result; neither
+The later ``aa6b795a63`` campaign is also historical; neither
 campaign's workload-specific output identity certifies every CPU code path.
 
 Superseded corrected-CPU campaign

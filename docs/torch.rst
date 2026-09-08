@@ -116,6 +116,9 @@ unsupported operation with no valid route raises an error.
 
 An accelerator output does not prove that every intermediate stayed on that
 device. Support also does not imply autograd through the complete operation.
+The original-CPU compatibility routes stage eligible single-precision PSD
+estimation, strain FFT, cumulative-power and sparse chi-square work through
+host memory; see :ref:`torch-current-qualification` for their scope and evidence.
 Optional switches still obey these limits; see :ref:`torch-optimizations`
 for defaults and how to disable them.
 
