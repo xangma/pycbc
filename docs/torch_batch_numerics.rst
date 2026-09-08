@@ -9,10 +9,12 @@ complete-search comparison in :ref:`torch-performance`. Apply the same frozen
 fixture to unchanged CPU ``40e94792b3edf59f39b18b65102b28a4f74433a7`` and all
 restored backend arms; identify the source revisions in every result. Preserve
 the original CPU behavior. The executable campaign does not qualify this
-separate API experiment. This API benchmark was not rerun for restored main
+separate API experiment. This API benchmark has not been rerun for the Torch
+compatibility implementation described in :ref:`torch-current-qualification`
+and remains unqualified for that source. It was also not rerun for restored main
 ``aa6b795a63bb18c4e63e4f4c203ca6e7c039d0f0`` and remains unqualified for that
-source. The `restoration evidence <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_ concerns the executable
-campaign; the archived development run below provides no restored-source
+historical source. The `restoration evidence <https://github.com/xangma/pycbc/tree/31039e44d35ece9c6d755bd265c854d2bd8bb6a6/original-cpu-restoration>`_ concerns the historical executable
+campaign; the archived development run below provides no current-source
 API qualification.
 
 Fixed workload and timing
