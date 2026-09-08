@@ -446,7 +446,15 @@ def _export_entry(fftw, entry):
 
 def export_pending(fftw):
     """Persist all newly measured cache entries without failing the job."""
-    for entry in _config.entries.values():
-        if not entry.dirty:
-            continue
-        _export_entry(fftw, entry)
+    if not has_pending_export():
+        return
+
+    # CLI retries run outside plan creation. Serialize their native wisdom
+    # access with Torch planning/destruction while keeping empty-cache CPU
+    # calls independent of Torch and the legacy FFTW wrapper unchanged.
+    from .torchfft import _FFTW_PLANNING_LOCK
+
+    with _FFTW_PLANNING_LOCK:
+        for entry in _config.entries.values():
+            if entry.dirty:
+                _export_entry(fftw, entry)

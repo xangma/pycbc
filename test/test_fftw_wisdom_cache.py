@@ -121,6 +121,7 @@ def test_cancelled_plan_releases_cold_writer_lock(tmp_path, stable_fingerprint):
 def test_failed_immediate_export_is_retried_by_cli_lifecycle(
     tmp_path, stable_fingerprint
 ):
+    pytest.importorskip("torch")
     failure = OSError("temporary cache failure")
     fftw = FakeFFTW(export_failure=failure)
     wisdom_cache.configure_from_cli(_options(tmp_path))
@@ -137,6 +138,57 @@ def test_failed_immediate_export_is_retried_by_cli_lifecycle(
 
     assert not wisdom_cache.has_pending_export()
     assert entry.path.read_bytes() == b"qualified-wisdom"
+
+
+def test_pending_export_uses_torch_planner_lock(
+    monkeypatch, tmp_path, stable_fingerprint
+):
+    pytest.importorskip("torch")
+    from contextlib import contextmanager
+    from pycbc.fft import parser_support, torchfft
+
+    fftw = FakeFFTW(export_failure=OSError("temporary cache failure"))
+    wisdom_cache.configure_from_cli(_options(tmp_path))
+    level, entry = _prepare(fftw)
+    wisdom_cache.record_plan(fftw, entry, level)
+    assert wisdom_cache.has_pending_export()
+
+    lock_events = []
+
+    @contextmanager
+    def planner_lock():
+        lock_events.append("acquire")
+        try:
+            yield
+        finally:
+            lock_events.append("release")
+
+    def export(filename):
+        assert lock_events == ["acquire"]
+        Path(filename).write_bytes(b"retried-wisdom")
+
+    monkeypatch.setattr(torchfft, "_FFTW_PLANNING_LOCK", planner_lock())
+    monkeypatch.setattr(fftw, "export_single_wisdom_to_filename", export)
+    monkeypatch.setattr(parser_support, "_load_fftw_for_wisdom", lambda: fftw)
+    parser_support.export_wisdom_from_cli(SimpleNamespace())
+
+    assert lock_events == ["acquire", "release"]
+    assert not wisdom_cache.has_pending_export()
+    assert entry.path.read_bytes() == b"retried-wisdom"
+
+
+def test_empty_pending_export_does_not_import_torch(monkeypatch):
+    import builtins
+
+    original_import = builtins.__import__
+
+    def guarded_import(name, *args, **kwargs):
+        if name in ("torch", "torchfft"):
+            raise AssertionError("empty cache export imported Torch")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+    wisdom_cache.export_pending(FakeFFTW())
 
 
 def test_corrupt_cache_falls_back_to_bounded_measurement(
