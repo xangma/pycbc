@@ -242,6 +242,7 @@ def template_triggers(t_num):
     template = None
     tparam = None
     out_vals_all = []
+    sigmasq_cache = {}
     for s_num, stilde in enumerate(segments):
         # Filter check checks the 'inj_filter_rejector' options to
         # determine whether
@@ -259,7 +260,12 @@ def template_triggers(t_num):
         logging.info("Filtering template %d/%d segment %d/%d" %
                      (t_num + 1, len(bank), s_num + 1, len(segments)))
 
-        sigmasq = template.sigmasq(stilde.psd)
+        psd_id = id(stilde.psd)
+        if psd_id in sigmasq_cache:
+            sigmasq = sigmasq_cache[psd_id]
+        else:
+            sigmasq = template.sigmasq(stilde.psd)
+            sigmasq_cache[psd_id] = sigmasq
         snr, norm, corr, idx, snrv = \
            matched_filter.matched_filter_and_cluster(s_num,
                                                      sigmasq,
@@ -270,39 +276,41 @@ def template_triggers(t_num):
 
         out_vals = out_vals_ref.copy()
         idx_shifted = idx + stilde.analyze.start
-        out_vals['bank_chisq'], out_vals['bank_chisq_dof'] = \
-              bank_chisq.values(template, stilde.psd, stilde, snrv, norm,
-                                idx_shifted)
+        if getattr(bank_chisq, 'do', False):
+            out_vals['bank_chisq'], out_vals['bank_chisq_dof'] = (
+                bank_chisq.values(template, stilde.psd, stilde, snrv, norm,
+                                  idx_shifted)
+            )
 
-        out_vals['chisq'], out_vals['chisq_dof'] = \
-              power_chisq.values(corr, snrv, norm, stilde.psd,
-                                 idx_shifted, template)
+        out_vals['chisq'], out_vals['chisq_dof'] = power_chisq.values(
+            corr, snrv, norm, stilde.psd, idx_shifted, template
+        )
 
-        out_vals['sg_chisq'] = sg_chisq.values(stilde, template, stilde.psd,
-                                      snrv, norm,
-                                      out_vals['chisq'],
-                                      out_vals['chisq_dof'],
-                                      idx_shifted)
+        if getattr(sg_chisq, 'do', False):
+            out_vals['sg_chisq'] = sg_chisq.values(
+                stilde, template, stilde.psd, snrv, norm,
+                out_vals['chisq'], out_vals['chisq_dof'], idx_shifted
+            )
 
-        out_vals['cont_chisq'], _ = \
-              autochisq.values(snr, idx_shifted, template,
-                               stilde.psd, norm, stilde=stilde,
-                               low_frequency_cutoff=flow)
+        if getattr(autochisq, 'do', False):
+            out_vals['cont_chisq'], _ = autochisq.values(
+                snr, idx_shifted, template, stilde.psd, norm, stilde=stilde,
+                low_frequency_cutoff=flow
+            )
 
         idx += stilde.cumulative_index
 
         out_vals['time_index'] = idx
         out_vals['snr'] = snrv * norm
-        out_vals['sigmasq'] = numpy.zeros(len(snrv), dtype=float32) + sigmasq
+        out_vals['sigmasq'] = numpy.full(len(snrv), sigmasq, dtype=float32)
         if opt.psdvar_short_segment is not None:
-            out_vals['psd_var_val'] = \
-                        pycbc.psd.find_trigger_value(psd_var,
-                                      out_vals['time_index'],
-                                      opt.gps_start_time, opt.sample_rate)
-        #print(idx, out_vals['time_index'])
+            out_vals['psd_var_val'] = (
+                pycbc.psd.find_trigger_value(psd_var, out_vals['time_index'],
+                                             opt.gps_start_time,
+                                             opt.sample_rate)
+            )
 
-        out_vals_all.append(out_vals.copy())
-        #print(out_vals_all)
+        out_vals_all.append(out_vals)
     return out_vals_all, tparam
 
 with ctx:
