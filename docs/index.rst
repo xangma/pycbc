@@ -65,6 +65,7 @@ library and application suite.
    searches
    inference
    apps
+   torch
 
 .. toctree::
    :caption: Dev Guides
@@ -73,10 +74,13 @@ library and application suite.
 
    extend
    devs
-
-.. toctree::
-   :hidden:
-   :maxdepth: 1
+   torch_optimizations
+   torch_testing
+   torch_parity
+   torch_workflows
+   torch_performance
+   torch_reference_campaign
+   torch_benchmark_protocol
 
 .. card:: Core Library Examples
     :link:  tutorials
