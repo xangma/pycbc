@@ -1,0 +1,178 @@
+--- /Users/xangma/repos/pycbc/artifacts/torch-residual-optimization-20260908/descriptor-reuse-v1/test_harness.py
++++ test_harness.py
+@@ -10,7 +10,7 @@
+ from unittest.mock import patch
+ 
+ from descriptor_reuse import DescriptorReuse, sha
+-import test_descriptor_reuse as fake
++import test_descriptor_reuse_diagnostic as fake
+ import run_reuse
+ import reuse_controller as controller
+ 
+@@ -21,7 +21,7 @@
+ class ProvenanceTests(unittest.TestCase):
+     def setUp(self):
+         self.old = controller.LOADER.resolve()
+-        self.new = Path('/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-v1').resolve()
++        self.new = Path('/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1').resolve()
+         self.root_patch = patch.object(controller, 'ROOT', self.new)
+         self.root_patch.start()
+         self.addCleanup(self.root_patch.stop)
+@@ -34,7 +34,7 @@
+                   'smt_siblings': {'8': '8,72'}, 'environment': self.environment,
+                   'threadpools': [{'num_threads': 1}]}
+         self.paths = [(folder.resolve(), self.old, family) for family, folder in controller.REFERENCES.items()]
+-        self.paths += [(self.new / 'runs' / case, self.new, case.split('-')[0]) for case in controller.CASES]
++        self.paths += [(self.new / 'runs' / case, self.new, ('standard' if 'standard' in case else 'cuda')) for case in controller.CASES]
+         for folder, provenance, family in self.paths:
+             self.roles[folder] = (family + '-candidate', controller.SOURCE,
+                                   'cpu:1' if family == 'standard' else 'torch:cuda:0', 'candidate')
+@@ -66,10 +66,10 @@
+         self.current, self.archived = campaign(), campaign()
+         self.verify = controller.bind_provenance_verifiers(self.current, self.archived)
+ 
+-    def test_all_six_paths_use_correct_helpers(self):
++    def test_all_twenty_two_paths_use_correct_helpers(self):
+         for folder, provenance, _ in self.paths:
+             self.assertEqual(self.current.verified_run(folder, self.roles[folder]), provenance)
+-        self.assertEqual(len(self.calls), 6)
++        self.assertEqual(len(self.calls), 22)
+ 
+     def test_swapped_paths_and_old_contract_failures_rejected(self):
+         for folder, provenance, _ in self.paths:
+@@ -98,42 +98,45 @@
+ 
+ class CounterTests(unittest.TestCase):
+     def test_actual_reports_and_corruptions(self):
+-        for reuse in (True, False):
++        for cached in (True, False):
+             m = fake.module()
+-            cache = DescriptorReuse(m, reuse=reuse)
+-            cache.install()
+-            for _ in range(2):
++            cache = DescriptorReuse(m)
++            if cached:
++                cache.install()
++                for _ in range(2):
++                    for config in range(3):
++                        fake.execute(m, fake.vectors(config), config)
++                cache.finish()
++            else:
+                 for config in range(3):
+                     fake.execute(m, fake.vectors(config), config)
+-            cache.finish()
++                run_reuse.baseline_finish(cache, None)
+             valid = cache.report()
+-            metrics = controller.verify_cache(valid, reuse)
+-            self.assertEqual((metrics['calls'], metrics['creates'], metrics['hits']),
+-                             (6, 3, 3) if reuse else (6, 6, 0))
+-            mutations = [lambda r: r.update(frees=0), lambda r: r.update(restored=False),
++            self.assertEqual(controller.verify_cache(valid, cached)['owned_descriptors'], 3 if cached else 0)
++            mutations = [lambda r: r.update(frees=99), lambda r: r.update(restored=False),
+                          lambda r: r.update(cleanup_errors=['failed']),
+-                         lambda r: r['rows'][0].update(native_status=9),
+-                         lambda r: r['rows'][0].update(create_successes=0),
+-                         lambda r: r['rows'][0].update(state='failed'),
+-                         lambda r: r['entries'][0].update(free_attempts=2),
+-                         lambda r: r['rows'][1]['key'].update(thread_object_id=99)]
++                         lambda r: r.update(rows=[]), lambda r: r.update(hits=0),
++                         lambda r: r.update(poisoned=True), lambda r: r.update(creates=99)]
++            if cached:
++                mutations += [lambda r: r['entries'][0].update(free_attempts=2),
++                              lambda r: r['entries'][0].update(state='uncertain')]
+             for mutate in mutations:
+                 invalid = copy.deepcopy(valid)
+                 mutate(invalid)
+                 with self.assertRaises(AssertionError):
+-                    controller.verify_cache(invalid, reuse)
++                    controller.verify_cache(invalid, cached)
+ 
+ 
+ class RunnerTests(unittest.TestCase):
+-    def exercise(self, workload_error=None, free_error=None, install_error=None, empty=False):
++    def exercise(self, workload_error=None, free_error=None, install_error=None, empty=False, cached=True, mutate_original=False):
+         m = fake.module()
+         package = types.ModuleType('pycbc')
+         fft = types.ModuleType('pycbc.fft')
+         fft.mkl = m
+         package.fft = fft
+         caches = []
+-        def factory(module, reuse):
+-            cache = DescriptorReuse(module, reuse=reuse)
++        def factory(module):
++            cache = DescriptorReuse(module)
+             caches.append(cache)
+             if install_error is not None:
+                 def install():
+@@ -143,14 +146,17 @@
+         def run_path(path, run_name):
+             self.assertEqual((path, run_name), ('qualified-workload.py', '__main__'))
+             if not empty:
+-                fake.execute(m, fake.vectors())
++                for config in range(3):
++                    fake.execute(m, fake.vectors(config), config)
++            if mutate_original:
++                m.fft = lambda *args: None
+             if free_error:
+                 m.lib.faults['free'] = free_error
+             if workload_error is not None:
+                 raise workload_error
+         with tempfile.TemporaryDirectory() as folder:
+             receipt = Path(folder) / 'receipt.json'
+-            argv = ['run_reuse.py', '--receipt', str(receipt), '--reuse', 'yes', '--', 'qualified-workload.py']
++            argv = ['run_reuse.py', '--receipt', str(receipt), '--reuse', 'yes' if cached else 'no', '--', 'qualified-workload.py']
+             caught = None
+             with patch.dict(sys.modules, {'pycbc': package, 'pycbc.fft': fft}), \
+                     patch.object(run_reuse, 'DescriptorReuse', factory), \
+@@ -161,7 +167,8 @@
+                     caught = error
+                 self.assertIs(sys.argv, argv)
+             report = json.loads(receipt.read_text())
+-        self.assertIs(m.fft, caches[0].original['fft'])
++        if not mutate_original or cached:
++            self.assertIs(m.fft, caches[0].original['fft'])
+         self.assertTrue(report['cache']['closed'])
+         self.assertTrue(report['cache']['restored'])
+         return caught, report
+@@ -171,7 +178,7 @@
+             caught, report = self.exercise(workload_error=error)
+             self.assertIsNone(caught)
+             self.assertEqual(report['state'], 'complete')
+-            self.assertEqual(report['cache']['frees'], 1)
++            self.assertEqual(report['cache']['frees'], 3)
+ 
+     def test_primary_exception_survives_secondary_free_error(self):
+         for primary in (ValueError('workload'), SystemExit(7), KeyboardInterrupt()):
+@@ -201,12 +208,31 @@
+         self.assertEqual(report['error'], repr(primary))
+         self.assertTrue(report['cache']['finalization_errors'])
+ 
++    def test_original_baseline_success_error_and_boundary_identity(self):
++        for error in (None, SystemExit(0), ValueError('workload')):
++            caught, report = self.exercise(workload_error=error, cached=False)
++            self.assertEqual(report['state'], 'failed' if isinstance(error, ValueError) else 'complete')
++            self.assertEqual(report['cache']['creates'], 0)
++            self.assertEqual(report['cache']['frees'], 0)
++            self.assertEqual(report['variant'], 'original')
++            if isinstance(error, ValueError):
++                self.assertIs(caught, error)
++        primary = RuntimeError('primary')
++        caught, report = self.exercise(workload_error=primary, cached=False, mutate_original=True)
++        self.assertIs(caught, primary)
++        self.assertTrue(report['cache']['finalization_errors'])
++        caught, report = self.exercise(cached=False, mutate_original=True)
++        self.assertIsInstance(caught, AssertionError)
++        self.assertEqual(report['state'], 'failed')
++
++
+ 
+ if __name__ == '__main__':
+     result = unittest.TextTestRunner(verbosity=2).run(unittest.defaultTestLoader.loadTestsFromModule(sys.modules[__name__]))
+     (ROOT / 'local-harness-tests.json').write_text(json.dumps({
+         'state': 'pass' if result.wasSuccessful() else 'failed', 'tests_run': result.testsRun,
+-        'pins': {name: sha(ROOT / name) for name in ('test_harness.py', 'test_descriptor_reuse.py',
++        'pins': {name: sha(ROOT / name) for name in ('test_harness.py', 'test_descriptor_reuse_diagnostic.py',
++            'descriptor_reuse_diagnostic.py',
+             'descriptor_reuse.py', 'run_reuse.py', 'reuse_controller.py', 'checked-inspiral.py')},
+         'failures': len(result.failures), 'errors': len(result.errors)}, indent=2) + '\n')
+     raise SystemExit(0 if result.wasSuccessful() else 1)

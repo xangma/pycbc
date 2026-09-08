@@ -1,0 +1,373 @@
+{
+  "state": "independent_executable_review_complete",
+  "scope": "Read-only profiling attribution, source/harness review, and independent replay of copied qualification, trigger, PSD, runtime and timing evidence. Publication and integration are owned by the coordinating task.",
+  "source_revisions": {
+    "baseline": "7e56ac42417dd6f61498f917e04c5a55250ddc26",
+    "candidate": "2f799f0046fc36db4215bd8b8b8a774d40c0e011"
+  },
+  "full_executable": {
+    "standard": {
+      "full_wall_median_seconds": 69.87317779799923,
+      "min_seconds": 69.83153542899527,
+      "max_seconds": 70.11478649801575,
+      "fresh_processes": 3,
+      "template_seconds_per_wall_second": 10463.757668410146
+    },
+    "cpu-baseline": {
+      "full_wall_median_seconds": 113.9692085859133,
+      "min_seconds": 113.39597047190182,
+      "max_seconds": 114.33460557996295,
+      "fresh_processes": 3,
+      "template_seconds_per_wall_second": 6415.206432260592
+    },
+    "cpu-candidate": {
+      "full_wall_median_seconds": 106.9430543819908,
+      "min_seconds": 106.89743636501953,
+      "max_seconds": 107.1861626849277,
+      "fresh_processes": 3,
+      "template_seconds_per_wall_second": 6836.685226779189
+    },
+    "cuda-baseline": {
+      "full_wall_median_seconds": 24.658972960081883,
+      "min_seconds": 24.628002182929777,
+      "max_seconds": 24.862198268063366,
+      "fresh_processes": 3,
+      "template_seconds_per_wall_second": 29649.896659669
+    },
+    "cuda-candidate": {
+      "full_wall_median_seconds": 24.71184737200383,
+      "min_seconds": 24.63705670903437,
+      "max_seconds": 24.726277889916673,
+      "fresh_processes": 3,
+      "template_seconds_per_wall_second": 29586.45660899911
+    },
+    "comparisons": {
+      "cpu": {
+        "wall_reduction_percent": 6.1649583173388205,
+        "candidate_over_standard_wall_ratio": 1.5305308524990693
+      },
+      "cuda": {
+        "wall_reduction_percent": -0.21442260392410262,
+        "candidate_over_standard_wall_ratio": 0.3536671459747382
+      }
+    }
+  },
+  "warm_production_fft": {
+    "standard": {
+      "construction_seconds": {
+        "median": 0.05273381597362459,
+        "min": 0.05266850802581757,
+        "max": 0.052898449008353055
+      },
+      "median_seconds": {
+        "median": 0.016033834079280496,
+        "min": 0.0160005500074476,
+        "max": 0.01605541503522545
+      },
+      "one_plan_1920_call_surrogate_seconds": {
+        "median": 30.84881074214354,
+        "min": 30.784262261237018,
+        "max": 30.889684593537822
+      }
+    },
+    "baseline": {
+      "construction_seconds": {
+        "median": 0.03622468397952616,
+        "min": 0.036005579051561654,
+        "max": 0.036494735977612436
+      },
+      "median_seconds": {
+        "median": 0.03697476699016988,
+        "min": 0.0368979349732399,
+        "max": 0.03705372102558613
+      },
+      "one_plan_1920_call_surrogate_seconds": {
+        "median": 71.07821999117732,
+        "min": 70.93298319855239,
+        "max": 71.23147103108931
+      }
+    },
+    "candidate": {
+      "construction_seconds": {
+        "median": 0.03659679496195167,
+        "min": 0.03655402804724872,
+        "max": 0.03661019110586494
+      },
+      "median_seconds": {
+        "median": 0.033520219032652676,
+        "min": 0.03336028603371233,
+        "max": 0.03363116108812392
+      },
+      "one_plan_1920_call_surrogate_seconds": {
+        "median": 64.4272826325614,
+        "min": 64.11989366577473,
+        "max": 64.6399650501553
+      }
+    }
+  },
+  "full_process_internal_breakdown": {
+    "standard": {
+      "full_wall_seconds": {
+        "median": 69.87317779799923,
+        "min": 69.83153542899527,
+        "max": 70.11478649801575
+      },
+      "internal_seconds": {
+        "median": 65.6122043132782,
+        "min": 65.54832220077515,
+        "max": 65.82143235206604
+      },
+      "setup_seconds": {
+        "median": 15.263308048248291,
+        "min": 15.229075193405151,
+        "max": 15.421156644821167
+      },
+      "outside_internal_seconds": {
+        "median": 4.28321322822012,
+        "min": 4.260973484721035,
+        "max": 4.293354145949706
+      },
+      "overhead_fraction": {
+        "median": 0.2799096591015577,
+        "min": 0.2789346254505727,
+        "max": 0.2811747960086678
+      },
+      "template_seconds_per_wall_second": {
+        "median": 10463.757668410146,
+        "min": 10427.700582396998,
+        "max": 10469.997480485294
+      },
+      "post_setup_internal_seconds": {
+        "median": 50.38312911987305,
+        "min": 50.285014152526855,
+        "max": 50.40027570724487
+      },
+      "internal_template_seconds_per_second": {
+        "median": 11143.292740311685,
+        "min": 11107.871309899421,
+        "max": 11154.152775421519
+      }
+    },
+    "cpu-baseline": {
+      "full_wall_seconds": {
+        "median": 113.9692085859133,
+        "min": 113.39597047190182,
+        "max": 114.33460557996295
+      },
+      "internal_seconds": {
+        "median": 109.7588198184967,
+        "min": 109.17872738838196,
+        "max": 110.09702634811401
+      },
+      "setup_seconds": {
+        "median": 15.070247650146483,
+        "min": 15.00196599960327,
+        "max": 15.146037817001343
+      },
+      "outside_internal_seconds": {
+        "median": 4.217243083519861,
+        "min": 4.210388767416589,
+        "max": 4.23757923184894
+      },
+      "overhead_fraction": {
+        "median": 0.16953412267901544,
+        "min": 0.16857495989837493,
+        "max": 0.17008973646418554
+      },
+      "template_seconds_per_wall_second": {
+        "median": 6415.206432260592,
+        "min": 6394.70435299364,
+        "max": 6447.636516159689
+      },
+      "post_setup_internal_seconds": {
+        "median": 94.75685381889343,
+        "min": 94.10847973823547,
+        "max": 94.95098853111267
+      },
+      "internal_template_seconds_per_second": {
+        "median": 6661.296114599694,
+        "min": 6640.833310867388,
+        "max": 6696.689158128092
+      }
+    },
+    "cpu-candidate": {
+      "full_wall_seconds": {
+        "median": 106.9430543819908,
+        "min": 106.89743636501953,
+        "max": 107.1861626849277
+      },
+      "internal_seconds": {
+        "median": 102.7287769317627,
+        "min": 102.7154324054718,
+        "max": 102.97132802009583
+      },
+      "setup_seconds": {
+        "median": 15.095749378204346,
+        "min": 15.086454629898071,
+        "max": 15.122393608093262
+      },
+      "outside_internal_seconds": {
+        "median": 4.21427745022811,
+        "min": 4.182003959547728,
+        "max": 4.214834664831869
+      },
+      "overhead_fraction": {
+        "median": 0.18033878073488027,
+        "min": 0.1800725841027244,
+        "max": 0.18081278087731206
+      },
+      "template_seconds_per_wall_second": {
+        "median": 6836.685226779189,
+        "min": 6821.178981368748,
+        "max": 6839.602752524498
+      },
+      "post_setup_internal_seconds": {
+        "median": 87.61968302726746,
+        "min": 87.60638332366943,
+        "max": 87.88487339019775
+      },
+      "internal_template_seconds_per_second": {
+        "median": 7117.148883079325,
+        "min": 7100.384291997399,
+        "max": 7118.073524860626
+      }
+    },
+    "cuda-baseline": {
+      "full_wall_seconds": {
+        "median": 24.658972960081883,
+        "min": 24.628002182929777,
+        "max": 24.862198268063366
+      },
+      "internal_seconds": {
+        "median": 20.36505651473999,
+        "min": 20.334551334381104,
+        "max": 20.523114919662476
+      },
+      "setup_seconds": {
+        "median": 13.307807922363283,
+        "min": 13.279268264770508,
+        "max": 13.36094880104065
+      },
+      "outside_internal_seconds": {
+        "median": 4.2939164453418925,
+        "min": 4.293450848548673,
+        "max": 4.339083348400891
+      },
+      "overhead_fraction": {
+        "median": 0.712648687297723,
+        "min": 0.7119254684803171,
+        "max": 0.7146847982298695
+      },
+      "template_seconds_per_wall_second": {
+        "median": 29649.896659669,
+        "min": 29407.536377793982,
+        "max": 29687.182686168788
+      },
+      "post_setup_internal_seconds": {
+        "median": 7.085788249969482,
+        "min": 7.0267434120178205,
+        "max": 7.162166118621826
+      },
+      "internal_template_seconds_per_second": {
+        "median": 35901.49624533633,
+        "min": 35625.00150985971,
+        "max": 35955.35441019617
+      }
+    },
+    "cuda-candidate": {
+      "full_wall_seconds": {
+        "median": 24.71184737200383,
+        "min": 24.63705670903437,
+        "max": 24.726277889916673
+      },
+      "internal_seconds": {
+        "median": 20.386037349700928,
+        "min": 20.31513261795044,
+        "max": 20.414663553237915
+      },
+      "setup_seconds": {
+        "median": 13.291285753250124,
+        "min": 13.25693941116333,
+        "max": 13.301952123641968
+      },
+      "outside_internal_seconds": {
+        "median": 4.321924091083929,
+        "min": 4.311614336678758,
+        "max": 4.325810022302903
+      },
+      "overhead_fraction": {
+        "median": 0.7129008005897413,
+        "min": 0.7123420087219638,
+        "max": 0.7135131322647449
+      },
+      "template_seconds_per_wall_second": {
+        "median": 29586.45660899911,
+        "min": 29569.189639260498,
+        "max": 29676.272155183764
+      },
+      "post_setup_internal_seconds": {
+        "median": 7.094751596450804,
+        "min": 7.058193206787109,
+        "max": 7.112711429595947
+      },
+      "internal_template_seconds_per_second": {
+        "median": 35864.547261350235,
+        "min": 35814.25665396462,
+        "max": 35989.72321519421
+      }
+    }
+  },
+  "report_files": {
+    "cpu-fft-review.md": "cafad51e0f823a2617fe680e6d0b0522faed738ca9a3055ff0dc07ed71508b67",
+    "existing-cpu-summary.json": "24140c1ee890cec1bd18834073c0eeebae502bbaddb23827ca57ed3a2aaea4d8",
+    "cuda-host-review.md": "88c3757994b805121c34932a6cc217b02e18f745ce188296b0128a40db8b16cd",
+    "sync-attribution.json": "d4f79cef3064ee40bb94577fd99b7e30b04cccaca19734934a3af28f4899e78c",
+    "cuda-peak-patch-review.md": "a2c1083574237ab5e209a32fe464b70e28604754199c82933740ee47f6e2c73a",
+    "cuda-race-results-review.json": "833acea10be4492371a7c33305e7ac88b481e7351374384ba1149c0e780cc678",
+    "qualification-peer-review.json": "b23a0a135a725081d802a6b8fc3c14ebd509d2fa106a7dc58eeec34d85ed49b1",
+    "timing-v3-peer-review.json": "afc12b4ab82445ae3b0fc7dbdf56fa4a52f878bedc4c0ea30fa1ea664fc7a429",
+    "mkl-inplace-source-review.json": "feb672d17605725b37a157dd74e421903ce3e58e577c58ea7b5be74028c32d4e",
+    "gpu-hoist-source-review.json": "80037d7e9d965f43187cd4d4673eb14e60cf847c21a1590b458c40af4c6f264d",
+    "runtime-validation-harness-review.json": "7736a191c6cd92e801146439b23f3cfdd0f8422001aeed91ecf5422fc56ede57",
+    "validation-v4-failure-review.json": "76d593815b588aa8551eb99ceca3873cbd443d1cfaf449f44c19054e911fbe6d",
+    "gpu-hoist-test-correction-review.json": "1a3abbc76b9088d1ca0d0682cc62f972ddecee3cc82b7bc62404b2720131e2f6",
+    "validation-v5-harness-review.json": "431df9fc7b1abbfd01a611ebea7b14df543466212021c0519ee1eb40dafdf311",
+    "followup-v5-peer-review.json": "d348f3bba0c6b8d747711a18674021ddae265a5f2b39767b97b373b78a5854fe",
+    "followup-v5-suite-skip-review.json": "c3ab474605ea9eae4c96be66ea20c78dc5c9d1623c0fe6854338f590b497c8c5",
+    "timing-v5-peer-review.json": "151fa47abbeb81fcb9780e26951192fe1622f6ecc1f0d53f914894d313aeea71",
+    "executable-v1-harness-review.json": "5b170863a4a066681e760341aad37c92ae0a85d3b38d32c8462b920be5950178",
+    "executable-v2-harness-correction-review.json": "161a31798dbf00988efad8c23c2bb6b40bcc2a79576f747e4d41337fd959af38",
+    "executable-v2-psd-failure-review.json": "ad958b6144c302c492a408ee09639c3615e2fddd6d2cba210c02ab22846bfaeb",
+    "executable-v3-harness-review.json": "f54d095e4205951ee3f7857a3c3852bd212563c7fed771f0466714ebad42a39f",
+    "executable-v3-qualification-peer-review.json": "b5c2a089235b53373b769e496a3f0b81fb23b9743912242a97a1de823434ebb2",
+    "executable-v3-same-scheme-trigger-review.json": "4664a8045670ec097a8f59412f1bce71da99c3544a2e3373e47c911deaca50e2",
+    "executable-v3-timing-peer-review.json": "8b8be4ec459665c938398ed47f90769cc22fc1516b8ba493a203e7f00b82fb48"
+  },
+  "executed_reproduction_scripts": {
+    "summarize-existing-cpu.py": "018ac4330c1a3183883ec13b67f2019ab97fdac137ef1b99e8ccc4781878f746",
+    "summarize-syncs.py": "f9b6538111d664c208e76d3f917a2e2a59685412c47c3d6ff0beebd80096ad28",
+    "review-qualification.py": "7a0eefea1b55ee4ce78c4c0826816c9007461910365734708411cba3a5fce600",
+    "review-timings-v3.py": "68ee60fbf2ae6c3a34472a2d8be4f0e6bd8a9045fb1bab8d3acf27d19889a951",
+    "review-followup-v5.py": "1ec4aef7dca3baf5606a13d002130e8d6c301dd479e6bbe139907ecbbc536ebc",
+    "review-timings-v5.py": "99a729d647655bcc48ef2ece67b46812da4b86e84098522019894a9138a237a0",
+    "review-executable-v3-harness.py": "6fa7ce05562423ffd2e9685c5432eeaf42432f71c31cd2766198de50efeb3222",
+    "review-executable-v3.py": "2be991501278b8b23400cfe2289fe84a533835b1585b1f8a8aab835b0e8dffdb",
+    "summarize-followup-review.py": "658878e4bbbf528f722c9936092e9ee9f7fb2d8b2bf39f242e95e4a278d4894f"
+  },
+  "preserved_failures_and_corrections": [
+    "Legacy standard single-precision MKL fails one original 36-case production-size error comparison; this existing control failure is retained in all three fresh warm runs.",
+    "Final private-in-place single-precision FFTW route passes 34/36; maximum-error failures remain disqualifying and no timing is accepted for that route. CPU route exploration is closed.",
+    "V4 test campaign exposed native Triton correlation-AD absence in both baseline and candidate. Tests were corrected to preserve native parity and separately require derivatives through the supported Torch fallback; runtime implementation did not change for this correction.",
+    "Executable v1 and v2 controllers stopped on reviewer-missed assumptions: standard scheme imports Torch, and full PSD bytes differ across schemes in the established references. Failed attempts remain immutable and are excluded from timing.",
+    "V3 checks exact published science records by scheme plus exact candidate-own-baseline equality. PSD files are directly hashed; no tolerance or scientific operation changed."
+  ],
+  "limitations": [
+    "Shared-host fixed finite 384-template workload; three fresh process samples per role yield observed ranges, not confidence intervals.",
+    "External frame/bank and remote source identity were checked by pinned acquisition and receipts; replay verifies those receipt pins and prior independently reviewed source hash maps.",
+    "Conditioned strain was captured as raw-data hash metadata; replay verifies equality of those records. PSD arrays and trigger HDF files are directly reread and compared.",
+    "Warm FFT timings and the 1,920-call surrogate are separate diagnostics, not executable throughput or forecasts.",
+    "Profile and trace durations are overlapping instrumented attribution, not additive speedup budgets.",
+    "Native CUDA correlation autograd remains an existing limitation; passing fallback derivative tests does not claim native support.",
+    "Related native suite has one platform skip: unavailable MPS on Linux, inferred from the test guard and sole recorded skip; the quiet log itself does not print the skipped test identity."
+  ]
+}

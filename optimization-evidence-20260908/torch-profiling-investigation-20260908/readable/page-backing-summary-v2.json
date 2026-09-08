@@ -1,0 +1,243 @@
+{
+  "state": "complete",
+  "summary_script_sha256": "e75db8359fb1606eaf7fb1dac869d4014a6abec66b62c5292115da88cce00eb6",
+  "independent_review_sha256": "d8f07c6031c32e96fe83cb7cd23a208781950d924ad9cb00c1f4c1bd2eecf313",
+  "archive_sha256": "2a390988fea2736ea2a7f8b55ed0750fc945c2c04214b25a251c74e62a6b6267",
+  "results_manifest_sha256": "25c2ef8c742d75178ce750b97ca24663fcce4de068a404010e239b1bd4ddc9bf",
+  "decision": "no consistent benefit under the frozen rule; do not advance or retry this campaign",
+  "timing_rows": [
+    {
+      "worker": "timing-1",
+      "metric": "engine",
+      "seconds": {
+        "original": 0.044576466999999995,
+        "nohuge": 0.033087066,
+        "huge": 0.0430125155
+      },
+      "huge_percent_reduction": {
+        "original": 3.508468941695164,
+        "nohuge": -29.99797413285301
+      }
+    },
+    {
+      "worker": "timing-1",
+      "metric": "native",
+      "seconds": {
+        "original": 0.040065777,
+        "nohuge": 0.0285297725,
+        "huge": 0.0388099575
+      },
+      "huge_percent_reduction": {
+        "original": 3.1343944733681295,
+        "nohuge": -36.03318252888275
+      }
+    },
+    {
+      "worker": "timing-2",
+      "metric": "engine",
+      "seconds": {
+        "original": 0.033414455999999995,
+        "nohuge": 0.033142225,
+        "huge": 0.043043837
+      },
+      "huge_percent_reduction": {
+        "original": -28.81800918740083,
+        "nohuge": -29.87612328381697
+      }
+    },
+    {
+      "worker": "timing-2",
+      "metric": "native",
+      "seconds": {
+        "original": 0.028881635,
+        "nohuge": 0.0285763665,
+        "huge": 0.0387527875
+      },
+      "huge_percent_reduction": {
+        "original": -34.17795599175739,
+        "nohuge": -35.61131888478543
+      }
+    },
+    {
+      "worker": "timing-3",
+      "metric": "engine",
+      "seconds": {
+        "original": 0.0334668115,
+        "nohuge": 0.033079102,
+        "huge": 0.0428559075
+      },
+      "huge_percent_reduction": {
+        "original": -28.05494631599428,
+        "nohuge": -29.555837096182348
+      }
+    },
+    {
+      "worker": "timing-3",
+      "metric": "native",
+      "seconds": {
+        "original": 0.028851672000000002,
+        "nohuge": 0.0284718635,
+        "huge": 0.038647573000000005
+      },
+      "huge_percent_reduction": {
+        "original": -33.9526284646519,
+        "nohuge": -35.73952755147201
+      }
+    }
+  ],
+  "separate_setup_costs": {
+    "original": {
+      "full_route_constructor_including_commit_seconds": {
+        "values": [
+          0.033228064,
+          0.032848038,
+          0.033515712,
+          0.030888509
+        ],
+        "median": 0.033038051,
+        "range": [
+          0.030888509,
+          0.033515712
+        ]
+      },
+      "first_engine_execution_seconds": {
+        "values": [
+          0.069791193,
+          0.074335795,
+          0.072016927,
+          0.07181725
+        ],
+        "median": 0.0719170885,
+        "range": [
+          0.069791193,
+          0.074335795
+        ]
+      },
+      "descriptor_finalize_seconds": {
+        "values": [
+          0.002507853,
+          0.00254655,
+          0.00229635,
+          0.002525641
+        ],
+        "median": 0.0025167469999999997,
+        "range": [
+          0.00229635,
+          0.00254655
+        ]
+      }
+    },
+    "nohuge": {
+      "full_route_constructor_including_commit_seconds": {
+        "values": [
+          0.031315856,
+          0.030916238,
+          0.032983102,
+          0.030760527
+        ],
+        "median": 0.031116047,
+        "range": [
+          0.030760527,
+          0.032983102
+        ]
+      },
+      "first_engine_execution_seconds": {
+        "values": [
+          0.062584323,
+          0.071592985,
+          0.072378093,
+          0.071643651
+        ],
+        "median": 0.071618318,
+        "range": [
+          0.062584323,
+          0.072378093
+        ]
+      },
+      "descriptor_finalize_seconds": {
+        "values": [
+          0.002168669,
+          0.002671847,
+          0.002256795,
+          0.002278765
+        ],
+        "median": 0.0022677799999999996,
+        "range": [
+          0.002168669,
+          0.002671847
+        ]
+      }
+    },
+    "huge": {
+      "full_route_constructor_including_commit_seconds": {
+        "values": [
+          0.030678695,
+          0.030761976,
+          0.033943854,
+          0.032929065
+        ],
+        "median": 0.0318455205,
+        "range": [
+          0.030678695,
+          0.033943854
+        ]
+      },
+      "first_engine_execution_seconds": {
+        "values": [
+          0.05609141,
+          0.058393816,
+          0.057979656,
+          0.058352881
+        ],
+        "median": 0.0581662685,
+        "range": [
+          0.05609141,
+          0.058393816
+        ]
+      },
+      "descriptor_finalize_seconds": {
+        "values": [
+          0.002462017,
+          0.002454605,
+          0.0023015,
+          0.002223881
+        ],
+        "median": 0.0023780525,
+        "range": [
+          0.002223881,
+          0.002462017
+        ]
+      }
+    }
+  },
+  "page_observations": {
+    "original": {
+      "count": 80,
+      "observed_bounds_bytes": [
+        [
+          0,
+          0
+        ]
+      ]
+    },
+    "nohuge": {
+      "count": 80,
+      "observed_bounds_bytes": [
+        [
+          0,
+          0
+        ]
+      ]
+    },
+    "huge": {
+      "count": 80,
+      "observed_bounds_bytes": [
+        [
+          33554432,
+          33554432
+        ]
+      ]
+    }
+  },
+  "limits": "One fixed 2**21-point CPU workload, one native/Torch thread, core 8. Worker estimates are medians of six block medians, each block containing 15 calls. Setup costs are outside steady-state timings and include four workers, one qualification and three timing. No executable speedup, CPU parity, statistical significance or production integration is established."
+}

@@ -1,0 +1,16 @@
+# FFT diagnostic helper review, 8 September 2026
+
+Reviewed helper `qualify_ifft_routes.py` SHA256 `8d9911c1742042694531689df99c8e5a740b7b493ef118e535f1d8c938eecf32` and contract tests SHA256 `3e71aaa977b0079e16c1a6e6bb5d3b74ff73b54c7d8daaafc71550c2387269c9`, supplied by the optimization task. This is a local source review; no new remote job or numerical qualification was run by the profiling task.
+
+The helper preserves the prior complex128 NumPy oracle and the separate L2/maximum-error budgets against legacy FFTW without a tolerance floor. Promoted MKL candidates additionally compare bitwise to matching-precision standard MKL after casting to complex64. The original direct-MKL route remains an explicitly labelled reference control, including its failures. Storage checks retain the legacy CPU backing arrays across scheme changes and assert input preservation, exact pointers, and caller output version updates. The in-place diagnostic owns private storage and a separate two-argument native callback; the accepted shared callback and dispatch allowlists are unchanged. Construction includes the diagnostic's extra plan or descriptor commit.
+
+Two changes were requested before accepting new timing evidence:
+
+1. **Qualify each exact timed plan after its timed samples.** Qualification and timing construct distinct plans in separate processes. Qualification constructs its ESTIMATE reference before the candidate; timing constructs the candidate first. The timing worker currently checks only seed 7/dense/scale 1 and does not check matching-precision MKL parity. A successful earlier MEASURE plan does not establish full-matrix precision for the newly timed plan. Preserve the timed samples if the latter fails, but exclude them from candidate performance claims. Run all four original seeds, three patterns and three scales on that same live plan after timing, including MKL parity when applicable. Construct fixed reference plans only after clearing both FFTW wisdom stores under the planning lock.
+2. **Require exact qualification provenance.** The timing gate checks a completion flag and source/route/size, but does not require qualification mode or the complete nonempty 36-case matrix. A one-seed smoke at the same transform length can currently unlock timing. Require the declared case identities and recomputed per-case gate results, and preserve every failed case.
+
+The campaign also needs fixed host, interpreter, NumPy/Torch, thread environment, affinity, loaded MKL/FFTW and extension identities, and complete source identity. The helper records some of these but compares only its `source_state`; untracked Python files and loaded MKL/FFTW libraries are outside that field. Enforcing these pins in the campaign wrapper is sufficient and avoids duplicate mechanisms.
+
+The baseline reference constructed before a measured candidate is insulated from that candidate's later wisdom. Clearing wisdom before the timing worker's subsequently constructed reference is the right direction. The candidate's input is assigned after planning, so destructive MEASURE planning does not invalidate the sample. The review does not request any tolerance, workload, kernel, or allowlist change.
+
+Findings were sent to the optimization task before acquisition. Review of its revised helper and resulting evidence remains separate from this v1 record.

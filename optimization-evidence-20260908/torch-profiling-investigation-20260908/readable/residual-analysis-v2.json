@@ -1,0 +1,415 @@
+{
+  "state": "pass",
+  "script_sha256": "ab88ed2bce7f12c0ed774572aef4f225d1ba332b5652f81f0c91f6e5da8e9c10",
+  "input_sha256": {
+    "residual-analysis-v1.json": "ee1358c0537e2d8ff22e1164ab0fd631b2ba6c0a5ed80e7a6b6410a593071782",
+    "residual-cpu-stage-results-v1-review.json": "8d297ec3d9436c14ed033bc8dc23e5ceb1e5614f9a8892ddf1d9ecea7cb3f00e",
+    "GPU-DESCRIPTOR-REVIEW-v2.json": "41e2b47181a56c76a498b2b625d7f3638dc9039890044024f28630a1f43d0e1f",
+    "cpu-copy-v1-results-peer-review.json": "26eb672406be3da4797dd04bebf39a7f77f380fb70c325fb871cd6e83e6c338b",
+    "CPU-COPY-REVIEW-v1.json": "5d037b711bded84dffccf99b48a7fd1c76a4a54324eb20cfa9375af81a596fa2"
+  },
+  "source_head": "ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f",
+  "executable_wall_seconds": {
+    "standard-candidate": {
+      "median": 66.93342889798805,
+      "range": [
+        66.62933187896851,
+        67.99660472502
+      ]
+    },
+    "cpu-candidate": {
+      "median": 104.40019265795127,
+      "range": [
+        104.21241650497541,
+        104.99540728796273
+      ]
+    },
+    "cuda-candidate": {
+      "median": 21.765735947992653,
+      "range": [
+        21.727497039013542,
+        22.123756703920662
+      ]
+    }
+  },
+  "cpu_minus_updated_standard_wall_seconds": 37.466763759963214,
+  "cpu_same_repeat_filtering_gap_seconds": [
+    37.3038010597229,
+    37.503419637680054,
+    37.995442390441895
+  ],
+  "cpu_stage_seconds": {
+    "engine_whole": {
+      "values": [
+        0.033360822,
+        0.033409106,
+        0.033484546
+      ],
+      "median": 0.033409106,
+      "range": [
+        0.033360822,
+        0.033484546
+      ]
+    },
+    "native_fft": {
+      "values": [
+        0.028861175,
+        0.028854667,
+        0.028958477
+      ],
+      "median": 0.028861175,
+      "range": [
+        0.028854667,
+        0.028958477
+      ]
+    },
+    "promotion": {
+      "values": [
+        0.002475809,
+        0.002493279,
+        0.002497214
+      ],
+      "median": 0.002493279,
+      "range": [
+        0.002475809,
+        0.002497214
+      ]
+    },
+    "demotion": {
+      "values": [
+        0.001972843,
+        0.002001614,
+        0.001997084
+      ],
+      "median": 0.001997084,
+      "range": [
+        0.001972843,
+        0.002001614
+      ]
+    },
+    "bookkeeping": {
+      "values": [
+        1.067e-05,
+        1.1051e-05,
+        1.0059e-05
+      ],
+      "median": 1.067e-05,
+      "range": [
+        1.0059e-05,
+        1.1051e-05
+      ]
+    }
+  },
+  "paired_conversion_seconds": {
+    "values": [
+      0.004450545,
+      0.004492219,
+      0.004497243
+    ],
+    "median": 0.004492219,
+    "range": [
+      0.004450545,
+      0.004497243
+    ]
+  },
+  "paired_conversion_fraction": {
+    "values": [
+      0.13344139864297758,
+      0.13461440402194877,
+      0.13445860579946123
+    ],
+    "median": 0.13445860579946123,
+    "range": [
+      0.13344139864297758,
+      0.13461440402194877
+    ]
+  },
+  "copy_candidate_disposition": "rejected: no whole-call improvement in any of three workers",
+  "copy_candidate_within_worker_ratio": {
+    "values": [
+      1.0011642093305577,
+      1.0018163265775906,
+      1.0010980528139866
+    ],
+    "median": 1.0011642093305577,
+    "range": [
+      1.0010980528139866,
+      1.0018163265775906
+    ]
+  },
+  "gpu_creation_seconds": {
+    "all_creation": {
+      "samples_seconds": [
+        2.534742817,
+        2.555507959,
+        2.544452494
+      ],
+      "median_seconds": 2.544452494,
+      "range_seconds": [
+        2.534742817,
+        2.555507959
+      ]
+    },
+    "repeated_creation": {
+      "samples_seconds": [
+        1.516596114,
+        1.522319098,
+        1.522121662
+      ],
+      "median_seconds": 1.522121662,
+      "range_seconds": [
+        1.516596114,
+        1.522319098
+      ]
+    },
+    "native_execution": {
+      "samples_seconds": [
+        0.464520013,
+        0.455636183,
+        0.447843887
+      ],
+      "median_seconds": 0.455636183,
+      "range_seconds": [
+        0.447843887,
+        0.464520013
+      ]
+    }
+  },
+  "gpu_creation_groups": [
+    {
+      "key": {
+        "direction": "fft",
+        "inplace": false,
+        "input_dtype": "float32",
+        "num_threads": 1,
+        "output_dtype": "complex64",
+        "size": 16384
+      },
+      "count": {
+        "values": [
+          999,
+          999,
+          999
+        ],
+        "median": 999,
+        "range": [
+          999,
+          999
+        ]
+      },
+      "first_create_seconds": {
+        "values": [
+          0.003486801,
+          0.002694074,
+          0.002450389
+        ],
+        "median": 0.002694074,
+        "range": [
+          0.002450389,
+          0.003486801
+        ]
+      },
+      "repeat_create_seconds": {
+        "values": [
+          0.502341857,
+          0.504280396,
+          0.503333056
+        ],
+        "median": 0.503333056,
+        "range": [
+          0.502341857,
+          0.504280396
+        ]
+      },
+      "create_seconds": {
+        "values": [
+          0.505828658,
+          0.50697447,
+          0.505783445
+        ],
+        "median": 0.505828658,
+        "range": [
+          0.505783445,
+          0.50697447
+        ]
+      },
+      "native_seconds": {
+        "values": [
+          0.040243746,
+          0.039969782,
+          0.03966789
+        ],
+        "median": 0.039969782,
+        "range": [
+          0.03966789,
+          0.040243746
+        ]
+      }
+    },
+    {
+      "key": {
+        "direction": "ifft",
+        "inplace": false,
+        "input_dtype": "complex64",
+        "num_threads": 1,
+        "output_dtype": "float32",
+        "size": 16777216
+      },
+      "count": {
+        "values": [
+          2,
+          2,
+          2
+        ],
+        "median": 2,
+        "range": [
+          2,
+          2
+        ]
+      },
+      "first_create_seconds": {
+        "values": [
+          0.506352628,
+          0.518195087,
+          0.508385549
+        ],
+        "median": 0.508385549,
+        "range": [
+          0.506352628,
+          0.518195087
+        ]
+      },
+      "repeat_create_seconds": {
+        "values": [
+          0.505612542,
+          0.507321915,
+          0.508050485
+        ],
+        "median": 0.507321915,
+        "range": [
+          0.505612542,
+          0.508050485
+        ]
+      },
+      "create_seconds": {
+        "values": [
+          1.01196517,
+          1.025517002,
+          1.016436034
+        ],
+        "median": 1.016436034,
+        "range": [
+          1.01196517,
+          1.025517002
+        ]
+      },
+      "native_seconds": {
+        "values": [
+          0.223132585,
+          0.214083886,
+          0.213412533
+        ],
+        "median": 0.214083886,
+        "range": [
+          0.213412533,
+          0.223132585
+        ]
+      }
+    },
+    {
+      "key": {
+        "direction": "fft",
+        "inplace": false,
+        "input_dtype": "float32",
+        "num_threads": 1,
+        "output_dtype": "complex64",
+        "size": 16777216
+      },
+      "count": {
+        "values": [
+          2,
+          2,
+          2
+        ],
+        "median": 2,
+        "range": [
+          2,
+          2
+        ]
+      },
+      "first_create_seconds": {
+        "values": [
+          0.508307274,
+          0.5122997,
+          0.511494894
+        ],
+        "median": 0.511494894,
+        "range": [
+          0.508307274,
+          0.5122997
+        ]
+      },
+      "repeat_create_seconds": {
+        "values": [
+          0.508641715,
+          0.510716787,
+          0.510738121
+        ],
+        "median": 0.510716787,
+        "range": [
+          0.508641715,
+          0.510738121
+        ]
+      },
+      "create_seconds": {
+        "values": [
+          1.016948989,
+          1.023016487,
+          1.022233015
+        ],
+        "median": 1.022233015,
+        "range": [
+          1.016948989,
+          1.023016487
+        ]
+      },
+      "native_seconds": {
+        "values": [
+          0.201143682,
+          0.201582515,
+          0.194763464
+        ],
+        "median": 0.201143682,
+        "range": [
+          0.194763464,
+          0.201582515
+        ]
+      }
+    }
+  ],
+  "ranked_remaining_opportunities": [
+    {
+      "rank": 1,
+      "candidate": "Original function API descriptor reuse",
+      "status": "Diagnostic implementation/contract review pending with sole owner",
+      "evidence": "Three configurations; 1003 calls; about 1.522 s repeated creation, with 0.503 s Welch and 1.018 s two large repeat calls",
+      "gate": "Preserve native successful operation order/configuration; ownership and cleanup contracts; real new-pointer equivalence; standard and CUDA science; contemporaneous unprofiled timing for both roles"
+    },
+    {
+      "rank": 2,
+      "candidate": "Large first-descriptor creation cost",
+      "status": "Deferred until repeat-reuse result",
+      "evidence": "About 0.51 s first creation in each large direction",
+      "gate": "No demonstrated reuse or safe configuration change; no proposed implementation or savings"
+    }
+  ],
+  "limits": [
+    "No new executable performance result since the completed loader campaign.",
+    "Stage diagnostics use inter-op64; executable uses inter-op1. Native and intra-op pools remain1, core8.",
+    "Native promoted FFT dominates the measured microbenchmark, but this does not prove a lower bound or unavoidable portion of the full-process gap.",
+    "Conversion fraction describes staged calls, not the executable gap. The tested NumPy replacement did not improve whole calls.",
+    "Historical whole-plan microdifference times1920 is only an arithmetic comparison across separate experiments, not a causal decomposition.",
+    "Instrumented creation time is prioritization evidence, not recoverable wall time; first and repeat costs must remain separate.",
+    "No broad precision rerun, relaxed accuracy gate, production edit, integration or publication."
+  ]
+}

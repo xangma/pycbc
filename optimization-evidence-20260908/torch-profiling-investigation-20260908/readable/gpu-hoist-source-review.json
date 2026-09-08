@@ -1,0 +1,21 @@
+{
+  "state": "source_review_passed_validation_pending",
+  "commit": "7a883441e93c4fabb76f8c7c5ada3219452f89ba",
+  "parent": "7e56ac42417dd6f61498f917e04c5a55250ddc26",
+  "files_sha256": {
+    "pycbc/vetoes/chisq_torch.py": "44cdb529a7416198c266423b604e09b47f5f721081e350e983b55fdf8d4b3db8",
+    "test/test_torch_chisq_cuda_normalization.py": "93b2e3eb6f2f93d4b6bcfd7fe305a05ecdb8ff13686bde279ad2fc339fb34a54"
+  },
+  "verified": [
+    "Only exact host scalar types on ordinary non-AD non-inference complex64 CUDA inputs hoist float32 conversion.",
+    "With complex64 correlation and SNR, both chi-squared terms are float32; original cast-then-tensor-square order is preserved.",
+    "Mixed precision PyCBC Array SNR, tensor-valued normalization, subclasses, inference tensors, forward and reverse AD retain original late conversion.",
+    "CPU native paths are unchanged.",
+    "New tests cover eight ordinary CUDA scalar-type/stream combinations and 22 special CPU/CUDA combinations, including output equality, scheduling order, gradients and tangents."
+  ],
+  "required_next": [
+    "Execute all30 new cases on Linux CUDA plus related chi-square contracts.",
+    "Validate unchanged executable scientific gates and fresh unprofiled throughput before accepting a performance claim."
+  ],
+  "limitation": "The existing raw trace attributes ~0.991s to1309 scalar-upload stream waits. Moving the upload earlier can move waiting elsewhere and adds host guards; this attribution does not forecast speedup."
+}

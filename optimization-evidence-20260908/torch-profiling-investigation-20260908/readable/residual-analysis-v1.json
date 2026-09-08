@@ -1,0 +1,665 @@
+{
+  "state": "existing_evidence_recomputed",
+  "script_sha256": "f53a0f1d593370847dd5e133b14da1b74207ddf8c2e738fe80a1c3c6649f7d1e",
+  "input_sha256": {
+    "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/loader-v1-summary.json": "270a3a47d6cb98160e8730d09cb7acb8a053f2ff7f39c51461e404919e662a2a",
+    "/Users/xangma/repos/pycbc/artifacts/torch-profiling-investigation-20260908/loader-v1-summary-crosscheck.json": "269ea2a23757d8f6d4a609ab2e55971edbbaa6cab11e906e39fd2e8aef3d0e5e",
+    "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/cpu-timing-v5-summary.json": "906accf1f8fb76a9be5bd4a80f6535b3fa5f97b69a8a3abcdd0757e8993834d3",
+    "/Users/xangma/repos/pycbc/artifacts/torch-profiling-investigation-20260908/timing-v5-peer-review.json": "151fa47abbeb81fcb9780e26951192fe1622f6ecc1f0d53f914894d313aeea71",
+    "/private/tmp/pycbc-torch-fft-optimization-20260908/pycbc/fft/mkl.py": "8362642e359f48f17a89e0877757a29124a3c2b231e4debfa77d5520c2bb9fc3",
+    "/private/tmp/pycbc-torch-fft-optimization-20260908/pycbc/psd/estimate.py": "56399fd2ea312069baeaa9042f80e67b7715da3f5cbcb3653d84c79efd127209",
+    "/private/tmp/pycbc-torch-fft-optimization-20260908/pycbc/strain/strain.py": "134110d04738adeff38978b3246372e4c5c687a48dcce03b8da7fe6df396d12b",
+    "/private/tmp/pycbc-torch-fft-optimization-20260908/pycbc/types/timeseries.py": "50c713fdbd479cdf584cc50c6aac7c0ec53cbcd95e6b2708c27157af5aed573a",
+    "/private/tmp/pycbc-torch-fft-optimization-20260908/pycbc/types/frequencyseries.py": "251273a70b67bb540b7ba41b0e11d4bec548d7fb60eac20b8818a496914d38c0",
+    "/private/tmp/pycbc-torch-fft-optimization-20260908/pycbc/fft/torchfft.py": "0b9109bbf99a4eb591a4c006b1220ec36c8587e56352352277eb1478cf876c0c",
+    "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/publication-final-restore/pycbc-torch-profile-20260907-r3/runs/filter-cprofile-torchcpu/filtering.pstats": "c95eb86f4b1fe9d398c081ffb3ddcade5c940ee5d2e402ca899f8878a05b49bf",
+    "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/publication-final-restore/pycbc-torch-profile-20260907-r3/runs/filter-cprofile-cpu/filtering.pstats": "2de00e539d77d58594ea245301c44ecef56c8c59cb4890d3a443a09973520c08",
+    "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/publication-final-restore/pycbc-torch-profile-20260907-r3/runs/cprofile-cuda/profile.pstats": "4867fd9982a38dd846eb7b4be3947b3e6cbf039397c8dccfe0e78cafc8804173"
+  },
+  "current_source_head": "ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f",
+  "historical_profile_head": "d2647addb884ead3249914ebc980f3c132076d93",
+  "current_source_clean": true,
+  "unchanged_historical_setup_sources": [
+    "pycbc/fft/mkl.py",
+    "pycbc/psd/estimate.py",
+    "pycbc/strain/strain.py",
+    "pycbc/types/timeseries.py",
+    "pycbc/types/frequencyseries.py"
+  ],
+  "current_finite_workload": {
+    "templates": 384,
+    "segments": 5,
+    "detector_seconds": 1904,
+    "assigned_cpu_core": 8,
+    "native_and_torch_threads": 1,
+    "repetitions_per_role": 3,
+    "roles": {
+      "standard-candidate": {
+        "samples": [
+          {
+            "full_wall_seconds": 67.99660472502,
+            "internal_seconds": 63.412022829055786,
+            "setup_seconds": 13.248697519302368,
+            "outside_internal_seconds": 4.58458189596422,
+            "filtering_seconds": 50.16332530975342,
+            "setup_plus_outside_seconds": 17.83327941526659,
+            "overhead_fraction": 0.2622672041844563
+          },
+          {
+            "full_wall_seconds": 66.93342889798805,
+            "internal_seconds": 62.386841773986816,
+            "setup_seconds": 11.996402740478516,
+            "outside_internal_seconds": 4.546587124001235,
+            "filtering_seconds": 50.3904390335083,
+            "setup_plus_outside_seconds": 16.54298986447975,
+            "overhead_fraction": 0.24715587019593158
+          },
+          {
+            "full_wall_seconds": 66.62933187896851,
+            "internal_seconds": 62.087496757507324,
+            "setup_seconds": 12.040839910507202,
+            "outside_internal_seconds": 4.54183512146119,
+            "filtering_seconds": 50.04665684700012,
+            "setup_plus_outside_seconds": 16.582675031968392,
+            "overhead_fraction": 0.2488795034308711
+          }
+        ],
+        "medians": {
+          "full_wall_seconds": 66.93342889798805,
+          "internal_seconds": 62.386841773986816,
+          "setup_seconds": 12.040839910507202,
+          "outside_internal_seconds": 4.546587124001235,
+          "filtering_seconds": 50.16332530975342,
+          "setup_plus_outside_seconds": 16.582675031968392,
+          "overhead_fraction": 0.2488795034308711
+        },
+        "ranges": {
+          "full_wall_seconds": [
+            66.62933187896851,
+            67.99660472502
+          ],
+          "internal_seconds": [
+            62.087496757507324,
+            63.412022829055786
+          ],
+          "setup_seconds": [
+            11.996402740478516,
+            13.248697519302368
+          ],
+          "outside_internal_seconds": [
+            4.54183512146119,
+            4.58458189596422
+          ],
+          "filtering_seconds": [
+            50.04665684700012,
+            50.3904390335083
+          ],
+          "setup_plus_outside_seconds": [
+            16.54298986447975,
+            17.83327941526659
+          ],
+          "overhead_fraction": [
+            0.24715587019593158,
+            0.2622672041844563
+          ]
+        }
+      },
+      "cpu-candidate": {
+        "samples": [
+          {
+            "full_wall_seconds": 104.99540728796273,
+            "internal_seconds": 100.43361353874207,
+            "setup_seconds": 12.966487169265747,
+            "outside_internal_seconds": 4.561793749220669,
+            "filtering_seconds": 87.46712636947632,
+            "setup_plus_outside_seconds": 17.528280918486416,
+            "overhead_fraction": 0.1669433108670455
+          },
+          {
+            "full_wall_seconds": 104.21241650497541,
+            "internal_seconds": 99.69287085533142,
+            "setup_seconds": 11.799012184143066,
+            "outside_internal_seconds": 4.519545649643987,
+            "filtering_seconds": 87.89385867118835,
+            "setup_plus_outside_seconds": 16.318557833787054,
+            "overhead_fraction": 0.15658938139111242
+          },
+          {
+            "full_wall_seconds": 104.40019265795127,
+            "internal_seconds": 99.90515470504761,
+            "setup_seconds": 11.86305546760559,
+            "outside_internal_seconds": 4.495037952903658,
+            "filtering_seconds": 88.04209923744202,
+            "setup_plus_outside_seconds": 16.35809342050925,
+            "overhead_fraction": 0.15668642944083105
+          }
+        ],
+        "medians": {
+          "full_wall_seconds": 104.40019265795127,
+          "internal_seconds": 99.90515470504761,
+          "setup_seconds": 11.86305546760559,
+          "outside_internal_seconds": 4.519545649643987,
+          "filtering_seconds": 87.89385867118835,
+          "setup_plus_outside_seconds": 16.35809342050925,
+          "overhead_fraction": 0.15668642944083105
+        },
+        "ranges": {
+          "full_wall_seconds": [
+            104.21241650497541,
+            104.99540728796273
+          ],
+          "internal_seconds": [
+            99.69287085533142,
+            100.43361353874207
+          ],
+          "setup_seconds": [
+            11.799012184143066,
+            12.966487169265747
+          ],
+          "outside_internal_seconds": [
+            4.495037952903658,
+            4.561793749220669
+          ],
+          "filtering_seconds": [
+            87.46712636947632,
+            88.04209923744202
+          ],
+          "setup_plus_outside_seconds": [
+            16.318557833787054,
+            17.528280918486416
+          ],
+          "overhead_fraction": [
+            0.15658938139111242,
+            0.1669433108670455
+          ]
+        }
+      },
+      "cuda-candidate": {
+        "samples": [
+          {
+            "full_wall_seconds": 21.765735947992653,
+            "internal_seconds": 17.19219470024109,
+            "setup_seconds": 10.231783628463745,
+            "outside_internal_seconds": 4.573541247751564,
+            "filtering_seconds": 6.960411071777344,
+            "setup_plus_outside_seconds": 14.805324876215309,
+            "overhead_fraction": 0.6802124638280715
+          },
+          {
+            "full_wall_seconds": 21.727497039013542,
+            "internal_seconds": 17.11398434638977,
+            "setup_seconds": 10.144912242889404,
+            "outside_internal_seconds": 4.613512692623772,
+            "filtering_seconds": 6.969072103500366,
+            "setup_plus_outside_seconds": 14.758424935513176,
+            "overhead_fraction": 0.6792510388570385
+          },
+          {
+            "full_wall_seconds": 22.123756703920662,
+            "internal_seconds": 17.550471305847168,
+            "setup_seconds": 10.508668899536133,
+            "outside_internal_seconds": 4.573285398073494,
+            "filtering_seconds": 7.041802406311035,
+            "setup_plus_outside_seconds": 15.081954297609627,
+            "overhead_fraction": 0.6817085587881591
+          }
+        ],
+        "medians": {
+          "full_wall_seconds": 21.765735947992653,
+          "internal_seconds": 17.19219470024109,
+          "setup_seconds": 10.231783628463745,
+          "outside_internal_seconds": 4.573541247751564,
+          "filtering_seconds": 6.969072103500366,
+          "setup_plus_outside_seconds": 14.805324876215309,
+          "overhead_fraction": 0.6802124638280715
+        },
+        "ranges": {
+          "full_wall_seconds": [
+            21.727497039013542,
+            22.123756703920662
+          ],
+          "internal_seconds": [
+            17.11398434638977,
+            17.550471305847168
+          ],
+          "setup_seconds": [
+            10.144912242889404,
+            10.508668899536133
+          ],
+          "outside_internal_seconds": [
+            4.573285398073494,
+            4.613512692623772
+          ],
+          "filtering_seconds": [
+            6.960411071777344,
+            7.041802406311035
+          ],
+          "setup_plus_outside_seconds": [
+            14.758424935513176,
+            15.081954297609627
+          ],
+          "overhead_fraction": [
+            0.6792510388570385,
+            0.6817085587881591
+          ]
+        }
+      }
+    }
+  },
+  "residual_cpu": {
+    "difference_of_full_wall_medians_seconds": 37.466763759963214,
+    "same_repeat_differences_seconds": [
+      {
+        "full_wall_seconds": 36.99880256294273,
+        "internal_seconds": 37.02159070968628,
+        "setup_seconds": -0.2822103500366211,
+        "outside_internal_seconds": -0.022788146743550897,
+        "filtering_seconds": 37.3038010597229
+      },
+      {
+        "full_wall_seconds": 37.27898760698736,
+        "internal_seconds": 37.306029081344604,
+        "setup_seconds": -0.19739055633544922,
+        "outside_internal_seconds": -0.027041474357247353,
+        "filtering_seconds": 37.503419637680054
+      },
+      {
+        "full_wall_seconds": 37.77086077898275,
+        "internal_seconds": 37.81765794754028,
+        "setup_seconds": -0.17778444290161133,
+        "outside_internal_seconds": -0.04679716855753213,
+        "filtering_seconds": 37.995442390441895
+      }
+    ],
+    "median_same_repeat_differences_seconds": {
+      "full_wall_seconds": 37.27898760698736,
+      "internal_seconds": 37.306029081344604,
+      "setup_seconds": -0.19739055633544922,
+      "outside_internal_seconds": -0.027041474357247353,
+      "filtering_seconds": 37.503419637680054
+    },
+    "qualified_2M_whole_plan_median_seconds": 0.033520219032652676,
+    "standard_reference_2M_plan_median_seconds": 0.016033834079280496,
+    "1920_call_micro_difference_seconds": 33.57385911047459,
+    "arithmetic_fraction_of_current_full_wall_gap": 0.896097120252255,
+    "arithmetic_unassigned_remainder_seconds": 3.892904649488628,
+    "historical_torch_filtering_seconds": 96.89038506499998,
+    "historical_standard_filtering_seconds": 51.06591619200002,
+    "historical_torch_nodes": [
+      {
+        "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/torchfft.py",
+        "line": 271,
+        "name": "execute",
+        "primitive_calls": 1920,
+        "total_calls": 1920,
+        "self_seconds": 62.517340448000006,
+        "cumulative_seconds": 71.254080434,
+        "callers": [
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/torchfft.py",
+            "line": 977,
+            "name": "_execute_mkl_cpu_ifft_plan",
+            "primitive_calls": 1920,
+            "total_calls": 1920,
+            "self_seconds": 62.517340448000006,
+            "cumulative_seconds": 71.254080434
+          }
+        ]
+      },
+      {
+        "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/torchfft.py",
+        "line": 1444,
+        "name": "execute",
+        "primitive_calls": 1920,
+        "total_calls": 1920,
+        "self_seconds": 0.010495879000000001,
+        "cumulative_seconds": 71.401896037,
+        "callers": [
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/filter/matchedfilter.py",
+            "line": 312,
+            "name": "full_matched_filter_and_cluster_symm",
+            "primitive_calls": 1920,
+            "total_calls": 1920,
+            "self_seconds": 0.010495879000000001,
+            "cumulative_seconds": 71.401896037
+          }
+        ]
+      },
+      {
+        "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/torchfft.py",
+        "line": 977,
+        "name": "_execute_mkl_cpu_ifft_plan",
+        "primitive_calls": 1920,
+        "total_calls": 1920,
+        "self_seconds": 0.020873634000000002,
+        "cumulative_seconds": 71.39140015800001,
+        "callers": [
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/torchfft.py",
+            "line": 1444,
+            "name": "execute",
+            "primitive_calls": 1920,
+            "total_calls": 1920,
+            "self_seconds": 0.020873634000000002,
+            "cumulative_seconds": 71.39140015800001
+          }
+        ]
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "name": "<method 'copy_' of 'torch._C.TensorBase' objects>",
+        "primitive_calls": 4221,
+        "total_calls": 4221,
+        "self_seconds": 8.873855760000001,
+        "cumulative_seconds": 8.873855760000001,
+        "callers": [
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/torchfft.py",
+            "line": 271,
+            "name": "execute",
+            "primitive_calls": 3840,
+            "total_calls": 3840,
+            "self_seconds": 8.698897518,
+            "cumulative_seconds": 8.698897518
+          },
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/types/array_torch.py",
+            "line": 1045,
+            "name": "_copy",
+            "primitive_calls": 381,
+            "total_calls": 381,
+            "self_seconds": 0.174958242,
+            "cumulative_seconds": 0.174958242
+          }
+        ]
+      }
+    ],
+    "historical_standard_ifft_node": {
+      "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/mkl.py",
+      "line": 189,
+      "name": "execute",
+      "primitive_calls": 1920,
+      "total_calls": 1920,
+      "self_seconds": 28.406514085,
+      "cumulative_seconds": 28.406514085,
+      "callers": [
+        {
+          "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/filter/matchedfilter.py",
+          "line": 312,
+          "name": "full_matched_filter_and_cluster_symm",
+          "primitive_calls": 1920,
+          "total_calls": 1920,
+          "self_seconds": 28.406514085,
+          "cumulative_seconds": 28.406514085
+        }
+      ]
+    }
+  },
+  "gpu_setup": {
+    "historical_profile_nodes": [
+      {
+        "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/mkl.py",
+        "line": 76,
+        "name": "create_descriptor",
+        "primitive_calls": 1003,
+        "total_calls": 1003,
+        "self_seconds": 2.5279696510000003,
+        "cumulative_seconds": 2.55842682,
+        "callers": [
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/mkl.py",
+            "line": 102,
+            "name": "fft",
+            "primitive_calls": 1001,
+            "total_calls": 1001,
+            "self_seconds": 1.50280349,
+            "cumulative_seconds": 1.533182915
+          },
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/mkl.py",
+            "line": 111,
+            "name": "ifft",
+            "primitive_calls": 2,
+            "total_calls": 2,
+            "self_seconds": 1.025166161,
+            "cumulative_seconds": 1.025243905
+          }
+        ]
+      },
+      {
+        "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/mkl.py",
+        "line": 102,
+        "name": "fft",
+        "primitive_calls": 1001,
+        "total_calls": 1001,
+        "self_seconds": 0.28544236,
+        "cumulative_seconds": 1.8480224330000001,
+        "callers": [
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/func_api.py",
+            "line": 34,
+            "name": "fft",
+            "primitive_calls": 1001,
+            "total_calls": 1001,
+            "self_seconds": 0.28544236,
+            "cumulative_seconds": 1.8480224330000001
+          }
+        ]
+      },
+      {
+        "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/mkl.py",
+        "line": 111,
+        "name": "ifft",
+        "primitive_calls": 2,
+        "total_calls": 2,
+        "self_seconds": 0.249984053,
+        "cumulative_seconds": 1.275395759,
+        "callers": [
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/func_api.py",
+            "line": 64,
+            "name": "ifft",
+            "primitive_calls": 2,
+            "total_calls": 2,
+            "self_seconds": 0.249984053,
+            "cumulative_seconds": 1.275395759
+          }
+        ]
+      },
+      {
+        "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/func_api.py",
+        "line": 34,
+        "name": "fft",
+        "primitive_calls": 1007,
+        "total_calls": 1007,
+        "self_seconds": 0.005438976000000001,
+        "cumulative_seconds": 1.936368625,
+        "callers": [
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/filter/matchedfilter.py",
+            "line": 1359,
+            "name": "make_frequency_series",
+            "primitive_calls": 5,
+            "total_calls": 5,
+            "self_seconds": 5.2316000000000005e-05,
+            "cumulative_seconds": 0.016085375000000002
+          },
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/psd/estimate.py",
+            "line": 167,
+            "name": "welch",
+            "primitive_calls": 999,
+            "total_calls": 999,
+            "self_seconds": 0.0053392890000000005,
+            "cumulative_seconds": 0.657123574
+          },
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/psd/estimate.py",
+            "line": 371,
+            "name": "inverse_spectrum_truncation",
+            "primitive_calls": 2,
+            "total_calls": 2,
+            "self_seconds": 2.7573000000000002e-05,
+            "cumulative_seconds": 0.6319980310000001
+          },
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/types/timeseries.py",
+            "line": 1820,
+            "name": "to_frequencyseries",
+            "primitive_calls": 1,
+            "total_calls": 1,
+            "self_seconds": 1.9798000000000003e-05,
+            "cumulative_seconds": 0.631161645
+          }
+        ]
+      },
+      {
+        "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/func_api.py",
+        "line": 64,
+        "name": "ifft",
+        "primitive_calls": 3,
+        "total_calls": 3,
+        "self_seconds": 7.403100000000001e-05,
+        "cumulative_seconds": 1.2853318820000001,
+        "callers": [
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/psd/estimate.py",
+            "line": 371,
+            "name": "inverse_spectrum_truncation",
+            "primitive_calls": 2,
+            "total_calls": 2,
+            "self_seconds": 5.0657000000000006e-05,
+            "cumulative_seconds": 0.628093984
+          },
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/types/frequencyseries.py",
+            "line": 446,
+            "name": "to_timeseries",
+            "primitive_calls": 1,
+            "total_calls": 1,
+            "self_seconds": 2.3374e-05,
+            "cumulative_seconds": 0.657237898
+          }
+        ]
+      },
+      {
+        "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/psd/estimate.py",
+        "line": 167,
+        "name": "welch",
+        "primitive_calls": 2,
+        "total_calls": 2,
+        "self_seconds": 0.016041287,
+        "cumulative_seconds": 1.286848575,
+        "callers": [
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/psd/__init__.py",
+            "line": 44,
+            "name": "from_cli",
+            "primitive_calls": 1,
+            "total_calls": 1,
+            "self_seconds": 0.000306097,
+            "cumulative_seconds": 0.165491636
+          },
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/strain/strain.py",
+            "line": 120,
+            "name": "detect_loud_glitches",
+            "primitive_calls": 1,
+            "total_calls": 1,
+            "self_seconds": 0.01573519,
+            "cumulative_seconds": 1.121356939
+          }
+        ]
+      },
+      {
+        "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/psd/estimate.py",
+        "line": 371,
+        "name": "inverse_spectrum_truncation",
+        "primitive_calls": 2,
+        "total_calls": 2,
+        "self_seconds": 0.004441286,
+        "cumulative_seconds": 2.418493047,
+        "callers": [
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/psd/__init__.py",
+            "line": 44,
+            "name": "from_cli",
+            "primitive_calls": 1,
+            "total_calls": 1,
+            "self_seconds": 0.000144146,
+            "cumulative_seconds": 0.015312498
+          },
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/strain/strain.py",
+            "line": 120,
+            "name": "detect_loud_glitches",
+            "primitive_calls": 1,
+            "total_calls": 1,
+            "self_seconds": 0.0042971400000000005,
+            "cumulative_seconds": 2.403180549
+          }
+        ]
+      },
+      {
+        "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/strain/strain.py",
+        "line": 120,
+        "name": "detect_loud_glitches",
+        "primitive_calls": 1,
+        "total_calls": 1,
+        "self_seconds": 0.012237483,
+        "cumulative_seconds": 5.210790295000001,
+        "callers": [
+          {
+            "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/strain/strain.py",
+            "line": 259,
+            "name": "from_cli",
+            "primitive_calls": 1,
+            "total_calls": 1,
+            "self_seconds": 0.012237483,
+            "cumulative_seconds": 5.210790295000001
+          }
+        ]
+      }
+    ],
+    "welch_to_fft_edge": {
+      "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/psd/estimate.py",
+      "line": 167,
+      "name": "welch",
+      "primitive_calls": 999,
+      "total_calls": 999,
+      "self_seconds": 0.0053392890000000005,
+      "cumulative_seconds": 0.657123574
+    }
+  },
+  "limitations": [
+    "Current full-process medians, prior 2M microbenchmarks and older cProfile measurements are different experiments. Scaling the micro difference by 1920 is a prioritization surrogate, not causal attribution, a performance bound or promised savings.",
+    "Whole promoted IFFT timings include promotion, native execution and demotion. They do not isolate unavoidable precision cost. Prior complex64 candidates failed fixed precision gates; the standard single-precision reference itself does not pass that stricter 36-case matrix.",
+    "The historical Torch profile uses an out-of-place plan; the current retained 2M plan is in place. Old copy and native totals cannot be assigned to the current implementation.",
+    "Independent medians are not additive. Stage totals are computed within each run before summarizing; same-repeat differences are reported separately from differences of medians.",
+    "The historical aggregate descriptor total cannot be assigned entirely to repeated Welch calls. The whole Welch-to-FFT edge is only 0.657123574 seconds; cProfile merges backend calls across ancestors and does not reveal descriptor keys or cold/warm order.",
+    "Unchanged setup source supports a diagnostic hypothesis, not transfer of old timings after loader/FFT/warmup changes. Host conditions were shared, not an empty-machine or saturation benchmark."
+  ],
+  "ranked_next_steps": [
+    {
+      "rank": 1,
+      "scope": "Torch CPU residual",
+      "action": "Measure the current qualified 2M plan unchanged: promotion, native DFTI, native version publication/status check, demotion, whole execute and production wrapper. Use identical data and fixed core/threads; include timer-only controls and paired whole/staged runs. Run all 36 unchanged precision cases before and after, and record input preservation, target version, plan placement and buffer identities.",
+      "decision": "If conversions are material, compare a bounded Python-only cached NumPy-view/copyto implementation with explicit source/target ownership, mutation publication and existing guards. Do not repeat exhausted complex64 matrices without new evidence."
+    },
+    {
+      "rank": 2,
+      "scope": "GPU host setup",
+      "action": "Instrument the existing MKL function path to record descriptor size, input/output dtype, placement, thread limit, direction/caller, descriptor-create duration, native-execute duration and chronological index in one current-source setup qualification. Summarize first use and repeated keys separately; instrumentation must preserve descriptor lifecycle and numerical results.",
+      "decision": "Estimate opportunities from repeat-key creation cost only; if material, prefer a bounded existing class-plan reuse at an owning callsite. Include thread/PID/layout/dtype guards, buffer lifetime and free-on-owner semantics. Repeat descriptor construction in an isolated helper to distinguish plan work from cold library initialization."
+    },
+    {
+      "rank": 3,
+      "scope": "GPU outside-internal startup",
+      "action": "Use current fresh-process import/startup attribution only if descriptor diagnostics do not identify useful savings. The observed outside-internal median is reported as a timing boundary, not wholly imports.",
+      "decision": "Require repeatable unprofiled whole-process gains for any candidate; warmup shifts alone do not demonstrate a reduction."
+    }
+  ],
+  "candidate_acceptance": "Owner retains all remote execution and benchmark locking. Any new implementation needs focused contracts, fixed precision gates, conditioned-strain/actual-PSD qualification, unchanged scientific HDF comparisons, and fresh paired full-executable measurements against the updated standard before a performance claim. Existing evidence package and source remain fixed; no integration or publication is authorized here."
+}

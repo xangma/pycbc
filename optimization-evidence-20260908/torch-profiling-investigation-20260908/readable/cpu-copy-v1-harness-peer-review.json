@@ -1,0 +1,106 @@
+{
+  "state": "pass",
+  "manifest_sha256": "6ac59b71570e4fea559ceed92cf78a379cb274a093f3dd0da4ba2af2cb012065",
+  "review_script_sha256": "618df898f5ac5adc1563513e8d67dc097af85ef724a6ffa666a3175a4e2420da",
+  "manifest_files_verified": 9,
+  "reused_byte_exact": [
+    "qualify_runtime.py",
+    "worker_receipt.py",
+    "threadpoolctl.py",
+    "source-pins.json"
+  ],
+  "source_python_pins": 6,
+  "prior_native_pins": 11,
+  "production_source_sha256": "0b9109bbf99a4eb591a4c006b1220ec36c8587e56352352277eb1478cf876c0c",
+  "frozen_files_sha256": {
+    "CPU-COPY-PROTOCOL.md": "e752ffc9ec2049f47f2494c11d74605b0f70deded8679ecbf4a5d0268d90d3b7",
+    "cpu_controller.py": "e36e20ebd29ca4f4d89e48e10d213c09be738cbcd4d45274da29079b983ceb02",
+    "cpu_copy.py": "7ff9dd320e5775254d80d5ea94b8d383983630bf651f0d11e06af32e24840505",
+    "cpu_copy_contracts.py": "f39c26ac414c9bfdc124da68509e2658d6996934ea2e699a66b4e7240ae9ea4b",
+    "numpy_copy_adapter.py": "59a61ef4281a8cf610f3f63743a3507236e5d55b2722f3bb5b902ff150cac889",
+    "qualify_runtime.py": "e77603961c1f066647065e2e5c86dd2a4676fc891192bab508dc00d926888297",
+    "source-pins.json": "982f18eab08eb4176ac2cb6044db6eb245c1e63ea0ce7d905ad5800938b61413",
+    "threadpoolctl.py": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b",
+    "worker_receipt.py": "c3ae82778a87034dca75d5f0d6fa2c0797fb462de1d081f6cf1f6b6c701699f5"
+  },
+  "local_torch_version": "2.9.1",
+  "local_numpy_version": "2.3.5",
+  "simulated_contracts": {
+    "state": "complete",
+    "checks": [
+      "negative control: Tensor.numpy export changes resizability",
+      "exact impulse result, input preserved, public/private versions and resizability",
+      "source resize: rejected before external-memory writes",
+      "target resize: rejected before external-memory writes",
+      "source same-shape replacement storage: rejected before external-memory writes",
+      "target same-shape replacement storage: rejected before external-memory writes",
+      "source shape mutation: rejected before external-memory writes",
+      "target shape mutation: rejected before external-memory writes",
+      "source aliases target: rejected before external-memory writes",
+      "source requires grad: rejected before external-memory writes",
+      "target requires grad: rejected before external-memory writes",
+      "private workspace replacement: rejected before external-memory writes",
+      "native failure: propagated before public target write/version increment",
+      "tensor/descriptor owners retained until adapter release"
+    ]
+  },
+  "original_vs_adapter_simulated_comparisons": [
+    {
+      "failure": "none",
+      "exception": null,
+      "version_deltas": [
+        0,
+        1,
+        2
+      ],
+      "target_and_workspace_exact": true
+    },
+    {
+      "failure": "status",
+      "exception": [
+        "RuntimeError",
+        "native status"
+      ],
+      "version_deltas": [
+        0,
+        0,
+        2
+      ],
+      "target_and_workspace_exact": true
+    },
+    {
+      "failure": "exception",
+      "exception": [
+        "RuntimeError",
+        "native exception"
+      ],
+      "version_deltas": [
+        0,
+        0,
+        1
+      ],
+      "target_and_workspace_exact": true
+    }
+  ],
+  "source_review": {
+    "strong_exact_owners_and_borrowed_views_without_numpy_export": true,
+    "original_public_eligibility_and_private_identity_checks_before_view_access": true,
+    "copy_native_copy_order_and_versions_match_original": true,
+    "separate_contract_process_precedes_numerical_route_exports": true,
+    "precision_cases_per_worker": 144,
+    "fresh_paired_workers": 3,
+    "alternating_blocks_per_worker": 4,
+    "warmups_per_path_block": 3,
+    "samples_per_path_block": 15,
+    "samples_per_path_worker": 60,
+    "unmodified_strict_fftw_budgets_and_bitwise_mkl_parity": true,
+    "lock_affinity_source_helpers_and_native_pins_before_after_workers": true,
+    "interop_is_observed_not_enforced_to_executable_one": true
+  },
+  "limitations": [
+    "Local execution uses mock construction and native writes with actual production gate/execute bodies.",
+    "Fresh real-MKL storage contracts and all remote precision gates remain mandatory before accepting timing.",
+    "Diagnostic private adapter only; no production patch or executable performance gain is certified.",
+    "Inter-op thread setting differs from executable controls and must be reported."
+  ]
+}

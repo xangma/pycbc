@@ -1,0 +1,76 @@
+{
+  "state": "review_complete",
+  "classification": "Controller added exact cross-scheme PSD byte equality that the unchanged published baseline did not satisfy; both baseline executable qualifications completed all13 checks. No candidate or timing workers ran.",
+  "status_sha256": "b192a18129b027801bcef01faeed4f1daa76f2c038b6c788ea5b2dc8ab977026",
+  "audit_sha256": "c095e2eac0cb985b00ca60ddc545f93c3f321e1e97608a350f0966814ef91760",
+  "controller_log_sha256": "e43229781cf26aedb9802e7436073f59f28a8c8a6fd3b82ba9cd80469de2442a",
+  "all_13_manifest_files_verified": true,
+  "baseline_runs": {
+    "qual-standard": {
+      "receipt_sha256": "9cb703903e21d7f76701bbd71f6c726b3d55bfe1710cb5f12f1d6df9d0c07add",
+      "runtime_sha256": "fa22bddf575de9ba2b3528b7cf4266e25c8f29739208d3540b667823b00ddf73",
+      "qualification_sha256": "2cb1f2179939582fa02c61b9113257012775e3ef91ec501a9bdaa27c22895b61",
+      "trigger_sha256": "1d55272f2bd86f6ac88c80620c66bdd2cb6e7850ae40d0bd60b11bd6888484a1",
+      "psd_sha256": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+      "psd_data_sha256": "79bfcc76784fa870c273e427fbc29c3fe73f9edfd4aca734c2d0fb8d25889bdb",
+      "published_reference": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/publication-final-restore/pycbc-torch-profile-20260907-r3/runs/qualify-cpu/arrays/qualification-psd-000.npy",
+      "all_13_scientific_checks": {
+        "all_decompressions_succeeded": true,
+        "all_interpolations_observed": true,
+        "all_segment_psds_saved": true,
+        "all_segment_psds_valid_for_filter": true,
+        "bank_0_all_templates_once": true,
+        "bank_0_compression_enabled": true,
+        "conditioned_strain_recorded": true,
+        "no_generation_fallback": true,
+        "nonempty_segments": true,
+        "one_compressed_bank": true,
+        "one_scalar_controller": true,
+        "recorded_geometry_matches_controller": true,
+        "scalar_ifft_executed_for_every_pair": true
+      }
+    },
+    "qual-cpu-baseline": {
+      "receipt_sha256": "b99376782e134847910e440f58daa8a5ecb2cc610aeeb253e5c5978fc1f9030e",
+      "runtime_sha256": "752e929b1ee316836a48c08aa6836f24b0d23802c92de340f9ad5dde84bd2446",
+      "qualification_sha256": "1e3c48374ae68af72d635ea50750f4aa4ebad8cf30b7070d10fbe7658c647599",
+      "trigger_sha256": "cfde65f36ebc7b166be6899eb3ee447bbc57776a51832608960067f24143de67",
+      "psd_sha256": "4b083eda5f7778779ba7b5f153a0e2b3ac0d623f6cc60d9e22b300244d5ead9a",
+      "psd_data_sha256": "2d177d2aff0fb3ec1e86293e7558a0a5a38e49e57664a277a71fcb1ed7353711",
+      "published_reference": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/publication-final-restore/pycbc-torch-profile-20260907-r3/runs/qualify-torchcpu/arrays/qualification-psd-000.npy",
+      "all_13_scientific_checks": {
+        "all_decompressions_succeeded": true,
+        "all_interpolations_observed": true,
+        "all_segment_psds_saved": true,
+        "all_segment_psds_valid_for_filter": true,
+        "bank_0_all_templates_once": true,
+        "bank_0_compression_enabled": true,
+        "conditioned_strain_recorded": true,
+        "no_generation_fallback": true,
+        "nonempty_segments": true,
+        "one_compressed_bank": true,
+        "one_scalar_controller": true,
+        "recorded_geometry_matches_controller": true,
+        "scalar_ifft_executed_for_every_pair": true
+      }
+    }
+  },
+  "all_common_strain_geometry_and_psd_metadata_equal": true,
+  "raw_cross_scheme_psd_difference": {
+    "elements": 1048577,
+    "different_values": 14374,
+    "first_different_bin": 1,
+    "last_different_bin": 15120,
+    "filter_slice": [
+      15360,
+      1048576
+    ],
+    "used_filter_values_array_equal": true,
+    "used_filter_different_values": 0,
+    "whole_array_max_relative_difference": 0.00400659805436142,
+    "whole_array_relative_l2": 0.0015688559583172939,
+    "metric_scope": "Recorded excluded-frequency difference only; these metrics are descriptive, not new acceptance thresholds."
+  },
+  "correction_scope": "Use exact pinned published PSD file/data hashes separately per standard, TorchCPU and CUDA scheme; require candidate PSD equality to its same-scheme baseline. Keep common metadata/strain/geometry and original trigger/numerical checks unchanged. Preserve v2 raw mismatch and original arrays.",
+  "supersedes_prior_review_claim": "The v1/v2 static review incorrectly described exact cross-scheme PSD hashes as an established requirement. It was an extra incompatible controller check; no scientific threshold is relaxed by restoring per-scheme published PSD identity."
+}

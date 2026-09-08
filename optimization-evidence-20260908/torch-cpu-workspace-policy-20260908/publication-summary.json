@@ -1,0 +1,36 @@
+{
+  "caveats": [
+    "Fixed finite workloads on a shared host; reported ranges are observed ranges, not confidence intervals.",
+    "Full-executable, isolated API, native, setup and qualification timings retain their separate meanings.",
+    "Historical paths, runtime identities and process closure records are provenance, not current observations.",
+    "Raw input bank/GWF, full source baselines, native binaries and environments are external pinned dependencies."
+  ],
+  "main_report": "CPU-WORKSPACE-POLICY-v1.md",
+  "omitted_evidence_files": 0,
+  "original_archive_regular_members": 59,
+  "original_archives": 2,
+  "original_seal": {
+    "all_entries_verified": true,
+    "entries": 75,
+    "present": true,
+    "sha256": "d2c8d57f3cb17c33129e239f088e52761cf8b08490c88e33b761eb9d2d722427",
+    "unlisted_files": []
+  },
+  "outcome": "Rejected before timing: DFTI_AVOID changed retained complex128 native bytes although final complex64 bytes and both FFTW limits passed. Zero timing workers ran; the frozen native-and-final byte-parity rule was not relaxed.",
+  "primary_summaries": [
+    "acquired-diagnostic-v1/qualification.json",
+    "owner-results-audit.json",
+    "peer-results-review-v1.json"
+  ],
+  "result_interpretation": "Copied from original reports; no new scientific computation or performance measurement.",
+  "scope": "All frozen input/result files, ABI/runtime pins, native contracts, first-case qualification failure, controller stop decision and terminal closure.",
+  "selected_bytes": 1302511,
+  "selected_files": 76,
+  "storage_counts": {
+    "archive": 63,
+    "gzip": 2,
+    "readable": 6,
+    "supplement": 5
+  },
+  "supplement_unique_files": 5
+}

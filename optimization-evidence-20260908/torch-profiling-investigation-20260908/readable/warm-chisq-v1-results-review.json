@@ -1,0 +1,296 @@
+{
+  "state": "passed",
+  "scope": "Independent replay of six processes and 48 cells; no new GPU computation.",
+  "status_sha256": "31270a9ff6cd2b22efc5b90f9579c92c4ee0d5d87bdef06d3af3eca85f54b88a",
+  "audit_sha256": "a44229246168d5d8ad171f99856c710581452d753a7aec94fb44b428a04b6b75",
+  "manifest_sha256": "791e2f531876ca5881b70137dc162c60590092f6b66ca8b86b31f3d933cdc2a4",
+  "revisions": {
+    "baseline": "7e56ac42417dd6f61498f917e04c5a55250ddc26",
+    "candidate": "2f799f0046fc36db4215bd8b8b8a774d40c0e011"
+  },
+  "workers": {
+    "warm-1-baseline": {
+      "pid": 2159335,
+      "result_sha256": "e6571dab8f37fb2f0e5ccb012a447778816a90cb29a5c2ba0d7379e182e1766c",
+      "log_sha256": "fd48547b7cfdfbb878d44cdc387195d0c3863a10a5efbe0f6b9ad5c1bed0ec1d"
+    },
+    "warm-1-candidate": {
+      "pid": 2162512,
+      "result_sha256": "3aa072d54f55775e29300fae433701ca255b8dfbe3f459e90b7b650be4deeefd",
+      "log_sha256": "fd48547b7cfdfbb878d44cdc387195d0c3863a10a5efbe0f6b9ad5c1bed0ec1d"
+    },
+    "warm-2-candidate": {
+      "pid": 2165525,
+      "result_sha256": "38f5ed40c341e4c9f912815990dba91cf8ddd0be9eb36cc4d5aeda3b0d128647",
+      "log_sha256": "fd48547b7cfdfbb878d44cdc387195d0c3863a10a5efbe0f6b9ad5c1bed0ec1d"
+    },
+    "warm-2-baseline": {
+      "pid": 2168525,
+      "result_sha256": "b499c26be8cfc94b45ae66936bf5b2e284a6f5797cdd40371dc047999f025799",
+      "log_sha256": "fd48547b7cfdfbb878d44cdc387195d0c3863a10a5efbe0f6b9ad5c1bed0ec1d"
+    },
+    "warm-3-baseline": {
+      "pid": 2171649,
+      "result_sha256": "17439be71171f0e1d3728d86659f076b99d3e007cd7af56ab5fd4b7231772829",
+      "log_sha256": "fd48547b7cfdfbb878d44cdc387195d0c3863a10a5efbe0f6b9ad5c1bed0ec1d"
+    },
+    "warm-3-candidate": {
+      "pid": 2174666,
+      "result_sha256": "d77260651d69172e45a86608b3f8e895617a765c7a82fc282a45b3e53179c9fc",
+      "log_sha256": "fd48547b7cfdfbb878d44cdc387195d0c3863a10a5efbe0f6b9ad5c1bed0ec1d"
+    }
+  },
+  "cells": [
+    {
+      "size": 131072,
+      "points": 1,
+      "baseline": {
+        "process_medians_seconds": [
+          0.001305618,
+          0.001302722,
+          0.001291682
+        ],
+        "median_seconds": 0.001302722,
+        "min_seconds": 0.001291682,
+        "max_seconds": 0.001305618
+      },
+      "candidate": {
+        "process_medians_seconds": [
+          0.001297753,
+          0.001279339,
+          0.0012803
+        ],
+        "median_seconds": 0.0012803,
+        "min_seconds": 0.001279339,
+        "max_seconds": 0.001297753
+      },
+      "candidate_over_baseline": 0.982788346247319,
+      "candidate_latency_reduction_percent": 1.7211653752680967,
+      "paired_candidate_over_baseline": [
+        0.9939760328059203,
+        0.9820506600794336,
+        0.9911882336364524
+      ]
+    },
+    {
+      "size": 131072,
+      "points": 8,
+      "baseline": {
+        "process_medians_seconds": [
+          0.000459148,
+          0.000465626,
+          0.000454195
+        ],
+        "median_seconds": 0.000459148,
+        "min_seconds": 0.000454195,
+        "max_seconds": 0.000465626
+      },
+      "candidate": {
+        "process_medians_seconds": [
+          0.000456843,
+          0.0004566,
+          0.000453474
+        ],
+        "median_seconds": 0.0004566,
+        "min_seconds": 0.000453474,
+        "max_seconds": 0.000456843
+      },
+      "candidate_over_baseline": 0.9944505910948104,
+      "candidate_latency_reduction_percent": 0.5549408905189623,
+      "paired_candidate_over_baseline": [
+        0.9949798322109648,
+        0.9806153436448994,
+        0.9984125760961701
+      ]
+    },
+    {
+      "size": 131072,
+      "points": 32,
+      "baseline": {
+        "process_medians_seconds": [
+          0.000452765,
+          0.00045646,
+          0.000444476
+        ],
+        "median_seconds": 0.000452765,
+        "min_seconds": 0.000444476,
+        "max_seconds": 0.00045646
+      },
+      "candidate": {
+        "process_medians_seconds": [
+          0.000445813,
+          0.000442604,
+          0.000442833
+        ],
+        "median_seconds": 0.000442833,
+        "min_seconds": 0.000442604,
+        "max_seconds": 0.000445813
+      },
+      "candidate_over_baseline": 0.9780636754166069,
+      "candidate_latency_reduction_percent": 2.193632458339312,
+      "paired_candidate_over_baseline": [
+        0.9846454562521396,
+        0.9696446567059545,
+        0.996303512450616
+      ]
+    },
+    {
+      "size": 131072,
+      "points": 128,
+      "baseline": {
+        "process_medians_seconds": [
+          0.000453287,
+          0.000458173,
+          0.000445539
+        ],
+        "median_seconds": 0.000453287,
+        "min_seconds": 0.000445539,
+        "max_seconds": 0.000458173
+      },
+      "candidate": {
+        "process_medians_seconds": [
+          0.000440092,
+          0.000442704,
+          0.000447974
+        ],
+        "median_seconds": 0.000442704,
+        "min_seconds": 0.000440092,
+        "max_seconds": 0.000447974
+      },
+      "candidate_over_baseline": 0.9766527608336439,
+      "candidate_latency_reduction_percent": 2.334723916635606,
+      "paired_candidate_over_baseline": [
+        0.9708904071813221,
+        0.9662376438594156,
+        1.0054652903561754
+      ]
+    },
+    {
+      "size": 2097152,
+      "points": 1,
+      "baseline": {
+        "process_medians_seconds": [
+          0.001285249,
+          0.001293655,
+          0.001282024
+        ],
+        "median_seconds": 0.001285249,
+        "min_seconds": 0.001282024,
+        "max_seconds": 0.001293655
+      },
+      "candidate": {
+        "process_medians_seconds": [
+          0.001289096,
+          0.001270401,
+          0.001276834
+        ],
+        "median_seconds": 0.001276834,
+        "min_seconds": 0.001270401,
+        "max_seconds": 0.001289096
+      },
+      "candidate_over_baseline": 0.9934526305797553,
+      "candidate_latency_reduction_percent": 0.6547369420244697,
+      "paired_candidate_over_baseline": [
+        1.002993194314876,
+        0.9820245737851283,
+        0.9959517138524706
+      ]
+    },
+    {
+      "size": 2097152,
+      "points": 8,
+      "baseline": {
+        "process_medians_seconds": [
+          0.000447947,
+          0.000449276,
+          0.000439818
+        ],
+        "median_seconds": 0.000447947,
+        "min_seconds": 0.000439818,
+        "max_seconds": 0.000449276
+      },
+      "candidate": {
+        "process_medians_seconds": [
+          0.000442676,
+          0.000446891,
+          0.000441201
+        ],
+        "median_seconds": 0.000442676,
+        "min_seconds": 0.000441201,
+        "max_seconds": 0.000446891
+      },
+      "candidate_over_baseline": 0.9882329829198543,
+      "candidate_latency_reduction_percent": 1.1767017080145714,
+      "paired_candidate_over_baseline": [
+        0.9882329829198543,
+        0.9946914591476063,
+        1.0031444824904847
+      ]
+    },
+    {
+      "size": 2097152,
+      "points": 32,
+      "baseline": {
+        "process_medians_seconds": [
+          0.000678001,
+          0.000676654,
+          0.000669471
+        ],
+        "median_seconds": 0.000676654,
+        "min_seconds": 0.000669471,
+        "max_seconds": 0.000678001
+      },
+      "candidate": {
+        "process_medians_seconds": [
+          0.000637705,
+          0.00063731,
+          0.000639444
+        ],
+        "median_seconds": 0.000637705,
+        "min_seconds": 0.00063731,
+        "max_seconds": 0.000639444
+      },
+      "candidate_over_baseline": 0.942438823977986,
+      "candidate_latency_reduction_percent": 5.756117602201405,
+      "paired_candidate_over_baseline": [
+        0.9405664593415054,
+        0.9418550692081921,
+        0.9551481692261501
+      ]
+    },
+    {
+      "size": 2097152,
+      "points": 128,
+      "baseline": {
+        "process_medians_seconds": [
+          0.001882619,
+          0.001881021,
+          0.001875331
+        ],
+        "median_seconds": 0.001881021,
+        "min_seconds": 0.001875331,
+        "max_seconds": 0.001882619
+      },
+      "candidate": {
+        "process_medians_seconds": [
+          0.001844194,
+          0.001846626,
+          0.001843682
+        ],
+        "median_seconds": 0.001844194,
+        "min_seconds": 0.001843682,
+        "max_seconds": 0.001846626
+      },
+      "candidate_over_baseline": 0.9804218028400533,
+      "candidate_latency_reduction_percent": 1.9578197159946686,
+      "paired_candidate_over_baseline": [
+        0.9795896036319616,
+        0.9817147176985265,
+        0.9831235125959097
+      ]
+    }
+  ],
+  "scientific_validation": "All 48 cell records pass exact prior-formula and corr/SNR immutability assertions from the reviewed worker. Independently regenerated all input hashes from seed; reconstructed and hashed all finite float32 output vectors; all eight input/output identities are exact across six workers.",
+  "limitations": "Completion-inclusive warm sparse-chi-square API latency only. Full executable results remain decisive. Does not measure where waits moved or establish GPU executable speedup. Native correlation autograd limitations from earlier tests remain unchanged.",
+  "review_script_sha256": "ea2484c580923f2b09bb920d9a4e3c38c8d2a896798a6476b501bb09a99ddd8b"
+}

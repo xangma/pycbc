@@ -1,0 +1,32 @@
+{
+  "state": "source_review_passed_runtime_pending",
+  "manifest_sha256": "089107685e8be1200e6ce47dcf0c94e1bfc2d80ed8675364f67eff460e367f6c",
+  "reviewed_files": {
+    "gpu_controller.py": "9bc04476f6fc31a8a6986de6deb724ba17d001c88916833f9967b49c2405d0f9",
+    "profile-mkl-descriptors.py": "7d4e5548a8547963413528b205dc1480b95b4f7baeac8f5f517f9b549a3503d7",
+    "run-case.py": "9e24819b77f43ee9ba4a3c0a277f7c2699a4cb1a179a19b20841f22cc14448fb",
+    "run-case-diff.patch": "c58356edf6d4698438b9c13105e9b25e1c285dd8ff4254a629348de5b561a64f",
+    "test_descriptor_harness.py": "3968679714ac661a41f9a032d296393843cf9fe0b14716c650b8ac85040488a9",
+    "loader_campaign.py": "6d55dd008dfd68d24bd83c19de2a4d3469a35f92e75e42733f0936e4ca5f5733"
+  },
+  "manifest_pins_verified": 21,
+  "reused_helpers_byte_identical": 11,
+  "reference_pins_verified": 8,
+  "native_pins_against_qualified_source": 11,
+  "local_mock_reexecution": {
+    "passed": 4,
+    "effect_comparisons": 20,
+    "all_frozen_pins_unchanged": true
+  },
+  "findings": [],
+  "review": [
+    "Actual current MKL function API source and descriptor lifecycle read directly. Clone preserves all operations except reversible timing hook around native call RHS; real native symbols and original creator remain unchanged.",
+    "Run-case diff limits changes to descriptor qualification wrapper, mode guard and input pins. Existing runtime sanitation/lock/thread/native controls remain byte-identical.",
+    "Controller reuses unchanged verified_run, qualified_science and compare_runs; reference is same current source; exact conditioned-strain records, persisted PSD arrays and 18 H1 scientific datasets remain gated.",
+    "All input/source/reference/harness pins checked before/after serial fresh workers; full process group exit and nonblocking lock reacquisition audit required after completion."
+  ],
+  "limits": [
+    "Import order and timer/stack instrumentation perturb runtime; do not treat elapsed values as benchmark performance.",
+    "Function API FFT/IFFT only; class descriptors excluded. First observed key is not necessarily all MKL library initialization; repeated descriptor time is only a prioritization signal."
+  ]
+}

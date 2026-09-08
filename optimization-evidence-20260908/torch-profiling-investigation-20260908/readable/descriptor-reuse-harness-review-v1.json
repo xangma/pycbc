@@ -1,0 +1,73 @@
+{
+  "state": "pass",
+  "scope": "Frozen prelaunch source and local contract review only.",
+  "script_sha256": "1aaebe605a38e79f42b2dcc985c5c162478e7194864446e00ea7464325579909",
+  "manifest_sha256": "b15841a0c8df70a729d0e911311a879881473d9d3175b32a8ec86a013c9a0a4e",
+  "frozen_files": {
+    "PROTOCOL.md": "640f10cdd42c1e68baefffbb7e6475d1dc7720a3fbc8e7fbb5065d00c3b9ee03",
+    "campaign_controls.py": "efc82d6a72c42ef6e66060a9d7cd5131b42e527455fde39456b977dd410e4ba0",
+    "checked-inspiral.py": "6cec38e384ae532d63099df1941cf1f73dcb65750d43e7796d517ea4cd3454ba",
+    "compare-triggers.py": "f0af115a2bf2d3a5a85152cb1f61d9b7570a460efd6d420566c5a2b74ac8f1b5",
+    "config.json": "6d399146bcc19a43b780ef1d591ee115954621d0bdf8751915ef69ee986c395b",
+    "current-source-pins.json": "9a3995bdcc6d8e28757a03df13686db66e8d4b89a32c505b666b1d5f4ae866c6",
+    "descriptor_reuse.py": "ee5140609e0d2e9d4132ee5ff8ad38f3213a035af83a39b9f852792004628326",
+    "input-pins.json": "fc15fb20df42c15b1f991b51c0600355f598bd235dd52cfa9117b2f2618426bc",
+    "library-pins.json": "5802b98595d7c5fddf7f0921fdb98d2b793b30c7428c88ed7c1898fe02c362c1",
+    "loader_campaign.py": "6d55dd008dfd68d24bd83c19de2a4d3469a35f92e75e42733f0936e4ca5f5733",
+    "local-fake-contracts.json": "bfbac889456d76a651c5040aa17d14574093e9934f24b761dc1cb2540171a721",
+    "local-harness-tests.json": "763688c89d1301f14b68042e925ae86e4db5ae16ba813039d7fbb9f48c5bf78b",
+    "manage.py": "4b80b348c7f0b96d043fbd94668ee65c3d38b75e33beb61e2f05f587a195c09e",
+    "qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+    "real_contracts.py": "3574f64ee57a06cf8cfb53f0be1698eddb433b2192444350eb272b96bb43bf49",
+    "reference-pins.json": "2bb9f448e4aa5fb466c1bb6127f376d2855d4fbfc50cbe7179317953a07560d1",
+    "reuse_controller.py": "99cd185cf668f96b642fb26a27426f430dd63ba6e08df783895bc9f995877ba1",
+    "reused-helpers.json": "150ebd57cfb1cef9fe3092ccc1dcff5b692217b16a9ac55998fa49b48e8e4b07",
+    "run-case-diff.patch": "0d48e7e5a26814a84caeb563d73b396df7e7750f47662cdc1668a86e5f5a113b",
+    "run-case.py": "e9eb775837d88840027f6f984b31e562b75ecb17f2a21a1d4ad087d5fbe69b15",
+    "run_reuse.py": "9db69cb713a2b6d28b5a50f0dd52550f45e6d2b6eda031512b1c86201c7feb2c",
+    "science-reference.json": "b07240d112832ae61aeeb6cd90a7c1556b1f3625230f98b3f4ac58cb9048f475",
+    "source-pins.json": "fa15d0e6bb02218008528469a692e1fb14b9885278ff22ec5678ba723418f7dd",
+    "source-staging.json": "ae691010c962884806ff06c9ed60eb244795955a820df2610334b429e745ceb9",
+    "test_descriptor_reuse.py": "61b52786e6982d8f97a5cd3ba3af83f459f50d258d3996c171b51faf45352424",
+    "test_harness.py": "f42f23c06e1ed46cb6307fd7d6d9c13a80adab4310121a6f93a4bb5a150c09a2",
+    "threadpoolctl.py": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b"
+  },
+  "independent_copy": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-investigation-20260908/descriptor-reuse-harness-b15841a0",
+  "source_head": "ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f",
+  "source_status": "",
+  "local_tests": {
+    "pinned_native_mocks": 15,
+    "provenance_counters_runner": 8,
+    "primary_invariant_boundaries": 3,
+    "native_receipt_boundaries": 3
+  },
+  "evidence": {
+    "descriptor-reuse-owner-contracts-61b52786.json": "bfbac889456d76a651c5040aa17d14574093e9934f24b761dc1cb2540171a721",
+    "descriptor-reuse-primary-error-1090e55f.json": "6ec7b544fc6cdff93566779be23a9df43428927018baeec1740ee5b3c12c8169",
+    "descriptor-reuse-primary-error-ee514060.json": "34653b28177a7ce3b6ddfbaca7f8ff93e1e00cdc21a5c630ef968bf2cb9b8a37",
+    "descriptor-reuse-native-finally-3574f64e.json": "1fdce1249bf1920130b4e7a2a31347e53141fbca8f83026aba1878fe64706114",
+    "review-descriptor-reuse-primary-error.py": "a9844ac350b99341d7784257b428835bdabb0e175c03071bb814580201edd3ef",
+    "review-descriptor-reuse-primary-error-v2.py": "c1cafe21dcd6cb8f94fba4975a2c5d940e63d71ad5c4a6a5e2cf972f0f99da22",
+    "review-reuse-native-finally.py": "4ad5d8b5d0f675381930f01a9e7555643b3fb921d4d3aa67566295e9b15bec54"
+  },
+  "review": [
+    "Three allowed configurations, full immutable key, capacity three and exact-original fallbacks reviewed.",
+    "Original-derived ctypes signature transitions and native identity/castability retained; private two-argument Torch ABI coexists.",
+    "Successful-path AST transformations and failure ownership/cleanup reviewed with actual pinned-body mocks.",
+    "Nonzero creation with handle 777 is rejected before setup/ownership/free; uncertain free is poisoned and never retried.",
+    "Primary workload error survives invariant/cleanup errors; failed restored native cache now remains in receipt.",
+    "Native gate requires full byte equality and input preservation for nine transforms with 18 live distinct pointers, coexisting plans and explicit release.",
+    "Controller requires native gate before four serial current-source qualifications and seven comparisons.",
+    "Exact six-path provenance dispatch, actual PSD content, captured strain, all18 H1 science equality and default comparator remain strict.",
+    "CUDA counts are explicit; standard additional function calls may take original fallbacks and must match uncached configuration groups.",
+    "Owner manager reviewed for detached process identity, inherited exclusive lock, no overwrite, terminal whole-group absence, independent lock reacquisition and archive pinning."
+  ],
+  "limits": [
+    "No native FFT or executable qualification has yet been run for this harness.",
+    "Mocks and finalbody boundary tests do not certify real numerical output.",
+    "create_successes means original creator returned after commit invocation; original unchecked commit status is preserved.",
+    "Fail-closed ownership errors deliberately differ from original failure behavior; ambiguous failed handles are not claimed freed.",
+    "No executable speedup, Torch CPU integration, production source change, PR or publication is certified."
+  ],
+  "disposition": "Ready for sole owner to stage and launch this bounded native/qualification campaign under existing authorization."
+}

@@ -1,0 +1,67 @@
+{
+  "state": "passed",
+  "scope": "Independent review of frozen patch/test source plus transferred CUDA logs and receipt hashes; no GPU jobs rerun by reviewer.",
+  "source_commits": {
+    "baseline": "c659f4ed25c90f4f8b19237ce0d079cf3fe5e277",
+    "candidate": "7e56ac42417dd6f61498f917e04c5a55250ddc26"
+  },
+  "baseline_case_failures": [
+    {
+      "case": "0-False-False",
+      "failure": "incorrect immediate arrays"
+    },
+    {
+      "case": "0-False-True",
+      "failure": "copy events pending at return"
+    },
+    {
+      "case": "0-True-False",
+      "failure": "incorrect immediate arrays"
+    },
+    {
+      "case": "0-True-True",
+      "failure": "copy events pending at return"
+    },
+    {
+      "case": "2-False-False",
+      "failure": "incorrect immediate arrays"
+    },
+    {
+      "case": "2-False-True",
+      "failure": "incorrect immediate arrays"
+    },
+    {
+      "case": "2-True-False",
+      "failure": "copy events pending at return"
+    },
+    {
+      "case": "2-True-True",
+      "failure": "copy events pending at return"
+    }
+  ],
+  "candidate_passed": 8,
+  "candidate_skipped": 0,
+  "existing_contracts_passed": 74,
+  "test_sha256": "962e64267af1ebcdfe3d7458f09d52660e5a60976bba177c0b20a2fdb654f2dd",
+  "bundle_sha256": "947e5b27d0243d3b0c9decd18d084fad06a99d1104add0ed48b464ac751eea5d",
+  "receipt_sha256": {
+    "cuda-existing-contracts.log": "835c04528dd0a30074a56f3ac8289d5d66d7b21baa27f3c38524d78d92282012",
+    "cuda-race-baseline.log": "80c0b65e85078b302b6750e7686f493e7b12c7ed92564036fedf567be57ff0bc",
+    "cuda-race-candidate.log": "53a523aa2e361e642638544bc1a312d03bfa4b79b280cbf95a019dfb202d47be",
+    "cuda-validation-v3-controller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "cuda-validation-v3-launch.json": "eeee58d4eb1e8ce2630976a4475cd6361f511c219ff705d621562c218079a6ba",
+    "cuda-validation-v3-status.json": "136a7e8ba26af0aa9960bf975be9f51a7b63befcfd9a832cf9950cd3c4400c7e",
+    "cuda-validation-v3-terminal-audit.json": "e5284a72bc081e78938f8d36b21f2dff96b16b44bb37d2bcc0bd361f4e25306f",
+    "run_diagnostics.py": "9c99a9665d572e14673455f01d2d35df1ecdc09f0cac98ada5d7193cd4d54eaa",
+    "source-staging.json": "3d376ce02fbafe7d770d0a6b6cc1a0613242829b7f5939eb3be07ef6da9725e5",
+    "threadpoolctl.py": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b",
+    "transfer_manifest.json": "fe921d4c420db82f9889c873f5eabf31baa3d3d29ca15f6d318c76866ab42594",
+    "worker_receipt.py": "c3ae82778a87034dca75d5f0d6fa2c0797fb462de1d081f6cf1f6b6c701699f5"
+  },
+  "conclusion": "The delayed-copy baseline fails all eight readiness checks; current-stream synchronization repairs immediate host-array readiness on both tested stream types and both native/fallback implementations.",
+  "limitations": [
+    "Optional default-off path correctness evidence; no performance gain claimed.",
+    "Four baseline cases fail pending-event assertions despite matching immediate values; four fail actual immediate-array comparisons.",
+    "End-to-end science and throughput validation remains separate."
+  ]
+}

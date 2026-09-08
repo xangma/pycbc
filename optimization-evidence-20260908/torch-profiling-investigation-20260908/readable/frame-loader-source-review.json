@@ -1,0 +1,27 @@
+{
+  "state": "source_and_local_test_evidence_review_passed",
+  "baseline": "2f799f0046fc36db4215bd8b8b8a774d40c0e011",
+  "candidate": "ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f",
+  "files": {
+    "pycbc/frame/frame.py": "483ed42b253386b86c36afc0a6411384188f9468f7b968ccf8d0d2b533e33a55",
+    "test/test_frame.py": "7a4448702522681a4f95dd2e84cf751eb0f67c733570383f73a5ac9a0755d3d7"
+  },
+  "source_proof": "Removing only the new omitted-bound guard restores the complete original module AST. first_channel extraction stays outside the guard. Existing test methods are unchanged.",
+  "coverage": "Four float/complex dtypes; real split frames; fractional LIGOTimeGPS bounds; single and reversed multi-channel reads; reversed list, glob and cache; checksum and regex/time sieve; omitted start/end and duration; invalid bounds/missing/empty channel.",
+  "test_evidence_sha256": {
+    "frame-loader-local-tests-final.log": "e15e12c14a116352d581201a5673cb22566451a51c2e7ad6cb198fa6082ced70",
+    "frame-loader-baseline-control.log": "79542968c9e72559cb468e16d73dc00d382093151743765fd65397340fc6181d",
+    "frame-loader-baseline-negative-control.log": "d08492a8eaa0ba01e905542e86878e3135c7c9184d35c0f89da0169fd62dab6e"
+  },
+  "candidate_test_result": "16 passed, 48 subtests passed",
+  "baseline_semantic_result": "12 passed, 32 subtests passed; optimization-specific test deselected for each dtype",
+  "baseline_negative_control": {
+    "baseline": "2f799f0046fc36db4215bd8b8b8a774d40c0e011",
+    "state": "passed",
+    "tests_run": 4,
+    "expected_metadata_assertion_failures": 16,
+    "unexpected_errors": 0
+  },
+  "limitations": "Local tests were executed by the optimizer; reviewer inspected source and artifacts. Installed len stream-position diagnostic, full science qualification and six-role timing are separate pending reviews. No performance claim.",
+  "review_script_sha256": "499ef44a70d6e126adcd645f078b3e77e0c48691d7765eea910341e17a779b3b"
+}

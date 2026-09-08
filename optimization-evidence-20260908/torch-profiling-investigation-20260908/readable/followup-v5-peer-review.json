@@ -1,0 +1,130 @@
+{
+  "state": "review_complete",
+  "script_sha256": "1ec4aef7dca3baf5606a13d002130e8d6c301dd479e6bbe139907ecbbc536ebc",
+  "scope": "Independent recomputation of recorded error gates and provenance review; numerical arrays were not regenerated.",
+  "status_sha256": "4f33c42f77cededae978a92b27c3d5e86a679cd60d6e3d4d7fa2f079f7ef8d1e",
+  "terminal_audit_sha256": "2e438cfa711ad3afb4f745845016f8de592ade3246038d0e3ab91964e9a7e36d",
+  "staging_sha256": "facac8c84fefbbce1b65e54b235b5bb6c6c87d02724e19263865cb2abbe28c27",
+  "transfer_manifest_sha256": "3e7c7f4589cff32ba4db7cee629a1c4b46f459d78cde5bb75e825d968d9f61af",
+  "test_logs": {
+    "gpu-hoist-baseline": {
+      "sha256": "61d219856011876fcf240e7aa80c193189b1fe1e26226d5aa5b289ac6c393cc1",
+      "tail": [
+        "FAILED ../diagnostics-v5/test_torch_chisq_cuda_normalization.py::test_cuda_scalar_norm_preserves_cast_then_square[True-int]",
+        "FAILED ../diagnostics-v5/test_torch_chisq_cuda_normalization.py::test_cuda_scalar_norm_preserves_cast_then_square[True-float32]",
+        "FAILED ../diagnostics-v5/test_torch_chisq_cuda_normalization.py::test_cuda_scalar_norm_preserves_cast_then_square[True-float64]",
+        "8 failed, 24 passed, 18 warnings in 4.28s"
+      ]
+    },
+    "gpu-hoist-candidate": {
+      "sha256": "b1693065af3dc07db5128dbda35e312280d7ef0ead2986a9bc82a1fd74faf755",
+      "tail": [
+        "    warnings.warn(",
+        "",
+        "-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
+        "32 passed, 18 warnings in 4.47s"
+      ]
+    },
+    "existing-contracts": {
+      "sha256": "9ca5e090f2a582d2d40b5ded3843825d97979e9e5c28256baf867f03ce9d9c9c",
+      "tail": [
+        "    warnings.warn(",
+        "",
+        "-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html",
+        "255 passed, 1 skipped, 19 warnings in 9.48s"
+      ]
+    },
+    "qualify-runtime": {
+      "sha256": "8f7790f0587ece3d914eefbf20d144eab19473a2330424e758f79ea85cb41394",
+      "tail": [
+        "812 impulse qualified",
+        "20260906 dense qualified",
+        "20260906 banded qualified",
+        "20260906 impulse qualified"
+      ]
+    },
+    "qualify-fftw-inplace": {
+      "sha256": "8f7790f0587ece3d914eefbf20d144eab19473a2330424e758f79ea85cb41394",
+      "tail": [
+        "812 impulse qualified",
+        "20260906 dense qualified",
+        "20260906 banded qualified",
+        "20260906 impulse qualified"
+      ]
+    }
+  },
+  "qualification": [
+    {
+      "name": "qualify-runtime",
+      "role": "candidate",
+      "route": "accepted_mkl_promoted",
+      "source_head": "2f799f0046fc36db4215bd8b8b8a774d40c0e011",
+      "record_sha256": "47ebf7d944c8effe6375be9ec9cb87d508e5786d613f54c78242c2749f988b4e",
+      "receipt_sha256": "1232988baff0eba3cc86faa0a70fe4c7509d242ef19b72f97454a211243b2c8f",
+      "cases": 36,
+      "passed": 36,
+      "failures": [],
+      "eligible_for_timing": true,
+      "runtime_identity": {
+        "engine_class": "IFFT",
+        "plan_class": "_MKLCPUDirectIFFTPlan",
+        "inplace": true,
+        "promote": true,
+        "size": 2097152,
+        "threads": 1,
+        "private_source_pointer": 132220664664128,
+        "private_target_pointer": 132220664664128,
+        "execution_argument_count": 2,
+        "public_source_pointer": 132220715003968,
+        "public_target_pointer": 132220698222656
+      }
+    },
+    {
+      "name": "qualify-fftw-inplace",
+      "role": "baseline",
+      "route": "fftw_single_inplace_measure",
+      "source_head": "7e56ac42417dd6f61498f917e04c5a55250ddc26",
+      "record_sha256": "e182c239faa17f53953695bd2d22b58be7b997dc4767a2907ae7d6450fde32f3",
+      "receipt_sha256": "03852b659022e669897ecd93bd9b6ed8f13f193de5e9da74ee7e8ebb4ae6c67e",
+      "cases": 36,
+      "passed": 34,
+      "failures": [
+        {
+          "seed": 812,
+          "pattern": "dense",
+          "scale": 1e-12,
+          "reference": {
+            "l2": 5.650605371789138e-13,
+            "max_abs": 1.7133284647889226e-15
+          },
+          "candidate": {
+            "l2": 5.23666319011113e-13,
+            "max_abs": 1.7355436884397313e-15
+          },
+          "bitwise_legacy_fftw": false,
+          "passed": false
+        },
+        {
+          "seed": 20260906,
+          "pattern": "dense",
+          "scale": 1e-12,
+          "reference": {
+            "l2": 5.647185097955115e-13,
+            "max_abs": 1.782633583613984e-15
+          },
+          "candidate": {
+            "l2": 5.235418514097092e-13,
+            "max_abs": 1.8962384328278965e-15
+          },
+          "bitwise_legacy_fftw": false,
+          "passed": false
+        }
+      ],
+      "eligible_for_timing": false,
+      "runtime_identity": null
+    }
+  ],
+  "limitations": [
+    "No speedup or full scientific-output claim is established by this review."
+  ]
+}

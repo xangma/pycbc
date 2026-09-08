@@ -1,0 +1,10 @@
+{
+  "related_suite_result": "255 passed, 1 skipped in 9.48 s",
+  "identification": "test/test_torch_chisq_cpu_optimization.py::test_cpu_native_index_view_rejects_accelerator_storage[mps]",
+  "basis": "Source explicitly parametrizes cuda/mps and skips mps when unavailable. This Linux CUDA host necessarily cannot provide MPS, and the complete suite records exactly one skip. The -q log does not include the skipped node ID.",
+  "reason": "Torch MPS device unavailable",
+  "source_revision": "2f799f0046fc36db4215bd8b8b8a774d40c0e011",
+  "source_line": 637,
+  "native_cuda_ad_limitation": "Passing supported Torch derivative tests does not establish correlation reverse/forward AD support in the pre-existing Triton bin kernel. Two default-native tests check parity with that existing behavior.",
+  "legacy_timed_failure_identity_verified_for_all_three_processes": true
+}

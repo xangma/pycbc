@@ -1,0 +1,189 @@
+{
+  "state": "pass",
+  "script_sha256": "cf04bbd3e9244c2af807702c35c7a3374f3c5590f88ab0eceaaa3ac579be1797",
+  "scope": "Closed diagnostic native and executable science qualification; no timing or production change.",
+  "manifest_sha256": "b15841a0c8df70a729d0e911311a879881473d9d3175b32a8ec86a013c9a0a4e",
+  "archive_sha256": "707604f95c682012b5e59da28f98b7ae433b0557bd0646fb3b52b473ee94087b",
+  "archive_files_byte_equal": 89,
+  "results_manifest_sha256": "2e588617b1ff60d73bd2de750004eb4ab856aabda6c080270b1b90301c02db27",
+  "owner_summary_sha256": "2569279c2d6783c94ca022c012d87a76f05a093b883d2f6180f571ca60fe3d33",
+  "owner_summary_script_sha256": "af57d1d98cd57374a731bbef0df669187741641f159ff9923b8b2ccc8594f987",
+  "source_head": "ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f",
+  "local_tests": {
+    "pinned_native_mocks": 15,
+    "provenance_counters_runner": 8,
+    "primary_invariant_boundaries": 3,
+    "native_receipt_boundaries": 3
+  },
+  "native": {
+    "calls": 9,
+    "eligible": 9,
+    "fallback": 0,
+    "creates": 3,
+    "hits": 6,
+    "frees": 3,
+    "groups": [
+      {
+        "key": {
+          "device": {
+            "device": "None",
+            "device_num": "None",
+            "device_spec": "None",
+            "torch_device": "None"
+          },
+          "direction": "fft",
+          "input_dtype": "<f4",
+          "input_length": 16384,
+          "itype": "real",
+          "num_threads": 1,
+          "otype": "complex",
+          "output_dtype": "<c8",
+          "output_length": 8193,
+          "placement": 44,
+          "prec": "single",
+          "scheme_class": "pycbc.scheme.CPUScheme",
+          "size": 16384
+        },
+        "calls": 3
+      },
+      {
+        "key": {
+          "device": {
+            "device": "None",
+            "device_num": "None",
+            "device_spec": "None",
+            "torch_device": "None"
+          },
+          "direction": "fft",
+          "input_dtype": "<f4",
+          "input_length": 16777216,
+          "itype": "real",
+          "num_threads": 1,
+          "otype": "complex",
+          "output_dtype": "<c8",
+          "output_length": 8388609,
+          "placement": 44,
+          "prec": "single",
+          "scheme_class": "pycbc.scheme.CPUScheme",
+          "size": 16777216
+        },
+        "calls": 3
+      },
+      {
+        "key": {
+          "device": {
+            "device": "None",
+            "device_num": "None",
+            "device_spec": "None",
+            "torch_device": "None"
+          },
+          "direction": "ifft",
+          "input_dtype": "<c8",
+          "input_length": 8388609,
+          "itype": "complex",
+          "num_threads": 1,
+          "otype": "real",
+          "output_dtype": "<f4",
+          "output_length": 16777216,
+          "placement": 44,
+          "prec": "single",
+          "scheme_class": "pycbc.scheme.CPUScheme",
+          "size": 16777216
+        },
+        "calls": 3
+      }
+    ]
+  },
+  "executable": {
+    "cuda-uncached": {
+      "calls": 1003,
+      "eligible": 1003,
+      "fallback": 0,
+      "creates": 1003,
+      "hits": 0,
+      "frees": 1003
+    },
+    "cuda-cached": {
+      "calls": 1003,
+      "eligible": 1003,
+      "fallback": 0,
+      "creates": 3,
+      "hits": 1000,
+      "frees": 3
+    },
+    "standard-uncached": {
+      "calls": 1136,
+      "eligible": 1003,
+      "fallback": 133,
+      "creates": 1003,
+      "hits": 0,
+      "frees": 1003
+    },
+    "standard-cached": {
+      "calls": 1136,
+      "eligible": 1003,
+      "fallback": 133,
+      "creates": 3,
+      "hits": 1000,
+      "frees": 3
+    }
+  },
+  "comparisons": {
+    "raw_pass": 7,
+    "verified_pass": 7,
+    "metadata_substitutions": 0,
+    "same_scheme_bitwise_comparisons": 6,
+    "H1_science_datasets_each": 18
+  },
+  "evidence": {
+    "descriptor-reuse-owner-contracts-61b52786.json": "bfbac889456d76a651c5040aa17d14574093e9934f24b761dc1cb2540171a721",
+    "descriptor-reuse-primary-error-1090e55f.json": "6ec7b544fc6cdff93566779be23a9df43428927018baeec1740ee5b3c12c8169",
+    "descriptor-reuse-primary-error-ee514060.json": "34653b28177a7ce3b6ddfbaca7f8ff93e1e00cdc21a5c630ef968bf2cb9b8a37",
+    "descriptor-reuse-native-finally-3574f64e.json": "1fdce1249bf1920130b4e7a2a31347e53141fbca8f83026aba1878fe64706114",
+    "review-descriptor-reuse-primary-error.py": "a9844ac350b99341d7784257b428835bdabb0e175c03071bb814580201edd3ef",
+    "review-descriptor-reuse-primary-error-v2.py": "c1cafe21dcd6cb8f94fba4975a2c5d940e63d71ad5c4a6a5e2cf972f0f99da22",
+    "review-reuse-native-finally.py": "4ad5d8b5d0f675381930f01a9e7555643b3fb921d4d3aa67566295e9b15bec54",
+    "descriptor-reuse-harness-review-v1.json": "239286ab4a63bb60f1a686707533c870c5216e021c5346e32f109c509f1760a5",
+    "descriptor-reuse-results-v1-review.json": "ca074bc81beb3eb807802bde1b1327e6545b2fb05c26b038b6f7d5b56731d71a",
+    "seal-descriptor-reuse-harness-review.py": "1aaebe605a38e79f42b2dcc985c5c162478e7194864446e00ea7464325579909",
+    "review-descriptor-reuse-results-v1.py": "128375008e782d524280261fd3bbf786280421c79303ac2072ff1e6dfdc7015c"
+  },
+  "closure": {
+    "state": "complete",
+    "campaign_state": "complete",
+    "auditor_pid": 2226044,
+    "epoch": 1788840769.381438,
+    "controller": {
+      "pid": 2105005,
+      "pgid": 2105005,
+      "start_ticks": "63691630",
+      "epoch": 1788840497.6092136,
+      "command": [
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-v1/reuse_controller.py"
+      ],
+      "cwd": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-v1",
+      "log": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-v1/controller.log",
+      "pins": {
+        "manifest_sha256": "b15841a0c8df70a729d0e911311a879881473d9d3175b32a8ec86a013c9a0a4e",
+        "source_pins_sha256": "9a3995bdcc6d8e28757a03df13686db66e8d4b89a32c505b666b1d5f4ae866c6",
+        "reference_pins_sha256": "2bb9f448e4aa5fb466c1bb6127f376d2855d4fbfc50cbe7179317953a07560d1"
+      }
+    },
+    "whole_process_group_absent": true,
+    "lock_reacquired_nonblocking": true,
+    "status_sha256": "2ca68c3315e2b028eb7b7bac3d5b3b25c3b6d8195f76578211aca8f6ca8b9225",
+    "final_pins": {
+      "manifest_sha256": "b15841a0c8df70a729d0e911311a879881473d9d3175b32a8ec86a013c9a0a4e",
+      "source_pins_sha256": "9a3995bdcc6d8e28757a03df13686db66e8d4b89a32c505b666b1d5f4ae866c6",
+      "reference_pins_sha256": "2bb9f448e4aa5fb466c1bb6127f376d2855d4fbfc50cbe7179317953a07560d1"
+    }
+  },
+  "limits": [
+    "Native array equality is certified by the pinned executed native gate; arrays are not included in its receipt.",
+    "Executable conditioned strain verified by captured data hash; actual PSD files and all18 H1 science datasets replayed.",
+    "Original creation-success counter means creator returned after commit invocation; original commit status is unchecked.",
+    "Fail-closed ownership checks intentionally diverge on error paths; ambiguous failed handles are not claimed freed.",
+    "Instrumented qualification only; no executable performance conclusion or production change."
+  ]
+}

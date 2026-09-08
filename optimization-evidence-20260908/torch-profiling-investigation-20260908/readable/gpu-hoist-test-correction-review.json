@@ -1,0 +1,22 @@
+{
+  "review": "test-only correction accepted; remote rerun pending",
+  "base_revision": "612a13cade96f3e4165d64bc9a25c73b9ce45903",
+  "test_sha256": "74c4b914e90475ece3cef0989fd80c738f37a5063871ab890b05869b47f8552e",
+  "changed_files": [
+    "test/test_torch_chisq_cuda_normalization.py"
+  ],
+  "findings": [
+    "Existing CUDA c64 multi-point bin sums select the unchanged Triton branch, which writes fresh output tensors without a Torch differentiation edge to correlation. Source independently verified in baseline 7e56ac4 and candidate 612a13c.",
+    "Original unconditional correlation reverse/forward derivative-presence assertions did not describe the baseline native behavior. Both baseline and candidate failures must be retained.",
+    "Corrected ordinary correlation AD cases disable Triton only in the test and retain strict derivative presence and exact derivative checks through the Torch path.",
+    "Two additional CUDA cases preserve default native dispatch and compare reverse-gradient presence and forward-tangent presence with the original formula, comparing derivatives exactly when present.",
+    "All cases continue to check normalization order, dtype, exact values and reverse-gradient presence parity. No runtime source or numerical tolerance changed."
+  ],
+  "expected_remote_outcome": {
+    "baseline": "8 intended order failures, 24 passes",
+    "candidate": "32 passes, no skips"
+  },
+  "bounds": [
+    "Source review does not substitute for remote test outcomes or scientific/executable validation."
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "state": "complete",
+  "campaign_state": "failed",
+  "review_script_sha256": "9bd708a204f2292a2705563252f2f2d2dc20365bf8a01449a556ad47a2f32305",
+  "archive_sha256": "db5f61384a21dfd2e20c14ceac5219590a67a09be519257216bf341581af2781",
+  "archive_files": 21,
+  "input_manifest_sha256": "0f3d56d9767cd8f79e75101997b128b8f78621d46c69a0226446daed045fdff9",
+  "results_manifest_sha256": "3a67bad98bb150f00d96589786e50c318b362a9a36e561b3d0644e154b4d9154",
+  "prior_source_receipt_sha256": "a151f19438c6f70a5b2233c403a584086dc979e0022d519600018bca47d18be9",
+  "workers": {
+    "native-contracts": {
+      "state": "failed",
+      "exit": 1,
+      "pid": 127243
+    }
+  },
+  "precision_rows_verified": 0,
+  "page_receipts_verified": 0,
+  "timing_block_medians": {},
+  "worker_percent_reductions": {},
+  "decision": "inconclusive or failed campaign; inspect preserved failure receipts",
+  "limitations": "Frozen one-thread 2**21 CPU diagnostic only. H versus O includes allocator/alignment changes. No executable speedup or production integration certified."
+}

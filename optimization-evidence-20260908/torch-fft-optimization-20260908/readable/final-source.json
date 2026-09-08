@@ -1,0 +1,31 @@
+{
+  "worktree": "/private/tmp/pycbc-torch-fft-optimization-20260908",
+  "branch": "codex/torch-fft-optimization-20260908",
+  "baseline": "7e56ac42417dd6f61498f917e04c5a55250ddc26",
+  "head": "ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f",
+  "clean": true,
+  "commits": [
+    "7a883441e93c4fabb76f8c7c5ada3219452f89ba Upload CUDA chi-square scalar before bin accumulation",
+    "612a13cade96f3e4165d64bc9a25c73b9ce45903 Reuse one promoted MKL workspace for the production search IFFT",
+    "2f799f0046fc36db4215bd8b8b8a774d40c0e011 Test scalar normalization against existing CUDA autodiff behavior",
+    "ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f Skip unused frame duration metadata for explicit time bounds"
+  ],
+  "files": {
+    "pycbc/fft/torchfft.py": "0b9109bbf99a4eb591a4c006b1220ec36c8587e56352352277eb1478cf876c0c",
+    "pycbc/frame/frame.py": "483ed42b253386b86c36afc0a6411384188f9468f7b968ccf8d0d2b533e33a55",
+    "pycbc/vetoes/chisq_torch.py": "44cdb529a7416198c266423b604e09b47f5f721081e350e983b55fdf8d4b3db8",
+    "test/test_frame.py": "7a4448702522681a4f95dd2e84cf751eb0f67c733570383f73a5ac9a0755d3d7",
+    "test/test_torch_chisq_cuda_normalization.py": "74c4b914e90475ece3cef0989fd80c738f37a5063871ab890b05869b47f8552e",
+    "test/test_torch_large_ifft.py": "413ab2251451a20cb5941cc5505bbce3b00c662f1df6f227b880f88f15db0713"
+  },
+  "bundle": {
+    "file": "final-source.bundle",
+    "sha256": "bbc6ce7b677533e96981fb51859ed019ed26d2bb0484b91e1e717fdc0127c1ca",
+    "verification": "The bundle contains this ref:\necd5d08231d8ce0a938bc31cfde27c9a5d6f901f HEAD\nThe bundle requires this ref:\n7e56ac42417dd6f61498f917e04c5a55250ddc26 \nThe bundle uses this hash algorithm: sha1\n/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/final-source.bundle is okay\n"
+  },
+  "diff": {
+    "file": "final-source.diff",
+    "sha256": "6289f746375ea22d5b4bc1aeefa9a7e66ef4fd5add4f250dd5f22392143a23a2"
+  },
+  "scope": "Local handoff only; no integration, push, PR, or documentation publication."
+}

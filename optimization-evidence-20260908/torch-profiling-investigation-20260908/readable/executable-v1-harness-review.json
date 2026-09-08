@@ -1,0 +1,46 @@
+{
+  "state": "review_complete",
+  "scope": "Static review of the new executable controller and integration with unchanged previously reviewed r3 runner, runtime checker, qualifier, comparator and metrics helper. No remote launch, numerical arrays or execution outcomes reviewed in this report.",
+  "manifest_sha256": "3a6b0e87cafb00db7e49c9c761cc422d5a4be71299a559cc9c95f5291f72d9cc",
+  "controller_sha256": "68323c299db7a8885fe0333a19189a534e0cee3fd4892c95731a2bfe5dca59c8",
+  "all_13_manifest_files_verified": true,
+  "inherited_helpers_identical_to_r3": {
+    "run-case.py": "23ea07a4942cfe0772d1c5f96ffa188b85102aae8c0ddede9ffffdde84dbbabd",
+    "checked-inspiral.py": "6cec38e384ae532d63099df1941cf1f73dcb65750d43e7796d517ea4cd3454ba",
+    "qualify-inspiral.py": "234ff35cc4d54ab2e9dfd5d475d825a328346183adaf516f46df4653e50450b7",
+    "compare-triggers.py": "f0af115a2bf2d3a5a85152cb1f61d9b7570a460efd6d420566c5a2b74ac8f1b5",
+    "campaign_controls.py": "efc82d6a72c42ef6e66060a9d7cd5131b42e527455fde39456b977dd410e4ba0",
+    "config.json": "6d399146bcc19a43b780ef1d591ee115954621d0bdf8751915ef69ee986c395b",
+    "threadpoolctl.py": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b",
+    "threadpoolctl-LICENSE": "81ac619075248b06e53660b652d10e485f4675f5d0ae0f97ea22370da1f7e23b"
+  },
+  "source_pins_independently_verified_from_git": {
+    "revisions": {
+      "baseline": "7e56ac42417dd6f61498f917e04c5a55250ddc26",
+      "candidate": "2f799f0046fc36db4215bd8b8b8a774d40c0e011"
+    },
+    "changed_files": [
+      "pycbc/fft/torchfft.py",
+      "pycbc/vetoes/chisq_torch.py",
+      "test/test_torch_chisq_cuda_normalization.py",
+      "test/test_torch_large_ifft.py"
+    ],
+    "diff_sha256": "1c88b2397c9edff00197f2018d3dc4a07ae48bb0bab3a259928e7625fec6177f",
+    "executable_sha256": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a"
+  },
+  "staging_sha256": "facac8c84fefbbce1b65e54b235b5bb6c6c87d02724e19263865cb2abbe28c27",
+  "checks": [
+    "Five fixed roles: standard CPU and Torch CPU/CUDA baseline 7e56, Torch CPU/CUDA candidate 2f799.",
+    "Controller verifies all helper/input/source/native pins before and after each serial worker, exact source diff and executable identity; live receipts independently revalidate source, runtime and imported module hashes.",
+    "One shared inherited flock descriptor held across controller, runner and executable; subprocess waits serialize work in same process group. Timeout terminates that entire group. Terminal group absence and lock reacquisition are prerequisites for timing.",
+    "Fresh standalone workers use unchanged r3 CLI/config: 384 compressed templates, 5 segments, 1904 seconds, core 8, one native/Torch thread. CPU standard must never import Torch.",
+    "Untimed qualifications require unchanged controls.qualify, no generation fallback, every template once, 1920 scalar 2097152-point IFFTs, promoted MKL plan execution on both Torch CPU roles, identical conditioned strain, PSD files/raw bytes/shape/dtype and geometry.",
+    "Strict comparator executes and saves its unmodified report first. Verified comparison changes only an in-memory copy of source_snapshot and the byte-identical executable path key in consumed_input_sha256 after source/runtime/input verification, preserving every substitution; original trigger and receipt artifacts are not edited.",
+    "All original DEFAULTS tolerances, trigger identities, phase, vetoes, integer fields and threshold-review failures remain unchanged; comparison must pass before acceptance.",
+    "Timing requires completed qualified phase and terminal audit, then three forward/reverse/forward rounds of five fresh unprofiled workers; each passes against standard and own qualification before full-process metrics are accepted."
+  ],
+  "findings": [],
+  "limitations": [
+    "Review clears the frozen harness only; scientific and performance results remain pending. Runtime receipts observe configured and loaded pools; clean-host ownership is maintained by the optimizer."
+  ]
+}

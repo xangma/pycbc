@@ -1,0 +1,26 @@
+{
+  "review": "source and frozen input review complete; remote results pending",
+  "reviewed_files_sha256": {
+    "qualify_runtime.py": "e77603961c1f066647065e2e5c86dd2a4676fc891192bab508dc00d926888297",
+    "run_followup.py": "63a53ab31d11dd0be94e3a98d58d633df585a95deab31c538164dd65054ce449",
+    "stage_sources.py": "c3493f4a1ddffc03c437b9a1134be0ccb9eeb10bdace55a345f5fb3fb097552f",
+    "transfer_manifest.json": "0eceef1539e0db4f4115ef6c77f9db4470ee0a79c8b2ba0984956482485c80bc",
+    "runtime-helper-local-smoke.json": "cfcadfea6309f3a7e5fbe8bfdcb499a2db242b7be6c0bf68ca768103d84fcfd5"
+  },
+  "transfer_files_verified": 12,
+  "candidate_revision": "612a13cade96f3e4165d64bc9a25c73b9ce45903",
+  "baseline_revision": "7e56ac42417dd6f61498f917e04c5a55250ddc26",
+  "source_findings": [
+    "Actual torchfft.IFFT construction through TorchScheme and PyCBC Array; exact class, full-size, one-thread, aliased complex128 private workspace and two-pointer ABI assertions precede the original 36-case accuracy and direct-MKL parity gates.",
+    "Local fake-native smoke confirms production dispatch and ABI shape; it is not numerical evidence for native MKL.",
+    "Stage helper verifies clean source revisions and 11 native binary hashes, forbids native source/build changes, and clones a separate candidate checkout under the shared host lock.",
+    "Controller pins files and source/native states before and after every serialized worker, inherits the shared lock descriptor into workers, records PID/PGID/start ticks/timestamps/log hashes, and fixes affinity core 8 and one-thread environment.",
+    "Validation requires CUDA availability and baseline failure/candidate success for the new GPU test file, then 12 existing test modules, actual runtime accuracy qualification, and the final private in-place single-precision FFTW diagnostic.",
+    "Timing uses three forward/reverse/forward rounds in fresh processes and the previously reviewed threadpool receipt wrapper; single-precision FFTW is timed only if all its qualification gates pass. Existing helpers recheck qualification provenance and the exact timed plan."
+  ],
+  "bounds": [
+    "Only accepted_mkl_promoted is supported by the runtime-binding helper; this is the sole runtime route selected by the controller.",
+    "Native numerical results, CUDA test outcomes, terminal audit and scientific/full-executable validation remain outstanding.",
+    "Review does not authorize more CPU route exploration or change numerical tolerances."
+  ]
+}

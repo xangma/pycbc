@@ -1,0 +1,171 @@
+{
+  "state": "passed",
+  "scope": "Independent recomputation of recorded error gates and receipt hashes; numerical arrays were not independently regenerated.",
+  "script_sha256": "7a0eefea1b55ee4ce78c4c0826816c9007461910365734708411cba3a5fce600",
+  "cases_checked": 288,
+  "limitations": [
+    "Qualification does not establish speedup, end-to-end science parity, or general precision outside this matrix.",
+    "Fresh timing plans must repeat the complete matrix and report actual threadpool counts."
+  ],
+  "transfer_checks": {
+    "qualify_ifft_routes.py": {
+      "path": "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/acquired-cpu-qualification-v2/qualify_ifft_routes.py",
+      "sha256": "cdd5fd2cf87f176c13f6993c63429250d6b2e70f8e96f354a3cc75fe29a02c00"
+    },
+    "test_ifft_route_contracts.py": {
+      "path": "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/acquired-cpu-qualification-v2/test_ifft_route_contracts.py",
+      "sha256": "99e1b343927f25fad956600f99045e56d8d3bb0ac12b4960ea92231ded943a6f"
+    },
+    "test_torch_cuda_peak_host_read.py": {
+      "path": "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/acquired-cpu-qualification-v2/test_torch_cuda_peak_host_read.py",
+      "sha256": "962e64267af1ebcdfe3d7458f09d52660e5a60976bba177c0b20a2fdb654f2dd"
+    },
+    "stage_sources.py": {
+      "path": "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/acquired-cpu-qualification-v2/stage_sources.py",
+      "sha256": "affc76f493b82aea81dea9a1df4ec68fe3b23e396b5819cf94cd073b0caba17f"
+    },
+    "run_diagnostics.py": {
+      "path": "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/acquired-cpu-qualification-v2/run_diagnostics.py",
+      "sha256": "8b42f5d4091c803be4b1dcd2298223f7b775020093eaa939246aa4ce94f4cadc"
+    },
+    "source-candidate.bundle": {
+      "path": "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/source-candidate.bundle",
+      "sha256": "947e5b27d0243d3b0c9decd18d084fad06a99d1104add0ed48b464ac751eea5d"
+    }
+  },
+  "compatible_library_pins": {
+    "fftw_float": {
+      "path": "/usr/lib/x86_64-linux-gnu/libfftw3f.so.3.6.10",
+      "sha256": "d75f423f19dc4b8fc86c5f4bdf9e3202494dea7f0d01060c4b546e7e28d59436"
+    },
+    "fftw_double": {
+      "path": "/usr/lib/x86_64-linux-gnu/libfftw3.so.3.6.10",
+      "sha256": "b5cc02c4d360b5b20111cb0a251f8368af8c9ce3145357f5ba54c51ac4ca9b35"
+    },
+    "mkl": {
+      "path": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+      "sha256": "8421e2644bd5628dbd3f3c58f3a0def258eae6e47797f6c1d4084a8dc4d718da"
+    }
+  },
+  "receipt_sha256": {
+    "cpu-qualification-v2-status.json": "02db98303e37f2b947dc137761bdb8d7065780f575dd41e0d7fd7a97543c0838",
+    "cpu-qualification-v2-terminal-audit.json": "7a57fcd1f7ca6f5aa2333cc57a81601dfc908af3635f3f9a024c4143732e08de",
+    "source-staging.json": "3d376ce02fbafe7d770d0a6b6cc1a0613242829b7f5939eb3be07ef6da9725e5",
+    "transfer_manifest.json": "0aba9243a263e0a0402b4aa4d1d37c92315797c18aa464a77d9fd85b975c9142"
+  },
+  "routes": [
+    {
+      "route": "mkl_single_rejected_control",
+      "file": "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/acquired-cpu-qualification-v2/qualify-mkl_single_rejected_control.json",
+      "sha256": "21933a4caff14809c3fdfc57d71cfa2698760cb02ff60e34446cc80d4e0b79c6",
+      "cases": 36,
+      "passed": 35,
+      "failures": [
+        {
+          "seed": 812,
+          "pattern": "dense",
+          "scale": 1000000000000.0,
+          "reference": {
+            "l2": 564718314092.8501,
+            "max_abs": 1889628744.1285288
+          },
+          "candidate": {
+            "l2": 523264807556.8834,
+            "max_abs": 1897789730.8610392
+          },
+          "bitwise_legacy_fftw": false,
+          "passed": false,
+          "bitwise_matching_precision_mkl": true
+        }
+      ],
+      "eligible_for_candidate_timing": false,
+      "log_sha256": "8f7790f0587ece3d914eefbf20d144eab19473a2330424e758f79ea85cb41394"
+    },
+    {
+      "route": "legacy_mkl_single",
+      "file": "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/acquired-cpu-qualification-v2/qualify-legacy_mkl_single.json",
+      "sha256": "c036a1f5a522446f6d1f5f1c56b12ccf94d3e24cbfed70621ffab7d2b9cde867",
+      "cases": 36,
+      "passed": 35,
+      "failures": [
+        {
+          "seed": 812,
+          "pattern": "dense",
+          "scale": 1000000000000.0,
+          "reference": {
+            "l2": 564718314092.8501,
+            "max_abs": 1889628744.1285288
+          },
+          "candidate": {
+            "l2": 523264807556.8834,
+            "max_abs": 1897789730.8610392
+          },
+          "bitwise_legacy_fftw": false,
+          "passed": false
+        }
+      ],
+      "eligible_for_candidate_timing": false,
+      "log_sha256": "8f7790f0587ece3d914eefbf20d144eab19473a2330424e758f79ea85cb41394"
+    },
+    {
+      "route": "accepted_mkl_promoted",
+      "file": "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/acquired-cpu-qualification-v2/qualify-accepted_mkl_promoted.json",
+      "sha256": "35fdc541d275b22facd4837943037d64b4ecc321417576b7606c73f2f84a9832",
+      "cases": 36,
+      "passed": 36,
+      "failures": [],
+      "eligible_for_candidate_timing": true,
+      "log_sha256": "8f7790f0587ece3d914eefbf20d144eab19473a2330424e758f79ea85cb41394"
+    },
+    {
+      "route": "fftw_single_direct",
+      "file": "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/acquired-cpu-qualification-v2/qualify-fftw_single_direct.json",
+      "sha256": "e79d3ba2aaa6bfa34a113fac6e49bc31865c727fc322e618976229ad4cd510a0",
+      "cases": 36,
+      "passed": 36,
+      "failures": [],
+      "eligible_for_candidate_timing": true,
+      "log_sha256": "8f7790f0587ece3d914eefbf20d144eab19473a2330424e758f79ea85cb41394"
+    },
+    {
+      "route": "fftw_single_retained",
+      "file": "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/acquired-cpu-qualification-v2/qualify-fftw_single_retained.json",
+      "sha256": "b7cb986073d524c46ceb70a1358393f8bb94da7abff2fe00ede651ab0e655f71",
+      "cases": 36,
+      "passed": 36,
+      "failures": [],
+      "eligible_for_candidate_timing": true,
+      "log_sha256": "8f7790f0587ece3d914eefbf20d144eab19473a2330424e758f79ea85cb41394"
+    },
+    {
+      "route": "mkl_promoted_inplace",
+      "file": "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/acquired-cpu-qualification-v2/qualify-mkl_promoted_inplace.json",
+      "sha256": "445162d9f8a5b94614b3abfc28e5b7a82442348182f5e617f7382f2dcfe12c86",
+      "cases": 36,
+      "passed": 36,
+      "failures": [],
+      "eligible_for_candidate_timing": true,
+      "log_sha256": "8f7790f0587ece3d914eefbf20d144eab19473a2330424e758f79ea85cb41394"
+    },
+    {
+      "route": "fftw_single_retained_measure",
+      "file": "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/acquired-cpu-qualification-v2/qualify-fftw_single_retained_measure.json",
+      "sha256": "6650b28c7123a36d4936de1c3bf1a0cfd149a3f718f3bfc9ef2e2b4b6160942d",
+      "cases": 36,
+      "passed": 36,
+      "failures": [],
+      "eligible_for_candidate_timing": true,
+      "log_sha256": "8f7790f0587ece3d914eefbf20d144eab19473a2330424e758f79ea85cb41394"
+    },
+    {
+      "route": "fftw_promoted_measure",
+      "file": "/Users/xangma/repos/pycbc/artifacts/torch-fft-optimization-20260908/acquired-cpu-qualification-v2/qualify-fftw_promoted_measure.json",
+      "sha256": "5f16a8f05cf5958d14f8cc512a8d08bd32ef4afe24e7dfd4684e2419a89cfbdf",
+      "cases": 36,
+      "passed": 36,
+      "failures": [],
+      "eligible_for_candidate_timing": true,
+      "log_sha256": "8f7790f0587ece3d914eefbf20d144eab19473a2330424e758f79ea85cb41394"
+    }
+  ]
+}

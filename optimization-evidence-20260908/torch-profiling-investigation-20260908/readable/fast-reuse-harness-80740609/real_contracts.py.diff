@@ -1,0 +1,56 @@
+--- /Users/xangma/repos/pycbc/artifacts/torch-residual-optimization-20260908/descriptor-reuse-v1/real_contracts.py
++++ real_contracts.py
+@@ -38,6 +38,7 @@
+     from pycbc.fft import fftw, mkl, torchfft
+     from pycbc.types import Array, zeros
+     from descriptor_reuse import DescriptorReuse, sha
++    from descriptor_reuse_diagnostic import DescriptorReuse as DiagnosticReuse
+     import threadpoolctl
+ 
+     assert Path(pycbc.__file__).resolve().parent.parent == source
+@@ -80,10 +81,11 @@
+               'inherited_lock': {'fd': args.lock_fd, 'device': actual.st_dev, 'inode': actual.st_ino},
+               'command': sys.argv, 'cwd': os.getcwd(), 'interpreter': sys.executable,
+               'helper_sha256': sha(__file__), 'cache_sha256': sha(root / 'descriptor_reuse.py'),
++              'parent_cache_sha256': sha(root / 'descriptor_reuse_diagnostic.py'),
+               'source': str(source), 'source_sha256': sha(mkl.__file__),
+               'libraries': libraries,
+               'versions': {'python': sys.version, 'numpy': np.__version__, 'torch': torch.__version__},
+-              'started_epoch': time.time(), 'cases': [], 'before': snapshot()}
++              'started_epoch': time.time(), 'cases': [], 'cache_observations': [], 'before': snapshot()}
+     cache = plan = class_plan = primary = None
+     try:
+         with scheme.CPUScheme(1):
+@@ -126,11 +128,19 @@
+                     cache.assert_native()
+                     cache.original[direction](invec, reference, *tokens)
+                     assert bits(invec.numpy()) == input_sha
++                    key, allowed = cache.key(direction, invec, outvec, *tokens)
++                    assert allowed
++                    prior = cache.cache.get(key)
+                     getattr(mkl, direction)(invec, outvec, *tokens)
++                    entry = cache.cache[key]
++                    assert (entry is prior) is (allocation > 0)
++                    _, public, _ = DiagnosticReuse.key(cache, direction, invec, outvec, *tokens)
++                    record['cache_observations'].append({'key': public, 'hit': prior is entry,
++                        'descriptor': entry['value'], 'input_pointer': int(invec.ptr),
++                        'output_pointer': int(outvec.ptr)})
+                     assert bits(invec.numpy()) == input_sha
+                     assert np.array_equal(outvec.numpy().view(np.uint8), reference.numpy().view(np.uint8))
+                     assert bits(outvec.numpy()) == bits(reference.numpy())
+-                    assert cache.rows[-1]['hit'] is (allocation > 0)
+                     owners.append((invec, outvec))
+                     class_plan.execute()
+                     assert np.array_equal(class_target.numpy().view(np.uint8), class_expected.view(np.uint8))
+@@ -150,8 +160,9 @@
+                     del reference
+                     save(args.receipt, record)
+             assert len({p for row in record['cases'] for p in (row['input_pointer'], row['output_pointer'])}) == 18
+-            assert cache.report()['creates'] == 3 and cache.report()['hits'] == 6
+-            assert all(row['native_status'] == 0 for row in cache.rows)
++            assert cache.report()['creates'] == 3
++            assert sum(row['hit'] for row in record['cache_observations']) == 6
++            assert not cache.rows
+             cache.finish()
+             assert cache.report()['frees'] == 3
+             cache.close()

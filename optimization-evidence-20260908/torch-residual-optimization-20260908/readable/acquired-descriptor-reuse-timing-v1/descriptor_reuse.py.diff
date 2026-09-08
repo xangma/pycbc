@@ -1,0 +1,357 @@
+--- /Users/xangma/repos/pycbc/artifacts/torch-residual-optimization-20260908/descriptor-reuse-v1/descriptor_reuse.py
++++ descriptor_reuse.py
+@@ -1,118 +1,23 @@
+-"""Bounded diagnostic cache; no production source or native symbol replacement."""
+-import ast
+-import copy
+-import ctypes
++"""Qualified bounded cache without per-call diagnostic recording or timers.
++
++Inherits unchanged AST cloning, ownership, frees and installation/finalization
++from the pinned diagnostic implementation. Native identity checks run at
++construction, install and finalization boundaries, not on every FFT call.
++"""
+ import functools
+-import hashlib
+-import inspect
+-import os
+-from pathlib import Path
+-import textwrap
+-import threading
+ 
+ import numpy as np
+ 
+-SOURCE_SHA256 = '8362642e359f48f17a89e0877757a29124a3c2b231e4debfa77d5520c2bb9fc3'
+-SYMBOLS = ('DftiCreateDescriptor_s_1d', 'DftiCreateDescriptor_d_1d',
+-           'DftiSetValue', 'DftiCommitDescriptor', 'DftiComputeForward',
+-           'DftiComputeBackward', 'DftiFreeDescriptor', 'DftiErrorMessage')
+-ALLOWED = frozenset({('fft', 16384, 8193, '<f4', '<c8', 'single', 'real', 'complex'),
+-                     ('fft', 16777216, 8388609, '<f4', '<c8', 'single', 'real', 'complex'),
+-                     ('ifft', 8388609, 16777216, '<c8', '<f4', 'single', 'complex', 'real')})
++from descriptor_reuse_diagnostic import ALLOWED, DescriptorReuse as DiagnosticReuse
++from descriptor_reuse_diagnostic import sha  # noqa: F401 -- public helper for runners
+ 
+ 
+-def sha(path):
+-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+-
+-
+-def clone(function, namespace, creator=False):
+-    original = ast.parse(textwrap.dedent(inspect.getsource(function)))
+-    modified = copy.deepcopy(original)
+-    body = modified.body[0].body
+-    target = ast.parse('status = f(ctypes.byref(desc), domain, size)' if creator
+-                       else 'lib.DftiFreeDescriptor(ctypes.byref(descr))').body[0]
+-    matches = [i for i, node in enumerate(body) if ast.dump(node) == ast.dump(target)]
+-    if len(matches) != 1:
+-        raise RuntimeError('Pinned MKL transformation target differs')
+-    index = matches[0]
+-    if creator:
+-        body.insert(index + 1, ast.parse('_reuse_observe(desc, status)').body[0])
+-    else:
+-        body[index] = ast.parse('_reuse_release(descr, status)').body[0]
+-    restored = copy.deepcopy(modified)
+-    if creator:
+-        del restored.body[0].body[index + 1]
+-    else:
+-        restored.body[0].body[index] = target
+-    if ast.dump(original) != ast.dump(restored):
+-        raise RuntimeError('Inverse AST proof failed')
+-    ast.fix_missing_locations(modified)
+-    globals_ = dict(function.__globals__)
+-    globals_.update(namespace)
+-    exec(compile(modified, inspect.getsourcefile(function), 'exec'), globals_)
+-    return globals_[function.__name__], {
+-        'original_ast_sha256': hashlib.sha256(ast.dump(original).encode()).hexdigest(),
+-        'modified_ast_sha256': hashlib.sha256(ast.dump(modified).encode()).hexdigest(),
+-        'inverse_ast_equal': True,
+-        'change': 'insert ownership observer after create' if creator else 'replace free with release',
+-    }
+-
+-
+-class DescriptorReuse:
+-    """Owner-main-thread/PID bound, at most three entries, explicit close required.
+-
+-    reuse=False uses identical bookkeeping but frees after every successful call.
+-    Creation errors deliberately fail closed before the original unsafe setup.
+-    Native setup return-value checks otherwise remain those of the original.
+-    """
+-
+-    def __init__(self, mkl, reuse=True):
+-        if sha(mkl.__file__) != SOURCE_SHA256:
+-            raise RuntimeError('Unqualified MKL source')
+-        if threading.current_thread() is not threading.main_thread():
+-            raise RuntimeError('Cache must be created in the main thread')
+-        self.mkl, self.lib, self.reuse = mkl, mkl.lib, bool(reuse)
+-        self.pid, self.thread = os.getpid(), threading.current_thread()
+-        self.original = {n: getattr(mkl, n) for n in ('fft', 'ifft', 'create_descriptor',
+-                                                   '_get_desc', 'FFT', 'IFFT')}
+-        self.symbols = {n: getattr(self.lib, n) for n in SYMBOLS}
+-        self.addresses = {n: ctypes.cast(f, ctypes.c_void_p).value for n, f in self.symbols.items()}
+-        self.cache, self.entries, self.rows, self.cleanup_errors = {}, [], [], []
+-        self.invariant_errors, self.finalization_errors = [], []
+-        self.active = None
+-        self.closed = self.poisoned = self.installed = False
+-        self.wrappers, self.proofs = {}, {}
+-        self.creator, self.proofs['create_descriptor'] = clone(
+-            self.original['create_descriptor'], {'_reuse_observe': self.observe}, creator=True)
+-        for name in ('fft', 'ifft'):
+-            function, self.proofs[name] = clone(self.original[name], {
+-                'create_descriptor': self.acquire, '_reuse_release': self.release})
+-            self.wrappers[name] = self.wrap(name, function)
+-        self.assert_native()
+-
+-    def owner(self):
+-        if os.getpid() != self.pid or threading.current_thread() is not self.thread:
+-            raise RuntimeError('Unexpected descriptor cache process/thread owner')
+-
+-    def assert_native(self):
+-        if self.mkl.lib is not self.lib:
+-            raise RuntimeError('Native library identity changed')
+-        for name, function in self.symbols.items():
+-            if getattr(self.lib, name) is not function or ctypes.cast(
+-                    function, ctypes.c_void_p).value != self.addresses[name]:
+-                raise RuntimeError('Native symbol identity/castability changed: ' + name)
+-        for name in ('create_descriptor', '_get_desc', 'FFT', 'IFFT'):
+-            if getattr(self.mkl, name) is not self.original[name]:
+-                raise RuntimeError('Original MKL helper/class changed: ' + name)
+-
+-    def signatures(self):
+-        # Originals mutate argtypes: record transitions, never reset them.
+-        return {n: {'argtypes': None if f.argtypes is None else [repr(t) for t in f.argtypes],
+-                    'restype': repr(f.restype)} for n, f in self.symbols.items()}
++class DescriptorReuse(DiagnosticReuse):
++    def __init__(self, mkl):
++        super().__init__(mkl, reuse=True)
+ 
+     def key(self, direction, invec, outvec, prec, itype, otype):
+         state = self.mkl._scheme.mgr.state
+-        scheme_class = type(state)
+         threads = getattr(state, 'num_threads', None)
+         device = tuple((name, str(getattr(state, name, None))) for name in
+                        ('device', 'device_num', 'device_spec', 'torch_device'))
+@@ -120,23 +25,13 @@
+                   np.dtype(outvec.dtype).str, prec, itype, otype)
+         inplace = invec.ptr == outvec.ptr
+         placement = self.mkl.DFTI_INPLACE if inplace else self.mkl.DFTI_NOT_INPLACE
+-        allowed = config in ALLOWED and not inplace and threads == 1
+-        # CPU function descriptors are only qualified under a CPU scheme.
+-        allowed = allowed and isinstance(state, self.mkl._scheme.CPUScheme)
+-        key = config + (max(len(invec), len(outvec)), placement, scheme_class,
++        allowed = (config in ALLOWED and not inplace and threads == 1
++                   and isinstance(state, self.mkl._scheme.CPUScheme))
++        key = config + (max(len(invec), len(outvec)), placement, type(state),
+                         device, threads, self.pid, self.thread)
+-        public = {'direction': direction, 'input_length': len(invec),
+-                  'output_length': len(outvec), 'size': max(len(invec), len(outvec)),
+-                  'input_dtype': config[3], 'output_dtype': config[4],
+-                  'prec': prec, 'itype': itype, 'otype': otype, 'placement': placement,
+-                  'scheme_class': scheme_class.__module__ + '.' + scheme_class.__qualname__,
+-                  'device': dict(device), 'num_threads': threads,
+-                  'pid': self.pid, 'thread_object_id': id(self.thread)}
+-        return key, public, allowed
++        return key, allowed
+ 
+     def observe(self, descriptor, status):
+-        # The original does not check this status and starts with sentinel 1.
+-        # Do not claim/free an ambiguous handle. Abort before any setup use.
+         if status or descriptor.value in (None, 0, 1):
+             self.poisoned = True
+             raise RuntimeError('Diagnostic fail-closed descriptor creation: '
+@@ -148,68 +43,38 @@
+                  'free_successes': 0}
+         self.entries.append(entry)
+         self.active['entry'] = entry
+-        self.active['row']['created_handle'] = descriptor.value
+ 
+     def acquire(self, size, idtype, odtype, inplace):
+         active = self.active
+-        row, key = active['row'], active['key']
++        key = active['key']
+         if (size, np.dtype(idtype).str, np.dtype(odtype).str, bool(inplace)) != (
+-                row['key']['size'], row['key']['input_dtype'], row['key']['output_dtype'], False):
++                key[8], key[3], key[4], False):
+             raise RuntimeError('Original creator arguments differ from full key')
+-        if self.reuse and key in self.cache:
++        if key in self.cache:
+             entry = self.cache[key]
+             if entry['state'] != 'available':
+                 raise RuntimeError('Descriptor is busy or released')
+             active['entry'] = entry
+-            row['hit'] = True
+         else:
+-            row['create_attempts'] += 1
+             descriptor = self.creator(size, idtype, odtype, inplace)
+             entry = active['entry']
+             if entry is None or entry['descriptor'] is not descriptor:
+                 raise RuntimeError('Creator returned unobserved descriptor')
+-            row['create_successes'] += 1
+-            if self.reuse:
+-                if len(self.cache) >= 3:
+-                    raise RuntimeError('Bounded descriptor capacity exceeded')
+-                self.cache[key] = entry
++            if len(self.cache) >= 3:
++                raise RuntimeError('Bounded descriptor capacity exceeded')
++            self.cache[key] = entry
+         entry['state'] = 'busy'
+-        row['descriptor'] = entry['value']
+         return entry['descriptor']
+ 
+-    def free(self, entry, reason):
+-        self.owner()
+-        if entry['state'] in ('freed', 'uncertain') or entry['free_attempts']:
+-            raise RuntimeError('Descriptor double/uncertain free prevented')
+-        self.cache.pop(entry['key'], None)
+-        entry['free_attempts'] += 1
+-        entry['free_reason'] = reason
+-        entry['state'] = 'uncertain'
+-        try:
+-            status = self.symbols['DftiFreeDescriptor'](ctypes.byref(entry['descriptor']))
+-            if status:
+-                raise RuntimeError('Descriptor free failed: ' + str(status))
+-        except BaseException as error:
+-            self.poisoned = True
+-            self.cleanup_errors.append({'handle': entry['value'], 'reason': reason,
+-                                        'error': repr(error)})
+-            raise
+-        entry['free_successes'] += 1
+-        entry['state'] = 'freed'
+-
+     def release(self, descriptor, status):
+-        active = self.active
+-        entry, row = active['entry'], active['row']
++        entry = self.active['entry']
+         if entry is None or descriptor is not entry['descriptor'] or entry['state'] != 'busy':
+             raise RuntimeError('Unowned descriptor release')
+-        row['native_status'] = int(status)
+-        if status or not self.reuse:
++        if status:
+             try:
+-                self.free(entry, 'native_error' if status else 'uncached_success')
++                self.free(entry, 'native_error')
+             except BaseException:
+-                if not status:
+-                    raise
+-                # Original check_status below owns the primary native error.
++                pass  # Original check_status owns the primary native error.
+         else:
+             entry['state'] = 'available'
+ 
+@@ -219,27 +84,14 @@
+             self.owner()
+             if self.closed or self.poisoned or self.active is not None:
+                 raise RuntimeError('Closed, poisoned or reentrant descriptor cache')
+-            self.assert_native()
+-            key, public, allowed = self.key(direction, invec, outvec, prec, itype, otype)
+-            # A fourth distinct supported key uses the exact original function.
+-            if self.reuse and key not in self.cache and len(self.cache) >= 3:
++            key, allowed = self.key(direction, invec, outvec, prec, itype, otype)
++            if key not in self.cache and len(self.cache) >= 3:
+                 allowed = False
+-            row = {'index': len(self.rows), 'key': public, 'eligible': allowed,
+-                   'state': 'running', 'hit': False, 'create_attempts': 0,
+-                   'create_successes': 0, 'native_status': None,
+-                   'input_pointer': int(invec.ptr), 'output_pointer': int(outvec.ptr),
+-                   'signatures_before': self.signatures()}
+-            self.rows.append(row)
+-            self.active = {'key': key, 'row': row, 'entry': None}
+-            primary = None
++            self.active = {'key': key, 'entry': None}
+             try:
+                 target = function if allowed else self.original[direction]
+-                result = target(invec, outvec, prec, itype, otype)
+-                row['state'] = 'complete'
+-                return result
+-            except BaseException as error:
+-                primary = error
+-                row.update(state='failed', error=repr(error))
++                return target(invec, outvec, prec, itype, otype)
++            except BaseException:
+                 entry = self.active['entry']
+                 if entry is not None and entry['state'] not in ('freed', 'uncertain'):
+                     try:
+@@ -249,78 +101,12 @@
+                 raise
+             finally:
+                 self.active = None
+-                try:
+-                    row['signatures_after'] = self.signatures()
+-                    self.assert_native()
+-                except BaseException as invariant_error:
+-                    self.poisoned = True
+-                    row.update(state='failed', invariant_error=repr(invariant_error))
+-                    self.invariant_errors.append({'row': row['index'], 'error': repr(invariant_error)})
+-                    if primary is None:
+-                        raise
+         return wrapped
+ 
+-    def install(self):
+-        self.owner()
+-        if self.closed or self.installed or self.poisoned:
+-            raise RuntimeError('Invalid cache installation state')
+-        self.assert_native()
+-        if any(getattr(self.mkl, n) is not self.original[n] for n in self.wrappers):
+-            raise RuntimeError('Original MKL function replaced before install')
+-        for name, wrapper in self.wrappers.items():
+-            setattr(self.mkl, name, wrapper)
+-        self.installed = True
+-
+-    def close(self):
+-        self.owner()  # A forked child must not even perform idempotent cleanup.
+-        if self.active is not None:
+-            raise RuntimeError('Cannot close active descriptor cache')
+-        if self.closed:
+-            return
+-        failures = []
+-        try:
+-            for entry in self.entries:
+-                if entry['state'] not in ('freed', 'uncertain'):
+-                    try:
+-                        self.free(entry, 'close')
+-                    except BaseException as error:
+-                        failures.append(error)
+-        finally:
+-            self.closed = True
+-        if failures:
+-            raise failures[0]
+-
+-    def restore(self):
+-        self.owner()
+-        intact = all(getattr(self.mkl, n) is f for n, f in self.wrappers.items())
+-        for name in self.wrappers:
+-            setattr(self.mkl, name, self.original[name])
+-        self.installed = False
+-        self.assert_native()
+-        if not intact:
+-            raise RuntimeError('Installed wrappers changed before restoration')
+-        return True
+-
+-    def finish(self, primary_error=None):
+-        """Restore even if close fails; callers preserve workload exceptions."""
+-        errors = []
+-        for name in ('close', 'restore'):
+-            try:
+-                getattr(self, name)()
+-            except BaseException as error:
+-                self.poisoned = True
+-                errors.append(error)
+-                self.finalization_errors.append({'operation': name, 'error': repr(error)})
+-        if errors and primary_error is None:
+-            raise errors[0]
+-
+     def report(self):
+-        return {'reuse': self.reuse, 'closed': self.closed, 'poisoned': self.poisoned,
+-                'restored': not self.installed, 'ast': self.proofs, 'rows': self.rows,
+-                'entries': [{k: v for k, v in e.items() if k not in ('key', 'descriptor')}
+-                            for e in self.entries], 'cleanup_errors': self.cleanup_errors,
+-                'invariant_errors': self.invariant_errors,
+-                'finalization_errors': self.finalization_errors,
+-                'creates': sum(r['create_successes'] for r in self.rows),
+-                'hits': sum(r['hit'] for r in self.rows),
+-                'frees': sum(e['free_successes'] for e in self.entries)}
++        result = super().report()
++        assert not result.pop('rows')
++        del result['hits']  # No successful-call telemetry in this implementation.
++        result['creates'] = len(self.entries)
++        result['diagnostics'] = 'boundary invariants and owned-descriptor lifecycle only'
++        return result

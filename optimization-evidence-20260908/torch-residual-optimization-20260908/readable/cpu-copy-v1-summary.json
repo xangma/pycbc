@@ -1,0 +1,814 @@
+{
+  "state": "complete",
+  "helper_sha256": "92b9ff6bea55a2bb58eb14a77e170f2f13804c8e1c5642581e99c17f7fe7ba4c",
+  "manifest_sha256": "6ac59b71570e4fea559ceed92cf78a379cb274a093f3dd0da4ba2af2cb012065",
+  "terminal_audit_sha256": "383035dab3082bf4516979ba3a9d0dbb70cba3456d93f778d8b854e50b01db62",
+  "workers": [
+    {
+      "name": "cpu-copy-1",
+      "result_sha256": "9347165eb356b725e9829a64bad16aa157b1d0e4f70e21cbe58caf6ffb99022d",
+      "receipt_sha256": "50fa6739b8ac01fafbaad26478d5ad82ee504e324dafe307bc3551beeef288ed",
+      "observed_thread_snapshots": {
+        "before": {
+          "torch_intraop_threads": 1,
+          "torch_interop_threads": 64,
+          "native_pools": [
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ],
+          "cpu_affinity": [
+            8
+          ]
+        },
+        "after": {
+          "torch_intraop_threads": 1,
+          "torch_interop_threads": 64,
+          "native_pools": [
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ],
+          "cpu_affinity": [
+            8
+          ]
+        }
+      },
+      "metrics": {
+        "engine_whole": {
+          "values": [
+            0.033168465,
+            0.033132328,
+            0.033114865,
+            0.033145182,
+            0.033063048,
+            0.033229679,
+            0.033360414,
+            0.033123742,
+            0.033179636,
+            0.033145302,
+            0.033083066,
+            0.033153517,
+            0.033742959,
+            0.03317091,
+            0.033151474,
+            0.033146447,
+            0.033100742,
+            0.033181952,
+            0.033123053,
+            0.033142218,
+            0.033167326,
+            0.033120818,
+            0.033161404,
+            0.03325539,
+            0.03320191,
+            0.033105811,
+            0.033146907,
+            0.033177214,
+            0.033177815,
+            0.033134294,
+            0.033177556,
+            0.033202242,
+            0.033132962,
+            0.033143011,
+            0.03311023,
+            0.033242938,
+            0.033151076,
+            0.033091795,
+            0.033114207,
+            0.033164531,
+            0.033127062,
+            0.033115149,
+            0.033177997,
+            0.033117333,
+            0.033104259,
+            0.033124247,
+            0.03312565,
+            0.033225757,
+            0.033130009,
+            0.033184692,
+            0.033377372,
+            0.033111986,
+            0.033091006,
+            0.033217523,
+            0.033096807,
+            0.033152612,
+            0.033154846,
+            0.033092749,
+            0.033130561,
+            0.033135619
+          ],
+          "median": 0.033145242000000005,
+          "range": [
+            0.033063048,
+            0.033742959
+          ]
+        },
+        "numpy_copy_whole": {
+          "values": [
+            0.032920092,
+            0.033234219,
+            0.033205716,
+            0.033103665,
+            0.033154089,
+            0.033144481,
+            0.033120206,
+            0.033135615,
+            0.032992347,
+            0.033148469,
+            0.033242345,
+            0.033125506,
+            0.033187391,
+            0.033247494,
+            0.0330578,
+            0.033268363,
+            0.033161233,
+            0.03310618,
+            0.033417001,
+            0.033167585,
+            0.033180269,
+            0.033218099,
+            0.033201149,
+            0.033047491,
+            0.033173406,
+            0.0329878,
+            0.033039396,
+            0.033054214,
+            0.033011725,
+            0.033048383,
+            0.033049537,
+            0.033215136,
+            0.033402266,
+            0.033269238,
+            0.033283884,
+            0.033084402,
+            0.033072019,
+            0.033117633,
+            0.033454744,
+            0.033123054,
+            0.033032955,
+            0.033221569,
+            0.03330756,
+            0.033302791,
+            0.033125881,
+            0.033087458,
+            0.033077781,
+            0.033257706,
+            0.033199157,
+            0.033300918,
+            0.033467659,
+            0.033314232,
+            0.033196643,
+            0.033210289,
+            0.033218333,
+            0.033230455,
+            0.033315234,
+            0.033252537,
+            0.033310566,
+            0.033264359
+          ],
+          "median": 0.03318383,
+          "range": [
+            0.032920092,
+            0.033467659
+          ]
+        }
+      },
+      "paired_worker_median_difference_seconds": -3.8587999999992184e-05,
+      "paired_worker_median_reduction_percent": -0.11642093305576763
+    },
+    {
+      "name": "cpu-copy-2",
+      "result_sha256": "a9d27a89aae3e4ad21c9754515c4c2625fb96d9229a18e9c8c82af0f45ed26c4",
+      "receipt_sha256": "c6b36fa2b81c909601e0f0eebad5d60ca25d1a2b4723e854b40f5eeb00672589",
+      "observed_thread_snapshots": {
+        "before": {
+          "torch_intraop_threads": 1,
+          "torch_interop_threads": 64,
+          "native_pools": [
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ],
+          "cpu_affinity": [
+            8
+          ]
+        },
+        "after": {
+          "torch_intraop_threads": 1,
+          "torch_interop_threads": 64,
+          "native_pools": [
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ],
+          "cpu_affinity": [
+            8
+          ]
+        }
+      },
+      "metrics": {
+        "numpy_copy_whole": {
+          "values": [
+            0.03357781,
+            0.033710378,
+            0.033634095,
+            0.033533958,
+            0.03348205,
+            0.033577308,
+            0.033521485,
+            0.033416408,
+            0.03359908,
+            0.033455832,
+            0.033375722,
+            0.033616182,
+            0.033522085,
+            0.033354181,
+            0.033543626,
+            0.033449391,
+            0.033514884,
+            0.033503152,
+            0.033434123,
+            0.033376575,
+            0.033649947,
+            0.033318567,
+            0.03343255,
+            0.033596057,
+            0.033528329,
+            0.033535844,
+            0.03353956,
+            0.03347005,
+            0.033460643,
+            0.033448039,
+            0.033508743,
+            0.033590345,
+            0.033481722,
+            0.033237525,
+            0.033505547,
+            0.033506278,
+            0.033527648,
+            0.033537857,
+            0.033823001,
+            0.033508282,
+            0.033630842,
+            0.033826359,
+            0.033669425,
+            0.03353351,
+            0.03344307,
+            0.033521328,
+            0.033445716,
+            0.033358313,
+            0.033512221,
+            0.033472456,
+            0.033509706,
+            0.033592321,
+            0.033563267,
+            0.033484129,
+            0.033515777,
+            0.033769332,
+            0.033409499,
+            0.03345843,
+            0.033405862,
+            0.033388861
+          ],
+          "median": 0.033510963500000004,
+          "range": [
+            0.033237525,
+            0.033826359
+          ]
+        },
+        "engine_whole": {
+          "values": [
+            0.033432288,
+            0.033552913,
+            0.033379309,
+            0.033429663,
+            0.033506927,
+            0.033677467,
+            0.033509141,
+            0.03348196,
+            0.033418002,
+            0.033500486,
+            0.033441115,
+            0.033376564,
+            0.03355639,
+            0.033480289,
+            0.033522247,
+            0.033500526,
+            0.033424023,
+            0.033448409,
+            0.03346516,
+            0.033399608,
+            0.033530773,
+            0.033452005,
+            0.033447467,
+            0.033426367,
+            0.033531865,
+            0.033412251,
+            0.033434232,
+            0.033472894,
+            0.0333959,
+            0.033380722,
+            0.033427922,
+            0.033410109,
+            0.033558437,
+            0.033492323,
+            0.033437971,
+            0.0334055,
+            0.033403517,
+            0.033369403,
+            0.033465723,
+            0.033518892,
+            0.033471574,
+            0.033477175,
+            0.033343765,
+            0.033427531,
+            0.033428764,
+            0.033508864,
+            0.033452218,
+            0.033402866,
+            0.033460164,
+            0.033407444,
+            0.033487796,
+            0.033460895,
+            0.033465684,
+            0.033446848,
+            0.03333522,
+            0.033439335,
+            0.033473168,
+            0.03337841,
+            0.033525887,
+            0.03349036
+          ],
+          "median": 0.033450206999999996,
+          "range": [
+            0.03333522,
+            0.033677467
+          ]
+        }
+      },
+      "paired_worker_median_difference_seconds": -6.075650000000876e-05,
+      "paired_worker_median_reduction_percent": -0.1816326577590649
+    },
+    {
+      "name": "cpu-copy-3",
+      "result_sha256": "358a3ee40d091bb7cb77e7e296831734d5b6b6f4059c4d93e3e2db898218c075",
+      "receipt_sha256": "d0600d8de1382f401307941663a2cf20e4ab5ce52e27d1bb4a2db6e21cb31220",
+      "observed_thread_snapshots": {
+        "before": {
+          "torch_intraop_threads": 1,
+          "torch_interop_threads": 64,
+          "native_pools": [
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ],
+          "cpu_affinity": [
+            8
+          ]
+        },
+        "after": {
+          "torch_intraop_threads": 1,
+          "torch_interop_threads": 64,
+          "native_pools": [
+            {
+              "user_api": "blas",
+              "internal_api": "mkl",
+              "num_threads": 1,
+              "prefix": "libmkl_rt",
+              "filepath": "/usr/lib/x86_64-linux-gnu/libmkl_rt.so",
+              "version": "2020.0.4",
+              "threading_layer": "gnu"
+            },
+            {
+              "user_api": "blas",
+              "internal_api": "openblas",
+              "num_threads": 1,
+              "prefix": "libopenblas",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libopenblasp-r0.3.25.so",
+              "version": "0.3.25",
+              "threading_layer": "pthreads",
+              "architecture": "Zen"
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/venvs/pycbc-torch213-cu130/lib/python3.11/site-packages/torch/lib/libgomp.so.1",
+              "version": null
+            },
+            {
+              "user_api": "openmp",
+              "internal_api": "openmp",
+              "num_threads": 1,
+              "prefix": "libgomp",
+              "filepath": "/home/xangma/miniconda3/envs/pycbc3g/lib/libgomp.so.1.0.0",
+              "version": null
+            }
+          ],
+          "cpu_affinity": [
+            8
+          ]
+        }
+      },
+      "metrics": {
+        "engine_whole": {
+          "values": [
+            0.033518103,
+            0.03345771,
+            0.033533893,
+            0.03362767,
+            0.03365493,
+            0.033519967,
+            0.033527492,
+            0.033442252,
+            0.033561736,
+            0.033509097,
+            0.033550394,
+            0.033467229,
+            0.03358049,
+            0.033463121,
+            0.033532431,
+            0.033985661,
+            0.033489692,
+            0.033585201,
+            0.03349922,
+            0.033486346,
+            0.033524167,
+            0.033479313,
+            0.033479543,
+            0.033599368,
+            0.03350472,
+            0.033516253,
+            0.033581414,
+            0.033544115,
+            0.033434479,
+            0.033529628,
+            0.033494842,
+            0.033549385,
+            0.033511683,
+            0.033479423,
+            0.033494592,
+            0.033540798,
+            0.033452283,
+            0.033498839,
+            0.033627831,
+            0.03353611,
+            0.033566527,
+            0.033526582,
+            0.033741435,
+            0.033635936,
+            0.033707792,
+            0.033459237,
+            0.033501907,
+            0.033540449,
+            0.033429411,
+            0.033566488,
+            0.033479675,
+            0.033487991,
+            0.0335516,
+            0.033469195,
+            0.033470758,
+            0.033496106,
+            0.033573822,
+            0.033400447,
+            0.033605641,
+            0.033604019
+          ],
+          "median": 0.033522067,
+          "range": [
+            0.033400447,
+            0.033985661
+          ]
+        },
+        "numpy_copy_whole": {
+          "values": [
+            0.03347344,
+            0.03342524,
+            0.033539985,
+            0.033619674,
+            0.033487586,
+            0.033631978,
+            0.033599477,
+            0.033648479,
+            0.033955574,
+            0.033574069,
+            0.03342523,
+            0.033384413,
+            0.033507374,
+            0.033560825,
+            0.033565323,
+            0.033556927,
+            0.033588176,
+            0.03345143,
+            0.033388152,
+            0.033561366,
+            0.033390586,
+            0.033498909,
+            0.033595991,
+            0.033527853,
+            0.033742977,
+            0.033832795,
+            0.033859475,
+            0.033764166,
+            0.033539344,
+            0.033524336,
+            0.033600891,
+            0.033671875,
+            0.033475627,
+            0.033569212,
+            0.033586264,
+            0.033561067,
+            0.03353621,
+            0.033592617,
+            0.033482991,
+            0.03361645,
+            0.033485946,
+            0.033462843,
+            0.033531472,
+            0.033579001,
+            0.033402099,
+            0.033552661,
+            0.0333549,
+            0.03348833,
+            0.033756784,
+            0.033518768,
+            0.033569412,
+            0.033364067,
+            0.033436885,
+            0.033710317,
+            0.033517426,
+            0.033443026,
+            0.033718443,
+            0.033686233,
+            0.033735956,
+            0.033628775
+          ],
+          "median": 0.033558876,
+          "range": [
+            0.0333549,
+            0.033955574
+          ]
+        }
+      },
+      "paired_worker_median_difference_seconds": -3.680899999999876e-05,
+      "paired_worker_median_reduction_percent": -0.10980528139866422
+    }
+  ],
+  "precision_cases_passed": 432,
+  "native_pre_export_contracts": {
+    "state": "complete",
+    "checks": [
+      "negative control: Tensor.numpy export changes resizability",
+      "exact impulse result, input preserved, public/private versions and resizability",
+      "source resize: rejected before external-memory writes",
+      "target resize: rejected before external-memory writes",
+      "source same-shape replacement storage: rejected before external-memory writes",
+      "target same-shape replacement storage: rejected before external-memory writes",
+      "source shape mutation: rejected before external-memory writes",
+      "target shape mutation: rejected before external-memory writes",
+      "source aliases target: rejected before external-memory writes",
+      "source requires grad: rejected before external-memory writes",
+      "target requires grad: rejected before external-memory writes",
+      "private workspace replacement: rejected before external-memory writes",
+      "native failure: propagated before public target write/version increment",
+      "tensor/descriptor owners retained until adapter release"
+    ]
+  },
+  "matrix": {
+    "seeds": [
+      7,
+      91,
+      812,
+      20260906
+    ],
+    "patterns": [
+      "dense",
+      "banded",
+      "impulse"
+    ],
+    "scales": [
+      1e-12,
+      1.0,
+      1000000000000.0
+    ],
+    "cases_per_qualification": 36
+  },
+  "paired_worker_median_difference_seconds": {
+    "values": [
+      -3.8587999999992184e-05,
+      -6.075650000000876e-05,
+      -3.680899999999876e-05
+    ],
+    "median": -3.8587999999992184e-05,
+    "range": [
+      -6.075650000000876e-05,
+      -3.680899999999876e-05
+    ]
+  },
+  "paired_worker_median_reduction_percent": {
+    "values": [
+      -0.11642093305576763,
+      -0.1816326577590649,
+      -0.10980528139866422
+    ],
+    "median": -0.11642093305576763,
+    "range": [
+      -0.1816326577590649,
+      -0.10980528139866422
+    ]
+  },
+  "summary_of_worker_medians_seconds": {
+    "engine_whole": {
+      "values": [
+        0.033145242000000005,
+        0.033450206999999996,
+        0.033522067
+      ],
+      "median": 0.033450206999999996,
+      "range": [
+        0.033145242000000005,
+        0.033522067
+      ]
+    },
+    "numpy_copy_whole": {
+      "values": [
+        0.03318383,
+        0.033510963500000004,
+        0.033558876
+      ],
+      "median": 0.033510963500000004,
+      "range": [
+        0.03318383,
+        0.033558876
+      ]
+    }
+  },
+  "limitations": [
+    "Source unchanged; frozen 36-case L2/max-absolute FFTW budgets and bitwise complex128 MKL parity before and after timing. Fresh pre-export contract tests run before this worker. Microbenchmark attribution only; no executable speedup claim.",
+    "Intra-op and native pools are 1; observed Torch inter-op settings are included above and differ from executable inter-op1 controls.",
+    "Frozen protocol prose says three seeds/four scales; actual unchanged matrix is four seeds/three patterns/three scales.",
+    "Paired worker differences compare whole-call medians; they do not measure isolated conversion time or executable improvement."
+  ]
+}

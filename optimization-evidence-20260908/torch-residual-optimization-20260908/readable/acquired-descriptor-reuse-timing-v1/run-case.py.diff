@@ -1,0 +1,22 @@
+--- /Users/xangma/repos/pycbc/artifacts/torch-residual-optimization-20260908/descriptor-reuse-v1/run-case.py
++++ run-case.py
+@@ -95,7 +95,7 @@
+             parser.error('CUDA trace requires the CUDA processing scheme')
+         workload = [str(root / 'profile_torch_filtering.py'),
+                     '--output', str(out / 'trace'), '--', *cli]
+-    if args.mode == 'reuse-qualify':
++    if args.mode in ('reuse-qualify', 'timing'):
+         if args.scheme not in ('cpu:1', 'torch:cuda:0'):
+             parser.error('Descriptor reuse qualification requires standard or CUDA')
+         workload = [str(root / 'run_reuse.py'), '--reuse', args.reuse,
+@@ -129,8 +129,8 @@
+               *map(Path, cfg['input_files'])]
+     if args.mode in ('qualify', 'reuse-qualify'):
+         inputs.append(root / 'qualify-inspiral.py')
+-    if args.mode == 'reuse-qualify':
+-        inputs += [root / 'run_reuse.py', root / 'descriptor_reuse.py', root / 'current-source-pins.json']
++    if args.mode in ('reuse-qualify', 'timing'):
++        inputs += [root / 'run_reuse.py', root / 'descriptor_reuse.py', root / 'descriptor_reuse_diagnostic.py', root / 'current-source-pins.json']
+     if args.mode in ('filter-cprofile', 'filter-perf'):
+         inputs.append(root / 'profile-filtering.py')
+     if args.mode == 'cuda-trace':

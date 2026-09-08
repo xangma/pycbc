@@ -1,0 +1,37 @@
+{
+  "caveats": [
+    "Fixed finite workloads on a shared host; reported ranges are observed ranges, not confidence intervals.",
+    "Full-executable, isolated API, native, setup and qualification timings retain their separate meanings.",
+    "Historical paths, runtime identities and process closure records are provenance, not current observations.",
+    "Raw input bank/GWF, full source baselines, native binaries and environments are external pinned dependencies."
+  ],
+  "main_report": "OFFLINE-CUDA-GRAPH-v2.md",
+  "omitted_evidence_files": 0,
+  "original_archive_regular_members": 307,
+  "original_archives": 4,
+  "original_seal": {
+    "all_entries_verified": true,
+    "entries": 319,
+    "present": true,
+    "sha256": "50bf966e041f5f08fa37dc695f57274d5c5d8f7e9da71543fa1bad9b7cb6fe84",
+    "unlisted_files": []
+  },
+  "outcome": "Version 2 passed the frozen rule: median complete-child wall 20.257390172453597 to 19.94459447549889 seconds, a 1.5441065916776076% reduction, with all four pairs favorable. Version 1 failed qualification and ran no timing samples.",
+  "primary_summaries": [
+    "acquired-diagnostic-v2/timing-summary.json",
+    "offline-cuda-graph-v2-samples.csv",
+    "audit-v2.json",
+    "peer-results-review-v2.json"
+  ],
+  "result_interpretation": "Copied from original reports; no new scientific computation or performance measurement.",
+  "scope": "Both fixed diagnostic versions, original input/results archives, frozen native/executable gates, raw HDF/science comparisons, eight timing samples and closure evidence.",
+  "selected_bytes": 68984932,
+  "selected_files": 320,
+  "storage_counts": {
+    "archive": 306,
+    "gzip": 4,
+    "readable": 6,
+    "supplement": 4
+  },
+  "supplement_unique_files": 4
+}

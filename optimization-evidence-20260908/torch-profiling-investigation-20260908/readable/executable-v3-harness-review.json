@@ -1,0 +1,448 @@
+{
+  "state": "review_complete",
+  "script_sha256": "6fa7ce05562423ffd2e9685c5432eeaf42432f71c31cd2766198de50efeb3222",
+  "manifest_sha256": "9b255bcad46c86cc58440bbbbd4825c5d886f627774acb991a285652ab94f39b",
+  "controller_sha256": "672272d3f3b1901a75f58990ea73e42e3b694cb967b6673957c1ab9efe25ea1e",
+  "science_reference_sha256": "b07240d112832ae61aeeb6cd90a7c1556b1f3625230f98b3f4ac58cb9048f475",
+  "delta": "Only the two cross-scheme exact-science assertions are replaced by exact published per-scheme references and candidate-own-baseline equality; all other controller and existing helper code is byte-identical.",
+  "published_rehearsal": {
+    "cpu:1": {
+      "qualification_sha256": "8a0dcd765014f357712b1d93ef6a86e80349390a9d04e8c408ba69330d0b1a2d",
+      "all_13_original_checks": true,
+      "exact_science_reference": true,
+      "psd_file_and_array_bytes_verified": true,
+      "engine_guards": {
+        "class": "pycbc.fft.mkl.IFFT",
+        "execute_attempts": 1920,
+        "execute_successes": 1920,
+        "executed_routes": {},
+        "id": 0,
+        "input_dtype": "complex64",
+        "kind": "IFFT",
+        "nbatch": 1,
+        "output_dtype": "complex64",
+        "plans_after_execution": {},
+        "plans_at_construction": {},
+        "size": 2097152
+      },
+      "alterations_rejected": [
+        "sha256",
+        "data_sha256",
+        "dtype_str",
+        "delta_f_hz"
+      ]
+    },
+    "torch:cpu:1": {
+      "qualification_sha256": "c59504bd82725abfbc33e5ba22fa71d9e51ebfe0489e4b178625448e3b6d341a",
+      "all_13_original_checks": true,
+      "exact_science_reference": true,
+      "psd_file_and_array_bytes_verified": true,
+      "engine_guards": {
+        "class": "pycbc.fft.torchfft.IFFT",
+        "execute_attempts": 1920,
+        "execute_successes": 1920,
+        "executed_routes": {
+          "pycbc.fft.torchfft._execute_mkl_cpu_ifft_plan": 1920
+        },
+        "id": 0,
+        "input_dtype": "complex64",
+        "kind": "IFFT",
+        "nbatch": 1,
+        "output_dtype": "complex64",
+        "plans_after_execution": {
+          "_mkl_plan": "pycbc.fft.torchfft._MKLCPUDirectIFFTPlan"
+        },
+        "plans_at_construction": {
+          "_mkl_plan": "pycbc.fft.torchfft._MKLCPUDirectIFFTPlan"
+        },
+        "size": 2097152
+      },
+      "alterations_rejected": [
+        "sha256",
+        "data_sha256",
+        "dtype_str",
+        "delta_f_hz"
+      ]
+    },
+    "torch:cuda:0": {
+      "qualification_sha256": "aad923ac99d91821e55d16122fb531ae02401d977e95f424adf1adbbac562606",
+      "all_13_original_checks": true,
+      "exact_science_reference": true,
+      "psd_file_and_array_bytes_verified": true,
+      "engine_guards": {
+        "class": "pycbc.fft.torchfft.IFFT",
+        "execute_attempts": 1920,
+        "execute_successes": 1920,
+        "executed_routes": {
+          "pycbc.fft.torchfft.ifft": 1920
+        },
+        "id": 0,
+        "input_dtype": "complex64",
+        "kind": "IFFT",
+        "nbatch": 1,
+        "output_dtype": "complex64",
+        "plans_after_execution": {},
+        "plans_at_construction": {},
+        "size": 2097152
+      },
+      "alterations_rejected": [
+        "sha256",
+        "data_sha256",
+        "dtype_str",
+        "delta_f_hz"
+      ]
+    }
+  },
+  "unchanged_comparator_replay": {
+    "torch:cpu:1": {
+      "status": "pass",
+      "baseline": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/publication-final-restore/pycbc-torch-profile-20260907-r3/runs/qualify-cpu/triggers.hdf",
+      "candidate": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/publication-final-restore/pycbc-torch-profile-20260907-r3/runs/qualify-torchcpu/triggers.hdf",
+      "baseline_sha256": "317ae8340adb23a523625eb411a6c6bbce5d4b3eb10fa4e8f851648602b3c0d4",
+      "candidate_sha256": "b40d6a42bdfad8bb3ea388514e22e9a24899a7cb8aaa47b2a6237b3c2e8e47b5",
+      "baseline_receipt_sha256": "12da5a017c5629a16f35087389614200b229796d97641f461d3abea3b2349122",
+      "candidate_receipt_sha256": "f65d8da6e87d918f3a30c5f0076368d4b070dbe466213507251ea585626964cc",
+      "sample_rate": 4096,
+      "failures": [],
+      "review_reasons": [],
+      "detectors": {
+        "H1": {
+          "baseline_count": 1991,
+          "candidate_count": 1991,
+          "matched_count": 1991,
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "metrics": {
+            "bank_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "bank_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "chisq": {
+              "violations": 0,
+              "max_absolute_error": 3.0517578125e-05,
+              "max_relative_error": 9.475932899276645e-07,
+              "worst_identity": [
+                -6432567624025632805,
+                4861988382511
+              ],
+              "baseline_value": 188.2814178466797,
+              "candidate_value": 188.2814483642578,
+              "budget_at_worst": 0.01883814483642578
+            },
+            "chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 16.0,
+              "candidate_value": 16.0,
+              "budget_at_worst": 0.0
+            },
+            "coa_phase": {
+              "violations": 0,
+              "max_absolute_error": 2.384185791015625e-07,
+              "max_relative_error": 3.510818470088294e-05,
+              "worst_identity": [
+                -8813937367194466122,
+                4861986619373
+              ],
+              "baseline_value": 2.483060359954834,
+              "candidate_value": 2.483060598373413,
+              "budget_at_worst": 0.0001
+            },
+            "cont_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "cont_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "sg_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "sigmasq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 3547529.75,
+              "candidate_value": 3547529.75,
+              "budget_at_worst": 35.4752975
+            },
+            "snr": {
+              "violations": 0,
+              "max_absolute_error": 1.9073486328125e-06,
+              "max_relative_error": 3.3811238280813493e-07,
+              "worst_identity": [
+                -2873349777082751080,
+                4861984962457
+              ],
+              "baseline_value": 5.871374130249023,
+              "candidate_value": 5.871372222900391,
+              "budget_at_worst": 0.0005971374130249024
+            },
+            "template_duration": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 37.44173049926758,
+              "candidate_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            },
+            "candidate_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            }
+          }
+        }
+      }
+    },
+    "torch:cuda:0": {
+      "status": "pass",
+      "baseline": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/publication-final-restore/pycbc-torch-profile-20260907-r3/runs/qualify-cpu/triggers.hdf",
+      "candidate": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/publication-final-restore/pycbc-torch-profile-20260907-r3/runs/qualify-cuda/triggers.hdf",
+      "baseline_sha256": "317ae8340adb23a523625eb411a6c6bbce5d4b3eb10fa4e8f851648602b3c0d4",
+      "candidate_sha256": "b10dd6b53dd503500fae85054b636e3c78e8a104fb21f95fa8d224e6cc6fcedd",
+      "baseline_receipt_sha256": "12da5a017c5629a16f35087389614200b229796d97641f461d3abea3b2349122",
+      "candidate_receipt_sha256": "031b608c50ce1cb4df2bb520217c1ef05c9687b6af8f465eed33ae8af8d3a56c",
+      "sample_rate": 4096,
+      "failures": [],
+      "review_reasons": [],
+      "detectors": {
+        "H1": {
+          "baseline_count": 1991,
+          "candidate_count": 1991,
+          "matched_count": 1991,
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "metrics": {
+            "bank_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "bank_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "chisq": {
+              "violations": 0,
+              "max_absolute_error": 9.1552734375e-05,
+              "max_relative_error": 1.8990432289943939e-06,
+              "worst_identity": [
+                -6432567624025632805,
+                4861988382511
+              ],
+              "baseline_value": 188.2814178466797,
+              "candidate_value": 188.28150939941406,
+              "budget_at_worst": 0.018838150939941407
+            },
+            "chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 16.0,
+              "candidate_value": 16.0,
+              "budget_at_worst": 0.0
+            },
+            "coa_phase": {
+              "violations": 0,
+              "max_absolute_error": 4.76837158203125e-07,
+              "max_relative_error": 3.302878860272565e-05,
+              "worst_identity": [
+                1692951192463016022,
+                4861985847226
+              ],
+              "baseline_value": 2.833223819732666,
+              "candidate_value": 2.833224296569824,
+              "budget_at_worst": 0.0001
+            },
+            "cont_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "cont_chisq_dof": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 0.0
+            },
+            "sg_chisq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 0.0,
+              "candidate_value": 0.0,
+              "budget_at_worst": 1e-05
+            },
+            "sigmasq": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 3547529.75,
+              "candidate_value": 3547529.75,
+              "budget_at_worst": 35.4752975
+            },
+            "snr": {
+              "violations": 0,
+              "max_absolute_error": 3.337860107421875e-06,
+              "max_relative_error": 5.749584879971667e-07,
+              "worst_identity": [
+                5451446987749980443,
+                4861988214233
+              ],
+              "baseline_value": 5.805393218994141,
+              "candidate_value": 5.805389881134033,
+              "budget_at_worst": 0.0005905393218994141
+            },
+            "template_duration": {
+              "violations": 0,
+              "max_absolute_error": 0.0,
+              "max_relative_error": 0.0,
+              "worst_identity": [
+                -9182911012498157318,
+                4861984505656
+              ],
+              "baseline_value": 37.44173049926758,
+              "candidate_value": 37.44173049926758,
+              "budget_at_worst": 0.003754173049926758
+            }
+          },
+          "unmatched": {
+            "baseline_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            },
+            "candidate_only": {
+              "count": 0,
+              "classifications": {},
+              "examples": []
+            }
+          }
+        }
+      }
+    }
+  },
+  "qualification_and_timing_prerequisite_role_reference_checks": "pass",
+  "clearance": "Fresh v3 qualification may run; fresh timing remains dependent on all five actual qualifications and terminal audit.",
+  "limits": [
+    "This is an offline rehearsal against published baseline records, not candidate qualification.",
+    "Remote source/input/native, process identity and lock guards require actual worker receipts and acquisition evidence, retained unchanged.",
+    "Published remote PSD paths are checked by preserved final path components; actual file and data bytes are directly hashed locally.",
+    "V1 and v2 failed controller runs remain preserved. Earlier review assumption of cross-scheme exact full PSD equality was incorrect; no numerical tolerance is added."
+  ]
+}

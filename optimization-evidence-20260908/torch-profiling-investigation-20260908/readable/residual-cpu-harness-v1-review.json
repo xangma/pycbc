@@ -1,0 +1,62 @@
+{
+  "state": "frozen_source_review_passed_runtime_pending",
+  "script_sha256": "1ea5bbf9c501621fd96f5dcfc4ed0b3a233883b308c03b1f09e13097aa4738ad",
+  "manifest_sha256": "b1135ddaf5058f12fb1d14b1542d315464af40d2e62f9be59932e623f0bc3afc",
+  "frozen_files_sha256": {
+    "cpu_controller.py": "111684e9928f5fb6b2c9f26764d55f73f7e48e5f1e8b9f0cb567b2864df30694",
+    "cpu_stages.py": "169c1bb7fc2cd311421b4379b31a3d023c5d19525fdcfe7bac27a891bd26aff4",
+    "qualify_runtime.py": "e77603961c1f066647065e2e5c86dd2a4676fc891192bab508dc00d926888297",
+    "source-pins.json": "982f18eab08eb4176ac2cb6044db6eb245c1e63ea0ce7d905ad5800938b61413",
+    "threadpoolctl.py": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b",
+    "worker_receipt.py": "c3ae82778a87034dca75d5f0d6fa2c0797fb462de1d081f6cf1f6b6c701699f5"
+  },
+  "source_head": "ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f",
+  "source_clean": true,
+  "prior_helpers_byte_identical": [
+    "qualify_runtime.py",
+    "worker_receipt.py",
+    "threadpoolctl.py"
+  ],
+  "native_binary_pins_verified_against_prior_qualification": {
+    "pycbc/events/eventmgr_cython.cpython-311-x86_64-linux-gnu.so": "651aef90eb8e2968784e80fbb9b97d00ac04692c253b2037fa5862eb6a1123e3",
+    "pycbc/events/simd_threshold_cython.cpython-311-x86_64-linux-gnu.so": "dd1e159e72bb1c77f8e524c108971ca587d2491da362d23e89cb066f110f1fca",
+    "pycbc/fft/fftw_pruned_cython.cpython-311-x86_64-linux-gnu.so": "bb94a30f5822f3a5328ced2ae1a4779325622a9fbeb882e6a288f45315a3f085",
+    "pycbc/filter/matchedfilter_cpu.cpython-311-x86_64-linux-gnu.so": "1942084582b600f7ff026f767500ef2886c5bfae1968b43099031ee6cfe4b47f",
+    "pycbc/filter/simd_correlate_cython.cpython-311-x86_64-linux-gnu.so": "92a6b31d82026d6dfb92c0c11bf94a39ec2e7dbdab6dd5caa269c662bb38eee7",
+    "pycbc/inference/models/relbin_cpu.cpython-311-x86_64-linux-gnu.so": "f0403f7ce4b84499c27f3058f0d6d32dc4b01ac32c902914aea1426aee0dca66",
+    "pycbc/types/array_cpu.cpython-311-x86_64-linux-gnu.so": "88d7298e267137833cd0a9e58c3f133dce165cf3f8d74386feb13aa7f87e59e0",
+    "pycbc/vetoes/chisq_cpu.cpython-311-x86_64-linux-gnu.so": "d1e94904254f4e2ad98beee570cfcab09846de50a1736d7e1c3a10c15a763755",
+    "pycbc/waveform/decompress_cpu_cython.cpython-311-x86_64-linux-gnu.so": "8917db8ed2a6ac50e4e13ce92bb95c298ff6a10d19a389b6b7fd54fba1f19707",
+    "pycbc/waveform/spa_tmplt_cpu.cpython-311-x86_64-linux-gnu.so": "9da27f0da2b1671ea9f56b3e3694c31be93f35d51bacad6f565e5529cc1a868e",
+    "pycbc/waveform/utils_cpu.cpython-311-x86_64-linux-gnu.so": "92f86ebf196459d5e13ba24aeb54cddd3dcf3db43d1f62b93dbaf1032bea5ddc"
+  },
+  "production_staged_operations_ast_equal": true,
+  "production_operations_after_fixed_identity_specialization": [
+    "owner._native_source.copy_(source_tensor)",
+    "status = owner._execute(owner._descriptor, owner._native_source.data_ptr())",
+    "owner._increment_version(owner._native_target)",
+    "owner._check_status(status)",
+    "target_tensor.copy_(owner._native_target)"
+  ],
+  "qualification_order": [
+    "engine_before",
+    "stages_before",
+    "stages_after",
+    "engine_after"
+  ],
+  "qualification_cases_per_worker": 144,
+  "reviewed": [
+    "The existing Route constructs the actual production IFFT engine. Fixed runtime assertions require the exact retained 2M promoted in-place class, one aliased complex128 private buffer, separate public buffers and private two-argument DFTI binding.",
+    "The staged work sequence is AST-identical to the exact production promoted/in-place branch after variable renaming; five timer boundaries and result recording are the only extra operations.",
+    "Both actual engine and staged reproduction use the byte-identical 36-case helper before and after timing. It enforces input bitwise preservation, stable pointers, eligibility, target version increment, FFTW L2/max-absolute budgets and bitwise promoted-double-MKL parity.",
+    "Three fresh workers run serially under the inherited campaign lock on core 8, with frozen one-thread environment and observed before/after native pools. Each records three cyclic blocks of three paths, three warmups and 15 samples per path/block.",
+    "Stage sums use per-sample integer nanosecond differences; whole-call and stage records preserve un-subtracted timing overhead, and a 1000-sample five-clock-read control is recorded.",
+    "Controller checks helper, source and native pins before/after each worker; records commands, cwd, log hash, PID/PGID/start ticks and completion; workers assert unchanged runtime/source identities at the end."
+  ],
+  "interpretation_limits": [
+    "This is a diagnostic on the unchanged plan, not a new implementation or a performance qualification. Constant-input warmed blocks isolate stage cost; they do not reproduce the whole filtering workload.",
+    "Stage boundaries add timer/Python work and may perturb caches. Compare whole staged calls with direct-plan and engine calls and keep the unadjusted timer control; do not subtract unrelated medians to manufacture a causal decomposition.",
+    "Native stage includes the pointer lookup and ctypes invocation; bookkeeping includes version publication and status checking. It does not isolate machine-code FFT instructions.",
+    "Source review passed with no required harness changes. Remote results, receipt/source/library pins and a terminal process/lock audit remain to be independently checked after the owner executes."
+  ]
+}

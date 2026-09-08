@@ -1,0 +1,93 @@
+--- /Users/xangma/repos/pycbc/artifacts/torch-residual-optimization-20260908/descriptor-reuse-v1/run_reuse.py
++++ run_reuse.py
+@@ -1,4 +1,4 @@
+-"""Instrumented executable qualification for bounded descriptor reuse."""
++"""Common setup for original-function baseline and cache candidate execution."""
+ import argparse
+ import json
+ from pathlib import Path
+@@ -15,34 +15,55 @@
+     temp.replace(path)
+ 
+ 
++def baseline_finish(cache, primary):
++    errors = []
++    def originals():
++        assert all(getattr(cache.mkl, n) is cache.original[n] for n in ('fft', 'ifft'))
++    for name, operation in (('close', cache.close), ('native', cache.assert_native),
++                            ('original-functions', originals)):
++        try:
++            operation()
++        except BaseException as error:
++            cache.poisoned = True
++            errors.append(error)
++            cache.finalization_errors.append({'operation': name, 'error': repr(error)})
++    if errors and primary is None:
++        raise errors[0]
++
++
+ def main():
+     parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--reuse', choices=('yes', 'no'), required=True)
+     parser.add_argument('--receipt', type=Path, required=True)
+-    parser.add_argument('--reuse', choices=('yes', 'no'), required=True)
+     parser.add_argument('command', nargs=argparse.REMAINDER)
+     args = parser.parse_args()
+     command = args.command[1:] if args.command[:1] == ['--'] else args.command
+     assert command and not args.receipt.exists()
+     from pycbc.fft import mkl
+-    cache = DescriptorReuse(mkl, reuse=args.reuse == 'yes')
++    cache = DescriptorReuse(mkl)  # Identical construction point in both variants.
++    cached = args.reuse == 'yes'
++    root = Path(__file__).resolve().parent
+     result = {'state': 'running', 'helper_sha256': sha(__file__),
+-              'cache_sha256': sha(Path(__file__).with_name('descriptor_reuse.py')),
++              'cache_sha256': sha(root / 'descriptor_reuse.py'),
++              'parent_cache_sha256': sha(root / 'descriptor_reuse_diagnostic.py'),
+               'mkl_source': str(Path(mkl.__file__).resolve()), 'mkl_source_sha256': sha(mkl.__file__),
+-              'purpose': 'Instrumented qualification only; no executable performance claim.',
+-              'commit_semantics': 'create_successes counts original creator returns after commit invocation. Original ignores commit return; no new status query or unrelated check added.',
++              'variant': 'cached' if cached else 'original',
+               'started_epoch': time.time(), 'command': command}
+     save(args.receipt, result)
+     previous, primary = sys.argv, None
+     try:
+-        cache.install()
++        if cached:
++            cache.install()
++        else:
++            assert all(getattr(mkl, n) is cache.original[n] for n in ('fft', 'ifft'))
+         sys.argv = command
+         try:
+             runpy.run_path(command[0], run_name='__main__')
+         except SystemExit as error:
+             if error.code not in (0, None):
+                 raise
+-        assert cache.rows and all(row['state'] == 'complete' for row in cache.rows)
+-        assert all(row['native_status'] == 0 for row in cache.rows if row['eligible'])
++        assert not cache.rows
++        assert len(cache.entries) == (3 if cached else 0)
+         cache.assert_native()
+     except BaseException as error:
+         primary = error
+@@ -51,7 +72,10 @@
+     finally:
+         sys.argv = previous
+         try:
+-            cache.finish(primary_error=primary)
++            if cached:
++                cache.finish(primary_error=primary)
++            else:
++                baseline_finish(cache, primary)
+         except BaseException as error:
+             result.update(state='failed', cleanup_error=repr(error))
+             raise
+@@ -66,7 +90,7 @@
+             result['finished_epoch'] = time.time()
+             save(args.receipt, result)
+     if result['state'] != 'complete':
+-        raise RuntimeError('Descriptor qualification was incomplete')
++        raise RuntimeError('Descriptor execution was incomplete')
+ 
+ 
+ if __name__ == '__main__':

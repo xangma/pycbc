@@ -1,0 +1,17 @@
+{
+  "state": "source_review_passed_for_diagnostic",
+  "helper_sha256": "9eff9151538bf3f7bf65ed9d8528da131e422d2dfb8cbe3b2da9e9409613c7a6",
+  "tests_sha256": "62ad68e6a66c8647dc31ccace90727b8367a87d43563c65015e30c24a1c12477",
+  "verified": [
+    "Only one new FFTW complex64 private in-place MEASURE route is added relative to reviewed helper v2.",
+    "Exact retained private pointer used for planning and execution under FFTW planning lock.",
+    "Input copy then private native transform then output copy preserves public input and increments public target once.",
+    "Original complete matrix, unchanged error gates, source/runtime qualification binding, and same-live-plan post-timing validation remain."
+  ],
+  "limitations": [
+    "Production size 2^21 on Linux is unqualified until its record passes.",
+    "Owner reports local Darwin size4096 32/36, including four maximum-error failures; this review does not independently validate those numbers.",
+    "The old retained out-of-place route executes directly from public source to scratch output and has one publication copy; this private in-place route has two copies and one16MiB private workspace at2^21. Smaller workspace alone does not predict speedup.",
+    "Diagnostic constructor inherits public-pointer guards; release integration requires full guards and scientific checks."
+  ]
+}

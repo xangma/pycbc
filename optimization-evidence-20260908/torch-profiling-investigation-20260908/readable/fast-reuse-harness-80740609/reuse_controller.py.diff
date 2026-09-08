@@ -1,0 +1,243 @@
+--- /Users/xangma/repos/pycbc/artifacts/torch-residual-optimization-20260908/descriptor-reuse-v1/reuse_controller.py
++++ reuse_controller.py
+@@ -1,5 +1,4 @@
+-"""Native-contract gate followed by four serial instrumented science qualifications."""
+-from collections import Counter
++"""Fresh native/science gates followed by four balanced timing repetitions."""
+ import fcntl
+ import hashlib
+ import importlib.util
+@@ -18,7 +17,11 @@
+ PYTHON = '/home/xangma/pycbc-torch-split-20260905/venv/bin/python'
+ LOCK = Path('/home/xangma/pycbc-torch-performance-coordination-20260907/len-benchmark.lock')
+ STATUS = ROOT / 'reuse-status.json'
+-CASES = ('cuda-uncached', 'cuda-cached', 'standard-uncached', 'standard-cached')
++CELLS = ('standard-original', 'standard-cached', 'cuda-original', 'cuda-cached')
++ORDERS = ((0, 1, 3, 2), (1, 2, 0, 3), (2, 3, 1, 0), (3, 0, 2, 1))
++QUAL_CASES = tuple('qual-' + cell for cell in CELLS)
++TIMING_CASES = tuple(f'timing-{repeat}-{CELLS[i]}' for repeat, order in enumerate(ORDERS, 1) for i in order)
++CASES = QUAL_CASES + TIMING_CASES
+ 
+ 
+ def read(path):
+@@ -86,37 +89,23 @@
+ 
+ 
+ def verify_cache(record, cached):
+-    assert record['reuse'] is cached and record['closed'] and record['restored']
++    assert record['reuse'] and record['closed'] and record['restored']
+     assert not record['poisoned'] and not record['cleanup_errors']
+     assert not record['invariant_errors'] and not record['finalization_errors']
+     assert all(p['inverse_ast_equal'] for p in record['ast'].values())
+-    rows = record['rows']
+-    assert rows and [r['index'] for r in rows] == list(range(len(rows)))
+-    assert len({(r['key']['pid'], r['key']['thread_object_id']) for r in rows}) == 1
+-    assert all(r['state'] == 'complete' and r['key']['num_threads'] == 1 for r in rows)
+-    eligible = [r for r in rows if r['eligible']]
+-    assert eligible and all(r['native_status'] == 0 for r in eligible)
+-    assert all(r['input_pointer'] != r['output_pointer'] for r in eligible)
+-    assert all(r['create_attempts'] == r['create_successes'] == int(not r['hit']) for r in eligible)
++    assert 'rows' not in record and 'hits' not in record
+     entries = record['entries']
+-    assert all(e['state'] == 'freed' and e['free_attempts'] == e['free_successes'] == 1 for e in entries)
+-    assert len(entries) == record['creates'] == record['frees'] == sum(r['create_successes'] for r in rows)
+-    assert record['hits'] == sum(r['hit'] for r in rows)
+-    if cached:
+-        assert len(entries) <= 3
+-    else:
+-        assert record['hits'] == 0
+-    groups = Counter(json.dumps({k: v for k, v in row['key'].items() if k not in ('pid', 'thread_object_id')},
+-                                sort_keys=True) for row in rows)
+-    return {'calls': len(rows), 'eligible': len(eligible), 'fallback': len(rows) - len(eligible),
+-            'creates': record['creates'], 'hits': record['hits'], 'frees': record['frees'],
+-            'groups': [{'key': json.loads(key), 'calls': value} for key, value in sorted(groups.items())]}
++    assert len(entries) == record['creates'] == record['frees'] == (3 if cached else 0)
++    assert all(e['state'] == 'freed' and e['free_attempts'] == e['free_successes'] == 1
++               and e['free_reason'] == 'close' for e in entries)
++    return {'owned_descriptors': len(entries), 'frees': record['frees']}
+ 
+ 
+ def verify_real():
+     result = read(ROOT / 'real-contracts.json')
+     assert result['state'] == 'complete' and result['helper_sha256'] == sha(ROOT / 'real_contracts.py')
+     assert result['cache_sha256'] == sha(ROOT / 'descriptor_reuse.py')
++    assert result['parent_cache_sha256'] == sha(ROOT / 'descriptor_reuse_diagnostic.py')
+     assert result['source'] == str(SOURCE) and result['source_sha256'] == read(ROOT / 'current-source-pins.json')['pycbc/fft/mkl.py']
+     assert result['libraries'] == read(ROOT / 'library-pins.json')
+     assert len(result['cases']) == 9 and result['coexisting_plans_explicitly_released']
+@@ -131,7 +120,17 @@
+         assert snapshot['intra_op'] == snapshot['inter_op'] == 1 and snapshot['affinity'] == [8]
+         assert snapshot['native_pools'] and all(p['num_threads'] == 1 for p in snapshot['native_pools'])
+     metrics = verify_cache(result['cache'], True)
+-    assert metrics['calls'] == metrics['eligible'] == 9 and metrics['creates'] == metrics['frees'] == 3 and metrics['hits'] == 6
++    obs = result['cache_observations']
++    assert len(obs) == 9 and [row['hit'] for row in obs] == [False, True, True] * 3
++    assert len({row['descriptor'] for row in obs}) == 3
++    for start in range(0, 9, 3):
++        assert len({row['descriptor'] for row in obs[start:start + 3]}) == 1
++    assert len({p for row in obs for p in (row['input_pointer'], row['output_pointer'])}) == 18
++    for case, row in zip(result['cases'], obs, strict=True):
++        assert case['direction'] == row['key']['direction'] and case['size'] == row['key']['size']
++        for name in ('input_pointer', 'output_pointer'):
++            assert case[name] == row[name]
++    metrics.update(calls=9, hits=6)
+     return {'receipt_sha256': sha(ROOT / 'real-contracts.json'), 'metrics': metrics}
+ 
+ 
+@@ -143,25 +142,25 @@
+     status = {'state': 'starting', 'pid': os.getpid(), 'pgid': os.getpgrp(),
+               'start_ticks': Path('/proc/self/stat').read_text().split()[21],
+               'started_epoch': time.time(), 'workers': [], 'comparisons': {},
+-              'purpose': 'Native gate and instrumented science only; no performance conclusion.'}
++              'timing_orders': [[CELLS[i] for i in order] for order in ORDERS]}
+     save(STATUS, status)
+     try:
+         with LOCK.open('r') as lock:
+             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+             frozen = pins()
+-            campaign = module('reuse_campaign', 'loader_campaign.py')
+-            reference = module('reuse_reference_campaign', 'loader_campaign.py')
++            campaign = module('fast_campaign', 'loader_campaign.py')
++            reference = module('fast_reference', 'loader_campaign.py')
+             bind_provenance_verifiers(campaign, reference)
+-            checker = module('reuse_runtime', 'checked-inspiral.py')
+-            controls = module('reuse_controls', 'campaign_controls.py')
+-            comparator = module('reuse_comparator', 'compare-triggers.py')
++            checker = module('fast_runtime', 'checked-inspiral.py')
++            controls = module('fast_controls', 'campaign_controls.py')
++            comparator = module('fast_comparator', 'compare-triggers.py')
+             roles = {name: (name + '-candidate', SOURCE,
+                       'cpu:1' if name == 'standard' else 'torch:cuda:0', 'candidate') for name in REFERENCES}
+             science = {}
+             for name, folder in REFERENCES.items():
+                 _, science[name] = reference.qualified_science(folder, roles[name], controls)
+                 assert science[name] == read(ROOT / 'science-reference.json')['by_scheme'][roles[name][2]]
+-            status.update(state='running', pins=frozen)
++            status.update(state='running', phase='native', pins=frozen)
+             save(STATUS, status)
+ 
+             def run(name, command, env):
+@@ -189,49 +188,87 @@
+                 assert pins() == frozen
+                 return worker
+ 
++            def run_case(name, cell, qualify):
++                family, variant = cell.split('-')
++                role, cached = roles[family], variant == 'cached'
++                mode = 'reuse-qualify' if qualify else 'timing'
++                command = [PYTHON, str(ROOT / 'run-case.py'), '--config', str(ROOT / 'config.json'),
++                           '--case', name, '--mode', mode, '--reuse', 'yes' if cached else 'no',
++                           '--scheme', role[2], '--source', str(SOURCE), '--bank', str(campaign.BANK),
++                           '--segment-length', '512', '--start-pad', '112', '--end-pad', '16']
++                worker = run(name, command, dict(os.environ, PYCBC_BENCHMARK_LOCK_FD=str(lock.fileno())))
++                folder = ROOT / 'runs' / name
++                receipt = campaign.verified_run(folder, role)
++                assert receipt['mode'] == mode and receipt['reuse'] == ('yes' if cached else 'no')
++                result = read(folder / 'descriptors.json')
++                assert result['state'] == 'complete' and result['helper_sha256'] == sha(ROOT / 'run_reuse.py')
++                assert result['cache_sha256'] == sha(ROOT / 'descriptor_reuse.py')
++                assert result['parent_cache_sha256'] == sha(ROOT / 'descriptor_reuse_diagnostic.py')
++                assert result['variant'] == variant
++                assert result['mkl_source'] == str(SOURCE / 'pycbc/fft/mkl.py')
++                assert result['mkl_source_sha256'] == read(ROOT / 'current-source-pins.json')['pycbc/fft/mkl.py']
++                worker.update(descriptors=verify_cache(result['cache'], cached),
++                              descriptors_sha256=sha(folder / 'descriptors.json'))
++                if not qualify:
++                    assert not (folder / 'qualification.json').exists()
++                    assert result['command'] == receipt['executable_cli']
++                return folder, role, worker
++
++            def compare(name, left, left_role, right, right_role):
++                status['comparisons'][name] = campaign.compare_runs(name, left, left_role, right, right_role, comparator)
++                save(STATUS, status)
++
+             native_command = [PYTHON, str(ROOT / 'real_contracts.py'), '--source', str(SOURCE),
+                               '--receipt', str(ROOT / 'real-contracts.json'), '--lock-fd', str(lock.fileno())]
+             native = run('real-contracts', native_command,
+                          checker.clean_environment(os.environ, read(ROOT / 'config.json'), SOURCE))
+             native['qualification'] = verify_real()
++            status['phase'] = 'qualification'
+             save(STATUS, status)
+-            descriptors = {}
+-            for name in CASES:
+-                family, variant = name.split('-')
+-                role, cached = roles[family], variant == 'cached'
+-                command = [PYTHON, str(ROOT / 'run-case.py'), '--config', str(ROOT / 'config.json'),
+-                           '--case', name, '--mode', 'reuse-qualify', '--reuse', 'yes' if cached else 'no',
+-                           '--scheme', role[2], '--source', str(SOURCE), '--bank', str(campaign.BANK),
+-                           '--segment-length', '512', '--start-pad', '112', '--end-pad', '16']
+-                worker = run(name, command, dict(os.environ, PYCBC_BENCHMARK_LOCK_FD=str(lock.fileno())))
+-                folder = ROOT / 'runs' / name
+-                qualification, measured_science = campaign.qualified_science(folder, role, controls)
+-                assert measured_science == science[family]
+-                result = read(folder / 'descriptors.json')
+-                assert result['state'] == 'complete' and result['helper_sha256'] == sha(ROOT / 'run_reuse.py')
+-                assert result['cache_sha256'] == sha(ROOT / 'descriptor_reuse.py')
+-                assert result['mkl_source'] == str(SOURCE / 'pycbc/fft/mkl.py')
+-                assert result['mkl_source_sha256'] == read(ROOT / 'current-source-pins.json')['pycbc/fft/mkl.py']
+-                metrics = verify_cache(result['cache'], cached)
+-                if family == 'cuda':
+-                    assert metrics['calls'] == metrics['eligible'] == 1003 and metrics['fallback'] == 0
+-                    assert metrics['creates'] == metrics['frees'] == (3 if cached else 1003)
+-                    assert metrics['hits'] == (1000 if cached else 0)
+-                descriptors[name] = metrics
+-                worker.update(qualification=qualification, descriptors=metrics,
+-                              descriptors_sha256=sha(folder / 'descriptors.json'))
+-                status['comparisons'][name] = campaign.compare_runs(
+-                    name + '-vs-qualified-own', REFERENCES[family], role, folder, role, comparator)
+-                if cached:
+-                    assert metrics['groups'] == descriptors[family + '-uncached']['groups']
+-                    status['comparisons'][name + '-vs-uncached'] = campaign.compare_runs(
+-                        name + '-vs-uncached', ROOT / 'runs' / (family + '-uncached'), role, folder, role, comparator)
+-                save(STATUS, status)
+-            status['comparisons']['cuda-cached-vs-standard-cached'] = campaign.compare_runs(
+-                'cuda-cached-vs-standard-cached', ROOT / 'runs/standard-cached', roles['standard'],
+-                ROOT / 'runs/cuda-cached', roles['cuda'], comparator)
++            qualifications = {}
++            for name, cell in zip(QUAL_CASES, CELLS, strict=True):
++                family, variant = cell.split('-')
++                folder, role, worker = run_case(name, cell, True)
++                qualification, measured = campaign.qualified_science(folder, role, controls)
++                assert measured == science[family]
++                qualifications[cell] = qualification
++                worker['qualification'] = qualification
++                compare(name + '-vs-qualified-own', REFERENCES[family], role, folder, role)
++                if variant == 'cached':
++                    compare(name + '-vs-original', ROOT / 'runs' / ('qual-' + family + '-original'), role, folder, role)
++            compare('qual-cuda-cached-vs-standard-cached', ROOT / 'runs/qual-standard-cached', roles['standard'],
++                    ROOT / 'runs/qual-cuda-cached', roles['cuda'])
++            save(ROOT / 'qualifications.json', qualifications)
++            # This exact helper and interpreter have now passed native and both
++            # schemes' full science gates. Timed children contain no science hooks.
++            status.update(phase='timing', qualification_gate_epoch=time.time(),
++                          qualification_sha256=sha(ROOT / 'qualifications.json'))
++            save(STATUS, status)
++            samples = {cell: [] for cell in CELLS}
++            for repeat, order in enumerate(ORDERS, 1):
++                for i in order:
++                    cell = CELLS[i]
++                    name = f'timing-{repeat}-{cell}'
++                    folder, role, worker = run_case(name, cell, False)
++                    compare(name + '-vs-own-qualification', ROOT / 'runs' / ('qual-' + cell), role, folder, role)
++                    compare(name + '-vs-standard-cached-qualification', ROOT / 'runs/qual-standard-cached',
++                            roles['standard'], folder, role)
++                    metric = controls.timing(folder, 384, read(ROOT / 'source-pins.json')['revisions']['candidate'],
++                                             campaign.BANK_SHA, qualifications[cell])
++                    samples[cell].append({'repeat': repeat, 'case': name, 'metrics': metric})
++                    worker['timing'] = metric
++                    save(ROOT / 'samples.json', samples)
++                    save(STATUS, status)
++                # Pair all numerical comparisons with contemporaneous controls.
++                for family in ('standard', 'cuda'):
++                    compare(f'timing-{repeat}-{family}-cached-vs-original',
++                            ROOT / 'runs' / f'timing-{repeat}-{family}-original', roles[family],
++                            ROOT / 'runs' / f'timing-{repeat}-{family}-cached', roles[family])
++                compare(f'timing-{repeat}-cuda-cached-vs-standard-cached',
++                        ROOT / 'runs' / f'timing-{repeat}-standard-cached', roles['standard'],
++                        ROOT / 'runs' / f'timing-{repeat}-cuda-cached', roles['cuda'])
+             assert pins() == frozen
+-            status['state'] = 'complete'
++            status.update(state='complete', phase='complete')
+     except BaseException as error:
+         status.update(state='failed', error=repr(error))
+         raise

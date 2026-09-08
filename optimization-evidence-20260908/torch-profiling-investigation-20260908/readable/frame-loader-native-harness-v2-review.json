@@ -1,0 +1,29 @@
+{
+  "state": "corrected_native_harness_review_passed",
+  "tests_manifest_sha256": "892ab90f43567a7d189277ee6b77c9f82cb2269d05f83685373ab1b96cf0aa37",
+  "native_tests_sha256": "093b680afca9e045ebf06bc47bd7383740a96efd4eb7ebbd3e0be4a4ef24974b",
+  "semantic_helper_sha256": "4e78f96cfdb4b303d6bfb713355606289ccaaf1288ee73c4e0909a4f841c9fac",
+  "staging_sha256": "ae691010c962884806ff06c9ed60eb244795955a820df2610334b429e745ceb9",
+  "transfer_manifest_sha256": "741fc047e9ce0457f3c1f071be7b50619d50bc3e2728a47045ed2ab33422e387",
+  "source_test_review_sha256": "441d912fcfa3c7bffbc3edd7a3f17613c4bbaa826ae76c235fa2e889c8af59bc",
+  "local_junit_sha256": "65f0a95c73384c87eedb42e1a1fe0d2ba42dae211ec1a29668cbeaf188ee07e5",
+  "executed_gate_cases": [
+    "actual_candidate_64_pass",
+    "candidate_without_subtest_count_pass",
+    "baseline_four_identities_pass",
+    "missing_case_rejected",
+    "duplicate_identity_rejected",
+    "wrong_method_rejected",
+    "wrong_class_rejected",
+    "wrong_count_rejected",
+    "suite_error_rejected",
+    "suite_failure_rejected",
+    "suite_skip_rejected",
+    "case_error_rejected",
+    "case_failure_rejected",
+    "case_skip_rejected"
+  ],
+  "source_review": "Full corrected controller/helper read. Actual extracted XML gate executed on saved real candidate XML, two valid schema variants and11 altered negative controls. Serial lock/source/native/environment/timeout controls unchanged. Native run remains to be executed by owner.",
+  "supersedes": "frame-loader-native-harness-review.json: old gate expected16 XML tests but current pytest reports64 including48 subtests; caught locally before launch. Old helper c045 and manifest preserved.",
+  "provenance_correction": "Current staged transfer manifest741fc pins semantic helper4e78 and all six entries replay exactly. Earlier review comment combined reads straddling the helper update and incorrectly inferred mismatch; no staging replay discrepancy exists."
+}

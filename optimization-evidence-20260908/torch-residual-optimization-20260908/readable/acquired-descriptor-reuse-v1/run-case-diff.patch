@@ -1,0 +1,59 @@
+--- donor/run-case.py
++++ descriptor-reuse-v1/run-case.py
+@@ -47,10 +47,11 @@
+     parser = argparse.ArgumentParser(description=__doc__)
+     parser.add_argument('--config', type=Path, required=True)
+     parser.add_argument('--case', required=True)
+-    parser.add_argument('--mode', choices=['descriptor-qualify', 'timing', 'qualify', 'cprofile',
++    parser.add_argument('--mode', choices=['reuse-qualify', 'timing', 'qualify', 'cprofile',
+                                           'filter-cprofile', 'filter-perf', 'cuda-trace'],
+                         default='timing')
+     parser.add_argument('--scheme', default='cpu:1')
++    parser.add_argument('--reuse', choices=('yes', 'no'), default='no')
+     parser.add_argument('--segment-length', type=int, required=True)
+     parser.add_argument('--source', type=Path, required=True)
+     parser.add_argument('--bank', type=Path, required=True)
+@@ -80,7 +81,7 @@
+            '--segment-end-pad', str(args.end_pad),
+            '--output', str(out / 'triggers.hdf')]
+     workload = cli
+-    if args.mode in ('qualify', 'descriptor-qualify'):
++    if args.mode in ('qualify', 'reuse-qualify'):
+         workload = [str(root / 'qualify-inspiral.py'),
+                     '--receipt', str(out / 'qualification.json'), '--', *cli]
+     elif args.mode in ('filter-cprofile', 'filter-perf'):
+@@ -94,10 +95,10 @@
+             parser.error('CUDA trace requires the CUDA processing scheme')
+         workload = [str(root / 'profile_torch_filtering.py'),
+                     '--output', str(out / 'trace'), '--', *cli]
+-    if args.mode == 'descriptor-qualify':
+-        if args.scheme != 'torch:cuda:0':
+-            parser.error('Descriptor diagnostic requires CUDA')
+-        workload = [str(root / 'profile-mkl-descriptors.py'),
++    if args.mode == 'reuse-qualify':
++        if args.scheme not in ('cpu:1', 'torch:cuda:0'):
++            parser.error('Descriptor reuse qualification requires standard or CUDA')
++        workload = [str(root / 'run_reuse.py'), '--reuse', args.reuse,
+                     '--receipt', str(out / 'descriptors.json'), '--', *workload]
+     command = [sys.executable, str(root / 'checked-inspiral.py'),
+                '--receipt', str(out / 'runtime.json'),
+@@ -126,15 +127,15 @@
+     inputs = [args.config.resolve(), args.bank.resolve(), executable,
+               Path(__file__).resolve(), root / 'checked-inspiral.py',
+               *map(Path, cfg['input_files'])]
+-    if args.mode in ('qualify', 'descriptor-qualify'):
++    if args.mode in ('qualify', 'reuse-qualify'):
+         inputs.append(root / 'qualify-inspiral.py')
+-    if args.mode == 'descriptor-qualify':
+-        inputs += [root / 'profile-mkl-descriptors.py', root / 'current-source-pins.json']
++    if args.mode == 'reuse-qualify':
++        inputs += [root / 'run_reuse.py', root / 'descriptor_reuse.py', root / 'current-source-pins.json']
+     if args.mode in ('filter-cprofile', 'filter-perf'):
+         inputs.append(root / 'profile-filtering.py')
+     if args.mode == 'cuda-trace':
+         inputs.append(root / 'profile_torch_filtering.py')
+-    record = dict(case=args.case, mode=args.mode, scheme=args.scheme,
++    record = dict(case=args.case, mode=args.mode, scheme=args.scheme, reuse=args.reuse,
+                   segment_length=args.segment_length, start_pad=args.start_pad,
+                   end_pad=args.end_pad, source=str(source), source_info=source_info,
+                   command=command, executable_cli=cli, environment=fixed_env,

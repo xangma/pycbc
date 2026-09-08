@@ -1,0 +1,580 @@
+diff --git a/pycbc/fft/torchfft.py b/pycbc/fft/torchfft.py
+index 0ac5c3c4b3..e5cf3b51f0 100644
+--- a/pycbc/fft/torchfft.py
++++ b/pycbc/fft/torchfft.py
+@@ -84,6 +84,8 @@ _MKL_DIRECT_IFFT_SIZES = frozenset({32768})
+ # and timing matrix. Promotion retains float64 arithmetic without extending
+ # the direct float32 route, whose legacy-FFTW error gate remains unchanged.
+ _MKL_PROMOTED_IFFT_SIZES = frozenset({1048576, 2097152, 4194304})
++# The production search length also qualifies for one private in-place buffer.
++_MKL_PROMOTED_INPLACE_IFFT_SIZES = frozenset({2097152})
+ _TRUE_ENV_VALUES = {"1", "true", "yes", "on"}
+ _FALSE_ENV_VALUES = {"0", "false", "no", "off"}
+ _TORCH_IS_INFERENCE = getattr(torch, "is_inference", None)
+@@ -156,13 +158,20 @@ class _MKLCPUDirectIFFTPlan:
+         self._size = size
+         self._nthreads = nthreads
+         self._promote = promote
++        self._inplace = (
++            promote and nthreads == 1
++            and size in _MKL_PROMOTED_INPLACE_IFFT_SIZES
++        )
+         if promote:
+-            # Keep both private pointers for the entire descriptor lifetime.
++            # Retain private storage for the entire descriptor lifetime.
+             # Copy before transforming so the user's source stays untouched.
+             self._native_source = torch.empty(
+                 size, dtype=torch.complex128, device="cpu"
+             )
+-            self._native_target = torch.empty_like(self._native_source)
++            self._native_target = (
++                self._native_source if self._inplace
++                else torch.empty_like(self._native_source)
++            )
+         else:
+             self._native_source = source
+             self._native_target = target
+@@ -193,7 +202,7 @@ class _MKLCPUDirectIFFTPlan:
+                 set_value(
+                     descriptor,
+                     mkl.DFTI_PLACEMENT,
+-                    mkl.DFTI_NOT_INPLACE,
++                    mkl.DFTI_INPLACE if self._inplace else mkl.DFTI_NOT_INPLACE,
+                 )
+             )
+             mkl.check_status(
+@@ -210,8 +219,17 @@ class _MKLCPUDirectIFFTPlan:
+             mkl.check_status(commit(descriptor))
+ 
+             execute = mkl.lib.DftiComputeBackward
+-            execute.argtypes = [ctypes.c_void_p] * 3
+-            execute.restype = ctypes.c_int
++            if self._inplace:
++                # DFTI's in-place ABI takes two arguments. Bind it separately
++                # so other live out-of-place plans keep their shared signature.
++                self._library = mkl.lib
++                address = ctypes.cast(execute, ctypes.c_void_p).value
++                execute = ctypes.CFUNCTYPE(
++                    ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p
++                )(address)
++            else:
++                execute.argtypes = [ctypes.c_void_p] * 3
++                execute.restype = ctypes.c_int
+         except BaseException:
+             if descriptor.value:
+                 _free_mkl_descriptor(free_descriptor, descriptor.value, self._pid)
+@@ -271,11 +289,16 @@ class _MKLCPUDirectIFFTPlan:
+     def execute(self, source, target):
+         if self._promote:
+             self._native_source.copy_(source)
+-        status = self._execute(
+-            self._descriptor,
+-            self._native_source.data_ptr(),
+-            self._native_target.data_ptr(),
+-        )
++        if self._inplace:
++            status = self._execute(
++                self._descriptor, self._native_source.data_ptr()
++            )
++        else:
++            status = self._execute(
++                self._descriptor,
++                self._native_source.data_ptr(),
++                self._native_target.data_ptr(),
++            )
+         # DFTI writes outside Torch's dispatcher, so publish the mutation to
+         # version-counter consumers just as the direct FFTW plan does.
+         self._increment_version(self._native_target)
+diff --git a/pycbc/frame/frame.py b/pycbc/frame/frame.py
+index bea7386418..ed6ed4f579 100644
+--- a/pycbc/frame/frame.py
++++ b/pycbc/frame/frame.py
+@@ -218,20 +218,22 @@ def read_frame(location, channels, start_time=None,
+ 
+     lalframe.FrStreamSetMode(stream, stream.mode)
+ 
+-    # determine duration of data
+     if type(channels) is list:
+         first_channel = channels[0]
+     else:
+         first_channel = channels
+ 
+-    data_length = lalframe.FrStreamGetVectorLength(first_channel, stream)
+-    channel_type = lalframe.FrStreamGetTimeSeriesType(first_channel, stream)
+-    create_series_func = _fr_type_map[channel_type][2]
+-    get_series_metadata_func = _fr_type_map[channel_type][3]
+-    series = create_series_func(first_channel, stream.epoch, 0, 0,
+-                                lal.ADCCountUnit, 0)
+-    get_series_metadata_func(series, stream)
+-    data_duration = (data_length + 0.5) * series.deltaT
++    # Metadata is only needed to determine bounds omitted by the caller.
++    if start_time is None or end_time is None:
++        data_length = lalframe.FrStreamGetVectorLength(first_channel, stream)
++        channel_type = lalframe.FrStreamGetTimeSeriesType(first_channel,
++                                                       stream)
++        create_series_func = _fr_type_map[channel_type][2]
++        get_series_metadata_func = _fr_type_map[channel_type][3]
++        series = create_series_func(first_channel, stream.epoch, 0, 0,
++                                    lal.ADCCountUnit, 0)
++        get_series_metadata_func(series, stream)
++        data_duration = (data_length + 0.5) * series.deltaT
+ 
+     if start_time is None:
+         start_time = stream.epoch*1
+diff --git a/pycbc/vetoes/chisq_torch.py b/pycbc/vetoes/chisq_torch.py
+index 153963bdd6..c04e58e2ea 100644
+--- a/pycbc/vetoes/chisq_torch.py
++++ b/pycbc/vetoes/chisq_torch.py
+@@ -742,13 +742,39 @@ def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
+         )
+         return Array(TorchArrayData(chisq_t), copy=False)
+ 
++    snr_norm_t = None
++    if (
++        device.type == "cuda"
++        and dtype == torch.complex64
++        and snr_t.dtype == torch.complex64
++        and type(snr_norm) in (float, int, np.float32, np.float64)
++        and all(
++            type(tensor) is torch.Tensor
++            and not tensor.requires_grad
++            and not _has_forward_ad_state(tensor)
++            and (
++                _TORCH_IS_INFERENCE is None
++                or not _TORCH_IS_INFERENCE(tensor)
++            )
++            for tensor in (corr._data.tensor, snr_t, pts)
++        )
++    ):
++        # The scalar host transfer waits for earlier work on this stream.
++        # Queue it before the bin sums; keep the float32 tensor square below.
++        snr_norm_t = torch.as_tensor(
++            snr_norm, device=device, dtype=torch.float32
++        )
++
+     chisq_arr = shift_sum(corr, pts, bin_edges)
+     chisq_t = chisq_arr._data.tensor
+ 
+     snr_term = (torch.conj(snr_t) * snr_t).real
+     chisq_t = chisq_t * num_bins - snr_term
+ 
+-    snr_norm_t = torch.as_tensor(snr_norm, device=device, dtype=chisq_t.dtype)
++    if snr_norm_t is None:
++        snr_norm_t = torch.as_tensor(
++            snr_norm, device=device, dtype=chisq_t.dtype
++        )
+     chisq_t = chisq_t * (snr_norm_t**2)
+ 
+     return Array(TorchArrayData(chisq_t), copy=False)
+diff --git a/test/test_frame.py b/test/test_frame.py
+index 20134103c7..4b449623dd 100644
+--- a/test/test_frame.py
++++ b/test/test_frame.py
+@@ -27,11 +27,17 @@ These are the unittests for the pycbc frame/cache reading functions
+ 
+ 
+ import unittest
++from unittest import mock
++from pathlib import Path
++import tempfile
++import lal
++import lalframe
+ import numpy
+ from pycbc.io import get_file
+ 
+ import pycbc
+ import pycbc.frame
++from pycbc.frame import frame
+ from pycbc.types import TimeSeries
+ from utils import parse_args_cpu_only, simple_exit
+ 
+@@ -59,6 +65,109 @@ class FrameTestBase(unittest.TestCase):
+         self.expected_data2 = TimeSeries(self.data2,dtype=self.dtype,
+                                          epoch=self.epoch,delta_t=self.delta_t)
+ 
++    def _write_test_frames(self):
++        directory = tempfile.TemporaryDirectory()
++        self.addCleanup(directory.cleanup)
++        root = Path(directory.name)
++        middle = self.size // 2
++        files = []
++        for number, section in enumerate((slice(None, middle),
++                                          slice(middle, None))):
++            path = root / f'frame-{number}.gwf'
++            pycbc.frame.write_frame(
++                str(path), ['channel1', 'channel2'],
++                [self.expected_data1[section], self.expected_data2[section]])
++            files.append(str(path))
++        cache = root / 'frames.cache'
++        frame_duration = int(middle * self.delta_t)
++        cache.write_text(''.join(
++            f'H TEST {int(self.epoch) + i * frame_duration} '
++            f'{frame_duration} file://localhost{path}\n'
++            for i, path in enumerate(files)))
++        return root, files, str(cache)
++
++    def test_explicit_bounds_skip_duration_metadata(self):
++        root, files, cache = self._write_test_frames()
++        middle = self.size // 2
++        across_frames = slice(middle - 3, middle + 7)
++        cases = ((files[0], 'channel1', slice(3, 11)),
++                 (list(reversed(files)), ['channel1', 'channel2'],
++                  across_frames),
++                 (str(root / '*.gwf'), ['channel1', 'channel2'],
++                  across_frames),
++                 (cache, ['channel2', 'channel1'], across_frames))
++        no_metadata = mock.Mock(side_effect=AssertionError(
++            'explicit bounds must not query duration metadata'))
++        real_get_type = lalframe.FrStreamGetTimeSeriesType
++        real_set_mode = lalframe.FrStreamSetMode
++        type_map = {key: [*value[:2], no_metadata, no_metadata, *value[4:]]
++                    for key, value in frame._fr_type_map.items()}
++        for location, channels, section in cases:
++            start = lal.LIGOTimeGPS(self.epoch + section.start * self.delta_t)
++            end = lal.LIGOTimeGPS(self.epoch + section.stop * self.delta_t)
++            with self.subTest(location=location, channels=channels), \
++                    mock.patch.object(lalframe, 'FrStreamGetVectorLength',
++                                      no_metadata), \
++                    mock.patch.dict(frame._fr_type_map, type_map), \
++                    mock.patch.object(lalframe, 'FrStreamGetTimeSeriesType',
++                                      wraps=real_get_type) as get_type, \
++                    mock.patch.object(lalframe, 'FrStreamSetMode',
++                                      wraps=real_set_mode) as mode, \
++                    mock.patch.object(lal, 'CacheSieve',
++                                      wraps=lal.CacheSieve) as sieve:
++                result = pycbc.frame.read_frame(
++                    location, channels, start_time=start, end_time=end,
++                    check_integrity=True, sieve=r'/frame-')
++                names = channels if type(channels) is list else [channels]
++                results = result if type(channels) is list else [result]
++                self.assertEqual(get_type.call_count, len(names))
++                self.assertTrue(mode.call_args.args[1] &
++                                lalframe.FR_STREAM_CHECKSUM_MODE)
++                self.assertEqual(sieve.call_args_list[0].args[-1], r'/frame-')
++                self.assertEqual(sieve.call_count, 2)
++                for name, actual in zip(names, results):
++                    expected = (self.expected_data1 if name == 'channel1'
++                                else self.expected_data2)[section]
++                    self.assertEqual(actual, expected)
++                    self.assertEqual(actual.dtype, expected.dtype)
++                    self.assertEqual(actual.start_time, expected.start_time)
++                    self.assertEqual(actual.delta_t, expected.delta_t)
++
++    def test_omitted_bounds_keep_duration_metadata(self):
++        _, files, _ = self._write_test_frames()
++        middle = self.size // 2
++        cases = (({}, slice(0, middle)),
++                 ({'start_time': self.epoch}, slice(0, middle)),
++                 ({'end_time': self.epoch + 4}, slice(0, 8)),
++                 ({'duration': 4}, slice(0, 8)),
++                 ({'start_time': self.epoch + 1, 'duration': 4}, slice(2, 10)))
++        for kwargs, section in cases:
++            with self.subTest(kwargs=kwargs), mock.patch.object(
++                    lalframe, 'FrStreamGetVectorLength',
++                    wraps=lalframe.FrStreamGetVectorLength) as metadata:
++                actual = pycbc.frame.read_frame(files[0], 'channel1', **kwargs)
++                metadata.assert_called_once()
++                expected = self.expected_data1[section]
++                self.assertEqual(actual, expected)
++                self.assertEqual(actual.dtype, expected.dtype)
++                self.assertEqual(actual.start_time, expected.start_time)
++                self.assertEqual(actual.delta_t, expected.delta_t)
++
++    def test_bounded_read_validation(self):
++        _, files, _ = self._write_test_frames()
++        for kwargs in ({'end_time': self.epoch},
++                       {'end_time': self.epoch - 1},
++                       {'end_time': self.epoch + 1, 'duration': 1}):
++            with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
++                pycbc.frame.read_frame(files[0], 'channel1',
++                                      start_time=self.epoch, **kwargs)
++        with self.assertRaises(IndexError):
++            pycbc.frame.read_frame(files[0], [], start_time=self.epoch,
++                                  end_time=self.epoch + 1)
++        with self.assertRaises(RuntimeError):
++            pycbc.frame.read_frame(files[0], 'missing', start_time=self.epoch,
++                                  end_time=self.epoch + 1)
++
+     def test_frame(self):
+         # TODO also test reading a cache
+ 
+diff --git a/test/test_torch_chisq_cuda_normalization.py b/test/test_torch_chisq_cuda_normalization.py
+new file mode 100644
+index 0000000000..2787b8fe1c
+--- /dev/null
++++ b/test/test_torch_chisq_cuda_normalization.py
+@@ -0,0 +1,176 @@
++# Copyright (C) 2026 The PyCBC Collaboration
++#
++# This program is free software; you can redistribute it and/or modify it
++# under the terms of the GNU General Public License as published by the
++# Free Software Foundation; either version 3 of the License, or (at your
++# option) any later version.
++
++"""Preserve chi-square arithmetic while scheduling scalar CUDA transfers."""
++
++from contextlib import nullcontext
++
++import numpy as np
++import pytest
++
++from pycbc import scheme
++from pycbc.types import Array, FrequencySeries
++from pycbc.types.array_torch import TorchArrayData
++
++torch = pytest.importorskip("torch")
++
++
++@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA unavailable")
++@pytest.mark.parametrize("norm_type", (float, int, np.float32, np.float64))
++@pytest.mark.parametrize("custom_stream", (False, True))
++def test_cuda_scalar_norm_preserves_cast_then_square(
++    monkeypatch, norm_type, custom_stream
++):
++    norm = norm_type(2 if norm_type is int else 0.117311)
++    _check_normalization(monkeypatch, norm, "ordinary",
++                         custom_stream, "cuda")
++
++
++@pytest.mark.parametrize("device", ("cpu", "cuda"))
++@pytest.mark.parametrize(
++    "special", ("mixed_precision", "tensor_norm", "corr_grad", "snr_grad",
++                "norm_grad", "corr_subclass", "snr_subclass", "inference",
++                "points_subclass", "points_forward_ad", "forward_ad")
++)
++def test_special_inputs_retain_late_normalization(
++    monkeypatch, device, special
++):
++    if device == "cuda" and not torch.cuda.is_available():
++        pytest.skip("CUDA unavailable")
++    _check_normalization(monkeypatch, 0.117311, special, False, device)
++
++
++@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA unavailable")
++@pytest.mark.parametrize("special", ("corr_grad", "forward_ad"))
++def test_native_cuda_corr_autodiff_matches_existing_formula(
++    monkeypatch, special
++):
++    _check_normalization(monkeypatch, 0.117311, "native_" + special,
++                         False, "cuda")
++
++
++def _check_normalization(monkeypatch, norm, special, custom_stream, device):
++    from pycbc.vetoes import chisq_torch
++
++    native_corr_ad = special.startswith("native_")
++    special = special.removeprefix("native_")
++    if special in ("corr_grad", "forward_ad") and not native_corr_ad:
++        # The existing Triton bin kernel has no correlation AD rule. Exercise
++        # supported Torch derivatives here and compare native behavior above.
++        monkeypatch.setattr(chisq_torch, "_HAS_TRITON", False)
++
++    class DispatchTensor(torch.Tensor):
++        pass
++
++    # Exercise the Torch formula on CPU too; native CPU fusion is unchanged.
++    monkeypatch.setattr(chisq_torch, "_cpu_native_eligible", lambda *a: False)
++    monkeypatch.setattr(
++        chisq_torch, "_cpu_native_sparse_search_eligible", lambda *a: False
++    )
++    stream_context = (
++        torch.cuda.stream(torch.cuda.Stream())
++        if custom_stream else nullcontext()
++    )
++    ad_context = (
++        torch.autograd.forward_ad.dual_level()
++        if special in ("forward_ad", "points_forward_ad") else nullcontext()
++    )
++    inference_context = (
++        torch.inference_mode() if special == "inference" else nullcontext()
++    )
++    with (stream_context, ad_context, inference_context,
++          scheme.TorchScheme(device)):
++        generator = np.random.default_rng(731)
++        values = (generator.normal(size=64)
++                  + 1j * generator.normal(size=64)).astype(np.complex64)
++        corr = FrequencySeries(values, delta_f=0.125)
++        snr_dtype = (torch.complex128 if special == "mixed_precision"
++                     else torch.complex64)
++        snr_t = torch.tensor([1.25 - 0.75j, -0.25 + 0.5j], device=device,
++                             dtype=snr_dtype)
++        if special == "corr_grad":
++            corr._data.tensor.requires_grad_(True)
++        if special == "snr_grad":
++            snr_t.requires_grad_(True)
++        if special == "corr_subclass":
++            corr._data.tensor = corr._data.tensor.as_subclass(DispatchTensor)
++        if special == "snr_subclass":
++            snr_t = snr_t.as_subclass(DispatchTensor)
++        if special in ("tensor_norm", "norm_grad"):
++            norm = torch.tensor(norm, dtype=torch.float64, device=device,
++                                requires_grad=special == "norm_grad")
++        if special == "forward_ad":
++            corr._data.tensor = torch.autograd.forward_ad.make_dual(
++                corr._data.tensor, torch.ones_like(corr._data.tensor)
++            )
++        # A PyCBC Array preserves mixed SNR precision in the existing API.
++        snr = Array(TorchArrayData(snr_t), copy=False)
++        bins = (1, 13, 31, 63)
++        points = np.array([3, 17], dtype=np.int64)
++        if special in ("points_subclass", "points_forward_ad"):
++            points = torch.as_tensor(
++                points, device=device, dtype=torch.float64
++            )
++            if special == "points_subclass":
++                points = points.as_subclass(DispatchTensor)
++            else:
++                points = torch.autograd.forward_ad.make_dual(
++                    points, torch.ones_like(points)
++                )
++        pts = chisq_torch._point_tensor(corr._data.tensor, points)
++        expected = chisq_torch.shift_sum(corr, pts, bins)._data.tensor
++        expected = expected * 3 - (torch.conj(snr_t) * snr_t).real
++        expected = expected * torch.as_tensor(
++            norm, device=device, dtype=expected.dtype
++        )**2
++
++        calls = []
++        original_as_tensor = torch.as_tensor
++        original_shift_sum = chisq_torch.shift_sum
++
++        def as_tensor(value, *args, **kwargs):
++            if value is norm:
++                calls.append("norm")
++            return original_as_tensor(value, *args, **kwargs)
++
++        def shift_sum(*args, **kwargs):
++            calls.append("bins")
++            return original_shift_sum(*args, **kwargs)
++
++        monkeypatch.setattr(torch, "as_tensor", as_tensor)
++        monkeypatch.setattr(chisq_torch, "shift_sum", shift_sum)
++        actual = chisq_torch.power_chisq_at_points_from_precomputed(
++            corr, snr, norm, bins, points
++        )._data.tensor
++        expected_order = (["norm", "bins"] if special == "ordinary"
++                          else ["bins", "norm"])
++        assert calls == expected_order
++        assert actual.dtype == expected.dtype
++        assert actual.requires_grad == expected.requires_grad
++        if special == "corr_grad" and not native_corr_ad:
++            assert actual.requires_grad
++        torch.testing.assert_close(actual, expected, rtol=0, atol=0)
++        if special.endswith("grad") and actual.requires_grad:
++            variable = {"corr_grad": corr._data.tensor, "snr_grad": snr_t,
++                        "norm_grad": norm}[special]
++            actual_grad = torch.autograd.grad(actual.sum(), variable)[0]
++            expected_grad = torch.autograd.grad(expected.sum(), variable)[0]
++            torch.testing.assert_close(
++                actual_grad, expected_grad, rtol=0, atol=0
++            )
++        if special in ("forward_ad", "points_forward_ad"):
++            actual_dual = torch.autograd.forward_ad.unpack_dual(actual)
++            expected_dual = torch.autograd.forward_ad.unpack_dual(expected)
++            if native_corr_ad and expected_dual.tangent is None:
++                assert actual_dual.tangent is None
++            else:
++                assert actual_dual.tangent is not None
++                torch.testing.assert_close(
++                    actual_dual.tangent, expected_dual.tangent, rtol=0, atol=0
++                )
++        if device == "cuda":
++            torch.cuda.current_stream().synchronize()
+diff --git a/test/test_torch_large_ifft.py b/test/test_torch_large_ifft.py
+index 59ffe64bd3..3df645714c 100644
+--- a/test/test_torch_large_ifft.py
++++ b/test/test_torch_large_ifft.py
+@@ -25,6 +25,7 @@ class _FakeMKL:
+ 
+     DFTI_COMPLEX = 32
+     DFTI_PLACEMENT = 11
++    DFTI_INPLACE = 43
+     DFTI_NOT_INPLACE = 44
+     DFTI_THREAD_LIMIT = 27
+ 
+@@ -164,6 +165,85 @@ def test_promoted_mkl_failure_does_not_publish_partial_workspace(one_thread):
+     assert target._version == version
+ 
+ 
++@pytest.mark.parametrize("fail", (False, True))
++def test_inplace_mkl_abi_ownership_and_publication(monkeypatch, one_thread, fail):
++    from pycbc.fft import torchfft
++
++    assert torchfft._MKL_PROMOTED_INPLACE_IFFT_SIZES == frozenset({2097152})
++    monkeypatch.setattr(
++        torchfft, "_MKL_PROMOTED_INPLACE_IFFT_SIZES", frozenset({256})
++    )
++    mkl = _FakeMKL()
++    original = mkl.lib.DftiComputeBackward
++
++    @ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.c_void_p)
++    def execute(descriptor, pointer):
++        return original(ctypes.c_void_p(descriptor), pointer, pointer)
++
++    # Emulate the signature already installed by another out-of-place plan.
++    execute.argtypes = [ctypes.c_void_p] * 3
++    mkl.lib.DftiComputeBackward = execute
++    source = torch.from_numpy(_values(256))
++    target = torch.full_like(source, 123 + 45j)
++    plan = torchfft._MKLCPUDirectIFFTPlan(
++        mkl, 256, source, target, promote=True
++    )
++    assert plan._inplace
++    assert plan._native_source is plan._native_target
++    assert execute.argtypes == [ctypes.c_void_p] * 3
++    assert ("set", mkl.DFTI_PLACEMENT, mkl.DFTI_INPLACE) in mkl.calls
++    assert sum(call[0] == "commit" for call in mkl.calls) == 1
++    pointer = plan._native_source.data_ptr()
++    assert pointer not in (source.data_ptr(), target.data_ptr())
++    mkl.status = int(fail)
++    for scale in (1, 1e-12, 1e12):
++        source.copy_(torch.from_numpy(_values(256)) * scale)
++        preserved = source.clone(), target.clone()
++        versions = source._version, target._version
++        assert plan.can_execute(source, target)
++        assert not plan.can_execute(source.clone(), target)
++        if fail:
++            with pytest.raises(RuntimeError, match="native MKL failure"):
++                plan.execute(source, target)
++            assert torch.equal(target, preserved[1])
++            assert target._version == versions[1]
++        else:
++            plan.execute(source, target)
++            expected = (np.fft.ifft(source.numpy().astype(np.complex128))
++                        * 256).astype(np.complex64)
++            np.testing.assert_array_equal(target.numpy(), expected)
++            assert target._version == versions[1] + 1
++        assert torch.equal(source, preserved[0])
++        assert source._version == versions[0]
++        assert plan._native_source.data_ptr() == pointer
++        assert mkl.calls[-1] == ("execute", pointer, pointer)
++    del plan
++    gc.collect()
++    assert sum(call[0] == "free" for call in mkl.calls) == 1
++
++
++@pytest.mark.parametrize(
++    "size,nthreads,promote", ((256, 1, False), (512, 1, True), (256, 2, True))
++)
++def test_inplace_mkl_keeps_other_placements(
++    monkeypatch, one_thread, size, nthreads, promote
++):
++    from pycbc.fft import torchfft
++
++    monkeypatch.setattr(
++        torchfft, "_MKL_PROMOTED_INPLACE_IFFT_SIZES", frozenset({256})
++    )
++    source = torch.from_numpy(_values(size))
++    target = torch.empty_like(source)
++    mkl = _FakeMKL()
++    plan = torchfft._MKLCPUDirectIFFTPlan(
++        mkl, size, source, target, nthreads=nthreads, promote=promote
++    )
++    assert not plan._inplace
++    assert plan._native_source is not plan._native_target
++    assert ("set", mkl.DFTI_PLACEMENT, mkl.DFTI_NOT_INPLACE) in mkl.calls
++
++
+ @pytest.mark.parametrize(
+     "drift", ("source", "target", "threads", "pid", "shape", "grad")
+ )

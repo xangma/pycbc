@@ -1,0 +1,57 @@
+{
+  "state": "pass",
+  "script_sha256": "24a2a8ebf01a5c5f72d29309139333a117aca54132466c617902a5e61de9eb9a",
+  "pins": {
+    "descriptor_reuse.py": "626e0c123d5ba056475675f7134f83f44cc783b6da22065dc3fb7c383c0d0764",
+    "descriptor_reuse_diagnostic.py": "ee5140609e0d2e9d4132ee5ff8ad38f3213a035af83a39b9f852792004628326",
+    "test_descriptor_reuse_diagnostic.py": "b27ebddb4767fd0d19ca83130f2cbb65a3e48aa4db992da328af648f756ed66c",
+    "test_fast_reuse.py": "1cd8f32760310f7a0c00059088d27d8e7d4c74f6dd0e36a4793c4f92365adc3a"
+  },
+  "source_sha256": "8362642e359f48f17a89e0877757a29124a3c2b231e4debfa77d5520c2bb9fc3",
+  "independent_copy": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-investigation-20260908/fast-reuse-contracts-626e0c12",
+  "test_methods": 7,
+  "unchanged_inherited_methods": [
+    "owner",
+    "assert_native",
+    "signatures",
+    "free",
+    "install",
+    "close",
+    "restore",
+    "finish"
+  ],
+  "failure_counter_cases": [
+    {
+      "operation": "set:27",
+      "records": {
+        "diagnostic": {
+          "creates": 0,
+          "frees": 1,
+          "entries": 1
+        },
+        "fast": {
+          "creates": 1,
+          "frees": 1,
+          "entries": 1
+        }
+      }
+    },
+    {
+      "operation": "commit",
+      "records": {
+        "diagnostic": {
+          "creates": 0,
+          "frees": 1,
+          "entries": 1
+        },
+        "fast": {
+          "creates": 1,
+          "frees": 1,
+          "entries": 1
+        }
+      }
+    }
+  ],
+  "scope": "Fake-native pinned-body contracts only; no real FFT, numerical gate or timing evidence.",
+  "reporting_note": "Fast creates counts observed owned native allocations, including setup failures before creator return. It is not the v1 returned-creator counter. No native lifecycle discrepancy found."
+}

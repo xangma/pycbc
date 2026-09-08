@@ -1,0 +1,11 @@
+--- /Users/xangma/repos/pycbc/artifacts/torch-residual-optimization-20260908/descriptor-reuse-v1/test_descriptor_reuse.py
++++ test_descriptor_reuse_diagnostic.py
+@@ -15,7 +15,7 @@
+ 
+ import numpy as np
+ 
+-from descriptor_reuse import DescriptorReuse, SOURCE_SHA256, SYMBOLS, sha
++from descriptor_reuse_diagnostic import DescriptorReuse, SOURCE_SHA256, SYMBOLS, sha
+ 
+ SOURCE = Path(os.environ.get('REUSE_SOURCE',
+               '/private/tmp/pycbc-torch-fft-optimization-20260908/pycbc/fft/mkl.py'))

@@ -1,0 +1,41 @@
+{
+  "state": "pass",
+  "directory": "/Users/xangma/repos/pycbc/artifacts/torch-residual-gpu-diagnostic-20260908-v2",
+  "manifest_sha256": "32930becd4f7c65f4bf62b8e5cdc9e87b0c00541e9d6c201b08e135f20755b02",
+  "manifest_files": 24,
+  "original_manifest_sha256": "089107685e8be1200e6ce47dcf0c94e1bfc2d80ed8675364f67eff460e367f6c",
+  "unchanged_original_files": 19,
+  "changed_original_files": [
+    "GPU-DESCRIPTORS-PROTOCOL.md",
+    "gpu_controller.py"
+  ],
+  "new_files": [
+    "controller-v1-v2.patch",
+    "local-provenance-tests.json",
+    "test_provenance.py"
+  ],
+  "reused_helpers_verified": 11,
+  "local_tests": [
+    {
+      "state": "complete",
+      "tests_run": 4,
+      "effect_comparisons": 20,
+      "failure_count": 0,
+      "error_count": 0,
+      "test_sha256": "3968679714ac661a41f9a032d296393843cf9fe0b14716c650b8ac85040488a9",
+      "helper_sha256": "7d4e5548a8547963413528b205dc1480b95b4f7baeac8f5f517f9b549a3503d7",
+      "mkl_source_sha256": "8362642e359f48f17a89e0877757a29124a3c2b231e4debfa77d5520c2bb9fc3",
+      "scope": "Mock verification of original source operation order/output/error behavior; numerical/science qualification must run on the owner host."
+    },
+    {
+      "state": "pass",
+      "tests_run": 4,
+      "test_sha256": "0b26c8b694a3f2e0ec3c8ee7f7a0a5413f829e0903f11e53b877a88819a02e6a",
+      "controller_sha256": "939baa7b70e5f9e8a525dba998857167e186265e6d4647f1d647d873dee38ef4",
+      "runtime_helper_sha256": "6cec38e384ae532d63099df1941cf1f73dcb65750d43e7796d517ea4cd3454ba",
+      "failures": 0,
+      "errors": 0
+    }
+  ],
+  "scope": "Local preparation and source/tests/pin review only. Owner independent review and remote science qualification remain required."
+}

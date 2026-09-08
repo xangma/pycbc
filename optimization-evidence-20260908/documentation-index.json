@@ -1,0 +1,101 @@
+{
+  "torch-cpu-workspace-policy-20260908": {
+    "all_readable_sources": "torch-cpu-workspace-policy-20260908/readable-sources.json",
+    "logical_inventory": "torch-cpu-workspace-policy-20260908/manifest.json",
+    "machine_summaries": [
+      "torch-cpu-workspace-policy-20260908/readable/acquired-diagnostic-v1/qualification.json",
+      "torch-cpu-workspace-policy-20260908/readable/owner-results-audit.json",
+      "torch-cpu-workspace-policy-20260908/readable/peer-results-review-v1.json"
+    ],
+    "main_report": "torch-cpu-workspace-policy-20260908/readable/CPU-WORKSPACE-POLICY-v1.md",
+    "scope": "All frozen input/result files, ABI/runtime pins, native contracts, first-case qualification failure, controller stop decision and terminal closure.",
+    "suggested_branch_relative_main_report": "optimization-evidence-20260908/torch-cpu-workspace-policy-20260908/readable/CPU-WORKSPACE-POLICY-v1.md",
+    "suggested_branch_relative_summaries": [
+      "optimization-evidence-20260908/torch-cpu-workspace-policy-20260908/readable/acquired-diagnostic-v1/qualification.json",
+      "optimization-evidence-20260908/torch-cpu-workspace-policy-20260908/readable/owner-results-audit.json",
+      "optimization-evidence-20260908/torch-cpu-workspace-policy-20260908/readable/peer-results-review-v1.json"
+    ]
+  },
+  "torch-fft-optimization-20260908": {
+    "all_readable_sources": "torch-fft-optimization-20260908/readable-sources.json",
+    "logical_inventory": "torch-fft-optimization-20260908/manifest.json",
+    "machine_summaries": [
+      "torch-fft-optimization-20260908/readable/loader-v1-summary.json",
+      "torch-fft-optimization-20260908/readable/loader-v1-metrics.csv",
+      "torch-fft-optimization-20260908/readable/executable-v3-summary.json",
+      "torch-fft-optimization-20260908/readable/cpu-timing-v5-summary.json"
+    ],
+    "main_report": "torch-fft-optimization-20260908/readable/HANDOFF.md",
+    "scope": "All successful and rejected CPU alternatives, superseded executable v1/v2 harness failures, executable v3, loader qualification/timing, warm CUDA diagnostics, native and local gates, peer reviews, source bundles and exact patches.",
+    "suggested_branch_relative_main_report": "optimization-evidence-20260908/torch-fft-optimization-20260908/readable/HANDOFF.md",
+    "suggested_branch_relative_summaries": [
+      "optimization-evidence-20260908/torch-fft-optimization-20260908/readable/loader-v1-summary.json",
+      "optimization-evidence-20260908/torch-fft-optimization-20260908/readable/loader-v1-metrics.csv",
+      "optimization-evidence-20260908/torch-fft-optimization-20260908/readable/executable-v3-summary.json",
+      "optimization-evidence-20260908/torch-fft-optimization-20260908/readable/cpu-timing-v5-summary.json"
+    ]
+  },
+  "torch-offline-cuda-graph-20260908": {
+    "all_readable_sources": "torch-offline-cuda-graph-20260908/readable-sources.json",
+    "logical_inventory": "torch-offline-cuda-graph-20260908/manifest.json",
+    "machine_summaries": [
+      "torch-offline-cuda-graph-20260908/readable/acquired-diagnostic-v2/timing-summary.json",
+      "torch-offline-cuda-graph-20260908/readable/offline-cuda-graph-v2-samples.csv",
+      "torch-offline-cuda-graph-20260908/readable/audit-v2.json",
+      "torch-offline-cuda-graph-20260908/readable/peer-results-review-v2.json"
+    ],
+    "main_report": "torch-offline-cuda-graph-20260908/readable/OFFLINE-CUDA-GRAPH-v2.md",
+    "scope": "Both fixed diagnostic versions, original input/results archives, frozen native/executable gates, raw HDF/science comparisons, eight timing samples and closure evidence.",
+    "suggested_branch_relative_main_report": "optimization-evidence-20260908/torch-offline-cuda-graph-20260908/readable/OFFLINE-CUDA-GRAPH-v2.md",
+    "suggested_branch_relative_summaries": [
+      "optimization-evidence-20260908/torch-offline-cuda-graph-20260908/readable/acquired-diagnostic-v2/timing-summary.json",
+      "optimization-evidence-20260908/torch-offline-cuda-graph-20260908/readable/offline-cuda-graph-v2-samples.csv",
+      "optimization-evidence-20260908/torch-offline-cuda-graph-20260908/readable/audit-v2.json",
+      "optimization-evidence-20260908/torch-offline-cuda-graph-20260908/readable/peer-results-review-v2.json"
+    ]
+  },
+  "torch-profiling-investigation-20260908": {
+    "all_readable_sources": "torch-profiling-investigation-20260908/readable-sources.json",
+    "logical_inventory": "torch-profiling-investigation-20260908/manifest.json",
+    "machine_summaries": [
+      "torch-profiling-investigation-20260908/readable/residual-analysis-v4.json",
+      "torch-profiling-investigation-20260908/readable/residual-analysis-v3.json",
+      "torch-profiling-investigation-20260908/readable/page-backing-summary-v2.json",
+      "torch-profiling-investigation-20260908/readable/page-backing-results-v2-review.json",
+      "torch-profiling-investigation-20260908/readable/sync-attribution.json",
+      "torch-profiling-investigation-20260908/readable/existing-cpu-summary.json"
+    ],
+    "main_report": "torch-profiling-investigation-20260908/readable/RESIDUAL-ANALYSIS-v4.md",
+    "scope": "Every non-cache file in the requested investigation root. This root has no preexisting outer SHA256SUMS; the publication creates a fresh inventory. Page-backing reviews and summaries are included; the separate page-backing campaign root and its raw archives were not among the five inputs and are external dependencies.",
+    "suggested_branch_relative_main_report": "optimization-evidence-20260908/torch-profiling-investigation-20260908/readable/RESIDUAL-ANALYSIS-v4.md",
+    "suggested_branch_relative_summaries": [
+      "optimization-evidence-20260908/torch-profiling-investigation-20260908/readable/residual-analysis-v4.json",
+      "optimization-evidence-20260908/torch-profiling-investigation-20260908/readable/residual-analysis-v3.json",
+      "optimization-evidence-20260908/torch-profiling-investigation-20260908/readable/page-backing-summary-v2.json",
+      "optimization-evidence-20260908/torch-profiling-investigation-20260908/readable/page-backing-results-v2-review.json",
+      "optimization-evidence-20260908/torch-profiling-investigation-20260908/readable/sync-attribution.json",
+      "optimization-evidence-20260908/torch-profiling-investigation-20260908/readable/existing-cpu-summary.json"
+    ]
+  },
+  "torch-residual-optimization-20260908": {
+    "all_readable_sources": "torch-residual-optimization-20260908/readable-sources.json",
+    "logical_inventory": "torch-residual-optimization-20260908/manifest.json",
+    "machine_summaries": [
+      "torch-residual-optimization-20260908/readable/descriptor-reuse-timing-v1-summary.json",
+      "torch-residual-optimization-20260908/readable/descriptor-reuse-timing-v1-samples.csv",
+      "torch-residual-optimization-20260908/readable/descriptor-reuse-v1-summary.json",
+      "torch-residual-optimization-20260908/readable/cpu-copy-v1-summary.json",
+      "torch-residual-optimization-20260908/readable/cpu-stage-v1-summary.json"
+    ],
+    "main_report": "torch-residual-optimization-20260908/readable/HANDOFF.md",
+    "scope": "Complete CPU stage/copy diagnostics, descriptor diagnostic and timing inputs/results, native and science gates, all raw HDF/timing outputs, superseded unlaunched freeze and independent reviews.",
+    "suggested_branch_relative_main_report": "optimization-evidence-20260908/torch-residual-optimization-20260908/readable/HANDOFF.md",
+    "suggested_branch_relative_summaries": [
+      "optimization-evidence-20260908/torch-residual-optimization-20260908/readable/descriptor-reuse-timing-v1-summary.json",
+      "optimization-evidence-20260908/torch-residual-optimization-20260908/readable/descriptor-reuse-timing-v1-samples.csv",
+      "optimization-evidence-20260908/torch-residual-optimization-20260908/readable/descriptor-reuse-v1-summary.json",
+      "optimization-evidence-20260908/torch-residual-optimization-20260908/readable/cpu-copy-v1-summary.json",
+      "optimization-evidence-20260908/torch-residual-optimization-20260908/readable/cpu-stage-v1-summary.json"
+    ]
+  }
+}

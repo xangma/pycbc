@@ -1,0 +1,37 @@
+{
+  "caveats": [
+    "Fixed finite workloads on a shared host; reported ranges are observed ranges, not confidence intervals.",
+    "Full-executable, isolated API, native, setup and qualification timings retain their separate meanings.",
+    "Historical paths, runtime identities and process closure records are provenance, not current observations.",
+    "Raw input bank/GWF, full source baselines, native binaries and environments are external pinned dependencies."
+  ],
+  "main_report": "HANDOFF.md",
+  "omitted_evidence_files": 0,
+  "original_archive_regular_members": 427,
+  "original_archives": 2,
+  "original_seal": {
+    "all_entries_verified": true,
+    "entries": 1064,
+    "present": true,
+    "sha256": "c384fca6cb008db220b7f9ed83f4cdc8a388a818ce1781d0cfee29c244cc935e",
+    "unlisted_files": []
+  },
+  "outcome": "Promoted CPU workspace and common frame-loader improvements qualified; CPU parity unmet. CUDA scalar scheduling showed a bounded warm-API benefit, without demonstrated executable gain in its separate campaign.",
+  "primary_summaries": [
+    "loader-v1-summary.json",
+    "loader-v1-metrics.csv",
+    "executable-v3-summary.json",
+    "cpu-timing-v5-summary.json"
+  ],
+  "result_interpretation": "Copied from original reports; no new scientific computation or performance measurement.",
+  "scope": "All successful and rejected CPU alternatives, superseded executable v1/v2 harness failures, executable v3, loader qualification/timing, warm CUDA diagnostics, native and local gates, peer reviews, source bundles and exact patches.",
+  "selected_bytes": 167131044,
+  "selected_files": 1065,
+  "storage_counts": {
+    "archive": 464,
+    "gzip": 2,
+    "readable": 19,
+    "supplement": 580
+  },
+  "supplement_unique_files": 468
+}

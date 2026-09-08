@@ -1,0 +1,216 @@
+{
+  "state": "pass",
+  "script_sha256": "c00e5a58681c876be3f74bb999588f15acdcc9b4e85c914566bee1b368aafcd1",
+  "input_sha256": {
+    "/Users/xangma/repos/pycbc/artifacts/torch-residual-optimization-20260908/cpu-stage-v1-results.tar": "2c5d988f5b77aa1cbc781d00839ce97a9fce597f1293d6b6140c69c27f184eaa",
+    "/Users/xangma/repos/pycbc/artifacts/torch-residual-optimization-20260908/cpu-stage-v1-summary.json": "d6d03266db56b82d1eabf7a731ae6bdc5569efe7f75bbbbceabd52cc25adb20e",
+    "/Users/xangma/repos/pycbc/artifacts/torch-residual-optimization-20260908/summarize-cpu-stages.py": "9f5e053f04ab1567a824614239d7e05c5409fb6be0f8c8197d7485a8eb5890c6",
+    "/Users/xangma/repos/pycbc/artifacts/torch-profiling-investigation-20260908/residual-cpu-harness-v1-review.json": "3b9d1e65c86537ca78e6d2355b6f292e797641b96b4dcd60fdbfa43aa322e1b3"
+  },
+  "archive_bytes": 532480,
+  "archive_files_byte_equal": {
+    "cpu_controller.py": "111684e9928f5fb6b2c9f26764d55f73f7e48e5f1e8b9f0cb567b2864df30694",
+    "cpu_stages.py": "169c1bb7fc2cd311421b4379b31a3d023c5d19525fdcfe7bac27a891bd26aff4",
+    "qualify_runtime.py": "e77603961c1f066647065e2e5c86dd2a4676fc891192bab508dc00d926888297",
+    "worker_receipt.py": "c3ae82778a87034dca75d5f0d6fa2c0797fb462de1d081f6cf1f6b6c701699f5",
+    "threadpoolctl.py": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b",
+    "source-pins.json": "982f18eab08eb4176ac2cb6044db6eb245c1e63ea0ce7d905ad5800938b61413",
+    "transfer_manifest.json": "b1135ddaf5058f12fb1d14b1542d315464af40d2e62f9be59932e623f0bc3afc",
+    "CPU-STAGES-PROTOCOL.md": "fef20e41b722f82c83c3c17ab9c010e6fb6c60d9ee2008116a43a0f09b661ecb",
+    "controller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "launch.json": "f565b94c0ffc5eb0070dab0de67f077902e5e72c04c3f0a529ab881113c6bf8c",
+    "cpu-stages-1.log": "cfebf2acb5a8d6eb7db53ecaf62d196a193eaf2a43e051d2c1a91b1c237bc134",
+    "cpu-stages-1.json": "a151f19438c6f70a5b2233c403a584086dc979e0022d519600018bca47d18be9",
+    "cpu-stages-1-receipt.json": "a84fdb83399357e6e3a84d037269118dcbc3f1739ce4a1f50887cdd6eb25bf0a",
+    "cpu-stages-2.log": "cfebf2acb5a8d6eb7db53ecaf62d196a193eaf2a43e051d2c1a91b1c237bc134",
+    "cpu-stages-2.json": "036e35c0a9d02ed192e20cca1ddec8604917290d8dd980677896489cb8424b8c",
+    "cpu-stages-2-receipt.json": "1c5c97eb90dd804e6d07022d683ddd8725d987d0c4edd555d7674a5fa2c51204",
+    "cpu-stages-3.log": "cfebf2acb5a8d6eb7db53ecaf62d196a193eaf2a43e051d2c1a91b1c237bc134",
+    "cpu-stages-3.json": "21daa2ed27050e0803e582bcc993ea97b518e6c3c64635db722635d4c1b37d9a",
+    "cpu-stages-3-receipt.json": "6275e159dc7f16f1b461f3e3dc8a29f05b493223a0d4d4be099f341885c1553f",
+    "cpu-status.json": "dcc299060d9ebeecabfbfe98c1f734884f73166bc15b9037d0f15ec5d558c639",
+    "terminal-audit.json": "7f419869239cb9a35ccdc9c241fcea0e9530c2703cb2d391a26c83fac9429b0f"
+  },
+  "source_python_files_verified": 320,
+  "source_native_pins_verified": 11,
+  "terminal_audit": {
+    "state": "complete",
+    "pid": 294957,
+    "epoch": 1788836434.471708,
+    "controller": {
+      "pid": 166173,
+      "pgid": 166173,
+      "start_ticks": "63256437",
+      "epoch": 1788836145.6795588,
+      "command": [
+        "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+        "/home/xangma/pycbc-torch-residual-optimization-20260908/cpu-stage-v1/cpu_controller.py"
+      ],
+      "cwd": "/home/xangma/pycbc-torch-residual-optimization-20260908/cpu-stage-v1",
+      "log": "/home/xangma/pycbc-torch-residual-optimization-20260908/cpu-stage-v1/controller.log"
+    },
+    "status_sha256": "dcc299060d9ebeecabfbfe98c1f734884f73166bc15b9037d0f15ec5d558c639",
+    "whole_process_group_absent": true,
+    "lock_reacquired_nonblocking": true
+  },
+  "qualification_cases_verified": 432,
+  "qualification_results_equal_across_12_invocations": true,
+  "timed_whole_calls_verified": 405,
+  "stage_observations_verified": 135,
+  "timer_controls_verified": 3000,
+  "owner_raw_samples_medians_ranges_exact": true,
+  "summary_of_worker_medians_seconds": {
+    "engine_whole": {
+      "values": [
+        0.033360822,
+        0.033409106,
+        0.033484546
+      ],
+      "median": 0.033409106,
+      "range": [
+        0.033360822,
+        0.033484546
+      ]
+    },
+    "plan_whole": {
+      "values": [
+        0.033310779,
+        0.033379248,
+        0.033447174
+      ],
+      "median": 0.033379248,
+      "range": [
+        0.033310779,
+        0.033447174
+      ]
+    },
+    "stages_whole": {
+      "values": [
+        0.033339883,
+        0.033372955,
+        0.033467522
+      ],
+      "median": 0.033372955,
+      "range": [
+        0.033339883,
+        0.033467522
+      ]
+    },
+    "outside_stages": {
+      "values": [
+        5.6020000000003844e-06,
+        5.5000000000055005e-06,
+        5.5109999999997106e-06
+      ],
+      "median": 5.5109999999997106e-06,
+      "range": [
+        5.5000000000055005e-06,
+        5.6020000000003844e-06
+      ]
+    },
+    "promotion": {
+      "values": [
+        0.002475809,
+        0.002493279,
+        0.002497214
+      ],
+      "median": 0.002493279,
+      "range": [
+        0.002475809,
+        0.002497214
+      ]
+    },
+    "native_fft": {
+      "values": [
+        0.028861175,
+        0.028854667,
+        0.028958477
+      ],
+      "median": 0.028861175,
+      "range": [
+        0.028854667,
+        0.028958477
+      ]
+    },
+    "bookkeeping": {
+      "values": [
+        1.067e-05,
+        1.1051e-05,
+        1.0059e-05
+      ],
+      "median": 1.067e-05,
+      "range": [
+        1.0059e-05,
+        1.1051e-05
+      ]
+    },
+    "demotion": {
+      "values": [
+        0.001972843,
+        0.002001614,
+        0.001997084
+      ],
+      "median": 0.001997084,
+      "range": [
+        0.001972843,
+        0.002001614
+      ]
+    },
+    "sum": {
+      "values": [
+        0.033334503,
+        0.033366973,
+        0.033462252
+      ],
+      "median": 0.033366973,
+      "range": [
+        0.033334503,
+        0.033462252
+      ]
+    },
+    "timer_control": {
+      "values": [
+        4.61e-07,
+        4.61e-07,
+        4.61e-07
+      ],
+      "median": 4.61e-07,
+      "range": [
+        4.61e-07,
+        4.61e-07
+      ]
+    }
+  },
+  "sum_of_paired_conversion_samples_worker_medians_seconds": {
+    "values": [
+      0.004450545,
+      0.004492219,
+      0.004497243
+    ],
+    "median": 0.004492219,
+    "range": [
+      0.004450545,
+      0.004497243
+    ]
+  },
+  "paired_conversion_fraction_worker_medians": {
+    "values": [
+      0.13344139864297758,
+      0.13461440402194877,
+      0.13445860579946123
+    ],
+    "median": 0.13445860579946123,
+    "range": [
+      0.13344139864297758,
+      0.13461440402194877
+    ]
+  },
+  "runtime_controls": {
+    "core": 8,
+    "torch_intraop_threads": 1,
+    "native_pool_threads": 1,
+    "torch_interop_threads": 64,
+    "interop_note": "Observed unchanged default, not 64 active threads. The full executable explicitly sets inter-op 1; do not describe the controls as identical."
+  },
+  "interpretation": "Current promotion/demotion is a material bounded candidate; native promoted DFTI dominates. Timings include clock boundaries, no subtraction. These are microbenchmarks, not a full-executable causal decomposition or predicted savings. NumPy view experiments must test storage resizability before any tensor.numpy() export."
+}

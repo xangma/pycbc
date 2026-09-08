@@ -1,0 +1,665 @@
+{
+  "state": "pass",
+  "scope": "Owner ledger/native/provenance/closure replay; instrumented science comparisons recorded remotely. Peer independently replays raw science.",
+  "script_sha256": "af57d1d98cd57374a731bbef0df669187741641f159ff9923b8b2ccc8594f987",
+  "archive_sha256": "707604f95c682012b5e59da28f98b7ae433b0557bd0646fb3b52b473ee94087b",
+  "results_manifest_sha256": "2e588617b1ff60d73bd2de750004eb4ab856aabda6c080270b1b90301c02db27",
+  "input_manifest_sha256": "b15841a0c8df70a729d0e911311a879881473d9d3175b32a8ec86a013c9a0a4e",
+  "native": {
+    "receipt_sha256": "29f35aa8c968616ba1e06d387f083dbf85d620f55aa290db4558881efb72055d",
+    "metrics": {
+      "calls": 9,
+      "eligible": 9,
+      "fallback": 0,
+      "creates": 3,
+      "hits": 6,
+      "frees": 3,
+      "groups": [
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "fft",
+            "input_dtype": "<f4",
+            "input_length": 16384,
+            "itype": "real",
+            "num_threads": 1,
+            "otype": "complex",
+            "output_dtype": "<c8",
+            "output_length": 8193,
+            "placement": 44,
+            "prec": "single",
+            "scheme_class": "pycbc.scheme.CPUScheme",
+            "size": 16384
+          },
+          "calls": 3
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "fft",
+            "input_dtype": "<f4",
+            "input_length": 16777216,
+            "itype": "real",
+            "num_threads": 1,
+            "otype": "complex",
+            "output_dtype": "<c8",
+            "output_length": 8388609,
+            "placement": 44,
+            "prec": "single",
+            "scheme_class": "pycbc.scheme.CPUScheme",
+            "size": 16777216
+          },
+          "calls": 3
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "ifft",
+            "input_dtype": "<c8",
+            "input_length": 8388609,
+            "itype": "complex",
+            "num_threads": 1,
+            "otype": "real",
+            "output_dtype": "<f4",
+            "output_length": 16777216,
+            "placement": 44,
+            "prec": "single",
+            "scheme_class": "pycbc.scheme.CPUScheme",
+            "size": 16777216
+          },
+          "calls": 3
+        }
+      ]
+    }
+  },
+  "metrics": {
+    "cuda-uncached": {
+      "calls": 1003,
+      "eligible": 1003,
+      "fallback": 0,
+      "creates": 1003,
+      "hits": 0,
+      "frees": 1003,
+      "groups": [
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "fft",
+            "input_dtype": "<f4",
+            "input_length": 16384,
+            "itype": "real",
+            "num_threads": 1,
+            "otype": "complex",
+            "output_dtype": "<c8",
+            "output_length": 8193,
+            "placement": 44,
+            "prec": "single",
+            "scheme_class": "pycbc.scheme.DefaultScheme",
+            "size": 16384
+          },
+          "calls": 999
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "fft",
+            "input_dtype": "<f4",
+            "input_length": 16777216,
+            "itype": "real",
+            "num_threads": 1,
+            "otype": "complex",
+            "output_dtype": "<c8",
+            "output_length": 8388609,
+            "placement": 44,
+            "prec": "single",
+            "scheme_class": "pycbc.scheme.DefaultScheme",
+            "size": 16777216
+          },
+          "calls": 2
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "ifft",
+            "input_dtype": "<c8",
+            "input_length": 8388609,
+            "itype": "complex",
+            "num_threads": 1,
+            "otype": "real",
+            "output_dtype": "<f4",
+            "output_length": 16777216,
+            "placement": 44,
+            "prec": "single",
+            "scheme_class": "pycbc.scheme.DefaultScheme",
+            "size": 16777216
+          },
+          "calls": 2
+        }
+      ],
+      "ledger": [
+        {
+          "direction": "fft",
+          "size": 16384,
+          "eligible_calls": 999
+        },
+        {
+          "direction": "fft",
+          "size": 16777216,
+          "eligible_calls": 2
+        },
+        {
+          "direction": "ifft",
+          "size": 16777216,
+          "eligible_calls": 2
+        }
+      ]
+    },
+    "cuda-cached": {
+      "calls": 1003,
+      "eligible": 1003,
+      "fallback": 0,
+      "creates": 3,
+      "hits": 1000,
+      "frees": 3,
+      "groups": [
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "fft",
+            "input_dtype": "<f4",
+            "input_length": 16384,
+            "itype": "real",
+            "num_threads": 1,
+            "otype": "complex",
+            "output_dtype": "<c8",
+            "output_length": 8193,
+            "placement": 44,
+            "prec": "single",
+            "scheme_class": "pycbc.scheme.DefaultScheme",
+            "size": 16384
+          },
+          "calls": 999
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "fft",
+            "input_dtype": "<f4",
+            "input_length": 16777216,
+            "itype": "real",
+            "num_threads": 1,
+            "otype": "complex",
+            "output_dtype": "<c8",
+            "output_length": 8388609,
+            "placement": 44,
+            "prec": "single",
+            "scheme_class": "pycbc.scheme.DefaultScheme",
+            "size": 16777216
+          },
+          "calls": 2
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "ifft",
+            "input_dtype": "<c8",
+            "input_length": 8388609,
+            "itype": "complex",
+            "num_threads": 1,
+            "otype": "real",
+            "output_dtype": "<f4",
+            "output_length": 16777216,
+            "placement": 44,
+            "prec": "single",
+            "scheme_class": "pycbc.scheme.DefaultScheme",
+            "size": 16777216
+          },
+          "calls": 2
+        }
+      ],
+      "ledger": [
+        {
+          "direction": "fft",
+          "size": 16384,
+          "eligible_calls": 999
+        },
+        {
+          "direction": "fft",
+          "size": 16777216,
+          "eligible_calls": 2
+        },
+        {
+          "direction": "ifft",
+          "size": 16777216,
+          "eligible_calls": 2
+        }
+      ]
+    },
+    "standard-uncached": {
+      "calls": 1136,
+      "eligible": 1003,
+      "fallback": 133,
+      "creates": 1003,
+      "hits": 0,
+      "frees": 1003,
+      "groups": [
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "fft",
+            "input_dtype": "<f4",
+            "input_length": 16384,
+            "itype": "real",
+            "num_threads": 1,
+            "otype": "complex",
+            "output_dtype": "<c8",
+            "output_length": 8193,
+            "placement": 44,
+            "prec": "single",
+            "scheme_class": "pycbc.scheme.DefaultScheme",
+            "size": 16384
+          },
+          "calls": 999
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "fft",
+            "input_dtype": "<f4",
+            "input_length": 16777216,
+            "itype": "real",
+            "num_threads": 1,
+            "otype": "complex",
+            "output_dtype": "<c8",
+            "output_length": 8388609,
+            "placement": 44,
+            "prec": "single",
+            "scheme_class": "pycbc.scheme.DefaultScheme",
+            "size": 16777216
+          },
+          "calls": 2
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "fft",
+            "input_dtype": "<f8",
+            "input_length": 131072,
+            "itype": "real",
+            "num_threads": 1,
+            "otype": "complex",
+            "output_dtype": "<c16",
+            "output_length": 65537,
+            "placement": 44,
+            "prec": "double",
+            "scheme_class": "pycbc.scheme.CPUScheme",
+            "size": 131072
+          },
+          "calls": 126
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "fft",
+            "input_dtype": "<f8",
+            "input_length": 2097152,
+            "itype": "real",
+            "num_threads": 1,
+            "otype": "complex",
+            "output_dtype": "<c16",
+            "output_length": 1048577,
+            "placement": 44,
+            "prec": "double",
+            "scheme_class": "pycbc.scheme.CPUScheme",
+            "size": 2097152
+          },
+          "calls": 6
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "ifft",
+            "input_dtype": "<c16",
+            "input_length": 1048577,
+            "itype": "complex",
+            "num_threads": 1,
+            "otype": "real",
+            "output_dtype": "<f8",
+            "output_length": 2097152,
+            "placement": 44,
+            "prec": "double",
+            "scheme_class": "pycbc.scheme.CPUScheme",
+            "size": 2097152
+          },
+          "calls": 1
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "ifft",
+            "input_dtype": "<c8",
+            "input_length": 8388609,
+            "itype": "complex",
+            "num_threads": 1,
+            "otype": "real",
+            "output_dtype": "<f4",
+            "output_length": 16777216,
+            "placement": 44,
+            "prec": "single",
+            "scheme_class": "pycbc.scheme.DefaultScheme",
+            "size": 16777216
+          },
+          "calls": 2
+        }
+      ],
+      "ledger": [
+        {
+          "direction": "fft",
+          "size": 16384,
+          "eligible_calls": 999
+        },
+        {
+          "direction": "fft",
+          "size": 16777216,
+          "eligible_calls": 2
+        },
+        {
+          "direction": "ifft",
+          "size": 16777216,
+          "eligible_calls": 2
+        }
+      ]
+    },
+    "standard-cached": {
+      "calls": 1136,
+      "eligible": 1003,
+      "fallback": 133,
+      "creates": 3,
+      "hits": 1000,
+      "frees": 3,
+      "groups": [
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "fft",
+            "input_dtype": "<f4",
+            "input_length": 16384,
+            "itype": "real",
+            "num_threads": 1,
+            "otype": "complex",
+            "output_dtype": "<c8",
+            "output_length": 8193,
+            "placement": 44,
+            "prec": "single",
+            "scheme_class": "pycbc.scheme.DefaultScheme",
+            "size": 16384
+          },
+          "calls": 999
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "fft",
+            "input_dtype": "<f4",
+            "input_length": 16777216,
+            "itype": "real",
+            "num_threads": 1,
+            "otype": "complex",
+            "output_dtype": "<c8",
+            "output_length": 8388609,
+            "placement": 44,
+            "prec": "single",
+            "scheme_class": "pycbc.scheme.DefaultScheme",
+            "size": 16777216
+          },
+          "calls": 2
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "fft",
+            "input_dtype": "<f8",
+            "input_length": 131072,
+            "itype": "real",
+            "num_threads": 1,
+            "otype": "complex",
+            "output_dtype": "<c16",
+            "output_length": 65537,
+            "placement": 44,
+            "prec": "double",
+            "scheme_class": "pycbc.scheme.CPUScheme",
+            "size": 131072
+          },
+          "calls": 126
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "fft",
+            "input_dtype": "<f8",
+            "input_length": 2097152,
+            "itype": "real",
+            "num_threads": 1,
+            "otype": "complex",
+            "output_dtype": "<c16",
+            "output_length": 1048577,
+            "placement": 44,
+            "prec": "double",
+            "scheme_class": "pycbc.scheme.CPUScheme",
+            "size": 2097152
+          },
+          "calls": 6
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "ifft",
+            "input_dtype": "<c16",
+            "input_length": 1048577,
+            "itype": "complex",
+            "num_threads": 1,
+            "otype": "real",
+            "output_dtype": "<f8",
+            "output_length": 2097152,
+            "placement": 44,
+            "prec": "double",
+            "scheme_class": "pycbc.scheme.CPUScheme",
+            "size": 2097152
+          },
+          "calls": 1
+        },
+        {
+          "key": {
+            "device": {
+              "device": "None",
+              "device_num": "None",
+              "device_spec": "None",
+              "torch_device": "None"
+            },
+            "direction": "ifft",
+            "input_dtype": "<c8",
+            "input_length": 8388609,
+            "itype": "complex",
+            "num_threads": 1,
+            "otype": "real",
+            "output_dtype": "<f4",
+            "output_length": 16777216,
+            "placement": 44,
+            "prec": "single",
+            "scheme_class": "pycbc.scheme.DefaultScheme",
+            "size": 16777216
+          },
+          "calls": 2
+        }
+      ],
+      "ledger": [
+        {
+          "direction": "fft",
+          "size": 16384,
+          "eligible_calls": 999
+        },
+        {
+          "direction": "fft",
+          "size": 16777216,
+          "eligible_calls": 2
+        },
+        {
+          "direction": "ifft",
+          "size": 16777216,
+          "eligible_calls": 2
+        }
+      ]
+    }
+  },
+  "signature_transition_counts": {
+    "cuda-uncached": 4,
+    "cuda-cached": 4,
+    "standard-uncached": 6,
+    "standard-cached": 6
+  },
+  "comparisons": {
+    "cuda-uncached": {
+      "raw": "pass",
+      "verified": "pass",
+      "raw_sha256": "8b0e420f5f1a3f5c4c835d52a19043c98cc3306143ac06c5b3c9283b46d0104b",
+      "verified_sha256": "7c01e7743421e8d5a2459ef5f4b542390979d7579d3d42395bd52f21a1201ea0"
+    },
+    "cuda-cached": {
+      "raw": "pass",
+      "verified": "pass",
+      "raw_sha256": "10ef08cadaaefdf48529e22dab1faf2cf9cbfaa45d29af4a1baf14622eb36d4d",
+      "verified_sha256": "84347b38b8d4a8dafcd58cdd42b228e5dbbc23c8302e970071fef512f4f948ba"
+    },
+    "cuda-cached-vs-uncached": {
+      "raw": "pass",
+      "verified": "pass",
+      "raw_sha256": "421086f3db42a2bed9ea5755664f2658f337c99e3b5acfb6e602b445e2479a48",
+      "verified_sha256": "d962eadb75317bc23eb4fa5180a99c4bb2ff4b73eb4107f7d95d9faf03e8d77a"
+    },
+    "standard-uncached": {
+      "raw": "pass",
+      "verified": "pass",
+      "raw_sha256": "580c94c861bca2e86798c603f10a7b9768bffb5ef2ee03ed49e571cf0c76a9e3",
+      "verified_sha256": "4646f570771666304bd4b04a04d9099eafcce74dde6b63752cc7ebc644302c3e"
+    },
+    "standard-cached": {
+      "raw": "pass",
+      "verified": "pass",
+      "raw_sha256": "bab421e08bf66f056ea495f7618b1d76195dcc696d67a24d1da0ab865e8c428d",
+      "verified_sha256": "c98f962270a2a1aab8de1ec6e61696ec88d915e04fbe2c25f9e60e7e82a03380"
+    },
+    "standard-cached-vs-uncached": {
+      "raw": "pass",
+      "verified": "pass",
+      "raw_sha256": "73f88bcf6b96ddd9d3d1e2a1ce395f9941e9b1e1f74c77ebd726ebbd2d44ede4",
+      "verified_sha256": "ea778de666b2c929b8c6e0b261aefc2433d123a1c683d83d48f7455860f2a29e"
+    },
+    "cuda-cached-vs-standard-cached": {
+      "raw": "pass",
+      "verified": "pass",
+      "raw_sha256": "c270b618b736aec9de8712fe98ff87dc293b3178753f7381a7a8a4eb0d5c0a5b",
+      "verified_sha256": "22b21cf90a08ce12a65aea0f78ddc5828fe1e5840b81b7d3fe55b26c4c7bc93d"
+    }
+  },
+  "no_performance_claim": true
+}

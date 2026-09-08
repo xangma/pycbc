@@ -1,0 +1,108 @@
+{
+  "state": "reviewed_hypothesis_not_measured_gain",
+  "profile": {
+    "path": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/publication-final-restore/pycbc-torch-profile-20260907-r3/runs/cprofile-cuda/profile.pstats",
+    "sha256": "4867fd9982a38dd846eb7b4be3947b3e6cbf039397c8dccfe0e78cafc8804173",
+    "total_seconds": 28.936203741999847,
+    "source_head": "d2647addb884ead3249914ebc980f3c132076d93",
+    "rows": [
+      {
+        "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/mkl.py",
+        "line": 76,
+        "function": "create_descriptor",
+        "primitive_calls": 1003,
+        "calls": 1003,
+        "self_seconds": 2.5279696510000003,
+        "cumulative_seconds": 2.55842682
+      },
+      {
+        "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/frame/frame.py",
+        "line": 155,
+        "function": "read_frame",
+        "primitive_calls": 1,
+        "calls": 1,
+        "self_seconds": 0.009027777,
+        "cumulative_seconds": 6.702343701
+      },
+      {
+        "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/strain/strain.py",
+        "line": 259,
+        "function": "from_cli",
+        "primitive_calls": 1,
+        "calls": 1,
+        "self_seconds": 0.029648974,
+        "cumulative_seconds": 12.866528835
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "function": "<built-in method lalframe._lalframe.FrStreamGetVectorLength>",
+        "primitive_calls": 1,
+        "calls": 1,
+        "self_seconds": 1.097001633,
+        "cumulative_seconds": 1.097001633
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "function": "<built-in method lalframe._lalframe.FrStreamGetTimeSeriesType>",
+        "primitive_calls": 2,
+        "calls": 2,
+        "self_seconds": 2.193408477,
+        "cumulative_seconds": 2.193408477
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "function": "<built-in method lalframe._lalframe.FrStreamGetREAL8TimeSeriesMetadata>",
+        "primitive_calls": 1,
+        "calls": 1,
+        "self_seconds": 1.0942922160000002,
+        "cumulative_seconds": 1.0942922160000002
+      },
+      {
+        "file": "~",
+        "line": 0,
+        "function": "<built-in method lalframe._lalframe.FrStreamReadREAL8TimeSeries>",
+        "primitive_calls": 1,
+        "calls": 1,
+        "self_seconds": 2.296792698,
+        "cumulative_seconds": 2.296792698
+      }
+    ]
+  },
+  "baseline_frame_source": {
+    "path": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/publication-final-restore/pycbc-torch-profile-20260907-r3/source/pycbc/frame/frame.py",
+    "sha256": "c4a75f65ade1012f823d88e9bafc584125f9ebeabd1ab8a2cb77da8132bb1c29",
+    "identical_at_candidate_2f799": true
+  },
+  "hypothesis": "When both start_time and end_time are explicit, omit the Python default-duration metadata block; retain first_channel extraction and all downstream readers/rewinds.",
+  "interpretation": "Nested cumulative profile times must not be added or treated as promised savings. GetTimeSeriesType includes two calls, one retained by _read_channel. Profile instrumentation and file-cache state can affect duration. MKL descriptor construction remains only a secondary observed target.",
+  "source_semantics": {
+    "explicit_bounds": "Existing cache time sieve and duration validation occur before metadata; actual _read_channel still performs channel type lookup and the LAL read.",
+    "default_bounds": "Guard must be start_time is None or end_time is None, retaining the entire old block for any omitted bound, including explicit duration.",
+    "channels": "Keep channels[0] extraction before the guard to preserve empty-list IndexError; preserve channel order, output list behavior and FrStreamSeek after each read.",
+    "cache_integrity": "Preserve cache construction, regex/time sieve, verbose/checksum stream modes and FrStreamSetMode.",
+    "upstream_lal": "Length and type wrappers query the current frame. Metadata fills the series without advancing the stream. The actual time-series reader seeks to the requested start and obtains metadata itself. These upstream files are not verified as the installed build; real-frame tests must confirm behavior."
+  },
+  "primary_references": {
+    "LALFrStreamRead.c": {
+      "url": "https://git.ligo.org/lscsoft/lalsuite/-/raw/master/lalframe/lib/LALFrStreamRead.c",
+      "local_path": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-investigation-20260908/reference-LALFrStreamRead.c",
+      "sha256": "33d532c664511a2b1e01e5b5cd5923f52df10153de7cec4a91d517c4b38d1229"
+    },
+    "LALFrStreamReadTS_source.c": {
+      "url": "https://git.ligo.org/lscsoft/lalsuite/-/raw/master/lalframe/lib/LALFrStreamReadTS_source.c",
+      "local_path": "/Users/xangma/repos/pycbc/artifacts/torch-profiling-investigation-20260908/reference-LALFrStreamReadTS_source.c",
+      "sha256": "f826fefdc73133a2fe3930c428f354c58aac2558c0dc7fbc3a580d83ccd32703"
+    }
+  },
+  "required_evidence": [
+    "Frozen minimal diff and relevant unit tests before timing",
+    "Real generated-frame values, dtype, epoch and delta_t, single/multiple channels, fractional/GPS and cross-frame explicit bounds",
+    "Default and duration cases, list/cache/sieve/integrity and existing validation behavior",
+    "Unchanged workload, actual strain and PSD hashes plus trigger gates",
+    "Contemporaneous baseline/candidate standard CPU and Torch CPU/CUDA process timings"
+  ],
+  "review_script_sha256": "c667fe08ce68d30320812667cc1ee49e0619b6f9560bb326cc1411efa6d4125f"
+}

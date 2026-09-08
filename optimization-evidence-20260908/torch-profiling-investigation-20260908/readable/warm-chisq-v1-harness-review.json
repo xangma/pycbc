@@ -1,0 +1,140 @@
+{
+  "state": "passed",
+  "scope": "Frozen Python controller simulation and static source review only; no GPU computation, numerical qualification or performance measurement.",
+  "manifest_sha256": "791e2f531876ca5881b70137dc162c60590092f6b66ca8b86b31f3d933cdc2a4",
+  "files": {
+    "warm_chisq.py": "c95126bc6ce6424647b0e2e4f74738a8778c80e966b8c8049c754d2363a15b63",
+    "protocol.json": "a5a67dc79a02c476809e2c2f2068b2dac8c058134e751a779f58806e8fc793de"
+  },
+  "review_script_sha256": "0911180344cf30f396e476955b8da9de39cba9b45a281cd4e197b4900e7970fb",
+  "simulation_cases": [
+    {
+      "case": "valid_six_worker_simulation",
+      "expected_failure": false,
+      "passed": true,
+      "simulated_workers": 6
+    },
+    {
+      "case": "incomplete",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "wrong_pid",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "wrong_pgid",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "wrong_source_head",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "changed_pins",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "wrong_helper_hash",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "missing_cell",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "wrong_cell_order",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "prior_formula_failed",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "input_mutation",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "route_not_restored",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "wrong_output_dtype",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "missing_sample",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "wrong_warmup_count",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "nonpositive_sample",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "wrong_median",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "changed_input_hash",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "changed_output_hash",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    },
+    {
+      "case": "changed_output_values",
+      "expected_failure": true,
+      "passed": true,
+      "simulated_workers": 2
+    }
+  ],
+  "static_review": {
+    "timing_boundary": "Each of 9 positive finite samples synchronizes CUDA immediately before clock start and before clock stop; 3 untimed warmups.",
+    "scientific_checks": "Actual route observed once outside timing and restored; original float32 late-normalization formula compared exactly before and after samples; finite outputs, corr/SNR immutability, identical 8-cell payload across all 6 workers.",
+    "controls": "Inherited fixed environment, source/native/helper/input pins, shared flock, core 8 and threadpool snapshots, prerequisite full timing terminal audit matched to status hash; workers serial FWD/REV/FWD.",
+    "operational_requirement": "Owner must launch controller in a fresh session (PID=PGID), then audit whole group absence and reacquire lock before acquisition; 600s timeout terminates entire group.",
+    "limits": "Cell input hashes/values are cross-process integrity checks, not an independent GPU reference recomputation; warm API latency cannot establish executable gain or whether waits moved."
+  },
+  "clearance": "No source blocker found for the bounded authorized diagnostic; actual remote results and terminal audit remain to be reviewed."
+}

@@ -1,0 +1,86 @@
+{
+  "state": "passed",
+  "review_script_sha256": "ce4c9c58b3ba434a443d5192f363f636997e4bcd6441a9dbd896b788f4f87f92",
+  "independent_replay_sha256": "8b8be4ec459665c938398ed47f90769cc22fc1516b8ba493a203e7f00b82fb48",
+  "optimizer_summary_sha256": "459f3f4349a84ad5d19f13a230add586db736f464e9a678035b3592847183dbe",
+  "optimizer_summary_script_sha256": "63860ff5753cdea392b696cb5104a827b830d7ac56614804f3af9593848a4e32",
+  "roles": {
+    "standard": {
+      "samples": 3,
+      "exact_metrics_per_sample": 8,
+      "medians": {
+        "full_wall_seconds": 69.87317779799923,
+        "internal_seconds": 65.6122043132782,
+        "setup_seconds": 15.263308048248291,
+        "outside_internal_seconds": 4.28321322822012,
+        "overhead_fraction": 0.2799096591015577,
+        "template_seconds_per_wall_second": 10463.757668410146,
+        "templates_per_core_internal": 11143.292740311685,
+        "filter_rate_per_core_internal": 0.07620533485091478
+      }
+    },
+    "cpu-baseline": {
+      "samples": 3,
+      "exact_metrics_per_sample": 8,
+      "medians": {
+        "full_wall_seconds": 113.9692085859133,
+        "internal_seconds": 109.7588198184967,
+        "setup_seconds": 15.070247650146483,
+        "outside_internal_seconds": 4.217243083519861,
+        "overhead_fraction": 0.16953412267901544,
+        "template_seconds_per_wall_second": 6415.206432260592,
+        "templates_per_core_internal": 6661.296114599694,
+        "filter_rate_per_core_internal": 0.04555442567866781
+      }
+    },
+    "cpu-candidate": {
+      "samples": 3,
+      "exact_metrics_per_sample": 8,
+      "medians": {
+        "full_wall_seconds": 106.9430543819908,
+        "internal_seconds": 102.7287769317627,
+        "setup_seconds": 15.095749378204346,
+        "outside_internal_seconds": 4.21427745022811,
+        "overhead_fraction": 0.18033878073488027,
+        "template_seconds_per_wall_second": 6836.685226779189,
+        "templates_per_core_internal": 7117.148883079324,
+        "filter_rate_per_core_internal": 0.04867185368439883
+      }
+    },
+    "cuda-baseline": {
+      "samples": 3,
+      "exact_metrics_per_sample": 8,
+      "medians": {
+        "full_wall_seconds": 24.658972960081883,
+        "internal_seconds": 20.36505651473999,
+        "setup_seconds": 13.307807922363283,
+        "outside_internal_seconds": 4.2939164453418925,
+        "overhead_fraction": 0.712648687297723,
+        "template_seconds_per_wall_second": 29649.896659669,
+        "templates_per_core_internal": 35901.49624533633,
+        "filter_rate_per_core_internal": 0.2455185919263744
+      }
+    },
+    "cuda-candidate": {
+      "samples": 3,
+      "exact_metrics_per_sample": 8,
+      "medians": {
+        "full_wall_seconds": 24.71184737200383,
+        "internal_seconds": 20.386037349700928,
+        "setup_seconds": 13.291285753250124,
+        "outside_internal_seconds": 4.321924091083929,
+        "overhead_fraction": 0.7129008005897413,
+        "template_seconds_per_wall_second": 29586.45660899911,
+        "templates_per_core_internal": 35864.547261350235,
+        "filter_rate_per_core_internal": 0.2452659099083497
+      }
+    }
+  },
+  "comparisons_checked": [
+    "cpu_candidate_vs_torch_baseline",
+    "cpu_candidate_vs_standard",
+    "cuda_candidate_vs_cuda_baseline",
+    "cuda_candidate_vs_standard"
+  ],
+  "note": "All summary fields checked exactly against the independent replay or the actual HDF scalar. Internal templates/core is the recorded HDF value, whose floating-point evaluation may differ by one ULP from algebraically equivalent recomputation."
+}

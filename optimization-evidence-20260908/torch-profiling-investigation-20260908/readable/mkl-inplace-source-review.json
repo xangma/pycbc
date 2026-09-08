@@ -1,0 +1,24 @@
+{
+  "state": "source_review_passed_runtime_validation_pending",
+  "commit": "612a13cade96f3e4165d64bc9a25c73b9ce45903",
+  "parent": "7a883441e93c4fabb76f8c7c5ada3219452f89ba",
+  "files_sha256": {
+    "pycbc/fft/torchfft.py": "0b9109bbf99a4eb591a4c006b1220ec36c8587e56352352277eb1478cf876c0c",
+    "test/test_torch_large_ifft.py": "413ab2251451a20cb5941cc5505bbce3b00c662f1df6f227b880f88f15db0713"
+  },
+  "verified": [
+    "Private in-place placement is limited to promoted2^21 transforms with one numerical thread.",
+    "One retained32MiB complex128 workspace aliases native input and output; public input and output remain disjoint.",
+    "Placement is set before a single descriptor commit.",
+    "Separate two-argument CFUNCTYPE retains the native library and does not mutate shared three-argument function metadata.",
+    "Input copy, native private version publication, status check, and output copy preserve failure and mutation semantics.",
+    "Existing pointer/PID/device/dtype/layout/conjugate/inference/autograd guards are unchanged.",
+    "New mocks cover two-argument ABI with existing three-argument metadata, pointer stability, reuse, success/failure, source preservation, target version, finalization, and excluded sizes/threadcounts."
+  ],
+  "required_next": [
+    "Qualify all36 unchanged production error cases through the actual runtime class, with explicit inplace/alias/ABI assertions.",
+    "Execute relevant contracts on Linux with native MKL/CUDA available.",
+    "Run unchanged scientific and fresh executable throughput comparison."
+  ],
+  "limitation": "Previous diagnostic microbenchmarks are advisory and do not certify this production implementation. The old helper route name accepted_mkl_promoted now instantiates production inplace on this revision; preserve revision-bound baseline labels."
+}

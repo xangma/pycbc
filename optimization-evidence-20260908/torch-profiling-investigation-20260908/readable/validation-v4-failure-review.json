@@ -1,0 +1,33 @@
+{
+  "review": "failed run preserved and independently audited",
+  "status_sha256": "b0102e3436fc080498985ef538b7d54257d22895d5ff01e44d0f27b0a30aee10",
+  "audit_sha256": "e3e49e91e53f2392cab3d60c20483af877b733ae7f781c625229363746c40270",
+  "logs": {
+    "gpu-hoist-baseline": {
+      "sha256": "dd6953076306b53d0e92161e32a26d47a84d248a5878a29c00a8a0a81bef01fc",
+      "failed_test_cases": [
+        "test_cuda_scalar_norm_preserves_cast_then_square[False-float]",
+        "test_cuda_scalar_norm_preserves_cast_then_square[False-int]",
+        "test_cuda_scalar_norm_preserves_cast_then_square[False-float32]",
+        "test_cuda_scalar_norm_preserves_cast_then_square[False-float64]",
+        "test_cuda_scalar_norm_preserves_cast_then_square[True-float]",
+        "test_cuda_scalar_norm_preserves_cast_then_square[True-int]",
+        "test_cuda_scalar_norm_preserves_cast_then_square[True-float32]",
+        "test_cuda_scalar_norm_preserves_cast_then_square[True-float64]",
+        "test_special_inputs_retain_late_normalization[corr_grad-cuda]",
+        "test_special_inputs_retain_late_normalization[forward_ad-cuda]"
+      ],
+      "summary": "10 failed, 20 passed, 18 warnings in 4.58s"
+    },
+    "gpu-hoist-candidate": {
+      "sha256": "7a9785f147451b395f8b0a6cea997ac9b4ec661dff5b20149777f5cfcda18529",
+      "failed_test_cases": [
+        "test_special_inputs_retain_late_normalization[corr_grad-cuda]",
+        "test_special_inputs_retain_late_normalization[forward_ad-cuda]"
+      ],
+      "summary": "2 failed, 28 passed, 18 warnings in 4.44s"
+    }
+  },
+  "interpretation": "Eight intended normalization-order failures occur only on baseline. Two shared correlation-AD presence assertions fail after exact value/dtype/order checks, consistent with the unchanged Triton kernel lacking a correlation AD rule. CPU contract/accuracy workers were never launched.",
+  "required_reporting": "Preserve this failed run and explicitly state that successful Torch-path derivative tests do not establish native Triton correlation AD support."
+}

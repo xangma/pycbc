@@ -1,0 +1,38 @@
+{
+  "caveats": [
+    "Fixed finite workloads on a shared host; reported ranges are observed ranges, not confidence intervals.",
+    "Full-executable, isolated API, native, setup and qualification timings retain their separate meanings.",
+    "Historical paths, runtime identities and process closure records are provenance, not current observations.",
+    "Raw input bank/GWF, full source baselines, native binaries and environments are external pinned dependencies."
+  ],
+  "main_report": "HANDOFF.md",
+  "omitted_evidence_files": 0,
+  "original_archive_regular_members": 576,
+  "original_archives": 9,
+  "original_seal": {
+    "all_entries_verified": true,
+    "entries": 605,
+    "present": true,
+    "sha256": "1c6f302af04673207809d63da6def5038f5e1c7b0a2ba8980bd9972926b1d6b5",
+    "unlisted_files": []
+  },
+  "outcome": "Descriptor reuse passed qualification and all four paired timing repeats; median wall reductions were 2.213184% for standard CPU and 7.665707% for CUDA. The separate NumPy-copy CPU candidate was rejected.",
+  "primary_summaries": [
+    "descriptor-reuse-timing-v1-summary.json",
+    "descriptor-reuse-timing-v1-samples.csv",
+    "descriptor-reuse-v1-summary.json",
+    "cpu-copy-v1-summary.json",
+    "cpu-stage-v1-summary.json"
+  ],
+  "result_interpretation": "Copied from original reports; no new scientific computation or performance measurement.",
+  "scope": "Complete CPU stage/copy diagnostics, descriptor diagnostic and timing inputs/results, native and science gates, all raw HDF/timing outputs, superseded unlaunched freeze and independent reviews.",
+  "selected_bytes": 139212285,
+  "selected_files": 606,
+  "storage_counts": {
+    "archive": 517,
+    "gzip": 9,
+    "readable": 38,
+    "supplement": 42
+  },
+  "supplement_unique_files": 42
+}

@@ -1,0 +1,182 @@
+{
+  "classification": "offline attribution and historical qualification; no new measurement",
+  "current_profile_source": "d2647addb884ead3249914ebc980f3c132076d93",
+  "historical_matrix_source": "a4d77a6d1863c0515e8dace64c5609b63d40b51e",
+  "historical_policy": {
+    "truth": "NumPy complex128 unnormalized inverse",
+    "error_gate": "candidate L2 and max absolute errors each <= legacy FFTW errors; no tolerance floor",
+    "parity_gate": "bitwise matching-precision standard PyCBC MKL result cast to complex64",
+    "release": "manual only after review and complete scientific campaign"
+  },
+  "historical_dispatch": {
+    "1048576": "mkl_double_workspace",
+    "2097152": "mkl_double_workspace",
+    "4194304": "mkl_double_workspace"
+  },
+  "historical_sizes": [
+    {
+      "size": 1048576,
+      "case_count": 36,
+      "steady_median_seconds": {
+        "legacy_fftw_single": 0.025266451993957162,
+        "legacy_mkl_single": 0.006975573021918535,
+        "legacy_mkl_double": 0.015442024974618107,
+        "current_torch_dispatch": 0.01747161999810487,
+        "fftw_double_workspace_one_native_thread": 0.025461671000812203,
+        "mkl_single_direct": 0.007039133983198553,
+        "mkl_double_workspace": 0.0174825310241431
+      },
+      "failures": []
+    },
+    {
+      "size": 2097152,
+      "case_count": 36,
+      "steady_median_seconds": {
+        "legacy_fftw_single": 0.09765562094980851,
+        "legacy_mkl_single": 0.01591378601733595,
+        "legacy_mkl_double": 0.032396466995123774,
+        "current_torch_dispatch": 0.03692383301677182,
+        "fftw_double_workspace_one_native_thread": 0.05564496398437768,
+        "mkl_single_direct": 0.01599702303064987,
+        "mkl_double_workspace": 0.03686551202554256
+      },
+      "failures": [
+        {
+          "seed": 812,
+          "pattern": "dense",
+          "scale": 1000000000000.0,
+          "route": "mkl_single_direct",
+          "l2_ratio": 0.9265943648338082,
+          "max_abs_ratio": 1.0043188307533255,
+          "passed": false,
+          "bitwise_mkl_parity": true
+        }
+      ]
+    },
+    {
+      "size": 4194304,
+      "case_count": 36,
+      "steady_median_seconds": {
+        "legacy_fftw_single": 0.16997858101967722,
+        "legacy_mkl_single": 0.033135753008536994,
+        "legacy_mkl_double": 0.06549700204050168,
+        "current_torch_dispatch": 0.07480105495778844,
+        "fftw_double_workspace_one_native_thread": 0.1253101920010522,
+        "mkl_single_direct": 0.03317171102389693,
+        "mkl_double_workspace": 0.07479730900377035
+      },
+      "failures": [
+        {
+          "seed": 7,
+          "pattern": "dense",
+          "scale": 1000000000000.0,
+          "route": "mkl_single_direct",
+          "l2_ratio": 0.9497360467424023,
+          "max_abs_ratio": 1.0281653373330861,
+          "passed": false,
+          "bitwise_mkl_parity": true
+        },
+        {
+          "seed": 91,
+          "pattern": "banded",
+          "scale": 1.0,
+          "route": "mkl_single_direct",
+          "l2_ratio": 0.9478337460926995,
+          "max_abs_ratio": 1.0198852160429952,
+          "passed": false,
+          "bitwise_mkl_parity": true
+        },
+        {
+          "seed": 91,
+          "pattern": "banded",
+          "scale": 1000000000000.0,
+          "route": "mkl_single_direct",
+          "l2_ratio": 0.9473777805241957,
+          "max_abs_ratio": 1.0064506213685402,
+          "passed": false,
+          "bitwise_mkl_parity": true
+        },
+        {
+          "seed": 812,
+          "pattern": "dense",
+          "scale": 1e-12,
+          "route": "mkl_single_direct",
+          "l2_ratio": 0.9501927149083433,
+          "max_abs_ratio": 1.1612439885658885,
+          "passed": false,
+          "bitwise_mkl_parity": true
+        },
+        {
+          "seed": 20260906,
+          "pattern": "dense",
+          "scale": 1.0,
+          "route": "mkl_single_direct",
+          "l2_ratio": 0.9499121589738388,
+          "max_abs_ratio": 1.112430715563239,
+          "passed": false,
+          "bitwise_mkl_parity": true
+        }
+      ]
+    }
+  ],
+  "filtering_profiles": {
+    "cpu": {
+      "total_seconds": 51.06591619200002,
+      "fft_rows_overlapping_do_not_sum": [
+        {
+          "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/mkl.py",
+          "line": 189,
+          "function": "execute",
+          "primitive_calls": 1920,
+          "calls": 1920,
+          "self_seconds": 28.406514085,
+          "cumulative_seconds": 28.406514085
+        }
+      ]
+    },
+    "torchcpu": {
+      "total_seconds": 96.89038506499998,
+      "fft_rows_overlapping_do_not_sum": [
+        {
+          "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/torchfft.py",
+          "line": 1444,
+          "function": "execute",
+          "primitive_calls": 1920,
+          "calls": 1920,
+          "self_seconds": 0.010495879000000001,
+          "cumulative_seconds": 71.401896037
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/torchfft.py",
+          "line": 977,
+          "function": "_execute_mkl_cpu_ifft_plan",
+          "primitive_calls": 1920,
+          "calls": 1920,
+          "self_seconds": 0.020873634000000002,
+          "cumulative_seconds": 71.39140015800001
+        },
+        {
+          "file": "/home/xangma/pycbc-torch-profile-20260907-r3/source/pycbc/fft/torchfft.py",
+          "line": 271,
+          "function": "execute",
+          "primitive_calls": 1920,
+          "calls": 1920,
+          "self_seconds": 62.517340448000006,
+          "cumulative_seconds": 71.254080434
+        }
+      ]
+    }
+  },
+  "diagnostic_accounting": {
+    "note": "Differences of independent instrumented runs; attribution only, not predicted speedup.",
+    "filtering_gap_seconds": 45.82446887299996,
+    "fft_entry_difference_seconds": 42.847566349000004,
+    "fft_entry_difference_fraction_of_filtering_gap": 0.9350368351840525
+  },
+  "input_sha256": {
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/large-ifft-v6.json": "e156a0d659078015c56b4712b04c5f10608f94b63950f2894219a71aae5517a0",
+    "/Users/xangma/repos/pycbc/artifacts/torch-inspiral-reference-20260906/large-ifft-v6-decision.json": "81b3be52929a99de7e54ccea930dd7ecece88fe65bc6350afe3d02980d81028a",
+    "/Users/xangma/repos/pycbc/artifacts/torch-profiling-20260907-r3/publication-prep/attribution-early-loops.json": "b5e6781f62b13ed6cf15d04f910f4087254e66bfb3c9e0fbc09ab71e85d9bb5b"
+  },
+  "helper_sha256": "018ac4330c1a3183883ec13b67f2019ab97fdac137ef1b99e8ccc4781878f746"
+}

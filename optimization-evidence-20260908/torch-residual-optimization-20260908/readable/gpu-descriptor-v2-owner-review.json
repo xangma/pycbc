@@ -1,0 +1,12 @@
+{
+  "state": "pass",
+  "manifest_sha256": "32930becd4f7c65f4bf62b8e5cdc9e87b0c00541e9d6c201b08e135f20755b02",
+  "changed_original_files": [
+    "GPU-DESCRIPTORS-PROTOCOL.md",
+    "gpu_controller.py"
+  ],
+  "unchanged_original_files": 19,
+  "provenance_tests_reexecuted": 4,
+  "findings": [],
+  "review": "Reviewed exact provenance routing and independent checker globals; old reference uses original helper root, new workers use diagnostic root; all path/hash/thread/source/scientific checks retained. No descriptor instrumentation delta."
+}

@@ -1,0 +1,164 @@
+{
+  "bundle_paths": 6,
+  "bundles": [
+    {
+      "bytes": 5184,
+      "header": {
+        "capabilities": [],
+        "header": "# v2 git bundle",
+        "prerequisites": [
+          "7e56ac42417dd6f61498f917e04c5a55250ddc26 Complete CUDA peak transfers before publishing host arrays"
+        ],
+        "refs": [
+          "612a13cade96f3e4165d64bc9a25c73b9ce45903 refs/heads/codex/torch-fft-optimization-20260908"
+        ]
+      },
+      "object_types": {
+        "blob": 7,
+        "commit": 2,
+        "tree": 13
+      },
+      "packed_objects": 22,
+      "paths": [
+        "diagnostics-v4/source-candidate.bundle"
+      ],
+      "prerequisite_verification": "pass",
+      "sha256": "041743f8d9bcb3b95cba7a94208a60e24d7c62e929b50101a31b41f70a675b55",
+      "strict_pack_verification": "pass",
+      "text_bytes_scanned": 207986,
+      "text_objects_scanned": 9
+    },
+    {
+      "bytes": 627360,
+      "header": {
+        "capabilities": [],
+        "header": "# v2 git bundle",
+        "prerequisites": [
+          "d2647addb884ead3249914ebc980f3c132076d93 Document measured squared-norm benefit and retained small-call costs"
+        ],
+        "refs": [
+          "7e56ac42417dd6f61498f917e04c5a55250ddc26 refs/heads/codex/torch-fft-optimization-20260908"
+        ]
+      },
+      "object_types": {
+        "blob": 45,
+        "commit": 4,
+        "tree": 25
+      },
+      "packed_objects": 74,
+      "paths": [
+        "source-candidate.bundle"
+      ],
+      "prerequisite_verification": "pass",
+      "sha256": "947e5b27d0243d3b0c9decd18d084fad06a99d1104add0ed48b464ac751eea5d",
+      "strict_pack_verification": "pass",
+      "text_bytes_scanned": 936531,
+      "text_objects_scanned": 45
+    },
+    {
+      "bytes": 5830,
+      "header": {
+        "capabilities": [],
+        "header": "# v2 git bundle",
+        "prerequisites": [
+          "7e56ac42417dd6f61498f917e04c5a55250ddc26 Complete CUDA peak transfers before publishing host arrays"
+        ],
+        "refs": [
+          "2f799f0046fc36db4215bd8b8b8a774d40c0e011 HEAD",
+          "2f799f0046fc36db4215bd8b8b8a774d40c0e011 refs/heads/codex/torch-fft-optimization-20260908"
+        ]
+      },
+      "object_types": {
+        "blob": 8,
+        "commit": 3,
+        "tree": 15
+      },
+      "packed_objects": 26,
+      "paths": [
+        "diagnostics-v5/source-candidate.bundle"
+      ],
+      "prerequisite_verification": "pass",
+      "sha256": "99fdab3b9f073e527f66288e9fac4432cd1554a44a62626690512cd83f8b5832",
+      "strict_pack_verification": "pass",
+      "text_bytes_scanned": 215909,
+      "text_objects_scanned": 11
+    },
+    {
+      "bytes": 8119,
+      "header": {
+        "capabilities": [],
+        "header": "# v2 git bundle",
+        "prerequisites": [
+          "7e56ac42417dd6f61498f917e04c5a55250ddc26 Complete CUDA peak transfers before publishing host arrays"
+        ],
+        "refs": [
+          "ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f HEAD"
+        ]
+      },
+      "object_types": {
+        "blob": 12,
+        "commit": 4,
+        "tree": 20
+      },
+      "packed_objects": 36,
+      "paths": [
+        "final-source.bundle"
+      ],
+      "prerequisite_verification": "pass",
+      "sha256": "bbc6ce7b677533e96981fb51859ed019ed26d2bb0484b91e1e717fdc0127c1ca",
+      "strict_pack_verification": "pass",
+      "text_bytes_scanned": 308048,
+      "text_objects_scanned": 16
+    },
+    {
+      "bytes": 2627,
+      "header": {
+        "capabilities": [],
+        "header": "# v2 git bundle",
+        "prerequisites": [
+          "2f799f0046fc36db4215bd8b8b8a774d40c0e011 Test scalar normalization against existing CUDA autodiff behavior"
+        ],
+        "refs": [
+          "ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f refs/heads/codex/torch-fft-optimization-20260908"
+        ]
+      },
+      "object_types": {
+        "blob": 4,
+        "commit": 1,
+        "tree": 8
+      },
+      "packed_objects": 13,
+      "paths": [
+        "acquired-loader-v1/source-candidate.bundle",
+        "loader-v1/source-candidate.bundle"
+      ],
+      "prerequisite_verification": "pass",
+      "sha256": "eeb9c2c4f7eca414721dd47136c8bb6c6f4c877e3621c1a6de0424ddc7c31071",
+      "strict_pack_verification": "pass",
+      "text_bytes_scanned": 92139,
+      "text_objects_scanned": 5
+    }
+  ],
+  "credential_scan_findings": [],
+  "final_source": {
+    "all_six_blob_sha256_verified": {
+      "pycbc/fft/torchfft.py": "0b9109bbf99a4eb591a4c006b1220ec36c8587e56352352277eb1478cf876c0c",
+      "pycbc/frame/frame.py": "483ed42b253386b86c36afc0a6411384188f9468f7b968ccf8d0d2b533e33a55",
+      "pycbc/vetoes/chisq_torch.py": "44cdb529a7416198c266423b604e09b47f5f721081e350e983b55fdf8d4b3db8",
+      "test/test_frame.py": "7a4448702522681a4f95dd2e84cf751eb0f67c733570383f73a5ac9a0755d3d7",
+      "test/test_torch_chisq_cuda_normalization.py": "74c4b914e90475ece3cef0989fd80c738f37a5063871ab890b05869b47f8552e",
+      "test/test_torch_large_ifft.py": "413ab2251451a20cb5941cc5505bbce3b00c662f1df6f227b880f88f15db0713"
+    },
+    "baseline": "7e56ac42417dd6f61498f917e04c5a55250ddc26",
+    "exact_original_diff_sha256": "6289f746375ea22d5b4bc1aeefa9a7e66ef4fd5add4f250dd5f22392143a23a2",
+    "head": "ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f",
+    "patch_index_abbreviation": 10,
+    "patch_reconstructed_tree": "e298e6b44a863d95bec8bc85fcc74aab742e3e15"
+  },
+  "isolation": "Only disposable bare Git object storage under archive-prep was written. Existing repository objects were read through an alternate. Temporary verification storage was removed.",
+  "remote_access": false,
+  "science_executed": false,
+  "state": "pass",
+  "unique_bundles": 5,
+  "unique_git_objects_inspected": 107
+}

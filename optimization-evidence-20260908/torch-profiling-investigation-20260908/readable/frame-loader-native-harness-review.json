@@ -1,0 +1,30 @@
+{
+  "state": "native_harness_source_review_passed",
+  "tests_manifest_sha256": "4084e43e44685235f5bf832dfc68220b7933608543922eb0ca23580a40a59226",
+  "test_manifest": {
+    "native_tests.py": "c045f2540c79a4971feb5226c4b9bfc3b16a3cef7ba787497b6d731483be3d2a",
+    "frame_semantics.py": "4e78f96cfdb4b303d6bfb713355606289ccaaf1288ee73c4e0909a4f841c9fac",
+    "source-pins.json": "fa15d0e6bb02218008528469a692e1fb14b9885278ff22ec5678ba723418f7dd",
+    "source-staging.json": "ae691010c962884806ff06c9ed60eb244795955a820df2610334b429e745ceb9",
+    "config.json": "6d399146bcc19a43b780ef1d591ee115954621d0bdf8751915ef69ee986c395b",
+    "checked-inspiral.py": "6cec38e384ae532d63099df1941cf1f73dcb65750d43e7796d517ea4cd3454ba",
+    "threadpoolctl.py": "12fb9526b6a74d2e686b7ec148dc165c3587999b14fa86984aa180e10802400b"
+  },
+  "staging_sha256": "ae691010c962884806ff06c9ed60eb244795955a820df2610334b429e745ceb9",
+  "native_files": 11,
+  "source_pins": {
+    "revisions": {
+      "baseline": "2f799f0046fc36db4215bd8b8b8a774d40c0e011",
+      "candidate": "ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f"
+    },
+    "changed_files": [
+      "pycbc/frame/frame.py",
+      "test/test_frame.py"
+    ],
+    "diff_sha256": "81941bbd8d91b09daa191ebab84881a125e38076fbf2ceff09dcde654d837555",
+    "executable_sha256": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a"
+  },
+  "review": "Read both full helpers; serial lock-held workers, fixed environment/core8, source/native/manifest pins before and after,300s timeout of whole fresh campaign process group; semantics28 cases/eight positions; baseline4 and candidate16 JUnit cases zero errors/failures/skips. Source only; no native execution by reviewer.",
+  "helper_revision": "Only old actual.shape changed to actual.numpy().shape; original staging helper sha13362a8d reconstructed exactly in memory. Owner instructed to preserve staged version for original transfer-manifest replay.",
+  "launch_requirement": "venv Python; new session with PID=PGID; terminal group absence and reacquired lock audit before benchmarks."
+}
