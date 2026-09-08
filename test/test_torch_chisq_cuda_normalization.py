@@ -5,7 +5,7 @@
 # Free Software Foundation; either version 3 of the License, or (at your
 # option) any later version.
 
-"""Preserve chi-square arithmetic while scheduling scalar CUDA transfers."""
+"""Preserve general Torch arithmetic outside the CPU-compatible search path."""
 
 from contextlib import nullcontext
 
@@ -22,7 +22,7 @@ torch = pytest.importorskip("torch")
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA unavailable")
 @pytest.mark.parametrize("norm_type", (float, int, np.float32, np.float64))
 @pytest.mark.parametrize("custom_stream", (False, True))
-def test_cuda_scalar_norm_preserves_cast_then_square(
+def test_cuda_fallback_scalar_norm_preserves_cast_then_square(
     monkeypatch, norm_type, custom_stream
 ):
     norm = norm_type(2 if norm_type is int else 0.117311)
@@ -66,7 +66,8 @@ def _check_normalization(monkeypatch, norm, special, custom_stream, device):
     class DispatchTensor(torch.Tensor):
         pass
 
-    # Exercise the Torch formula on CPU too; native CPU fusion is unchanged.
+    # Exercise the general Torch formula independently of search compatibility.
+    monkeypatch.setattr(chisq_torch, "_search_compat_point_chisq", lambda *a: None)
     monkeypatch.setattr(chisq_torch, "_cpu_native_eligible", lambda *a: False)
     monkeypatch.setattr(
         chisq_torch, "_cpu_native_sparse_search_eligible", lambda *a: False

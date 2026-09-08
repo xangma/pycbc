@@ -651,7 +651,7 @@ def test_torch_int64_array_dispatches_single_search_with_bitwise_parity(
     bins = (29, 211, 619, 1481, 3073)
     norm = 0.117
     calls = []
-    original_point = chisq_torch._cpu_native_point_chisq
+    original_point = chisq_torch._search_compat_point_chisq
 
     with scheme.TorchScheme("cpu"):
         correlation = FrequencySeries(values, delta_f=0.125)
@@ -661,7 +661,7 @@ def test_torch_int64_array_dispatches_single_search_with_bitwise_parity(
         # float64.  The zero-copy native path must accept that public contract
         # rather than changing global Array promotion for this optimization.
         assert indices._data.tensor.dtype == torch.float64
-        expected = chisq_torch._cpu_native_point_chisq(
+        expected = chisq_torch._search_compat_point_chisq(
             correlation._data.tensor,
             torch.tensor([701.0], dtype=torch.float64),
             bins,
@@ -674,7 +674,7 @@ def test_torch_int64_array_dispatches_single_search_with_bitwise_parity(
             return original_point(*args, **kwargs)
 
         monkeypatch.setattr(
-            chisq_torch, "_cpu_native_point_chisq", record_point
+            chisq_torch, "_search_compat_point_chisq", record_point
         )
         result = chisq_torch.power_chisq_at_points_from_precomputed(
             correlation,
@@ -700,7 +700,7 @@ def test_torch_int64_array_dispatches_sparse_search_with_bitwise_parity(
     bins = (29, 211, 619, 1481, 3073)
     norm = 0.117
     calls = []
-    original_generic = chisq_torch._cpu_native_point_chisq
+    original_generic = chisq_torch._search_compat_point_chisq
 
     with scheme.TorchScheme("cpu"):
         correlation = FrequencySeries(values, delta_f=0.125)
@@ -718,11 +718,11 @@ def test_torch_int64_array_dispatches_sparse_search_with_bitwise_parity(
         )
 
         def record_generic(*args, **kwargs):
-            calls.append(isinstance(args[1], np.ndarray))
+            calls.append(args[1] is indices)
             return original_generic(*args, **kwargs)
 
         monkeypatch.setattr(
-            chisq_torch, "_cpu_native_point_chisq", record_generic
+            chisq_torch, "_search_compat_point_chisq", record_generic
         )
         result = chisq_torch.power_chisq_at_points_from_precomputed(
             correlation,

@@ -289,6 +289,97 @@ def _cpu_native_sparse_search_eligible(corr, points, bin_edges, snr):
     )
 
 
+def _search_compat_storage(value):
+    """Unwrap storage without copying or changing tensor dispatch semantics."""
+    from pycbc.types.array_torch import TorchArrayData
+
+    if isinstance(value, Array):
+        value = value._data
+    return value.tensor if isinstance(value, TorchArrayData) else value
+
+
+def _search_compat_array_eligible(value, numpy_dtypes, torch_dtypes):
+    """Whether a plain search array can be evaluated by the CPU kernel."""
+    if type(value) is np.ndarray:
+        return (
+            value.dtype in numpy_dtypes
+            and value.ndim == 1
+            and value.flags.c_contiguous
+        )
+    return (
+        type(value) is torch.Tensor
+        and (_TORCH_IS_INFERENCE is None or not _TORCH_IS_INFERENCE(value))
+        and value.device.type in ("cpu", "cuda")
+        and value.layout == torch.strided
+        and value.dtype in torch_dtypes
+        and value.ndim == 1
+        and value.is_contiguous()
+        and not value.requires_grad
+        and not _has_forward_ad_state(value)
+        and not torch._C._functorch.is_functorch_wrapped_tensor(value)
+        and not value.is_conj()
+        and not value.is_neg()
+    )
+
+
+def _search_compat_point_chisq(corr, points, bin_edges, snr, snr_norm):
+    """Return the unchanged CPU search statistic, or None for general inputs.
+
+    The original complex64 search uses float32 phase recurrence and serial
+    accumulation, including its historical pi literal and multiply order.
+    Direct phases and higher precision accumulation produce a different
+    statistic. Reuse that kernel without changing the active scheme. CPU
+    storage is exposed through zero-copy NumPy ABI views; CUDA storage is
+    copied synchronously to the host and the result returned to its device.
+
+    Tensor normalization and special/differentiable storage retain the Torch
+    mathematical path. In particular, never export a tensor after a dtype
+    conversion that could have discarded its inference or special-view state.
+    """
+    points = _search_compat_storage(points)
+    snr = _search_compat_storage(snr)
+    if not (
+        type(snr_norm) in (float, int, np.float32, np.float64)
+        and _search_compat_array_eligible(corr, (), (torch.complex64,))
+        and _search_compat_array_eligible(
+            points, (np.dtype(np.int64), np.dtype(np.float64)),
+            (torch.int64, torch.float64),
+        )
+        and _search_compat_array_eligible(
+            snr, (np.dtype(np.complex64),), (torch.complex64,)
+        )
+        and 0 < len(points) <= _CPU_NATIVE_INT_MAX
+        and len(snr) == len(points)
+        and 0 < corr.numel() <= _CPU_NATIVE_INT_MAX
+        and 2 <= len(bin_edges) <= _CPU_NATIVE_INT_MAX + 1
+        and 0 <= bin_edges[0] <= bin_edges[-1] <= corr.numel()
+        and bin_edges[-1] <= _CPU_NATIVE_UINT_MAX
+        and all(start <= end for start, end in zip(bin_edges, bin_edges[1:]))
+    ):
+        return None
+
+    from .chisq_cpu import point_chisq_code
+
+    def host_view(value):
+        return value if type(value) is np.ndarray else value.cpu().numpy()
+
+    corr_host = host_view(corr)
+    snr_host = host_view(snr)
+    shifts = np.asarray(host_view(points), dtype=np.float32)
+    num_bins = len(bin_edges) - 1
+    chisq = np.zeros(len(shifts), dtype=np.float32)
+    point_chisq_code(
+        chisq, corr_host, len(shifts), len(corr_host), shifts,
+        _cpu_native_bins(bin_edges), num_bins,
+    )
+    # Keep the original expression and scalar type: rounding the norm before
+    # squaring or folding the SNR subtraction into the accumulator changes it.
+    chisq = (chisq * num_bins - (snr_host.conj() * snr_host).real) * (
+        snr_norm ** 2.0
+    )
+    return torch.from_numpy(chisq).to(device=corr.device)
+
+
 def _cpu_native_point_chisq(corr, pts, bin_edges, snr=None, snr_norm=None):
     """Run the fused CPU kernel on zero-copy views of sparse storage.
 
@@ -650,8 +741,8 @@ def shift_sum(corr, points, bins):
 def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
     """Calculate the power chisq at points using Torch-backed storage.
 
-    GPU/MPS and autograd inputs stay in Torch. Eligible CPU inputs use
-    zero-copy NumPy views solely as the ABI for the existing native kernel.
+    Ordinary complex64 CPU/CUDA searches use the original CPU statistic.
+    General mathematical, MPS and differentiable inputs retain Torch paths.
     """
     from pycbc.types.array_torch import TorchArrayData
 
@@ -668,6 +759,11 @@ def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
 
     num_bins = len(bins) - 1
     bin_edges = tuple(int(edge) for edge in bins)
+    compatible = _search_compat_point_chisq(
+        corr._data.tensor, indices, bin_edges, snr, snr_norm
+    )
+    if compatible is not None:
+        return Array(TorchArrayData(compatible), copy=False)
     native_indices = _cpu_native_index_view(indices)
 
     if isinstance(snr, TorchArrayData):
