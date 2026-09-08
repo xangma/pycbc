@@ -16,10 +16,23 @@
 
 """Torch interpolation backend for compressed frequency-domain waveforms."""
 
+import sys
+
 import numpy
 import torch
 
 from pycbc.types.backend import backend_array
+
+try:
+    from . import decompress_cpu_cython
+    from .decompress_cpu_cython import (
+        decomp_ccode_double,
+        decomp_ccode_float,
+    )
+except ImportError:
+    decompress_cpu_cython = None
+    decomp_ccode_double = None
+    decomp_ccode_float = None
 
 _STENCIL_OFFSETS = {
     1: (0, 1),
@@ -104,6 +117,42 @@ def _cpu_numpy_view(value):
     return value
 
 
+_FREQ_VALID_CACHE = {}
+
+
+def _is_frequencies_valid(frequencies, key_obj=None):
+    """Check if frequencies are non-negative, finite, and strictly increasing.
+
+    Results are cached across calls since template bank frequencies are fixed.
+    """
+    key = (
+        id(key_obj) if key_obj is not None else None,
+        frequencies.ctypes.data,
+        frequencies.size,
+        frequencies.dtype.num,
+        frequencies.strides,
+        float(frequencies[0]),
+        float(frequencies[-1]),
+    )
+    res = _FREQ_VALID_CACHE.get(key)
+    if res is not None:
+        return res
+
+    if (
+        frequencies[0] < 0
+        or not numpy.all(numpy.isfinite(frequencies))
+        or not numpy.all(frequencies[1:] > frequencies[:-1])
+    ):
+        valid = False
+    else:
+        valid = True
+
+    if len(_FREQ_VALID_CACHE) >= 64:
+        _FREQ_VALID_CACHE.clear()
+    _FREQ_VALID_CACHE[key] = valid
+    return valid
+
+
 def _cpu_linear_interp(amp, phase, sample_frequencies, output, df, imin, start_index):
     """Use the existing Cython/C++ linear kernel for compatible CPU storage."""
     out = backend_array(output, "torch")
@@ -142,11 +191,7 @@ def _cpu_linear_interp(amp, phase, sample_frequencies, output, df, imin, start_i
     delta_f = dtype(df).item()
     if not numpy.isfinite(delta_f) or delta_f <= 0:
         return False
-    if (
-        not numpy.all(numpy.isfinite(frequencies))
-        or frequencies[0] < 0
-        or not numpy.all(frequencies[1:] > frequencies[:-1])
-    ):
+    if not _is_frequencies_valid(frequencies, sample_frequencies):
         return False
     last_ratio = float(frequencies[-1]) / delta_f
     first_end = float(frequencies[imin + 1]) / delta_f
@@ -156,16 +201,20 @@ def _cpu_linear_interp(amp, phase, sample_frequencies, output, df, imin, start_i
     ):
         return False
 
-    try:
-        from .decompress_cpu_cython import (
-            decomp_ccode_double,
-            decomp_ccode_float,
-        )
-    except ImportError:
+    if (
+        decompress_cpu_cython is None
+        or sys.modules.get("pycbc.waveform.decompress_cpu_cython") is None
+    ):
         return False
     function = (
-        decomp_ccode_float if out.dtype == torch.complex64 else decomp_ccode_double
+        getattr(decompress_cpu_cython, "decomp_ccode_float", decomp_ccode_float)
+        if out.dtype == torch.complex64
+        else getattr(
+            decompress_cpu_cython, "decomp_ccode_double", decomp_ccode_double
+        )
     )
+    if function is None:
+        return False
     try:
         function(
             h,
@@ -212,24 +261,57 @@ def _inline_interp(
     if sample_count < 2:
         return output
 
+    if (
+        hasattr(sample_frequencies, "__getitem__")
+        and not (
+            isinstance(sample_frequencies, torch.Tensor)
+            and sample_frequencies.device.type != "cpu"
+        )
+    ):
+        try:
+            last_freq = torch.as_tensor(
+                sample_frequencies[-1], dtype=calc_dtype
+            )
+        except Exception:
+            last_freq = frequencies[-1]
+    else:
+        last_freq = frequencies[-1]
+    last_index = int(_grid_indices(last_freq, calc_df))
+    end_index = min(out.numel(), last_index + 1)
+    if end_index <= start_index:
+        return output
+
     output_indices = torch.arange(
         start=start_index,
-        end=out.numel(),
+        end=end_index,
         device=out.device,
         dtype=torch.int64,
     )
-    last_index = _grid_indices(frequencies[-1], calc_df)
-    output_indices = output_indices[output_indices <= last_index]
-    if output_indices.numel() == 0:
-        return output
 
     # Match the CPU segment boundaries exactly. For non-final segments the
     # compiled backend stops at int(f[i + 1] / df), while the final segment
     # includes that index. ``right=True`` assigns each boundary index to the
     # following segment, and the clamp restores the final-segment exception.
     segment_ends = _grid_indices(frequencies[1:], calc_df)
-    segments = torch.searchsorted(segment_ends.contiguous(), output_indices, right=True)
+    segments = torch.searchsorted(
+        segment_ends.contiguous(), output_indices, right=True
+    )
     segments.clamp_(min=int(imin), max=sample_count - 2)
+
+    if degree == 1:
+        points = output_indices.to(calc_dtype) * calc_df
+        f0 = frequencies[segments]
+        f1 = frequencies[segments + 1]
+        w1 = (points - f0) / (f1 - f0)
+        w0 = 1.0 - w1
+        interp_amp = amplitudes[segments] * w0 + amplitudes[segments + 1] * w1
+        interp_phase = phases[segments] * w0 + phases[segments + 1] * w1
+        waveform = torch.complex(
+            interp_amp * torch.cos(interp_phase),
+            interp_amp * torch.sin(interp_phase),
+        ).to(dtype=out.dtype)
+        out[start_index:start_index + waveform.numel()] = waveform
+        return output
 
     max_degree = min(degree, sample_count - 1)
     degrees = torch.full_like(segments, max_degree)
