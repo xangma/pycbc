@@ -1,4 +1,4 @@
-"""Cumulative template power must retain small contributions in long spectra."""
+"""Cumulative template power must preserve CPU search bin placement."""
 
 import numpy as np
 import pytest
@@ -34,6 +34,14 @@ def test_long_sigmasq_series_and_equal_power_bins(dtype, use_psd, backend):
     if use_psd:
         reference_power /= psd_values[kmin:kmax].astype(np.float64)
     reference_prefix = np.cumsum(reference_power, dtype=np.longdouble)
+    with scheme.CPUScheme(1):
+        cpu_series = sigmasq_series(
+            FrequencySeries(waveform, delta_f=delta_f),
+            FrequencySeries(psd_values, delta_f=delta_f) if use_psd else None,
+            low, high,
+        )
+        cpu_bins = power_chisq_bins_from_sigmasq_series(cpu_series, 16, kmin, kmax)
+        cpu_values = cpu_series.numpy().copy()
 
     with context:
         template = FrequencySeries(waveform, delta_f=delta_f)
@@ -55,11 +63,17 @@ def test_long_sigmasq_series_and_equal_power_bins(dtype, use_psd, backend):
     assert result.delta_f == delta_f
     assert np.count_nonzero(actual[:kmin]) == 0
     assert np.count_nonzero(actual[kmax:]) == 0
+    if dtype == np.complex64:
+        # Search compatibility includes the original float32 rounding, even
+        # where a wider or parallel scan is closer to the mathematical sum.
+        np.testing.assert_array_equal(actual, cpu_values)
+        np.testing.assert_array_equal(bins, cpu_bins)
+        return
     # A million sequential float64 additions can be less accurate than a
     # parallel scan. Bound both scans by their accumulated rounding error;
     # longdouble gives a wider reference on platforms that support it.
     roundoff = len(reference_prefix) * np.finfo(np.float64).eps
-    tolerance = 3e-7 if dtype == np.complex64 else 2 * roundoff / (1 - roundoff)
+    tolerance = 2 * roundoff / (1 - roundoff)
     np.testing.assert_allclose(
         actual[kmin:kmax], reference_prefix * (4 * delta_f), rtol=tolerance
     )
