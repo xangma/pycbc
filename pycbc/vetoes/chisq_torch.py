@@ -1020,32 +1020,19 @@ def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
         )
         return Array(TorchArrayData(chisq_t), copy=False)
 
-    snr_norm_t = None
-    if (
-        device.type == "cuda"
-        and dtype == torch.complex64
-        and snr_t.dtype == torch.complex64
-        and type(snr_norm) in (float, int, np.float32, np.float64)
-        and all(
-            type(tensor) is torch.Tensor
-            and not tensor.requires_grad
-            and not _has_forward_ad_state(tensor)
-            and (_TORCH_IS_INFERENCE is None or not _TORCH_IS_INFERENCE(tensor))
-            for tensor in (corr._data.tensor, snr_t, pts)
-        )
-    ):
-        # The scalar host transfer waits for earlier work on this stream.
-        # Queue it before the bin sums; keep the float32 tensor square below.
-        snr_norm_t = torch.as_tensor(snr_norm, device=device, dtype=torch.float32)
-
     chisq_arr = shift_sum(corr, pts, bin_edges)
     chisq_t = chisq_arr._data.tensor
 
     snr_term = (torch.conj(snr_t) * snr_t).real
     chisq_t = chisq_t * num_bins - snr_term
 
-    if snr_norm_t is None:
+    if isinstance(snr_norm, (int, float, complex, np.number, np.bool_)):
+        scale = float(snr_norm) ** 2
+        chisq_t = chisq_t * scale
+    elif isinstance(snr_norm, torch.Tensor):
+        chisq_t = chisq_t * (snr_norm.to(device=device, dtype=chisq_t.dtype) ** 2)
+    else:
         snr_norm_t = torch.as_tensor(snr_norm, device=device, dtype=chisq_t.dtype)
-    chisq_t = chisq_t * (snr_norm_t**2)
+        chisq_t = chisq_t * (snr_norm_t**2)
 
     return Array(TorchArrayData(chisq_t), copy=False)
