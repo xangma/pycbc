@@ -43,10 +43,12 @@ Full executable: latest backend comparison
 ------------------------------------------
 
 All three backends run the same frozen revision,
-``d2647addb884ead3249914ebc980f3c132076d93``, including the integrated CPU
-squared-norm optimization. Each has three fresh unprofiled workers, with backend
-order rotated between repeats. The throughput numerator is
-``384 * 1904 = 731136`` template-seconds.
+``ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f``, with the bounded frame loader
+applied equally to every backend. This source also includes the qualified CPU
+promoted-IFFT workspace change and CUDA scalar scheduling. Each backend has
+three fresh unprofiled workers, drawn from the same six-role loader campaign.
+Role order is forward/reverse/forward across repeats. The throughput numerator
+is ``384 * 1904 = 731136`` template-seconds.
 
 .. list-table:: Full-process wall time and rate for the fixed workload
    :header-rows: 1
@@ -56,19 +58,19 @@ order rotated between repeats. The throughput numerator is
      - Observed minimum--maximum seconds
      - Template-seconds / wall-second
    * - Standard CPU / MKL
-     - 70.219
-     - 69.920--70.272
-     - 10412.18
+     - 66.933
+     - 66.629--67.997
+     - 10923.33
    * - Torch CPU
-     - 114.163
-     - 114.032--114.462
-     - 6404.30
+     - 104.400
+     - 104.212--104.995
+     - 7003.21
    * - Torch CUDA + one GPU
-     - 25.010
-     - 24.990--25.017
-     - 29233.95
+     - 21.766
+     - 21.727--22.124
+     - 33591.15
 
-.. figure:: images/torch-executable/executable-wall.png
+.. figure:: images/torch-executable-20260908/executable-wall.png
    :alt: Full executable wall time on standard CPU, Torch CPU and Torch CUDA, showing three fresh processes per backend, medians and observed ranges.
    :width: 100%
 
@@ -76,18 +78,51 @@ order rotated between repeats. The throughput numerator is
    verification, imports, setup, filtering and HDF output. Ranges are
    observations, not confidence intervals or an old/new speedup measurement.
 
-All **21 science runs match the same 1991 trigger identities** and pass the
-unchanged numerical budgets for eleven compared fields. Three separate
-qualifications check every compressed template, all 1920 template/segment
-pairs and complete valid-time coverage. The six cProfiles, two native profiles
-and CUDA trace are excluded from the nine timing samples.
+The full loader campaign has six separate qualifications and eighteen timing
+workers: baseline and candidate for each backend. All **44 scientific
+comparisons pass**, preserving 1991 trigger identities and the frozen field
+budgets. The qualifications check the compressed bank, all 1920 template/segment
+pairs and valid-time coverage. This figure shows only the nine candidate
+workers; qualification and comparison work is outside their clocks.
 
-Torch CPU's corrected FFT route promotes its workspace to complex128; FFT work
-and conversion copies dominate its profile. CUDA uses a GPU in addition to the
-host core. These results characterize the complete executable's scalar filter
-path; they do not exercise the live-batch API or measure equal hardware cost.
+This rate is per assigned host core for the finite workload, including startup.
+It differs from the HDF ``templates_per_core`` statistic, which uses PyCBC's
+shorter internal timer. Torch CPU takes 1.560 times the standard CPU wall time.
+Its qualified FFT route promotes complex64 input to complex128, performs the
+transform and converts back. Native FFT execution and conversion dominate its
+measured IFFT; they do not causally account for every second of the executable
+gap. See :ref:`torch-cpu-precision-cost` for the precision and timer distinctions.
+
+CUDA uses a GPU in addition to the host core. These results characterize the
+complete executable's scalar filter path; they do not exercise the live-batch
+API or measure equal hardware cost.
 See :ref:`torch-reference-campaign` for inputs, accuracy gates and reproduction,
-and :ref:`torch-profile-attribution` for current call ownership and timer scopes.
+and :ref:`torch-profile-attribution` for the earlier full-workload profiles.
+
+.. _torch-executable-followups:
+
+Separate executable follow-ups
+------------------------------
+
+Descriptor reuse (R) and offline CUDA graphs (G) were measured as Python
+prototypes on the same source. Their own controlled campaigns produced the
+following results. **These are not timings of a later integrated revision.**
+R contains standard CPU and CUDA roles; it has no Torch CPU measurement.
+G compares CUDA eager execution with graph execution, with descriptor reuse
+enabled in both arms.
+
+.. figure:: images/torch-executable-20260908/prototype-followups.png
+   :alt: Separate paired descriptor-reuse comparisons on standard CPU and CUDA, and a CUDA graph comparison with descriptor reuse in both arms. Four worker pairs per comparison.
+   :width: 100%
+
+   Full fresh-process wall times, including setup, cleanup and graph capture
+   where enabled. Lines connect workers from the same repeat; dark marks show
+   medians. Each panel expands its own time axis. R and G are separate
+   campaigns, so their percentage reductions must not be added.
+
+:ref:`torch-followup-evidence` records the exact baselines, samples, numerical
+checks, limitations and plot reproduction. The live-filter API below remains
+a separate workload and revision.
 
 .. _torch-batch-throughput:
 
@@ -164,6 +199,8 @@ Methods and evidence
 * :ref:`torch-batch-numerics`: live-filter inputs, qualification and plot
   reproduction.
 * :ref:`torch-profile-attribution`: optimization evidence and profiling scopes.
+* :ref:`torch-followup-evidence`: latest source changes, prototype comparisons,
+  CPU precision investigation and current plot reproduction.
 * :ref:`torch-benchmark-protocol`: controls for future capacity and scaling tests.
 
 Superseded plots and campaign tables are removed from the active documentation.

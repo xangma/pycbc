@@ -48,6 +48,7 @@ The completed R4 results show :ref:`torch-batch-throughput` and
 
    torch_batch_numerics
    torch_profile_attribution
+   torch_followups
 
 Workload convergence and timers
 -------------------------------
