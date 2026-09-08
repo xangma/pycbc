@@ -5,6 +5,7 @@ torch = pytest.importorskip("torch")
 
 import pycbc
 from pycbc import scheme
+from pycbc.noise import frequency_noise_from_psd
 from pycbc.types import Array, TimeSeries
 
 
@@ -45,6 +46,18 @@ def test_fft_roundtrip(torch_ctx):
     assert fs_t._data.tensor.device.type == "cpu"
     rel = _relative_l2(ts_t_rt.numpy(), ts_cpu_rt.numpy())
     assert rel < 1e-6
+
+
+def test_noise_from_psd_returns_torch(torch_ctx):
+    # Flat PSD, ensure generated noise lives on torch device
+    from pycbc.types import FrequencySeries
+
+    psd_vals = FrequencySeries(np.ones(513), delta_f=1.0 / 1024.0)
+    with torch_ctx:
+        noise = frequency_noise_from_psd(psd_vals, seed=1234)
+    assert isinstance(noise._data.tensor, torch.Tensor)
+    assert noise._data.tensor.device.type == "cpu"
+    assert len(noise) == len(psd_vals)
 
 
 def test_dtype_view_shares_torch_storage(torch_ctx):
