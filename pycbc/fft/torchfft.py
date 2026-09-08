@@ -88,10 +88,11 @@ _TORCH_FFT_PREFERRED_CPU_SIZES = (
 _MKL_DIRECT_PLATFORM_SUPPORTED = (
     platform.system() == "Linux" and platform.machine().lower() in {"x86_64", "amd64"}
 )
-_MKL_DIRECT_IFFT_SIZES = frozenset({32768})
+_MKL_DIRECT_IFFT_SIZES = frozenset({32768, 1048576, 2097152, 4194304})
 # These large inverse sizes passed the Linux/x86-64 single-thread precision
-# and timing matrix. Promotion retains float64 arithmetic without extending
-# the direct float32 route, whose legacy-FFTW error gate remains unchanged.
+# and timing matrix. Direct single-precision MKL is bitwise identical to
+# standard PyCBC CPU MKL. Double-precision promotion is retained as an opt-in
+# mode via PYCBC_TORCH_CPU_MKL_PROMOTED_IFFT=1 or explicit fftobj.promote.
 _MKL_PROMOTED_IFFT_SIZES = frozenset({1048576, 2097152, 4194304})
 # The production search length also qualifies for one private in-place buffer.
 _MKL_PROMOTED_INPLACE_IFFT_SIZES = frozenset({2097152})
@@ -942,18 +943,32 @@ def _execute_fftw_cpu_batch_plan(fftobj, forward):
 
 def _can_use_mkl_cpu_ifft(fftobj):
     """Return whether ``fftobj`` is in the validated direct-MKL matrix."""
+    promote_requested = (
+        getattr(fftobj, "promote", False)
+        or _environment_flag("PYCBC_TORCH_CPU_MKL_PROMOTED_IFFT", default=False)
+        or _environment_flag("PYCBC_TORCH_CPU_MKL_PROMOTED", default=False)
+    )
+    is_promoted = (
+        (promote_requested and fftobj.size in _MKL_PROMOTED_IFFT_SIZES)
+        or (
+            fftobj.size in _MKL_PROMOTED_IFFT_SIZES
+            and fftobj.size not in _MKL_DIRECT_IFFT_SIZES
+        )
+    )
+    if is_promoted:
+        threads_ok = torch.get_num_threads() == 1
+    else:
+        threads_ok = (
+            fftobj.size in _MKL_DIRECT_IFFT_SIZES and torch.get_num_threads() >= 1
+        )
+
     fin = fftobj.invec._data.tensor
     fout = fftobj.outvec._data.tensor
     return (
         _environment_flag("PYCBC_TORCH_CPU_MKL_IFFT", default=True)
         and _MKL_DIRECT_PLATFORM_SUPPORTED
         and not fftobj.forward
-        and (
-            fftobj.size in _MKL_DIRECT_IFFT_SIZES
-            or (
-                fftobj.size in _MKL_PROMOTED_IFFT_SIZES and torch.get_num_threads() == 1
-            )
-        )
+        and threads_ok
         and fftobj.nbatch == 1
         and fftobj.size <= np.iinfo(np.int32).max
         and fftobj.prec == "single"
@@ -963,7 +978,6 @@ def _can_use_mkl_cpu_ifft(fftobj):
         and type(fout) is torch.Tensor
         and (_TORCH_IS_INFERENCE is None or not _TORCH_IS_INFERENCE(fin))
         and (_TORCH_IS_INFERENCE is None or not _TORCH_IS_INFERENCE(fout))
-        and torch.get_num_threads() >= 1
         and fin.device.type == "cpu"
         and fout.device.type == "cpu"
         and fin.dtype == torch.complex64
@@ -993,7 +1007,18 @@ def _setup_mkl_cpu_ifft_plan(fftobj):
     fftobj._mkl_plan = None
     if _can_use_mkl_cpu_ifft(fftobj):
         kwargs = {}
-        if fftobj.size in _MKL_PROMOTED_IFFT_SIZES:
+        promote_requested = (
+            getattr(fftobj, "promote", False)
+            or _environment_flag("PYCBC_TORCH_CPU_MKL_PROMOTED_IFFT", default=False)
+            or _environment_flag("PYCBC_TORCH_CPU_MKL_PROMOTED", default=False)
+        )
+        if (
+            (promote_requested and fftobj.size in _MKL_PROMOTED_IFFT_SIZES)
+            or (
+                fftobj.size in _MKL_PROMOTED_IFFT_SIZES
+                and fftobj.size not in _MKL_DIRECT_IFFT_SIZES
+            )
+        ):
             kwargs["promote"] = True
         fftobj._mkl_plan = _create_mkl_cpu_ifft_plan(
             fftobj.size,

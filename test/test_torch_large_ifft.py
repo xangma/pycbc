@@ -311,7 +311,9 @@ def test_promoted_mkl_setup_selects_double_without_expanding_direct_sizes(
 ):
     from pycbc.fft import torchfft
 
-    assert torchfft._MKL_DIRECT_IFFT_SIZES == frozenset({32768})
+    assert torchfft._MKL_DIRECT_IFFT_SIZES == frozenset(
+        {32768, 1048576, 2097152, 4194304}
+    )
     calls = []
     monkeypatch.setattr(torchfft, "_MKL_PROMOTED_IFFT_SIZES", frozenset({64}))
     monkeypatch.setattr(torchfft, "_can_use_mkl_cpu_ifft", lambda obj: True)
@@ -325,6 +327,58 @@ def test_promoted_mkl_setup_selects_double_without_expanding_direct_sizes(
         engine = torchfft.IFFT(Array(_values(64)), zeros(64, dtype=np.complex64))
         engine.execute()
     assert calls == [(64, 1, {"promote": True})]
+
+
+@pytest.mark.parametrize("size", (1048576, 2097152, 4194304))
+def test_direct_mkl_setup_single_precision_default_and_env_promotion(
+    monkeypatch, one_thread, size
+):
+    from pycbc.fft import torchfft
+
+    monkeypatch.setenv("PYCBC_TORCH_CPU_MKL_IFFT", "1")
+    monkeypatch.setattr(torchfft, "_MKL_DIRECT_PLATFORM_SUPPORTED", True)
+    source = torch.empty(size, dtype=torch.complex64)
+    target = torch.empty_like(source)
+    engine = types.SimpleNamespace(
+        forward=False,
+        size=size,
+        nbatch=1,
+        prec="single",
+        itype="complex",
+        otype="complex",
+        invec=types.SimpleNamespace(_data=types.SimpleNamespace(tensor=source)),
+        outvec=types.SimpleNamespace(_data=types.SimpleNamespace(tensor=target)),
+    )
+    calls = []
+
+    def create(sz, src, tgt, nthreads, **kwargs):
+        calls.append((sz, nthreads, kwargs))
+        return object()
+
+    monkeypatch.setattr(torchfft, "_create_mkl_cpu_ifft_plan", create)
+
+    # By default, large sizes use direct single-precision MKL (no promote kwarg)
+    assert torchfft._can_use_mkl_cpu_ifft(engine)
+    torchfft._setup_mkl_cpu_ifft_plan(engine)
+    assert engine._mkl_plan is not None
+    assert calls == [(size, 1, {})]
+
+    # Multiple threads are supported in direct single-precision mode
+    torch.set_num_threads(4)
+    assert torchfft._can_use_mkl_cpu_ifft(engine)
+    calls.clear()
+    torchfft._setup_mkl_cpu_ifft_plan(engine)
+    assert calls == [(size, 4, {})]
+
+    # When promotion is requested via environment variable, double precision is selected
+    # and multithreading is rejected (single thread required)
+    monkeypatch.setenv("PYCBC_TORCH_CPU_MKL_PROMOTED_IFFT", "1")
+    assert not torchfft._can_use_mkl_cpu_ifft(engine)  # 4 threads rejected
+    torch.set_num_threads(1)
+    assert torchfft._can_use_mkl_cpu_ifft(engine)
+    calls.clear()
+    torchfft._setup_mkl_cpu_ifft_plan(engine)
+    assert calls == [(size, 1, {"promote": True})]
 
 
 @pytest.mark.parametrize("pattern", ("dense", "banded", "impulse"))
