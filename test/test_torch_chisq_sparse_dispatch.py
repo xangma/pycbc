@@ -52,7 +52,7 @@ def test_sparse_numpy_indices_are_consumed_directly_and_bitwise(
     with scheme.TorchScheme("cpu"):
         correlation = FrequencySeries(values, delta_f=0.125)
         corr_tensor = correlation._data.tensor
-        expected = chisq_torch._cpu_native_point_chisq(
+        expected = chisq_torch._search_compat_point_chisq(
             corr_tensor,
             torch.as_tensor(points, dtype=torch.float64),
             bins,
@@ -64,7 +64,7 @@ def test_sparse_numpy_indices_are_consumed_directly_and_bitwise(
         points_before = points.copy()
         corr_version = corr_tensor._version
         snr_version = snr._version
-        original_native = chisq_torch._cpu_native_point_chisq
+        original_native = chisq_torch._search_compat_point_chisq
 
         def record_native(corr, pts, edges, snr=None, snr_norm=None):
             observed_points.append(pts)
@@ -74,7 +74,7 @@ def test_sparse_numpy_indices_are_consumed_directly_and_bitwise(
             raise AssertionError("eligible NumPy indices were copied to Torch")
 
         monkeypatch.setattr(
-            chisq_torch, "_cpu_native_point_chisq", record_native
+            chisq_torch, "_search_compat_point_chisq", record_native
         )
         monkeypatch.setattr(chisq_torch, "_point_tensor", fail_point_tensor)
         actual = chisq_torch.power_chisq_at_points_from_precomputed(
