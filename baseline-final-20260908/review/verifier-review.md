@@ -1,0 +1,27 @@
+# Bounded offline verifier review
+
+Reviewed `verify-results.py` SHA256 `b71b189b287329e7eed4c9e7158482176391a811133f7150123cd18723dc211d`, `verify-results-usage.md` (there is no `usage.md`), the frozen controller/config/helpers, and locally transferred qualification evidence. No verifier, controller, source, or acquired evidence was edited; no remote commands or benchmark execution occurred. This report is the only persistent output created by this review.
+
+## Concrete blocker
+
+**Torch dependency provenance disagrees; the current verifier cannot accept this acquisition.** At `verify-results.py:480`, `case('torch-cpu', 'qualify')` raises `EvidenceError: Torch dependency version mismatch`. The acquired `dependencies.json` says `packages.torch = "2.1.1"`; both Torch qualification `runtime.json` files say `torch_version = "2.13.0+cu130"`, `torch_cuda_version = "13.0"`. This is a substantive version difference, not merely a missing CUDA suffix.
+
+`setup-remote.py:56` builds the package dictionary from distribution metadata, while the runtime wrapper observes the imported module. The local evidence does not establish why these differ. Preserve both original records and investigate the distribution/module discrepancy before claiming verified dependency identity. This is presently an evidence blocker, not proof that the verifier's equality check is wrong. Do not silently replace the dependency manifest, remove the check, or treat matching Torch CPU/CUDA version strings as proof that the setup manifest is correct. Any eventual reconciliation needs an explicit, independently supported receipt and disclosed verification rule.
+
+## Material validation risks
+
+1. **A failed timing-versus-own-qualification verdict is not rejected as an impossible completed campaign.** `verify-results.py:698` appends the recomputed result without requiring `status == 'pass'`. It affects scientific eligibility later, but `evidence_status` can still become `PASS`. The frozen producer at `campaign.py:264` explicitly asserts that verdict passes before adding the sample to `completed`; a failure cannot coexist with a valid completed 16-sample status/summary. A verifier should enforce that producer invariant, while continuing to preserve the permitted cross-arm scientific failures. This is a code-path risk, not an observed failure in transferred timing outputs.
+
+2. **Timing magnitudes have no independent consistency check.** `verify-results.py:454` accepts any positive finite duration. Lines 705 onward check timestamp ordering, and GNU time is checked only for exit status, but neither check relates its elapsed duration to `elapsed_wall_seconds`. A wrong duration propagated into the acquired summary could therefore survive verification despite contradictory timing logs or enclosing receipt/runtime spans. Existing recorded timing evidence can supply a consistency check with an explicit allowance for rounding and wrapper overhead; this does not require changing the benchmark or acquiring additional samples. No actual bad duration was observed in the four local qualification receipts.
+
+## Checks that hold
+
+- All eight frozen helper/config hashes, the continuation hash, and the independent source-review receipt hash match. Source/executable pins, imported-module checks, exact scientific arguments, sanitized environment, runtime checks, and raw/adjusted comparator validation are narrowly scoped. Normalization changes only the independently checked source snapshot and consumed-input provenance; archived comparator relocation changes only the two display paths.
+- Both CPU qualification cases pass the actual `Verifier.case` method. Both Torch qualification records pass the separate `qualification` method; their complete `case` validation remains blocked by the dependency mismatch above. For these bounded checks, hash-verified helpers were loaded from their existing sibling directory in memory; no evidence files were rearranged.
+- All four locally available raw/adjusted comparison pairs reproduce exactly, including baseline failures. The proposed CPU/CUDA archived comparison files have not yet been transferred; a direct comparison of their available HDF/receipt files passes the frozen trigger budgets.
+- All continuation conditioning diagnostics and the precise preserved initial assertion reproduce. Proposed CPU/Torch CPU and proposed CPU/CUDA have exact used PSD bins and matching strain/geometry, while full-PSD relative-budget checks fail (2,375 and 3,105 finite-bin violations respectively). Full-array masks/dtype, segment coverage, validity, hashes and scaling are checked separately. Exact used bins do not make full scientific eligibility true.
+- `--self-test` passes all 20 checks. These are focused helper tests; they do not exercise dependency validation or the complete receipt/schedule pipeline.
+
+The current local acquisition is incomplete, so there is no end-to-end verification verdict. Missing timing/comparison files at this stage are a transfer limitation, not a verifier defect. The usage instructions correctly require a complete transfer, including frozen scripts/config, before the full run.
+
+Source/input bytes not transferred remain supported by acquisition pins rather than independent reconstruction. The optional source-review receipt binds commits and file counts, but not the per-file manifest contents; the verifier and usage document disclose this limitation. Conditioned strain equality similarly rests on recorded digests/metadata because raw strain samples were not saved.

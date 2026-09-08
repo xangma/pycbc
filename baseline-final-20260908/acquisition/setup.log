@@ -1,0 +1,14 @@
+["git", "clone", "--shared", "--no-checkout", "/home/xangma/pycbc-torch-maintainer-benchmark-20260906/original", "/home/xangma/pycbc-torch-baseline-final-20260908/repo"]
+Cloning into '/home/xangma/pycbc-torch-baseline-final-20260908/repo'...
+done.
+["git", "-C", "/home/xangma/pycbc-torch-baseline-final-20260908/repo", "fetch", "/home/xangma/pycbc-torch-baseline-final-20260908/proposal.bundle", "refs/heads/codex/torch-doc-audit-20260908"]
+From /home/xangma/pycbc-torch-baseline-final-20260908/proposal.bundle
+ * branch                codex/torch-doc-audit-20260908 -> FETCH_HEAD
+["git", "-C", "/home/xangma/pycbc-torch-baseline-final-20260908/repo", "worktree", "add", "--detach", "/home/xangma/pycbc-torch-baseline-final-20260908/original", "40e94792b3edf59f39b18b65102b28a4f74433a7"]
+Preparing worktree (detached HEAD 40e94792b)
+HEAD is now at 40e94792b Try to further reduce CI failures (#5441)
+["/home/xangma/pycbc-torch-split-20260905/venv/bin/python", "setup.py", "build_ext", "--inplace"]
+["git", "-C", "/home/xangma/pycbc-torch-baseline-final-20260908/repo", "worktree", "add", "--detach", "/home/xangma/pycbc-torch-baseline-final-20260908/proposed", "123e1fb3ef1b338cada636e71c3e9c7987002402"]
+Preparing worktree (detached HEAD 123e1fb3e)
+HEAD is now at 123e1fb3e Focus Torch documentation on baseline versus proposed-code review
+["/home/xangma/pycbc-torch-split-20260905/venv/bin/python", "setup.py", "build_ext", "--inplace"]

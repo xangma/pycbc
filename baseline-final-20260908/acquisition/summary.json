@@ -1,0 +1,85 @@
+{
+  "scope": "Shared-host finite-workload comparison; no host/GPU reservation or sustained-capacity claim.",
+  "timing_boundary": "Fresh checked-inspiral process launch through exit after HDF output, runtime receipts, and native module verification. Qualification runs excluded; no profiling.",
+  "arms": {
+    "original-cpu": {
+      "source": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+      "scheme": "cpu:1",
+      "samples_seconds": [
+        76.05615840095561,
+        67.79258213704452,
+        67.8731761239469,
+        66.37744073406793
+      ],
+      "median_seconds": 67.83287913049571,
+      "min_seconds": 66.37744073406793,
+      "max_seconds": 76.05615840095561,
+      "template_seconds_per_wall_second": 10778.489861729933,
+      "trigger_count": 1988
+    },
+    "proposed-cpu": {
+      "source": "123e1fb3ef1b338cada636e71c3e9c7987002402",
+      "scheme": "cpu:1",
+      "samples_seconds": [
+        70.27926040207967,
+        67.47829154296778,
+        65.77440215100069,
+        65.53066132508684
+      ],
+      "median_seconds": 66.62634684698423,
+      "min_seconds": 65.53066132508684,
+      "max_seconds": 70.27926040207967,
+      "template_seconds_per_wall_second": 10973.676850077727,
+      "trigger_count": 1991
+    },
+    "torch-cpu": {
+      "source": "123e1fb3ef1b338cada636e71c3e9c7987002402",
+      "scheme": "torch:cpu:1",
+      "samples_seconds": [
+        108.29852406296413,
+        112.29466245998628,
+        104.89482368493918,
+        102.79540520394221
+      ],
+      "median_seconds": 106.59667387395166,
+      "min_seconds": 102.79540520394221,
+      "max_seconds": 112.29466245998628,
+      "template_seconds_per_wall_second": 6858.9006901336625,
+      "trigger_count": 1991
+    },
+    "torch-cuda": {
+      "source": "123e1fb3ef1b338cada636e71c3e9c7987002402",
+      "scheme": "torch:cuda:0",
+      "samples_seconds": [
+        21.050668069976382,
+        26.062832309980877,
+        20.80070546094794,
+        20.350911960937083
+      ],
+      "median_seconds": 20.92568676546216,
+      "min_seconds": 20.350911960937083,
+      "max_seconds": 26.062832309980877,
+      "template_seconds_per_wall_second": 34939.64179979697,
+      "trigger_count": 1991
+    }
+  },
+  "tolerances": {
+    "rtol": 0.0001,
+    "atol": 1e-05,
+    "sigmasq_rtol": 1e-05,
+    "phase_atol": 0.0001,
+    "max_examples": 12
+  },
+  "original_comparisons": {
+    "original-vs-proposed-cpu": "fail",
+    "original-vs-torch-cpu": "fail",
+    "original-vs-torch-cuda": "fail"
+  },
+  "proposed_comparisons": {
+    "proposed-cpu-vs-torch-cpu": "pass",
+    "proposed-cpu-vs-torch-cuda": "pass"
+  },
+  "equal_output_speedup_eligible": false,
+  "full_psd_and_conditioning_pass": false,
+  "continuation_policy": "continuation-policy.json"
+}

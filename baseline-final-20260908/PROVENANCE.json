@@ -1,0 +1,21 @@
+{
+  "measured_source_commits": {
+    "original-cpu": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+    "proposed-cpu": "123e1fb3ef1b338cada636e71c3e9c7987002402",
+    "torch-cpu": "123e1fb3ef1b338cada636e71c3e9c7987002402",
+    "torch-cuda": "123e1fb3ef1b338cada636e71c3e9c7987002402"
+  },
+  "raw_acquisition_files": 290,
+  "supplemental_files_added_under_acquisition_after_transfer": [
+    "committed-source-verification.json",
+    "torch-environment-diagnostic.json",
+    "inspect-torch-environment.py"
+  ],
+  "acquisition_files_preserved": true,
+  "qualification_runs": 4,
+  "timed_processes": 16,
+  "scientific_status": "FAIL",
+  "equal_output_speedup_eligible": false,
+  "source_reconstruction": "Every tracked-source hash independently verified against the real Git commits; native binaries supported by build/import receipts.",
+  "dependency_scope": "Runtime versions plus disclosed post-run metadata-selection diagnostic; no retrospective worker Torch binary hashes."
+}
