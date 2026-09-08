@@ -27,9 +27,10 @@ This modules provides python contexts that set the default behavior for PyCBC
 objects.
 """
 
+import ctypes
 import logging
 import os
-from functools import wraps
+from functools import lru_cache, wraps
 
 import pycbc
 
@@ -37,6 +38,12 @@ from .libutils import get_ctypes_library
 from .pool import use_mpi
 
 logger = logging.getLogger("pycbc.scheme")
+
+
+@lru_cache(maxsize=1)
+def _resolve_libgomp():
+    """Resolve the process-global GNU OpenMP runtime once."""
+    return get_ctypes_library("gomp", ["gomp"], mode=ctypes.RTLD_GLOBAL)
 
 
 class _SchemeManager(object):
@@ -65,7 +72,6 @@ class _SchemeManager(object):
 
 # Create the global processing scheme manager
 mgr = _SchemeManager()
-DefaultScheme = None
 default_context = None
 
 
@@ -75,22 +81,25 @@ class Scheme(object):
     _single = None
 
     def __init__(self):
+        self._owns_singleton = False
         if DefaultScheme is type(self):
             return
         if Scheme._single is not None:
             raise RuntimeError("Only one processing scheme can be used")
         Scheme._single = True
+        self._owns_singleton = True
 
     def __enter__(self):
         mgr.shift_to(self)
         mgr.lock()
+        return self
 
     def __exit__(self, type, value, traceback):
         mgr.unlock()
         mgr.shift_to(default_context)
 
     def __del__(self):
-        if Scheme is not None:
+        if Scheme is not None and getattr(self, "_owns_singleton", False):
             Scheme._single = None
 
 
@@ -183,6 +192,107 @@ class CUPYScheme(Scheme):
         self.cuda_device.__exit__(*args)
 
 
+class TorchScheme(Scheme):
+    """Context that sets PyCBC objects to use a Torch processing scheme."""
+
+    def __init__(self, device=None, num_threads=None):
+        # A Torch scheme does not create a process-global driver context.
+        # Scheme.__enter__ still prevents simultaneous active schemes, but
+        # lightweight Torch scheme objects may safely coexist.
+        if not pycbc.HAVE_TORCH:
+            raise RuntimeError("Install PyTorch to use the Torch processing scheme.")
+
+        try:
+            import torch
+        except Exception as exc:
+            raise RuntimeError(
+                "PyTorch was found but could not be imported; install a "
+                "working PyTorch package to use the Torch processing scheme."
+            ) from exc
+
+        self._torch = torch
+        self.device_spec = "cpu" if device in (None, "") else device
+        self.torch_device = torch.device(self.device_spec)
+
+        if self.torch_device.type == "cuda":
+            if not torch.cuda.is_available():
+                raise RuntimeError(
+                    "Torch CUDA device requested but CUDA is unavailable."
+                )
+        elif self.torch_device.type == "mps":
+            if not torch.backends.mps.is_available():
+                raise RuntimeError("Torch MPS device requested but MPS is unavailable.")
+        elif self.torch_device.type != "cpu":
+            raise RuntimeError(f"Unsupported Torch device {self.device_spec}")
+
+        # Alias used by backends to locate the target device
+        self.device = self.torch_device
+        self.prefix = "torch"
+        if num_threads is not None:
+            num_threads = int(num_threads)
+            if num_threads <= 0:
+                raise ValueError(f"num_threads must be positive, got {num_threads}")
+        self.num_threads = num_threads
+        self._thread_state = None
+
+    def __deepcopy__(self, memo):
+        # Arrays share their processing context. Copying one must not clone
+        # the Torch module or ownership of saved process-wide thread settings.
+        memo[id(self)] = self
+        return self
+
+    def _restore_thread_state(self):
+        """Restore thread settings saved by the current context entry."""
+        state = self._thread_state
+        self._thread_state = None
+        if state is None:
+            return
+
+        torch_threads, openmp_runtime, openmp_threads = state
+        try:
+            self._torch.set_num_threads(torch_threads)
+        finally:
+            if openmp_runtime is not None:
+                openmp_runtime.omp_set_num_threads(openmp_threads)
+
+    def __enter__(self):
+        super().__enter__()
+        try:
+            if self.device.type == "cpu" and self.num_threads is not None:
+                torch_threads = self._torch.get_num_threads()
+                openmp_runtime = None
+                openmp_threads = None
+                try:
+                    runtime = _resolve_libgomp()
+                    if runtime is not None:
+                        openmp_threads = runtime.omp_get_max_threads()
+                        openmp_runtime = runtime
+                except Exception:
+                    pass
+
+                self._thread_state = (
+                    torch_threads,
+                    openmp_runtime,
+                    openmp_threads,
+                )
+                self._torch.set_num_threads(self.num_threads)
+                if openmp_runtime is not None:
+                    openmp_runtime.omp_set_num_threads(self.num_threads)
+        except Exception:
+            try:
+                self._restore_thread_state()
+            finally:
+                super().__exit__(None, None, None)
+            raise
+        return self
+
+    def __exit__(self, type, value, traceback):
+        try:
+            self._restore_thread_state()
+        finally:
+            super().__exit__(type, value, traceback)
+
+
 class CPUScheme(Scheme):
     def __init__(self, num_threads=1):
         if isinstance(num_threads, int):
@@ -197,22 +307,29 @@ class CPUScheme(Scheme):
 
     def __enter__(self):
         Scheme.__enter__(self)
+        # CPUScheme loads libgomp globally below.  If MKL keeps its default
+        # Intel OpenMP layer, threaded DFTI calls can silently return corrupt
+        # data once libgomp (including Torch's copy) is present. Default to
+        # the compatible GNU layer, preserving explicit process settings.
+        if pycbc.HAVE_MKL:
+            os.environ.setdefault("MKL_THREADING_LAYER", "GNU")
         try:
-            self._libgomp = get_ctypes_library(
-                "gomp", ["gomp"], mode=ctypes.RTLD_GLOBAL
-            )
-        except:
+            self._libgomp = _resolve_libgomp()
+        except Exception:
             # Should we fail or give a warning if we cannot import
             # libgomp? Seems to work even for MKL scheme, but
             # not entirely sure why...
             pass
 
-        os.environ["OMP_NUM_THREADS"] = str(self.num_threads)
+        num_threads_str = str(self.num_threads)
+        if os.environ.get("OMP_NUM_THREADS") != num_threads_str:
+            os.environ["OMP_NUM_THREADS"] = num_threads_str
         if self._libgomp is not None:
             self._libgomp.omp_set_num_threads(int(self.num_threads))
 
     def __exit__(self, type, value, traceback):
-        os.environ["OMP_NUM_THREADS"] = "1"
+        if os.environ.get("OMP_NUM_THREADS") != "1":
+            os.environ["OMP_NUM_THREADS"] = "1"
         if self._libgomp is not None:
             self._libgomp.omp_set_num_threads(1)
         Scheme.__exit__(self, type, value, traceback)
@@ -235,13 +352,15 @@ scheme_prefix = {
     CUPYScheme: "cupy",
     MKLScheme: "mkl",
     NumpyScheme: "numpy",
+    TorchScheme: "torch",
 }
 _scheme_map = {v: k for (k, v) in scheme_prefix.items()}
 
-_default_scheme_prefix = os.getenv("PYCBC_SCHEME", "cpu")
+_default_scheme_raw = os.getenv("PYCBC_SCHEME", "cpu")
+_default_scheme_prefix, _, _default_scheme_extra = _default_scheme_raw.partition(":")
 try:
     _default_scheme_class = _scheme_map[_default_scheme_prefix]
-except KeyError as exc:
+except KeyError:
     raise RuntimeError(
         "PYCBC_SCHEME={!r} not recognised, please select one of: {}".format(
             _default_scheme_prefix,
@@ -250,8 +369,44 @@ except KeyError as exc:
     )
 
 
+def _parse_torch_scheme_extra(extra):
+    if not extra:
+        return None, None
+    if extra.isdigit():
+        return "cpu", int(extra)
+    if extra.startswith("cpu:") and extra[4:].isdigit():
+        return "cpu", int(extra[4:])
+    return extra, None
+
+
+def _torch_device_from_cli(device, device_id):
+    """Apply the shared CLI device ID to an unindexed Torch accelerator."""
+    if device in ("cuda", "mps"):
+        return f"{device}:{device_id}"
+    return device
+
+
 class DefaultScheme(_default_scheme_class):
-    pass
+    def __init__(self):
+        extra = _default_scheme_extra if _default_scheme_extra else None
+
+        if _default_scheme_prefix == "torch":
+            dev, numt = _parse_torch_scheme_extra(extra)
+            super().__init__(device=dev, num_threads=numt)
+        elif _default_scheme_prefix == "cuda":
+            dev = int(extra) if extra and extra.isdigit() else 0
+            super().__init__(device_num=dev)
+        elif _default_scheme_prefix in ("cpu", "mkl"):
+            if extra is None:
+                super().__init__()
+            else:
+                numt = extra if not extra.isdigit() else int(extra)
+                super().__init__(num_threads=numt)
+        elif _default_scheme_prefix == "cupy":
+            dev = int(extra) if extra and extra.isdigit() else None
+            super().__init__(device_num=dev)
+        else:
+            super().__init__()
 
 
 default_context = DefaultScheme()
@@ -261,6 +416,18 @@ scheme_prefix[DefaultScheme] = _default_scheme_prefix
 
 def current_prefix():
     return scheme_prefix[type(mgr.state)]
+
+
+def current_backend_key():
+    """Return a hashable identity for scheme-owned reusable resources."""
+    state = mgr.state
+    return (
+        current_prefix(),
+        type(state),
+        getattr(state, "device", None),
+        getattr(state, "device_num", None),
+        getattr(state, "num_threads", None),
+    )
 
 
 _import_cache = {}
@@ -309,10 +476,9 @@ def cpuonly(func):
     def _cpuonly(*args, **kwds):
         if not issubclass(type(mgr.state), CPUScheme):
             raise TypeError(
-                fn.__name__ + " can only be called from a CPU processing scheme."
+                func.__name__ + " can only be called from a CPU processing scheme."
             )
-        else:
-            return func(*args, **kwds)
+        return func(*args, **kwds)
 
     return _cpuonly
 
@@ -370,15 +536,21 @@ def from_cli(opt):
     ctx: Scheme
         Returns the requested processing scheme.
     """
-    scheme_str = opt.processing_scheme.split(":")
+    scheme_str = opt.processing_scheme.split(":", 1)
     name = scheme_str[0]
+    extra = scheme_str[1] if len(scheme_str) > 1 else None
 
     if name == "cuda":
         logger.info("Running with CUDA support")
         ctx = CUDAScheme(opt.processing_device_id)
+    elif name == "torch":
+        dev, numt = _parse_torch_scheme_extra(extra)
+        dev = _torch_device_from_cli(dev, opt.processing_device_id)
+        ctx = TorchScheme(device=dev, num_threads=numt)
+        logger.info("Running with Torch support on device %s", ctx.torch_device)
     elif name == "mkl":
-        if len(scheme_str) > 1:
-            numt = scheme_str[1]
+        if extra:
+            numt = extra
             if numt.isdigit():
                 numt = int(numt)
             ctx = MKLScheme(num_threads=numt)
@@ -389,8 +561,8 @@ def from_cli(opt):
         logger.info("Running with CUPY support")
         ctx = CUPYScheme()
     else:
-        if len(scheme_str) > 1:
-            numt = scheme_str[1]
+        if extra:
+            numt = extra
             if numt.isdigit():
                 numt = int(numt)
             ctx = CPUScheme(num_threads=numt)
