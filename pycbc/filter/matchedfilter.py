@@ -1060,7 +1060,13 @@ def sigmasq_series(htilde, psd=None, low_frequency_cutoff=None,
     if psd is not None:
         mag /= psd
 
-    sigma_vec[kmin:kmax] = mag[kmin:kmax].cumsum()
+    mag = mag[kmin:kmax]
+    if (mag.dtype == numpy.float32 and
+            isinstance(pycbc.scheme.mgr.state, pycbc.scheme.CPUScheme)):
+        # Long float32 scans lose small tail contributions and can shift
+        # equal-power chi-squared bins. Keep the public output precision.
+        mag = mag.astype(numpy.float64)
+    sigma_vec[kmin:kmax] = mag.cumsum()
 
     return sigma_vec*norm
 
