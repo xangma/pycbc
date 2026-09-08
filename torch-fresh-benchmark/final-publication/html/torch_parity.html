@@ -1,0 +1,321 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Torch scientific parity &mdash; PyCBC 0.0a9340 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css?v=7f9a90b1" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f37f9c75"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/typed.min.js?v=edb71f0b"></script>
+      <script src="_static/terminal.css?v=d691274a"></script>
+      <script src="_static/theme_overrides.css?v=e4e1d026"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Torch maintainer workflow" href="torch_workflows.html" />
+    <link rel="prev" title="Testing Torch changes" href="torch_testing.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+
+          
+          
+          <a href="index.html">
+            
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="torch.html">Using PyCBC with PyTorch</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="torch.html#quick-start">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#choosing-a-device">Choosing a device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#capabilities-and-fallback">Capabilities and fallback</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#mps-limitations">MPS limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="torch.html#documentation-map">Documentation map</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="torch_runtime.html">PyTorch runtime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_filtering.html">Torch filtering and vetoes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_search.html">Torch event processing and search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_optimizations.html">Torch optimization controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_testing.html">Testing Torch changes</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Torch scientific parity</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#terminology">Terminology</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#reference-and-comparison-design">Reference and comparison design</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#capability-specific-contract">Capability-specific contract</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#waveform-boundary">Waveform boundary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fallback-and-residency">Fallback and residency</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mps-accuracy">MPS accuracy</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parity-artifacts">Parity artifacts</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_workflows.html">Torch maintainer workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_performance.html">Measuring Torch performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_reference_campaign.html">Executable benchmark definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_benchmark_protocol.html">Controlled executable benchmark protocol</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="waveform.html">Waveforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="waveform_plugin.html">Making new waveform approximants available to PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installing PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Referenced API objects</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyCBC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="torch.html">Using PyCBC with PyTorch</a></li>
+      <li class="breadcrumb-item active">Torch scientific parity</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/gwastro/pycbc/blob/master/docs/torch_parity.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="torch-scientific-parity">
+<span id="torch-parity"></span><h1>Torch scientific parity<a class="headerlink" href="#torch-scientific-parity" title="Link to this heading"></a></h1>
+<p>Benchmark only after scientific values and metadata pass parity for the same
+implementation, device, dtype, shape, and workload. Independent floating-point
+implementations need not be byte-identical unless a test requires it.</p>
+<p>Use <a class="reference internal" href="torch_testing.html#torch-test-groups"><span class="std std-ref">Focused functional groups</span></a> for test commands and <a class="reference internal" href="torch_testing.html#torch-parity-matrix"><span class="std std-ref">Parity matrix</span></a>
+to prepare a reproducible comparison. This page defines what to compare and
+which evidence to retain.</p>
+<section id="terminology">
+<h2>Terminology<a class="headerlink" href="#terminology" title="Link to this heading"></a></h2>
+<dl class="simple">
+<dt>Raw-byte exact</dt><dd><p>Every compared output byte matches, including signed zero. This is unusual
+for independent floating-point implementations.</p>
+</dd>
+<dt>Numerically equivalent</dt><dd><p>Shapes, public dtypes, metadata, finite/non-finite classification, and values
+pass an explicit, justified tolerance and error metric.</p>
+</dd>
+<dt>Route-qualified</dt><dd><p>Numerical equivalence plus evidence that the expected native, optimized, or
+fallback implementation ran on the expected device, with no prohibited host
+conversion.</p>
+</dd>
+<dt>Resident</dt><dd><p>Bulk numerical inputs, intermediates, and outputs stay on the selected
+device over the claimed region. Small scalar control decisions, I/O, and
+documented boundary conversions are excluded only when stated.</p>
+</dd>
+</dl>
+<p>A numerical pass is not evidence of speed, and an output copied to an
+accelerator is not evidence that its generator ran there.</p>
+</section>
+<section id="reference-and-comparison-design">
+<h2>Reference and comparison design<a class="headerlink" href="#reference-and-comparison-design" title="Link to this heading"></a></h2>
+<p>Use the most independent established implementation available. Keep identical
+physical inputs, detector ordering, PSDs, frequency support, thresholds,
+random seeds, and preprocessing. Do not compare two wrappers around the same
+optimized kernel and call the result independent parity.</p>
+<p>For every case:</p>
+<ol class="arabic simple">
+<li><p>record device, dtype, shape, feature flags, route identifier, and reference;</p></li>
+<li><p>compare public shape, dtype, sampling metadata, epoch, support, ordering, and
+output device before comparing values;</p></li>
+<li><p>check NaN, infinity, signed/complex-zero, empty, boundary, duplicate, and
+non-contiguous cases applicable to the API;</p></li>
+<li><p>use the error metric and tolerance encoded by the focused test, and report
+them with the result rather than inventing a shared global tolerance;</p></li>
+<li><p>poison or instrument host conversions when the route claims residency; and</p></li>
+<li><p>force the optional route both on and off, then exercise at least one
+ineligible input to verify the documented fallback or error.</p></li>
+</ol>
+<p>When random input is useful, preserve the seed and serialized input hash.
+Property and metamorphic tests supplement, but do not replace, independent
+reference cases.</p>
+</section>
+<section id="capability-specific-contract">
+<h2>Capability-specific contract<a class="headerlink" href="#capability-specific-contract" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 31.0%" />
+<col style="width: 31.0%" />
+<col style="width: 18.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Area</p></th>
+<th class="head"><p>Scientific comparison</p></th>
+<th class="head"><p>Route and metadata checks</p></th>
+<th class="head"><p>Required error view</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>FFT</p></td>
+<td><p>Established FFT result and forward/inverse reconstruction with the same
+normalization, logical length, and input.</p></td>
+<td><p>Direction, transform kind, length, batch shape, dtype, strides,
+output allocation, device, and optimized/generic route.</p></td>
+<td><p>Absolute and relative complex error over FFT length, batch, and dtype.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Filtering and search</p></td>
+<td><p>Correlation/SNR series plus independently selected thresholds, peaks,
+clustering, and trigger records.</p></td>
+<td><p>Sample spacing, epoch, normalization, template/data order, threshold
+semantics, event ordering, route, and residency.</p></td>
+<td><p>Series error and discrete trigger agreement, including boundary events.</p></td>
+</tr>
+<tr class="row-even"><td><p>Waveforms</p></td>
+<td><p>Independent LAL/existing implementation where available; otherwise an
+analytic or compatible-grid contract.</p></td>
+<td><p>Polarization, frequency support, epoch, delta-f or requested frequency
+order, duplicate frequencies, dtype, device, and native/fallback route.</p></td>
+<td><p>Amplitude and phase/complex error over parameter and frequency grids.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Decompression</p></td>
+<td><p>Established CPU decompressor for supported interpolation methods.</p></td>
+<td><p>For native inline linear/quadratic/cubic/quartic routes, check automatic
+and provided output, zeroed boundaries, dtype, epoch, and output device.
+Treat non-inline SciPy interpolation as a host route.</p></td>
+<td><p>Interpolation error over degree, output precision, sample spacing, and
+device; MPS single precision is a separate comparison class.</p></td>
+</tr>
+<tr class="row-even"><td><p>Inference</p></td>
+<td><p>Existing scalar/NumPy likelihood, relative-binning, and per-detector
+response calculations using identical bins, PSDs, and detectors.</p></td>
+<td><p>Batch axes, detector order, dtype, device, reductions, waveform route,
+and any supported gradient path.</p></td>
+<td><p>Likelihood/response error and gradient error where gradients are part of
+the public contract.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="waveform-boundary">
+<h2>Waveform boundary<a class="headerlink" href="#waveform-boundary" title="Link to this heading"></a></h2>
+<p>The registered native FD and FD-sequence families are <code class="docutils literal notranslate"><span class="pre">TaylorF2</span></code>,
+<code class="docutils literal notranslate"><span class="pre">TaylorF2NLTides</span></code>, <code class="docutils literal notranslate"><span class="pre">TaylorF2RedSpin</span></code>, <code class="docutils literal notranslate"><span class="pre">TaylorF2RedSpinTidal</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">TaylorF2Ecc</span></code>. The registry support predicate remains authoritative.</p>
+<p>Do not classify every sequence port as lacking a LAL reference. Use the
+existing dispatcher/reference when the approximant and sequence interface
+provide one. If no equivalent independent sequence implementation exists,
+compare with analytic identities and a compatible regular-grid call while
+testing requested-frequency order, duplicate frequencies, support boundaries,
+empty input, dtype, and device. The waveform registry, <a class="reference internal" href="waveform.html"><span class="doc">Waveforms</span></a>, and its
+focused tests are the authority for detailed routing.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">TaylorF2</span></code> batch API additionally checks scalar and length-one broadcast,
+inconsistent lengths, row padding, <code class="docutils literal notranslate"><span class="pre">first_bins</span></code>/<code class="docutils literal notranslate"><span class="pre">end_bins</span></code>, common grid
+metadata, batch ordering, and the output tensors’ device.
+Its optional Triton CUDA evaluator must also preserve both complex
+polarizations, non-grid-aligned cutoffs, reference phase, PN/spin/tidal options,
+and exact zero padding. Tests observe a successful Triton kernel launch for
+eligible calls and retain Torch values and gradients for reverse- and
+forward-mode differentiation.</p>
+</section>
+<section id="fallback-and-residency">
+<h2>Fallback and residency<a class="headerlink" href="#fallback-and-residency" title="Link to this heading"></a></h2>
+<p>Test three states for each optional optimization:</p>
+<ul class="simple">
+<li><p><strong>disabled:</strong> the established route remains numerically correct;</p></li>
+<li><p><strong>enabled and eligible:</strong> the intended route is observed and passes parity;</p></li>
+<li><p><strong>enabled but ineligible:</strong> the documented fallback or explicit error occurs
+and preserves the public contract.</p></li>
+</ul>
+<p>Fallback-generated output copied to CUDA or MPS is device-correct but not
+native-generation evidence. Likewise, MPS precision promotion that stages
+through CPU memory is not resident even if its final tensor is on MPS.
+Performance labels and plots must keep these routes separate.</p>
+<p>Host-conversion guards should cover the bulk region claimed as resident.
+Allow only explicit public conversions such as a requested <code class="docutils literal notranslate"><span class="pre">.numpy()</span></code> or
+<code class="docutils literal notranslate"><span class="pre">.lal()</span></code>, compact event materialization, file I/O, and documented fallback
+boundaries.</p>
+</section>
+<section id="mps-accuracy">
+<h2>MPS accuracy<a class="headerlink" href="#mps-accuracy" title="Link to this heading"></a></h2>
+<p>Many MPS operations lack <code class="docutils literal notranslate"><span class="pre">float64</span></code> or <code class="docutils literal notranslate"><span class="pre">complex128</span></code> support. Use the actual
+MPS-compatible public dtype, compare against a reference rounded through the
+same dtype where scientifically appropriate, and retain the focused test’s
+explicit tolerance. Do not silently downcast an API that promises a
+double-precision result. If the public contract cannot be met, guard the route
+or report it unsupported.</p>
+<p>MPS results require real MPS hardware. A conditional skip on a non-MPS runner
+is not a parity pass, and a CPU-emulated check is not MPS evidence.</p>
+</section>
+<section id="parity-artifacts">
+<h2>Parity artifacts<a class="headerlink" href="#parity-artifacts" title="Link to this heading"></a></h2>
+<p>Store machine-readable case rows containing input or input hash, reference and
+candidate route, device, dtype, dimensions, all error metrics, tolerance,
+metadata checks, residency result, pass/fail/skip reason, source revision, and
+test command. Preserve failures and unsupported cells.</p>
+<p>The parity/error plot required by <a class="reference internal" href="torch_performance.html#torch-performance"><span class="std std-ref">Measuring Torch performance</span></a> must be derived from
+these rows for every timed route. A plot without the raw parity artifact cannot
+qualify a benchmark.</p>
+<p>Focused and full validation commands are maintained in
+<a class="reference internal" href="torch_testing.html#torch-testing"><span class="std std-ref">Testing Torch changes</span></a>. Device skips must be counted and reported separately from
+passes.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="torch_testing.html" class="btn btn-neutral float-left" title="Testing Torch changes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="torch_workflows.html" class="btn btn-neutral float-right" title="Torch maintainer workflow" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015, 2016, 2017, Alexander Nitz, Ian Harry, Christopher M. Biwer, Duncan A.  Brown, Josh Willis, and Tito Dal Canton.
+      <span class="lastupdated">Last updated on Sep 08, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

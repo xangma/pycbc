@@ -1,0 +1,289 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Measuring Torch performance &mdash; PyCBC 0.0a9340 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css?v=7f9a90b1" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f37f9c75"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/typed.min.js?v=edb71f0b"></script>
+      <script src="_static/terminal.css?v=d691274a"></script>
+      <script src="_static/theme_overrides.css?v=e4e1d026"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Executable benchmark definition" href="torch_reference_campaign.html" />
+    <link rel="prev" title="Torch maintainer workflow" href="torch_workflows.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+
+          
+          
+          <a href="index.html">
+            
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="torch.html">Using PyCBC with PyTorch</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="torch.html#quick-start">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#choosing-a-device">Choosing a device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#capabilities-and-fallback">Capabilities and fallback</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#mps-limitations">MPS limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="torch.html#documentation-map">Documentation map</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="torch_runtime.html">PyTorch runtime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_filtering.html">Torch filtering and vetoes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_search.html">Torch event processing and search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_optimizations.html">Torch optimization controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_testing.html">Testing Torch changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_parity.html">Torch scientific parity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_workflows.html">Torch maintainer workflow</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Measuring Torch performance</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#fresh-complete-executable-results">Fresh complete-executable results</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#choose-the-measurement-boundary">Choose the measurement boundary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compare-equivalent-work">Compare equivalent work</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#report-results-with-their-evidence">Report results with their evidence</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_reference_campaign.html">Executable benchmark definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_benchmark_protocol.html">Controlled executable benchmark protocol</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="waveform.html">Waveforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="waveform_plugin.html">Making new waveform approximants available to PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installing PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Referenced API objects</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyCBC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="torch.html">Using PyCBC with PyTorch</a></li>
+      <li class="breadcrumb-item active">Measuring Torch performance</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/gwastro/pycbc/blob/master/docs/torch_performance.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="measuring-torch-performance">
+<span id="torch-benchmark-status"></span><span id="torch-optimization-results"></span><span id="torch-inspiral-optimized"></span><span id="torch-performance-summary"></span><span id="torch-performance"></span><h1>Measuring Torch performance<a class="headerlink" href="#measuring-torch-performance" title="Link to this heading"></a></h1>
+<p>Compare backends using the same inputs, scientific settings and completed
+work. Record the exact source revisions and test numerical agreement before
+collecting timings. Device selection alone does not establish a speedup:
+setup, transfers and host work can dominate small workloads.</p>
+<section id="fresh-complete-executable-results">
+<h2>Fresh complete-executable results<a class="headerlink" href="#fresh-complete-executable-results" title="Link to this heading"></a></h2>
+<p>Measured on <strong>2026-09-08</strong>, using four fresh unprofiled processes per route
+in rotating order after scientific qualification. The workload contains
+<strong>384 compressed templates, five segments and 1904 unique H1 seconds</strong>
+(731,136 template-seconds; 1920 template/segment pairs).</p>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Complete-executable wall times</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 16.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 22.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Route</p></th>
+<th class="head"><p>Median (s)</p></th>
+<th class="head"><p>Range (s)</p></th>
+<th class="head"><p>Original CPU / route</p></th>
+<th class="head"><p>Template-seconds / wall second</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Original CPU</p></td>
+<td><p>65.52</p></td>
+<td><p>65.37–66.28</p></td>
+<td><p>1.00×</p></td>
+<td><p>11,159</p></td>
+</tr>
+<tr class="row-odd"><td><p>Candidate CPU</p></td>
+<td><p>64.91</p></td>
+<td><p>64.74–65.02</p></td>
+<td><p>1.01×</p></td>
+<td><p>11,265</p></td>
+</tr>
+<tr class="row-even"><td><p>Torch CPU</p></td>
+<td><p>103.52</p></td>
+<td><p>103.48–103.86</p></td>
+<td><p>0.63×</p></td>
+<td><p>7,063</p></td>
+</tr>
+<tr class="row-odd"><td><p>Torch CUDA</p></td>
+<td><p>31.97</p></td>
+<td><p>31.91–32.02</p></td>
+<td><p>2.05×</p></td>
+<td><p>22,871</p></td>
+</tr>
+</tbody>
+</table>
+<p>Each process was pinned to logical CPU 8 of an AMD Ryzen Threadripper PRO
+3995WX, with numerical thread pools fixed to one. The Torch routes also set
+intra/inter-op counts to one. CUDA used an NVIDIA GeForce RTX 4090 with
+graphs disabled. The host and
+GPU were shared and unreserved. Ranges show the four observed samples; these
+results do not establish sustained or full-machine capacity.</p>
+<p>The timing boundary runs from checked-process launch through exit, including
+startup, input preparation, filtering, vetoes, HDF output and runtime
+verification. Qualification instrumentation and parent-side comparisons are
+outside this boundary. The rate divides 731,136 template-seconds by the
+median wall time; the ratio divides the original CPU median by each route’s
+median.</p>
+<p>All four routes produced <strong>1988 triggers</strong> and passed all five frozen
+cross-route trigger and complete-PSD comparisons. Original and candidate
+CPU scientific data and PSDs were byte-identical. Every timed output also
+passed comparison with its route’s fresh qualification.</p>
+<p>Measured sources: original CPU
+<code class="docutils literal notranslate"><span class="pre">40e94792b3edf59f39b18b65102b28a4f74433a7</span></code> and candidate main
+<code class="docutils literal notranslate"><span class="pre">eb8fef9ed1d06378b59cae8439fd40af63827575</span></code>. The optional FFT and
+native CPU optimization branches are outside this measurement. See the
+<a class="reference external" href="https://github.com/xangma/pycbc/tree/134ecb2586b2e2fc6272924e9cffdf15e51e6f39/torch-fresh-benchmark">immutable benchmark evidence</a>
+for every sample, command, input hash, environment record and independent
+verification, and <a class="reference internal" href="torch_reference_campaign.html#torch-reference-campaign"><span class="std std-ref">Executable benchmark definition</span></a> for the workload and gates.</p>
+</section>
+<section id="choose-the-measurement-boundary">
+<h2>Choose the measurement boundary<a class="headerlink" href="#choose-the-measurement-boundary" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 45.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Measurement</p></th>
+<th class="head"><p>Included work</p></th>
+<th class="head"><p>Definition</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Complete executable</p></td>
+<td><p>Process startup, frame I/O, conditioning, PSD estimation, template
+preparation, filtering, vetoes and completed HDF output.</p></td>
+<td><p><a class="reference internal" href="torch_reference_campaign.html#torch-reference-campaign"><span class="std std-ref">Executable benchmark definition</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Prepared live-filter API</p></td>
+<td><p>Calls to <code class="docutils literal notranslate"><span class="pre">LiveBatchMatchedFilter.process_data</span></code> with prepared
+frequency-domain inputs, including filtering, peak selection and vetoes.</p></td>
+<td><p><a class="reference internal" href="torch_batch_numerics.html#torch-batch-numerics"><span class="std std-ref">Live-filter benchmark definition and accuracy</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>Individual operation</p></td>
+<td><p>A declared kernel or public API call, with allocation, transfer,
+compilation and synchronization costs identified explicitly.</p></td>
+<td><p><a class="reference internal" href="torch_benchmark_protocol.html#torch-benchmark-protocol"><span class="std std-ref">Controlled executable benchmark protocol</span></a></p></td>
+</tr>
+</tbody>
+</table>
+<p>Report these boundaries separately. A prepared API rate does not include the
+startup and preparation costs of an executable. An individual operation’s
+speedup does not establish the speedup of a complete search.</p>
+</section>
+<section id="compare-equivalent-work">
+<h2>Compare equivalent work<a class="headerlink" href="#compare-equivalent-work" title="Link to this heading"></a></h2>
+<p>Use the unchanged CPU reference to check preservation of existing behavior,
+and candidate normal CPU as a dispatch control for Torch CPU and CUDA.
+Require all frozen scientific gates to pass before equivalent-output timing.
+The executable workload and its numerical tolerances are defined in
+<a class="reference internal" href="torch_reference_campaign.html#torch-reference-campaign"><span class="std std-ref">Executable benchmark definition</span></a>; the live-filter fixture has a separate
+<a class="reference internal" href="torch_batch_numerics.html#torch-batch-numerics"><span class="std std-ref">numerical method</span></a>.</p>
+<p>Run fresh unprofiled processes in rotating backend order. Separate cold calls,
+warm calls and profiled runs; synchronize accelerators around timed regions.
+Include transfers and host work inside the boundary being measured. Record
+thread limits, allocated cores and GPUs, memory use and host load. Follow
+<a class="reference internal" href="torch_benchmark_protocol.html#torch-benchmark-protocol"><span class="std std-ref">Controlled executable benchmark protocol</span></a> for convergence and full-machine experiments.</p>
+</section>
+<section id="report-results-with-their-evidence">
+<h2>Report results with their evidence<a class="headerlink" href="#report-results-with-their-evidence" title="Link to this heading"></a></h2>
+<p>For each source and backend, retain input and output hashes, full commands,
+environment and native-build identities, test results, scientific comparisons
+and every timing sample. Publish medians and observed ranges with the
+completed-work denominator and resource allocation. Keep raw results and
+profiles in an immutable evidence archive associated with the measured
+revision.</p>
+<p>Qualification runs establish correctness within their tested scope; they are
+not performance samples. Finite-workload measurements do not establish
+sustained or full-machine capacity. Run the relevant checks in
+<a class="reference internal" href="torch_testing.html#torch-testing"><span class="std std-ref">Testing Torch changes</span></a> before benchmarking a changed API.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="torch_workflows.html" class="btn btn-neutral float-left" title="Torch maintainer workflow" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="torch_reference_campaign.html" class="btn btn-neutral float-right" title="Executable benchmark definition" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015, 2016, 2017, Alexander Nitz, Ian Harry, Christopher M. Biwer, Duncan A.  Brown, Josh Willis, and Tito Dal Canton.
+      <span class="lastupdated">Last updated on Sep 08, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

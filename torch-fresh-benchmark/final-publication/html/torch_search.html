@@ -1,0 +1,199 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Torch event processing and search &mdash; PyCBC 0.0a9340 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css?v=7f9a90b1" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f37f9c75"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/typed.min.js?v=edb71f0b"></script>
+      <script src="_static/terminal.css?v=d691274a"></script>
+      <script src="_static/theme_overrides.css?v=e4e1d026"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Torch optimization controls" href="torch_optimizations.html" />
+    <link rel="prev" title="Torch filtering and vetoes" href="torch_filtering.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+
+          
+          
+          <a href="index.html">
+            
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="torch.html">Using PyCBC with PyTorch</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="torch.html#quick-start">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#choosing-a-device">Choosing a device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#capabilities-and-fallback">Capabilities and fallback</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#mps-limitations">MPS limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="torch.html#documentation-map">Documentation map</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="torch_runtime.html">PyTorch runtime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_filtering.html">Torch filtering and vetoes</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Torch event processing and search</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#offline-symmetric-filtering">Offline symmetric filtering</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_optimizations.html">Torch optimization controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_testing.html">Testing Torch changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_parity.html">Torch scientific parity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_workflows.html">Torch maintainer workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_performance.html">Measuring Torch performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_reference_campaign.html">Executable benchmark definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_benchmark_protocol.html">Controlled executable benchmark protocol</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="waveform.html">Waveforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="waveform_plugin.html">Making new waveform approximants available to PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installing PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Referenced API objects</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyCBC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="torch.html">Using PyCBC with PyTorch</a></li>
+      <li class="breadcrumb-item active">Torch event processing and search</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/gwastro/pycbc/blob/master/docs/torch_search.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="torch-event-processing-and-search">
+<h1>Torch event processing and search<a class="headerlink" href="#torch-event-processing-and-search" title="Link to this heading"></a></h1>
+<p>Torch event support builds on <a class="reference internal" href="torch_filtering.html"><span class="doc">Torch filtering and vetoes</span></a>. Selected ranking,
+coincidence, cut, significance and live-search kernels preserve compatible
+tensor storage. Search orchestration, template/PSD setup and trigger assembly
+can still use NumPy or host values before serialization. Support for these
+kernels does not establish residency of a complete search.</p>
+<p><code class="docutils literal notranslate"><span class="pre">LiveBatchMatchedFilter</span></code> supports Torch batch correlation, inverse FFTs,
+peak selection and signal-consistency vetoes. Its data reader can supply
+Torch-backed strain; <code class="docutils literal notranslate"><span class="pre">StrainBuffer</span></code> can cache overwhitened data on that device.
+It clears interpolated PSD caches when replacing or invalidating its PSD, and
+clears cached overwhitened segments when advancing the strain buffer.</p>
+<p>CUDA graph and asynchronous stream paths default to disabled. Request them
+with the <code class="docutils literal notranslate"><span class="pre">enable_cuda_graphs</span></code> and <code class="docutils literal notranslate"><span class="pre">enable_async_streams</span></code> constructor
+arguments. Each defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>, which reads <code class="docutils literal notranslate"><span class="pre">PYCBC_ENABLE_CUDA_GRAPHS</span></code>
+or <code class="docutils literal notranslate"><span class="pre">PYCBC_TORCH_ASYNC_STREAMS</span></code>, respectively. The environment enables a path
+with <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">true</span></code>, <code class="docutils literal notranslate"><span class="pre">yes</span></code> or <code class="docutils literal notranslate"><span class="pre">on</span></code> (ignoring case and surrounding spaces);
+an explicit boolean argument takes precedence. Storage, shape, stream and
+differentiation checks still determine eligibility for a particular batch.
+See <a class="reference internal" href="torch_optimizations.html#torch-optimizations"><span class="std std-ref">Torch optimization controls</span></a> for the other optional routes and their defaults.</p>
+<p>The integration suites are <code class="docutils literal notranslate"><span class="pre">test_live_batch_torch_fft_integration.py</span></code> and
+<code class="docutils literal notranslate"><span class="pre">test_live_batch_torch_peaks.py</span></code> under <code class="docutils literal notranslate"><span class="pre">test/</span></code>. Event, peak and storage
+regressions are grouped in <code class="docutils literal notranslate"><span class="pre">test_torch_event_pipeline.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">test_torch_event_kernels.py</span></code>, <code class="docutils literal notranslate"><span class="pre">test_torch_peak_contracts.py</span></code> and
+<code class="docutils literal notranslate"><span class="pre">test_torch_cuda_native_peaks.py</span></code>. <code class="docutils literal notranslate"><span class="pre">test_live_batch_veto_reuse.py</span></code> checks
+correlation workspace reuse through veto calculation;
+<code class="docutils literal notranslate"><span class="pre">test_torch_cuda_peak_host_read.py</span></code> checks that returned host arrays are
+ready for immediate use. Run the CUDA suites on a CUDA host when qualifying
+graph or stream behavior.</p>
+<section id="offline-symmetric-filtering">
+<h2>Offline symmetric filtering<a class="headerlink" href="#offline-symmetric-filtering" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">MatchedFilterControl</span></code> can capture correlation, inverse FFT and symmetric
+clustering on CUDA. This path defaults to disabled and is separate from the
+live-batch graph option above. Call
+<code class="docutils literal notranslate"><span class="pre">control.capture_cuda_graph_symm(segnum,</span> <span class="pre">window,</span> <span class="pre">template_norm)</span></code> to attempt
+capture; it returns whether capture succeeded and enables replay on success.
+<code class="docutils literal notranslate"><span class="pre">PYCBC_TORCH_CUDA_GRAPH=1</span></code> only requests replay of existing captures. Setting
+the environment variable alone does not capture a graph or accelerate an
+ordinary offline executable run. Capture requires Triton,
+eligible contiguous complex64 buffers on the current CUDA device, a single
+FFT, a fixed analysis window and clustering window, and sequential calls in
+the same process, thread and CUDA stream. Gradient, inference-mode and autocast
+inputs are ineligible.</p>
+<p>Template and segment contents, normalization and threshold can change in place.
+Changing bound storage, tensor geometry, methods or the window invalidates the
+capture, synchronizes its resources and falls back to eager filtering. Call
+<code class="docutils literal notranslate"><span class="pre">control.clear_cuda_graphs()</span></code> to release captures and permit a fresh opt-in.
+Capture or execution failures propagate after cleanup; unsupported bindings
+return to eager filtering. CUDA graphs inherited across a fork cannot be
+released or reused in the child; that case raises an error. Create the CUDA
+controller in the process that will use it.</p>
+<p>Retained sparse indices and values own their storage. Copy full SNR or
+correlation arrays if they must survive the controller’s next operation, since
+those arrays use its scratch workspace. Real CUDA coverage is in
+<code class="docutils literal notranslate"><span class="pre">test/test_torch_offline_cuda_graph.py</span></code>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="torch_filtering.html" class="btn btn-neutral float-left" title="Torch filtering and vetoes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="torch_optimizations.html" class="btn btn-neutral float-right" title="Torch optimization controls" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015, 2016, 2017, Alexander Nitz, Ian Harry, Christopher M. Biwer, Duncan A.  Brown, Josh Willis, and Tito Dal Canton.
+      <span class="lastupdated">Last updated on Sep 08, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

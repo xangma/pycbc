@@ -1,0 +1,252 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live-filter benchmark definition and accuracy &mdash; PyCBC 0.0a9340 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css?v=7f9a90b1" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f37f9c75"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/typed.min.js?v=edb71f0b"></script>
+      <script src="_static/terminal.css?v=d691274a"></script>
+      <script src="_static/theme_overrides.css?v=e4e1d026"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Waveforms" href="waveform.html" />
+    <link rel="prev" title="Controlled executable benchmark protocol" href="torch_benchmark_protocol.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+
+          
+          
+          <a href="index.html">
+            
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="torch.html">Using PyCBC with PyTorch</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="torch.html#quick-start">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#choosing-a-device">Choosing a device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#capabilities-and-fallback">Capabilities and fallback</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#mps-limitations">MPS limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="torch.html#documentation-map">Documentation map</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="torch_runtime.html">PyTorch runtime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_filtering.html">Torch filtering and vetoes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_search.html">Torch event processing and search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_optimizations.html">Torch optimization controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_testing.html">Testing Torch changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_parity.html">Torch scientific parity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_workflows.html">Torch maintainer workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_performance.html">Measuring Torch performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_reference_campaign.html">Executable benchmark definition</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="torch_benchmark_protocol.html">Controlled executable benchmark protocol</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="torch_benchmark_protocol.html#reference-and-scientific-scope">Reference and scientific scope</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="torch_benchmark_protocol.html#separate-live-filter-api-measurements">Separate live-filter API measurements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_benchmark_protocol.html#workload-convergence-and-timers">Workload convergence and timers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_benchmark_protocol.html#host-conditions-and-full-machine-throughput">Host conditions and full-machine throughput</a></li>
+<li class="toctree-l4"><a class="reference internal" href="torch_benchmark_protocol.html#profile-and-presentation-requirements">Profile and presentation requirements</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="waveform.html">Waveforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="waveform_plugin.html">Making new waveform approximants available to PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installing PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Referenced API objects</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyCBC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="torch.html">Using PyCBC with PyTorch</a></li>
+          <li class="breadcrumb-item"><a href="torch_benchmark_protocol.html">Controlled executable benchmark protocol</a></li>
+      <li class="breadcrumb-item active">Live-filter benchmark definition and accuracy</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/gwastro/pycbc/blob/master/docs/torch_batch_numerics.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="live-filter-benchmark-definition-and-accuracy">
+<span id="torch-batch-numerics"></span><h1>Live-filter benchmark definition and accuracy<a class="headerlink" href="#live-filter-benchmark-definition-and-accuracy" title="Link to this heading"></a></h1>
+<p>This method compares the public <code class="docutils literal notranslate"><span class="pre">LiveBatchMatchedFilter.process_data</span></code> API
+using synthetic frequency-domain inputs. It is a separate experiment from the
+complete-search benchmark in <a class="reference internal" href="torch_reference_campaign.html#torch-reference-campaign"><span class="std std-ref">Executable benchmark definition</span></a>. Use the same
+frozen fixture for the original CPU reference and each candidate backend;
+record the source revisions and qualify every source/backend combination
+before collecting timings.</p>
+<section id="fixed-workload-and-timing">
+<h2>Fixed workload and timing<a class="headerlink" href="#fixed-workload-and-timing" title="Link to this heading"></a></h2>
+<p>Every full worker uses 1024 deterministic <code class="docutils literal notranslate"><span class="pre">complex64</span></code> templates and three
+strain blocks. Templates contain seeded Gaussian complex values from 30 to
+800 Hz, with unequal powers to exercise group normalization. They are synthetic
+arrays, not IMRPhenomD waveforms. The fixture uses a smooth analytic PSD and
+complex frequency-domain noise with four coherent injections per block at
+nominal SNRs 8, 9.5, 11 and 12.5, then divides strain by that PSD.</p>
+<p>The FFT has 131072 samples at 2048 Hz (64 seconds; <code class="docutils literal notranslate"><span class="pre">delta_f</span> <span class="pre">=</span> <span class="pre">0.015625</span></code> Hz).
+Each block advances 56 seconds and searches indices 12288 through 126975.
+This differs from the executable’s sample rate, FFT length and real frame data.
+The fixture hashes the bank, parameters, PSD, normalization and all strain
+blocks; changing batch size does not change those inputs within a seed.</p>
+<p>The API performs correlation, IFFT, normalization, peak selection and vetoes.
+SNR threshold is 5.5. It evaluates 16-bin reduced power chi-square and
+sine-Gaussian chi-square with two configured tiles per trigger; activation and
+valid tile support are checked. Reweighted-SNR and SNR-abort thresholds are
+disabled. This tests their implemented behavior on the fixture, not detection
+sensitivity across an astrophysical population.</p>
+<p>Execution batches are 1, 8, 32, 128, 512 and 1024 on standard CPU/MKL, Torch CPU
+and Torch CUDA. Run workers serially on the same recorded host, with one
+allocated host core and numerical thread; CUDA additionally uses one recorded
+GPU. Rotate route and batch order between repeats. Each worker performs one cold iteration, two warmups and five timed iterations. One
+iteration calls the prepared API for all three blocks, completing 3072
+template-block evaluations. CUDA synchronizes at both timing boundaries.
+Input creation, PSD estimation, waveform/bank preparation, executable startup
+and trigger validation are outside the clock. The reported cell rate is the
+median of three fresh-worker median rates; ranges span those three medians.</p>
+<p>The frozen fixture uses qualification seeds 7102 and 7103 and timing seed
+7102. Qualify every source/backend/batch cell against both the independent
+oracle and the unchanged CPU reference before timing. Include candidate
+normal CPU to check preservation separately from Torch agreement. A changed
+CPU implementation may be studied only as a separately labeled experiment;
+it cannot replace the required original reference.
+Validate every timed call’s triggers outside the clock.
+This establishes finite warm-API behavior under the stated controls; it does
+not establish executable or full-machine capacity.</p>
+</section>
+<section id="adopted-complex-snr-criterion">
+<span id="torch-batch-policy-v2"></span><h2>Adopted complex-SNR criterion<a class="headerlink" href="#adopted-complex-snr-criterion" title="Link to this heading"></a></h2>
+<p>The fixture’s normalized-SNR policy requires, for every block, template and
+complex sample:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>abs(actual_complex_SNR - oracle_complex_SNR) &lt;= 0.001
+abs(actual_complex_SNR - MKL_complex_SNR) &lt;= 0.001
+</pre></div>
+</div>
+<p>Both comparisons are mandatory, with zero relative tolerance. The standard
+CPU/MKL batch-1 reference must itself pass the independent oracle gate for
+this API timing policy. If unchanged CPU fails, retain the failure and stop
+qualification; do not change its arithmetic to make the oracle gate pass. The
+<code class="docutils literal notranslate"><span class="pre">0.001</span></code> budget extends the existing trigger-SNR tolerance to the full complex
+time series: this is a new engineering acceptance criterion, not a pre-existing
+repository guarantee or a proof of unchanged scientific decisions.</p>
+<p>The oracle promotes stored complex64 template and overwhitened strain inputs
+before multiplication and applies an unnormalized NumPy complex128 inverse FFT.
+Its normalization is computed independently from the bank and PSD in float64:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>oracle_sigmasq = 4 * delta_f * sum((real64(bank)**2 + imag64(bank)**2) / PSD64)
+oracle_norm = 4 * delta_f / sqrt(oracle_sigmasq)
+oracle_complex_SNR = oracle_raw_output * oracle_norm
+</pre></div>
+</div>
+<p>Actual and MKL outputs use their observed route normalizations. Qualification
+records the norms and sigmasqs used by the default bulk path, or the actual
+scalar sigma callback, for every row; it verifies the original function, group
+identity and executed branch. A shared fixture normalization is insufficient.
+Every observed sigmasq must agree with the independent value within relative
+<code class="docutils literal notranslate"><span class="pre">1e-3</span></code>. Norms and sigmasqs must be finite and positive, and all complex samples
+finite. Missing or ambiguous observations, missing or duplicate row coverage,
+or inconsistent source, policy, input or reference hashes fail qualification.
+There are no percentile exceptions.</p>
+<p>Existing trigger and veto comparisons remain unchanged: exact identities,
+peak indices, end times and metadata; SNR absolute <code class="docutils literal notranslate"><span class="pre">1e-3</span></code>; circular phase
+absolute <code class="docutils literal notranslate"><span class="pre">1e-3</span></code> radians; sigmasq relative <code class="docutils literal notranslate"><span class="pre">1e-3</span></code>; power chi-square relative
+and absolute <code class="docutils literal notranslate"><span class="pre">1e-4</span></code>; and sine-Gaussian chi-square relative and absolute
+<code class="docutils literal notranslate"><span class="pre">3e-5</span></code>. Small complex error alone cannot guarantee unchanged threshold
+decisions or peak selection near a tie, so the exact trigger gates still apply.</p>
+<p>Relative L2 and FFT-only residuals can be retained as separately named
+diagnostics. No universal norm threshold is introduced. Normalization
+observation and output capture run only during qualification and are restored
+on exit; timing uses the uninstrumented public <code class="docutils literal notranslate"><span class="pre">process_data</span></code> method.</p>
+</section>
+<section id="reproducing-the-numerical-method">
+<h2>Reproducing the numerical method<a class="headerlink" href="#reproducing-the-numerical-method" title="Link to this heading"></a></h2>
+<p>The <a class="reference external" href="https://github.com/xangma/pycbc/tree/b5cf0acf0eeddf20e6ebd51eab19500d5a83c06b/current-batch-sweep-20260907-r4">frozen fixture and qualification policy</a>
+retain deterministic input construction, normalization observation, independent
+oracle and trigger/veto comparisons. Restore them using the archive’s
+instructions, then run new acquisition in separate output directories against
+the named source revisions. Preserve the original fixture and policy hashes;
+record any harness adaptation and verify that it does not alter scientific
+inputs, observed outputs or timing boundaries.</p>
+<p>The archive provides the fixture and method; its recorded results apply only
+to the source revisions it measured. Retain source and native-build
+identities, per-worker receipts, failures and the exact policy with each
+new comparison. Full scientific arrays are omitted from that archive;
+verifying recorded JSON alone does not replay the calculation.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="torch_benchmark_protocol.html" class="btn btn-neutral float-left" title="Controlled executable benchmark protocol" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="waveform.html" class="btn btn-neutral float-right" title="Waveforms" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015, 2016, 2017, Alexander Nitz, Ian Harry, Christopher M. Biwer, Duncan A.  Brown, Josh Willis, and Tito Dal Canton.
+      <span class="lastupdated">Last updated on Sep 08, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

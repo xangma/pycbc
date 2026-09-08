@@ -1,0 +1,287 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Executable benchmark definition &mdash; PyCBC 0.0a9340 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css?v=7f9a90b1" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f37f9c75"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/typed.min.js?v=edb71f0b"></script>
+      <script src="_static/terminal.css?v=d691274a"></script>
+      <script src="_static/theme_overrides.css?v=e4e1d026"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Controlled executable benchmark protocol" href="torch_benchmark_protocol.html" />
+    <link rel="prev" title="Measuring Torch performance" href="torch_performance.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+
+          
+          
+          <a href="index.html">
+            
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="torch.html">Using PyCBC with PyTorch</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="torch.html#quick-start">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#choosing-a-device">Choosing a device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#capabilities-and-fallback">Capabilities and fallback</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#mps-limitations">MPS limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="torch.html#documentation-map">Documentation map</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="torch_runtime.html">PyTorch runtime</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_filtering.html">Torch filtering and vetoes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_search.html">Torch event processing and search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_optimizations.html">Torch optimization controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_testing.html">Testing Torch changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_parity.html">Torch scientific parity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_workflows.html">Torch maintainer workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_performance.html">Measuring Torch performance</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Executable benchmark definition</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#inputs-and-scientific-settings">Inputs and scientific settings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scientific-qualification">Scientific qualification</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#commands-and-reproducibility">Commands and reproducibility</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_benchmark_protocol.html">Controlled executable benchmark protocol</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="waveform.html">Waveforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="waveform_plugin.html">Making new waveform approximants available to PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installing PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Referenced API objects</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyCBC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="torch.html">Using PyCBC with PyTorch</a></li>
+      <li class="breadcrumb-item active">Executable benchmark definition</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/gwastro/pycbc/blob/master/docs/torch_reference_campaign.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="executable-benchmark-definition">
+<span id="torch-inspiral-reference"></span><span id="torch-reference-campaign"></span><h1>Executable benchmark definition<a class="headerlink" href="#executable-benchmark-definition" title="Link to this heading"></a></h1>
+<p>This test runs <code class="docutils literal notranslate"><span class="pre">pycbc_inspiral</span></code> from process launch through completed HDF
+output. It processes real H1 frame data with a fixed compressed low-mass bank,
+including data conditioning, PSD estimation, waveform decompression,
+normalization, scalar matched filtering, power chi-square, clustering and
+trigger output. It does not call <code class="docutils literal notranslate"><span class="pre">LiveBatchMatchedFilter.process_data</span></code>.
+The required reference is unchanged CPU
+<code class="docutils literal notranslate"><span class="pre">40e94792b3edf59f39b18b65102b28a4f74433a7</span></code>. Compare it with candidate
+normal CPU, Torch CPU and Torch CUDA as separate arms, using the same inputs
+and scientific settings.</p>
+<section id="inputs-and-scientific-settings">
+<h2>Inputs and scientific settings<a class="headerlink" href="#inputs-and-scientific-settings" title="Link to this heading"></a></h2>
+<p>The bank contains <strong>384 distinct templates: 256 BNS and 128 NSBH</strong>.
+Masses are detector-frame solar masses; spins are dimensionless aligned
+components. The count ratio is a benchmark choice, not a population weight.</p>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Parameter bounds</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Region</p></th>
+<th class="head"><p>Mass 1</p></th>
+<th class="head"><p>Mass 2</p></th>
+<th class="head"><p>Spin 1z</p></th>
+<th class="head"><p>Spin 2z</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>BNS</p></td>
+<td><p>1.2–2</p></td>
+<td><p>1.2–2</p></td>
+<td><p>-0.05–0.05</p></td>
+<td><p>-0.05–0.05</p></td>
+</tr>
+<tr class="row-odd"><td><p>NSBH</p></td>
+<td><p>3–8</p></td>
+<td><p>1.2–2</p></td>
+<td><p>-0.5–0.5</p></td>
+<td><p>-0.05–0.05</p></td>
+</tr>
+</tbody>
+</table>
+<p>Templates use <code class="docutils literal notranslate"><span class="pre">IMRPhenomD</span></code> at 30 Hz and 4096 Hz sampling, with
+<code class="docutils literal notranslate"><span class="pre">--use-compressed-waveforms</span> <span class="pre">--waveform-decompression-method</span> <span class="pre">inline_linear</span></code>.
+This deterministic set is not a coverage-qualified search bank; it includes
+neither tidal physics nor disruption. The frozen compressed bank SHA256 is
+<code class="docutils literal notranslate"><span class="pre">26050d48322a1d71092bb0e024e71a89ace56b3e7b1c5e4cf20c7b769213fb7f</span></code>.
+Its parameters and construction records are in the <a class="reference external" href="https://github.com/xangma/pycbc/tree/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/inputs">input archive</a>.</p>
+<p>The frame is <code class="docutils literal notranslate"><span class="pre">H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf</span></code>, channel
+<code class="docutils literal notranslate"><span class="pre">H1:LOSC-STRAIN</span></code>, SHA256
+<code class="docutils literal notranslate"><span class="pre">580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865</span></code>.
+The requested GPS input interval is 1187007048–1187009080. The unique valid
+trigger interval is <strong>1187007160–1187009064: 1904 seconds</strong>.</p>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Fixed search configuration</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>FFT geometry</p></td>
+<td><p>512-second segment; 112-second start pad; 16-second end pad;
+2097152 samples; five segments per template</p></td>
+</tr>
+<tr class="row-odd"><td><p>Strain conditioning</p></td>
+<td><p>25 Hz high-pass; 8-second data pad; autogating threshold 100,
+cluster 5 s, width/taper 0.25 s, pad 16 s, one iteration</p></td>
+</tr>
+<tr class="row-even"><td><p>PSD</p></td>
+<td><p>Median estimate; 126 segments of 32 s with 16 s stride;
+16-second inverse spectrum support; Hann truncation of inverse ASD</p></td>
+</tr>
+<tr class="row-odd"><td><p>Trigger selection</p></td>
+<td><p>SNR threshold 5.5; reweighted SNR threshold 5;
+symmetric clustering with a 1-second window</p></td>
+</tr>
+<tr class="row-even"><td><p>Vetoes</p></td>
+<td><p>16-bin power chi-square; sine-Gaussian chi-square is not requested</p></td>
+</tr>
+<tr class="row-odd"><td><p>Backend controls</p></td>
+<td><p>Standard CPU <code class="docutils literal notranslate"><span class="pre">cpu:1</span></code> and Torch CPU <code class="docutils literal notranslate"><span class="pre">torch:cpu:1</span></code> use explicit MKL;
+Torch CUDA <code class="docutils literal notranslate"><span class="pre">torch:cuda:0</span></code> uses one RTX 4090</p></td>
+</tr>
+</tbody>
+</table>
+<p>The geometry was selected on unchanged CPU <code class="docutils literal notranslate"><span class="pre">40e94792b3</span></code> by
+sweeping 256/512/1024 second segments and 96/112 second start padding, with
+16 second end padding.
+Each setting had three fresh processes. The rule selected the lowest median,
+treating settings within 3% as tied, then preferring more start padding and a
+smaller FFT. Retain the selected 512/112/16 second geometry for the
+backend comparison.
+That finite grid and fixed end padding do not establish global optimality or
+fresh boundary-injection validation for every template.</p>
+</section>
+<section id="scientific-qualification">
+<h2>Scientific qualification<a class="headerlink" href="#scientific-qualification" title="Link to this heading"></a></h2>
+<p>Verify that every arm decompresses the compressed bank without waveform
+regeneration, completes all <code class="docutils literal notranslate"><span class="pre">384</span> <span class="pre">*</span> <span class="pre">5</span> <span class="pre">=</span> <span class="pre">1920</span></code> template/segment pairs, and
+covers the same unique valid interval. Compare trigger identities before
+comparing matched fields. Configuration and degrees of freedom must match;
+a stored zero veto field does not prove that the optional veto ran.</p>
+<p>The frozen executable comparator uses relative tolerance <code class="docutils literal notranslate"><span class="pre">1e-4</span></code> and absolute
+tolerance <code class="docutils literal notranslate"><span class="pre">1e-5</span></code>, sigmasq relative tolerance <code class="docutils literal notranslate"><span class="pre">1e-5</span></code>, and circular phase
+absolute tolerance <code class="docutils literal notranslate"><span class="pre">1e-4</span></code> radians. Compare complete PSD references as well as
+SNR, phase, sigmasq and the available veto fields. The full-PSD gate uses
+relative tolerance <code class="docutils literal notranslate"><span class="pre">1e-4</span></code> with zero absolute floor. Retain all failed verdicts.
+Any allowed source or executable-path substitution must be declared separately
+from scientific fields; it must not alter the numerical tolerances or conceal
+missing triggers. Runtime timing metadata is outside scientific comparison:
+exclude only explicitly enumerated timing-field paths, retain their raw values,
+and continue checking scientific metadata such as sampling, epoch and geometry.
+The excluded timing paths are <code class="docutils literal notranslate"><span class="pre">H1/search/filter_rate_per_core</span></code>,
+<code class="docutils literal notranslate"><span class="pre">H1/search/run_time</span></code>, <code class="docutils literal notranslate"><span class="pre">H1/search/setup_time_fraction</span></code> and
+<code class="docutils literal notranslate"><span class="pre">H1/search/templates_per_core</span></code>.</p>
+</section>
+<section id="commands-and-reproducibility">
+<h2>Commands and reproducibility<a class="headerlink" href="#commands-and-reproducibility" title="Link to this heading"></a></h2>
+<p>Prepare the original CPU reference and the exact candidate source in separate
+clean checkouts with matching dependencies. Preserve the measured commits
+and record any later publication mapping separately.</p>
+<p>The <a class="reference external" href="https://github.com/xangma/pycbc/tree/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/inputs">input archive</a>
+provides bank construction records; the <a class="reference external" href="https://github.com/xangma/pycbc/blob/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/REPRODUCE.md">geometry sweep</a>
+records the reference geometry selection.</p>
+<p>Build native modules with recorded flags, or verify native-source identity
+and copied binary hashes if reusing a frozen build. Restore the frozen bank
+and frame by hash, relocate paths into new output directories, and preserve the
+scientific arguments above. Verify that each interpreter imports its intended
+checkout and that the requested processing scheme actually runs. Do not run
+acquisition scripts inside an immutable archive or reuse existing worker output.</p>
+<p>The normal CPU selectors are <code class="docutils literal notranslate"><span class="pre">--processing-scheme</span> <span class="pre">cpu:1</span></code> and
+<code class="docutils literal notranslate"><span class="pre">--fft-backends</span> <span class="pre">mkl</span></code>; Torch CPU uses <code class="docutils literal notranslate"><span class="pre">--processing-scheme</span> <span class="pre">torch:cpu:1</span></code>.
+Torch CUDA uses <code class="docutils literal notranslate"><span class="pre">--processing-scheme</span> <span class="pre">torch:cuda:0</span></code> with one GPU and one host
+thread. Explicitly set and verify Torch intra/inter-op pools and the numerical
+library limits. Keep any required runtime adapter inside the timed command
+and archive its source. Capture the complete expanded argv for all four arms,
+including unchanged data, PSD, veto, clustering and output options.</p>
+<p>Record the hardware, dependency versions and load observations for every
+acquisition. The fixed workload measures finite-process cost; sustained or
+full-machine capacity needs the additional experiments in
+<a class="reference internal" href="torch_benchmark_protocol.html#torch-benchmark-protocol"><span class="std std-ref">Controlled executable benchmark protocol</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="torch_performance.html" class="btn btn-neutral float-left" title="Measuring Torch performance" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="torch_benchmark_protocol.html" class="btn btn-neutral float-right" title="Controlled executable benchmark protocol" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015, 2016, 2017, Alexander Nitz, Ian Harry, Christopher M. Biwer, Duncan A.  Brown, Josh Willis, and Tito Dal Canton.
+      <span class="lastupdated">Last updated on Sep 08, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

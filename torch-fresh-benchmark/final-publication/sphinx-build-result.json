@@ -1,0 +1,57 @@
+{
+  "command": [
+    "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+    "-m",
+    "sphinx",
+    "-b",
+    "html",
+    "-E",
+    "-a",
+    "-W",
+    "--keep-going",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-summary-20260908/render-final/docs",
+    "/Users/xangma/repos/pycbc/artifacts/torch-benchmark-summary-20260908/render-final/html"
+  ],
+  "returncode": 0,
+  "pages": [
+    "torch.rst",
+    "torch_batch_numerics.rst",
+    "torch_benchmark_protocol.rst",
+    "torch_filtering.rst",
+    "torch_optimizations.rst",
+    "torch_parity.rst",
+    "torch_performance.rst",
+    "torch_reference_campaign.rst",
+    "torch_runtime.rst",
+    "torch_search.rst",
+    "torch_testing.rst",
+    "torch_workflows.rst",
+    "waveform.rst",
+    "waveform_plugin.rst",
+    "install.rst",
+    "install_cuda.rst",
+    "install_lalsuite.rst",
+    "install_virtualenv.rst",
+    "docker.rst"
+  ],
+  "runtime": {
+    "pycbc": "/private/tmp/pycbc-torch-parity-docs-runtime-20260908/pycbc/__init__.py",
+    "version": "88878b1c38c952e63002b812058a0c7316123f70",
+    "sphinx": "8.2.3"
+  },
+  "documentation_base": "eb8fef9ed1d06378b59cae8439fd40af63827575",
+  "measured_runtime": "88878b1c38c952e63002b812058a0c7316123f70",
+  "source_mapping": "One documentation-only change from PR15 eb8fef9e. API imports use the measured 88878b1c38 runtime, whose non-documentation tree is byte-identical to the cleaned main tree.",
+  "source_head": "eb8fef9ed1d06378b59cae8439fd40af63827575",
+  "finished": 1788900639.7286882,
+  "environment": {
+    "PYTHONPATH": "/private/tmp/pycbc-torch-parity-docs-runtime-20260908",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "SKIP_PYCBC_DOCS_INCLUDE": "1",
+    "MPLBACKEND": "Agg",
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+  },
+  "scope": "All actual Torch pages plus waveform/plugin/installation dependencies, repository extensions and theme, real plot/command directives, targeted API context; excludes unrelated manual and _include generators, no external intersphinx inventory or remote logo."
+}

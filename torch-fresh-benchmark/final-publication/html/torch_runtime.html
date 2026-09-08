@@ -1,0 +1,252 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PyTorch runtime &mdash; PyCBC 0.0a9340 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css?v=7f9a90b1" />
+      <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=4ae1632d" />
+      <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f37f9c75"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/typed.min.js?v=edb71f0b"></script>
+      <script src="_static/terminal.css?v=d691274a"></script>
+      <script src="_static/theme_overrides.css?v=e4e1d026"></script>
+      <script src="_static/design-tabs.js?v=f930bc37"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Torch filtering and vetoes" href="torch_filtering.html" />
+    <link rel="prev" title="Using PyCBC with PyTorch" href="torch.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+
+          
+          
+          <a href="index.html">
+            
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="torch.html">Using PyCBC with PyTorch</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="torch.html#quick-start">Quick start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#choosing-a-device">Choosing a device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#capabilities-and-fallback">Capabilities and fallback</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#mps-limitations">MPS limitations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="torch.html#troubleshooting">Troubleshooting</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="torch.html#documentation-map">Documentation map</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">PyTorch runtime</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#selecting-a-scheme">Selecting a scheme</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#array-and-execution-contract">Array and execution contract</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="torch_filtering.html">Torch filtering and vetoes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_search.html">Torch event processing and search</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_optimizations.html">Torch optimization controls</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_testing.html">Testing Torch changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_parity.html">Torch scientific parity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_workflows.html">Torch maintainer workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_performance.html">Measuring Torch performance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_reference_campaign.html">Executable benchmark definition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="torch_benchmark_protocol.html">Controlled executable benchmark protocol</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="waveform.html">Waveforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="waveform_plugin.html">Making new waveform approximants available to PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installing PyCBC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">Referenced API objects</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: linear-gradient(0deg, rgba(0,0,0,1) 0%, rgba(193,193,255,1) 85%)" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PyCBC</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="torch.html">Using PyCBC with PyTorch</a></li>
+      <li class="breadcrumb-item active">PyTorch runtime</li>
+      <li class="wy-breadcrumbs-aside">
+              <a href="https://github.com/gwastro/pycbc/blob/master/docs/torch_runtime.rst" class="fa fa-github"> Edit on GitHub</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="pytorch-runtime">
+<span id="torch-runtime"></span><h1>PyTorch runtime<a class="headerlink" href="#pytorch-runtime" title="Link to this heading"></a></h1>
+<p>PyCBC provides an optional Torch processing scheme for its core arrays, time
+and frequency series, FFTs, and selected PSD operations. The scheme selects
+the storage backend and device for supported operations. Individual APIs
+still determine supported shapes, dtypes, and execution routes.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p>Follow <a class="reference internal" href="install.html"><span class="doc">Installing PyCBC</span></a> for PyCBC’s build and scientific dependencies, including
+LALSuite. From a PyCBC checkout, install:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">python -m pip install -e &quot;.[torch]&quot;</span>
+</pre></div>
+</div>
+<p>The extra declares <code class="docutils literal notranslate"><span class="pre">torch&gt;=2.6,&lt;2.14</span></code>. This is an installation constraint;
+it does not mean every version in that interval has been qualified. The extra
+does not select a CUDA-specific wheel. Install the Torch build appropriate
+for your device and driver, then check availability in the same interpreter:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>Ordinary CPU use does not require Torch. Explicitly requesting Torch with a
+missing or unloadable installation raises an error. Requesting unavailable
+CUDA or MPS also raises an error.</p>
+</section>
+<section id="selecting-a-scheme">
+<h2>Selecting a scheme<a class="headerlink" href="#selecting-a-scheme" title="Link to this heading"></a></h2>
+<p>Library callers can select a device with a context:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pycbc.scheme</span><span class="w"> </span><span class="kn">import</span> <span class="n">TorchScheme</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pycbc.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeSeries</span>
+
+<span class="k">with</span> <span class="n">TorchScheme</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">num_threads</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+    <span class="n">series</span> <span class="o">=</span> <span class="n">TimeSeries</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">],</span> <span class="n">delta_t</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">epoch</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+    <span class="n">squared</span> <span class="o">=</span> <span class="n">series</span> <span class="o">*</span> <span class="n">series</span>
+</pre></div>
+</div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">TorchScheme(&quot;cuda:0&quot;)</span></code> or <code class="docutils literal notranslate"><span class="pre">TorchScheme(&quot;mps&quot;)</span></code> for an available
+accelerator. CPU thread counts must be positive. A CPU context with an
+explicit count restores the prior Torch and discovered OpenMP thread settings
+when it exits. Without a count, it keeps Torch’s current thread setting.
+PyCBC’s scheme context is shared process state; overlapping active contexts
+are not supported.</p>
+<p>Applications exposing PyCBC’s standard processing options accept:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 32.0%" />
+<col style="width: 68.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">--processing-scheme</span></code></p></th>
+<th class="head"><p>Selection</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">torch</span></code> or <code class="docutils literal notranslate"><span class="pre">torch:cpu</span></code></p></td>
+<td><p>Torch CPU with the current Torch thread setting.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">torch:4</span></code> or <code class="docutils literal notranslate"><span class="pre">torch:cpu:4</span></code></p></td>
+<td><p>Torch CPU with four threads while the context is active.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">torch:cuda</span></code></p></td>
+<td><p>CUDA using <code class="docutils literal notranslate"><span class="pre">--processing-device-id</span></code> (default zero).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">torch:cuda:1</span></code></p></td>
+<td><p>CUDA device 1; the explicit index takes precedence.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">torch:mps</span></code></p></td>
+<td><p>MPS using <code class="docutils literal notranslate"><span class="pre">--processing-device-id</span></code> (normally zero).</p></td>
+</tr>
+</tbody>
+</table>
+<p>CPU selectors ignore <code class="docutils literal notranslate"><span class="pre">--processing-device-id</span></code>. An explicit index in an
+accelerator selector takes precedence over that option. Selecting a scheme
+does not establish that an application’s complete workflow supports it.</p>
+<p><code class="docutils literal notranslate"><span class="pre">PYCBC_SCHEME</span></code> selects the library’s default context at import time. Set it
+before importing PyCBC, for example <code class="docutils literal notranslate"><span class="pre">PYCBC_SCHEME=torch:cuda:1</span></code>. It does not
+apply the command-line device-ID merge. Applications using the standard
+argument parser default <code class="docutils literal notranslate"><span class="pre">--processing-scheme</span></code> to <code class="docutils literal notranslate"><span class="pre">cpu</span></code>; use that option
+explicitly to select Torch for their processing context.</p>
+</section>
+<section id="array-and-execution-contract">
+<h2>Array and execution contract<a class="headerlink" href="#array-and-execution-contract" title="Link to this heading"></a></h2>
+<p>Torch-backed <code class="docutils literal notranslate"><span class="pre">Array</span></code>, <code class="docutils literal notranslate"><span class="pre">TimeSeries</span></code>, and <code class="docutils literal notranslate"><span class="pre">FrequencySeries</span></code> retain the
+public PyCBC interfaces and series metadata. Supported operations dispatch
+through the active scheme. Scheme or device changes can require a copy;
+<code class="docutils literal notranslate"><span class="pre">copy=False</span></code> construction requires compatible storage, dtype, and scheme.
+For direct access to native storage, use <code class="docutils literal notranslate"><span class="pre">pycbc.types.backend.backend_array</span></code>
+instead of inspecting private array attributes.</p>
+<p>Torch-aware arithmetic and tensor conversions can retain autograd history.
+This does not promise differentiation through every PyCBC operation: in-place
+or output-buffer FFT interfaces retain Torch’s autograd restrictions, and
+explicit conversion to NumPy leaves the Torch graph and device. Verify the
+forward and backward behavior of the particular operation you need.</p>
+<p>Optimized FFT routes have dtype, layout, device, and autograd eligibility
+checks. An ineligible route uses its defined fallback or raises an error;
+there is no universal host fallback for unsupported APIs. A result stored on
+an accelerator does not prove that every intermediate stayed there.</p>
+<p>MPS does not provide the double-precision types required by some operations.
+In particular, absolute <code class="docutils literal notranslate"><span class="pre">TimeSeries.sample_times</span></code> raises <code class="docutils literal notranslate"><span class="pre">TypeError</span></code> under
+an active MPS scheme; use a CPU or CUDA scheme to obtain those coordinates.
+The precision-promoted single-precision batched FFT path stages MPS data
+through CPU memory. Choose supported dtypes explicitly and retain these
+boundaries when interpreting device or performance results.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="torch.html" class="btn btn-neutral float-left" title="Using PyCBC with PyTorch" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="torch_filtering.html" class="btn btn-neutral float-right" title="Torch filtering and vetoes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2015, 2016, 2017, Alexander Nitz, Ian Harry, Christopher M. Biwer, Duncan A.  Brown, Josh Willis, and Tito Dal Canton.
+      <span class="lastupdated">Last updated on Sep 08, 2026.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
