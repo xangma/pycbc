@@ -1,0 +1,15 @@
+FFT backend: pycbc.fft.mkl
+...........................FF.....                                       [100%]
+=================================== FAILURES ===================================
+_____________________ TestMatchedFilter.test_perfect_match _____________________
+test/test_matchedfilter.py:121: in test_perfect_match
+    self.assertAlmostEqual(0,i,places=1)
+E   AssertionError: 0 != -0.06937270748284567 within 1 places (0.06937270748284567 difference)
+_________________ TestMatchedFilter.test_perfect_match_offset __________________
+test/test_matchedfilter.py:139: in test_perfect_match_offset
+    self.assertAlmostEqual(4096*32, i, places=1)
+E   AssertionError: 131072 != 131071.93062729252 within 1 places (0.06937270748312585 difference)
+=========================== short test summary info ============================
+FAILED test/test_matchedfilter.py::TestMatchedFilter::test_perfect_match - As...
+FAILED test/test_matchedfilter.py::TestMatchedFilter::test_perfect_match_offset
+2 failed, 32 passed in 7.84s

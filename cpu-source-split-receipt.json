@@ -1,0 +1,48 @@
+{
+  "base": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+  "source_of_ports": "123e1fb3ef1b338cada636e71c3e9c7987002402",
+  "head": "66789ac4a7468094b0cc3ca1498a1de67e0311f6",
+  "branch": "codex/cpu-precision-corrections-20260908",
+  "worktree": "/private/tmp/pycbc-cpu-precision-corrections-20260908",
+  "commits": [
+    "bd37e124ad30d1bda06156b667a19f2d8c748915 Improve CPU estimated PSD precision for single-precision strain",
+    "597c465008d979cc82bf6a5a7e58a4d93e5853fb Accumulate CPU float32 template power in double precision",
+    "07d0427b7d8fbd194a758df4980b813726ce1eba Correct CPU point chi-squared phase and accumulation precision",
+    "66789ac4a7468094b0cc3ca1498a1de67e0311f6 Transform CPU float32 strain segments in double precision"
+  ],
+  "clean_worktree": true,
+  "files": {
+    "pycbc/filter/matchedfilter.py": "8640fed1c5883276c9f7ca5dd3166ff5e9ea6cfcfb0c46b60070f1b1fdb0c149",
+    "pycbc/psd/__init__.py": "6cc62efa76fe565a005171e784a9221e943ee70297ff6d03e3425f1bb7dc7ce6",
+    "pycbc/strain/strain.py": "5622a0a7eb47568c7b2ca810c41b27422e7a565a02b7836338d97288ed8171d7",
+    "pycbc/vetoes/chisq.py": "f4338a79cb86b0d979dcce7d6eda36d8ef8261e8d76774dd91f888345e291bae",
+    "test/test_chisq_precision.py": "1d829c446fb89abed94847a07d437022c40e314e4baab153a7d996994b9da867",
+    "test/test_sigmasq_series_precision.py": "5c572552d0cde740f116df4e44f544533d0699fc87cdca491dc82c0f21a97d04",
+    "test/test_strain_psd_precision.py": "001f386f22da9a9443882d77c56a83d616f070d8381bd8b961fdbf2604677319"
+  },
+  "native_kernel_git_blobs": {
+    "40e94792b3edf59f39b18b65102b28a4f74433a7": "15dece5585a2d06bc3a17047d81328e981a6044c",
+    "123e1fb3ef1b338cada636e71c3e9c7987002402": "15dece5585a2d06bc3a17047d81328e981a6044c",
+    "HEAD": "15dece5585a2d06bc3a17047d81328e981a6044c"
+  },
+  "no_torch_imported": true,
+  "only_four_function_bodies_changed": true,
+  "runtime": {
+    "python": "3.13.9 | packaged by conda-forge | (main, Oct 22 2025, 23:38:18) [Clang 19.1.7 ]",
+    "executable": "/private/tmp/pycbc-cpu-precision-env-20260908/bin/python",
+    "platform": "macOS-26.6-arm64-arm-64bit-Mach-O",
+    "package_versions": {
+      "numpy": "2.3.5",
+      "scipy": "1.16.3",
+      "lalsuite": "7.26.1",
+      "Cython": "3.2.1",
+      "pytest": "9.0.1",
+      "setuptools": "80.9.0"
+    },
+    "pycbc_module": "/private/tmp/pycbc-cpu-precision-corrections-20260908/pycbc/__init__.py",
+    "native_module": "/private/tmp/pycbc-cpu-precision-corrections-20260908/pycbc/vetoes/chisq_cpu.cpython-313-darwin.so",
+    "default_fft_backend": "pycbc.fft.fftw",
+    "float64_eps": 2.220446049250313e-16,
+    "longdouble_eps": 2.220446049250313e-16
+  }
+}

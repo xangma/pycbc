@@ -1,0 +1,347 @@
+{
+  "status": "complete",
+  "numpy": "1.26.4",
+  "scipy": "1.13.0",
+  "python": "3.11.9",
+  "longdouble_mantissa_bits": 63,
+  "pycbc_file": "/home/xangma/pycbc-torch-baseline-final-20260908/proposed/pycbc/__init__.py",
+  "script_sha256": "589b40e270aaed3bb998a34030e9edc861ebeb55a698acc64f42388bf63977cc",
+  "scope": "fixed captured float32 inputs; numerical accuracy, not search acceptance",
+  "psd": [
+    {
+      "call": 0,
+      "current_capture_exact": true,
+      "old_frozen_exact": true,
+      "hann_coefficients": "shared float64 np.hanning coefficients; arithmetic evaluated independently",
+      "old": {
+        "max_absolute": 0.04143997983130229,
+        "rms_absolute": 9.378645881544889e-05,
+        "max_relative": 0.0030285053686042707,
+        "median_relative": 2.894476962178687e-06,
+        "p99_relative": 7.897588146765907e-05,
+        "relative_l2": 0.0013754674635726616
+      },
+      "current": {
+        "max_absolute": 4.42806715217868e-07,
+        "rms_absolute": 1.4346264868852854e-09,
+        "max_relative": 5.956477969929783e-08,
+        "median_relative": 2.0382276224779633e-08,
+        "p99_relative": 5.267581898780808e-08,
+        "relative_l2": 2.10401595285013e-08
+      },
+      "reference64": {
+        "max_absolute": 8.222126885587544e-11,
+        "rms_absolute": 1.8258833156092338e-13,
+        "max_relative": 6.1209857587381536e-12,
+        "median_relative": 4.986007267799453e-15,
+        "p99_relative": 1.4816273033673124e-13,
+        "relative_l2": 2.6778312398409684e-12
+      },
+      "old_closer_frequencies": 0,
+      "current_closer_frequencies": 1024754
+    }
+  ],
+  "fft": [
+    {
+      "segment": 0,
+      "capture_exact": true,
+      "old": {
+        "max_absolute": 6.842583495937637e-05,
+        "rms_absolute": 3.846787822003103e-07,
+        "max_relative": 0.11815262971803828,
+        "median_relative": 1.3189919227907414e-06,
+        "p99_relative": 0.00018985788436488716,
+        "relative_l2": 1.7158448487047346e-07
+      },
+      "current": {
+        "max_absolute": 5.521335953820378e-05,
+        "rms_absolute": 7.403261975188156e-08,
+        "max_relative": 5.950275035670419e-08,
+        "median_relative": 2.2042957839453508e-08,
+        "p99_relative": 5.0093685284501745e-08,
+        "relative_l2": 3.3021964068513654e-08
+      },
+      "reference64": {
+        "max_absolute": 1.338399182477046e-13,
+        "rms_absolute": 7.320003693101667e-16,
+        "max_relative": 1.5734932565653899e-10,
+        "median_relative": 2.044037538398367e-15,
+        "p99_relative": 3.0571576899119334e-13,
+        "relative_l2": 3.265059371735215e-16
+      },
+      "current_float32_rounding_exact": false
+    },
+    {
+      "segment": 1,
+      "capture_exact": true,
+      "old": {
+        "max_absolute": 6.278331612780324e-05,
+        "rms_absolute": 3.729056674638411e-07,
+        "max_relative": 0.05158141118548875,
+        "median_relative": 1.3199827746832558e-06,
+        "p99_relative": 0.00017640116952453798,
+        "relative_l2": 1.6707239133565858e-07
+      },
+      "current": {
+        "max_absolute": 3.6809223740469226e-05,
+        "rms_absolute": 5.252013110080947e-08,
+        "max_relative": 5.95505280560626e-08,
+        "median_relative": 2.20566857199038e-08,
+        "p99_relative": 5.013444093828275e-08,
+        "relative_l2": 2.353051900753257e-08
+      },
+      "reference64": {
+        "max_absolute": 1.6792272264558668e-13,
+        "rms_absolute": 7.322661393480368e-16,
+        "max_relative": 1.1069514221381964e-10,
+        "median_relative": 2.0437942806539247e-15,
+        "p99_relative": 2.816162437400601e-13,
+        "relative_l2": 3.2807614812362694e-16
+      },
+      "current_float32_rounding_exact": false
+    },
+    {
+      "segment": 2,
+      "capture_exact": true,
+      "old": {
+        "max_absolute": 4.0633066205463606e-05,
+        "rms_absolute": 3.572109258451293e-07,
+        "max_relative": 0.01714732288044269,
+        "median_relative": 1.3166785570827052e-06,
+        "p99_relative": 0.00020824678571163124,
+        "relative_l2": 1.6023086393797817e-07
+      },
+      "current": {
+        "max_absolute": 2.5503958785710015e-05,
+        "rms_absolute": 4.0731195002482166e-08,
+        "max_relative": 5.9447505371517136e-08,
+        "median_relative": 2.2027188077239293e-08,
+        "p99_relative": 5.0072756377011906e-08,
+        "relative_l2": 1.8270422577453664e-08
+      },
+      "reference64": {
+        "max_absolute": 1.701963568246763e-13,
+        "rms_absolute": 7.209133593890987e-16,
+        "max_relative": 6.229980402752155e-11,
+        "median_relative": 2.0436366240586744e-15,
+        "p99_relative": 3.307906188747222e-13,
+        "relative_l2": 3.2337356458527395e-16
+      },
+      "current_float32_rounding_exact": false
+    },
+    {
+      "segment": 3,
+      "capture_exact": true,
+      "old": {
+        "max_absolute": 0.00010286711576295203,
+        "rms_absolute": 3.730526679600244e-07,
+        "max_relative": 0.06571647295631308,
+        "median_relative": 1.3169593319409122e-06,
+        "p99_relative": 0.0002146481189542815,
+        "relative_l2": 1.6806002902652037e-07
+      },
+      "current": {
+        "max_absolute": 5.849946357045431e-05,
+        "rms_absolute": 7.734525458185744e-08,
+        "max_relative": 5.932765366413757e-08,
+        "median_relative": 2.2059394918483097e-08,
+        "p99_relative": 5.009758470916711e-08,
+        "relative_l2": 3.4843996160572906e-08
+      },
+      "reference64": {
+        "max_absolute": 1.4783589891804477e-13,
+        "rms_absolute": 7.198620415050401e-16,
+        "max_relative": 2.0338461012876572e-10,
+        "median_relative": 2.042927202186572e-15,
+        "p99_relative": 3.390610263948988e-13,
+        "relative_l2": 3.242974678400939e-16
+      },
+      "current_float32_rounding_exact": false
+    },
+    {
+      "segment": 4,
+      "capture_exact": true,
+      "old": {
+        "max_absolute": 7.163490799542337e-05,
+        "rms_absolute": 3.341694346610773e-07,
+        "max_relative": 0.07815095824135222,
+        "median_relative": 1.287201280837719e-06,
+        "p99_relative": 0.0002095202950404713,
+        "relative_l2": 1.7477846596058062e-07
+      },
+      "current": {
+        "max_absolute": 5.1806594839984376e-05,
+        "rms_absolute": 6.26734889834808e-08,
+        "max_relative": 5.937771222259957e-08,
+        "median_relative": 2.203449710565024e-08,
+        "p99_relative": 5.004494875476784e-08,
+        "relative_l2": 3.277970731236959e-08
+      },
+      "reference64": {
+        "max_absolute": 1.6661005071893876e-13,
+        "rms_absolute": 6.263283182537963e-16,
+        "max_relative": 1.3924042046441335e-10,
+        "median_relative": 1.9855229909902735e-15,
+        "p99_relative": 3.3183513613180146e-13,
+        "relative_l2": 3.2758442663403566e-16
+      },
+      "current_float32_rounding_exact": false
+    }
+  ],
+  "point_chisq": [
+    {
+      "template": 0,
+      "segment": 0,
+      "sample": 1276244,
+      "capture_exact": true,
+      "old": 38.52076721191406,
+      "current": 38.807064056396484,
+      "reference_decimal": "38.807064741786895648",
+      "old_absolute_error": 0.28629752987283313,
+      "current_absolute_error": 6.853904112730236e-07,
+      "reference64_absolute_error": 4.99184027447086e-14,
+      "normalization": 6.0666294010934505e-06
+    },
+    {
+      "template": 107,
+      "segment": 0,
+      "sample": 1601270,
+      "capture_exact": true,
+      "old": 36.64422607421875,
+      "current": 36.59396743774414,
+      "reference_decimal": "36.59396789887226837",
+      "old_absolute_error": 0.05025817534648163,
+      "current_absolute_error": 4.6112812774473655e-07,
+      "reference64_absolute_error": 3.1911973064069343e-14,
+      "normalization": 4.490433537911598e-06
+    },
+    {
+      "template": 256,
+      "segment": 0,
+      "sample": 902664,
+      "capture_exact": true,
+      "old": 19.30659294128418,
+      "current": 19.171262741088867,
+      "reference_decimal": "19.171263561246706587",
+      "old_absolute_error": 0.1353293800374731,
+      "current_absolute_error": 8.20157839399871e-07,
+      "reference64_absolute_error": 2.751271432899216e-14,
+      "normalization": 4.339343397426563e-06
+    },
+    {
+      "template": 256,
+      "segment": 0,
+      "sample": 1881636,
+      "capture_exact": true,
+      "old": 33.22060775756836,
+      "current": 33.37952423095703,
+      "reference_decimal": "33.379525301555250195",
+      "old_absolute_error": 0.1589175439868908,
+      "current_absolute_error": 1.070598218945451e-06,
+      "reference64_absolute_error": 1.6854573292590658e-14,
+      "normalization": 4.339343397426563e-06
+    },
+    {
+      "template": 283,
+      "segment": 0,
+      "sample": 1072519,
+      "capture_exact": true,
+      "old": 25.167621612548828,
+      "current": 25.166126251220703,
+      "reference_decimal": "25.166126390330579831",
+      "old_absolute_error": 0.0014952222182482936,
+      "current_absolute_error": 1.3910987670638642e-07,
+      "reference64_absolute_error": 1.5298526334639462e-14,
+      "normalization": 3.2917441570306073e-06
+    },
+    {
+      "template": 283,
+      "segment": 0,
+      "sample": 1654835,
+      "capture_exact": true,
+      "old": 31.470020294189453,
+      "current": 31.458253860473633,
+      "reference_decimal": "31.458254370146399985",
+      "old_absolute_error": 0.01176592404305314,
+      "current_absolute_error": 5.096727671728002e-07,
+      "reference64_absolute_error": 3.4567834705789835e-14,
+      "normalization": 3.2917441570306073e-06
+    },
+    {
+      "template": 348,
+      "segment": 0,
+      "sample": 1631243,
+      "capture_exact": true,
+      "old": 36.19294357299805,
+      "current": 36.216697692871094,
+      "reference_decimal": "36.21669940372983139",
+      "old_absolute_error": 0.023755830731784514,
+      "current_absolute_error": 1.7108587376385431e-06,
+      "reference64_absolute_error": 3.790023850314128e-14,
+      "normalization": 2.6552749175383904e-06
+    },
+    {
+      "template": 348,
+      "segment": 0,
+      "sample": 1654835,
+      "capture_exact": true,
+      "old": 27.072668075561523,
+      "current": 27.06117057800293,
+      "reference_decimal": "27.061170401051579506",
+      "old_absolute_error": 0.011497674509943932,
+      "current_absolute_error": 1.769513501819614e-07,
+      "reference64_absolute_error": 2.5477883691671366e-14,
+      "normalization": 2.6552749175383904e-06
+    },
+    {
+      "template": 370,
+      "segment": 4,
+      "sample": 1069877,
+      "capture_exact": true,
+      "old": 37.8807258605957,
+      "current": 37.87271499633789,
+      "reference_decimal": "37.872713583746366133",
+      "old_absolute_error": 0.008012276849336992,
+      "current_absolute_error": 1.4125915244918297e-06,
+      "reference64_absolute_error": 8.732597978067247e-15,
+      "normalization": 3.8105398048528594e-06
+    }
+  ],
+  "input_sha256": {
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/capture.json": "61e66900491dc359ceba17b85aafd0c2ecddf29f8785390bb909b81f33596712",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/conditioned-strain.npy": "4de2a5395ef6a71e36a4a9f7850ce319c277915bf7c15e73a1a3718566a7f0c2",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/spectrum-0.npy": "0a8d38fb7a0c70d06cd55a58c83c1eca82c6b5d4e354c03a1e0ac02595ea1027",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/spectrum-1.npy": "99a7203e18fa0a95aa30f9c8a777be7b10620d222844afb5613f32ecf8103cbf",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/spectrum-2.npy": "055db6bb9d6877b6e925ae49d8405b1e4cff778931ea6c05c0546c1fdd768bb4",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/spectrum-3.npy": "ff70f2567127b7838fbb601fab8dc4a002a6d141a016da977b071eacb9a10447",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/spectrum-4.npy": "7252f4ee5a5df59c901a3d66652d5392c9c0d4cb453b25510d1a6bbbb64383e2",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/psd-input-0.npy": "4de2a5395ef6a71e36a4a9f7850ce319c277915bf7c15e73a1a3718566a7f0c2",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/psd-output-0.npy": "05f80d166c8b09c406e0dac7f57de867882a8a2debf554019406273bfc710f6a",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/psd-original.npy": "44a1bf96b31bb2d0c42d53c57ba19020cd8fe5fa71e160c36050e7cbedf3f26a",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-000-0-corr.npy": "03ae4d33198430d37a1f2e48c1407f4065f2fa4d5dfd9697d6c39ff8c8f24b07",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-000-0-snr.npy": "afb3867e4e350ea73474686e7ad40e3c2fc7539d98aaf0e89c3d05901dc12dcf",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-000-0-indices.npy": "f24e92a967f67ae8faa8ca6b60f05e3046650d53f914c8df2d2dbebbba760f98",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-000-0-chisq.npy": "b091132b7dc25d672279708c6b458faa39d78922384f6e275929c6782154e590",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-107-0-corr.npy": "ad559ff05c27aa3b33102742ae55b6ee290dd6620d2279a0779fb50dabf6febb",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-107-0-snr.npy": "44ffa8a6aa81f263c8125c999dc052fc0b5715df767b84c697d334135a1ebffc",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-107-0-indices.npy": "82a801244e757bbed9704e0f0d3728f4a6d265668153ebf884895c401bba99a3",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-107-0-chisq.npy": "d780671d1a751940ec46c02cb492e742a2784806fc01ce64d614e04ceedf059c",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-256-0-corr.npy": "54490f3054e0fe4b54e7c1d8c64b3588333dfb10ec0bd0a9e1505b4455fe621a",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-256-0-snr.npy": "c10c1263b81929a98930e540d971a51b9d85a8d44ad032a1a98e6732ac2b3b47",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-256-0-indices.npy": "64aa924c777c414c6b1a0783318133ddce5ef1e311cc32020da94f96a400fdff",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-256-0-chisq.npy": "c0601b5a8c0951838b4d57f9915b953f642d26828ae9cedc99509edc483f7025",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-283-0-corr.npy": "e74bd2a2720940f7097dc5f400de0609de030076f28ecba32116906c218742fa",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-283-0-snr.npy": "5af468157572f35f2998401cdeab93e71c79e271e7f80d102ef8edd98cb6c0d2",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-283-0-indices.npy": "17dc58dda90eae7d36bc66cdae99f051d79fbb246a905734f5fd43dead6005f6",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-283-0-chisq.npy": "8373531ff0359dfb2e4a5cfbf736e63e738355a3e77ab5d2d1c76c837446558a",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-348-0-corr.npy": "e19bd309bb9df936b2d2bc3bffb6e779ca6e6966b62abc5ce27038df994c8b1b",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-348-0-snr.npy": "0149da5208f22d84e017698561571c50cfb48d5cefe92b99099f9b8512bfd5bb",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-348-0-indices.npy": "d599876d77f9119001bf34ade62b6c390d0491f7816d80a6d33efaaf282d5204",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-348-0-chisq.npy": "8940cf415cc1f0061ae0e04b3a3fcb01ed54da38931ac995075164caddcb8e8f",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-370-4-corr.npy": "69cbd59ea3d97980a6df7d15cf115f086eeb4098c9812f30f18b59242975df53",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-370-4-snr.npy": "125ab5cd1dda76079cc89a7b0c9fa4bdc80625c0d90f10a1529a2fa2d3c1aa7b",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-370-4-indices.npy": "d82b51270d43d9afe6abae30d40e001d04cc6eb748bec558efb3fae38e6a05ff",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture/point-370-4-chisq.npy": "4dd1dd021a6edf27f2703d763532bd731513f3825be3230fbcb37ea81b500bff"
+  },
+  "inputs_unchanged": true
+}

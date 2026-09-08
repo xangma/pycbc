@@ -1,0 +1,15 @@
+FFT backend: pycbc.fft.mkl
+........FF.....                                                          [100%]
+=================================== FAILURES ===================================
+_____________________ TestMatchedFilter.test_perfect_match _____________________
+../../pycbc-torch-precision-validation-20260908/cpu-corrections/test/test_matchedfilter.py:121: in test_perfect_match
+    self.assertAlmostEqual(0,i,places=1)
+E   AssertionError: 0 != -0.06937270748284567 within 1 places (0.06937270748284567 difference)
+_________________ TestMatchedFilter.test_perfect_match_offset __________________
+../../pycbc-torch-precision-validation-20260908/cpu-corrections/test/test_matchedfilter.py:139: in test_perfect_match_offset
+    self.assertAlmostEqual(4096*32, i, places=1)
+E   AssertionError: 131072 != 131071.93062729252 within 1 places (0.06937270748312585 difference)
+=========================== short test summary info ============================
+FAILED ../../pycbc-torch-precision-validation-20260908/cpu-corrections/test/test_matchedfilter.py::TestMatchedFilter::test_perfect_match
+FAILED ../../pycbc-torch-precision-validation-20260908/cpu-corrections/test/test_matchedfilter.py::TestMatchedFilter::test_perfect_match_offset
+2 failed, 13 passed in 5.88s

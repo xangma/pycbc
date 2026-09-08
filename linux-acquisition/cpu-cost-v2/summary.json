@@ -1,0 +1,54 @@
+{
+  "status": "complete",
+  "arms": {
+    "original": {
+      "head": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+      "samples_seconds": [
+        65.27929779200349,
+        65.47841550398152,
+        65.27659349399619,
+        65.28077698207926
+      ],
+      "median_seconds": 65.28003738704138,
+      "min_seconds": 65.27659349399619,
+      "max_seconds": 65.47841550398152
+    },
+    "corrected": {
+      "head": "66789ac4a7468094b0cc3ca1498a1de67e0311f6",
+      "samples_seconds": [
+        67.98431705997791,
+        68.0311658680439,
+        68.09225240093656,
+        68.13230166397989
+      ],
+      "median_seconds": 68.06170913449023,
+      "min_seconds": 67.98431705997791,
+      "max_seconds": 68.13230166397989
+    }
+  },
+  "corrected_over_original_wall_ratio": 1.0426113687857819,
+  "wall_change_percent": 4.261136878578187,
+  "ordering": [
+    [
+      "original",
+      "corrected"
+    ],
+    [
+      "corrected",
+      "original"
+    ],
+    [
+      "original",
+      "corrected"
+    ],
+    [
+      "corrected",
+      "original"
+    ]
+  ],
+  "source_and_input_pins_unchanged": true,
+  "own_qualification_comparisons": "all pass",
+  "scope": "Shared host, one core, four trials per arm; descriptive cost of changed numerical behavior.",
+  "timing_boundary": "Fresh checked-inspiral process launch through exit after HDF output, runtime receipts, and native module verification. Qualification runs excluded; no profiling.",
+  "equal_output_speedup_eligible": false
+}

@@ -1,0 +1,160 @@
+F.F..FFFFF.FF..FF..                                                      [100%]
+=================================== FAILURES ===================================
+________ test_long_sigmasq_series_and_equal_power_bins[False-complex64] ________
+test/test_sigmasq_series_precision.py:48: in test_long_sigmasq_series_and_equal_power_bins
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=3e-07, atol=0
+E   
+E   Mismatched elements: 1000982 / 1008128 (99.3%)
+E   Max absolute difference among violations: 0.62830309
+E   Max relative difference among violations: 0.00700678
+E    ACTUAL: array([7.812500e-03, 1.562381e-02, 2.343394e-02, ..., 8.904244e+01,
+E          8.904244e+01, 8.904244e+01], shape=(1008128,), dtype=float32)
+E    DESIRED: array([7.812500e-03, 1.562381e-02, 2.343394e-02, ..., 8.967074e+01,
+E          8.967074e+01, 8.967075e+01], shape=(1008128,), dtype=float64)
+________ test_long_sigmasq_series_and_equal_power_bins[True-complex64] _________
+test/test_sigmasq_series_precision.py:48: in test_long_sigmasq_series_and_equal_power_bins
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=3e-07, atol=0
+E   
+E   Mismatched elements: 993737 / 1008128 (98.6%)
+E   Max absolute difference among violations: 0.23312317
+E   Max relative difference among violations: 0.00285362
+E    ACTUAL: array([7.735149e-03, 1.546911e-02, 2.320189e-02, ..., 8.146062e+01,
+E          8.146062e+01, 8.146062e+01], shape=(1008128,), dtype=float32)
+E    DESIRED: array([7.735148e-03, 1.546911e-02, 2.320189e-02, ..., 8.169374e+01,
+E          8.169374e+01, 8.169374e+01], shape=(1008128,), dtype=float64)
+_________ test_long_point_chisq_matches_direct_phases[False-complex64] _________
+test/test_chisq_precision.py:47: in test_long_point_chisq_matches_direct_phases
+    np.testing.assert_allclose(actual, expected, rtol=tolerance, atol=1e-9)
+E   AssertionError: 
+E   Not equal to tolerance rtol=3e-06, atol=1e-09
+E   
+E   Mismatched elements: 3 / 3 (100%)
+E   Max absolute difference among violations: 0.00641866
+E   Max relative difference among violations: 0.00482996
+E    ACTUAL: array([1.335344, 1.177405, 4.258931], dtype=float32)
+E    DESIRED: array([1.328926, 1.175545, 4.25834 ])
+________ test_long_point_chisq_matches_direct_phases[False-complex128] _________
+test/test_chisq_precision.py:47: in test_long_point_chisq_matches_direct_phases
+    np.testing.assert_allclose(actual, expected, rtol=tolerance, atol=1e-9)
+E   AssertionError: 
+E   Not equal to tolerance rtol=3e-08, atol=1e-09
+E   
+E   Mismatched elements: 2 / 3 (66.7%)
+E   Max absolute difference among violations: 0.00066184
+E   Max relative difference among violations: 0.00056301
+E    ACTUAL: array([1.328926, 1.174883, 4.25896 ])
+E    DESIRED: array([1.328926, 1.175545, 4.25834 ])
+_________ test_long_point_chisq_matches_direct_phases[True-complex64] __________
+test/test_chisq_precision.py:47: in test_long_point_chisq_matches_direct_phases
+    np.testing.assert_allclose(actual, expected, rtol=tolerance, atol=1e-9)
+E   AssertionError: 
+E   Not equal to tolerance rtol=3e-06, atol=1e-09
+E   
+E   Mismatched elements: 3 / 3 (100%)
+E   Max absolute difference among violations: 0.00641866
+E   Max relative difference among violations: 0.00482996
+E    ACTUAL: array([1.335344, 1.177405, 4.258931], dtype=float32)
+E    DESIRED: array([1.328926, 1.175545, 4.25834 ])
+_________ test_long_point_chisq_matches_direct_phases[True-complex128] _________
+test/test_chisq_precision.py:47: in test_long_point_chisq_matches_direct_phases
+    np.testing.assert_allclose(actual, expected, rtol=tolerance, atol=1e-9)
+E   AssertionError: 
+E   Not equal to tolerance rtol=3e-08, atol=1e-09
+E   
+E   Mismatched elements: 2 / 3 (66.7%)
+E   Max absolute difference among violations: 0.00066184
+E   Max relative difference among violations: 0.00056301
+E    ACTUAL: array([1.328926, 1.174883, 4.25896 ])
+E    DESIRED: array([1.328926, 1.175545, 4.25834 ])
+____________ test_strain_segments_retain_weak_frequencies[float32] _____________
+test/test_strain_psd_precision.py:53: in test_strain_segments_retain_weak_frequencies
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=2e-07, atol=2e-11
+E   
+E   Mismatched elements: 15801 / 16385 (96.4%)
+E   Max absolute difference among violations: 3.24089646e-05
+E   Max relative difference among violations: 0.4372752
+E    ACTUAL: array([-2.962720e-04+0.j      , -2.957001e-02-0.071323j,
+E          -1.009957e-01-0.101126j, ...,  2.576728e-02-0.026124j,
+E           8.127067e-03-0.018317j, -4.358255e-06+0.j      ],
+E         shape=(16385,), dtype=complex64)
+E    DESIRED: array([-2.953864e-04+0.j      , -2.957007e-02-0.071323j,
+E          -1.009963e-01-0.101127j, ...,  2.576724e-02-0.026124j,
+E           8.127053e-03-0.018317j, -4.471427e-06+0.j      ], shape=(16385,))
+_________ test_estimated_psd_retains_weak_frequencies[0-float32-None] __________
+test/test_strain_psd_precision.py:111: in test_estimated_psd_retains_weak_frequencies
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=3e-07, atol=0
+E   
+E   Mismatched elements: 14242 / 14464 (98.5%)
+E   Max absolute difference among violations: 5.40436585e-07
+E   Max relative difference among violations: 0.03623033
+E    ACTUAL: array([3.814487e-09, 3.830582e-09, 3.846676e-09, ..., 2.159539e-09,
+E          2.003604e-09, 1.847669e-09], shape=(14464,), dtype=float32)
+E    DESIRED: array([3.819260e-09, 3.834457e-09, 3.849654e-09, ..., 2.163387e-09,
+E          2.007280e-09, 1.851173e-09], shape=(14464,))
+________ test_estimated_psd_retains_weak_frequencies[0-float32-double] _________
+test/test_strain_psd_precision.py:111: in test_estimated_psd_retains_weak_frequencies
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=2e-09, atol=0
+E   
+E   Mismatched elements: 14459 / 14464 (100%)
+E   Max absolute difference among violations: 0.0002146
+E   Max relative difference among violations: 0.03623033
+E    ACTUAL: array([3.814487e-09, 3.830582e-09, 3.846676e-09, ..., 2.159539e-09,
+E          2.003604e-09, 1.847669e-09], shape=(14464,))
+E    DESIRED: array([3.819260e-09, 3.834457e-09, 3.849654e-09, ..., 2.163387e-09,
+E          2.007280e-09, 1.851173e-09], shape=(14464,))
+_________ test_estimated_psd_retains_weak_frequencies[2-float32-None] __________
+test/test_strain_psd_precision.py:111: in test_estimated_psd_retains_weak_frequencies
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=3e-07, atol=0
+E   
+E   Mismatched elements: 14455 / 14464 (99.9%)
+E   Max absolute difference among violations: 0.08807291
+E   Max relative difference among violations: 0.01890749
+E    ACTUAL: array([1.559950e-08, 1.468405e-08, 1.384826e-08, ..., 3.573172e-09,
+E          3.571638e-09, 3.570716e-09], shape=(14464,), dtype=float32)
+E    DESIRED: array([1.557961e-08, 1.466550e-08, 1.383094e-08, ..., 3.564335e-09,
+E          3.562841e-09, 3.561944e-09], shape=(14464,))
+________ test_estimated_psd_retains_weak_frequencies[2-float32-double] _________
+test/test_strain_psd_precision.py:111: in test_estimated_psd_retains_weak_frequencies
+    np.testing.assert_allclose(
+E   AssertionError: 
+E   Not equal to tolerance rtol=2e-09, atol=0
+E   
+E   Mismatched elements: 14464 / 14464 (100%)
+E   Max absolute difference among violations: 0.08807291
+E   Max relative difference among violations: 0.01890749
+E    ACTUAL: array([1.559950e-08, 1.468405e-08, 1.384826e-08, ..., 3.573172e-09,
+E          3.571638e-09, 3.570716e-09], shape=(14464,))
+E    DESIRED: array([1.557961e-08, 1.466550e-08, 1.383094e-08, ..., 3.564335e-09,
+E          3.562841e-09, 3.561944e-09], shape=(14464,))
+=============================== warnings summary ===============================
+test/test_chisq_precision.py::test_long_point_chisq_matches_direct_phases[True-complex64]
+test/test_chisq_precision.py::test_long_point_chisq_matches_direct_phases[True-complex128]
+  /private/tmp/pycbc-cpu-precision-corrections-20260908/pycbc/scheme.py:263: DeprecationWarning: __array__ implementation doesn't accept a copy keyword, so passing copy=False failed. __array__ must implement 'dtype' and 'copy' keyword arguments. To learn more, see the migration guide https://numpy.org/devdocs/numpy_2_0_migration_guide.html#adapting-to-changes-in-the-copy-keyword
+    return schemed_fn(*args, **kwds)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED test/test_sigmasq_series_precision.py::test_long_sigmasq_series_and_equal_power_bins[False-complex64]
+FAILED test/test_sigmasq_series_precision.py::test_long_sigmasq_series_and_equal_power_bins[True-complex64]
+FAILED test/test_chisq_precision.py::test_long_point_chisq_matches_direct_phases[False-complex64]
+FAILED test/test_chisq_precision.py::test_long_point_chisq_matches_direct_phases[False-complex128]
+FAILED test/test_chisq_precision.py::test_long_point_chisq_matches_direct_phases[True-complex64]
+FAILED test/test_chisq_precision.py::test_long_point_chisq_matches_direct_phases[True-complex128]
+FAILED test/test_strain_psd_precision.py::test_strain_segments_retain_weak_frequencies[float32]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[0-float32-None]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[0-float32-double]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[2-float32-None]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[2-float32-double]
+11 failed, 8 passed, 2 warnings in 6.27s

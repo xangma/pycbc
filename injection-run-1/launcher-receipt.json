@@ -1,0 +1,33 @@
+{
+  "status": "complete",
+  "launcher_pid": 1945403,
+  "child_pid": 1945425,
+  "command": [
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "-B",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/analysis-2/injection-probe.py",
+    "--capture",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture",
+    "--source",
+    "/home/xangma/pycbc-torch-baseline-final-20260908/proposed",
+    "--original-source",
+    "/home/xangma/pycbc-torch-baseline-final-20260908/original",
+    "--source-pins",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/source-pins.json",
+    "--output",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/analysis-2/injection-run-1",
+    "--cpu",
+    "8",
+    "--max-seconds",
+    "300"
+  ],
+  "host": "len",
+  "cwd": "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/analysis-2",
+  "log": "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/analysis-2/injection-run-1/probe.log",
+  "expected_next_check_seconds": 30,
+  "deadline_seconds": 300,
+  "termination_grace_seconds": 2,
+  "stop_command": "kill -TERM 1945403",
+  "returncode": 0,
+  "elapsed_seconds": 47.46831583394669
+}

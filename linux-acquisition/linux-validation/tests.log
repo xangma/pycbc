@@ -1,0 +1,356 @@
+FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF..                                       [100%]
+=================================== FAILURES ===================================
+________ test_long_sigmasq_series_and_equal_power_bins[False-complex64] ________
+test/test_sigmasq_series_precision.py:33: in test_long_sigmasq_series_and_equal_power_bins
+    with context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+_______ test_long_sigmasq_series_and_equal_power_bins[False-complex128] ________
+test/test_sigmasq_series_precision.py:33: in test_long_sigmasq_series_and_equal_power_bins
+    with context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+________ test_long_sigmasq_series_and_equal_power_bins[True-complex64] _________
+test/test_sigmasq_series_precision.py:33: in test_long_sigmasq_series_and_equal_power_bins
+    with context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+________ test_long_sigmasq_series_and_equal_power_bins[True-complex128] ________
+test/test_sigmasq_series_precision.py:33: in test_long_sigmasq_series_and_equal_power_bins
+    with context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+_________ test_equal_power_thresholds_between_adjacent_float32_values __________
+test/test_sigmasq_series_precision.py:67: in test_equal_power_thresholds_between_adjacent_float32_values
+    with scheme.CPUScheme(1):
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+_________ test_long_point_chisq_matches_direct_phases[False-complex64] _________
+test/test_chisq_precision.py:40: in test_long_point_chisq_matches_direct_phases
+    with scheme.CPUScheme(1):
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+________ test_long_point_chisq_matches_direct_phases[False-complex128] _________
+test/test_chisq_precision.py:40: in test_long_point_chisq_matches_direct_phases
+    with scheme.CPUScheme(1):
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+_________ test_long_point_chisq_matches_direct_phases[True-complex64] __________
+test/test_chisq_precision.py:40: in test_long_point_chisq_matches_direct_phases
+    with scheme.CPUScheme(1):
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+_________ test_long_point_chisq_matches_direct_phases[True-complex128] _________
+test/test_chisq_precision.py:40: in test_long_point_chisq_matches_direct_phases
+    with scheme.CPUScheme(1):
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+____________ test_strain_segments_retain_weak_frequencies[float32] _____________
+test/test_strain_psd_precision.py:26: in test_strain_segments_retain_weak_frequencies
+    with scheme.CPUScheme(1):
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+____________ test_strain_segments_retain_weak_frequencies[float64] _____________
+test/test_strain_psd_precision.py:26: in test_strain_segments_retain_weak_frequencies
+    with scheme.CPUScheme(1):
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+_________ test_estimated_psd_retains_weak_frequencies[0-float32-None] __________
+test/test_strain_psd_precision.py:105: in test_estimated_psd_retains_weak_frequencies
+    with scheme.CPUScheme(1):
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+________ test_estimated_psd_retains_weak_frequencies[0-float32-double] _________
+test/test_strain_psd_precision.py:105: in test_estimated_psd_retains_weak_frequencies
+    with scheme.CPUScheme(1):
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+_________ test_estimated_psd_retains_weak_frequencies[0-float64-None] __________
+test/test_strain_psd_precision.py:105: in test_estimated_psd_retains_weak_frequencies
+    with scheme.CPUScheme(1):
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+________ test_estimated_psd_retains_weak_frequencies[0-float64-single] _________
+test/test_strain_psd_precision.py:105: in test_estimated_psd_retains_weak_frequencies
+    with scheme.CPUScheme(1):
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+_________ test_estimated_psd_retains_weak_frequencies[2-float32-None] __________
+test/test_strain_psd_precision.py:105: in test_estimated_psd_retains_weak_frequencies
+    with scheme.CPUScheme(1):
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+________ test_estimated_psd_retains_weak_frequencies[2-float32-double] _________
+test/test_strain_psd_precision.py:105: in test_estimated_psd_retains_weak_frequencies
+    with scheme.CPUScheme(1):
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+_________ test_estimated_psd_retains_weak_frequencies[2-float64-None] __________
+test/test_strain_psd_precision.py:105: in test_estimated_psd_retains_weak_frequencies
+    with scheme.CPUScheme(1):
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+________ test_estimated_psd_retains_weak_frequencies[2-float64-single] _________
+test/test_strain_psd_precision.py:105: in test_estimated_psd_retains_weak_frequencies
+    with scheme.CPUScheme(1):
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+___________________________ TestPSD.test_analytical ____________________________
+test/test_psd.py:66: in test_analytical
+    with self.context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+_________________________ TestPSD.test_estimate_welch __________________________
+test/test_psd.py:100: in test_estimate_welch
+    with self.context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+______________________________ TestPSD.test_read _______________________________
+test/test_psd.py:88: in test_read
+    with self.context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+___________________________ TestPSD.test_truncation ____________________________
+test/test_psd.py:114: in test_truncation
+    with self.context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+_____________________ TestMatchedFilter.test_ave_snr_noise _____________________
+test/test_matchedfilter.py:86: in test_ave_snr_noise
+    with self.context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+_______________________ TestMatchedFilter.test_correlate _______________________
+test/test_matchedfilter.py:78: in test_correlate
+    with self.context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+________________________ TestMatchedFilter.test_errors _________________________
+test/test_matchedfilter.py:224: in test_errors
+    with self.context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+____________________ TestMatchedFilter.test_imperfect_match ____________________
+test/test_matchedfilter.py:201: in test_imperfect_match
+    with self.context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+_____________________ TestMatchedFilter.test_perfect_match _____________________
+test/test_matchedfilter.py:112: in test_perfect_match
+    with self.context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+_________________ TestMatchedFilter.test_perfect_match_offset __________________
+test/test_matchedfilter.py:127: in test_perfect_match_offset
+    with self.context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+____________ TestMatchedFilter.test_perfect_match_subsample_offset _____________
+test/test_matchedfilter.py:147: in test_perfect_match_subsample_offset
+    with self.context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+______ TestMatchedFilter.test_perfect_match_subsample_offset_bandlimited _______
+test/test_matchedfilter.py:170: in test_perfect_match_subsample_offset_bandlimited
+    with self.context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+________ TestMatchedFilter.test_perfect_match_subsample_offset_with_psd ________
+test/test_matchedfilter.py:183: in test_perfect_match_subsample_offset_with_psd
+    with self.context:
+pycbc/scheme.py:179: in __enter__
+    Scheme.__enter__(self)
+pycbc/scheme.py:79: in __enter__
+    mgr.shift_to(self)
+pycbc/scheme.py:61: in shift_to
+    raise RuntimeError("The state is locked, cannot shift schemes")
+E   RuntimeError: The state is locked, cannot shift schemes
+=========================== short test summary info ============================
+FAILED test/test_sigmasq_series_precision.py::test_long_sigmasq_series_and_equal_power_bins[False-complex64]
+FAILED test/test_sigmasq_series_precision.py::test_long_sigmasq_series_and_equal_power_bins[False-complex128]
+FAILED test/test_sigmasq_series_precision.py::test_long_sigmasq_series_and_equal_power_bins[True-complex64]
+FAILED test/test_sigmasq_series_precision.py::test_long_sigmasq_series_and_equal_power_bins[True-complex128]
+FAILED test/test_sigmasq_series_precision.py::test_equal_power_thresholds_between_adjacent_float32_values
+FAILED test/test_chisq_precision.py::test_long_point_chisq_matches_direct_phases[False-complex64]
+FAILED test/test_chisq_precision.py::test_long_point_chisq_matches_direct_phases[False-complex128]
+FAILED test/test_chisq_precision.py::test_long_point_chisq_matches_direct_phases[True-complex64]
+FAILED test/test_chisq_precision.py::test_long_point_chisq_matches_direct_phases[True-complex128]
+FAILED test/test_strain_psd_precision.py::test_strain_segments_retain_weak_frequencies[float32]
+FAILED test/test_strain_psd_precision.py::test_strain_segments_retain_weak_frequencies[float64]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[0-float32-None]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[0-float32-double]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[0-float64-None]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[0-float64-single]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[2-float32-None]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[2-float32-double]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[2-float64-None]
+FAILED test/test_strain_psd_precision.py::test_estimated_psd_retains_weak_frequencies[2-float64-single]
+FAILED test/test_psd.py::TestPSD::test_analytical - RuntimeError: The state i...
+FAILED test/test_psd.py::TestPSD::test_estimate_welch - RuntimeError: The sta...
+FAILED test/test_psd.py::TestPSD::test_read - RuntimeError: The state is lock...
+FAILED test/test_psd.py::TestPSD::test_truncation - RuntimeError: The state i...
+FAILED test/test_matchedfilter.py::TestMatchedFilter::test_ave_snr_noise - Ru...
+FAILED test/test_matchedfilter.py::TestMatchedFilter::test_correlate - Runtim...
+FAILED test/test_matchedfilter.py::TestMatchedFilter::test_errors - RuntimeEr...
+FAILED test/test_matchedfilter.py::TestMatchedFilter::test_imperfect_match - ...
+FAILED test/test_matchedfilter.py::TestMatchedFilter::test_perfect_match - Ru...
+FAILED test/test_matchedfilter.py::TestMatchedFilter::test_perfect_match_offset
+FAILED test/test_matchedfilter.py::TestMatchedFilter::test_perfect_match_subsample_offset
+FAILED test/test_matchedfilter.py::TestMatchedFilter::test_perfect_match_subsample_offset_bandlimited
+FAILED test/test_matchedfilter.py::TestMatchedFilter::test_perfect_match_subsample_offset_with_psd
+32 failed, 2 passed in 4.10s

@@ -1,0 +1,171 @@
+{
+  "status": "pass",
+  "baseline": "/home/xangma/pycbc-torch-baseline-final-20260908/runs/qual-original-cpu/triggers.hdf",
+  "candidate": "/home/xangma/pycbc-torch-precision-validation-20260908/cpu-cost-v2/r3-original/triggers.hdf",
+  "baseline_sha256": "5aefb746a8efb64b8d68ed552cd37deae5741913bee37b6edc7690c43511bbc8",
+  "candidate_sha256": "1eb5d79c424be8fc389505d02ff80365cad1f2443221790c3b2e8875905b1d94",
+  "baseline_receipt_sha256": "04fe147ada37093753fbd7a8d1feddd646575943d5cae573e73efb13385c2a14",
+  "candidate_receipt_sha256": "05f09d6147d96258e8080242c86921ad18bb787868dce4b3130f50ee5db1353f",
+  "sample_rate": 4096,
+  "failures": [],
+  "review_reasons": [],
+  "detectors": {
+    "H1": {
+      "baseline_count": 1988,
+      "candidate_count": 1988,
+      "matched_count": 1988,
+      "valid_intervals": [
+        [
+          1187007160.0,
+          1187009064.0
+        ]
+      ],
+      "metrics": {
+        "bank_chisq": {
+          "violations": 0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ],
+          "baseline_value": 0.0,
+          "candidate_value": 0.0,
+          "budget_at_worst": 1e-05
+        },
+        "bank_chisq_dof": {
+          "violations": 0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ],
+          "baseline_value": 0.0,
+          "candidate_value": 0.0,
+          "budget_at_worst": 0.0
+        },
+        "chisq": {
+          "violations": 0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ],
+          "baseline_value": 35.49388122558594,
+          "candidate_value": 35.49388122558594,
+          "budget_at_worst": 0.003559388122558594
+        },
+        "chisq_dof": {
+          "violations": 0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ],
+          "baseline_value": 16.0,
+          "candidate_value": 16.0,
+          "budget_at_worst": 0.0
+        },
+        "coa_phase": {
+          "violations": 0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ],
+          "baseline_value": 2.1825428009033203,
+          "candidate_value": 2.1825428009033203,
+          "budget_at_worst": 0.0001
+        },
+        "cont_chisq": {
+          "violations": 0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ],
+          "baseline_value": 0.0,
+          "candidate_value": 0.0,
+          "budget_at_worst": 1e-05
+        },
+        "cont_chisq_dof": {
+          "violations": 0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ],
+          "baseline_value": 0.0,
+          "candidate_value": 0.0,
+          "budget_at_worst": 0.0
+        },
+        "sg_chisq": {
+          "violations": 0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ],
+          "baseline_value": 0.0,
+          "candidate_value": 0.0,
+          "budget_at_worst": 1e-05
+        },
+        "sigmasq": {
+          "violations": 0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ],
+          "baseline_value": 3547517.5,
+          "candidate_value": 3547517.5,
+          "budget_at_worst": 35.475175
+        },
+        "snr": {
+          "violations": 0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ],
+          "baseline_value": 5.890442848205566,
+          "candidate_value": 5.890442848205566,
+          "budget_at_worst": 0.0005990442848205566
+        },
+        "template_duration": {
+          "violations": 0,
+          "max_absolute_error": 0.0,
+          "max_relative_error": 0.0,
+          "worst_identity": [
+            -9182911012498157318,
+            4861984505656
+          ],
+          "baseline_value": 37.44173049926758,
+          "candidate_value": 37.44173049926758,
+          "budget_at_worst": 0.003754173049926758
+        }
+      },
+      "unmatched": {
+        "baseline_only": {
+          "count": 0,
+          "classifications": {},
+          "examples": []
+        },
+        "candidate_only": {
+          "count": 0,
+          "classifications": {},
+          "examples": []
+        }
+      }
+    }
+  }
+}

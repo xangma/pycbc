@@ -1,0 +1,26 @@
+{
+  "state": "running",
+  "host": "len",
+  "cwd": "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/analysis-2",
+  "pid": 3918098,
+  "completed": [],
+  "current": "bin-audit",
+  "command": [
+    "taskset",
+    "-c",
+    "8",
+    "/home/xangma/pycbc-torch-split-20260905/venv/bin/python",
+    "-B",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/analysis-2/bin_accuracy.py",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/capture",
+    "--output-dir",
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/analysis-2/bin-audit",
+    "--require-extended"
+  ],
+  "started": 1788872318.2853312,
+  "script_sha256": "91860412bce0c3b4c5e6fac74d49f901e3d79b01d75929a18b8b5a39e0197c39",
+  "child_pid": 3918340,
+  "returncode": 0,
+  "finished": 1788872862.2449746,
+  "source_pins_unchanged": true
+}

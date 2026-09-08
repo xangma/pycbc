@@ -1,0 +1,56 @@
+{
+  "status": "pass",
+  "datasets_exact": {
+    "H1/bank_chisq": true,
+    "H1/bank_chisq_dof": true,
+    "H1/chisq": true,
+    "H1/chisq_dof": true,
+    "H1/coa_phase": true,
+    "H1/cont_chisq": true,
+    "H1/cont_chisq_dof": true,
+    "H1/end_time": true,
+    "H1/gating/auto/pad": true,
+    "H1/gating/auto/time": true,
+    "H1/gating/auto/width": true,
+    "H1/search/end_time": true,
+    "H1/search/filter_rate_per_core": false,
+    "H1/search/run_time": false,
+    "H1/search/setup_time_fraction": false,
+    "H1/search/start_time": true,
+    "H1/search/templates_per_core": false,
+    "H1/sg_chisq": true,
+    "H1/sigmasq": true,
+    "H1/snr": true,
+    "H1/template_duration": true,
+    "H1/template_hash": true
+  },
+  "timing_metadata_excluded": [
+    "H1/search/filter_rate_per_core",
+    "H1/search/run_time",
+    "H1/search/setup_time_fraction",
+    "H1/search/templates_per_core"
+  ],
+  "qualification_checks": {
+    "all_decompressions_succeeded": true,
+    "all_interpolations_observed": true,
+    "all_segment_psds_saved": true,
+    "all_segment_psds_valid_for_filter": true,
+    "bank_0_all_templates_once": true,
+    "bank_0_compression_enabled": true,
+    "conditioned_strain_recorded": true,
+    "no_generation_fallback": true,
+    "nonempty_segments": true,
+    "one_compressed_bank": true,
+    "one_scalar_controller": true,
+    "recorded_geometry_matches_controller": true,
+    "scalar_ifft_executed_for_every_pair": true
+  },
+  "source_pins_unchanged": true,
+  "input_pins_unchanged": true,
+  "files_sha256": {
+    "/home/xangma/pycbc-torch-precision-validation-20260908/attempt-2/capture-proposed-cpu/triggers.hdf": "0889fd310c64e918bdbe22c6dc19c5753c1807b79656b8bd8489c8633d88248d",
+    "/home/xangma/pycbc-torch-baseline-final-20260908/runs/qual-proposed-cpu/triggers.hdf": "7201381d82a11704a6cfedf0851355ddf516997eab80d505c67a2b36e74da942"
+  },
+  "psd_exact": true,
+  "trigger_count": 1991
+}
