@@ -194,8 +194,7 @@ def create_full_filt(freqs, filt, plong, srate, psd_duration):
     # and whiten. The normalization is chosen so that the variance
     # will be one if this filter is applied to white noise which
     # already has a variance of one.
-    with numpy.errstate(divide="ignore"):
-        fweight = freqs ** (-7.0 / 6.0) * filt / numpy.sqrt(plong)
+    fweight = freqs ** (-7.0 / 6.0) * filt / numpy.sqrt(plong)
     fweight[0] = 0.0
     norm = (sum(abs(fweight) ** 2) / (len(fweight) - 1.0)) ** -0.5
     fweight = norm * fweight
