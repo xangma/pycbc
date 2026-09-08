@@ -348,15 +348,9 @@ class MatchedFilterControl(object):
         clusterer = self.threshold_and_clusterers[segnum]
 
         # Fast path: CUDA Graph replay if enabled/captured
-        graph_attr = getattr(self, "_cuda_graph_enabled", None)
-        cuda_graph_allowed = (
-            graph_attr is not False
-            and os.environ.get("PYCBC_TORCH_CUDA_GRAPH", "1") != "0"
-            and not getattr(self, "_cuda_graph_rejected", False)
-        )
         use_cuda_graph = (
-            graph_attr is True
-            or cuda_graph_allowed
+            getattr(self, "_cuda_graph_enabled", False)
+            or os.environ.get("PYCBC_TORCH_CUDA_GRAPH", "0") == "1"
         ) and (
             hasattr(clusterer, "series") and getattr(clusterer.series, "is_cuda", False)
         )
