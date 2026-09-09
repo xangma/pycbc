@@ -49,6 +49,10 @@ from .graphs import (
     CUDAGraphEntry,
     CUDAGraphManager,
 )
+from .adapter import (
+    TiledMatchedFilterControl,
+    TiledLiveBatchMatchedFilter,
+)
 
 __all__ = [
     "BankGeometry",
@@ -69,4 +73,6 @@ __all__ = [
     "Ticket",
     "CUDAGraphEntry",
     "CUDAGraphManager",
+    "TiledMatchedFilterControl",
+    "TiledLiveBatchMatchedFilter",
 ]
