@@ -45,6 +45,10 @@ from .engine import (
     SearchEngine,
     Ticket,
 )
+from .graphs import (
+    CUDAGraphEntry,
+    CUDAGraphManager,
+)
 from .adapter import (
     TiledMatchedFilterControl,
     TiledLiveBatchMatchedFilter,
@@ -67,6 +71,8 @@ __all__ = [
     "VetoManager",
     "SearchEngine",
     "Ticket",
+    "CUDAGraphEntry",
+    "CUDAGraphManager",
     "TiledMatchedFilterControl",
     "TiledLiveBatchMatchedFilter",
 ]
