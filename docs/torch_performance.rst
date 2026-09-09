@@ -30,25 +30,25 @@ in rotating order after scientific qualification. The workload contains
      - Original CPU / route
      - Template-seconds / wall second
    * - Original CPU
-     - 65.35
-     - 65.28–65.53
+     - 65.30
+     - 64.93–65.62
      - 1.00×
-     - 11,188
+     - 11,197
    * - Candidate CPU
-     - 64.37
-     - 64.32–64.38
+     - 64.30
+     - 63.97–64.37
      - 1.02×
-     - 11,359
+     - 11,371
    * - Torch CPU (optimized)
-     - 67.58
-     - 67.38–68.08
-     - 0.97×
-     - 10,819
+     - 71.29
+     - 71.23–71.41
+     - 0.92×
+     - 10,256
    * - Torch CUDA (optimized)
-     - 28.94
-     - 28.92–29.01
-     - 2.26×
-     - 25,263
+     - 23.98
+     - 23.96–24.10
+     - 2.72×
+     - 30,488
 
 Each process was pinned to logical CPU 8 of an AMD Ryzen Threadripper PRO
 3995WX, with numerical thread pools fixed to one. The Torch routes also set
