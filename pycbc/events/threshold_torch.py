@@ -923,6 +923,14 @@ class TorchThresholdCluster(_BaseThresholdCluster):
 
     def symmetric_cuda_graph_result(self):
         """Return the current CUDA-graph survivors as device-backed arrays."""
+        if not self._triton_keep.any():
+            empty_vals = torch.empty(
+                0, device=self.series.device, dtype=self.series.dtype
+            )
+            empty_idx = torch.empty(
+                0, device=self.series.device, dtype=self._triton_block_idx.dtype
+            )
+            return _array_from_tensor(empty_vals), _array_from_tensor(empty_idx)
         kept_idx = self._triton_block_idx[self._triton_keep]
         kept_vals = self.series[kept_idx]
         return _array_from_tensor(kept_vals), _array_from_tensor(kept_idx)
@@ -1119,6 +1127,15 @@ class TorchThresholdCluster(_BaseThresholdCluster):
                 window,
                 single_series=self._source.ndim == 1,
             )
+
+        if not keep.any():
+            empty_vals = torch.empty(
+                0, device=self.series.device, dtype=self.series.dtype
+            )
+            empty_idx = torch.empty(
+                0, device=self.series.device, dtype=block_idx.dtype
+            )
+            return _array_from_tensor(empty_vals), _array_from_tensor(empty_idx)
 
         kept_idx = block_idx[keep]
         flat_series = self.series.reshape(-1)
