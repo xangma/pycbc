@@ -56,6 +56,11 @@ from pycbc.types.backend import backend_array, is_backend, wrap_backend_array
 from pycbc.types.torch_compat import cpu_compatible, cpu_context
 from pycbc.waveform.spa_tmplt import spa_distance
 
+try:
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except AttributeError:
+    _HAVE_TORCH = False
+
 logger = logging.getLogger("pycbc.strain.strain")
 
 
@@ -165,6 +170,25 @@ def detect_loud_glitches(
     output_intermediates : {bool, False}
         Save intermediate time series for debugging.
     """
+
+    state = _scheme.mgr.state
+    if _HAVE_TORCH and (
+        is_backend(strain, "torch") or isinstance(state, _scheme.TorchScheme)
+    ):
+        from pycbc.strain.strain_torch import detect_loud_glitches_torch
+
+        return detect_loud_glitches_torch(
+            strain,
+            psd_duration=psd_duration,
+            psd_stride=psd_stride,
+            psd_avg_method=psd_avg_method,
+            low_freq_cutoff=low_freq_cutoff,
+            threshold=threshold,
+            cluster_window=cluster_window,
+            corrupt_time=corrupt_time,
+            high_freq_cutoff=high_freq_cutoff,
+            output_intermediates=output_intermediates,
+        )
 
     if high_freq_cutoff:
         strain = resample_to_delta_t(strain, 0.5 / high_freq_cutoff, method="ldas")
@@ -495,32 +519,41 @@ def from_cli(opt, dyn_range_fac=1, precision="single", inj_filter_rejector=None)
 
     if opt.autogating_threshold is not None:
         gating_info["auto"] = []
-        for _ in range(opt.autogating_max_iterations):
-            glitch_times = detect_loud_glitches(
-                strain,
-                threshold=opt.autogating_threshold,
-                cluster_window=opt.autogating_cluster,
-                low_freq_cutoff=opt.strain_high_pass,
-                corrupt_time=opt.pad_data + opt.autogating_pad,
-            )
-            gate_params = [
-                [gt, opt.autogating_width, opt.autogating_taper] for gt in glitch_times
-            ]
-            gating_info["auto"] += gate_params
-            for gate_time, gate_window, gate_taper in gate_params:
-                strain = strain.gate(
-                    gate_time,
-                    window=gate_window,
-                    method=opt.gating_method,
-                    copy=False,
-                    taper_width=gate_taper,
+        is_torch_scheme = is_torch and not isinstance(
+            _scheme.mgr.state, _scheme.TorchScheme
+        )
+        from contextlib import nullcontext
+
+        scheme_ctx = _scheme.from_cli(opt) if is_torch_scheme else nullcontext()
+        with scheme_ctx:
+            for _ in range(opt.autogating_max_iterations):
+                glitch_times = detect_loud_glitches(
+                    strain,
+                    threshold=opt.autogating_threshold,
+                    cluster_window=opt.autogating_cluster,
+                    low_freq_cutoff=opt.strain_high_pass,
+                    corrupt_time=opt.pad_data + opt.autogating_pad,
                 )
-            if len(glitch_times) > 0:
-                logger.info(
-                    "Autogating at %s", ", ".join(["%.3f" % gt for gt in glitch_times])
-                )
-            else:
-                break
+                gate_params = [
+                    [gt, opt.autogating_width, opt.autogating_taper]
+                    for gt in glitch_times
+                ]
+                gating_info["auto"] += gate_params
+                for gate_time, gate_window, gate_taper in gate_params:
+                    strain = strain.gate(
+                        gate_time,
+                        window=gate_window,
+                        method=opt.gating_method,
+                        copy=False,
+                        taper_width=gate_taper,
+                    )
+                if len(glitch_times) > 0:
+                    logger.info(
+                        "Autogating at %s",
+                        ", ".join(["%.3f" % gt for gt in glitch_times]),
+                    )
+                else:
+                    break
 
     if opt.strain_high_pass:
         logger.info("Highpass Filtering")
