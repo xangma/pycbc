@@ -15,7 +15,7 @@ setup, transfers and host work can dominate small workloads.
 Fresh complete-executable results (pycbc_inspiral)
 --------------------------------------------------
 
-Measured on **2026-09-08**, using four fresh unprofiled processes per route
+Measured on **2026-09-09**, using four fresh unprofiled processes per route
 in rotating order after scientific qualification. The workload contains
 **384 compressed templates, five segments and 1904 unique H1 seconds**
 (731,136 template-seconds; 1920 template/segment pairs).
@@ -30,25 +30,25 @@ in rotating order after scientific qualification. The workload contains
      - Original CPU / route
      - Template-seconds / wall second
    * - Original CPU
-     - 66.30
-     - 65.32–66.48
+     - 65.35
+     - 65.28–65.53
      - 1.00×
-     - 11,027
+     - 11,188
    * - Candidate CPU
-     - 64.25
-     - 63.92–64.53
-     - 1.03×
-     - 11,379
+     - 64.37
+     - 64.32–64.38
+     - 1.02×
+     - 11,359
    * - Torch CPU (optimized)
-     - 68.61
-     - 68.49–68.78
+     - 67.58
+     - 67.38–68.08
      - 0.97×
-     - 10,656
+     - 10,819
    * - Torch CUDA (optimized)
-     - 29.96
-     - 29.87–29.97
-     - 2.21×
-     - 24,400
+     - 28.94
+     - 28.92–29.01
+     - 2.26×
+     - 25,263
 
 Each process was pinned to logical CPU 8 of an AMD Ryzen Threadripper PRO
 3995WX, with numerical thread pools fixed to one. The Torch routes also set
