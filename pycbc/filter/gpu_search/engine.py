@@ -117,6 +117,7 @@ class SearchEngine:
         psd_plan: PSDPlan,
         valid_interval: Tuple[int, int],
         block_id: int = 0,
+        tile_id: Optional[int] = None,
     ) -> Ticket:
         """
         Submit a data block for tiled filtering against the bank.
@@ -213,8 +214,13 @@ class SearchEngine:
                 overwhitened_np[kmax:] = 0.0
             stilde = overwhitened_np
 
+        tiles_to_process = (
+            [self.bank_plan.tiles[tile_id]]
+            if tile_id is not None
+            else self.bank_plan.tiles
+        )
         tile_results = []
-        for tile in self.bank_plan.tiles:
+        for tile in tiles_to_process:
             b = tile.batch_size
             norms = psd_plan.tile_norms[tile.tile_id]
             sigmasqs = psd_plan.tile_sigmasqs[tile.tile_id]

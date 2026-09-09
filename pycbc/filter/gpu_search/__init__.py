@@ -45,6 +45,10 @@ from .engine import (
     SearchEngine,
     Ticket,
 )
+from .adapter import (
+    TiledMatchedFilterControl,
+    TiledLiveBatchMatchedFilter,
+)
 
 __all__ = [
     "BankGeometry",
@@ -63,4 +67,6 @@ __all__ = [
     "VetoManager",
     "SearchEngine",
     "Ticket",
+    "TiledMatchedFilterControl",
+    "TiledLiveBatchMatchedFilter",
 ]
