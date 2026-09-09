@@ -87,6 +87,21 @@ if _TRITON_AVAILABLE:
         tl.store(block_max_ptr + pid, curr_max_val)
         tl.store(block_idx_ptr + pid, curr_max_idx)
 
+    @triton.jit
+    def _triton_magsq_w1_kernel(
+        in_ptr,
+        block_max_ptr,
+        N,
+        BLOCK_SIZE: tl.constexpr,
+    ):
+        pid = tl.program_id(0)
+        cols = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
+        mask = cols < N
+        re = tl.load(in_ptr + 2 * cols, mask=mask, other=0.0)
+        im = tl.load(in_ptr + 2 * cols + 1, mask=mask, other=0.0)
+        mag_sq = re * re + im * im
+        tl.store(block_max_ptr + cols, mag_sq, mask=mask)
+
     def _triton_symmetric_block_reduce(tensor, window, out_max=None, out_idx=None):
         """Run Triton fused 1D block reduction on CUDA complex64 tensor."""
         slen = tensor.numel()
@@ -100,6 +115,25 @@ if _TRITON_AVAILABLE:
             block_idx = torch.empty(nb, device=tensor.device, dtype=torch.int64)
         else:
             block_idx = out_idx
+
+        if window == 1:
+            in_real = tensor.view(torch.float32)
+            grid = ((nb + 1023) // 1024,)
+            _triton_magsq_w1_kernel[grid](
+                in_real,
+                block_max,
+                slen,
+                BLOCK_SIZE=1024,
+            )
+            if not getattr(block_idx, "_is_arange_initialized", False):
+                torch.arange(
+                    nb,
+                    device=tensor.device,
+                    dtype=torch.int64,
+                    out=block_idx,
+                )
+                block_idx._is_arange_initialized = True
+            return block_max, block_idx
 
         block_size = min(triton.next_power_of_2(window), 1024)
         if block_size < 32:
