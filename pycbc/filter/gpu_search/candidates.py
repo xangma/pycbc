@@ -83,6 +83,32 @@ class CandidateBuffer:
             self.device_count.fill(0)
             self.overflow_flag.fill(False)
 
+    def resize(self, new_capacity: int):
+        """Grow candidate buffer capacity preserving existing contents."""
+        new_capacity = max(self.capacity * 2, int(new_capacity))
+        old_count = min(self.count, self.capacity)
+        old_samples = self.sample_indices[:old_count]
+        old_tmplts = self.template_indices[:old_count]
+        old_snr = self.snr_values[:old_count]
+        old_sigmasq = self.sigmasq_values[:old_count]
+
+        self.capacity = new_capacity
+        self._allocate()
+
+        if old_count > 0:
+            if torch is not None and isinstance(self.sample_indices, torch.Tensor):
+                self.sample_indices[:old_count].copy_(old_samples)
+                self.template_indices[:old_count].copy_(old_tmplts)
+                self.snr_values[:old_count].copy_(old_snr)
+                self.sigmasq_values[:old_count].copy_(old_sigmasq)
+                self.device_count.fill_(old_count)
+            else:
+                self.sample_indices[:old_count] = old_samples
+                self.template_indices[:old_count] = old_tmplts
+                self.snr_values[:old_count] = old_snr
+                self.sigmasq_values[:old_count] = old_sigmasq
+                self.device_count = np.array(old_count, dtype=np.int64)
+
     @property
     def count(self) -> int:
         if torch is not None and isinstance(self.device_count, torch.Tensor):
@@ -122,6 +148,239 @@ class CandidateBuffer:
             }
 
 
+def _store_in_buffer(
+    buffer: Optional[CandidateBuffer],
+    sel_tmplt: Any,
+    sel_sample: Any,
+    sel_snr: Any,
+    sel_sigmasq: Any,
+    num_survivors: int,
+) -> bool:
+    """Store survivor batch in preallocated buffer, detecting overflow."""
+    if buffer is None:
+        return False
+    start_c = buffer.count
+    if start_c + num_survivors > buffer.capacity:
+        if torch is not None and isinstance(buffer.overflow_flag, torch.Tensor):
+            buffer.overflow_flag.fill_(True)
+        else:
+            buffer.overflow_flag.fill(True)
+        return True
+
+    if torch is not None and isinstance(buffer.sample_indices, torch.Tensor):
+        buffer.template_indices[start_c : start_c + num_survivors].copy_(sel_tmplt)
+        buffer.sample_indices[start_c : start_c + num_survivors].copy_(sel_sample)
+        buffer.snr_values[start_c : start_c + num_survivors].copy_(sel_snr)
+        buffer.sigmasq_values[start_c : start_c + num_survivors].copy_(sel_sigmasq)
+        buffer.device_count.add_(num_survivors)
+    else:
+        buffer.template_indices[start_c : start_c + num_survivors] = sel_tmplt
+        buffer.sample_indices[start_c : start_c + num_survivors] = sel_sample
+        buffer.snr_values[start_c : start_c + num_survivors] = sel_snr
+        buffer.sigmasq_values[start_c : start_c + num_survivors] = sel_sigmasq
+        buffer.device_count += num_survivors
+    return False
+
+
+def _select_torch_symmetric(
+    vals: torch.Tensor,
+    norms: torch.Tensor,
+    sigmasqs: torch.Tensor,
+    valid_start: int,
+    policy: SelectionPolicy,
+    buffer: Optional[CandidateBuffer] = None,
+) -> Dict[str, Any]:
+    """Execute batched 2D symmetric clustering across templates on device."""
+    batch_size = vals.shape[0]
+    total_len = vals.shape[-1]
+    window = max(1, int(policy.cluster_window))
+
+    sq_mag = vals.real.square() + vals.imag.square()
+    sq_mag = torch.nan_to_num(sq_mag, nan=0.0)
+
+    num_blocks = (total_len + window - 1) // window
+    if num_blocks == 0:
+        return {
+            "aborted": False,
+            "overflow": False,
+            "candidates": {
+                "template_idx": np.empty(0, dtype=np.int64),
+                "sample_idx": np.empty(0, dtype=np.int64),
+                "snr": np.empty(0, dtype=np.complex64),
+                "sigmasq": np.empty(0, dtype=np.float32),
+            },
+        }
+
+    pad = num_blocks * window - total_len
+    if pad > 0:
+        pad_val = torch.full(
+            (batch_size, pad), float("-inf"), device=vals.device, dtype=sq_mag.dtype
+        )
+        sq_padded = torch.cat([sq_mag, pad_val], dim=-1)
+    else:
+        sq_padded = sq_mag
+
+    blocks = sq_padded.view(batch_size, num_blocks, window)
+    block_max, block_idx = torch.max(blocks, dim=-1)
+    block_idx.add_(
+        torch.arange(num_blocks, device=vals.device).unsqueeze(0), alpha=window
+    )
+
+    # Threshold check
+    thresh_sq = (policy.snr_threshold / norms).square().unsqueeze(-1)
+    keep = block_max > thresh_sq
+
+    # Abort check
+    if policy.snr_abort_threshold is not None:
+        abort_thresh_sq = (policy.snr_abort_threshold / norms).square().unsqueeze(-1)
+        if (block_max >= abort_thresh_sq).any():
+            return {"aborted": True, "candidates": {}}
+
+    if num_blocks > 1:
+        # Match parallel_thresh_cluster exactly:
+        # Candidate strictly > previous neighbor, and >= next neighbor.
+        keep[:, 1:] &= block_max[:, 1:] > block_max[:, :-1]
+        keep[:, :-1] &= block_max[:, :-1] >= block_max[:, 1:]
+        keep[:, 0] &= block_max[:, 0] > block_max[:, 1]
+
+    survivor_indices = torch.nonzero(keep, as_tuple=True)
+    sel_tmplt = survivor_indices[0]
+    block_pos = survivor_indices[1]
+    num_survivors = int(sel_tmplt.numel())
+
+    if num_survivors == 0:
+        return {
+            "aborted": False,
+            "overflow": False,
+            "candidates": {
+                "template_idx": np.empty(0, dtype=np.int64),
+                "sample_idx": np.empty(0, dtype=np.int64),
+                "snr": np.empty(0, dtype=np.complex64),
+                "sigmasq": np.empty(0, dtype=np.float32),
+            },
+        }
+
+    sel_sample_rel = block_idx[sel_tmplt, block_pos]
+    sel_sample = sel_sample_rel + valid_start
+    peak_samples = vals[sel_tmplt, sel_sample_rel]
+    sel_snr = peak_samples * norms[sel_tmplt]
+    sel_sigmasq = sigmasqs[sel_tmplt]
+
+    overflow = _store_in_buffer(
+        buffer, sel_tmplt, sel_sample, sel_snr, sel_sigmasq, num_survivors
+    )
+    if overflow:
+        return {"aborted": False, "overflow": True, "candidates": {}}
+
+    return {
+        "aborted": False,
+        "overflow": False,
+        "candidates": {
+            "template_idx": sel_tmplt.detach().cpu().numpy(),
+            "sample_idx": sel_sample.detach().cpu().numpy(),
+            "snr": sel_snr.detach().cpu().numpy(),
+            "sigmasq": sel_sigmasq.detach().cpu().numpy(),
+        },
+    }
+
+
+def _select_numpy_symmetric(
+    vals: np.ndarray,
+    norms: np.ndarray,
+    sigmasqs: np.ndarray,
+    valid_start: int,
+    policy: SelectionPolicy,
+    buffer: Optional[CandidateBuffer] = None,
+) -> Dict[str, Any]:
+    """Execute batched symmetric clustering using numpy."""
+    batch_size = vals.shape[0]
+    total_len = vals.shape[-1]
+    window = max(1, int(policy.cluster_window))
+
+    sq_mag = vals.real**2 + vals.imag**2
+    sq_mag = np.nan_to_num(sq_mag, nan=0.0)
+
+    num_blocks = (total_len + window - 1) // window
+    if num_blocks == 0:
+        return {
+            "aborted": False,
+            "overflow": False,
+            "candidates": {
+                "template_idx": np.empty(0, dtype=np.int64),
+                "sample_idx": np.empty(0, dtype=np.int64),
+                "snr": np.empty(0, dtype=np.complex64),
+                "sigmasq": np.empty(0, dtype=np.float32),
+            },
+        }
+
+    pad = num_blocks * window - total_len
+    if pad > 0:
+        pad_val = np.full((batch_size, pad), -np.inf, dtype=sq_mag.dtype)
+        sq_padded = np.concatenate([sq_mag, pad_val], axis=-1)
+    else:
+        sq_padded = sq_mag
+
+    blocks = sq_padded.reshape(batch_size, num_blocks, window)
+    block_max = np.max(blocks, axis=-1)
+    block_idx = np.argmax(blocks, axis=-1)
+    block_idx = block_idx + np.arange(num_blocks)[np.newaxis, :] * window
+
+    thresh_sq = (policy.snr_threshold / norms) ** 2
+    thresh_sq = thresh_sq[:, np.newaxis]
+    keep = block_max > thresh_sq
+
+    if policy.snr_abort_threshold is not None:
+        abort_thresh_sq = (policy.snr_abort_threshold / norms) ** 2
+        abort_thresh_sq = abort_thresh_sq[:, np.newaxis]
+        if (block_max >= abort_thresh_sq).any():
+            return {"aborted": True, "candidates": {}}
+
+    if num_blocks > 1:
+        keep[:, 1:] &= block_max[:, 1:] > block_max[:, :-1]
+        keep[:, :-1] &= block_max[:, :-1] >= block_max[:, 1:]
+        keep[:, 0] &= block_max[:, 0] > block_max[:, 1]
+
+    survivor_indices = np.nonzero(keep)
+    sel_tmplt = survivor_indices[0]
+    block_pos = survivor_indices[1]
+    num_survivors = len(sel_tmplt)
+
+    if num_survivors == 0:
+        return {
+            "aborted": False,
+            "overflow": False,
+            "candidates": {
+                "template_idx": np.empty(0, dtype=np.int64),
+                "sample_idx": np.empty(0, dtype=np.int64),
+                "snr": np.empty(0, dtype=np.complex64),
+                "sigmasq": np.empty(0, dtype=np.float32),
+            },
+        }
+
+    sel_sample_rel = block_idx[sel_tmplt, block_pos]
+    sel_sample = sel_sample_rel + valid_start
+    peak_samples = vals[sel_tmplt, sel_sample_rel]
+    sel_snr = peak_samples * norms[sel_tmplt]
+    sel_sigmasq = sigmasqs[sel_tmplt]
+
+    overflow = _store_in_buffer(
+        buffer, sel_tmplt, sel_sample, sel_snr, sel_sigmasq, num_survivors
+    )
+    if overflow:
+        return {"aborted": False, "overflow": True, "candidates": {}}
+
+    return {
+        "aborted": False,
+        "overflow": False,
+        "candidates": {
+            "template_idx": sel_tmplt,
+            "sample_idx": sel_sample,
+            "snr": sel_snr,
+            "sigmasq": sel_sigmasq,
+        },
+    }
+
+
 def select_tile_candidates(
     out_mem: Any,  # (B, transform_length) complex64
     tile_norms: Any,  # (B,) float32/float64
@@ -140,88 +399,86 @@ def select_tile_candidates(
         vals = out_mem[:, valid_slice]
         batch_size = vals.shape[0]
 
-        # Compute square magnitude on device
+        norms = (
+            tile_norms
+            if isinstance(tile_norms, torch.Tensor)
+            else torch.as_tensor(tile_norms, device=vals.device)
+        )
+        sigmasqs = (
+            tile_sigmasqs
+            if isinstance(tile_sigmasqs, torch.Tensor)
+            else torch.as_tensor(tile_sigmasqs, device=vals.device)
+        )
+
+        if policy.cluster_policy == "symmetric":
+            return _select_torch_symmetric(
+                vals, norms, sigmasqs, valid_start, policy, buffer
+            )
+
+        # 1-peak per template (live_peak policy)
         sq_mag = vals.real.square() + vals.imag.square()
         sq_mag = torch.nan_to_num(sq_mag, nan=0.0)
 
-        if policy.cluster_policy == "live_peak":
-            max_sq_mag, argmax_idx = torch.max(sq_mag, dim=-1)
-            # Complex peak sample
-            peak_samples = vals[
-                torch.arange(batch_size, device=vals.device), argmax_idx
-            ]
+        max_sq_mag, argmax_idx = torch.max(sq_mag, dim=-1)
+        peak_samples = vals[
+            torch.arange(batch_size, device=vals.device), argmax_idx
+        ]
 
-            norms = (
-                tile_norms
-                if isinstance(tile_norms, torch.Tensor)
-                else torch.as_tensor(tile_norms, device=vals.device)
-            )
-            sigmasqs = (
-                tile_sigmasqs
-                if isinstance(tile_sigmasqs, torch.Tensor)
-                else torch.as_tensor(tile_sigmasqs, device=vals.device)
-            )
+        snr_mags = torch.sqrt(max_sq_mag) * norms
 
-            # SNR magnitude = sqrt(max_sq_mag) * norm
-            snr_mags = torch.sqrt(max_sq_mag) * norms
+        if policy.snr_abort_threshold is not None:
+            if (snr_mags >= policy.snr_abort_threshold).any():
+                return {"aborted": True, "candidates": {}}
 
-            # Check abort threshold
-            if policy.snr_abort_threshold is not None:
-                if (snr_mags >= policy.snr_abort_threshold).any():
-                    return {"aborted": True, "candidates": {}}
+        survivors = snr_mags >= policy.snr_threshold
+        survivor_indices = torch.nonzero(survivors, as_tuple=False).squeeze(-1)
 
-            survivors = snr_mags >= policy.snr_threshold
-            survivor_indices = torch.nonzero(survivors, as_tuple=False).squeeze(-1)
-
-            num_survivors = int(survivor_indices.numel())
-            if num_survivors == 0:
-                return {
-                    "aborted": False,
-                    "candidates": {
-                        "template_idx": np.empty(0, dtype=np.int64),
-                        "sample_idx": np.empty(0, dtype=np.int64),
-                        "snr": np.empty(0, dtype=np.complex64),
-                        "sigmasq": np.empty(0, dtype=np.float32),
-                    },
-                }
-
-            sel_tmplt = survivor_indices
-            sel_sample = argmax_idx[sel_tmplt] + valid_start
-            sel_snr = peak_samples[sel_tmplt] * norms[sel_tmplt]
-            sel_sigmasq = sigmasqs[sel_tmplt]
-
-            if buffer is not None:
-                start_c = buffer.count
-                if start_c + num_survivors > buffer.capacity:
-                    buffer.overflow_flag.fill_(True)
-                    return {"aborted": False, "overflow": True, "candidates": {}}
-
-                buffer.template_indices[start_c : start_c + num_survivors].copy_(
-                    sel_tmplt
-                )
-                buffer.sample_indices[start_c : start_c + num_survivors].copy_(
-                    sel_sample
-                )
-                buffer.snr_values[start_c : start_c + num_survivors].copy_(sel_snr)
-                buffer.sigmasq_values[start_c : start_c + num_survivors].copy_(
-                    sel_sigmasq
-                )
-                buffer.device_count.add_(num_survivors)
-
+        num_survivors = int(survivor_indices.numel())
+        if num_survivors == 0:
             return {
                 "aborted": False,
                 "overflow": False,
                 "candidates": {
-                    "template_idx": sel_tmplt.detach().cpu().numpy(),
-                    "sample_idx": sel_sample.detach().cpu().numpy(),
-                    "snr": sel_snr.detach().cpu().numpy(),
-                    "sigmasq": sel_sigmasq.detach().cpu().numpy(),
+                    "template_idx": np.empty(0, dtype=np.int64),
+                    "sample_idx": np.empty(0, dtype=np.int64),
+                    "snr": np.empty(0, dtype=np.complex64),
+                    "sigmasq": np.empty(0, dtype=np.float32),
                 },
             }
+
+        sel_tmplt = survivor_indices
+        sel_sample = argmax_idx[sel_tmplt] + valid_start
+        sel_snr = peak_samples[sel_tmplt] * norms[sel_tmplt]
+        sel_sigmasq = sigmasqs[sel_tmplt]
+
+        overflow = _store_in_buffer(
+            buffer, sel_tmplt, sel_sample, sel_snr, sel_sigmasq, num_survivors
+        )
+        if overflow:
+            return {"aborted": False, "overflow": True, "candidates": {}}
+
+        return {
+            "aborted": False,
+            "overflow": False,
+            "candidates": {
+                "template_idx": sel_tmplt.detach().cpu().numpy(),
+                "sample_idx": sel_sample.detach().cpu().numpy(),
+                "snr": sel_snr.detach().cpu().numpy(),
+                "sigmasq": sel_sigmasq.detach().cpu().numpy(),
+            },
+        }
 
     # Numpy fallback
     out_np = np.asarray(out_mem)[:, valid_slice]
     batch_size = out_np.shape[0]
+    norms = np.asarray(tile_norms)
+    sigmasqs = np.asarray(tile_sigmasqs)
+
+    if policy.cluster_policy == "symmetric":
+        return _select_numpy_symmetric(
+            out_np, norms, sigmasqs, valid_start, policy, buffer
+        )
+
     sq_mag = out_np.real**2 + out_np.imag**2
     sq_mag = np.nan_to_num(sq_mag, nan=0.0)
 
@@ -229,8 +486,6 @@ def select_tile_candidates(
     max_sq_mag = sq_mag[np.arange(batch_size), argmax_idx]
     peak_samples = out_np[np.arange(batch_size), argmax_idx]
 
-    norms = np.asarray(tile_norms)
-    sigmasqs = np.asarray(tile_sigmasqs)
     snr_mags = np.sqrt(max_sq_mag) * norms
 
     if policy.snr_abort_threshold is not None:
@@ -242,6 +497,7 @@ def select_tile_candidates(
     if num_survivors == 0:
         return {
             "aborted": False,
+            "overflow": False,
             "candidates": {
                 "template_idx": np.empty(0, dtype=np.int64),
                 "sample_idx": np.empty(0, dtype=np.int64),
@@ -254,6 +510,12 @@ def select_tile_candidates(
     sel_sample = argmax_idx[sel_tmplt] + valid_start
     sel_snr = peak_samples[sel_tmplt] * norms[sel_tmplt]
     sel_sigmasq = sigmasqs[sel_tmplt]
+
+    overflow = _store_in_buffer(
+        buffer, sel_tmplt, sel_sample, sel_snr, sel_sigmasq, num_survivors
+    )
+    if overflow:
+        return {"aborted": False, "overflow": True, "candidates": {}}
 
     return {
         "aborted": False,
