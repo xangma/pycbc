@@ -87,6 +87,21 @@ if _TRITON_AVAILABLE:
         tl.store(block_max_ptr + pid, curr_max_val)
         tl.store(block_idx_ptr + pid, curr_max_idx)
 
+    @triton.jit
+    def _triton_magsq_w1_kernel(
+        in_ptr,
+        block_max_ptr,
+        N,
+        BLOCK_SIZE: tl.constexpr,
+    ):
+        pid = tl.program_id(0)
+        cols = pid * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)
+        mask = cols < N
+        re = tl.load(in_ptr + 2 * cols, mask=mask, other=0.0)
+        im = tl.load(in_ptr + 2 * cols + 1, mask=mask, other=0.0)
+        mag_sq = re * re + im * im
+        tl.store(block_max_ptr + cols, mag_sq, mask=mask)
+
     def _triton_symmetric_block_reduce(tensor, window, out_max=None, out_idx=None):
         """Run Triton fused 1D block reduction on CUDA complex64 tensor."""
         slen = tensor.numel()
@@ -100,6 +115,25 @@ if _TRITON_AVAILABLE:
             block_idx = torch.empty(nb, device=tensor.device, dtype=torch.int64)
         else:
             block_idx = out_idx
+
+        if window == 1:
+            in_real = tensor.view(torch.float32)
+            grid = ((nb + 1023) // 1024,)
+            _triton_magsq_w1_kernel[grid](
+                in_real,
+                block_max,
+                slen,
+                BLOCK_SIZE=1024,
+            )
+            if not getattr(block_idx, "_is_arange_initialized", False):
+                torch.arange(
+                    nb,
+                    device=tensor.device,
+                    dtype=torch.int64,
+                    out=block_idx,
+                )
+                block_idx._is_arange_initialized = True
+            return block_max, block_idx
 
         block_size = min(triton.next_power_of_2(window), 1024)
         if block_size < 32:
@@ -923,6 +957,14 @@ class TorchThresholdCluster(_BaseThresholdCluster):
 
     def symmetric_cuda_graph_result(self):
         """Return the current CUDA-graph survivors as device-backed arrays."""
+        if not self._triton_keep.any():
+            empty_vals = torch.empty(
+                0, device=self.series.device, dtype=self.series.dtype
+            )
+            empty_idx = torch.empty(
+                0, device=self.series.device, dtype=self._triton_block_idx.dtype
+            )
+            return _array_from_tensor(empty_vals), _array_from_tensor(empty_idx)
         kept_idx = self._triton_block_idx[self._triton_keep]
         kept_vals = self.series[kept_idx]
         return _array_from_tensor(kept_vals), _array_from_tensor(kept_idx)
@@ -1119,6 +1161,15 @@ class TorchThresholdCluster(_BaseThresholdCluster):
                 window,
                 single_series=self._source.ndim == 1,
             )
+
+        if not keep.any():
+            empty_vals = torch.empty(
+                0, device=self.series.device, dtype=self.series.dtype
+            )
+            empty_idx = torch.empty(
+                0, device=self.series.device, dtype=block_idx.dtype
+            )
+            return _array_from_tensor(empty_vals), _array_from_tensor(empty_idx)
 
         kept_idx = block_idx[keep]
         flat_series = self.series.reshape(-1)
