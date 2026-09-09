@@ -34,6 +34,13 @@ from .candidates import (
     CandidateBuffer,
     SelectionPolicy,
 )
+from .vetoes import (
+    PowerChisqPlan,
+    prepare_power_chisq_plan,
+    batched_power_chisq,
+    SineGaussianPlan,
+    VetoManager,
+)
 from .engine import (
     SearchEngine,
     Ticket,
@@ -49,6 +56,11 @@ __all__ = [
     "bind_psd",
     "CandidateBuffer",
     "SelectionPolicy",
+    "PowerChisqPlan",
+    "prepare_power_chisq_plan",
+    "batched_power_chisq",
+    "SineGaussianPlan",
+    "VetoManager",
     "SearchEngine",
     "Ticket",
 ]

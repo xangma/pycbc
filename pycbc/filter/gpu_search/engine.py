@@ -58,16 +58,23 @@ class SearchEngine:
         self,
         bank_plan: BankPlan,
         selection_policy: SelectionPolicy,
+        veto_manager: Optional[Any] = None,
         workspace_budget: Optional[WorkspaceBudget] = None,
         candidate_capacity: int = 65536,
         device: str = "cpu",
     ):
         self.bank_plan = bank_plan
         self.selection_policy = selection_policy
-        self.workspace_budget = workspace_budget or WorkspaceBudget()
+        self.candidate_capacity = int(candidate_capacity)
         self.device = device
-        self.candidate_capacity = candidate_capacity
 
+        if veto_manager is not None and hasattr(veto_manager, "tile_bin_edges"):
+            from .vetoes import VetoManager
+            self.veto_manager = VetoManager(power_chisq_plan=veto_manager)
+        else:
+            self.veto_manager = veto_manager
+
+        self.workspace_budget = workspace_budget or WorkspaceBudget()
         self._ticket_counter = 0
         self._provisional_batches: List[Ticket] = []
         self._committed_batches: List[Ticket] = []
@@ -278,6 +285,14 @@ class SearchEngine:
 
             cands = sel.get("candidates", {})
             if len(cands.get("template_idx", [])) > 0:
+                if self.veto_manager is not None:
+                    cands = self.veto_manager.evaluate(
+                        corr_tile=self.cout_workspace[:b],
+                        candidates=cands,
+                        tile_id=tile.tile_id,
+                        tile_norms=norms,
+                        transform_length=self.tlen,
+                    )
                 # Map tile-local template index to global template ID
                 global_tmplt_ids = np.array(
                     [tile.template_ids[idx] for idx in cands["template_idx"]],
