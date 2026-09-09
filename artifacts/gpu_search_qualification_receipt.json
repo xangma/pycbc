@@ -1,0 +1,99 @@
+{
+  "timestamp": "2026-09-09T23:26:20Z",
+  "hostname": "len",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+  "python_version": "3.11.9",
+  "torch_version": "2.13.0+cu130",
+  "gpu": {
+    "name": "NVIDIA GeForce RTX 4090",
+    "total_memory_gb": 23.53656005859375,
+    "cuda_version": "13.0"
+  },
+  "benchmarks": {
+    "gpu_tile_scaling": {
+      "tile_size_1": {
+        "tile_size": 1,
+        "avg_time_sec": 0.2016842808050569,
+        "std_time_sec": 0.0006417778337761532,
+        "templates_per_sec": 2538.621244830115
+      },
+      "tile_size_16": {
+        "tile_size": 16,
+        "avg_time_sec": 0.01323669306584634,
+        "std_time_sec": 5.627401513296049e-05,
+        "templates_per_sec": 38680.355996247716
+      },
+      "tile_size_64": {
+        "tile_size": 64,
+        "avg_time_sec": 0.0035294942907057704,
+        "std_time_sec": 1.0191552763133898e-05,
+        "templates_per_sec": 145063.27474399132
+      },
+      "tile_size_128": {
+        "tile_size": 128,
+        "avg_time_sec": 0.0022827776439953594,
+        "std_time_sec": 1.4414996177510295e-05,
+        "templates_per_sec": 224288.16111230536
+      },
+      "tile_size_256": {
+        "tile_size": 256,
+        "avg_time_sec": 0.0013100533455144615,
+        "std_time_sec": 7.3725812979804565e-06,
+        "templates_per_sec": 390823.77962168877
+      }
+    },
+    "cpu_tile_scaling": {
+      "tile_size_1": {
+        "tile_size": 1,
+        "avg_time_sec": 0.011232806259067729,
+        "std_time_sec": 4.0503371395782185e-05,
+        "templates_per_sec": 5697.596711270235
+      },
+      "tile_size_16": {
+        "tile_size": 16,
+        "avg_time_sec": 0.014803905808366834,
+        "std_time_sec": 0.0007384073899107304,
+        "templates_per_sec": 4323.183410409747
+      },
+      "tile_size_64": {
+        "tile_size": 64,
+        "avg_time_sec": 0.0008521934447344393,
+        "std_time_sec": 4.3818352472258316e-05,
+        "templates_per_sec": 75100.31952891129
+      }
+    },
+    "cuda_graph_comparison": {
+      "num_templates": 512,
+      "tile_size": 64,
+      "iterations": 50,
+      "eager": {
+        "mean_ms": 3.553915941156447,
+        "p50_ms": 3.5397099563851953,
+        "p95_ms": 3.6150530620943755,
+        "p99_ms": 3.778752912767231
+      },
+      "cuda_graph": {
+        "mean_ms": 2.83075439510867,
+        "p50_ms": 2.828287018928677,
+        "p95_ms": 2.8697480622213334,
+        "p99_ms": 2.878060683142394,
+        "capture_count": 8,
+        "replay_count": 480
+      },
+      "speedup": 1.255466015454165
+    },
+    "live_streaming_latency": {
+      "num_blocks": 50,
+      "double_buffering": true,
+      "latency_p50_ms": 2.836577012203634,
+      "latency_p95_ms": 2.9110688774380833,
+      "latency_p99_ms": 3.291829853551462,
+      "latency_max_ms": 3.3935249084606767,
+      "latency_mean_ms": 2.859501850325614,
+      "vram_initial_mb": 8.54443359375,
+      "vram_final_mb": 8.54443359375,
+      "vram_peak_mb": 11.7734375,
+      "vram_leak_detected": false
+    }
+  }
+}

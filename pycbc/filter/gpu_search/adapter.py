@@ -199,6 +199,7 @@ class TiledLiveBatchMatchedFilter:
         max_triggers_in_batch: Optional[int] = None,
         tile_size: int = 64,
         device: Optional[str] = None,
+        use_cuda_graphs: bool = False,
     ):
         self.snr_threshold = float(snr_threshold)
         self.chisq_bins = chisq_bins
@@ -211,6 +212,7 @@ class TiledLiveBatchMatchedFilter:
         )
         self.max_triggers_in_batch = max_triggers_in_batch
         self.tile_size = int(tile_size)
+        self.use_cuda_graphs = bool(use_cuda_graphs)
 
         if device is None:
             if isinstance(scheme.mgr.state, scheme.TorchScheme):
@@ -245,6 +247,7 @@ class TiledLiveBatchMatchedFilter:
             bank_plan=self.bank_plan,
             selection_policy=self.selection_policy,
             device=self.device,
+            use_cuda_graphs=self.use_cuda_graphs,
         )
 
         self.data = None
