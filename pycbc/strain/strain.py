@@ -298,7 +298,22 @@ def from_cli(opt, dyn_range_fac=1, precision="single", inj_filter_rejector=None)
         else:
             sieve = None
 
-        if opt.frame_type:
+        is_torch = (
+            getattr(opt, "processing_scheme", None) is not None
+            and str(opt.processing_scheme).startswith("torch")
+        ) or isinstance(_scheme.mgr.state, _scheme.TorchScheme)
+
+        if is_torch and (opt.frame_files or opt.frame_cache) and not opt.frame_type:
+            from pycbc.frame.frame_torch import read_frame_torch
+
+            strain = read_frame_torch(
+                frame_source,
+                opt.channel_name,
+                start_time=opt.gps_start_time - opt.pad_data,
+                end_time=opt.gps_end_time + opt.pad_data,
+                sieve=sieve,
+            )
+        elif opt.frame_type:
             strain = pycbc.frame.query_and_read_frame(
                 opt.frame_type,
                 opt.channel_name,
