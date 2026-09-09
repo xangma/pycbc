@@ -59,6 +59,13 @@ from .multirate import (
     prepare_multirate_plan,
     MultirateSearchEngine,
 )
+from .reduced_basis import (
+    ReducedBasisPlan,
+    ReducedBasisPSDPlan,
+    compute_reduced_basis,
+    bind_reduced_basis_psd,
+    ReducedBasisSearchEngine,
+)
 
 __all__ = [
     "BankGeometry",
@@ -85,4 +92,9 @@ __all__ = [
     "MultiratePlan",
     "prepare_multirate_plan",
     "MultirateSearchEngine",
+    "ReducedBasisPlan",
+    "ReducedBasisPSDPlan",
+    "compute_reduced_basis",
+    "bind_reduced_basis_psd",
+    "ReducedBasisSearchEngine",
 ]
