@@ -338,6 +338,7 @@ class VetoManager:
 
     power_chisq_plan: Optional[PowerChisqPlan] = None
     sg_plan: Optional[SineGaussianPlan] = None
+    consistency_screen: Optional[Any] = None
 
     def evaluate(
         self,
@@ -353,19 +354,33 @@ class VetoManager:
         if not candidates or len(candidates.get("sample_idx", [])) == 0:
             return candidates
 
+        bin_edges = None
         if self.power_chisq_plan is not None:
             bin_edges = self.power_chisq_plan.tile_bin_edges.get(tile_id)
-            if bin_edges is not None:
-                chisq, chisq_dof = batched_power_chisq(
-                    corr_tile=corr_tile,
-                    candidates=candidates,
-                    tile_bin_edges=bin_edges,
-                    tile_norms=tile_norms,
-                    num_bins=self.power_chisq_plan.num_bins,
-                    snr_threshold=self.power_chisq_plan.snr_threshold,
-                    transform_length=transform_length,
-                )
-                candidates["chisq"] = chisq
-                candidates["chisq_dof"] = chisq_dof
+
+        if self.consistency_screen is not None:
+            candidates = self.consistency_screen.filter(
+                corr_tile=corr_tile,
+                candidates=candidates,
+                tile_id=tile_id,
+                tile_norms=tile_norms,
+                transform_length=transform_length,
+                bin_edges=bin_edges,
+            )
+            if not candidates or len(candidates.get("sample_idx", [])) == 0:
+                return candidates
+
+        if self.power_chisq_plan is not None and bin_edges is not None:
+            chisq, chisq_dof = batched_power_chisq(
+                corr_tile=corr_tile,
+                candidates=candidates,
+                tile_bin_edges=bin_edges,
+                tile_norms=tile_norms,
+                num_bins=self.power_chisq_plan.num_bins,
+                snr_threshold=self.power_chisq_plan.snr_threshold,
+                transform_length=transform_length,
+            )
+            candidates["chisq"] = chisq
+            candidates["chisq_dof"] = chisq_dof
 
         return candidates

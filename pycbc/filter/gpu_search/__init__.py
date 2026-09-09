@@ -66,6 +66,7 @@ from .reduced_basis import (
     bind_reduced_basis_psd,
     ReducedBasisSearchEngine,
 )
+from .screening import ConsistencyScreen
 
 __all__ = [
     "BankGeometry",
@@ -97,4 +98,5 @@ __all__ = [
     "compute_reduced_basis",
     "bind_reduced_basis_psd",
     "ReducedBasisSearchEngine",
+    "ConsistencyScreen",
 ]
