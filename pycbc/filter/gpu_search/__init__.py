@@ -53,6 +53,12 @@ from .adapter import (
     TiledMatchedFilterControl,
     TiledLiveBatchMatchedFilter,
 )
+from .multirate import (
+    MultirateBand,
+    MultiratePlan,
+    prepare_multirate_plan,
+    MultirateSearchEngine,
+)
 
 __all__ = [
     "BankGeometry",
@@ -75,4 +81,8 @@ __all__ = [
     "CUDAGraphManager",
     "TiledMatchedFilterControl",
     "TiledLiveBatchMatchedFilter",
+    "MultirateBand",
+    "MultiratePlan",
+    "prepare_multirate_plan",
+    "MultirateSearchEngine",
 ]
