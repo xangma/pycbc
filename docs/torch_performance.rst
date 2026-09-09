@@ -30,25 +30,25 @@ in rotating order after scientific qualification. The workload contains
      - Original CPU / route
      - Template-seconds / wall second
    * - Original CPU
-     - 65.30
-     - 64.93–65.62
+     - 65.15
+     - 65.13–65.28
      - 1.00×
-     - 11,197
+     - 11,222
    * - Candidate CPU
-     - 64.30
-     - 63.97–64.37
+     - 63.81
+     - 63.73–63.89
      - 1.02×
-     - 11,371
+     - 11,459
    * - Torch CPU (optimized)
-     - 71.29
-     - 71.23–71.41
+     - 70.69
+     - 70.33–70.84
      - 0.92×
-     - 10,256
+     - 10,343
    * - Torch CUDA (optimized)
-     - 23.98
-     - 23.96–24.10
-     - 2.72×
-     - 30,488
+     - 19.60
+     - 19.60–19.70
+     - 3.32×
+     - 37,308
 
 Each process was pinned to logical CPU 8 of an AMD Ryzen Threadripper PRO
 3995WX, with numerical thread pools fixed to one. The Torch routes also set
@@ -141,7 +141,7 @@ Architectural distinction: inspiral vs live batching
 
 Measured sources: original CPU
 ``40e94792b3edf59f39b18b65102b28a4f74433a7`` and candidate main
-``eb8fef9ed1d06378b59cae8439fd40af63827575``. See the
+``ca4bc95f7fe54a4d52d3923c3e8b0d4b283ce196``. See the
 `immutable benchmark evidence <https://github.com/xangma/pycbc/tree/134ecb2586b2e2fc6272924e9cffdf15e51e6f39/torch-fresh-benchmark>`_
 for every sample, command, input hash, environment record and independent
 verification, and :ref:`torch-reference-campaign` for the workload and gates.
