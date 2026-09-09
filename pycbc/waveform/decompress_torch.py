@@ -382,3 +382,182 @@ def inline_quartic_interp(
     return _inline_interp(
         amp, phase, sample_frequencies, output, df, imin, start_index, 4
     )
+
+
+class AsyncWaveformPrefetcher:
+    """Asynchronous double-buffered waveform prefetcher for PyCBC on CUDA.
+
+    Prefetches and decompresses template N+1 on a secondary CUDA stream while
+    template N is being processed (matched-filtered) on the primary CUDA
+    stream, using double-buffered GPU FrequencySeries memory and CUDA event
+    synchronization.
+
+    Provides a clean Python iterator yielding (t_num, template) and
+    automatically falls back to sequential execution on CPU schemes.
+    """
+
+    def __init__(self, bank, indices=None, scheme_ctx=None, preload=False):
+        self.bank = bank
+        self.indices = (
+            list(range(len(bank))) if indices is None else list(indices)
+        )
+        self.scheme_ctx = scheme_ctx
+        self.preload = preload
+
+        from pycbc.scheme import TorchScheme, mgr
+
+        state = scheme_ctx if scheme_ctx is not None else mgr.state
+        self.is_cuda = (
+            isinstance(state, TorchScheme)
+            and state.torch_device.type == "cuda"
+            and torch.cuda.is_available()
+            and getattr(bank, "has_compressed_waveforms", False)
+            and getattr(bank, "enable_compressed_waveforms", False)
+        )
+
+        if self.is_cuda:
+            from pycbc.types import FrequencySeries, zeros
+
+            self.device = state.torch_device
+            self.decomp_stream = torch.cuda.Stream(device=self.device)
+            self.compute_stream = torch.cuda.current_stream(device=self.device)
+
+            self.buffers = [
+                zeros(bank.filter_length, dtype=bank.dtype),
+                zeros(bank.filter_length, dtype=bank.dtype),
+            ]
+            self.fs_buffers = [
+                FrequencySeries(
+                    self.buffers[0], delta_f=bank.delta_f, copy=False
+                ),
+                FrequencySeries(
+                    self.buffers[1], delta_f=bank.delta_f, copy=False
+                ),
+            ]
+
+            self.ready_events = [torch.cuda.Event(), torch.cuda.Event()]
+            self.done_events = [torch.cuda.Event(), torch.cuda.Event()]
+
+            for event in self.done_events:
+                event.record(self.compute_stream)
+        else:
+            self.buffers = None
+            self.fs_buffers = None
+            self.decomp_stream = None
+            self.compute_stream = None
+            self.ready_events = None
+            self.done_events = None
+
+        self._compressed_cache = {}
+        if preload and getattr(bank, "has_compressed_waveforms", False):
+            from pycbc.waveform import compress
+
+            for idx in self.indices:
+                tmplt_hash = bank.table.template_hash[idx]
+                self._compressed_cache[idx] = (
+                    compress.CompressedWaveform.from_hdf(
+                        bank.filehandler, tmplt_hash, load_now=True
+                    )
+                )
+
+    def _decompress_into(self, slot, t_num):
+        """Decompress template t_num into buffer slot."""
+        from pycbc.waveform import compress
+        from pycbc.waveform.bank import find_variable_start_frequency
+        from pycbc.waveform.waveform import (
+            get_waveform_filter_length_in_time,
+            props,
+        )
+
+        bank = self.bank
+        approximant = bank.approximant(t_num)
+        f_low = find_variable_start_frequency(
+            approximant,
+            bank.table[t_num],
+            bank.f_lower,
+            bank.max_template_length,
+        )
+
+        self.buffers[slot].clear()
+
+        if t_num in self._compressed_cache:
+            cw = self._compressed_cache[t_num]
+        else:
+            tmplt_hash = bank.table.template_hash[t_num]
+            cw = compress.CompressedWaveform.from_hdf(
+                bank.filehandler, tmplt_hash, load_now=True
+            )
+
+        method = bank.waveform_decompression_method or cw.interpolation
+        fs = self.fs_buffers[slot]
+        hdecomp = cw.decompress(
+            out=fs,
+            f_lower=f_low,
+            interpolation=method,
+        )
+
+        p = props(bank.table[t_num])
+        p.pop("approximant", None)
+        try:
+            tmpltdur = bank.table[t_num].template_duration
+        except AttributeError:
+            tmpltdur = None
+        if tmpltdur is None or tmpltdur == 0.0:
+            tmpltdur = get_waveform_filter_length_in_time(approximant, **p)
+
+        f_end = bank.end_frequency(t_num)
+        if f_end is None or f_end >= (bank.filter_length * bank.delta_f):
+            f_end = (bank.filter_length - 1) * bank.delta_f
+
+        from pycbc.waveform.bank import sigma_cached
+
+        hdecomp.f_lower = f_low
+        hdecomp.min_f_lower = bank.min_f_lower
+        hdecomp.end_idx = int(f_end / hdecomp.delta_f)
+        hdecomp.params = bank.table[t_num]
+        hdecomp.chirp_length = tmpltdur
+        hdecomp.length_in_time = tmpltdur
+        hdecomp.approximant = approximant
+        hdecomp.end_frequency = f_end
+        hdecomp.sigmasq = sys.modules["types"].MethodType(sigma_cached, hdecomp)
+        hdecomp._sigmasq = {}
+        return hdecomp
+
+    def __iter__(self):
+        if not self.is_cuda:
+            for t_num in self.indices:
+                yield t_num, self.bank[t_num]
+            return
+
+        n = len(self.indices)
+        if n == 0:
+            return
+
+        try:
+            slot_0 = 0
+            self.decomp_stream.wait_event(self.done_events[slot_0])
+            with torch.cuda.stream(self.decomp_stream):
+                self._decompress_into(slot_0, self.indices[0])
+                self.ready_events[slot_0].record(self.decomp_stream)
+
+            for i in range(n):
+                curr_slot = i % 2
+                next_slot = (i + 1) % 2
+                curr_idx = self.indices[i]
+
+                if i + 1 < n:
+                    next_idx = self.indices[i + 1]
+                    self.decomp_stream.wait_event(self.done_events[next_slot])
+                    with torch.cuda.stream(self.decomp_stream):
+                        self._decompress_into(next_slot, next_idx)
+                        self.ready_events[next_slot].record(self.decomp_stream)
+
+                self.compute_stream.wait_event(self.ready_events[curr_slot])
+                curr_template = self.fs_buffers[curr_slot]
+
+                yield curr_idx, curr_template
+
+                self.done_events[curr_slot].record(self.compute_stream)
+        finally:
+            self.compute_stream.synchronize()
+            self.decomp_stream.synchronize()
