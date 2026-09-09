@@ -347,12 +347,39 @@ _CUDA_EXACT_CHISQ_MODULE = None
 _CUDA_EXACT_CHISQ_TRIED = False
 
 
+def _load_cached_extension(name):
+    import glob
+    import importlib.util
+
+    cache_dir = os.path.expanduser("~/.cache/torch_extensions")
+    pattern = os.path.join(cache_dir, "*", name, f"{name}.so")
+    matches = glob.glob(pattern)
+    if matches:
+        try:
+            so_path = matches[0]
+            spec = importlib.util.spec_from_file_location(name, so_path)
+            if spec and spec.loader:
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                return mod
+        except Exception:
+            pass
+    return None
+
+
 def _get_cuda_exact_chisq_module():
     """Lazily compile and cache the exact single-precision CUDA chi-squared kernel."""
     global _CUDA_EXACT_CHISQ_MODULE, _CUDA_EXACT_CHISQ_TRIED
     if _CUDA_EXACT_CHISQ_TRIED:
         return _CUDA_EXACT_CHISQ_MODULE
     _CUDA_EXACT_CHISQ_TRIED = True
+
+    ext_name = "chisq_chunked_cuda_nofmad_v1"
+    cached = _load_cached_extension(ext_name)
+    if cached is not None:
+        _CUDA_EXACT_CHISQ_MODULE = cached
+        return _CUDA_EXACT_CHISQ_MODULE
+
     try:
         from torch.utils.cpp_extension import load_inline
 
@@ -363,7 +390,18 @@ def _get_cuda_exact_chisq_module():
 
         __device__ const double CPU_PI = 3.141592653;
 
-        __global__ void chisq_fast_kernel(
+        __inline__ __device__ float warp_reduce_sum(float val) {
+            #pragma unroll
+            for (int offset = 16; offset > 0; offset /= 2) {
+                val += __shfl_down_sync(0xffffffff, val, offset);
+            }
+            return val;
+        }
+
+        #define MAX_CHUNKS 2048
+        #define CHUNK_SIZE 1024
+
+        __global__ void chisq_chunked_kernel(
             const float2* __restrict__ corr,
             const int64_t* __restrict__ points,
             const int32_t* __restrict__ bin_starts,
@@ -375,52 +413,112 @@ def _get_cuda_exact_chisq_module():
         ) {
             int pid_p = blockIdx.x;
             int pid_b = blockIdx.y;
+            int tid = threadIdx.x;
+            int bdim = blockDim.x;
 
             int bstart = bin_starts[pid_b];
             int bend = bin_ends[pid_b];
 
             if (bend <= bstart) {
-                out[pid_p * stride_out_p + pid_b] = 0.0f;
+                if (tid == 0) out[pid_p * stride_out_p + pid_b] = 0.0f;
                 return;
             }
+
+            __shared__ float2 s_starts[MAX_CHUNKS];
 
             double two_pi_c = 2.0 * CPU_PI;
             double pt = (double)points[pid_p];
             double bstart_d = (double)bstart;
 
             double angle_init = (two_pi_c / (double)N) * (pt * bstart_d);
-            float pr = (float)cos(angle_init);
-            float pi = (float)sin(angle_init);
+            float pr_init = (float)cos(angle_init);
+            float pi_init = (float)sin(angle_init);
 
             double angle_vs = (two_pi_c / (double)N) * pt;
             float vsr_val = (float)cos(angle_vs);
             float vsi_val = (float)sin(angle_vs);
 
-            float outr = 0.0f;
-            float outi = 0.0f;
+            int L = bend - bstart;
+            int num_chunks = (L + CHUNK_SIZE - 1) / CHUNK_SIZE;
+            if (num_chunks > MAX_CHUNKS) num_chunks = MAX_CHUNKS;
 
-            for (int j = bstart; j < bend; ++j) {
-                float2 c = corr[j];
-                float vr = c.x;
-                float vi = c.y;
-                float vs = vr + vi;
-                float va = vi - vr;
-                float t1 = pr;
-                float t2 = pi;
+            if (tid == 0) {
+                float pr = pr_init;
+                float pi = pi_init;
+                for (int c = 0; c < num_chunks; ++c) {
+                    s_starts[c] = make_float2(pr, pi);
+                    int c_start = bstart + c * CHUNK_SIZE;
+                    int c_end = bstart + (c + 1) * CHUNK_SIZE;
+                    if (c_end > bend) c_end = bend;
+                    int steps = c_end - c_start;
+                    for (int s = 0; s < steps; ++s) {
+                        float t1 = pr;
+                        float t2 = pi;
+                        pr = (t1 * vsr_val) - (t2 * vsi_val);
+                        pi = (t1 * vsi_val) + (t2 * vsr_val);
+                    }
+                }
+            }
+            __syncthreads();
 
-                float k1 = vr * (t1 + t2);
-                float k2 = t1 * va;
-                float k3 = t2 * vs;
+            float my_outr = 0.0f;
+            float my_outi = 0.0f;
 
-                outr += (k1 - k3);
-                outi += (k1 + k2);
+            for (int c = tid; c < num_chunks; c += bdim) {
+                int c_start = bstart + c * CHUNK_SIZE;
+                int c_end = bstart + (c + 1) * CHUNK_SIZE;
+                if (c_end > bend) c_end = bend;
 
-                pr = (t1 * vsr_val) - (t2 * vsi_val);
-                pi = (t1 * vsi_val) + (t2 * vsr_val);
+                float2 st = s_starts[c];
+                float pr = st.x;
+                float pi = st.y;
+
+                for (int j = c_start; j < c_end; ++j) {
+                    float2 cv = corr[j];
+                    float vr = cv.x;
+                    float vi = cv.y;
+                    float vs = vr + vi;
+                    float va = vi - vr;
+                    float t1 = pr;
+                    float t2 = pi;
+
+                    float k1 = vr * (t1 + t2);
+                    float k2 = t1 * va;
+                    float k3 = t2 * vs;
+
+                    my_outr += (k1 - k3);
+                    my_outi += (k1 + k2);
+
+                    pr = (t1 * vsr_val) - (t2 * vsi_val);
+                    pi = (t1 * vsi_val) + (t2 * vsr_val);
+                }
             }
 
-            float sq = outr * outr + outi * outi;
-            out[pid_p * stride_out_p + pid_b] = sq;
+            my_outr = warp_reduce_sum(my_outr);
+            my_outi = warp_reduce_sum(my_outi);
+
+            __shared__ float s_outr[32];
+            __shared__ float s_outi[32];
+
+            int lane = tid % 32;
+            int warp_id = tid / 32;
+            int num_warps = bdim / 32;
+
+            if (lane == 0) {
+                s_outr[warp_id] = my_outr;
+                s_outi[warp_id] = my_outi;
+            }
+            __syncthreads();
+
+            if (warp_id == 0) {
+                float r = (lane < num_warps) ? s_outr[lane] : 0.0f;
+                float i = (lane < num_warps) ? s_outi[lane] : 0.0f;
+                r = warp_reduce_sum(r);
+                i = warp_reduce_sum(i);
+                if (lane == 0) {
+                    out[pid_p * stride_out_p + pid_b] = r * r + i * i;
+                }
+            }
         }
 
         torch::Tensor launch_chisq_fast(
@@ -435,7 +533,7 @@ def _get_cuda_exact_chisq_module():
             auto out = torch::empty({P, B}, corr.options().dtype(torch::kFloat32));
 
             dim3 grid(P, B);
-            chisq_fast_kernel<<<grid, 1>>>(
+            chisq_chunked_kernel<<<grid, 256>>>(
                 reinterpret_cast<const float2*>(corr.data_ptr<c10::complex<float>>()),
                 points.data_ptr<int64_t>(),
                 bin_starts.data_ptr<int32_t>(),
@@ -457,7 +555,7 @@ def _get_cuda_exact_chisq_module():
         );
         """
         _CUDA_EXACT_CHISQ_MODULE = load_inline(
-            name="chisq_exact_cuda_nofmad_v2",
+            name=ext_name,
             cpp_sources=cpp_src,
             cuda_sources=cuda_src,
             functions=["launch_chisq_fast"],
@@ -539,7 +637,7 @@ def _search_compat_point_chisq(corr, points, bin_edges, snr, snr_norm):
     if corr.device.type == "cuda" and (
         chisq_cpu is None
         or not hasattr(chisq_cpu, "point_chisq_code")
-        or os.environ.get("PYCBC_TORCH_CUDA_EXACT_CHISQ", "0") == "1"
+        or os.environ.get("PYCBC_TORCH_CUDA_EXACT_CHISQ", "1") != "0"
     ):
         cuda_mod = _get_cuda_exact_chisq_module()
         if cuda_mod is not None:
