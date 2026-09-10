@@ -19,6 +19,9 @@ Unit and integration tests for GPU search engine application adapters
 (TiledMatchedFilterControl and TiledLiveBatchMatchedFilter).
 """
 
+import ast
+import functools
+from pathlib import Path
 import types
 import numpy as np
 import pytest
@@ -34,7 +37,7 @@ DEVICES = ["cpu"] + (
 
 from pycbc import scheme
 from pycbc.types import FrequencySeries
-from pycbc.filter.matchedfilter import MatchedFilterControl
+from pycbc.filter.matchedfilter import MatchedFilterControl, sigmasq
 from pycbc.filter.gpu_search.adapter import (
     TiledMatchedFilterControl,
     TiledLiveBatchMatchedFilter,
@@ -782,3 +785,747 @@ def test_tiled_matched_filter_control_workspace_and_shared_core(device):
     assert len(res) == 5
     assert ctrl.cout_workspace.shape[0] >= 5
     assert ctrl.out_workspace.shape[0] >= 5
+
+
+@pytest.mark.parametrize("device", DEVICES + ["numpy"])
+def test_prepare_template_batch_api(device):
+    """Test prepare_template_batch on TiledMatchedFilterControl."""
+    template_mem, segments, N, delta_f = _make_offline_fixtures()
+    flen = N // 2 + 1
+
+    ctrl = TiledMatchedFilterControl(
+        low_frequency_cutoff=20.0,
+        high_frequency_cutoff=200.0,
+        snr_threshold=1.5,
+        tlen=N,
+        delta_f=delta_f,
+        dtype=np.complex64,
+        segment_list=segments,
+        template_output=template_mem,
+        use_cluster=True,
+        cluster_function="symmetric",
+        tile_size=4,
+        device=device,
+    )
+
+    # 1. Empty sequence
+    empty_prep = ctrl.prepare_template_batch([])
+    assert empty_prep.shape == (0, flen)
+
+    # 2. List of FrequencySeries
+    templates = [
+        FrequencySeries(np.ones(flen, dtype=np.complex64), delta_f=delta_f),
+        FrequencySeries(
+            np.full(flen, 2.0, dtype=np.complex64), delta_f=delta_f
+        ),
+    ]
+    prep = ctrl.prepare_template_batch(templates)
+    assert prep.shape == (2, flen)
+    if torch is not None and device != "numpy":
+        assert isinstance(prep, torch.Tensor)
+        assert prep.device == torch.empty(0, device=device).device
+        assert prep.dtype == torch.complex64
+        # Identity return for already-prepared tensor
+        prep2 = ctrl.prepare_template_batch(prep)
+        assert prep2 is prep
+    else:
+        assert isinstance(prep, np.ndarray)
+        assert prep.dtype == np.complex64
+
+    # 3. 2D NumPy array
+    arr = np.ones((3, flen), dtype=np.complex64)
+    prep_arr = ctrl.prepare_template_batch(arr)
+    assert prep_arr.shape == (3, flen)
+
+    # 4. Trimming if width > flen
+    arr_wide = np.ones((3, flen + 10), dtype=np.complex64)
+    prep_wide = ctrl.prepare_template_batch(arr_wide)
+    assert prep_wide.shape == (3, flen)
+
+    # 5. Clear width rejection for all paths (2D width < flen and sequence item < flen)
+    narrow_arr = np.ones((2, flen - 1), dtype=np.complex64)
+    with pytest.raises(ValueError, match="< filter length"):
+        ctrl.prepare_template_batch(narrow_arr)
+
+    narrow_seq = [
+        FrequencySeries(np.ones(flen - 1, dtype=np.complex64), delta_f=delta_f)
+    ]
+    with pytest.raises(ValueError, match="< filter length"):
+        ctrl.prepare_template_batch(narrow_seq)
+
+    # 6. Validation errors
+    with pytest.raises(ValueError, match="must be 2D"):
+        if torch is not None and device != "numpy":
+            ctrl.prepare_template_batch(
+                torch.zeros(flen, dtype=torch.complex64)
+            )
+        else:
+            ctrl.prepare_template_batch(np.zeros(flen, dtype=np.complex64))
+
+    with pytest.raises(TypeError, match="Unsupported template container type"):
+        ctrl.prepare_template_batch({"not": "a template"})
+
+    # 7. List of raw torch.Tensor on device
+    if torch is not None and device != "numpy":
+        raw_dev_tensors = [
+            torch.ones(flen + 5, dtype=torch.complex64, device=device),
+            torch.full((flen + 5,), 2.0, dtype=torch.complex64, device=device),
+        ]
+        prep_raw = ctrl.prepare_template_batch(raw_dev_tensors)
+        assert isinstance(prep_raw, torch.Tensor)
+        assert prep_raw.shape == (2, flen)
+        assert prep_raw.device == torch.empty(0, device=device).device
+        assert prep_raw.dtype == torch.complex64
+        # Preserves identity when re-prepared
+        assert ctrl.prepare_template_batch(prep_raw) is prep_raw
+
+        # Rejects undersized raw tensor in list without host transfer
+        raw_undersized = [
+            torch.ones(flen - 1, dtype=torch.complex64, device=device)
+        ]
+        with pytest.raises(ValueError, match="< filter length"):
+            ctrl.prepare_template_batch(raw_undersized)
+
+
+# ---------------------------------------------------------------------------
+# Prepared batch optimization and CLI integration tests
+# ---------------------------------------------------------------------------
+
+
+def _make_batch_fixtures(
+    num_templates=4,
+    num_segments=2,
+    filter_length=257,
+    delta_f=1.0,
+    seed=42,
+    flow=20.0,
+    ffinal=100.0,
+):
+    """Shared deterministic fixture for prepared batch and inspiral CLI tests."""
+    rng = np.random.default_rng(seed)
+    N = (filter_length - 1) * 2
+
+    templates = []
+    for i in range(num_templates):
+        h = (
+            rng.normal(size=filter_length)
+            + 1j * rng.normal(size=filter_length)
+        ).astype(np.complex64)
+        h[0] = 0.0
+        t = FrequencySeries(h, delta_f=delta_f)
+        t.id = i
+        t.params = np.array(
+            [(20.0 + i, 1.4)],
+            dtype=[("mass1", np.float32), ("mass2", np.float32)],
+        )[0]
+        t.f_lower = flow
+        t.end_frequency = ffinal
+
+        def _calc_sigmasq(self, psd):
+            return float(
+                sigmasq(
+                    self,
+                    psd=psd,
+                    low_frequency_cutoff=self.f_lower,
+                    high_frequency_cutoff=self.end_frequency,
+                )
+            )
+
+        t.sigmasq = types.MethodType(_calc_sigmasq, t)
+        templates.append(t)
+
+    segments = []
+    for s in range(num_segments):
+        s_data = (
+            rng.normal(size=filter_length)
+            + 1j * rng.normal(size=filter_length)
+        ).astype(np.complex64)
+        s_data[0] = 0.0
+        seg = FrequencySeries(s_data, delta_f=delta_f)
+        seg.psd = FrequencySeries(
+            np.ones(filter_length, dtype=np.float32) * (2.0 + s),
+            delta_f=delta_f,
+        )
+        seg.analyze = slice(50, 450)
+        seg.cumulative_index = s * 1000
+        seg._epoch = float(s * 10)
+        segments.append(seg)
+
+    return templates, segments, N, delta_f
+
+
+@pytest.mark.parametrize("device", DEVICES + ["numpy"])
+@pytest.mark.parametrize(
+    "subset", ["full", "contiguous", "noncontiguous", "tail_b1"]
+)
+def test_prepared_batch_parity_and_subsets(device, subset):
+    """Verify prepared batch filtering parity with immediate buffer snapshotting."""
+    templates, segments, N, delta_f = _make_batch_fixtures(
+        num_templates=4, num_segments=2
+    )
+    flen = N // 2 + 1
+    mem = FrequencySeries(np.zeros(flen, dtype=np.complex64), delta_f=delta_f)
+    ctrl = TiledMatchedFilterControl(
+        20.0,
+        100.0,
+        1.5,
+        N,
+        delta_f,
+        np.complex64,
+        segments,
+        mem,
+        True,
+        tile_size=4,
+        device=device,
+    )
+
+    idx_map = {
+        "full": [0, 1, 2, 3],
+        "contiguous": [1, 2],
+        "noncontiguous": [0, 3],
+        "tail_b1": [0],
+    }
+    active_idx = idx_map[subset]
+    sub_tmpls = [templates[i] for i in active_idx]
+    sigmasqs = [t.sigmasq(segments[0].psd) for t in sub_tmpls]
+
+    # Reference run with list path
+    res_list = ctrl.batched_matched_filter_and_cluster(
+        0, sub_tmpls, sigmasqs, window=16, epoch=segments[0]._epoch
+    )
+    # Immediate snapshot of list outputs before another filter call can alias workspace
+    list_snrs = [np.array(r[0]) for r in res_list]
+    list_corrs = [np.array(r[2]) for r in res_list]
+
+    # Prepared batch path
+    prepared = ctrl.prepare_template_batch(templates)
+    if subset == "full":
+        batch_input = prepared
+    elif subset == "contiguous":
+        batch_input = prepared[active_idx[0] : active_idx[-1] + 1]
+    else:
+        batch_input = prepared[active_idx]
+
+    res_prep = ctrl.batched_matched_filter_and_cluster(
+        0, batch_input, sigmasqs, window=16, epoch=segments[0]._epoch
+    )
+    # Immediate snapshot of prepared outputs
+    prep_snrs = [np.array(r[0]) for r in res_prep]
+    prep_corrs = [np.array(r[2]) for r in res_prep]
+
+    assert len(res_prep) == len(res_list) == len(active_idx)
+    for i in range(len(active_idx)):
+        np.testing.assert_allclose(
+            prep_snrs[i], list_snrs[i], rtol=1e-6, atol=1e-6
+        )
+        np.testing.assert_allclose(
+            prep_corrs[i], list_corrs[i], rtol=1e-6, atol=1e-6
+        )
+        assert res_prep[i][1] == res_list[i][1]
+        np.testing.assert_array_equal(
+            np.asarray(res_prep[i][3]), np.asarray(res_list[i][3])
+        )
+        np.testing.assert_allclose(
+            np.asarray(res_prep[i][4]),
+            np.asarray(res_list[i][4]),
+            rtol=1e-6,
+            atol=1e-6,
+        )
+
+
+@pytest.mark.parametrize("device", DEVICES + ["numpy"])
+def test_prepared_batch_repeated_segments_changed_psd(device):
+    """Verify batch reuse across segments with differing PSDs/norms and no cross-segment aliasing."""
+    templates, segments, N, delta_f = _make_batch_fixtures(
+        num_templates=3, num_segments=2
+    )
+    flen = N // 2 + 1
+    mem = FrequencySeries(np.zeros(flen, dtype=np.complex64), delta_f=delta_f)
+    ctrl = TiledMatchedFilterControl(
+        20.0,
+        100.0,
+        1.5,
+        N,
+        delta_f,
+        np.complex64,
+        segments,
+        mem,
+        True,
+        tile_size=3,
+        device=device,
+    )
+
+    prepared = ctrl.prepare_template_batch(templates)
+
+    # Segment 0
+    sigmas_0 = [t.sigmasq(segments[0].psd) for t in templates]
+    res_list_0 = ctrl.batched_matched_filter_and_cluster(
+        0, templates, sigmas_0, 16, epoch=segments[0]._epoch
+    )
+    snap_list_snr_0 = [np.array(r[0]) for r in res_list_0]
+    res_prep_0 = ctrl.batched_matched_filter_and_cluster(
+        0, prepared, sigmas_0, 16, epoch=segments[0]._epoch
+    )
+    snap_prep_snr_0 = [np.array(r[0]) for r in res_prep_0]
+
+    # Segment 1 (differing PSD)
+    sigmas_1 = [t.sigmasq(segments[1].psd) for t in templates]
+    res_list_1 = ctrl.batched_matched_filter_and_cluster(
+        1, templates, sigmas_1, 16, epoch=segments[1]._epoch
+    )
+    snap_list_snr_1 = [np.array(r[0]) for r in res_list_1]
+    res_prep_1 = ctrl.batched_matched_filter_and_cluster(
+        1, prepared, sigmas_1, 16, epoch=segments[1]._epoch
+    )
+    snap_prep_snr_1 = [np.array(r[0]) for r in res_prep_1]
+
+    for i in range(3):
+        np.testing.assert_allclose(
+            snap_prep_snr_0[i], snap_list_snr_0[i], rtol=1e-6, atol=1e-6
+        )
+        np.testing.assert_allclose(
+            snap_prep_snr_1[i], snap_list_snr_1[i], rtol=1e-6, atol=1e-6
+        )
+        np.testing.assert_array_equal(
+            np.asarray(res_prep_0[i][3]), np.asarray(res_list_0[i][3])
+        )
+        np.testing.assert_array_equal(
+            np.asarray(res_prep_1[i][3]), np.asarray(res_list_1[i][3])
+        )
+
+
+# ---------------------------------------------------------------------------
+# AST Extraction Harness for actual bin/pycbc_inspiral batch_template_triggers
+# ---------------------------------------------------------------------------
+
+
+@functools.lru_cache(maxsize=1)
+def _compile_cli_batch_template_triggers():
+    inspiral_path = (
+        Path(__file__).resolve().parent.parent / "bin" / "pycbc_inspiral"
+    )
+    source = inspiral_path.read_text()
+    parsed = ast.parse(source, filename=str(inspiral_path))
+    for node in parsed.body:
+        if (
+            isinstance(node, ast.FunctionDef)
+            and node.name == "batch_template_triggers"
+        ):
+            mod = ast.Module(body=[node], type_ignores=[])
+            return compile(mod, filename=str(inspiral_path), mode="exec")
+    raise RuntimeError(
+        "batch_template_triggers FunctionDef not found in bin/pycbc_inspiral"
+    )
+
+
+def _execute_actual_cli_batch(
+    matched_filter,
+    templates,
+    segments,
+    tile_mem=None,
+    checker_fn=None,
+    power_chisq_fn=None,
+    snr_threshold=1.5,
+    flow=20.0,
+):
+    """Executes the actual compiled batch_template_triggers FunctionDef from bin/pycbc_inspiral."""
+    b = len(templates)
+    if tile_mem is None:
+        tile_mem = [
+            FrequencySeries(
+                np.zeros(len(templates[0]), dtype=np.complex64),
+                delta_f=templates[0].delta_f,
+            )
+            for _ in range(b)
+        ]
+
+    class BankStub:
+        out = None
+
+        def __getitem__(self, idx):
+            t = templates[idx]
+            if self.out is not None:
+                self.out[:] = t[:]
+                tmpl = FrequencySeries(self.out, delta_f=t.delta_f, copy=False)
+                tmpl.id = getattr(t, "id", idx)
+                tmpl.params = getattr(t, "params", None)
+                tmpl.f_lower = getattr(t, "f_lower", flow)
+                tmpl.end_frequency = getattr(t, "end_frequency", 100.0)
+                if hasattr(t, "sigmasq"):
+                    tmpl.sigmasq = types.MethodType(
+                        lambda s, psd: float(
+                            sigmasq(
+                                s,
+                                psd=psd,
+                                low_frequency_cutoff=s.f_lower,
+                                high_frequency_cutoff=s.end_frequency,
+                            )
+                        ),
+                        tmpl,
+                    )
+                return tmpl
+            return t
+
+        def __len__(self):
+            return b
+
+    code = _compile_cli_batch_template_triggers()
+    ns = {
+        "len": len,
+        "range": range,
+        "enumerate": enumerate,
+        "id": id,
+        "hasattr": hasattr,
+        "list": list,
+        "zip": zip,
+        "numpy": np,
+        "float32": np.float32,
+        "flow": flow,
+        "logging": types.SimpleNamespace(info=lambda *args, **kwargs: None),
+        "bank": BankStub(),
+        "tile_mem": tile_mem,
+        "segments": segments,
+        "inj_filter_rejector": types.SimpleNamespace(
+            template_segment_checker=checker_fn
+            or (lambda bk, t_num, seg: True)
+        ),
+        "matched_filter": matched_filter,
+        "use_tiled_adapter": True,
+        "cluster_window": 16,
+        "out_vals_ref": {},
+        "bank_chisq": types.SimpleNamespace(do=False),
+        "power_chisq": types.SimpleNamespace(
+            values=power_chisq_fn
+            or (
+                lambda corr, snrv, norm, psd, idx, tmpl: (
+                    np.ones(len(idx), dtype=np.float32),
+                    np.full(len(idx), 30, dtype=np.int32),
+                )
+            )
+        ),
+        "sg_chisq": types.SimpleNamespace(do=False),
+        "autochisq": types.SimpleNamespace(do=False),
+        "opt": types.SimpleNamespace(
+            update_progress=False,
+            psdvar_short_segment=None,
+            psdvar_long_segment=None,
+            snr_threshold=snr_threshold,
+        ),
+    }
+    exec(code, ns)
+    return ns["batch_template_triggers"](list(range(b)))
+
+
+@pytest.mark.parametrize("device", DEVICES + ["numpy"])
+def test_inspiral_actual_cli_batch_packing_counts(device):
+    """Verify real template packing occurs at most once per batch across multiple segments."""
+    templates, segments, N, delta_f = _make_batch_fixtures(
+        num_templates=4, num_segments=3
+    )
+    flen = N // 2 + 1
+    mem = FrequencySeries(np.zeros(flen, dtype=np.complex64), delta_f=delta_f)
+    ctrl = TiledMatchedFilterControl(
+        20.0,
+        100.0,
+        1.5,
+        N,
+        delta_f,
+        np.complex64,
+        segments,
+        mem,
+        True,
+        tile_size=4,
+        device=device,
+    )
+
+    pack_counts = [0]
+    orig_prepare = ctrl.prepare_template_batch
+
+    def counted_prepare(b_tmpls):
+        if isinstance(b_tmpls, (list, tuple)):
+            pack_counts[0] += 1
+        return orig_prepare(b_tmpls)
+
+    ctrl.prepare_template_batch = counted_prepare
+
+    # 1. Full all-active across 3 segments -> exactly 1 real pack
+    _execute_actual_cli_batch(ctrl, templates, segments)
+    assert pack_counts[0] == 1
+
+    # 2. All-inactive across all segments -> 0 real packs
+    pack_counts[0] = 0
+    _execute_actual_cli_batch(
+        ctrl, templates, segments, checker_fn=lambda bk, tn, seg: False
+    )
+    assert pack_counts[0] == 0
+
+    # 3. Lazy packing: segment 0 inactive, segment 1 active -> exactly 1 real pack
+    pack_counts[0] = 0
+    _execute_actual_cli_batch(
+        ctrl,
+        templates,
+        segments,
+        checker_fn=lambda bk, tn, seg: seg._epoch > 0,
+    )
+    assert pack_counts[0] == 1
+
+
+@pytest.mark.parametrize("device", DEVICES + ["numpy"])
+def test_inspiral_actual_cli_batch_reused_bank_buffers_and_subsets(device):
+    """Verify bank buffer reuse across sequential batches and compare against fresh control."""
+    tmpls_a, segments, N, delta_f = _make_batch_fixtures(
+        num_templates=4, num_segments=2, seed=42
+    )
+    flen = N // 2 + 1
+    mem = FrequencySeries(np.zeros(flen, dtype=np.complex64), delta_f=delta_f)
+    ctrl = TiledMatchedFilterControl(
+        20.0,
+        100.0,
+        0.0,
+        N,
+        delta_f,
+        np.complex64,
+        segments,
+        mem,
+        True,
+        tile_size=4,
+        device=device,
+    )
+
+    # Pre-allocate reusable tile_mem bank buffers
+    reused_tile_mem = [
+        FrequencySeries(np.zeros(flen, dtype=np.complex64), delta_f=delta_f)
+        for _ in range(4)
+    ]
+
+    # Run Batch A with reused_tile_mem
+    out_a = _execute_actual_cli_batch(
+        ctrl, tmpls_a, segments, tile_mem=reused_tile_mem, snr_threshold=0.0
+    )
+    assert len(out_a) == 4
+
+    # Run Batch B with DIFFERENT seed, reusing the exact same reused_tile_mem buffers and same ctrl
+    tmpls_b, _, _, _ = _make_batch_fixtures(
+        num_templates=4, num_segments=2, seed=999
+    )
+    out_b = _execute_actual_cli_batch(
+        ctrl, tmpls_b, segments, tile_mem=reused_tile_mem, snr_threshold=0.0
+    )
+    assert len(out_b) == 4
+
+    # Independent fresh-control run for Batch B
+    fresh_mem = FrequencySeries(
+        np.zeros(flen, dtype=np.complex64), delta_f=delta_f
+    )
+    fresh_ctrl = TiledMatchedFilterControl(
+        20.0,
+        100.0,
+        0.0,
+        N,
+        delta_f,
+        np.complex64,
+        segments,
+        fresh_mem,
+        True,
+        tile_size=4,
+        device=device,
+    )
+    fresh_tile_mem = [
+        FrequencySeries(np.zeros(flen, dtype=np.complex64), delta_f=delta_f)
+        for _ in range(4)
+    ]
+    out_b_fresh = _execute_actual_cli_batch(
+        fresh_ctrl,
+        tmpls_b,
+        segments,
+        tile_mem=fresh_tile_mem,
+        snr_threshold=0.0,
+    )
+    assert len(out_b_fresh) == 4
+
+    # Compare Batch B ALL event fields against fresh-control run
+    for i in range(4):
+        events_b, param_b = out_b[i]
+        events_fresh, param_fresh = out_b_fresh[i]
+        assert param_b == param_fresh
+        assert len(events_b) == len(events_fresh)
+        for ev_b, ev_fresh in zip(events_b, events_fresh):
+            assert ev_b.keys() == ev_fresh.keys()
+            for k in ev_b:
+                val_b = ev_b[k]
+                val_fresh = ev_fresh[k]
+                if isinstance(val_b, np.ndarray):
+                    np.testing.assert_allclose(
+                        val_b, val_fresh, rtol=1e-6, atol=1e-6
+                    )
+                else:
+                    assert val_b == val_fresh
+
+    # Assert Batch A vs Batch B have distinct outputs (due to seed change)
+    assert len(out_a[0][0]) > 0 and len(out_b[0][0]) > 0
+    assert not np.array_equal(out_a[0][0][0]["snr"], out_b[0][0][0]["snr"])
+
+
+class _BaselineNoPrepareWrapper:
+    """Wrapper that forwards batched filtering without exposing prepare_template_batch."""
+
+    def __init__(self, ctrl):
+        self._ctrl = ctrl
+
+    def batched_matched_filter_and_cluster(self, *args, **kwargs):
+        return self._ctrl.batched_matched_filter_and_cluster(*args, **kwargs)
+
+    def __getattr__(self, name):
+        if name == "prepare_template_batch":
+            raise AttributeError(
+                "Baseline does not provide prepare_template_batch"
+            )
+        return getattr(self._ctrl, name)
+
+
+@pytest.mark.parametrize("device", DEVICES + ["numpy"])
+def test_inspiral_actual_cli_batch_mixed_active_selection_vs_baseline(device):
+    """Verify mixed full/contiguous/noncontiguous active selection in actual CLI matches baseline."""
+    templates, segments, N, delta_f = _make_batch_fixtures(
+        num_templates=4, num_segments=3, seed=123
+    )
+    flen = N // 2 + 1
+    mem_prep = FrequencySeries(
+        np.zeros(flen, dtype=np.complex64), delta_f=delta_f
+    )
+    ctrl_prep = TiledMatchedFilterControl(
+        20.0,
+        100.0,
+        0.0,
+        N,
+        delta_f,
+        np.complex64,
+        segments,
+        mem_prep,
+        True,
+        tile_size=4,
+        device=device,
+    )
+
+    mem_base = FrequencySeries(
+        np.zeros(flen, dtype=np.complex64), delta_f=delta_f
+    )
+    ctrl_base_inner = TiledMatchedFilterControl(
+        20.0,
+        100.0,
+        0.0,
+        N,
+        delta_f,
+        np.complex64,
+        segments,
+        mem_base,
+        True,
+        tile_size=4,
+        device=device,
+    )
+    ctrl_base = _BaselineNoPrepareWrapper(ctrl_base_inner)
+
+    # Mixed selection pattern across the 3 segments:
+    # Segment 0: full batch active [0, 1, 2, 3]
+    # Segment 1: contiguous subset active [1, 2]
+    # Segment 2: noncontiguous subset active [0, 3]
+    def mixed_active_checker(bk, t_num, seg):
+        seg_idx = int(round(seg._epoch / 10.0))
+        if seg_idx == 0:
+            return True
+        elif seg_idx == 1:
+            return t_num in (1, 2)
+        else:
+            return t_num in (0, 3)
+
+    out_prep = _execute_actual_cli_batch(
+        ctrl_prep,
+        templates,
+        segments,
+        checker_fn=mixed_active_checker,
+        snr_threshold=0.0,
+    )
+    out_base = _execute_actual_cli_batch(
+        ctrl_base,
+        templates,
+        segments,
+        checker_fn=mixed_active_checker,
+        snr_threshold=0.0,
+    )
+
+    assert len(out_prep) == len(out_base) == 4
+
+    total_triggers = 0
+    for i in range(4):
+        events_p, param_p = out_prep[i]
+        events_b, param_b = out_base[i]
+        assert param_p == param_b
+        assert len(events_p) == len(events_b)
+        total_triggers += len(events_p)
+
+        # Snapshot and compare scientific fields
+        for ev_p, ev_b in zip(events_p, events_b):
+            assert ev_p.keys() == ev_b.keys()
+            for key in ["time_index", "snr", "sigmasq", "chisq", "chisq_dof"]:
+                snap_p = np.array(ev_p[key], copy=True)
+                snap_b = np.array(ev_b[key], copy=True)
+                if key in ("time_index", "chisq_dof"):
+                    np.testing.assert_array_equal(snap_p, snap_b)
+                else:
+                    np.testing.assert_allclose(
+                        snap_p, snap_b, rtol=1e-6, atol=1e-6
+                    )
+
+    assert total_triggers > 0
+
+
+@pytest.mark.parametrize("device", DEVICES + ["numpy"])
+def test_inspiral_actual_cli_batch_veto_metadata(device):
+    """Verify veto evaluator receives original trigger-bearing FrequencySeries template metadata."""
+    templates, segments, N, delta_f = _make_batch_fixtures(
+        num_templates=2, num_segments=1
+    )
+    flen = N // 2 + 1
+    mem = FrequencySeries(np.zeros(flen, dtype=np.complex64), delta_f=delta_f)
+    ctrl = TiledMatchedFilterControl(
+        20.0,
+        100.0,
+        0.0,
+        N,
+        delta_f,
+        np.complex64,
+        segments,
+        mem,
+        True,
+        tile_size=2,
+        device=device,
+    )
+
+    passed_tmpls = []
+
+    def mock_power_chisq(corr, snrv, norm, psd, idx, tmpl):
+        passed_tmpls.append(tmpl)
+        return np.ones(len(idx), dtype=np.float32), np.full(
+            len(idx), 30, dtype=np.int32
+        )
+
+    out = _execute_actual_cli_batch(
+        ctrl,
+        templates,
+        segments,
+        power_chisq_fn=mock_power_chisq,
+        snr_threshold=0.0,
+    )
+
+    # Assert trigger-bearing data produced triggers
+    total_triggers = sum(len(entry[0]) for entry in out)
+    assert total_triggers > 0
+    assert len(passed_tmpls) > 0
+
+    for tmpl in passed_tmpls:
+        assert isinstance(tmpl, FrequencySeries)
+        assert hasattr(tmpl, "params")
+        assert hasattr(tmpl, "id")
+        assert hasattr(tmpl, "f_lower")
+        assert hasattr(tmpl, "end_frequency")
+        assert hasattr(tmpl, "sigmasq")

@@ -347,30 +347,6 @@ class MatchedFilterControl(object):
         thresh_val = self.snr_threshold / norm
         clusterer = self.threshold_and_clusterers[segnum]
 
-        # Fast path: CUDA Graph replay if enabled/captured
-        use_cuda_graph = (
-            getattr(self, "_cuda_graph_enabled", False)
-            or os.environ.get("PYCBC_TORCH_CUDA_GRAPH", "0") == "1"
-        ) and (
-            hasattr(clusterer, "series") and getattr(clusterer.series, "is_cuda", False)
-        )
-        if use_cuda_graph:
-            from .matchedfilter_torch import replay_symmetric_cuda_graph
-
-            graph_result = replay_symmetric_cuda_graph(
-                self, segnum, window, template_norm, thresh_val
-            )
-            if graph_result is not None:
-                snrv, idx = graph_result
-                if len(idx) == 0:
-                    return [], [], [], [], []
-                logger.info("%d points above threshold", len(idx))
-                snr = TimeSeries(
-                    self.snr_mem, epoch=epoch, delta_t=self.delta_t, copy=False
-                )
-                corr = FrequencySeries(self.corr_mem, delta_f=self.delta_f, copy=False)
-                return snr, norm, corr, idx, snrv
-
         self.correlators[segnum].correlate()
         self.ifft.execute()
         snrv, idx = clusterer.threshold_and_cluster(thresh_val, window)
@@ -383,29 +359,6 @@ class MatchedFilterControl(object):
         snr = TimeSeries(self.snr_mem, epoch=epoch, delta_t=self.delta_t, copy=False)
         corr = FrequencySeries(self.corr_mem, delta_f=self.delta_f, copy=False)
         return snr, norm, corr, idx, snrv
-
-    def capture_cuda_graph_symm(self, segnum, window, template_norm=1.0):
-        """Opt into a CUDA graph for fixed buffers, window, thread and stream.
-
-        Template/segment contents and normalization may change in place.
-        Unsupported or changed bindings fall back to eager filtering. Sparse
-        results own their storage; full SNR/correlation results remain scratch.
-        """
-        clusterer = self.threshold_and_clusterers[segnum]
-        if not (
-            hasattr(clusterer, "series") and getattr(clusterer.series, "is_cuda", False)
-        ):
-            return False
-        from .matchedfilter_torch import capture_symmetric_cuda_graph
-
-        return capture_symmetric_cuda_graph(self, segnum, window, template_norm)
-
-    def clear_cuda_graphs(self):
-        """Wait for pending graph work and release all captured CUDA resources."""
-        if hasattr(self, "_cuda_graphs"):
-            from ._torch_cuda_graph import clear_cuda_graphs
-
-            clear_cuda_graphs(self)
 
     def full_matched_filter_and_cluster_fc(
         self, segnum, template_norm, window, epoch=None
