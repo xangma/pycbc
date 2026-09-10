@@ -1,0 +1,1241 @@
+{
+  "date": "2026-09-10",
+  "baseline_commit": "ed7099dd3157303445be1a00f853d0900d363f59",
+  "comparison": "Preparation optimizations relative to the shared tiled core; two independent processes per variant in A/B/B/A order.",
+  "environment": {
+    "host": "len",
+    "gpu": "NVIDIA GeForce RTX 4090",
+    "python": "3.11.9",
+    "torch": "2.13.0+cu130",
+    "cuda": "13.0",
+    "cpu_affinity": [
+      0
+    ],
+    "torch_cpu_threads": 1
+  },
+  "inspiral_scope": {
+    "input": "Synthetic H1 noise, aLIGOZeroDetHighPower, seed 719",
+    "bank": {
+      "templates": 128,
+      "approximant": "TaylorF2",
+      "mass1": "linspace(30, 50, 128)",
+      "mass2": "linspace(25, 10, 128)",
+      "spins": 0
+    },
+    "samples_per_segment": 2097152,
+    "segments": 5,
+    "batches": [
+      64,
+      128
+    ],
+    "filter_s_definition": "H1/search/run_time * (1 - H1/search/setup_time_fraction)",
+    "wall_s_definition": "Complete pycbc_inspiral subprocess, including startup and HDF output",
+    "qualification": "215 triggers per run; all 13 top-level H1 trigger datasets have equal dtypes and exact values. Timing metadata is excluded. These synthetic runs do not replace the compressed-bank real-frame reference campaign."
+  },
+  "live_scope": {
+    "entry_point": "SearchEngine.submit + drain, synchronized at the outer block boundary",
+    "full_pycbc_live_executable": false,
+    "templates": 128,
+    "tile_size": 64,
+    "samples": 65536,
+    "delta_f": 0.0625,
+    "seed": 719,
+    "blocks_per_case_per_process": 120,
+    "warmup_blocks": 8,
+    "repeated_input_blocks": 8,
+    "valid_interval": [
+      8192,
+      57344
+    ],
+    "selection": "live_peak",
+    "thresholds": {
+      "empty": 100,
+      "triggered": 4
+    },
+    "workspaces": 2,
+    "async_transfers": true,
+    "cuda_graphs": true,
+    "veto_manager": null,
+    "inputs": "Host FrequencySeries; device-resident PSDPlan; normalized random complex64 templates and complex64 noise."
+  },
+  "limitations": [
+    "Small synthetic bank and one GPU; no broad throughput claim.",
+    "Inspiral timing changes are within observed process variation; no meaningful end-to-end speedup established.",
+    "Live results cover the engine without optional vetoes, data acquisition or the complete pycbc_live process.",
+    "Unchanged PSD reuse is measured; tests separately cover mutation, replacement, untrackable inputs, workspace limits and cross-stream readiness."
+  ],
+  "validation": {
+    "cuda_tests": 205,
+    "cuda_subtests": 12,
+    "source_hashes_verified_against_final_implementation": true,
+    "ci_F401": "passed",
+    "qlty": "CLI unavailable"
+  },
+  "summary": {
+    "inspiral": {
+      "64": {
+        "rows": [
+          {
+            "name": "qualified-cli-b64-0-baseline",
+            "wall_s": 44.50901854701806,
+            "filter_s": 2.1087222099304204,
+            "triggers": 215
+          },
+          {
+            "name": "qualified-cli-b64-1-optimized",
+            "wall_s": 44.137257793103345,
+            "filter_s": 2.063354730606081,
+            "triggers": 215
+          },
+          {
+            "name": "qualified-cli-b64-2-optimized",
+            "wall_s": 44.65896789706312,
+            "filter_s": 2.1399197578430176,
+            "triggers": 215
+          },
+          {
+            "name": "qualified-cli-b64-3-baseline",
+            "wall_s": 44.60879521199968,
+            "filter_s": 2.106146097183229,
+            "triggers": 215
+          }
+        ],
+        "medians": {
+          "baseline": {
+            "wall_s": 44.55890687950887,
+            "filter_s": 2.1074341535568246
+          },
+          "optimized": {
+            "wall_s": 44.39811284508323,
+            "filter_s": 2.1016372442245492
+          }
+        },
+        "exact_datasets": [
+          "bank_chisq",
+          "bank_chisq_dof",
+          "chisq",
+          "chisq_dof",
+          "coa_phase",
+          "cont_chisq",
+          "cont_chisq_dof",
+          "end_time",
+          "sg_chisq",
+          "sigmasq",
+          "snr",
+          "template_duration",
+          "template_hash"
+        ],
+        "filter_change_pct": -0.2750695352683574,
+        "wall_change_pct": -0.36085722403477183
+      },
+      "128": {
+        "rows": [
+          {
+            "name": "qualified-cli-b128-0-baseline",
+            "wall_s": 44.24146681209095,
+            "filter_s": 2.0985867977142343,
+            "triggers": 215
+          },
+          {
+            "name": "qualified-cli-b128-1-optimized",
+            "wall_s": 44.36927323194686,
+            "filter_s": 2.06855893135071,
+            "triggers": 215
+          },
+          {
+            "name": "qualified-cli-b128-2-optimized",
+            "wall_s": 44.42043869593181,
+            "filter_s": 2.058887004852296,
+            "triggers": 215
+          },
+          {
+            "name": "qualified-cli-b128-3-baseline",
+            "wall_s": 44.181849232991226,
+            "filter_s": 2.063987493515013,
+            "triggers": 215
+          }
+        ],
+        "medians": {
+          "baseline": {
+            "wall_s": 44.21165802254109,
+            "filter_s": 2.0812871456146236
+          },
+          "optimized": {
+            "wall_s": 44.394855963939335,
+            "filter_s": 2.063722968101503
+          }
+        },
+        "exact_datasets": [
+          "bank_chisq",
+          "bank_chisq_dof",
+          "chisq",
+          "chisq_dof",
+          "coa_phase",
+          "cont_chisq",
+          "cont_chisq_dof",
+          "end_time",
+          "sg_chisq",
+          "sigmasq",
+          "snr",
+          "template_duration",
+          "template_hash"
+        ],
+        "filter_change_pct": -0.8439093831972833,
+        "wall_change_pct": 0.41436568903352455
+      }
+    },
+    "live": {
+      "empty": {
+        "medians": {
+          "baseline": {
+            "p50_ms": 1.1167102493345737,
+            "p95_ms": 1.230908409343101,
+            "mean_ms": 1.1325519396147379
+          },
+          "optimized": {
+            "p50_ms": 1.0213730274699628,
+            "p95_ms": 1.1691701598465443,
+            "mean_ms": 1.0390128537740868
+          }
+        },
+        "candidates": 0,
+        "exact_result_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "vram_growth_bytes": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "p50_change_pct": -8.537328453949499
+      },
+      "triggered": {
+        "medians": {
+          "baseline": {
+            "p50_ms": 1.7574270314071327,
+            "p95_ms": 1.9408234278671443,
+            "mean_ms": 1.7793815767314904
+          },
+          "optimized": {
+            "p50_ms": 1.629527221666649,
+            "p95_ms": 1.807093876414001,
+            "mean_ms": 1.6534089595855526
+          }
+        },
+        "candidates": 15360,
+        "exact_result_hash": "13aefb352d4bbfde89e85571c94a9b55277d985712dfd3094b336d7b1fc50c93",
+        "vram_growth_bytes": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "p50_change_pct": -7.2776739776260975
+      }
+    }
+  },
+  "raw_receipts": [
+    {
+      "host": "len",
+      "pid": 3389318,
+      "cwd": "/home/xangma/.cache/pycbc-tiled-20260910/verified-source",
+      "command": [
+        "/home/xangma/.cache/pycbc-tiled-20260910/venv/bin/python",
+        "/home/xangma/.cache/pycbc-tiled-20260910/verified-source/bin/pycbc_inspiral",
+        "--bank-file",
+        "/home/xangma/.cache/pycbc-optimize-20260910/benchmark-bank.hdf",
+        "--approximant",
+        "TaylorF2",
+        "--channel-name",
+        "H1:FAKE",
+        "--gps-start-time",
+        "1000000000",
+        "--gps-end-time",
+        "1000001536",
+        "--sample-rate",
+        "4096",
+        "--fake-strain",
+        "aLIGOZeroDetHighPower",
+        "--fake-strain-seed",
+        "719",
+        "--strain-high-pass",
+        "20",
+        "--pad-data",
+        "8",
+        "--low-frequency-cutoff",
+        "30",
+        "--segment-length",
+        "512",
+        "--segment-start-pad",
+        "128",
+        "--segment-end-pad",
+        "128",
+        "--psd-model",
+        "aLIGOZeroDetHighPower",
+        "--psd-inverse-length",
+        "4",
+        "--snr-threshold",
+        "5",
+        "--newsnr-threshold",
+        "0",
+        "--chisq-bins",
+        "8",
+        "--cluster-function",
+        "symmetric",
+        "--cluster-window",
+        "1",
+        "--processing-scheme",
+        "torch:cuda:0",
+        "--batch-size",
+        "128",
+        "--output",
+        "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b128-0-baseline.hdf"
+      ],
+      "log": "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b128-0-baseline.log",
+      "stop": "kill -TERM -- -3389318",
+      "source_hashes": {
+        "bin/pycbc_inspiral": "1a41dedd02df9a689f673ea9e4a641d1b0e634f683e6610278aa966256032862",
+        "pycbc/filter/gpu_search/adapter.py": "af265a0574560dc3b40856c16bdd1be881331adfef6b00b7e1e23ac10b32a6fe",
+        "pycbc/filter/gpu_search/core.py": "f18e16db702e52a6b41de939f50d2f03834262dfecee5e5f206c6192a4c66de1",
+        "pycbc/filter/gpu_search/candidates.py": "d61adb170755c6e849bd47ed6d2520841b27b304bfea187092276140b557add1",
+        "pycbc/vetoes/chisq.py": "302497a78f5f389a0766cccc79c5d2118818fd252fd189e6463f7ecd7a1987e4",
+        "pycbc/vetoes/chisq_torch.py": "43a154343cb03cd7a4a97a0b9a947077cb10db788fce1e7674dcad58e3b41b39"
+      },
+      "bank_sha256": "4fb00538b43a826ac9aa49b6ee2f8dabbf0d8cfcd5f19a7965c8be1de3566144",
+      "affinity": [
+        0
+      ],
+      "returncode": 0,
+      "wall_s": 44.24146681209095,
+      "triggers": 215,
+      "search": {
+        "end_time": [
+          1000001408
+        ],
+        "filter_rate_per_core": [
+          0.1259687803270608
+        ],
+        "run_time": [
+          39.69237446784973
+        ],
+        "setup_time_fraction": [
+          0.9471287161362931
+        ],
+        "start_time": [
+          1000000128
+        ],
+        "templates_per_core": [
+          4127.744993757128
+        ]
+      }
+    },
+    {
+      "host": "len",
+      "pid": 3409520,
+      "cwd": "/home/xangma/.cache/pycbc-optimize-20260910/qualified-inspiral-source",
+      "command": [
+        "/home/xangma/.cache/pycbc-tiled-20260910/venv/bin/python",
+        "/home/xangma/.cache/pycbc-optimize-20260910/qualified-inspiral-source/bin/pycbc_inspiral",
+        "--bank-file",
+        "/home/xangma/.cache/pycbc-optimize-20260910/benchmark-bank.hdf",
+        "--approximant",
+        "TaylorF2",
+        "--channel-name",
+        "H1:FAKE",
+        "--gps-start-time",
+        "1000000000",
+        "--gps-end-time",
+        "1000001536",
+        "--sample-rate",
+        "4096",
+        "--fake-strain",
+        "aLIGOZeroDetHighPower",
+        "--fake-strain-seed",
+        "719",
+        "--strain-high-pass",
+        "20",
+        "--pad-data",
+        "8",
+        "--low-frequency-cutoff",
+        "30",
+        "--segment-length",
+        "512",
+        "--segment-start-pad",
+        "128",
+        "--segment-end-pad",
+        "128",
+        "--psd-model",
+        "aLIGOZeroDetHighPower",
+        "--psd-inverse-length",
+        "4",
+        "--snr-threshold",
+        "5",
+        "--newsnr-threshold",
+        "0",
+        "--chisq-bins",
+        "8",
+        "--cluster-function",
+        "symmetric",
+        "--cluster-window",
+        "1",
+        "--processing-scheme",
+        "torch:cuda:0",
+        "--batch-size",
+        "128",
+        "--output",
+        "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b128-1-optimized.hdf"
+      ],
+      "log": "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b128-1-optimized.log",
+      "stop": "kill -TERM -- -3409520",
+      "source_hashes": {
+        "bin/pycbc_inspiral": "3e48d0092bb4beb7e647c15c326f3fbeb06950404431124d914467ad3b4f1c5f",
+        "pycbc/filter/gpu_search/adapter.py": "2f87304ea9c02c1e87f19dad4cdb8e6537be6ba2772eb84c833eaba3fda9a83c",
+        "pycbc/filter/gpu_search/core.py": "f18e16db702e52a6b41de939f50d2f03834262dfecee5e5f206c6192a4c66de1",
+        "pycbc/filter/gpu_search/candidates.py": "d61adb170755c6e849bd47ed6d2520841b27b304bfea187092276140b557add1",
+        "pycbc/vetoes/chisq.py": "302497a78f5f389a0766cccc79c5d2118818fd252fd189e6463f7ecd7a1987e4",
+        "pycbc/vetoes/chisq_torch.py": "43a154343cb03cd7a4a97a0b9a947077cb10db788fce1e7674dcad58e3b41b39"
+      },
+      "bank_sha256": "4fb00538b43a826ac9aa49b6ee2f8dabbf0d8cfcd5f19a7965c8be1de3566144",
+      "affinity": [
+        0
+      ],
+      "returncode": 0,
+      "wall_s": 44.36927323194686,
+      "triggers": 215,
+      "search": {
+        "end_time": [
+          1000001408
+        ],
+        "filter_rate_per_core": [
+          0.12590028765560307
+        ],
+        "run_time": [
+          39.71396803855896
+        ],
+        "setup_time_fraction": [
+          0.9479135671020757
+        ],
+        "start_time": [
+          1000000128
+        ],
+        "templates_per_core": [
+          4125.500625898801
+        ]
+      }
+    },
+    {
+      "host": "len",
+      "pid": 3429885,
+      "cwd": "/home/xangma/.cache/pycbc-optimize-20260910/qualified-inspiral-source",
+      "command": [
+        "/home/xangma/.cache/pycbc-tiled-20260910/venv/bin/python",
+        "/home/xangma/.cache/pycbc-optimize-20260910/qualified-inspiral-source/bin/pycbc_inspiral",
+        "--bank-file",
+        "/home/xangma/.cache/pycbc-optimize-20260910/benchmark-bank.hdf",
+        "--approximant",
+        "TaylorF2",
+        "--channel-name",
+        "H1:FAKE",
+        "--gps-start-time",
+        "1000000000",
+        "--gps-end-time",
+        "1000001536",
+        "--sample-rate",
+        "4096",
+        "--fake-strain",
+        "aLIGOZeroDetHighPower",
+        "--fake-strain-seed",
+        "719",
+        "--strain-high-pass",
+        "20",
+        "--pad-data",
+        "8",
+        "--low-frequency-cutoff",
+        "30",
+        "--segment-length",
+        "512",
+        "--segment-start-pad",
+        "128",
+        "--segment-end-pad",
+        "128",
+        "--psd-model",
+        "aLIGOZeroDetHighPower",
+        "--psd-inverse-length",
+        "4",
+        "--snr-threshold",
+        "5",
+        "--newsnr-threshold",
+        "0",
+        "--chisq-bins",
+        "8",
+        "--cluster-function",
+        "symmetric",
+        "--cluster-window",
+        "1",
+        "--processing-scheme",
+        "torch:cuda:0",
+        "--batch-size",
+        "128",
+        "--output",
+        "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b128-2-optimized.hdf"
+      ],
+      "log": "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b128-2-optimized.log",
+      "stop": "kill -TERM -- -3429885",
+      "source_hashes": {
+        "bin/pycbc_inspiral": "3e48d0092bb4beb7e647c15c326f3fbeb06950404431124d914467ad3b4f1c5f",
+        "pycbc/filter/gpu_search/adapter.py": "2f87304ea9c02c1e87f19dad4cdb8e6537be6ba2772eb84c833eaba3fda9a83c",
+        "pycbc/filter/gpu_search/core.py": "f18e16db702e52a6b41de939f50d2f03834262dfecee5e5f206c6192a4c66de1",
+        "pycbc/filter/gpu_search/candidates.py": "d61adb170755c6e849bd47ed6d2520841b27b304bfea187092276140b557add1",
+        "pycbc/vetoes/chisq.py": "302497a78f5f389a0766cccc79c5d2118818fd252fd189e6463f7ecd7a1987e4",
+        "pycbc/vetoes/chisq_torch.py": "43a154343cb03cd7a4a97a0b9a947077cb10db788fce1e7674dcad58e3b41b39"
+      },
+      "bank_sha256": "4fb00538b43a826ac9aa49b6ee2f8dabbf0d8cfcd5f19a7965c8be1de3566144",
+      "affinity": [
+        0
+      ],
+      "returncode": 0,
+      "wall_s": 44.42043869593181,
+      "triggers": 215,
+      "search": {
+        "end_time": [
+          1000001408
+        ],
+        "filter_rate_per_core": [
+          0.1255166818672292
+        ],
+        "run_time": [
+          39.83534240722656
+        ],
+        "setup_time_fraction": [
+          0.9483150669622764
+        ],
+        "start_time": [
+          1000000128
+        ],
+        "templates_per_core": [
+          4112.930631425366
+        ]
+      }
+    },
+    {
+      "host": "len",
+      "pid": 3450237,
+      "cwd": "/home/xangma/.cache/pycbc-tiled-20260910/verified-source",
+      "command": [
+        "/home/xangma/.cache/pycbc-tiled-20260910/venv/bin/python",
+        "/home/xangma/.cache/pycbc-tiled-20260910/verified-source/bin/pycbc_inspiral",
+        "--bank-file",
+        "/home/xangma/.cache/pycbc-optimize-20260910/benchmark-bank.hdf",
+        "--approximant",
+        "TaylorF2",
+        "--channel-name",
+        "H1:FAKE",
+        "--gps-start-time",
+        "1000000000",
+        "--gps-end-time",
+        "1000001536",
+        "--sample-rate",
+        "4096",
+        "--fake-strain",
+        "aLIGOZeroDetHighPower",
+        "--fake-strain-seed",
+        "719",
+        "--strain-high-pass",
+        "20",
+        "--pad-data",
+        "8",
+        "--low-frequency-cutoff",
+        "30",
+        "--segment-length",
+        "512",
+        "--segment-start-pad",
+        "128",
+        "--segment-end-pad",
+        "128",
+        "--psd-model",
+        "aLIGOZeroDetHighPower",
+        "--psd-inverse-length",
+        "4",
+        "--snr-threshold",
+        "5",
+        "--newsnr-threshold",
+        "0",
+        "--chisq-bins",
+        "8",
+        "--cluster-function",
+        "symmetric",
+        "--cluster-window",
+        "1",
+        "--processing-scheme",
+        "torch:cuda:0",
+        "--batch-size",
+        "128",
+        "--output",
+        "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b128-3-baseline.hdf"
+      ],
+      "log": "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b128-3-baseline.log",
+      "stop": "kill -TERM -- -3450237",
+      "source_hashes": {
+        "bin/pycbc_inspiral": "1a41dedd02df9a689f673ea9e4a641d1b0e634f683e6610278aa966256032862",
+        "pycbc/filter/gpu_search/adapter.py": "af265a0574560dc3b40856c16bdd1be881331adfef6b00b7e1e23ac10b32a6fe",
+        "pycbc/filter/gpu_search/core.py": "f18e16db702e52a6b41de939f50d2f03834262dfecee5e5f206c6192a4c66de1",
+        "pycbc/filter/gpu_search/candidates.py": "d61adb170755c6e849bd47ed6d2520841b27b304bfea187092276140b557add1",
+        "pycbc/vetoes/chisq.py": "302497a78f5f389a0766cccc79c5d2118818fd252fd189e6463f7ecd7a1987e4",
+        "pycbc/vetoes/chisq_torch.py": "43a154343cb03cd7a4a97a0b9a947077cb10db788fce1e7674dcad58e3b41b39"
+      },
+      "bank_sha256": "4fb00538b43a826ac9aa49b6ee2f8dabbf0d8cfcd5f19a7965c8be1de3566144",
+      "affinity": [
+        0
+      ],
+      "returncode": 0,
+      "wall_s": 44.181849232991226,
+      "triggers": 215,
+      "search": {
+        "end_time": [
+          1000001408
+        ],
+        "filter_rate_per_core": [
+          0.1261354214552325
+        ],
+        "run_time": [
+          39.63993573188782
+        ],
+        "setup_time_fraction": [
+          0.947931613525431
+        ],
+        "start_time": [
+          1000000128
+        ],
+        "templates_per_core": [
+          4133.205490245058
+        ]
+      }
+    },
+    {
+      "host": "len",
+      "pid": 3307758,
+      "cwd": "/home/xangma/.cache/pycbc-tiled-20260910/verified-source",
+      "command": [
+        "/home/xangma/.cache/pycbc-tiled-20260910/venv/bin/python",
+        "/home/xangma/.cache/pycbc-tiled-20260910/verified-source/bin/pycbc_inspiral",
+        "--bank-file",
+        "/home/xangma/.cache/pycbc-optimize-20260910/benchmark-bank.hdf",
+        "--approximant",
+        "TaylorF2",
+        "--channel-name",
+        "H1:FAKE",
+        "--gps-start-time",
+        "1000000000",
+        "--gps-end-time",
+        "1000001536",
+        "--sample-rate",
+        "4096",
+        "--fake-strain",
+        "aLIGOZeroDetHighPower",
+        "--fake-strain-seed",
+        "719",
+        "--strain-high-pass",
+        "20",
+        "--pad-data",
+        "8",
+        "--low-frequency-cutoff",
+        "30",
+        "--segment-length",
+        "512",
+        "--segment-start-pad",
+        "128",
+        "--segment-end-pad",
+        "128",
+        "--psd-model",
+        "aLIGOZeroDetHighPower",
+        "--psd-inverse-length",
+        "4",
+        "--snr-threshold",
+        "5",
+        "--newsnr-threshold",
+        "0",
+        "--chisq-bins",
+        "8",
+        "--cluster-function",
+        "symmetric",
+        "--cluster-window",
+        "1",
+        "--processing-scheme",
+        "torch:cuda:0",
+        "--batch-size",
+        "64",
+        "--output",
+        "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b64-0-baseline.hdf"
+      ],
+      "log": "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b64-0-baseline.log",
+      "stop": "kill -TERM -- -3307758",
+      "source_hashes": {
+        "bin/pycbc_inspiral": "1a41dedd02df9a689f673ea9e4a641d1b0e634f683e6610278aa966256032862",
+        "pycbc/filter/gpu_search/adapter.py": "af265a0574560dc3b40856c16bdd1be881331adfef6b00b7e1e23ac10b32a6fe",
+        "pycbc/filter/gpu_search/core.py": "f18e16db702e52a6b41de939f50d2f03834262dfecee5e5f206c6192a4c66de1",
+        "pycbc/filter/gpu_search/candidates.py": "d61adb170755c6e849bd47ed6d2520841b27b304bfea187092276140b557add1",
+        "pycbc/vetoes/chisq.py": "302497a78f5f389a0766cccc79c5d2118818fd252fd189e6463f7ecd7a1987e4",
+        "pycbc/vetoes/chisq_torch.py": "43a154343cb03cd7a4a97a0b9a947077cb10db788fce1e7674dcad58e3b41b39"
+      },
+      "bank_sha256": "4fb00538b43a826ac9aa49b6ee2f8dabbf0d8cfcd5f19a7965c8be1de3566144",
+      "affinity": [
+        0
+      ],
+      "returncode": 0,
+      "wall_s": 44.50901854701806,
+      "triggers": 215,
+      "search": {
+        "end_time": [
+          1000001408
+        ],
+        "filter_rate_per_core": [
+          0.12504685115824316
+        ],
+        "run_time": [
+          39.985013246536255
+        ],
+        "setup_time_fraction": [
+          0.9472621855361498
+        ],
+        "start_time": [
+          1000000128
+        ],
+        "templates_per_core": [
+          4097.535218753312
+        ]
+      }
+    },
+    {
+      "host": "len",
+      "pid": 3328199,
+      "cwd": "/home/xangma/.cache/pycbc-optimize-20260910/qualified-inspiral-source",
+      "command": [
+        "/home/xangma/.cache/pycbc-tiled-20260910/venv/bin/python",
+        "/home/xangma/.cache/pycbc-optimize-20260910/qualified-inspiral-source/bin/pycbc_inspiral",
+        "--bank-file",
+        "/home/xangma/.cache/pycbc-optimize-20260910/benchmark-bank.hdf",
+        "--approximant",
+        "TaylorF2",
+        "--channel-name",
+        "H1:FAKE",
+        "--gps-start-time",
+        "1000000000",
+        "--gps-end-time",
+        "1000001536",
+        "--sample-rate",
+        "4096",
+        "--fake-strain",
+        "aLIGOZeroDetHighPower",
+        "--fake-strain-seed",
+        "719",
+        "--strain-high-pass",
+        "20",
+        "--pad-data",
+        "8",
+        "--low-frequency-cutoff",
+        "30",
+        "--segment-length",
+        "512",
+        "--segment-start-pad",
+        "128",
+        "--segment-end-pad",
+        "128",
+        "--psd-model",
+        "aLIGOZeroDetHighPower",
+        "--psd-inverse-length",
+        "4",
+        "--snr-threshold",
+        "5",
+        "--newsnr-threshold",
+        "0",
+        "--chisq-bins",
+        "8",
+        "--cluster-function",
+        "symmetric",
+        "--cluster-window",
+        "1",
+        "--processing-scheme",
+        "torch:cuda:0",
+        "--batch-size",
+        "64",
+        "--output",
+        "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b64-1-optimized.hdf"
+      ],
+      "log": "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b64-1-optimized.log",
+      "stop": "kill -TERM -- -3328199",
+      "source_hashes": {
+        "bin/pycbc_inspiral": "3e48d0092bb4beb7e647c15c326f3fbeb06950404431124d914467ad3b4f1c5f",
+        "pycbc/filter/gpu_search/adapter.py": "2f87304ea9c02c1e87f19dad4cdb8e6537be6ba2772eb84c833eaba3fda9a83c",
+        "pycbc/filter/gpu_search/core.py": "f18e16db702e52a6b41de939f50d2f03834262dfecee5e5f206c6192a4c66de1",
+        "pycbc/filter/gpu_search/candidates.py": "d61adb170755c6e849bd47ed6d2520841b27b304bfea187092276140b557add1",
+        "pycbc/vetoes/chisq.py": "302497a78f5f389a0766cccc79c5d2118818fd252fd189e6463f7ecd7a1987e4",
+        "pycbc/vetoes/chisq_torch.py": "43a154343cb03cd7a4a97a0b9a947077cb10db788fce1e7674dcad58e3b41b39"
+      },
+      "bank_sha256": "4fb00538b43a826ac9aa49b6ee2f8dabbf0d8cfcd5f19a7965c8be1de3566144",
+      "affinity": [
+        0
+      ],
+      "returncode": 0,
+      "wall_s": 44.137257793103345,
+      "triggers": 215,
+      "search": {
+        "end_time": [
+          1000001408
+        ],
+        "filter_rate_per_core": [
+          0.12627291575917723
+        ],
+        "run_time": [
+          39.59677314758301
+        ],
+        "setup_time_fraction": [
+          0.9478908363841757
+        ],
+        "start_time": [
+          1000000128
+        ],
+        "templates_per_core": [
+          4137.71090359672
+        ]
+      }
+    },
+    {
+      "host": "len",
+      "pid": 3348369,
+      "cwd": "/home/xangma/.cache/pycbc-optimize-20260910/qualified-inspiral-source",
+      "command": [
+        "/home/xangma/.cache/pycbc-tiled-20260910/venv/bin/python",
+        "/home/xangma/.cache/pycbc-optimize-20260910/qualified-inspiral-source/bin/pycbc_inspiral",
+        "--bank-file",
+        "/home/xangma/.cache/pycbc-optimize-20260910/benchmark-bank.hdf",
+        "--approximant",
+        "TaylorF2",
+        "--channel-name",
+        "H1:FAKE",
+        "--gps-start-time",
+        "1000000000",
+        "--gps-end-time",
+        "1000001536",
+        "--sample-rate",
+        "4096",
+        "--fake-strain",
+        "aLIGOZeroDetHighPower",
+        "--fake-strain-seed",
+        "719",
+        "--strain-high-pass",
+        "20",
+        "--pad-data",
+        "8",
+        "--low-frequency-cutoff",
+        "30",
+        "--segment-length",
+        "512",
+        "--segment-start-pad",
+        "128",
+        "--segment-end-pad",
+        "128",
+        "--psd-model",
+        "aLIGOZeroDetHighPower",
+        "--psd-inverse-length",
+        "4",
+        "--snr-threshold",
+        "5",
+        "--newsnr-threshold",
+        "0",
+        "--chisq-bins",
+        "8",
+        "--cluster-function",
+        "symmetric",
+        "--cluster-window",
+        "1",
+        "--processing-scheme",
+        "torch:cuda:0",
+        "--batch-size",
+        "64",
+        "--output",
+        "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b64-2-optimized.hdf"
+      ],
+      "log": "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b64-2-optimized.log",
+      "stop": "kill -TERM -- -3348369",
+      "source_hashes": {
+        "bin/pycbc_inspiral": "3e48d0092bb4beb7e647c15c326f3fbeb06950404431124d914467ad3b4f1c5f",
+        "pycbc/filter/gpu_search/adapter.py": "2f87304ea9c02c1e87f19dad4cdb8e6537be6ba2772eb84c833eaba3fda9a83c",
+        "pycbc/filter/gpu_search/core.py": "f18e16db702e52a6b41de939f50d2f03834262dfecee5e5f206c6192a4c66de1",
+        "pycbc/filter/gpu_search/candidates.py": "d61adb170755c6e849bd47ed6d2520841b27b304bfea187092276140b557add1",
+        "pycbc/vetoes/chisq.py": "302497a78f5f389a0766cccc79c5d2118818fd252fd189e6463f7ecd7a1987e4",
+        "pycbc/vetoes/chisq_torch.py": "43a154343cb03cd7a4a97a0b9a947077cb10db788fce1e7674dcad58e3b41b39"
+      },
+      "bank_sha256": "4fb00538b43a826ac9aa49b6ee2f8dabbf0d8cfcd5f19a7965c8be1de3566144",
+      "affinity": [
+        0
+      ],
+      "returncode": 0,
+      "wall_s": 44.65896789706312,
+      "triggers": 215,
+      "search": {
+        "end_time": [
+          1000001408
+        ],
+        "filter_rate_per_core": [
+          0.12475234928916035
+        ],
+        "run_time": [
+          40.079405546188354
+        ],
+        "setup_time_fraction": [
+          0.9466079965837585
+        ],
+        "start_time": [
+          1000000128
+        ],
+        "templates_per_core": [
+          4087.8849815072062
+        ]
+      }
+    },
+    {
+      "host": "len",
+      "pid": 3368793,
+      "cwd": "/home/xangma/.cache/pycbc-tiled-20260910/verified-source",
+      "command": [
+        "/home/xangma/.cache/pycbc-tiled-20260910/venv/bin/python",
+        "/home/xangma/.cache/pycbc-tiled-20260910/verified-source/bin/pycbc_inspiral",
+        "--bank-file",
+        "/home/xangma/.cache/pycbc-optimize-20260910/benchmark-bank.hdf",
+        "--approximant",
+        "TaylorF2",
+        "--channel-name",
+        "H1:FAKE",
+        "--gps-start-time",
+        "1000000000",
+        "--gps-end-time",
+        "1000001536",
+        "--sample-rate",
+        "4096",
+        "--fake-strain",
+        "aLIGOZeroDetHighPower",
+        "--fake-strain-seed",
+        "719",
+        "--strain-high-pass",
+        "20",
+        "--pad-data",
+        "8",
+        "--low-frequency-cutoff",
+        "30",
+        "--segment-length",
+        "512",
+        "--segment-start-pad",
+        "128",
+        "--segment-end-pad",
+        "128",
+        "--psd-model",
+        "aLIGOZeroDetHighPower",
+        "--psd-inverse-length",
+        "4",
+        "--snr-threshold",
+        "5",
+        "--newsnr-threshold",
+        "0",
+        "--chisq-bins",
+        "8",
+        "--cluster-function",
+        "symmetric",
+        "--cluster-window",
+        "1",
+        "--processing-scheme",
+        "torch:cuda:0",
+        "--batch-size",
+        "64",
+        "--output",
+        "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b64-3-baseline.hdf"
+      ],
+      "log": "/home/xangma/.cache/pycbc-optimize-20260910/logs/qualified-cli-b64-3-baseline.log",
+      "stop": "kill -TERM -- -3368793",
+      "source_hashes": {
+        "bin/pycbc_inspiral": "1a41dedd02df9a689f673ea9e4a641d1b0e634f683e6610278aa966256032862",
+        "pycbc/filter/gpu_search/adapter.py": "af265a0574560dc3b40856c16bdd1be881331adfef6b00b7e1e23ac10b32a6fe",
+        "pycbc/filter/gpu_search/core.py": "f18e16db702e52a6b41de939f50d2f03834262dfecee5e5f206c6192a4c66de1",
+        "pycbc/filter/gpu_search/candidates.py": "d61adb170755c6e849bd47ed6d2520841b27b304bfea187092276140b557add1",
+        "pycbc/vetoes/chisq.py": "302497a78f5f389a0766cccc79c5d2118818fd252fd189e6463f7ecd7a1987e4",
+        "pycbc/vetoes/chisq_torch.py": "43a154343cb03cd7a4a97a0b9a947077cb10db788fce1e7674dcad58e3b41b39"
+      },
+      "bank_sha256": "4fb00538b43a826ac9aa49b6ee2f8dabbf0d8cfcd5f19a7965c8be1de3566144",
+      "affinity": [
+        0
+      ],
+      "returncode": 0,
+      "wall_s": 44.60879521199968,
+      "triggers": 215,
+      "search": {
+        "end_time": [
+          1000001408
+        ],
+        "filter_rate_per_core": [
+          0.12467464846422696
+        ],
+        "run_time": [
+          40.10438418388367
+        ],
+        "setup_time_fraction": [
+          0.9474833951438755
+        ],
+        "start_time": [
+          1000000128
+        ],
+        "templates_per_core": [
+          4085.338880875789
+        ]
+      }
+    },
+    {
+      "name": "qualified-live-0-baseline",
+      "source": "/home/xangma/.cache/pycbc-tiled-20260910/verified-source",
+      "host": "len",
+      "n": 65536,
+      "templates": 128,
+      "tile_size": 64,
+      "blocks": 120,
+      "source_hashes": {
+        "pycbc/filter/gpu_search/engine.py": "0bec3affaf17d1c642204b0dcebe783d45a90504e9d03c272717b7f883a6994a",
+        "pycbc/filter/gpu_search/plans.py": "3b5292e61114039d0b6040d9b796b7b79b6b7bccf568cd42ed43b5476b068d68",
+        "pycbc/filter/gpu_search/core.py": "f18e16db702e52a6b41de939f50d2f03834262dfecee5e5f206c6192a4c66de1",
+        "pycbc/filter/gpu_search/candidates.py": "d61adb170755c6e849bd47ed6d2520841b27b304bfea187092276140b557add1"
+      },
+      "cases": {
+        "empty": {
+          "p50_ms": 1.1035604984499514,
+          "p95_ms": 1.2042907299473882,
+          "mean_ms": 1.1165253905346617,
+          "candidates": 0,
+          "result_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "vram_growth": 0,
+          "peak_bytes": 227029504,
+          "graph_stats": {
+            "capture_count": 4,
+            "replay_count": 256,
+            "invalidation_count": 0
+          }
+        },
+        "triggered": {
+          "p50_ms": 1.7434755573049188,
+          "p95_ms": 1.9464849901851267,
+          "mean_ms": 1.7682748177321628,
+          "candidates": 15360,
+          "result_hash": "13aefb352d4bbfde89e85571c94a9b55277d985712dfd3094b336d7b1fc50c93",
+          "vram_growth": 0,
+          "peak_bytes": 227029504,
+          "graph_stats": {
+            "capture_count": 4,
+            "replay_count": 256,
+            "invalidation_count": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "qualified-live-1-optimized",
+      "source": "/home/xangma/.cache/pycbc-optimize-20260910/optimized-v2-source",
+      "host": "len",
+      "n": 65536,
+      "templates": 128,
+      "tile_size": 64,
+      "blocks": 120,
+      "source_hashes": {
+        "pycbc/filter/gpu_search/engine.py": "44e5c740fa3875c37b9db13d4ec313643c7ca974d86ee161e1bb57d53ad39ff6",
+        "pycbc/filter/gpu_search/plans.py": "3b5292e61114039d0b6040d9b796b7b79b6b7bccf568cd42ed43b5476b068d68",
+        "pycbc/filter/gpu_search/core.py": "f18e16db702e52a6b41de939f50d2f03834262dfecee5e5f206c6192a4c66de1",
+        "pycbc/filter/gpu_search/candidates.py": "d61adb170755c6e849bd47ed6d2520841b27b304bfea187092276140b557add1"
+      },
+      "cases": {
+        "empty": {
+          "p50_ms": 1.029015053063631,
+          "p95_ms": 1.172887661959976,
+          "mean_ms": 1.04107932614473,
+          "candidates": 0,
+          "result_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "vram_growth": 0,
+          "peak_bytes": 226766848,
+          "graph_stats": {
+            "capture_count": 4,
+            "replay_count": 256,
+            "invalidation_count": 0
+          }
+        },
+        "triggered": {
+          "p50_ms": 1.6355459811165929,
+          "p95_ms": 1.8185791734140366,
+          "mean_ms": 1.6597237379755825,
+          "candidates": 15360,
+          "result_hash": "13aefb352d4bbfde89e85571c94a9b55277d985712dfd3094b336d7b1fc50c93",
+          "vram_growth": 0,
+          "peak_bytes": 226766848,
+          "graph_stats": {
+            "capture_count": 4,
+            "replay_count": 256,
+            "invalidation_count": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "qualified-live-2-optimized",
+      "source": "/home/xangma/.cache/pycbc-optimize-20260910/optimized-v2-source",
+      "host": "len",
+      "n": 65536,
+      "templates": 128,
+      "tile_size": 64,
+      "blocks": 120,
+      "source_hashes": {
+        "pycbc/filter/gpu_search/engine.py": "44e5c740fa3875c37b9db13d4ec313643c7ca974d86ee161e1bb57d53ad39ff6",
+        "pycbc/filter/gpu_search/plans.py": "3b5292e61114039d0b6040d9b796b7b79b6b7bccf568cd42ed43b5476b068d68",
+        "pycbc/filter/gpu_search/core.py": "f18e16db702e52a6b41de939f50d2f03834262dfecee5e5f206c6192a4c66de1",
+        "pycbc/filter/gpu_search/candidates.py": "d61adb170755c6e849bd47ed6d2520841b27b304bfea187092276140b557add1"
+      },
+      "cases": {
+        "empty": {
+          "p50_ms": 1.0137310018762946,
+          "p95_ms": 1.1654526577331126,
+          "mean_ms": 1.0369463814034436,
+          "candidates": 0,
+          "result_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "vram_growth": 0,
+          "peak_bytes": 226766848,
+          "graph_stats": {
+            "capture_count": 4,
+            "replay_count": 256,
+            "invalidation_count": 0
+          }
+        },
+        "triggered": {
+          "p50_ms": 1.623508462216705,
+          "p95_ms": 1.7956085794139653,
+          "mean_ms": 1.6470941811955224,
+          "candidates": 15360,
+          "result_hash": "13aefb352d4bbfde89e85571c94a9b55277d985712dfd3094b336d7b1fc50c93",
+          "vram_growth": 0,
+          "peak_bytes": 226766848,
+          "graph_stats": {
+            "capture_count": 4,
+            "replay_count": 256,
+            "invalidation_count": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "qualified-live-3-baseline",
+      "source": "/home/xangma/.cache/pycbc-tiled-20260910/verified-source",
+      "host": "len",
+      "n": 65536,
+      "templates": 128,
+      "tile_size": 64,
+      "blocks": 120,
+      "source_hashes": {
+        "pycbc/filter/gpu_search/engine.py": "0bec3affaf17d1c642204b0dcebe783d45a90504e9d03c272717b7f883a6994a",
+        "pycbc/filter/gpu_search/plans.py": "3b5292e61114039d0b6040d9b796b7b79b6b7bccf568cd42ed43b5476b068d68",
+        "pycbc/filter/gpu_search/core.py": "f18e16db702e52a6b41de939f50d2f03834262dfecee5e5f206c6192a4c66de1",
+        "pycbc/filter/gpu_search/candidates.py": "d61adb170755c6e849bd47ed6d2520841b27b304bfea187092276140b557add1"
+      },
+      "cases": {
+        "empty": {
+          "p50_ms": 1.129860000219196,
+          "p95_ms": 1.257526088738814,
+          "mean_ms": 1.1485784886948143,
+          "candidates": 0,
+          "result_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "vram_growth": 0,
+          "peak_bytes": 227029504,
+          "graph_stats": {
+            "capture_count": 4,
+            "replay_count": 256,
+            "invalidation_count": 0
+          }
+        },
+        "triggered": {
+          "p50_ms": 1.7713785055093467,
+          "p95_ms": 1.935161865549162,
+          "mean_ms": 1.7904883357308183,
+          "candidates": 15360,
+          "result_hash": "13aefb352d4bbfde89e85571c94a9b55277d985712dfd3094b336d7b1fc50c93",
+          "vram_growth": 0,
+          "peak_bytes": 227029504,
+          "graph_stats": {
+            "capture_count": 4,
+            "replay_count": 256,
+            "invalidation_count": 0
+          }
+        }
+      }
+    }
+  ],
+  "rejected_candidate_export": {
+    "decision": "Not included: packing candidate fields into one transfer was slower.",
+    "microbenchmark": [
+      {
+        "n": 1,
+        "original": {
+          "p50_us": 68.52,
+          "p95_us": 100.67954999999995
+        },
+        "combined": {
+          "p50_us": 105.87100000000001,
+          "p95_us": 149.53404999999998
+        }
+      },
+      {
+        "n": 8,
+        "original": {
+          "p50_us": 68.84049999999999,
+          "p95_us": 95.43605
+        },
+        "combined": {
+          "p50_us": 105.2895,
+          "p95_us": 145.05249999999998
+        }
+      },
+      {
+        "n": 32,
+        "original": {
+          "p50_us": 68.8605,
+          "p95_us": 101.32404999999999
+        },
+        "combined": {
+          "p50_us": 105.29400000000001,
+          "p95_us": 147.81454999999994
+        }
+      },
+      {
+        "n": 64,
+        "original": {
+          "p50_us": 69.34100000000001,
+          "p95_us": 101.30354999999997
+        },
+        "combined": {
+          "p50_us": 107.944,
+          "p95_us": 150.63854999999995
+        }
+      },
+      {
+        "n": 256,
+        "original": {
+          "p50_us": 70.463,
+          "p95_us": 98.45004999999996
+        },
+        "combined": {
+          "p50_us": 107.57849999999999,
+          "p95_us": 141.6855
+        }
+      },
+      {
+        "n": 1024,
+        "original": {
+          "p50_us": 72.61250000000001,
+          "p95_us": 102.30905
+        },
+        "combined": {
+          "p50_us": 109.733,
+          "p95_us": 149.8351499999999
+        }
+      }
+    ]
+  }
+}

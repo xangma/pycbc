@@ -1,0 +1,1134 @@
+{
+  "state": "pass",
+  "scope": "Owner archive, lifecycle, order, timing and all raw HDF comparison replay.",
+  "script_sha256": "95e565147c1593a876936c3473c4162463eb532564367f0a63028d12c8d9cdf1",
+  "input_manifest_sha256": "807406093bee08fa621eeb4c327a8c1547f66c85224db9c3d33f11e5156f244b",
+  "archive_sha256": "52c50829795096da3683c6b678deb5ddfc69e6f8a90d1ab8b106db84ebee18f3",
+  "results_manifest_sha256": "21dd1a3f2112aba4664bea0b619af0c31fd7c947c6f7d1443658a1645531bb7f",
+  "native": {
+    "receipt_sha256": "4317cb2b637fdf86320949dba139463caea11752f01ce2ea3a9fb6d358f7178e",
+    "metrics": {
+      "owned_descriptors": 3,
+      "frees": 3,
+      "calls": 9,
+      "hits": 6
+    }
+  },
+  "lifecycle": {
+    "qual-standard-original": {
+      "owned_descriptors": 0,
+      "frees": 0
+    },
+    "qual-standard-cached": {
+      "owned_descriptors": 3,
+      "frees": 3
+    },
+    "qual-cuda-original": {
+      "owned_descriptors": 0,
+      "frees": 0
+    },
+    "qual-cuda-cached": {
+      "owned_descriptors": 3,
+      "frees": 3
+    },
+    "timing-1-standard-original": {
+      "owned_descriptors": 0,
+      "frees": 0
+    },
+    "timing-1-standard-cached": {
+      "owned_descriptors": 3,
+      "frees": 3
+    },
+    "timing-1-cuda-cached": {
+      "owned_descriptors": 3,
+      "frees": 3
+    },
+    "timing-1-cuda-original": {
+      "owned_descriptors": 0,
+      "frees": 0
+    },
+    "timing-2-standard-cached": {
+      "owned_descriptors": 3,
+      "frees": 3
+    },
+    "timing-2-cuda-original": {
+      "owned_descriptors": 0,
+      "frees": 0
+    },
+    "timing-2-standard-original": {
+      "owned_descriptors": 0,
+      "frees": 0
+    },
+    "timing-2-cuda-cached": {
+      "owned_descriptors": 3,
+      "frees": 3
+    },
+    "timing-3-cuda-original": {
+      "owned_descriptors": 0,
+      "frees": 0
+    },
+    "timing-3-cuda-cached": {
+      "owned_descriptors": 3,
+      "frees": 3
+    },
+    "timing-3-standard-cached": {
+      "owned_descriptors": 3,
+      "frees": 3
+    },
+    "timing-3-standard-original": {
+      "owned_descriptors": 0,
+      "frees": 0
+    },
+    "timing-4-cuda-cached": {
+      "owned_descriptors": 3,
+      "frees": 3
+    },
+    "timing-4-standard-original": {
+      "owned_descriptors": 0,
+      "frees": 0
+    },
+    "timing-4-cuda-original": {
+      "owned_descriptors": 0,
+      "frees": 0
+    },
+    "timing-4-standard-cached": {
+      "owned_descriptors": 3,
+      "frees": 3
+    }
+  },
+  "comparisons": {
+    "qual-standard-original-vs-qualified-own": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "qual-standard-cached-vs-qualified-own": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "qual-standard-cached-vs-original": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "qual-cuda-original-vs-qualified-own": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "qual-cuda-cached-vs-qualified-own": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "qual-cuda-cached-vs-original": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "qual-cuda-cached-vs-standard-cached": {
+      "status": "pass",
+      "exact_H1": false
+    },
+    "timing-1-standard-original-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-1-standard-original-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-1-standard-cached-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-1-standard-cached-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-1-cuda-cached-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-1-cuda-cached-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": false
+    },
+    "timing-1-cuda-original-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-1-cuda-original-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": false
+    },
+    "timing-1-standard-cached-vs-original": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-1-cuda-cached-vs-original": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-1-cuda-cached-vs-standard-cached": {
+      "status": "pass",
+      "exact_H1": false
+    },
+    "timing-2-standard-cached-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-2-standard-cached-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-2-cuda-original-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-2-cuda-original-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": false
+    },
+    "timing-2-standard-original-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-2-standard-original-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-2-cuda-cached-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-2-cuda-cached-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": false
+    },
+    "timing-2-standard-cached-vs-original": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-2-cuda-cached-vs-original": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-2-cuda-cached-vs-standard-cached": {
+      "status": "pass",
+      "exact_H1": false
+    },
+    "timing-3-cuda-original-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-3-cuda-original-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": false
+    },
+    "timing-3-cuda-cached-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-3-cuda-cached-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": false
+    },
+    "timing-3-standard-cached-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-3-standard-cached-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-3-standard-original-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-3-standard-original-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-3-standard-cached-vs-original": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-3-cuda-cached-vs-original": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-3-cuda-cached-vs-standard-cached": {
+      "status": "pass",
+      "exact_H1": false
+    },
+    "timing-4-cuda-cached-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-4-cuda-cached-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": false
+    },
+    "timing-4-standard-original-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-4-standard-original-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-4-cuda-original-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-4-cuda-original-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": false
+    },
+    "timing-4-standard-cached-vs-own-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-4-standard-cached-vs-standard-cached-qualification": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-4-standard-cached-vs-original": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-4-cuda-cached-vs-original": {
+      "status": "pass",
+      "exact_H1": true
+    },
+    "timing-4-cuda-cached-vs-standard-cached": {
+      "status": "pass",
+      "exact_H1": false
+    }
+  },
+  "samples": {
+    "standard-original": [
+      {
+        "repeat": 1,
+        "case": "timing-1-standard-original",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 66.79196195304394,
+          "internal_seconds": 62.270970821380615,
+          "setup_seconds": 11.979796409606934,
+          "outside_internal_seconds": 4.5209911316633224,
+          "overhead_fraction": 0.24704750480111115,
+          "template_seconds_per_wall_second": 10946.466889444016,
+          "case": "timing-1-standard-original",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-1-standard-original/receipt.json",
+          "scheme": "cpu:1",
+          "trigger_sha256": "aee19d05362f7e2122267dc763e0d68513d8d90d9511eb510105fd7b9bd9e403",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-standard-original/qualification.json",
+          "receipt_sha256": "714fd1e58a92050a6c4a4d196a147a3478c73830b040226b91bdde5ba895295b"
+        }
+      },
+      {
+        "repeat": 2,
+        "case": "timing-2-standard-original",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 66.88543731998652,
+          "internal_seconds": 62.31723976135254,
+          "setup_seconds": 12.050999164581299,
+          "outside_internal_seconds": 4.568197558633983,
+          "overhead_fraction": 0.2484725732405308,
+          "template_seconds_per_wall_second": 10931.16871617619,
+          "case": "timing-2-standard-original",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-2-standard-original/receipt.json",
+          "scheme": "cpu:1",
+          "trigger_sha256": "49f175956f5c87921000557f40cf99375287791dbc51b679858b3b7bf1de6990",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-standard-original/qualification.json",
+          "receipt_sha256": "dafe702a5c5010c61effb3347138b03b46b95d20ca74b01d41ce91ff5a5a4918"
+        }
+      },
+      {
+        "repeat": 3,
+        "case": "timing-3-standard-original",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 66.8136871799361,
+          "internal_seconds": 62.27017283439636,
+          "setup_seconds": 12.181979656219482,
+          "outside_internal_seconds": 4.543514345539734,
+          "overhead_fraction": 0.25033035456815533,
+          "template_seconds_per_wall_second": 10942.907521792293,
+          "case": "timing-3-standard-original",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-3-standard-original/receipt.json",
+          "scheme": "cpu:1",
+          "trigger_sha256": "d1976255e1faa529bde4e7fc46fc1899ec249f42fb94dfe43582bac2917682c3",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-standard-original/qualification.json",
+          "receipt_sha256": "fbfa17b1279090820ab3a2c97181559f23ea5d023e9c4757f5130dca3386132e"
+        }
+      },
+      {
+        "repeat": 4,
+        "case": "timing-4-standard-original",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 67.03866434202064,
+          "internal_seconds": 62.47981524467468,
+          "setup_seconds": 12.164705276489258,
+          "outside_internal_seconds": 4.558849097345956,
+          "overhead_fraction": 0.2494613300842972,
+          "template_seconds_per_wall_second": 10906.18387427679,
+          "case": "timing-4-standard-original",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-4-standard-original/receipt.json",
+          "scheme": "cpu:1",
+          "trigger_sha256": "ba59d2b759bbc3db6d77b523e25eaaa5da0db666d20b4c7d8478faac44846061",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-standard-original/qualification.json",
+          "receipt_sha256": "43e812c383cf10b7460a5d9fecfb8185faa800804ede18c3226ebe6fe803c31c"
+        }
+      }
+    ],
+    "standard-cached": [
+      {
+        "repeat": 1,
+        "case": "timing-1-standard-cached",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 65.18933876103256,
+          "internal_seconds": 60.70885419845581,
+          "setup_seconds": 10.48350191116333,
+          "outside_internal_seconds": 4.480484562576748,
+          "overhead_fraction": 0.2295465295114317,
+          "template_seconds_per_wall_second": 11215.576256727461,
+          "case": "timing-1-standard-cached",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-1-standard-cached/receipt.json",
+          "scheme": "cpu:1",
+          "trigger_sha256": "81ce0f7e0c35dc2166ab71a383a076224bdecb07a4bc22e98f10df933f567666",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-standard-cached/qualification.json",
+          "receipt_sha256": "af049b74e3070744060c79d300e25cca11e7b17bd835a63620401bb38b22493e"
+        }
+      },
+      {
+        "repeat": 2,
+        "case": "timing-2-standard-cached",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 65.40234999603126,
+          "internal_seconds": 60.92772459983826,
+          "setup_seconds": 10.524744033813477,
+          "outside_internal_seconds": 4.474625396193005,
+          "overhead_fraction": 0.22933991562866887,
+          "template_seconds_per_wall_second": 11179.047848347447,
+          "case": "timing-2-standard-cached",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-2-standard-cached/receipt.json",
+          "scheme": "cpu:1",
+          "trigger_sha256": "9e8cbf78fd9ad3e957d96f1e4ec0c3f39f8923da21409a6dedc8c773bf147b47",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-standard-cached/qualification.json",
+          "receipt_sha256": "8e114a2dd2b32a58b125b137b96e2520c343d21cd6e76705bb06e7e161d6ed2d"
+        }
+      },
+      {
+        "repeat": 3,
+        "case": "timing-3-standard-cached",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 65.33776731300168,
+          "internal_seconds": 60.822863817214966,
+          "setup_seconds": 10.573711395263672,
+          "outside_internal_seconds": 4.514903495786712,
+          "overhead_fraction": 0.23093251440270554,
+          "template_seconds_per_wall_second": 11190.097704096326,
+          "case": "timing-3-standard-cached",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-3-standard-cached/receipt.json",
+          "scheme": "cpu:1",
+          "trigger_sha256": "3edd266efd13ff0745ed61d55e00b6833444baee8b721ee89a360407c09f1e13",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-standard-cached/qualification.json",
+          "receipt_sha256": "f91b20a6838fca70a0066c2803e042dd5cba8010ca23546ae5a63a3800b1deab"
+        }
+      },
+      {
+        "repeat": 4,
+        "case": "timing-4-standard-cached",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 65.50571407098323,
+          "internal_seconds": 61.00474500656128,
+          "setup_seconds": 10.63756251335144,
+          "outside_internal_seconds": 4.500969064421952,
+          "overhead_fraction": 0.2311024586552708,
+          "template_seconds_per_wall_second": 11161.40798354976,
+          "case": "timing-4-standard-cached",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-4-standard-cached/receipt.json",
+          "scheme": "cpu:1",
+          "trigger_sha256": "68fd217a2096e89e549f8ef8848ab8fdc2493e2c9d59dbfd5a842f9a1fc083f1",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-standard-cached/qualification.json",
+          "receipt_sha256": "719e16b0b03783dc199dcda632636cd6e41026d1f1e924056e03218cea28a5c2"
+        }
+      }
+    ],
+    "cuda-original": [
+      {
+        "repeat": 1,
+        "case": "timing-1-cuda-original",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 22.051732614985667,
+          "internal_seconds": 17.4485867023468,
+          "setup_seconds": 10.429133653640747,
+          "outside_internal_seconds": 4.603145912638865,
+          "overhead_fraction": 0.681682470431559,
+          "template_seconds_per_wall_second": 33155.48999098342,
+          "case": "timing-1-cuda-original",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-1-cuda-original/receipt.json",
+          "scheme": "torch:cuda:0",
+          "trigger_sha256": "fc5e3066e850241715f88698ba697939d6e9daa0c2dfe72791895007315f4abc",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-cuda-original/qualification.json",
+          "receipt_sha256": "180f52c4fca37fdadad8e7408d9cab69ea2c782c5089d3f183421b8b5050088c"
+        }
+      },
+      {
+        "repeat": 2,
+        "case": "timing-2-cuda-original",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 21.893677284009755,
+          "internal_seconds": 17.27389359474182,
+          "setup_seconds": 10.269304513931274,
+          "outside_internal_seconds": 4.619783689267933,
+          "overhead_fraction": 0.6800633813157366,
+          "template_seconds_per_wall_second": 33394.84685535179,
+          "case": "timing-2-cuda-original",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-2-cuda-original/receipt.json",
+          "scheme": "torch:cuda:0",
+          "trigger_sha256": "c2a1c2055a7e8bc5b311e05e8913965fc9bb247fa657e77a00ec931716a33fca",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-cuda-original/qualification.json",
+          "receipt_sha256": "1e950bfa380479397f29181e22938535e81243fe3a2e5968b6b7093e782aa506"
+        }
+      },
+      {
+        "repeat": 3,
+        "case": "timing-3-cuda-original",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 21.904617147054523,
+          "internal_seconds": 17.303017616271973,
+          "setup_seconds": 10.259305953979492,
+          "outside_internal_seconds": 4.601599530782551,
+          "overhead_fraction": 0.6784371251501359,
+          "template_seconds_per_wall_second": 33378.16840584747,
+          "case": "timing-3-cuda-original",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-3-cuda-original/receipt.json",
+          "scheme": "torch:cuda:0",
+          "trigger_sha256": "bbd1b8c2184a78c7a4293a19c933d13668ee195e4350dd8a49967e8f35dceed4",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-cuda-original/qualification.json",
+          "receipt_sha256": "3aca8980a279c729951d95ca7a97bb33607e5c1f9c8a1abcfc6a4f6f01b40f7b"
+        }
+      },
+      {
+        "repeat": 4,
+        "case": "timing-4-cuda-original",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 22.047867769026197,
+          "internal_seconds": 17.46095085144043,
+          "setup_seconds": 10.41484546661377,
+          "outside_internal_seconds": 4.586916917585768,
+          "overhead_fraction": 0.6804178318447041,
+          "template_seconds_per_wall_second": 33161.30192993681,
+          "case": "timing-4-cuda-original",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-4-cuda-original/receipt.json",
+          "scheme": "torch:cuda:0",
+          "trigger_sha256": "fd280073974a0e47da43ab9ac94869e948883bbc0fbe5cfda49f1b0e2dae631a",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-cuda-original/qualification.json",
+          "receipt_sha256": "add5589f182bcdaf0d55554c9ccb0239a00253907e978aac89f8bb53555ec32b"
+        }
+      }
+    ],
+    "cuda-cached": [
+      {
+        "repeat": 1,
+        "case": "timing-1-cuda-cached",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 20.213787035900168,
+          "internal_seconds": 15.608629941940308,
+          "setup_seconds": 8.627690553665161,
+          "outside_internal_seconds": 4.6051570939598605,
+          "overhead_fraction": 0.6546446553593925,
+          "template_seconds_per_wall_second": 36170.164388369434,
+          "case": "timing-1-cuda-cached",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-1-cuda-cached/receipt.json",
+          "scheme": "torch:cuda:0",
+          "trigger_sha256": "bcf6106cc84acf54af8922dc81f641569086f4f18ed252493f32e4a5aa9298ed",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-cuda-cached/qualification.json",
+          "receipt_sha256": "e1245276d5f295622459c0ef5c8995c3f521172a93ce113c5cf73081bf4f2fec"
+        }
+      },
+      {
+        "repeat": 2,
+        "case": "timing-2-cuda-cached",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 20.30781853396911,
+          "internal_seconds": 15.624205827713013,
+          "setup_seconds": 8.640905141830444,
+          "outside_internal_seconds": 4.683612706256099,
+          "overhead_fraction": 0.6561274824175958,
+          "template_seconds_per_wall_second": 36002.68530945462,
+          "case": "timing-2-cuda-cached",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-2-cuda-cached/receipt.json",
+          "scheme": "torch:cuda:0",
+          "trigger_sha256": "2c6d0b4e9fe330977ba37f8414bbbdcc570ece2706a697de07c1f2d49114fb20",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-cuda-cached/qualification.json",
+          "receipt_sha256": "d09bf16f306bb7aeefb0859180760c33f7d1a885e1f1e5c051203773905e120c"
+        }
+      },
+      {
+        "repeat": 3,
+        "case": "timing-3-cuda-cached",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 20.30246284091845,
+          "internal_seconds": 15.694680452346802,
+          "setup_seconds": 8.683253288269043,
+          "outside_internal_seconds": 4.60778238857165,
+          "overhead_fraction": 0.6546513977631014,
+          "template_seconds_per_wall_second": 36012.18264645397,
+          "case": "timing-3-cuda-cached",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-3-cuda-cached/receipt.json",
+          "scheme": "torch:cuda:0",
+          "trigger_sha256": "446653df9d210fabde6a596431cd7fcb9ece1ce7c01701a4fdc1c1c54eb3471f",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-cuda-cached/qualification.json",
+          "receipt_sha256": "c8d17a37cd8edb1e4c471008f43d213464e50d258f39939c54032d813bba3a2d"
+        }
+      },
+      {
+        "repeat": 4,
+        "case": "timing-4-cuda-cached",
+        "metrics": {
+          "templates": 384,
+          "full_wall_seconds": 20.280753289931454,
+          "internal_seconds": 15.651227712631226,
+          "setup_seconds": 8.626041889190674,
+          "outside_internal_seconds": 4.629525577300228,
+          "overhead_fraction": 0.6536033093539843,
+          "template_seconds_per_wall_second": 36050.73192044491,
+          "case": "timing-4-cuda-cached",
+          "receipt": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/timing-4-cuda-cached/receipt.json",
+          "scheme": "torch:cuda:0",
+          "trigger_sha256": "61a482422eca3b338a3237fb2ea90ee691e7d76016e869c7f202b3083e2916b7",
+          "valid_intervals": [
+            [
+              1187007160.0,
+              1187009064.0
+            ]
+          ],
+          "inferred_templates": 384.0,
+          "inferred_segments": 5.0,
+          "qualification": "/home/xangma/pycbc-torch-residual-optimization-20260908/descriptor-reuse-timing-v1/runs/qual-cuda-cached/qualification.json",
+          "receipt_sha256": "26170adbc102592648efb1a68a588bdee7e56d90b118e02f9ae92aae0f994215"
+        }
+      }
+    ]
+  },
+  "summaries": {
+    "standard-original": {
+      "full_wall_seconds": {
+        "values": [
+          66.79196195304394,
+          66.88543731998652,
+          66.8136871799361,
+          67.03866434202064
+        ],
+        "median": 66.84956224996131,
+        "minimum": 66.79196195304394,
+        "maximum": 67.03866434202064
+      },
+      "internal_seconds": {
+        "values": [
+          62.270970821380615,
+          62.31723976135254,
+          62.27017283439636,
+          62.47981524467468
+        ],
+        "median": 62.29410529136658,
+        "minimum": 62.27017283439636,
+        "maximum": 62.47981524467468
+      },
+      "setup_seconds": {
+        "values": [
+          11.979796409606934,
+          12.050999164581299,
+          12.181979656219482,
+          12.164705276489258
+        ],
+        "median": 12.107852220535278,
+        "minimum": 11.979796409606934,
+        "maximum": 12.181979656219482
+      },
+      "outside_internal_seconds": {
+        "values": [
+          4.5209911316633224,
+          4.568197558633983,
+          4.543514345539734,
+          4.558849097345956
+        ],
+        "median": 4.551181721442845,
+        "minimum": 4.5209911316633224,
+        "maximum": 4.568197558633983
+      },
+      "template_seconds_per_wall_second": {
+        "values": [
+          10946.466889444016,
+          10931.16871617619,
+          10942.907521792293,
+          10906.18387427679
+        ],
+        "median": 10937.038118984241,
+        "minimum": 10906.18387427679,
+        "maximum": 10946.466889444016
+      }
+    },
+    "standard-cached": {
+      "full_wall_seconds": {
+        "values": [
+          65.18933876103256,
+          65.40234999603126,
+          65.33776731300168,
+          65.50571407098323
+        ],
+        "median": 65.37005865451647,
+        "minimum": 65.18933876103256,
+        "maximum": 65.50571407098323
+      },
+      "internal_seconds": {
+        "values": [
+          60.70885419845581,
+          60.92772459983826,
+          60.822863817214966,
+          61.00474500656128
+        ],
+        "median": 60.87529420852661,
+        "minimum": 60.70885419845581,
+        "maximum": 61.00474500656128
+      },
+      "setup_seconds": {
+        "values": [
+          10.48350191116333,
+          10.524744033813477,
+          10.573711395263672,
+          10.63756251335144
+        ],
+        "median": 10.549227714538574,
+        "minimum": 10.48350191116333,
+        "maximum": 10.63756251335144
+      },
+      "outside_internal_seconds": {
+        "values": [
+          4.480484562576748,
+          4.474625396193005,
+          4.514903495786712,
+          4.500969064421952
+        ],
+        "median": 4.49072681349935,
+        "minimum": 4.474625396193005,
+        "maximum": 4.514903495786712
+      },
+      "template_seconds_per_wall_second": {
+        "values": [
+          11215.576256727461,
+          11179.047848347447,
+          11190.097704096326,
+          11161.40798354976
+        ],
+        "median": 11184.572776221887,
+        "minimum": 11161.40798354976,
+        "maximum": 11215.576256727461
+      }
+    },
+    "cuda-original": {
+      "full_wall_seconds": {
+        "values": [
+          22.051732614985667,
+          21.893677284009755,
+          21.904617147054523,
+          22.047867769026197
+        ],
+        "median": 21.97624245804036,
+        "minimum": 21.893677284009755,
+        "maximum": 22.051732614985667
+      },
+      "internal_seconds": {
+        "values": [
+          17.4485867023468,
+          17.27389359474182,
+          17.303017616271973,
+          17.46095085144043
+        ],
+        "median": 17.375802159309387,
+        "minimum": 17.27389359474182,
+        "maximum": 17.46095085144043
+      },
+      "setup_seconds": {
+        "values": [
+          10.429133653640747,
+          10.269304513931274,
+          10.259305953979492,
+          10.41484546661377
+        ],
+        "median": 10.342074990272522,
+        "minimum": 10.259305953979492,
+        "maximum": 10.429133653640747
+      },
+      "outside_internal_seconds": {
+        "values": [
+          4.603145912638865,
+          4.619783689267933,
+          4.601599530782551,
+          4.586916917585768
+        ],
+        "median": 4.602372721710708,
+        "minimum": 4.586916917585768,
+        "maximum": 4.619783689267933
+      },
+      "template_seconds_per_wall_second": {
+        "values": [
+          33155.48999098342,
+          33394.84685535179,
+          33378.16840584747,
+          33161.30192993681
+        ],
+        "median": 33269.73516789214,
+        "minimum": 33155.48999098342,
+        "maximum": 33394.84685535179
+      }
+    },
+    "cuda-cached": {
+      "full_wall_seconds": {
+        "values": [
+          20.213787035900168,
+          20.30781853396911,
+          20.30246284091845,
+          20.280753289931454
+        ],
+        "median": 20.291608065424953,
+        "minimum": 20.213787035900168,
+        "maximum": 20.30781853396911
+      },
+      "internal_seconds": {
+        "values": [
+          15.608629941940308,
+          15.624205827713013,
+          15.694680452346802,
+          15.651227712631226
+        ],
+        "median": 15.63771677017212,
+        "minimum": 15.608629941940308,
+        "maximum": 15.694680452346802
+      },
+      "setup_seconds": {
+        "values": [
+          8.627690553665161,
+          8.640905141830444,
+          8.683253288269043,
+          8.626041889190674
+        ],
+        "median": 8.634297847747803,
+        "minimum": 8.626041889190674,
+        "maximum": 8.683253288269043
+      },
+      "outside_internal_seconds": {
+        "values": [
+          4.6051570939598605,
+          4.683612706256099,
+          4.60778238857165,
+          4.629525577300228
+        ],
+        "median": 4.618653982935939,
+        "minimum": 4.6051570939598605,
+        "maximum": 4.683612706256099
+      },
+      "template_seconds_per_wall_second": {
+        "values": [
+          36170.164388369434,
+          36002.68530945462,
+          36012.18264645397,
+          36050.73192044491
+        ],
+        "median": 36031.45728344944,
+        "minimum": 36002.68530945462,
+        "maximum": 36170.164388369434
+      }
+    }
+  },
+  "paired_comparisons": {
+    "standard-reuse": {
+      "baseline": "standard-original",
+      "candidate": "standard-cached",
+      "candidate_minus_baseline_seconds": {
+        "values": [
+          -1.6026231920113787,
+          -1.4830873239552602,
+          -1.4759198669344187,
+          -1.5329502710374072
+        ],
+        "median": -1.5080187974963337,
+        "minimum": -1.6026231920113787,
+        "maximum": -1.4759198669344187
+      },
+      "candidate_over_baseline": {
+        "values": [
+          0.9760057476206785,
+          0.9778264539579815,
+          0.9779099174251584,
+          0.9771333410937822
+        ],
+        "median": 0.9774798975258818,
+        "minimum": 0.9760057476206785,
+        "maximum": 0.9779099174251584
+      },
+      "baseline_over_candidate_speedup": {
+        "values": [
+          1.0245841302039616,
+          1.0226763613852599,
+          1.0225890771544732,
+          1.0234017794138732
+        ],
+        "median": 1.0230390703995664,
+        "minimum": 1.0225890771544732,
+        "maximum": 1.0245841302039616
+      }
+    },
+    "cuda-reuse": {
+      "baseline": "cuda-original",
+      "candidate": "cuda-cached",
+      "candidate_minus_baseline_seconds": {
+        "values": [
+          -1.837945579085499,
+          -1.585858750040643,
+          -1.6021543061360717,
+          -1.7671144790947437
+        ],
+        "median": -1.6846343926154077,
+        "minimum": -1.837945579085499,
+        "maximum": -1.585858750040643
+      },
+      "candidate_over_baseline": {
+        "values": [
+          0.9166530081252442,
+          0.9275654459747203,
+          0.9268576896194914,
+          0.9198510033892138
+        ],
+        "median": 0.9233543465043526,
+        "minimum": 0.9166530081252442,
+        "maximum": 0.9275654459747203
+      },
+      "baseline_over_candidate_speedup": {
+        "values": [
+          1.0909253459443926,
+          1.078091043968507,
+          1.0789142833896497,
+          1.0871325859465013
+        ],
+        "median": 1.0830234346680756,
+        "minimum": 1.078091043968507,
+        "maximum": 1.0909253459443926
+      }
+    },
+    "cuda-cached-vs-standard-original": {
+      "baseline": "standard-original",
+      "candidate": "cuda-cached",
+      "candidate_minus_baseline_seconds": {
+        "values": [
+          -46.57817491714377,
+          -46.57761878601741,
+          -46.511224339017645,
+          -46.757911052089185
+        ],
+        "median": -46.57789685158059,
+        "minimum": -46.757911052089185,
+        "maximum": -46.511224339017645
+      },
+      "candidate_over_baseline": {
+        "values": [
+          0.3026380187800271,
+          0.30362092777856126,
+          0.30386682277003874,
+          0.3025232302729402
+        ],
+        "median": 0.3031294732792942,
+        "minimum": 0.3025232302729402,
+        "maximum": 0.30386682277003874
+      },
+      "baseline_over_candidate_speedup": {
+        "values": [
+          3.304277512888595,
+          3.293580608281806,
+          3.290915378270115,
+          3.305531278037021
+        ],
+        "median": 3.2989290605852006,
+        "minimum": 3.290915378270115,
+        "maximum": 3.305531278037021
+      }
+    },
+    "cuda-cached-vs-standard-cached": {
+      "baseline": "standard-cached",
+      "candidate": "cuda-cached",
+      "candidate_minus_baseline_seconds": {
+        "values": [
+          -44.97555172513239,
+          -45.09453146206215,
+          -45.035304472083226,
+          -45.22496078105178
+        ],
+        "median": -45.06491796707269,
+        "minimum": -45.22496078105178,
+        "maximum": -44.97555172513239
+      },
+      "candidate_over_baseline": {
+        "values": [
+          0.31007811123838425,
+          0.3105059456609958,
+          0.3107308938742758,
+          0.30960281217535995
+        ],
+        "median": 0.31029202844969006,
+        "minimum": 0.30960281217535995,
+        "maximum": 0.3107308938742758
+      },
+      "baseline_over_candidate_speedup": {
+        "values": [
+          3.2249938443130293,
+          3.22055024702097,
+          3.2182187858173124,
+          3.2299448217983144
+        ],
+        "median": 3.222772045667,
+        "minimum": 3.2182187858173124,
+        "maximum": 3.2299448217983144
+      }
+    }
+  },
+  "limits": [
+    "Four samples per cell; no statistical significance or general workload guarantee.",
+    "No Torch CPU parity measurement or timed cache hit-count claim.",
+    "Whole-host emptiness and saturated multicore behavior not established.",
+    "Native full-array equality certified in the pinned receipt; arrays not archived.",
+    "Peer independently replays full source/runtime provenance and scientific qualifications."
+  ]
+}

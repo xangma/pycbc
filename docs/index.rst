@@ -59,12 +59,10 @@ library and application suite.
    :maxdepth: 1
 
    tutorials
-   torch_runtime
-   torch_filtering
-   torch_search
    searches
    inference
    apps
+   torch
 
 .. toctree::
    :caption: Dev Guides
@@ -73,10 +71,6 @@ library and application suite.
 
    extend
    devs
-
-.. toctree::
-   :hidden:
-   :maxdepth: 1
 
 .. card:: Core Library Examples
     :link:  tutorials
