@@ -235,17 +235,29 @@ fft.from_cli(opt)
 inj_filter_rejector = pycbc.inject.InjFilterRejector.from_cli(opt)
 ctx = scheme.from_cli(opt)
 
+is_torch_cuda = (
+    isinstance(ctx, scheme.TorchScheme)
+    and getattr(ctx, "torch_device", None) is not None
+    and ctx.torch_device.type == "cuda"
+)
+is_torch_cpu = (
+    isinstance(ctx, scheme.TorchScheme)
+    and not is_torch_cuda
+)
+
 if opt.batch_size is not None:
     batch_size = opt.batch_size
-elif isinstance(ctx, scheme.TorchScheme):
-    if getattr(ctx, "torch_device", None) and ctx.torch_device.type == "cuda":
-        batch_size = 64
-    else:
-        batch_size = 16
-    if opt.multiprocessing_nprocesses:
-        batch_size = max(1, batch_size)
+elif is_torch_cuda:
+    batch_size = 64
+elif is_torch_cpu:
+    batch_size = 16
 else:
     batch_size = 1
+
+if opt.multiprocessing_nprocesses:
+    batch_size = max(1, batch_size)
+
+use_tiled_adapter = is_torch_cuda or (is_torch_cpu and batch_size > 1) or batch_size > 1
 
 gwstrain = strain.from_cli(opt, dyn_range_fac=DYN_RANGE_FAC,
                            inj_filter_rejector=inj_filter_rejector)
@@ -269,6 +281,7 @@ def batch_template_triggers(batch_tnums):
 
     out_vals_all_list = [[] for _ in range(b)]
     sigmasq_caches = [{} for _ in range(b)]
+    prepared_batch = None
 
     for s_num, stilde in enumerate(segments):
         active_indices = []
@@ -298,8 +311,33 @@ def batch_template_triggers(batch_tnums):
         logging.info("Filtering template batch %d-%d/%d segment %d/%d" %
                      (batch_tnums[0] + 1, batch_tnums[-1] + 1, len(bank), s_num + 1, len(segments)))
 
+        if (
+            use_tiled_adapter
+            and hasattr(matched_filter, "prepare_template_batch")
+            and prepared_batch is None
+        ):
+            prepared_batch = matched_filter.prepare_template_batch(
+                batch_templates
+            )
+
+        if prepared_batch is not None:
+            if len(active_indices) == b:
+                templates_for_filter = prepared_batch
+            elif active_indices[-1] - active_indices[0] + 1 == len(active_indices):
+                templates_for_filter = prepared_batch[
+                    active_indices[0]:active_indices[-1] + 1
+                ]
+            else:
+                templates_for_filter = prepared_batch[active_indices]
+        else:
+            templates_for_filter = active_templates
+
         batch_results = matched_filter.batched_matched_filter_and_cluster(
-            s_num, active_templates, active_sigmasqs, cluster_window, epoch=stilde._epoch
+            s_num,
+            templates_for_filter,
+            active_sigmasqs,
+            cluster_window,
+            epoch=stilde._epoch,
         )
 
         for act_pos, tmpl_idx in enumerate(active_indices):
@@ -520,7 +558,7 @@ with ctx:
             gating_info=gwstrain.gating_info, q_trans=q_trans)
 
     template_mem = zeros(tlen, dtype = complex64)
-    if batch_size > 1:
+    if use_tiled_adapter:
         tile_mem = [zeros(tlen, dtype=complex64) for _ in range(batch_size)]
     else:
         tile_mem = None
@@ -537,7 +575,7 @@ with ctx:
         ncores *= opt.multiprocessing_nprocesses
 
 
-    if batch_size > 1:
+    if use_tiled_adapter:
         from pycbc.filter.gpu_search.adapter import TiledMatchedFilterControl
         matched_filter = TiledMatchedFilterControl(
             opt.low_frequency_cutoff, None,
@@ -586,7 +624,7 @@ with ctx:
         low_frequency_cutoff=None if opt.enable_bank_start_frequency else flow,
         dtype=complex64, phase_order=opt.order,
         taper=opt.taper_template, approximant=opt.approximant,
-        out=None if batch_size > 1 else template_mem,
+        out=None if use_tiled_adapter else template_mem,
         max_template_length=opt.max_template_length,
         enable_compressed_waveforms=True if opt.use_compressed_waveforms else False,
         waveform_decompression_method=
@@ -602,7 +640,7 @@ with ctx:
     tcheckpoint = time.time()
 
     tanalyze = list(range(tnum_start, len(bank)))
-    if batch_size > 1:
+    if use_tiled_adapter:
         n = opt.finalize_events_template_rate or max(batch_size * 8, 512)
     else:
         n = opt.finalize_events_template_rate
@@ -614,7 +652,7 @@ with ctx:
         mmap = Pool(opt.multiprocessing_nprocesses).map
 
     for tchunk in tchunks:
-        if batch_size > 1:
+        if use_tiled_adapter:
             tbatches = [tchunk[i:i + batch_size] for i in range(0, len(tchunk), batch_size)]
             data = []
             for bdata in mmap(batch_template_triggers, tbatches):

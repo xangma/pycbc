@@ -172,6 +172,111 @@ class TiledMatchedFilterControl:
         b = int(batch_size or self.tile_size)
         self.workspace.ensure_capacity(b)
 
+    def prepare_template_batch(self, templates: Any) -> Any:
+        """
+        Normalize and pack a sequence of templates into a 2D batch tensor or array
+        matching the adapter's device and filter length (flen).
+        """
+        is_torch_dev = torch is not None and self.device != "numpy"
+        dev = torch.device(self.device) if is_torch_dev else None
+
+        if isinstance(templates, (list, tuple)):
+            if len(templates) == 0:
+                if is_torch_dev:
+                    return torch.empty(
+                        (0, self.flen), device=dev, dtype=torch.complex64
+                    )
+                return np.empty((0, self.flen), dtype=np.complex64)
+
+            for t in templates:
+                t_arr = backend_array(t)
+                if torch_module_for(t_arr) is None and not isinstance(
+                    t_arr, np.ndarray
+                ):
+                    t_arr = np.asarray(t_arr)
+                if t_arr.shape[-1] < self.flen:
+                    raise ValueError(
+                        f"template length ({t_arr.shape[-1]}) < filter length ({self.flen})"
+                    )
+
+            if is_torch_dev:
+                first_storage = backend_array(templates[0])
+                if torch_module_for(first_storage) is not None:
+                    return torch.stack(
+                        [backend_array(t)[: self.flen] for t in templates],
+                        dim=0,
+                    ).to(device=dev, dtype=torch.complex64)
+                else:
+                    np_stack = np.stack(
+                        [np.asarray(t)[: self.flen] for t in templates], axis=0
+                    )
+                    return torch.from_numpy(np_stack).to(
+                        device=dev, dtype=torch.complex64
+                    )
+            else:
+                return np.stack(
+                    [
+                        (
+                            backend_array(t)
+                            .detach()
+                            .cpu()
+                            .numpy()[: self.flen]
+                            if torch_module_for(backend_array(t)) is not None
+                            else np.asarray(t)[: self.flen]
+                        )
+                        for t in templates
+                    ],
+                    axis=0,
+                ).astype(np.complex64)
+
+        if torch is not None and isinstance(templates, torch.Tensor):
+            if templates.ndim != 2:
+                raise ValueError(
+                    f"templates must be 2D, got shape {templates.shape}"
+                )
+            if templates.shape[1] < self.flen:
+                raise ValueError(
+                    f"templates width ({templates.shape[1]}) < filter length ({self.flen})"
+                )
+            res = (
+                templates[:, : self.flen]
+                if templates.shape[1] > self.flen
+                else templates
+            )
+            if is_torch_dev:
+                if res.device == dev and res.dtype == torch.complex64:
+                    return res
+                return res.to(device=dev, dtype=torch.complex64)
+            else:
+                return res.detach().cpu().numpy().astype(np.complex64)
+
+        if isinstance(templates, np.ndarray):
+            if templates.ndim != 2:
+                raise ValueError(
+                    f"templates must be 2D, got shape {templates.shape}"
+                )
+            if templates.shape[1] < self.flen:
+                raise ValueError(
+                    f"templates width ({templates.shape[1]}) < filter length ({self.flen})"
+                )
+            res = (
+                templates[:, : self.flen]
+                if templates.shape[1] > self.flen
+                else templates
+            )
+            if is_torch_dev:
+                return torch.from_numpy(res).to(
+                    device=dev, dtype=torch.complex64
+                )
+            else:
+                if res.dtype == np.complex64:
+                    return res
+                return np.asarray(res, dtype=np.complex64)
+
+        raise TypeError(
+            f"Unsupported template container type: {type(templates)}"
+        )
+
     def batched_matched_filter_and_cluster(
         self,
         segnum: int,
@@ -237,29 +342,20 @@ class TiledMatchedFilterControl:
                 seg_tensor = seg_tensor.to(device=dev)
 
             # Templates to device tensor
-            if isinstance(templates, torch.Tensor):
-                tile_tensor = templates.to(device=dev, dtype=torch.complex64)
-            elif isinstance(templates, np.ndarray):
-                tile_tensor = torch.from_numpy(templates).to(
-                    device=dev, dtype=torch.complex64
+            if (
+                isinstance(templates, torch.Tensor)
+                and templates.ndim == 2
+                and templates.shape[1] >= self.flen
+                and templates.device == dev
+                and templates.dtype == torch.complex64
+            ):
+                tile_tensor = (
+                    templates[:, :self.flen]
+                    if templates.shape[1] > self.flen
+                    else templates
                 )
-            elif isinstance(templates, (list, tuple)):
-                first_storage = backend_array(templates[0])
-                if torch_module_for(first_storage) is not None:
-                    tile_tensor = torch.stack(
-                        [backend_array(t)[:self.flen] for t in templates], dim=0
-                    ).to(device=dev)
-                else:
-                    np_stack = np.stack(
-                        [np.asarray(t)[:self.flen] for t in templates], axis=0
-                    )
-                    tile_tensor = torch.from_numpy(np_stack).to(
-                        device=dev, dtype=torch.complex64
-                    )
             else:
-                raise TypeError(
-                    f"Unsupported template container type: {type(templates)}"
-                )
+                tile_tensor = self.prepare_template_batch(templates)
 
             # Batched correlation and inverse FFT via shared core
             active_cout, active_out = correlate_and_ifft(
@@ -425,12 +521,19 @@ class TiledMatchedFilterControl:
         else:
             # NumPy execution
             seg_np = np.asarray(seg)[:self.flen]
-            if isinstance(templates, np.ndarray):
-                tile_np = templates
-            else:
-                tile_np = np.stack(
-                    [np.asarray(t)[:self.flen] for t in templates], axis=0
+            if (
+                isinstance(templates, np.ndarray)
+                and templates.ndim == 2
+                and templates.shape[1] >= self.flen
+                and templates.dtype == np.complex64
+            ):
+                tile_np = (
+                    templates[:, :self.flen]
+                    if templates.shape[1] > self.flen
+                    else templates
                 )
+            else:
+                tile_np = self.prepare_template_batch(templates)
 
             # Batched correlation and inverse FFT via shared core
             active_cout, active_out = correlate_and_ifft(

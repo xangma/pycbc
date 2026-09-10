@@ -99,20 +99,6 @@ _FALSE_ENV_VALUES = {"0", "false", "no", "off"}
 _TORCH_IS_INFERENCE = getattr(torch, "is_inference", None)
 
 
-def capture_symmetric_cuda_graph(control, segnum, window, template_norm=1.0):
-    """Capture the guarded, opt-in offline CUDA filtering graph."""
-    from ._torch_cuda_graph import capture_symmetric_cuda_graph as capture
-
-    return capture(control, segnum, window, template_norm)
-
-
-def replay_symmetric_cuda_graph(control, segnum, window, template_norm, threshold):
-    """Replay fixed bindings, returning None when eager filtering is required."""
-    from ._torch_cuda_graph import replay_symmetric_cuda_graph as replay
-
-    return replay(control, segnum, window, template_norm, threshold)
-
-
 def _environment_flag(name, default=False):
     """Read a strict boolean environment switch."""
     value = os.environ.get(name)
