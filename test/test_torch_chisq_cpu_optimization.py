@@ -423,6 +423,154 @@ def test_cpu_native_power_chisq_preserves_autograd_fallback(monkeypatch):
     assert torch.count_nonzero(snr_grad) > 0
 
 
+def test_cpu_native_single_power_chisq_is_zero_copy_and_bitwise(monkeypatch):
+    from pycbc.vetoes import chisq_cpu, chisq_torch
+
+    rng = np.random.default_rng(9891)
+    values = (
+        rng.normal(size=4096) + 1j * rng.normal(size=4096)
+    ).astype(np.complex64)
+    points = np.array([701], dtype=np.int64)
+    bins = (29, 211, 619, 1481, 3073)
+    # Tensor normalization requests the optional mathematical path.
+    norm = torch.tensor(0.117, dtype=torch.float64)
+    observed = {}
+    original_single = chisq_cpu.point_chisq_code_single_double
+
+    def record_single(corr, snr, length, shift, edges, num_bins, snr_norm):
+        observed.update(
+            corr_pointer=corr.__array_interface__["data"][0],
+            snr_pointer=snr.__array_interface__["data"][0],
+            corr_owner=isinstance(corr.base, torch.Tensor),
+            snr_owner=isinstance(snr.base, torch.Tensor),
+            corr_dtype=corr.dtype,
+            snr_dtype=snr.dtype,
+            shift=shift,
+            edge_dtype=edges.dtype,
+        )
+        return original_single(
+            corr, snr, length, shift, edges, num_bins, snr_norm
+        )
+
+    with scheme.TorchScheme("cpu"):
+        correlation = FrequencySeries(values, delta_f=0.125)
+        snr_tensor = torch.tensor([1.25 - 0.75j], dtype=torch.complex64)
+        generic_points = torch.as_tensor(points, dtype=torch.float64)
+        expected = chisq_torch._cpu_native_point_chisq(
+            correlation._data.tensor,
+            generic_points,
+            bins,
+            snr=snr_tensor,
+            snr_norm=norm,
+        )
+
+        def fail_generic(*args, **kwargs):
+            raise AssertionError("single search point used the generic kernel")
+
+        monkeypatch.setattr(
+            chisq_cpu, "point_chisq_code_single_double", record_single
+        )
+        monkeypatch.setattr(chisq_cpu, "point_chisq_code", fail_generic)
+        result = chisq_torch.power_chisq_at_points_from_precomputed(
+            correlation,
+            TorchArrayData(snr_tensor),
+            norm,
+            bins,
+            points,
+        )
+
+    assert torch.equal(result._data.tensor, expected)
+    assert observed["corr_pointer"] == correlation._data.tensor.data_ptr()
+    assert observed["snr_pointer"] == snr_tensor.data_ptr()
+    assert observed["corr_owner"]
+    assert observed["snr_owner"]
+    assert observed["corr_dtype"] == np.complex64
+    assert observed["snr_dtype"] == np.complex64
+    assert observed["edge_dtype"] == np.uint32
+    assert observed["shift"] == pytest.approx(
+        points[0] * np.pi / chisq_torch._CPU_POINT_CHISQ_PI,
+        rel=0,
+        abs=1e-12,
+    )
+    original_count = result._data.tensor.numel()
+    result._data.tensor.resize_(original_count + 1)
+    result._data.tensor.resize_(original_count)
+
+
+@pytest.mark.parametrize("point", (0, 701, 2047, 4095))
+def test_cpu_native_single_kernel_matches_generic_high_precision(point):
+    from pycbc.vetoes import chisq_torch
+
+    rng = np.random.default_rng(9911 + point)
+    correlation = torch.from_numpy(
+        (
+            rng.normal(size=4096) + 1j * rng.normal(size=4096)
+        ).astype(np.complex64)
+    )
+    snr = torch.tensor([0.625 + 1.75j], dtype=torch.complex64)
+    points = torch.tensor([point], dtype=torch.float64)
+    bins = (29, 211, 211, 619, 1481, 3073)
+    norm = 0.083
+
+    generic = chisq_torch._cpu_native_point_chisq(
+        correlation, points, bins, snr=snr, snr_norm=norm
+    )
+    specialized = chisq_torch._cpu_native_single_point_chisq(
+        correlation, point, bins, snr, norm
+    )
+
+    assert torch.equal(specialized, generic)
+
+
+@pytest.mark.parametrize(
+    "points",
+    (
+        np.array([701, 1701], dtype=np.int64),
+        np.array([701], dtype=np.int32),
+    ),
+)
+def test_cpu_native_single_power_chisq_preserves_generic_fallback(
+    points, monkeypatch
+):
+    from pycbc.vetoes import chisq_cpu, chisq_torch
+
+    rng = np.random.default_rng(9991 + points.size)
+    values = (
+        rng.normal(size=4096) + 1j * rng.normal(size=4096)
+    ).astype(np.complex64)
+    bins = (29, 211, 619, 1481, 3073)
+    snr_tensor = torch.full(
+        (points.size,), 1.25 - 0.75j, dtype=torch.complex64
+    )
+    generic_calls = []
+    original_generic = chisq_cpu.point_chisq_code
+
+    def fail_single(*args, **kwargs):
+        raise AssertionError("unsupported points used the scalar kernel")
+
+    def record_generic(*args, **kwargs):
+        generic_calls.append(True)
+        return original_generic(*args, **kwargs)
+
+    with scheme.TorchScheme("cpu"):
+        correlation = FrequencySeries(values, delta_f=0.125)
+        monkeypatch.setattr(
+            chisq_cpu, "point_chisq_code_single_double", fail_single
+        )
+        monkeypatch.setattr(chisq_cpu, "point_chisq_code", record_generic)
+        result = chisq_torch.power_chisq_at_points_from_precomputed(
+            correlation,
+            TorchArrayData(snr_tensor),
+            torch.tensor(0.117, dtype=torch.float64),
+            bins,
+            points,
+        )
+
+    assert generic_calls == [True]
+    assert result._data.tensor.shape == (points.size,)
+    assert torch.isfinite(result._data.tensor).all()
+
+
 @pytest.mark.parametrize("dual_input", ("correlation", "snr", "norm"))
 def test_cpu_native_power_chisq_preserves_forward_ad_fallback(
     dual_input, monkeypatch
@@ -649,9 +797,10 @@ def test_torch_int64_array_dispatches_single_search_with_bitwise_parity(
         rng.normal(size=4096) + 1j * rng.normal(size=4096)
     ).astype(np.complex64)
     bins = (29, 211, 619, 1481, 3073)
-    norm = 0.117
+    # Tensor normalization requests the optional mathematical path.
+    norm = torch.tensor(0.117, dtype=torch.float64)
     calls = []
-    original_point = chisq_torch._search_compat_point_chisq
+    original_single = chisq_torch._cpu_native_single_point_chisq
 
     with scheme.TorchScheme("cpu"):
         correlation = FrequencySeries(values, delta_f=0.125)
@@ -661,7 +810,7 @@ def test_torch_int64_array_dispatches_single_search_with_bitwise_parity(
         # float64.  The zero-copy native path must accept that public contract
         # rather than changing global Array promotion for this optimization.
         assert indices._data.tensor.dtype == torch.float64
-        expected = chisq_torch._search_compat_point_chisq(
+        expected = chisq_torch._cpu_native_point_chisq(
             correlation._data.tensor,
             torch.tensor([701.0], dtype=torch.float64),
             bins,
@@ -669,12 +818,18 @@ def test_torch_int64_array_dispatches_single_search_with_bitwise_parity(
             snr_norm=norm,
         )
 
-        def record_point(*args, **kwargs):
+        def record_single(*args, **kwargs):
             calls.append(True)
-            return original_point(*args, **kwargs)
+            return original_single(*args, **kwargs)
+
+        def fail_generic(*args, **kwargs):
+            raise AssertionError("eligible Torch int64 index missed scalar path")
 
         monkeypatch.setattr(
-            chisq_torch, "_search_compat_point_chisq", record_point
+            chisq_torch, "_cpu_native_single_point_chisq", record_single
+        )
+        monkeypatch.setattr(
+            chisq_torch, "_cpu_native_point_chisq", fail_generic
         )
         result = chisq_torch.power_chisq_at_points_from_precomputed(
             correlation,
@@ -887,6 +1042,9 @@ def test_cpu_native_power_chisq_rejects_special_tensor_dispatch(
 
     original_point = chisq_torch._cpu_native_point_chisq
 
+    def fail_single(*args, **kwargs):
+        raise AssertionError("special tensor entered native power-chisq path")
+
     def reject_power_only(*args, **kwargs):
         # The fallback may still use the safe native shift-sum calculation;
         # it does not consume snr or snr_norm. Only reject the fused native
@@ -897,6 +1055,9 @@ def test_cpu_native_power_chisq_rejects_special_tensor_dispatch(
             )
         return original_point(*args, **kwargs)
 
+    monkeypatch.setattr(
+        chisq_torch, "_cpu_native_single_point_chisq", fail_single
+    )
     monkeypatch.setattr(
         chisq_torch, "_cpu_native_point_chisq", reject_power_only
     )
@@ -1003,6 +1164,9 @@ def test_empty_correlation_requires_empty_points(
         raise AssertionError("empty correlation reached native chi-squared")
 
     monkeypatch.setattr(chisq_torch, "_cpu_native_point_chisq", fail_native)
+    monkeypatch.setattr(
+        chisq_torch, "_cpu_native_single_point_chisq", fail_native
+    )
     with scheme.TorchScheme("cpu"):
         correlation = Array(np.empty(0, dtype=dtype))
         points = np.zeros(point_count, dtype=np.int64)

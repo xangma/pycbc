@@ -679,6 +679,25 @@ def _search_compat_point_chisq(corr, points, bin_edges, snr, snr_norm):
     return res.to(device=corr.device)
 
 
+def _cpu_native_single_point_chisq(corr, point, bin_edges, snr, snr_norm):
+    """Run the high-precision scalar search kernel and return Torch storage."""
+    from .chisq_cpu import point_chisq_code_single_double
+
+    corrected_point = float(point) * _CPU_POINT_CHISQ_SHIFT_SCALE
+    value = point_chisq_code_single_double(
+        # Eligibility excludes autograd, forward-AD, conjugate, and negative
+        # views, so these are safe zero-copy NumPy ABI views.
+        corr.numpy(),
+        snr.numpy(),
+        corr.numel(),
+        corrected_point,
+        _cpu_native_bins(bin_edges),
+        len(bin_edges) - 1,
+        float(snr_norm),
+    )
+    return torch.tensor([value], device="cpu", dtype=corr.real.dtype)
+
+
 def _cpu_native_point_chisq(corr, pts, bin_edges, snr=None, snr_norm=None):
     """Run the fused CPU kernel on zero-copy views of sparse storage.
 
@@ -1083,13 +1102,22 @@ def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):
         and norm_value is not None
     )
     if native_snr:
-        chisq_t = _cpu_native_point_chisq(
-            corr._data.tensor,
-            native_indices,
-            bin_edges,
-            snr=snr_t,
-            snr_norm=norm_value,
-        )
+        if native_indices.size == 1:
+            chisq_t = _cpu_native_single_point_chisq(
+                corr._data.tensor,
+                native_indices[0],
+                bin_edges,
+                snr_t,
+                norm_value,
+            )
+        else:
+            chisq_t = _cpu_native_point_chisq(
+                corr._data.tensor,
+                native_indices,
+                bin_edges,
+                snr=snr_t,
+                snr_norm=norm_value,
+            )
         return Array(TorchArrayData(chisq_t), copy=False)
 
     pts = _point_tensor(corr._data.tensor, indices)

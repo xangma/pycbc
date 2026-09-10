@@ -28,6 +28,7 @@ utilities.
 
 import logging
 import os
+import threading
 from math import sqrt
 
 import numpy
@@ -50,10 +51,12 @@ from pycbc.types.torch_compat import cpu_compatible
 
 logger = logging.getLogger("pycbc.filter.matchedfilter")
 
+_TORCH_CPU_NATIVE_BATCH_PEAK_GATE = "PYCBC_TORCH_CPU_NATIVE_BATCH_PEAK"
 _TORCH_CUDA_NATIVE_BATCH_PEAK_GATE = "PYCBC_TORCH_CUDA_NATIVE_BATCH_PEAK"
 _TORCH_ONDEVICE_PEAKS_GATE = "PYCBC_TORCH_ONDEVICE_PEAKS"
 _TORCH_FEATURE_TRUE = {"1", "true", "yes", "on"}
 _TORCH_FEATURE_FALSE = {"0", "false", "no", "off"}
+_TORCH_CPU_NATIVE_BATCH_PEAK_MAX_LENGTH = 2**32 - 1
 _TORCH_ASYNC_STREAMS_GATE = "PYCBC_TORCH_ASYNC_STREAMS"
 
 
@@ -1945,6 +1948,108 @@ def quadratic_interpolate_peak(left, middle, right):
     return bin_offset, peak_value
 
 
+def _torch_cpu_native_batch_peak_enabled():
+    """Read the strict, default-off native Torch-CPU peak gate."""
+    value = os.environ.get(_TORCH_CPU_NATIVE_BATCH_PEAK_GATE)
+    if value is None:
+        return False
+    normalized = value.strip().lower()
+    if normalized in _TORCH_FEATURE_TRUE:
+        return True
+    if normalized in _TORCH_FEATURE_FALSE:
+        return False
+    choices = ", ".join(sorted(_TORCH_FEATURE_TRUE | _TORCH_FEATURE_FALSE))
+    raise ValueError(
+        f"{_TORCH_CPU_NATIVE_BATCH_PEAK_GATE} must be one of: {choices}; got {value!r}"
+    )
+
+
+def _try_torch_cpu_native_batch_peak_values(
+    output, tensor, template_count, template_size, segment
+):
+    """Return exact standard-CPU peaks, or request the Torch fallback."""
+    if not _torch_cpu_native_batch_peak_enabled():
+        return None
+
+    # Imports remain behind the explicit gate.  In particular, standard CPU,
+    # CUDA, MPS, and gate-off Torch filtering retain their established route.
+    try:
+        from . import matchedfilter_cpu, matchedfilter_torch
+
+        if template_count < 1:
+            return None
+        total = template_count * template_size
+        if (
+            total > _TORCH_CPU_NATIVE_BATCH_PEAK_MAX_LENGTH
+            or template_count > _TORCH_CPU_NATIVE_BATCH_PEAK_MAX_LENGTH
+            or template_size > _TORCH_CPU_NATIVE_BATCH_PEAK_MAX_LENGTH
+            or not matchedfilter_torch._batch_tensor_contract(tensor, total)
+        ):
+            return None
+
+        start, stop, step = segment.indices(template_size)
+        if step != 1 or start >= stop:
+            return None
+        runtime = matchedfilter_torch._cpu_native_openmp_runtime(matchedfilter_cpu)
+        if not matchedfilter_torch._cpu_native_batch_runtime_is_stable(runtime):
+            return None
+
+        owner_tensor = tensor
+        pointer = tensor.data_ptr()
+        version = tensor._version
+        pid = os.getpid()
+        thread_id = threading.get_ident()
+        values = tensor.detach().numpy()
+        if values.__array_interface__["data"][0] != pointer:
+            return None
+        indices = numpy.empty(template_count, dtype=numpy.int64)
+        peaks = numpy.empty(template_count, dtype=numpy.complex64)
+
+        # Revalidate immediately before crossing the opaque Cython boundary.
+        # The local owners keep the Tensor and its storage alive for the call.
+        if (
+            os.getpid() != pid
+            or threading.get_ident() != thread_id
+            or backend_array(output, "torch") is not owner_tensor
+            or owner_tensor.data_ptr() != pointer
+            or owner_tensor._version != version
+            or not matchedfilter_torch._batch_tensor_contract(owner_tensor, total)
+            or not matchedfilter_torch._cpu_native_batch_runtime_is_stable(runtime)
+        ):
+            return None
+
+        matchedfilter_cpu._batch_abs_arg_max_complex64(
+            values,
+            indices,
+            peaks,
+            template_size,
+            start,
+            stop,
+            template_count,
+        )
+        if (
+            os.getpid() != pid
+            or threading.get_ident() != thread_id
+            or backend_array(output, "torch") is not owner_tensor
+            or owner_tensor.data_ptr() != pointer
+            or owner_tensor._version != version
+        ):
+            return None
+        return indices, peaks
+    except (
+        AttributeError,
+        ImportError,
+        OSError,
+        OverflowError,
+        RuntimeError,
+        TypeError,
+        ValueError,
+    ):
+        # Only private result arrays can have been written.  The established
+        # Torch helper below remains safe after every admission/setup failure.
+        return None
+
+
 def _torch_cuda_native_batch_peak_enabled():
     """Read the strict, default-off native Torch-CUDA peak gate."""
     value = os.environ.get(_TORCH_CUDA_NATIVE_BATCH_PEAK_GATE)
@@ -2101,7 +2206,17 @@ def _torch_batch_peak_values(output, template_count, template_size, segment):
     if segment.step not in (None, 1):
         return None
 
-    if tensor.device.type == "cuda":
+    if tensor.device.type == "cpu":
+        native = _try_torch_cpu_native_batch_peak_values(
+            output,
+            tensor,
+            template_count,
+            template_size,
+            segment,
+        )
+        if native is not None:
+            return native
+    elif tensor.device.type == "cuda":
         native = _try_torch_cuda_native_batch_peak_values(
             output,
             tensor,
@@ -2146,6 +2261,62 @@ def _torch_batch_peak_values(output, template_count, template_size, segment):
         indices.detach().cpu().numpy(),
         peaks.detach().cpu().numpy(),
     )
+
+
+def _cpu_batch_peak_values(output, template_count, template_size, segment):
+    """Materialize one peak index and value per contiguous CPU output.
+
+    Uses Cython OpenMP _batch_abs_arg_max_complex64 for direct vectorized
+    peak extraction on standard CPU / NumPy memory, bypassing per-template
+    slice allocations and Python-level scheme conversions.
+    """
+    if not _torch_cpu_native_batch_peak_enabled():
+        return None
+
+    if template_count <= 1:
+        return None
+
+    if segment.step not in (None, 1):
+        return None
+
+    raw = backend_array(output)
+    if not isinstance(raw, numpy.ndarray):
+        return None
+    if raw.dtype != numpy.complex64:
+        return None
+    if not raw.flags.c_contiguous:
+        return None
+
+    template_count = int(template_count)
+    template_size = int(template_size)
+    if (
+        template_count < 1
+        or template_size < 1
+        or raw.size != template_count * template_size
+    ):
+        return None
+
+    start, stop, step = segment.indices(template_size)
+    if step != 1 or start >= stop:
+        return None
+
+    try:
+        from . import matchedfilter_cpu
+
+        indices = numpy.empty(template_count, dtype=numpy.int64)
+        peaks = numpy.empty(template_count, dtype=numpy.complex64)
+        matchedfilter_cpu._batch_abs_arg_max_complex64(
+            raw.ravel(),
+            indices,
+            peaks,
+            template_size,
+            start,
+            stop,
+            template_count,
+        )
+        return indices, peaks
+    except Exception:
+        return None
 
 
 def _torch_batch_peak_magnitudes(peak_values):
@@ -3076,6 +3247,10 @@ class LiveBatchMatchedFilter(object):
                 batch_peaks = _torch_batch_peak_values(
                     self.out_mem[mid], len(tgroup), psize, seg
                 )
+                if batch_peaks is None:
+                    batch_peaks = _cpu_batch_peak_values(
+                        self.out_mem[mid], len(tgroup), psize, seg
+                    )
 
             # LiveBatch retains only one peak per template.  Materialize their
             # magnitudes in bulk for groups above the crossover threshold.
