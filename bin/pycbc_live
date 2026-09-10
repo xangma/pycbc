@@ -1144,16 +1144,29 @@ with ctx:
         bank.table.sort(order='mchirp')
         waveforms = list(bank[evnt.rank-1::evnt.size-1])
         check_max_length(args, waveforms)
-        mf = LiveBatchMatchedFilter(
-            waveforms,
-            args.snr_threshold,
-            args.chisq_bins,
-            sg_chisq,
-            snr_abort_threshold=args.snr_abort_threshold,
-            newsnr_threshold=args.newsnr_threshold,
-            max_triggers_in_batch=args.max_triggers_in_batch,
-            maxelements=args.max_batch_size
-        )
+        if isinstance(ctx, scheme.TorchScheme):
+            from pycbc.filter.gpu_search import TiledLiveBatchMatchedFilter
+            mf = TiledLiveBatchMatchedFilter(
+                waveforms,
+                args.snr_threshold,
+                args.chisq_bins,
+                sg_chisq,
+                snr_abort_threshold=args.snr_abort_threshold,
+                newsnr_threshold=args.newsnr_threshold,
+                max_triggers_in_batch=args.max_triggers_in_batch,
+                maxelements=args.max_batch_size,
+            )
+        else:
+            mf = LiveBatchMatchedFilter(
+                waveforms,
+                args.snr_threshold,
+                args.chisq_bins,
+                sg_chisq,
+                snr_abort_threshold=args.snr_abort_threshold,
+                newsnr_threshold=args.newsnr_threshold,
+                max_triggers_in_batch=args.max_triggers_in_batch,
+                maxelements=args.max_batch_size
+            )
 
     # Synchronize start time if not provided on the command line
     if not args.start_time:
