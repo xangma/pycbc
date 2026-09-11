@@ -13,20 +13,21 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-import copy
 
-import igwn_segments as segments
-
+try:
+    import igwn_segments as segments
+except ImportError:
+    segments = None
+from pycbc import scheme as _scheme
 from pycbc.psd.analytical import *
 from pycbc.psd.analytical_space import *
 from pycbc.psd.estimate import *
-from pycbc.psd.read import *
+from pycbc.psd.read import *  # noqa: F403 - preserve public PSD exports
 from pycbc.psd.variation import *
 from pycbc.types import (
     DictOptionAction,
     MultiDetDictOptionAction,
     MultiDetOptionAction,
-    MultiDetOptionAppendAction,
     copy_opts_for_single_ifo,
     ensure_one_opt,
     ensure_one_opt_multi_ifo,
@@ -35,6 +36,10 @@ from pycbc.types import (
     required_opts,
     required_opts_multi_ifo,
 )
+from pycbc.types import (  # noqa: F401 - public re-export
+    MultiDetOptionAppendAction as MultiDetOptionAppendAction,
+)
+from pycbc.types.torch_compat import cpu_compatible, cpu_context
 
 
 def from_cli(
@@ -101,10 +106,33 @@ def from_cli(
         err_msg += "'--psd-model', '--asd-file', '--psd-estimation'"
         raise ValueError(err_msg)
 
+    if psd_estimation and strain is not None and cpu_compatible(strain):
+        # Search parity depends on the complete CPU PSD pipeline, including
+        # float32 FFT rounding and inverse-spectrum truncation near weak bins.
+        from pycbc.types import FrequencySeries, TimeSeries
+
+        values = strain.numpy().copy()
+        delta_t, epoch = strain.delta_t, strain.start_time
+        with cpu_context():
+            host_strain = TimeSeries(values, delta_t=delta_t, epoch=epoch)
+            host_psd = from_cli(
+                opt,
+                length,
+                delta_f,
+                low_frequency_cutoff,
+                strain=host_strain,
+                dyn_range_factor=dyn_range_factor,
+                precision=precision,
+            )
+            values = host_psd.numpy().copy()
+            psd_delta_f, psd_epoch = host_psd.delta_f, host_psd.epoch
+        return FrequencySeries(values, delta_f=psd_delta_f, epoch=psd_epoch)
+
+    restore_dtype = None
     if opt.psd_model or opt.psd_file or opt.asd_file:
         # PSD from lalsimulation or file
         if opt.psd_model:
-            psd = from_string(
+            psd = from_string(  # noqa: F405 - public analytical export
                 opt.psd_model, length, delta_f, f_low, **opt.psd_extra_args
             )
         elif opt.psd_file or opt.asd_file:
@@ -114,7 +142,7 @@ def from_cli(
                 psd_file_name = opt.psd_file
             if psd_file_name.endswith((".dat", ".txt")):
                 is_asd_file = bool(opt.asd_file)
-                psd = from_txt(
+                psd = from_txt(  # noqa: F405 - public read export
                     psd_file_name, length, delta_f, f_low, is_asd_file=is_asd_file
                 )
             elif opt.asd_file:
@@ -123,7 +151,7 @@ def from_cli(
                     f".txt). Got {psd_file_name} instead"
                 )
             elif psd_file_name.endswith((".xml", ".xml.gz")):
-                psd = from_xml(
+                psd = from_xml(  # noqa: F405 - public read export
                     psd_file_name,
                     length,
                     delta_f,
@@ -139,8 +167,20 @@ def from_cli(
         psd *= dyn_range_factor**2
 
     elif psd_estimation:
-        # estimate PSD from data
-        psd = welch(
+        # Keep Torch weak frequencies accurate throughout Welch,
+        # interpolation and inverse-spectrum truncation. MPS retains float32.
+        strain_dtype = strain.dtype
+        state = _scheme.mgr.state
+        if not isinstance(state, _scheme.CPUScheme):
+            restore_dtype = strain_dtype
+        if (
+            strain_dtype == float32
+            and isinstance(state, _scheme.TorchScheme)
+            and state.torch_device.type != "mps"
+        ):
+            restore_dtype = strain_dtype
+            strain = strain.astype(float64)
+        psd = welch(  # noqa: F405 - public estimate export
             strain,
             avg_method=opt.psd_estimation,
             seg_len=int(opt.psd_segment_length * sample_rate + 0.5),
@@ -165,7 +205,7 @@ def from_cli(
             fill_value = opt.invpsd_trunc_low_freq_fill_value
         except AttributeError:
             fill_value = 0.0
-        psd = inverse_spectrum_truncation(
+        psd = inverse_spectrum_truncation(  # noqa: F405 - estimate export
             psd,
             int(opt.psd_inverse_length * sample_rate),
             which_spectrum=which_spectrum,
@@ -178,6 +218,8 @@ def from_cli(
         (psd.astype(float64) / (dyn_range_factor**2)).save(opt.psd_output)
 
     if precision is None:
+        if restore_dtype is not None:
+            return psd.astype(restore_dtype)
         return psd
     elif precision == "single":
         return psd.astype(float32)
@@ -246,7 +288,7 @@ def insert_psd_option_group(parser, output=True, include_data_options=True):
     psd_options.add_argument(
         "--psd-model",
         help="Get PSD from given analytical model. ",
-        choices=get_psd_model_list(),
+        choices=get_psd_model_list(),  # noqa: F405 - analytical export
     )
     psd_options.add_argument(
         "--psd-extra-args",
@@ -430,7 +472,7 @@ def insert_psd_option_group_multi_ifo(parser):
         action=MultiDetOptionAction,
         metavar="IFO:MODEL",
         help="Get PSD from given analytical model. "
-        "Choose from %s" % (", ".join(get_psd_model_list()),),
+        "Choose from %s" % (", ".join(get_psd_model_list()),),  # noqa: F405 - analytical export
     )
     psd_options.add_argument(
         "--psd-extra-args",
