@@ -18,8 +18,9 @@
 PyCBC GPU Search Engine.
 
 A persistent, tiled search engine for gravitational-wave template filtering,
-candidate extraction, batched veto evaluation, multirate filtering, and
-reduced-basis matched filtering on GPU and multi-core CPU devices.
+candidate extraction, batched veto evaluation, and search pipeline adapters:
+- Production Qualified (M1-M5): plans, candidates, vetoes, engine, graphs, adapter.
+- Experimental Prototypes (M6-M7): multirate, reduced_basis, screening (research prototypes).
 """
 
 from .plans import (
@@ -49,6 +50,10 @@ from .engine import (
 from .graphs import (
     CUDAGraphEntry,
     CUDAGraphManager,
+)
+from .adapter import (
+    TiledMatchedFilterControl,
+    TiledLiveBatchMatchedFilter,
 )
 from .multirate import (
     MultirateBand,
@@ -92,6 +97,8 @@ __all__ = [
     "Ticket",
     "CUDAGraphEntry",
     "CUDAGraphManager",
+    "TiledMatchedFilterControl",
+    "TiledLiveBatchMatchedFilter",
     "MultirateBand",
     "MultiratePlan",
     "prepare_multirate_plan",

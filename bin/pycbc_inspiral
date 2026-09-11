@@ -18,7 +18,6 @@
 
 import sys
 import os
-import copy
 import logging
 import argparse
 import numpy
@@ -48,8 +47,10 @@ def update_progress(p,u,n):
 
 tstart = time.time()
 
+_inspiral_session = globals().get('_inspiral_session', None)
 parser = argparse.ArgumentParser(usage='',
-    description="Find single detector gravitational-wave triggers.")
+    description="Find single detector gravitational-wave triggers.",
+    allow_abbrev=False if _inspiral_session is not None else True)
 
 pycbc.add_common_pycbc_options(parser)
 parser.add_argument("--update-progress",
@@ -206,6 +207,10 @@ parser.add_argument("--multiprocessing-nprocesses", type=int,
                          "Used in conjunction with the option"
                          "--finalize-events-template-rate which should be set"
                          "to a multiple of the number of processes.")
+parser.add_argument("--batch-size", "--tile-size", type=int, default=None,
+                    dest="batch_size",
+                    help="Number of templates to filter in a batch/tile. If not set, "
+                         "defaults to 64 for Torch CUDA, 16 for Torch CPU, and 1 for legacy schemes.")
 
 # Add options groups
 psd.insert_psd_option_group(parser)
@@ -232,10 +237,179 @@ fft.from_cli(opt)
 inj_filter_rejector = pycbc.inject.InjFilterRejector.from_cli(opt)
 ctx = scheme.from_cli(opt)
 
+is_torch_cuda = (
+    isinstance(ctx, scheme.TorchScheme)
+    and getattr(ctx, "torch_device", None) is not None
+    and ctx.torch_device.type == "cuda"
+)
+is_torch_cpu = (
+    isinstance(ctx, scheme.TorchScheme)
+    and not is_torch_cuda
+)
+
+if opt.batch_size is not None:
+    batch_size = opt.batch_size
+elif is_torch_cuda:
+    batch_size = 64
+elif is_torch_cpu:
+    batch_size = 16
+else:
+    batch_size = 1
+
+if opt.multiprocessing_nprocesses:
+    batch_size = max(1, batch_size)
+
+use_tiled_adapter = is_torch_cuda or (is_torch_cpu and batch_size > 1) or batch_size > 1
+if _inspiral_session is not None:
+    if not isinstance(ctx, scheme.TorchScheme):
+        raise ValueError("Inspiral session requires Torch processing scheme")
+    if ctx.torch_device.type not in ("cpu", "cuda"):
+        raise ValueError("Inspiral session requires CPU or CUDA")
+    if getattr(ctx, "num_threads", None) not in (None, 1):
+        raise ValueError("Inspiral session requires single-threaded processing")
+    if batch_size < 2:
+        raise ValueError("Inspiral session requires batch-size >= 2")
+    if opt.multiprocessing_nprocesses:
+        raise ValueError("Inspiral session forbids multiprocessing options")
+    if opt.checkpoint_interval or opt.checkpoint_exit_maxtime:
+        raise ValueError("Inspiral session forbids checkpoint options")
+
 gwstrain = strain.from_cli(opt, dyn_range_fac=DYN_RANGE_FAC,
                            inj_filter_rejector=inj_filter_rejector)
 
 strain_segments = strain.StrainSegments.from_cli(opt, gwstrain)
+
+def batch_template_triggers(batch_tnums):
+    """ Get the triggers for a batch of templates
+    """
+    b = len(batch_tnums)
+    if b == 0:
+        return []
+
+    _session = globals().get('_inspiral_session', None)
+
+    batch_templates = []
+    tparams = []
+    for i, t_num in enumerate(batch_tnums):
+        bank.out = tile_mem[i]
+        if _session is not None:
+            tmpl = _session.template(bank, t_num)
+        else:
+            tmpl = bank[t_num]
+        batch_templates.append(tmpl)
+        tparams.append(tmpl.params)
+
+    out_vals_all_list = [[] for _ in range(b)]
+    sigmasq_caches = [{} for _ in range(b)]
+    prepared_batch = None
+
+    for s_num, stilde in enumerate(segments):
+        active_indices = []
+        active_templates = []
+        active_sigmasqs = []
+        for i, t_num in enumerate(batch_tnums):
+            if not inj_filter_rejector.template_segment_checker(
+                    bank, t_num, stilde):
+                continue
+            active_indices.append(i)
+            tmpl = batch_templates[i]
+            active_templates.append(tmpl)
+            psd_id = id(stilde.psd)
+            if psd_id in sigmasq_caches[i]:
+                sigmasq = sigmasq_caches[i][psd_id]
+            else:
+                if _session is not None:
+                    sigmasq = _session.sigmasq(tmpl, t_num, stilde.psd)
+                else:
+                    sigmasq = tmpl.sigmasq(stilde.psd)
+                sigmasq_caches[i][psd_id] = sigmasq
+            active_sigmasqs.append(sigmasq)
+
+        if not active_indices:
+            continue
+
+        if opt.update_progress:
+            update_progress((batch_tnums[0] + (s_num / float(len(segments)))) / len(bank),
+                            opt.update_progress, opt.update_progress_file)
+        logging.info("Filtering template batch %d-%d/%d segment %d/%d" %
+                     (batch_tnums[0] + 1, batch_tnums[-1] + 1, len(bank), s_num + 1, len(segments)))
+
+        if (
+            use_tiled_adapter
+            and hasattr(matched_filter, "prepare_template_batch")
+            and prepared_batch is None
+        ):
+            prepared_batch = matched_filter.prepare_template_batch(
+                batch_templates
+            )
+
+        if prepared_batch is not None:
+            if len(active_indices) == b:
+                templates_for_filter = prepared_batch
+            elif active_indices[-1] - active_indices[0] + 1 == len(active_indices):
+                templates_for_filter = prepared_batch[
+                    active_indices[0]:active_indices[-1] + 1
+                ]
+            else:
+                templates_for_filter = prepared_batch[active_indices]
+        else:
+            templates_for_filter = active_templates
+
+        batch_results = matched_filter.batched_matched_filter_and_cluster(
+            s_num,
+            templates_for_filter,
+            active_sigmasqs,
+            cluster_window,
+            epoch=stilde._epoch,
+        )
+
+        for act_pos, tmpl_idx in enumerate(active_indices):
+            snr, norm, corr, idx, snrv = batch_results[act_pos]
+            if not len(idx):
+                continue
+
+            tmpl = active_templates[act_pos]
+            sigmasq = active_sigmasqs[act_pos]
+
+            out_vals = out_vals_ref.copy()
+            idx_shifted = idx + stilde.analyze.start
+            if getattr(bank_chisq, 'do', False):
+                out_vals['bank_chisq'], out_vals['bank_chisq_dof'] = (
+                    bank_chisq.values(tmpl, stilde.psd, stilde, snrv, norm,
+                                      idx_shifted)
+                )
+
+            out_vals['chisq'], out_vals['chisq_dof'] = power_chisq.values(
+                corr, snrv, norm, stilde.psd, idx_shifted, tmpl
+            )
+
+            if getattr(sg_chisq, 'do', False):
+                out_vals['sg_chisq'] = sg_chisq.values(
+                    stilde, tmpl, stilde.psd, snrv, norm,
+                    out_vals['chisq'], out_vals['chisq_dof'], idx_shifted
+                )
+
+            if getattr(autochisq, 'do', False):
+                out_vals['cont_chisq'], _ = autochisq.values(
+                    snr, idx_shifted, tmpl, stilde.psd, norm, stilde=stilde,
+                    low_frequency_cutoff=flow
+                )
+
+            idx_cum = idx + stilde.cumulative_index
+
+            out_vals['time_index'] = idx_cum
+            out_vals['snr'] = snrv * norm
+            out_vals['sigmasq'] = numpy.full(len(snrv), sigmasq, dtype=float32)
+            if opt.psdvar_short_segment is not None:
+                out_vals['psd_var_val'] = (
+                    pycbc.psd.find_trigger_value(psd_var, out_vals['time_index'],
+                                                 opt.gps_start_time,
+                                                 opt.sample_rate)
+                )
+
+            out_vals_all_list[tmpl_idx].append(out_vals)
+
+    return list(zip(out_vals_all_list, tparams))
 
 def template_triggers(t_num):
     """ Get the triggers for a specific template
@@ -243,6 +417,7 @@ def template_triggers(t_num):
     template = None
     tparam = None
     out_vals_all = []
+    sigmasq_cache = {}
     for s_num, stilde in enumerate(segments):
         # Filter check checks the 'inj_filter_rejector' options to
         # determine whether
@@ -260,7 +435,12 @@ def template_triggers(t_num):
         logging.info("Filtering template %d/%d segment %d/%d" %
                      (t_num + 1, len(bank), s_num + 1, len(segments)))
 
-        sigmasq = template.sigmasq(stilde.psd)
+        psd_id = id(stilde.psd)
+        if psd_id in sigmasq_cache:
+            sigmasq = sigmasq_cache[psd_id]
+        else:
+            sigmasq = template.sigmasq(stilde.psd)
+            sigmasq_cache[psd_id] = sigmasq
         snr, norm, corr, idx, snrv = \
            matched_filter.matched_filter_and_cluster(s_num,
                                                      sigmasq,
@@ -270,39 +450,42 @@ def template_triggers(t_num):
             continue
 
         out_vals = out_vals_ref.copy()
-        out_vals['bank_chisq'], out_vals['bank_chisq_dof'] = \
-              bank_chisq.values(template, stilde.psd, stilde, snrv, norm,
-                                idx+stilde.analyze.start)
+        idx_shifted = idx + stilde.analyze.start
+        if getattr(bank_chisq, 'do', False):
+            out_vals['bank_chisq'], out_vals['bank_chisq_dof'] = (
+                bank_chisq.values(template, stilde.psd, stilde, snrv, norm,
+                                  idx_shifted)
+            )
 
-        out_vals['chisq'], out_vals['chisq_dof'] = \
-              power_chisq.values(corr, snrv, norm, stilde.psd,
-                                 idx+stilde.analyze.start, template)
+        out_vals['chisq'], out_vals['chisq_dof'] = power_chisq.values(
+            corr, snrv, norm, stilde.psd, idx_shifted, template
+        )
 
-        out_vals['sg_chisq'] = sg_chisq.values(stilde, template, stilde.psd,
-                                      snrv, norm,
-                                      out_vals['chisq'],
-                                      out_vals['chisq_dof'],
-                                      idx+stilde.analyze.start)
+        if getattr(sg_chisq, 'do', False):
+            out_vals['sg_chisq'] = sg_chisq.values(
+                stilde, template, stilde.psd, snrv, norm,
+                out_vals['chisq'], out_vals['chisq_dof'], idx_shifted
+            )
 
-        out_vals['cont_chisq'], _ = \
-              autochisq.values(snr, idx+stilde.analyze.start, template,
-                               stilde.psd, norm, stilde=stilde,
-                               low_frequency_cutoff=flow)
+        if getattr(autochisq, 'do', False):
+            out_vals['cont_chisq'], _ = autochisq.values(
+                snr, idx_shifted, template, stilde.psd, norm, stilde=stilde,
+                low_frequency_cutoff=flow
+            )
 
         idx += stilde.cumulative_index
 
         out_vals['time_index'] = idx
         out_vals['snr'] = snrv * norm
-        out_vals['sigmasq'] = numpy.zeros(len(snrv), dtype=float32) + sigmasq
+        out_vals['sigmasq'] = numpy.full(len(snrv), sigmasq, dtype=float32)
         if opt.psdvar_short_segment is not None:
-            out_vals['psd_var_val'] = \
-                        pycbc.psd.find_trigger_value(psd_var,
-                                      out_vals['time_index'],
-                                      opt.gps_start_time, opt.sample_rate)
-        #print(idx, out_vals['time_index'])
+            out_vals['psd_var_val'] = (
+                pycbc.psd.find_trigger_value(psd_var, out_vals['time_index'],
+                                             opt.gps_start_time,
+                                             opt.sample_rate)
+            )
 
-        out_vals_all.append(copy.deepcopy(out_vals))
-        #print(out_vals_all)
+        out_vals_all.append(out_vals)
     return out_vals_all, tparam
 
 with ctx:
@@ -385,7 +568,7 @@ with ctx:
             tnum_start, event_mgr = events.EventManager.restore_state(checkpoint_file)
             checkpoint_exists = True
         except Exception as e:
-            if args.require_valid_checkpoint:
+            if opt.require_valid_checkpoint:
                 logging.info("Failed to load checkpoint file")
                 raise(e)
 
@@ -398,6 +581,10 @@ with ctx:
             gating_info=gwstrain.gating_info, q_trans=q_trans)
 
     template_mem = zeros(tlen, dtype = complex64)
+    if use_tiled_adapter:
+        tile_mem = [zeros(tlen, dtype=complex64) for _ in range(batch_size)]
+    else:
+        tile_mem = None
     cluster_window = int(opt.cluster_window * gwstrain.sample_rate)
 
     if opt.cluster_window == 0.0:
@@ -405,22 +592,36 @@ with ctx:
     else:
         use_cluster = True
 
-    if hasattr(ctx, "num_threads"):
-            ncores = ctx.num_threads
-    else:
-            ncores = 1
+    # Accelerator schemes may leave the host thread count unspecified.
+    ncores = getattr(ctx, "num_threads", None) or 1
     if opt.multiprocessing_nprocesses:
         ncores *= opt.multiprocessing_nprocesses
 
 
-    matched_filter = MatchedFilterControl(opt.low_frequency_cutoff, None,
-                                   opt.snr_threshold, tlen, delta_f, complex64,
-                                   segments, template_mem, use_cluster,
-                                   downsample_factor=opt.downsample_factor,
-                                   upsample_threshold=opt.upsample_threshold,
-                                   upsample_method=opt.upsample_method,
-                                   gpu_callback_method=opt.gpu_callback_method,
-                                   cluster_function=opt.cluster_function)
+    if use_tiled_adapter:
+        from pycbc.filter.gpu_search.adapter import TiledMatchedFilterControl
+        matched_filter = TiledMatchedFilterControl(
+            opt.low_frequency_cutoff, None,
+            opt.snr_threshold, tlen, delta_f, complex64,
+            segments, template_mem, use_cluster,
+            downsample_factor=opt.downsample_factor,
+            upsample_threshold=opt.upsample_threshold,
+            upsample_method=opt.upsample_method,
+            gpu_callback_method=opt.gpu_callback_method,
+            cluster_function=opt.cluster_function,
+            tile_size=batch_size,
+        )
+    else:
+        matched_filter = MatchedFilterControl(
+            opt.low_frequency_cutoff, None,
+            opt.snr_threshold, tlen, delta_f, complex64,
+            segments, template_mem, use_cluster,
+            downsample_factor=opt.downsample_factor,
+            upsample_threshold=opt.upsample_threshold,
+            upsample_method=opt.upsample_method,
+            gpu_callback_method=opt.gpu_callback_method,
+            cluster_function=opt.cluster_function,
+        )
 
     bank_chisq = vetoes.SingleDetBankVeto(opt.bank_veto_bank_file,
                                           flen, delta_f, flow, complex64,
@@ -446,7 +647,8 @@ with ctx:
         low_frequency_cutoff=None if opt.enable_bank_start_frequency else flow,
         dtype=complex64, phase_order=opt.order,
         taper=opt.taper_template, approximant=opt.approximant,
-        out=template_mem, max_template_length=opt.max_template_length,
+        out=None if use_tiled_adapter else template_mem,
+        max_template_length=opt.max_template_length,
         enable_compressed_waveforms=True if opt.use_compressed_waveforms else False,
         waveform_decompression_method=
         opt.waveform_decompression_method if opt.use_compressed_waveforms else None)
@@ -457,12 +659,29 @@ with ctx:
     bank.template_thinning(inj_filter_rejector)
     logging.info("Template bank size after thinning: %s", len(bank))
 
+    if _inspiral_session is not None:
+        _session_cfg = {
+            "approximant": opt.approximant,
+            "order": opt.order,
+            "f_lower": opt.low_frequency_cutoff,
+            "max_template_length": opt.max_template_length,
+            "taper": opt.taper_template,
+            "enable_bank_start_frequency": opt.enable_bank_start_frequency,
+            "use_compressed_waveforms": opt.use_compressed_waveforms,
+            "waveform_decompression_method": opt.waveform_decompression_method,
+            "scheme": str(getattr(ctx, 'device_spec', ctx.prefix)),
+        }
+        _inspiral_session.bind_bank(bank, _session_cfg)
+
     tsetup = time.time() - tstart
     tcheckpoint = time.time()
 
     tanalyze = list(range(tnum_start, len(bank)))
-    n = opt.finalize_events_template_rate
-    n = 1 if n is None else n
+    if use_tiled_adapter:
+        n = opt.finalize_events_template_rate or max(batch_size * 8, 512)
+    else:
+        n = opt.finalize_events_template_rate
+        n = 1 if n is None else n
     tchunks = [tanalyze[i:i + n] for i in range(0, len(tanalyze), n)]
 
     mmap = map
@@ -470,7 +689,13 @@ with ctx:
         mmap = Pool(opt.multiprocessing_nprocesses).map
 
     for tchunk in tchunks:
-        data = list(mmap(template_triggers, tchunk))
+        if use_tiled_adapter:
+            tbatches = [tchunk[i:i + batch_size] for i in range(0, len(tchunk), batch_size)]
+            data = []
+            for bdata in mmap(batch_template_triggers, tbatches):
+                data.extend(bdata)
+        else:
+            data = list(mmap(template_triggers, tchunk))
 
         for elem in data:
             out_vals_all, tparam = elem
