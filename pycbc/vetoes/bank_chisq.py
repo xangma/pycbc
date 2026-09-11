@@ -22,13 +22,17 @@
 # =============================================================================
 #
 import logging
-from math import sqrt
-
-import numpy
 
 from pycbc.filter import matched_filter_core, overlap_cplx
 from pycbc.types import Array, TimeSeries, real_same_precision_as, zeros
-from pycbc.waveform import FilterBank
+
+try:
+    from pycbc.waveform.bank import FilterBank
+except Exception:
+    FilterBank = None
+from math import sqrt
+
+from pycbc.vetoes.chisq import _chisq_dof_array
 
 
 def segment_snrs(filters, stilde, psd, low_frequency_cutoff):
@@ -145,7 +149,8 @@ def bank_chisq_from_filters(
     bank_chisq: TimeSeries of the bank vetos
     """
     if indices is not None:
-        tmplt_snr = Array(tmplt_snr, copy=False)
+        # Sparse trigger SNRs may be host NumPy values in a GPU scheme.
+        tmplt_snr = Array(tmplt_snr)
         bank_snrs_tmp = []
         for bank_snr in bank_snrs:
             bank_snrs_tmp.append(bank_snr.take(indices))
@@ -165,10 +170,11 @@ def bank_chisq_from_filters(
             # template
             bank_chisq += 2.0
             continue
-        bank_norm = sqrt((1 - bank_match * bank_match.conj()).real)
+        bank_norm = sqrt((1 - bank_match * bank_match.conjugate()).real)
 
         bank_SNR = bank_snrs[i] * (bank_norms[i] / bank_norm)
-        tmplt_SNR = tmplt_snr * (bank_match.conj() * tmplt_norm / bank_norm)
+        tmplt_SNR = tmplt_snr * (
+            bank_match.conjugate() * tmplt_norm / bank_norm)
 
         bank_SNR = Array(bank_SNR, copy=False)
         tmplt_SNR = Array(tmplt_SNR, copy=False)
@@ -260,7 +266,7 @@ class SingleDetBankVeto(object):
         chisq = bank_chisq_from_filters(
             snrv, norm, bank_veto_snrs, bank_veto_norms, overlaps, indices
         )
-        dof = numpy.repeat(self.dof, len(chisq))
+        dof = _chisq_dof_array(chisq, self.dof, len(chisq))
         return chisq, dof
 
 

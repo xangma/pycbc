@@ -24,6 +24,7 @@ import logging
 import numpy
 from scipy.signal import kaiserord
 
+import pycbc
 import pycbc.events
 import pycbc.filter
 import pycbc.frame
@@ -50,9 +51,53 @@ from pycbc.types import (
     required_opts_multi_ifo,
     zeros,
 )
+from pycbc.types.backend import backend_array, is_backend, wrap_backend_array
 from pycbc.waveform.spa_tmplt import spa_distance
 
 logger = logging.getLogger("pycbc.strain.strain")
+
+
+def _hann_window_for_series(series, length):
+    """Create a NumPy-compatible Hann window beside ``series``."""
+    tensor = backend_array(series, "torch")
+    if tensor is not None:
+        import torch
+
+        window = torch.hann_window(
+            length,
+            periodic=False,
+            dtype=tensor.real.dtype,
+            device=tensor.device,
+        )
+        if tensor.is_complex():
+            window = window.to(dtype=tensor.dtype)
+        return Array(wrap_backend_array(window), copy=False)
+    return Array(numpy.hanning(length), dtype=series.dtype)
+
+
+def _linear_tapers_for_series(series, length):
+    """Create rising and falling linear tapers beside ``series``."""
+    tensor = backend_array(series, "torch")
+    if tensor is not None:
+        import torch
+
+        dtype = tensor.real.dtype
+        denominator = float(length) if length else 1.0
+        rising = torch.arange(length, dtype=dtype, device=tensor.device) / denominator
+        falling = torch.flip(rising, dims=(0,))
+        if tensor.is_complex():
+            rising = rising.to(dtype=tensor.dtype)
+            falling = falling.to(dtype=tensor.dtype)
+        return (
+            Array(wrap_backend_array(rising), copy=False),
+            Array(wrap_backend_array(falling), copy=False),
+        )
+
+    rising = numpy.arange(length) / float(length if length else 1)
+    return (
+        Array(rising, dtype=series.dtype),
+        Array(rising[::-1], dtype=series.dtype),
+    )
 
 
 def next_power_of_2(n):
@@ -126,11 +171,9 @@ def detect_loud_glitches(
 
     # taper strain
     corrupt_length = int(corrupt_time * strain.sample_rate)
-    w = numpy.arange(corrupt_length) / float(corrupt_length)
-    strain[0:corrupt_length] *= pycbc.types.Array(w, dtype=strain.dtype)
-    strain[(len(strain) - corrupt_length) :] *= pycbc.types.Array(
-        w[::-1], dtype=strain.dtype
-    )
+    rising_taper, falling_taper = _linear_tapers_for_series(strain, corrupt_length)
+    strain[0:corrupt_length] *= rising_taper
+    strain[(len(strain) - corrupt_length) :] *= falling_taper
 
     if output_intermediates:
         strain.save_to_wav("strain_conditioned.wav")
@@ -188,18 +231,26 @@ def detect_loud_glitches(
     if output_intermediates:
         mag.save("strain_whitened_mag.npy")
 
-    mag = mag.numpy()
-
     # remove strain corrupted by filters at the ends
-    mag[0:corrupt_length] = 0
-    mag[-1 : -corrupt_length - 1 : -1] = 0
+    if corrupt_length:
+        mag[0:corrupt_length] = 0
+        mag[len(mag) - corrupt_length :] = 0
 
     # find peaks and their times
-    indices = numpy.where(mag > threshold)[0]
-    cluster_idx = pycbc.events.findchirp_cluster_over_window(
-        indices, numpy.array(mag[indices]), int(cluster_window * strain.sample_rate)
-    )
-    times = [idx * strain.delta_t + strain.start_time for idx in indices[cluster_idx]]
+    cluster_samples = int(cluster_window * strain.sample_rate)
+    if is_backend(mag, "torch"):
+        indices, _ = pycbc.events.threshold_real_and_cluster_findchirp(
+            mag, threshold, cluster_samples
+        )
+    else:
+        mag = mag.numpy()
+        indices = numpy.where(mag > threshold)[0]
+        values = numpy.array(mag[indices])
+        cluster_idx = pycbc.events.findchirp_cluster_over_window(
+            indices, values, cluster_samples
+        )
+        indices = indices[cluster_idx]
+    times = [idx * strain.delta_t + strain.start_time for idx in indices]
 
     return times
 
@@ -482,7 +533,7 @@ def from_cli(opt, dyn_range_fac=1, precision="single", inj_filter_rejector=None)
             tf = pycbc.psd.interpolate(tf, stilde.delta_f)
 
             tf_time = tf.to_timeseries()
-            window = Array(numpy.hanning(flen * 2), dtype=strain.dtype)
+            window = _hann_window_for_series(strain, flen * 2)
             tf_time[0:flen] *= window[flen:]
             tf_time[len(tf_time) - flen :] *= window[0:flen]
             tf = tf_time.to_frequencyseries()
@@ -1779,8 +1830,13 @@ class StrainSegments(object):
 
 
 @functools.lru_cache(maxsize=500)
-def create_memory_and_engine_for_class_based_fft(
-    npoints_time, dtype, delta_t=1, ifft=False, uid=0
+def _create_memory_and_engine_for_class_based_fft(
+    npoints_time,
+    dtype,
+    delta_t=1,
+    ifft=False,
+    uid=0,
+    scheme_key=None,
 ):
     """Create memory and engine for class-based FFT/IFFT
 
@@ -1805,6 +1861,9 @@ def create_memory_and_engine_for_class_based_fft(
         of memory in the cache, for instance if calling this from different
         codes.
     """
+    # ``scheme_key`` participates in the cache identity. The arrays and FFT
+    # engine below belong to the processing scheme active on a cache miss.
+    del scheme_key
     npoints_freq = npoints_time // 2 + 1
     delta_f_tmp = 1.0 / (npoints_time * delta_t)
     vec = TimeSeries(zeros(npoints_time, dtype=dtype), delta_t=delta_t, copy=False)
@@ -1823,6 +1882,35 @@ def create_memory_and_engine_for_class_based_fft(
         outvec = vectilde
 
     return invec, outvec, fft_class
+
+
+def create_memory_and_engine_for_class_based_fft(
+    npoints_time,
+    dtype,
+    delta_t=1,
+    ifft=False,
+    uid=0,
+):
+    """Create backend-local cached memory and an FFT/IFFT engine."""
+    return _create_memory_and_engine_for_class_based_fft(
+        npoints_time,
+        dtype,
+        delta_t=delta_t,
+        ifft=ifft,
+        uid=uid,
+        scheme_key=pycbc.scheme.current_backend_key(),
+    )
+
+
+create_memory_and_engine_for_class_based_fft.cache_clear = (
+    _create_memory_and_engine_for_class_based_fft.cache_clear
+)
+create_memory_and_engine_for_class_based_fft.cache_info = (
+    _create_memory_and_engine_for_class_based_fft.cache_info
+)
+create_memory_and_engine_for_class_based_fft.cache_parameters = (
+    _create_memory_and_engine_for_class_based_fft.cache_parameters
+)
 
 
 def execute_cached_fft(

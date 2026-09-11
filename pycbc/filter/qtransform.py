@@ -26,7 +26,8 @@
 
 """
 This module retrives a timeseries and then calculates
-the q-transform of that time series
+the q-transform of that time series. Torch-backed inputs dispatch to the
+device-native implementation in :mod:`pycbc.filter.qtransform_torch`.
 """
 
 import numpy
@@ -34,6 +35,9 @@ from numpy import ceil, exp, log
 
 from pycbc.fft import ifft
 from pycbc.types import zeros
+from pycbc.types.backend import (
+    is_backend,
+)
 from pycbc.types.timeseries import FrequencySeries, TimeSeries
 
 
@@ -55,13 +59,21 @@ def qplane(qplane_tile_dict, fseries, return_complex=False):
     -------
     q : float
         The q of the maximum q plane
-    times : numpy.ndarray
-        The time that the qtransform is sampled.
-    freqs : numpy.ndarray
-        The frequencies that the qtransform is samled.
-    qplane : numpy.ndarray (2d)
-        The two dimensional interpolated qtransform of this time series.
+    times : numpy.ndarray or torch.Tensor
+        The times at which the q-transform is sampled. Torch-backed inputs
+        return a tensor on the input device.
+    freqs : numpy.ndarray or torch.Tensor
+        The sampled frequencies. Torch-backed inputs return a tensor on the
+        input device.
+    qplane : numpy.ndarray or torch.Tensor
+        The two-dimensional q-transform. Torch-backed inputs return a tensor
+        on the input device.
     """
+    if is_backend(fseries, "torch"):
+        from pycbc.filter.qtransform_torch import qplane as torch_qplane
+
+        return torch_qplane(qplane_tile_dict, fseries, return_complex=return_complex)
+
     # store q-transforms for each q in a dict
     qplanes = {}
     max_energy, max_key = None, None
@@ -210,6 +222,11 @@ def qseries(fseries, Q, f0, return_complex=False):
         A 'TimeSeries' of the normalized energy from the Q-transform of
         this tile against the data.
     """
+    if is_backend(fseries, "torch"):
+        from pycbc.filter.qtransform_torch import qseries as torch_qseries
+
+        return torch_qseries(fseries, Q, f0, return_complex=return_complex)
+
     # normalize and generate bi-square window
     qprime = Q / 11 ** (1 / 2.0)
     norm = numpy.sqrt(315.0 * qprime / (128.0 * f0))
