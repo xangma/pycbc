@@ -40,7 +40,7 @@ from utils import parse_args_all_schemes, simple_exit
 
 _scheme, _context = parse_args_all_schemes("lal() method")
 
-
+@unittest.skipIf(_scheme == "torch", "lal() conversion is unsupported for Torch")
 class TestUtils(unittest.TestCase):
     def setUp(self, *args):
         self.context = _context

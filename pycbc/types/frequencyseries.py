@@ -25,7 +25,7 @@ import numpy as _numpy
 
 from pycbc.libutils import import_optional
 from pycbc.types import float64
-from pycbc.types.array import Array, _convert, _noreal, zeros
+from pycbc.types.array import Array, _convert, _noreal, _regular_grid, zeros
 from pycbc.types.utils import determine_epoch
 
 _lal = import_optional("lal")
@@ -57,7 +57,7 @@ class FrequencySeries(Array):
             except AttributeError:
                 raise TypeError(
                     "must provide either an initial_array with a delta_f attribute, or a value for delta_f"
-                )
+                ) from None
         if not delta_f > 0:
             raise ValueError("delta_f must be a positive number")
 
@@ -73,7 +73,7 @@ class FrequencySeries(Array):
             try:
                 _numpy.testing.assert_almost_equal(other._delta_f, self._delta_f)
             except:
-                raise ValueError("different delta_f")
+                raise ValueError("different delta_f") from None
             # consistency of _epoch is not required because we may want
             # to combine frequency series estimated at different times
             # (e.g. PSD estimation)
@@ -94,7 +94,7 @@ class FrequencySeries(Array):
 
     def get_sample_frequencies(self):
         """Return an Array containing the sample frequencies."""
-        return Array(range(len(self))) * self._delta_f
+        return _regular_grid(len(self), self._delta_f)
 
     sample_frequencies = property(
         get_sample_frequencies, doc="Array of the sample frequencies."
@@ -162,11 +162,10 @@ class FrequencySeries(Array):
         Thus, this method returns 'True' if the types of both 'self'
         and 'other' are identical, as well as their lengths, dtypes,
         epochs, delta_fs and the data in the arrays, element by element.
-        It will always do the comparison on the CPU, but will *not* move
-        either object to the CPU if it is not already there, nor change
-        the scheme of either object. It is possible to compare a CPU
-        object to a GPU object, and the comparison should be true if the
-        data and meta-data of the two objects are the same.
+        Same-device Torch arrays are reduced on their device,
+        synchronizing only the final boolean. Mixed backends retain the
+        CPU comparison path. Neither object is relocated nor has its
+        scheme changed.
 
         Note in particular that this function returns a single boolean,
         and not an array of booleans as Numpy does.  If the numpy
@@ -210,9 +209,9 @@ class FrequencySeries(Array):
         equality between the two is required.
 
         Other meta-data (type, dtype, length, and epoch) must be exactly
-        equal.  If either object's memory lives on the GPU it will be
-        copied to the CPU for the comparison, which may be slow. But the
-        original object itself will not have its memory relocated nor
+        equal. Same-device Torch arrays are reduced on their device,
+        synchronizing only the final boolean. Mixed backends retain the
+        CPU comparison path. Neither object is relocated nor has its
         scheme changed.
 
         Parameters
@@ -274,9 +273,9 @@ class FrequencySeries(Array):
         equality between the two is required.
 
         Other meta-data (type, dtype, length, and epoch) must be exactly
-        equal.  If either object's memory lives on the GPU it will be
-        copied to the CPU for the comparison, which may be slow. But the
-        original object itself will not have its memory relocated nor
+        equal. Same-device Torch arrays are reduced on their device,
+        synchronizing only the final boolean. Mixed backends retain the
+        CPU comparison path. Neither object is relocated nor has its
         scheme changed.
 
         Parameters
