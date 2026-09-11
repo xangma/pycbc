@@ -1,0 +1,583 @@
+{
+  "scope": "384 templates, five segments, 1904 valid detector seconds; fresh unprofiled finite-workload executable measurements, not asymptotic throughput or a warm batch benchmark.",
+  "conditions": "The loader change is applied equally to standard CPU, Torch CPU and CUDA. Shared len host, CPU affinity 8, native pools and Torch threads one; CUDA additionally uses the GPU. Route order forward/reverse/forward.",
+  "metric_definitions": {
+    "template_seconds_per_wall_second": "384 * 1904 / full executable wall seconds; finite-workload templates per assigned CPU core, including startup. CUDA also consumes the GPU.",
+    "templates_per_core_internal": "The executable HDF search statistic: 384 * 1904 / internal run seconds. It excludes time outside that internal timer.",
+    "filter_rate_per_core_internal": "The executable HDF search statistic: five segments / internal run seconds."
+  },
+  "source_pins": {
+    "revisions": {
+      "baseline": "2f799f0046fc36db4215bd8b8b8a774d40c0e011",
+      "candidate": "ecd5d08231d8ce0a938bc31cfde27c9a5d6f901f"
+    },
+    "changed_files": [
+      "pycbc/frame/frame.py",
+      "test/test_frame.py"
+    ],
+    "diff_sha256": "81941bbd8d91b09daa191ebab84881a125e38076fbf2ceff09dcde654d837555",
+    "executable_sha256": "d4af378d77aa5f66bcc018db32fe372360e53b22542e539ea3a2e53d31d8fa8a"
+  },
+  "manifest_sha256": "f5049685ceeffacba87e27cd63bb0d15cb54b2f7f8b23a51fd4a81b90e9b5f25",
+  "qualified_routes": 6,
+  "verified_trigger_comparisons": {
+    "qualification-v1": 8,
+    "timing-v1": 36
+  },
+  "roles": {
+    "standard-baseline": {
+      "samples": [
+        {
+          "full_wall_seconds": 70.57059299200773,
+          "internal_seconds": 66.31576538085938,
+          "setup_seconds": 15.963272333145142,
+          "outside_internal_seconds": 4.254827611148357,
+          "overhead_fraction": 0.286494686909932,
+          "template_seconds_per_wall_second": 10360.349389196754,
+          "templates_per_core_internal": 11025.070672124471,
+          "filter_rate_per_core_internal": 0.07539685278884141
+        },
+        {
+          "full_wall_seconds": 70.00074631604366,
+          "internal_seconds": 65.69822072982788,
+          "setup_seconds": 15.274919271469116,
+          "outside_internal_seconds": 4.302525586215779,
+          "overhead_fraction": 0.2796748018841892,
+          "template_seconds_per_wall_second": 10444.688642304218,
+          "templates_per_core_internal": 11128.703211106209,
+          "filter_rate_per_core_internal": 0.0761055618319041
+        },
+        {
+          "full_wall_seconds": 69.82245125598274,
+          "internal_seconds": 65.55899000167847,
+          "setup_seconds": 15.331096410751343,
+          "outside_internal_seconds": 4.263461254304275,
+          "overhead_fraction": 0.28063405555926624,
+          "template_seconds_per_wall_second": 10471.35966795999,
+          "templates_per_core_internal": 11152.337764527507,
+          "filter_rate_per_core_internal": 0.07626719081352516
+        }
+      ],
+      "medians": {
+        "full_wall_seconds": 70.00074631604366,
+        "internal_seconds": 65.69822072982788,
+        "setup_seconds": 15.331096410751343,
+        "outside_internal_seconds": 4.263461254304275,
+        "overhead_fraction": 0.28063405555926624,
+        "template_seconds_per_wall_second": 10444.688642304218,
+        "templates_per_core_internal": 11128.703211106209,
+        "filter_rate_per_core_internal": 0.0761055618319041
+      },
+      "ranges": {
+        "full_wall_seconds": [
+          69.82245125598274,
+          70.57059299200773
+        ],
+        "internal_seconds": [
+          65.55899000167847,
+          66.31576538085938
+        ],
+        "setup_seconds": [
+          15.274919271469116,
+          15.963272333145142
+        ],
+        "outside_internal_seconds": [
+          4.254827611148357,
+          4.302525586215779
+        ],
+        "overhead_fraction": [
+          0.2796748018841892,
+          0.286494686909932
+        ],
+        "template_seconds_per_wall_second": [
+          10360.349389196754,
+          10471.35966795999
+        ],
+        "templates_per_core_internal": [
+          11025.070672124471,
+          11152.337764527507
+        ],
+        "filter_rate_per_core_internal": [
+          0.07539685278884141,
+          0.07626719081352516
+        ]
+      },
+      "full_wall_range_seconds": [
+        69.82245125598274,
+        70.57059299200773
+      ]
+    },
+    "standard-candidate": {
+      "samples": [
+        {
+          "full_wall_seconds": 67.99660472502,
+          "internal_seconds": 63.412022829055786,
+          "setup_seconds": 13.248697519302368,
+          "outside_internal_seconds": 4.58458189596422,
+          "overhead_fraction": 0.2622672041844563,
+          "template_seconds_per_wall_second": 10752.536879697635,
+          "templates_per_core_internal": 11529.92709239026,
+          "filter_rate_per_core_internal": 0.07884940074343393
+        },
+        {
+          "full_wall_seconds": 66.93342889798805,
+          "internal_seconds": 62.386841773986816,
+          "setup_seconds": 11.996402740478516,
+          "outside_internal_seconds": 4.546587124001235,
+          "overhead_fraction": 0.24715587019593158,
+          "template_seconds_per_wall_second": 10923.331017663988,
+          "templates_per_core_internal": 11719.394333964487,
+          "filter_rate_per_core_internal": 0.08014510524693413
+        },
+        {
+          "full_wall_seconds": 66.62933187896851,
+          "internal_seconds": 62.087496757507324,
+          "setup_seconds": 12.040839910507202,
+          "outside_internal_seconds": 4.54183512146119,
+          "overhead_fraction": 0.2488795034308711,
+          "template_seconds_per_wall_second": 10973.18522311016,
+          "templates_per_core_internal": 11775.897534660946,
+          "filter_rate_per_core_internal": 0.0805315121582096
+        }
+      ],
+      "medians": {
+        "full_wall_seconds": 66.93342889798805,
+        "internal_seconds": 62.386841773986816,
+        "setup_seconds": 12.040839910507202,
+        "outside_internal_seconds": 4.546587124001235,
+        "overhead_fraction": 0.2488795034308711,
+        "template_seconds_per_wall_second": 10923.331017663988,
+        "templates_per_core_internal": 11719.394333964487,
+        "filter_rate_per_core_internal": 0.08014510524693413
+      },
+      "ranges": {
+        "full_wall_seconds": [
+          66.62933187896851,
+          67.99660472502
+        ],
+        "internal_seconds": [
+          62.087496757507324,
+          63.412022829055786
+        ],
+        "setup_seconds": [
+          11.996402740478516,
+          13.248697519302368
+        ],
+        "outside_internal_seconds": [
+          4.54183512146119,
+          4.58458189596422
+        ],
+        "overhead_fraction": [
+          0.24715587019593158,
+          0.2622672041844563
+        ],
+        "template_seconds_per_wall_second": [
+          10752.536879697635,
+          10973.18522311016
+        ],
+        "templates_per_core_internal": [
+          11529.92709239026,
+          11775.897534660946
+        ],
+        "filter_rate_per_core_internal": [
+          0.07884940074343393,
+          0.0805315121582096
+        ]
+      },
+      "full_wall_range_seconds": [
+        66.62933187896851,
+        67.99660472502
+      ]
+    },
+    "cpu-baseline": {
+      "samples": [
+        {
+          "full_wall_seconds": 107.64526122901589,
+          "internal_seconds": 103.36353349685669,
+          "setup_seconds": 15.435146331787111,
+          "outside_internal_seconds": 4.281727732159197,
+          "overhead_fraction": 0.18316527675099928,
+          "template_seconds_per_wall_second": 6792.087191320983,
+          "templates_per_core_internal": 7073.442395641729,
+          "filter_rate_per_core_internal": 0.0483729593101812
+        },
+        {
+          "full_wall_seconds": 107.06236450199503,
+          "internal_seconds": 102.81179571151733,
+          "setup_seconds": 15.053703546524048,
+          "outside_internal_seconds": 4.2505687904777005,
+          "overhead_fraction": 0.18030866800669273,
+          "template_seconds_per_wall_second": 6829.066436192671,
+          "templates_per_core_internal": 7111.4019061734525,
+          "filter_rate_per_core_internal": 0.0486325519887781
+        },
+        {
+          "full_wall_seconds": 107.06833899405319,
+          "internal_seconds": 102.86686682701111,
+          "setup_seconds": 15.178025484085083,
+          "outside_internal_seconds": 4.201472167042084,
+          "overhead_fraction": 0.18100119823660984,
+          "template_seconds_per_wall_second": 6828.685369263167,
+          "templates_per_core_internal": 7107.59472464088,
+          "filter_rate_per_core_internal": 0.048606515919342494
+        }
+      ],
+      "medians": {
+        "full_wall_seconds": 107.06833899405319,
+        "internal_seconds": 102.86686682701111,
+        "setup_seconds": 15.178025484085083,
+        "outside_internal_seconds": 4.2505687904777005,
+        "overhead_fraction": 0.18100119823660984,
+        "template_seconds_per_wall_second": 6828.685369263167,
+        "templates_per_core_internal": 7107.59472464088,
+        "filter_rate_per_core_internal": 0.048606515919342494
+      },
+      "ranges": {
+        "full_wall_seconds": [
+          107.06236450199503,
+          107.64526122901589
+        ],
+        "internal_seconds": [
+          102.81179571151733,
+          103.36353349685669
+        ],
+        "setup_seconds": [
+          15.053703546524048,
+          15.435146331787111
+        ],
+        "outside_internal_seconds": [
+          4.201472167042084,
+          4.281727732159197
+        ],
+        "overhead_fraction": [
+          0.18030866800669273,
+          0.18316527675099928
+        ],
+        "template_seconds_per_wall_second": [
+          6792.087191320983,
+          6829.066436192671
+        ],
+        "templates_per_core_internal": [
+          7073.442395641729,
+          7111.4019061734525
+        ],
+        "filter_rate_per_core_internal": [
+          0.0483729593101812,
+          0.0486325519887781
+        ]
+      },
+      "full_wall_range_seconds": [
+        107.06236450199503,
+        107.64526122901589
+      ]
+    },
+    "cpu-candidate": {
+      "samples": [
+        {
+          "full_wall_seconds": 104.99540728796273,
+          "internal_seconds": 100.43361353874207,
+          "setup_seconds": 12.966487169265747,
+          "outside_internal_seconds": 4.561793749220669,
+          "overhead_fraction": 0.1669433108670455,
+          "template_seconds_per_wall_second": 6963.504584488826,
+          "templates_per_core_internal": 7279.793828367689,
+          "filter_rate_per_core_internal": 0.04978412927531737
+        },
+        {
+          "full_wall_seconds": 104.21241650497541,
+          "internal_seconds": 99.69287085533142,
+          "setup_seconds": 11.799012184143066,
+          "outside_internal_seconds": 4.519545649643987,
+          "overhead_fraction": 0.15658938139111242,
+          "template_seconds_per_wall_second": 7015.82426087484,
+          "templates_per_core_internal": 7333.8844967257755,
+          "filter_rate_per_core_internal": 0.050154037666903115
+        },
+        {
+          "full_wall_seconds": 104.40019265795127,
+          "internal_seconds": 99.90515470504761,
+          "setup_seconds": 11.86305546760559,
+          "outside_internal_seconds": 4.495037952903658,
+          "overhead_fraction": 0.15668642944083105,
+          "template_seconds_per_wall_second": 7003.20546721056,
+          "templates_per_core_internal": 7318.301064229872,
+          "filter_rate_per_core_internal": 0.050047467668326226
+        }
+      ],
+      "medians": {
+        "full_wall_seconds": 104.40019265795127,
+        "internal_seconds": 99.90515470504761,
+        "setup_seconds": 11.86305546760559,
+        "outside_internal_seconds": 4.519545649643987,
+        "overhead_fraction": 0.15668642944083105,
+        "template_seconds_per_wall_second": 7003.20546721056,
+        "templates_per_core_internal": 7318.301064229872,
+        "filter_rate_per_core_internal": 0.050047467668326226
+      },
+      "ranges": {
+        "full_wall_seconds": [
+          104.21241650497541,
+          104.99540728796273
+        ],
+        "internal_seconds": [
+          99.69287085533142,
+          100.43361353874207
+        ],
+        "setup_seconds": [
+          11.799012184143066,
+          12.966487169265747
+        ],
+        "outside_internal_seconds": [
+          4.495037952903658,
+          4.561793749220669
+        ],
+        "overhead_fraction": [
+          0.15658938139111242,
+          0.1669433108670455
+        ],
+        "template_seconds_per_wall_second": [
+          6963.504584488826,
+          7015.82426087484
+        ],
+        "templates_per_core_internal": [
+          7279.793828367689,
+          7333.8844967257755
+        ],
+        "filter_rate_per_core_internal": [
+          0.04978412927531737,
+          0.050154037666903115
+        ]
+      },
+      "full_wall_range_seconds": [
+        104.21241650497541,
+        104.99540728796273
+      ]
+    },
+    "cuda-baseline": {
+      "samples": [
+        {
+          "full_wall_seconds": 25.537461236002855,
+          "internal_seconds": 21.23642611503601,
+          "setup_seconds": 14.134949684143066,
+          "outside_internal_seconds": 4.301035120966844,
+          "overhead_fraction": 0.7219192477566547,
+          "template_seconds_per_wall_second": 28629.94066807394,
+          "templates_per_core_internal": 34428.39186026383,
+          "filter_rate_per_core_internal": 0.23544451278738723
+        },
+        {
+          "full_wall_seconds": 24.706543380976655,
+          "internal_seconds": 20.381632328033447,
+          "setup_seconds": 13.290950059890747,
+          "outside_internal_seconds": 4.324911052943207,
+          "overhead_fraction": 0.7130038727472364,
+          "template_seconds_per_wall_second": 29592.808217881025,
+          "templates_per_core_internal": 35872.29855944245,
+          "filter_rate_per_core_internal": 0.24531891850108908
+        },
+        {
+          "full_wall_seconds": 24.786463222000748,
+          "internal_seconds": 20.48030185699463,
+          "setup_seconds": 13.378978967666624,
+          "outside_internal_seconds": 4.306161365006119,
+          "overhead_fraction": 0.7134999525456788,
+          "template_seconds_per_wall_second": 29497.391114317405,
+          "templates_per_core_internal": 35699.473821490355,
+          "filter_rate_per_core_internal": 0.2441370266372491
+        }
+      ],
+      "medians": {
+        "full_wall_seconds": 24.786463222000748,
+        "internal_seconds": 20.48030185699463,
+        "setup_seconds": 13.378978967666624,
+        "outside_internal_seconds": 4.306161365006119,
+        "overhead_fraction": 0.7134999525456788,
+        "template_seconds_per_wall_second": 29497.391114317405,
+        "templates_per_core_internal": 35699.473821490355,
+        "filter_rate_per_core_internal": 0.2441370266372491
+      },
+      "ranges": {
+        "full_wall_seconds": [
+          24.706543380976655,
+          25.537461236002855
+        ],
+        "internal_seconds": [
+          20.381632328033447,
+          21.23642611503601
+        ],
+        "setup_seconds": [
+          13.290950059890747,
+          14.134949684143066
+        ],
+        "outside_internal_seconds": [
+          4.301035120966844,
+          4.324911052943207
+        ],
+        "overhead_fraction": [
+          0.7130038727472364,
+          0.7219192477566547
+        ],
+        "template_seconds_per_wall_second": [
+          28629.94066807394,
+          29592.808217881025
+        ],
+        "templates_per_core_internal": [
+          34428.39186026383,
+          35872.29855944245
+        ],
+        "filter_rate_per_core_internal": [
+          0.23544451278738723,
+          0.24531891850108908
+        ]
+      },
+      "full_wall_range_seconds": [
+        24.706543380976655,
+        25.537461236002855
+      ]
+    },
+    "cuda-candidate": {
+      "samples": [
+        {
+          "full_wall_seconds": 21.765735947992653,
+          "internal_seconds": 17.19219470024109,
+          "setup_seconds": 10.231783628463745,
+          "outside_internal_seconds": 4.573541247751564,
+          "overhead_fraction": 0.6802124638280715,
+          "template_seconds_per_wall_second": 33591.14535557108,
+          "templates_per_core_internal": 42527.20567373211,
+          "filter_rate_per_core_internal": 0.29082965189603655
+        },
+        {
+          "full_wall_seconds": 21.727497039013542,
+          "internal_seconds": 17.11398434638977,
+          "setup_seconds": 10.144912242889404,
+          "outside_internal_seconds": 4.613512692623772,
+          "overhead_fraction": 0.6792510388570385,
+          "template_seconds_per_wall_second": 33650.263474305575,
+          "templates_per_core_internal": 42721.553625484914,
+          "filter_rate_per_core_internal": 0.2921587339803054
+        },
+        {
+          "full_wall_seconds": 22.123756703920662,
+          "internal_seconds": 17.550471305847168,
+          "setup_seconds": 10.508668899536133,
+          "outside_internal_seconds": 4.573285398073494,
+          "overhead_fraction": 0.6817085587881591,
+          "template_seconds_per_wall_second": 33047.551995110836,
+          "templates_per_core_internal": 41659.05218490699,
+          "filter_rate_per_core_internal": 0.28489263409890225
+        }
+      ],
+      "medians": {
+        "full_wall_seconds": 21.765735947992653,
+        "internal_seconds": 17.19219470024109,
+        "setup_seconds": 10.231783628463745,
+        "outside_internal_seconds": 4.573541247751564,
+        "overhead_fraction": 0.6802124638280715,
+        "template_seconds_per_wall_second": 33591.14535557108,
+        "templates_per_core_internal": 42527.20567373211,
+        "filter_rate_per_core_internal": 0.29082965189603655
+      },
+      "ranges": {
+        "full_wall_seconds": [
+          21.727497039013542,
+          22.123756703920662
+        ],
+        "internal_seconds": [
+          17.11398434638977,
+          17.550471305847168
+        ],
+        "setup_seconds": [
+          10.144912242889404,
+          10.508668899536133
+        ],
+        "outside_internal_seconds": [
+          4.573285398073494,
+          4.613512692623772
+        ],
+        "overhead_fraction": [
+          0.6792510388570385,
+          0.6817085587881591
+        ],
+        "template_seconds_per_wall_second": [
+          33047.551995110836,
+          33650.263474305575
+        ],
+        "templates_per_core_internal": [
+          41659.05218490699,
+          42721.553625484914
+        ],
+        "filter_rate_per_core_internal": [
+          0.28489263409890225,
+          0.2921587339803054
+        ]
+      },
+      "full_wall_range_seconds": [
+        21.727497039013542,
+        22.123756703920662
+      ]
+    }
+  },
+  "comparisons": {
+    "standard_candidate_vs_standard_baseline": {
+      "candidate": "standard-candidate",
+      "baseline": "standard-baseline",
+      "ratio_of_median_full_wall": 0.9561816469183472,
+      "median_full_wall_reduction_percent": 4.381835308165282,
+      "throughput_ratio": 1.045826390020007,
+      "same_repeat_full_wall_ratios": [
+        0.9635260501880828,
+        0.9561816469183472,
+        0.9542680138039321
+      ]
+    },
+    "cpu_candidate_vs_torch_baseline": {
+      "candidate": "cpu-candidate",
+      "baseline": "cpu-baseline",
+      "ratio_of_median_full_wall": 0.9750799689135915,
+      "median_full_wall_reduction_percent": 2.49200310864085,
+      "throughput_ratio": 1.0255569100800765,
+      "same_repeat_full_wall_ratios": [
+        0.9753834594221888,
+        0.9733804870621318,
+        0.9750799689135915
+      ]
+    },
+    "cpu_candidate_vs_standard": {
+      "candidate": "cpu-candidate",
+      "baseline": "standard-candidate",
+      "ratio_of_median_full_wall": 1.5597616075678058,
+      "median_full_wall_reduction_percent": -55.97616075678058,
+      "throughput_ratio": 0.6411236147550375,
+      "same_repeat_full_wall_ratios": [
+        1.5441272062416473,
+        1.5569561909610747,
+        1.5668803770626596
+      ]
+    },
+    "cuda_candidate_vs_cuda_baseline": {
+      "candidate": "cuda-candidate",
+      "baseline": "cuda-baseline",
+      "ratio_of_median_full_wall": 0.8781299596092893,
+      "median_full_wall_reduction_percent": 12.18700403907107,
+      "throughput_ratio": 1.1387836037901895,
+      "same_repeat_full_wall_ratios": [
+        0.8523061766730045,
+        0.8794227789769695,
+        0.8925741646062422
+      ]
+    },
+    "cuda_candidate_vs_standard": {
+      "candidate": "cuda-candidate",
+      "baseline": "standard-candidate",
+      "ratio_of_median_full_wall": 0.32518483374227536,
+      "median_full_wall_reduction_percent": 67.48151662577246,
+      "throughput_ratio": 3.075174166309823,
+      "same_repeat_full_wall_ratios": [
+        0.32010033495074997,
+        0.3246135361170276,
+        0.3320423014913047
+      ]
+    }
+  }
+}
