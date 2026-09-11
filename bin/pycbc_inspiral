@@ -47,8 +47,10 @@ def update_progress(p,u,n):
 
 tstart = time.time()
 
+_inspiral_session = globals().get('_inspiral_session', None)
 parser = argparse.ArgumentParser(usage='',
-    description="Find single detector gravitational-wave triggers.")
+    description="Find single detector gravitational-wave triggers.",
+    allow_abbrev=False if _inspiral_session is not None else True)
 
 pycbc.add_common_pycbc_options(parser)
 parser.add_argument("--update-progress",
@@ -258,6 +260,19 @@ if opt.multiprocessing_nprocesses:
     batch_size = max(1, batch_size)
 
 use_tiled_adapter = is_torch_cuda or (is_torch_cpu and batch_size > 1) or batch_size > 1
+if _inspiral_session is not None:
+    if not isinstance(ctx, scheme.TorchScheme):
+        raise ValueError("Inspiral session requires Torch processing scheme")
+    if ctx.torch_device.type not in ("cpu", "cuda"):
+        raise ValueError("Inspiral session requires CPU or CUDA")
+    if getattr(ctx, "num_threads", None) not in (None, 1):
+        raise ValueError("Inspiral session requires single-threaded processing")
+    if batch_size < 2:
+        raise ValueError("Inspiral session requires batch-size >= 2")
+    if opt.multiprocessing_nprocesses:
+        raise ValueError("Inspiral session forbids multiprocessing options")
+    if opt.checkpoint_interval or opt.checkpoint_exit_maxtime:
+        raise ValueError("Inspiral session forbids checkpoint options")
 
 gwstrain = strain.from_cli(opt, dyn_range_fac=DYN_RANGE_FAC,
                            inj_filter_rejector=inj_filter_rejector)
@@ -271,11 +286,16 @@ def batch_template_triggers(batch_tnums):
     if b == 0:
         return []
 
+    _session = globals().get('_inspiral_session', None)
+
     batch_templates = []
     tparams = []
     for i, t_num in enumerate(batch_tnums):
         bank.out = tile_mem[i]
-        tmpl = bank[t_num]
+        if _session is not None:
+            tmpl = _session.template(bank, t_num)
+        else:
+            tmpl = bank[t_num]
         batch_templates.append(tmpl)
         tparams.append(tmpl.params)
 
@@ -298,7 +318,10 @@ def batch_template_triggers(batch_tnums):
             if psd_id in sigmasq_caches[i]:
                 sigmasq = sigmasq_caches[i][psd_id]
             else:
-                sigmasq = tmpl.sigmasq(stilde.psd)
+                if _session is not None:
+                    sigmasq = _session.sigmasq(tmpl, t_num, stilde.psd)
+                else:
+                    sigmasq = tmpl.sigmasq(stilde.psd)
                 sigmasq_caches[i][psd_id] = sigmasq
             active_sigmasqs.append(sigmasq)
 
@@ -635,6 +658,20 @@ with ctx:
     logging.info("Full template bank size: %s", len(bank))
     bank.template_thinning(inj_filter_rejector)
     logging.info("Template bank size after thinning: %s", len(bank))
+
+    if _inspiral_session is not None:
+        _session_cfg = {
+            "approximant": opt.approximant,
+            "order": opt.order,
+            "f_lower": opt.low_frequency_cutoff,
+            "max_template_length": opt.max_template_length,
+            "taper": opt.taper_template,
+            "enable_bank_start_frequency": opt.enable_bank_start_frequency,
+            "use_compressed_waveforms": opt.use_compressed_waveforms,
+            "waveform_decompression_method": opt.waveform_decompression_method,
+            "scheme": str(getattr(ctx, 'device_spec', ctx.prefix)),
+        }
+        _inspiral_session.bind_bank(bank, _session_cfg)
 
     tsetup = time.time() - tstart
     tcheckpoint = time.time()
