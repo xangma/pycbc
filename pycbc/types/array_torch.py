@@ -263,6 +263,9 @@ class TorchArrayData(TorchArrayNumpyCompatibilityMixin):
         if isinstance(other, (int, float, complex, np.number, np.bool_)):
             target_np = np.result_type(self.dtype, type(other))
             target_torch = _torch_dtype(target_np)
+            # Torch may discard the imaginary part of NumPy complex scalars.
+            if isinstance(other, np.generic):
+                other = other.item()
             return self._wrap(self.tensor.to(dtype=target_torch) * other)
         a, b, _ = self._promote_with(other)
         return self._wrap(a * b)
