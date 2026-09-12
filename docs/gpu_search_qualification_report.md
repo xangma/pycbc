@@ -4,6 +4,8 @@ Updated 2026-09-12. The measurements below are historical fixture results. They 
 
 The retained [engine receipt](../artifacts/gpu_search_qualification_receipt.json) names dirty PyCBC revision `edff1e35e092c6373be757f7d95e9b8b3d16eec6` on `torch-pr11-performance-evidence`, host `len`, RTX 4090. Its source hashes identify selected files, but the receipt does not contain the complete dirty patch. Reproducing that execution requires recovering its source state. Existing local logs are useful historical records; they are not portable artifacts simply because their paths were named in this document.
 
+Current remediation and target-host validation are in [the implementation report](torch_remediation_implementation.md).
+
 ## Historical engine measurements
 
 The physical fixture used 384 reference TaylorF2 templates and five distinct colored-noise segments, each with N = 2,097,152 at 4096 Hz (512 seconds). It enabled symmetric clustering and 16-bin PowerChisq. This is a standalone SearchEngine fixture, separate from both the real-frame executable campaign and prepared live-filter API.

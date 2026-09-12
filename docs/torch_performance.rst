@@ -7,6 +7,9 @@
 Measuring Torch performance
 ===========================
 
+The 2026-09-12 remediation acquisition and its limits are recorded in
+`the implementation report <torch_remediation_implementation.md>`_.
+
 Compare backends using the same inputs, scientific settings and completed
 work. Record the exact source revisions and test numerical agreement before
 collecting timings. Device selection alone does not establish a speedup:
