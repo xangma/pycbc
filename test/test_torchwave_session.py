@@ -57,13 +57,21 @@ def test_owned_batch_cache_changes_parameters_precision_and_budget(bank, device)
 
 
 @pytest.mark.parametrize('budget', [0, 1000000])
-def test_psd_mutation_with_same_object_recomputes_norm(bank, budget):
+@pytest.mark.parametrize('new_shard', [False, True])
+@pytest.mark.parametrize('fresh_template', [False, True])
+def test_psd_mutation_with_same_object_recomputes_norm(
+        bank, budget, new_shard, fresh_template):
     session = InspiralSession(cache_bytes=budget)
     session.bind_bank(bank, {})
     _, templates = session.template_batch(bank, [0])
     psd = FrequencySeries(np.ones(1025, dtype=np.float32), delta_f=.5)
     first = session.sigmasq(templates[0], 0, psd)
+    if new_shard:
+        session.end_shard()
+        session.bind_bank(bank, {})
     psd *= 2
+    if fresh_template:
+        _, templates = session.template_batch(bank, [0])
     second = session.sigmasq(templates[0], 0, psd)
     assert second == pytest.approx(first / 2, rel=2e-7)
 

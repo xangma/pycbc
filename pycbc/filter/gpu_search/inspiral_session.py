@@ -278,9 +278,10 @@ class InspiralSession:
         hasher.update(np.ascontiguousarray(arr).tobytes())
         digest = hasher.hexdigest()
         previous = self._shard_psds.get(psd_id)
-        if previous is not None and previous[1] != digest:
+        if previous is None or previous[1] != digest:
             # sigma_cached also caches PSD-derived arrays by object identity.
-            # Content changes must invalidate those before any recomputation.
+            # First sight in a shard cannot trust fields left by another
+            # shard/session. Content changes also require invalidation.
             for attr in ("_sigma_cached_key", "sigmasq_vec", "invsqrt"):
                 if hasattr(psd_obj, attr):
                     delattr(psd_obj, attr)
