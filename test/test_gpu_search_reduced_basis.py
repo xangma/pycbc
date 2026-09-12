@@ -143,6 +143,8 @@ def test_reduced_basis_search_parity(device):
     valid_interval = (50, 450)
     t_dense = dense_engine.submit(data, dense_psd, valid_interval=valid_interval)
     t_rb = rb_engine.submit(data, rb_psd, valid_interval=valid_interval)
+    dense_engine.drain()
+    rb_engine.drain()
 
     assert not t_dense.aborted and not t_dense.overflow
     assert not t_rb.aborted and not t_rb.overflow
@@ -194,6 +196,7 @@ def test_reduced_basis_veto_evaluation(device):
 
     valid_interval = (50, 450)
     ticket = rb_engine.submit(data, rb_psd, valid_interval=valid_interval)
+    rb_engine.drain()
 
     assert len(ticket.results) > 0
     cands = ticket.results[0]
@@ -220,6 +223,7 @@ def test_reduced_basis_overflow_and_abort(device):
         selection_policy=policy_overflow,
         candidate_capacity=2,
         device=device,
+        experimental_approximation=True,
     )
     t_over = engine_overflow.submit(data, rb_psd, valid_interval=(50, 450))
     assert t_over.overflow
@@ -250,3 +254,156 @@ def test_reduced_basis_plan_migration(device):
     assert p_dev.num_templates == basis_plan.num_templates
     assert p_dev.device == str(device)
     assert psd_dev.device == str(device)
+
+
+def _host(value):
+    return value.detach().cpu().numpy() if hasattr(value, "detach") else np.asarray(value)
+
+
+def _orthogonal_templates():
+    rows = np.zeros((2, 17), dtype=np.complex64)
+    rows[0, 1] = 1
+    rows[1, 2] = 0.5
+    templates = [FrequencySeries(row, delta_f=1) for row in rows]
+    for i, template in enumerate(templates):
+        template.id = 40 + i
+    return templates
+
+
+@pytest.mark.parametrize("device", ["numpy"] + DEVICES)
+def test_truncation_retains_original_norms_and_reports_residuals(device):
+    templates = _orthogonal_templates()
+    plan = compute_reduced_basis(templates, max_rank=1, tolerance=1e-6, device=device)
+    psd = FrequencySeries(np.ones(17, dtype=np.float32), delta_f=1)
+    bound = bind_reduced_basis_psd(plan, psd, device=device)
+    np.testing.assert_array_equal(_host(bound.tile_sigmasqs), [4, 1])
+    # FP32 SVD may perturb even the retained orthogonal vector on CUDA.
+    # Measure the actual stored factors independently in double precision.
+    reconstructed = (_host(plan.coefficients).astype(np.complex128)
+                     @ _host(plan.basis_data).astype(np.complex128))
+    error = _host(plan.original_data).astype(np.complex128) - reconstructed
+    residuals = 4 * np.sum(abs(error[:, 1:-1])**2, axis=1)
+    np.testing.assert_allclose(_host(bound.residual_sigmasqs), residuals,
+                               rtol=1e-12, atol=1e-15)
+    np.testing.assert_allclose(_host(bound.relative_error),
+                               np.sqrt(residuals / [4, 1]), atol=1e-15)
+    assert _host(bound.relative_error)[0] <= plan.tolerance
+    np.testing.assert_allclose(_host(bound.relative_error)[1], 1, atol=1e-12)
+    np.testing.assert_array_equal(_host(bound.tolerance_met), [True, False])
+    assert not plan.svd_tolerance_met
+    assert not bound.certifies_reference_decisions
+    templates[1][:] = 0
+    assert _host(plan.original_data)[1, 2] == 0.5
+
+
+@pytest.mark.parametrize("device", ["numpy"] + DEVICES)
+def test_psd_binding_tracks_content_and_rejects_stale_state(device):
+    plan = compute_reduced_basis(_orthogonal_templates(), max_rank=1, device=device)
+    psd = FrequencySeries(np.ones(17, dtype=np.float32), delta_f=1)
+    first = bind_reduced_basis_psd(plan, psd, psd_version="reused", device=device)
+    psd[2] = 4
+    second = bind_reduced_basis_psd(plan, psd, psd_version="reused", device=device)
+    assert first.psd_version == second.psd_version
+    assert first.version_hash != second.version_hash
+    np.testing.assert_array_equal(_host(second.tile_sigmasqs), [4, 0.25])
+    np.testing.assert_allclose(_host(second.residual_sigmasqs), [0, 0.25], atol=1e-12)
+    first.validate(plan)  # Changing the caller's PSD did not mutate its snapshot.
+    first.psd_data[2] = 8
+    with pytest.raises(ValueError, match="PSD changed"):
+        first.validate(plan)
+    plan.coefficients[0, 0] += 1
+    with pytest.raises(ValueError, match="plan changed"):
+        second.validate(plan)
+
+
+@pytest.mark.parametrize("device", ["numpy"] + DEVICES)
+@pytest.mark.parametrize("cluster_policy", ["live_peak", "symmetric", "threshold_only"])
+def test_uncertified_basis_defaults_to_original_reference_decisions(device, cluster_policy):
+    templates = _orthogonal_templates()
+    # Four adjacent frequencies produce a distinct peak; a single frequency
+    # has constant magnitude and therefore no strict symmetric-cluster peak.
+    templates[1][:] = 0
+    templates[1][2:6] = 0.25
+    plan = compute_reduced_basis(templates, max_rank=1, tolerance=1e-6, device=device)
+    psd = FrequencySeries(np.ones(17, dtype=np.float32), delta_f=1)
+    bound = bind_reduced_basis_psd(plan, psd, device=device)
+    phase = np.exp(-2j * np.pi * np.arange(17) * 11 / 32)
+    data = FrequencySeries((templates[1].numpy() * 20 * phase).astype(np.complex64),
+                           delta_f=1)
+    bank = prepare_bank(templates, tile_size=2, device=device)
+    dense_psd = bind_psd(bank, psd, device=device)
+    policy = SelectionPolicy(snr_threshold=5.5, cluster_policy=cluster_policy, cluster_window=4)
+    dense = SearchEngine(bank, policy, device=device)
+    safe = ReducedBasisSearchEngine(plan, policy, device=device)
+    lossy = ReducedBasisSearchEngine(plan, policy, device=device, experimental_approximation=True)
+    try:
+        dense.submit(data, dense_psd, (0, 32))
+        safe.submit(data, bound, (0, 32))
+        expected = dense.drain()[0]
+        actual = safe.drain()[0]
+        assert safe.fallback_reason is not None
+        assert len(actual.results) == len(expected.results) == 1
+        for key in ("template_id", "sample_idx", "snr", "sigmasq"):
+            np.testing.assert_array_equal(actual.results[0][key], expected.results[0][key])
+        assert 41 in actual.results[0]["template_id"]
+        assert 11 in actual.results[0]["sample_idx"]
+        assert lossy.submit(data, bound, (0, 32)).results == []
+    finally:
+        dense.close()
+        safe.close()
+        lossy.close()
+
+
+@pytest.mark.parametrize("device", ["numpy"] + DEVICES)
+def test_weighted_residual_estimate_bounds_complex_snr_in_exact_arithmetic(device):
+    rng = np.random.default_rng(779)
+    rows = (rng.normal(size=(3, 17)) + 1j * rng.normal(size=(3, 17))).astype(np.complex64)
+    templates = [FrequencySeries(row, delta_f=0.5) for row in rows]
+    plan = compute_reduced_basis(templates, max_rank=1, f_lower=1, f_upper=7, device=device)
+    psd = FrequencySeries(np.geomspace(0.01, 10, 17).astype(np.float32), delta_f=0.5)
+    bound = bind_reduced_basis_psd(plan, psd, device=device)
+    data = rng.normal(size=17) + 1j * rng.normal(size=17)
+    weights = np.zeros(17)
+    weights[2:14] = 2 / psd.numpy()[2:14]
+    original = _host(plan.original_data).astype(np.complex128)
+    reconstructed = (_host(plan.coefficients).astype(np.complex128)
+                     @ _host(plan.basis_data).astype(np.complex128))
+    sigma = np.sqrt(np.sum(abs(original)**2 * weights, axis=1))
+    data_norm = np.sqrt(np.sum(abs(data)**2 * weights))
+    # Independent double-precision all-time calculation of the mathematical
+    # residual. This does not establish bounds versus a float32 FFT backend.
+    corr_error = (original - reconstructed).conj() * data * weights
+    snr_error = np.fft.ifft(corr_error, n=32, axis=-1) * 32 / sigma[:, None]
+    estimate = data_norm * _host(bound.relative_error)
+    assert np.all(abs(snr_error) <= estimate[:, None] + 1e-12)
+
+
+def test_zero_bank_and_invalid_geometry_are_reported():
+    zero = FrequencySeries(np.zeros(17, dtype=np.complex64), delta_f=1)
+    plan = compute_reduced_basis([zero], device="numpy")
+    bound = bind_reduced_basis_psd(plan, np.ones(17), device="numpy")
+    assert plan.rank == 1
+    assert plan.unweighted_relative_error == 0
+    assert not bool(bound.tolerance_met[0])  # Undefined normalized SNR.
+    assert np.isinf(bound.relative_error[0])
+    with pytest.raises(ValueError, match="max_rank"):
+        compute_reduced_basis([zero], max_rank=0, device="numpy")
+    with pytest.raises(ValueError, match="tolerance"):
+        compute_reduced_basis([zero], tolerance=-1, device="numpy")
+    with pytest.raises(ValueError, match="PSD must cover"):
+        bind_reduced_basis_psd(plan, np.ones(3), device="numpy")
+    with pytest.raises(ValueError, match="delta_f"):
+        bind_reduced_basis_psd(plan, FrequencySeries(np.ones(17), delta_f=0.5))
+
+
+def test_reference_fallback_preserves_owned_template_metadata():
+    templates = _orthogonal_templates()
+    templates[0].params = {"mass1": 23.0}
+    plan = compute_reduced_basis(templates, max_rank=1, device="numpy")
+    templates[0].params["mass1"] = 90.0
+    engine = ReducedBasisSearchEngine(plan, SelectionPolicy(5.5), device="numpy")
+    try:
+        retained = engine._reference_engine.bank_plan.templates[0]
+        assert retained.params == {"mass1": 23.0}
+    finally:
+        engine.close()

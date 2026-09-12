@@ -20,10 +20,10 @@ Multirate matched filtering for the PyCBC persistent GPU search engine.
 This module is an experimental research prototype not yet qualified for
 production pipeline execution.
 
-Partitions template banks across frequency bands, filtering low-frequency
-inspiral components at decimated sample rates to dramatically reduce FFT
-complexity and memory bandwidth, followed by coherent full-rate candidate
-refinement and veto evaluation.
+Retains full-rate and decimated coarse banks for experiments. The default
+uses the full-rate search engine: a fixed coarse proposal margin cannot
+certify recall. The opt-in prototype gates a full-bank search on any coarse
+proposal; it does not implement selective neighborhood refinement.
 """
 
 from dataclasses import dataclass
@@ -175,7 +175,11 @@ def prepare_multirate_plan(
 
 class MultirateSearchEngine:
     """
-    Search engine employing multirate proposal and full-resolution refinement.
+    Full-rate search by default, with an uncertified coarse gate opt-in.
+
+    ``experimental_coarse_gate=True`` can miss signals or change abort
+    decisions. ``refinement_window`` is retained for API compatibility but is
+    unused: the experimental path submits the entire bank at full rate.
     """
 
     def __init__(
@@ -188,7 +192,13 @@ class MultirateSearchEngine:
         device: str = "cpu",
         use_cuda_graphs: bool = False,
         num_workspaces: int = 1,
+        experimental_coarse_gate: bool = False,
     ):
+        self.experimental_coarse_gate = bool(experimental_coarse_gate)
+        self.fallback_reason = (
+            None if self.experimental_coarse_gate
+            else "Coarse proposals do not certify full-rate reference decisions"
+        )
         self.multirate_plan = multirate_plan
         self.selection_policy = selection_policy
         self.veto_manager = veto_manager
@@ -214,7 +224,7 @@ class MultirateSearchEngine:
             device=self.device,
             use_cuda_graphs=use_cuda_graphs,
             num_workspaces=num_workspaces,
-        )
+        ) if self.experimental_coarse_gate else None
 
         # 2. Full-rate search engine for refinement and vetoes
         self.full_engine = SearchEngine(
@@ -241,10 +251,13 @@ class MultirateSearchEngine:
         """
         Submit a data block for multirate filtering.
 
-        1. Filters coarse band at decimated rate.
-        2. If candidate proposals exceed threshold, refines them at full rate.
-        3. Applies veto manager to surviving refined triggers.
+        Default submissions run the full original bank with its selection
+        policy and vetoes. The experimental path first applies a coarse gate.
         """
+        if not self.experimental_coarse_gate:
+            return self.full_engine.submit(
+                data_block, full_psd_plan, valid_interval, block_id,
+            )
         self._ticket_counter += 1
         ticket = Ticket(
             ticket_id=self._ticket_counter,
@@ -275,8 +288,9 @@ class MultirateSearchEngine:
             valid_interval=(coarse_start, coarse_end),
             block_id=block_id,
         )
-        if coarse_ticket.aborted:
-            ticket.aborted = True
+        if coarse_ticket.aborted or coarse_ticket.overflow:
+            ticket.aborted = coarse_ticket.aborted
+            ticket.overflow = coarse_ticket.overflow
             ticket.completed = True
             self._provisional_batches.append(ticket)
             return ticket
@@ -295,16 +309,16 @@ class MultirateSearchEngine:
             self._provisional_batches.append(ticket)
             return ticket
 
-        # 3. Full-rate refinement for proposed candidate tiles
-        # Submit full data to full engine to obtain refined candidate values
+        # 3. The prototype gates a full-bank run, not selected neighborhoods.
         full_ticket = self.full_engine.submit(
             data_block,
             full_psd_plan,
             valid_interval=valid_interval,
             block_id=block_id,
         )
-        if full_ticket.aborted:
-            ticket.aborted = True
+        if full_ticket.aborted or full_ticket.overflow:
+            ticket.aborted = full_ticket.aborted
+            ticket.overflow = full_ticket.overflow
             ticket.completed = True
             self._provisional_batches.append(ticket)
             return ticket
@@ -319,6 +333,8 @@ class MultirateSearchEngine:
 
     def drain(self) -> List[Ticket]:
         """Drain completed multirate tickets."""
+        if not self.experimental_coarse_gate:
+            return self.full_engine.drain()
         ready = list(self._provisional_batches)
         self._provisional_batches.clear()
         self._committed_batches.extend(ready)
@@ -326,6 +342,8 @@ class MultirateSearchEngine:
 
     def flush(self) -> List[Ticket]:
         """Flush pending batches and synchronize streams."""
+        if not self.experimental_coarse_gate:
+            return self.full_engine.flush()
         self.coarse_engine.flush()
         self.full_engine.flush()
         return self.drain()
@@ -333,7 +351,8 @@ class MultirateSearchEngine:
     def close(self):
         """Clean up engines and device memory."""
         self.flush()
-        self.coarse_engine.close()
+        if self.coarse_engine is not None:
+            self.coarse_engine.close()
         self.full_engine.close()
         self._provisional_batches.clear()
         self._committed_batches.clear()

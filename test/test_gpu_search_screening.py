@@ -95,7 +95,7 @@ def _make_screening_fixtures(num_templates=2, filter_length=513, delta_f=0.5, de
 
 @pytest.mark.parametrize("device", DEVICES)
 def test_consistency_screen_signal_and_glitch(device):
-    """Verify consistency screener preserves true signals and rejects glitches."""
+    """Verify diagnostic screening scores a signal and a discrepant candidate."""
     bank_plan, psd_plan, corr_tile, tile_norms, N, t0 = _make_screening_fixtures(device=device)
 
     power_plan = prepare_power_chisq_plan(bank_plan, psd_plan, num_bins=8, device=device)
@@ -116,7 +116,7 @@ def test_consistency_screen_signal_and_glitch(device):
     # In a glitch candidate whose energy is entirely in the upper half:
     # z1 = 0, so 2 * z1 * norm - snr = -snr, yielding chi^2 = |snr|^2 = 400.0 >> 50.0!
     # For candidate 0 (true signal), z1 ~ z/2, yielding chi^2 ~ 0!
-    screen = ConsistencyScreen(screen_threshold=50.0, device=device)
+    screen = ConsistencyScreen(screen_threshold=50.0, device=device, diagnostics=True)
     filtered = screen.filter(
         corr_tile=corr_tile,
         candidates=candidates,
@@ -135,11 +135,11 @@ def test_consistency_screen_signal_and_glitch(device):
 
 @pytest.mark.parametrize("device", DEVICES)
 def test_veto_manager_with_consistency_screen(device):
-    """Verify VetoManager rejects glitches early before computing power chisq."""
+    """Verify diagnostic screening preserves candidates for full power chisq."""
     bank_plan, psd_plan, corr_tile, tile_norms, N, t0 = _make_screening_fixtures(device=device)
 
     power_plan = prepare_power_chisq_plan(bank_plan, psd_plan, num_bins=8, device=device)
-    screen = ConsistencyScreen(screen_threshold=50.0, device=device)
+    screen = ConsistencyScreen(screen_threshold=50.0, device=device, diagnostics=True)
     veto_mgr = VetoManager(
         power_chisq_plan=power_plan,
         consistency_screen=screen,
@@ -173,7 +173,7 @@ def test_veto_manager_with_consistency_screen(device):
 def test_consistency_screen_empty(device):
     """Verify screener handles empty candidate buffers gracefully."""
     _, _, corr_tile, tile_norms, N, _ = _make_screening_fixtures(device=device)
-    screen = ConsistencyScreen(screen_threshold=50.0, device=device)
+    screen = ConsistencyScreen(screen_threshold=50.0, device=device, diagnostics=True)
 
     empty_cands = {}
     res = screen.filter(corr_tile, empty_cands, 0, tile_norms, N)
@@ -182,3 +182,93 @@ def test_consistency_screen_empty(device):
     empty_cands2 = {"sample_idx": np.empty(0, dtype=np.int64)}
     res2 = screen.filter(corr_tile, empty_cands2, 0, tile_norms, N)
     assert len(res2["sample_idx"]) == 0
+
+
+@pytest.mark.parametrize("device", ["numpy"] + DEVICES)
+def test_screen_cutoff_counterexample_survives_real_veto_and_ranking(device):
+    from pycbc.events.ranking import newsnr
+    from pycbc.filter.gpu_search.candidates import candidates_to_host
+    from pycbc.filter.gpu_search.vetoes import PowerChisqPlan, batched_power_chisq
+
+    n = 64
+    corr = np.zeros((1, n), dtype=np.complex64)
+    corr[0, 1:17] = np.r_[np.full(8, (10 + np.sqrt(60)) / 16),
+                          np.full(8, (10 - np.sqrt(60)) / 16)]
+    edges = np.arange(1, 18, dtype=np.int64)[None, :]
+    norms = np.ones(1, dtype=np.float32)
+    if torch is not None and device != "numpy":
+        corr = torch.tensor(corr, device=device)
+        edges = torch.tensor(edges, device=device)
+        norms = torch.tensor(norms, device=device)
+    candidates = {
+        "template_idx": np.array([0]), "sample_idx": np.array([0]),
+        "snr": np.array([10 + 0j], dtype=np.complex64),
+    }
+    screen = ConsistencyScreen(device=device)
+    score = screen.evaluate_screening_chisq(corr, candidates, norms, n, edges)
+    chi, dof = batched_power_chisq(corr, candidates, edges, norms, transform_length=n)
+    np.testing.assert_allclose(score, [60], atol=1e-4)
+    np.testing.assert_allclose(chi, [60], atol=1e-4)
+    np.testing.assert_array_equal(dof, [30])
+    assert newsnr(10, chi / dof) > 7.7
+    manager = VetoManager(
+        power_chisq_plan=PowerChisqPlan(tile_bin_edges={0: edges}),
+        consistency_screen=screen,
+    )
+    result = manager.evaluate(corr, candidates, 0, norms, n)
+    assert len(result["sample_idx"]) == 1
+    assert screen.rejected_count == 0
+    # Ranking consumes public host results after the device veto boundary.
+    result = candidates_to_host(result)
+    assert newsnr(abs(result["snr"]), result["chisq"] / result["chisq_dof"])[0] > 7.7
+
+
+@pytest.mark.parametrize("device", DEVICES)
+def test_compatible_screen_preserves_tensor_fields_without_scoring(device, monkeypatch):
+    if torch is None:
+        pytest.skip("Torch unavailable")
+    screen = ConsistencyScreen(device=device)
+    candidates = {
+        "sample_idx": torch.tensor([0, 1], device=device),
+        "snr": torch.tensor([10 + 0j, 20 + 0j], device=device),
+    }
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Compatible screening must not compute diagnostic scores")
+    monkeypatch.setattr(screen, "evaluate_screening_chisq", forbidden)
+    result = screen.filter(None, candidates, 0, None, 32)
+    assert result is candidates
+    assert result["snr"] is candidates["snr"]
+    assert screen.accepted_count == 2
+
+
+@pytest.mark.parametrize("device", ["numpy"] + DEVICES)
+def test_odd_full_bin_count_uses_unequal_group_fractions(device):
+    corr = np.zeros((1, 32), dtype=np.complex64)
+    corr[0, 1:6] = 2
+    edges = np.arange(1, 7, dtype=np.int64)[None, :]
+    norms = np.ones(1, dtype=np.float32)
+    if torch is not None and device != "numpy":
+        corr = torch.tensor(corr, device=device)
+    candidates = {"sample_idx": np.array([0]), "template_idx": np.array([0]),
+                  "snr": np.array([10 + 0j], dtype=np.complex64)}
+    score = ConsistencyScreen(device=device).evaluate_screening_chisq(
+        corr, candidates, norms, 32, edges,
+    )
+    np.testing.assert_allclose(score, [0], atol=1e-12)
+
+
+@pytest.mark.parametrize("device", DEVICES)
+def test_experimental_rejection_masks_tensor_fields(device):
+    if torch is None:
+        pytest.skip("Torch unavailable")
+    screen = ConsistencyScreen(device=device, experimental_rejection=True)
+    candidates = {
+        "sample_idx": torch.tensor([0, 0], device=device),
+        "template_idx": torch.tensor([0, 0], device=device),
+        "snr": torch.tensor([0 + 0j, 20 + 0j], device=device),
+    }
+    corr = torch.zeros((1, 32), dtype=torch.complex64, device=device)
+    result = screen.filter(corr, candidates, 0, torch.ones(1, device=device), 32)
+    assert result["sample_idx"].device == candidates["sample_idx"].device
+    assert len(result["sample_idx"]) == len(result["snr"]) == 1
+    assert screen.rejected_count == 1

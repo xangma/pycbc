@@ -37,14 +37,23 @@ logger = logging.getLogger("pycbc.filter.gpu_search.screening")
 @dataclass
 class ConsistencyScreen:
     """
-    Early consistency screener to reject obvious non-Gaussian glitches
-    before evaluating expensive full-statistic vetoes.
+    Optional diagnostic two-group score, without rejection by default.
+
+    A fixed score cutoff is not a conservative reweighted-SNR cut. In
+    compatible mode return candidates unchanged; ``diagnostics=True`` attaches
+    scores but keeps every candidate. ``experimental_rejection=True`` enables
+    the historical, uncertified cutoff and can discard accepted signals.
+    Diagnostic/experimental evaluation may synchronize and copy to the host.
     """
 
     screen_threshold: float = 50.0
     device: str = "cpu"
+    experimental_rejection: bool = False
+    diagnostics: bool = False
 
     def __post_init__(self):
+        if not np.isfinite(self.screen_threshold) or self.screen_threshold < 0:
+            raise ValueError("screen_threshold must be finite and nonnegative")
         self.rejected_count = 0
         self.accepted_count = 0
 
@@ -63,9 +72,14 @@ class ConsistencyScreen:
         if num_cands == 0:
             return np.empty(0, dtype=np.float32)
 
-        sample_idx = candidates["sample_idx"]
-        tmplt_idx = candidates["template_idx"]
-        snr_vals = candidates["snr"]
+        def host_array(value):
+            if torch is not None and isinstance(value, torch.Tensor):
+                return value.detach().cpu().numpy()
+            return np.asarray(value)
+
+        sample_idx = host_array(candidates["sample_idx"])
+        tmplt_idx = host_array(candidates["template_idx"])
+        snr_vals = host_array(candidates["snr"])
 
         # Convert norms to numpy / cpu if needed
         if hasattr(tile_norms, "cpu"):
@@ -81,10 +95,14 @@ class ConsistencyScreen:
             else:
                 edges_np = np.asarray(bin_edges)
             num_bins = edges_np.shape[-1] - 1
-            mid_bin = max(1, num_bins // 2)
+            if num_bins < 2:
+                raise ValueError("Screening requires at least two full-statistic bins")
+            mid_bin = num_bins // 2
+            fraction = mid_bin / num_bins
             k_mids = edges_np[tmplt_idx, mid_bin]
             k_mins = edges_np[tmplt_idx, 0]
         else:
+            fraction = 0.5
             k_mins = np.zeros(num_cands, dtype=np.int64)
             k_mids = np.full(num_cands, flen // 2, dtype=np.int64)
 
@@ -106,14 +124,16 @@ class ConsistencyScreen:
                     chisq_vals[j] = 0.0
                     continue
 
-                k = torch.arange(k_min, k_mid, device=dev, dtype=torch.float32)
-                phase = torch.exp(2j * np.pi * k * (t / t_len))
-                corr_slice = corr_tile[m, k_min:k_mid]
+                k = torch.arange(k_min, k_mid, device=dev, dtype=torch.float64)
+                phase = torch.exp(2j * np.pi * torch.remainder(k * t, t_len) / t_len)
+                corr_slice = corr_tile[m, k_min:k_mid].to(torch.complex128)
                 z1 = torch.sum(corr_slice * phase).item()
 
-                # 2-bin test: chi2_2 = |2 * z1 * norm - snr|^2
-                res = 2.0 * z1 * norm - snr
-                chisq_vals[j] = float(res.real**2 + res.imag**2)
+                # Group fractions matter when the full bin count is odd.
+                # This is an exact-arithmetic lower bound only when z is
+                # the sum of the same full bins; no rounding bound is supplied.
+                res = z1 * norm - fraction * snr
+                chisq_vals[j] = float(abs(res)**2 / (fraction * (1 - fraction)))
         else:
             corr_tile_np = corr_tile.cpu().numpy() if hasattr(corr_tile, "cpu") else np.asarray(corr_tile)
             t_len = float(transform_length)
@@ -130,13 +150,13 @@ class ConsistencyScreen:
                     chisq_vals[j] = 0.0
                     continue
 
-                k = np.arange(k_min, k_mid, dtype=np.float32)
-                phase = np.exp(2j * np.pi * k * (t / t_len))
-                corr_slice = corr_tile_np[m, k_min:k_mid]
+                k = np.arange(k_min, k_mid, dtype=np.float64)
+                phase = np.exp(2j * np.pi * np.remainder(k * t, t_len) / t_len)
+                corr_slice = corr_tile_np[m, k_min:k_mid].astype(np.complex128)
                 z1 = np.sum(corr_slice * phase)
 
-                res = 2.0 * z1 * norm - snr
-                chisq_vals[j] = float(res.real**2 + res.imag**2)
+                res = z1 * norm - fraction * snr
+                chisq_vals[j] = float(abs(res)**2 / (fraction * (1 - fraction)))
 
         return chisq_vals
 
@@ -150,10 +170,13 @@ class ConsistencyScreen:
         bin_edges: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """
-        Screen candidates, dropping those whose consistency score exceeds screen_threshold.
+        Retain all candidates unless uncertified rejection is explicitly enabled.
         """
         num_cands = len(candidates.get("sample_idx", []))
         if num_cands == 0:
+            return candidates
+        if not self.experimental_rejection and not self.diagnostics:
+            self.accepted_count += num_cands
             return candidates
 
         scores = self.evaluate_screening_chisq(
@@ -164,7 +187,10 @@ class ConsistencyScreen:
             bin_edges=bin_edges,
         )
 
-        keep = scores <= self.screen_threshold
+        keep = (
+            scores <= self.screen_threshold if self.experimental_rejection
+            else np.ones(num_cands, dtype=bool)
+        )
         num_survivors = int(np.sum(keep))
         num_rejected = num_cands - num_survivors
 
@@ -177,7 +203,9 @@ class ConsistencyScreen:
 
         filtered = {}
         for key, arr in candidates.items():
-            if isinstance(arr, np.ndarray):
+            if torch is not None and isinstance(arr, torch.Tensor):
+                filtered[key] = arr[torch.as_tensor(keep, device=arr.device)]
+            elif isinstance(arr, np.ndarray):
                 filtered[key] = arr[keep]
             elif isinstance(arr, list):
                 filtered[key] = [arr[idx] for idx, b in enumerate(keep) if b]

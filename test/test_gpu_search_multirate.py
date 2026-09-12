@@ -176,3 +176,40 @@ def test_multirate_veto_evaluation(device):
     assert "chisq" in res
     assert len(res["chisq"]) > 0
     assert np.all(res["chisq"] >= 0.0)
+
+
+@pytest.mark.parametrize("device", ["numpy"] + DEVICES)
+def test_full_rate_fallback_recovers_signal_absent_from_coarse_band(device):
+    n = 128
+    h = np.zeros(65, dtype=np.complex64)
+    h[32:50] = 1
+    template = FrequencySeries(h, delta_f=1)
+    template.id = 73
+    plan = prepare_multirate_plan([template], decimation_factor=4, device=device)
+    full_psd = bind_psd(plan.full_bank_plan, np.ones(65), device=device)
+    coarse_psd = bind_psd(plan.coarse_bank_plan, np.ones(17), device=device)
+    sigma = np.sqrt(float(full_psd.tile_sigmasqs[0][0]))
+    data = FrequencySeries(h * np.exp(-2j * np.pi * np.arange(65) * 50 / n) * 10 / sigma,
+                           delta_f=1)
+    policy = SelectionPolicy(snr_threshold=5.5)
+    safe = MultirateSearchEngine(plan, policy, device=device)
+    lossy = MultirateSearchEngine(plan, policy, device=device, experimental_coarse_gate=True)
+    dense = SearchEngine(plan.full_bank_plan, policy, device=device)
+    try:
+        safe.submit(data, full_psd, coarse_psd, (16, 112))
+        dense.submit(data, full_psd, (16, 112))
+        actual = safe.drain()[0]
+        expected = dense.drain()[0]
+        assert safe.coarse_engine is None
+        assert safe.fallback_reason is not None
+        assert len(actual.results) == 1
+        assert actual.results[0]["template_id"][0] == 73
+        assert actual.results[0]["sample_idx"][0] == 50
+        for key in ("template_id", "sample_idx", "snr", "sigmasq"):
+            np.testing.assert_array_equal(actual.results[0][key], expected.results[0][key])
+        lossy.submit(data, full_psd, coarse_psd, (16, 112))
+        assert lossy.drain()[0].results == []
+    finally:
+        safe.close()
+        lossy.close()
+        dense.close()

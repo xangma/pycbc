@@ -23,10 +23,13 @@ production pipeline execution.
 Approximates groups of physically similar templates using a low-rank orthonormal
 basis via Singular Value Decomposition (SVD). Filters only R basis waveforms
 via IFFT, then reconstructs full template responses using high-throughput
-matrix multiplication (GEMM).
+matrix multiplication (GEMM). This lossy route requires explicit opt-in;
+default search delegates to the dense engine using the retained originals.
 """
 
-from dataclasses import dataclass
+from copy import deepcopy
+from dataclasses import dataclass, replace
+import hashlib
 import logging
 from typing import Any, List, Optional, Tuple
 import numpy as np
@@ -37,17 +40,47 @@ except ImportError:
     torch = None
 
 from pycbc.filter.matchedfilter import get_cutoff_indices
-from .plans import BankGeometry
+from pycbc.types import FrequencySeries
+from .plans import BankGeometry, prepare_bank, bind_psd
 from .candidates import SelectionPolicy, CandidateBuffer, select_tile_candidates
-from .engine import Ticket
+from .engine import SearchEngine, Ticket
 from .vetoes import VetoManager
 
 logger = logging.getLogger("pycbc.filter.gpu_search.reduced_basis")
 
 
+def _as_numpy(value):
+    if torch is not None and isinstance(value, torch.Tensor):
+        return value.detach().cpu().numpy()
+    return value.numpy() if hasattr(value, "numpy") else np.asarray(value)
+
+
+def _move(value, device):
+    if torch is not None and str(device) != "numpy":
+        return torch.as_tensor(value, device=device)
+    return _as_numpy(value).copy()
+
+
+def _fingerprint(*values):
+    digest = hashlib.sha256()
+    for value in values:
+        if isinstance(value, str):
+            digest.update(value.encode("utf8"))
+        else:
+            arr = np.ascontiguousarray(_as_numpy(value))
+            digest.update(str((arr.dtype.str, arr.shape)).encode("ascii"))
+            digest.update(arr.tobytes())
+    return digest.hexdigest()
+
+
 @dataclass
 class ReducedBasisPlan:
-    """Prepared low-rank basis and expansion coefficients for template subbanks."""
+    """Basis and owned original complex64 filter samples, before truncation.
+
+    ``tolerance`` selects aggregate unweighted SVD energy only. It does not
+    certify individual PSD-weighted errors or floating-point decisions.
+    Original samples and the experimental full response workspace cost O(M N).
+    """
 
     rank: int
     num_templates: int
@@ -58,71 +91,95 @@ class ReducedBasisPlan:
     geometry: BankGeometry
     tolerance: float
     device: str
+    original_data: Any
+    template_metadata: Any
+    unweighted_relative_error: float
+    svd_tolerance_met: bool
+
+    @property
+    def content_hash(self):
+        """Fingerprint current samples, approximation and numerical settings."""
+        return _fingerprint(
+            self.original_data, self.basis_data, self.coefficients,
+            self.template_ids, repr(self.geometry), repr(self.tolerance),
+        )
 
     def to(self, device: str) -> "ReducedBasisPlan":
-        """Move plan tensors to the specified device."""
-        dev_str = str(device)
-        if torch is not None and hasattr(self.basis_data, "to"):
-            target_dev = torch.device(dev_str)
-            return ReducedBasisPlan(
-                rank=self.rank,
-                num_templates=self.num_templates,
-                basis_data=self.basis_data.to(device=target_dev),
-                coefficients=self.coefficients.to(device=target_dev),
-                singular_values=self.singular_values.to(device=target_dev),
-                template_ids=self.template_ids,
-                geometry=self.geometry,
-                tolerance=self.tolerance,
-                device=dev_str,
-            )
-        return self
+        """Move all retained samples and factors, including NumPy transitions."""
+        return replace(
+            self, device=str(device),
+            original_data=_move(self.original_data, device),
+            basis_data=_move(self.basis_data, device),
+            coefficients=_move(self.coefficients, device),
+            singular_values=_move(self.singular_values, device),
+            template_ids=self.template_ids.copy(),
+            template_metadata=deepcopy(self.template_metadata),
+        )
 
 
-class ReducedBasisPSDPlan:
-    """Bound PSD properties for reduced-basis template reconstruction."""
-
-    def __init__(
-        self,
-        psd_data: Any,
-        tile_norms: Any,
-        tile_sigmasqs: Any,
-        psd_version: str = "psd-v1",
-        device: str = "cpu",
+def _original_bank(plan, device):
+    templates = []
+    for row, tid, metadata in zip(
+        _as_numpy(plan.original_data), plan.template_ids, plan.template_metadata,
     ):
-        self.psd_data = psd_data
-        self.tile_norms = tile_norms
-        self.tile_sigmasqs = tile_sigmasqs
-        self.psd_version = psd_version
-        self.device = str(device)
+        template = FrequencySeries(row.copy(), delta_f=plan.geometry.delta_f)
+        for key, value in metadata.items():
+            setattr(template, key, deepcopy(value))
+        template.id = int(tid)
+        templates.append(template)
+    return prepare_bank(
+        templates, tile_size=plan.num_templates, device=device,
+        f_lower=plan.geometry.f_lower, f_upper=plan.geometry.f_upper,
+    )
+
+
+@dataclass
+class ReducedBasisPSDPlan:
+    """Original normalization and PSD-bound residual diagnostics.
+
+    ``residual_sigmasqs`` and ``relative_error`` use float64 arithmetic.
+    The exact-arithmetic SNR error estimate is D * relative_error, where
+    D is the PSD-weighted data norm. Rounding and reference-backend errors
+    are not included: ``certifies_reference_decisions`` is always False.
+    """
+
+    psd_data: Any
+    tile_norms: Any
+    tile_sigmasqs: Any
+    psd_version: str
+    device: str
+    residual_sigmasqs: Any
+    relative_error: Any
+    tolerance_met: Any
+    plan_content_hash: str
+    psd_content_hash: str
+    version_hash: str
+    reference_psd: Any
+    certifies_reference_decisions: bool = False
+
+    def validate(self, plan):
+        """Reject stale bindings, including reused user version identifiers."""
+        if plan.content_hash != self.plan_content_hash:
+            raise ValueError("Reduced-basis plan changed; bind the PSD again")
+        if _fingerprint(self.psd_data) != self.psd_content_hash:
+            raise ValueError("Reduced-basis PSD changed; bind the PSD again")
 
     def to(self, device: str) -> "ReducedBasisPSDPlan":
-        """Move PSD tensors to the specified device."""
-        dev_str = str(device)
-        if torch is not None:
-            target_dev = torch.device(dev_str)
-            norms = (
-                self.tile_norms.to(device=target_dev)
-                if hasattr(self.tile_norms, "to")
-                else self.tile_norms
-            )
-            sigmasqs = (
-                self.tile_sigmasqs.to(device=target_dev)
-                if hasattr(self.tile_sigmasqs, "to")
-                else self.tile_sigmasqs
-            )
-            psd_data = (
-                self.psd_data.to(device=target_dev)
-                if hasattr(self.psd_data, "to")
-                else self.psd_data
-            )
-            return ReducedBasisPSDPlan(
-                psd_data=psd_data,
-                tile_norms=norms,
-                tile_sigmasqs=sigmasqs,
-                psd_version=self.psd_version,
-                device=dev_str,
-            )
-        return self
+        norms = _move(self.tile_norms, device)
+        sigmasqs = _move(self.tile_sigmasqs, device)
+        psd_data = _move(self.psd_data, device)
+        reference_psd = replace(
+            self.reference_psd, psd_data=psd_data,
+            tile_norms={0: norms}, tile_sigmasqs={0: sigmasqs},
+        )
+        return replace(
+            self, device=str(device), psd_data=psd_data,
+            tile_norms=norms, tile_sigmasqs=sigmasqs,
+            residual_sigmasqs=_move(self.residual_sigmasqs, device),
+            relative_error=_move(self.relative_error, device),
+            tolerance_met=_move(self.tolerance_met, device),
+            reference_psd=reference_psd,
+        )
 
 
 def compute_reduced_basis(
@@ -158,6 +215,10 @@ def compute_reduced_basis(
     """
     if not templates:
         raise ValueError("templates list cannot be empty")
+    if not np.isfinite(tolerance) or not 0 <= tolerance < 1:
+        raise ValueError("tolerance must be finite and in [0, 1)")
+    if max_rank is not None and (int(max_rank) != max_rank or max_rank < 1):
+        raise ValueError("max_rank must be a positive integer")
 
     num_templates = len(templates)
     first = templates[0]
@@ -165,19 +226,19 @@ def compute_reduced_basis(
     flen = len(first)
     tlen = (flen - 1) * 2
     fs = tlen * delta_f
+    if flen < 2 or not np.isfinite(delta_f) or delta_f <= 0:
+        raise ValueError("Templates require a positive delta_f and length >= 2")
     delta_t = 1.0 / fs
 
-    # Collect template frequency series into matrix H (M, flen)
+    # Own the same complex64 filter samples as prepare_bank, before truncation.
     h_rows = []
     t_ids = []
     for i, t in enumerate(templates):
-        arr = getattr(t, "data", t)
-        if hasattr(arr, "numpy"):
-            data_np = arr.numpy()
-        elif hasattr(arr, "cpu"):
-            data_np = arr.cpu().numpy()
-        else:
-            data_np = np.asarray(arr)
+        if len(t) != flen or float(t.delta_f) != delta_f:
+            raise ValueError("Templates must share frequency length and delta_f")
+        data_np = _as_numpy(t)
+        if not np.all(np.isfinite(data_np)):
+            raise ValueError("Templates must contain finite samples")
         h_rows.append(data_np.astype(np.complex64))
         t_ids.append(getattr(t, "id", i))
 
@@ -189,45 +250,23 @@ def compute_reduced_basis(
         h_tensor = torch.from_numpy(h_matrix_np).to(device=dev)
         u, s, vh = torch.linalg.svd(h_tensor, full_matrices=False)
 
-        total_energy = torch.sum(s**2)
-        cum_energy = torch.cumsum(s**2, dim=0)
-        energy_frac = cum_energy / total_energy
-
-        # Determine rank R satisfying tolerance
-        cutoff_mask = (1.0 - energy_frac) <= (tolerance**2)
-        valid_indices = torch.nonzero(cutoff_mask)
-        if len(valid_indices) > 0:
-            target_r = valid_indices[0].item() + 1
-        else:
-            target_r = num_templates
-
-        if max_rank is not None:
-            target_r = min(target_r, max_rank)
-        target_r = max(1, min(target_r, num_templates))
-
-        basis_data = vh[:target_r, :]
-        coeffs = u[:, :target_r] * s[:target_r].unsqueeze(0)
-        sing_vals = s
+        singular_np = s.detach().cpu().numpy().astype(np.float64)
     else:
         u, s, vh = np.linalg.svd(h_matrix_np, full_matrices=False)
-        total_energy = np.sum(s**2)
-        cum_energy = np.cumsum(s**2)
-        energy_frac = cum_energy / total_energy
+        singular_np = s.astype(np.float64)
 
-        cutoff_mask = (1.0 - energy_frac) <= (tolerance**2)
-        valid_indices = np.nonzero(cutoff_mask)[0]
-        if len(valid_indices) > 0:
-            target_r = valid_indices[0] + 1
-        else:
-            target_r = num_templates
-
-        if max_rank is not None:
-            target_r = min(target_r, max_rank)
-        target_r = max(1, min(target_r, num_templates))
-
-        basis_data = vh[:target_r, :]
-        coeffs = u[:, :target_r] * s[:target_r][np.newaxis, :]
-        sing_vals = s
+    # Reverse summation avoids losing a small tail by subtracting near one.
+    energy = singular_np ** 2
+    total_energy = energy.sum()
+    tail = np.r_[np.cumsum(energy[::-1])[::-1][1:], 0.0]
+    targets = np.flatnonzero(tail <= tolerance ** 2 * total_energy)
+    target_r = int(targets[0] + 1) if len(targets) else len(singular_np)
+    if max_rank is not None:
+        target_r = min(target_r, int(max_rank))
+    basis_data = vh[:target_r, :]
+    coeffs = u[:, :target_r] * s[:target_r][None, :]
+    sing_vals = s
+    relative_error = np.sqrt(tail[target_r - 1] / total_energy) if total_energy else 0.0
 
     geom = BankGeometry(
         delta_f=delta_f,
@@ -249,6 +288,14 @@ def compute_reduced_basis(
         geometry=geom,
         tolerance=float(tolerance),
         device=str(device),
+        original_data=_move(h_matrix_np.copy(), device),
+        template_metadata=tuple(
+            {key: deepcopy(value) for key, value in vars(t).items()
+             if not key.startswith("_") or key == "_epoch"}
+            for t in templates
+        ),
+        unweighted_relative_error=float(relative_error),
+        svd_tolerance_met=bool(relative_error <= tolerance),
     )
 
 
@@ -258,82 +305,78 @@ def bind_reduced_basis_psd(
     psd_version: str = "psd-v1",
     device: Optional[str] = None,
 ) -> ReducedBasisPSDPlan:
-    """
-    Bind a PSD to a ReducedBasisPlan, precomputing original template sigmasqs and norms.
-    """
-    if device is None:
-        device = plan.device
+    """Bind original norms and per-template PSD-weighted residual estimates.
 
-    if hasattr(psd, "numpy"):
-        psd_np = psd.numpy()
-    elif hasattr(psd, "cpu"):
-        psd_np = psd.cpu().numpy()
-    else:
-        psd_np = np.asarray(psd)
-
-    psd_np = psd_np.astype(np.float32)
+    The basis is chosen without PSD weighting; a max-rank cap or changed PSD
+    can violate the requested tolerance. Report every violation. Reconstruct
+    one template at a time to avoid an extra full-bank residual allocation.
+    """
+    device = plan.device if device is None else str(device)
+    if hasattr(psd, "delta_f") and float(psd.delta_f) != plan.geometry.delta_f:
+        raise ValueError("PSD delta_f does not match reduced-basis plan")
     flen = plan.geometry.filter_length
-    delta_f = plan.geometry.delta_f
+    raw_psd = _as_numpy(psd)
+    if raw_psd.ndim != 1 or len(raw_psd) < flen:
+        raise ValueError("PSD must cover the full frequency grid")
+    if np.any(~np.isfinite(raw_psd[:flen])) or np.any(raw_psd[:flen] < 0):
+        raise ValueError("PSD must contain finite, nonnegative samples")
 
-    kmin, kmax = get_cutoff_indices(
-        plan.geometry.f_lower,
-        plan.geometry.f_upper,
-        delta_f,
-        plan.geometry.transform_length,
+    # Share the dense engine's original-template normalization convention,
+    # including dynamic range handling, before evaluating truncation error.
+    bank = _original_bank(plan, device)
+    psd_snapshot = FrequencySeries(raw_psd.copy(), delta_f=plan.geometry.delta_f)
+    if hasattr(psd, "dyn_range_factor"):
+        psd_snapshot.dyn_range_factor = psd.dyn_range_factor
+    reference_psd = bind_psd(
+        bank, psd_snapshot, psd_version=psd_version, device=device,
     )
-
-    # Reconstruct original templates in memory to get exact sigmasqs under PSD
-    if torch is not None and str(device) != "numpy":
-        dev = torch.device(device)
-        psd_tensor = torch.as_tensor(psd_np[:flen], device=dev, dtype=torch.float32)
-        inv_psd = torch.where(
-            psd_tensor > 0, (4.0 * delta_f) / psd_tensor, torch.zeros_like(psd_tensor)
-        )
-        inv_psd[:kmin].zero_()
-        if kmax < len(inv_psd):
-            inv_psd[kmax:].zero_()
-
-        # Reconstruct templates: H = A @ Vh
-        h_all = torch.matmul(plan.coefficients, plan.basis_data)
-        pwr = torch.abs(h_all) ** 2
-        sigmasqs = torch.sum(pwr * inv_psd.unsqueeze(0), dim=-1)
-        norms = torch.where(
-            sigmasqs > 0,
-            (4.0 * delta_f) / torch.sqrt(torch.clamp(sigmasqs, min=1e-20)),
-            torch.zeros_like(sigmasqs),
-        )
-    else:
-        with np.errstate(divide="ignore", invalid="ignore"):
-            inv_psd = np.where(
-                psd_np[:flen] > 0, (4.0 * delta_f) / psd_np[:flen], 0.0
-            ).astype(np.float32)
-        inv_psd[:kmin] = 0.0
-        if kmax < len(inv_psd):
-            inv_psd[kmax:] = 0.0
-
-        h_all = np.matmul(plan.coefficients, plan.basis_data)
-        pwr = np.abs(h_all) ** 2
-        sigmasqs = np.sum(pwr * inv_psd[np.newaxis, :], axis=-1)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            norms = np.where(
-                sigmasqs > 0,
-                (4.0 * delta_f) / np.sqrt(np.maximum(sigmasqs, 1e-20)),
-                0.0,
-            )
-
+    psd_np = _as_numpy(reference_psd.psd_data)
+    kmin, kmax = get_cutoff_indices(
+        plan.geometry.f_lower, plan.geometry.f_upper,
+        plan.geometry.delta_f, plan.geometry.transform_length,
+    )
+    active_psd = psd_np[kmin:kmax].astype(np.float64)
+    weights = np.zeros_like(active_psd)
+    np.divide(4 * plan.geometry.delta_f, active_psd, out=weights,
+              where=active_psd > 0)
+    basis = _as_numpy(plan.basis_data)[:, kmin:kmax].astype(np.complex128)
+    coeffs = _as_numpy(plan.coefficients).astype(np.complex128)
+    originals = _as_numpy(plan.original_data)
+    residuals = np.empty(plan.num_templates, dtype=np.float64)
+    original_norms = np.empty_like(residuals)
+    for i, original in enumerate(originals):
+        original = original[kmin:kmax].astype(np.complex128)
+        error = original - coeffs[i] @ basis
+        residuals[i] = np.sum(np.abs(error) ** 2 * weights)
+        original_norms[i] = np.sum(np.abs(original) ** 2 * weights)
+    ratios = np.full_like(residuals, np.inf)
+    np.divide(residuals, original_norms, out=ratios, where=original_norms > 0)
+    ratios = np.sqrt(ratios)
+    tolerance_met = np.isfinite(ratios) & (ratios <= plan.tolerance)
+    plan_hash = plan.content_hash
+    psd_hash = _fingerprint(reference_psd.psd_data)
     return ReducedBasisPSDPlan(
-        psd_data=psd_np[:flen],
-        tile_norms=norms,
-        tile_sigmasqs=sigmasqs,
-        psd_version=psd_version,
-        device=str(device),
+        psd_data=reference_psd.psd_data,
+        tile_norms=reference_psd.tile_norms[0],
+        tile_sigmasqs=reference_psd.tile_sigmasqs[0],
+        psd_version=psd_version, device=device,
+        residual_sigmasqs=_move(residuals, device),
+        relative_error=_move(ratios, device),
+        tolerance_met=_move(tolerance_met, device),
+        plan_content_hash=plan_hash, psd_content_hash=psd_hash,
+        version_hash=_fingerprint(plan_hash, psd_hash),
+        reference_psd=reference_psd,
     )
 
 
 class ReducedBasisSearchEngine:
     """
-    Search engine that filters low-rank basis waveforms and reconstructs
-    candidate template responses via GEMM matrix multiplication.
+    Dense original-template search by default; opt-in low-rank experiments.
+
+    No pre-discard bound currently certifies floating-point reference decisions.
+    Default submissions therefore use SearchEngine on retained originals.
+    experimental_approximation=True permits lossy GEMM reconstruction and may
+    change thresholds, clustering, aborts, vetoes and accepted identities.
     """
 
     def __init__(
@@ -343,8 +386,16 @@ class ReducedBasisSearchEngine:
         veto_manager: Optional[Any] = None,
         candidate_capacity: int = 65536,
         device: str = "cpu",
+        experimental_approximation: bool = False,
     ):
-        self.basis_plan = basis_plan
+        self.basis_plan = basis_plan.to(device)
+        basis_plan = self.basis_plan
+        self._plan_content_hash = basis_plan.content_hash
+        self.experimental_approximation = bool(experimental_approximation)
+        self.fallback_reason = (
+            None if self.experimental_approximation
+            else "Reduced-basis reference decisions are uncertified"
+        )
         self.selection_policy = selection_policy
         if veto_manager is not None and hasattr(veto_manager, "tile_bin_edges"):
             self.veto_manager = VetoManager(power_chisq_plan=veto_manager)
@@ -358,15 +409,27 @@ class ReducedBasisSearchEngine:
         self.flen = basis_plan.geometry.filter_length
         self.tlen = basis_plan.geometry.transform_length
 
-        self._allocate_workspaces()
+        self._reference_engine = None
+        if self.experimental_approximation:
+            self._allocate_workspaces()
+        else:
+            self._reference_engine = SearchEngine(
+                _original_bank(basis_plan, self.device), selection_policy,
+                veto_manager=self.veto_manager,
+                candidate_capacity=self.candidate_capacity, device=self.device,
+            )
         self._ticket_counter = 0
 
     @property
     def cout_workspace(self):
+        if self._reference_engine is not None:
+            return self._reference_engine.cout_workspace
         return self.basis_cout
 
     @property
     def out_workspace(self):
+        if self._reference_engine is not None:
+            return self._reference_engine.out_workspace
         return self.basis_out
 
     def _allocate_workspaces(self):
@@ -397,6 +460,13 @@ class ReducedBasisSearchEngine:
         """
         Submit a data block for reduced-basis filtering and reconstruction.
         """
+        psd_plan.validate(self.basis_plan)
+        if self.basis_plan.content_hash != self._plan_content_hash:
+            raise ValueError("Reduced-basis plan changed; create a new engine")
+        if self._reference_engine is not None:
+            return self._reference_engine.submit(
+                data_block, psd_plan.reference_psd, valid_interval, block_id,
+            )
         self._ticket_counter += 1
         ticket = Ticket(
             ticket_id=self._ticket_counter,
@@ -554,11 +624,15 @@ class ReducedBasisSearchEngine:
         return ticket
 
     def drain(self) -> List[Ticket]:
-        """Drain completed ticket."""
+        """Drain completed reference tickets."""
+        if self._reference_engine is not None:
+            return self._reference_engine.drain()
         return []
 
     def close(self):
         """Clean up buffers."""
+        if self._reference_engine is not None:
+            self._reference_engine.close()
         if hasattr(self, "basis_cout"):
             del self.basis_cout
         if hasattr(self, "basis_out"):
