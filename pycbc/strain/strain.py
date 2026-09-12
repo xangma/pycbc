@@ -2489,7 +2489,9 @@ class StrainBuffer(pycbc.frame.DataBuffer):
                 fseries_tensor = torch.fft.rfft(tensor) * self.strain.delta_t
                 fseries = FrequencySeries(
                     wrap_backend_array(fseries_tensor),
-                    delta_f=delta_f,
+                    # Whitening precedes padding removal, so its PSD must
+                    # use the frequency grid of the full padded transform.
+                    delta_f=1.0 / (len(tensor) * self.strain.delta_t),
                     epoch=self.strain._epoch + s * self.strain.delta_t,
                     copy=False,
                 )
