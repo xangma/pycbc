@@ -270,6 +270,67 @@ def test_tiled_live_batch_filter(device):
 
 
 @pytest.mark.parametrize("device", DEVICES)
+@pytest.mark.parametrize("with_triggers", [False, True])
+def test_tiled_live_output_hdf_contract(device, with_triggers, tmp_path):
+    import h5py
+    import os
+    import sys
+
+    templates, reader = _make_live_fixtures(num_templates=2)
+    stilde = reader.overwhitened_data(templates[0].delta_f)
+    stilde.start_time = 1272790002.875
+    reader.start_time = stilde.start_time  # Real Live readers use LIGOTimeGPS.
+    for template in templates:
+        template.params = np.array(
+            [(20.0, "TaylorF2")],
+            dtype=[("mass1", np.float32),
+                   ("approximant", h5py.string_dtype(encoding="utf-8"))],
+        )[0]
+    live_filter = TiledLiveBatchMatchedFilter(
+        templates, snr_threshold=0 if with_triggers else np.inf,
+        chisq_bins=16, sg_chisq=types.SimpleNamespace(do=False),
+        tile_size=2, device=device,
+    )
+    result = live_filter.process_data(reader)
+    count = 2 if with_triggers else 0
+    assert len(result["snr"]) == count
+    assert result["end_time"].dtype == np.dtype("float64")
+    assert result["approximant"].dtype.kind == "U"
+    if with_triggers:
+        assert np.all(result["end_time"] >= float(reader.start_time))
+        assert np.all(result["end_time"] < float(reader.start_time) + 128)
+
+    # Reproduce MPI gathering, then execute the actual CLI output method.
+    gathered = {key: np.concatenate([value]) for key, value in result.items()}
+    live_path = Path(__file__).resolve().parents[1] / "bin" / "pycbc_live"
+    parsed = ast.parse(live_path.read_text(), filename=str(live_path))
+    manager = next(node for node in parsed.body
+                   if isinstance(node, ast.ClassDef)
+                   and node.name == "LiveEventManager")
+    dump = next(node for node in manager.body
+                if isinstance(node, ast.FunctionDef) and node.name == "dump")
+    namespace = {
+        "h5py": h5py, "numpy": np, "os": os, "sys": sys,
+        "version": types.SimpleNamespace(git_verbose_msg="output contract"),
+    }
+    exec(compile(ast.Module(body=[dump], type_ignores=[]), str(live_path),
+                 "exec"), namespace)
+    namespace["dump"](
+        types.SimpleNamespace(get_out_dir_path=lambda _: str(tmp_path),
+                              live_detectors={"H1"}),
+        {"H1": gathered}, "triggers", raw_results={},
+    )
+    with h5py.File(tmp_path / "triggers.hdf", "r") as output:
+        assert output["H1/end_time"].dtype == np.dtype("float64")
+        assert output["H1/approximant"].shape == (count,)
+        for key in result.keys() - {"approximant"}:
+            np.testing.assert_array_equal(output[f"H1/{key}"][:], result[key])
+        if with_triggers:
+            assert (output["H1/approximant"].asstr()[:].tolist() ==
+                    ["TaylorF2"] * 2)
+
+
+@pytest.mark.parametrize("device", DEVICES)
 def test_tiled_live_batch_abort(device):
     templates, data_reader = _make_live_fixtures(num_templates=2, size=256)
 

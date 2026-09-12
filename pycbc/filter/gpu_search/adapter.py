@@ -841,7 +841,15 @@ class TiledLiveBatchMatchedFilter:
             tparams = getattr(t0, "params", None)
             if tparams is not None and hasattr(tparams, "dtype") and tparams.dtype.names:
                 for name in tparams.dtype.names:
-                    res[name] = np.empty(0, dtype=tparams.dtype[name])
+                    dtype = tparams.dtype[name]
+                    if dtype.kind == "O" and isinstance(
+                        tparams[name], (str, bytes)
+                    ):
+                        # HDF variable-length strings use object metadata that
+                        # concatenation can discard. Match populated results'
+                        # inferred string dtype before MPI/HDF serialization.
+                        dtype = np.asarray(tparams[name]).dtype
+                    res[name] = np.empty(0, dtype=dtype)
         return res
 
     def set_data(self, data: Any):
@@ -967,7 +975,7 @@ class TiledLiveBatchMatchedFilter:
         sample_indices = cands["sample_idx"]
         complex_snrs = np.asarray(cands["snr"], dtype=np.complex64)
         result["end_time"] = (
-            self.data.start_time
+            float(self.data.start_time)
             + (sample_indices - valid_start).astype(np.float64) / self.data.sample_rate
         )
         result["snr"] = np.abs(complex_snrs).astype(np.float32)
