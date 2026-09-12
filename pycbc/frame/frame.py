@@ -554,6 +554,10 @@ class DataBuffer(object):
         )
 
         raw_size = self.raw_sample_rate * max_buffer
+        if not numpy.isfinite(raw_size) or raw_size <= 0 or raw_size % 1:
+            raise ValueError("frame buffer duration must contain a positive "
+                             "integer number of samples")
+        raw_size = int(raw_size)
         self.raw_buffer = TimeSeries(
             zeros(raw_size, dtype=dtype),
             copy=False,
