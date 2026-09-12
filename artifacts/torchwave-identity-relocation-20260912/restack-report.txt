@@ -1,0 +1,35 @@
+TorchWave provider identity relocation restack (2026-09-12)
+
+Original -> prepared refs:
+torch-pr6-waveform              0faa84ce02620b8b9865f4ba6f4e76e4f965f431 -> b2b785f9869e4b476663b0a43bdc385cefadf808
+torch-pr7-taylorf2              0a8812d0275159b8a7e5f9f9eb67f3f4ca514769 -> 1f1fed0cc5730317c6dcfe4b8e1fd0e8724d0c59
+torch-pr8-domain-compat         ab4d97308e6e9eb1b8bc33195fb69f0f0427e618 -> ea792b4cb4c8de61bb74ec22cd7dbba64b52a959
+torch-pr9-detector              09e06d566729c7c189a385de02f72203fd7602e3 -> f38feb524d600a5f77d222473a3d02cecd7202f3
+torch-pr10-inference            0376dd3b385bc8271d4cb52b3c40171581ffe672 -> ac679fadb557e7c8d49697a9a3d39bc6aff37c4c
+torch-pr11-performance-evidence dc4f0f87fc3c961d959bc038978781e3020b3064 -> d9687892605bdf96b6c5f906a7155e6dd6460363
+
+Range-diff results (original range = prepared range):
+PR7: 1: 0a8812d02 = 1: 1f1fed0cc
+PR8: 1: ab4d97308 = 1: ea792b4cb
+PR9: 1: 09e06d566 = 1: f38feb524
+PR10: 1: 0376dd3b3 = 1: ac679fad
+PR11: 1: f3046c507 = 1: 66842d390; 2: b825238a6 = 2: 20f52fd99; 3: f4714a9e1 = 3: dfe46822c; 4: d0aa34d64 = 4: fde9a3a53; 5: dc4f0f87f = 5: d96878926
+
+Final tree check:
+git diff --name-status dc4f0f87fc3c961d959bc038978781e3020b3064 d9687892605bdf96b6c5f906a7155e6dd6460363
+M pycbc/waveform/torchwave.py
+A test/test_torchwave_provider_identity.py
+
+Prepared worktrees:
+/Users/xangma/repos/pycbc-worktrees/provider-identity-20260912
+/Users/xangma/repos/pycbc-worktrees/provider-identity-pr7-20260912
+/Users/xangma/repos/pycbc-worktrees/provider-identity-pr8-20260912
+/Users/xangma/repos/pycbc-worktrees/provider-identity-pr9-20260912
+/Users/xangma/repos/pycbc-worktrees/provider-identity-pr10-20260912
+/Users/xangma/repos/pycbc-worktrees/provider-identity-pr11-20260912
+
+No tests were run locally per instruction; no remote refs, original refs, or main checkout were modified.
+
+Prepared source hashes:
+test/test_torchwave_provider_identity.py 70917971cbbade3480da3e004e98fbecceb7e7c24703df0cd847028c04c54d02
+pycbc/waveform/torchwave.py              3ef9d0a890625e1db935ab20f177c24a71f49876df67deb61c38546b2ce5bc50

@@ -12,6 +12,11 @@ The final target-host suite passed **482 tests, zero skips**, in 38.46 seconds.
 The preceding 474-test checkpoint at `6fc453fc` is retained separately and is
 not used as the final source's performance evidence.
 
+A subsequent [source-identity helper relocation](../artifacts/torchwave-identity-relocation-20260912/README.md)
+moves only code introduced in this work into TorchWave. PyCBC requires the
+relocated API without an older-version fallback. Its separate 39-test record
+does not replace or extend the performance qualification above.
+
 The acquisition record is [measured results](../artifacts/torch-remediation-implementation-20260912/measurements.md),
 with [raw evidence and reproduction instructions](../artifacts/torch-remediation-implementation-20260912/README.md).
 A test name below identifies coverage; it does not imply another experiment.
