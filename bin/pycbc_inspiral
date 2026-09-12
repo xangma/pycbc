@@ -211,6 +211,14 @@ parser.add_argument("--batch-size", "--tile-size", type=int, default=None,
                     dest="batch_size",
                     help="Number of templates to filter in a batch/tile. If not set, "
                          "defaults to 64 for Torch CUDA, 16 for Torch CPU, and 1 for legacy schemes.")
+parser.add_argument(
+    "--enable-torchwave", action="store_true", default=False,
+    help="Enable direct on-device batched waveform generation via torchwave"
+)
+parser.add_argument(
+    "--disable-torchwave", action="store_true", default=False,
+    help="Disable batched waveform generation via torchwave"
+)
 
 # Add options groups
 psd.insert_psd_option_group(parser)
@@ -222,6 +230,10 @@ pycbc.opt.insert_optimization_option_group(parser)
 pycbc.inject.insert_injfilterrejector_option_group(parser)
 SingleDetSGChisq.insert_option_group(parser)
 opt = parser.parse_args()
+if opt.enable_torchwave and opt.disable_torchwave:
+    parser.error("--enable-torchwave and --disable-torchwave are mutually exclusive")
+if opt.enable_torchwave and not hasattr(waveform.FilterBank, "can_use_torchwave"):
+    parser.error("This build does not include the optional TorchWave provider")
 
 # Check that the values returned for the options make sense
 psd.verify_psd_options(opt, parser)
@@ -290,23 +302,41 @@ def batch_template_triggers(batch_tnums):
 
     batch_templates = []
     tparams = []
-    for i, t_num in enumerate(batch_tnums):
-        bank.out = tile_mem[i]
+    prepared_batch = None
+
+    if bank_uses_torchwave:
+        mf_device = getattr(matched_filter, "device", "cpu")
+        dev = "cpu" if mf_device == "numpy" else mf_device
         if _session is not None:
-            tmpl = _session.template(bank, t_num)
+            prepared_batch, batch_templates = _session.template_batch(
+                bank, batch_tnums, device=dev
+            )
         else:
-            tmpl = bank[t_num]
-        batch_templates.append(tmpl)
-        tparams.append(tmpl.params)
+            prepared_batch, batch_templates = bank.get_batch_tensor(
+                batch_tnums, device=dev
+            )
+        tparams = [tmpl.params for tmpl in batch_templates]
+    else:
+        for i, t_num in enumerate(batch_tnums):
+            bank.out = tile_mem[i]
+            if _session is not None:
+                tmpl = _session.template(bank, t_num)
+            else:
+                tmpl = bank[t_num]
+            batch_templates.append(tmpl)
+            tparams.append(tmpl.params)
 
     out_vals_all_list = [[] for _ in range(b)]
     sigmasq_caches = [{} for _ in range(b)]
-    prepared_batch = None
 
     for s_num, stilde in enumerate(segments):
         active_indices = []
         active_templates = []
         active_sigmasqs = []
+        session_norms = (
+            _session.sigmasq_batch(batch_templates, batch_tnums, stilde.psd)
+            if _session is not None else None
+        )
         for i, t_num in enumerate(batch_tnums):
             if not inj_filter_rejector.template_segment_checker(
                     bank, t_num, stilde):
@@ -319,7 +349,7 @@ def batch_template_triggers(batch_tnums):
                 sigmasq = sigmasq_caches[i][psd_id]
             else:
                 if _session is not None:
-                    sigmasq = _session.sigmasq(tmpl, t_num, stilde.psd)
+                    sigmasq = session_norms[i]
                 else:
                     sigmasq = tmpl.sigmasq(stilde.psd)
                 sigmasq_caches[i][psd_id] = sigmasq
@@ -643,24 +673,48 @@ with ctx:
         seg /= seg.psd
 
     logging.info("Read in template bank")
-    bank = waveform.FilterBank(opt.bank_file, flen, delta_f,
-        low_frequency_cutoff=None if opt.enable_bank_start_frequency else flow,
-        dtype=complex64, phase_order=opt.order,
-        taper=opt.taper_template, approximant=opt.approximant,
+    enable_torchwave = (
+        False if opt.disable_torchwave else (
+            bool(opt.enable_torchwave)
+        )
+    )
+    bank = waveform.FilterBank(
+        opt.bank_file,
+        flen,
+        delta_f,
+        low_frequency_cutoff=(
+            None if opt.enable_bank_start_frequency else flow
+        ),
+        dtype=complex64,
+        phase_order=opt.order,
+        taper=opt.taper_template,
+        approximant=opt.approximant,
         out=None if use_tiled_adapter else template_mem,
         max_template_length=opt.max_template_length,
-        enable_compressed_waveforms=True if opt.use_compressed_waveforms else False,
-        waveform_decompression_method=
-        opt.waveform_decompression_method if opt.use_compressed_waveforms else None)
+        enable_compressed_waveforms=bool(opt.use_compressed_waveforms),
+        waveform_decompression_method=(
+            opt.waveform_decompression_method
+            if opt.use_compressed_waveforms
+            else None
+        ),
+        **({"enable_torchwave": enable_torchwave}
+           if hasattr(waveform.FilterBank, "can_use_torchwave") else {}),
+    )
 
     sg_chisq = SingleDetSGChisq.from_cli(opt, bank, opt.chisq_bins)
 
     logging.info("Full template bank size: %s", len(bank))
     bank.template_thinning(inj_filter_rejector)
     logging.info("Template bank size after thinning: %s", len(bank))
+    bank_uses_torchwave = (
+        use_tiled_adapter
+        and not opt.use_compressed_waveforms
+        and getattr(bank, "can_use_torchwave", lambda: False)()
+    )
 
     if _inspiral_session is not None:
         _session_cfg = {
+            "enable_torchwave": enable_torchwave,
             "approximant": opt.approximant,
             "order": opt.order,
             "f_lower": opt.low_frequency_cutoff,

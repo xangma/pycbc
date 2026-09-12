@@ -62,7 +62,7 @@ def _make_offline_fixtures(filter_length=513, delta_f=0.5):
     s_data[0] = 0.0
     seg = FrequencySeries(s_data, delta_f=delta_f)
     seg.psd = FrequencySeries(np.ones(filter_length, dtype=np.float32) * 2.0, delta_f=delta_f)
-    seg.analyze = slice(100, 900)
+    seg.analyze = slice(min(100, N), min(900, N))
     seg._epoch = 0
 
     return template_mem, [seg], N, delta_f
@@ -1183,6 +1183,7 @@ def _execute_actual_cli_batch(
         "flow": flow,
         "logging": types.SimpleNamespace(info=lambda *args, **kwargs: None),
         "bank": BankStub(),
+        "bank_uses_torchwave": False,
         "tile_mem": tile_mem,
         "segments": segments,
         "inj_filter_rejector": types.SimpleNamespace(

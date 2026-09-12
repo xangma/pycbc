@@ -7,6 +7,7 @@ within a persistent worker process, bound by an explicit LRU memory budget.
 import collections
 import hashlib
 import json
+import operator
 import types
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
@@ -97,6 +98,8 @@ class InspiralSession:
             "bank_invalidations": 0,
             "template_hits": 0,
             "template_misses": 0,
+            "batch_hits": 0,
+            "batch_misses": 0,
             "sigmasq_hits": 0,
             "sigmasq_misses": 0,
             "evictions": 0,
@@ -141,6 +144,7 @@ class InspiralSession:
             getattr(bank, "f_lower", None),
             getattr(bank, "max_template_length", None),
             getattr(bank, "enable_compressed_waveforms", None),
+            getattr(bank, "enable_torchwave", False),
             getattr(bank, "waveform_decompression_method", None),
             json.dumps(getattr(bank, "extra_args", {}), sort_keys=True),
             cfg_hash,
@@ -222,10 +226,45 @@ class InspiralSession:
 
         return tmpl
 
+    def template_batch(self, bank, indices, device="cpu", dtype=None):
+        """Cache raw provider batches independently of PSD-bound statistics.
+
+        Returned tensors own their storage. Cache records contain no waveform
+        views or bound methods, so eviction cannot retain an unaccounted batch.
+        The provider key includes effective row parameters and code identity;
+        device and requested storage precision also participate in reuse.
+        """
+        from pycbc.waveform.torchwave import template_metadata
+
+        indices = tuple(operator.index(i) for i in indices)
+        key = ("batch", bank.waveform_batch_key(indices), str(device),
+               str(dtype if dtype is not None else bank.dtype))
+        cached = self.lru_cache.get(key) if self.cache_bytes else None
+        if cached is not None:
+            self.stats["batch_hits"] += 1
+            self.lru_cache.move_to_end(key)
+            data = cached["data"].clone()
+            templates = bank.wrap_batch_tensor(indices, data, cached["metadata"])
+        else:
+            self.stats["batch_misses"] += 1
+            data, templates = bank.get_batch_tensor(indices, device=device,
+                                                   dtype=dtype)
+            size = (data.numel() * data.element_size() +
+                    len(indices) * TEMPLATE_OVERHEAD_BYTES)
+            if size <= self.cache_bytes:
+                self._evict_lru(size)
+                self.lru_cache[key] = {
+                    "data": data.detach().clone(),
+                    "metadata": template_metadata(templates),
+                    "nbytes": size,
+                }
+                self.current_bytes += size
+        for index, tmpl in zip(indices, templates):
+            tmpl._session_waveform_key = (key, index)
+        return data, templates
+
     def _psd_digest(self, psd_obj: Any) -> str:
         psd_id = id(psd_obj)
-        if psd_id in self._shard_psds:
-            return self._shard_psds[psd_id][1]
 
         if hasattr(psd_obj, "numpy"):
             arr = psd_obj.numpy()
@@ -238,17 +277,40 @@ class InspiralSession:
         hasher.update(delta_f.encode("ascii"))
         hasher.update(np.ascontiguousarray(arr).tobytes())
         digest = hasher.hexdigest()
+        previous = self._shard_psds.get(psd_id)
+        if previous is not None and previous[1] != digest:
+            # sigma_cached also caches PSD-derived arrays by object identity.
+            # Content changes must invalidate those before any recomputation.
+            for attr in ("_sigma_cached_key", "sigmasq_vec", "invsqrt"):
+                if hasattr(psd_obj, attr):
+                    delattr(psd_obj, attr)
         self._shard_psds[psd_id] = (psd_obj, digest)
         return digest
 
     def sigmasq(self, tmpl: Any, index: int, psd_obj: Any) -> Any:
         """Evaluate or retrieve cached scalar template sigmasq."""
+        return self._sigmasq_with_digest(
+            tmpl, index, psd_obj, self._psd_digest(psd_obj)
+        )
+
+    def sigmasq_batch(self, templates, indices, psd_obj):
+        """Evaluate a batch against one content-checked immutable PSD view.
+
+        The caller must not mutate the PSD during this synchronous operation.
+        Each call checks contents again, including reused PSD object IDs.
+        """
+        if len(templates) != len(indices):
+            raise ValueError("templates and indices must have equal lengths")
+        digest = self._psd_digest(psd_obj)
+        return [self._sigmasq_with_digest(t, i, psd_obj, digest)
+                for t, i in zip(templates, indices)]
+
+    def _sigmasq_with_digest(self, tmpl, index, psd_obj, digest):
         if self.cache_bytes <= 0:
             self.stats["sigmasq_misses"] += 1
             return tmpl.sigmasq(psd_obj)
-
-        digest = self._psd_digest(psd_obj)
-        cache_key = ("sigma", int(index), digest)
+        waveform_key = getattr(tmpl, "_session_waveform_key", int(index))
+        cache_key = ("sigma", waveform_key, digest)
         if cache_key in self.lru_cache:
             self.lru_cache.move_to_end(cache_key)
             self.stats["sigmasq_hits"] += 1
