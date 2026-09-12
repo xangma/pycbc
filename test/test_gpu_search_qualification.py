@@ -219,10 +219,10 @@ def test_live_adapter_sustained_workflow(device):
 
 
 def test_qualification_receipt_metrics():
-    """Verify sealed qualification receipt conforms to production constraints."""
+    """Inspect retained historical measurements without qualifying current code."""
     import json
     from pathlib import Path
-    from tools.benchmarking.benchmark_gpu_search import validate_qualification_receipt
+    from tools.benchmarking.benchmark_gpu_search import inspect_historical_receipt
 
     receipt_path = (
         Path(__file__).resolve().parent.parent
@@ -238,8 +238,9 @@ def test_qualification_receipt_metrics():
     benchmarks = receipt.get("benchmarks", {})
     insp = benchmarks.get("production_inspiral_workload", {})
 
-    # Production qualification strictly requires full workload validation (no fallback)
-    assert validate_qualification_receipt(receipt, require_full_workload=True) is True
+    inspection = inspect_historical_receipt(receipt)
+    assert inspection["valid_historical_receipt"] is True
+    assert inspection["is_production_qualified"] is False
 
     assert "gpu_tile_scaling" in benchmarks
     assert "cpu_tile_scaling" in benchmarks
@@ -304,6 +305,7 @@ def test_qualification_receipt_rejections():
     from tools.benchmarking.benchmark_gpu_search import validate_qualification_receipt
 
     base_receipt = {
+        "schema_version": 2,
         "benchmarks": {
             "production_inspiral_workload": {
                 "num_templates": 384,
@@ -316,6 +318,10 @@ def test_qualification_receipt_rejections():
                 "cpu_max_snr_diff": 1e-5,
                 "cpu_max_chisq_diff": 1e-4,
                 "calc_templates_per_sec": 2000.0,
+                "transform_length": 2097152, "delta_f": 1 / 512,
+                "sample_rate_hz": 4096, "duration_sec": 512,
+                "raw_segment_submit_drain_seconds": [0.1] * 5,
+                "cpu_snr_comparison": "complex candidate difference; not full time series",
             }
         }
     }
@@ -336,6 +342,7 @@ def test_qualification_receipt_rejections():
         validate_qualification_receipt(rec)
 
     # Historical review mode allows partial counts > 1
+    rec.pop("schema_version")
     assert validate_qualification_receipt(rec, require_full_workload=False) is True
 
     # Completely missing production_inspiral_workload benchmark rejected in production mode
@@ -834,6 +841,7 @@ def test_save_qualification_receipt_atomic_and_prevalidation(tmp_path):
     from tools.benchmarking.benchmark_gpu_search import save_qualification_receipt
 
     valid_report = {
+        "schema_version": 2,
         "benchmarks": {
             "production_inspiral_workload": {
                 "num_templates": 384,
@@ -846,6 +854,10 @@ def test_save_qualification_receipt_atomic_and_prevalidation(tmp_path):
                 "cpu_max_snr_diff": 1e-5,
                 "cpu_max_chisq_diff": 1e-4,
                 "calc_templates_per_sec": 2000.0,
+                "transform_length": 2097152, "delta_f": 1 / 512,
+                "sample_rate_hz": 4096, "duration_sec": 512,
+                "raw_segment_submit_drain_seconds": [0.1] * 5,
+                "cpu_snr_comparison": "complex candidate difference; not full time series",
             }
         }
     }
@@ -1044,7 +1056,7 @@ def test_historical_receipt_inspection_separation():
     assert res["total_matched_filters"] == 1920
     assert res["provenance_recorded"] is True
 
-    # Full workload receipt is marked production qualified
+    # Full historical counts still cannot qualify a current source revision.
     full_receipt = {
         "benchmarks": {
             "production_inspiral_workload": {
@@ -1063,7 +1075,8 @@ def test_historical_receipt_inspection_separation():
     }
     res_full = inspect_historical_receipt(full_receipt)
     assert res_full["valid_historical_receipt"] is True
-    assert res_full["is_production_qualified"] is True
+    assert res_full["is_production_qualified"] is False
+    assert res_full["complete_historical_comparison_count"] is True
     assert res_full["cpu_comparison_count"] == 1920
 
 
@@ -1128,7 +1141,6 @@ def test_fresh_process_cpu_reference_concurrency_regression():
     assert res.returncode == 0, (
         f"Fresh-process test failed (returncode={res.returncode}):\nSTDOUT:\n{res.stdout}\nSTDERR:\n{res.stderr}"
     )
-
 
 
 

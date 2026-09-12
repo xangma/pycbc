@@ -16,8 +16,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 """
-End-to-end performance benchmarking and qualification script for the
-PyCBC persistent PyTorch GPU search engine.
+Fixture-scoped prepared-engine measurements and numerical checks.
+Selected timing subtotals are not complete-executable process wall time.
 """
 
 from __future__ import annotations
@@ -29,10 +29,13 @@ import json
 import os
 import platform
 import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import numpy as np
 
@@ -42,6 +45,7 @@ except ImportError:
     torch = None
 
 from pycbc.types import FrequencySeries
+from tools.benchmarking.evidence import array_hash, execution_provenance
 from pycbc.filter.gpu_search import (
     prepare_bank,
     bind_psd,
@@ -97,59 +101,19 @@ def generate_taylorf2_bank(
     m1_vals = np.linspace(10.0, 50.0, num_templates, dtype=np.float64)
     m2_vals = np.linspace(1.4, 25.0, num_templates, dtype=np.float64)
 
-    has_lalsim = False
-    try:
-        from pycbc.waveform import get_fd_waveform
-
-        _hp, _ = get_fd_waveform(
-            approximant="TaylorF2",
-            mass1=20.0,
-            mass2=10.0,
-            delta_f=delta_f,
-            f_lower=f_lower,
-        )
-        has_lalsim = True
-    except Exception:
-        has_lalsim = False
+    # A failed reference generator is a failed reference workload. Never label
+    # an analytic approximation as the requested physical model.
+    from pycbc.waveform import get_fd_waveform
 
     for i in range(num_templates):
-        m1 = float(m1_vals[i])
-        m2 = float(m2_vals[i])
-        if has_lalsim:
-            hp, _ = get_fd_waveform(
-                approximant="TaylorF2",
-                mass1=m1,
-                mass2=m2,
-                delta_f=delta_f,
-                f_lower=f_lower,
-                f_final=f_upper,
-            )
-            hp_data = np.zeros(flen, dtype=np.complex64)
-            copy_len = min(len(hp), flen)
-            hp_data[:copy_len] = hp.numpy()[:copy_len]
-        else:
-            M = m1 + m2
-            eta = (m1 * m2) / (M**2)
-            M_sec = M * 4.925491025543576e-6
-            freqs = np.linspace(0, (flen - 1) * delta_f, flen, dtype=np.float64)
-            kmin = max(1, int(f_lower / delta_f))
-            kmax = min(flen - 1, int(f_upper / delta_f))
-            v = (np.pi * M_sec * np.maximum(freqs[kmin:kmax], 1e-4)) ** (1.0 / 3.0)
-            psi = (3.0 / (128.0 * eta * (v**5))) * (
-                1.0
-                + (3715.0 / 756.0 + 55.0 / 9.0 * eta) * (v**2)
-                - 16.0 * np.pi * (v**3)
-                + (
-                    15293365.0 / 508032.0
-                    + 27145.0 / 504.0 * eta
-                    + 3085.0 / 72.0 * (eta**2)
-                )
-                * (v**4)
-            )
-            amp = (freqs[kmin:kmax] ** (-7.0 / 6.0)).astype(np.float32)
-            phase = psi - np.pi / 4.0
-            hp_data = np.zeros(flen, dtype=np.complex64)
-            hp_data[kmin:kmax] = amp * (np.cos(phase) - 1j * np.sin(phase))
+        m1, m2 = float(m1_vals[i]), float(m2_vals[i])
+        hp, _ = get_fd_waveform(
+            approximant="TaylorF2", mass1=m1, mass2=m2,
+            delta_f=delta_f, f_lower=f_lower, f_final=f_upper,
+        )
+        hp_data = np.zeros(flen, dtype=np.complex64)
+        copy_len = min(len(hp), flen)
+        hp_data[:copy_len] = hp.numpy()[:copy_len]
 
         pwr = np.sum(np.abs(hp_data) ** 2)
         if pwr > 0:
@@ -171,23 +135,8 @@ def generate_aligo_psd(
     """Generate colored aLIGOZeroDetHighPower PSD with consistent dynamic-range scaling."""
     from pycbc import DYN_RANGE_FAC
 
-    try:
-        from pycbc.psd import aLIGOZeroDetHighPower
-
-        psd = aLIGOZeroDetHighPower(flen, delta_f, low_freq_cutoff=f_lower)
-    except Exception:
-        freqs = np.linspace(0, (flen - 1) * delta_f, flen, dtype=np.float64)
-        x = np.maximum(freqs / 215.0, 1e-4)
-        s0 = 1e-49
-        psd_vals = s0 * (
-            x ** (-4.14)
-            - 5.0 * (x ** (-2))
-            + 111.0 * (1.0 - (x**2) + 0.5 * (x**4)) / (1.0 + 0.5 * (x**2))
-        )
-        psd_vals = np.maximum(psd_vals, 1e-50)
-        kmin = int(f_lower / delta_f)
-        psd_vals[:kmin] = 0.0
-        psd = FrequencySeries(psd_vals, delta_f=delta_f)
+    from pycbc.psd import aLIGOZeroDetHighPower
+    psd = aLIGOZeroDetHighPower(flen, delta_f, low_freq_cutoff=f_lower)
 
     # Scale PSD by DYN_RANGE_FAC**2 to match PyCBC single-precision convention
     psd_vals = (psd.numpy() if hasattr(psd, "numpy") else np.asarray(psd)).astype(np.float64)
@@ -228,6 +177,8 @@ def benchmark_tile_scaling(
     warmup: int = 5,
     iterations: int = 20,
 ) -> Dict[str, Any]:
+    if isinstance(size, bool) or size < 8 or size % 2:
+        raise ValueError("size must be an even transform length >= 8")
     flen = size // 2 + 1
     delta_f = 1.0 / size
     templates = generate_synthetic_bank(num_templates, flen, delta_f)
@@ -285,7 +236,22 @@ def benchmark_tile_scaling(
         first_iter_tmplt_per_sec = float(num_templates / first_iter_wall_time) if first_iter_wall_time > 0 else 0.0
 
         results[f"tile_size_{ts}"] = {
+            "experiment_class": "filtering_only",
+            "input_hashes": {
+                "waveforms": array_hash(np.stack([row.numpy() for row in templates])),
+                "strain": array_hash(stilde.numpy()), "psd": array_hash(psd.numpy()),
+            },
             "tile_size": ts,
+            "transform_length": size,
+            "delta_f": delta_f,
+            "sample_rate_hz": size * delta_f,
+            "num_templates": num_templates,
+            "iterations": iterations,
+            "warmup_submissions": max(1, warmup),
+            "raw_submit_drain_seconds": times,
+            "timer_boundary": "synchronized host submit/drain; prepared inputs",
+            "setup_plus_one_warm_submission_sec": float(amortized_e2e_time),
+            "legacy_wall_fields_are_subtotals": True,
             "setup_time_sec": setup_time,
             "calc_time_sec": avg_calc_time,
             "calc_time_std_sec": std_calc_time,
@@ -311,6 +277,8 @@ def benchmark_cuda_graphs(
     if torch is None or not torch.cuda.is_available():
         return {"error": "CUDA not available"}
 
+    if isinstance(size, bool) or size < 8 or size % 2:
+        raise ValueError("size must be an even transform length >= 8")
     flen = size // 2 + 1
     delta_f = 1.0 / size
     templates = generate_synthetic_bank(num_templates, flen, delta_f)
@@ -373,6 +341,14 @@ def benchmark_cuda_graphs(
         "num_templates": num_templates,
         "tile_size": tile_size,
         "iterations": iterations,
+        "transform_length": size,
+        "delta_f": delta_f,
+        "sample_rate_hz": size * delta_f,
+        "warmup_submissions_per_mode": warmup,
+        "raw_eager_ms": eager_times,
+        "raw_graph_ms": graph_times,
+        "timer_boundary": "synchronized host submit/drain; all tiles",
+        "graph_coverage": "correlation/IFFT only",
         "eager": {
             "mean_ms": eager_mean,
             "p50_ms": eager_p50,
@@ -401,6 +377,8 @@ def benchmark_live_streaming_latency(
     if torch is None or not torch.cuda.is_available():
         return {"error": "CUDA not available"}
 
+    if isinstance(size, bool) or size < 8 or size % 2:
+        raise ValueError("size must be an even transform length >= 8")
     flen = size // 2 + 1
     delta_f = 1.0 / size
     templates = generate_synthetic_bank(num_templates, flen, delta_f)
@@ -426,7 +404,19 @@ def benchmark_live_streaming_latency(
         engine.drain()
     torch.cuda.synchronize()
 
+    torch.cuda.reset_peak_memory_stats()
     initial_vram = torch.cuda.memory_allocated()
+    memory_samples = []
+
+    def sample_memory(block):
+        memory_samples.append({
+            "block": block,
+            "allocated_bytes": torch.cuda.memory_allocated(),
+            "reserved_bytes": torch.cuda.memory_reserved(),
+            "peak_allocated_bytes": torch.cuda.max_memory_allocated(),
+        })
+
+    sample_memory(-1)
 
     latencies = []
     for i in range(num_blocks):
@@ -436,6 +426,7 @@ def benchmark_live_streaming_latency(
         torch.cuda.synchronize()
         t1 = time.perf_counter()
         latencies.append((t1 - t0) * 1000.0)
+        sample_memory(i)
 
     final_vram = torch.cuda.memory_allocated()
     peak_vram = torch.cuda.max_memory_allocated()
@@ -446,6 +437,17 @@ def benchmark_live_streaming_latency(
 
     return {
         "num_blocks": num_blocks,
+        "transform_length": size,
+        "delta_f": delta_f,
+        "sample_rate_hz": size * delta_f,
+        "num_templates": num_templates,
+        "tile_size": tile_size,
+        "warmup_blocks": 5,
+        "raw_latency_ms": latencies,
+        "memory_samples": memory_samples,
+        "memory_growth_threshold_bytes": 1024 * 1024,
+        "memory_growth_exceeds_threshold": bool(vram_growth > 1024 * 1024),
+        "memory_claim": "sampled allocator growth; not proof of absence of leaks",
         "double_buffering": double_buffering,
         "latency_p50_ms": float(np.percentile(latencies, 50)),
         "latency_p95_ms": float(np.percentile(latencies, 95)),
@@ -831,7 +833,7 @@ def compare_template_candidates(
             )
         max_time_diff = max(max_time_diff, diff_time)
 
-        diff_snr = float(abs(abs(g_c["snr"]) - abs(c_c["snr"])))
+        diff_snr = float(abs(complex(g_c["snr"]) - complex(c_c["snr"])))
         if not np.isfinite(diff_snr) or diff_snr >= tolerance_snr:
             raise RuntimeError(
                 f"Segment {segment_idx} template {template_idx}: SNR mismatch: diff={diff_snr:.6e} (GPU={abs(g_c['snr']):.4f}, CPU={abs(c_c['snr']):.4f})"
@@ -870,6 +872,7 @@ def benchmark_production_inspiral(
     num_segments: int = 5,
     device: str = "cuda",
     cpu_ref_workers: int = 1,
+    sample_rate: float = 4096.0,
 ) -> Dict[str, Any]:
     """
     Benchmark the full production inspiral search workload:
@@ -877,10 +880,14 @@ def benchmark_production_inspiral(
     colored aLIGOZeroDetHighPower PSD, 5 distinct data segments, Power chisq vetoes,
     and CPU reference comparison.
     """
+    if isinstance(size, bool) or size < 8 or size % 2:
+        raise ValueError("size must be an even transform length >= 8")
     flen = size // 2 + 1
-    delta_f = 1.0 / 512.0  # 512 seconds of data @ 4096 Hz
+    if not np.isfinite(sample_rate) or sample_rate <= 40:
+        raise ValueError("sample_rate must be finite and exceed 40 Hz")
+    delta_f = sample_rate / size
     f_lower = 20.0
-    f_upper = 1000.0
+    f_upper = min(1000.0, sample_rate / 2)
     valid_interval = (int(0.05 * size), int(0.95 * size))
 
     t_gen_0 = time.perf_counter()
@@ -890,6 +897,8 @@ def benchmark_production_inspiral(
     templates = generate_taylorf2_bank(
         num_templates, flen, delta_f, f_lower=f_lower, f_upper=f_upper
     )
+
+    waveform_generation_time = time.perf_counter() - t_gen_0
 
     print("   [2/5] Generating colored aLIGOZeroDetHighPower PSD...")
     psd = generate_aligo_psd(flen, delta_f, f_lower=f_lower)
@@ -1168,8 +1177,8 @@ def benchmark_production_inspiral(
 
     return {
         "transform_length": size,
-        "duration_sec": 512.0,
-        "sample_rate_hz": 4096.0,
+        "duration_sec": 1.0 / delta_f,
+        "sample_rate_hz": sample_rate,
         "delta_f": delta_f,
         "waveform_approximant": "TaylorF2",
         "psd_model": "aLIGOZeroDetHighPower",
@@ -1181,6 +1190,18 @@ def benchmark_production_inspiral(
         "total_matched_filters": total_matched_filters,
         "cluster_policy": "symmetric",
         "cluster_window_samples": cluster_window,
+        "schema_version": 2,
+        "experiment_class": "filtering_only",
+        "provider": "pycbc_reference",
+        "waveform_generation_time_sec": waveform_generation_time,
+        "fixture_preparation_time_sec": generation_time,
+        "preparation_plus_engine_subtotal_sec": total_wall_time,
+        "raw_segment_submit_drain_seconds": segment_times,
+        "legacy_timer_fields": {
+            "generation_time_sec": "waveforms, PSD, noise, hashing and injection",
+            "total_wall_time_sec": "preparation + setup + submit/drain subtotal; excludes validation and process/output",
+            "e2e_templates_per_sec": "throughput of preceding subtotal, not process throughput",
+        },
         "generation_time_sec": generation_time,
         "setup_time_sec": setup_time,
         "first_seg_calc_time_sec": first_seg_calc_time,
@@ -1219,6 +1240,7 @@ def benchmark_production_inspiral(
         "cpu_comparison_count": cpu_comparison_count,
         "cpu_validation_time_sec": cpu_validation_time_sec,
         "cpu_max_snr_diff": cpu_max_snr_diff,
+        "cpu_snr_comparison": "complex candidate difference; not full time series",
         "cpu_max_chisq_diff": cpu_max_chisq_diff,
         "cpu_peak_time_diff": cpu_peak_time_diff,
         "input_provenance": {
@@ -1368,7 +1390,69 @@ def validate_qualification_receipt(
                         f"Metric '{field}' in live_streaming_latency must be finite, got {val}"
                     )
 
+    if require_full_workload and receipt.get("schema_version") != 2:
+        raise ValueError("Current workload acceptance requires schema_version 2; inspect historical receipts separately")
+    if receipt.get("schema_version") == 2:
+        _validate_v2_measurements(benchmarks, require_full_workload)
     return True
+
+
+def _validate_v2_measurements(benchmarks, require_full_workload):
+    """Cross-check geometry and raw counts before accepting new measurements."""
+    def geometry(record):
+        size = record.get("transform_length")
+        if isinstance(size, bool) or not isinstance(size, (int, np.integer)) or size < 8 or size % 2:
+            raise ValueError("transform_length must be an even integer >= 8")
+        df, sample_rate = record.get("delta_f"), record.get("sample_rate_hz")
+        if not all(isinstance(value, (int, float)) and not isinstance(value, bool)
+                   and np.isfinite(value) and value > 0 for value in (df, sample_rate)):
+            raise ValueError("delta_f and sample_rate_hz must be positive finite numbers")
+        if not np.isclose(size * df, sample_rate, rtol=1e-12, atol=0):
+            raise ValueError("inconsistent transform_length, delta_f and sample_rate_hz")
+        if "duration_sec" in record and not np.isclose(record["duration_sec"] * df, 1, rtol=1e-12):
+            raise ValueError("inconsistent duration_sec and delta_f")
+
+    def samples(record, name, count):
+        values = record.get(name)
+        if not isinstance(values, list) or len(values) != count or not count:
+            raise ValueError(f"{name} count must equal recorded repetitions ({count})")
+        if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not np.isfinite(v) or v < 0
+               for v in values):
+            raise ValueError(f"{name} must contain finite nonnegative timings")
+
+    for name in ("cpu_tile_scaling", "gpu_tile_scaling"):
+        for record in benchmarks.get(name, {}).values():
+            geometry(record)
+            samples(record, "raw_submit_drain_seconds", record.get("iterations"))
+    if "cuda_graph_comparison" in benchmarks:
+        record = benchmarks["cuda_graph_comparison"]
+        geometry(record)
+        for name in ("raw_eager_ms", "raw_graph_ms"):
+            samples(record, name, record.get("iterations"))
+    if "live_streaming_latency" in benchmarks:
+        record = benchmarks["live_streaming_latency"]
+        geometry(record)
+        count = record.get("num_blocks")
+        samples(record, "raw_latency_ms", count)
+        trajectory = record.get("memory_samples", [])
+        if len(trajectory) != count + 1 or [r.get("block") for r in trajectory] != list(range(-1, count)):
+            raise ValueError("memory_samples must include baseline and every recorded block")
+        for row in trajectory:
+            for name in ("allocated_bytes", "reserved_bytes", "peak_allocated_bytes"):
+                value = row.get(name)
+                if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                    raise ValueError(f"memory sample {name} must be a nonnegative integer")
+    if "production_inspiral_workload" in benchmarks:
+        record = benchmarks["production_inspiral_workload"]
+        geometry(record)
+        samples(record, "raw_segment_submit_drain_seconds", record.get("num_segments"))
+        if record.get("cpu_comparison_count") != record.get("total_matched_filters"):
+            raise ValueError("version 2 requires every template-segment CPU comparison")
+        if record.get("cpu_snr_comparison") != "complex candidate difference; not full time series":
+            raise ValueError("version 2 requires explicitly recorded complex candidate SNR comparison")
+        if require_full_workload and (record["transform_length"] != 2097152 or
+                                      record["sample_rate_hz"] != 4096 or record.get("duration_sec") != 512):
+            raise ValueError("full workload requires N=2^21, 4096 Hz and 512 seconds")
 
 
 def inspect_historical_receipt(receipt: Dict[str, Any]) -> Dict[str, Any]:
@@ -1383,7 +1467,7 @@ def inspect_historical_receipt(receipt: Dict[str, Any]) -> Dict[str, Any]:
     insp = benchmarks.get("production_inspiral_workload", {})
     count = insp.get("cpu_comparison_count")
     total = insp.get("total_matched_filters")
-    is_production_qualified = (
+    complete_historical_comparison_count = (
         count == 1920
         and total == 1920
         and insp.get("num_templates") == 384
@@ -1391,7 +1475,9 @@ def inspect_historical_receipt(receipt: Dict[str, Any]) -> Dict[str, Any]:
     )
     return {
         "valid_historical_receipt": valid,
-        "is_production_qualified": is_production_qualified,
+        "is_production_qualified": False,
+        "complete_historical_comparison_count": complete_historical_comparison_count,
+        "qualification_reason": "historical counts do not establish current-source qualification",
         "cpu_comparison_count": count,
         "total_matched_filters": total,
         "provenance_recorded": "provenance" in receipt,
@@ -1476,6 +1562,7 @@ def capture_execution_provenance(
         "source_hashes_sha256": source_hashes,
         "benchmark_args": benchmark_args or {},
     }
+    provenance["execution_snapshot"] = execution_provenance(repo_root)
     if extra_details:
         provenance.update(extra_details)
     return provenance
@@ -1501,7 +1588,7 @@ def save_qualification_receipt(
     tmp_path = out_path.with_name(f"{out_path.name}.tmp.{os.getpid()}")
     try:
         with open(tmp_path, "w") as f:
-            json.dump(report, f, indent=2)
+            json.dump(report, f, indent=2, allow_nan=False)
         tmp_path.replace(out_path)
     finally:
         if tmp_path.exists():
@@ -1519,7 +1606,7 @@ def main(argv: Optional[List[str]] = None):
     parser.add_argument(
         "--output",
         type=str,
-        default="artifacts/gpu_search_qualification_receipt.json",
+        default="artifacts/gpu_search_qualification_v2.json",
         help="Output JSON path",
     )
     parser.add_argument(
@@ -1540,7 +1627,24 @@ def main(argv: Optional[List[str]] = None):
         default=1,
         help="Number of CPU reference comparison workers (default: 1 for safe serial execution)",
     )
+    parser.add_argument("--production-size", type=int, default=2097152,
+                        help="Physical workload N; independent of synthetic --size")
+    parser.add_argument("--sample-rate", type=float, default=4096.0)
+    parser.add_argument("--num-templates", type=int, default=64)
+    parser.add_argument("--production-templates", type=int, default=384)
+    parser.add_argument("--num-segments", type=int, default=5)
+    parser.add_argument("--tile-size", type=int, default=64)
+    parser.add_argument("--iterations", type=int, default=20)
+    parser.add_argument("--num-blocks", type=int, default=500)
     args = parser.parse_args(argv)
+    for field in ("size", "production_size", "num_templates", "production_templates",
+                  "num_segments", "tile_size", "iterations", "num_blocks", "cpu_ref_workers"):
+        if getattr(args, field) <= 0:
+            parser.error(f"--{field.replace('_', '-')} must be positive")
+    if args.size < 8 or args.production_size < 8 or args.size % 2 or args.production_size % 2:
+        parser.error("transform lengths must be even and >= 8")
+    if not np.isfinite(args.sample_rate) or args.sample_rate <= 40:
+        parser.error("--sample-rate must be finite and exceed 40 Hz")
 
     if args.include_production_inspiral and (torch is None or not torch.cuda.is_available()):
         raise RuntimeError(
@@ -1559,6 +1663,9 @@ def main(argv: Optional[List[str]] = None):
         }
 
     report = {
+        "schema_version": 2,
+        "qualification_scope": "recorded fixtures only; no current production certification",
+        "command": [sys.executable, *sys.argv],
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "hostname": platform.node(),
         "platform": platform.platform(),
@@ -1581,39 +1688,48 @@ def main(argv: Optional[List[str]] = None):
     if torch is not None and torch.cuda.is_available():
         print(f"--> Running GPU tile scaling benchmark (N={args.size})...")
         report["benchmarks"]["gpu_tile_scaling"] = benchmark_tile_scaling(
-            device="cuda", num_templates=512, size=args.size, tile_sizes=[1, 16, 64, 128, 256]
+            device="cuda", num_templates=args.num_templates, size=args.size,
+            tile_sizes=sorted(set([1, args.tile_size])), iterations=args.iterations
         )
     print(f"--> Running CPU tile scaling benchmark baseline (N={args.size})...")
     report["benchmarks"]["cpu_tile_scaling"] = benchmark_tile_scaling(
-        device="cpu", num_templates=64, size=args.size, tile_sizes=[1, 16, 64]
+        device="cpu", num_templates=args.num_templates, size=args.size,
+        tile_sizes=sorted(set([1, args.tile_size])), iterations=args.iterations
     )
 
     # 2. CUDA Graph comparison
     if torch is not None and torch.cuda.is_available():
         print("--> Running CUDA Graph vs Eager benchmark...")
         report["benchmarks"]["cuda_graph_comparison"] = benchmark_cuda_graphs(
-            num_templates=512, tile_size=64, iterations=50
+            num_templates=args.num_templates, size=args.size, tile_size=args.tile_size,
+            iterations=args.iterations
         )
 
         # 3. Live streaming latency & VRAM boundedness
         print("--> Running Live streaming latency and VRAM boundedness benchmark...")
         report["benchmarks"]["live_streaming_latency"] = benchmark_live_streaming_latency(
-            num_templates=512, tile_size=64, num_blocks=50, double_buffering=True
+            num_templates=args.num_templates, size=args.size, tile_size=args.tile_size,
+            num_blocks=args.num_blocks, double_buffering=True
         )
 
         # 4. Production Inspiral Workload (N=2^21, 384 templates, 5 segments = 1,920 matched filters)
         if args.include_production_inspiral:
             print("--> Running Production Inspiral workload (N=2^21, 384 templates, 5 segments = 1,920 filters)...")
             report["benchmarks"]["production_inspiral_workload"] = benchmark_production_inspiral(
-                num_templates=384,
-                size=2097152,
-                tile_size=64,
-                num_segments=5,
+                num_templates=args.production_templates,
+                size=args.production_size,
+                tile_size=args.tile_size,
+                num_segments=args.num_segments,
+                sample_rate=args.sample_rate,
                 device="cuda",
                 cpu_ref_workers=args.cpu_ref_workers,
             )
 
-    require_full = args.include_production_inspiral
+    report["device_status"] = {
+        "cpu": "executed", "cuda": "executed" if gpu_info else "skipped: CUDA unavailable"}
+    require_full = (args.include_production_inspiral and args.production_size == 2097152
+                    and args.production_templates == 384 and args.num_segments == 5
+                    and args.sample_rate == 4096)
     out_path = save_qualification_receipt(
         report, args.output, require_full_workload=require_full
     )

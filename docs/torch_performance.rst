@@ -144,131 +144,33 @@ theoretical ceiling. For larger template banks or longer segments, fixed
 startup overhead amortizes over more templates, narrowing the gap between
 executable wall speedup and filtering-stage speedup.
 
-All four routes produced exactly **2,203 pre-cut raw triggers** with
-identical SNRs and arrival times. After NewSNR thresholding (5.0), scalar
-routes yield 1,988 triggers and batched routes yield 1,989 triggers, with
-1,986 triggers being strictly bit-for-bit identical and the single difference
-arising from a knife-edge threshold crossing (:math:`\text{NewSNR} = 5.0001`
-vs :math:`4.9999` from fused GPU accumulation) as detailed in the
-qualification report.
+The historical comparison reports **2,203 pre-cut raw triggers** and
+1,988 scalar-route versus 1,989 batched-route survivors after NewSNR
+thresholding (5.0). Membership differs, so this does not establish strict
+reference-decision parity. Small differences among common candidates do not
+repair missing or additional identities. The precise arithmetic cause of the
+reported threshold crossings was not established by the receipt.
 
-Streaming live results: end-to-end vs calculation-stage time (pycbc_live)
--------------------------------------------------------------------------
+Prepared live results and unverified stream amortization
+--------------------------------------------------------
 
-The low-latency online search (``pycbc_live``) uses
-:class:`~pycbc.filter.matchedfilter.LiveBatchMatchedFilter` (or
-:class:`~pycbc.filter.gpu_search.adapter.TiledLiveBatchMatchedFilter`) on
-shorter frequency-domain blocks (:math:`N = 131,072` at 2048 Hz).
+Prepared calls to ``LiveBatchMatchedFilter.process_data`` use a separate
+synthetic fixture at N = 131,072 and 2048 Hz, as specified in
+:ref:`torch-batch-numerics`. They exclude executable startup, strain
+conditioning, PSD estimation and waveform preparation.
 
-Because ``pycbc_live`` is a long-running streaming service, its performance
-separates into:
+The former Tables 3 and 4 mixed prepared component rates with claimed
+cold/10/50/500-block end-to-end streaming results. The cited local
+``artifacts/live_batch_latest.json`` component receipt does not establish
+that stream-amortization campaign. Those tables and the derived sustained
+37.6--45.9x service-speedup claim are withdrawn as measured evidence.
+Actual service performance requires independently recorded process and
+preparation boundaries, identical output gates, and observed repetitions.
 
-1. **Calculation-stage latency & throughput per block**: The time required to
-   filter a streaming block of data against the template bank (tensor
-   correlation, batched IFFTs, peak extraction, and vetoes).
-2. **Full end-to-end wall time & stream amortization**: Total elapsed time
-   including one-time workspace preallocation, CUDA graph capture, and memory
-   staging, evaluated across different streaming durations.
-
-.. list-table:: Table 3: Historical calculation-stage rates (1024 templates)
-   :header-rows: 1
-   :widths: 22 14 18 18 14
-
-   * - Backend / Configuration
-     - Batch ($B$)
-     - Latency / block (ms)
-     - Throughput (wf/s)
-     - Stage Speedup
-   * - Standard CPU (MKL/FFTW, 1 thread)
-     - 1
-     - 886.2 ms
-     - 1,155 wf/s
-     - 1.00×
-   * - Torch CPU (1 thread)
-     - 1
-     - 4,931.0 ms
-     - 208 wf/s
-     - 0.18×
-   * - Torch CPU (8 threads)
-     - 64
-     - 519.3 ms
-     - 1,972 wf/s
-     - 1.71×
-   * - Sequential Torch CUDA (M5)
-     - 1
-     - 422.4 ms
-     - 2,424 wf/s
-     - 2.10×
-   * - Batched Torch CUDA
-     - 32
-     - 33.7 ms
-     - 30,393 wf/s
-     - 26.3×
-   * - Batched Torch CUDA
-     - 64
-     - 34.8 ms
-     - 29,425 wf/s
-     - 25.5×
-   * - Batched Torch CUDA
-     - 128
-     - 31.2 ms
-     - 32,764 wf/s
-     - 28.4×
-   * - **Batched Torch CUDA (Peak)**
-     - **1024**
-     - **19.3 ms**
-     - **53,005 wf/s**
-     - **45.9×**
-   * - **Batched Torch CUDA + CUDA Graphs**
-     - **64**
-     - **22.6 ms**
-     - **45,310 wf/s**
-     - **39.2×**
-
-.. list-table:: Table 4: Historical end-to-end stream latency (1024 templates)
-   :header-rows: 1
-   :widths: 24 16 20 20 20
-
-   * - Stream Duration
-     - Waveforms Evaluated
-     - Standard CPU (s)
-     - Torch CUDA Engine (s)
-     - End-to-End Speedup
-   * - Setup / Initialization
-     - 0 (one-time setup)
-     - 1.54 s
-     - 2.16 s
-     - 0.71× (allocation)
-   * - Cold Start (1 block)
-     - 1,024
-     - 5.53 s
-     - 2.51 s
-     - **2.20×**
-   * - Burst Stream (10 blocks, 10 s)
-     - 10,240
-     - 10.40 s
-     - 2.35 s
-     - **4.43×**
-   * - Extended Stream (50 blocks, 50 s)
-     - 51,200
-     - 45.85 s
-     - 3.13 s
-     - **14.65×**
-   * - Sustained Production (500 blocks)
-     - 512,000
-     - 444.6 s
-     - 11.81 s
-     - **37.65×**
-
-**Setup Amortization in Low-Latency Analysis**:
-Because ``pycbc_live`` runs as a continuous service over hours or days, its
-one-time 2.16 s startup and workspace allocation overhead is rapidly
-amortized across incoming data blocks. While a single cold block exhibits a
-modest 2.2× speedup due to initial device memory staging, sustained production
-streaming rapidly approaches the calculation-stage speedup (**37.6× to
-45.9×**). Per-block calculation latencies remain under **35 ms** (and
-**22.6 ms** with CUDA graphs), comfortably exceeding sub-second low-latency
-alert requirements.
+The separate historical SearchEngine memory receipt contains 50 blocks of
+512 templates at N = 1,024. Its 3.12-ms mean spans all eight 64-template
+tiles, and equal allocator endpoints do not prove zero leakage. See
+:file:`docs/gpu_search_qualification_report.md` for retained values and scope.
 
 Architectural distinction: inspiral vs live batching
 ----------------------------------------------------
