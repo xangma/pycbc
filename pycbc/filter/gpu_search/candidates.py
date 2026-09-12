@@ -222,10 +222,10 @@ def _select_torch_symmetric(
             "aborted": False,
             "overflow": False,
             "candidates": {
-                "template_idx": np.empty(0, dtype=np.int64),
-                "sample_idx": np.empty(0, dtype=np.int64),
-                "snr": np.empty(0, dtype=np.complex64),
-                "sigmasq": np.empty(0, dtype=np.float32),
+                "template_idx": torch.empty(0, dtype=torch.int64, device=vals.device),
+                "sample_idx": torch.empty(0, dtype=torch.int64, device=vals.device),
+                "snr": torch.empty(0, dtype=torch.complex64, device=vals.device),
+                "sigmasq": torch.empty(0, dtype=torch.float32, device=vals.device),
             },
         }
 
@@ -272,10 +272,10 @@ def _select_torch_symmetric(
             "aborted": False,
             "overflow": False,
             "candidates": {
-                "template_idx": np.empty(0, dtype=np.int64),
-                "sample_idx": np.empty(0, dtype=np.int64),
-                "snr": np.empty(0, dtype=np.complex64),
-                "sigmasq": np.empty(0, dtype=np.float32),
+                "template_idx": torch.empty(0, dtype=torch.int64, device=vals.device),
+                "sample_idx": torch.empty(0, dtype=torch.int64, device=vals.device),
+                "snr": torch.empty(0, dtype=torch.complex64, device=vals.device),
+                "sigmasq": torch.empty(0, dtype=torch.float32, device=vals.device),
             },
         }
 
@@ -295,10 +295,10 @@ def _select_torch_symmetric(
         "aborted": False,
         "overflow": False,
         "candidates": {
-            "template_idx": sel_tmplt.detach().cpu().numpy(),
-            "sample_idx": sel_sample.detach().cpu().numpy(),
-            "snr": sel_snr.detach().cpu().numpy(),
-            "sigmasq": sel_sigmasq.detach().cpu().numpy(),
+            "template_idx": sel_tmplt,
+            "sample_idx": sel_sample,
+            "snr": sel_snr,
+            "sigmasq": sel_sigmasq,
         },
     }
 
@@ -434,10 +434,10 @@ def _select_torch_threshold_only(
             "aborted": False,
             "overflow": False,
             "candidates": {
-                "template_idx": np.empty(0, dtype=np.int64),
-                "sample_idx": np.empty(0, dtype=np.int64),
-                "snr": np.empty(0, dtype=np.complex64),
-                "sigmasq": np.empty(0, dtype=np.float32),
+                "template_idx": torch.empty(0, dtype=torch.int64, device=vals.device),
+                "sample_idx": torch.empty(0, dtype=torch.int64, device=vals.device),
+                "snr": torch.empty(0, dtype=torch.complex64, device=vals.device),
+                "sigmasq": torch.empty(0, dtype=torch.float32, device=vals.device),
             },
         }
 
@@ -456,10 +456,10 @@ def _select_torch_threshold_only(
         "aborted": False,
         "overflow": False,
         "candidates": {
-            "template_idx": sel_tmplt.detach().cpu().numpy(),
-            "sample_idx": sel_sample.detach().cpu().numpy(),
-            "snr": sel_snr.detach().cpu().numpy(),
-            "sigmasq": sel_sigmasq.detach().cpu().numpy(),
+            "template_idx": sel_tmplt,
+            "sample_idx": sel_sample,
+            "snr": sel_snr,
+            "sigmasq": sel_sigmasq,
         },
     }
 
@@ -525,7 +525,7 @@ def _select_numpy_threshold_only(
     }
 
 
-def select_tile_candidates(
+def _select_tile_candidates(
     out_mem: Any,  # (B, transform_length) complex64
     tile_norms: Any,  # (B,) float32/float64
     tile_sigmasqs: Any,  # (B,) float32
@@ -587,10 +587,10 @@ def select_tile_candidates(
                 "aborted": False,
                 "overflow": False,
                 "candidates": {
-                    "template_idx": np.empty(0, dtype=np.int64),
-                    "sample_idx": np.empty(0, dtype=np.int64),
-                    "snr": np.empty(0, dtype=np.complex64),
-                    "sigmasq": np.empty(0, dtype=np.float32),
+                    "template_idx": torch.empty(0, dtype=torch.int64, device=vals.device),
+                    "sample_idx": torch.empty(0, dtype=torch.int64, device=vals.device),
+                    "snr": torch.empty(0, dtype=torch.complex64, device=vals.device),
+                    "sigmasq": torch.empty(0, dtype=torch.float32, device=vals.device),
                 },
             }
 
@@ -609,10 +609,10 @@ def select_tile_candidates(
             "aborted": False,
             "overflow": False,
             "candidates": {
-                "template_idx": sel_tmplt.detach().cpu().numpy(),
-                "sample_idx": sel_sample.detach().cpu().numpy(),
-                "snr": sel_snr.detach().cpu().numpy(),
-                "sigmasq": sel_sigmasq.detach().cpu().numpy(),
+                "template_idx": sel_tmplt,
+                "sample_idx": sel_sample,
+                "snr": sel_snr,
+                "sigmasq": sel_sigmasq,
             },
         }
 
@@ -679,3 +679,49 @@ def select_tile_candidates(
             "sigmasq": sel_sigmasq,
         },
     }
+
+
+def candidates_to_host(candidates: Dict[str, Any]) -> Dict[str, Any]:
+    """Materialize owned host results at a public or CPU-only veto boundary."""
+    return {
+        key: value.detach().cpu().numpy().copy()
+        if torch is not None and isinstance(value, torch.Tensor) else value
+        for key, value in candidates.items()
+    }
+
+
+def select_tile_candidates(
+    out_mem: Any,
+    tile_norms: Any,
+    tile_sigmasqs: Any,
+    valid_start: int,
+    valid_end: int,
+    policy: SelectionPolicy,
+    buffer: Optional[CandidateBuffer] = None,
+    return_device: bool = False,
+) -> Dict[str, Any]:
+    """Select candidates, optionally retaining tensors for downstream vetoes.
+
+    The default preserves the public NumPy interface. Device results own their
+    selected samples (they do not alias a reusable filtering workspace).
+    Dynamic selection/count and overflow checks can still synchronize CUDA;
+    this interface does not imply whole-search graph capture.
+    """
+    if not 0 <= valid_start <= valid_end <= out_mem.shape[-1]:
+        raise ValueError("Invalid candidate analysis interval")
+    if valid_start == valid_end:
+        result = {"aborted": False, "overflow": False, "candidates": {}}
+        for key, dtype in (("template_idx", np.int64),
+                           ("sample_idx", np.int64),
+                           ("snr", np.complex64), ("sigmasq", np.float32)):
+            value = np.empty(0, dtype=dtype)
+            if return_device and torch is not None and isinstance(out_mem, torch.Tensor):
+                value = torch.as_tensor(value, device=out_mem.device)
+            result["candidates"][key] = value
+        return result
+    result = _select_tile_candidates(
+        out_mem, tile_norms, tile_sigmasqs, valid_start, valid_end, policy, buffer
+    )
+    if not return_device:
+        result["candidates"] = candidates_to_host(result.get("candidates", {}))
+    return result

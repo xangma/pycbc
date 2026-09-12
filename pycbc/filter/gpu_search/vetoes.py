@@ -31,6 +31,7 @@ except ImportError:
 from pycbc.types import FrequencySeries
 from pycbc.filter.matchedfilter import get_cutoff_indices
 from pycbc.filter.gpu_search.plans import BankPlan, PSDPlan
+from pycbc.filter.gpu_search.candidates import candidates_to_host
 
 
 @dataclass
@@ -251,235 +252,156 @@ def prepare_power_chisq_plan(
     )
 
 
+def power_chisq_scratch_shape(num_bins, chunk_size, scratch_budget_bytes):
+    """Conservative explicit scratch-storage bound for blocked Fourier sums.
+
+    Budget excludes caller inputs, O(candidate count) result/index arrays,
+    normalized SNR copies, allocator caches and backend-internal workspace. Allow 128 bytes per candidate-frequency
+    element and 128 bytes per candidate-bin plus 256 bytes per candidate for
+    concurrently live intermediates. Frequency blocks never exceed 4096.
+    """
+    if chunk_size < 1 or num_bins < 1:
+        raise ValueError("Positive chunk size and bin count required")
+    per_row = 128 * num_bins + 256
+    if scratch_budget_bytes < per_row + 128:
+        raise ValueError("Power chi-square scratch budget is too small")
+    rows = min(int(chunk_size), int(scratch_budget_bytes) // (per_row + 128))
+    width = min(4096, (int(scratch_budget_bytes) // rows - per_row) // 128)
+    return rows, width
+
+
 def batched_power_chisq(
-    corr_tile: Any,  # (B, transform_length) complex64
+    corr_tile: Any,
     candidates: Dict[str, Any],
-    tile_bin_edges: Any,  # (B, num_bins + 1) or list of 1D tensors/arrays
-    tile_norms: Any,  # (B,) float32
+    tile_bin_edges: Any,
+    tile_norms: Any,
     num_bins: Any = 16,
     snr_threshold: Optional[float] = None,
     transform_length: int = 0,
     chunk_size: int = 2048,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Evaluate power chi-square statistic for candidates with double-precision phase stability.
-    Supports both uniform bin counts across templates and per-template ragged bin counts.
+    return_device: bool = False,
+    scratch_budget_bytes: int = 64 * 1024 * 1024,
+) -> Tuple[Any, Any]:
+    """Evaluate selected-time power chi-square with bounded FP64 reductions.
 
-    Returns:
-        (chisq, chisq_dof): numpy arrays of shape (num_candidates,)
+    Accumulate bin contributions in complex128 from short frequency blocks;
+    no full-transform candidate-by-frequency array is materialized. Bin edges
+    retain the half-open reference convention, including empty/ragged bins.
+    Outputs default to NumPy; return_device retains Torch inputs' device.
+    This is numerical compatibility, not a certificate of identical decisions
+    at floating-point boundaries against a particular reference FFT.
     """
-    sample_indices = candidates.get("sample_idx", [])
-    if len(sample_indices) == 0:
-        return np.empty(0, dtype=np.float32), np.empty(0, dtype=np.int32)
-
-    template_indices = candidates["template_idx"]
-    snrs = candidates["snr"]
     N = int(transform_length)
-    M = len(sample_indices)
-    is_ragged = isinstance(tile_bin_edges, (list, tuple))
+    if N < 2 or N >= 2**31:
+        raise ValueError("transform_length must be in [2, 2**31)")
+    use_torch = torch is not None and isinstance(corr_tile, torch.Tensor)
+    flen = min(corr_tile.shape[-1], N // 2 + 1)
+    ragged = isinstance(tile_bin_edges, (list, tuple))
+    M = len(candidates.get("sample_idx", []))
 
-    if torch is not None and isinstance(corr_tile, torch.Tensor):
+    if use_torch:
         dev = corr_tile.device
-        flen = min(corr_tile.shape[-1], N // 2 + 1)
-
-        t_indices = (
-            template_indices
-            if isinstance(template_indices, torch.Tensor)
-            else torch.as_tensor(template_indices, device=dev, dtype=torch.int64)
-        )
-        s_indices = (
-            sample_indices
-            if isinstance(sample_indices, torch.Tensor)
-            else torch.as_tensor(sample_indices, device=dev, dtype=torch.int64)
-        )
-        snr_vals = (
-            snrs
-            if isinstance(snrs, torch.Tensor)
-            else torch.as_tensor(snrs, device=dev, dtype=torch.complex64)
-        )
-        norms = (
-            tile_norms
-            if isinstance(tile_norms, torch.Tensor)
-            else torch.as_tensor(tile_norms, device=dev, dtype=torch.float32)
-        )
-
-        chisq_out = torch.zeros(M, device=dev, dtype=torch.float32)
-
-        if not is_ragged:
-            bin_edges = (
-                tile_bin_edges
-                if isinstance(tile_bin_edges, torch.Tensor)
-                else torch.as_tensor(tile_bin_edges, device=dev, dtype=torch.int64)
-            )
-            nb_val = int(bin_edges.shape[1] - 1)
-            dof_out = torch.full((M,), 2 * nb_val - 2, device=dev, dtype=torch.int32)
-        else:
-            nb_list = [int(len(edges) - 1) for edges in tile_bin_edges]
-            nb_tensor = torch.tensor(nb_list, device=dev, dtype=torch.int32)
-            dof_out = 2 * nb_tensor[t_indices] - 2
-
-        # Activation mask
-        snr_mags = torch.abs(snr_vals)
-        if snr_threshold is not None:
-            active = snr_mags >= snr_threshold
-        else:
-            active = torch.ones(M, device=dev, dtype=torch.bool)
-
-        active_indices = torch.nonzero(active, as_tuple=False).squeeze(-1)
-        num_active = int(active_indices.numel())
-
-        if num_active > 0:
-            two_pi_over_N = (2.0 * math.pi) / N
-            k_range = torch.arange(flen, device=dev, dtype=torch.float64).unsqueeze(0)
-
-            # Cap chunk size to keep peak temporary phase/accumulation buffers <= 64 MB
-            max_chunk_from_mem = max(1, int(64 * 1024 * 1024 / (8 * max(1, flen))))
-            effective_chunk = max(1, min(chunk_size, max_chunk_from_mem))
-
-            for c_start in range(0, num_active, effective_chunk):
-                c_end = min(c_start + effective_chunk, num_active)
-                chunk_act = active_indices[c_start:c_end]
-                cur_M = len(chunk_act)
-
-                cur_tmplt = t_indices[chunk_act]
-                cur_sample = s_indices[chunk_act]
-                cur_snr = snr_vals[chunk_act]
-                cur_norm = norms[cur_tmplt]
-
-                # Exact integer modulo in double precision for phase stability
-                pts_d = cur_sample.unsqueeze(1).to(torch.float64)
-                phase_angle = two_pi_over_N * torch.fmod(k_range * pts_d, N)
-                phases = torch.complex(
-                    torch.cos(phase_angle).to(torch.float32),
-                    torch.sin(phase_angle).to(torch.float32),
-                )
-
-                # Corr row per candidate: shape (cur_M, flen)
-                cur_corr = corr_tile[cur_tmplt, :flen]
-                C = cur_corr * phases
-
-                # Bounded cumulative sum
-                zero_col = torch.zeros((cur_M, 1), device=dev, dtype=C.dtype)
-                S = torch.cat([zero_col, torch.cumsum(C, dim=-1)], dim=-1)
-
-                if not is_ragged:
-                    cur_bin_starts = bin_edges[cur_tmplt, :-1]
-                    cur_bin_ends = bin_edges[cur_tmplt, 1:]
-
-                    S_starts = torch.gather(S, dim=1, index=cur_bin_starts)
-                    S_ends = torch.gather(S, dim=1, index=cur_bin_ends)
-                    zb = S_ends - S_starts
-
-                    zb_sq = zb.real.square() + zb.imag.square()
-                    chisq_raw = torch.sum(zb_sq, dim=-1)
-
-                    snr_sq = cur_snr.real.square() + cur_snr.imag.square()
-                    chisq_vals = (nb_val * chisq_raw) * cur_norm.square() - snr_sq
-                    chisq_out[chunk_act] = torch.clamp(chisq_vals, min=0.0)
-                else:
-                    for u_tmpl in torch.unique(cur_tmplt):
-                        mask = cur_tmplt == u_tmpl
-                        edges_u = tile_bin_edges[int(u_tmpl)]
-                        nb_u = len(edges_u) - 1
-                        starts = edges_u[:-1]
-                        ends = edges_u[1:]
-                        zb = S[mask][:, ends] - S[mask][:, starts]
-                        zb_sq = torch.sum(zb.real.square() + zb.imag.square(), dim=-1)
-                        snr_sq = (
-                            cur_snr[mask].real.square() + cur_snr[mask].imag.square()
-                        )
-                        norm_u = norms[u_tmpl]
-                        chisq_vals = (nb_u * zb_sq) * norm_u.square() - snr_sq
-                        chisq_out[chunk_act[mask]] = torch.clamp(chisq_vals, min=0.0)
-
-        return chisq_out.detach().cpu().numpy(), dof_out.detach().cpu().numpy()
-
-    # Numpy fallback
-    corr_np = np.asarray(corr_tile)
-    flen = min(corr_np.shape[-1], N // 2 + 1)
-    t_indices = np.asarray(template_indices, dtype=np.int64)
-    s_indices = np.asarray(sample_indices, dtype=np.int64)
-    snr_vals = np.asarray(snrs, dtype=np.complex64)
-    norms = np.asarray(tile_norms, dtype=np.float32)
-
-    chisq_out = np.zeros(M, dtype=np.float32)
-
-    if not is_ragged:
-        bin_edges = np.asarray(tile_bin_edges, dtype=np.int64)
-        nb_val = int(bin_edges.shape[1] - 1)
-        dof_out = np.full(M, 2 * nb_val - 2, dtype=np.int32)
+        def as_index(value):
+            return torch.as_tensor(value, device=dev, dtype=torch.int64)
+        ti = as_index(candidates.get("template_idx", []))
+        si = as_index(candidates.get("sample_idx", []))
+        snr = torch.as_tensor(candidates.get("snr", []), device=dev,
+                              dtype=torch.complex128)
+        norms = torch.as_tensor(tile_norms, device=dev, dtype=torch.float64)
+        edges_list = [as_index(e) for e in tile_bin_edges] if ragged else None
+        edges = None if ragged else as_index(tile_bin_edges)
+        counts = (torch.tensor([len(e)-1 for e in edges_list], device=dev)
+                  if ragged else torch.full((corr_tile.shape[0],),
+                                            edges.shape[1]-1, device=dev))
+        out = torch.zeros(M, device=dev, dtype=corr_tile.real.dtype)
+        dof = (2 * counts[ti] - 2).to(torch.int32)
+        active = (torch.arange(M, device=dev) if snr_threshold is None else
+                  torch.nonzero(torch.abs(snr) >= snr_threshold).flatten())
+        max_bins = max((len(e)-1 for e in edges_list), default=1) if ragged else edges.shape[1]-1
     else:
-        nb_arr = np.array([len(edges) - 1 for edges in tile_bin_edges], dtype=np.int32)
-        dof_out = 2 * nb_arr[t_indices] - 2
+        ti = np.asarray(candidates.get("template_idx", []), dtype=np.int64)
+        si = np.asarray(candidates.get("sample_idx", []), dtype=np.int64)
+        snr = np.asarray(candidates.get("snr", []), dtype=np.complex128)
+        norms = np.asarray(tile_norms, dtype=np.float64)
+        edges_list = [np.asarray(e, dtype=np.int64) for e in tile_bin_edges] if ragged else None
+        edges = None if ragged else np.asarray(tile_bin_edges, dtype=np.int64)
+        counts = (np.array([len(e)-1 for e in edges_list]) if ragged else
+                  np.full(corr_tile.shape[0], edges.shape[1]-1))
+        out = np.zeros(M, dtype=np.asarray(corr_tile).real.dtype)
+        dof = (2 * counts[ti] - 2).astype(np.int32)
+        active = (np.arange(M) if snr_threshold is None else
+                  np.flatnonzero(np.abs(snr) >= snr_threshold))
+        max_bins = max((len(e)-1 for e in edges_list), default=1) if ragged else edges.shape[1]-1
 
-    snr_mags = np.abs(snr_vals)
-    if snr_threshold is not None:
-        active = snr_mags >= snr_threshold
+    rows, width = power_chisq_scratch_shape(
+        max_bins, min(chunk_size, max(1, M)), scratch_budget_bytes,
+    )
+    # Ragged plans group by template; uniform plans process all active rows.
+    # Dynamic groups and edge extents may synchronize, but candidate payloads
+    # remain on device. This stage is outside correlation/IFFT graph capture.
+    if ragged:
+        unique = torch.unique(ti[active]) if use_torch else np.unique(ti[active])
+        groups = [(active[ti[active] == t], edges_list[int(t)]) for t in unique]
     else:
-        active = np.ones(M, dtype=bool)
-
-    active_indices = np.nonzero(active)[0]
-    num_active = len(active_indices)
-
-    if num_active > 0:
-        two_pi_over_N = (2.0 * math.pi) / N
-        k_range = np.arange(flen, dtype=np.float64)[np.newaxis, :]
-
-        # Cap chunk size to keep peak temporary phase/accumulation buffers <= 64 MB
-        max_chunk_from_mem = max(1, int(64 * 1024 * 1024 / (8 * max(1, flen))))
-        effective_chunk = max(1, min(chunk_size, max_chunk_from_mem))
-
-        for c_start in range(0, num_active, effective_chunk):
-            c_end = min(c_start + effective_chunk, num_active)
-            chunk_act = active_indices[c_start:c_end]
-            cur_M = len(chunk_act)
-
-            cur_tmplt = t_indices[chunk_act]
-            cur_sample = s_indices[chunk_act]
-            cur_snr = snr_vals[chunk_act]
-            cur_norm = norms[cur_tmplt]
-
-            pts_d = cur_sample[:, np.newaxis].astype(np.float64)
-            phase_angle = two_pi_over_N * ((k_range * pts_d) % N)
-            phases = (np.cos(phase_angle) + 1j * np.sin(phase_angle)).astype(
-                np.complex64
-            )
-
-            cur_corr = corr_np[cur_tmplt, :flen]
-            C = cur_corr * phases
-
-            zero_col = np.zeros((cur_M, 1), dtype=C.dtype)
-            S = np.concatenate([zero_col, np.cumsum(C, axis=-1)], axis=-1)
-
-            if not is_ragged:
-                cur_bin_starts = bin_edges[cur_tmplt, :-1]
-                cur_bin_ends = bin_edges[cur_tmplt, 1:]
-
-                S_starts = np.take_along_axis(S, cur_bin_starts, axis=1)
-                S_ends = np.take_along_axis(S, cur_bin_ends, axis=1)
-                zb = S_ends - S_starts
-
-                zb_sq = zb.real**2 + zb.imag**2
-                chisq_raw = np.sum(zb_sq, axis=-1)
-
-                snr_sq = cur_snr.real**2 + cur_snr.imag**2
-                chisq_vals = (nb_val * chisq_raw) * (cur_norm**2) - snr_sq
-                chisq_out[chunk_act] = np.maximum(chisq_vals, 0.0)
+        groups = [(active, None)]
+    for group, row_edges in groups:
+        for first in range(0, len(group), rows):
+            ix = group[first:first+rows]
+            ct, cs = ti[ix], si[ix]
+            if use_torch:
+                ce = edges[ct] if row_edges is None else row_edges.expand(len(ix), -1)
+                invalid = ((ce < 0) | (ce > flen)).any() | (ce[:, 1:] < ce[:, :-1]).any()
+                if bool(invalid):
+                    raise ValueError("Invalid power chi-square bin edges")
+                lo, hi = int(ce.min()), int(ce.max())
+                zb = torch.zeros((len(ix), ce.shape[1]-1), device=dev, dtype=torch.complex128)
             else:
-                for u_tmpl in np.unique(cur_tmplt):
-                    mask = cur_tmplt == u_tmpl
-                    edges_u = np.asarray(tile_bin_edges[int(u_tmpl)], dtype=np.int64)
-                    nb_u = len(edges_u) - 1
-                    starts = edges_u[:-1]
-                    ends = edges_u[1:]
-                    zb = S[mask][:, ends] - S[mask][:, starts]
-                    zb_sq = np.sum(zb.real**2 + zb.imag**2, axis=-1)
-                    snr_sq = cur_snr[mask].real**2 + cur_snr[mask].imag**2
-                    norm_u = norms[u_tmpl]
-                    chisq_vals = (nb_u * zb_sq) * (norm_u**2) - snr_sq
-                    chisq_out[chunk_act[mask]] = np.maximum(chisq_vals, 0.0)
-
-    return chisq_out, dof_out
+                ce = edges[ct] if row_edges is None else np.broadcast_to(row_edges, (len(ix), len(row_edges)))
+                if np.any((ce < 0) | (ce > flen)) or np.any(np.diff(ce, axis=1) < 0):
+                    raise ValueError("Invalid power chi-square bin edges")
+                lo, hi = int(ce.min()), int(ce.max())
+                zb = np.zeros((len(ix), ce.shape[1]-1), dtype=np.complex128)
+            for start in range(lo, hi, width):
+                end = min(start + width, hi)
+                if use_torch:
+                    k = torch.arange(start, end, device=dev, dtype=torch.int64)
+                    angle = ((cs[:, None] * k) % N).to(torch.float64)
+                    angle.mul_(2.0 * math.pi / N)
+                    phase = torch.complex(torch.cos(angle), torch.sin(angle))
+                    product = corr_tile[ct, start:end] * phase
+                    # Bin-local reductions avoid subtracting nearly equal
+                    # cumulative endpoints after large unrelated bins.
+                    for bi in range(ce.shape[1]-1):
+                        mask = ((k >= ce[:, bi:bi+1]) &
+                                (k < ce[:, bi+1:bi+2]))
+                        contribution = torch.where(mask, product, 0)
+                        zb[:, bi].add_(contribution.sum(dim=1))
+                        del mask, contribution
+                else:
+                    k = np.arange(start, end, dtype=np.int64)
+                    angle = ((cs[:, None] * k) % N).astype(np.float64)
+                    angle *= 2.0 * math.pi / N
+                    phase = np.cos(angle) + 1j * np.sin(angle)
+                    product = corr_tile[ct, start:end] * phase
+                    for bi in range(ce.shape[1]-1):
+                        mask = ((k >= ce[:, bi:bi+1]) &
+                                (k < ce[:, bi+1:bi+2]))
+                        contribution = np.where(mask, product, 0)
+                        zb[:, bi] += contribution.sum(axis=1)
+                        del mask, contribution
+                # Do not retain the previous block while allocating the next.
+                del angle, phase, product
+            if use_torch:
+                raw = (zb.real.square() + zb.imag.square()).sum(dim=1)
+                vals = (ce.shape[1]-1) * raw * norms[ct].square() - snr[ix].abs().square()
+                out[ix] = vals.clamp(min=0).to(out.dtype)
+            else:
+                raw = np.sum(zb.real**2 + zb.imag**2, axis=1)
+                vals = (ce.shape[1]-1) * raw * norms[ct]**2 - np.abs(snr[ix])**2
+                out[ix] = np.maximum(vals, 0)
+    if use_torch and not return_device:
+        return out.detach().cpu().numpy(), dof.detach().cpu().numpy()
+    return out, dof
 
 
 @dataclass
@@ -548,11 +470,15 @@ class VetoManager:
                 num_bins=self.power_chisq_plan.num_bins,
                 snr_threshold=self.power_chisq_plan.snr_threshold,
                 transform_length=transform_length,
+                return_device=True,
             )
             candidates["chisq"] = chisq
             candidates["chisq_dof"] = chisq_dof
 
         if self.sg_plan is not None:
+            # Legacy/custom SG evaluators expose a host-array protocol.
+            # This is an explicit CPU boundary, after device power chi-square.
+            candidates = candidates_to_host(candidates)
             num_cands = len(candidates.get("sample_idx", []))
             evaluator = getattr(self.sg_plan, "evaluator", None) or getattr(
                 self.sg_plan, "sg_chisq", None

@@ -19,6 +19,7 @@ Persistent GPU search engine with submit/drain/flush lifecycle and workspace own
 """
 
 from collections import deque
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 import logging
 from typing import Any, Deque, Dict, List, Optional, Tuple
@@ -31,7 +32,9 @@ except ImportError:
 
 from pycbc.filter.matchedfilter import get_cutoff_indices
 from pycbc.types.backend import backend_array
-from .candidates import CandidateBuffer, SelectionPolicy, select_tile_candidates
+from .candidates import (
+    CandidateBuffer, SelectionPolicy, select_tile_candidates, candidates_to_host,
+)
 from .core import FilteringWorkspace, correlate_and_ifft
 from .graphs import CUDAGraphManager
 from .plans import BankPlan, PSDPlan, WorkspaceBudget
@@ -731,6 +734,7 @@ class SearchEngine:
                             valid_end,
                             self.selection_policy,
                             buffer=candidate_buffer,
+                            return_device=True,
                         )
                 else:
                     sel = select_tile_candidates(
@@ -741,6 +745,7 @@ class SearchEngine:
                         valid_end,
                         self.selection_policy,
                         buffer=candidate_buffer,
+                        return_device=True,
                     )
             else:
                 # Numpy fallback via shared core
@@ -762,6 +767,7 @@ class SearchEngine:
                     valid_end,
                     self.selection_policy,
                     buffer=candidate_buffer,
+                    return_device=True,
                 )
 
             if sel.get("aborted", False):
@@ -782,17 +788,23 @@ class SearchEngine:
                     new_cap = min(new_cap, candidate_buffer.max_capacity)
                 if new_cap > candidate_buffer.capacity:
                     candidate_buffer.allow_growth = True
-                    candidate_buffer.resize(new_cap)
-                    candidate_buffer.reset()
-                    sel = select_tile_candidates(
-                        out_workspace[:b],
-                        norms,
-                        sigmasqs,
-                        valid_start,
-                        valid_end,
-                        self.selection_policy,
-                        buffer=candidate_buffer,
+                    selection_context = (
+                        torch.cuda.stream(compute_stream)
+                        if compute_stream is not None else nullcontext()
                     )
+                    with selection_context:
+                        candidate_buffer.resize(new_cap)
+                        candidate_buffer.reset()
+                        sel = select_tile_candidates(
+                            out_workspace[:b],
+                            norms,
+                            sigmasqs,
+                            valid_start,
+                            valid_end,
+                            self.selection_policy,
+                            buffer=candidate_buffer,
+                            return_device=True,
+                        )
                 else:
                     break
 
@@ -837,11 +849,22 @@ class SearchEngine:
                     else:
                         cands = self.veto_manager.evaluate(**eval_kwargs)
                 # Map tile-local template index to global template ID
-                global_tmplt_ids = np.array(
-                    [tile.template_ids[idx] for idx in cands["template_idx"]],
-                    dtype=np.int64,
-                )
-                cands["template_id"] = global_tmplt_ids
+                local_ids = cands["template_idx"]
+                if torch is not None and isinstance(local_ids, torch.Tensor):
+                    mapping_context = (
+                        torch.cuda.stream(compute_stream)
+                        if compute_stream is not None else nullcontext()
+                    )
+                    with mapping_context:
+                        ids = torch.as_tensor(
+                            tile.template_ids, device=local_ids.device,
+                            dtype=torch.int64,
+                        )
+                        cands["template_id"] = ids[local_ids]
+                else:
+                    cands["template_id"] = np.asarray(
+                        tile.template_ids, dtype=np.int64,
+                    )[local_ids]
                 tile_results.append(cands)
 
         ticket.results = tile_results
@@ -866,6 +889,7 @@ class SearchEngine:
                 ticket.event.synchronize()
                 ticket.event = None
             if ticket.completed:
+                ticket.results = [candidates_to_host(c) for c in ticket.results]
                 ready.append(ticket)
             else:
                 remaining.append(ticket)
@@ -893,6 +917,7 @@ class SearchEngine:
                 ticket.event.synchronize()
                 ticket.event = None
             ticket.completed = True
+            ticket.results = [candidates_to_host(c) for c in ticket.results]
 
         self._provisional_batches.clear()
         self._committed_batches.extend(batches)
