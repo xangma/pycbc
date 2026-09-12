@@ -228,8 +228,11 @@ Defaults, scheme activation, and execution modes
   Different batch sizes alter tensor dimensions, reduction tree orders, and
   accumulation sequences in batched FFTs and correlations. Consequently,
   there is no guarantee of strict bit-identical output across all batch sizes
-  :math:`B`, though physical candidates agree within validated scientific
-  tolerances.
+  :math:`B`. Agreement must be tied to a named fixture and its checked outputs:
+  the 2026-09-10 preparation campaign above matched the recorded offline trigger
+  datasets and live result hashes. This does not establish universal candidate
+  or post-cut decision equivalence; the separate real-frame campaign in
+  :doc:`torch_performance` recorded post-cut count differences.
 
 Route-aware profiling and trace interpretation
 ----------------------------------------------
@@ -250,11 +253,12 @@ route-aware:
   :func:`torch.profiler.record_function` (e.g.
   ``pycbc::core_correlate_and_ifft``, ``pycbc::core_mul``,
   ``pycbc::core_ifft``, ``pycbc::select_candidates``,
-  ``pycbc::batched_power_chisq``) without device synchronization during
-  the loop. CUDA synchronization occurs strictly at outer measurement
-  boundaries.
+  ``pycbc::batched_power_chisq``). These range annotations add no profiler
+  synchronization. The instrumented filtering, selection, and output operations
+  can still synchronize internally; outer measurement boundaries synchronize
+  separately.
 - **Opt-In CPU Tracing**: The ``--cpu`` flag enables PyTorch CPU profiling
-  using CPU-only profiler activities and omitting all CUDA synchronization.
+  using CPU-only profiler activities and adding no profiler CUDA synchronization.
 - **Receipt Integrity**: Instrumented runs are explicitly flagged as
   ineligible for throughput benchmarking. Completed traces must always be
   interpreted within their defined semantic scopes and paired with

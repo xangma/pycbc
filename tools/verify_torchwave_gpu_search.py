@@ -159,9 +159,11 @@ def qualify(args):
         with tempfile.TemporaryDirectory() as directory:
             path = str(Path(directory) / 'bank.hdf')
             receipt['physical_manifest'] = create_fixture_bank(path, args)
-            reference_tensor, reference, _ = generate_bank(path, args, False)
+            reference_tensor, reference, reference_diagnostics = generate_bank(path, args, False)
             native_tensor, _, diagnostics = generate_bank(path, args, True)
         receipt['provider_diagnostics'] = diagnostics
+        receipt['reference_provider_diagnostics'] = reference_diagnostics
+        receipt['effective_device'] = str(native_tensor.device)
         receipt['effective_dtype'] = str(native_tensor.dtype)
         receipt['engine_filter_dtype'] = 'complex64'
         # Own host copies for independent reference computations; no live buffer aliases.
@@ -172,13 +174,17 @@ def qualify(args):
                                     row.get('provider') == 'torchwave' for row in diagnostics)})
         receipt['gates'].append({'name': 'requested_dtype', 'passed':
                                  native_tensor.dtype == getattr(torch, args.dtype)})
+        requested = torch.device(args.device)
+        receipt['gates'].append({'name': 'requested_device', 'passed':
+                                requested.type == native_tensor.device.type and
+                                (requested.index is None or requested.index == native_tensor.device.index)})
         strain, psd, flow, fhigh, valid = prepare_fixture(reference, args)
         receipt['input_hashes'] = {'reference_waveforms': array_hash(reference_tensor.cpu().numpy()),
                                    'native_waveforms': array_hash(native_tensor.cpu().numpy()),
                                    'strain': array_hash(strain.numpy()), 'psd': array_hash(psd.numpy())}
         receipt['geometry'] = {'transform_length': 2 * (args.flen - 1),
                                'sample_rate_hz': 2 * (args.flen - 1) * args.delta_f,
-                               'duration_sec': 1 / args.delta_f, 'valid_interval': valid,
+                               'duration_sec': 1 / args.delta_f, 'valid_interval': list(valid),
                                'flow': flow, 'fhigh': fhigh}
         candidates, policy = engine_candidates(native, strain, psd, args, flow, fhigh, valid)
         rows = []
@@ -234,6 +240,8 @@ def qualify(args):
         receipt.update(status='skipped', reason=str(exc))
     except Exception as exc:
         receipt.update(status='failed', reason=f'{type(exc).__name__}: {exc}')
+    # Record late-loaded reference FFT/LAL extensions used by the actual gates.
+    receipt['provenance'] = execution_provenance()
     return receipt
 
 

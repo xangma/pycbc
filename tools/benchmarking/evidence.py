@@ -4,6 +4,7 @@ import base64
 import hashlib
 import importlib.util
 import importlib.metadata
+import importlib.machinery
 import json
 import os
 from pathlib import Path
@@ -44,6 +45,165 @@ def array_hash(array):
     digest.update(str(array.shape).encode())
     digest.update(array.tobytes())
     return digest.hexdigest()
+
+
+def search_snapshot(batches, num_templates):
+    """Own the result of one drain before another submission reuses buffers."""
+    if not isinstance(batches, (list, tuple)) or len(batches) != 1:
+        raise ValueError('one completed ticket required per submit/drain')
+    batch = batches[0]
+    field = (lambda key, default=None: batch.get(key, default)) if isinstance(batch, dict) else (
+        lambda key, default=None: getattr(batch, key, default))
+    if field('overflow', False) or field('aborted', False):
+        raise ValueError('search result overflow or aborted')
+    if not field('completed', False):
+        raise ValueError('search ticket is not completed')
+    rows = field('results')
+    if not isinstance(rows, list):
+        raise ValueError('search ticket results must be a list')
+    columns = {}
+    keys = None
+    for row in rows:
+        if not isinstance(row, dict) or not {'template_id', 'sample_idx', 'snr'} <= row.keys():
+            raise ValueError('candidate identity or complex SNR missing')
+        if keys is not None and row.keys() != keys:
+            raise ValueError('inconsistent candidate fields across tiles')
+        keys = row.keys()
+        count = len(row['template_id'])
+        for key, values in row.items():
+            if hasattr(values, 'detach'):
+                values = values.detach().cpu().numpy()
+            values = np.array(values, copy=True)
+            if values.ndim != 1 or len(values) != count or not np.all(np.isfinite(values)):
+                raise ValueError(f'invalid or non-finite candidate field: {key}')
+            columns.setdefault(key, []).append(values)
+    snapshot = {key: np.concatenate(values) for key, values in columns.items()}
+    if not snapshot:
+        return {'template_id': np.empty(0, np.int64), 'sample_idx': np.empty(0, np.int64),
+                'snr': np.empty(0, np.complex64)}
+    for name in ('template_id', 'sample_idx'):
+        values = snapshot[name]
+        if values.dtype.kind not in 'iu' or np.any(values < 0):
+            raise ValueError(f'invalid candidate identity field: {name}')
+    if np.any(snapshot['template_id'] >= num_templates):
+        raise ValueError('candidate template_id outside bank')
+    order = np.lexsort((snapshot['sample_idx'], snapshot['template_id']))
+    snapshot = {key: value[order].copy() for key, value in snapshot.items()}
+    pairs = list(zip(snapshot['template_id'], snapshot['sample_idx']))
+    if len(set(pairs)) != len(pairs):
+        raise ValueError('duplicate candidate identity')
+    return snapshot
+
+
+def compare_search_snapshots(reference, actual):
+    """Compare all exported fields; identities are exact, SNR stays complex."""
+    if reference.keys() != actual.keys():
+        raise ValueError('candidate output fields differ')
+    errors = {}
+    for name, expected in reference.items():
+        got = actual[name]
+        if expected.shape != got.shape:
+            raise ValueError(f'candidate count/shape differs: {name}')
+        exact = name in {'template_id', 'template_idx', 'sample_idx', 'chisq_dof'}
+        error = array_error(expected, got, rtol=0, atol=0)
+        if exact:
+            passed = np.array_equal(expected, got)
+        else:
+            atol, rtol = (1e-3, 0.) if name == 'snr' else (1e-6, 1e-6)
+            passed = np.allclose(expected, got, rtol=rtol, atol=atol, equal_nan=False)
+        if not passed:
+            raise ValueError(f'candidate output mismatch: {name}')
+        errors[name] = error.get('max_absolute')
+    return {'passed': True, 'candidate_count': len(actual['template_id']),
+            'max_absolute_errors': errors,
+            'output_hashes': {name: array_hash(value) for name, value in actual.items()}}
+
+
+def binary_identity(path):
+    """Record the import/mapping path and actual bytes behind any ABI symlink."""
+    observed = Path(path).absolute()
+    resolved = observed.resolve()
+    result = {'path': str(observed), 'resolved_path': str(resolved)}
+    try:
+        digest = hashlib.sha256()
+        with resolved.open('rb') as source:
+            for block in iter(lambda: source.read(1024 * 1024), b''):
+                digest.update(block)
+        result.update(sha256=digest.hexdigest(), size_bytes=resolved.stat().st_size)
+    except OSError as exc:
+        result.update(status='unavailable', reason=str(exc))
+    return result
+
+
+def loaded_implementation_identities():
+    """Identify loaded PyCBC extensions and reference waveform/FFT libraries."""
+    binaries, reference_versions = {}, {}
+    for name, module in list(sys.modules.items()):
+        relevant = (name == 'pycbc' or name.startswith('pycbc.') or
+                    name.split('.')[0].startswith('lal') or
+                    name.startswith(('numpy.', 'scipy.fft', 'pyfftw.')))
+        path = getattr(module, '__file__', None)
+        if relevant and path and any(path.endswith(s) for s in importlib.machinery.EXTENSION_SUFFIXES):
+            binaries[name] = binary_identity(path)
+        if name in ('lal', 'lalsimulation', 'lalinspiral', 'numpy', 'scipy', 'pyfftw'):
+            reference_versions[name] = {'version': getattr(module, '__version__', None),
+                                       'path': path}
+    backend_module = sys.modules.get('pycbc.fft.backend_cpu')
+    backend_name = getattr(backend_module, 'cpu_backend', None)
+    implementation = getattr(backend_module, '_adict', {}).get(backend_name)
+    fft = {'cpu_backend': backend_name,
+           'module': getattr(implementation, '__name__', None),
+           'path': getattr(implementation, '__file__', None)}
+    # ctypes FFT libraries do not appear as Python extension modules. Linux
+    # mappings identify the objects actually loaded, including transitive LAL libs.
+    mapped = {}
+    maps = Path('/proc/self/maps')
+    if maps.is_file():
+        for line in maps.read_text().splitlines():
+            fields = line.split(maxsplit=5)
+            if len(fields) != 6 or not fields[5].startswith('/'):
+                continue
+            path = fields[5]
+            basename = Path(path).name.lower()
+            if path not in mapped and any(part in basename for part in (
+                    'liblal', 'libfftw', 'libmkl', 'libopenblas', 'libpocketfft')):
+                mapped[path] = binary_identity(path)
+    for key in ('double_lib', 'float_lib', '_double_threaded_lib', '_float_threaded_lib', 'lib'):
+        library = getattr(implementation, key, None)
+        name = getattr(library, '_name', None)
+        if isinstance(name, str):
+            fft.setdefault('ctypes_libraries', {})[key] = (
+                binary_identity(name) if Path(name).is_absolute() else {'loader_name': name})
+    return {'loaded_extension_binaries': binaries, 'mapped_reference_libraries': mapped,
+            'reference_library_versions': reference_versions, 'reference_fft': fft,
+            'mapping_scope': '/proc/self/maps reference-library mappings' if maps.is_file() else
+                             'Python extensions and explicit ctypes paths; process mappings unavailable'}
+
+
+def compare_execution_identity(reference, actual):
+    """Require the parent's executed sources and loaded binaries in each child."""
+    for key in ('library_versions', 'imported_module_paths'):
+        if not reference.get(key) or reference.get(key) != actual.get(key):
+            raise ValueError(f'parent/child {key} differs or is missing')
+    if not reference.get('repositories') or not actual.get('repositories'):
+        raise ValueError('parent/child source provenance missing')
+    for name, repo in reference['repositories'].items():
+        got = actual.get('repositories', {}).get(name, {})
+        if not repo.get('git_commit') or not repo.get('tracked_patch_sha256'):
+            raise ValueError(f'parent source identity unavailable: {name}')
+        for key in ('root', 'git_commit', 'tracked_patch_sha256', 'untracked_source_base64', 'status'):
+            if repo.get(key) != got.get(key):
+                raise ValueError(f'parent/child source differs: {name}.{key}')
+    for key in ('loaded_extension_binaries', 'mapped_reference_libraries'):
+        if key not in reference or key not in actual:
+            raise ValueError(f'parent/child binary provenance missing: {key}')
+        for name, identity in reference[key].items():
+            if identity != actual[key].get(name) or not identity.get('sha256'):
+                raise ValueError(f'parent/child binary differs or unavailable: {name}')
+    for key in ('reference_fft', 'reference_library_versions'):
+        if reference.get(key) != actual.get(key):
+            raise ValueError(f'parent/child {key} differs')
+    return {'passed': True}
 
 
 def array_error(reference, actual, rtol, atol=0.0):
@@ -104,7 +264,7 @@ def execution_provenance(repo_root=None):
     modules = {}
     versions = {}
     repositories = {'pycbc': git_snapshot(root)}
-    for name in ('pycbc', 'torchwave', 'torch', 'numpy'):
+    for name in ('pycbc', 'torchwave', 'torch', 'numpy', 'scipy', 'lalsuite'):
         spec = importlib.util.find_spec(name)
         origin = spec.origin if spec else None
         modules[name] = origin
@@ -134,7 +294,8 @@ def execution_provenance(repo_root=None):
                 {'index': i, 'name': torch_module.cuda.get_device_name(i),
                  'total_memory_bytes': torch_module.cuda.get_device_properties(i).total_memory}
                 for i in range(torch_module.cuda.device_count())]
-    return {'repositories': repositories, 'imported_module_paths': modules,
+    return {**loaded_implementation_identities(),
+            'repositories': repositories, 'imported_module_paths': modules,
             'library_versions': versions, 'runtime': runtime,
             'command': [sys.executable, *sys.argv], 'cwd': os.getcwd(),
             'hostname': platform.node(), 'platform': platform.platform(),

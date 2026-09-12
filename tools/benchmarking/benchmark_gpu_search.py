@@ -45,7 +45,9 @@ except ImportError:
     torch = None
 
 from pycbc.types import FrequencySeries
-from tools.benchmarking.evidence import array_hash, execution_provenance
+from tools.benchmarking.evidence import (
+    array_hash, compare_search_snapshots, execution_provenance, search_snapshot,
+)
 from pycbc.filter.gpu_search import (
     prepare_bank,
     bind_psd,
@@ -179,6 +181,8 @@ def benchmark_tile_scaling(
 ) -> Dict[str, Any]:
     if isinstance(size, bool) or size < 8 or size % 2:
         raise ValueError("size must be an even transform length >= 8")
+    if iterations < 1 or warmup < 0:
+        raise ValueError("positive iterations and nonnegative warmup required")
     flen = size // 2 + 1
     delta_f = 1.0 / size
     templates = generate_synthetic_bank(num_templates, flen, delta_f)
@@ -279,6 +283,8 @@ def benchmark_cuda_graphs(
 
     if isinstance(size, bool) or size < 8 or size % 2:
         raise ValueError("size must be an even transform length >= 8")
+    if iterations < 1 or warmup < 0:
+        raise ValueError("positive iterations and nonnegative warmup required")
     flen = size // 2 + 1
     delta_f = 1.0 / size
     templates = generate_synthetic_bank(num_templates, flen, delta_f)
@@ -289,41 +295,44 @@ def benchmark_cuda_graphs(
     bank_plan = prepare_bank(templates, tile_size=tile_size, device="cuda")
     psd_plan = bind_psd(bank_plan, psd, device="cuda")
 
-    # 1. Eager engine
-    eager_engine = SearchEngine(bank_plan, policy, device="cuda", use_cuda_graphs=False)
-    for _ in range(warmup):
-        eager_engine.submit(stilde, psd_plan, valid_interval)
-        eager_engine.drain()
-    torch.cuda.synchronize()
+    checks = []
+    baseline = None
 
-    eager_times = []
-    for _ in range(iterations):
-        t0 = time.perf_counter()
-        eager_engine.submit(stilde, psd_plan, valid_interval)
-        eager_engine.drain()
-        torch.cuda.synchronize()
-        t1 = time.perf_counter()
-        eager_times.append((t1 - t0) * 1000.0)  # ms
-    eager_engine.close()
+    def measure(use_graphs):
+        nonlocal baseline
+        mode = 'graph' if use_graphs else 'eager'
+        engine = SearchEngine(bank_plan, policy, device="cuda", use_cuda_graphs=use_graphs)
+        times = []
+        try:
+            for index in range(warmup + iterations):
+                torch.cuda.synchronize()
+                t0 = time.perf_counter()
+                engine.submit(stilde, psd_plan, valid_interval)
+                drained = engine.drain()
+                torch.cuda.synchronize()
+                elapsed = (time.perf_counter() - t0) * 1000.0
+                if index >= warmup:
+                    times.append(elapsed)
+                # Own and qualify every result after stopping its timer, before
+                # a later submit can reuse candidate buffers.
+                check = {'mode': mode, 'submission': index,
+                         'warmup': index < warmup, 'passed': False}
+                try:
+                    actual = search_snapshot(drained, num_templates)
+                    if baseline is None and not use_graphs:
+                        baseline = actual
+                    if baseline is None:
+                        raise ValueError('no valid eager result for graph comparison')
+                    check.update(compare_search_snapshots(baseline, actual))
+                except (ValueError, RuntimeError, TypeError) as exc:
+                    check['reason'] = str(exc)
+                checks.append(check)
+            return times, engine.graph_stats
+        finally:
+            engine.close()
 
-    # 2. CUDA Graph engine
-    graph_engine = SearchEngine(bank_plan, policy, device="cuda", use_cuda_graphs=True)
-    for _ in range(warmup):
-        graph_engine.submit(stilde, psd_plan, valid_interval)
-        graph_engine.drain()
-    torch.cuda.synchronize()
-
-    graph_times = []
-    for _ in range(iterations):
-        t0 = time.perf_counter()
-        graph_engine.submit(stilde, psd_plan, valid_interval)
-        graph_engine.drain()
-        torch.cuda.synchronize()
-        t1 = time.perf_counter()
-        graph_times.append((t1 - t0) * 1000.0)  # ms
-
-    stats = graph_engine.graph_stats
-    graph_engine.close()
+    eager_times, _ = measure(False)
+    graph_times, stats = measure(True)
 
     eager_p50 = float(np.percentile(eager_times, 50))
     eager_p95 = float(np.percentile(eager_times, 95))
@@ -335,7 +344,10 @@ def benchmark_cuda_graphs(
     graph_p99 = float(np.percentile(graph_times, 99))
     graph_mean = float(np.mean(graph_times))
 
-    speedup = eager_mean / graph_mean if graph_mean > 0 else 1.0
+    equivalent = all(check['passed'] for check in checks)
+    graph_used = stats['capture_count'] > 0 and stats['replay_count'] > 0
+    qualified = equivalent and graph_used
+    speedup = eager_mean / graph_mean if qualified and graph_mean > 0 else None
 
     return {
         "num_templates": num_templates,
@@ -347,6 +359,13 @@ def benchmark_cuda_graphs(
         "warmup_submissions_per_mode": warmup,
         "raw_eager_ms": eager_times,
         "raw_graph_ms": graph_times,
+        "status": "passed" if qualified else "failed",
+        "output_equivalence": {"passed": equivalent, "checks": checks,
+                               "scope": "all exported candidate fields for this fixed synthetic fixture; no veto manager",
+                               "tolerances": "exact identities; complex SNR atol=0.001; other floats atol=rtol=1e-6"},
+        "graph_execution_gate": {"passed": graph_used},
+        "input_hashes": {"waveforms": array_hash(np.stack([row.numpy() for row in templates])),
+                         "strain": array_hash(stilde.numpy()), "psd": array_hash(psd.numpy())},
         "timer_boundary": "synchronized host submit/drain; all tiles",
         "graph_coverage": "correlation/IFFT only",
         "eager": {
@@ -1429,6 +1448,16 @@ def _validate_v2_measurements(benchmarks, require_full_workload):
         geometry(record)
         for name in ("raw_eager_ms", "raw_graph_ms"):
             samples(record, name, record.get("iterations"))
+        gate = record.get("output_equivalence", {})
+        checks = gate.get("checks", [])
+        count = 2 * (record.get("iterations", 0) + record.get("warmup_submissions_per_mode", 0))
+        if len(checks) != count:
+            raise ValueError("graph equivalence must check every measured and warmup result")
+        if record.get("speedup") is not None and not (
+                record.get("status") == "passed" and gate.get("passed") is True and
+                all(check.get("passed") is True for check in checks) and
+                record.get("graph_execution_gate", {}).get("passed") is True):
+            raise ValueError("graph speedup requires equivalent outputs and actual graph execution")
     if "live_streaming_latency" in benchmarks:
         record = benchmarks["live_streaming_latency"]
         geometry(record)
@@ -1727,6 +1756,10 @@ def main(argv: Optional[List[str]] = None):
 
     report["device_status"] = {
         "cpu": "executed", "cuda": "executed" if gpu_info else "skipped: CUDA unavailable"}
+    report["status"] = "failed" if any(
+        row.get("status") == "failed" for row in report["benchmarks"].values()) else "measured"
+    report["provenance"] = capture_execution_provenance(
+        repo_root=repo_root, benchmark_args=vars(args))
     require_full = (args.include_production_inspiral and args.production_size == 2097152
                     and args.production_templates == 384 and args.num_segments == 5
                     and args.sample_rate == 4096)
@@ -1736,7 +1769,8 @@ def main(argv: Optional[List[str]] = None):
 
     print(f"\n=== Benchmark Complete. Receipt written to {out_path} ===")
     print(json.dumps(report["benchmarks"], indent=2))
+    return 1 if report["status"] == "failed" else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
