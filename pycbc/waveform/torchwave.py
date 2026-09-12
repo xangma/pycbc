@@ -164,17 +164,11 @@ def wrap_batch(bank, indices, data, metadata):
 
 @lru_cache(maxsize=1)
 def provider_identity():
-    """Digest the loaded provider's TaylorF2 sources once per process."""
-    spec = importlib.util.find_spec('torchwave')
-    if spec is None:
+    """Get the provider-owned TaylorF2 digest once per process."""
+    if importlib.util.find_spec('torchwave') is None:
         return None
-    root = Path(spec.origin).parent
-    digest = hashlib.sha256()
-    for relative in ('__init__.py', 'waveforms.py', 'constants.py',
-                     'conversions.py', 'approximants/taylorf2.py'):
-        digest.update(relative.encode())
-        digest.update((root / relative).read_bytes())
-    return digest.hexdigest()
+    from torchwave.provenance import taylorf2_source_identity
+    return taylorf2_source_identity()
 
 
 def batch_key(bank, indices):
