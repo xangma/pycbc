@@ -258,7 +258,8 @@ def power_chisq_scratch_shape(num_bins, chunk_size, scratch_budget_bytes):
     Budget excludes caller inputs, O(candidate count) result/index arrays,
     normalized SNR copies, allocator caches and backend-internal workspace. Allow 128 bytes per candidate-frequency
     element and 128 bytes per candidate-bin plus 256 bytes per candidate for
-    concurrently live intermediates. Frequency blocks never exceed 4096.
+    concurrently live intermediates. Frequency blocks never exceed 16384
+    elements per candidate, including the bin axis in the Torch path.
     """
     if chunk_size < 1 or num_bins < 1:
         raise ValueError("Positive chunk size and bin count required")
@@ -266,7 +267,7 @@ def power_chisq_scratch_shape(num_bins, chunk_size, scratch_budget_bytes):
     if scratch_budget_bytes < per_row + 128:
         raise ValueError("Power chi-square scratch budget is too small")
     rows = min(int(chunk_size), int(scratch_budget_bytes) // (per_row + 128))
-    width = min(4096, (int(scratch_budget_bytes) // rows - per_row) // 128)
+    width = min(16384, (int(scratch_budget_bytes) // rows - per_row) // 128)
     return rows, width
 
 
@@ -353,31 +354,47 @@ def batched_power_chisq(
                 invalid = ((ce < 0) | (ce > flen)).any() | (ce[:, 1:] < ce[:, :-1]).any()
                 if bool(invalid):
                     raise ValueError("Invalid power chi-square bin edges")
-                lo, hi = int(ce.min()), int(ce.max())
                 zb = torch.zeros((len(ix), ce.shape[1]-1), device=dev, dtype=torch.complex128)
+                # Pack independent bins into the bounded frequency axis. A
+                # small budget can require multiple bin batches; each batch
+                # still has at most `width` frequency elements per candidate.
+                bin_batch = max(1, min(ce.shape[1]-1, width))
+                bin_width = max(1, width // bin_batch)
+                for first_bin in range(0, ce.shape[1]-1, bin_batch):
+                    last_bin = min(first_bin + bin_batch, ce.shape[1]-1)
+                    starts = ce[:, first_bin:last_bin]
+                    ends = ce[:, first_bin+1:last_bin+1]
+                    max_span = int((ends - starts).max())
+                    for start in range(0, max_span, bin_width):
+                        offsets = torch.arange(
+                            start, min(start + bin_width, max_span),
+                            device=dev, dtype=torch.int64,
+                        )
+                        k = starts[:, :, None] + offsets
+                        valid = k < ends[:, :, None]
+                        # Padding may extend beyond the stored spectrum or
+                        # into another bin. Mask gathered samples before the
+                        # complex product, including nonfinite padding values.
+                        data = torch.where(
+                            valid,
+                            corr_tile[ct[:, None, None], k.clamp(max=flen-1)],
+                            0,
+                        )
+                        angle = ((cs[:, None, None] * k) % N).to(torch.float64)
+                        angle.mul_(2.0 * math.pi / N)
+                        phase = torch.complex(torch.cos(angle), torch.sin(angle))
+                        product = data * phase
+                        zb[:, first_bin:last_bin].add_(product.sum(dim=2))
+                        # Release the block before allocating its successor.
+                        del offsets, k, valid, data, angle, phase, product
             else:
                 ce = edges[ct] if row_edges is None else np.broadcast_to(row_edges, (len(ix), len(row_edges)))
                 if np.any((ce < 0) | (ce > flen)) or np.any(np.diff(ce, axis=1) < 0):
                     raise ValueError("Invalid power chi-square bin edges")
                 lo, hi = int(ce.min()), int(ce.max())
                 zb = np.zeros((len(ix), ce.shape[1]-1), dtype=np.complex128)
-            for start in range(lo, hi, width):
-                end = min(start + width, hi)
-                if use_torch:
-                    k = torch.arange(start, end, device=dev, dtype=torch.int64)
-                    angle = ((cs[:, None] * k) % N).to(torch.float64)
-                    angle.mul_(2.0 * math.pi / N)
-                    phase = torch.complex(torch.cos(angle), torch.sin(angle))
-                    product = corr_tile[ct, start:end] * phase
-                    # Bin-local reductions avoid subtracting nearly equal
-                    # cumulative endpoints after large unrelated bins.
-                    for bi in range(ce.shape[1]-1):
-                        mask = ((k >= ce[:, bi:bi+1]) &
-                                (k < ce[:, bi+1:bi+2]))
-                        contribution = torch.where(mask, product, 0)
-                        zb[:, bi].add_(contribution.sum(dim=1))
-                        del mask, contribution
-                else:
+                for start in range(lo, hi, width):
+                    end = min(start + width, hi)
                     k = np.arange(start, end, dtype=np.int64)
                     angle = ((cs[:, None] * k) % N).astype(np.float64)
                     angle *= 2.0 * math.pi / N
@@ -389,8 +406,8 @@ def batched_power_chisq(
                         contribution = np.where(mask, product, 0)
                         zb[:, bi] += contribution.sum(axis=1)
                         del mask, contribution
-                # Do not retain the previous block while allocating the next.
-                del angle, phase, product
+                    # Do not retain the previous block while allocating the next.
+                    del angle, phase, product
             if use_torch:
                 raw = (zb.real.square() + zb.imag.square()).sum(dim=1)
                 vals = (ce.shape[1]-1) * raw * norms[ct].square() - snr[ix].abs().square()

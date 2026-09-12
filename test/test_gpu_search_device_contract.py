@@ -109,9 +109,10 @@ def test_blocked_veto_against_independent_direct_sum(device, ragged, monkeypatch
 def test_scratch_plan_bounds_simultaneously_live_storage():
     for budget in (8192, 1 << 20, 64 << 20):
         for bins in (1, 16, 31):
-            rows, width = power_chisq_scratch_shape(bins, 2048, budget)
-            assert 0 < rows <= 2048 and 0 < width <= 4096
-            assert rows*(128*width + 128*bins + 256) <= budget
+            for chunk_size in (1, 8, 2048):
+                rows, width = power_chisq_scratch_shape(bins, chunk_size, budget)
+                assert 0 < rows <= chunk_size and 0 < width <= 16384
+                assert rows*(128*width + 128*bins + 256) <= budget
     with pytest.raises(ValueError, match="too small"):
         power_chisq_scratch_shape(100, 2048, 1024)
 
@@ -129,3 +130,60 @@ def test_different_row_cutoffs_exclude_large_unrelated_bins(device):
         transform_length=4,
     )
     np.testing.assert_array_equal(result, [4, 4])
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda"])
+@pytest.mark.parametrize("dtype", [np.complex64, np.complex128])
+@pytest.mark.parametrize("budget", [8192, 65536])
+def test_bin_padding_excludes_nonfinite_values(device, dtype, budget, monkeypatch):
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA unavailable")
+    n = 64
+    rng = np.random.default_rng(91)
+    corr = (rng.normal(size=(3, n//2+1)) +
+            1j*rng.normal(size=(3, n//2+1))).astype(dtype)
+    edges = np.array([
+        [1, 1, 2, 5, 5, 6, 8, 8, 10, 11, 15, 15, 18, 20, 22, 24, 33],
+        [3, 3, 4, 4, 5, 6, 7, 9, 9, 10, 12, 12, 14, 16, 20, 24, 24],
+        [33] * 17,
+    ])
+    # Padding can land in excluded nonfinite data or beyond the spectrum.
+    # The third template has no in-band samples, including at its upper edge.
+    corr[:, 0] = np.inf
+    corr[1, 24:] = np.nan
+    corr[2, :] = np.nan
+    samples = np.array([0, n-1, n//2-1])
+    expected = []
+    for row, sample in enumerate(samples):
+        contributions = []
+        for lo, hi in zip(edges[row, :-1], edges[row, 1:]):
+            k = np.arange(lo, hi, dtype=np.int64)
+            angle = ((sample * k) % n).astype(np.float64) * (2*np.pi/n)
+            phase = np.cos(angle) + 1j*np.sin(angle)
+            contributions.append(np.dot(corr[row, lo:hi].astype(np.complex128),
+                                        phase))
+        expected.append(16*np.sum(np.abs(contributions)**2))
+    corr_tensor = torch.as_tensor(corr, device=device)
+    candidates = {
+        "template_idx": torch.arange(3, device=device),
+        "sample_idx": torch.as_tensor(samples, device=device),
+        "snr": torch.zeros(3, device=device, dtype=corr_tensor.dtype),
+    }
+    with monkeypatch.context() as patch:
+        def no_cpu(*args, **kwargs):
+            raise AssertionError("veto payload copied to host")
+        patch.setattr(torch.Tensor, "cpu", no_cpu)
+        actual, dof = batched_power_chisq(
+            corr_tensor, candidates, edges, np.ones(3), transform_length=n,
+            chunk_size=3, scratch_budget_bytes=budget, return_device=True,
+        )
+        empty, empty_dof = batched_power_chisq(
+            corr_tensor, {key: value[:0] for key, value in candidates.items()},
+            edges, np.ones(3), transform_length=n,
+            scratch_budget_bytes=budget, return_device=True,
+        )
+    assert actual.device.type == device
+    assert empty.device.type == device and empty.numel() == empty_dof.numel() == 0
+    tolerance = 3e-6 if dtype == np.complex64 else 2e-12
+    np.testing.assert_allclose(actual.cpu(), expected, rtol=tolerance, atol=1e-10)
+    np.testing.assert_array_equal(dof.cpu(), [30, 30, 30])
