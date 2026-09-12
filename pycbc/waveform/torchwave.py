@@ -3,12 +3,13 @@
 # version 3 or (at your option) any later version.
 """Explicit, conservative TorchWave dispatch for search template banks.
 
-Only aligned-spin, non-tidal TaylorF2 with the standard 3.5PN phase and
-zero reference frequency is qualified here. Eligibility is a PyCBC contract,
-not a reflection of TorchWave's model catalogue. Synthesis always uses float64;
+The runtime allowlist admits aligned-spin, non-tidal TaylorF2 with the standard
+3.5PN phase and zero reference frequency. Validation covers finite sampled
+fixtures, including boundary cases; it does not establish accuracy throughout
+the allowed mass, spin and frequency ranges. Synthesis always uses float64;
 storage may use complex64 or complex128. Other requests retain scalar PyCBC
-behavior, including compressed waveforms. CUDA performance is not qualified by
-the CPU parity tests.
+behavior, including compressed waveforms. CPU parity tests provide no CUDA
+performance evidence.
 """
 
 import importlib.util
@@ -61,33 +62,38 @@ def _reason(bank, params, device):
             and getattr(bank, 'enable_compressed_waveforms', False)):
         return 'compressed waveform generation takes precedence'
     if params['approximant'] != 'TaylorF2':
-        return 'approximant is outside the qualified TaylorF2 subset'
+        return 'approximant is outside the TaylorF2 runtime allowlist'
     for key in ('mass1', 'mass2'):
         if not 1 <= params[key] <= 100:
-            return f'{key} is outside the qualified [1, 100] solar-mass range'
+            return f'{key} is outside the allowed [1, 100] solar-mass range'
     for key in ('spin1z', 'spin2z'):
         if not abs(params[key]) <= 0.99:
-            return f'{key} is outside the qualified [-0.99, 0.99] range'
+            return f'{key} is outside the allowed [-0.99, 0.99] range'
     for key in _PHYSICAL | _GEOMETRY - {'approximant'}:
         if not math.isfinite(params[key]):
             return f'{key} must be finite'
     if not 10 <= params['f_lower'] < params['f_final'] <= 4096:
-        return 'frequency range is outside the qualified 10–4096 Hz domain'
+        return 'frequency range is outside the allowed 10–4096 Hz domain'
     for key, value in params.items():
         if key in _PHYSICAL | _GEOMETRY | _BOOKKEEPING:
             continue
         if key in _ORDERS:
             if value not in _ORDERS[key]:
-                return f'{key}={value!r} is not qualified'
+                return f'{key}={value!r} is outside the runtime allowlist'
         elif key in ('lambda1', 'lambda2') and value in (None, 0):
             continue
         elif key == 'mode_array':
             if value is not None:
-                return 'explicit mode_array is not qualified'
+                return 'explicit mode_array requires reference generation'
+        elif key == 'taper':
+            # The inspiral CLI passes None even when tapering is disabled.
+            # get_waveform_filter applies a taper only for a non-None value.
+            if value is not None:
+                return 'taper requests require reference generation'
         elif key not in default_args:
-            return f'option {key} is not qualified'
+            return f'option {key} is outside the runtime allowlist'
         elif value != default_args[key]:
-            return f'non-default {key} is not qualified'
+            return f'non-default {key} requires reference generation'
     return None
 
 
@@ -99,7 +105,7 @@ def diagnostics(bank, indices=None, device='cpu'):
         reason = _reason(bank, params, str(device))
         results.append({'index': index,
                         'provider': 'reference' if reason else 'torchwave',
-                        'reason': reason or 'qualified TaylorF2 parameters',
+                        'reason': reason or 'TaylorF2 runtime allowlist',
                         'generation_dtype': None if reason else 'float64'})
     return results
 
@@ -328,6 +334,6 @@ def generate_batch(bank, indices, device='cpu', dtype=None, delta_f=None):
             series = _metadata(bank, indices[position], requests[position][0],
                                output[position])
             series.waveform_provider = 'torchwave'
-            series.waveform_provider_reason = 'qualified TaylorF2 parameters'
+            series.waveform_provider_reason = 'TaylorF2 runtime allowlist'
             templates[position] = series
     return output, templates

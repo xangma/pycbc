@@ -889,7 +889,7 @@ class FilterBank(TemplateBank):
     def get_batch_tensor(self, batch_tnums, device="cpu", dtype=None):
         """Return template samples and metadata views in the requested order.
 
-        Generation uses qualified float64 TorchWave models only after explicit
+        Generation uses the float64 TorchWave runtime allowlist after explicit
         opt-in. Unsupported rows use scalar PyCBC generation. Storage defaults
         to the bank dtype; complex64 and complex128 are supported. Accelerator
         metadata requires an active TorchScheme matching ``device``.

@@ -38,6 +38,8 @@ def row(mass1=1.4, mass2=1.2, **options):
 @pytest.mark.parametrize('device', DEVICES)
 @pytest.mark.parametrize('storage', [torch.complex64, torch.complex128])
 def test_bank_complex_parity_and_metadata(tmp_path, device, storage):
+    # Finite sampled coverage, including limits of the runtime allowlist.
+    # These fixtures do not validate every point in the admitted domain.
     rows = []
     for i, (m1, m2, s1, s2, flow, fend) in enumerate([
             (1.4, 1.2, 0., 0., 30.11, 400.11),
@@ -82,6 +84,43 @@ def test_bank_complex_parity_and_metadata(tmp_path, device, storage):
     for template, reference in zip(templates, references):
         assert template.sigmasq(psd) == pytest.approx(
             reference.sigmasq(reference_psd), rel=3e-7)
+
+
+@pytest.mark.parametrize('device', DEVICES)
+def test_inspiral_cli_bank_arguments_use_native_provider(tmp_path, device):
+    filename = write_bank(tmp_path / 'cli.hdf', [row(24., 18.), row(20., 15.)])
+    # Mirror bin/pycbc_inspiral's FilterBank construction for a tiled search.
+    kwargs = dict(filter_length=2049, delta_f=.25,
+                  low_frequency_cutoff=30., dtype=np.complex64,
+                  phase_order=-1, taper=None, approximant=['TaylorF2'],
+                  out=None, max_template_length=None,
+                  enable_compressed_waveforms=False,
+                  waveform_decompression_method=None)
+    reference = FilterBank(filename, enable_torchwave=False, **kwargs)
+    expected = [reference[i].numpy().copy() for i in range(len(reference))]
+    without_taper = dict(kwargs)
+    without_taper.pop('taper')
+    untapered = FilterBank(filename, enable_torchwave=False, **without_taper)
+    for i, samples in enumerate(expected):
+        np.testing.assert_array_equal(samples, untapered[i].numpy())
+
+    bank = FilterBank(filename, enable_torchwave=True, **kwargs)
+    assert bank.can_use_torchwave()
+    with scheme.TorchScheme(device=device):
+        batch, templates = bank.get_batch_tensor([0, 1], device=device)
+        assert batch.dtype == torch.complex64
+        assert batch.device.type == device
+        for i, template in enumerate(templates):
+            assert template.waveform_provider == 'torchwave'
+            actual = batch[i].detach().cpu().numpy()
+            assert np.linalg.norm(actual - expected[i]) / np.linalg.norm(
+                expected[i]) < 2e-7
+    for taper in ('start', 'end', 'startend'):
+        bank.extra_args['taper'] = taper
+        assert not bank.can_use_torchwave()
+        for decision in bank.torchwave_diagnostics(device=device):
+            assert decision['provider'] == 'reference'
+            assert 'taper' in decision['reason']
 
 
 def test_global_precedence_and_heterogeneous_fallback(tmp_path):
