@@ -126,7 +126,7 @@ def test_inspiral_cli_bank_arguments_use_native_provider(tmp_path, device):
 def test_global_precedence_and_heterogeneous_fallback(tmp_path):
     rows = []
     for i, (approx, phase_order, f_ref, tidal) in enumerate([
-            ('TaylorF2', -1, 0., 0.), ('IMRPhenomD', -1, 0., 0.),
+            ('TaylorF2', -1, 0., 0.), ('IMRPhenomPv2', -1, 0., 0.),
             ('TaylorF2', 4, 0., 0.), ('TaylorF2', -1, 30., 0.),
             ('TaylorF2', -1, 0., 100.)]):
         p = row(8. + i, 2., coa_phase=.1, inclination=.2,

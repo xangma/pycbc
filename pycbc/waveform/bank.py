@@ -648,6 +648,7 @@ class LiveFilterBank(TemplateBank):
                  approximant=None, increment=8, parameters=None,
                  low_frequency_cutoff=None,
                  enable_torchwave=None,
+                 enable_diffgw=None,
                  **kwds):
 
         self.increment = increment
@@ -655,7 +656,18 @@ class LiveFilterBank(TemplateBank):
         self.sample_rate = sample_rate
         self.minimum_buffer = minimum_buffer
         self.f_lower = low_frequency_cutoff
-        self.enable_torchwave = enable_torchwave
+        if enable_diffgw is not None:
+            self.enable_diffgw = bool(enable_diffgw)
+            self.enable_torchwave = bool(enable_diffgw)
+            self.waveform_provider_name = 'diffgw'
+        elif enable_torchwave is not None:
+            self.enable_diffgw = bool(enable_torchwave)
+            self.enable_torchwave = bool(enable_torchwave)
+            self.waveform_provider_name = 'torchwave'
+        else:
+            self.enable_diffgw = None
+            self.enable_torchwave = None
+            self.waveform_provider_name = 'diffgw'
 
         super(LiveFilterBank, self).__init__(filename, approximant=approximant,
                 parameters=parameters, **kwds)
@@ -688,7 +700,9 @@ class LiveFilterBank(TemplateBank):
     def getslice(self, sindex):
         instance = copy(self)
         instance.table = self.table[sindex]
+        instance.enable_diffgw = getattr(self, "enable_diffgw", None)
         instance.enable_torchwave = getattr(self, "enable_torchwave", None)
+        instance.waveform_provider_name = getattr(self, "waveform_provider_name", "diffgw")
         return instance
 
     def id_from_param(self, param_tuple):
@@ -706,17 +720,27 @@ class LiveFilterBank(TemplateBank):
         """
         return self.param_lookup[param_tuple]
 
-    def can_use_torchwave(self):
-        from pycbc.waveform.torchwave import can_use
+    def can_use_diffgw(self):
+        from pycbc.waveform.diffgw import can_use
         return can_use(self)
+
+    def can_use_torchwave(self):
+        return self.can_use_diffgw()
+
+    def diffgw_diagnostics(self, indices=None, device="cpu"):
+        from pycbc.waveform.diffgw import diagnostics
+        return diagnostics(self, indices, device)
 
     def torchwave_diagnostics(self, indices=None, device="cpu"):
         from pycbc.waveform.torchwave import diagnostics
         return diagnostics(self, indices, device)
 
-    def _iter_torchwave(self, batch_size=128):
+    def _iter_diffgw(self, batch_size=128):
         """Generate bounded windows, grouping equal grids within each window."""
-        from pycbc.waveform.torchwave import generate_batch
+        if getattr(self, "waveform_provider_name", None) == "torchwave":
+            from pycbc.waveform.torchwave import generate_batch
+        else:
+            from pycbc.waveform.diffgw import generate_batch
         from pycbc import scheme
         if batch_size <= 0:
             raise ValueError("batch_size must be positive")
@@ -737,9 +761,14 @@ class LiveFilterBank(TemplateBank):
             for index in range(start, stop):
                 yield waveforms.pop(index)
 
+    def _iter_torchwave(self, batch_size=128):
+        return self._iter_diffgw(batch_size=batch_size)
+
     def __iter__(self):
-        if self.enable_torchwave is True:
+        if getattr(self, "waveform_provider_name", None) == "torchwave":
             yield from self._iter_torchwave()
+        elif self.enable_diffgw is True or self.enable_torchwave is True:
+            yield from self._iter_diffgw()
         else:
             for index in range(len(self)):
                 yield self[index]
@@ -860,6 +889,7 @@ class FilterBank(TemplateBank):
                  low_frequency_cutoff=None,
                  waveform_decompression_method=None,
                  enable_torchwave=None,
+                 enable_diffgw=None,
                  **kwds):
         self.out = out
         self.dtype = dtype
@@ -872,15 +902,33 @@ class FilterBank(TemplateBank):
         self.max_template_length = max_template_length
         self.enable_compressed_waveforms = enable_compressed_waveforms
         self.waveform_decompression_method = waveform_decompression_method
-        self.enable_torchwave = enable_torchwave
+        if enable_diffgw is not None:
+            self.enable_diffgw = bool(enable_diffgw)
+            self.enable_torchwave = bool(enable_diffgw)
+            self.waveform_provider_name = 'diffgw'
+        elif enable_torchwave is not None:
+            self.enable_diffgw = bool(enable_torchwave)
+            self.enable_torchwave = bool(enable_torchwave)
+            self.waveform_provider_name = 'torchwave'
+        else:
+            self.enable_diffgw = None
+            self.enable_torchwave = None
+            self.waveform_provider_name = 'diffgw'
 
         super(FilterBank, self).__init__(filename, approximant=approximant,
             parameters=parameters, **kwds)
         self.ensure_standard_filter_columns(low_frequency_cutoff=low_frequency_cutoff)
 
-    def can_use_torchwave(self):
-        from pycbc.waveform.torchwave import can_use
+    def can_use_diffgw(self):
+        from pycbc.waveform.diffgw import can_use
         return can_use(self)
+
+    def can_use_torchwave(self):
+        return self.can_use_diffgw()
+
+    def diffgw_diagnostics(self, indices=None, device="cpu"):
+        from pycbc.waveform.diffgw import diagnostics
+        return diagnostics(self, indices, device)
 
     def torchwave_diagnostics(self, indices=None, device="cpu"):
         from pycbc.waveform.torchwave import diagnostics
@@ -889,22 +937,25 @@ class FilterBank(TemplateBank):
     def get_batch_tensor(self, batch_tnums, device="cpu", dtype=None):
         """Return template samples and metadata views in the requested order.
 
-        Generation uses the float64 TorchWave runtime allowlist after explicit
+        Generation uses the float64 diffgw runtime allowlist after explicit
         opt-in. Unsupported rows use scalar PyCBC generation. Storage defaults
         to the bank dtype; complex64 and complex128 are supported. Accelerator
         metadata requires an active TorchScheme matching ``device``.
         """
-        from pycbc.waveform.torchwave import generate_batch
+        if getattr(self, "waveform_provider_name", None) == "torchwave":
+            from pycbc.waveform.torchwave import generate_batch
+        else:
+            from pycbc.waveform.diffgw import generate_batch
         return generate_batch(self, batch_tnums, device, dtype)
 
     def wrap_batch_tensor(self, indices, data, metadata):
         """Create fresh metadata views from cached sample-free records."""
-        from pycbc.waveform.torchwave import wrap_batch
+        from pycbc.waveform.diffgw import wrap_batch
         return wrap_batch(self, indices, data, metadata)
 
     def waveform_batch_key(self, indices):
         """Return the resolved provider and parameter identity for a batch."""
-        from pycbc.waveform.torchwave import batch_key
+        from pycbc.waveform.diffgw import batch_key
         return batch_key(self, indices)
 
     def get_decompressed_waveform(self, tempout, index, f_lower=None,
