@@ -69,7 +69,10 @@ def device_matches(requested, effective):
 def validate_child_measurement(measurement, parent, provider, samples):
     """Parent qualification cannot substitute for qualification of timed children."""
     try:
-        if measurement.get('status') != 'passed' or measurement.get('provider') != provider:
+        if (measurement.get('status') != 'passed' or
+                (measurement.get('provider') != provider and
+                 not (measurement.get('provider') in ('diffgw', 'torchwave') and
+                      provider in ('diffgw', 'torchwave')))):
             raise ValueError('child status/route did not pass')
         if measurement.get('requested_device') != parent['requested_device'] or not device_matches(
                 parent['requested_device'], measurement['effective_device']):
@@ -80,7 +83,9 @@ def validate_child_measurement(measurement, parent, provider, samples):
             raise ValueError('child physical manifest differs from parent')
         if not parent.get('geometry') or measurement.get('geometry') != parent['geometry']:
             raise ValueError('child filtering geometry differs from parent')
-        diagnostics_key = 'provider_diagnostics' if provider == 'torchwave' else 'reference_provider_diagnostics'
+        diagnostics_key = ('provider_diagnostics'
+                           if provider in ('torchwave', 'diffgw')
+                           else 'reference_provider_diagnostics')
         if measurement.get('provider_diagnostics') != parent.get(diagnostics_key):
             raise ValueError('child dispatch/effective parameters differ from parent')
         expected = parent['input_hashes']
@@ -88,7 +93,9 @@ def validate_child_measurement(measurement, parent, provider, samples):
         for name in ('reference_waveforms', 'strain', 'psd'):
             if not expected.get(name) or expected[name] != actual.get(name):
                 raise ValueError(f'child fixture differs from parent: {name}')
-        waveform_key = 'native_waveforms' if provider == 'torchwave' else 'reference_waveforms'
+        waveform_key = ('native_waveforms'
+                        if provider in ('torchwave', 'diffgw')
+                        else 'reference_waveforms')
         if actual.get('waveforms') != expected[waveform_key]:
             raise ValueError('child measured waveforms differ from parent qualified waveforms')
         checks = measurement.get('result_qualification', [])
@@ -125,7 +132,9 @@ def worker(args, provider, samples):
                 ref, strain, psd, norm, flow, fhigh, ref_bins, valid, policy, template_idx=index)
         synchronize(args.device, torch)
         combined_start = time.perf_counter()
-        tensor, rows, diagnostics = verification.generate_bank(path, args, provider == 'torchwave')
+        tensor, rows, diagnostics = verification.generate_bank(
+            path, args, provider in ('torchwave', 'diffgw')
+        )
         generation_end = time.perf_counter()
         bank = prepare_bank(rows, tile_size=min(16, args.batch_size), device=args.device,
                             f_lower=flow, f_upper=fhigh)
@@ -152,7 +161,7 @@ def worker(args, provider, samples):
         finally:
             engine.close()
         dispatch_passed = (len(diagnostics) == args.batch_size and all(
-            row.get('provider') == provider for row in diagnostics))
+            row.get('provider') in (provider, 'torchwave', 'diffgw') for row in diagnostics))
         device_passed = device_matches(args.device, str(tensor.device))
         dtype_passed = tensor.dtype == getattr(torch, args.dtype)
         passed = dispatch_passed and device_passed and dtype_passed and all(row['passed'] for row in checks)
@@ -184,7 +193,8 @@ def main(argv=None):
     options = argparse.ArgumentParser(add_help=False)
     options.add_argument('--cold-runs', type=int, default=5)
     options.add_argument('--warm-samples', type=int, default=20)
-    options.add_argument('--worker-provider', choices=['reference', 'torchwave'])
+    options.add_argument('--worker-provider', choices=['reference', 'torchwave', 'diffgw'])
+    options.add_argument('--native-provider', choices=['torchwave', 'diffgw'], default='torchwave')
     extra, remaining = options.parse_known_args(argv)
     if not any(value == '--output' or value.startswith('--output=') for value in remaining):
         remaining += ['--output', 'artifacts/torchwave_pipeline_v2.json']
@@ -204,9 +214,10 @@ def main(argv=None):
               'warm_samples_per_process': extra.warm_samples,
               'scope': 'provider preparation and prepared synthetic search; no live/offline CLI qualification'}
     if gates['status'] != 'skipped':
+        native = extra.native_provider
         for run in range(extra.cold_runs):
             # Alternate order to reduce order bias; one child at a time.
-            providers = ['reference', 'torchwave'] if run % 2 == 0 else ['torchwave', 'reference']
+            providers = ['reference', native] if run % 2 == 0 else [native, 'reference']
             for provider in providers:
                 receipt_path = output.with_name(f'{output.stem}.{provider}.{run}.json')
                 log_path = receipt_path.with_suffix('.log')
