@@ -22,7 +22,12 @@ import os as _os
 
 import h5py
 import numpy as _numpy
-from igwn_segments import segment, segmentlist
+
+try:
+    from igwn_segments import segment, segmentlist
+except ImportError:
+    segmentlist = segment = None
+
 from scipy.io.wavfile import write as write_wav
 
 from pycbc.libutils import import_optional
@@ -31,6 +36,7 @@ from pycbc.types.array import (
     Array,
     _convert,
     _nocomplex,
+    _regular_grid,
     complex_same_precision_as,
     zeros,
 )
@@ -38,6 +44,392 @@ from pycbc.types.frequencyseries import FrequencySeries
 from pycbc.types.utils import determine_epoch
 
 _lal = import_optional("lal")
+
+_TORCH_AT_TIME_FALLBACK = object()
+
+
+def _torch_has_autograd_state(tensor, torch):
+    """Whether native scalar arithmetic would discard Torch AD state."""
+    if tensor.requires_grad:
+        return True
+    try:
+        return torch.autograd.forward_ad.unpack_dual(tensor).tangent is not None
+    except (AttributeError, RuntimeError):
+        # Keep an uninspectable tensor on Torch's autograd-aware path.
+        return True
+
+
+def _torch_at_time_host_scalar_numpy(tensor, index, offset, interpolate):
+    """Interpolate an ordinary CPU scalar through a zero-copy NumPy view.
+
+    Several scalar Torch indexing and arithmetic operations each dispatch a
+    separate kernel, even on CPU.  A contiguous tensor that cannot carry a
+    gradient can instead expose its existing storage to NumPy and perform the
+    same scalar operations natively.  Return a sentinel for every storage or
+    indexing case whose established Torch behavior must be retained.
+    """
+    import torch
+
+    if (
+        interpolate not in ("linear", "quadratic")
+        or tensor.device.type != "cpu"
+        or tensor.layout != torch.strided
+        or tensor.ndim != 1
+        or not tensor.is_contiguous()
+        or tensor.is_conj()
+        or tensor.is_neg()
+    ):
+        return _TORCH_AT_TIME_FALLBACK
+    if _torch_has_autograd_state(tensor, torch):
+        return _TORCH_AT_TIME_FALLBACK
+
+    size = tensor.numel()
+    required = (index, index + 1)
+    if interpolate == "quadratic":
+        required += (index - 1,)
+    if not all(-size <= sample_index < size for sample_index in required):
+        return _TORCH_AT_TIME_FALLBACK
+
+    values = tensor.numpy()
+    if interpolate == "linear":
+        a = values[index]
+        b = values[index + 1]
+        result = a + (b - a) * offset
+    else:
+        c = values[index]
+        xr = values[index + 1] - c
+        xl = values[index - 1] - c
+        a = 0.5 * (xr + xl)
+        b = 0.5 * (xr - xl)
+        offset_squared = type(offset)(offset * offset)
+        result = a * offset_squared + b * offset + c
+
+    # Keep the public result as an ordinary owning zero-dimensional tensor.
+    # In particular, do not return a ``from_numpy`` view whose storage cannot
+    # be resized like the result from the established Torch interpolation.
+    return tensor.new_tensor(result)
+
+
+def _torch_at_time_host_scalar(
+    series, tensor, time, nearest_sample, interpolate, extrapolate
+):
+    """Evaluate one host-time query without device coordinate tensors.
+
+    Ordinary scalar times cannot carry Torch gradients.  Computing their
+    index and fractional offset as host scalars avoids several one-element
+    kernels while all sampled data and differentiable interpolation remain on
+    ``tensor.device``.  A sentinel retains the generic path for non-finite
+    coordinates that are not handled by extrapolation.
+    """
+    import torch
+
+    try:
+        relative_time = float(time) - float(series.start_time)
+    except (TypeError, ValueError, OverflowError):
+        return _TORCH_AT_TIME_FALLBACK
+
+    if nearest_sample:
+        relative_time += series.delta_t / 2.0
+
+    if extrapolate is not None:
+        if not (_numpy.isscalar(extrapolate) and _numpy.isreal(extrapolate)):
+            raise ValueError(f"Unsupported extrapolate: {extrapolate}")
+        facl = facr = 0
+        if interpolate == "quadratic":
+            facl = facr = 1.1
+        elif interpolate == "linear":
+            facl, facr = 0.1, 1.1
+        keep = (
+            relative_time >= series.delta_t * facl
+            and relative_time < series.duration - series.delta_t * facr
+        )
+        if not keep:
+            fill_value = extrapolate
+            if not tensor.is_complex() and _numpy.iscomplexobj(fill_value):
+                fill_value = fill_value.real
+            result = torch.full(
+                (), fill_value, device=tensor.device, dtype=tensor.dtype
+            )
+            if tensor.requires_grad:
+                # The generic vector path retains a zero-valued dependency
+                # through its empty selected slice. Preserve that established
+                # backward contract for scalar extrapolation as well.
+                result = result + tensor[:0].sum()
+            return result
+
+    fi = relative_time * series.sample_rate
+    if not _numpy.isfinite(fi):
+        return _TORCH_AT_TIME_FALLBACK
+    index = int(_numpy.floor(fi))
+    scalar_dtype = (
+        _numpy.float32 if tensor.real.dtype == torch.float32 else _numpy.float64
+    )
+    offset = scalar_dtype(fi - index)
+
+    if extrapolate is None:
+        native_result = _torch_at_time_host_scalar_numpy(
+            tensor, index, offset, interpolate
+        )
+        if native_result is not _TORCH_AT_TIME_FALLBACK:
+            return native_result
+
+    if interpolate == "linear":
+        a = tensor[index]
+        b = tensor[index + 1]
+        return a + (b - a) * offset
+    if interpolate == "quadratic":
+        c = tensor[index]
+        xr = tensor[index + 1] - c
+        xl = tensor[index - 1] - c
+        a = 0.5 * (xr + xl)
+        b = 0.5 * (xr - xl)
+        offset_squared = scalar_dtype(offset * offset)
+        return a * offset_squared + b * offset + c
+    return tensor[index]
+
+
+def _torch_taper_peak(amplitude, start, end, step):
+    """Return the second eligible LAL taper peak in one direction.
+
+    The returned index remains a scalar tensor on ``amplitude.device``.  In
+    particular, this deliberately avoids ``nonzero`` and boolean-index
+    compaction: both need the data-dependent result size on the host and can
+    therefore synchronize a CUDA stream.
+    """
+    import torch
+
+    count = amplitude.numel()
+    indices = torch.arange(count, device=amplitude.device)
+
+    # The boundary samples are excluded below, so their rolled neighbours do
+    # not affect the result.  Roll keeps every intermediate fixed-size.
+    previous = torch.roll(amplitude, 1)
+    following = torch.roll(amplitude, -1)
+    peaks = (amplitude >= previous) & (amplitude >= following)
+    inside = (indices - start) * step > 0
+    inside &= (end - indices) * step > 0
+    candidates = peaks & inside
+
+    # Work in the direction in which LAL scans the waveform.  A flat peak
+    # advances LAL's loop by an extra sample.  Equivalently, within each run
+    # of adjacent candidates only candidates 0, 2, 4, ... are visited.
+    scan_candidates = candidates if step > 0 else candidates.flip(0)
+    scan_order = indices
+    prior_candidate = torch.cat(
+        (
+            torch.zeros(1, dtype=torch.bool, device=amplitude.device),
+            scan_candidates[:-1],
+        )
+    )
+    new_run = scan_candidates & ~prior_candidate
+    run_starts = torch.where(new_run, scan_order, torch.zeros_like(scan_order))
+    run_starts = torch.cummax(run_starts, dim=0).values
+    visited = scan_candidates & ((scan_order - run_starts).remainder(2) == 0)
+
+    neighbour = following if step > 0 else previous
+    flat = amplitude == neighbour
+    effective = indices + flat.to(indices.dtype) * step
+    scan_effective = effective if step > 0 else effective.flip(0)
+    eligible = visited & ((scan_effective - start) * step > 19)
+
+    # Select the second eligible peak without compacting the candidates.  If
+    # it does not exist, ``end`` is the midpoint fallback used by LAL.
+    second = eligible & (eligible.to(torch.int64).cumsum(dim=0) == 2)
+    selected = torch.where(second, scan_effective, end)
+    if step > 0:
+        return selected.amin()
+    return selected.amax()
+
+
+def _torch_apply_taper_side(result, indices, boundary, length, step, valid):
+    """Apply one LAL taper side using only fixed-size device operations."""
+    import torch
+
+    distance = (indices - boundary) * step
+    interior = valid & (distance > 0) & (distance < length - 1)
+
+    distance = distance.to(dtype=result.dtype)
+    extent = (length - 1).to(dtype=result.dtype)
+    safe_distance = torch.where(interior, distance, torch.ones_like(distance))
+    safe_remainder = torch.where(
+        interior, distance - extent, -torch.ones_like(distance)
+    )
+    exponent = extent / safe_distance + extent / safe_remainder
+    taper = 1 / (torch.exp(exponent) + 1)
+    result = result * torch.where(interior, taper, torch.ones_like(taper))
+
+    # Multiplication by zero would retain NaNs.  LAL assigns the endpoint,
+    # so use where to reproduce that behavior for non-finite inputs too.
+    endpoint = valid & (indices == boundary)
+    return torch.where(endpoint, torch.zeros_like(result), result)
+
+
+def _torch_lal_taper(tensor, location):
+    """Apply LAL's inspiral waveform taper algorithm on a Torch device."""
+    import torch
+
+    result = tensor.clone()
+    if location == "none":
+        return result
+
+    count = result.numel()
+    if count == 0:
+        return result
+
+    indices = torch.arange(count, device=result.device)
+    nonzero = result != 0
+    start = torch.where(nonzero, indices, torch.full_like(indices, count)).amin()
+    end = torch.where(nonzero, indices, torch.full_like(indices, -1)).amax()
+    valid = nonzero.any() & (end - start > 1)
+    midpoint = (start + end) // 2
+    amplitude = result.abs()
+
+    if location != "end":
+        peak = _torch_taper_peak(amplitude, start, midpoint, 1)
+        result = _torch_apply_taper_side(result, indices, start, peak - start, 1, valid)
+
+    if location in ("end", "startend"):
+        peak = _torch_taper_peak(amplitude, end, midpoint, -1)
+        result = _torch_apply_taper_side(result, indices, end, end - peak, -1, valid)
+
+    return result
+
+
+def _torch_constant_taper_parameters(count, delta_t, epoch, taper_window):
+    """Return exact integer-rate parameters for the Torch constant taper.
+
+    The legacy implementation locates each gate through ``LIGOTimeGPS``
+    arithmetic. That rounds the sample time and taper width separately to
+    nanoseconds before converting the result back to a sample offset. The
+    integer construction below reproduces that behavior exactly for positive
+    power-of-two sample rates, without extracting a data-dependent index from
+    the device. Less common rates retain the established implementation.
+    """
+    if _lal is None:
+        return None
+    # Keep this deliberately narrow. In particular, unusual scalar classes
+    # must continue through the legacy arithmetic and preserve its errors.
+    if type(taper_window) not in (bool, int, float):
+        return None
+
+    window = float(taper_window)
+    if not _numpy.isfinite(window) or window <= 0:
+        return None
+
+    sample_rate = 1.0 / delta_t
+    if not _numpy.isfinite(sample_rate) or sample_rate <= 0:
+        return None
+    integer_rate = int(sample_rate)
+    if sample_rate != integer_rate or integer_rate & (integer_rate - 1):
+        return None
+
+    nanoseconds = 1_000_000_000
+    int64_max = _numpy.iinfo(_numpy.int64).max
+    if integer_rate > int64_max // 2:
+        return None
+
+    # Preserve the LIGOTimeGPS conversion, including ties-to-even rounding.
+    # Avoid taking this path near its signed-seconds boundary so the legacy
+    # implementation remains responsible for the corresponding exceptions.
+    if window >= 2**31 - 2:
+        return None
+    window_gps = _lal.LIGOTimeGPS(window)
+    window_ns = int(window_gps.gpsSeconds) * nanoseconds + int(
+        window_gps.gpsNanoSeconds
+    )
+
+    last_index = max(count - 1, 0)
+    if last_index * nanoseconds > int64_max:
+        return None
+    max_center_ns = (last_index * nanoseconds + integer_rate - 1) // integer_rate
+    if (max_center_ns + abs(window_ns)) * integer_rate > int64_max:
+        return None
+
+    epoch_gps = epoch if hasattr(epoch, "gpsSeconds") else _lal.LIGOTimeGPS(epoch)
+    epoch_seconds = int(epoch_gps.gpsSeconds)
+    duration_seconds = (last_index + integer_rate - 1) // integer_rate
+    if (
+        epoch_seconds - int(_numpy.ceil(window)) - 2 <= -(2**31)
+        or epoch_seconds + duration_seconds + 2 >= 2**31 - 1
+    ):
+        return None
+
+    window_length = int(2 * sample_rate * window)
+    padding_length = int(sample_rate * window)
+    return integer_rate, window_ns, window_length, padding_length
+
+
+def _torch_round_sample_time_ns(index, sample_rate):
+    """Round ``index / sample_rate`` to GPS nanoseconds, ties to even."""
+    import torch
+
+    numerator = index * 1_000_000_000
+    quotient = torch.div(numerator, sample_rate, rounding_mode="floor")
+    remainder = numerator - quotient * sample_rate
+    twice_remainder = 2 * remainder
+    round_up = (twice_remainder > sample_rate) | (
+        (twice_remainder == sample_rate) & (quotient.remainder(2) != 0)
+    )
+    return quotient + round_up.to(quotient.dtype)
+
+
+def _torch_constant_taper(
+    tensor, location, sample_rate, window_ns, window_length, padding_length
+):
+    """Apply the legacy constant taper without a device-to-host sync."""
+    import torch
+
+    count = tensor.numel()
+    if count == 0 or window_length == 0:
+        return tensor
+
+    indices = torch.arange(count, device=tensor.device, dtype=torch.int64)
+    nonzero = tensor != 0
+    valid = nonzero.any()
+    first = torch.where(nonzero, indices, torch.full_like(indices, count)).amin()
+    last = torch.where(nonzero, indices, torch.full_like(indices, -1)).amax()
+
+    boundaries = []
+    if location in ("start", "startend"):
+        boundaries.append(first)
+    if location in ("end", "startend"):
+        boundaries.append(last)
+
+    for boundary in boundaries:
+        # Invalid all-zero sentinels are replaced before integer arithmetic;
+        # ``valid`` then makes the corresponding multiplier exactly one.
+        boundary = torch.where(valid, boundary, torch.zeros_like(boundary))
+        center_ns = _torch_round_sample_time_ns(boundary, sample_rate)
+        relative_ns = center_ns - window_ns
+        product_ns = relative_ns * sample_rate
+        offset = torch.div(product_ns, 1_000_000_000, rounding_mode="trunc")
+
+        window_index = indices - offset
+        inside = valid & (window_index >= 0) & (window_index < window_length)
+        if padding_length:
+            padding_region = (window_index < padding_length) | (
+                window_index >= window_length - padding_length
+            )
+            padding_index = torch.where(
+                window_index < padding_length,
+                window_index,
+                window_length - 1 - window_index,
+            ).clamp(0, padding_length - 1)
+            padding_value = 0.5 * (
+                1.0
+                + torch.cos(torch.pi * padding_index.to(tensor.dtype) / padding_length)
+            )
+            selected = torch.where(
+                padding_region,
+                padding_value,
+                torch.zeros_like(tensor),
+            )
+        else:
+            selected = torch.zeros_like(tensor)
+        multiplier = torch.where(inside, selected, torch.ones_like(tensor))
+        tensor.mul_(multiplier)
+
+    return tensor
 
 
 class TimeSeries(Array):
@@ -66,7 +458,7 @@ class TimeSeries(Array):
             except AttributeError:
                 raise TypeError(
                     "must provide either an initial_array with a delta_t attribute, or a value for delta_t"
-                )
+                ) from None
         if not delta_t > 0:
             raise ValueError("delta_t must be a positive number")
 
@@ -234,11 +626,13 @@ class TimeSeries(Array):
     end_time = property(get_end_time, doc="Time series end time.")
 
     def get_sample_times(self):
-        """Return an Array containing the sample times."""
-        if self._epoch is None:
-            return Array(range(len(self))) * self._delta_t
-        else:
-            return Array(range(len(self))) * self._delta_t + float(self._epoch)
+        """Return an Array containing the sample times.
+
+        Absolute times require float64 precision. An active Torch MPS
+        scheme raises TypeError because that device cannot represent them.
+        """
+        epoch = None if self._epoch is None else float(self._epoch)
+        return _regular_grid(len(self), self._delta_t, offset=epoch)
 
     sample_times = property(get_sample_times, doc="Array containing the sample times.")
 
@@ -260,6 +654,108 @@ class TimeSeries(Array):
             Value to return if time is outside the range of the vector or
             method of extrapolating the value.
         """
+        tensor = getattr(self._data, "tensor", None)
+        if tensor is not None:
+            import torch
+
+            query_tensor = getattr(getattr(time, "_data", None), "tensor", None)
+            if query_tensor is None and isinstance(time, torch.Tensor):
+                query_tensor = time
+
+            if (
+                query_tensor is None
+                and tensor.device.type in ("cpu", "cuda")
+                and tensor.real.dtype in (torch.float32, torch.float64)
+                and _numpy.ndim(time) == 0
+            ):
+                scalar_result = _torch_at_time_host_scalar(
+                    self, tensor, time, nearest_sample, interpolate, extrapolate
+                )
+                if scalar_result is not _TORCH_AT_TIME_FALLBACK:
+                    return scalar_result
+
+            if query_tensor is not None:
+                if query_tensor.is_complex():
+                    raise TypeError("Time values must be real")
+                scalar_input = query_tensor.ndim == 0
+                coordinate_dtype = (
+                    tensor.real.dtype if tensor.device.type == "mps" else torch.float64
+                )
+                relative_times = query_tensor.to(
+                    device=tensor.device, dtype=coordinate_dtype
+                ).reshape(-1)
+                relative_times = relative_times - float(self.start_time)
+            else:
+                scalar_input = _numpy.ndim(time) == 0
+                values = [float(time)] if scalar_input else time
+                if tensor.device.type == "mps":
+                    # MPS has no float64 support. Center host-provided query
+                    # coordinates before their one-way upload so GPS epochs
+                    # do not lose their fractional samples in float32.
+                    values = _numpy.asarray(values, dtype=_numpy.float64) - float(
+                        self.start_time
+                    )
+                    relative_times = torch.as_tensor(
+                        values, device=tensor.device, dtype=tensor.real.dtype
+                    ).reshape(-1)
+                else:
+                    relative_times = torch.as_tensor(
+                        values, device=tensor.device, dtype=torch.float64
+                    ).reshape(-1)
+                    relative_times = relative_times - float(self.start_time)
+
+            if nearest_sample:
+                relative_times = relative_times + self.delta_t / 2.0
+
+            fill_value = None
+            keep = None
+            size = relative_times.numel()
+            if extrapolate is not None:
+                if _numpy.isscalar(extrapolate) and _numpy.isreal(extrapolate):
+                    fill_value = extrapolate
+                    facl = facr = 0
+                    if interpolate == "quadratic":
+                        facl = facr = 1.1
+                    elif interpolate == "linear":
+                        facl, facr = 0.1, 1.1
+
+                    keep = (relative_times >= self.delta_t * facl) & (
+                        relative_times < self.duration - self.delta_t * facr
+                    )
+                    relative_times = relative_times[keep]
+                else:
+                    raise ValueError(f"Unsupported extrapolate: {extrapolate}")
+
+            fi = relative_times * self.sample_rate
+            indices = torch.floor(fi).to(dtype=torch.int64)
+            offsets = (fi - indices).to(dtype=tensor.real.dtype)
+            if interpolate == "linear":
+                a = tensor[indices]
+                b = tensor[indices + 1]
+                ans = a + (b - a) * offsets
+            elif interpolate == "quadratic":
+                c = tensor[indices]
+                xr = tensor[indices + 1] - c
+                xl = tensor[indices - 1] - c
+                a = 0.5 * (xr + xl)
+                b = 0.5 * (xr - xl)
+                ans = a * offsets.square() + b * offsets + c
+            else:
+                ans = tensor[indices]
+
+            if fill_value is not None:
+                if not tensor.is_complex() and _numpy.iscomplexobj(fill_value):
+                    fill_value = fill_value.real
+                old = ans
+                ans = torch.full(
+                    (size,), fill_value, device=tensor.device, dtype=tensor.dtype
+                )
+                ans[keep] = old
+
+            if scalar_input:
+                return ans[0]
+            return ans
+
         if nearest_sample:
             time = time + self.delta_t / 2.0
         vtime = _numpy.array(time, ndmin=1)
@@ -326,11 +822,10 @@ class TimeSeries(Array):
         Thus, this method returns 'True' if the types of both 'self'
         and 'other' are identical, as well as their lengths, dtypes,
         epochs, delta_ts and the data in the arrays, element by element.
-        It will always do the comparison on the CPU, but will *not* move
-        either object to the CPU if it is not already there, nor change
-        the scheme of either object. It is possible to compare a CPU
-        object to a GPU object, and the comparison should be true if the
-        data and meta-data of the two objects are the same.
+        Same-device Torch arrays are reduced on their device,
+        synchronizing only the final boolean. Mixed backends retain the
+        CPU comparison path. Neither object is relocated nor has its
+        scheme changed.
 
         Note in particular that this function returns a single boolean,
         and not an array of booleans as Numpy does.  If the numpy
@@ -374,9 +869,9 @@ class TimeSeries(Array):
         equality between the two is required.
 
         Other meta-data (type, dtype, length, and epoch) must be exactly
-        equal.  If either object's memory lives on the GPU it will be
-        copied to the CPU for the comparison, which may be slow. But the
-        original object itself will not have its memory relocated nor
+        equal. Same-device Torch arrays are reduced on their device,
+        synchronizing only the final boolean. Mixed backends retain the
+        CPU comparison path. Neither object is relocated nor has its
         scheme changed.
 
         Parameters
@@ -436,9 +931,9 @@ class TimeSeries(Array):
         equality between the two is required.
 
         Other meta-data (type, dtype, length, and epoch) must be exactly
-        equal.  If either object's memory lives on the GPU it will be
-        copied to the CPU for the comparison, which may be slow. But the
-        original object itself will not have its memory relocated nor
+        equal. Same-device Torch arrays are reduced on their device,
+        synchronizing only the final boolean. Mixed backends retain the
+        CPU comparison path. Neither object is relocated nor has its
         scheme changed.
 
         Parameters
@@ -606,27 +1101,20 @@ class TimeSeries(Array):
             If True, return a wrapped LAL time series object, else return a
             PyCBC time series.
         """
-        import lalsimulation as sim
-
         if hasattr(location, "decode"):
             location = location.decode()
 
         if hasattr(tapermethod, "decode"):
             tapermethod = tapermethod.decode()
 
-        taper_map = {
-            "TAPER_NONE": None,
-            "TAPER_START": sim.SIM_INSPIRAL_TAPER_START,
-            "start": sim.SIM_INSPIRAL_TAPER_START,
-            "TAPER_END": sim.SIM_INSPIRAL_TAPER_END,
-            "end": sim.SIM_INSPIRAL_TAPER_END,
-            "TAPER_STARTEND": sim.SIM_INSPIRAL_TAPER_STARTEND,
-            "startend": sim.SIM_INSPIRAL_TAPER_STARTEND,
-        }
-
-        taper_func_map = {
-            _numpy.dtype(float32): sim.SimInspiralREAL4WaveTaper,
-            _numpy.dtype(float64): sim.SimInspiralREAL8WaveTaper,
+        taper_locations = {
+            "TAPER_NONE": "none",
+            "TAPER_START": "start",
+            "start": "start",
+            "TAPER_END": "end",
+            "end": "end",
+            "TAPER_STARTEND": "startend",
+            "startend": "startend",
         }
 
         tsdata = self
@@ -635,21 +1123,41 @@ class TimeSeries(Array):
             raise ValueError(
                 "Must specify a tapering method (function was calledwith location=None)"
             )
-        if location not in taper_map.keys():
+        if location not in taper_locations:
             raise ValueError(
                 "Unknown location %s, valid locations are %s"
-                % (location, ", ".join(taper_map.keys()))
+                % (location, ", ".join(taper_locations))
             )
         if tsdata.dtype not in (float32, float64):
             raise TypeError(
                 "Strain dtype must be float32 or float64, not " + str(tsdata.dtype)
             )
         if tapermethod == "lal":
+            tensor = getattr(tsdata._data, "tensor", None)
+            if tensor is not None and not return_lal:
+                from pycbc.types.array_torch import TorchArrayData
+
+                tapered = _torch_lal_taper(tensor, taper_locations[location])
+                return tsdata._return(TorchArrayData(tapered))
+
+            import lalsimulation as sim
+
+            taper_map = {
+                "none": None,
+                "start": sim.SIM_INSPIRAL_TAPER_START,
+                "end": sim.SIM_INSPIRAL_TAPER_END,
+                "startend": sim.SIM_INSPIRAL_TAPER_STARTEND,
+            }
+            taper_func_map = {
+                _numpy.dtype(float32): sim.SimInspiralREAL4WaveTaper,
+                _numpy.dtype(float64): sim.SimInspiralREAL8WaveTaper,
+            }
             taper_func = taper_func_map[tsdata.dtype]
             # make a LAL TimeSeries to pass to the LALSim function
             ts_lal = tsdata.astype(tsdata.dtype).lal()
-            if taper_map[location] is not None:
-                taper_func(ts_lal.data, taper_map[location])
+            taper_location = taper_map[taper_locations[location]]
+            if taper_location is not None:
+                taper_func(ts_lal.data, taper_location)
             if return_lal:
                 return ts_lal
             else:
@@ -664,14 +1172,43 @@ class TimeSeries(Array):
                 )
 
             gate_params = []
-            if location in ("TAPER_START", "start", "TAPER_STARTEND"):
-                first_nonzero = _numpy.nonzero(tsdata)[0][0]
+            taper_location = taper_locations[location]
+            if taper_location != "none":
+                tensor = getattr(tsdata._data, "tensor", None)
+                if tensor is not None:
+                    parameters = _torch_constant_taper_parameters(
+                        tensor.numel(),
+                        tsdata.delta_t,
+                        tsdata.start_time,
+                        taper_window,
+                    )
+                    # The legacy all-zero autograd case returns before any
+                    # in-place multiply. Even multiplying a nonleaf by ones
+                    # would bump its version and invalidate saved graphs, so
+                    # keep every requires-grad tensor on the exact path.
+                    if parameters is not None and not tensor.requires_grad:
+                        _torch_constant_taper(tensor, taper_location, *parameters)
+                        return tsdata
+                    import torch
+
+                    nonzero = torch.nonzero(tensor != 0, as_tuple=False).flatten()
+                    if nonzero.numel() == 0:
+                        return tsdata
+                    first_nonzero = int(nonzero[0].item())
+                    last_nonzero = int(nonzero[-1].item())
+                else:
+                    nonzero = _numpy.flatnonzero(tsdata.numpy())
+                    if len(nonzero) == 0:
+                        return tsdata
+                    first_nonzero = int(nonzero[0])
+                    last_nonzero = int(nonzero[-1])
+
+            if taper_location in ("start", "startend"):
                 nonzero_starttime = tsdata.start_time + first_nonzero * tsdata.delta_t
                 gate_params.append((nonzero_starttime, 0, taper_window))
-            if location in ("TAPER_END", "end", "TAPER_STARTEND"):
-                last_nonzero = _numpy.nonzero(tsdata)[0][-1]
-                nonzero_endtime = tsdata.end_time - last_nonzero * tsdata.delta_t
-                gate_params.append((nonzero_endtime - taper_window, 0, taper_window))
+            if taper_location in ("end", "startend"):
+                nonzero_endtime = tsdata.start_time + last_nonzero * tsdata.delta_t
+                gate_params.append((nonzero_endtime, 0, taper_window))
             from pycbc.strain import gate_data
 
             return gate_data(tsdata, gate_params)
@@ -939,21 +1476,21 @@ class TimeSeries(Array):
         qplane : numpy.ndarray (2d)
             The two dimensional interpolated qtransform of this time series.
         """
-        from scipy.interpolate import RectBivariateSpline as interp2d
-
         from pycbc.filter.qtransform import qplane, qtiling
+
+        if logfsteps and delta_f:
+            raise ValueError("Provide only one (or none) of delta_f and logfsteps")
 
         if frange is None:
             frange = (30, int(self.sample_rate / 2 * 8))
+
+        from scipy.interpolate import RectBivariateSpline as interp2d
 
         q_base = qtiling(self, qrange, frange, mismatch)
         _, times, freqs, q_plane = qplane(
             q_base, self.to_frequencyseries(), return_complex=return_complex
         )
-        if logfsteps and delta_f:
-            raise ValueError("Provide only one (or none) of delta_f and logfsteps")
 
-        # Interpolate if requested
         if delta_f or delta_t or logfsteps:
             if return_complex:
                 interp_amp = interp2d(freqs, times, abs(q_plane), kx=1, ky=1)
@@ -1325,8 +1862,33 @@ class TimeSeries(Array):
         ----------
         type: str
             The choice of detrending. The default ('linear') removes a linear
-        least squares fit. 'constant' removes only the mean of the data.
+            least squares fit. 'constant' removes only the mean of the data.
         """
+        if hasattr(self._data, "tensor"):
+            import torch
+
+            from pycbc.types.array_torch import TorchArrayData
+
+            tensor = self._data.tensor
+            if type in ("constant", "c"):
+                result = tensor - tensor.mean()
+            elif type in ("linear", "l"):
+                if len(tensor) == 1:
+                    result = tensor - tensor.mean()
+                else:
+                    n = len(tensor)
+                    positions = torch.arange(
+                        n, dtype=tensor.real.dtype, device=tensor.device
+                    )
+                    positions -= (n - 1) / 2
+                    norm_sq = (n * (n * n - 1)) / 12.0
+                    slope = torch.sum(positions * tensor) / norm_sq
+                    result = tensor - (tensor.mean() + slope * positions)
+            else:
+                raise ValueError("Trend type must be 'linear' or 'constant'.")
+
+            return self._return(TorchArrayData(result))
+
         from scipy.signal import detrend
 
         return self._return(detrend(self.numpy(), type=type))
