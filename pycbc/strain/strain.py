@@ -20,6 +20,7 @@ This modules contains functions reading, generating, and segmenting strain data
 import copy
 import functools
 import logging
+import sys
 
 import numpy
 from scipy.signal import kaiserord
@@ -30,6 +31,7 @@ import pycbc.filter
 import pycbc.frame
 import pycbc.psd
 import pycbc.types
+from pycbc import scheme as _scheme
 from pycbc.fft import FFT, IFFT
 from pycbc.filter import highpass, lowpass, make_frequency_series, resample_to_delta_t
 from pycbc.filter.zpk import filter_zpk
@@ -51,8 +53,20 @@ from pycbc.types import (
     required_opts_multi_ifo,
     zeros,
 )
-from pycbc.types.backend import backend_array, is_backend, wrap_backend_array
+from pycbc.types.backend import (
+    backend_array,
+    backend_name,
+    is_backend,
+    torch_module_for,
+    wrap_backend_array,
+)
+from pycbc.types.torch_compat import cpu_compatible, cpu_context
 from pycbc.waveform.spa_tmplt import spa_distance
+
+try:
+    _HAVE_TORCH = pycbc.HAVE_TORCH
+except AttributeError:
+    _HAVE_TORCH = False
 
 logger = logging.getLogger("pycbc.strain.strain")
 
@@ -163,6 +177,25 @@ def detect_loud_glitches(
     output_intermediates : {bool, False}
         Save intermediate time series for debugging.
     """
+
+    state = _scheme.mgr.state
+    if _HAVE_TORCH and (
+        is_backend(strain, "torch") or isinstance(state, _scheme.TorchScheme)
+    ):
+        from pycbc.strain.strain_torch import detect_loud_glitches_torch
+
+        return detect_loud_glitches_torch(
+            strain,
+            psd_duration=psd_duration,
+            psd_stride=psd_stride,
+            psd_avg_method=psd_avg_method,
+            low_freq_cutoff=low_freq_cutoff,
+            threshold=threshold,
+            cluster_window=cluster_window,
+            corrupt_time=corrupt_time,
+            high_freq_cutoff=high_freq_cutoff,
+            output_intermediates=output_intermediates,
+        )
 
     if high_freq_cutoff:
         strain = resample_to_delta_t(strain, 0.5 / high_freq_cutoff, method="ldas")
@@ -296,7 +329,22 @@ def from_cli(opt, dyn_range_fac=1, precision="single", inj_filter_rejector=None)
         else:
             sieve = None
 
-        if opt.frame_type:
+        is_torch = (
+            getattr(opt, "processing_scheme", None) is not None
+            and str(opt.processing_scheme).startswith("torch")
+        ) or isinstance(_scheme.mgr.state, _scheme.TorchScheme)
+
+        if is_torch and (opt.frame_files or opt.frame_cache) and not opt.frame_type:
+            from pycbc.frame.frame_torch import read_frame_torch
+
+            strain = read_frame_torch(
+                frame_source,
+                opt.channel_name,
+                start_time=opt.gps_start_time - opt.pad_data,
+                end_time=opt.gps_end_time + opt.pad_data,
+                sieve=sieve,
+            )
+        elif opt.frame_type:
             strain = pycbc.frame.query_and_read_frame(
                 opt.frame_type,
                 opt.channel_name,
@@ -476,86 +524,95 @@ def from_cli(opt, dyn_range_fac=1, precision="single", inj_filter_rejector=None)
             and (gp[0] - gp[1] - gp[2] <= strain.end_time)
         ]
 
-    if opt.autogating_threshold is not None:
-        gating_info["auto"] = []
-        for _ in range(opt.autogating_max_iterations):
-            glitch_times = detect_loud_glitches(
-                strain,
-                threshold=opt.autogating_threshold,
-                cluster_window=opt.autogating_cluster,
-                low_freq_cutoff=opt.strain_high_pass,
-                corrupt_time=opt.pad_data + opt.autogating_pad,
-            )
-            gate_params = [
-                [gt, opt.autogating_width, opt.autogating_taper] for gt in glitch_times
-            ]
-            gating_info["auto"] += gate_params
-            for gate_time, gate_window, gate_taper in gate_params:
-                strain = strain.gate(
-                    gate_time,
-                    window=gate_window,
-                    method=opt.gating_method,
-                    copy=False,
-                    taper_width=gate_taper,
+    is_torch_scheme = is_torch and not isinstance(
+        _scheme.mgr.state, _scheme.TorchScheme
+    )
+    from contextlib import nullcontext
+
+    scheme_ctx = _scheme.from_cli(opt) if is_torch_scheme else nullcontext()
+    with scheme_ctx:
+        if opt.autogating_threshold is not None:
+            gating_info["auto"] = []
+            for _ in range(opt.autogating_max_iterations):
+                glitch_times = detect_loud_glitches(
+                    strain,
+                    threshold=opt.autogating_threshold,
+                    cluster_window=opt.autogating_cluster,
+                    low_freq_cutoff=opt.strain_high_pass,
+                    corrupt_time=opt.pad_data + opt.autogating_pad,
                 )
-            if len(glitch_times) > 0:
-                logger.info(
-                    "Autogating at %s", ", ".join(["%.3f" % gt for gt in glitch_times])
+                gate_params = [
+                    [gt, opt.autogating_width, opt.autogating_taper]
+                    for gt in glitch_times
+                ]
+                gating_info["auto"] += gate_params
+                for gate_time, gate_window, gate_taper in gate_params:
+                    strain = strain.gate(
+                        gate_time,
+                        window=gate_window,
+                        method=opt.gating_method,
+                        copy=False,
+                        taper_width=gate_taper,
+                    )
+                if len(glitch_times) > 0:
+                    logger.info(
+                        "Autogating at %s",
+                        ", ".join(["%.3f" % gt for gt in glitch_times]),
+                    )
+                else:
+                    break
+
+        if opt.strain_high_pass:
+            logger.info("Highpass Filtering")
+            strain = highpass(strain, frequency=opt.strain_high_pass)
+
+        if opt.strain_low_pass:
+            logger.info("Lowpass Filtering")
+            strain = lowpass(strain, frequency=opt.strain_low_pass)
+
+        if hasattr(opt, "witness_frame_type") and opt.witness_frame_type:
+            stilde = strain.to_frequencyseries()
+            from pycbc.io.hdf import HFile
+
+            tf_file = HFile(opt.witness_tf_file)
+            for key in tf_file:
+                witness = pycbc.frame.query_and_read_frame(
+                    opt.witness_frame_type,
+                    str(key),
+                    start_time=strain.start_time,
+                    end_time=strain.end_time,
                 )
-            else:
-                break
+                witness = (witness * dyn_range_fac).astype(strain.dtype)
+                tf = pycbc.types.load_frequencyseries(opt.witness_tf_file, group=key)
+                tf = tf.astype(stilde.dtype)
 
-    if opt.strain_high_pass:
-        logger.info("Highpass Filtering")
-        strain = highpass(strain, frequency=opt.strain_high_pass)
+                flen = int(opt.witness_filter_length * strain.sample_rate)
+                tf = pycbc.psd.interpolate(tf, stilde.delta_f)
 
-    if opt.strain_low_pass:
-        logger.info("Lowpass Filtering")
-        strain = lowpass(strain, frequency=opt.strain_low_pass)
+                tf_time = tf.to_timeseries()
+                window = _hann_window_for_series(strain, flen * 2)
+                tf_time[0:flen] *= window[flen:]
+                tf_time[len(tf_time) - flen :] *= window[0:flen]
+                tf = tf_time.to_frequencyseries()
 
-    if hasattr(opt, "witness_frame_type") and opt.witness_frame_type:
-        stilde = strain.to_frequencyseries()
-        from pycbc.io.hdf import HFile
+                kmax = min(len(tf), len(stilde) - 1)
+                stilde[:kmax] -= tf[:kmax] * witness.to_frequencyseries()[:kmax]
 
-        tf_file = HFile(opt.witness_tf_file)
-        for key in tf_file:
-            witness = pycbc.frame.query_and_read_frame(
-                opt.witness_frame_type,
-                str(key),
-                start_time=strain.start_time,
-                end_time=strain.end_time,
-            )
-            witness = (witness * dyn_range_fac).astype(strain.dtype)
-            tf = pycbc.types.load_frequencyseries(opt.witness_tf_file, group=key)
-            tf = tf.astype(stilde.dtype)
+            strain = stilde.to_timeseries()
 
-            flen = int(opt.witness_filter_length * strain.sample_rate)
-            tf = pycbc.psd.interpolate(tf, stilde.delta_f)
+        if opt.pad_data:
+            logger.info("Remove Padding")
+            start = int(opt.pad_data * strain.sample_rate)
+            end = int(len(strain) - strain.sample_rate * opt.pad_data)
+            strain = strain[start:end]
 
-            tf_time = tf.to_timeseries()
-            window = _hann_window_for_series(strain, flen * 2)
-            tf_time[0:flen] *= window[flen:]
-            tf_time[len(tf_time) - flen :] *= window[0:flen]
-            tf = tf_time.to_frequencyseries()
-
-            kmax = min(len(tf), len(stilde) - 1)
-            stilde[:kmax] -= tf[:kmax] * witness.to_frequencyseries()[:kmax]
-
-        strain = stilde.to_timeseries()
-
-    if opt.pad_data:
-        logger.info("Remove Padding")
-        start = int(opt.pad_data * strain.sample_rate)
-        end = int(len(strain) - strain.sample_rate * opt.pad_data)
-        strain = strain[start:end]
-
-    if opt.taper_data:
-        logger.info("Tapering data")
-        # Use auto-gating, a one-sided gate is a taper
-        pd_taper_window = opt.taper_data
-        gate_params = [(strain.start_time, 0.0, pd_taper_window)]
-        gate_params.append((strain.end_time, 0.0, pd_taper_window))
-        gate_data(strain, gate_params)
+        if opt.taper_data:
+            logger.info("Tapering data")
+            # Use auto-gating, a one-sided gate is a taper
+            pd_taper_window = opt.taper_data
+            gate_params = [(strain.start_time, 0.0, pd_taper_window)]
+            gate_params.append((strain.end_time, 0.0, pd_taper_window))
+            gate_data(strain, gate_params)
 
     if injector is not None:
         strain.injections = injections
@@ -1466,12 +1523,15 @@ class StrainSegments(object):
         filter_inj_only=False,
         injection_window=None,
         allow_zero_padding=False,
+        opt=None,
     ):
         """Determine how to chop up the strain data into smaller segments
         for analysis.
         """
         self._fourier_segments = None
+        self._fourier_buffer = None
         self.strain = strain
+        self.opt = opt
 
         self.delta_t = strain.delta_t
         self.sample_rate = strain.sample_rate
@@ -1623,19 +1683,94 @@ class StrainSegments(object):
         """
         if not self._fourier_segments:
             self._fourier_segments = []
-            for seg_slice, ana in zip(self.segment_slices, self.analyze_slices):
+            state = _scheme.mgr.state
+            promote = (
+                self.strain.dtype == numpy.float32
+                and isinstance(state, _scheme.TorchScheme)
+                and state.torch_device.type != "mps"
+            )
+            output_dtype = complex_same_precision_as(self.strain)
+            num_segs = len(self.segment_slices)
+
+            if isinstance(state, _scheme.TorchScheme) and num_segs > 0:
+                torch = sys.modules.get("torch")
+                if torch is None:
+                    import torch
+                torch_complex_dtype = (
+                    torch.complex64
+                    if output_dtype == numpy.complex64
+                    else torch.complex128
+                )
+                self._fourier_buffer = torch.empty(
+                    (num_segs, self.freq_len),
+                    dtype=torch_complex_dtype,
+                    device=state.torch_device,
+                )
+            elif isinstance(state, _scheme.CPUScheme) and num_segs > 0:
+                self._fourier_buffer = numpy.empty(
+                    (num_segs, self.freq_len),
+                    dtype=output_dtype,
+                )
+            else:
+                self._fourier_buffer = None
+
+            for i, (seg_slice, ana) in enumerate(
+                zip(self.segment_slices, self.analyze_slices)
+            ):
                 if seg_slice.start >= 0 and seg_slice.stop <= len(self.strain):
-                    freq_seg = make_frequency_series(self.strain[seg_slice])
+                    strain_chunk = self.strain[seg_slice]
                 # Assume that we cannot have a case where we both zero-pad on
                 # both sides
                 elif seg_slice.start < 0:
                     strain_chunk = self.strain[: seg_slice.stop]
                     strain_chunk.prepend_zeros(-seg_slice.start)
-                    freq_seg = make_frequency_series(strain_chunk)
                 elif seg_slice.stop > len(self.strain):
                     strain_chunk = self.strain[seg_slice.start :]
                     strain_chunk.append_zeros(seg_slice.stop - len(self.strain))
+                if (
+                    not getattr(self.opt, "native_gpu_conditioning", False)
+                    and cpu_compatible(strain_chunk)
+                ):
+                    # The original single-precision CPU FFT defines search
+                    # compatibility, including rounding near strong lines.
+                    values = strain_chunk.numpy().copy()
+                    delta_t, epoch = strain_chunk.delta_t, strain_chunk.start_time
+                    with cpu_context():
+                        host_chunk = TimeSeries(values, delta_t=delta_t, epoch=epoch)
+                        host_freq = make_frequency_series(host_chunk)
+                        values = host_freq.numpy().copy()
+                        delta_f, epoch = host_freq.delta_f, host_freq.epoch
+                    freq_seg = FrequencySeries(values, delta_f=delta_f, epoch=epoch)
+                elif promote:
+                    # Strong lines can obscure weak Torch FFT bins in float32.
+                    # Retain the segment's public precision and device.
+                    strain_chunk = strain_chunk.astype(numpy.float64)
                     freq_seg = make_frequency_series(strain_chunk)
+                else:
+                    freq_seg = make_frequency_series(strain_chunk)
+                if promote or not isinstance(state, _scheme.CPUScheme):
+                    freq_seg = freq_seg.astype(output_dtype)
+
+                if self._fourier_buffer is not None:
+                    if isinstance(state, _scheme.TorchScheme):
+                        self._fourier_buffer[i].copy_(backend_array(freq_seg, "torch"))
+                        freq_seg = FrequencySeries(
+                            wrap_backend_array(self._fourier_buffer[i]),
+                            delta_f=freq_seg.delta_f,
+                            epoch=freq_seg.epoch,
+                            copy=False,
+                        )
+                    elif isinstance(state, _scheme.CPUScheme):
+                        self._fourier_buffer[i] = freq_seg.numpy()
+                        freq_seg = FrequencySeries(
+                            self._fourier_buffer[i],
+                            delta_f=freq_seg.delta_f,
+                            epoch=freq_seg.epoch,
+                            copy=False,
+                        )
+                    freq_seg._shared_fourier_buffer = self._fourier_buffer
+                    freq_seg._shared_fourier_index = i
+
                 freq_seg.analyze = ana
                 freq_seg.cumulative_index = seg_slice.start + ana.start
                 freq_seg.seg_slice = seg_slice
@@ -1658,6 +1793,7 @@ class StrainSegments(object):
             filter_inj_only=opt.filter_inj_only,
             injection_window=opt.injection_window,
             allow_zero_padding=opt.allow_zero_padding,
+            opt=opt,
         )
 
     @classmethod
@@ -1737,6 +1873,7 @@ class StrainSegments(object):
             trigger_end=opt.trig_end_time[ifo],
             filter_inj_only=opt.filter_inj_only,
             allow_zero_padding=opt.allow_zero_padding,
+            opt=opt,
         )
 
     @classmethod
@@ -1823,10 +1960,197 @@ class StrainSegments(object):
     def verify_segment_options(cls, opt, parser):
         required_opts(opt, parser, cls.required_opts_list)
 
+    @property
+    def fourier_buffer(self):
+        """Return the shared 2D fourier buffer if available, else None."""
+        return self._fourier_buffer
+
+    def overwhiten(self, psds=None):
+        """Overwhiten the Fourier segments in-place.
+
+        Parameters
+        ----------
+        psds : FrequencySeries or list of FrequencySeries, optional
+            PSD(s) to use for overwhitening. If None, `seg.psd` of each segment
+            is used.
+
+        Returns
+        -------
+        segments : list of FrequencySeries
+            The overwhitened segments.
+        """
+        if self._fourier_segments is None:
+            self.fourier_segments()
+        return overwhiten_segments(self._fourier_segments, psds=psds)
+
     @classmethod
     def verify_segment_options_multi_ifo(cls, opt, parser, ifos):
         for ifo in ifos:
             required_opts_multi_ifo(opt, parser, ifo, cls.required_opts_list)
+
+
+def overwhiten_segments(segments, psds=None):
+    """Overwhiten frequency-domain data segments in-place.
+
+    If segments share an underlying 2D fourier buffer (e.g. on GPU or CPU),
+    the overwhitening division is performed as a batched broadcasted operation,
+    avoiding per-segment Python iteration, redundant CUDA kernel launches,
+    and repeated memory allocations.
+
+    Parameters
+    ----------
+    segments : list of FrequencySeries
+        Frequency domain segments to overwhiten. Each segment must have
+        a `.psd` attribute unless `psds` is provided.
+    psds : FrequencySeries or list of FrequencySeries, optional
+        PSD(s) to use for overwhitening. If None, `seg.psd` is used.
+
+    Returns
+    -------
+    segments : list of FrequencySeries
+        The overwhitened segments (modified in-place).
+    """
+    if not segments:
+        return segments
+
+    if psds is not None:
+        if isinstance(psds, (list, tuple)):
+            if len(psds) != len(segments):
+                raise ValueError("Length of psds must match length of segments")
+            psd_list = list(psds)
+        else:
+            psd_list = [psds] * len(segments)
+    else:
+        psd_list = [getattr(s, "psd", None) for s in segments]
+        if any(p is None for p in psd_list):
+            raise ValueError(
+                "All segments must have a .psd attribute or psds must be provided"
+            )
+
+    first_psd = psd_list[0]
+    all_same_psd = all(p is first_psd for p in psd_list) or all(
+        id(p) == id(first_psd) for p in psd_list
+    )
+
+    shared_buf = getattr(segments[0], "_shared_fourier_buffer", None)
+    is_shared = (
+        shared_buf is not None
+        and len(shared_buf) >= len(segments)
+        and all(
+            getattr(s, "_shared_fourier_buffer", None) is shared_buf
+            for s in segments
+        )
+    )
+
+    if is_shared:
+        torch_mod = torch_module_for(shared_buf)
+        is_torch_buf = torch_mod is not None
+        is_contiguous_rows = (
+            len(shared_buf) == len(segments)
+            and all(
+                getattr(s, "_shared_fourier_index", -1) == i
+                for i, s in enumerate(segments)
+            )
+        )
+        if is_torch_buf:
+            torch = torch_mod
+            dev = shared_buf.device
+            dtype = shared_buf.real.dtype
+            if all_same_psd:
+                psd_t = backend_array(first_psd, "torch")
+                if psd_t is None:
+                    psd_t = torch.as_tensor(first_psd.numpy(), device=dev, dtype=dtype)
+                else:
+                    psd_t = psd_t.to(device=dev, dtype=dtype)
+                if is_contiguous_rows:
+                    shared_buf /= psd_t
+                else:
+                    row_indices = [
+                        getattr(s, "_shared_fourier_index", i)
+                        for i, s in enumerate(segments)
+                    ]
+                    shared_buf[row_indices] /= psd_t
+            else:
+                psd_groups = {}
+                for s, p in zip(segments, psd_list):
+                    pid = id(p)
+                    row_idx = getattr(s, "_shared_fourier_index", None)
+                    if pid not in psd_groups:
+                        psd_groups[pid] = (p, [])
+                    psd_groups[pid][1].append(row_idx)
+                for p, row_indices in psd_groups.values():
+                    psd_t = backend_array(p, "torch")
+                    if psd_t is None:
+                        psd_t = torch.as_tensor(p.numpy(), device=dev, dtype=dtype)
+                    else:
+                        psd_t = psd_t.to(device=dev, dtype=dtype)
+                    shared_buf[row_indices] /= psd_t
+        else:
+            # NumPy array
+            if all_same_psd:
+                psd_arr = first_psd.numpy()
+                if is_contiguous_rows:
+                    shared_buf /= psd_arr
+                else:
+                    row_indices = [
+                        getattr(s, "_shared_fourier_index", i)
+                        for i, s in enumerate(segments)
+                    ]
+                    shared_buf[row_indices] /= psd_arr
+            else:
+                psd_groups = {}
+                for s, p in zip(segments, psd_list):
+                    pid = id(p)
+                    row_idx = getattr(s, "_shared_fourier_index", None)
+                    if pid not in psd_groups:
+                        psd_groups[pid] = (p, [])
+                    psd_groups[pid][1].append(row_idx)
+                for p, row_indices in psd_groups.values():
+                    shared_buf[row_indices] /= p.numpy()
+        return segments
+
+    # Fallback path: segments do not share a 2D buffer.
+    # Still optimize by avoiding repeated host-to-device transfers and conversions.
+    first_seg = segments[0]
+    if backend_name(first_seg) == "torch":
+        torch = sys.modules.get("torch")
+        if torch is None:
+            import torch
+        t0 = backend_array(first_seg, "torch")
+        dev = t0.device
+        dtype = t0.real.dtype
+        if all_same_psd:
+            psd_t = backend_array(first_psd, "torch")
+            if psd_t is None:
+                psd_t = torch.as_tensor(first_psd.numpy(), device=dev, dtype=dtype)
+            else:
+                psd_t = psd_t.to(device=dev, dtype=dtype)
+            for seg in segments:
+                t = backend_array(seg, "torch")
+                t /= psd_t
+        else:
+            cached_psd_tensors = {}
+            for seg, p in zip(segments, psd_list):
+                pid = id(p)
+                if pid not in cached_psd_tensors:
+                    pt = backend_array(p, "torch")
+                    if pt is None:
+                        pt = torch.as_tensor(p.numpy(), device=dev, dtype=dtype)
+                    else:
+                        pt = pt.to(device=dev, dtype=dtype)
+                    cached_psd_tensors[pid] = pt
+                t = backend_array(seg, "torch")
+                t /= cached_psd_tensors[pid]
+    else:
+        if all_same_psd:
+            psd_arr = first_psd.numpy()
+            for seg in segments:
+                seg.numpy()[:] /= psd_arr
+        else:
+            for seg, p in zip(segments, psd_list):
+                seg /= p
+
+    return segments
 
 
 @functools.lru_cache(maxsize=500)
@@ -1898,7 +2222,12 @@ def create_memory_and_engine_for_class_based_fft(
         delta_t=delta_t,
         ifft=ifft,
         uid=uid,
-        scheme_key=pycbc.scheme.current_backend_key(),
+        # Keep the original shared CPU cache; isolate other backends.
+        scheme_key=(
+            None
+            if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.CPUScheme)
+            else pycbc.scheme.current_backend_key()
+        ),
     )
 
 
@@ -2398,65 +2727,141 @@ class StrainBuffer(pycbc.frame.DataBuffer):
             e = len(self.strain)
             s = int(e - buffer_length * self.sample_rate - self.reduced_pad * 2)
 
-            # FFT the contents of self.strain[s:e] into fseries
-            fseries = execute_cached_fft(
-                self.strain[s:e], copy_output=False, uid=STRAINBUFFER_UNIQUE_ID_1
-            )
-            fseries._epoch = self.strain._epoch + s * self.strain.delta_t
+            strain_tensor = backend_array(self.strain, "torch")
 
-            # we haven't calculated a resample psd for this delta_f
-            if delta_f not in self.psds:
-                psdt = pycbc.psd.interpolate(self.psd, fseries.delta_f)
-                psdt = pycbc.psd.inverse_spectrum_truncation(
-                    psdt,
-                    int(self.sample_rate * self.psd_inverse_length),
-                    low_frequency_cutoff=self.low_frequency_cutoff,
-                )
-                psdt._delta_f = fseries.delta_f
+            if strain_tensor is not None:
+                import torch
 
-                psd = pycbc.psd.interpolate(self.psd, delta_f)
-                psd = pycbc.psd.inverse_spectrum_truncation(
-                    psd,
-                    int(self.sample_rate * self.psd_inverse_length),
-                    low_frequency_cutoff=self.low_frequency_cutoff,
+                tensor = strain_tensor[s:e]
+                # Match PyCBC's FFT convention: forward transforms include
+                # delta_t, while inverse transforms include 1 / delta_t.
+                fseries_tensor = torch.fft.rfft(tensor) * self.strain.delta_t
+                fseries = FrequencySeries(
+                    wrap_backend_array(fseries_tensor),
+                    # Whitening precedes padding removal, so its PSD must
+                    # use the frequency grid of the full padded transform.
+                    delta_f=1.0 / (len(tensor) * self.strain.delta_t),
+                    epoch=self.strain._epoch + s * self.strain.delta_t,
+                    copy=False,
                 )
 
-                psd.psdt = psdt
-                self.psds[delta_f] = psd
+                if delta_f not in self.psds:
+                    psdt = pycbc.psd.interpolate(self.psd, fseries.delta_f)
+                    psdt = pycbc.psd.inverse_spectrum_truncation(
+                        psdt,
+                        int(self.sample_rate * self.psd_inverse_length),
+                        low_frequency_cutoff=self.low_frequency_cutoff,
+                    )
+                    psdt._delta_f = fseries.delta_f
 
-            psd = self.psds[delta_f]
-            fseries /= psd.psdt
+                    psd = pycbc.psd.interpolate(self.psd, delta_f)
+                    psd = pycbc.psd.inverse_spectrum_truncation(
+                        psd,
+                        int(self.sample_rate * self.psd_inverse_length),
+                        low_frequency_cutoff=self.low_frequency_cutoff,
+                    )
 
-            # trim ends of strain
-            if self.reduced_pad != 0:
-                # IFFT the contents of fseries into overwhite
-                overwhite = execute_cached_ifft(
-                    fseries, copy_output=False, uid=STRAINBUFFER_UNIQUE_ID_2
-                )
+                    psd.psdt = psdt
+                    self.psds[delta_f] = psd
 
-                overwhite2 = overwhite[
-                    self.reduced_pad : len(overwhite) - self.reduced_pad
-                ]
-                taper_window = self.trim_padding / 2.0 / overwhite.sample_rate
-                gate_params = [
-                    (overwhite2.start_time, 0.0, taper_window),
-                    (overwhite2.end_time, 0.0, taper_window),
-                ]
-                gate_data(overwhite2, gate_params)
+                psd = self.psds[delta_f]
+                fseries_tensor = fseries_tensor / backend_array(psd.psdt)
+                if self.reduced_pad != 0:
+                    overwhite = torch.fft.irfft(fseries_tensor) / self.strain.delta_t
+                    overwhite_ts = TimeSeries(
+                        wrap_backend_array(overwhite),
+                        delta_t=self.strain.delta_t,
+                        epoch=self.strain._epoch + s * self.strain.delta_t,
+                        copy=False,
+                    )
+                    overwhite2 = overwhite_ts[
+                        self.reduced_pad : len(overwhite_ts) - self.reduced_pad
+                    ]
+                    taper_window = self.trim_padding / 2.0 / overwhite_ts.sample_rate
+                    gate_params = [
+                        (overwhite2.start_time, 0.0, taper_window),
+                        (overwhite2.end_time, 0.0, taper_window),
+                    ]
+                    gate_data(overwhite2, gate_params)
+                    fseries_tensor = (
+                        torch.fft.rfft(backend_array(overwhite2)) * overwhite2.delta_t
+                    )
+                    fseries_trimmed = FrequencySeries(
+                        wrap_backend_array(fseries_tensor),
+                        delta_f=overwhite2.delta_f,
+                        epoch=overwhite2.start_time,
+                        copy=False,
+                    )
+                else:
+                    fseries_trimmed = FrequencySeries(
+                        wrap_backend_array(fseries_tensor),
+                        delta_f=delta_f,
+                        epoch=fseries.epoch,
+                        copy=False,
+                    )
+                fseries_trimmed.psd = psd
+                self.segments[delta_f] = fseries_trimmed
 
-                # FFT the contents of overwhite2 into fseries_trimmed
-                fseries_trimmed = execute_cached_fft(
-                    overwhite2, copy_output=True, uid=STRAINBUFFER_UNIQUE_ID_3
-                )
-
-                fseries_trimmed.start_time = (
-                    fseries.start_time + self.reduced_pad * self.strain.delta_t
-                )
             else:
-                fseries_trimmed = fseries
+                # FFT the contents of self.strain[s:e] into fseries
+                fseries = execute_cached_fft(
+                    self.strain[s:e], copy_output=False, uid=STRAINBUFFER_UNIQUE_ID_1
+                )
+                fseries._epoch = self.strain._epoch + s * self.strain.delta_t
 
-            fseries_trimmed.psd = psd
-            self.segments[delta_f] = fseries_trimmed
+                # we haven't calculated a resample psd for this delta_f
+                if delta_f not in self.psds:
+                    psdt = pycbc.psd.interpolate(self.psd, fseries.delta_f)
+                    psdt = pycbc.psd.inverse_spectrum_truncation(
+                        psdt,
+                        int(self.sample_rate * self.psd_inverse_length),
+                        low_frequency_cutoff=self.low_frequency_cutoff,
+                    )
+                    psdt._delta_f = fseries.delta_f
+
+                    psd = pycbc.psd.interpolate(self.psd, delta_f)
+                    psd = pycbc.psd.inverse_spectrum_truncation(
+                        psd,
+                        int(self.sample_rate * self.psd_inverse_length),
+                        low_frequency_cutoff=self.low_frequency_cutoff,
+                    )
+
+                    psd.psdt = psdt
+                    self.psds[delta_f] = psd
+
+                psd = self.psds[delta_f]
+                fseries /= psd.psdt
+
+                # trim ends of strain
+                if self.reduced_pad != 0:
+                    # IFFT the contents of fseries into overwhite
+                    overwhite = execute_cached_ifft(
+                        fseries, copy_output=False, uid=STRAINBUFFER_UNIQUE_ID_2
+                    )
+
+                    overwhite2 = overwhite[
+                        self.reduced_pad : len(overwhite) - self.reduced_pad
+                    ]
+                    taper_window = self.trim_padding / 2.0 / overwhite.sample_rate
+                    gate_params = [
+                        (overwhite2.start_time, 0.0, taper_window),
+                        (overwhite2.end_time, 0.0, taper_window),
+                    ]
+                    gate_data(overwhite2, gate_params)
+
+                    # FFT the contents of overwhite2 into fseries_trimmed
+                    fseries_trimmed = execute_cached_fft(
+                        overwhite2, copy_output=True, uid=STRAINBUFFER_UNIQUE_ID_3
+                    )
+
+                    fseries_trimmed.start_time = (
+                        fseries.start_time + self.reduced_pad * self.strain.delta_t
+                    )
+                else:
+                    fseries_trimmed = fseries
+
+                fseries_trimmed.psd = psd
+                self.segments[delta_f] = fseries_trimmed
 
         stilde = self.segments[delta_f]
         return stilde
