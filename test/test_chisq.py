@@ -31,6 +31,13 @@ from utils import parse_args_all_schemes, simple_exit
 
 _scheme, _context = parse_args_all_schemes("correlate")
 
+# Skip entirely if torch unavailable when requested
+if _scheme == "torch":
+    try:
+        import torch  # noqa: F401
+    except Exception as exc:  # pragma: no cover - environment guard
+        simple_exit(f"torch not available: {exc}")
+
 from pycbc.vetoes.chisq_cpu import chisq_accum_bin_numpy
 from pycbc.vetoes import chisq_accum_bin, power_chisq_bins, power_chisq
 from pycbc.vetoes import power_chisq_at_points_from_precomputed
