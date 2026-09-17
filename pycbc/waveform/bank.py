@@ -642,6 +642,15 @@ class TemplateBank(object):
         if self.f_lower is None and self.min_f_lower == 0.:
             raise ValueError('Invalid low-frequency cutoff settings')
 
+    @staticmethod
+    def is_diffgw_available():
+        """Return True if the optional diffgw (or torchwave) provider is installed."""
+        try:
+            from pycbc.waveform.diffgw import is_available
+            return is_available()
+        except ImportError:
+            return False
+
 
 class LiveFilterBank(TemplateBank):
     def __init__(self, filename, sample_rate, minimum_buffer,

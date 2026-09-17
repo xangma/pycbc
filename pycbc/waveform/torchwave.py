@@ -18,7 +18,7 @@ __all__ = [
     '_BOOKKEEPING', '_GEOMETRY', '_METADATA', '_ORDERS', '_PHYSICAL',
     '_same_device', '_series_view', 'template_metadata', 'wrap_batch',
     'provider_identity', '_reason', 'diagnostics', 'can_use', 'batch_key',
-    'generate_batch',
+    'generate_batch', 'is_available',
 ]
 
 _IDENTITY = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
@@ -50,6 +50,11 @@ def diagnostics(bank, indices=None, device='cpu'):
 def can_use(bank):
     """Whether any row can use the explicitly requested native provider."""
     return _diffgw.can_use(bank)
+
+
+def is_available():
+    """Return True if diffgw or legacy torchwave is available."""
+    return _diffgw.is_available()
 
 
 def batch_key(bank, indices):

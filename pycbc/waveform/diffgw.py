@@ -56,6 +56,18 @@ def _is_provider_enabled(bank):
             or getattr(bank, 'enable_torchwave', None) is True)
 
 
+def is_available():
+    """Return True if diffgw (or legacy torchwave) is available."""
+    for mod in ('diffgw', 'torchwave'):
+        if importlib.util.find_spec(mod) is not None:
+            try:
+                __import__(mod)
+                return True
+            except Exception:
+                pass
+    return False
+
+
 def _reason(bank, params, device):
     if not _is_provider_enabled(bank):
         return 'diffgw requires explicit enable_diffgw=True or enable_torchwave=True'

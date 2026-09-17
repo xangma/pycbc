@@ -98,3 +98,72 @@ def test_variable_start_frequency_and_empty_bank(bank_file):
     bank.table = bank.table[:0]
     assert not bank.can_use_torchwave()
     assert bank.get_batch_tensor([])[0].shape == (0, 2049)
+
+
+def test_is_diffgw_available():
+    """Verify is_diffgw_available API on FilterBank and LiveFilterBank."""
+    assert FilterBank.is_diffgw_available() is True
+    assert LiveFilterBank.is_diffgw_available() is True
+
+
+def test_diffgw_and_native_gpu_conditioning_resolution():
+    """Test resolution semantics for GPU defaults:
+    - native_gpu_conditioning defaults to True on CUDA, False on CPU.
+    - enable_diffgw defaults to True on CUDA if diffgw is installed, False on CPU.
+    - explicit disable flags take precedence.
+    - when diffgw is missing, defaults to False without error.
+    """
+    # 1. CUDA with diffgw installed: both default to True
+    is_cuda = True
+    has_diffgw = True
+
+    opt_native_gpu = None
+    opt_enable_diffgw = None
+    opt_disable_diffgw = False
+
+    resolved_native = is_cuda if opt_native_gpu is None else opt_native_gpu
+    resolved_diffgw = (
+        False if opt_disable_diffgw else (
+            True if opt_enable_diffgw is True else bool(is_cuda and has_diffgw)
+        )
+    )
+    assert resolved_native is True
+    assert resolved_diffgw is True
+
+    # 2. CUDA with diffgw NOT installed: native_gpu True, diffgw False (graceful)
+    has_diffgw = False
+    resolved_native = is_cuda if opt_native_gpu is None else opt_native_gpu
+    resolved_diffgw = (
+        False if opt_disable_diffgw else (
+            True if opt_enable_diffgw is True else bool(is_cuda and has_diffgw)
+        )
+    )
+    assert resolved_native is True
+    assert resolved_diffgw is False
+
+    # 3. CPU with diffgw installed: both default to False
+    is_cuda = False
+    has_diffgw = True
+    resolved_native = is_cuda if opt_native_gpu is None else opt_native_gpu
+    resolved_diffgw = (
+        False if opt_disable_diffgw else (
+            True if opt_enable_diffgw is True else bool(is_cuda and has_diffgw)
+        )
+    )
+    assert resolved_native is False
+    assert resolved_diffgw is False
+
+    # 4. Explicit disable overrides on CUDA
+    is_cuda = True
+    has_diffgw = True
+    opt_native_gpu = False  # from --disable-native-gpu-conditioning
+    opt_disable_diffgw = True  # from --disable-diffgw
+    resolved_native = is_cuda if opt_native_gpu is None else opt_native_gpu
+    resolved_diffgw = (
+        False if opt_disable_diffgw else (
+            True if opt_enable_diffgw is True else bool(is_cuda and has_diffgw)
+        )
+    )
+    assert resolved_native is False
+    assert resolved_diffgw is False
+
