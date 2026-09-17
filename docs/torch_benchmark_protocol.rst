@@ -176,6 +176,13 @@ execution and planning separately, plus correlation, chi-square, thresholding,
 decompression and the measured remainder. FFT dominance is a hypothesis to
 check, not a shape to force onto results.
 
+Decompose executable wall time into mutually exclusive phases (import/startup
+overhead, data conditioning, waveform bank preparation, core matched filtering,
+vetoes and clustering, and output serialization). Always separate unprofiled
+performance measurements from profiling passes: timing samples, medians, and
+speedup claims must derive solely from unprofiled runs, while profiling passes
+provide kernel attribution percentages without inflating the benchmark clock.
+
 Publish original-CPU and candidate-revision results together for each defined
 workload, with source revisions, CPU-preservation evidence, timing boundaries,
 resource counts and every correctness verdict. Keep intermediate optimization

@@ -1,7 +1,7 @@
 .. _torch-batch-numerics:
 
 Streaming batch benchmark definition and accuracy (pycbc_live)
-=============================================================
+===============================================================
 
 This benchmark evaluates the public :class:`pycbc.filter.matchedfilter.LiveBatchMatchedFilter.process_data`
 API used in the low-latency streaming pipeline (``pycbc_live``) with synthetic frequency-domain
@@ -123,3 +123,28 @@ to the source revisions it measured. Retain source and native-build
 identities, per-worker receipts, failures and the exact policy with each
 new comparison. Full scientific arrays are omitted from that archive;
 verifying recorded JSON alone does not replay the calculation.
+
+Automated 4-route benchmark execution
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To execute the standardized 4-arm benchmark evaluating ``original_standard``,
+``branch_standard``, ``torch_cpu``, and ``torch_cuda`` across batch sizes
+:math:`B \in \{1, 4, 8, 16, 32\}`, run the repository orchestrator:
+
+.. code-block:: console
+
+   export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+   taskset -c 8 python tools/bench_production_live_batch.py \
+     --mode orchestrate \
+     --root /path/to/checkout_root \
+     --routes original_standard branch_standard torch_cpu torch_cuda \
+     --batches 1 4 8 16 32 \
+     --replicates 3 \
+     --samples 5 \
+     --output artifacts/live_batch_benchmark_latest.json
+
+Where ``--root`` contains the original CPU checkout (under ``original/``) and
+the candidate checkout (under ``branch/``). The harness verifies source AST
+identity, executes counterbalanced warmup and timed iterations, enforces
+numerical tolerances against the oracle, and outputs structured per-block
+latency and throughput medians.

@@ -138,6 +138,103 @@ library limits. Keep any required runtime adapter inside the timed command
 and archive its source. Capture the complete expanded argv for all four arms,
 including unchanged data, PSD, veto, clustering and output options.
 
+Four-arm execution architecture
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Each campaign comparison evaluates four arms under identical host isolation
+(single physical CPU core affinity via ``taskset``, one numerical-library thread):
+
+#. **Original Standard CPU (``original_cpu``)**: Frozen baseline checkout
+   ``40e94792b3`` using ``--processing-scheme cpu:1`` with explicit MKL FFTs.
+#. **Candidate Standard CPU (``branch_cpu``)**: Candidate PR branch checkout
+   using ``--processing-scheme cpu:1`` with explicit MKL FFTs, verifying CPU
+   preservation before evaluating Torch routes.
+#. **Candidate Torch CPU (``torch_cpu``)**: Candidate PR branch checkout
+   using ``--processing-scheme torch:cpu:1`` with explicit MKL FFTs.
+#. **Candidate Torch CUDA (``torch_cuda``)**: Candidate PR branch checkout
+   using ``--processing-scheme torch:cuda:0`` on NVIDIA GeForce RTX 4090,
+   with auto-enabled native GPU data conditioning and batched ``diffgw`` waveform
+   generation.
+
+Reproducible executable command template
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Run each arm inside a clean environment with pinned single-thread limits:
+
+.. code-block:: console
+
+   export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+   export PYTHONHASHSEED=0 PYTHONDONTWRITEBYTECODE=1
+
+   taskset -c 8 pycbc_inspiral \
+     --verbose \
+     --frame-files docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf \
+     --channel-name H1:LOSC-STRAIN \
+     --gps-start-time 1187007048 \
+     --gps-end-time 1187009080 \
+     --trig-start-time 1187007160 \
+     --trig-end-time 1187009064 \
+     --sample-rate 4096 \
+     --low-frequency-cutoff 30 \
+     --strain-high-pass 25 \
+     --pad-data 8 \
+     --autogating-threshold 100 \
+     --autogating-cluster 5 \
+     --autogating-width 0.25 \
+     --autogating-taper 0.25 \
+     --autogating-pad 16 \
+     --autogating-max-iterations 1 \
+     --psd-estimation median \
+     --psd-segment-length 32 \
+     --psd-segment-stride 16 \
+     --psd-num-segments 126 \
+     --psd-inverse-length 16 \
+     --invpsd-trunc-method hann \
+     --invpsd-trunc-which-spectrum invasd \
+     --approximant IMRPhenomD \
+     --order -1 \
+     --use-compressed-waveforms \
+     --waveform-decompression-method inline_linear \
+     --snr-threshold 5.5 \
+     --newsnr-threshold 5 \
+     --chisq-bins 16 \
+     --cluster-window 1 \
+     --cluster-function symmetric \
+     --fft-backends mkl \
+     --bank-file inputs/bank-compressed.hdf \
+     --segment-length 512 \
+     --segment-start-pad 112 \
+     --segment-end-pad 16 \
+     --processing-scheme <SCHEME> \
+     --output triggers_<SCHEME>.hdf
+
+Where ``<SCHEME>`` is ``cpu:1`` for the CPU arms, ``torch:cpu:1`` for Torch CPU,
+or ``torch:cuda:0`` for Torch CUDA.
+
+Six-phase workload decomposition
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Following the protocol in :ref:`torch-benchmark-protocol`, full execution wall time
+is decomposed into six mutually exclusive phases with explicit CUDA synchronization:
+
+#. **Process & Import Overhead**: Process spawn through argument parsing and
+   module imports.
+#. **Data Conditioning**: Frame reading, high-pass filtering, autogating, and
+   126-segment Welch PSD estimation.
+#. **Waveform Bank Preparation**: Decompressing stored linear coefficients or
+   evaluating on-device batched ``diffgw`` waveforms.
+#. **Core Matched Filtering**: Template Fourier transforms, frequency-domain
+   whitening, correlation, and inverse FFTs (measured by the internal timer
+   ``calc_time``).
+#. **Vetoes & Clustering**: 16-bin Power :math:`\chi^2` calculation, SNR thresholding,
+   and symmetric clustering.
+#. **Serialization & I/O**: HDF5 trigger dataset creation, metadata formatting,
+   and filesystem flushing.
+
+Unprofiled timing runs (three counterbalanced fresh processes per arm) establish
+certified wall-time and ``calc_time`` medians. Attribution percentages are
+extracted from separate profiling passes without contaminating unprofiled samples.
+
 Record the hardware, dependency versions and load observations for every
 acquisition. The fixed workload measures finite-process cost; sustained or
 full-machine capacity needs the additional experiments in
