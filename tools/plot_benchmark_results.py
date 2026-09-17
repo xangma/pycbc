@@ -315,11 +315,114 @@ def plot_inspiral_batch_scaling(sweep_json: Path, output_png: Path):
     print(f"Saved: {output_png}")
 
 
+def plot_inspiral_diffgw_speedup(diffgw_json: Path, output_png: Path):
+    with open(diffgw_json) as f:
+        data = json.load(f)
+
+    summary = data["summary"]
+    arms = ["original_cpu", "branch_cpu", "torch_cpu", "torch_cuda"]
+    arm_labels = [
+        "Original CPU\n(40e94792b3)",
+        "Branch CPU\n(qualified)",
+        "Torch CPU\n(MKL)",
+        "Torch CUDA\n(diffgw + RTX 4090)",
+    ]
+    arm_colors = [COLORS[a] for a in arms]
+
+    wall_times = [summary[a]["wall_sec"]["median"] for a in arms]
+    calc_times = [summary[a]["calc_time_sec"]["median"] for a in arms]
+    wall_speedup = [summary[a].get("speedup_wall_vs_original", 1.0) for a in arms]
+    calc_speedup = [summary[a].get("speedup_calc_vs_original", 1.0) for a in arms]
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5.5), dpi=300)
+
+    # 1. Execution Times (seconds)
+    x = np.arange(len(arms))
+    width = 0.35
+    b1 = ax1.bar(x - width / 2, calc_times, width, label="Calc Time (s)", color="#2b6cb0")
+    b2 = ax1.bar(x + width / 2, wall_times, width, label="Process Wall Time (s)", color="#4a5568")
+
+    ax1.set_ylabel("Execution Time (seconds)")
+    ax1.set_title("pycbc_inspiral Execution Time (512 TaylorF2 Templates)")
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(arm_labels, fontsize=9)
+    ax1.grid(axis="y", linestyle="--", alpha=0.3)
+    ax1.legend(loc="upper right")
+
+    for rect in b1:
+        h = rect.get_height()
+        ax1.annotate(
+            f"{h:.1f}s",
+            xy=(rect.get_x() + rect.get_width() / 2, h),
+            xytext=(0, 3),
+            textcoords="offset points",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+            fontweight="bold",
+        )
+    for rect in b2:
+        h = rect.get_height()
+        ax1.annotate(
+            f"{h:.1f}s",
+            xy=(rect.get_x() + rect.get_width() / 2, h),
+            xytext=(0, 3),
+            textcoords="offset points",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+        )
+
+    # 2. Speedup Factor vs Original CPU Baseline
+    r1 = ax2.bar(x - width / 2, calc_speedup, width, label="Calc Time Speedup", color="#2b6cb0")
+    r2 = ax2.bar(x + width / 2, wall_speedup, width, label="Process Wall Speedup", color="#38a169")
+
+    ax2.set_ylabel("Speedup Factor vs Original CPU")
+    ax2.set_title("Track 2 Speedup Factor vs Baseline (RTX 4090 + diffgw)")
+    ax2.set_xticks(x)
+    ax2.set_xticklabels(arm_labels, fontsize=9)
+    ax2.axhline(1.0, color="gray", linestyle="--", alpha=0.6)
+    ax2.grid(axis="y", linestyle="--", alpha=0.3)
+    ax2.legend(loc="upper left")
+
+    for rect in r1:
+        h = rect.get_height()
+        ax2.annotate(
+            f"{h:.2f}x",
+            xy=(rect.get_x() + rect.get_width() / 2, h),
+            xytext=(0, 3),
+            textcoords="offset points",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+            fontweight="bold",
+        )
+    for rect in r2:
+        h = rect.get_height()
+        ax2.annotate(
+            f"{h:.2f}x",
+            xy=(rect.get_x() + rect.get_width() / 2, h),
+            xytext=(0, 3),
+            textcoords="offset points",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+        )
+
+    fig.suptitle("Track 2: Dynamic Waveform Synthesis Acceleration with diffgw & PyTorch CUDA", y=1.02)
+    plt.tight_layout()
+    output_png.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_png, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved: {output_png}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate benchmark comparison plots.")
     parser.add_argument("--live-json", type=Path, required=True)
     parser.add_argument("--inspiral-json", type=Path, required=True)
     parser.add_argument("--sweep-json", type=Path, required=True)
+    parser.add_argument("--diffgw-json", type=Path, default=None)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args()
 
@@ -329,6 +432,8 @@ def main():
     plot_inspiral_workload_breakdown(args.inspiral_json, args.output_dir / "pycbc_inspiral_workload_breakdown.png")
     plot_inspiral_calc_speedup(args.inspiral_json, args.output_dir / "pycbc_inspiral_calc_speedup.png")
     plot_inspiral_batch_scaling(args.sweep_json, args.output_dir / "pycbc_inspiral_batch_scaling.png")
+    if args.diffgw_json and args.diffgw_json.is_file():
+        plot_inspiral_diffgw_speedup(args.diffgw_json, args.output_dir / "pycbc_inspiral_diffgw_speedup.png")
 
 
 if __name__ == "__main__":
