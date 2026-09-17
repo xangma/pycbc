@@ -694,8 +694,7 @@ with ctx:
                                  maximal_value_dof=opt.autochi_max_valued_dof)
 
     logging.info("Overwhitening frequency-domain data segments")
-    for seg in segments:
-        seg /= seg.psd
+    strain.overwhiten_segments(segments)
 
     logging.info("Read in template bank")
     has_diffgw = (

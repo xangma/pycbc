@@ -21,7 +21,6 @@ import pycbc.psd
 import pycbc.types
 from pycbc.filter.resample import resample_to_delta_t
 from pycbc.strain.strain import _linear_tapers_for_series, next_power_of_2
-from pycbc.types import TimeSeries
 
 
 def detect_loud_glitches_torch(
@@ -47,20 +46,11 @@ def detect_loud_glitches_torch(
     if high_freq_cutoff:
         s = resample_to_delta_t(strain, 0.5 / high_freq_cutoff, method="ldas")
     else:
-        # Create an isolated float64 TimeSeries on host without calling
+        # Create an isolated float64 TimeSeries on device without calling
         # methods decorated with @_convert (which mutate caller's strain)
-        raw_data = strain._data
-        if hasattr(raw_data, "numpy"):
-            data_np = raw_data.numpy()
-        elif hasattr(raw_data, "cpu"):
-            data_np = raw_data.cpu().numpy()
-        else:
-            data_np = numpy.asarray(raw_data)
-        s = TimeSeries(
-            numpy.array(data_np, dtype=numpy.float64, copy=True),
-            delta_t=strain.delta_t,
-            epoch=strain.start_time,
-        )
+        s = strain.copy()
+        if s.dtype != numpy.float64:
+            s = s.astype(numpy.float64)
 
     # taper strain
     corrupt_length = int(corrupt_time * s.sample_rate)

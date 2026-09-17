@@ -20,6 +20,7 @@ This modules contains functions reading, generating, and segmenting strain data
 import copy
 import functools
 import logging
+import sys
 
 import numpy
 from scipy.signal import kaiserord
@@ -52,7 +53,13 @@ from pycbc.types import (
     required_opts_multi_ifo,
     zeros,
 )
-from pycbc.types.backend import backend_array, is_backend, wrap_backend_array
+from pycbc.types.backend import (
+    backend_array,
+    backend_name,
+    is_backend,
+    torch_module_for,
+    wrap_backend_array,
+)
 from pycbc.types.torch_compat import cpu_compatible, cpu_context
 from pycbc.waveform.spa_tmplt import spa_distance
 
@@ -1522,6 +1529,7 @@ class StrainSegments(object):
         for analysis.
         """
         self._fourier_segments = None
+        self._fourier_buffer = None
         self.strain = strain
         self.opt = opt
 
@@ -1682,7 +1690,33 @@ class StrainSegments(object):
                 and state.torch_device.type != "mps"
             )
             output_dtype = complex_same_precision_as(self.strain)
-            for seg_slice, ana in zip(self.segment_slices, self.analyze_slices):
+            num_segs = len(self.segment_slices)
+
+            if isinstance(state, _scheme.TorchScheme) and num_segs > 0:
+                torch = sys.modules.get("torch")
+                if torch is None:
+                    import torch
+                torch_complex_dtype = (
+                    torch.complex64
+                    if output_dtype == numpy.complex64
+                    else torch.complex128
+                )
+                self._fourier_buffer = torch.empty(
+                    (num_segs, self.freq_len),
+                    dtype=torch_complex_dtype,
+                    device=state.torch_device,
+                )
+            elif isinstance(state, _scheme.CPUScheme) and num_segs > 0:
+                self._fourier_buffer = numpy.empty(
+                    (num_segs, self.freq_len),
+                    dtype=output_dtype,
+                )
+            else:
+                self._fourier_buffer = None
+
+            for i, (seg_slice, ana) in enumerate(
+                zip(self.segment_slices, self.analyze_slices)
+            ):
                 if seg_slice.start >= 0 and seg_slice.stop <= len(self.strain):
                     strain_chunk = self.strain[seg_slice]
                 # Assume that we cannot have a case where we both zero-pad on
@@ -1716,6 +1750,27 @@ class StrainSegments(object):
                     freq_seg = make_frequency_series(strain_chunk)
                 if promote or not isinstance(state, _scheme.CPUScheme):
                     freq_seg = freq_seg.astype(output_dtype)
+
+                if self._fourier_buffer is not None:
+                    if isinstance(state, _scheme.TorchScheme):
+                        self._fourier_buffer[i].copy_(backend_array(freq_seg, "torch"))
+                        freq_seg = FrequencySeries(
+                            wrap_backend_array(self._fourier_buffer[i]),
+                            delta_f=freq_seg.delta_f,
+                            epoch=freq_seg.epoch,
+                            copy=False,
+                        )
+                    elif isinstance(state, _scheme.CPUScheme):
+                        self._fourier_buffer[i] = freq_seg.numpy()
+                        freq_seg = FrequencySeries(
+                            self._fourier_buffer[i],
+                            delta_f=freq_seg.delta_f,
+                            epoch=freq_seg.epoch,
+                            copy=False,
+                        )
+                    freq_seg._shared_fourier_buffer = self._fourier_buffer
+                    freq_seg._shared_fourier_index = i
+
                 freq_seg.analyze = ana
                 freq_seg.cumulative_index = seg_slice.start + ana.start
                 freq_seg.seg_slice = seg_slice
@@ -1905,10 +1960,197 @@ class StrainSegments(object):
     def verify_segment_options(cls, opt, parser):
         required_opts(opt, parser, cls.required_opts_list)
 
+    @property
+    def fourier_buffer(self):
+        """Return the shared 2D fourier buffer if available, else None."""
+        return self._fourier_buffer
+
+    def overwhiten(self, psds=None):
+        """Overwhiten the Fourier segments in-place.
+
+        Parameters
+        ----------
+        psds : FrequencySeries or list of FrequencySeries, optional
+            PSD(s) to use for overwhitening. If None, `seg.psd` of each segment
+            is used.
+
+        Returns
+        -------
+        segments : list of FrequencySeries
+            The overwhitened segments.
+        """
+        if self._fourier_segments is None:
+            self.fourier_segments()
+        return overwhiten_segments(self._fourier_segments, psds=psds)
+
     @classmethod
     def verify_segment_options_multi_ifo(cls, opt, parser, ifos):
         for ifo in ifos:
             required_opts_multi_ifo(opt, parser, ifo, cls.required_opts_list)
+
+
+def overwhiten_segments(segments, psds=None):
+    """Overwhiten frequency-domain data segments in-place.
+
+    If segments share an underlying 2D fourier buffer (e.g. on GPU or CPU),
+    the overwhitening division is performed as a batched broadcasted operation,
+    avoiding per-segment Python iteration, redundant CUDA kernel launches,
+    and repeated memory allocations.
+
+    Parameters
+    ----------
+    segments : list of FrequencySeries
+        Frequency domain segments to overwhiten. Each segment must have
+        a `.psd` attribute unless `psds` is provided.
+    psds : FrequencySeries or list of FrequencySeries, optional
+        PSD(s) to use for overwhitening. If None, `seg.psd` is used.
+
+    Returns
+    -------
+    segments : list of FrequencySeries
+        The overwhitened segments (modified in-place).
+    """
+    if not segments:
+        return segments
+
+    if psds is not None:
+        if isinstance(psds, (list, tuple)):
+            if len(psds) != len(segments):
+                raise ValueError("Length of psds must match length of segments")
+            psd_list = list(psds)
+        else:
+            psd_list = [psds] * len(segments)
+    else:
+        psd_list = [getattr(s, "psd", None) for s in segments]
+        if any(p is None for p in psd_list):
+            raise ValueError(
+                "All segments must have a .psd attribute or psds must be provided"
+            )
+
+    first_psd = psd_list[0]
+    all_same_psd = all(p is first_psd for p in psd_list) or all(
+        id(p) == id(first_psd) for p in psd_list
+    )
+
+    shared_buf = getattr(segments[0], "_shared_fourier_buffer", None)
+    is_shared = (
+        shared_buf is not None
+        and len(shared_buf) >= len(segments)
+        and all(
+            getattr(s, "_shared_fourier_buffer", None) is shared_buf
+            for s in segments
+        )
+    )
+
+    if is_shared:
+        torch_mod = torch_module_for(shared_buf)
+        is_torch_buf = torch_mod is not None
+        is_contiguous_rows = (
+            len(shared_buf) == len(segments)
+            and all(
+                getattr(s, "_shared_fourier_index", -1) == i
+                for i, s in enumerate(segments)
+            )
+        )
+        if is_torch_buf:
+            torch = torch_mod
+            dev = shared_buf.device
+            dtype = shared_buf.real.dtype
+            if all_same_psd:
+                psd_t = backend_array(first_psd, "torch")
+                if psd_t is None:
+                    psd_t = torch.as_tensor(first_psd.numpy(), device=dev, dtype=dtype)
+                else:
+                    psd_t = psd_t.to(device=dev, dtype=dtype)
+                if is_contiguous_rows:
+                    shared_buf /= psd_t
+                else:
+                    row_indices = [
+                        getattr(s, "_shared_fourier_index", i)
+                        for i, s in enumerate(segments)
+                    ]
+                    shared_buf[row_indices] /= psd_t
+            else:
+                psd_groups = {}
+                for s, p in zip(segments, psd_list):
+                    pid = id(p)
+                    row_idx = getattr(s, "_shared_fourier_index", None)
+                    if pid not in psd_groups:
+                        psd_groups[pid] = (p, [])
+                    psd_groups[pid][1].append(row_idx)
+                for p, row_indices in psd_groups.values():
+                    psd_t = backend_array(p, "torch")
+                    if psd_t is None:
+                        psd_t = torch.as_tensor(p.numpy(), device=dev, dtype=dtype)
+                    else:
+                        psd_t = psd_t.to(device=dev, dtype=dtype)
+                    shared_buf[row_indices] /= psd_t
+        else:
+            # NumPy array
+            if all_same_psd:
+                psd_arr = first_psd.numpy()
+                if is_contiguous_rows:
+                    shared_buf /= psd_arr
+                else:
+                    row_indices = [
+                        getattr(s, "_shared_fourier_index", i)
+                        for i, s in enumerate(segments)
+                    ]
+                    shared_buf[row_indices] /= psd_arr
+            else:
+                psd_groups = {}
+                for s, p in zip(segments, psd_list):
+                    pid = id(p)
+                    row_idx = getattr(s, "_shared_fourier_index", None)
+                    if pid not in psd_groups:
+                        psd_groups[pid] = (p, [])
+                    psd_groups[pid][1].append(row_idx)
+                for p, row_indices in psd_groups.values():
+                    shared_buf[row_indices] /= p.numpy()
+        return segments
+
+    # Fallback path: segments do not share a 2D buffer.
+    # Still optimize by avoiding repeated host-to-device transfers and conversions.
+    first_seg = segments[0]
+    if backend_name(first_seg) == "torch":
+        torch = sys.modules.get("torch")
+        if torch is None:
+            import torch
+        t0 = backend_array(first_seg, "torch")
+        dev = t0.device
+        dtype = t0.real.dtype
+        if all_same_psd:
+            psd_t = backend_array(first_psd, "torch")
+            if psd_t is None:
+                psd_t = torch.as_tensor(first_psd.numpy(), device=dev, dtype=dtype)
+            else:
+                psd_t = psd_t.to(device=dev, dtype=dtype)
+            for seg in segments:
+                t = backend_array(seg, "torch")
+                t /= psd_t
+        else:
+            cached_psd_tensors = {}
+            for seg, p in zip(segments, psd_list):
+                pid = id(p)
+                if pid not in cached_psd_tensors:
+                    pt = backend_array(p, "torch")
+                    if pt is None:
+                        pt = torch.as_tensor(p.numpy(), device=dev, dtype=dtype)
+                    else:
+                        pt = pt.to(device=dev, dtype=dtype)
+                    cached_psd_tensors[pid] = pt
+                t = backend_array(seg, "torch")
+                t /= cached_psd_tensors[pid]
+    else:
+        if all_same_psd:
+            psd_arr = first_psd.numpy()
+            for seg in segments:
+                seg.numpy()[:] /= psd_arr
+        else:
+            for seg, p in zip(segments, psd_list):
+                seg /= p
+
+    return segments
 
 
 @functools.lru_cache(maxsize=500)
