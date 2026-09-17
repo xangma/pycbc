@@ -5,17 +5,27 @@ Complete-executable offline benchmark definition (pycbc_inspiral)
 ==================================================================
 
 This test runs ``pycbc_inspiral`` from process launch through completed HDF
-output. It processes real H1 frame data with a fixed compressed low-mass bank,
-including data conditioning, PSD estimation, waveform decompression,
-normalization, scalar matched filtering, power chi-square, clustering and
-trigger output. It does not call ``LiveBatchMatchedFilter.process_data``.
-The required reference is unchanged CPU
+output. It processes real H1 frame data across all pipeline stages:
+data conditioning, PSD estimation, template bank preparation, normalization,
+scalar matched filtering, power chi-square, clustering, and trigger output.
+It does not call ``LiveBatchMatchedFilter.process_data``.
+The required reference baseline is unchanged CPU
 ``40e94792b3edf59f39b18b65102b28a4f74433a7``. Compare it with candidate
 normal CPU, Torch CPU and Torch CUDA as separate arms, using the same inputs
 and scientific settings.
 
-Inputs and scientific settings
-------------------------------
+The benchmark protocol defines two complementary tracks:
+
+1. **Track 1: Compressed Bank Campaign (Inline Linear Decompression)**:
+   Evaluates filtering, data conditioning, and linear decompression from stored
+   SVD coefficients without dynamic waveform synthesis overhead.
+2. **Track 2: Dynamic Generation Campaign (On-Device Batch Generation with ``diffgw``)**:
+   Evaluates dynamic on-the-fly waveform generation from physical parameters.
+   CPU arms evaluate waveforms sequentially via LALSimulation; Torch CUDA
+   evaluates batched waveforms directly on device via ``diffgw``.
+
+Track 1: Compressed bank settings
+---------------------------------
 
 The bank contains **384 distinct templates: 256 BNS and 128 NSBH**.
 Masses are detector-frame solar masses; spins are dimensionless aligned
@@ -156,8 +166,8 @@ Each campaign comparison evaluates four arms under identical host isolation
    with auto-enabled native GPU data conditioning and inline linear waveform
    decompression.
 
-Reproducible executable command template
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Track 1 executable command template
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Run each arm inside a clean environment with pinned single-thread limits:
 
@@ -206,10 +216,120 @@ Run each arm inside a clean environment with pinned single-thread limits:
      --segment-start-pad 112 \
      --segment-end-pad 16 \
      --processing-scheme <SCHEME> \
-     --output triggers_<SCHEME>.hdf
+     --output triggers_track1_<SCHEME>.hdf
 
 Where ``<SCHEME>`` is ``cpu:1`` for the CPU arms, ``torch:cpu:1`` for Torch CPU,
 or ``torch:cuda:0`` for Torch CUDA.
+
+Track 2: Dynamic waveform generation campaign with diffgw
+---------------------------------------------------------
+
+Track 2 evaluates the complete executable when template banks are uncompressed,
+requiring dynamic on-the-fly waveform generation:
+
+* **Bank**: **512 distinct BNS templates** ($1.4 \le m_1 \le 2.5 \, M_\odot$,
+  $1.2 \le m_2 \le 1.4 \, M_\odot$, non-spinning).
+  Bank SHA256: ``b0dcadc61346fa76b26413ae2f3068dbaf1115fef722e0787abfceaaac072b03``.
+* **Approximant**: ``TaylorF2`` at 3.5PN phase order (``--order 7``), 30 Hz cutoff,
+  4096 Hz sample rate.
+* **Waveform Generation**:
+  - **CPU arms** (``original_cpu``, ``branch_cpu``, ``torch_cpu``): Sequential
+    evaluation via LALSimulation (``XLALSimInspiralChooseFDWaveform``).
+  - **Torch CUDA** (``torch_cuda``): On-device batched evaluation via ``diffgw``
+    (with batch size 64).
+* **Workload**: ``512 * 5 = 2560`` template/segment pairs.
+
+Track 2 executable command templates
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: console
+
+   export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
+   export PYTHONHASHSEED=0 PYTHONDONTWRITEBYTECODE=1
+
+   # CPU arms (original_cpu, branch_cpu, torch_cpu):
+   taskset -c 8 pycbc_inspiral \
+     --verbose \
+     --frame-files docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf \
+     --channel-name H1:LOSC-STRAIN \
+     --gps-start-time 1187007048 \
+     --gps-end-time 1187009080 \
+     --trig-start-time 1187007160 \
+     --trig-end-time 1187009064 \
+     --sample-rate 4096 \
+     --low-frequency-cutoff 30 \
+     --strain-high-pass 25 \
+     --pad-data 8 \
+     --autogating-threshold 100 \
+     --autogating-cluster 5 \
+     --autogating-width 0.25 \
+     --autogating-taper 0.25 \
+     --autogating-pad 16 \
+     --autogating-max-iterations 1 \
+     --psd-estimation median \
+     --psd-segment-length 32 \
+     --psd-segment-stride 16 \
+     --psd-num-segments 126 \
+     --psd-inverse-length 16 \
+     --invpsd-trunc-method hann \
+     --invpsd-trunc-which-spectrum invasd \
+     --approximant TaylorF2 \
+     --order 7 \
+     --snr-threshold 5.5 \
+     --newsnr-threshold 5 \
+     --chisq-bins 16 \
+     --cluster-window 1 \
+     --cluster-function symmetric \
+     --fft-backends mkl \
+     --bank-file inputs/bank_512_taylorf2.hdf \
+     --segment-length 512 \
+     --segment-start-pad 112 \
+     --segment-end-pad 16 \
+     --processing-scheme <SCHEME> \
+     --output triggers_track2_<SCHEME>.hdf
+
+   # Torch CUDA arm (torch_cuda with diffgw):
+   taskset -c 8 pycbc_inspiral \
+     --verbose \
+     --frame-files docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf \
+     --channel-name H1:LOSC-STRAIN \
+     --gps-start-time 1187007048 \
+     --gps-end-time 1187009080 \
+     --trig-start-time 1187007160 \
+     --trig-end-time 1187009064 \
+     --sample-rate 4096 \
+     --low-frequency-cutoff 30 \
+     --strain-high-pass 25 \
+     --pad-data 8 \
+     --autogating-threshold 100 \
+     --autogating-cluster 5 \
+     --autogating-width 0.25 \
+     --autogating-taper 0.25 \
+     --autogating-pad 16 \
+     --autogating-max-iterations 1 \
+     --psd-estimation median \
+     --psd-segment-length 32 \
+     --psd-segment-stride 16 \
+     --psd-num-segments 126 \
+     --psd-inverse-length 16 \
+     --invpsd-trunc-method hann \
+     --invpsd-trunc-which-spectrum invasd \
+     --approximant TaylorF2 \
+     --order 7 \
+     --snr-threshold 5.5 \
+     --newsnr-threshold 5 \
+     --chisq-bins 16 \
+     --cluster-window 1 \
+     --cluster-function symmetric \
+     --fft-backends mkl \
+     --bank-file inputs/bank_512_taylorf2.hdf \
+     --segment-length 512 \
+     --segment-start-pad 112 \
+     --segment-end-pad 16 \
+     --processing-scheme torch:cuda:0 \
+     --batch-size 64 \
+     --enable-diffgw \
+     --output triggers_track2_torch_cuda.hdf
 
 Six-phase workload decomposition
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -221,8 +341,9 @@ is decomposed into six mutually exclusive phases with explicit CUDA synchronizat
    module imports.
 #. **Data Conditioning**: Frame reading, high-pass filtering, autogating, and
    126-segment Welch PSD estimation.
-#. **Waveform Bank Preparation**: Decompressing stored linear coefficients or
-   evaluating on-device batched ``diffgw`` waveforms.
+#. **Waveform Bank Preparation**: Decompressing stored linear coefficients
+   (Track 1) or evaluating on-device batched ``diffgw`` waveforms vs sequential
+   LAL CPU generation (Track 2).
 #. **Core Matched Filtering**: Template Fourier transforms, frequency-domain
    whitening, correlation, and inverse FFTs (measured by the internal timer
    ``calc_time``).

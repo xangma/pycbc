@@ -11,7 +11,9 @@ qualification and host-load checks have passed. Missing evidence remains
 explicit; a plausible profile or the expected templates/core rate is not an
 acceptance test.
 
-For the concrete offline inspiral search workload, frozen reference commit,
+For the concrete offline inspiral search workloads (Track 1 for compressed
+banks with linear decompression, and Track 2 for uncompressed banks with
+on-device dynamic generation via ``diffgw``), frozen reference commits,
 and scientific acceptance tolerances, see :ref:`torch-reference-campaign`.
 
 Reference and scientific scope
