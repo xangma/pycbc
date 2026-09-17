@@ -19,14 +19,19 @@ from string import Formatter
 
 import lal
 
-from pycbc import libutils, pnutils
+from pycbc import pnutils
 from pycbc.constants import MSUN_SI, PC_SI
 from pycbc.types import FrequencySeries, TimeSeries
+from pycbc.types.backend import backend_array, wrap_backend_array
 
 from . import parameters
-from .waveform import _check_lal_pars, check_args, props
-
-lalsimulation = libutils.import_optional("lalsimulation")
+from .waveform import (
+    _check_lal_pars,
+    _lal_output_for_active_scheme,
+    check_args,
+    lalsimulation,
+    props,
+)
 
 
 def _formatdocstr(docstr):
@@ -77,11 +82,42 @@ def sum_modes(hlms, inclination, phi):
         The plus and cross polarization as a complex number. The real part
         gives the plus, the negative imaginary part the cross.
     """
+    if hlms:
+        first_hlm = next(iter(hlms.values()))
+        first_tensor = backend_array(first_hlm, "torch")
+        if isinstance(first_hlm, FrequencySeries) and first_tensor is not None:
+            for hlm in hlms.values():
+                first_hlm._typecheck(hlm)
+            modes = list(hlms.keys())
+            if all(2 <= ell <= 4 and abs(emm) <= ell for ell, emm in modes):
+                import torch
+
+                from ._spherical_harmonics_torch import (
+                    selected_spin_minus_two_spherical_harmonics,
+                )
+
+                dtype = first_tensor.real.dtype
+                device = first_tensor.device
+                ylm_dict = selected_spin_minus_two_spherical_harmonics(
+                    inclination, phi, modes, dtype=dtype, device=device
+                )
+                ylm_vector = torch.stack([ylm_dict[m] for m in modes])
+                hlm_matrix = torch.stack(
+                    [backend_array(hlms[m], "torch") for m in modes], dim=0
+                )
+                res_tensor = torch.matmul(ylm_vector, hlm_matrix)
+                return FrequencySeries(
+                    wrap_backend_array(res_tensor),
+                    delta_f=first_hlm.delta_f,
+                    epoch=first_hlm.epoch,
+                    copy=False,
+                )
+
     out = None
     for mode in hlms:
-        l, m = mode
-        hlm = hlms[l, m]
-        ylm = lal.SpinWeightedSphericalHarmonic(inclination, phi, -2, l, m)
+        ell, m = mode
+        hlm = hlms[ell, m]
+        ylm = lal.SpinWeightedSphericalHarmonic(inclination, phi, -2, ell, m)
         if out is None:
             out = ylm * hlm
         else:
@@ -97,15 +133,15 @@ def default_modes(approximant):
         # according to arXiv:2004.06503
         ma = [(2, 2), (2, 1), (3, 3), (3, 2), (4, 4)]
         # add the -m modes
-        ma += [(l, -m) for l, m in ma]
+        ma += [(ell, -m) for ell, m in ma]
     elif approximant in ["IMRPhenomPv3HM", "IMRPhenomHM"]:
         # according to arXiv:1911.06050
         ma = [(2, 2), (2, 1), (3, 3), (3, 2), (4, 4), (4, 3)]
         # add the -m modes
-        ma += [(l, -m) for l, m in ma]
+        ma += [(ell, -m) for ell, m in ma]
     elif approximant.startswith("NRSur7dq4"):
         # according to arXiv:1905.09300
-        ma = [(l, m) for l in [2, 3, 4] for m in range(-l, l + 1)]
+        ma = [(ell, m) for ell in [2, 3, 4] for m in range(-ell, ell + 1)]
     elif approximant.startswith("NRHybSur3dq8"):
         # according to arXiv:1812.07865
         ma = [
@@ -130,7 +166,7 @@ def default_modes(approximant):
     return ma
 
 
-def get_glm(l, m, theta):
+def get_glm(l, m, theta):  # noqa: E741 - preserve the public keyword
     r"""The maginitude of the :math:`{}_{-2}Y_{\ell m}`.
 
     The spin-weighted spherical harmonics can be written as
@@ -206,7 +242,9 @@ def get_nrsur_modes(**params):
     hlms = {}
     while ret:
         hlm = TimeSeries(
-            ret.mode.data.data, delta_t=ret.mode.deltaT, epoch=ret.mode.epoch
+            _lal_output_for_active_scheme(ret.mode.data.data),
+            delta_t=ret.mode.deltaT,
+            epoch=ret.mode.epoch,
         )
         hlms[ret.l, ret.m] = (hlm.real(), hlm.imag())
         ret = ret.next
@@ -256,7 +294,9 @@ def get_nrhybsur_modes(**params):
     hlms = {}
     while ret:
         hlm = TimeSeries(
-            ret.mode.data.data, delta_t=ret.mode.deltaT, epoch=ret.mode.epoch
+            _lal_output_for_active_scheme(ret.mode.data.data),
+            delta_t=ret.mode.deltaT,
+            epoch=ret.mode.epoch,
         )
         hlms[ret.l, ret.m] = (hlm.real(), hlm.imag())
         ret = ret.next
@@ -350,7 +390,9 @@ def get_lalsimulation_modes(**params):
     hlms = {}
     while ret:
         hlm = TimeSeries(
-            ret.mode.data.data, delta_t=ret.mode.deltaT, epoch=ret.mode.epoch
+            _lal_output_for_active_scheme(ret.mode.data.data),
+            delta_t=ret.mode.deltaT,
+            epoch=ret.mode.epoch,
         )
         hlms[(ret.l, ret.m)] = (hlm.real(), hlm.imag())
         ret = ret.next
@@ -369,15 +411,15 @@ def get_imrphenomxh_modes(**params):
         # setting to 0 will default to ringdown frequency
         params["f_final"] = 0.0
     hlms = {}
-    for l, m in mode_array:
-        params["mode_array"] = [(l, m)]
+    for ell, m in mode_array:
+        params["mode_array"] = [(ell, m)]
         laldict = _check_lal_pars(params)
         hlm = lalsimulation.SimIMRPhenomXHMGenerateFDOneMode(
             float(pnutils.solar_mass_to_kg(params["mass1"])),
             float(pnutils.solar_mass_to_kg(params["mass2"])),
             float(params["spin1z"]),
             float(params["spin2z"]),
-            l,
+            ell,
             m,
             pnutils.megaparsecs_to_meters(float(params["distance"])),
             params["f_lower"],
@@ -387,14 +429,18 @@ def get_imrphenomxh_modes(**params):
             params["f_ref"],
             laldict,
         )
-        hlm = FrequencySeries(hlm.data.data, delta_f=hlm.deltaF, epoch=hlm.epoch)
+        hlm = FrequencySeries(
+            _lal_output_for_active_scheme(hlm.data.data),
+            delta_f=hlm.deltaF,
+            epoch=hlm.epoch,
+        )
         # Plus, cross strains without Y_lm.
         # (-1)**(l) factor ALREADY included in FDOneMode
         hplm = 0.5 * hlm  # Plus strain
         hclm = 0.5j * hlm  # Cross strain
         if m > 0:
             hclm *= -1
-        hlms[l, m] = (hplm, hclm)
+        hlms[ell, m] = (hplm, hclm)
     return hlms
 
 
@@ -417,21 +463,19 @@ _mode_waveform_td = {
     "TaylorT3": get_lalsimulation_modes,
     "TaylorT4": get_lalsimulation_modes,
 }
-_mode_waveform_fd = {
-    "IMRPhenomXHM": get_imrphenomxh_modes,
-}
+_mode_waveform_fd = {"IMRPhenomXHM": get_imrphenomxh_modes}
 # 'IMRPhenomXPHM':get_imrphenomhm_modes needs to be implemented
 # LAL function do not split strain mode by mode
 
 
-def fd_waveform_mode_approximants():
+def fd_waveform_mode_approximants(scheme=None):
     """Frequency domain approximants that will return separate modes."""
-    return sorted(_mode_waveform_fd.keys())
+    return sorted(_mode_waveform_fd)
 
 
-def td_waveform_mode_approximants():
+def td_waveform_mode_approximants(scheme=None):
     """Time domain approximants that will return separate modes."""
-    return sorted(_mode_waveform_td.keys())
+    return sorted(_mode_waveform_td)
 
 
 def get_fd_waveform_modes(template=None, **kwargs):
@@ -453,12 +497,11 @@ def get_fd_waveform_modes(template=None, **kwargs):
 
     Returns
     -------
-    ulm : dict
-        Dictionary of mode tuples -> fourier transform of the real part of the
-        hlm time series, as a :py:class:`pycbc.types.FrequencySeries`.
-    vlm : dict
-        Dictionary of mode tuples -> fourier transform of the imaginary part of
-        the hlm time series, as a :py:class:`pycbc.types.FrequencySeries`.
+    modes : dict
+        Dictionary mapping ``(l, m)`` mode tuples to ``(u_lm, v_lm)`` pairs.
+        Each pair contains the Fourier transforms of the real and imaginary
+        parts of the hlm time series, respectively, as
+        :py:class:`pycbc.types.FrequencySeries` instances.
     """
     params = props(template, **kwargs)
     required = parameters.fd_required
@@ -472,7 +515,7 @@ def get_fd_waveform_modes(template=None, **kwargs):
 get_fd_waveform_modes.__doc__ = _formatdocstrlist(
     get_fd_waveform_modes.__doc__,
     parameters.fd_waveform_params,
-    skip_params=["inclination", "coa_phase"],
+    skip_params=["inclination", "long_asc_nodes"],
 )
 
 
@@ -499,12 +542,10 @@ def get_td_waveform_modes(template=None, **kwargs):
 
     Returns
     -------
-    ulm : dict
-        Dictionary of mode tuples -> real part of the hlm, as a
-        :py:class:`pycbc.types.TimeSeries`.
-    vlm : dict
-        Dictionary of mode tuples -> imaginary part of the hlm, as a
-        :py:class:`pycbc.types.TimeSeries`.
+    hlms : dict
+        Dictionary mapping each mode tuple to a pair containing the real and
+        imaginary parts of the mode as
+        :py:class:`pycbc.types.TimeSeries` objects.
     """
     params = props(template, **kwargs)
     required = parameters.td_required

@@ -523,6 +523,8 @@ class TemplateBank(object):
     def end_frequency(self, index):
         """ Return the end frequency of the waveform at the given index value
         """
+        if 'f_final' in self.extra_args:
+            return self.extra_args['f_final']
         if hasattr(self.table[index], 'f_final'):
             return self.table[index].f_final
 
@@ -530,6 +532,34 @@ class TemplateBank(object):
                                 self.table[index],
                                 approximant=self.approximant(index),
                                 **self.extra_args)
+
+    def _waveform_parameters(self, index, delta_f=None):
+        """Resolve row defaults, global overrides, then bank-owned geometry.
+
+        Global waveform options override row values. The bank owns distance
+        normalization, frequency resolution and its calculated cutoffs.
+        """
+        from pycbc.waveform.waveform import props
+        params = props(self.table[index], **self.extra_args)
+        params['approximant'] = self.approximant(index)
+        if hasattr(self, 'sample_rate'):
+            delta_f = (self.freq_resolution_for_template(index)
+                       if delta_f is None else delta_f)
+            flen = round(self.sample_rate / (2 * delta_f) + 1)
+            delta_t = 1.0 / self.sample_rate
+            flow = self.table[index].f_lower
+        else:
+            delta_f, delta_t = self.delta_f, self.delta_t
+            flen = self.filter_length
+            flow = find_variable_start_frequency(
+                params['approximant'], self.table[index], self.f_lower,
+                self.max_template_length, **self.extra_args)
+        fend = self.end_frequency(index)
+        if fend is None or fend >= flen * delta_f:
+            fend = (flen - 1) * delta_f
+        params.update(f_lower=flow, f_final=fend, delta_f=delta_f,
+                      delta_t=delta_t, distance=1.0 / DYN_RANGE_FAC)
+        return params, flen
 
     def parse_approximant(self, approximant):
         """Parses the given approximant argument, returning the approximant to
@@ -605,22 +635,48 @@ class TemplateBank(object):
                 self.table = self.table.add_fields(vec, 'f_lower')
             self.table['f_lower'][:] = low_frequency_cutoff
 
+        if not len(self.table):
+            self.min_f_lower = low_frequency_cutoff
+            return
         self.min_f_lower = min(self.table['f_lower'])
         if self.f_lower is None and self.min_f_lower == 0.:
             raise ValueError('Invalid low-frequency cutoff settings')
 
+    @staticmethod
+    def is_diffgw_available():
+        """Return True if the optional diffgw (or torchwave) provider is installed."""
+        try:
+            from pycbc.waveform.diffgw import is_available
+            return is_available()
+        except ImportError:
+            return False
+
 
 class LiveFilterBank(TemplateBank):
     def __init__(self, filename, sample_rate, minimum_buffer,
-                       approximant=None, increment=8, parameters=None,
-                       low_frequency_cutoff=None,
-                       **kwds):
+                 approximant=None, increment=8, parameters=None,
+                 low_frequency_cutoff=None,
+                 enable_torchwave=None,
+                 enable_diffgw=None,
+                 **kwds):
 
         self.increment = increment
         self.filename = filename
         self.sample_rate = sample_rate
         self.minimum_buffer = minimum_buffer
         self.f_lower = low_frequency_cutoff
+        if enable_diffgw is not None:
+            self.enable_diffgw = bool(enable_diffgw)
+            self.enable_torchwave = bool(enable_diffgw)
+            self.waveform_provider_name = 'diffgw'
+        elif enable_torchwave is not None:
+            self.enable_diffgw = bool(enable_torchwave)
+            self.enable_torchwave = bool(enable_torchwave)
+            self.waveform_provider_name = 'torchwave'
+        else:
+            self.enable_diffgw = None
+            self.enable_torchwave = None
+            self.waveform_provider_name = 'diffgw'
 
         super(LiveFilterBank, self).__init__(filename, approximant=approximant,
                 parameters=parameters, **kwds)
@@ -653,6 +709,9 @@ class LiveFilterBank(TemplateBank):
     def getslice(self, sindex):
         instance = copy(self)
         instance.table = self.table[sindex]
+        instance.enable_diffgw = getattr(self, "enable_diffgw", None)
+        instance.enable_torchwave = getattr(self, "enable_torchwave", None)
+        instance.waveform_provider_name = getattr(self, "waveform_provider_name", "diffgw")
         return instance
 
     def id_from_param(self, param_tuple):
@@ -670,6 +729,59 @@ class LiveFilterBank(TemplateBank):
         """
         return self.param_lookup[param_tuple]
 
+    def can_use_diffgw(self):
+        from pycbc.waveform.diffgw import can_use
+        return can_use(self)
+
+    def can_use_torchwave(self):
+        return self.can_use_diffgw()
+
+    def diffgw_diagnostics(self, indices=None, device="cpu"):
+        from pycbc.waveform.diffgw import diagnostics
+        return diagnostics(self, indices, device)
+
+    def torchwave_diagnostics(self, indices=None, device="cpu"):
+        from pycbc.waveform.torchwave import diagnostics
+        return diagnostics(self, indices, device)
+
+    def _iter_diffgw(self, batch_size=128):
+        """Generate bounded windows, grouping equal grids within each window."""
+        if getattr(self, "waveform_provider_name", None) == "torchwave":
+            from pycbc.waveform.torchwave import generate_batch
+        else:
+            from pycbc.waveform.diffgw import generate_batch
+        from pycbc import scheme
+        if batch_size <= 0:
+            raise ValueError("batch_size must be positive")
+        state = scheme.mgr.state
+        device = (state.torch_device if isinstance(state, scheme.TorchScheme)
+                  else "cpu")
+        for start in range(0, len(self), batch_size):
+            stop = min(start + batch_size, len(self))
+            groups = {}
+            for index in range(start, stop):
+                delta_f = self.freq_resolution_for_template(index)
+                groups.setdefault(delta_f, []).append(index)
+            waveforms = {}
+            for delta_f, indices in groups.items():
+                _, templates = generate_batch(self, indices, device=device,
+                                              delta_f=delta_f)
+                waveforms.update(zip(indices, templates))
+            for index in range(start, stop):
+                yield waveforms.pop(index)
+
+    def _iter_torchwave(self, batch_size=128):
+        return self._iter_diffgw(batch_size=batch_size)
+
+    def __iter__(self):
+        if getattr(self, "waveform_provider_name", None) == "torchwave":
+            yield from self._iter_torchwave()
+        elif self.enable_diffgw is True or self.enable_torchwave is True:
+            yield from self._iter_diffgw()
+        else:
+            for index in range(len(self)):
+                yield self[index]
+
     def __getitem__(self, index):
         if isinstance(index, slice):
             return self.getslice(index)
@@ -684,7 +796,7 @@ class LiveFilterBank(TemplateBank):
 
         time_duration = self.minimum_buffer
         time_duration += 0.5
-        params = props(self.table[index])
+        params = props(self.table[index], **self.extra_args)
         params.pop('approximant')
         approximant = self.approximant(index)
         waveform_duration = pycbc.waveform.get_waveform_filter_length_in_time(
@@ -737,12 +849,9 @@ class LiveFilterBank(TemplateBank):
         )
 
         # Get the waveform filter
-        distance = 1.0 / DYN_RANGE_FAC
         htilde = pycbc.waveform.get_waveform_filter(
-            zeros(flen, dtype=np.complex64), self.table[index],
-            approximant=approximant, f_lower=flow, f_final=f_end,
-            delta_f=delta_f, delta_t=1.0 / self.sample_rate, distance=distance,
-            **self.extra_args)
+            zeros(flen, dtype=np.complex64),
+            **self._waveform_parameters(index, delta_f)[0])
 
         # If available, record the total duration (which may
         # include ringdown) and the duration up to merger since they will be
@@ -788,6 +897,8 @@ class FilterBank(TemplateBank):
                  enable_compressed_waveforms=True,
                  low_frequency_cutoff=None,
                  waveform_decompression_method=None,
+                 enable_torchwave=None,
+                 enable_diffgw=None,
                  **kwds):
         self.out = out
         self.dtype = dtype
@@ -800,10 +911,61 @@ class FilterBank(TemplateBank):
         self.max_template_length = max_template_length
         self.enable_compressed_waveforms = enable_compressed_waveforms
         self.waveform_decompression_method = waveform_decompression_method
+        if enable_diffgw is not None:
+            self.enable_diffgw = bool(enable_diffgw)
+            self.enable_torchwave = bool(enable_diffgw)
+            self.waveform_provider_name = 'diffgw'
+        elif enable_torchwave is not None:
+            self.enable_diffgw = bool(enable_torchwave)
+            self.enable_torchwave = bool(enable_torchwave)
+            self.waveform_provider_name = 'torchwave'
+        else:
+            self.enable_diffgw = None
+            self.enable_torchwave = None
+            self.waveform_provider_name = 'diffgw'
 
         super(FilterBank, self).__init__(filename, approximant=approximant,
             parameters=parameters, **kwds)
         self.ensure_standard_filter_columns(low_frequency_cutoff=low_frequency_cutoff)
+
+    def can_use_diffgw(self):
+        from pycbc.waveform.diffgw import can_use
+        return can_use(self)
+
+    def can_use_torchwave(self):
+        return self.can_use_diffgw()
+
+    def diffgw_diagnostics(self, indices=None, device="cpu"):
+        from pycbc.waveform.diffgw import diagnostics
+        return diagnostics(self, indices, device)
+
+    def torchwave_diagnostics(self, indices=None, device="cpu"):
+        from pycbc.waveform.torchwave import diagnostics
+        return diagnostics(self, indices, device)
+
+    def get_batch_tensor(self, batch_tnums, device="cpu", dtype=None):
+        """Return template samples and metadata views in the requested order.
+
+        Generation uses the float64 diffgw runtime allowlist after explicit
+        opt-in. Unsupported rows use scalar PyCBC generation. Storage defaults
+        to the bank dtype; complex64 and complex128 are supported. Accelerator
+        metadata requires an active TorchScheme matching ``device``.
+        """
+        if getattr(self, "waveform_provider_name", None) == "torchwave":
+            from pycbc.waveform.torchwave import generate_batch
+        else:
+            from pycbc.waveform.diffgw import generate_batch
+        return generate_batch(self, batch_tnums, device, dtype)
+
+    def wrap_batch_tensor(self, indices, data, metadata):
+        """Create fresh metadata views from cached sample-free records."""
+        from pycbc.waveform.diffgw import wrap_batch
+        return wrap_batch(self, indices, data, metadata)
+
+    def waveform_batch_key(self, indices):
+        """Return the resolved provider and parameter identity for a batch."""
+        from pycbc.waveform.diffgw import batch_key
+        return batch_key(self, indices)
 
     def get_decompressed_waveform(self, tempout, index, f_lower=None,
                                   approximant=None, df=None):
@@ -874,11 +1036,11 @@ class FilterBank(TemplateBank):
         if (self.has_compressed_waveforms and self.enable_compressed_waveforms):
             try:
                 htilde = self.get_decompressed_waveform(
-                    tempout,
-                    index,
+                    cached_mem,
+                    t_num,
                     f_lower=low_frequency_cutoff,
                     approximant=approximant,
-                    df=None
+                    df=delta_f,
                 )
                 full_calculate_waveform = False
             except KeyError:
@@ -916,7 +1078,8 @@ class FilterBank(TemplateBank):
         f_low = find_variable_start_frequency(approximant,
                                               self.table[index],
                                               self.f_lower,
-                                              self.max_template_length)
+                                              self.max_template_length,
+                                              **self.extra_args)
         logging.info('%s: generating %s from %s Hz' % (index, approximant, f_low))
 
         # Clear the storage memory
@@ -924,7 +1087,6 @@ class FilterBank(TemplateBank):
         tempout.clear()
 
         # Get the waveform filter
-        distance = 1.0 / DYN_RANGE_FAC
         full_calculate_waveform = True
         if (self.has_compressed_waveforms and self.enable_compressed_waveforms):
             try:
@@ -948,10 +1110,8 @@ class FilterBank(TemplateBank):
 
         if full_calculate_waveform:
             htilde = pycbc.waveform.get_waveform_filter(
-                tempout[0:self.filter_length], self.table[index],
-                approximant=approximant, f_lower=f_low, f_final=f_end,
-                delta_f=self.delta_f, delta_t=self.delta_t, distance=distance,
-                **self.extra_args,
+                tempout[0:self.filter_length],
+                **self._waveform_parameters(index)[0],
             )
 
         # If available, record the total duration (which may
@@ -982,7 +1142,7 @@ class FilterBank(TemplateBank):
 
 
 def find_variable_start_frequency(approximant, parameters, f_start, max_length,
-                                  delta_f = 1):
+                                  delta_f = 1, **kwds):
     """ Find a frequency value above the starting frequency that results in a
     waveform shorter than max_length.
     """
@@ -994,7 +1154,8 @@ def find_variable_start_frequency(approximant, parameters, f_start, max_length,
         while l > max_length:
             f += delta_f
             l = pycbc.waveform.get_waveform_filter_length_in_time(approximant,
-                                                          parameters, f_lower=f)
+                                                          parameters,
+                                                          **dict(kwds, f_lower=f))
     else :
         f = f_start
     return f
