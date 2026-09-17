@@ -37,13 +37,17 @@ from pycbc.types.backend import (
     wrap_backend_array,
 )
 
-try:
-    import torch
 
-    _HAVE_TORCH = pycbc.HAVE_TORCH
-except Exception:  # pragma: no cover - torch optional
-    torch = None
-    _HAVE_TORCH = False
+class _TorchModuleProxy:
+    def __getattr__(self, name):
+        import torch
+
+        globals()["torch"] = torch
+        return getattr(torch, name)
+
+
+torch = _TorchModuleProxy()
+_HAVE_TORCH = getattr(pycbc, "HAVE_TORCH", False)
 
 
 def _is_torch_array(value):

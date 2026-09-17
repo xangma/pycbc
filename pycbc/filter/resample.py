@@ -44,16 +44,17 @@ from pycbc.types.backend import (
     wrap_backend_array,
 )
 
-try:
-    import torch
 
-    from .zpk import _torch_sosfilt
+class _TorchModuleProxy:
+    def __getattr__(self, name):
+        import torch
 
-    _HAVE_TORCH = pycbc.HAVE_TORCH
-except Exception:  # pragma: no cover - torch optional
-    torch = None
-    _torch_sosfilt = None
-    _HAVE_TORCH = False
+        globals()["torch"] = torch
+        return getattr(torch, name)
+
+
+torch = _TorchModuleProxy()
+_HAVE_TORCH = getattr(pycbc, "HAVE_TORCH", False)
 
 _resample_func = {
     numpy.dtype("float32"): lal.ResampleREAL4TimeSeries,
@@ -120,6 +121,7 @@ def _butterworth_sos(cutoff, filter_order, highpass):
 
 def _torch_zero_phase_sos(data, sections):
     """Apply LAL's section-by-section forward/reverse filtering."""
+    from .zpk import _torch_sosfilt
 
     for section in sections:
         section = section[numpy.newaxis, :]
