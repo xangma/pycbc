@@ -4,7 +4,7 @@ PyTorch runtime
 ===============
 
 PyCBC provides an optional Torch processing scheme for its core arrays, time
-and frequency series and FFTs. The scheme selects
+and frequency series, FFTs, and selected PSD operations. The scheme selects
 the storage backend and device for supported operations. Individual APIs
 still determine supported shapes, dtypes, and execution routes.
 
