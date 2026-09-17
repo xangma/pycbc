@@ -31,6 +31,92 @@ ctypedef fused COMPLEXTYPE:
     float complex
     double complex
 
+
+cdef inline void _abs_arg_max_complex64_row(
+        float complex* values,
+        numpy.int64_t* indices,
+        float complex* peaks,
+        unsigned int row,
+        unsigned int row_size,
+        unsigned int start,
+        unsigned int stop) noexcept nogil:
+    """Store the legacy complex abs-arg-max result for one row segment."""
+    cdef unsigned int offset = row * row_size + start
+    cdef unsigned int length = stop - start
+    cdef unsigned int index
+    cdef unsigned int best = 0
+    cdef float complex value
+    cdef double mag
+    cdef double magmax = 0
+
+    for index in range(length):
+        value = values[offset + index]
+        mag = (
+            value.real * value.real
+            + value.imag * value.imag
+        )
+        if mag > magmax:
+            magmax = mag
+            best = index
+
+    indices[row] = best
+    peaks[row] = values[offset + best]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _batch_abs_arg_max_complex64(
+        numpy.ndarray [float complex, ndim=1, mode="c"] values,
+        numpy.ndarray [numpy.int64_t, ndim=1, mode="c"] indices,
+        numpy.ndarray [float complex, ndim=1, mode="c"] peaks,
+        row_size,
+        start,
+        stop,
+        num_vectors):
+    """Find exact legacy peak indices and values for complex64 rows.
+
+    Indices are relative to ``[start:stop]``, matching the scalar
+    ``Array.abs_arg_max`` call used by ``LiveBatchMatchedFilter``.
+    """
+    row_size = int(row_size)
+    start = int(start)
+    stop = int(stop)
+    num_vectors = int(num_vectors)
+    if (
+        num_vectors < 1
+        or row_size < 1
+        or start < 0
+        or start >= stop
+        or stop > row_size
+        or num_vectors > 0xffffffff
+        or row_size > 0xffffffff
+        or num_vectors * row_size > 0xffffffff
+        or values.shape[0] != num_vectors * row_size
+        or indices.shape[0] != num_vectors
+        or peaks.shape[0] != num_vectors
+    ):
+        raise ValueError("invalid batched peak geometry")
+
+    cdef unsigned int nvec = num_vectors
+    cdef unsigned int vsize = row_size
+    cdef unsigned int begin = start
+    cdef unsigned int end = stop
+    cdef unsigned int row
+    cdef float complex* value_ptr = <float complex*> values.data
+    cdef numpy.int64_t* index_ptr = <numpy.int64_t*> indices.data
+    cdef float complex* peak_ptr = <float complex*> peaks.data
+
+    for row in prange(nvec, nogil=True, schedule="static"):
+        _abs_arg_max_complex64_row(
+            value_ptr,
+            index_ptr,
+            peak_ptr,
+            row,
+            vsize,
+            begin,
+            end,
+        )
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def _batch_correlate(numpy.ndarray [long, ndim=1] x,
