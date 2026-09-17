@@ -20,17 +20,25 @@ Torch FFT backend registration for the torch scheme.
 
 import pycbc
 
-from .core import _list_available
-
 _backend_dict = {"torch": "torchfft"}
 _backend_list = ["torch"]
+
+
+class _LazyTorchFFT:
+    def insert_fft_options(self, fft_group):
+        pass
+
+    def __getattr__(self, name):
+        from pycbc.fft import torchfft
+        return getattr(torchfft, name)
+
 
 _alist = []
 _adict = {}
 
 if getattr(pycbc, "HAVE_TORCH", False):
-    # torchfft module import will validate torch presence
-    _alist, _adict = _list_available(_backend_list, _backend_dict)
+    _alist = ["torch"]
+    _adict = {"torch": _LazyTorchFFT()}
 
 torch_backend = None
 
@@ -44,6 +52,9 @@ def set_backend(backend_list):
 
 
 def get_backend():
+    if torch_backend == "torch":
+        from pycbc.fft import torchfft
+        return torchfft
     return _adict[torch_backend]
 
 
