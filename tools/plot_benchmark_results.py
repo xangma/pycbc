@@ -325,7 +325,7 @@ def plot_inspiral_diffgw_speedup(diffgw_json: Path, output_png: Path):
         "Original CPU\n(40e94792b3)",
         "Branch CPU\n(qualified)",
         "Torch CPU\n(MKL)",
-        "Torch CUDA\n(diffgw + RTX 4090)",
+        "Torch CUDA\nw/ diffgw",
     ]
     arm_colors = [COLORS[a] for a in arms]
 
