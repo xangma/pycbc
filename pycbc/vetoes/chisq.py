@@ -197,13 +197,34 @@ def power_chisq_bins(
     bins: List of ints
         A list of the edges of the chisq bins is returned.
     """
-    sigma_vec = sigmasq_series(htilde, psd, low_frequency_cutoff, high_frequency_cutoff)
     kmin, kmax = get_cutoff_indices(
         low_frequency_cutoff,
         high_frequency_cutoff,
         htilde.delta_f,
         (len(htilde) - 1) * 2,
     )
+    tensor = _torch_tensor(htilde)
+    if tensor is not None and tensor.is_cuda:
+        import torch
+
+        # Compute power spectrum and equal-power bins directly on CUDA to eliminate
+        # host synchronization round-trips while preserving double-precision bin accuracy.
+        psd_tensor = _torch_tensor(psd) if psd is not None else None
+        mag = tensor[kmin:kmax].abs().square()
+        if psd_tensor is not None:
+            mag = mag / psd_tensor[kmin:kmax]
+
+        cumsum = torch.cumsum(mag.to(torch.float64), dim=0)
+        sigmasq = cumsum[-1]
+        edge_vec = (
+            torch.arange(num_bins, dtype=torch.float64, device=tensor.device)
+            * sigmasq
+            / num_bins
+        )
+        bins = torch.searchsorted(cumsum, edge_vec, right=True) + kmin
+        return numpy.asarray([*bins.to(device="cpu").tolist(), kmax], dtype=numpy.int64)
+
+    sigma_vec = sigmasq_series(htilde, psd, low_frequency_cutoff, high_frequency_cutoff)
     return power_chisq_bins_from_sigmasq_series(sigma_vec, num_bins, kmin, kmax)
 
 
