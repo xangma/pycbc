@@ -424,6 +424,14 @@ def _child(args: argparse.Namespace) -> None:
             sg_chisq=types.SimpleNamespace(values=lambda *_args, **_kwargs: None),
             maxelements=batch_size * size,
         )
+        if hasattr(batch_filter, "power_chisq") and not getattr(batch_filter.power_chisq, "do", True):
+            batch_filter.power_chisq = types.SimpleNamespace(
+                values=lambda *_a, **_kw: (
+                    np.zeros(len(_a[4]) if len(_a) > 4 else 1, dtype=np.float32),
+                    np.ones(len(_a[4]) if len(_a) > 4 else 1, dtype=np.float32),
+                ),
+                do=False,
+            )
         _sync()
         allocation_setup_ns = time.perf_counter_ns() - alloc_start
 
