@@ -312,12 +312,8 @@ class CPUScheme(Scheme):
         Scheme.__enter__(self)
         # Preserve legacy CPU runtime resolution; ctypes is local to Torch.
         try:
-            self._libgomp = get_ctypes_library(
-                "gomp",
-                ["gomp"],
-                mode=ctypes.RTLD_GLOBAL,  # noqa: F821
-            )
-        except:
+            self._libgomp = _resolve_libgomp()
+        except Exception:
             # Should we fail or give a warning if we cannot import
             # libgomp? Seems to work even for MKL scheme, but
             # not entirely sure why...
