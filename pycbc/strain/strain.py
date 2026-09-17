@@ -1516,12 +1516,14 @@ class StrainSegments(object):
         filter_inj_only=False,
         injection_window=None,
         allow_zero_padding=False,
+        opt=None,
     ):
         """Determine how to chop up the strain data into smaller segments
         for analysis.
         """
         self._fourier_segments = None
         self.strain = strain
+        self.opt = opt
 
         self.delta_t = strain.delta_t
         self.sample_rate = strain.sample_rate
@@ -1691,7 +1693,10 @@ class StrainSegments(object):
                 elif seg_slice.stop > len(self.strain):
                     strain_chunk = self.strain[seg_slice.start :]
                     strain_chunk.append_zeros(seg_slice.stop - len(self.strain))
-                if cpu_compatible(strain_chunk):
+                if (
+                    not getattr(self.opt, "native_gpu_conditioning", False)
+                    and cpu_compatible(strain_chunk)
+                ):
                     # The original single-precision CPU FFT defines search
                     # compatibility, including rounding near strong lines.
                     values = strain_chunk.numpy().copy()
@@ -1733,6 +1738,7 @@ class StrainSegments(object):
             filter_inj_only=opt.filter_inj_only,
             injection_window=opt.injection_window,
             allow_zero_padding=opt.allow_zero_padding,
+            opt=opt,
         )
 
     @classmethod
@@ -1812,6 +1818,7 @@ class StrainSegments(object):
             trigger_end=opt.trig_end_time[ifo],
             filter_inj_only=opt.filter_inj_only,
             allow_zero_padding=opt.allow_zero_padding,
+            opt=opt,
         )
 
     @classmethod

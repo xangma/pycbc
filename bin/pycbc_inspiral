@@ -212,12 +212,29 @@ parser.add_argument("--batch-size", "--tile-size", type=int, default=None,
                     help="Number of templates to filter in a batch/tile. If not set, "
                          "defaults to 64 for Torch CUDA, 16 for Torch CPU, and 1 for legacy schemes.")
 parser.add_argument(
-    "--enable-torchwave", action="store_true", default=False,
-    help="Enable direct on-device batched waveform generation via torchwave"
+    "--enable-diffgw", "--enable-torchwave", action="store_true", default=None,
+    dest="enable_diffgw",
+    help="Enable direct on-device batched waveform generation via diffgw "
+         "(default: auto on CUDA if diffgw is installed)"
 )
 parser.add_argument(
-    "--disable-torchwave", action="store_true", default=False,
-    help="Disable batched waveform generation via torchwave"
+    "--disable-diffgw", "--disable-torchwave", action="store_true", default=False,
+    dest="disable_diffgw",
+    help="Disable batched waveform generation via diffgw"
+)
+parser.add_argument(
+    "--native-gpu-conditioning",
+    action="store_true",
+    default=None,
+    dest="native_gpu_conditioning",
+    help="Perform data conditioning, resampling, Welch PSD estimation, and "
+         "segment FFTs directly on GPU tensors without CPU fallback (default: True on CUDA)",
+)
+parser.add_argument(
+    "--disable-native-gpu-conditioning",
+    action="store_false",
+    dest="native_gpu_conditioning",
+    help="Disable native GPU data conditioning and force CPU fallback for bitwise CPU FFT parity",
 )
 
 # Add options groups
@@ -230,10 +247,15 @@ pycbc.opt.insert_optimization_option_group(parser)
 pycbc.inject.insert_injfilterrejector_option_group(parser)
 SingleDetSGChisq.insert_option_group(parser)
 opt = parser.parse_args()
-if opt.enable_torchwave and opt.disable_torchwave:
-    parser.error("--enable-torchwave and --disable-torchwave are mutually exclusive")
-if opt.enable_torchwave and not hasattr(waveform.FilterBank, "can_use_torchwave"):
-    parser.error("This build does not include the optional TorchWave provider")
+if opt.enable_diffgw and opt.disable_diffgw:
+    parser.error("--enable-diffgw and --disable-diffgw are mutually exclusive")
+if opt.enable_diffgw is True:
+    has_provider = (
+        hasattr(waveform.FilterBank, "is_diffgw_available")
+        and waveform.FilterBank.is_diffgw_available()
+    )
+    if not has_provider:
+        parser.error("This build does not include the optional diffgw provider or diffgw is not installed")
 
 # Check that the values returned for the options make sense
 psd.verify_psd_options(opt, parser)
@@ -258,6 +280,9 @@ is_torch_cpu = (
     isinstance(ctx, scheme.TorchScheme)
     and not is_torch_cuda
 )
+
+if opt.native_gpu_conditioning is None:
+    opt.native_gpu_conditioning = is_torch_cuda
 
 if opt.batch_size is not None:
     batch_size = opt.batch_size
@@ -673,11 +698,16 @@ with ctx:
         seg /= seg.psd
 
     logging.info("Read in template bank")
-    enable_torchwave = (
-        False if opt.disable_torchwave else (
-            bool(opt.enable_torchwave)
-        )
+    has_diffgw = (
+        hasattr(waveform.FilterBank, "is_diffgw_available")
+        and waveform.FilterBank.is_diffgw_available()
     )
+    if opt.disable_diffgw:
+        enable_diffgw = False
+    elif opt.enable_diffgw is True:
+        enable_diffgw = True
+    else:
+        enable_diffgw = bool(is_torch_cuda and has_diffgw)
     bank = waveform.FilterBank(
         opt.bank_file,
         flen,
@@ -697,8 +727,9 @@ with ctx:
             if opt.use_compressed_waveforms
             else None
         ),
-        **({"enable_torchwave": enable_torchwave}
-           if hasattr(waveform.FilterBank, "can_use_torchwave") else {}),
+        **({"enable_diffgw": enable_diffgw, "enable_torchwave": enable_diffgw}
+           if (hasattr(waveform.FilterBank, "can_use_diffgw") or
+               hasattr(waveform.FilterBank, "can_use_torchwave")) else {}),
     )
 
     sg_chisq = SingleDetSGChisq.from_cli(opt, bank, opt.chisq_bins)
@@ -709,12 +740,14 @@ with ctx:
     bank_uses_torchwave = (
         use_tiled_adapter
         and not opt.use_compressed_waveforms
-        and getattr(bank, "can_use_torchwave", lambda: False)()
+        and (getattr(bank, "can_use_diffgw", lambda: False)() or
+             getattr(bank, "can_use_torchwave", lambda: False)())
     )
 
     if _inspiral_session is not None:
         _session_cfg = {
-            "enable_torchwave": enable_torchwave,
+            "enable_diffgw": enable_diffgw,
+            "enable_torchwave": enable_diffgw,
             "approximant": opt.approximant,
             "order": opt.order,
             "f_lower": opt.low_frequency_cutoff,
