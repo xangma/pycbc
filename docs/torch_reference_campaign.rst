@@ -153,8 +153,8 @@ Each campaign comparison evaluates four arms under identical host isolation
    using ``--processing-scheme torch:cpu:1`` with explicit MKL FFTs.
 #. **Candidate Torch CUDA (``torch_cuda``)**: Candidate PR branch checkout
    using ``--processing-scheme torch:cuda:0`` on NVIDIA GeForce RTX 4090,
-   with auto-enabled native GPU data conditioning and batched ``diffgw`` waveform
-   generation.
+   with auto-enabled native GPU data conditioning and inline linear waveform
+   decompression.
 
 Reproducible executable command template
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

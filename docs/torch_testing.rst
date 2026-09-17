@@ -124,8 +124,8 @@ project suite affected by the changed public path.
 CPU preservation, reuse and CUDA graph guards
 ---------------------------------------------
 
-Run these dedicated regressions when changing FFT validation, workspace reuse
-or CUDA graph handling:
+Run these dedicated regressions when changing FFT validation, workspace reuse,
+GPU search adapters, or live streaming graph handling:
 
 .. code-block:: console
 
@@ -133,21 +133,15 @@ or CUDA graph handling:
      test/test_fft_cpu_preservation.py \
      test/test_live_batch_veto_reuse.py \
      test/test_torch_cuda_peak_host_read.py \
-     test/test_torch_offline_cuda_graph.py
+     test/test_gpu_search_adapter.py \
+     test/test_torchwave_live_and_inspiral.py
 
 The CPU preservation file checks the original in-place real FFT length
 validation, including odd sizes and batches. The remaining files check live correlation workspace
 reuse through veto calculation, immediate host reads of CUDA peak results,
-and offline CUDA graph capture, replay, invalidation and cleanup. The live
-reuse file selects CPU, Torch CPU and available MPS; it does not select CUDA.
-CUDA graph lifecycle checks include host-side mocks, so a CPU pass does not
-qualify capture or replay. Run the actual graph and peak-transfer cases on
-CUDA; graph capture also requires Triton.
-
-The four files in this reuse/graph command are not in the explicit focused
-selections of ``basic-tests.yml`` or ``torch-gpu.yml`` in this checkout.
-Run them separately when changing these paths and retain device-specific
-results; this statement does not describe the larger example above.
+tiled GPU search adapter execution, and batched ``diffgw`` waveform generation
+across live and offline search pipelines. The live reuse file selects CPU,
+Torch CPU and available MPS; CUDA tests require a compatible GPU and driver.
 
 .. _torch-large-batches:
 

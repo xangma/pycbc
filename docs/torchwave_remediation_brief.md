@@ -2,12 +2,15 @@
 
 Design brief revised 2026-09-12 before implementation. The original review-only scope below is retained as historical context. Subsequent implementation, qualification and remaining limits are recorded in [the implementation report](torch_remediation_implementation.md).
 
+> [!NOTE]
+> **Provider Evolution Note**: This design brief evaluated the initial `TorchWave` provider. In current PyCBC releases, on-device batched GPU waveform generation has transitioned to the `diffgw` package (with `torchwave` maintained as a backward-compatibility alias).
+
 You are the lead coding agent. Use subagents to implement and validate this work—not merely to write a plan or repeat the audit.
 
-Repository: https://github.com/xangma/pycbc
+Repository: https://github.com/gwastro/pycbc
 Target branch: `torch-pr11-performance-evidence`
 Reviewed PyCBC commit: `9ff3a7ec5b5643fe7b0a3b94d082799c05d31775`, plus existing uncommitted TorchWave integration.
-TorchWave checkout: `~/repos/torchwave`, reviewed clean at `84ef9b3467c8cc34b6d515b967d48646f7297d8f`.
+TorchWave checkout: clean at `84ef9b3467c8cc34b6d515b967d48646f7297d8f`.
 Pin and record both repositories again at implementation time. Do not assume these reviewed revisions are still current.
 Target workstation: Threadripper PRO 3995WX, 256 GB host RAM, RTX 4090.
 

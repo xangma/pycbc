@@ -45,21 +45,23 @@ PR6 waveform, and PR11 evidence. They do not imply a new pull request.
 
 ## Provider eligibility and strict fallback
 
-[The provider adapter](../pycbc/waveform/torchwave.py) admits only aligned-spin,
-non-tidal TaylorF2 on CPU or CUDA. Its runtime limits are component masses
-1–100 solar masses, aligned spins within ±0.99, and
-`10 <= f_lower < f_final <= 4096` Hz, with finite physical/grid values.
-Accepted orders are phase/spin `-1` or `7`, amplitude `-1` or `0`, and tidal
+[The provider adapter](../pycbc/waveform/diffgw.py) (with backward-compatibility
+shim in `torchwave.py`) admits only aligned-spin, non-tidal TaylorF2 on CPU or
+CUDA. Its runtime limits are component masses 1–100 solar masses, aligned spins
+within ±0.99, and `10 <= f_lower < f_final <= 4096` Hz, with finite physical/grid
+values. Accepted orders are phase/spin `-1` or `7`, amplitude `-1` or `0`, and tidal
 `-1`. Reference frequency and other waveform options must retain the allowed
 defaults; nonzero tides, explicit modes, tapering, unknown options and other
 models use the reference generator. The CLI's no-op `taper=None` is accepted.
 Compressed generation takes precedence when enabled.
 
-Both entrypoints default to disabled provider dispatch and reject contradictory
-enable/disable flags. A mixed bank can contain native and reference rows;
-provider diagnostics and output order identify each row. A requested native
-qualification requires actual native dispatch for every required row, so a
-successful reference fallback cannot silently qualify a native benchmark.
+Both entrypoints reject contradictory enable/disable flags. While historically
+opt-in, provider dispatch was subsequently promoted to auto-enable on CUDA when
+``diffgw`` is detected in the environment (with ``--disable-diffgw`` available to
+turn it off). A mixed bank can contain native and reference rows; provider
+diagnostics and output order identify each row. A requested native qualification
+requires actual native dispatch for every required row, so a successful reference
+fallback cannot silently qualify a native benchmark.
 
 Native synthesis uses the complete zero-origin frequency vector, the adapter's
 explicit PyCBC phase convention and dynamic-range-scaled distance, and
@@ -178,10 +180,11 @@ gate.
 
 ## Remaining work and disposition
 
-The native provider remains opt-in. Expanding model eligibility requires
-independent model-specific waveform and downstream fixtures; this acquisition
-does not qualify the rest of TorchWave's catalog. Runtime admission ranges
-must not be read as exhaustive accuracy coverage.
+While subsequently promoted to auto-enabled on CUDA when detected, the native
+provider can be explicitly disabled via ``--disable-diffgw``. Expanding model
+eligibility requires independent model-specific waveform and downstream
+fixtures; this acquisition does not qualify the rest of the catalog. Runtime
+admission ranges must not be read as exhaustive accuracy coverage.
 
 Compressed-bank samples retain their existing selected path and are covered
 by dispatch regressions. A new compressed-bank performance campaign is unrun:

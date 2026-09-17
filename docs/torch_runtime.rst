@@ -79,6 +79,14 @@ CPU selectors ignore ``--processing-device-id``. An explicit index in an
 accelerator selector takes precedence over that option. Selecting a scheme
 does not establish that an application's complete workflow supports it.
 
+In search applications (``pycbc_inspiral`` and ``pycbc_live``), selecting a
+Torch scheme establishes companion defaults: batch size defaults to 64 for
+CUDA and 16 for Torch CPU (compared to 1 for standard CPU). CUDA schemes
+additionally auto-enable native GPU conditioning (``--native-gpu-conditioning``)
+and on-device batched waveform generation via ``diffgw`` (``--enable-diffgw``,
+when installed). Use ``--disable-native-gpu-conditioning`` or ``--disable-diffgw``
+to force CPU fallback.
+
 ``PYCBC_SCHEME`` selects the library's default context at import time. Set it
 before importing PyCBC, for example ``PYCBC_SCHEME=torch:cuda:1``. It does not
 apply the command-line device-ID merge. Applications using the standard

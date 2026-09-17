@@ -39,6 +39,12 @@ Command-line applications with PyCBC's standard scheme options accept:
 
    pycbc_inspiral --processing-scheme torch:cuda:0 ...
 
+Selecting a CUDA scheme automatically enables **native GPU data conditioning**
+(strain high-pass, autogating, resampling, Welch PSD estimation, and segment FFTs
+directly on GPU tensors) and **on-device batched waveform generation via ``diffgw``**
+(when installed). Use ``--disable-native-gpu-conditioning`` or ``--disable-diffgw``
+to force CPU fallback. Batch size defaults to 64 on CUDA and 16 on Torch CPU.
+
 Choosing a device
 -----------------
 
@@ -81,17 +87,19 @@ unsupported operation with no valid route raises an error.
    * - Area
      - Available Torch operations
      - Limits and fallback
-   * - Arrays and FFTs
-     - Arrays, series, common reductions, conversions, and FFT interfaces.
-     - Dtype, layout, device, and autograd affect route eligibility.
+   * - Arrays, FFTs and Conditioning
+     - Arrays, series, common reductions, conversions, FFT interfaces, and native
+       GPU strain conditioning (high-pass, autogating, Welch PSD estimation).
+     - Dtype, layout, device, and autograd affect route eligibility. CPU fallback
+       available via ``--disable-native-gpu-conditioning``.
    * - Filtering and search
      - Correlation, matched filtering, thresholds, chi-squared, peaks, and
        selected live-batch paths.
      - Optimized routes have eligibility checks; orchestration and trigger
        output can remain on CPU.
    * - Waveforms
-     - Five TaylorF2-family ports and separate ``SPAtmplt`` routes support
-       regular-grid and arbitrary-frequency generation; TaylorF2 has a batch API.
+     - Direct on-device batched generation via ``diffgw`` (and alias ``torchwave``);
+       five TaylorF2-family ports and separate ``SPAtmplt`` routes.
      - Existing host dispatch is used only where that interface defines it.
        Generation may run on CPU before a device copy. See :doc:`waveform`.
    * - Decompression

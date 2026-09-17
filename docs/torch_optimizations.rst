@@ -144,14 +144,8 @@ Filtering, thresholding, and execution
        ``enable_async_streams`` constructor argument takes precedence.
    * - ``PYCBC_ENABLE_CUDA_GRAPHS``
      - Off
-     - Requests eligible CUDA graph capture for live-batch execution. An
-       explicit constructor argument takes precedence.
-   * - ``PYCBC_TORCH_CUDA_GRAPH``
-     - Off
-     - Requests replay of an already captured offline symmetric-filter graph;
-       only the exact value ``1`` enables this request. It does not create a
-       capture. Explicit successful capture also enables replay; see
-       :doc:`torch_search` for the capture and clear APIs.
+     - Requests eligible CUDA graph capture for live-batch execution in
+       ``pycbc_live``. An explicit constructor argument takes precedence.
 
 Compilation
 -----------
@@ -186,6 +180,39 @@ compilation by themselves.
 Compilation can make the first invocation substantially different from steady
 state and can create shape-specific caches. Performance artifacts must record
 these variables and report cold and warm measurements separately.
+
+Command-line optimization switches
+----------------------------------
+
+In executable search pipelines (``pycbc_inspiral`` and ``pycbc_live``), key GPU
+acceleration routes are controlled directly via command-line arguments:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 22 48
+
+   * - CLI Option
+     - Default
+     - Effect
+   * - ``--native-gpu-conditioning``
+     - Auto-enabled on CUDA
+     - Computes strain high-pass filtering, autogating, resampling, Welch PSD
+       estimation, and segment FFTs directly on GPU tensors without host bounce.
+   * - ``--disable-native-gpu-conditioning``
+     - Off
+     - Forces CPU fallback for data conditioning and segment FFTs (used to verify
+       bitwise parity against standard CPU references).
+   * - ``--enable-diffgw``
+     - Auto-enabled on CUDA if installed
+     - Generates batched waveforms on device using ``diffgw`` (with ``torchwave``
+       supported as a compatibility alias). Raises an error if explicitly requested
+       when missing.
+   * - ``--disable-diffgw``
+     - Off
+     - Disables on-device ``diffgw`` waveform generation, reverting to standard bank lookups.
+   * - ``--batch-size`` / ``--tile-size``
+     - 64 (CUDA), 16 (Torch CPU), 1 (Standard)
+     - Number of templates filtered concurrently in the tiled search engine.
 
 Activation and promotion policy
 -------------------------------

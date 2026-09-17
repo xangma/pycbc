@@ -37,12 +37,15 @@ Offline symmetric filtering
 
 Offline search (``pycbc_inspiral``) on Torch CUDA utilizes the persistent tiled
 GPU search engine via ``pycbc.filter.gpu_search.adapter.TiledMatchedFilterControl``.
-Waveforms are grouped into tiles ($B=64$ by default on CUDA) and filtered concurrently
-with native GPU multi-rate planning, fused veto evaluation, and stream-managed
-CUDA graph execution managed by ``pycbc.filter.gpu_search.graphs.CUDAGraphManager``.
+Waveforms are grouped into tiles (``B=64`` by default on CUDA) and filtered concurrently
+with synchronous tiled matched filtering, batched frequency-domain whitening,
+and fused Power :math:`\chi^2` veto evaluation. As detailed in
+:ref:`torch-tiled-pathways`, offline analysis executes synchronously without
+CUDA graph capture; graph capture is exclusively supported in the online
+streaming engine (``pycbc_live``).
 
 On CPU, ``TorchScheme(device="cpu")`` is supported through ``TiledMatchedFilterControl``
-with user-configurable batch sizes ($B=16$ default), while standard single-template
+with user-configurable batch sizes (``B=16`` default), while standard single-template
 CPU processing uses ``MatchedFilterControl`` to optimize L2/L3 cache locality.
 For full integration test coverage, see ``test/test_gpu_search_adapter.py`` and
 ``test/test_gpu_search_qualification.py``.
