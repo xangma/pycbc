@@ -505,6 +505,31 @@ def insert_fft_options(optgroup):
     optgroup.add_argument("--fftw-import-system-wisdom",
                           help = "If given, call fftw[f]_import_system_wisdom()",
                           action = "store_true")
+    optgroup.add_argument(
+        "--fftw-wisdom-cache",
+        dest="fftw_wisdom_cache",
+        action="store_true",
+        default=True,
+        help=(
+            "Automatically cache the qualified sequential Torch CPU search "
+            "IFFT plan (enabled by default). Manual wisdom options take "
+            "precedence."
+        ),
+    )
+    optgroup.add_argument(
+        "--no-fftw-wisdom-cache",
+        dest="fftw_wisdom_cache",
+        action="store_false",
+        help="Disable automatic FFTW wisdom caching.",
+    )
+    optgroup.add_argument(
+        "--fftw-wisdom-cache-dir",
+        default=None,
+        help=(
+            "Directory for automatic FFTW wisdom. Defaults to "
+            "$XDG_CACHE_HOME/pycbc/fftw or ~/.cache/pycbc/fftw."
+        ),
+    )
 
 def verify_fft_options(opt,parser):
     """Parses the FFT options and verifies that they are
@@ -529,6 +554,15 @@ def verify_fft_options(opt,parser):
     if opt.fftw_threads_backend is not None:
         if opt.fftw_threads_backend not in ['openmp','pthreads','unthreaded']:
             parser.error("Invalid threads backend; must be 'openmp', 'pthreads' or 'unthreaded'")
+
+    if (
+        not getattr(opt, "fftw_wisdom_cache", True)
+        and getattr(opt, "fftw_wisdom_cache_dir", None) is not None
+    ):
+        parser.error(
+            "--fftw-wisdom-cache-dir cannot be used with --no-fftw-wisdom-cache"
+        )
+
 
 def from_cli(opt):
     # Since opt.fftw_threads_backend defaults to None, the following is always

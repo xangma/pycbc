@@ -699,6 +699,8 @@ def _create_fftw_cpu_plan(
     target=None,
 ):
     """Create a guarded FFTW plan, or return None when unavailable."""
+    cache_entry = None
+    wisdom_cache = None
     try:
         from . import fftw
 
@@ -706,6 +708,25 @@ def _create_fftw_cpu_plan(
         with _FFTW_PLANNING_LOCK:
             measure_level = fftw.get_measure_level()
             requested_measure_level = measure_level
+            if (
+                direct
+                and aligned
+                and nthreads == 1
+                and not forward
+                and size in _FFTW_RETAINED_WORKSPACE_IFFT_SIZES
+            ):
+                from . import wisdom_cache
+
+                measure_level, cache_entry = wisdom_cache.prepare_plan(
+                    fftw,
+                    size=size,
+                    forward=forward,
+                    direct=direct,
+                    aligned=aligned,
+                    nthreads=nthreads,
+                    batch=1,
+                    requested_measure_level=measure_level,
+                )
             # Direct FFTW_ESTIMATE is the default.  A user-selected MEASURE
             # plan is also precision-qualified for the retained production
             # search IFFT; PATIENT/EXHAUSTIVE and all other non-default cases
@@ -725,6 +746,8 @@ def _create_fftw_cpu_plan(
                         measure_level,
                         nthreads=nthreads,
                     )
+                    if cache_entry is not None:
+                        wisdom_cache.record_plan(fftw, cache_entry, measure_level)
                     return plan
                 except (AttributeError, KeyError, RuntimeError, ValueError):
                     # A native alignment-class mismatch (or unavailable
@@ -738,6 +761,9 @@ def _create_fftw_cpu_plan(
             return _FFTWCPUWorkPlan(fftw, size, forward, requested_measure_level)
     except (ImportError, OSError, AttributeError, KeyError, RuntimeError, ValueError):
         return None
+    finally:
+        if cache_entry is not None and wisdom_cache is not None:
+            wisdom_cache.cancel_plan(cache_entry)
 
 
 def _create_mkl_cpu_ifft_plan(size, source, target, nthreads=None, *, promote=False):
