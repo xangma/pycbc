@@ -13,8 +13,48 @@ from pycbc.events import stat
 from pycbc.events import trigger_fits as fits
 from pycbc.io.hdf import HFile
 from pycbc.types import MultiDetOptionAction
+from pycbc.types.backend import (
+    backend_array,
+)
 
 logger = logging.getLogger("pycbc.events.single")
+
+
+def _torch_tensor(value):
+    """Return existing Torch storage without importing the optional backend."""
+    return backend_array(value, "torch")
+
+
+def _torch_vectors(*values):
+    """Return compatible, already-device-resident trigger vectors."""
+    tensors = [_torch_tensor(value) for value in values]
+    if any(tensor is None for tensor in tensors):
+        return None
+
+    first = tensors[0]
+    if any(
+        tensor.device != first.device or tensor.shape != first.shape
+        for tensor in tensors[1:]
+    ):
+        return None
+    return tensors
+
+
+def _scalar_at(values, index):
+    """Read one selected value, synchronizing only that scalar."""
+    tensor = _torch_tensor(values)
+    if tensor is not None:
+        return tensor[index].item()
+    value = values[index]
+    return value.item() if hasattr(value, "item") else value
+
+
+def _select(values, index):
+    """Preserve a PyCBC array wrapper while applying a device mask."""
+    selected = values[index]
+    if hasattr(values, "_return"):
+        return values._return(selected)
+    return selected
 
 
 class LiveSingle(object):
@@ -220,7 +260,6 @@ class LiveSingle(object):
 
         for ifo in ifos:
             # Check which option(s) are needed for each IFO and if they exist:
-
             # Notes for the logic here:
             # args.sngl_ifar_est_dist.default_set is True if single value has
             # been set to be the same for all values
@@ -276,7 +315,6 @@ class LiveSingle(object):
     def from_cli(cls, args, ifo):
         # Allow None inputs
         stat_files = args.statistic_files or []
-        stat_keywords = args.statistic_keywords or []
 
         # flatten the list of lists of filenames to a single list
         # (may be empty)
@@ -316,15 +354,26 @@ class LiveSingle(object):
             trig_chisq = trigs["chisq"]
             trig_snr = trigs["snr"]
 
-        valid_idx = (
-            (trigs["template_duration"] > self.thresholds["duration"])
-            & (trig_chisq < self.thresholds["reduced_chisq"])
-            & (trig_snr > self.thresholds["ranking"])
-        )
-        if not np.any(valid_idx):
+        tensors = _torch_vectors(trigs["template_duration"], trig_chisq, trig_snr)
+        if tensors is not None:
+            duration_t, chisq_t, snr_t = tensors
+            valid_idx = (
+                (duration_t > self.thresholds["duration"])
+                & (chisq_t < self.thresholds["reduced_chisq"])
+                & (snr_t > self.thresholds["ranking"])
+            )
+            valid = bool(valid_idx.any().item())
+        else:
+            valid_idx = (
+                (trigs["template_duration"] > self.thresholds["duration"])
+                & (trig_chisq < self.thresholds["reduced_chisq"])
+                & (trig_snr > self.thresholds["ranking"])
+            )
+            valid = bool(np.any(valid_idx))
+        if not valid:
             return None
 
-        cut_trigs = {k: trigs[k][valid_idx] for k in trigs}
+        cut_trigs = {k: _select(trigs[k], valid_idx) for k in trigs}
 
         # Convert back from the pycbc live convention of chisq always
         # meaning the reduced chisq.
@@ -337,11 +386,17 @@ class LiveSingle(object):
         with self.stat_calculator_lock:
             single_rank = self.stat_calculator.get_sngl_ranking(trigsc)
 
-        sngl_idx = single_rank > self.thresholds["ranking"]
-        if not np.any(sngl_idx):
+        single_rank_t = _torch_tensor(single_rank)
+        if single_rank_t is not None:
+            sngl_idx = single_rank_t > self.thresholds["ranking"]
+            valid = bool(sngl_idx.any().item())
+        else:
+            sngl_idx = single_rank > self.thresholds["ranking"]
+            valid = bool(np.any(sngl_idx))
+        if not valid:
             return None
 
-        cutall_trigs = {k: trigsc[k][sngl_idx] for k in trigs}
+        cutall_trigs = {k: _select(trigsc[k], sngl_idx) for k in trigs}
 
         # Calculate the ranking statistic
         with self.stat_calculator_lock:
@@ -349,18 +404,28 @@ class LiveSingle(object):
             rank = self.stat_calculator.rank_stat_single((self.ifo, sngl_stat))
 
         # 'cluster' by taking the maximal statistic value over the trigger set
-        i = rank.argmax()
+        rank_t = _torch_tensor(rank)
+        if rank_t is not None:
+            i = int(rank_t.argmax().item())
+        elif hasattr(rank, "max_loc"):
+            _, i = rank.max_loc()
+        else:
+            i = rank.argmax()
+
+        selected_rank = _scalar_at(rank, i)
 
         # calculate the (inverse) false-alarm rate
-        ifar = self.calculate_ifar(rank[i], trigsc["template_duration"][i])
+        ifar = self.calculate_ifar(
+            selected_rank, _scalar_at(cutall_trigs["template_duration"], i)
+        )
         if ifar is None:
             return None
 
         # fill in a new candidate event
         candidate = {
-            f"foreground/{self.ifo}/{k}": cut_trigs[k][sngl_idx][i] for k in trigs
+            f"foreground/{self.ifo}/{k}": _scalar_at(cutall_trigs[k], i) for k in trigs
         }
-        candidate["foreground/stat"] = rank[i]
+        candidate["foreground/stat"] = selected_rank
         candidate["foreground/ifar"] = ifar
         candidate["HWINJ"] = data_reader.near_hwinj()
         return candidate
