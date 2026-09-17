@@ -3,44 +3,51 @@
 Controlled executable benchmark protocol
 ========================================
 
-Use this protocol for unchanged CPU
-``40e94792b3edf59f39b18b65102b28a4f74433a7`` versus a candidate Torch revision.
-Check preservation of existing CPU behavior separately from Torch agreement.
-A result is eligible for a sustained-capacity claim only after workload
-convergence, scientific qualification and host-load checks have passed.
-Missing evidence remains explicit; a plausible profile or the
-expected templates/core rate is not an acceptance test.
+Use this protocol to benchmark an unchanged CPU baseline against candidate
+Torch revisions under controlled conditions. Check preservation of existing
+CPU behavior separately from Torch agreement. A result is eligible for a
+sustained-capacity claim only after workload convergence, scientific
+qualification and host-load checks have passed. Missing evidence remains
+explicit; a plausible profile or the expected templates/core rate is not an
+acceptance test.
+
+For the concrete offline inspiral search workload, frozen reference commit,
+and scientific acceptance tolerances, see :ref:`torch-reference-campaign`.
 
 Reference and scientific scope
 ------------------------------
 
-#. Prepare clean checkouts of unchanged CPU ``40e94792b3`` and the candidate
-   revision using the same environment. Check candidate normal CPU against
-   the original before interpreting Torch results.
+#. Prepare clean checkouts of the unchanged CPU baseline and the candidate
+   revision in the same environment. Check candidate normal CPU against
+   the baseline before interpreting Torch results.
    Record native build provenance, executable and input hashes, dependency
-   versions and the complete command. Use ``cpu:1``, MKL FFTs, compressed
-   low-mass waveforms and one numerical-library thread for the normal reference.
+   versions and the complete command. For the normal reference, enforce
+   single-thread execution (``cpu:1``, explicit MKL FFTs, and numerical-library
+   thread limits clamped via ``OMP_NUM_THREADS=1``).
    Preserve measured source pins when publishing later formatting or
    documentation changes. Record the final publication head and verify the
    exact changed-file set. For formatting-only differences, check complete
-   module AST equality and byte identity outside the declared formatting and
-   documentation files. Behavior changes require new qualification.
-#. Declare how the CPU reference geometry was selected before measuring Torch.
-   Retain the geometry already selected on unchanged CPU and record its
-   input/geometry receipts for the new source pair. For a new tuning
-   experiment, sweep segment length and safe start/end padding, holding bank,
-   PSD, vetoes and unique output interval
-   fixed. Record repeated unprofiled wall times and a selection rule before
-   running candidates. Check longest-waveform duration, inverse-spectrum
-   support, completed segments, boundary injections and unique search time.
-   Duration bounds alone do not prove boundary correctness. A conservative
-   fixed end pad is a declared constraint, not an end-padding optimum.
-#. Freeze the selected geometry for matched backend comparisons. Include
-   original CPU, candidate normal CPU, Torch CPU and Torch CUDA separately.
-   Re-tuning each backend is a different experiment and needs its own table.
+   module AST equality and byte identity outside declared formatting and
+   documentation files. Any behavioral change requires new qualification.
+#. Predeclare how the reference search geometry is determined before measuring
+   candidate backends. When using an established benchmark workload, retain
+   its declared reference geometry and input receipts (for example, the
+   frozen 512/112/16-second configuration in :ref:`torch-reference-campaign`).
+   For a new tuning experiment, systematically sweep segment length and
+   safe start/end padding while holding the bank, PSD, vetoes and unique output
+   interval fixed. Record repeated unprofiled wall times and an explicit
+   selection rule before running candidates. Verify longest-waveform duration,
+   inverse-spectrum support, completed segments, boundary injections and
+   unique search time. Duration bounds alone do not prove boundary correctness.
+   Any conservative fixed end pad is a declared constraint, not an
+   unconstrained optimum.
+#. Freeze the selected geometry across all matched backend comparisons. Include
+   original CPU, candidate normal CPU, Torch CPU and Torch CUDA separately
+   under identical geometry and inputs. Re-tuning each backend is a different
+   experiment and requires its own reporting table.
    Compare trigger identities, SNR, phase and chi-square under unchanged
    tolerances. Compare full PSD arrays, conditioned strain and segment
-   geometry as well as the used PSD slice. Compare the original with all
+   geometry as well as the used PSD slice. Compare the original baseline with all
    three candidate routes, plus candidate normal CPU with both Torch routes.
    Preserve failed comparisons with their original source pins. Do not change
    CPU arithmetic or relax tolerances to obtain agreement with an oracle.

@@ -191,15 +191,20 @@ corresponding maintainer guide:
    torch_parity
    torch_workflows
 
-For performance measurements, choose a timing boundary and workload, then
-follow the benchmark protocol for correctness and resource controls.
+For performance measurements, scaling studies, and scientific qualification:
+
+* :ref:`torch-benchmark-protocol` defines the general execution controls, host isolation, single-thread baseline clamping, physical-core scaling, and convergence criteria.
+* :ref:`torch-reference-campaign` specifies the concrete offline inspiral search workload (384 BNS/NSBH templates, real H1 frame data, frozen bank SHA, and scientific acceptance gates).
+* :ref:`torch-batch-numerics` defines the live-filter batch matched-filtering API benchmarks and numerical oracle.
+* :ref:`torch-performance` summarizes measured performance profiles and speedup figures across backends.
+* :ref:`torch-tiled-pathways` outlines acceleration strategies and memory management for large-scale template banks.
 
 .. toctree::
    :maxdepth: 1
    :caption: Torch benchmarking
 
-   torch_performance
-   torch_tiled_pathways
+   torch_benchmark_protocol
    torch_reference_campaign
    torch_batch_numerics
-   torch_benchmark_protocol
+   torch_performance
+   torch_tiled_pathways

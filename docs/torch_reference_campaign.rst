@@ -2,7 +2,7 @@
 .. _torch-inspiral-reference:
 
 Complete-executable offline benchmark definition (pycbc_inspiral)
-================================================================
+==================================================================
 
 This test runs ``pycbc_inspiral`` from process launch through completed HDF
 output. It processes real H1 frame data with a fixed compressed low-mass bank,
@@ -77,13 +77,13 @@ trigger interval is **1187007160--1187009064: 1904 seconds**.
      - Standard CPU ``cpu:1`` and Torch CPU ``torch:cpu:1`` use explicit MKL;
        Torch CUDA ``torch:cuda:0`` uses one RTX 4090
 
-The geometry was selected on unchanged CPU ``40e94792b3`` by
+Following the geometry selection methodology in :ref:`torch-benchmark-protocol`,
+the configuration was selected on unchanged CPU ``40e94792b3`` by
 sweeping 256/512/1024 second segments and 96/112 second start padding, with
-16 second end padding.
-Each setting had three fresh processes. The rule selected the lowest median,
-treating settings within 3% as tied, then preferring more start padding and a
-smaller FFT. Retain the selected 512/112/16 second geometry for the
-backend comparison.
+16 second end padding across three fresh unprofiled processes per candidate.
+The rule selected the lowest median, treating settings within 3% as tied, then
+preferring more start padding and a smaller FFT. Retain this selected
+512/112/16 second geometry for all matched backend comparisons.
 That finite grid and fixed end padding do not establish global optimality or
 fresh boundary-injection validation for every template.
 
