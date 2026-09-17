@@ -106,7 +106,12 @@ def from_cli(
         err_msg += "'--psd-model', '--asd-file', '--psd-estimation'"
         raise ValueError(err_msg)
 
-    if psd_estimation and strain is not None and cpu_compatible(strain):
+    if (
+        psd_estimation
+        and strain is not None
+        and cpu_compatible(strain)
+        and not getattr(opt, "native_gpu_conditioning", False)
+    ):
         # Search parity depends on the complete CPU PSD pipeline, including
         # float32 FFT rounding and inverse-spectrum truncation near weak bins.
         from pycbc.types import FrequencySeries, TimeSeries
