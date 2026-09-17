@@ -144,7 +144,7 @@ class InspiralSession:
             getattr(bank, "f_lower", None),
             getattr(bank, "max_template_length", None),
             getattr(bank, "enable_compressed_waveforms", None),
-            getattr(bank, "enable_torchwave", False),
+            getattr(bank, "enable_diffgw", getattr(bank, "enable_torchwave", False)),
             getattr(bank, "waveform_decompression_method", None),
             json.dumps(getattr(bank, "extra_args", {}), sort_keys=True),
             cfg_hash,
@@ -234,7 +234,7 @@ class InspiralSession:
         The provider key includes effective row parameters and code identity;
         device and requested storage precision also participate in reuse.
         """
-        from pycbc.waveform.torchwave import template_metadata
+        from pycbc.waveform.diffgw import template_metadata
 
         indices = tuple(operator.index(i) for i in indices)
         key = ("batch", bank.waveform_batch_key(indices), str(device),
