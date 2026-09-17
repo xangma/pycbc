@@ -10,22 +10,25 @@ import pycbc.psd
 from pycbc.types import Array, TimeSeries
 from pycbc.types.backend import backend_array, is_backend, wrap_backend_array
 
-try:
-    import torch
+torch = None
 
-    _HAVE_TORCH = pycbc.HAVE_TORCH
-except Exception:  # pragma: no cover - torch optional
-    torch = None
-    _HAVE_TORCH = False
+
+def _get_torch():
+    global torch
+    if torch is None:
+        import torch as _torch
+        torch = _torch
+    return torch
 
 
 def _is_torch_backed(value):
     """Return whether ``value`` stores data in the Torch backend."""
-    return _HAVE_TORCH and is_backend(value, "torch")
+    return getattr(pycbc, "HAVE_TORCH", False) and is_backend(value, "torch")
 
 
 def _as_torch_tensor(value, device=None, dtype=None):
     """Unwrap PyCBC Torch storage without copying it through the host."""
+    _get_torch()
     data = backend_array(value)
     return torch.as_tensor(data, device=device, dtype=dtype)
 

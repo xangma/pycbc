@@ -30,13 +30,16 @@ from pycbc.types import (
 )
 from pycbc.types.backend import backend_array, is_backend, wrap_backend_array
 
-try:
-    import torch
+class _TorchModuleProxy:
+    def __getattr__(self, name):
+        import torch
 
-    _HAVE_TORCH = pycbc.HAVE_TORCH
-except Exception:  # pragma: no cover - torch optional
-    torch = None
-    _HAVE_TORCH = False
+        globals()["torch"] = torch
+        return getattr(torch, name)
+
+
+torch = _TorchModuleProxy()
+_HAVE_TORCH = getattr(pycbc, "HAVE_TORCH", False)
 
 # Change to True in front-end if you want this function to use caching
 # This is a mostly-hidden optimization option that most users will not want

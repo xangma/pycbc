@@ -21,7 +21,15 @@ exact scientific parity against CPU MKL.
 
 import sys
 import numpy
-import torch
+class _TorchModuleProxy:
+    def __getattr__(self, name):
+        import torch
+
+        globals()["torch"] = torch
+        return getattr(torch, name)
+
+
+torch = _TorchModuleProxy()
 
 from pycbc import scheme as _scheme
 from pycbc.types import FrequencySeries

@@ -40,18 +40,15 @@ import pycbc
 from pycbc import scheme as _scheme
 from pycbc.psd.read import from_numpy_arrays
 
-try:
-    import torch
-
-    _HAVE_TORCH = pycbc.HAVE_TORCH
-except Exception:  # pragma: no cover - torch optional
-    torch = None
-    _HAVE_TORCH = False
-
-
 def _is_torch_tensor(value):
     """Return whether ``value`` is a direct Torch tensor input."""
-    return _HAVE_TORCH and isinstance(value, torch.Tensor)
+    if not getattr(pycbc, "HAVE_TORCH", False):
+        return False
+    import sys
+    if "torch" not in sys.modules:
+        return False
+    import torch
+    return isinstance(value, torch.Tensor)
 
 
 def _torch_averaged_fplus_sq_if_tensor(detector, frequencies, len_arm):

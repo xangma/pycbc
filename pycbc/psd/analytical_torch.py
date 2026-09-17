@@ -10,10 +10,19 @@ import math
 
 import lal
 import numpy
-import torch
 
 from pycbc.types import FrequencySeries
-from pycbc.types.array_torch import TorchArrayData
+
+
+class _TorchModuleProxy:
+    def __getattr__(self, name):
+        import torch
+
+        globals()["torch"] = torch
+        return getattr(torch, name)
+
+
+torch = _TorchModuleProxy()
 
 # Advanced-LIGO constants used by the analytical quantum and thermal models.
 _ARM_LENGTH = 3995.0
@@ -729,6 +738,7 @@ def analytical_psd(
             f"{psd_name} requires float64; Torch MPS only supports "
             "float32, which underflows its physical PSD values"
         )
+    from pycbc.types.array_torch import TorchArrayData
 
     if psd_name in DATA_FILE_TORCH_ANALYTICAL_MODELS:
         values = _data_file_psd(
