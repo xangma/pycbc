@@ -48,7 +48,12 @@ def _torch_autochisq(
     else:
         index_tensor = torch.as_tensor(indices, device=device, dtype=torch.long)
 
-    offset_tensor = torch.as_tensor(achisq_idx_list, device=device, dtype=torch.long)
+    if isinstance(achisq_idx_list, torch.Tensor):
+        offset_tensor = achisq_idx_list.to(device=device, dtype=torch.long)
+    else:
+        offset_tensor = torch.as_tensor(
+            achisq_idx_list, device=device, dtype=torch.long
+        )
     selected_snr = sn_tensor[index_tensor]
     snrabs = torch.abs(selected_snr)
     cphi = selected_snr.real / snrabs
@@ -347,7 +352,13 @@ class SingleDetAutoChisq(object):
                     low_frequency_cutoff=low_frequency_cutoff,
                     high_frequency_cutoff=high_frequency_cutoff,
                 )
-                Pt = Pt * (1.0 / Pt[0])
+                pt_tensor = backend_array(Pt, "torch")
+                if pt_tensor is not None:
+                    # Avoid Pt[0].item() device-to-host synchronization
+                    pt_tensor = pt_tensor / pt_tensor[0:1]
+                    Pt = Array(wrap_backend_array(pt_tensor), copy=False)
+                else:
+                    Pt = Pt * (1.0 / Pt[0])
                 self._autocor = Array(Pt, copy=True)
             else:
                 Pt, _, P_norm = matched_filter_core(

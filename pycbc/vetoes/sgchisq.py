@@ -124,6 +124,13 @@ def _torch_sgchisq_values(
     chisq = torch.zeros(length, device=stilde_tensor.device, dtype=real_dtype)
     dof = 0
 
+    # Match the existing single-precision time-shift phase when the
+    # overwhitened strain is complex64, while accumulating correlations
+    # in double precision where the device supports it.
+    phase_step = (2.0 * torch.pi * times * stilde.delta_f).to(
+        stilde_tensor.real.dtype
+    )
+
     for descr in values:
         tile_tensor, kmin, kmax, fhigh = _cached_gpu_sg_tile(
             stilde_tensor.device.type,
@@ -151,17 +158,11 @@ def _torch_sgchisq_values(
             device=stilde_tensor.device,
             dtype=stilde_tensor.real.dtype,
         )
-        # Match the existing single-precision time-shift phase when the
-        # overwhitened strain is complex64, while accumulating correlations
-        # in double precision where the device supports it.
-        phase_step = (2.0 * torch.pi * times * stilde.delta_f).to(
-            stilde_tensor.real.dtype
-        )
         phase = torch.exp(1j * phase_step[:, None] * frequencies[None, :]).to(
             complex_dtype
         )
         base = tile_tensor * stilde_tensor[kmin:kmax].to(complex_dtype)
-        tile_snr = torch.sum(phase * base[None, :], dim=1, dtype=complex_dtype)
+        tile_snr = torch.matmul(phase, base)
         tile_snr *= 4.0 * template.delta_f / tile_sigma
         chisq += torch.abs(tile_snr) ** 2
         dof += 2
