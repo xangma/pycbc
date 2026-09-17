@@ -655,7 +655,7 @@ def test_engine_shared_core_workspaces_and_eager_parity(device):
     assert len(engine.cout_workspaces) == 2
     assert len(engine.out_workspaces) == 2
 
-    ticket = engine.submit(stilde, psd_plan, valid_interval=(100, 900))
+    engine.submit(stilde, psd_plan, valid_interval=(100, 900))
     ready = engine.drain()
     assert len(ready) == 1
     assert len(ready[0].results) == 1
