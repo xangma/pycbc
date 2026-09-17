@@ -35,7 +35,7 @@ from pycbc import filter
 from pycbc.constants import MTSUN_SI
 from pycbc.io.hdf import HFile
 from pycbc.scheme import schemed
-from pycbc.types import FrequencySeries, real_same_precision_as
+from pycbc.types import FrequencySeries, real_same_precision_as, zeros
 from pycbc.waveform import utils
 
 
@@ -367,10 +367,6 @@ def compress_waveform(
             )
         )
 
-        o = filter.overlap_cplx(
-            hdecomp / s1, htilde2, low_frequency_cutoff=fmin, normalized=False
-        )
-
         if mismatch <= tolerance:
             mismatch = 1.0 - abs(
                 filter.overlap_cplx(
@@ -668,10 +664,11 @@ def fd_decompress(
         The frequency to start the decompression at. If None, will use whatever
         the lowest frequency is in sample_frequencies. All values at
         frequencies less than this will be 0 in the decompressed waveform.
-    interpolation : {'inline_linear', 'inline_quadratic', str}
+    interpolation : {'inline_linear', 'inline_quadratic', 'inline_cubic',
+                     'inline_quartic', str}
         The interpolation to use for the amplitude and phase. Default is
-        'inline_linear'. If 'inline_linear' or 'inline_quadratic' a custom
-        interpolater is used.
+        'inline_linear'. For any of the ``inline_*`` choices, a custom
+        scheme-dependent interpolator is used.
         Otherwise, ``scipy.interpolate.interp1d`` is used; for other options,
         see possible values for that function's ``kind`` argument.
 
@@ -695,7 +692,7 @@ def fd_decompress(
             raise ValueError("Either provide output memory or a df")
         hlen = int(numpy.ceil(sample_frequencies.max() / df + 1))
         out = FrequencySeries(
-            numpy.zeros(hlen, dtype=_complex_dtypes[precision]), copy=False, delta_f=df
+            zeros(hlen, dtype=_complex_dtypes[precision]), copy=False, delta_f=df
         )
     else:
         # check for precision compatibility
