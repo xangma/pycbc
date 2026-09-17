@@ -188,6 +188,19 @@ def _torch_at_time_host_scalar(
     return tensor[index]
 
 
+def _torch_whiten_work_dtype(data):
+    """Return an optional dtype for the final Torch whitening transform."""
+    import torch
+
+    if (
+        data.device.type == "cuda"
+        and data.dtype == torch.float32
+        and data.numel() % 2 == 0
+    ):
+        return torch.float64
+    return None
+
+
 def _torch_taper_peak(amplitude, start, end, step):
     """Return the second eligible LAL taper peak in one direction.
 
@@ -1427,7 +1440,36 @@ class TimeSeries(Array):
         )
 
         # Whiten the data by the asd
-        white = (self.to_frequencyseries() / psd**0.5).to_timeseries()
+        tensor = getattr(self._data, "tensor", None)
+        work_dtype = _torch_whiten_work_dtype(tensor) if tensor is not None else None
+        if work_dtype is not None:
+            # CUDA's single-precision FFT residual can exceed the conditioning
+            # parity gate.  Promote only the final transform and division; the
+            # estimated PSD and returned public data remain single precision.
+            # The usual forward delta_t and inverse delta_f * length scaling
+            # cancel, so applying the raw Torch FFT pair is equivalent while
+            # avoiding two PyCBC output allocations and their copies.
+            import torch
+
+            from pycbc.types.array_torch import TorchArrayData
+
+            spectrum = torch.fft.rfft(tensor.to(dtype=work_dtype))
+            psd_tensor = getattr(getattr(psd, "_data", None), "tensor", None)
+            if psd_tensor is None:
+                psd_tensor = torch.as_tensor(psd.numpy(), device=tensor.device)
+            spectrum.div_(torch.sqrt(psd_tensor.to(dtype=work_dtype)))
+            white_tensor = torch.fft.irfft(spectrum, n=tensor.numel()).to(
+                dtype=tensor.dtype
+            )
+            white = TimeSeries(
+                TorchArrayData(white_tensor),
+                delta_t=self.delta_t,
+                epoch=self.start_time,
+                copy=False,
+            )
+        else:
+            freq = self.to_frequencyseries()
+            white = (freq / psd**0.5).to_timeseries()
 
         if remove_corrupted:
             white = white[int(max_filter_len / 2) : int(len(self) - max_filter_len / 2)]
