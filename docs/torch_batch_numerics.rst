@@ -110,7 +110,7 @@ Reproducing the numerical method
 --------------------------------
 
 The `frozen fixture and qualification policy
-<https://github.com/xangma/pycbc/tree/b5cf0acf0eeddf20e6ebd51eab19500d5a83c06b/current-batch-sweep-20260907-r4>`_
+<https://github.com/gwastro/pycbc/tree/b5cf0acf0eeddf20e6ebd51eab19500d5a83c06b/current-batch-sweep-20260907-r4>`_
 retain deterministic input construction, normalization observation, independent
 oracle and trigger/veto comparisons. Restore them using the archive's
 instructions, then run new acquisition in separate output directories against

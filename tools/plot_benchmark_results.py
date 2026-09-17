@@ -76,7 +76,7 @@ def plot_live_benchmarks(live_json: Path, output_png: Path):
     base_tp = summary["batch_32"]["original_standard"]["throughput_wps"]["p50"]
     speedup = max_cuda_tp / base_tp
     ax_tp.annotate(
-        f"34.0x Speedup\n(40,666 wf/s)",
+        f"{speedup:.1f}x Speedup\n({int(max_cuda_tp):,} wf/s)",
         xy=(32, max_cuda_tp),
         xytext=(14, 30000),
         arrowprops=dict(facecolor="#276749", shrink=0.08, width=1.5, headwidth=6),
@@ -100,7 +100,7 @@ def plot_live_benchmarks(live_json: Path, output_png: Path):
     # Annotate flat CUDA latency
     cuda_lat_32 = summary["batch_32"]["torch_cuda"]["latency_block_ms"]["p50"]
     ax_lat.annotate(
-        f"0.79 ms/block (flat across batch sizes)",
+        "0.79 ms/block (flat across batch sizes)",
         xy=(32, cuda_lat_32),
         xytext=(4, 18),
         arrowprops=dict(facecolor="#276749", shrink=0.08, width=1.5, headwidth=6),
@@ -264,7 +264,6 @@ def plot_inspiral_batch_scaling(sweep_json: Path, output_png: Path):
     results = data["results"]
     batches = [r["batch_size"] for r in results]
     success_batches = [r["batch_size"] for r in results if r["status"] == "success"]
-    failed_batches = [r["batch_size"] for r in results if r["status"] != "success"]
 
     calc_times = [r["calc_time_sec"] for r in results if r["status"] == "success"]
     vram_mib = [r["peak_vram_mib"] for r in results if r["status"] == "success"]
@@ -338,7 +337,6 @@ def plot_inspiral_diffgw_speedup(diffgw_json: Path, output_png: Path):
             "Torch CPU\n(MKL)",
             "Torch CUDA\n(w/ diffgw)",
         ]
-    arm_colors = [COLORS[a] for a in arms]
 
     wall_times = [summary[a]["wall_sec"]["median"] for a in arms]
     calc_times = [summary[a]["calc_time_sec"]["median"] for a in arms]

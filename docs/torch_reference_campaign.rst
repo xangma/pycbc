@@ -56,7 +56,7 @@ This deterministic set is not a coverage-qualified search bank; it includes
 neither tidal physics nor disruption. The frozen compressed bank SHA256 is
 ``26050d48322a1d71092bb0e024e71a89ace56b3e7b1c5e4cf20c7b769213fb7f``.
 Its parameters and construction records are in the `input archive
-<https://github.com/xangma/pycbc/tree/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/inputs>`_.
+<https://github.com/gwastro/pycbc/tree/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/inputs>`_.
 
 The frame is ``H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf``, channel
 ``H1:LOSC-STRAIN``, SHA256
@@ -128,9 +128,9 @@ clean checkouts with matching dependencies. Preserve the measured commits
 and record any later publication mapping separately.
 
 The `input archive
-<https://github.com/xangma/pycbc/tree/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/inputs>`_
+<https://github.com/gwastro/pycbc/tree/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/inputs>`_
 provides bank construction records; the `geometry sweep
-<https://github.com/xangma/pycbc/blob/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/REPRODUCE.md>`_
+<https://github.com/gwastro/pycbc/blob/2fb788fde4c612a827e12b1be42559f408106bba/reference-campaign-20260907/REPRODUCE.md>`_
 records the reference geometry selection.
 
 Build native modules with recorded flags, or verify native-source identity

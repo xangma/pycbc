@@ -235,7 +235,7 @@ execution and on-device GPU kernels:
 Measured sources: original CPU
 ``40e94792b3edf59f39b18b65102b28a4f74433a7`` and candidate main
 ``ca4bc95f7fe54a4d52d3923c3e8b0d4b283ce196``. See the
-`immutable benchmark evidence <https://github.com/xangma/pycbc/tree/134ecb2586b2e2fc6272924e9cffdf15e51e6f39/torch-fresh-benchmark>`_
+`immutable benchmark evidence <https://github.com/gwastro/pycbc/tree/134ecb2586b2e2fc6272924e9cffdf15e51e6f39/torch-fresh-benchmark>`_
 for every sample, command, input hash, environment record and independent
 verification, and :ref:`torch-reference-campaign` for the workload and gates.
 
