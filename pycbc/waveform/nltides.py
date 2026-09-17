@@ -1,9 +1,24 @@
-"""Utilities for introducing nonlinear tidal effects into waveform approximants"""
+"""Utilities for introducing nonlinear tidal effects into waveforms."""
 
 import numpy
 
 import pycbc.conversions
+import pycbc.scheme as _scheme
 from pycbc.constants import PI
+
+
+def _torch_backend(value=None):
+    """Return the lazily imported Torch backend when one is required."""
+    if value is not None:
+        from pycbc.types.backend import is_backend
+
+        if not is_backend(value, "torch"):
+            return None
+    if value is None and _scheme.current_prefix() != "torch":
+        return None
+    from pycbc.waveform import nltides_torch
+
+    return nltides_torch
 
 
 def nltides_fourier_phase_difference(f, delta_f, f0, amplitude, n, m1, m2):
@@ -15,7 +30,7 @@ def nltides_fourier_phase_difference(f, delta_f, f0, amplitude, n, m1, m2):
 
     Parameters
     ----------
-    f: numpy.array
+    f: numpy.ndarray or torch.Tensor
         Array of frequency values to calculate the fourier phase difference
     delta_f: float
         Frequency resolution of f array
@@ -32,9 +47,15 @@ def nltides_fourier_phase_difference(f, delta_f, f0, amplitude, n, m1, m2):
 
     Returns
     -------
-    delta_psi: numpy.array
-        Fourier phase as a function of frequency
+    delta_psi: numpy.ndarray or torch.Tensor
+        Fourier phase as a function of frequency, on the same backend as ``f``
     """
+
+    backend = _torch_backend(f)
+    if backend is not None:
+        return backend.nltides_fourier_phase_difference(
+            f, delta_f, f0, amplitude, n, m1, m2
+        )
 
     kmin = int(f0 / delta_f)
     kmax = len(f)
@@ -69,6 +90,10 @@ def nonlinear_tidal_spa(**kwds):
     TaylorF2+NL tide model described in https://arxiv.org/abs/1808.07013
     """
 
+    backend = _torch_backend()
+    if backend is not None:
+        return backend.nonlinear_tidal_spa(**kwds)
+
     from pycbc import waveform
     from pycbc.types import Array
 
@@ -76,23 +101,18 @@ def nonlinear_tidal_spa(**kwds):
     kwds.pop("approximant")
     hp, hc = waveform.get_fd_waveform(approximant="TaylorF2", **kwds)
 
-    # Add the phasing difference from the nonlinear tides
+    # Add the phasing difference from the nonlinear tides.
     f = numpy.arange(len(hp)) * hp.delta_f
-    pd = Array(
-        numpy.exp(
-            -1.0j
-            * nltides_fourier_phase_difference(
-                f,
-                hp.delta_f,
-                kwds["f0"],
-                kwds["amplitude"],
-                kwds["n"],
-                kwds["mass1"],
-                kwds["mass2"],
-            )
-        ),
-        dtype=hp.dtype,
+    phase_difference = nltides_fourier_phase_difference(
+        f,
+        hp.delta_f,
+        kwds["f0"],
+        kwds["amplitude"],
+        kwds["n"],
+        kwds["mass1"],
+        kwds["mass2"],
     )
+    pd = Array(numpy.exp(-1.0j * phase_difference), dtype=hp.dtype)
     hp *= pd
     hc *= pd
     return hp, hc
