@@ -27,11 +27,15 @@ _IDENTITY = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 @lru_cache(maxsize=1)
 def provider_identity():
     """Get the provider-owned TaylorF2 digest once per process."""
-    if (importlib.util.find_spec('torchwave') is None
-            and importlib.util.find_spec('diffgw') is None):
-        return None
-    from torchwave.provenance import taylorf2_source_identity
-    return taylorf2_source_identity()
+    if importlib.util.find_spec('torchwave') is not None:
+        try:
+            from torchwave.provenance import taylorf2_source_identity
+            return taylorf2_source_identity()
+        except (AttributeError, ImportError) as err:
+            raise ImportError("taylorf2_source_identity not found in torchwave.provenance") from err
+    if importlib.util.find_spec('diffgw') is not None:
+        return _diffgw.provider_identity()
+    return None
 
 
 def _reason(bank, params, device):
