@@ -25,6 +25,27 @@ import numpy as np
 
 from .backend import backend_array
 
+# Delegate underlying array storage and in-place methods to array_cpu
+try:
+    from .array_cpu import *  # noqa: F401, F403
+except ImportError:
+    pass
+
+
+def _scheme_matches_base_array(array):
+    """Check whether array storage matches the JAX scheme."""
+    return isinstance(array, (np.ndarray, np.generic)) or is_jax_array(array)
+
+
+def _to_device(array):
+    """Convert array storage to JAX scheme base storage."""
+    return np.asarray(array)
+
+
+def _copy_base_array(array):
+    """Copy array storage in JAX scheme."""
+    return array.copy()
+
 
 def _ensure_x64():
     """Ensure JAX is configured with 64-bit precision for GW physics."""

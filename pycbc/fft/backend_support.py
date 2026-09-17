@@ -72,12 +72,15 @@ def get_backend():
 
 # Import all scheme-dependent backends, to get _all_backends accurate:
 
-for scheme_name in ["cpu", "mkl", "cuda", "cupy"]:
+for scheme_name in ["cpu", "mkl", "cuda", "cupy", "jax"]:
     try:
-        mod = __import__('pycbc.fft.backend_' + scheme_name, fromlist = ['_alist', '_adict'])
+        mod = __import__(
+            "pycbc.fft.backend_" + scheme_name, fromlist=["_alist", "_adict"]
+        )
         _alist = getattr(mod, "_alist")
         _adict = getattr(mod, "_adict")
-        _update_global_available(_alist, _adict, _all_backends_list,
-                                 _all_backends_dict)
+        _update_global_available(
+            _alist, _adict, _all_backends_list, _all_backends_dict
+        )
     except ImportError:
         pass
