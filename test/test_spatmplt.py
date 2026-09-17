@@ -27,7 +27,11 @@ These are the unittests for the pycbc.waveform module
 import unittest
 from pycbc.types import zeros, complex64
 from pycbc.filter import overlap
-from pycbc.waveform import get_fd_waveform, get_waveform_filter
+from pycbc.waveform import (
+    filter_approximants,
+    get_fd_waveform,
+    get_waveform_filter,
+)
 from utils import parse_args_all_schemes, simple_exit
 
 _scheme, _context = parse_args_all_schemes("Waveform")
@@ -38,6 +42,9 @@ class TestSPAtmplt(unittest.TestCase):
         self.scheme = _scheme
 
     def test_spatmplt(self):
+        if "SPAtmplt" not in filter_approximants(self.context):
+            self.skipTest("SPAtmplt is unavailable for this scheme")
+
         fl = 25
         delta_f = 1.0 / 256
 
