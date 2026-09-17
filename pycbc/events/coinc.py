@@ -50,6 +50,11 @@ from .eventmgr_cython import (
 logger = logging.getLogger("pycbc.events.coinc")
 
 
+def _detector(name, feature=None):
+    """Construct a detector."""
+    return Detector(name)
+
+
 def background_bin_from_string(background_bins, data):
     """Return template ids for each bin as defined by the format string
 
@@ -81,9 +86,13 @@ def background_bin_from_string(background_bins, data):
 
         for bin_type, boundary in zip(bin_type_list, boundary_list):
             if boundary[0:2] == "lt":
-                member_func = lambda vals, bd=boundary: vals < float(bd[2:])
+
+                def member_func(vals, bd=boundary):
+                    return vals < float(bd[2:])
             elif boundary[0:2] == "gt":
-                member_func = lambda vals, bd=boundary: vals > float(bd[2:])
+
+                def member_func(vals, bd=boundary):
+                    return vals > float(bd[2:])
             else:
                 raise RuntimeError(
                     "Can't parse boundary condition! Must begin with 'lt' or 'gt'"
@@ -185,14 +194,25 @@ def timeslide_durations(start1, start2, end1, end2, timeslide_offsets):
     return numpy.array(durations)
 
 
+def _torch_coinc_backend(*values):
+    """Load the Torch coincidence backend only for Torch-backed inputs."""
+    from pycbc.types.backend import is_backend
+
+    if any(is_backend(value, "torch") for value in values):
+        from . import coinc_torch
+
+        return coinc_torch
+    return None
+
+
 def time_coincidence(t1, t2, window, slide_step=0):
     """Find coincidences by time window
 
     Parameters
     ----------
-    t1 : numpy.ndarray
+    t1 : numpy.ndarray or Torch-backed array
         Array of trigger times from the first detector
-    t2 : numpy.ndarray
+    t2 : numpy.ndarray or Torch-backed array
         Array of trigger times from the second detector
     window : float
         Coincidence window maximum time difference, arbitrary units (usually s)
@@ -202,13 +222,20 @@ def time_coincidence(t1, t2, window, slide_step=0):
 
     Returns
     -------
-    idx1 : numpy.ndarray
+    idx1 : array-like
         Array of indices into the t1 array for coincident triggers
-    idx2 : numpy.ndarray
+    idx2 : array-like
         Array of indices into the t2 array
-    slide : numpy.ndarray
+    slide : array-like
         Array of slide ids
+
+        Torch inputs return device-resident Torch tensors, or Torch-backed
+        PyCBC arrays when either input is a PyCBC array.
     """
+    backend = _torch_coinc_backend(t1, t2)
+    if backend is not None:
+        return backend.time_coincidence(t1, t2, window, slide_step)
+
     if slide_step:
         length1 = len(t1)
         length2 = len(t2)
@@ -279,8 +306,9 @@ def time_multi_coincidence(times, slide_step=0, slop=0.003, pivot="H1", fixed="L
     """
 
     def win(ifo1, ifo2):
-        d1 = Detector(ifo1)
-        d2 = Detector(ifo2)
+        feature = "multi-detector coincidence timing"
+        d1 = _detector(ifo1, feature)
+        d2 = _detector(ifo2, feature)
         return d1.light_travel_time_to_detector(d2) + slop
 
     # Find coincs between the 'pivot' and 'fixed' detectors as in 2-ifo case
@@ -366,13 +394,13 @@ def cluster_coincs(stat, time1, time2, timeslide_id, slide, window, **kwargs):
 
     Parameters
     ----------
-    stat: numpy.ndarray
+    stat: numpy.ndarray or Torch-backed array
         vector of ranking values to maximize
-    time1: numpy.ndarray
+    time1: numpy.ndarray or Torch-backed array
         first time vector
-    time2: numpy.ndarray
+    time2: numpy.ndarray or Torch-backed array
         second time vector
-    timeslide_id: numpy.ndarray
+    timeslide_id: numpy.ndarray or Torch-backed array
         vector that determines the timeslide offset
     slide: float
         length of the timeslides offset interval
@@ -381,9 +409,16 @@ def cluster_coincs(stat, time1, time2, timeslide_id, slide, window, **kwargs):
 
     Returns
     -------
-    cindex: numpy.ndarray
-        The set of indices corresponding to the surviving coincidences.
+    cindex: numpy.ndarray or Torch-backed array
+        The set of indices corresponding to the surviving coincidences. Torch
+        inputs produce indices on the same device.
     """
+    backend = _torch_coinc_backend(stat, time1, time2, timeslide_id)
+    if backend is not None:
+        return backend.cluster_coincs(
+            stat, time1, time2, timeslide_id, slide, window, **kwargs
+        )
+
     if len(time1) == 0 or len(time2) == 0:
         logger.info("No coinc triggers in one, or both, ifos.")
         return numpy.array([])
@@ -412,11 +447,11 @@ def cluster_coincs_multiifo(stat, time_coincs, timeslide_id, slide, window, **kw
 
     Parameters
     ----------
-    stat: numpy.ndarray
+    stat: numpy.ndarray or Torch-backed array
         vector of ranking values to maximize
-    time_coincs: tuple of numpy.ndarrays
+    time_coincs: tuple of numpy.ndarrays or Torch-backed arrays
         trigger times for each ifo, or -1 if an ifo does not participate in a coinc
-    timeslide_id: numpy.ndarray
+    timeslide_id: numpy.ndarray or Torch-backed array
         vector that determines the timeslide offset
     slide: float
         length of the timeslides offset interval
@@ -425,9 +460,16 @@ def cluster_coincs_multiifo(stat, time_coincs, timeslide_id, slide, window, **kw
 
     Returns
     -------
-    cindex: numpy.ndarray
-        The set of indices corresponding to the surviving coincidences
+    cindex: numpy.ndarray or Torch-backed array
+        The set of indices corresponding to the surviving coincidences. Torch
+        inputs produce indices on the same device.
     """
+    backend = _torch_coinc_backend(stat, *time_coincs, timeslide_id)
+    if backend is not None:
+        return backend.cluster_coincs_multiifo(
+            stat, time_coincs, timeslide_id, slide, window, **kwargs
+        )
+
     time_coinc_zip = list(zip(*time_coincs))
     if len(time_coinc_zip) == 0:
         logger.info("No coincident triggers.")
@@ -507,6 +549,12 @@ def cluster_over_time(stat, time, window, method="python", argmax=numpy.argmax):
     cindex: numpy.ndarray
         The set of indices corresponding to the surviving coincidences.
     """
+
+    backend = _torch_coinc_backend(stat, time)
+    if backend is not None:
+        return backend.cluster_over_time(
+            stat, time, window, method=method, argmax=argmax
+        )
 
     indices = []
     time_sorting = time.argsort()
@@ -914,7 +962,9 @@ class LiveCoincTimeslideBackgroundEstimator(object):
         ) ** 0.5
         self.buffer_size = int(numpy.ceil(self.lookback_time / analysis_block))
 
-        self.dets = {ifo: Detector(ifo) for ifo in ifos}
+        self.dets = {
+            ifo: _detector(ifo, "live coincidence detector timing") for ifo in ifos
+        }
 
         self.time_window = (
             self.dets[ifos[0]].light_travel_time_to_detector(self.dets[ifos[1]])
@@ -1233,6 +1283,7 @@ class LiveCoincTimeslideBackgroundEstimator(object):
             [self.ifos[0], self.ifos[1]],
             [self.ifos[1], self.ifos[0]],
             [[0, -1], [-1, 0]],
+            strict=True,
         ):
             if fixed_ifo not in valid_ifos:
                 # This ifo is not online now, so no new triggers or coincs
