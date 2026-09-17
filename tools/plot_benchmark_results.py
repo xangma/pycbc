@@ -30,7 +30,8 @@ COLORS = {
     "branch_standard": "#3182ce",    # Standard Blue
     "branch_cpu": "#3182ce",         # Standard Blue
     "torch_cpu": "#dd6b20",          # Rust / Orange
-    "torch_cuda": "#38a169",         # Emerald Green
+    "torch_cuda": "#319795",         # Teal / Blue-green (no diffgw)
+    "torch_cuda_diffgw": "#38a169",  # Emerald Green (w/ diffgw)
 }
 
 LABELS = {
@@ -320,13 +321,23 @@ def plot_inspiral_diffgw_speedup(diffgw_json: Path, output_png: Path):
         data = json.load(f)
 
     summary = data["summary"]
-    arms = ["original_cpu", "branch_cpu", "torch_cpu", "torch_cuda"]
-    arm_labels = [
-        "Original CPU\n(40e94792b3)",
-        "Branch CPU\n(qualified)",
-        "Torch CPU\n(MKL)",
-        "Torch CUDA\nw/ diffgw",
-    ]
+    if "torch_cuda_diffgw" in summary:
+        arms = ["original_cpu", "branch_cpu", "torch_cpu", "torch_cuda", "torch_cuda_diffgw"]
+        arm_labels = [
+            "Original CPU\n(40e94792b3)",
+            "Branch CPU\n(qualified)",
+            "Torch CPU\n(MKL)",
+            "Torch CUDA\n(no diffgw)",
+            "Torch CUDA\n(w/ diffgw)",
+        ]
+    else:
+        arms = ["original_cpu", "branch_cpu", "torch_cpu", "torch_cuda"]
+        arm_labels = [
+            "Original CPU\n(40e94792b3)",
+            "Branch CPU\n(qualified)",
+            "Torch CPU\n(MKL)",
+            "Torch CUDA\n(w/ diffgw)",
+        ]
     arm_colors = [COLORS[a] for a in arms]
 
     wall_times = [summary[a]["wall_sec"]["median"] for a in arms]

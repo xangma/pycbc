@@ -37,7 +37,13 @@ import h5py
 import numpy as np
 
 
-ARM_NAMES = ("original_cpu", "branch_cpu", "torch_cpu", "torch_cuda")
+ARM_NAMES = (
+    "original_cpu",
+    "branch_cpu",
+    "torch_cpu",
+    "torch_cuda",
+    "torch_cuda_diffgw",
+)
 
 DEFAULT_ARMS = ("original_cpu", "branch_cpu", "torch_cpu", "torch_cuda")
 
@@ -321,7 +327,7 @@ def _run_single_case(
         scheme = "cpu:1"
     elif arm == "torch_cpu":
         scheme = "torch:cpu:1"
-    elif arm == "torch_cuda":
+    elif arm in ("torch_cuda", "torch_cuda_diffgw"):
         scheme = "torch:cuda:0"
     else:
         raise ValueError(f"Unknown arm: {arm}")
@@ -414,9 +420,9 @@ def _run_single_case(
         ])
     else:
         if arm == "torch_cuda":
-            cli_args.extend(["--batch-size", str(batch_size)])
-            if enable_diffgw:
-                cli_args.append("--enable-diffgw")
+            cli_args.extend(["--batch-size", str(batch_size), "--disable-diffgw"])
+        elif arm == "torch_cuda_diffgw":
+            cli_args.extend(["--batch-size", str(batch_size), "--enable-diffgw"])
 
     command = [
         "/usr/bin/time",
@@ -632,6 +638,7 @@ def main():
         "branch_cpu": args.branch_source.resolve(),
         "torch_cpu": args.branch_source.resolve(),
         "torch_cuda": args.branch_source.resolve(),
+        "torch_cuda_diffgw": args.branch_source.resolve(),
     }
 
     if not args.frame_file.is_file():
@@ -661,16 +668,18 @@ def main():
     raw_results: Dict[str, List[Dict[str, Any]]] = {arm: [] for arm in args.arms}
 
     orderings = [
-        ["original_cpu", "branch_cpu", "torch_cpu", "torch_cuda"],
-        ["torch_cuda", "torch_cpu", "branch_cpu", "original_cpu"],
-        ["branch_cpu", "torch_cuda", "original_cpu", "torch_cpu"],
+        ["original_cpu", "branch_cpu", "torch_cpu", "torch_cuda", "torch_cuda_diffgw"],
+        ["torch_cuda_diffgw", "torch_cuda", "torch_cpu", "branch_cpu", "original_cpu"],
+        ["branch_cpu", "torch_cuda_diffgw", "original_cpu", "torch_cuda", "torch_cpu"],
     ]
 
     run_count = 0
     total_runs = args.replicates * len(args.arms)
     for rep in range(args.replicates):
-        order = orderings[rep % len(orderings)]
-        order = [a for a in order if a in args.arms]
+        order = [a for a in orderings[rep % len(orderings)] if a in args.arms]
+        for a in args.arms:
+            if a not in order:
+                order.append(a)
         for arm in order:
             run_count += 1
             case_name = f"{arm}_rep{rep + 1}"
