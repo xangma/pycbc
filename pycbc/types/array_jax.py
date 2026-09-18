@@ -23,18 +23,89 @@ TimeSeries, FrequencySeries), NumPy arrays, and JAX arrays via DLPack.
 import os
 import numpy as np
 
-from .backend import backend_array
+from .backend import backend_array, is_backend
 
 # Delegate underlying array storage and in-place methods to array_cpu
 try:
-    from .array_cpu import *  # noqa: F401, F403
+    from . import array_cpu as _array_cpu
+
+    for _name in dir(_array_cpu):
+        if not _name.startswith("__") and _name not in globals():
+            globals()[_name] = getattr(_array_cpu, _name)
 except ImportError:
-    pass
+    _array_cpu = None
+
+
+class JAXArrayData:
+    """Lightweight wrapper around a JAX array with NumPy compatibility."""
+
+    __slots__ = ("array", "dtype")
+    __array_priority__ = 100.0
+    backend = "jax"
+
+    def __init__(self, array):
+        _ensure_x64()
+        if not is_jax_array(array):
+            import jax.numpy as jnp
+
+            array = jnp.asarray(array)
+        self.array = array
+        self.dtype = np.dtype(array.dtype)
+
+    @property
+    def shape(self):
+        return tuple(self.array.shape)
+
+    @property
+    def ndim(self):
+        return self.array.ndim
+
+    @property
+    def size(self):
+        return self.array.size
+
+    @property
+    def nbytes(self):
+        return self.array.size * self.dtype.itemsize
+
+    @property
+    def device(self):
+        return getattr(self.array, "device", None)
+
+    @property
+    def backend_array(self):
+        """Return raw JAX array through the PyCBC backend protocol."""
+        return self.array
+
+    def __array__(self, *args, **kwargs):
+        return np.asarray(self.array)
+
+    def numpy(self):
+        return np.asarray(self.array)
+
+    def __len__(self):
+        return len(self.array)
+
+    def __getitem__(self, item):
+        res = self.array[item]
+        if is_jax_array(res) and res.ndim > 0:
+            return JAXArrayData(res)
+        if hasattr(res, "item"):
+            return res.item()
+        return res
+
+    def copy(self):
+        return JAXArrayData(self.array)
 
 
 def _scheme_matches_base_array(array):
     """Check whether array storage matches the JAX scheme."""
-    return isinstance(array, (np.ndarray, np.generic)) or is_jax_array(array)
+    return (
+        isinstance(array, (np.ndarray, np.generic))
+        or is_jax_array(array)
+        or isinstance(array, JAXArrayData)
+        or getattr(array, "backend", None) == "jax"
+    )
 
 
 def _to_device(array):
@@ -67,6 +138,32 @@ def is_jax_array(obj):
     return jax_module_for(obj) is not None
 
 
+def numpy(self):
+    """Return numpy array from Array under JAXScheme."""
+    data = getattr(self, "_data", self)
+    if isinstance(data, JAXArrayData):
+        return data.numpy()
+    if is_jax_array(data):
+        return np.asarray(data)
+    if _array_cpu is not None and hasattr(_array_cpu, "numpy"):
+        return _array_cpu.numpy(self)
+    return np.asarray(data)
+
+
+def _getvalue(self, index):
+    """Return scalar element from Array under JAXScheme."""
+    data = getattr(self, "_data", self)
+    if isinstance(data, JAXArrayData):
+        val = data.array[index]
+        return val.item() if hasattr(val, "item") else val
+    if is_jax_array(data):
+        val = data[index]
+        return val.item() if hasattr(val, "item") else val
+    if _array_cpu is not None and hasattr(_array_cpu, "_getvalue"):
+        return _array_cpu._getvalue(self, index)
+    return data[index]
+
+
 def to_jax(arr, device=None, dtype=None):
     """Convert an Array, Series, or numpy array to a jax.Array.
 
@@ -78,16 +175,29 @@ def to_jax(arr, device=None, dtype=None):
 
     if is_jax_array(arr):
         res = arr
+    elif isinstance(arr, JAXArrayData):
+        res = arr.array
+    elif isinstance(getattr(arr, "_data", None), JAXArrayData):
+        res = arr._data.array
+    elif is_backend(arr, "jax"):
+        raw = backend_array(arr, "jax")
+        if is_jax_array(raw):
+            res = raw
+        else:
+            res = jnp.asarray(raw)
     else:
         # Check for PyCBC Array or Series
         raw = backend_array(arr)
-        if hasattr(raw, "numpy"):
+        if is_jax_array(raw):
+            res = raw
+        elif hasattr(raw, "numpy"):
             raw = raw.numpy()
         elif hasattr(raw, "__array__"):
             raw = np.asarray(raw)
 
-        # Attempt DLPack transfer
-        if hasattr(raw, "__dlpack__"):
+        if is_jax_array(raw):
+            res = raw
+        elif hasattr(raw, "__dlpack__"):
             try:
                 res = jax.dlpack.from_dlpack(raw)
             except Exception:
@@ -104,7 +214,8 @@ def to_jax(arr, device=None, dtype=None):
             devices = jax.devices()
             if device in ("cpu", "cuda", "gpu", "tpu"):
                 matched = [
-                    d for d in devices
+                    d
+                    for d in devices
                     if d.platform == device
                     or (device == "cuda" and d.platform == "gpu")
                 ]
@@ -118,10 +229,10 @@ def to_jax(arr, device=None, dtype=None):
     return res
 
 
-def from_jax(jarr, target_type=None, copy=False):
+def from_jax(jarr, target_type=None, copy=False, **kwargs):
     """Convert a JAX array to a NumPy array or PyCBC Array/Series.
 
-    Uses DLPack when available.
+    Uses DLPack or JAXArrayData wrapper for zero-copy.
     """
     if not is_jax_array(jarr):
         return jarr
@@ -140,10 +251,14 @@ def from_jax(jarr, target_type=None, copy=False):
 
     # Convert to requested PyCBC container type
     from pycbc.types import Array, FrequencySeries, TimeSeries
+    from pycbc import scheme as _scheme
 
     if issubclass(target_type, (Array, TimeSeries, FrequencySeries)):
-        return target_type(narr, copy=copy)
-    return target_type(narr)
+        if isinstance(_scheme.mgr.state, _scheme.JAXScheme) and not copy:
+            return target_type(JAXArrayData(jarr), copy=False, **kwargs)
+        return target_type(narr, copy=copy, **kwargs)
+
+    return target_type(narr, **kwargs)
 
 
 def zeros(shape, dtype=np.float64, device=None):

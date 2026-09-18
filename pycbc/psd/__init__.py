@@ -20,6 +20,17 @@ from pycbc.psd.analytical import *
 from pycbc.psd.analytical_space import *
 from pycbc.psd.estimate import *
 from pycbc.psd.variation import *
+from pycbc import HAVE_JAX
+if HAVE_JAX:
+    from pycbc.psd.analytical_jax import (  # noqa: F401
+        analytical_psd_jax,
+        get_jax_psd_list,
+    )
+    from pycbc.psd.estimate_jax import (  # noqa: F401
+        welch_jax,
+        inverse_spectrum_truncation_jax,
+        interpolate_jax,
+    )
 from pycbc.types import float32,float64
 from pycbc.types import MultiDetOptionAppendAction, MultiDetOptionAction
 from pycbc.types import DictOptionAction, MultiDetDictOptionAction
