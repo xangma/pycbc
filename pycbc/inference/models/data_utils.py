@@ -37,6 +37,7 @@ from pycbc.strain import (
     verify_strain_options_multi_ifo,
 )
 from pycbc.types import MultiDetOptionAction
+from pycbc.types.backend import backend_array
 
 
 def strain_from_cli_multi_ifos(*args, **kwargs):
@@ -359,7 +360,12 @@ def check_for_nans(strain_dict):
         :py:class:`pycbc.types.timeseries.TimeSeries`.
     """
     for det, ts in strain_dict.items():
-        if numpy.isnan(ts.numpy()).any():
+        tensor = backend_array(ts, "torch")
+        if tensor is not None:
+            has_nans = tensor.isnan().any().item()
+        else:
+            has_nans = numpy.isnan(ts.numpy()).any()
+        if has_nans:
             raise ValueError("NaN found in strain from {}".format(det))
 
 
