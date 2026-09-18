@@ -36,14 +36,26 @@ except ImportError:
     _array_cpu = None
 
 
+def _unwrap_data(val):
+    """Extract raw jax.Array or scalar from JAXArrayData or Series/Array."""
+    if isinstance(val, JAXArrayData):
+        return val.array
+    if hasattr(val, "_data"):
+        d = val._data
+        if isinstance(d, JAXArrayData):
+            return d.array
+        return d
+    return val
+
+
 class JAXArrayData:
     """Lightweight wrapper around a JAX array with NumPy compatibility."""
 
-    __slots__ = ("array", "dtype")
+    __slots__ = ("array", "dtype", "parent", "slice_info")
     __array_priority__ = 100.0
     backend = "jax"
 
-    def __init__(self, array):
+    def __init__(self, array, parent=None, slice_info=None):
         _ensure_x64()
         if not is_jax_array(array):
             import jax.numpy as jnp
@@ -51,6 +63,36 @@ class JAXArrayData:
             array = jnp.asarray(array)
         self.array = array
         self.dtype = np.dtype(array.dtype)
+        self.parent = parent
+        self.slice_info = slice_info
+
+    def set_array(self, new_val):
+        """Update wrapped array and propagate slice mutations up tree."""
+        import jax.numpy as jnp
+
+        if isinstance(new_val, JAXArrayData):
+            new_val = new_val.array
+        elif hasattr(new_val, "_data"):
+            new_val = getattr(new_val._data, "array", new_val._data)
+        if not is_jax_array(new_val):
+            new_val = jnp.asarray(new_val, dtype=self.dtype)
+        self.array = new_val
+        if self.parent is not None and self.slice_info is not None:
+            self.parent.set_slice(self.slice_info, new_val)
+
+    def set_slice(self, slice_info, new_val):
+        """Update slice of wrapped array and propagate to parent if any."""
+        import jax.numpy as jnp
+
+        if isinstance(new_val, JAXArrayData):
+            new_val = new_val.array
+        elif hasattr(new_val, "_data"):
+            new_val = getattr(new_val._data, "array", new_val._data)
+        if not is_jax_array(new_val):
+            new_val = jnp.asarray(new_val, dtype=self.dtype)
+        self.array = self.array.at[slice_info].set(new_val)
+        if self.parent is not None and self.slice_info is not None:
+            self.parent.set_slice(self.slice_info, self.array)
 
     @property
     def shape(self):
@@ -77,6 +119,22 @@ class JAXArrayData:
         """Return raw JAX array through the PyCBC backend protocol."""
         return self.array
 
+    @property
+    def data(self):
+        return self
+
+    @property
+    def real(self):
+        return JAXArrayData(self.array.real)
+
+    @property
+    def imag(self):
+        return JAXArrayData(self.array.imag)
+
+    @property
+    def ptr(self):
+        return id(self.array)
+
     def __array__(self, *args, **kwargs):
         return np.asarray(self.array)
 
@@ -89,10 +147,97 @@ class JAXArrayData:
     def __getitem__(self, item):
         res = self.array[item]
         if is_jax_array(res) and res.ndim > 0:
-            return JAXArrayData(res)
+            return JAXArrayData(res, parent=self, slice_info=item)
         if hasattr(res, "item"):
             return res.item()
         return res
+
+    def __setitem__(self, item, other):
+        self.set_slice(item, other)
+
+    def fill(self, val):
+        import jax.numpy as jnp
+
+        new_val = jnp.full(self.shape, val, dtype=self.dtype)
+        self.set_array(new_val)
+
+    def __iadd__(self, other):
+        self.set_array(self.array + _unwrap_data(other))
+        return self
+
+    def __isub__(self, other):
+        self.set_array(self.array - _unwrap_data(other))
+        return self
+
+    def __imul__(self, other):
+        self.set_array(self.array * _unwrap_data(other))
+        return self
+
+    def __itruediv__(self, other):
+        self.set_array(self.array / _unwrap_data(other))
+        return self
+
+    __idiv__ = __itruediv__
+
+    def __add__(self, other):
+        return JAXArrayData(self.array + _unwrap_data(other))
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __sub__(self, other):
+        return JAXArrayData(self.array - _unwrap_data(other))
+
+    def __rsub__(self, other):
+        return JAXArrayData(_unwrap_data(other) - self.array)
+
+    def __mul__(self, other):
+        return JAXArrayData(self.array * _unwrap_data(other))
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __truediv__(self, other):
+        return JAXArrayData(self.array / _unwrap_data(other))
+
+    def __rtruediv__(self, other):
+        return JAXArrayData(_unwrap_data(other) / self.array)
+
+    def __neg__(self):
+        return JAXArrayData(-self.array)
+
+    def __abs__(self):
+        import jax.numpy as jnp
+
+        return JAXArrayData(jnp.abs(self.array))
+
+    def conj(self):
+        import jax.numpy as jnp
+
+        return JAXArrayData(jnp.conj(self.array))
+
+    def cumsum(self):
+        import jax.numpy as jnp
+
+        return JAXArrayData(jnp.cumsum(self.array))
+
+    def sum(self, *args, **kwargs):
+        return self.array.sum(*args, **kwargs)
+
+    def max(self, *args, **kwargs):
+        return self.array.max(*args, **kwargs)
+
+    def min(self, *args, **kwargs):
+        return self.array.min(*args, **kwargs)
+
+    def __pow__(self, power):
+        return JAXArrayData(self.array ** power)
+
+    def __rpow__(self, base):
+        return JAXArrayData(base ** self.array)
+
+    def squared_norm(self):
+        return JAXArrayData(self.array.real ** 2 + self.array.imag ** 2)
 
     def copy(self):
         return JAXArrayData(self.array)
@@ -132,7 +277,9 @@ def _ensure_x64():
 
 
 def is_jax_array(obj):
-    """Return True if ``obj`` is a JAX array."""
+    """Return True if ``obj`` is a JAX array or JAXArrayData wrapper."""
+    if isinstance(obj, JAXArrayData):
+        return True
     from .backend import jax_module_for
 
     return jax_module_for(obj) is not None
@@ -173,30 +320,36 @@ def to_jax(arr, device=None, dtype=None):
     import jax
     import jax.numpy as jnp
 
-    if is_jax_array(arr):
-        res = arr
-    elif isinstance(arr, JAXArrayData):
+    if isinstance(arr, JAXArrayData):
         res = arr.array
     elif isinstance(getattr(arr, "_data", None), JAXArrayData):
         res = arr._data.array
     elif is_backend(arr, "jax"):
         raw = backend_array(arr, "jax")
-        if is_jax_array(raw):
-            res = raw
+        if isinstance(raw, JAXArrayData):
+            res = raw.array
+        elif is_jax_array(raw):
+            res = getattr(raw, "array", raw)
         else:
             res = jnp.asarray(raw)
+    elif is_jax_array(arr):
+        res = getattr(arr, "array", arr)
     else:
         # Check for PyCBC Array or Series
         raw = backend_array(arr)
-        if is_jax_array(raw):
-            res = raw
+        if isinstance(raw, JAXArrayData):
+            res = raw.array
+        elif is_jax_array(raw):
+            res = getattr(raw, "array", raw)
         elif hasattr(raw, "numpy"):
             raw = raw.numpy()
         elif hasattr(raw, "__array__"):
             raw = np.asarray(raw)
 
-        if is_jax_array(raw):
-            res = raw
+        if isinstance(raw, JAXArrayData):
+            res = raw.array
+        elif is_jax_array(raw):
+            res = getattr(raw, "array", raw)
         elif hasattr(raw, "__dlpack__"):
             try:
                 res = jax.dlpack.from_dlpack(raw)
@@ -261,6 +414,107 @@ def from_jax(jarr, target_type=None, copy=False, **kwargs):
     return target_type(narr, **kwargs)
 
 
+def abs_max_loc(self):
+    """Return max absolute value and its index."""
+    import jax.numpy as jnp
+
+    data = getattr(self, "_data", self)
+    arr = data.array if isinstance(data, JAXArrayData) else to_jax(data)
+    if isinstance(arr, JAXArrayData):
+        arr = arr.array
+    if jnp.iscomplexobj(arr):
+        mag_sq = arr.real ** 2 + arr.imag ** 2
+        idx = int(jnp.argmax(mag_sq))
+        return float(jnp.sqrt(mag_sq[idx])), idx
+    else:
+        mag = jnp.abs(arr)
+        idx = int(jnp.argmax(mag))
+        return float(mag[idx]), idx
+
+
+def cumsum(self):
+    """Cumulative sum."""
+    import jax.numpy as jnp
+
+    s_arr = to_jax(self)
+    if isinstance(s_arr, JAXArrayData):
+        s_arr = s_arr.array
+    return JAXArrayData(jnp.cumsum(s_arr))
+
+
+def dot(self, other):
+    """Dot product."""
+    import jax.numpy as jnp
+
+    s_arr = to_jax(self)
+    o_arr = to_jax(other)
+    if isinstance(s_arr, JAXArrayData):
+        s_arr = s_arr.array
+    if isinstance(o_arr, JAXArrayData):
+        o_arr = o_arr.array
+    return jnp.dot(s_arr, o_arr)
+
+
+def inner(self, other):
+    """Inner product (conjugate dot) in JAX scheme."""
+    import jax.numpy as jnp
+
+    s_arr = to_jax(self)
+    o_arr = to_jax(other)
+    if isinstance(s_arr, JAXArrayData):
+        s_arr = s_arr.array
+    if isinstance(o_arr, JAXArrayData):
+        o_arr = o_arr.array
+    return jnp.sum(jnp.conj(s_arr) * o_arr)
+
+
+def weighted_inner(self, other, weight):
+    """Weighted inner product in JAX scheme."""
+    import jax.numpy as jnp
+
+    s_arr = to_jax(self)
+    o_arr = to_jax(other)
+    w_arr = to_jax(weight)
+    if isinstance(s_arr, JAXArrayData):
+        s_arr = s_arr.array
+    if isinstance(o_arr, JAXArrayData):
+        o_arr = o_arr.array
+    if isinstance(w_arr, JAXArrayData):
+        w_arr = w_arr.array
+    return jnp.sum(jnp.conj(s_arr) * o_arr / w_arr)
+
+
+def squared_norm(self):
+    """Sum of squares of real and imaginary parts in JAX scheme."""
+    s_arr = to_jax(self)
+    if isinstance(s_arr, JAXArrayData):
+        s_arr = s_arr.array
+    return JAXArrayData(s_arr.real ** 2 + s_arr.imag ** 2)
+
+
+def ptr(self):
+    """Pointer/ID representation."""
+    data = getattr(self, "_data", self)
+    if isinstance(data, JAXArrayData):
+        return data.ptr
+    return id(data)
+
+
+def _copy(self, self_ref, other_ref):
+    """Copy other_ref into self_ref."""
+    if isinstance(self_ref, JAXArrayData):
+        self_ref.set_array(other_ref)
+    elif (
+        hasattr(self_ref, "_data")
+        and isinstance(self_ref._data, JAXArrayData)
+    ):
+        self_ref._data.set_array(other_ref)
+    elif _array_cpu is not None and hasattr(_array_cpu, "_copy"):
+        _array_cpu._copy(self, self_ref, other_ref)
+    else:
+        self_ref[:] = np.asarray(other_ref)
+
+
 def zeros(shape, dtype=np.float64, device=None):
     """Create a JAX array of zeros with given shape and dtype."""
     _ensure_x64()
@@ -270,7 +524,7 @@ def zeros(shape, dtype=np.float64, device=None):
     res = jnp.zeros(shape, dtype=dtype)
     if device is not None and hasattr(jax, "device_put"):
         res = jax.device_put(res, device)
-    return res
+    return JAXArrayData(res)
 
 
 def empty(shape, dtype=np.float64, device=None):
