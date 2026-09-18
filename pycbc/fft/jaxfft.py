@@ -38,13 +38,15 @@ def _batched_view(vec, nbatch, dist):
     return data[: nbatch * dist].reshape(nbatch, dist)
 
 
-def _assign_to_vec(out_view, result, nbatch, size):
-    """Assign JAX or NumPy result into destination view."""
+def _assign_to_vec(outvec, result, nbatch, size, odist):
+    """Assign JAX or NumPy result into destination vector data."""
+    target = getattr(outvec, "data", outvec)
     narr = np.asarray(result)
-    if out_view.ndim == 2:
-        out_view[:, :size] = narr[:, :size]
+    if nbatch == 1:
+        target[:size] = narr[0, :size]
     else:
-        out_view[:size] = narr[:size]
+        for b in range(nbatch):
+            target[b * odist : b * odist + size] = narr[b, :size]
 
 
 # -------------------------------------------------------------------------
@@ -96,7 +98,7 @@ def jax_irfft(in_array, n=None, axis=-1, unnormalized=True):
 
 
 # -------------------------------------------------------------------------
-# PyCBC Functional API (fft, ifft)
+# PyCBC Scheme Functional Hook API
 # -------------------------------------------------------------------------
 
 def fft(invec, outvec, _, itype, otype):
@@ -185,12 +187,12 @@ class FFT(_BaseFFT):
             raise NotImplementedError(
                 "JAX backend of pycbc.fft does not support in-place transforms"
             )
-        inp = _batched_view(self.invec, self.nbatch, self.idist)
-        out = _batched_view(self.outvec, self.nbatch, self.odist)
-
-        jin = to_jax(inp)
-        res = self._compiled(jin)
-        _assign_to_vec(out, res, self.nbatch, self.size)
+        jin = to_jax(self.invec)
+        jin_batch = jin[: self.nbatch * self.idist].reshape(
+            self.nbatch, self.idist
+        )
+        res = self._compiled(jin_batch)
+        _assign_to_vec(self.outvec, res, self.nbatch, self.size, self.odist)
 
 
 class IFFT(_BaseIFFT):
@@ -210,9 +212,9 @@ class IFFT(_BaseIFFT):
             raise NotImplementedError(
                 "JAX backend of pycbc.fft does not support in-place transforms"
             )
-        inp = _batched_view(self.invec, self.nbatch, self.idist)
-        out = _batched_view(self.outvec, self.nbatch, self.odist)
-
-        jin = to_jax(inp)
-        res = self._compiled(jin)
-        _assign_to_vec(out, res, self.nbatch, self.size)
+        jin = to_jax(self.invec)
+        jin_batch = jin[: self.nbatch * self.idist].reshape(
+            self.nbatch, self.idist
+        )
+        res = self._compiled(jin_batch)
+        _assign_to_vec(self.outvec, res, self.nbatch, self.size, self.odist)

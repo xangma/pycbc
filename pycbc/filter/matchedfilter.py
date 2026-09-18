@@ -1739,18 +1739,34 @@ class LiveBatchMatchedFilter(object):
 
         # Find the peaks in our SNR times series from the various templates
         i = 0
-        for htilde in tgroup:
+        jax_peaks = None
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            try:
+                from pycbc.filter.matchedfilter_jax import batch_peak_values
+                jax_peaks = batch_peak_values(
+                    self.out_mem[mid], len(tgroup), psize, seg
+                )
+            except Exception:
+                jax_peaks = None
+
+        for idx, htilde in enumerate(tgroup):
             if hasattr(htilde, 'time_offset'):
                 if 'time_offset' not in result:
                     result['time_offset'] = []
 
-            l = htilde.out[seg].abs_arg_max()
+            if jax_peaks is not None:
+                l = int(jax_peaks[0][idx])
+                snrv = numpy.array([jax_peaks[1][idx]])
+            else:
+                l = htilde.out[seg].abs_arg_max()
+                snrv = None
 
             sgm = htilde.sigmasq(psd)
             norm = 4.0 * htilde.delta_f / (sgm ** 0.5)
 
             l += valid_start
-            snrv = numpy.array([htilde.out[l]])
+            if snrv is None:
+                snrv = numpy.array([htilde.out[l]])
 
             # If nothing is above threshold we can exit this template
             s = abs(snrv[0]) * norm

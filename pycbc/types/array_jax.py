@@ -36,6 +36,20 @@ except ImportError:
     _array_cpu = None
 
 
+def _as_jax_array(value):
+    """Return raw jax.Array from a PyCBC array, JAXArrayData, or JAX array."""
+    if isinstance(value, JAXArrayData):
+        return value.array
+    if hasattr(value, "_data") and isinstance(value._data, JAXArrayData):
+        return value._data.array
+    if is_backend(value, "jax"):
+        raw = backend_array(value, "jax")
+        return getattr(raw, "array", raw)
+    if is_jax_array(value):
+        return getattr(value, "array", value)
+    return None
+
+
 def _unwrap_data(val):
     """Extract raw jax.Array or scalar from JAXArrayData or Series/Array."""
     if isinstance(val, JAXArrayData):
@@ -141,6 +155,11 @@ class JAXArrayData:
     def numpy(self):
         return np.asarray(self.array)
 
+    def reshape(self, *shape):
+        if len(shape) == 1 and isinstance(shape[0], (tuple, list)):
+            shape = shape[0]
+        return JAXArrayData(self.array.reshape(shape))
+
     def __len__(self):
         return len(self.array)
 
@@ -245,22 +264,21 @@ class JAXArrayData:
 
 def _scheme_matches_base_array(array):
     """Check whether array storage matches the JAX scheme."""
-    return (
-        isinstance(array, (np.ndarray, np.generic))
-        or is_jax_array(array)
-        or isinstance(array, JAXArrayData)
-        or getattr(array, "backend", None) == "jax"
-    )
+    return isinstance(array, JAXArrayData)
 
 
 def _to_device(array):
     """Convert array storage to JAX scheme base storage."""
-    return np.asarray(array)
+    if isinstance(array, JAXArrayData):
+        return array
+    return JAXArrayData(to_jax(array))
 
 
 def _copy_base_array(array):
     """Copy array storage in JAX scheme."""
-    return array.copy()
+    if isinstance(array, JAXArrayData):
+        return array.copy()
+    return JAXArrayData(to_jax(array))
 
 
 def _ensure_x64():

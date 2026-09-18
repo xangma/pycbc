@@ -11,6 +11,11 @@ def effsnr(snr, reduced_x2, fac=250.,
            **kwargs):  # pylint:disable=unused-argument
     """Calculate the effective SNR statistic. See (S5y1 paper) for definition.
     """
+    from pycbc.events.ranking_jax import effsnr_jax
+    esnr = effsnr_jax(snr, reduced_x2, fac=fac)
+    if esnr is not None:
+        return esnr
+
     snr = numpy.array(snr, ndmin=1, dtype=numpy.float64)
     rchisq = numpy.array(reduced_x2, ndmin=1, dtype=numpy.float64)
     esnr = snr / (1 + snr ** 2 / fac) ** 0.25 / rchisq ** 0.25
@@ -28,6 +33,11 @@ def newsnr(snr, reduced_x2, q=6., n=2.,
     reduced chi-squared values. See http://arxiv.org/abs/1208.3491 for
     definition. Previous implementation in glue/ligolw/lsctables.py
     """
+    from pycbc.events.ranking_jax import newsnr_jax
+    vals = newsnr_jax(snr, reduced_x2, q=q, n=n)
+    if vals is not None:
+        return vals
+
     nsnr = numpy.array(snr, ndmin=1, dtype=numpy.float64)
     reduced_x2 = numpy.array(reduced_x2, ndmin=1, dtype=numpy.float64)
 
