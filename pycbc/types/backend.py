@@ -38,7 +38,9 @@ def _jax_module_for_type(value_type):
         except ImportError:
             return None
     array_cls = getattr(jax, "Array", None)
-    if array_cls is not None and issubclass(value_type, array_cls):
+    tracer_cls = getattr(getattr(jax, "core", None), "Tracer", None)
+    valid_classes = tuple(cls for cls in (array_cls, tracer_cls) if cls is not None)
+    if valid_classes and issubclass(value_type, valid_classes):
         return jax
     return None
 
@@ -101,11 +103,13 @@ def backend_array(value, name=None):
 
 
 def wrap_backend_array(value):
-    """Adapt native storage for a PyCBC Array or Series constructor.
+    """Adapt native storage for a PyCBC Array or Series constructor."""
+    storage = backend_array(value)
+    if jax_module_for(storage) is not None:
+        from .array_jax import JAXArrayData
 
-    Plain native arrays pass through unchanged.
-    """
-    return backend_array(value)
+        return JAXArrayData(storage)
+    return storage
 
 
 def backend_matches_scheme(value):

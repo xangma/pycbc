@@ -42,11 +42,12 @@ def _assign_to_vec(outvec, result, nbatch, size, odist):
     """Assign JAX or NumPy result into destination vector data."""
     target = getattr(outvec, "data", outvec)
     narr = np.asarray(result)
+    copy_len = min(size, narr.shape[-1])
     if nbatch == 1:
-        target[:size] = narr[0, :size]
+        target[:copy_len] = narr[0, :copy_len]
     else:
         for b in range(nbatch):
-            target[b * odist : b * odist + size] = narr[b, :size]
+            target[b * odist : b * odist + copy_len] = narr[b, :copy_len]
 
 
 # -------------------------------------------------------------------------

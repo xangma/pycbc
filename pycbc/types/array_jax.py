@@ -258,6 +258,9 @@ class JAXArrayData:
     def squared_norm(self):
         return JAXArrayData(self.array.real ** 2 + self.array.imag ** 2)
 
+    def astype(self, dtype):
+        return JAXArrayData(self.array.astype(dtype))
+
     def copy(self):
         return JAXArrayData(self.array)
 
@@ -475,6 +478,7 @@ def dot(self, other):
 
 def inner(self, other):
     """Inner product (conjugate dot) in JAX scheme."""
+    _ensure_x64()
     import jax.numpy as jnp
 
     s_arr = to_jax(self)
@@ -483,11 +487,14 @@ def inner(self, other):
         s_arr = s_arr.array
     if isinstance(o_arr, JAXArrayData):
         o_arr = o_arr.array
-    return jnp.sum(jnp.conj(s_arr) * o_arr)
+    s_c = s_arr.astype(jnp.complex128 if jnp.iscomplexobj(s_arr) else jnp.float64)
+    o_c = o_arr.astype(jnp.complex128 if jnp.iscomplexobj(o_arr) else jnp.float64)
+    return jnp.sum(jnp.conj(s_c) * o_c)
 
 
 def weighted_inner(self, other, weight):
     """Weighted inner product in JAX scheme."""
+    _ensure_x64()
     import jax.numpy as jnp
 
     s_arr = to_jax(self)
@@ -499,7 +506,10 @@ def weighted_inner(self, other, weight):
         o_arr = o_arr.array
     if isinstance(w_arr, JAXArrayData):
         w_arr = w_arr.array
-    return jnp.sum(jnp.conj(s_arr) * o_arr / w_arr)
+    s_c = s_arr.astype(jnp.complex128 if jnp.iscomplexobj(s_arr) else jnp.float64)
+    o_c = o_arr.astype(jnp.complex128 if jnp.iscomplexobj(o_arr) else jnp.float64)
+    w_c = w_arr.astype(jnp.complex128 if jnp.iscomplexobj(w_arr) else jnp.float64)
+    return jnp.sum(jnp.conj(s_c) * o_c / w_c)
 
 
 def squared_norm(self):
