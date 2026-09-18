@@ -22,13 +22,18 @@
 # =============================================================================
 #
 import logging
-from math import sqrt
-
-import numpy
 
 from pycbc.filter import matched_filter_core, overlap_cplx
 from pycbc.types import Array, TimeSeries, real_same_precision_as, zeros
-from pycbc.waveform import FilterBank
+from pycbc.types.backend import backend_array, is_backend, wrap_backend_array
+
+try:
+    from pycbc.waveform.bank import FilterBank
+except Exception:
+    FilterBank = None
+from math import sqrt
+
+from pycbc.vetoes.chisq import _chisq_dof_array
 
 
 def segment_snrs(filters, stilde, psd, low_frequency_cutoff):
@@ -114,6 +119,78 @@ def template_overlaps(bank_filters, template, psd, low_frequency_cutoff):
     return overlaps
 
 
+def _torch_bank_chisq(
+    tmplt_snr,
+    tmplt_norm,
+    bank_snrs,
+    bank_norms,
+    tmplt_bank_matches,
+    indices=None,
+):
+    """Evaluate all bank vetoes concurrently on a Torch device."""
+    import torch
+
+    bank_tensors = [backend_array(s, "torch") for s in bank_snrs]
+    device = bank_tensors[0].device
+    tmplt_tensor = backend_array(tmplt_snr, "torch")
+    if tmplt_tensor is None:
+        tmplt_tensor = torch.as_tensor(tmplt_snr, device=device)
+    else:
+        tmplt_tensor = tmplt_tensor.to(device=device)
+
+    if indices is not None:
+        if isinstance(indices, torch.Tensor):
+            idx = indices.to(device=device, dtype=torch.long)
+        elif isinstance(indices, Array) and is_backend(indices, "torch"):
+            idx = backend_array(indices, "torch").to(
+                device=device, dtype=torch.long
+            )
+        else:
+            idx = torch.as_tensor(indices, device=device, dtype=torch.long)
+        # Gather (M, K) matrix in device memory
+        bank_mat = torch.stack([s[idx] for s in bank_tensors], dim=0)
+        tmplt_vec = (
+            tmplt_tensor[idx]
+            if len(tmplt_tensor) > len(idx)
+            else tmplt_tensor
+        )
+    else:
+        bank_mat = torch.stack(bank_tensors, dim=0)
+        tmplt_vec = tmplt_tensor
+
+    matches = torch.as_tensor(
+        tmplt_bank_matches, device=device, dtype=bank_mat.dtype
+    )
+    norms = torch.as_tensor(bank_norms, device=device, dtype=torch.float32)
+    matches_sq = torch.view_as_real(matches).square().sum(dim=-1)
+    close_mask = matches_sq > (0.99 * 0.99)
+    denom = torch.sqrt(
+        torch.clamp(1.0 - matches_sq, min=1e-12)
+    )
+
+    scale_bank = (norms / denom).unsqueeze(1)
+    scale_tmplt = (matches.conj() * float(tmplt_norm) / denom).unsqueeze(1)
+
+    bank_SNR = bank_mat * scale_bank
+    tmplt_SNR = tmplt_vec.unsqueeze(0) * scale_tmplt
+    diff_sq = torch.view_as_real(bank_SNR - tmplt_SNR).square().sum(dim=-1)
+
+    diff_sq = torch.where(
+        close_mask.unsqueeze(1), torch.full_like(diff_sq, 2.0), diff_sq
+    )
+    chisq = diff_sq.sum(dim=0)
+
+    if indices is not None:
+        return Array(wrap_backend_array(chisq), copy=False)
+    else:
+        return TimeSeries(
+            Array(wrap_backend_array(chisq), copy=False),
+            delta_t=tmplt_snr.delta_t,
+            epoch=tmplt_snr.start_time,
+            copy=False,
+        )
+
+
 def bank_chisq_from_filters(
     tmplt_snr, tmplt_norm, bank_snrs, bank_norms, tmplt_bank_matches, indices=None
 ):
@@ -144,8 +221,14 @@ def bank_chisq_from_filters(
     -------
     bank_chisq: TimeSeries of the bank vetos
     """
+    if bank_snrs and is_backend(bank_snrs[0], "torch"):
+        return _torch_bank_chisq(
+            tmplt_snr, tmplt_norm, bank_snrs, bank_norms, tmplt_bank_matches, indices
+        )
+
     if indices is not None:
-        tmplt_snr = Array(tmplt_snr, copy=False)
+        # Sparse trigger SNRs may be host NumPy values in a GPU scheme.
+        tmplt_snr = Array(tmplt_snr)
         bank_snrs_tmp = []
         for bank_snr in bank_snrs:
             bank_snrs_tmp.append(bank_snr.take(indices))
@@ -165,10 +248,11 @@ def bank_chisq_from_filters(
             # template
             bank_chisq += 2.0
             continue
-        bank_norm = sqrt((1 - bank_match * bank_match.conj()).real)
+        bank_norm = sqrt((1 - bank_match * bank_match.conjugate()).real)
 
         bank_SNR = bank_snrs[i] * (bank_norms[i] / bank_norm)
-        tmplt_SNR = tmplt_snr * (bank_match.conj() * tmplt_norm / bank_norm)
+        tmplt_SNR = tmplt_snr * (
+            bank_match.conjugate() * tmplt_norm / bank_norm)
 
         bank_SNR = Array(bank_SNR, copy=False)
         tmplt_SNR = Array(tmplt_SNR, copy=False)
@@ -229,6 +313,8 @@ class SingleDetBankVeto(object):
     def cache_segment_snrs(self, stilde, psd):
         key = (id(stilde), id(psd))
         if key not in self._segment_snrs_cache:
+            if len(self._segment_snrs_cache) >= 2:
+                self._segment_snrs_cache.clear()
             logging.debug("Precalculate the bank veto template snrs")
             data = segment_snrs(self.filters, stilde, psd, self.f_low)
             self._segment_snrs_cache[key] = data
@@ -260,7 +346,7 @@ class SingleDetBankVeto(object):
         chisq = bank_chisq_from_filters(
             snrv, norm, bank_veto_snrs, bank_veto_norms, overlaps, indices
         )
-        dof = numpy.repeat(self.dof, len(chisq))
+        dof = _chisq_dof_array(chisq, self.dof, len(chisq))
         return chisq, dof
 
 
