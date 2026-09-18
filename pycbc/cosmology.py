@@ -250,26 +250,51 @@ class DistToZ(object):
         self.nearby_d2z = None
         self.faraway_d2z = None
         self.default_maxdist = None
+        self._nearby_grid = None
+        self._faraway_grid = None
+        self._jax_grids = None
 
     def setup_interpolant(self):
         """Initializes the z(d) interpolation."""
         # for computing nearby (z < 1) redshifts
-        zs = numpy.linspace(0., 1., num=self.numpoints)
-        ds = self.cosmology.luminosity_distance(zs).value
-        self.nearby_d2z = interpolate.interp1d(ds, zs, kind='linear',
-                                                bounds_error=False)
+        nearby_zs = numpy.linspace(0.0, 1.0, num=self.numpoints)
+        nearby_ds = self.cosmology.luminosity_distance(nearby_zs).value
+        self.nearby_d2z = interpolate.interp1d(
+            nearby_ds, nearby_zs, kind="linear", bounds_error=False
+        )
         # for computing far away (z > 1) redshifts
-        zs = numpy.logspace(0, numpy.log10(self.default_maxz),
-                            num=self.numpoints)
-        ds = self.cosmology.luminosity_distance(zs).value
-        self.faraway_d2z = interpolate.interp1d(ds, zs, kind='linear',
-                                                 bounds_error=False)
+        faraway_zs = numpy.logspace(
+            0, numpy.log10(self.default_maxz), num=self.numpoints
+        )
+        faraway_ds = self.cosmology.luminosity_distance(faraway_zs).value
+        self.faraway_d2z = interpolate.interp1d(
+            faraway_ds, faraway_zs, kind="linear", bounds_error=False
+        )
         # store the default maximum distance
-        self.default_maxdist = ds.max()
+        self.default_maxdist = float(faraway_ds.max())
+        self._nearby_grid = (nearby_ds, nearby_zs)
+        self._faraway_grid = (faraway_ds, faraway_zs)
+        self._jax_grids = None
+
+    def _get_jax_grids(self):
+        if self._nearby_grid is None or self._faraway_grid is None:
+            self.setup_interpolant()
+        if self._jax_grids is None:
+            from pycbc.cosmology_jax import create_jax_grids
+            self._jax_grids = create_jax_grids(self._nearby_grid, self._faraway_grid)
+        return self._jax_grids
+
+    def _get_redshift_jax(self, jax, dist):
+        from pycbc.cosmology_jax import get_redshift_jax
+        return get_redshift_jax(dist, self._get_jax_grids(), self.default_maxz)
 
     def get_redshift(self, dist):
         """Returns the redshift for the given distance.
         """
+        jax, values = pycbc.conversions._jax_values(dist)
+        if jax is not None:
+            return self._get_redshift_jax(jax, values[0])
+
         dist, input_is_array = pycbc.conversions.ensurearray(dist)
         try:
             zs = self.nearby_d2z(dist)
@@ -378,6 +403,9 @@ class ComovingVolInterpolator(object):
         self.nearby_interp = None
         self.faraway_interp = None
         self.default_maxvol = None
+        self._nearby_grid = None
+        self._faraway_grid = None
+        self._jax_grids = None
         if vol_func is not None:
             self.vol_func = vol_func
         else:
@@ -396,26 +424,49 @@ class ComovingVolInterpolator(object):
         else:
             ys = zs
 
-        return interpolate.interp1d(logvs, ys, kind='linear',
-                                    bounds_error=False)
+        return (
+            interpolate.interp1d(logvs, ys, kind='linear', bounds_error=False),
+            (logvs, numpy.asarray(ys, dtype=float)),
+        )
 
     def setup_interpolant(self):
         """Initializes the z(d) interpolation."""
         # get VC bounds
         # for computing nearby (z < 1) redshifts
         minz = 0.001
-        maxz = 1.
-        self.nearby_interp = self._create_interpolant(minz, maxz)
+        maxz = 1.0
+        self.nearby_interp, self._nearby_grid = self._create_interpolant(minz, maxz)
         # for computing far away (z > 1) redshifts
-        minz = 1.
+        minz = 1.0
         maxz = self.default_maxz
-        self.faraway_interp = self._create_interpolant(minz, maxz)
+        self.faraway_interp, self._faraway_grid = self._create_interpolant(minz, maxz)
         # store the default maximum volume
         self.default_maxvol = numpy.log(self.vol_func(maxz).value)
+        self._jax_grids = None
+
+    def _get_jax_grids(self):
+        if self._nearby_grid is None or self._faraway_grid is None:
+            self.setup_interpolant()
+        if self._jax_grids is None:
+            from pycbc.cosmology_jax import create_jax_grids
+            self._jax_grids = create_jax_grids(self._nearby_grid, self._faraway_grid)
+        return self._jax_grids
+
+    def _get_value_from_logv_jax(self, jax, logv):
+        from pycbc.cosmology_jax import get_value_from_logv_jax
+        return get_value_from_logv_jax(logv, self._get_jax_grids(), self.default_maxz)
 
     def get_value_from_logv(self, logv):
-        """Returns the redshift for the given distance.
+        """Return the requested quantity for a log comoving volume.
+
+        JAX arrays are interpolated on their existing device. Their values
+        must lie within the precomputed redshift range; array inputs never
+        fall back to the host Astropy inversion.
         """
+        jax, values = pycbc.conversions._jax_values(logv)
+        if jax is not None:
+            return self._get_value_from_logv_jax(jax, values[0])
+
         logv, input_is_array = pycbc.conversions.ensurearray(logv)
         try:
             vals = self.nearby_interp(logv)
@@ -445,6 +496,11 @@ class ComovingVolInterpolator(object):
         return pycbc.conversions.formatreturn(vals, input_is_array)
 
     def get_value(self, volume):
+        """Return the requested quantity for a comoving volume."""
+        jax, values = pycbc.conversions._jax_values(volume)
+        if jax is not None:
+            from pycbc.cosmology_jax import get_value_from_volume_jax
+            return get_value_from_volume_jax(values[0], self._get_jax_grids(), self.default_maxz)
         return self.get_value_from_logv(numpy.log(volume))
 
     def __call__(self, volume):
@@ -464,8 +520,10 @@ def redshift_from_comoving_volume(vc, interp=True, **kwargs):
 
     Parameters
     ----------
-    vc : float
-        The comoving volume, in units of cubed Mpc.
+    vc : float, array-like, or jax.Array
+        The comoving volume, in units of cubed Mpc. With interpolation
+        enabled for a predefined cosmology, JAX arrays are
+        evaluated on device without host transfer.
     interp : bool, optional
         If true, this will setup an interpolator between redshift and comoving
         volume the first time this function is called. This is useful when
@@ -483,7 +541,7 @@ def redshift_from_comoving_volume(vc, interp=True, **kwargs):
 
     Returns
     -------
-    float :
+    float, numpy.ndarray, or jax.Array :
         The redshift at the given comoving volume.
     """
     cosmology = get_cosmology(**kwargs)
@@ -502,8 +560,10 @@ def distance_from_comoving_volume(vc, interp=True, **kwargs):
 
     Parameters
     ----------
-    vc : float
-        The comoving volume, in units of cubed Mpc.
+    vc : float, array-like, or jax.Array
+        The comoving volume, in units of cubed Mpc. With interpolation
+        enabled for a predefined cosmology, JAX arrays are
+        evaluated on device without host transfer.
     interp : bool, optional
         If true, this will setup an interpolator between distance and comoving
         volume the first time this function is called. This is useful when
@@ -520,7 +580,7 @@ def distance_from_comoving_volume(vc, interp=True, **kwargs):
 
     Returns
     -------
-    float :
+    float, numpy.ndarray, or jax.Array :
         The luminosity distance at the given comoving volume.
     """
     cosmology = get_cosmology(**kwargs)

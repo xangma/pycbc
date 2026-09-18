@@ -140,40 +140,70 @@ class Gaussian(bounded.BoundedDist):
         """The CDF of the normal distribution, without bounds."""
         mu = self._mean[param]
         var = self._var[param]
-        return 0.5*(1. + erf((value - mu)/(2*var)**0.5))
+        jax, reference = bounded._jax_module_and_reference((value,))
+        if jax is not None:
+            import jax.scipy.special as jsp
+            import jax.numpy as jnp
+            if not jnp.issubdtype(reference.dtype, jnp.floating):
+                value = bounded._jax_as_array(value, reference)
+            return 0.5 * (1.0 + jsp.erf((value - mu) / (2 * var) ** 0.5))
+        return 0.5 * (1.0 + erf((value - mu) / (2 * var) ** 0.5))
 
     def cdf(self, param, value):
         """Returns the CDF of the given parameter value."""
         a, b = self._bounds[param]
-        if a != -numpy.inf:
+        finite_a = a != -numpy.inf
+        finite_b = b != numpy.inf
+        jax, reference = bounded._jax_module_and_reference((value,))
+        if jax is not None:
+            if finite_a:
+                a = bounded._jax_as_array(a, reference)
+            if finite_b:
+                b = bounded._jax_as_array(b, reference)
+        if finite_a:
             phi_a = self._normalcdf(param, a)
         else:
-            phi_a = 0.
-        if b != numpy.inf:
+            phi_a = 0.0
+        if finite_b:
             phi_b = self._normalcdf(param, b)
         else:
-            phi_b = 1.
+            phi_b = 1.0
         phi_x = self._normalcdf(param, value)
-        return (phi_x - phi_a)/(phi_b - phi_a)
+        return (phi_x - phi_a) / (phi_b - phi_a)
 
     def _normalcdfinv(self, param, p):
         """The inverse CDF of the normal distribution, without bounds."""
         mu = self._mean[param]
         var = self._var[param]
-        return mu + (2*var)**0.5 * erfinv(2*p - 1.)
+        jax, reference = bounded._jax_module_and_reference((p,))
+        if jax is not None:
+            import jax.scipy.special as jsp
+            import jax.numpy as jnp
+            if not jnp.issubdtype(reference.dtype, jnp.floating):
+                p = bounded._jax_as_array(p, reference)
+            return mu + (2 * var) ** 0.5 * jsp.erfinv(2 * p - 1.0)
+        return mu + (2 * var) ** 0.5 * erfinv(2 * p - 1.0)
 
     def _cdfinv_param(self, param, p):
         """Return inverse of the CDF.
         """
         a, b = self._bounds[param]
-        if a != -numpy.inf:
+        finite_a = a != -numpy.inf
+        finite_b = b != numpy.inf
+        jax, reference = bounded._jax_module_and_reference((p,))
+        if jax is not None:
+            if finite_a:
+                a = bounded._jax_as_array(a, reference)
+            if finite_b:
+                b = bounded._jax_as_array(b, reference)
+        if finite_a:
             phi_a = self._normalcdf(param, a)
         else:
-            phi_a = 0.
-        if b != numpy.inf:
+            phi_a = 0.0
+        if finite_b:
             phi_b = self._normalcdf(param, b)
         else:
-            phi_b = 1.
+            phi_b = 1.0
         adjusted_p = phi_a + p * (phi_b - phi_a)
         return self._normalcdfinv(param, adjusted_p)
 
@@ -182,20 +212,29 @@ class Gaussian(bounded.BoundedDist):
         contain all of parameters in self's params. Unrecognized arguments are
         ignored.
         """
-        return numpy.exp(self._logpdf(**kwargs))
-
+        logpdf = self._logpdf(**kwargs)
+        jax, _ = bounded._jax_module_and_reference((logpdf,))
+        if jax is not None:
+            return jax.numpy.exp(logpdf)
+        return numpy.exp(logpdf)
 
     def _logpdf(self, **kwargs):
         """Returns the log of the pdf at the given values. The keyword
         arguments must contain all of parameters in self's params. Unrecognized
         arguments are ignored.
         """
-        if kwargs in self:
-            return sum([self._lognorm[p] +
-                        self._expnorm[p]*(kwargs[p]-self._mean[p])**2.
-                        for p in self._params])
-        else:
-            return -numpy.inf
+        contained = self.__contains__(kwargs)
+        logpdf = sum(
+            [
+                self._lognorm[p]
+                + self._expnorm[p] * (kwargs[p] - self._mean[p]) ** 2.0
+                for p in self._params
+            ]
+        )
+        backend_result = bounded._backend_where(kwargs, contained, logpdf, -numpy.inf)
+        if backend_result is not None:
+            return backend_result
+        return logpdf if contained else -numpy.inf
 
     @classmethod
     def from_config(cls, cp, section, variable_args):

@@ -61,7 +61,7 @@ def test_backend_array_unwrapping():
     jarr = jnp.array([1.0, 2.0, 3.0])
     assert backend_array(jarr) is jarr
     assert backend_array(jarr, name="jax") is jarr
-    assert backend_array(jarr, name="torch") is None
+    assert backend_array(jarr, name="other") is None
 
 
 def test_coerce_jax_values():
