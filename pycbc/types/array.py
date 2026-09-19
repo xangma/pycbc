@@ -221,6 +221,9 @@ class Array(object):
         inputs = [i.numpy() if isinstance(i, Array) else i for i in inputs]
         ret = getattr(ufunc, method)(*inputs, **kwargs)
         if hasattr(ret, 'shape') and ret.shape == self.shape:
+            if _numpy.dtype(ret.dtype) in _ALLOWED_DTYPES:
+                if not _scheme_matches_base_array(ret):
+                    ret = Array(ret)
             ret = self._return(ret)
         return ret
 
