@@ -17,8 +17,10 @@
 """
 
 import numpy
+from pycbc import scheme as _scheme
 from pycbc.types import Array, FrequencySeries, TimeSeries, zeros
 from pycbc.types import real_same_precision_as, complex_same_precision_as
+from pycbc.types.backend import is_backend
 from pycbc.fft import fft, ifft
 
 # Change to True in front-end if you want this function to use caching
@@ -98,6 +100,24 @@ def welch(timeseries, seg_len=4096, seg_stride=2048, window='hann',
     See arXiv:gr-qc/0509116 for details.
     """
     from pycbc.strain.strain import execute_cached_fft
+    from pycbc import HAVE_JAX
+
+    state = _scheme.mgr.state
+    if HAVE_JAX and (
+        isinstance(state, _scheme.JAXScheme)
+        or is_backend(timeseries, "jax")
+    ):
+        from pycbc.psd.estimate_jax import welch_jax
+
+        return welch_jax(
+            timeseries,
+            seg_len=seg_len,
+            seg_stride=seg_stride,
+            window=window,
+            avg_method=avg_method,
+            num_segments=num_segments,
+            require_exact_data_fit=require_exact_data_fit,
+        )
 
     window_map = {
         'hann': numpy.hanning
@@ -244,6 +264,23 @@ def inverse_spectrum_truncation(psd, max_filter_len, which_spectrum='invasd',
     See arXiv:gr-qc/0509116 for details.
     """
     from pycbc.strain.strain import execute_cached_fft, execute_cached_ifft
+    from pycbc import HAVE_JAX
+
+    state = _scheme.mgr.state
+    if HAVE_JAX and (
+        isinstance(state, _scheme.JAXScheme)
+        or is_backend(psd, "jax")
+    ):
+        from pycbc.psd.estimate_jax import inverse_spectrum_truncation_jax
+
+        return inverse_spectrum_truncation_jax(
+            psd,
+            max_filter_len,
+            which_spectrum=which_spectrum,
+            low_frequency_cutoff=low_frequency_cutoff,
+            low_frequency_fill_value=low_frequency_fill_value,
+            trunc_method=trunc_method,
+        )
 
     # sanity checks
     if type(max_filter_len) is not int or max_filter_len <= 0:
@@ -337,6 +374,17 @@ def interpolate(series, delta_f, length=None):
     interpolated series : FrequencySeries
         A new FrequencySeries that has been interpolated.
     """
+    from pycbc import HAVE_JAX
+
+    state = _scheme.mgr.state
+    if HAVE_JAX and (
+        isinstance(state, _scheme.JAXScheme)
+        or is_backend(series, "jax")
+    ):
+        from pycbc.psd.estimate_jax import interpolate_jax
+
+        return interpolate_jax(series, delta_f, length=length)
+
     if length is None:
         new_n = (len(series)-1) * series.delta_f / delta_f + 1
     else:

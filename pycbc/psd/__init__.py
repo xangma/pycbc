@@ -13,15 +13,25 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-import copy
 import igwn_segments as segments
 from pycbc.psd.read import *
 from pycbc.psd.analytical import *
 from pycbc.psd.analytical_space import *
 from pycbc.psd.estimate import *
 from pycbc.psd.variation import *
+from pycbc import HAVE_JAX
+if HAVE_JAX:
+    from pycbc.psd.analytical_jax import (  # noqa: F401
+        analytical_psd_jax,
+        get_jax_psd_list,
+    )
+    from pycbc.psd.estimate_jax import (  # noqa: F401
+        welch_jax,
+        inverse_spectrum_truncation_jax,
+        interpolate_jax,
+    )
 from pycbc.types import float32,float64
-from pycbc.types import MultiDetOptionAppendAction, MultiDetOptionAction
+from pycbc.types import MultiDetOptionAction
 from pycbc.types import DictOptionAction, MultiDetDictOptionAction
 from pycbc.types import copy_opts_for_single_ifo
 from pycbc.types import required_opts, required_opts_multi_ifo
@@ -116,15 +126,31 @@ def from_cli(opt, length, delta_f, low_frequency_cutoff,
         psd *= dyn_range_factor ** 2
 
     elif psd_estimation:
-        # estimate PSD from data
-        psd = welch(strain, avg_method=opt.psd_estimation,
-                    seg_len=int(opt.psd_segment_length * sample_rate + 0.5),
-                    seg_stride=int(opt.psd_segment_stride * sample_rate + 0.5),
-                    num_segments=opt.psd_num_segments,
-                    require_exact_data_fit=False)
+        from pycbc import scheme as _scheme
+        state = _scheme.mgr.state
+        use_jax_psd = (
+            hasattr(_scheme, "JAXScheme")
+            and isinstance(state, _scheme.JAXScheme)
+        )
+        if use_jax_psd:
+            from pycbc.psd.estimate_jax import welch_jax, interpolate_jax
+            psd = welch_jax(strain, avg_method=opt.psd_estimation,
+                            seg_len=int(opt.psd_segment_length * sample_rate + 0.5),
+                            seg_stride=int(opt.psd_segment_stride * sample_rate + 0.5),
+                            num_segments=opt.psd_num_segments,
+                            require_exact_data_fit=False)
+            if delta_f != psd.delta_f:
+                psd = interpolate_jax(psd, delta_f, length=length)
+        else:
+            # estimate PSD from data
+            psd = welch(strain, avg_method=opt.psd_estimation,
+                        seg_len=int(opt.psd_segment_length * sample_rate + 0.5),
+                        seg_stride=int(opt.psd_segment_stride * sample_rate + 0.5),
+                        num_segments=opt.psd_num_segments,
+                        require_exact_data_fit=False)
 
-        if delta_f != psd.delta_f:
-            psd = interpolate(psd, delta_f, length)
+            if delta_f != psd.delta_f:
+                psd = interpolate(psd, delta_f, length)
 
     else:
         # Shouldn't be possible to get here
@@ -139,12 +165,27 @@ def from_cli(opt, length, delta_f, low_frequency_cutoff,
             fill_value = opt.invpsd_trunc_low_freq_fill_value
         except AttributeError:
             fill_value = 0.
-        psd = inverse_spectrum_truncation(psd, 
-            int(opt.psd_inverse_length * sample_rate),
-            which_spectrum=which_spectrum,
-            low_frequency_cutoff=f_low,
-            low_frequency_fill_value=fill_value,
-            trunc_method=opt.invpsd_trunc_method)
+        from pycbc import scheme as _scheme
+        state = _scheme.mgr.state
+        use_jax_psd = (
+            hasattr(_scheme, "JAXScheme")
+            and isinstance(state, _scheme.JAXScheme)
+        )
+        if use_jax_psd:
+            from pycbc.psd.estimate_jax import inverse_spectrum_truncation_jax
+            psd = inverse_spectrum_truncation_jax(psd,
+                int(opt.psd_inverse_length * sample_rate),
+                which_spectrum=which_spectrum,
+                low_frequency_cutoff=f_low,
+                low_frequency_fill_value=fill_value,
+                trunc_method=opt.invpsd_trunc_method)
+        else:
+            psd = inverse_spectrum_truncation(psd, 
+                int(opt.psd_inverse_length * sample_rate),
+                which_spectrum=which_spectrum,
+                low_frequency_cutoff=f_low,
+                low_frequency_fill_value=fill_value,
+                trunc_method=opt.invpsd_trunc_method)
 
     if hasattr(opt, 'psd_output') and opt.psd_output:
         (psd.astype(float64) / (dyn_range_factor ** 2)).save(opt.psd_output)
