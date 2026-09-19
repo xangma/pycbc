@@ -26,6 +26,7 @@
 """
 
 import numpy
+import pycbc.scheme as _scheme
 
 from pycbc.libutils import import_optional
 pykerr = import_optional('pykerr')
@@ -47,6 +48,16 @@ min_dt = 1. / (2 * max_freq)
 pi = numpy.pi
 two_pi = 2 * numpy.pi
 pi_sq = numpy.pi * numpy.pi
+
+
+def _jax_backend():
+    """Return the lazily imported JAX ringdown backend when active."""
+    if _scheme.current_prefix() != "jax":
+        return None
+    from pycbc.waveform import ringdown_jax
+
+    return ringdown_jax
+
 
 
 # Input parameters ############################################################
@@ -346,6 +357,12 @@ def td_output_vector(freqs, damping_times, taper=False,
     """Return an empty TimeSeries with the appropriate size to fit all
     the quasi-normal modes present in freqs, damping_times
     """
+    backend = _jax_backend()
+    if backend is not None:
+        return backend.td_output_vector(
+            freqs, damping_times, taper=taper, delta_t=delta_t, t_final=t_final
+        )
+
     if not delta_t:
         delta_t = lm_deltat(freqs, damping_times)
     if not t_final:
@@ -372,6 +389,12 @@ def fd_output_vector(freqs, damping_times, delta_f=None, f_final=None):
     """Return an empty FrequencySeries with the appropriate size to fit all
     the quasi-normal modes present in freqs, damping_times
     """
+    backend = _jax_backend()
+    if backend is not None:
+        return backend.fd_output_vector(
+            freqs, damping_times, delta_f=delta_f, f_final=f_final
+        )
+
     if not delta_f:
         delta_f = lm_deltaf(damping_times)
     if not f_final:
@@ -579,6 +602,27 @@ def td_damped_sinusoid(f_0, tau, amp, phi, times,
     hcross : numpy.ndarray
         The cross polarization.
     """
+    backend = _jax_backend()
+    if backend is not None:
+        return backend.td_damped_sinusoid(
+            f_0,
+            tau,
+            amp,
+            phi,
+            times,
+            l=l,
+            m=m,
+            n=n,
+            inclination=inclination,
+            azimuthal=azimuthal,
+            dphi=dphi,
+            dbeta=dbeta,
+            harmonics=harmonics,
+            final_spin=final_spin,
+            pol=pol,
+            polnm=polnm,
+        )
+
     # evaluate the harmonics
     xlm, xlnm = spher_harms(harmonics=harmonics, l=l, m=m, n=n,
                             inclination=inclination, azimuthal=azimuthal,
@@ -677,6 +721,26 @@ def fd_damped_sinusoid(f_0, tau, amp, phi, freqs, t_0=0.,
     hctilde : numpy.ndarray
         The cross polarization.
     """
+    backend = _jax_backend()
+    if backend is not None:
+        return backend.fd_damped_sinusoid(
+            f_0,
+            tau,
+            amp,
+            phi,
+            freqs,
+            t_0=t_0,
+            l=l,
+            m=m,
+            n=n,
+            inclination=inclination,
+            azimuthal=azimuthal,
+            harmonics=harmonics,
+            final_spin=final_spin,
+            pol=pol,
+            polnm=polnm,
+        )
+
     # evaluate the harmonics
     if inclination is None:
         inclination = 0.
@@ -735,6 +799,12 @@ def multimode_base(input_params, domain, freq_tau_approximant=False):
         The cross phase of a ringdown with the lm modes specified and
         n overtones in the chosen domain (time or frequency).
     """
+    backend = _jax_backend()
+    if backend is not None:
+        return backend.multimode_base(
+            input_params, domain, freq_tau_approximant=freq_tau_approximant
+        )
+
     input_params['lmns'] = format_lmns(input_params['lmns'])
     amps, phis, dbetas, dphis = lm_amps_phases(**input_params)
     pols, polnms = lm_arbitrary_harmonics(**input_params)
@@ -776,10 +846,11 @@ def multimode_base(input_params, domain, freq_tau_approximant=False):
                             input_params['t_final'])
         sample_times = outplus.sample_times.numpy()
     elif domain == 'fd':
-        kmin = int(input_params['f_lower'] / input_params['delta_f'])
-        outplus, outcross = fd_output_vector(freqs, taus,
-                            input_params['delta_f'],
-                            input_params['f_final'])
+        outplus, outcross = fd_output_vector(
+            freqs, taus, input_params['delta_f'], input_params['f_final']
+        )
+        f_lower = input_params.get('f_lower') or 0.0
+        kmin = int(f_lower / outplus.delta_f)
         sample_freqs = outplus.sample_frequencies.numpy()[kmin:]
     else:
         raise ValueError('unrecognised domain argument {}; '
@@ -798,18 +869,19 @@ def multimode_base(input_params, domain, freq_tau_approximant=False):
                 dphi=dphis[lmn], dbeta=dbetas[lmn],
                 harmonics=harmonics, final_spin=final_spin,
                 pol=pols[lmn], polnm=polnms[lmn])
-            outplus += hplus
-            outcross += hcross
+            outplus._data += hplus
+            outcross._data += hcross
         elif domain == 'fd':
             hplus, hcross = fd_damped_sinusoid(
                 freqs[lmn], taus[lmn], amps[lmn], phis[lmn], sample_freqs,
+                t_0=input_params.get('t_0', 0.0),
                 l=int(lmn[0]), m=int(lmn[1]), n=int(lmn[2]),
                 inclination=input_params['inclination'],
                 azimuthal=input_params['azimuthal'],
                 harmonics=harmonics, final_spin=final_spin,
                 pol=pols[lmn], polnm=polnms[lmn])
-            outplus[kmin:] += hplus
-            outcross[kmin:] += hcross
+            outplus._data[kmin:] += hplus
+            outcross._data[kmin:] += hcross
     return norm * outplus, norm * outcross
 
 

@@ -471,6 +471,70 @@ class MatchedFilterControl(object):
         else:
             raise ValueError("Invalid upsample method")
 
+    def batched_matched_filter_and_cluster(
+        self,
+        segnum,
+        templates,
+        sigmasqs,
+        window,
+        epoch=None,
+    ):
+        """Calculate matched filter, threshold, and cluster for a batch of templates.
+
+        Parameters
+        ----------
+        segnum : int
+            Index of the analysis segment to filter against.
+        templates : sequence of FrequencySeries or 2D array
+            Batch of frequency-domain templates.
+        sigmasqs : sequence of float
+            Normalization factors for each template in the batch.
+        window : int
+            Clustering window size in sample points.
+        epoch : optional
+            GPS start epoch for output TimeSeries.
+
+        Returns
+        -------
+        results : list of tuples
+            For each template in the batch, returns (snr, norm, corr, idx, snrv)
+            matching the MatchedFilterControl contract.
+        """
+        b = len(sigmasqs)
+        if b == 0:
+            return []
+
+        from pycbc import scheme
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            from pycbc.filter.matchedfilter_jax import (
+                batched_matched_filter_and_cluster_jax,
+            )
+            return batched_matched_filter_and_cluster_jax(
+                self, segnum, templates, sigmasqs, window, epoch=epoch
+            )
+
+        results = []
+        for tmpl, ssq in zip(templates, sigmasqs):
+            if self.htilde is not None:
+                self.htilde[self.kmin:self.kmax] = tmpl[self.kmin:self.kmax]
+            res = self.matched_filter_and_cluster(
+                segnum, ssq, window, epoch=epoch
+            )
+            if b > 1 and len(res[3]) > 0:
+                snr_out = res[0].copy() if res[0] is not None else None
+                corr_out = res[2].copy() if res[2] is not None else None
+                idx_out = res[3].copy() if res[3] is not None else None
+                snrv_out = res[4].copy() if res[4] is not None else None
+                res = (snr_out, res[1], corr_out, idx_out, snrv_out)
+            results.append(res)
+        return results
+
+    def clear_batch_cache(self):
+        """Clear cached batch template tensor on device."""
+        self._cached_templates_key = None
+        self._cached_templates_2d = None
+
+
 
 def compute_max_snr_over_sky_loc_stat(hplus, hcross, hphccorr,
                                                       hpnorm=None, hcnorm=None,
