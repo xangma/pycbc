@@ -381,12 +381,25 @@ def from_cli(opt, dyn_range_fac=1, precision='single',
 
     if opt.autogating_threshold is not None:
         gating_info['auto'] = []
+        from pycbc import scheme as _scheme
+        state = _scheme.mgr.state
+        use_jax_gating = (
+            hasattr(_scheme, "JAXScheme")
+            and isinstance(state, _scheme.JAXScheme)
+        )
+        if use_jax_gating:
+            from pycbc.strain.strain_jax import detect_loud_glitches_jax
+            gating_func = detect_loud_glitches_jax
+        else:
+            gating_func = detect_loud_glitches
+
         for _ in range(opt.autogating_max_iterations):
-            glitch_times = detect_loud_glitches(
+            glitch_res = gating_func(
                     strain, threshold=opt.autogating_threshold,
                     cluster_window=opt.autogating_cluster,
                     low_freq_cutoff=opt.strain_high_pass,
                     corrupt_time=opt.pad_data + opt.autogating_pad)
+            glitch_times = glitch_res[0] if isinstance(glitch_res, tuple) else glitch_res
             gate_params = [[gt, opt.autogating_width, opt.autogating_taper]
                            for gt in glitch_times]
             gating_info['auto'] += gate_params
@@ -1200,6 +1213,43 @@ class StrainSegments(object):
         indexes from the beginning of the original strain series.
         """
         if not self._fourier_segments:
+            from pycbc import scheme as _scheme
+            state = _scheme.mgr.state
+            use_jax = (
+                hasattr(_scheme, "JAXScheme")
+                and isinstance(state, _scheme.JAXScheme)
+            )
+            can_batch = (
+                use_jax
+                and len(self.segment_slices) > 0
+                and all(
+                    seg_slice.start >= 0 and seg_slice.stop <= len(self.strain)
+                    for seg_slice in self.segment_slices
+                )
+            )
+            if can_batch:
+                import jax.numpy as jnp
+                from pycbc.types.array_jax import JAXArrayData, to_jax
+                strain_data = to_jax(self.strain)
+                stacked = jnp.stack(
+                    [strain_data[s] for s in self.segment_slices], axis=0
+                )
+                fft_jax = jnp.fft.rfft(stacked, axis=-1) * float(self.strain.delta_t)
+                self._fourier_segments = []
+                for i, (seg_slice, ana) in enumerate(zip(self.segment_slices, self.analyze_slices)):
+                    epoch = self.strain[seg_slice]._epoch
+                    freq_seg = pycbc.types.FrequencySeries(
+                        JAXArrayData(fft_jax[i]),
+                        delta_f=self.delta_f,
+                        epoch=epoch,
+                        copy=False,
+                    )
+                    freq_seg.analyze = ana
+                    freq_seg.cumulative_index = seg_slice.start + ana.start
+                    freq_seg.seg_slice = seg_slice
+                    self._fourier_segments.append(freq_seg)
+                return self._fourier_segments
+
             self._fourier_segments = []
             for seg_slice, ana in zip(self.segment_slices, self.analyze_slices):
                 if seg_slice.start >= 0 and seg_slice.stop <= len(self.strain):
