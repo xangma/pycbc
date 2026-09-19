@@ -46,15 +46,6 @@ JAX backends require separate compatibility and scientific validation.
 Precision & 64-bit Floating Point
 ---------------------------------
 
-By default, JAX uses 32-bit floating point numbers. For high-precision
-gravitational-wave analysis (such as matched filtering and phase accumulation),
-64-bit precision should be enabled:
-
-.. code-block:: python
-
-   import jax
-   jax.config.update("jax_enable_x64", True)
-
 ``JAXScheme`` enables 64-bit support by default unless
 ``PYCBC_JAX_ENABLE_X64`` disables it. This permits double-precision arrays;
 it does not promote explicitly single-precision inputs or computations.
