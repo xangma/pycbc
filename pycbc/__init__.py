@@ -228,18 +228,21 @@ try:
 except ImportError:
     HAVE_CUDA = False
 
-# Check for MKL capability
-try:
-    import pycbc.fft.mkl
-    HAVE_MKL=True
-except (ImportError, OSError):
-    HAVE_MKL=False
-
 # Detect JAX without importing it.
 try:
     HAVE_JAX = importlib.util.find_spec("jax") is not None
 except (AttributeError, ImportError, OSError, ValueError):
     HAVE_JAX = False
+
+# Probe MKL directly: importing ``pycbc.fft.mkl`` initializes every FFT
+# backend and would cause circular imports during scheme initialization.
+try:
+    from .libutils import get_ctypes_library as _get_ctypes_library
+
+    _mkl_runtime = _get_ctypes_library("mkl_rt", [])
+    HAVE_MKL = _mkl_runtime is not None
+except (ImportError, OSError):
+    HAVE_MKL = False
 
 # Check for openmp suppport, currently we pressume it exists, unless on
 # platforms (mac) that are silly and don't use the standard gcc.

@@ -25,6 +25,7 @@ from pycbc.types.backend import (
 )
 
 jax = pytest.importorskip("jax")
+jax.config.update("jax_enable_x64", True)
 
 
 def test_backend_name_numpy():
