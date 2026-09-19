@@ -84,6 +84,14 @@ def power_chisq_bins(htilde, num_bins, psd, low_frequency_cutoff=None,
     bins: List of ints
         A list of the edges of the chisq bins is returned.
     """
+    from pycbc import scheme
+    state = getattr(scheme.mgr, "state", None)
+    if state is not None and hasattr(scheme, "JAXScheme") and isinstance(state, scheme.JAXScheme):
+        from pycbc.vetoes.chisq_jax import power_chisq_bins_jax
+        return power_chisq_bins_jax(
+            htilde, num_bins, psd, low_frequency_cutoff, high_frequency_cutoff
+        )
+
     sigma_vec = sigmasq_series(htilde, psd, low_frequency_cutoff,
                                high_frequency_cutoff).numpy()
     kmin, kmax = get_cutoff_indices(low_frequency_cutoff,
