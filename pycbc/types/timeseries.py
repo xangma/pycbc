@@ -29,6 +29,7 @@ from pycbc.types.utils import determine_epoch
 from pycbc.types.array import _nocomplex
 from pycbc.types.frequencyseries import FrequencySeries
 from pycbc.types import float32, float64
+from pycbc.types.backend import is_backend
 from pycbc.libutils import import_optional
 
 _lal = import_optional('lal')
@@ -280,6 +281,18 @@ class TimeSeries(Array):
         fi = (vtime - float(self.start_time)) * self.sample_rate
         i = _numpy.asarray(_numpy.floor(fi)).astype(int)
         di = fi - i
+
+        if is_backend(self, 'jax'):
+            # JAX gathers clamp invalid indices; this concrete-time API
+            # retains NumPy's bounds errors and valid negative indexing.
+            indices = ((i, i + 1, i - 1) if interpolate == 'quadratic'
+                       else (i, i + 1) if interpolate == 'linear' else (i,))
+            for index in indices:
+                invalid = index[(index < -len(self)) | (index >= len(self))]
+                if invalid.size:
+                    raise IndexError(
+                        f"index {invalid.flat[0]} is out of bounds for axis 0 "
+                        f"with size {len(self)}")
 
         if interpolate == 'linear':
             a = self[i]

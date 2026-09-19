@@ -59,6 +59,7 @@ library and application suite.
    :maxdepth: 1
 
    tutorials
+   JAX acceleration <jax>
    searches
    inference
    apps
