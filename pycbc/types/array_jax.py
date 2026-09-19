@@ -21,7 +21,15 @@ TimeSeries, FrequencySeries), NumPy arrays, and JAX arrays via DLPack.
 """
 
 import os
+import builtins
 import numpy as np
+
+try:
+    import jax
+    import jax.numpy as jnp
+except ImportError:
+    jax = None
+    jnp = None
 
 from .backend import backend_array, is_backend
 
@@ -65,20 +73,36 @@ def _unwrap_data(val):
 class JAXArrayData:
     """Lightweight wrapper around a JAX array with NumPy compatibility."""
 
-    __slots__ = ("array", "dtype", "parent", "slice_info")
+    __slots__ = ("_array", "dtype", "parent", "slice_info")
     __array_priority__ = 100.0
     backend = "jax"
 
     def __init__(self, array, parent=None, slice_info=None):
         _ensure_x64()
         if not is_jax_array(array):
+            import jax
             import jax.numpy as jnp
+            from pycbc import scheme
 
+            state = getattr(scheme.mgr, "state", None)
+            dev = getattr(state, "jax_device", None)
             array = jnp.asarray(array)
-        self.array = array
+            if dev is not None:
+                array = jax.device_put(array, dev)
+        self._array = array
         self.dtype = np.dtype(array.dtype)
         self.parent = parent
         self.slice_info = slice_info
+
+    @property
+    def array(self):
+        if self.parent is not None and self.slice_info is not None:
+            return self.parent.array[self.slice_info]
+        return self._array
+
+    @array.setter
+    def array(self, val):
+        self._array = val
 
     def set_array(self, new_val):
         """Update wrapped array and propagate slice mutations up tree."""
@@ -90,9 +114,33 @@ class JAXArrayData:
             new_val = getattr(new_val._data, "array", new_val._data)
         if not is_jax_array(new_val):
             new_val = jnp.asarray(new_val, dtype=self.dtype)
-        self.array = new_val
+
+        curr = self.array
         if self.parent is not None and self.slice_info is not None:
+            if new_val.ndim > 0 and curr.ndim > 0 and new_val.shape != curr.shape:
+                copy_len = builtins.min(curr.shape[-1], new_val.shape[-1])
+                start = (
+                    self.slice_info.start
+                    if isinstance(self.slice_info, slice)
+                    and self.slice_info.start is not None
+                    else 0
+                )
+                step = (
+                    self.slice_info.step
+                    if isinstance(self.slice_info, slice)
+                    and self.slice_info.step is not None
+                    else 1
+                )
+                sub_slice = slice(start, start + copy_len * step, step)
+                self.parent.set_slice(sub_slice, new_val[:copy_len])
+                return
             self.parent.set_slice(self.slice_info, new_val)
+        else:
+            if new_val.ndim > 0 and curr.ndim > 0 and new_val.shape != curr.shape:
+                copy_len = builtins.min(curr.shape[-1], new_val.shape[-1])
+                self._array = curr.at[:copy_len].set(new_val[:copy_len])
+            else:
+                self._array = new_val
 
     def set_slice(self, slice_info, new_val):
         """Update slice of wrapped array and propagate to parent if any."""
@@ -104,9 +152,37 @@ class JAXArrayData:
             new_val = getattr(new_val._data, "array", new_val._data)
         if not is_jax_array(new_val):
             new_val = jnp.asarray(new_val, dtype=self.dtype)
-        self.array = self.array.at[slice_info].set(new_val)
+
+        curr = self.array
+        target = curr[slice_info]
+        if (
+            new_val.ndim > 0
+            and hasattr(target, "shape")
+            and target.ndim > 0
+            and target.shape != new_val.shape
+        ):
+            copy_len = builtins.min(target.shape[-1], new_val.shape[-1])
+            start = (
+                slice_info.start
+                if isinstance(slice_info, slice)
+                and slice_info.start is not None
+                else 0
+            )
+            step = (
+                slice_info.step
+                if isinstance(slice_info, slice)
+                and slice_info.step is not None
+                else 1
+            )
+            eff_slice = slice(start, start + copy_len * step, step)
+            updated = curr.at[eff_slice].set(new_val[:copy_len])
+        else:
+            updated = curr.at[slice_info].set(new_val)
+
         if self.parent is not None and self.slice_info is not None:
-            self.parent.set_slice(self.slice_info, self.array)
+            self.parent.set_slice(self.slice_info, updated)
+        else:
+            self._array = updated
 
     @property
     def shape(self):
@@ -323,10 +399,14 @@ def _getvalue(self, index):
     data = getattr(self, "_data", self)
     if isinstance(data, JAXArrayData):
         val = data.array[index]
-        return val.item() if hasattr(val, "item") else val
+        if hasattr(val, "shape") and val.shape == ():
+            return val.item()
+        return val
     if is_jax_array(data):
         val = data[index]
-        return val.item() if hasattr(val, "item") else val
+        if hasattr(val, "shape") and val.shape == ():
+            return val.item()
+        return val
     if _array_cpu is not None and hasattr(_array_cpu, "_getvalue"):
         return _array_cpu._getvalue(self, index)
     return data[index]
@@ -381,6 +461,12 @@ def to_jax(arr, device=None, dtype=None):
 
     if dtype is not None and res.dtype != dtype:
         res = res.astype(dtype)
+
+    if device is None:
+        from pycbc import scheme
+        state = getattr(scheme.mgr, "state", None)
+        if getattr(scheme, "JAXScheme", None) is not None and isinstance(state, scheme.JAXScheme):
+            device = state.jax_device
 
     if device is not None:
         target_dev = device
@@ -476,40 +562,57 @@ def dot(self, other):
     return jnp.dot(s_arr, o_arr)
 
 
+@jax.jit
+def _fast_inner(s, o):
+    s_c = s.astype(jnp.complex128 if jnp.iscomplexobj(s) else jnp.float64)
+    o_c = o.astype(jnp.complex128 if jnp.iscomplexobj(o) else jnp.float64)
+    return jnp.sum(jnp.conj(s_c) * o_c)
+
+
+@jax.jit
+def _fast_inner_self(s):
+    s_c = s.astype(jnp.complex128 if jnp.iscomplexobj(s) else jnp.float64)
+    return jnp.sum(s_c.real ** 2 + s_c.imag ** 2)
+
+
+@jax.jit
+def _fast_weighted_inner(s, o, w):
+    s_c = s.astype(jnp.complex128 if jnp.iscomplexobj(s) else jnp.float64)
+    o_c = o.astype(jnp.complex128 if jnp.iscomplexobj(o) else jnp.float64)
+    w_c = w.astype(jnp.complex128 if jnp.iscomplexobj(w) else jnp.float64)
+    return jnp.sum(jnp.conj(s_c) * o_c / w_c)
+
+
+@jax.jit
+def _fast_weighted_inner_self(s, w):
+    s_c = s.astype(jnp.complex128 if jnp.iscomplexobj(s) else jnp.float64)
+    w_c = w.astype(jnp.complex128 if jnp.iscomplexobj(w) else jnp.float64)
+    return jnp.sum((s_c.real ** 2 + s_c.imag ** 2) / w_c)
+
+
 def inner(self, other):
     """Inner product (conjugate dot) in JAX scheme."""
     _ensure_x64()
-    import jax.numpy as jnp
-
     s_arr = to_jax(self)
-    o_arr = to_jax(other)
-    if isinstance(s_arr, JAXArrayData):
-        s_arr = s_arr.array
-    if isinstance(o_arr, JAXArrayData):
-        o_arr = o_arr.array
-    s_c = s_arr.astype(jnp.complex128 if jnp.iscomplexobj(s_arr) else jnp.float64)
-    o_c = o_arr.astype(jnp.complex128 if jnp.iscomplexobj(o_arr) else jnp.float64)
-    return jnp.sum(jnp.conj(s_c) * o_c)
+    if self is other:
+        res = _fast_inner_self(s_arr)
+    else:
+        o_arr = to_jax(other)
+        res = _fast_inner(s_arr, o_arr)
+    return res.item() if hasattr(res, "item") else res
 
 
 def weighted_inner(self, other, weight):
     """Weighted inner product in JAX scheme."""
     _ensure_x64()
-    import jax.numpy as jnp
-
     s_arr = to_jax(self)
-    o_arr = to_jax(other)
     w_arr = to_jax(weight)
-    if isinstance(s_arr, JAXArrayData):
-        s_arr = s_arr.array
-    if isinstance(o_arr, JAXArrayData):
-        o_arr = o_arr.array
-    if isinstance(w_arr, JAXArrayData):
-        w_arr = w_arr.array
-    s_c = s_arr.astype(jnp.complex128 if jnp.iscomplexobj(s_arr) else jnp.float64)
-    o_c = o_arr.astype(jnp.complex128 if jnp.iscomplexobj(o_arr) else jnp.float64)
-    w_c = w_arr.astype(jnp.complex128 if jnp.iscomplexobj(w_arr) else jnp.float64)
-    return jnp.sum(jnp.conj(s_c) * o_c / w_c)
+    if self is other:
+        res = _fast_weighted_inner_self(s_arr, w_arr)
+    else:
+        o_arr = to_jax(other)
+        res = _fast_weighted_inner(s_arr, o_arr, w_arr)
+    return res.item() if hasattr(res, "item") else res
 
 
 def squared_norm(self):

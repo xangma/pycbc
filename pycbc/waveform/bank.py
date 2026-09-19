@@ -867,6 +867,64 @@ class LiveFilterBank(TemplateBank):
         return htilde
 
 
+class TemplateBatchList(list):
+    """List of FrequencySeries templates carrying the underlying 2D batch tensor."""
+    _batch_tensor = None
+
+
+class LazyFrequencySeries(FrequencySeries):
+    """FrequencySeries that lazily materializes its 1D slice from a 2D batch tensor."""
+    def __init__(self, batch_tensor, pos, delta_f):
+        self._batch_tensor = batch_tensor
+        self._batch_pos = pos
+        self._delta_f = delta_f
+        self._epoch = 0.0
+        from pycbc import scheme as _scheme
+        self._scheme = getattr(_scheme.mgr, "state", None)
+        self._saved = {}
+        self._data_inst = None
+
+    @property
+    def _data(self):
+        if self._data_inst is None and self._batch_tensor is not None:
+            from pycbc.types.array_jax import JAXArrayData
+            self._data_inst = JAXArrayData(self._batch_tensor[self._batch_pos])
+        return self._data_inst
+
+    @_data.setter
+    def _data(self, val):
+        self._data_inst = val
+
+    @_data.deleter
+    def _data(self):
+        self._data_inst = None
+        self._batch_tensor = None
+
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, val):
+        self._data_inst = val
+
+    @data.deleter
+    def data(self):
+        self._data_inst = None
+        self._batch_tensor = None
+
+    @property
+    def shape(self):
+        if self._data_inst is not None:
+            return self._data_inst.shape
+        return (self._batch_tensor.shape[1],)
+
+    def __len__(self):
+        if self._data_inst is not None:
+            return len(self._data_inst)
+        return int(self._batch_tensor.shape[1])
+
+
 class FilterBank(TemplateBank):
     def __init__(self, filename, filter_length, delta_f, dtype,
                  out=None, max_template_length=None,
@@ -927,6 +985,193 @@ class FilterBank(TemplateBank):
         """Return the resolved provider and parameter identity for a batch."""
         from pycbc.waveform.diffgw import batch_key
         return batch_key(self, indices)
+
+    def get_batch(self, indices):
+        """Return a list of templates for the given indices.
+
+        Uses in-memory caching and batched on-device decompression when available.
+        """
+        if not hasattr(self, "_template_cache"):
+            from pycbc.opt import LimitedSizeDict
+            b_size = max(len(indices), 64)
+            self._template_cache = LimitedSizeDict(size_limit=b_size * 2)
+
+        if hasattr(self, "_template_cache"):
+            keys_to_evict = [k for k in self._template_cache if k not in indices]
+            for k in keys_to_evict:
+                self._template_cache.pop(k, None)
+            if keys_to_evict:
+                import gc
+                gc.collect()
+
+        missing = [idx for idx in indices if idx not in self._template_cache]
+        if not missing:
+            res = TemplateBatchList([self._template_cache[idx] for idx in indices])
+            if getattr(self, "_last_batch_indices", None) == tuple(indices):
+                res._batch_tensor = getattr(self, "_last_batch_tensor", None)
+            return res
+
+        from pycbc import scheme
+        state = scheme.mgr.state
+        is_jax = getattr(scheme, "JAXScheme", None) is not None and isinstance(state, scheme.JAXScheme)
+
+        if is_jax and (self.has_compressed_waveforms and self.enable_compressed_waveforms):
+            self._decompress_batch_jax(missing)
+        else:
+            for idx in missing:
+                self._template_cache[idx] = self[idx]
+
+        res = TemplateBatchList([self._template_cache[idx] for idx in indices])
+        if getattr(self, "_last_batch_indices", None) == tuple(indices):
+            res._batch_tensor = getattr(self, "_last_batch_tensor", None)
+        return res
+
+    def clear_batch_cache(self, indices=None, collect=True):
+        """Evict decompressed templates from cache to release GPU VRAM.
+
+        Parameters
+        ----------
+        indices : iterable, optional
+            Template indices to evict. If omitted, clear the entire cache.
+        collect : bool, optional
+            Run a full Python garbage collection after eviction. The default
+            preserves the historical cleanup behavior; callers that already
+            collect after releasing their remaining batch references may defer
+            this step.
+        """
+        if hasattr(self, "_template_cache"):
+            if indices is None:
+                to_clear = list(self._template_cache.keys())
+            else:
+                to_clear = list(indices)
+            for idx in to_clear:
+                tmpl = self._template_cache.pop(idx, None)
+                if tmpl is not None:
+                    if hasattr(tmpl, "sigma_view"):
+                        try:
+                            del tmpl.sigma_view
+                        except Exception:
+                            pass
+                    if hasattr(tmpl, "_batch_tensor"):
+                        tmpl._batch_tensor = None
+                    if hasattr(tmpl, "_data_inst"):
+                        tmpl._data_inst = None
+                    elif hasattr(tmpl, "_data"):
+                        try:
+                            del tmpl._data
+                        except Exception:
+                            pass
+                    if hasattr(tmpl, "_sigmasq"):
+                        tmpl._sigmasq.clear()
+            self._last_batch_tensor = None
+            self._last_batch_indices = None
+            if collect:
+                import gc
+                gc.collect()
+
+    def _decompress_batch_jax(self, indices):
+        """Decompress a batch of waveforms using batched JAX GPU kernels."""
+        import types
+        import numpy as np
+        import jax.numpy as jnp
+        from pycbc.waveform.waveform import props, get_waveform_filter_length_in_time
+        from pycbc.waveform.bank import sigma_cached, find_variable_start_frequency
+        from pycbc.waveform.decompress_jax import batched_inline_linear_interp_jax, _grid_indices
+
+        b = len(indices)
+        if b == 0:
+            return
+
+        logging.info(
+            "Decompressing template batch %d-%d (%d templates) using batched JAX on GPU",
+            indices[0] + 1, indices[-1] + 1, b
+        )
+
+        amps_list = []
+        phases_list = []
+        freqs_list = []
+        imins = []
+        starts = []
+        ends = []
+        counts = []
+        metadata = []
+
+        flen = self.filter_length
+        df = self.delta_f
+
+        for index in indices:
+            tmplt_hash = self.table.template_hash[index]
+            group = self.filehandler['compressed_waveforms'][str(tmplt_hash)]
+            amp = np.asarray(group['amplitude'], dtype=np.float64)
+            phase = np.asarray(group['phase'], dtype=np.float64)
+            freq = np.asarray(group['sample_points'], dtype=np.float64)
+
+            approximant = self.approximant(index)
+            f_end = self.end_frequency(index)
+            if f_end is None or f_end >= (flen * df):
+                f_end = (flen - 1) * df
+
+            f_low = find_variable_start_frequency(
+                approximant, self.table[index], self.f_lower,
+                self.max_template_length, **self.extra_args
+            )
+
+            p = props(self.table[index])
+            p.pop('approximant', None)
+            try:
+                tmpltdur = self.table[index].template_duration
+            except AttributeError:
+                tmpltdur = None
+            if tmpltdur is None or tmpltdur == 0.0:
+                tmpltdur = get_waveform_filter_length_in_time(approximant, **p)
+            self.table[index].template_duration = tmpltdur
+
+            k = len(freq)
+            counts.append(k)
+            imin = int(np.searchsorted(freq, f_low, side='right')) - 1
+            imins.append(imin)
+            s_idx = int(np.ceil(f_low / df))
+            starts.append(s_idx)
+            last_idx = int(_grid_indices(freq[-1], df))
+            e_idx = min(flen, last_idx + 1)
+            ends.append(e_idx)
+
+            amps_list.append(amp)
+            phases_list.append(phase)
+            freqs_list.append(freq)
+
+            metadata.append({
+                'approximant': approximant,
+                'f_low': f_low,
+                'f_end': f_end,
+                'tmpltdur': tmpltdur,
+                'index': index
+            })
+
+        dtype = jnp.complex64 if self.dtype == np.complex64 else jnp.complex128
+        batch_waveforms = batched_inline_linear_interp_jax(
+            amps_list, phases_list, freqs_list,
+            imins, starts, ends, counts,
+            df, flen, dtype=dtype
+        )
+
+        self._last_batch_tensor = batch_waveforms
+        self._last_batch_indices = tuple(indices)
+
+        for pos, meta in enumerate(metadata):
+            idx = meta['index']
+            fs = LazyFrequencySeries(batch_waveforms, pos, df)
+            fs.params = self.table[idx]
+            fs.approximant = meta['approximant']
+            fs.f_lower = meta['f_low']
+            fs.min_f_lower = self.min_f_lower
+            fs.end_idx = int(meta['f_end'] / df)
+            fs.end_frequency = meta['f_end']
+            fs.chirp_length = meta['tmpltdur']
+            fs.length_in_time = meta['tmpltdur']
+            fs.sigmasq = types.MethodType(sigma_cached, fs)
+            fs._sigmasq = {}
+            self._template_cache[idx] = fs
 
     def get_decompressed_waveform(self, tempout, index, f_lower=None,
                                   approximant=None, df=None):
@@ -1024,6 +1269,9 @@ class FilterBank(TemplateBank):
         return htilde
 
     def __getitem__(self, index):
+        if hasattr(self, "_template_cache") and index in self._template_cache:
+            return self._template_cache[index]
+
         # Make new memory for templates if we aren't given output memory
         if self.out is None:
             tempout = zeros(self.filter_length, dtype=self.dtype)
@@ -1099,6 +1347,8 @@ class FilterBank(TemplateBank):
         # Add sigmasq as a method of this instance
         htilde.sigmasq = types.MethodType(sigma_cached, htilde)
         htilde._sigmasq = {}
+        if hasattr(self, "_template_cache"):
+            self._template_cache[index] = htilde
         return htilde
 
 

@@ -743,7 +743,7 @@ def analytical_psd_jax(psd_name, frequencies, low_freq_cutoff=0.0):
     )
 
 
-def _wrap_frequency_series(values, delta_f, epoch=None):
+def _wrap_frequency_series(values, delta_f, epoch=0.0):
     """Wrap values in FrequencySeries matching the active scheme."""
     from pycbc import scheme as _scheme
 

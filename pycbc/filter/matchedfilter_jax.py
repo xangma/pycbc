@@ -18,6 +18,7 @@
 sigmasq, and match calculations.
 """
 
+import functools
 import numpy as np
 import jax
 import jax.numpy as jnp
@@ -56,12 +57,17 @@ def _set_output_array(z, val):
             pass
 
 
+@jax.jit
+def _fast_conj_mul(x, y):
+    return jnp.conj(x) * y
+
+
 def correlate(x, y, z):
     """Elementwise z = conj(x) * y in JAX scheme."""
     _ensure_x64()
     x_arr = to_jax(x)
     y_arr = to_jax(y)
-    prod = jnp.conj(x_arr) * y_arr
+    prod = _fast_conj_mul(x_arr, y_arr)
     _set_output_array(z, prod)
 
 
@@ -542,3 +548,291 @@ def batch_matched_filter_bank(
     norm_snr = snr_series * norm
 
     return norm_snr, sigmasq
+
+
+@functools.partial(
+    jax.jit,
+    static_argnames=(
+        "kmin", "kmax", "tlen", "valid_start", "valid_stop", "full_templates"
+    ),
+)
+def _batched_filter_and_screen(
+    templates_2d,
+    seg_slice,
+    kmin,
+    kmax,
+    tlen,
+    valid_start,
+    valid_stop,
+    full_templates=False,
+):
+    """JIT-compiled batched correlation, IFFT, and peak screening."""
+    if full_templates:
+        templates_2d = templates_2d[:, kmin:kmax]
+    corr_slice = jnp.conj(templates_2d) * seg_slice[None, :]
+    pad_left = kmin
+    pad_right = tlen - kmax
+    qtilde = jnp.pad(corr_slice, ((0, 0), (pad_left, pad_right)))
+    snr_series = jnp.fft.ifft(qtilde, axis=-1) * tlen
+    valid_snr = snr_series[:, valid_start:valid_stop]
+    valid_mag_sq = valid_snr.real ** 2 + valid_snr.imag ** 2
+    row_max_sq = jnp.max(valid_mag_sq, axis=-1)
+    return snr_series, valid_snr, corr_slice, row_max_sq
+
+
+@functools.partial(
+    jax.jit,
+    static_argnames=(
+        "kmin", "kmax", "tlen", "valid_start", "valid_stop", "full_templates"
+    ),
+)
+def _batched_filter_and_screen_lean(
+    templates_2d,
+    seg_slice,
+    kmin,
+    kmax,
+    tlen,
+    valid_start,
+    valid_stop,
+    full_templates=False,
+):
+    """JIT-compiled batched correlation, IFFT, and peak screening without retaining full time series."""
+    if full_templates:
+        templates_2d = templates_2d[:, kmin:kmax]
+    corr_slice = jnp.conj(templates_2d) * seg_slice[None, :]
+    pad_left = kmin
+    pad_right = tlen - kmax
+    qtilde = jnp.pad(corr_slice, ((0, 0), (pad_left, pad_right)))
+    snr_series = jnp.fft.ifft(qtilde, axis=-1) * tlen
+    valid_snr = snr_series[:, valid_start:valid_stop]
+    valid_mag_sq = valid_snr.real ** 2 + valid_snr.imag ** 2
+    row_max_sq = jnp.max(valid_mag_sq, axis=-1)
+    return valid_snr, row_max_sq, corr_slice
+
+
+def batched_matched_filter_and_cluster_jax(
+    mf_control,
+    segnum,
+    templates,
+    sigmasqs,
+    window,
+    epoch=None,
+):
+    """Batched matched filtering, thresholding, and clustering on JAX device.
+
+    Parameters
+    ----------
+    mf_control : MatchedFilterControl
+        The matched filter control object holding analysis configuration.
+    segnum : int
+        Index of the segment to filter against.
+    templates : list of FrequencySeries
+        Templates in the current batch.
+    sigmasqs : sequence of float
+        Normalization factors for each template in the batch.
+    window : int
+        Clustering window size in samples.
+    epoch : optional
+        GPS epoch for the returned TimeSeries.
+
+    Returns
+    -------
+    list of tuples
+        For each template, returns (snr, norm, corr, idx, snrv) matching
+        MatchedFilterControl's contract.
+    """
+    _ensure_x64()
+    import jax.numpy as jnp
+    from pycbc.types import Array, TimeSeries
+    from pycbc.types.array_jax import JAXArrayData, to_jax
+    from pycbc.events.threshold_jax import _batched_cluster_core
+
+    b = len(sigmasqs)
+    if b == 0:
+        return []
+
+    seg = mf_control.segments[segnum]
+    kmin, kmax = mf_control.kmin, mf_control.kmax
+    tlen = mf_control.tlen
+    delta_f = mf_control.delta_f
+    delta_t = mf_control.delta_t
+    valid_start = seg.analyze.start
+    valid_stop = seg.analyze.stop
+    threshold = float(mf_control.snr_threshold)
+
+    from pycbc import scheme
+    state = getattr(scheme.mgr, "state", None)
+    target_dev = getattr(state, "jax_device", None)
+
+    # Pre-stack all segments into a persistent 2D tensor in VRAM during setup / first call
+    cached_seg_tensor = getattr(mf_control, "_jax_segments_tensor", None)
+    if (
+        cached_seg_tensor is None
+        or (target_dev is not None and getattr(cached_seg_tensor, "device", lambda: None)() != target_dev)
+    ):
+        import jax
+        slices = []
+        for s in mf_control.segments:
+            s_jax = to_jax(s, device=target_dev)
+            slices.append(s_jax[kmin:kmax])
+        mf_control._jax_segments_tensor = jnp.stack(slices, axis=0)
+        if target_dev is not None:
+            mf_control._jax_segments_tensor = jax.device_put(
+                mf_control._jax_segments_tensor, target_dev
+            )
+
+    seg_slice = mf_control._jax_segments_tensor[segnum]
+
+    # Cache 2D templates on mf_control across segments to avoid re-stacking 5x per batch
+    batch_tensor = getattr(templates, "_batch_tensor", None)
+    if batch_tensor is not None:
+        cache_key = (id(batch_tensor), kmin, kmax, True)
+        full_templates = True
+    else:
+        cache_key = (tuple(id(t) for t in templates), kmin, kmax, False)
+        full_templates = False
+
+    if getattr(mf_control, "_cached_templates_key", None) == cache_key:
+        templates_2d = mf_control._cached_templates_2d
+    else:
+        import jax
+        if batch_tensor is not None:
+            # Keep the full batch tensor cached. Slicing inside the JIT avoids
+            # retaining a second device allocation for the cropped templates.
+            templates_2d = to_jax(batch_tensor, device=target_dev)
+        elif hasattr(templates, "ndim") and templates.ndim == 2:
+            templates_2d = to_jax(templates, device=target_dev)[:, kmin:kmax]
+        else:
+            templates_2d = jnp.stack(
+                [to_jax(t, device=target_dev)[kmin:kmax] for t in templates], axis=0
+            )
+        if target_dev is not None:
+            templates_2d = jax.device_put(templates_2d, target_dev)
+        mf_control._cached_templates_key = cache_key
+        mf_control._cached_templates_2d = templates_2d
+
+    sigmasqs_arr = jnp.asarray(sigmasqs, dtype=jnp.float32)
+    norms = (4.0 * delta_f) / jnp.sqrt(jnp.maximum(sigmasqs_arr, 1e-30))
+    unnorm_thresh = threshold / norms
+
+    # Execute JIT-compiled batched correlation, IFFT, and peak screening
+    need_snr = getattr(mf_control, "need_snr_series", False)
+    if need_snr:
+        snr_series, valid_snr, corr_slice, row_max_sq = _batched_filter_and_screen(
+            templates_2d,
+            seg_slice,
+            kmin,
+            kmax,
+            tlen,
+            valid_start,
+            valid_stop,
+            full_templates=full_templates,
+        )
+    else:
+        valid_snr, row_max_sq, corr_slice = _batched_filter_and_screen_lean(
+            templates_2d,
+            seg_slice,
+            kmin,
+            kmax,
+            tlen,
+            valid_start,
+            valid_stop,
+            full_templates=full_templates,
+        )
+        snr_series = None
+
+    thresh_sq = unnorm_thresh ** 2
+    has_trigs = np.asarray(row_max_sq > thresh_sq)
+
+    empty_idx = np.empty(0, dtype=np.uint32)
+    empty_snrv = np.empty(0, dtype=np.complex64)
+
+    results = []
+    if not np.any(has_trigs):
+        # Transfer normalization values once instead of synchronizing per row.
+        norms_np = np.asarray(norms)
+        for i in range(b):
+            results.append(([], float(norms_np[i]), [], empty_idx, empty_snrv))
+        return results
+
+    # Run batched reduction and clustering across all templates simultaneously on GPU
+    batched_max_idx, batched_survivor_mask, batched_max_snr = _batched_cluster_core(
+        valid_snr, thresh_sq, window=window
+    )
+    survivor_mask_np = np.asarray(batched_survivor_mask)
+    global_max_idx_np = np.asarray(batched_max_idx)
+    block_max_snr_np = np.asarray(batched_max_snr)
+    norms_np = np.asarray(norms)
+
+    from pycbc.waveform.bank import LazyFrequencySeries
+
+    for i in range(b):
+        norm_i = float(norms_np[i])
+        if not has_trigs[i]:
+            results.append(([], norm_i, [], empty_idx, empty_snrv))
+            continue
+
+        mask_np = survivor_mask_np[i]
+        if not np.any(mask_np):
+            results.append(([], norm_i, [], empty_idx, empty_snrv))
+            continue
+
+        survivor_indices = global_max_idx_np[i][mask_np].astype(np.uint32)
+        survivor_values = block_max_snr_np[i][mask_np]
+
+        corr = LazyFrequencySeries(corr_slice, i, delta_f)
+        corr._kmin = kmin
+        corr._tlen = tlen
+
+        if need_snr and snr_series is not None:
+            snr = TimeSeries(
+                Array(JAXArrayData(snr_series[i]), copy=False),
+                epoch=epoch,
+                delta_t=delta_t,
+                copy=False,
+            )
+        else:
+            snr = None
+
+        results.append((snr, norm_i, corr, survivor_indices, survivor_values))
+
+    del valid_snr, row_max_sq, batched_max_idx, batched_survivor_mask, batched_max_snr
+    if snr_series is not None:
+        del snr_series
+    if corr_slice is not None:
+        del corr_slice
+
+    return results
+
+
+@functools.partial(jax.jit, static_argnames=("delta_f",))
+def _batched_sigmasq_core(tmpls_stack, psd_j, delta_f):
+    """JIT-compiled GPU reduction for template batch sigmasq values."""
+    mag_sq = tmpls_stack.real ** 2 + tmpls_stack.imag ** 2
+    return jnp.sum(mag_sq / psd_j[None, :], axis=-1) * (4.0 * delta_f)
+
+
+def batch_sigmasq_jax(templates, psd):
+    """Compute sigmasq for a batch of FrequencySeries templates against psd on GPU."""
+    from pycbc.types.array_jax import to_jax, _ensure_x64
+    from pycbc import scheme
+
+    _ensure_x64()
+    b = len(templates)
+    if b == 0:
+        return []
+    df = float(templates[0].delta_f)
+    flow = float(templates[0].f_lower) if hasattr(templates[0], "f_lower") else 30.0
+    kmin = int(flow / df)
+
+    state = getattr(scheme.mgr, "state", None)
+    target_dev = getattr(state, "jax_device", None)
+
+    batch_tensor = getattr(templates, "_batch_tensor", None)
+    if batch_tensor is not None:
+        tmpls_stack = batch_tensor[:, kmin:]
+    else:
+        tmpls_stack = jnp.stack([to_jax(t, device=target_dev)[kmin:] for t in templates], axis=0)
+    psd_j = to_jax(psd, device=target_dev)[kmin:]
+    ssq_gpu = _batched_sigmasq_core(tmpls_stack, psd_j, df)
+    return [float(x) for x in np.asarray(ssq_gpu)]

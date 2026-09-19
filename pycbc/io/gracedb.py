@@ -23,8 +23,6 @@ from pycbc.io.ligolw import (
     make_psd_xmldoc,
     snr_series_to_xml
 )
-from pycbc.results import generate_asd_plot, generate_snr_plot
-from pycbc.results import source_color
 from pycbc.mchirp_area import calc_probabilities
 
 logger = logging.getLogger('pycbc.io.gracedb')
@@ -473,6 +471,7 @@ class CandidateForGraceDB(object):
 
         # plot the SNR timeseries and noise PSDs
         if self.snr_series is not None:
+            from pycbc.results import generate_asd_plot, generate_snr_plot
             snr_series_fname = self.basename + '.hdf'
             snr_series_plot_fname = self.basename + '_snr.png'
             asd_series_plot_fname = self.basename + '_asd.png'
@@ -529,6 +528,7 @@ class CandidateForGraceDB(object):
         # The pie plot only shows relative astrophysical source
         # probabilities, not p_astro vs p_terrestrial
         if hasattr(self, 'prob_file'):
+            from pycbc.results import source_color
             self.prob_plotf = self.prob_file.replace('.json', '.png')
             # Don't try to plot zero probabilities
             prob_plot = {k: v for (k, v) in self.probabilities.items()

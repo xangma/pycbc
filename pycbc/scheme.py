@@ -232,6 +232,19 @@ class JAXScheme(Scheme):
             ) from exc
 
         self._jax = jax
+        cache_dir = os.environ.get(
+            "JAX_COMPILATION_CACHE_DIR",
+            os.path.expanduser("~/.cache/pycbc_jax_cache"),
+        )
+        if cache_dir and cache_dir.strip().lower() not in ("0", "false", "none", "off"):
+            try:
+                os.makedirs(cache_dir, exist_ok=True)
+                os.environ.setdefault("JAX_PERSISTENT_CACHE_MIN_COMPILE_TIME_SECS", "0")
+                from jax.experimental.compilation_cache import compilation_cache as cc
+                cc.initialize_cache(cache_dir)
+            except Exception:
+                pass
+
         if os.environ.get("PYCBC_JAX_ENABLE_X64", "1").strip().lower() not in (
             "0",
             "false",
@@ -249,6 +262,8 @@ class JAXScheme(Scheme):
             num_threads = int(num_threads)
             if num_threads <= 0:
                 raise ValueError(f"num_threads must be positive, got {num_threads}")
+        else:
+            num_threads = 1
         self.num_threads = num_threads
         self._prev_default_device = None
 

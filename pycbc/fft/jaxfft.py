@@ -19,7 +19,12 @@
 import functools
 import numpy as np
 
-from pycbc.types.array_jax import _ensure_x64, is_jax_array, to_jax
+from pycbc.types.array_jax import (
+    JAXArrayData,
+    _ensure_x64,
+    is_jax_array,
+    to_jax,
+)
 from .core import _BaseFFT, _BaseIFFT, _check_fft_args
 
 _INV_FFT_MSG = (
@@ -41,6 +46,19 @@ def _batched_view(vec, nbatch, dist):
 def _assign_to_vec(outvec, result, nbatch, size, odist):
     """Assign JAX or NumPy result into destination vector data."""
     target = getattr(outvec, "data", outvec)
+    dest = None
+    if isinstance(target, JAXArrayData):
+        dest = target
+    elif hasattr(target, "_data") and isinstance(target._data, JAXArrayData):
+        dest = target._data
+
+    if dest is not None and nbatch == 1:
+        if hasattr(result, "ndim") and result.ndim == 2:
+            dest.set_array(result[0])
+        else:
+            dest.set_array(result)
+        return
+
     narr = np.asarray(result)
     copy_len = min(size, narr.shape[-1])
     if nbatch == 1:

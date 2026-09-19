@@ -1,0 +1,593 @@
+{
+  "host": "len",
+  "gpu": "NVIDIA GeForce RTX 4090",
+  "jax": "0.4.20",
+  "base_commit": "43282b214",
+  "source_sha256": {
+    "bin/pycbc_inspiral": "cb34f4e810e6345122707c77d00d0a907845cb67b87c29afadc5c357c0c1fb0d",
+    "pycbc/filter/matchedfilter_jax.py": "febb3534d4b6b6fee879eb447c818d2dd1618782bb015d05e766814629ad842d",
+    "test/test_jax_search.py": "d26b39a7e308c6aa3755bc706b7f0cd49b7d0abc25afcf1fd401513782d1a78f"
+  },
+  "template_count": 1536,
+  "bank_note": "384 compressed templates repeated four times; not 1536 independent templates.",
+  "timing_method": "Three uninstrumented repetitions per successful final size. Order reversed/rotated; fixed CPU 8 and one BLAS/OpenMP thread. Calculation seconds = HDF run_time * (1 - setup_time_fraction). Memory/warmup/capture runs excluded.",
+  "memory_method": "Separate synchronized snapshots and allocator high-water marks; distinct device pointers grouped to avoid alias overcounting. Original memory run is the prior validated profile. PREALLOCATE=false throughout; no memory-fraction override.",
+  "comparison_method": "All 18 scientific HDF datasets compared exactly against prior program.hdf; four performance datasets excluded; attributes not compared.",
+  "variants": [
+    {
+      "label": "Original / B128",
+      "memory": {
+        "steady_live_gib": 3.322147410362959,
+        "peak_gib": 13.867391586303711
+      },
+      "calc_seconds": [
+        6.848176956176757,
+        6.838246822357179,
+        6.8415305614471436
+      ],
+      "wall_seconds": [
+        15.593729658052325,
+        15.644291271921247,
+        15.640475528081879
+      ],
+      "run_names": [
+        "release_control_128_r1",
+        "release_control_128_r2",
+        "release_control_128_r3"
+      ]
+    },
+    {
+      "label": "Optimized / B128",
+      "memory": {
+        "steady_live_gib": 1.337772410362959,
+        "peak_gib": 9.892932891845703
+      },
+      "calc_seconds": [
+        6.798365116119386,
+        6.799278259277345,
+        6.8086419105529785
+      ],
+      "wall_seconds": [
+        15.441040918929502,
+        15.842410589102656,
+        15.491465382045135
+      ],
+      "run_names": [
+        "release_candidate_128_r1",
+        "release_candidate_128_r2",
+        "release_candidate_128_r3"
+      ]
+    },
+    {
+      "label": "Optimized / B144",
+      "memory": {
+        "steady_live_gib": 1.4627725295722485,
+        "peak_gib": 11.062490701675415
+      },
+      "calc_seconds": [
+        7.235098600387574,
+        7.242941856384278,
+        7.250514030456542
+      ],
+      "wall_seconds": [
+        16.142910161986947,
+        16.142585712950677,
+        15.993198691867292
+      ],
+      "run_names": [
+        "release_candidate_144_r1",
+        "release_candidate_144_r2",
+        "release_candidate_144_r3"
+      ]
+    },
+    {
+      "label": "Optimized / B160",
+      "memory": {
+        "steady_live_gib": 1.587772648781538,
+        "peak_gib": 12.246694803237915
+      },
+      "calc_seconds": [
+        7.053807973861694,
+        7.084271907806396,
+        7.057170152664185
+      ],
+      "wall_seconds": [
+        15.741166312014684,
+        15.94220559997484,
+        15.791724215028808
+      ],
+      "run_names": [
+        "release_candidate_160_r1",
+        "release_candidate_160_r2",
+        "release_candidate_160_r3"
+      ]
+    }
+  ],
+  "figure_note": "1,536 bank rows (384 templates repeated \u00d74), five segments \u00b7 setup excluded from throughput\nMemory and timing measured separately; dots show every timed run. Same allocator settings.",
+  "nsight_method": "Clipped union of target-process CUPTI kernel intervals within filter_batch phases. Active time is not SM occupancy. Transfer bytes assigned by completion timestamp. Instrumented durations are excluded from throughput comparisons.",
+  "artifact_note": "Published results summary; raw traces, logs, allocation inventories and profiler dumps are not distributed with the documentation.",
+  "source_receipt_sha256": "95a70669021e63facf4c77cd4e73c7d499825fff0023d691c77c4f7d53639bcc",
+  "runs": [
+    {
+      "name": "release_memory_128",
+      "batch_size": 128,
+      "kind": "candidate",
+      "memory": true,
+      "wall_sec": 15.641810954082757,
+      "returncode": 0,
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 12.933730125427246,
+        "calc_time_sec": 6.886479854583741,
+        "templates_per_calc_second": 223.04574070272145
+      }
+    },
+    {
+      "name": "release_memory_144",
+      "batch_size": 144,
+      "kind": "candidate",
+      "memory": true,
+      "wall_sec": 16.543646388920024,
+      "returncode": 0,
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 13.815166473388672,
+        "calc_time_sec": 7.307191610336303,
+        "templates_per_calc_second": 210.2038761139463
+      }
+    },
+    {
+      "name": "release_memory_160",
+      "batch_size": 160,
+      "kind": "candidate",
+      "memory": true,
+      "wall_sec": 19.19805756304413,
+      "returncode": 0,
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 16.44175362586975,
+        "calc_time_sec": 10.062874794006348,
+        "templates_per_calc_second": 152.64027740013944
+      }
+    },
+    {
+      "name": "release_memory_192",
+      "batch_size": 192,
+      "kind": "candidate",
+      "memory": true,
+      "wall_sec": 18.797215102007613,
+      "returncode": 1
+    },
+    {
+      "name": "release_control_128_r1",
+      "batch_size": 128,
+      "kind": "control",
+      "memory": false,
+      "wall_sec": 15.593729658052325,
+      "returncode": 0,
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 13.0028555393219,
+        "calc_time_sec": 6.848176956176757,
+        "templates_per_calc_second": 224.29326955615466
+      }
+    },
+    {
+      "name": "release_candidate_128_r1",
+      "batch_size": 128,
+      "kind": "candidate",
+      "memory": false,
+      "wall_sec": 15.441040918929502,
+      "returncode": 0,
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 12.87520980834961,
+        "calc_time_sec": 6.798365116119386,
+        "templates_per_calc_second": 225.93667356259516
+      }
+    },
+    {
+      "name": "release_candidate_144_r1",
+      "batch_size": 144,
+      "kind": "candidate",
+      "memory": false,
+      "wall_sec": 16.142910161986947,
+      "returncode": 0,
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 13.518336534500122,
+        "calc_time_sec": 7.235098600387574,
+        "templates_per_calc_second": 212.29841980560136
+      }
+    },
+    {
+      "name": "release_candidate_160_r1",
+      "batch_size": 160,
+      "kind": "candidate",
+      "memory": false,
+      "wall_sec": 15.741166312014684,
+      "returncode": 0,
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 13.139688730239868,
+        "calc_time_sec": 7.053807973861694,
+        "templates_per_calc_second": 217.75472279536663
+      }
+    },
+    {
+      "name": "release_candidate_160_r2",
+      "batch_size": 160,
+      "kind": "candidate",
+      "memory": false,
+      "wall_sec": 15.94220559997484,
+      "returncode": 0,
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 13.317119121551514,
+        "calc_time_sec": 7.084271907806396,
+        "templates_per_calc_second": 216.81832939069298
+      }
+    },
+    {
+      "name": "release_candidate_144_r2",
+      "batch_size": 144,
+      "kind": "candidate",
+      "memory": false,
+      "wall_sec": 16.142585712950677,
+      "returncode": 0,
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 13.478564977645874,
+        "calc_time_sec": 7.242941856384278,
+        "templates_per_calc_second": 212.0685255323561
+      }
+    },
+    {
+      "name": "release_candidate_128_r2",
+      "batch_size": 128,
+      "kind": "candidate",
+      "memory": false,
+      "wall_sec": 15.842410589102656,
+      "returncode": 0,
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 13.244436740875244,
+        "calc_time_sec": 6.799278259277345,
+        "templates_per_calc_second": 225.9063302644202
+      }
+    },
+    {
+      "name": "release_control_128_r2",
+      "batch_size": 128,
+      "kind": "control",
+      "memory": false,
+      "wall_sec": 15.644291271921247,
+      "returncode": 0,
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 13.030645608901978,
+        "calc_time_sec": 6.838246822357179,
+        "templates_per_calc_second": 224.6189761647903
+      }
+    },
+    {
+      "name": "release_candidate_144_r3",
+      "batch_size": 144,
+      "kind": "candidate",
+      "memory": false,
+      "wall_sec": 15.993198691867292,
+      "returncode": 0,
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 13.38379979133606,
+        "calc_time_sec": 7.250514030456542,
+        "templates_per_calc_second": 211.84704885031206
+      }
+    },
+    {
+      "name": "release_candidate_160_r3",
+      "batch_size": 160,
+      "kind": "candidate",
+      "memory": false,
+      "wall_sec": 15.791724215028808,
+      "returncode": 0,
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 13.18108081817627,
+        "calc_time_sec": 7.057170152664185,
+        "templates_per_calc_second": 217.65098003484266
+      }
+    },
+    {
+      "name": "release_control_128_r3",
+      "batch_size": 128,
+      "kind": "control",
+      "memory": false,
+      "wall_sec": 15.640475528081879,
+      "returncode": 0,
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 13.052194833755493,
+        "calc_time_sec": 6.8415305614471436,
+        "templates_per_calc_second": 224.5111654774367
+      }
+    },
+    {
+      "name": "release_candidate_128_r3",
+      "batch_size": 128,
+      "kind": "candidate",
+      "memory": false,
+      "wall_sec": 15.491465382045135,
+      "returncode": 0,
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 12.917462348937988,
+        "calc_time_sec": 6.8086419105529785,
+        "templates_per_calc_second": 225.59565037769045
+      }
+    }
+  ],
+  "representative_run": {
+    "name": "release_candidate_128_r3",
+    "command": [
+      "taskset",
+      "-c",
+      "8",
+      "/home/xangma/miniconda3/envs/pycbc3g/bin/python",
+      "/tmp/pycbc-jax-stack-validation-LC2tls/batch-sweep/candidate-release/bin/pycbc_inspiral",
+      "--verbose",
+      "--frame-files",
+      "/home/xangma/repos/pycbc-pr1-eval/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf",
+      "--channel-name",
+      "H1:LOSC-STRAIN",
+      "--gps-start-time",
+      "1187007048",
+      "--gps-end-time",
+      "1187009080",
+      "--trig-start-time",
+      "1187007160",
+      "--trig-end-time",
+      "1187009064",
+      "--sample-rate",
+      "4096",
+      "--low-frequency-cutoff",
+      "30",
+      "--strain-high-pass",
+      "25",
+      "--pad-data",
+      "8",
+      "--autogating-threshold",
+      "100",
+      "--autogating-cluster",
+      "5",
+      "--autogating-width",
+      "0.25",
+      "--autogating-taper",
+      "0.25",
+      "--autogating-pad",
+      "16",
+      "--autogating-max-iterations",
+      "1",
+      "--psd-estimation",
+      "median",
+      "--psd-segment-length",
+      "32",
+      "--psd-segment-stride",
+      "16",
+      "--psd-num-segments",
+      "126",
+      "--psd-inverse-length",
+      "16",
+      "--invpsd-trunc-method",
+      "hann",
+      "--invpsd-trunc-which-spectrum",
+      "invasd",
+      "--approximant",
+      "IMRPhenomD",
+      "--order",
+      "-1",
+      "--snr-threshold",
+      "5.5",
+      "--newsnr-threshold",
+      "5",
+      "--chisq-bins",
+      "16",
+      "--cluster-window",
+      "1",
+      "--cluster-function",
+      "symmetric",
+      "--fft-backends",
+      "jax",
+      "--bank-file",
+      "/tmp/pycbc-jax-stack-validation-LC2tls/utilization/bank-repeated-1536.hdf",
+      "--segment-length",
+      "512",
+      "--segment-start-pad",
+      "112",
+      "--segment-end-pad",
+      "16",
+      "--processing-scheme",
+      "jax:cuda:0",
+      "--batch-size",
+      "128",
+      "--use-compressed-waveforms",
+      "--waveform-decompression-method",
+      "inline_linear",
+      "--output",
+      "/tmp/pycbc-jax-stack-validation-LC2tls/batch-sweep/release_candidate_128_r3.hdf"
+    ],
+    "cwd": "/tmp/pycbc-jax-stack-validation-LC2tls/batch-sweep/candidate-release",
+    "env_overrides": {
+      "OMP_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
+      "PYTHONPATH": "/tmp/pycbc-jax-stack-validation-LC2tls/batch-sweep/candidate-release"
+    }
+  },
+  "nsight": {
+    "128": {
+      "target_pid": 922550,
+      "global_pid": 296952797331456,
+      "device_id": 0,
+      "production_duration_sec": 7.5602,
+      "kernel_active_union_sec": 1.7630872699999625,
+      "kernel_active_percent": 23.320643236950907,
+      "full_trace_totals": {
+        "kernel_active_sec": 1.8349505779999653,
+        "kernel_count": 1987,
+        "transfer_count": 2276,
+        "h2d_bytes": 257726716,
+        "d2h_bytes": 218512576,
+        "d2d_bytes": 2558426064
+      },
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 16.257720470428467,
+        "calc_time_sec": 7.574606895446778,
+        "templates_per_calc_second": 202.78280063924043
+      }
+    },
+    "160": {
+      "target_pid": 940709,
+      "global_pid": 297257454796800,
+      "device_id": 0,
+      "production_duration_sec": 7.772600000000001,
+      "kernel_active_union_sec": 1.7577400410000106,
+      "kernel_active_percent": 22.614569654941853,
+      "full_trace_totals": {
+        "kernel_active_sec": 1.842333221000029,
+        "kernel_count": 1710,
+        "transfer_count": 1967,
+        "h2d_bytes": 257715076,
+        "d2h_bytes": 218722304,
+        "d2d_bytes": 2475850832
+      },
+      "comparison": {
+        "all_exact": true,
+        "all_within_tolerance": true,
+        "tolerance": {
+          "rtol": 1e-05,
+          "atol": 1e-06
+        },
+        "attributes_compared": false,
+        "triggers": 7984,
+        "run_time_sec": 17.065769910812378,
+        "calc_time_sec": 7.791423797607423,
+        "templates_per_calc_second": 197.13983475929936
+      }
+    }
+  }
+}

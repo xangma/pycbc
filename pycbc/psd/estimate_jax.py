@@ -18,7 +18,9 @@
 and interpolation.
 """
 
+import functools
 import numpy as np
+import jax
 import jax.numpy as jnp
 
 from pycbc.types import FrequencySeries, TimeSeries
@@ -56,11 +58,67 @@ def median_bias(n):
     return ans
 
 
-def _unfold_segments(samples, seg_len, seg_stride, num_segments):
-    """Unfold 1D array into 2D segments of shape (num_segments, seg_len)."""
+@functools.partial(
+    jax.jit,
+    static_argnames=("seg_len", "seg_stride", "num_segments", "avg_method"),
+)
+def _welch_core(samples, window_arr, delta_t, seg_len, seg_stride, num_segments, avg_method):
     starts = jnp.arange(num_segments) * seg_stride
     indices = starts[:, None] + jnp.arange(seg_len)[None, :]
-    return samples[indices]
+    segments = samples[indices]
+    windowed = segments * window_arr
+    spectra = jnp.fft.rfft(windowed, axis=-1) * delta_t
+    seg_psds = jnp.real(spectra * jnp.conj(spectra))
+    seg_psds = seg_psds.at[:, 0].multiply(0.5)
+    seg_psds = seg_psds.at[:, -1].multiply(0.5)
+    if avg_method == "mean":
+        return jnp.mean(seg_psds, axis=0)
+    elif avg_method == "median":
+        return jnp.median(seg_psds, axis=0)
+    elif avg_method == "median-mean":
+        odd_psds = seg_psds[::2]
+        even_psds = seg_psds[1::2]
+        odd_median = jnp.median(odd_psds, axis=0) / median_bias(len(odd_psds))
+        even_median = (
+            jnp.median(even_psds, axis=0) / median_bias(len(even_psds))
+        )
+        return (odd_median + even_median) / 2.0
+
+
+@functools.partial(
+    jax.jit,
+    static_argnames=("n_freq", "n_time", "kmin", "trunc_start", "trunc_end", "which_spectrum", "use_hann"),
+)
+def _inv_trunc_core(psd_arr, tw_trunc, fill_val, n_freq, n_time, kmin, trunc_start, trunc_end, which_spectrum, use_hann):
+    inv_spectrum = jnp.zeros(n_freq, dtype=jnp.complex128)
+    inv_spectrum = inv_spectrum.at[:kmin].set(fill_val)
+    half_n = n_time // 2
+    inv_spectrum = inv_spectrum.at[kmin:half_n].set(1.0 / psd_arr[kmin:half_n])
+    if which_spectrum == "invasd":
+        inv_spectrum = inv_spectrum.at[:half_n].set(inv_spectrum[:half_n] ** 0.5)
+    q = jnp.fft.irfft(inv_spectrum, n=n_time)
+    if use_hann and tw_trunc is not None:
+        q = q.at[0:trunc_start].multiply(tw_trunc[-trunc_start:])
+        q = q.at[trunc_end:n_time].multiply(tw_trunc[0:trunc_start])
+    if trunc_start < trunc_end:
+        q = q.at[trunc_start:trunc_end].set(0.0)
+    psd_trunc = jnp.fft.rfft(q)
+    if which_spectrum == "invasd":
+        psd_trunc = psd_trunc * jnp.conj(psd_trunc)
+    return 1.0 / jnp.abs(psd_trunc)
+
+
+@functools.partial(jax.jit, static_argnames=("new_n",))
+def _interp_core(old_vals, old_df, delta_f, new_n):
+    old_freqs = jnp.arange(len(old_vals), dtype=jnp.float64) * old_df
+    new_freqs = jnp.arange(new_n, dtype=jnp.float64) * delta_f
+    return jnp.interp(
+        new_freqs,
+        old_freqs,
+        old_vals,
+        left=old_vals[0],
+        right=old_vals[-1],
+    )
 
 
 def welch_jax(
@@ -159,32 +217,15 @@ def welch_jax(
         if len(window_arr) != seg_len:
             raise ValueError("Invalid window: incorrect window length")
 
-    # Unfold segments: shape (num_segments, seg_len)
-    segments = _unfold_segments(samples, seg_len, seg_stride, num_segments)
-    windowed = segments * window_arr
-
-    # Batched FFT
-    spectra = jnp.fft.rfft(windowed, axis=-1) * delta_t
-    seg_psds = jnp.real(spectra * jnp.conj(spectra))
-    seg_psds = seg_psds.at[:, 0].multiply(0.5)
-    seg_psds = seg_psds.at[:, -1].multiply(0.5)
-
-    if avg_method == "mean":
-        psd = jnp.mean(seg_psds, axis=0)
-    elif avg_method == "median":
-        psd = jnp.median(seg_psds, axis=0) / median_bias(num_segments)
-    elif avg_method == "median-mean":
-        odd_psds = seg_psds[::2]
-        even_psds = seg_psds[1::2]
-        odd_median = jnp.median(odd_psds, axis=0) / median_bias(len(odd_psds))
-        even_median = (
-            jnp.median(even_psds, axis=0) / median_bias(len(even_psds))
-        )
-        psd = (odd_median + even_median) / 2.0
+    raw_psd = _welch_core(
+        samples, window_arr, delta_t, seg_len, seg_stride, num_segments, avg_method
+    )
+    if avg_method == "median":
+        raw_psd = raw_psd / median_bias(num_segments)
 
     # Window energy normalization
     norm = 2.0 * delta_f * seg_len / jnp.sum(jnp.square(window_arr))
-    psd = psd * norm
+    psd = raw_psd * norm
 
     if is_series or isinstance(timeseries, (TimeSeries, FrequencySeries)):
         return _wrap_frequency_series(psd, delta_f=delta_f, epoch=epoch)
@@ -249,48 +290,29 @@ def inverse_spectrum_truncation_jax(
 
     if low_frequency_fill_value != 0.0:
         if low_frequency_fill_value == "fmin":
-            fill_val = 1.0 / psd_arr[kmin]
+            fill_val = float(1.0 / psd_arr[kmin])
         else:
             fill_val = float(low_frequency_fill_value)
-        inv_spectrum = inv_spectrum.at[:kmin].set(fill_val)
+    else:
+        fill_val = 0.0
 
-    half_n = n_time // 2
-    inv_spectrum = inv_spectrum.at[kmin:half_n].set(
-        1.0 / psd_arr[kmin:half_n]
-    )
-
-    if which_spectrum == "invasd":
-        inv_spectrum = inv_spectrum.at[:half_n].set(
-            inv_spectrum[:half_n] ** 0.5
-        )
-    elif which_spectrum != "invpsd":
+    if which_spectrum not in ("invpsd", "invasd"):
         raise ValueError(
             f"Invalid which_spectrum input {which_spectrum}; "
             "must be 'invpsd' or 'invasd'"
         )
-
-    # IFFT to time domain: irfft preserves 1.0 roundtrip normalization
-    q = jnp.fft.irfft(inv_spectrum, n=n_time)
 
     trunc_start = max_filter_len // 2
     trunc_end = n_time - max_filter_len // 2
     if trunc_end < trunc_start:
         raise ValueError("Invalid value in inverse_spectrum_truncation")
 
-    if trunc_method == "hann":
-        tw = jnp.asarray(np.hanning(max_filter_len), dtype=q.dtype)
-        q = q.at[0:trunc_start].multiply(tw[-trunc_start:])
-        q = q.at[trunc_end:n_time].multiply(tw[0:max_filter_len // 2])
+    use_hann = (trunc_method == "hann")
+    tw = jnp.asarray(np.hanning(max_filter_len), dtype=jnp.float64) if use_hann else None
 
-    if trunc_start < trunc_end:
-        q = q.at[trunc_start:trunc_end].set(0.0)
-
-    # FFT back to frequency domain
-    psd_trunc = jnp.fft.rfft(q)
-    if which_spectrum == "invasd":
-        psd_trunc = psd_trunc * jnp.conj(psd_trunc)
-
-    psd_out = 1.0 / jnp.abs(psd_trunc)
+    psd_out = _inv_trunc_core(
+        psd_arr, tw, fill_val, n_freq, n_time, kmin, trunc_start, trunc_end, which_spectrum, use_hann
+    )
     return _wrap_frequency_series(psd_out, delta_f=delta_f, epoch=epoch)
 
 
@@ -326,15 +348,5 @@ def interpolate_jax(series, delta_f, length=None, device=None):
     else:
         new_n = int(length)
 
-    old_freqs = jnp.arange(len(old_vals), dtype=jnp.float64) * old_df
-    new_freqs = jnp.arange(new_n, dtype=jnp.float64) * delta_f
-
-    interpolated = jnp.interp(
-        new_freqs,
-        old_freqs,
-        old_vals,
-        left=old_vals[0],
-        right=old_vals[-1],
-    )
-
+    interpolated = _interp_core(old_vals, old_df, delta_f, new_n)
     return _wrap_frequency_series(interpolated, delta_f=delta_f, epoch=epoch)

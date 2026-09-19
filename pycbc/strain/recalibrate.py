@@ -23,7 +23,6 @@ import numpy as np
 import glob, os
 from scipy.interpolate import UnivariateSpline
 from pycbc.types import FrequencySeries
-from pycbc.frame.gwosc import get_run
 from scipy.interpolate import InterpolatedUnivariateSpline
 
 
@@ -598,8 +597,8 @@ def get_calibration_files(ifos, gps_time, calibration_file_path):
      A dictionary of calibration envelop file path for each IFO.
     """
     
-    RUN_NAME=get_run(gps_time).split('_')[0]
-    get_run(gps_time)
+    from pycbc.frame.gwosc import get_run
+    RUN_NAME = get_run(gps_time).split('_')[0]
     dict_calibration_file = {}
     for ifo in ifos:
         if RUN_NAME=='O4a':

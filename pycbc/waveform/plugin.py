@@ -1,6 +1,8 @@
 """ Utilities for handling waveform plugins
 """
 
+from importlib.metadata import entry_points
+
 
 def add_custom_waveform(approximant, function, domain,
                         sequence=False, has_det_response=False,
@@ -94,39 +96,57 @@ def add_end_frequency_estimator(approximant, function):
 
     _filter_ends[approximant] = function
 
-from importlib.metadata import entry_points
+
+class _LazyPlugin:
+    """Wrapper that defers plugin.load() until called or inspected."""
+
+    def __init__(self, plugin):
+        self._plugin = plugin
+        self._loaded = None
+
+    def _get_target(self):
+        if self._loaded is None:
+            self._loaded = self._plugin.load()
+        return self._loaded
+
+    def __call__(self, *args, **kwargs):
+        return self._get_target()(*args, **kwargs)
+
+    def __getattr__(self, name):
+        return getattr(self._get_target(), name)
+
 
 def retrieve_waveform_plugins():
     """ Process external waveform plugins
     """
-    
+
     # Check for fd waveforms (no detector response)
     for plugin in entry_points(group='pycbc.waveform.fd'):
-        add_custom_waveform(plugin.name, plugin.load(), 'frequency')
+        add_custom_waveform(plugin.name, _LazyPlugin(plugin), 'frequency')
 
     # Check for fd waveforms (has detector response)
     for plugin in entry_points(group='pycbc.waveform.fd_det'):
-        add_custom_waveform(plugin.name, plugin.load(), 'frequency',
+        add_custom_waveform(plugin.name, _LazyPlugin(plugin), 'frequency',
                             has_det_response=True)
 
     # Check for fd sequence waveforms (no detector response)
     for plugin in entry_points(group='pycbc.waveform.fd_sequence'):
-        add_custom_waveform(plugin.name, plugin.load(), 'frequency',
+        add_custom_waveform(plugin.name, _LazyPlugin(plugin), 'frequency',
                             sequence=True)
 
     # Check for fd sequence waveforms (has detector response)
     for plugin in entry_points(group='pycbc.waveform.fd_det_sequence'):
-        add_custom_waveform(plugin.name, plugin.load(), 'frequency',
+        add_custom_waveform(plugin.name, _LazyPlugin(plugin), 'frequency',
                             sequence=True, has_det_response=True)
 
     # Check for td waveforms
     for plugin in entry_points(group='pycbc.waveform.td'):
-        add_custom_waveform(plugin.name, plugin.load(), 'time')
+        add_custom_waveform(plugin.name, _LazyPlugin(plugin), 'time')
 
     # Check for waveform length estimates
     for plugin in entry_points(group='pycbc.waveform.length'):
-        add_length_estimator(plugin.name, plugin.load())
+        add_length_estimator(plugin.name, _LazyPlugin(plugin))
 
     # Check for waveform end frequency estimates
     for plugin in entry_points(group='pycbc.waveform.end_freq'):
-        add_end_frequency_estimator(plugin.name, plugin.load())
+        add_end_frequency_estimator(plugin.name, _LazyPlugin(plugin))
