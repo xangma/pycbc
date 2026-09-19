@@ -29,6 +29,11 @@ and length of a data series.
 import numpy
 from pycbc.filter.matchedfilter import correlate
 from pycbc.types import FrequencySeries, TimeSeries, zeros
+from pycbc.types.backend import is_backend
+
+
+
+
 
 def calculate_acf(data, delta_t=1.0, unbiased=False):
     r"""Calculates the one-sided autocorrelation function.
@@ -39,7 +44,8 @@ def calculate_acf(data, delta_t=1.0, unbiased=False):
 
     .. math::
 
-        \hat{R}(k) = \frac{1}{n \sigma^{2}} \sum_{t=1}^{n-k} \left( X_{t} - \mu \right) \left( X_{t+k} - \mu \right)
+        \hat{R}(k) = \frac{1}{n \sigma^{2}} \sum_{t=1}^{n-k}
+        \left( X_{t} - \mu \right) \left( X_{t+k} - \mu \right)
 
     Where :math:`\hat{R}(k)` is the ACF, :math:`X_{t}` is the data series at
     time t, :math:`\mu` is the mean of :math:`X_{t}`, and :math:`\sigma^{2}` is
@@ -62,6 +68,12 @@ def calculate_acf(data, delta_t=1.0, unbiased=False):
         If data is a TimeSeries then acf will be a TimeSeries of the
         one-sided ACF. Else acf is a numpy.array.
     """
+    from pycbc import scheme as _scheme
+    if isinstance(data, TimeSeries) and (
+        is_backend(data, "jax") or isinstance(_scheme.mgr.state, _scheme.JAXScheme)
+    ):
+        from pycbc.filter.autocorrelation_jax import calculate_acf_jax
+        return calculate_acf_jax(data, data.delta_t, unbiased)
 
     # if given a TimeSeries instance then get numpy.array
     if isinstance(data, TimeSeries):
@@ -85,8 +97,11 @@ def calculate_acf(data, delta_t=1.0, unbiased=False):
 
     # correlate
     # do not need to give the congjugate since correlate function does it
-    cdata = FrequencySeries(zeros(len(fdata), dtype=fdata.dtype),
-                           delta_f=fdata.delta_f, copy=False)
+    cdata = FrequencySeries(
+        zeros(len(fdata), dtype=fdata.dtype),
+        delta_f=fdata.delta_f,
+        copy=False,
+    )
     correlate(fdata, fdata, cdata)
 
     # IFFT correlated data to get unnormalized autocovariance time series
@@ -96,7 +111,7 @@ def calculate_acf(data, delta_t=1.0, unbiased=False):
     # normalize the autocovariance
     # note that dividing by acf[0] is the same as ( y.var() * len(acf) )
     if unbiased:
-        acf /= ( y.var() * numpy.arange(len(acf), 0, -1) )
+        acf /= (y.var() * numpy.arange(len(acf), 0, -1))
     else:
         acf /= acf[0]
 
@@ -161,12 +176,17 @@ def calculate_acl(data, m=5, dtype=int):
     # calculate ACF that is normalized by the zero-lag value
     acf = calculate_acf(data)
 
-    cacf = 2 * acf.numpy().cumsum() - 1
-    win = m * cacf <= numpy.arange(len(cacf))
-    if win.any():
-        acl = cacf[numpy.where(win)[0][0]]
-        if dtype == int:
-            acl = int(numpy.ceil(acl))
+    if is_backend(acf, "jax"):
+        from pycbc.filter.autocorrelation_jax import calculate_acl_jax
+        acl = calculate_acl_jax(acf, m=m)
     else:
-        acl = numpy.inf
+        cacf = 2 * acf.numpy().cumsum() - 1
+        win = m * cacf <= numpy.arange(len(cacf))
+        if win.any():
+            acl = cacf[numpy.where(win)[0][0]]
+        else:
+            acl = numpy.inf
+
+    if acl != numpy.inf and dtype == int:
+        acl = int(numpy.ceil(acl))
     return acl
