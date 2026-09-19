@@ -31,6 +31,53 @@ from abc import (ABCMeta, abstractmethod)
 from configparser import NoSectionError
 from pycbc import (transforms, distributions)
 from pycbc.io import FieldArray
+from pycbc.types.backend import backend_array
+
+
+#
+# =============================================================================
+#
+#                            JAX scalar helpers
+#
+# =============================================================================
+#
+
+
+def _jax_array(value):
+    """Return the array backing a JAX/PyCBC value, if present."""
+    return backend_array(value, "jax")
+
+
+def _replace_nan_with_neginf(value):
+    """Replace a NaN model statistic without moving JAX data to the host."""
+    arr = _jax_array(value)
+    if arr is None:
+        return -numpy.inf if numpy.isnan(value) else value
+
+    import jax.numpy as jnp
+
+    return jnp.where(jnp.isnan(arr), jnp.array(-numpy.inf, dtype=arr.dtype), arr)
+
+
+def _is_neginf_scalar(value):
+    """Return whether a scalar model statistic is negative infinity."""
+    arr = _jax_array(value)
+    if arr is None:
+        return value == -numpy.inf
+    if arr.size != 1:
+        raise ValueError("model statistics must be scalar values")
+
+    import jax.numpy as jnp
+
+    return bool(jnp.isneginf(arr))
+
+
+def _public_stat_value(value):
+    """Materialize a scalar JAX statistic at the public stats boundary."""
+    arr = _jax_array(value)
+    if arr is value and arr.ndim == 0:
+        return float(arr)
+    return value
 
 
 #
@@ -50,6 +97,11 @@ class _NoPrior(object):
         return params
 
     def __call__(self, **params):
+        for value in params.values():
+            arr = _jax_array(value)
+            if arr is not None:
+                import jax.numpy as jnp
+                return jnp.zeros((), dtype=arr.dtype)
         return 0.
 
 
@@ -66,6 +118,8 @@ class ModelStats(object):
 
         If a requested stat is not an attribute (implying it hasn't been
         stored), then the default value is returned for that stat.
+        Device-resident scalar JAX values are materialized here so sampler
+        and serialization callers retain the established scalar interface.
 
         Parameters
         ----------
@@ -80,7 +134,7 @@ class ModelStats(object):
         tuple
             A tuple of the requested stats.
         """
-        return tuple(getattr(self, n, default) for n in names)
+        return tuple(_public_stat_value(getattr(self, n, default)) for n in names)
 
     def getstatsdict(self, names, default=numpy.nan):
         """Get the requested stats as a dictionary.
@@ -101,7 +155,7 @@ class ModelStats(object):
         dict
             A dictionary of the requested stats.
         """
-        return dict(zip(names, self.getstats(names, default=default)))
+        return {n: _public_stat_value(getattr(self, n, default)) for n in names}
 
 
 class SamplingTransforms(object):
@@ -158,11 +212,16 @@ class SamplingTransforms(object):
 
         Returns
         -------
-        float :
+        float or jax.Array :
             The value of the jacobian.
         """
-        return numpy.log(abs(transforms.compute_jacobian(
-            params, self.sampling_transforms, inverse=True)))
+        jacobian = transforms.compute_jacobian(
+            params, self.sampling_transforms, inverse=True
+        )
+        if _jax_array(jacobian) is not None:
+            import jax.numpy as jnp
+            return jnp.log(jnp.abs(jacobian))
+        return numpy.log(abs(jacobian))
 
     def apply(self, samples, inverse=False):
         """Applies the sampling transforms to the given samples.
@@ -564,9 +623,7 @@ class BaseModel(metaclass=ABCMeta):
         """Calculates the log prior at the current parameters."""
         logj = self.logjacobian
         logp = self.prior_distribution(**self.current_params) + logj
-        if numpy.isnan(logp):
-            logp = -numpy.inf
-        return logp
+        return _replace_nan_with_neginf(logp)
 
     @property
     def logposterior(self):
@@ -577,7 +634,7 @@ class BaseModel(metaclass=ABCMeta):
         is not called.
         """
         logp = self.logprior
-        if logp == -numpy.inf:
+        if _is_neginf_scalar(logp):
             return logp
         else:
             return logp + self.loglikelihood

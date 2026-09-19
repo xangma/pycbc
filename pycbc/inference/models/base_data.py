@@ -22,12 +22,11 @@
 # =============================================================================
 #
 
-"""Base classes for mofdels with data.
-"""
+"""Base classes for mofdels with data."""
 
-import numpy
-from abc import (ABCMeta, abstractmethod)
-from .base import BaseModel
+from abc import ABCMeta, abstractmethod
+
+from .base import BaseModel, _is_neginf_scalar
 
 
 class BaseDataModel(BaseModel, metaclass=ABCMeta):
@@ -65,8 +64,16 @@ class BaseDataModel(BaseModel, metaclass=ABCMeta):
     See ``BaseModel`` for additional attributes and properties.
     """
 
-    def __init__(self, variable_params, data, recalibration=None, gates=None,
-                 injection_file=None, no_save_data=False, **kwargs):
+    def __init__(
+        self,
+        variable_params,
+        data,
+        recalibration=None,
+        gates=None,
+        injection_file=None,
+        no_save_data=False,
+        **kwargs,
+    ):
         self._data = None
         self.data = data
         self.recalibration = recalibration
@@ -88,7 +95,7 @@ class BaseDataModel(BaseModel, metaclass=ABCMeta):
     @property
     def _extra_stats(self):
         """Adds ``loglr`` and ``lognl`` to the ``default_stats``."""
-        return ['loglr', 'lognl']
+        return ["loglr", "lognl"]
 
     @property
     def lognl(self):
@@ -98,7 +105,7 @@ class BaseDataModel(BaseModel, metaclass=ABCMeta):
         If that raises an ``AttributeError``, will call `_lognl`` to
         calculate it and store it to ``current_stats``.
         """
-        return self._trytoget('lognl', self._lognl)
+        return self._trytoget("lognl", self._lognl)
 
     @abstractmethod
     def _lognl(self):
@@ -115,7 +122,7 @@ class BaseDataModel(BaseModel, metaclass=ABCMeta):
         If that raises an ``AttributeError``, will call `_loglr`` to
         calculate it and store it to ``current_stats``.
         """
-        return self._trytoget('loglr', self._loglr, apply_transforms=True)
+        return self._trytoget("loglr", self._loglr, apply_transforms=True)
 
     @abstractmethod
     def _loglr(self):
@@ -132,10 +139,9 @@ class BaseDataModel(BaseModel, metaclass=ABCMeta):
         called.
         """
         logp = self.logprior
-        if logp == -numpy.inf:
+        if _is_neginf_scalar(logp):
             return logp
-        else:
-            return logp + self.loglr
+        return logp + self.loglr
 
     @property
     def detectors(self):
