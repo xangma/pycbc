@@ -16,17 +16,26 @@
 are uniform.
 """
 import logging
+import math
+
 import numpy
 
-from pycbc.distributions import uniform
+from pycbc.distributions import bounded, uniform
 
 logger = logging.getLogger('pycbc.distributions.uniform_log')
 
 
 class UniformLog10(uniform.Uniform):
-    r""" A uniform distribution on the log base 10 of the given parameters.
-    The parameters are independent of each other. Instances of this class can
-    be called like a function. By default, logpdf will be called.
+    r"""A uniform distribution in $\log_{10}$ of the given parameter.
+
+    The pdf of this distribution is given by:
+
+    .. math::
+
+        p(x) = \frac{1}{\ln(10) \left[\log_{10}(b) - \log_{10}(a)\right]} \frac{1}{x}
+
+    where :math:`a` and :math:`b` are the minimum and maximum bounds of the
+    distribution.
 
     Parameters
     ----------
@@ -45,28 +54,53 @@ class UniformLog10(uniform.Uniform):
 
     def _cdfinv_param(self, param, value):
         """Return the cdfinv for a single given parameter """
+        jax, reference = bounded._jax_module_and_reference((value,))
+        if jax is not None:
+            import jax.numpy as jnp
+            if not jnp.issubdtype(reference.dtype, jnp.floating) and not jnp.issubdtype(reference.dtype, jnp.complexfloating):
+                value = bounded._jax_as_array(value, reference)
+            lower_bound = jnp.asarray(math.log10(self._bounds[param][0]), dtype=value.dtype)
+            upper_bound = jnp.asarray(math.log10(self._bounds[param][1]), dtype=value.dtype)
+            return 10.0 ** ((upper_bound - lower_bound) * value + lower_bound)
         lower_bound = numpy.log10(self._bounds[param][0])
         upper_bound = numpy.log10(self._bounds[param][1])
-        return 10. ** ((upper_bound - lower_bound) * value + lower_bound)
+        return 10.0 ** ((upper_bound - lower_bound) * value + lower_bound)
 
     def _pdf(self, **kwargs):
         """Returns the pdf at the given values. The keyword arguments must
         contain all of parameters in self's params. Unrecognized arguments are
         ignored.
         """
+        jax, _ = bounded._jax_module_and_reference(kwargs.values())
+        if jax is not None:
+            return jax.numpy.exp(self._logpdf(**kwargs))
         if kwargs in self:
             vals = numpy.array([numpy.log(10) * self._norm * kwargs[param]
                                 for param in kwargs.keys()])
             return 1.0 / numpy.prod(vals)
         else:
-            return 0.
+            return 0.0
 
     def _logpdf(self, **kwargs):
         """Returns the log of the pdf at the given values. The keyword
         arguments must contain all of parameters in self's params. Unrecognized
         arguments are ignored.
         """
-        if kwargs in self:
+        contained = self.__contains__(kwargs)
+        jax, reference = bounded._jax_module_and_reference(kwargs.values())
+        if jax is not None:
+            import jax.numpy as jnp
+            one = bounded._jax_as_array(1.0, reference)
+            logpdf = bounded._jax_as_array(0.0, reference)
+            scale = math.log(10) * self._norm
+            for param in kwargs:
+                value = kwargs[param]
+                if not isinstance(value, jax.Array):
+                    value = bounded._jax_as_array(value, reference)
+                safe_value = jnp.where(contained, value, one)
+                logpdf = logpdf - jnp.log(scale * safe_value)
+            return bounded._jax_where(kwargs, contained, logpdf, -numpy.inf)
+        if contained:
             return numpy.log(self._pdf(**kwargs))
         else:
             return -numpy.inf

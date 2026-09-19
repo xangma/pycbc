@@ -152,12 +152,14 @@ class UniformPowerLaw(bounded.BoundedDist):
         """
         for p in self._params:
             if p not in kwargs.keys():
-                raise ValueError(
-                            'Missing parameter {} to construct pdf.'.format(p))
+                raise ValueError("Missing parameter {} to construct pdf.".format(p))
+        jax, _ = bounded._jax_module_and_reference(kwargs.values())
+        if jax is not None:
+            return jax.numpy.exp(self._logpdf(**kwargs))
         if kwargs in self:
-            pdf = self._norm * \
-                  numpy.prod([(kwargs[p])**(self.dim - 1)
-                              for p in self._params])
+            pdf = self._norm * numpy.prod(
+                [(kwargs[p]) ** (self.dim - 1) for p in self._params]
+            )
             return float(pdf)
         else:
             return 0.0
@@ -169,12 +171,25 @@ class UniformPowerLaw(bounded.BoundedDist):
         """
         for p in self._params:
             if p not in kwargs.keys():
-                raise ValueError(
-                            'Missing parameter {} to construct pdf.'.format(p))
-        if kwargs in self:
-            log_pdf = self._lognorm + \
-                      (self.dim - 1) * \
-                      numpy.log([kwargs[p] for p in self._params]).sum()
+                raise ValueError("Missing parameter {} to construct pdf.".format(p))
+        contained = self.__contains__(kwargs)
+        jax, reference = bounded._jax_module_and_reference(kwargs.values())
+        if jax is not None:
+            import jax.numpy as jnp
+            one = bounded._jax_as_array(1.0, reference)
+            log_pdf = bounded._jax_as_array(self._lognorm, reference)
+            for param in self._params:
+                value = kwargs[param]
+                if not isinstance(value, jax.Array):
+                    value = bounded._jax_as_array(value, reference)
+                safe_value = jnp.where(contained, value, one)
+                log_pdf = log_pdf + (self.dim - 1) * jnp.log(safe_value)
+            return bounded._jax_where(kwargs, contained, log_pdf, -numpy.inf)
+        if contained:
+            log_pdf = (
+                self._lognorm
+                + (self.dim - 1) * numpy.log([kwargs[p] for p in self._params]).sum()
+            )
             return log_pdf
         else:
             return -numpy.inf
