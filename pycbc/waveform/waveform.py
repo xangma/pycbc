@@ -42,6 +42,7 @@ import pycbc
 from .spa_tmplt import spa_tmplt, spa_tmplt_norm, spa_tmplt_end, \
                       spa_tmplt_precondition, spa_amplitude_factor, \
                       spa_length_in_time
+from .jax_waveform_registry import native_approximants
 
 class NoWaveformError(Exception):
     """This should be raised if generating a waveform would just result in all
@@ -237,6 +238,12 @@ def _spintaylor_aligned_prec_swapper(**p):
     return hp, hc
 
 def _lalsim_fd_waveform(**p):
+    using_jax = getattr(_scheme, "JAXScheme", None) is not None and isinstance(_scheme.mgr.state, _scheme.JAXScheme)
+    if using_jax:
+        from pycbc.waveform.jax_waveform_registry import try_jax_native_waveform
+        native_waveform = try_jax_native_waveform("fd", p)
+        if native_waveform is not None:
+            return native_waveform
     lal_pars = _check_lal_pars(p)
     hp1, hc1 = lalsimulation.SimInspiralChooseFDWaveform(
                float(pnutils.solar_mass_to_kg(p['mass1'])),
@@ -482,6 +489,12 @@ fd_det = {}
 def _lalsim_fd_sequence(**p):
     """ Shim to interface to lalsimulation SimInspiralChooseFDWaveformSequence
     """
+    using_jax = getattr(_scheme, "JAXScheme", None) is not None and isinstance(_scheme.mgr.state, _scheme.JAXScheme)
+    if using_jax:
+        from pycbc.waveform.jax_waveform_registry import try_jax_native_waveform
+        native_waveform = try_jax_native_waveform("sequence", p)
+        if native_waveform is not None:
+            return native_waveform
     lal_pars = _check_lal_pars(p)
     hp, hc = lalsimulation.SimInspiralChooseFDWaveformSequence(
                float(p['coa_phase']),
@@ -526,10 +539,16 @@ def get_fd_waveform_sequence(template=None, **kwds):
     input_params = props(template, **kwds)
     input_params['delta_f'] = -1
     input_params['f_lower'] = -1
-    if input_params['approximant'] not in fd_sequence:
-        raise ValueError("Approximant %s not available" %
-                            (input_params['approximant']))
-    wav_gen = fd_sequence[input_params['approximant']]
+    approximant = input_params['approximant']
+    wav_gen = fd_sequence.get(approximant)
+    if (
+        getattr(_scheme, "JAXScheme", None) is not None
+        and isinstance(_scheme.mgr.state, _scheme.JAXScheme)
+        and approximant in native_approximants("sequence")
+    ):
+        wav_gen = _lalsim_fd_sequence
+    if wav_gen is None:
+        raise ValueError("Approximant %s not available" % approximant)
     if hasattr(wav_gen, 'required'):
         required = wav_gen.required
     else:
@@ -606,7 +625,10 @@ def get_td_waveform(template=None, **kwargs):
     else:
         required = parameters.td_required
     check_args(input_params, required)
-    return wav_gen(**input_params)
+    hp, hc = wav_gen(**input_params)
+    hp = wfutils.scheme_cast_series(hp)
+    hc = wfutils.scheme_cast_series(hc)
+    return hp, hc
 
 get_td_waveform.__doc__ = get_td_waveform.__doc__.format(
     params=parameters.td_waveform_params.docstr(prefix="    ",
@@ -655,7 +677,10 @@ def get_fd_waveform(template=None, **kwargs):
     else:
         required = parameters.fd_required
     check_args(input_params, required)
-    return wav_gen(**input_params)
+    hp, hc = wav_gen(**input_params)
+    hp = wfutils.scheme_cast_series(hp)
+    hc = wfutils.scheme_cast_series(hc)
+    return hp, hc
 
 
 get_fd_waveform.__doc__ = get_fd_waveform.__doc__.format(
@@ -1021,6 +1046,10 @@ filter_wav.update( {_scheme.CPUScheme:_inspiral_fd_filters,
                     _scheme.CUDAScheme:_cuda_fd_filters,
                     _scheme.CUPYScheme:_cupy_fd_filters,
                    } )
+if getattr(_scheme, "JAXScheme", None) is not None:
+    _jax_fd_filters = _inspiral_fd_filters.copy()
+    _jax_fd_filters["SPAtmplt"] = spa_tmplt
+    filter_wav[_scheme.JAXScheme] = _jax_fd_filters
 
 # Organize functions for function conditioning/precalculated values
 _filter_norms = {}
@@ -1194,6 +1223,10 @@ fd_wav = _scheme.ChooseBySchemeDict()
 td_wav.update({_scheme.CPUScheme:cpu_td,_scheme.CUDAScheme:cuda_td})
 fd_wav.update({_scheme.CPUScheme:cpu_fd,_scheme.CUDAScheme:cuda_fd})
 sgburst_wav = {_scheme.CPUScheme:cpu_sgburst}
+if getattr(_scheme, "JAXScheme", None) is not None:
+    td_wav[_scheme.JAXScheme] = cpu_td
+    fd_wav[_scheme.JAXScheme] = cpu_fd
+    sgburst_wav[_scheme.JAXScheme] = cpu_sgburst
 
 def get_waveform_filter(out, template=None, **kwargs):
     """Return a frequency domain waveform filter for the specified approximant

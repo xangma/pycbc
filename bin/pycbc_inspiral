@@ -206,6 +206,10 @@ parser.add_argument("--multiprocessing-nprocesses", type=int,
                          "Used in conjunction with the option"
                          "--finalize-events-template-rate which should be set"
                          "to a multiple of the number of processes.")
+parser.add_argument("--batch-size", "--tile-size", type=int, default=None,
+                    dest="batch_size",
+                    help="Number of templates to filter in a batch. If not set, "
+                         "defaults to 64 for JAX CUDA, 16 for JAX CPU, and 1 for other schemes.")
 
 # Add options groups
 psd.insert_psd_option_group(parser)
@@ -232,10 +236,25 @@ fft.from_cli(opt)
 inj_filter_rejector = pycbc.inject.InjFilterRejector.from_cli(opt)
 ctx = scheme.from_cli(opt)
 
-gwstrain = strain.from_cli(opt, dyn_range_fac=DYN_RANGE_FAC,
-                           inj_filter_rejector=inj_filter_rejector)
+is_jax = (
+    hasattr(scheme, "JAXScheme") and isinstance(ctx, scheme.JAXScheme)
+)
+if not is_jax and opt.batch_size not in (None, 1):
+    parser.error("--batch-size greater than 1 requires a JAX processing scheme")
 
-strain_segments = strain.StrainSegments.from_cli(opt, gwstrain)
+if is_jax:
+    if opt.batch_size is not None:
+        batch_size = max(1, int(opt.batch_size))
+    else:
+        batch_size = 64 if "cuda" in str(ctx.device_spec).lower() else 16
+else:
+    batch_size = 1
+    # Preserve the legacy conditioning context for non-JAX schemes.
+    gwstrain = strain.from_cli(opt, dyn_range_fac=DYN_RANGE_FAC,
+                               inj_filter_rejector=inj_filter_rejector)
+    strain_segments = strain.StrainSegments.from_cli(opt, gwstrain)
+
+use_batching = is_jax and batch_size > 1
 
 def template_triggers(t_num):
     """ Get the triggers for a specific template
@@ -305,6 +324,211 @@ def template_triggers(t_num):
         #print(out_vals_all)
     return out_vals_all, tparam
 
+
+def batch_template_triggers(batch_tnums):
+    """ Get the triggers for a batch of templates
+    """
+    flow = getattr(opt, "low_frequency_cutoff", None)
+    b = len(batch_tnums)
+    if b == 0:
+        return []
+
+    if hasattr(bank, "get_batch"):
+        batch_templates = bank.get_batch(batch_tnums)
+        tparams = [tmpl.params for tmpl in batch_templates]
+    else:
+        batch_templates = []
+        tparams = []
+        for i, t_num in enumerate(batch_tnums):
+            if tile_mem is not None:
+                bank.out = tile_mem[i]
+            tmpl = bank[t_num]
+            batch_templates.append(tmpl)
+            tparams.append(tmpl.params)
+
+    out_vals_all_list = [[] for _ in range(b)]
+    sigmasq_caches = [{} for _ in range(b)]
+
+    for s_num, stilde in enumerate(segments):
+        active_indices = []
+        active_templates = []
+        active_sigmasqs = []
+        psd_id = id(stilde.psd)
+
+        if use_batching and b > 0 and psd_id not in sigmasq_caches[0]:
+            from pycbc import scheme
+            state = getattr(scheme.mgr, "state", None)
+            if state is not None and hasattr(scheme, "JAXScheme") and isinstance(state, scheme.JAXScheme):
+                from pycbc.filter.matchedfilter_jax import batch_sigmasq_jax
+                batch_ssq = batch_sigmasq_jax(batch_templates, stilde.psd)
+                for i_t, ssq_val in enumerate(batch_ssq):
+                    sigmasq_caches[i_t][psd_id] = ssq_val
+
+                if power_chisq.do and getattr(batch_templates, "_batch_tensor", None) is not None:
+                    from pycbc.vetoes.chisq_jax import batch_power_chisq_bins_jax
+                    from pycbc.opt import LimitedSizeDict
+                    num_bins = int(power_chisq.parse_option(batch_templates[0], power_chisq.num_bins))
+                    flow = opt.low_frequency_cutoff
+                    batch_bins = batch_power_chisq_bins_jax(
+                        batch_templates, num_bins, stilde.psd, low_frequency_cutoff=flow
+                    )
+                    if not hasattr(stilde.psd, "_chisq_cached_key"):
+                        stilde.psd._chisq_cached_key = {}
+                    for i_t, tmpl in enumerate(batch_templates):
+                        if not hasattr(tmpl, "_bin_cache"):
+                            tmpl._bin_cache = LimitedSizeDict(size_limit=4)
+                        tmpl._bin_cache[psd_id] = batch_bins[i_t]
+                        stilde.psd._chisq_cached_key[id(tmpl.params)] = True
+
+        for i, t_num in enumerate(batch_tnums):
+            if not inj_filter_rejector.template_segment_checker(
+                    bank, t_num, stilde):
+                continue
+            active_indices.append(i)
+            tmpl = batch_templates[i]
+            active_templates.append(tmpl)
+            if psd_id in sigmasq_caches[i]:
+                sigmasq = sigmasq_caches[i][psd_id]
+            else:
+                sigmasq = tmpl.sigmasq(stilde.psd)
+                sigmasq_caches[i][psd_id] = sigmasq
+            active_sigmasqs.append(sigmasq)
+
+        if not active_indices:
+            continue
+
+        batch_tensor = getattr(batch_templates, "_batch_tensor", None)
+        if batch_tensor is not None:
+            from pycbc.waveform.bank import TemplateBatchList
+            act_list = TemplateBatchList(active_templates)
+            if len(active_indices) == len(batch_templates):
+                act_list._batch_tensor = batch_tensor
+            else:
+                import jax.numpy as jnp
+                act_list._batch_tensor = batch_tensor[jnp.asarray(active_indices)]
+            active_templates = act_list
+
+        if opt.update_progress:
+            update_progress((batch_tnums[0] + (s_num / float(len(segments)))) / len(bank),
+                            opt.update_progress, opt.update_progress_file)
+        logging.info("Filtering template batch %d-%d/%d segment %d/%d" %
+                     (batch_tnums[0] + 1, batch_tnums[-1] + 1, len(bank), s_num + 1, len(segments)))
+
+        batch_results = matched_filter.batched_matched_filter_and_cluster(
+            s_num,
+            active_templates,
+            active_sigmasqs,
+            cluster_window,
+            epoch=stilde._epoch,
+        )
+
+        chisq_map = None
+        if power_chisq.do and use_batching:
+            from pycbc import scheme
+            _cur_state = getattr(scheme.mgr, "state", None)
+            if _cur_state is not None and hasattr(scheme, "JAXScheme") and isinstance(_cur_state, scheme.JAXScheme):
+                corr_tensor = None
+                for res in batch_results:
+                    if res[2] is not None and hasattr(res[2], "_batch_tensor"):
+                        corr_tensor = res[2]._batch_tensor
+                        break
+                if corr_tensor is not None:
+                    from pycbc.vetoes.chisq_jax import batch_power_chisq_jax
+                    chisq_map = batch_power_chisq_jax(
+                        corr_tensor,
+                        batch_results,
+                        active_templates,
+                        stilde.psd,
+                        stilde.analyze.start,
+                        snr_threshold=power_chisq.snr_threshold,
+                        power_chisq=power_chisq,
+                    )
+
+        for act_pos, tmpl_idx in enumerate(active_indices):
+            snr, norm, corr, idx, snrv = batch_results[act_pos]
+            if not len(idx):
+                continue
+
+            tmpl = active_templates[act_pos]
+            sigmasq = active_sigmasqs[act_pos]
+
+            out_vals = out_vals_ref.copy()
+            out_vals['bank_chisq'], out_vals['bank_chisq_dof'] = \
+                  bank_chisq.values(tmpl, stilde.psd, stilde, snrv, norm,
+                                    idx+stilde.analyze.start)
+
+            if chisq_map is not None and act_pos in chisq_map:
+                out_vals['chisq'], out_vals['chisq_dof'] = chisq_map[act_pos]
+                if power_chisq.snr_threshold:
+                    num_above = int((abs(snrv * norm) > power_chisq.snr_threshold).sum())
+                    logging.info('%s above chisq activation threshold' % num_above)
+            else:
+                out_vals['chisq'], out_vals['chisq_dof'] = \
+                      power_chisq.values(corr, snrv, norm, stilde.psd,
+                                         idx+stilde.analyze.start, tmpl)
+
+            out_vals['sg_chisq'] = sg_chisq.values(stilde, tmpl, stilde.psd,
+                                          snrv, norm,
+                                          out_vals['chisq'],
+                                          out_vals['chisq_dof'],
+                                          idx+stilde.analyze.start)
+
+            out_vals['cont_chisq'], _ = \
+                  autochisq.values(snr, idx+stilde.analyze.start, tmpl,
+                                   stilde.psd, norm, stilde=stilde,
+                                   low_frequency_cutoff=flow)
+
+            idx_cum = idx + stilde.cumulative_index
+
+            out_vals['time_index'] = numpy.asarray(idx_cum)
+            out_vals['snr'] = numpy.asarray(snrv * norm)
+            out_vals['sigmasq'] = numpy.zeros(len(snrv), dtype=float32) + sigmasq
+            if out_vals['chisq'] is not None:
+                out_vals['chisq'] = numpy.asarray(out_vals['chisq'])
+            if out_vals['chisq_dof'] is not None:
+                out_vals['chisq_dof'] = numpy.asarray(out_vals['chisq_dof'])
+            if opt.psdvar_short_segment is not None:
+                out_vals['psd_var_val'] = \
+                            pycbc.psd.find_trigger_value(psd_var,
+                                          out_vals['time_index'],
+                                          opt.gps_start_time, opt.sample_rate)
+
+            out_vals_all_list[tmpl_idx].append(copy.deepcopy(out_vals))
+
+        batch_results = None
+        # The veto lookup also holds the correlation tensor through these
+        # locals. Release it before allocating the next segment's FFT buffers.
+        corr_tensor = None
+        res = None
+        snr = None
+        corr = None
+        active_templates = None
+        tmpl = None
+        active_indices = None
+        active_sigmasqs = None
+
+    active_templates = None
+    tmpl = None
+    active_indices = None
+    active_sigmasqs = None
+    sigmasq_caches = None
+    if hasattr(bank, "clear_batch_cache"):
+        # The enclosing cleanup below runs after all references held by this
+        # batch have been released. Avoid a redundant full collection while
+        # preserving the historical default for non-JAX callers.
+        if is_jax:
+            bank.clear_batch_cache(batch_tnums, collect=False)
+        else:
+            bank.clear_batch_cache(batch_tnums)
+    if hasattr(matched_filter, "clear_batch_cache"):
+        matched_filter.clear_batch_cache()
+    batch_templates = None
+    import gc
+    gc.collect()
+
+    return list(zip(out_vals_all_list, tparams))
+
+
 with ctx:
     if opt.fft_backends == 'fftw':
 
@@ -321,6 +545,11 @@ with ctx:
 
         if opt.fftw_input_double_wisdom_file is not None:
             fft.fftw.import_double_wisdom_from_filename(opt.fftw_input_double_wisdom_file)
+
+    if is_jax:
+        gwstrain = strain.from_cli(opt, dyn_range_fac=DYN_RANGE_FAC,
+                                   inj_filter_rejector=inj_filter_rejector)
+        strain_segments = strain.StrainSegments.from_cli(opt, gwstrain)
 
     flow = opt.low_frequency_cutoff
     flen = strain_segments.freq_len
@@ -397,7 +626,10 @@ with ctx:
             opt, names, [out_types[n] for n in names], psd=segments[0].psd,
             gating_info=gwstrain.gating_info, q_trans=q_trans)
 
-    template_mem = zeros(tlen, dtype = complex64)
+    # Keep one buffer for the matched filter and allocate the remaining tile
+    # buffers only for banks that use the scalar fallback below.
+    tile_mem = None
+    template_mem = zeros(tlen, dtype=complex64)
     cluster_window = int(opt.cluster_window * gwstrain.sample_rate)
 
     if opt.cluster_window == 0.0:
@@ -436,6 +668,7 @@ with ctx:
                                  reverse_template=opt.autochi_reverse_template,
                                  take_maximum_value=opt.autochi_max_valued,
                                  maximal_value_dof=opt.autochi_max_valued_dof)
+    matched_filter.need_snr_series = bool(autochisq.do)
 
     logging.info("Overwhitening frequency-domain data segments")
     for seg in segments:
@@ -446,10 +679,15 @@ with ctx:
         low_frequency_cutoff=None if opt.enable_bank_start_frequency else flow,
         dtype=complex64, phase_order=opt.order,
         taper=opt.taper_template, approximant=opt.approximant,
-        out=template_mem, max_template_length=opt.max_template_length,
+        out=None if use_batching else template_mem, max_template_length=opt.max_template_length,
         enable_compressed_waveforms=True if opt.use_compressed_waveforms else False,
         waveform_decompression_method=
         opt.waveform_decompression_method if opt.use_compressed_waveforms else None)
+
+    if use_batching and not hasattr(bank, "get_batch"):
+        tile_mem = [template_mem] + [
+            zeros(tlen, dtype=complex64) for _ in range(batch_size - 1)
+        ]
 
     sg_chisq = SingleDetSGChisq.from_cli(opt, bank, opt.chisq_bins)
 
@@ -457,12 +695,79 @@ with ctx:
     bank.template_thinning(inj_filter_rejector)
     logging.info("Template bank size after thinning: %s", len(bank))
 
+    if use_batching and hasattr(matched_filter, "batched_matched_filter_and_cluster"):
+        try:
+            logging.info("Warming up JAX JIT compilation during setup")
+            _warmup_indices = list(range(min(batch_size, len(bank))))
+            if hasattr(bank, "get_batch"):
+                _warmup_batch = bank.get_batch(_warmup_indices)
+            else:
+                _warmup_batch = [bank[i] for i in _warmup_indices]
+            _warmup_sig = [1.0] * len(_warmup_batch)
+            from pycbc import scheme
+            state = getattr(scheme.mgr, "state", None)
+            if state is not None and hasattr(scheme, "JAXScheme") and isinstance(state, scheme.JAXScheme):
+                from pycbc.filter.matchedfilter_jax import batch_sigmasq_jax
+                _warmup_sig = batch_sigmasq_jax(_warmup_batch, segments[0].psd)
+            matched_filter.batched_matched_filter_and_cluster(
+                0, _warmup_batch, _warmup_sig, cluster_window, epoch=segments[0]._epoch
+            )
+            if power_chisq.do:
+                if hasattr(_warmup_batch, "_batch_tensor") and _warmup_batch._batch_tensor is not None:
+                    from pycbc.vetoes.chisq_jax import batch_power_chisq_bins_jax
+                    from pycbc.waveform.bank import LazyFrequencySeries
+                    num_bins = int(power_chisq.parse_option(_warmup_batch[0], power_chisq.num_bins))
+                    _dummy_batch_bins = batch_power_chisq_bins_jax(
+                        _warmup_batch, num_bins, segments[0].psd, low_frequency_cutoff=flow
+                    )
+                    _dummy_corr = LazyFrequencySeries(_warmup_batch._batch_tensor, 0, delta_f)
+                    _dummy_corr._kmin = matched_filter.kmin
+                    _dummy_corr._tlen = matched_filter.tlen
+                    from pycbc.vetoes.chisq_jax import _batched_points_chisq_core
+                    import jax
+                    _kmin_f = float(matched_filter.kmin)
+                    _n_time_f = float(matched_filter.tlen)
+                    _bins_rel = jax.device_put(numpy.array(_dummy_batch_bins, dtype=numpy.int32) - int(_kmin_f))
+                    for _bsz in (128, 256):
+                        _r_buf = jax.device_put(numpy.zeros(_bsz, dtype=numpy.int32))
+                        _p_buf = jax.device_put(numpy.zeros(_bsz, dtype=numpy.int32))
+                        _res = _batched_points_chisq_core(
+                            _warmup_batch._batch_tensor, _r_buf, _p_buf, _bins_rel, _kmin_f, _n_time_f, bucket_size=_bsz
+                        )
+                        _res.block_until_ready()
+                    del _dummy_corr, _dummy_batch_bins, _bins_rel
+                else:
+                    _dummy_corr = _warmup_batch[0]
+                    _dummy_bins = power_chisq.cached_chisq_bins(_warmup_batch[0], segments[0].psd)
+                    for _pts in ([1000], [1000, 2000], [1000, 2000, 3000, 4000]):
+                        vetoes.shift_sum(_dummy_corr, _pts, _dummy_bins)
+                    del _dummy_corr, _dummy_bins
+            del _warmup_batch, _warmup_sig
+            # Reuse the prepared first batch in JAX searches. Resumed searches
+            # start elsewhere, and other schemes retain their cleanup policy.
+            reuse_warmup = (
+                isinstance(state, getattr(scheme, "JAXScheme", ()))
+                and tnum_start == 0
+            )
+            if not reuse_warmup:
+                if hasattr(bank, "clear_batch_cache"):
+                    bank.clear_batch_cache(_warmup_indices)
+                if hasattr(matched_filter, "clear_batch_cache"):
+                    matched_filter.clear_batch_cache()
+            import gc
+            gc.collect()
+        except Exception as _exc:
+            logging.warning("JAX JIT warmup pass skipped: %s", _exc)
+
     tsetup = time.time() - tstart
     tcheckpoint = time.time()
 
     tanalyze = list(range(tnum_start, len(bank)))
-    n = opt.finalize_events_template_rate
-    n = 1 if n is None else n
+    if use_batching:
+        n = opt.finalize_events_template_rate or max(batch_size * 8, 512)
+    else:
+        n = opt.finalize_events_template_rate
+        n = 1 if n is None else n
     tchunks = [tanalyze[i:i + n] for i in range(0, len(tanalyze), n)]
 
     mmap = map
@@ -470,7 +775,13 @@ with ctx:
         mmap = Pool(opt.multiprocessing_nprocesses).map
 
     for tchunk in tchunks:
-        data = list(mmap(template_triggers, tchunk))
+        if use_batching:
+            tbatches = [tchunk[i:i + batch_size] for i in range(0, len(tchunk), batch_size)]
+            data = []
+            for bdata in mmap(batch_template_triggers, tbatches):
+                data.extend(bdata)
+        else:
+            data = list(mmap(template_triggers, tchunk))
 
         for elem in data:
             out_vals_all, tparam = elem

@@ -21,6 +21,7 @@ import lal
 
 from pycbc import libutils, pnutils
 from pycbc.types import (TimeSeries, FrequencySeries)
+from pycbc.types.backend import backend_array, wrap_backend_array
 from pycbc.constants import MSUN_SI, PC_SI
 from .waveform import (props, _check_lal_pars, check_args)
 from . import parameters
@@ -68,6 +69,48 @@ def sum_modes(hlms, inclination, phi):
         The plus and cross polarization as a complex number. The real part
         gives the plus, the negative imaginary part the cross.
     """
+    if hlms:
+        first_hlm = next(iter(hlms.values()))
+        first_tensor = backend_array(first_hlm, "jax")
+        if isinstance(first_hlm, (FrequencySeries, TimeSeries)) and first_tensor is not None:
+            for hlm in hlms.values():
+                first_hlm._typecheck(hlm)
+            modes = list(hlms.keys())
+            if all(2 <= ell <= 4 and abs(emm) <= ell for ell, emm in modes):
+                import jax.numpy as jnp
+
+                from ._spherical_harmonics_jax import (
+                    selected_spin_minus_two_spherical_harmonics,
+                )
+
+                dtype = first_tensor.real.dtype
+                ylm_dict = selected_spin_minus_two_spherical_harmonics(
+                    inclination, phi, modes, dtype=dtype
+                )
+                ylm_vector = jnp.stack([ylm_dict[m] for m in modes])
+                hlm_matrix = jnp.stack(
+                    [backend_array(hlms[m], "jax") for m in modes], axis=0
+                )
+                yr, yi = ylm_vector.real, ylm_vector.imag
+                hr, hi = hlm_matrix.real, hlm_matrix.imag
+                res_r = jnp.matmul(yr, hr) - jnp.matmul(yi, hi)
+                res_i = jnp.matmul(yr, hi) + jnp.matmul(yi, hr)
+                res_tensor = res_r + 1j * res_i
+                if isinstance(first_hlm, FrequencySeries):
+                    return FrequencySeries(
+                        wrap_backend_array(res_tensor),
+                        delta_f=first_hlm.delta_f,
+                        epoch=first_hlm.epoch,
+                        copy=False,
+                    )
+                else:
+                    return TimeSeries(
+                        wrap_backend_array(res_tensor),
+                        delta_t=first_hlm.delta_t,
+                        epoch=first_hlm.epoch,
+                        copy=False,
+                    )
+
     out = None
     for mode in hlms:
         l, m = mode
@@ -376,12 +419,12 @@ _mode_waveform_fd = {'IMRPhenomXHM': get_imrphenomxh_modes,
 # 'IMRPhenomXPHM':get_imrphenomhm_modes needs to be implemented
 # LAL function do not split strain mode by mode
 
-def fd_waveform_mode_approximants():
+def fd_waveform_mode_approximants(scheme=None):
     """Frequency domain approximants that will return separate modes."""
     return sorted(_mode_waveform_fd.keys())
 
 
-def td_waveform_mode_approximants():
+def td_waveform_mode_approximants(scheme=None):
     """Time domain approximants that will return separate modes."""
     return sorted(_mode_waveform_td.keys())
 
