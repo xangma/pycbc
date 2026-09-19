@@ -11,10 +11,13 @@ Other JAX backends require compatible installations and separate validation.
 DLPack conversion is attempted for compatible arrays; NumPy conversion,
 device transfer or dtype changes can copy data and synchronize execution.
 
+.. _jax-runtime:
+
 Quick start
 -----------
 
-Install PyCBC with the optional JAX dependency:
+Follow :doc:`install` for PyCBC's build and scientific dependencies, including
+LALSuite. From a PyCBC checkout, install the optional JAX dependency:
 
 .. code-block:: console
 
@@ -50,8 +53,8 @@ Performance results
 See :ref:`inspiral templates/core and templates/GPU <jax-search-capacity>`
 and the :ref:`live-sized filter estimates <jax-live-capacity>` for capacity
 tables and plots. :doc:`jax_performance` also records timing boundaries and
-scientific qualification results. The
-:doc:`jax_gpu_investigation` covers batch size, memory and GPU utilisation.
+scientific qualification results, batch-size comparisons, memory and GPU
+utilisation.
 
 Choosing a device
 -----------------
@@ -74,6 +77,22 @@ Ordinary CPU use does not require JAX. A requested device must appear in
 ``jax.devices()`` in the interpreter running PyCBC. Other device names can
 resolve when supplied by the installed JAX backend, but this does not establish
 PyCBC support or scientific qualification for Metal or TPU.
+
+Check the version and available devices in that interpreter:
+
+.. code-block:: python
+
+   import jax
+
+   print(jax.__version__)
+   print(jax.devices())
+
+Precision
+---------
+
+``JAXScheme`` enables 64-bit support by default unless
+``PYCBC_JAX_ENABLE_X64`` disables it. This permits double-precision arrays;
+it does not promote explicitly single-precision inputs or computations.
 
 Capabilities and fallback
 -------------------------
@@ -117,30 +136,8 @@ Documentation map
 
 .. toctree::
    :maxdepth: 1
-   :caption: JAX results
 
-   jax_performance
-   jax_gpu_investigation
-
-.. toctree::
-   :maxdepth: 1
-   :caption: JAX guides
-
-   jax_runtime
-   jax_filtering
    jax_search
    jax_testing
-
-The benchmark definitions retain separate scopes: the executable campaign
-runs ``pycbc_inspiral`` through HDF output, while the streaming protocol
-defines a ``LiveBatchMatchedFilter.process_data`` API benchmark. The published
-live-sized estimates instead use the synthetic filter microbenchmark; they
-do not measure that full API or the ``pycbc_live`` executable.
-
-.. toctree::
-   :maxdepth: 1
-   :caption: JAX benchmark definitions
-
+   jax_performance
    jax_benchmark_protocol
-   jax_reference_campaign
-   jax_batch_numerics
