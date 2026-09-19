@@ -144,6 +144,9 @@ class UniformF0Tau(uniform.Uniform):
 
     def __contains__(self, params):
         isin = super(UniformF0Tau, self).__contains__(params)
+        jax, _ = bounded._jax_module_and_reference(params.values())
+        if jax is not None:
+            return isin & self._constraints(params)
         if isin:
             isin &= self._constraints(params)
         return isin

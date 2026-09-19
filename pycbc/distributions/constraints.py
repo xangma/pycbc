@@ -21,6 +21,11 @@ import scipy.spatial
 import numpy
 
 from pycbc import transforms
+from pycbc.transforms_jax import (
+    _CONSTRAINT_NODES,
+    _EXPRESSION_UNSUPPORTED,
+    evaluate_raw_expression as _evaluate_raw_expression,
+)
 from pycbc.io import record, HFile
 
 logger = logging.getLogger('pycbc.distributions.constraints')
@@ -51,12 +56,53 @@ class Constraint(object):
                 r'\b{}(?!\_|\=)'.format(arg), swp, constraint_arg)
         self.constraint_arg = constraint_arg
         self.transforms = transforms
+        self._code_cache = {}
         for kwarg in kwargs.keys():
             setattr(self, kwarg, kwargs[kwarg])
 
     def __call__(self, params):
         """Evaluates constraint.
         """
+
+        if isinstance(params, dict) and type(self) is Constraint:
+            input_names = set(params)
+            out = _evaluate_raw_expression(
+                self.constraint_arg,
+                params,
+                input_names,
+                self._code_cache,
+                allowed_nodes=_CONSTRAINT_NODES,
+            )
+            if out is _EXPRESSION_UNSUPPORTED and self.transforms:
+                transformed = transforms.apply_transforms(params, self.transforms)
+                input_names = set(transformed)
+                out = _evaluate_raw_expression(
+                    self.constraint_arg,
+                    transformed,
+                    input_names,
+                    self._code_cache,
+                    allowed_nodes=_CONSTRAINT_NODES,
+                )
+            if out is not _EXPRESSION_UNSUPPORTED:
+                context_values = (
+                    list(transformed.values())
+                    if "transformed" in locals() and isinstance(transformed, dict)
+                    else list(params.values())
+                )
+                reference = next(
+                    (
+                        v
+                        for v in context_values
+                        if transforms._jax_module_for(v) is not None
+                    ),
+                    None,
+                )
+                if reference is not None:
+                    import jax.numpy as jnp
+
+                    if not isinstance(out, (jnp.ndarray, type(reference))):
+                        out = jnp.asarray(out)
+                    return out.astype(bool)
 
         if isinstance(params, dict):
             params = record.FieldArray.from_kwargs(**params)
@@ -71,7 +117,6 @@ class Constraint(object):
                 params = transforms.apply_transforms(params, self.transforms)
 
             out = self._constraint(params)
-
 
         if isinstance(out, record.FieldArray):
             out = out.item() if params.size == 1 else out
@@ -90,10 +135,12 @@ class SupernovaeConvexHull(Constraint):
     """
     name = "supernovae_convex_hull"
     required_parameters = ["coeff_0", "coeff_1"]
+    _max_working_elements = 1 << 20
 
     def __init__(self, constraint_arg, transforms=None, **kwargs):
         super(SupernovaeConvexHull,
               self).__init__(constraint_arg, transforms=transforms, **kwargs)
+        self._jax_hull_cache = {}
 
         if 'principal_components_file' in kwargs:
             pc_filename = kwargs['principal_components_file']
@@ -108,17 +155,104 @@ class SupernovaeConvexHull(Constraint):
             hull_points = numpy.array(hull_points).T
             pc_coeffs_hull = scipy.spatial.Delaunay(hull_points)
             self._hull = pc_coeffs_hull
+            self.required_parameters = [
+                f"coeff_{dim}" for dim in range(self.hull_dimention)
+            ]
+
+    def __call__(self, params):
+        """Evaluate tensor-valued coefficients without leaving JAX."""
+        if isinstance(params, dict):
+            reference = next(
+                (
+                    value
+                    for value in params.values()
+                    if transforms._jax_module_for(value) is not None
+                ),
+                None,
+            )
+            if reference is not None:
+                try:
+                    return self._jax_constraint(params, reference)
+                except (NameError, AttributeError, TypeError, KeyError):
+                    if not self.transforms:
+                        raise
+                    transformed = transforms.apply_transforms(params, self.transforms)
+                    return self._jax_constraint(transformed, reference)
+        return super().__call__(params)
+
+    def _jax_transform(self, dtype):
+        """Return the cached Delaunay affine transforms for JAX."""
+        try:
+            return self._jax_hull_cache[dtype]
+        except KeyError:
+            import jax.numpy as jnp
+
+            transform = jnp.asarray(self._hull.transform, dtype=dtype)
+            self._jax_hull_cache[dtype] = transform
+            return transform
+
+    def _jax_constraint(self, params, reference):
+        """Test Delaunay barycentric coordinates in JAX without host transfer."""
+        import jax.numpy as jnp
+
+        dtype = (
+            reference.dtype
+            if hasattr(reference, "dtype")
+            and jnp.issubdtype(reference.dtype, jnp.floating)
+            else jnp.float64
+        )
+        if dtype in (jnp.float16, jnp.bfloat16):
+            dtype = jnp.float32
+
+        coefficients = []
+        for dim in range(self.hull_dimention):
+            value = params[f"coeff_{dim}"]
+            if transforms._jax_module_for(value) is not None and jnp.iscomplexobj(value):
+                raise TypeError("convex-hull coefficients must be real-valued")
+            coefficients.append(jnp.asarray(value, dtype=dtype))
+
+        coefficients = jnp.broadcast_arrays(*coefficients)
+        output_shape = coefficients[0].shape
+        points = jnp.stack(coefficients, axis=-1).reshape(-1, self.hull_dimention)
+
+        transform = self._jax_transform(points.dtype)
+        matrices = transform[:, : self.hull_dimention, :]
+        offsets = transform[:, self.hull_dimention, :]
+        simplex_count = matrices.shape[0]
+        working_size = max(1, simplex_count * self.hull_dimention)
+        chunk_size = max(1, self._max_working_elements // working_size)
+        tolerance = 100 * jnp.finfo(points.dtype).eps
+
+        if len(points) <= chunk_size:
+            delta = points[:, None, :] - offsets[None, :, :]
+            barycentric = jnp.einsum("sij,nsj->nsi", matrices, delta)
+            final_coordinate = 1.0 - barycentric.sum(axis=-1)
+            simplex_inside = (
+                jnp.all(barycentric >= -tolerance, axis=-1)
+                & (final_coordinate >= -tolerance)
+            )
+            inside = jnp.any(simplex_inside, axis=-1)
+        else:
+            chunks = []
+            for start in range(0, len(points), chunk_size):
+                stop = min(start + chunk_size, len(points))
+                delta = points[start:stop, None, :] - offsets[None, :, :]
+                barycentric = jnp.einsum("sij,nsj->nsi", matrices, delta)
+                final_coordinate = 1.0 - barycentric.sum(axis=-1)
+                simplex_inside = (
+                    jnp.all(barycentric >= -tolerance, axis=-1)
+                    & (final_coordinate >= -tolerance)
+                )
+                chunks.append(jnp.any(simplex_inside, axis=-1))
+            inside = jnp.concatenate(chunks, axis=0)
+        return inside.reshape(output_shape)
 
     def _constraint(self, params):
-
-        output_array = []
-        points = numpy.array([params["coeff_0"],
-                              params["coeff_1"],
-                              params["coeff_2"]])
-        for coeff_index in range(len(params["coeff_0"])):
-            point = points[:, coeff_index][:self.hull_dimention]
-            output_array.append(self._hull.find_simplex(point) >= 0)
-        return numpy.array(output_array)
+        points = numpy.stack(
+            [params[f"coeff_{dim}"] for dim in range(self.hull_dimention)],
+            axis=-1,
+        )
+        return self._hull.find_simplex(points) >= 0
 
 
 # list of all constraints

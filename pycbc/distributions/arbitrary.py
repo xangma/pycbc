@@ -78,6 +78,7 @@ class Arbitrary(bounded.BoundedDist):
                                  "be finite")
         # build the kde
         self._kde = self.get_kde_from_arrays(*[kwargs[p] for p in self.params])
+        self._jax_kde_cache = {}
         self.set_bandwidth(bandwidth)
 
     @property
@@ -97,6 +98,10 @@ class Arbitrary(bounded.BoundedDist):
             if p not in kwargs.keys():
                 raise ValueError('Missing parameter {} to construct pdf.'
                                  .format(p))
+        jax_logpdf = self._jax_logpdf(kwargs)
+        if jax_logpdf is not None:
+            import jax.numpy as jnp
+            return jnp.exp(jax_logpdf)
         if kwargs in self:
             # transform into the kde space
             jacobian = 1.
@@ -121,7 +126,7 @@ class Arbitrary(bounded.BoundedDist):
             this_pdf = jacobian * self._kde.evaluate([kwargs[p]
                                                       for p in self._params])
             if len(this_pdf) == 1:
-                return float(this_pdf)
+                return this_pdf.item()
             else:
                 return this_pdf
         else:
@@ -132,13 +137,136 @@ class Arbitrary(bounded.BoundedDist):
         arguments must contain all of parameters in self's params.
         Unrecognized arguments are ignored.
         """
+        for p in self._params:
+            if p not in kwargs.keys():
+                raise ValueError('Missing parameter {} to construct pdf.'
+                                 .format(p))
+        jax_logpdf = self._jax_logpdf(kwargs)
+        if jax_logpdf is not None:
+            return jax_logpdf
         if kwargs not in self:
             return -numpy.inf
         else:
             return numpy.log(self._pdf(**kwargs))
 
+    def _jax_kde_tensors(self, reference):
+        """Return cached KDE constants on JAX backend."""
+        import jax.numpy as jnp
+        key = reference.dtype
+        try:
+            return self._jax_kde_cache[key]
+        except KeyError:
+            pass
+
+        dataset = jnp.asarray(self._kde.dataset.T, dtype=reference.dtype)
+        inv_cov = jnp.asarray(self._kde.inv_cov, dtype=reference.dtype)
+        weights = jnp.asarray(self._kde.weights, dtype=reference.dtype)
+        log_det = getattr(self._kde, "log_det", None)
+        if log_det is None:
+            _, log_det = numpy.linalg.slogdet(2.0 * numpy.pi * self._kde.covariance)
+        log_det = jnp.asarray(log_det, dtype=reference.dtype)
+        dataset_inv = dataset @ inv_cov
+        cached = (
+            dataset,
+            inv_cov,
+            (dataset_inv * dataset).sum(axis=1),
+            jnp.log(weights),
+            log_det,
+        )
+        self._jax_kde_cache[key] = cached
+        return cached
+
+    def _jax_logpdf(self, kwargs):
+        """Evaluate the fitted SciPy KDE without leaving JAX backend."""
+        jax, reference = bounded._jax_module_and_reference(
+            kwargs[p] for p in self._params
+        )
+        if jax is None:
+            return None
+        import jax.numpy as jnp
+        import jax.scipy.special as jsp
+        dtype = reference.dtype
+        if not (jnp.issubdtype(dtype, jnp.floating) or jnp.issubdtype(dtype, jnp.complexfloating)):
+            dtype = jnp.float64
+        values = [
+            value if bounded._jax_module_and_reference((value,))[0] is not None
+            else jnp.asarray(value, dtype=dtype)
+            for value in (kwargs[p] for p in self._params)
+        ]
+        values = jnp.broadcast_arrays(*values)
+        params = dict(zip(self._params, values, strict=True))
+
+        condition = jnp.ones(values[0].shape, dtype=bool)
+        contained = self.__contains__(params)
+        if isinstance(contained, jax.Array):
+            condition = condition & contained
+        else:
+            condition = condition & bool(contained)
+        for value in values:
+            condition = condition & jnp.isfinite(value)
+        for param in self._tparams:
+            transform = self._transforms[self._tparams[param]]
+            condition = condition & (params[param] > transform._a)
+            condition = condition & (params[param] < transform._b)
+
+        transformed = []
+        log_jacobian = jnp.zeros(values[0].shape, dtype=dtype)
+        for param in self._params:
+            value = params[param]
+            try:
+                transform = self._transforms[self._tparams[param]]
+            except KeyError:
+                safe_value = jnp.where(condition, value, 0.0)
+                transformed.append(safe_value)
+            else:
+                midpoint = 0.5 * (transform._a + transform._b)
+                safe_value = jnp.where(condition, value, midpoint)
+                left = safe_value - transform._a
+                right = transform._b - safe_value
+                transformed.append(jnp.log(left) - jnp.log(right))
+                log_jacobian = (
+                    log_jacobian
+                    + jnp.log(jnp.asarray(transform._b - transform._a, dtype=dtype))
+                    - jnp.log(left)
+                    - jnp.log(right)
+                )
+
+        points = jnp.stack(transformed, axis=-1)
+        output_shape = points.shape[:-1]
+        points = points.reshape(-1, len(self._params))
+        dataset, inv_cov, dataset_quad, log_weights, log_det = self._jax_kde_tensors(
+            points
+        )
+
+        if points.shape[0] == 0:
+            log_density = jnp.empty(output_shape, dtype=dtype)
+        else:
+            point_chunk = max(1, 4_000_000 // max(dataset.shape[0], 1))
+            log_densities = []
+            for start in range(0, points.shape[0], point_chunk):
+                point = points[start : start + point_chunk]
+                point_inv = point @ inv_cov
+                energy = (
+                    (point_inv * point).sum(axis=1, keepdims=True)
+                    + dataset_quad[None, :]
+                    - 2.0 * (point_inv @ dataset.T)
+                )
+                energy = jnp.clip(energy, 0.0)
+                log_densities.append(
+                    jsp.logsumexp(log_weights[None, :] - 0.5 * energy, axis=1)
+                    - 0.5 * log_det
+                )
+            log_density = jnp.concatenate(log_densities).reshape(output_shape)
+        log_density = log_density + log_jacobian
+        return jnp.where(
+            condition,
+            log_density,
+            -jnp.inf,
+        )
+
     def set_bandwidth(self, set_bw="scott"):
         self._kde.set_bandwidth(set_bw)
+        self._jax_kde_cache = {}
 
     def rvs(self, size=1, param=None):
         """Gives a set of random values drawn from the kde.

@@ -24,6 +24,7 @@ import scipy.integrate as scipy_integrate
 import scipy.interpolate as scipy_interpolate
 
 from pycbc import VARARGS_DELIM
+from pycbc.distributions import bounded
 
 logger = logging.getLogger('pycbc.distributions.external')
 
@@ -166,6 +167,15 @@ class DistributionFunctionFromFile(External):
         self.epsrel = kwargs.get('epsrel', 1.49e-05)
         self.x_list = np.linspace(self.data[0][0], self.data[0][-1], 1000)
         self.interp = {'pdf': callable, 'cdf': callable, 'cdfinv': callable}
+        self._pdf_x = None
+        self._pdf_y = None
+        self._cdf_x = None
+        self._cdf_y = None
+        self._cdfinv_x = None
+        self._cdfinv_y = None
+        self._jax_pdf_cache = {}
+        self._jax_cdf_cache = {}
+        self._jax_cdfinv_cache = {}
         if not file_path:
             raise ValueError("Must provide the path to density function file.")
 
@@ -173,9 +183,8 @@ class DistributionFunctionFromFile(External):
         x = kwargs.pop(self.params[0])
         return self._logpdf(x, **kwargs)
 
-    def _pdf(self, x010, **kwargs):
-        """Calculate and interpolate the PDF by using the given density
-        function, then return the corresponding value at the given x."""
+    def _ensure_pdf_interpolator(self, **kwargs):
+        """Build and cache the normalized PDF interpolation table."""
         if self.interp['pdf'] == callable:
             func_unnorm = scipy_interpolate.interp1d(
                 self.data[0], self.data[self.column_index])
@@ -186,18 +195,67 @@ class DistributionFunctionFromFile(External):
             self.interp['pdf'] = scipy_interpolate.interp1d(
                 self.data[0], self.data[self.column_index]/norm_const,
                 bounds_error=False, fill_value=0)
+            self._pdf_x = np.asarray(self.interp['pdf'].x)
+            self._pdf_y = np.asarray(self.interp['pdf'].y)
+            self._jax_pdf_cache.clear()
+
+    def _jax_interpolation_tables(self, kind, reference):
+        """Return an interpolation table on JAX backend."""
+        import jax.numpy as jnp
+        dtype = reference.dtype
+        if not (jnp.issubdtype(dtype, jnp.floating) or jnp.issubdtype(dtype, jnp.complexfloating)):
+            dtype = jnp.float64
+        cache = getattr(self, f"_jax_{kind}_cache")
+        try:
+            return cache[dtype]
+        except KeyError:
+            pass
+        tables = (
+            jnp.asarray(getattr(self, f"_{kind}_x"), dtype=dtype),
+            jnp.asarray(getattr(self, f"_{kind}_y"), dtype=dtype),
+        )
+        cache[dtype] = tables
+        return tables
+
+    def _jax_linear_interpolate(self, kind, values, message):
+        """Evaluate one cached interpolation table without leaving JAX."""
+        import jax.numpy as jnp
+        jax, reference = bounded._jax_module_and_reference([values])
+        if jnp.issubdtype(reference.dtype, jnp.complexfloating):
+            raise TypeError(message)
+        x_knots, y_knots = self._jax_interpolation_tables(kind, reference)
+        values = values.astype(x_knots.dtype)
+        invalid = (values < x_knots[0]) | (values > x_knots[-1])
+        if bool(jnp.any(invalid)):
+            raise ValueError(message)
+        return jnp.interp(values, x_knots, y_knots)
+
+    def _pdf(self, x010, **kwargs):
+        """Calculate and interpolate the PDF by using the given density
+        function, then return the corresponding value at the given x."""
+        self._ensure_pdf_interpolator(**kwargs)
+        jax, reference = bounded._jax_module_and_reference([x010])
+        if jax is not None:
+            import jax.numpy as jnp
+            x_knots, pdf_knots = self._jax_interpolation_tables("pdf", reference)
+            values = x010.astype(x_knots.dtype)
+            return jnp.interp(values, x_knots, pdf_knots, left=0.0, right=0.0)
         pdf_val = np.float64(self.interp['pdf'](x010))
         return pdf_val
 
     def _logpdf(self, x010, **kwargs):
         """Calculate the logPDF by calling `pdf` function."""
-        z = np.log(self._pdf(x010, **kwargs))
-        return z
+        pdf_val = self._pdf(x010, **kwargs)
+        jax = bounded._jax_module_and_reference([pdf_val])[0]
+        if jax is not None:
+            import jax.numpy as jnp
+            return jnp.log(pdf_val)
+        return np.log(pdf_val)
 
-    def _cdf(self, x, **kwargs):
-        """Calculate and interpolate the CDF, then return the corresponding
-        value at the given x."""
+    def _ensure_cdf_interpolator(self, **kwargs):
+        """Build and cache the CDF interpolation table."""
         if self.interp['cdf'] == callable:
+            self._ensure_pdf_interpolator(**kwargs)
             cdf_list = []
             for x_val in self.x_list:
                 cdf_x = scipy_integrate.quad(
@@ -206,20 +264,43 @@ class DistributionFunctionFromFile(External):
                 cdf_list.append(cdf_x)
             self.interp['cdf'] = \
                 scipy_interpolate.interp1d(self.x_list, cdf_list)
+            self._cdf_x = np.asarray(self.interp['cdf'].x)
+            self._cdf_y = np.asarray(self.interp['cdf'].y)
+            self._jax_cdf_cache.clear()
+
+    def _cdf(self, x, **kwargs):
+        """Calculate and interpolate the CDF, then return the corresponding
+        value at the given x."""
+        self._ensure_cdf_interpolator(**kwargs)
+        jax = bounded._jax_module_and_reference([x])[0]
+        if jax is not None:
+            message = "CDF input is outside the tabulated parameter range."
+            return self._jax_linear_interpolate("cdf", x, message)
         cdf_val = np.float64(self.interp['cdf'](x))
         return cdf_val
+
+    def _ensure_cdfinv_interpolator(self):
+        """Build and cache the inverse-CDF interpolation table."""
+        if self.interp['cdfinv'] == callable:
+            self._ensure_cdf_interpolator()
+            self.interp['cdfinv'] = scipy_interpolate.interp1d(self._cdf_y, self.x_list)
+            self._cdfinv_x = np.asarray(self.interp['cdfinv'].x)
+            self._cdfinv_y = np.asarray(self.interp['cdfinv'].y)
+            self._jax_cdfinv_cache.clear()
 
     def _cdfinv(self, **kwargs):
         """Calculate and interpolate the inverse CDF, then return the
         corresponding parameter value at the given CDF value."""
-        if self.interp['cdfinv'] == callable:
-            cdf_list = []
-            for x_value in self.x_list:
-                cdf_list.append(self._cdf(x_value))
-            self.interp['cdfinv'] = \
-                scipy_interpolate.interp1d(cdf_list, self.x_list)
+        self._ensure_cdfinv_interpolator()
+        value = kwargs[self.params[0]]
+        jax = bounded._jax_module_and_reference([value])[0]
+        if jax is not None:
+            message = "inverse CDF input must lie in [0, 1]."
+            return {
+                self.params[0]: self._jax_linear_interpolate("cdfinv", value, message)
+            }
         cdfinv_val = {self.params[0]: np.float64(
-            self.interp['cdfinv'](kwargs[self.params[0]]))}
+            self.interp['cdfinv'](value))}
         return cdfinv_val
 
     @classmethod

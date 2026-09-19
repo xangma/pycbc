@@ -58,6 +58,7 @@ def jax_module_for(value):
         return _jax_module_for_type.__wrapped__(type(value))
 
 
+
 def backend_name(value):
     """Return the declared array backend name, if one can be identified."""
     declared = getattr(value, "backend", None)
@@ -139,9 +140,12 @@ def coerce_jax_values(*values):
     import jax.numpy as jnp
 
     dtype = reference.dtype
+    if not (jnp.issubdtype(dtype, jnp.floating) or jnp.issubdtype(dtype, jnp.complexfloating)):
+        dtype = jnp.float64
     converted = tuple(
-        value if jax_module_for(value) is not None
+        value.astype(dtype) if jax_module_for(value) is not None
         else jnp.asarray(value, dtype=dtype)
         for value in storage
     )
     return jax, converted
+

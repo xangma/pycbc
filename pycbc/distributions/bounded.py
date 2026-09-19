@@ -25,6 +25,45 @@ from pycbc import VARARGS_DELIM
 
 logger = logging.getLogger('pycbc.distributions.bounded')
 
+
+def _jax_module_and_reference(values):
+    """Return JAX and the first raw array in ``values``, if present."""
+    for value in values:
+        jax = boundaries._jax_module_for(value)
+        if jax is not None:
+            return jax, value
+    return None, None
+
+
+def _jax_as_array(value, reference):
+    """Create a scalar on a parameter array's dtype."""
+    import jax.numpy as jnp
+    dtype = reference.dtype
+    if not (jnp.issubdtype(dtype, jnp.floating) or jnp.issubdtype(dtype, jnp.complexfloating)):
+        dtype = jnp.float64
+    return jnp.asarray(value, dtype=dtype)
+
+
+def _jax_where(params, condition, value, outside):
+    """Apply a bounded-distribution mask without leaving a JAX device."""
+    jax, reference = _jax_module_and_reference(params.values())
+    if jax is None:
+        return None
+    import jax.numpy as jnp
+    if not isinstance(value, jax.Array):
+        value = _jax_as_array(value, reference)
+    if not isinstance(outside, jax.Array):
+        outside = _jax_as_array(outside, value)
+    return jnp.where(condition, value, outside)
+
+
+def _backend_where(params, condition, value, outside):
+    """Apply a bounded-distribution mask for JAX backend."""
+    jax, _ = _jax_module_and_reference(params.values())
+    if jax is not None:
+        return _jax_where(params, condition, value, outside)
+    return None
+
 #
 #   Distributions for priors
 #
@@ -240,11 +279,15 @@ class BoundedDist(object):
 
     def __contains__(self, params):
         try:
-            return all(self._bounds[p].contains_conditioned(params[p])
-                       for p in self._params)
-        except KeyError:
-            raise ValueError("must provide all parameters [%s]" %(
-                ', '.join(self._params)))
+            result = None
+            for param in self._params:
+                contained = self._bounds[param].contains_conditioned(params[param])
+                result = contained if result is None else result & contained
+            return True if result is None else result
+        except KeyError as exc:
+            raise ValueError(
+                "must provide all parameters [%s]" % (", ".join(self._params))
+            ) from exc
 
     def apply_boundary_conditions(self, **kwargs):
         r"""Applies any boundary conditions to the given values (e.g., applying

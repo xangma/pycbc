@@ -153,25 +153,52 @@ class IndependentChiPChiEff(Arbitrary):
                                     values['phi_a'], values['phi_s'],
                                     values['chi_eff'], values['chi_a'],
                                     values['xi1'], values['xi2'])
+        inputs = (
+            values["mass1"],
+            values["mass2"],
+            values["phi_a"],
+            values["phi_s"],
+            values["chi_eff"],
+            values["chi_a"],
+            values["xi1"],
+            values["xi2"],
+        )
+        jax, converted = conversions._jax_values(*inputs)
+        if jax is None:
+            converted = conversions.ensurearray(*inputs)[:-1]
+        mass1, mass2, phi_a, phi_s, chi_eff, chi_a, xi1, xi2 = converted
         s1x = conversions.spin1x_from_xi1_phi_a_phi_s(xi1, phi_a, phi_s)
-        s2x = conversions.spin2x_from_mass1_mass2_xi2_phi_a_phi_s(mass1, mass2,
-            xi2, phi_a, phi_s)
+        s2x = conversions.spin2x_from_mass1_mass2_xi2_phi_a_phi_s(
+            mass1, mass2, xi2, phi_a, phi_s
+        )
         s1y = conversions.spin1y_from_xi1_phi_a_phi_s(xi1, phi_a, phi_s)
-        s2y = conversions.spin2y_from_mass1_mass2_xi2_phi_a_phi_s(mass1, mass2,
-            xi2, phi_a, phi_s)
-        s1z = conversions.spin1z_from_mass1_mass2_chi_eff_chi_a(mass1, mass2,
-            chi_eff, chi_a)
-        s2z = conversions.spin2z_from_mass1_mass2_chi_eff_chi_a(mass1, mass2,
-            chi_eff, chi_a)
-        test = ((s1x**2. + s1y**2. + s1z**2.) < 1.) & \
-               ((s2x**2. + s2y**2. + s2z**2.) < 1.)
+        s2y = conversions.spin2y_from_mass1_mass2_xi2_phi_a_phi_s(
+            mass1, mass2, xi2, phi_a, phi_s
+        )
+        s1z = conversions.spin1z_from_mass1_mass2_chi_eff_chi_a(
+            mass1, mass2, chi_eff, chi_a
+        )
+        s2z = conversions.spin2z_from_mass1_mass2_chi_eff_chi_a(
+            mass1, mass2, chi_eff, chi_a
+        )
+        test = ((s1x**2.0 + s1y**2.0 + s1z**2.0) < 1.0) & (
+            (s2x**2.0 + s2y**2.0 + s2z**2.0) < 1.0
+        )
         return test
 
     def __contains__(self, params):
         """Determines whether the given values are in each parameter's bounds
         and satisfy the constraints.
         """
-        isin = all([params in dist for dist in self.distributions.values()])
+        inputs = tuple(params[p] for p in self._params)
+        jax, converted = conversions._jax_values(*inputs)
+        if jax is not None:
+            import jax.numpy as jnp
+            isin = jnp.ones(converted[0].shape, dtype=bool)
+            for dist in self.distributions.values():
+                isin = isin & dist.__contains__(params)
+            return isin & self._constraints(params)
+        isin = all(params in dist for dist in self.distributions.values())
         if not isin:
             return False
         # in the individual distributions, apply constrains

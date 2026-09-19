@@ -16,6 +16,7 @@
 This modules provides classes for evaluating angular distributions.
 """
 import logging
+import math
 from configparser import Error
 import numpy
 
@@ -209,29 +210,69 @@ class SinAngle(UniformAngle):
     def _cdfinv_param(self, arg, value):
         """Return inverse of cdf for mapping unit interval to parameter bounds.
         """
+        jax, reference = bounded._jax_module_and_reference((value,))
+        if jax is not None:
+            import jax.numpy as jnp
+            if not jnp.issubdtype(reference.dtype, jnp.floating) and not jnp.issubdtype(reference.dtype, jnp.complexfloating):
+                value = bounded._jax_as_array(value, reference)
+            scale_value = math.cos(self._bounds[arg][0]) - math.cos(self._bounds[arg][1])
+            scale = jnp.asarray(scale_value, dtype=value.dtype)
+            offset = jnp.asarray(1.0 + math.cos(self._bounds[arg][1]) / scale_value, dtype=value.dtype)
+            return jnp.arccos(-scale * (value - offset))
         scale = (numpy.cos(self._bounds[arg][0])
                  - numpy.cos(self._bounds[arg][1]))
         offset = 1. + numpy.cos(self._bounds[arg][1]) / scale
         new_value = numpy.arccos(-scale * (value - offset))
         return new_value
 
+    def _backend_dfunc(self, value):
+        """Evaluate the angular Jacobian for JAX."""
+        jax, _ = bounded._jax_module_and_reference((value,))
+        if jax is not None:
+            return jax.numpy.sin(value)
+        return self._dfunc(value)
+
     def _pdf(self, **kwargs):
         """Returns the pdf at the given values. The keyword arguments must
         contain all of parameters in self's params. Unrecognized arguments are
         ignored.
         """
-        if kwargs not in self:
-            return 0.
+        contained = self.__contains__(kwargs)
+        params = {param: kwargs[param] for param in self._params}
+        jax, reference = bounded._jax_module_and_reference(params.values())
+        if jax is not None:
+            pdf = bounded._jax_as_array(self._norm, reference)
+            for param in self._params:
+                value = params[param]
+                if not isinstance(value, jax.Array):
+                    value = bounded._jax_as_array(value, reference)
+                pdf = pdf * self._backend_dfunc(value)
+            return bounded._jax_where(params, contained, pdf, 0.0)
+        if not contained:
+            return 0.0
         return self._norm * \
             self._dfunc(numpy.array([kwargs[p] for p in self._params])).prod()
-
 
     def _logpdf(self, **kwargs):
         """Returns the log of the pdf at the given values. The keyword
         arguments must contain all of parameters in self's params. Unrecognized
         arguments are ignored.
         """
-        if kwargs not in self:
+        contained = self.__contains__(kwargs)
+        params = {param: kwargs[param] for param in self._params}
+        jax, reference = bounded._jax_module_and_reference(params.values())
+        if jax is not None:
+            import jax.numpy as jnp
+            logpdf = bounded._jax_as_array(self._lognorm, reference)
+            for param in self._params:
+                value = params[param]
+                if not isinstance(value, jax.Array):
+                    value = bounded._jax_as_array(value, reference)
+                jacobian = self._backend_dfunc(value)
+                safe_jacobian = jnp.where(contained, jacobian, 1.0)
+                logpdf = logpdf + jnp.log(safe_jacobian)
+            return bounded._jax_where(params, contained, logpdf, -numpy.inf)
+        if not contained:
             return -numpy.inf
         return self._lognorm + \
             numpy.log(self._dfunc(
@@ -257,7 +298,24 @@ class CosAngle(SinAngle):
     _arcfunc = numpy.arcsin
     _domainbounds = (-numpy.pi/2, numpy.pi/2)
 
+    def _backend_dfunc(self, value):
+        """Evaluate the angular Jacobian for JAX."""
+        jax, _ = bounded._jax_module_and_reference((value,))
+        if jax is not None:
+            return jax.numpy.cos(value)
+        return self._dfunc(value)
+
     def _cdfinv_param(self, param, value):
+        jax, reference = bounded._jax_module_and_reference((value,))
+        if jax is not None:
+            import jax.numpy as jnp
+            if not jnp.issubdtype(reference.dtype, jnp.floating) and not jnp.issubdtype(reference.dtype, jnp.complexfloating):
+                value = bounded._jax_as_array(value, reference)
+            sin_a = math.sin(self._bounds[param][0])
+            sin_b = math.sin(self._bounds[param][1])
+            scale = jnp.asarray(sin_b - sin_a, dtype=value.dtype)
+            offset = jnp.asarray(1.0 - sin_b / (sin_b - sin_a), dtype=value.dtype)
+            return jnp.arcsin((value - offset) * scale)
         a = self._bounds[param][0]
         b = self._bounds[param][1]
         scale = numpy.sin(b) - numpy.sin(a)

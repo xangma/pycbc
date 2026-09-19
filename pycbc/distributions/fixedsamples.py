@@ -17,10 +17,12 @@ This modules provides classes for evaluating distributions based on a fixed
 set of points
 """
 import logging
+import operator
 import numpy
 import numpy.random
 
 from pycbc import VARARGS_DELIM
+from pycbc.distributions import bounded
 
 logger = logging.getLogger('pycbc.distributions.fixedsamples')
 
@@ -51,17 +53,69 @@ class FixedSamples(object):
     def __init__(self, params, samples):
         self.params = params
         self.samples = samples
+        self._jax_reference = None
+        self._jax_states = {}
 
-        self.p1 = self.samples[params[0]]
-        self.frac = len(self.p1)**0.5 / len(self.p1)
-        self.sort = self.p1.argsort()
-        self.p1sorted = self.p1[self.sort]
+        jax, reference = bounded._jax_module_and_reference(
+            self.samples[p] for p in self.params
+        )
+        if jax is not None:
+            self._jax_reference = reference
+            state = self._jax_state(reference)
+            self.p1 = state["p1"]
+            self.sort = state["sort"]
+            self.p1sorted = state["p1sorted"]
+        else:
+            self.p1 = self.samples[params[0]]
+            self.sort = self.p1.argsort()
+            self.p1sorted = self.p1[self.sort]
+            assert len(numpy.unique(self.p1)) == len(self.p1)
 
-        assert len(numpy.unique(self.p1)) == len(self.p1)
+        self.frac = len(self.p1) ** 0.5 / len(self.p1)
 
         if len(params) > 2:
-            raise ValueError("Only one or two parameters supported "
-                             "for fixed sample distribution")
+            raise ValueError(
+                "Only one or two parameters supported for fixed sample distribution"
+            )
+
+    def _jax_state(self, reference):
+        """Return fixed samples and their ordering on JAX backend."""
+        import jax.numpy as jnp
+        dtype = reference.dtype
+        if not (jnp.issubdtype(dtype, jnp.floating) or jnp.issubdtype(dtype, jnp.complexfloating)):
+            dtype = jnp.float64
+        try:
+            return self._jax_states[dtype]
+        except KeyError:
+            pass
+
+        samples = {
+            p: jnp.asarray(self.samples[p], dtype=dtype)
+            for p in self.params
+        }
+        p1 = samples[self.params[0]]
+        if any(len(samples[p]) != len(p1) for p in self.params):
+            raise ValueError("fixed-sample parameter arrays must have equal length")
+        if len(jnp.unique(p1)) != len(p1):
+            raise AssertionError("first fixed-sample parameter must be unique")
+        sort = jnp.argsort(p1)
+        state = {
+            "samples": samples,
+            "p1": p1,
+            "sort": sort,
+            "p1sorted": p1[sort],
+        }
+        self._jax_states[dtype] = state
+        return state
+
+    @staticmethod
+    def _draw_shape(size):
+        if size is None:
+            return ()
+        try:
+            return tuple(operator.index(value) for value in size)
+        except TypeError:
+            return (operator.index(size),)
 
     def rvs(self, size=1, **kwds):
         "Draw random value"
@@ -70,6 +124,13 @@ class FixedSamples(object):
 
     def cdfinv(self, **original):
         """Map unit cube to parameters in the space"""
+        jax, reference = bounded._jax_module_and_reference(original.values())
+        if jax is None and self._jax_reference is not None:
+            reference = self._jax_reference
+            jax, _ = bounded._jax_module_and_reference((reference,))
+        if jax is not None:
+            return self._cdfinv_jax(original, reference)
+
         new = {}
 
         #First dimension
@@ -107,6 +168,51 @@ class FixedSamples(object):
         p1part = numpy.array(self.p1[region[l]], ndmin=1)
         new[self.params[0]] = p1part[i2]
         return new
+
+    def _cdfinv_jax(self, original, reference):
+        """Map unit-cube arrays without staging fixed samples on the host."""
+        import jax.numpy as jnp
+        state = self._jax_state(reference)
+        p1 = state["p1"]
+        p1sorted = state["p1sorted"]
+        sort = state["sort"]
+        u1 = jnp.asarray(original[self.params[0]], dtype=p1.dtype)
+        i1 = jnp.round(u1 * len(p1)).astype(int)
+        i1 = jnp.clip(i1, 0, len(p1) - 1)
+        if len(self.params) == 1:
+            return {self.params[0]: p1sorted[i1]}
+
+        p2 = state["samples"][self.params[1]]
+        u2 = jnp.asarray(original[self.params[1]], dtype=p1.dtype)
+        u1, u2 = jnp.broadcast_arrays(u1, u2)
+        shape = u1.shape
+        i1 = jnp.round(u1.reshape(-1) * len(p1)).astype(int)
+        i1 = jnp.clip(i1, 0, len(p1) - 1)
+        u2 = u2.reshape(-1)
+        positions = jnp.arange(len(p1))
+        selected = []
+        for index in range(i1.size):
+            p1v = p1sorted[i1[index]]
+            left = jnp.searchsorted(p1sorted, p1v * (1 - self.frac))
+            right = jnp.searchsorted(p1sorted, p1v * (1 + self.frac))
+            low = jnp.minimum(left, right)
+            high = jnp.maximum(left, right)
+            region = sort[(positions >= low) & (positions < high)]
+            if region.size == 0:
+                raise IndexError("fixed-sample inverse CDF selected no points")
+            order = jnp.argsort(p2[region])
+            i2 = jnp.round(u2[index] * len(region)).astype(int)
+            i2 = jnp.clip(i2, 0, len(region) - 1)
+            selected.append(region[order[i2]])
+
+        if selected:
+            selected = jnp.stack(selected).reshape(shape)
+        else:
+            selected = jnp.empty(shape, dtype=int)
+        return {
+            self.params[0]: p1[selected],
+            self.params[1]: p2[selected],
+        }
 
     def apply_boundary_conditions(self, **params):
         """ Apply boundary conditions (none here) """

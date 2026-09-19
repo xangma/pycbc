@@ -16,20 +16,80 @@
 This modules provides classes and functions for transforming parameters.
 """
 
-import os
 import logging
+import os
+
 import numpy
 
-from pycbc import conversions
-from pycbc import coordinates
-from pycbc import cosmology
-from pycbc.io import record
-from pycbc.waveform import parameters
+from pycbc import VARARGS_DELIM, conversions, coordinates, cosmology
 from pycbc.boundaries import Bounds
-from pycbc import VARARGS_DELIM
+from pycbc.io import record
 from pycbc.pnutils import jframe_to_l0frame
+from pycbc.transforms_jax import (
+    _EXPRESSION_UNSUPPORTED,
+    components_from_mass_order_jax as _components_from_mass_order_jax,
+    evaluate_raw_expression as _evaluate_raw_expression,
+    interp_lambda_from_tov_jax as _interp_lambda_from_tov_jax,
+)
+from pycbc.types.backend import (
+    jax_module_for as _jax_module_for,
+)
+from pycbc.waveform import parameters
 
-logger = logging.getLogger('pycbc.transforms')
+logger = logging.getLogger("pycbc.transforms")
+
+
+def _components_from_mass_order(primary, secondary, mass1, mass2):
+    """Map primary/secondary values back to component-one/two order."""
+    values = (primary, secondary, mass1, mass2)
+    jax_ref = next(
+        (value for value in values if _jax_module_for(value) is not None),
+        None,
+    )
+    if jax_ref is not None:
+        return _components_from_mass_order_jax(
+            primary, secondary, mass1, mass2, jax_ref
+        )
+
+    primary_is_one = numpy.asarray(mass1) >= numpy.asarray(mass2)
+    if numpy.ndim(primary_is_one) == 0:
+        if primary_is_one:
+            return primary, secondary
+        return secondary, primary
+    return (
+        numpy.where(primary_is_one, primary, secondary),
+        numpy.where(primary_is_one, secondary, primary),
+    )
+
+
+def _log(value):
+    """Evaluate a logarithm with the backend of a raw tensor input."""
+    if _jax_module_for(value) is not None:
+        import jax.numpy as jnp
+
+        return jnp.log(value)
+    return numpy.log(value)
+
+
+def _exp(value):
+    """Evaluate an exponential with the backend of a raw tensor input."""
+    if _jax_module_for(value) is not None:
+        import jax.numpy as jnp
+
+        return jnp.exp(value)
+    return numpy.exp(value)
+
+
+def _all_in_bounds(value, bounds):
+    """Return whether every scalar in ``value`` lies within ``bounds``."""
+    isin = bounds.__contains__(value)
+    if _jax_module_for(isin) is not None:
+        import jax.numpy as jnp
+
+        return bool(jnp.all(isin))
+    if isinstance(isin, numpy.ndarray):
+        return bool(isin.all())
+    return bool(isin)
 
 
 class BaseTransform(object):
@@ -209,10 +269,20 @@ class CustomTransform(BaseTransform):
         self.outputs = set(output_args)
         self.transform_functions = transform_functions
         self._jacobian = jacobian
+        self._code_cache = {}
         # we'll create a scratch FieldArray space to do transforms on
         # we'll default to length 1; this will be changed if a map is passed
         # with more than one value in it
         self._createscratch()
+
+    def _evaluate_expression(self, expression, maps):
+        """Evaluate an audited expression without staging tensors on host."""
+        return _evaluate_raw_expression(
+            expression,
+            maps,
+            self.inputs,
+            self._code_cache,
+        )
 
     def _createscratch(self, shape=1):
         """Creates a scratch FieldArray to use for transforms."""
@@ -267,6 +337,15 @@ class CustomTransform(BaseTransform):
         """
         if self.transform_functions is None:
             raise NotImplementedError("no transform function(s) provided")
+        out = {}
+        for param, expression in self.transform_functions.items():
+            value = self._evaluate_expression(expression, maps)
+            if value is _EXPRESSION_UNSUPPORTED:
+                break
+            out[param] = value
+        else:
+            return self.format_output(maps, out)
+
         # copy values to scratch
         self._copytoscratch(maps)
         # ensure that we return the same data type in each dict
@@ -281,6 +360,10 @@ class CustomTransform(BaseTransform):
     def jacobian(self, maps):
         if self._jacobian is None:
             raise NotImplementedError("no jacobian provided")
+        out = self._evaluate_expression(self._jacobian, maps)
+        if out is not _EXPRESSION_UNSUPPORTED:
+            return out
+
         # copy values to scratch
         self._copytoscratch(maps)
         out = self._scratch[self._jacobian]
@@ -1076,34 +1159,18 @@ class PrecessionMassSpinToCartesianSpin(BaseTransform):
             m_p, m_s, xi_s, maps["phi_a"], maps["phi_s"]
         )
 
-        # map parameters from primary/secondary to indices
-        out = {}
-        if isinstance(m_p, numpy.ndarray):
-            mass1, mass2 = map(numpy.array, [maps["mass1"], maps["mass2"]])
-            mask_mass1_gte_mass2 = mass1 >= mass2
-            mask_mass1_lt_mass2 = mass1 < mass2
-            out[parameters.spin1x] = numpy.concatenate(
-                (spinx_p[mask_mass1_gte_mass2], spinx_s[mask_mass1_lt_mass2])
-            )
-            out[parameters.spin1y] = numpy.concatenate(
-                (spiny_p[mask_mass1_gte_mass2], spiny_s[mask_mass1_lt_mass2])
-            )
-            out[parameters.spin2x] = numpy.concatenate(
-                (spinx_p[mask_mass1_lt_mass2], spinx_s[mask_mass1_gte_mass2])
-            )
-            out[parameters.spin2y] = numpy.concatenate(
-                (spinx_p[mask_mass1_lt_mass2], spinx_s[mask_mass1_gte_mass2])
-            )
-        elif maps["mass1"] > maps["mass2"]:
-            out[parameters.spin1x] = spinx_p
-            out[parameters.spin1y] = spiny_p
-            out[parameters.spin2x] = spinx_s
-            out[parameters.spin2y] = spiny_s
-        else:
-            out[parameters.spin1x] = spinx_s
-            out[parameters.spin1y] = spiny_s
-            out[parameters.spin2x] = spinx_p
-            out[parameters.spin2y] = spiny_p
+        spin1x, spin2x = _components_from_mass_order(
+            spinx_p, spinx_s, maps["mass1"], maps["mass2"]
+        )
+        spin1y, spin2y = _components_from_mass_order(
+            spiny_p, spiny_s, maps["mass1"], maps["mass2"]
+        )
+        out = {
+            parameters.spin1x: spin1x,
+            parameters.spin1y: spin1y,
+            parameters.spin2x: spin2x,
+            parameters.spin2y: spin2y,
+        }
 
         return self.format_output(maps, out)
 
@@ -1155,25 +1222,13 @@ class PrecessionMassSpinToCartesianSpin(BaseTransform):
             maps[parameters.spin2y],
         )
 
-        # map parameters from primary/secondary to indices
-        if isinstance(xi1, numpy.ndarray):
-            mass1, mass2 = map(
-                numpy.array, [maps[parameters.mass1], maps[parameters.mass2]]
-            )
-            mask_mass1_gte_mass2 = mass1 >= mass2
-            mask_mass1_lt_mass2 = mass1 < mass2
-            out["xi1"] = numpy.concatenate(
-                (xi1[mask_mass1_gte_mass2], xi2[mask_mass1_lt_mass2])
-            )
-            out["xi2"] = numpy.concatenate(
-                (xi1[mask_mass1_gte_mass2], xi2[mask_mass1_lt_mass2])
-            )
-        elif maps["mass1"] > maps["mass2"]:
-            out["xi1"] = xi1
-            out["xi2"] = xi2
-        else:
-            out["xi1"] = xi2
-            out["xi2"] = xi1
+        # map parameters from primary/secondary to component indices
+        out["xi1"], out["xi2"] = _components_from_mass_order(
+            xi1,
+            xi2,
+            maps[parameters.mass1],
+            maps[parameters.mass2],
+        )
 
         return self.format_output(maps, out)
 
@@ -1316,6 +1371,7 @@ class LambdaFromTOVFile(BaseTransform):
         dtype = [(fname, float) for fname in file_columns]
         data = numpy.loadtxt(self._mass_lambda_file, dtype=dtype)
         self._data = data
+        self._jax_data_cache = {}
         super(LambdaFromTOVFile, self).__init__()
 
     @property
@@ -1379,6 +1435,34 @@ class LambdaFromTOVFile(BaseTransform):
             lambdav = numpy.interp(m_src, mass_data, lambda_data)
         return lambdav
 
+    def _jax_tov_data(self, reference):
+        """Return the static interpolation table for JAX."""
+        import jax.numpy as jnp
+
+        dtype = (
+            reference.dtype
+            if hasattr(reference, "dtype")
+            and jnp.issubdtype(reference.dtype, jnp.floating)
+            else jnp.float64
+        )
+        key = (dtype,)
+        try:
+            return self._jax_data_cache[key]
+        except KeyError:
+            pass
+
+        tables = (
+            jnp.asarray(numpy.asarray(self.mass_data).reshape(-1), dtype=dtype),
+            jnp.asarray(numpy.asarray(self.lambda_data).reshape(-1), dtype=dtype),
+        )
+        self._jax_data_cache[key] = tables
+        return tables
+
+    def _lambda_from_tov_jax(self, m_src):
+        """Interpolate Lambda without moving JAX array masses to the host."""
+        mass_data, lambda_data = self._jax_tov_data(m_src)
+        return _interp_lambda_from_tov_jax(m_src, mass_data, lambda_data)
+
     def transform(self, maps):
         """Computes the transformation of mass to Lambda.
 
@@ -1412,11 +1496,15 @@ class LambdaFromTOVFile(BaseTransform):
             shift = 1.0 / (1.0 + cosmology.redshift(abs(d)))
         else:
             shift = 1.0
-        out = {
-            self._lambda_param: self.lambda_from_tov_data(
+        jax, jax_vals = conversions._jax_values(m, shift)
+        if jax is not None:
+            m_src = jax_vals[0] * jax_vals[1]
+            lambdav = self._lambda_from_tov_jax(m_src)
+        else:
+            lambdav = self.lambda_from_tov_data(
                 m * shift, self._data["mass"], self._data["lambda"]
             )
-        }
+        out = {self._lambda_param: lambdav}
         return self.format_output(maps, out)
 
     @classmethod
@@ -2004,7 +2092,7 @@ class Log(BaseTransform):
             with the original variable name and value(s).
         """
         x = maps[self._inputvar]
-        out = {self._outputvar: numpy.log(x)}
+        out = {self._outputvar: _log(x)}
         return self.format_output(maps, out)
 
     def inverse_transform(self, maps):
@@ -2023,7 +2111,7 @@ class Log(BaseTransform):
             with the original variable name and value(s).
         """
         y = maps[self._outputvar]
-        out = {self._inputvar: numpy.exp(y)}
+        out = {self._inputvar: _exp(y)}
         return self.format_output(maps, out)
 
     def jacobian(self, maps):
@@ -2070,7 +2158,7 @@ class Log(BaseTransform):
             The value of the jacobian at the given point(s).
         """
         x = maps[self._outputvar]
-        return numpy.exp(x)
+        return _exp(x)
 
 
 class Logit(BaseTransform):
@@ -2148,7 +2236,7 @@ class Logit(BaseTransform):
         float
             The logit of x.
         """
-        return numpy.log(x - a) - numpy.log(b - x)
+        return _log(x - a) - _log(b - x)
 
     @staticmethod
     def logistic(x, a=0.0, b=1.0):
@@ -2179,7 +2267,7 @@ class Logit(BaseTransform):
         float
             The logistic of x.
         """
-        expx = numpy.exp(x)
+        expx = _exp(x)
         return (a + b * expx) / (1.0 + expx)
 
     def transform(self, maps):
@@ -2201,10 +2289,7 @@ class Logit(BaseTransform):
         """
         x = maps[self._inputvar]
         # check that x is in bounds
-        isin = self._bounds.__contains__(x)
-        if isinstance(isin, numpy.ndarray):
-            isin = isin.all()
-        if not isin:
+        if not _all_in_bounds(x, self._bounds):
             raise ValueError("one or more values are not in bounds")
         out = {self._outputvar: self.logit(x, self._a, self._b)}
         return self.format_output(maps, out)
@@ -2254,11 +2339,8 @@ class Logit(BaseTransform):
         """
         x = maps[self._inputvar]
         # check that x is in bounds
-        isin = self._bounds.__contains__(x)
-        if isinstance(isin, numpy.ndarray) and not isin.all():
+        if not _all_in_bounds(x, self._bounds):
             raise ValueError("one or more values are not in bounds")
-        elif not isin:
-            raise ValueError("{} is not in bounds".format(x))
         return (self._b - self._a) / ((x - self._a) * (self._b - x))
 
     def inverse_jacobian(self, maps):
@@ -2284,7 +2366,7 @@ class Logit(BaseTransform):
             The value of the jacobian at the given point(s).
         """
         x = maps[self._outputvar]
-        expx = numpy.exp(x)
+        expx = _exp(x)
         return expx * (self._b - self._a) / (1.0 + expx) ** 2.0
 
     @classmethod
