@@ -68,7 +68,7 @@ def backend_name(value):
         return declared
 
     module = getattr(type(storage), "__module__", "").partition(".")[0]
-    if module in ("numpy", "cupy", "torch", "jax"):
+    if module in ("numpy", "cupy", "jax"):
         return module
     if jax_module_for(storage) is not None:
         return "jax"
