@@ -228,6 +228,12 @@ try:
 except ImportError:
     HAVE_CUDA = False
 
+# Detect JAX without importing it.
+try:
+    HAVE_JAX = importlib.util.find_spec("jax") is not None
+except (AttributeError, ImportError, OSError, ValueError):
+    HAVE_JAX = False
+
 # Check for MKL capability
 try:
     import pycbc.fft.mkl

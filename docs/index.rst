@@ -59,6 +59,7 @@ library and application suite.
    :maxdepth: 1
 
    tutorials
+   jax_arrays
    searches
    inference
    apps

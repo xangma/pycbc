@@ -57,9 +57,15 @@ except NameError:
 
 def _convert_to_scheme(ary):
     if not isinstance(ary._scheme, _scheme.mgr.state.__class__):
+        previous_scheme = ary._scheme
         converted_array = Array(ary, dtype=ary._data.dtype)
         ary._data = converted_array._data
         ary._scheme = _scheme.mgr.state
+        if hasattr(ary, "_saved") and (
+            isinstance(previous_scheme, _scheme.JAXScheme)
+            or isinstance(ary._scheme, _scheme.JAXScheme)
+        ):
+            ary._saved.clear()
       
 def _convert(func):
     @wraps(func)
@@ -219,6 +225,9 @@ class Array(object):
         inputs = [i.numpy() if isinstance(i, Array) else i for i in inputs]
         ret = getattr(ufunc, method)(*inputs, **kwargs)
         if hasattr(ret, 'shape') and ret.shape == self.shape:
+            if _numpy.dtype(ret.dtype) in _ALLOWED_DTYPES:
+                if not _scheme_matches_base_array(ret):
+                    ret = Array(ret)
             ret = self._return(ret)
         return ret
 
