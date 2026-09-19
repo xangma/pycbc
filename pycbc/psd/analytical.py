@@ -61,6 +61,18 @@ def %s(length, delta_f, low_freq_cutoff):
     return from_string("%s", length, delta_f, low_freq_cutoff)
 """ % (_name, _name, _name))
 
+from pycbc import HAVE_JAX
+from pycbc import scheme as _scheme
+
+def get_jax_psd_list():
+    """Return a list of available reference PSD functions coded in JAX."""
+    if not HAVE_JAX:
+        return []
+    from pycbc.psd.analytical_jax import get_jax_psd_list as _get_list
+
+    return _get_list()
+
+
 def get_psd_model_list():
     """ Returns a list of available reference PSD functions.
 
@@ -69,7 +81,10 @@ def get_psd_model_list():
     list
         Returns a list of names of reference PSD functions.
     """
-    return get_lalsim_psd_list() + get_pycbc_psd_list()
+    models = set(get_lalsim_psd_list()) | set(get_pycbc_psd_list())
+    if HAVE_JAX:
+        models |= set(get_jax_psd_list())
+    return sorted(list(models))
 
 def get_lalsim_psd_list():
     """Return a list of available reference PSD functions from LALSimulation.
@@ -123,6 +138,22 @@ def from_string(psd_name, length, delta_f, low_freq_cutoff, **kwargs):
         raise TypeError('length must be a positive integer')
     length = int(length)
 
+    # if JAXScheme is active and model is available natively in JAX
+    state = _scheme.mgr.state
+    if HAVE_JAX and isinstance(state, _scheme.JAXScheme):
+        from pycbc.psd.analytical_jax import (
+            JAX_ANALYTICAL_PSD_MODELS,
+            analytical_psd,
+        )
+
+        if psd_name in JAX_ANALYTICAL_PSD_MODELS:
+            return analytical_psd(
+                psd_name,
+                length,
+                delta_f,
+                low_freq_cutoff=low_freq_cutoff,
+            )
+
     # if PSD model is in LALSimulation
     if psd_name in get_lalsim_psd_list():
         lalseries = lal.CreateREAL8FrequencySeries(
@@ -165,6 +196,14 @@ def flat_unity(length, delta_f, low_freq_cutoff):
     FrequencySeries
         Returns a FrequencySeries containing the unity PSD model.
     """
+    state = _scheme.mgr.state
+    if HAVE_JAX and isinstance(state, _scheme.JAXScheme):
+        from pycbc.psd.analytical_jax import analytical_psd
+
+        return analytical_psd(
+            "flat_unity", length, delta_f, low_freq_cutoff=low_freq_cutoff
+        )
+
     fseries = FrequencySeries(numpy.ones(length), delta_f=delta_f)
     kmin = int(low_freq_cutoff / fseries.delta_f)
     fseries.data[:kmin] = 0
