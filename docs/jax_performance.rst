@@ -1,0 +1,429 @@
+.. _jax-performance:
+
+JAX performance measurements
+============================
+
+The executable search and the waveform/filter microbenchmark measure different
+work. Executable wall time includes startup, data conditioning, bank preparation,
+filtering, vetoes, clustering and output. Microbenchmark rates cover waveform
+generation, array transfer and matched filtering on prepared synthetic data.
+Neither rate alone establishes sustained search capacity on a different bank.
+
+Measurement environment and source
+----------------------------------
+
+The September 2026 measurements use host ``len``, an AMD Ryzen Threadripper
+PRO 3995WX and an NVIDIA GeForce RTX 4090 with 24 GiB VRAM, Python 3.11 and
+JAX 0.4.20. Each worker is pinned to CPU core 8; numerical-library thread
+limits are one and ``XLA_PYTHON_CLIENT_PREALLOCATE=false``. GPU runs use one
+GPU in addition to the allocated host core.
+
+The measured runtime was verified against
+``594b9561f423b007367198225824944f5a6932aa``. The checkout originated from
+source archive ``540363e2013675f1af2571974ed182a415fcb9a8`` with benchmark
+harness updates applied before execution; the entire working tree was not
+identical to that archive. Retained provenance records the measured harness
+hashes separately.
+The `compact batch receipt <_static/jax_batch_sweep.json>`_ records source
+pins, input SHA256 hashes, commands, environment overrides and individual
+measurements. Affinity and thread limits describe execution controls; they
+do not by themselves establish exclusive host reservation.
+
+The JAX stack contains the JAX execution paths and their optimizations.
+General frame I/O and lazy-import optimizations are maintained separately in
+``codex/general-runtime-optimizations``; the comparison below measures their
+additional effect on the same JAX workload.
+
+Complete executable searches
+----------------------------
+
+The compressed ``IMRPhenomD`` workload uses the frame and search settings in
+:ref:`jax-reference-campaign`: 4096 Hz strain, a 512-second FFT segment,
+five segments per template and 1904 unique valid detector seconds. The
+384-template bank contains BNS and NSBH templates. The 1536-row bank repeats
+that bank four times; it exercises batch scheduling and memory use without
+adding independent waveforms or proving large-bank convergence.
+
+Standard CPU uses ``cpu:1`` with MKL FFTs and scalar filtering. JAX CPU and
+CUDA use JAX FFTs and their stated batch sizes. Timings come from fresh
+uninstrumented processes; compilation warmups, memory captures and Nsight
+captures are separate from those timing samples.
+
+.. list-table:: 384-template search, three fresh processes per arm
+   :header-rows: 1
+
+   * - Arm and batch size
+     - Wall seconds, median [range]
+     - Calculation seconds, median [range]
+     - Bank templates/calculation second
+   * - Standard CPU, scalar (B1)
+     - 68.488 [67.821, 68.805]
+     - 49.242 [48.576, 49.511]
+     - 7.80
+   * - JAX CPU, B16
+     - 518.968 [515.463, 520.537]
+     - 466.368 [462.198, 467.920]
+     - 0.82
+   * - JAX CUDA, B128
+     - 17.332 [17.314, 17.370]
+     - 1.901 [1.893, 1.904]
+     - 202.02
+
+The `compact search comparison <_static/jax_search_comparison.json>`_ retains
+all nine timing samples and the complete grouped scientific comparisons.
+The three repetitions of each JAX arm fail the CPU-reference gates below;
+these rates are descriptive measurements, not equivalent-output speedups.
+JAX CPU batching is substantially slower than standard CPU on this fixture.
+The 1536-row CUDA sweep is reported in :doc:`jax_gpu_investigation`.
+
+The tables report wall and calculation medians with their observed ranges.
+Bank templates per calculation second is ``bank_rows / calc_seconds``; it
+counts each bank row once even though all five segments are processed. The
+finite-workload real-time factor is ``1904 / wall_seconds``. Multiplying that
+factor by bank rows gives template-seconds per wall second for the allocated
+worker; a GPU worker must not be labelled as one CPU core of capacity.
+
+.. _jax-search-qualification:
+
+Scientific output comparisons
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Scientific comparisons must state their reference, fields and tolerance.
+Exact agreement of HDF datasets on this fixture is stronger than the
+numerical-tolerance gate for those datasets, but does not establish bitwise
+agreement for other inputs, intermediate arrays or unexamined metadata.
+Runtime performance fields are excluded from scientific comparisons as listed
+in :ref:`jax-reference-campaign`.
+
+For the 1536-row campaign, all 12 timing trials, both warmups and four memory
+captures produce 7984 triggers and match all 18 scientific datasets exactly
+against the prior JAX 7984-trigger output. The receipt lists every
+compared dataset and excludes four performance datasets. HDF attributes were
+not compared. This is a regression check against that output, not a newly
+established full CPU-reference or intermediate-array equivalence result.
+
+The 384-template JAX arms fail the frozen CPU-reference qualification gates.
+Against CPU replicate 1, which contains 1988 triggers, JAX CPU has 2000 and
+JAX CUDA has 1996. Each shares 1955 exact ``(template_hash, end_time sample)``
+identities with CPU. There are 33 CPU-only identities, 45 JAX-CPU-only and
+41 JAX-CUDA-only identities. No nearest-neighbor matching is used; no
+duplicate identities or off-grid times were found.
+
+.. list-table:: CPU-reference field failures among 1955 matched triggers
+   :header-rows: 1
+
+   * - Field
+     - JAX CPU failures
+     - JAX CUDA failures
+     - Maximum absolute difference, CPU / CUDA
+   * - Power chi-square
+     - 1950
+     - 1952
+     - 9.299955 / 9.300028
+   * - SNR
+     - 51
+     - 112
+     - 0.000837326 / 0.000999928
+   * - Circular phase
+     - 45
+     - 151
+     - 0.000156641 / 0.000188351 radians
+   * - Sigmasq
+     - 0
+     - 0
+     - 31 / 14 (within relative tolerance)
+
+Matched times, template hashes and durations, degrees of freedom, saved
+search metadata and inactive veto fields agree exactly. Complete PSD arrays
+were not saved, so their separate gate remains unavailable. These failures
+are material scientific differences; the executable timings describe
+these implementations and do not establish equivalent-output speedups.
+Neither runtime code nor tolerances were changed to obtain these results.
+
+All three repetitions of each arm produce the same comparison results:
+all six JAX runs fail, while both further standard CPU runs match CPU
+replicate 1 across all 18 non-timing datasets. The compact receipt stores
+per-run timing and HDF hashes, grouping repeated scientific metrics without
+dropping their failed verdicts.
+
+Both Nsight captures (batch 128 and 160) preserve the prior 1536-row JAX
+output across all 18 scientific datasets exactly, with no attributes present
+in either file. This separately checks that profiling preserved that JAX
+output; it does not change the failed 384-template CPU qualification verdict.
+
+Effect of the separate general optimizations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The separate patch is ``06999c64200a3c71830abd3e6ab456f45f0fad67``. Three
+fresh-process trials per configuration used reversed/rotated ordering on the
+1536-row bank at batch 128:
+
+.. list-table:: Effect of the general changes, seconds: median [minimum, maximum]
+   :header-rows: 1
+
+   * - Source
+     - Full wall
+     - Calculation
+   * - JAX stack
+     - 23.254 [23.203, 23.504]
+     - 7.400 [7.391, 7.421]
+   * - JAX stack + general changes
+     - 15.640 [15.541, 15.891]
+     - 6.812 [6.810, 6.824]
+
+Adding the general changes reduces median wall time by 7.614 seconds
+(32.7%) and median calculation time by 0.588 seconds (7.9%) on this fixture.
+The runtime separation therefore has a material end-to-end timing cost.
+Both configurations preserve the 18 compared scientific datasets exactly.
+
+The paired comparison uses identical inputs, JAX settings and hardware for
+the separated JAX stack and the same stack plus the general optimizations.
+Wall time and calculation time have different boundaries; report both rather
+than attributing the entire wall-time difference to filtering.
+
+.. _jax-timing-boundaries:
+
+Timing boundaries
+-----------------
+
+.. list-table:: Executable timers
+   :header-rows: 1
+   :widths: 22 44 34
+
+   * - Metric
+     - Included
+     - Excluded
+   * - External wall seconds
+     - Child process launch through termination, including imports, input,
+       setup, filtering, output and teardown
+     - Harness preparation before process launch
+   * - Internal ``run_time``
+     - Work between the executable's ``tstart`` and ``tstop``, including setup,
+       filtering and final event consolidation
+     - Earlier process startup/imports and later HDF output/teardown
+   * - Calculation seconds
+     - ``run_time * (1 - setup_time_fraction)``: template processing after
+       setup, including bank decompression, normalization, filtering, vetoes,
+       clustering and event handling
+     - Setup, JIT warmup during setup and work outside ``run_time``
+
+Calculation time is a host-observed pipeline interval, not a sum of CUDA
+kernel durations. The difference between wall and calculation time combines
+several costs; it is not a measurement of Python import time alone.
+
+Waveform and matched-filter microbenchmarks
+-------------------------------------------
+
+The retained harness runs the current checkout's standard CPU implementation,
+JAX CPU and JAX CUDA with host-generated LAL ``TaylorF2`` waveforms. It does
+not load a second CPU checkout or explicitly select the standard CPU FFT
+backend. All three labels therefore describe the implementation tested
+without assuming MKL. Optional ``diffgw`` arms are separate experiments.
+
+Both workloads use single precision: ``complex64`` signal arrays and
+``float32`` PSD arrays. The transform lengths are 131072 at 2048 Hz and
+2097152 at 4096 Hz. Every timed pass includes waveform generation, array
+transfer/conversion and matched filtering; prepared strain and PSD creation
+are outside the clock. Warmup precedes the timed trials.
+
+One untimed warmup precedes three timed trials for each arm and batch size.
+The `compact microbenchmark receipt <_static/jax_microbenchmarks.json>`_
+retains every stage sample, input definition and execution command. Strain
+is seeded complex Gaussian noise and the PSD is unity; the template primary
+mass is spaced from 1.4 to 2.0 solar masses within each batch. These timings
+do not include an independent numerical oracle or establish search parity.
+
+.. list-table:: Total templates per second from median pass time
+   :header-rows: 1
+
+   * - Transform length
+     - Current-checkout arm
+     - B1
+     - B4
+     - B16
+     - B64
+   * - 131,072
+     - Standard CPU / LAL
+     - 55.57
+     - 60.85
+     - 71.09
+     - 73.31
+   * - 131,072
+     - JAX CPU / LAL
+     - 69.13
+     - 84.28
+     - 76.36
+     - 71.77
+   * - 131,072
+     - JAX CUDA / LAL
+     - 85.70
+     - 100.01
+     - 98.61
+     - 99.96
+   * - 2,097,152
+     - Standard CPU / LAL
+     - 5.27
+     - 6.31
+     - 6.75
+     - 6.84
+   * - 2,097,152
+     - JAX CPU / LAL
+     - 5.41
+     - 5.93
+     - 5.94
+     - 5.95
+   * - 2,097,152
+     - JAX CUDA / LAL
+     - 8.80
+     - 10.16
+     - 11.62
+     - 11.58
+
+Across the tested batches, peak JAX CUDA total throughput is about 1.80 times
+the standard CPU batch-one rate for the short transform and 2.21 times for
+the long transform. Host LAL waveform generation dominates the JAX CUDA
+stage timings in these cases. Isolated filter throughput is recorded
+separately and must not be substituted for this total rate.
+
+.. figure:: _static/jax_throughput_scaling.png
+   :alt: Waveform, transfer and matched-filter throughput by batch size
+   :width: 100%
+
+   Rates include all three measured stages and exclude complete executable
+   startup and data conditioning.
+
+.. figure:: _static/jax_speedup_matrix.png
+   :alt: Microbenchmark speedups relative to current standard CPU batch one
+   :width: 100%
+
+   Ratios for the short-transform workload use the current checkout's CPU
+   batch-one rate at the same precision.
+
+.. figure:: _static/jax_latency_breakdown.png
+   :alt: Per-template waveform, array transfer and matched-filter timings
+   :width: 100%
+
+   Stage medians at the labelled batch size. Their sum need not equal the
+   median of the full-pass times.
+
+Batch size, memory and utilisation
+----------------------------------
+
+:doc:`jax_gpu_investigation` reports the 1536-row batch sweep, memory captures
+and process-specific CUDA timelines. Throughput uses uninstrumented trials;
+profiling is used to interpret execution and allocation behavior separately.
+
+Reproducing the measurements
+----------------------------
+
+Keep raw JSON, HDF outputs, Nsight exports and logs under ignored
+``artifacts/``. Record source and input hashes, commands, versions and CPU/GPU
+allocation with every campaign. See :ref:`jax-benchmark-protocol` for controls
+and scientific qualification requirements.
+
+Microbenchmark and three scaling plots
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: console
+
+   export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
+   export MKL_DYNAMIC=FALSE MKL_THREADING_LAYER=GNU PYTHONHASHSEED=0
+   export XLA_PYTHON_CLIENT_PREALLOCATE=false
+   unset XLA_FLAGS JAX_COMPILATION_CACHE_DIR
+   taskset -c 8 python tools/bench_jax_performance.py \
+     --device cuda:0 --arms branch_cpu jax_cpu_lal jax_cuda_lal \
+     --precision single --batch-sizes 1 4 16 64 \
+     --lengths 131072 2097152 --trials 3 \
+     --output artifacts/jax_benchmark_results.json
+   python tools/plot_jax_benchmarks.py \
+     --input artifacts/jax_benchmark_results.json \
+     --output-dir docs/_static/
+
+To rerender the checked-in microbenchmark measurements without running new
+benchmarks, replace the plot input with
+``docs/_static/jax_microbenchmarks.json``.
+
+Complete executable campaign
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The campaign runner can compare a separately pinned CPU checkout with the
+current checkout. ``--batched`` keeps standard CPU scalar and selects JAX CPU
+batch 16 and JAX CUDA at ``--batch-size``. The runner's trigger comparison is
+a limited SNR/time/count check; supplement it with the complete scientific
+comparisons in :ref:`jax-reference-campaign` before claiming equivalence.
+
+.. code-block:: console
+
+   python tools/bench_jax_inspiral_campaign.py \
+     --original-source . \
+     --branch-source . --python /path/to/venv/bin/python \
+     --frame-file /path/to/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf \
+     --bank-file /path/to/bank_384_compressed.hdf \
+     --track track1 --batched --batch-size 128 --replicates 3 \
+     --arms branch_cpu jax_cpu_batched jax_cuda_batched \
+     --output artifacts/benchmarks/receipt.json \
+     --output-dir artifacts/benchmarks
+
+Use the 1536-row input for the repeated-bank sweep and record that bank's
+hash and row count. Compare ``branch_cpu`` and JAX arms from the same checkout
+when evaluating the current stack; ``original_cpu`` is a separate source
+comparison only when ``--original-source`` names a different pinned checkout.
+
+Process CUDA, CPU and memory utilisation plots
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The maintained capture, extraction and plotting tools reproduce the timeline
+panels in :doc:`jax_gpu_investigation`. Run on a Linux CUDA host with Nsight
+Systems (``nsys``), NVML, ``psutil``, NumPy, Matplotlib and the JAX PyCBC
+environment. The collector launches the search, records its PID, samples CPU
+and memory use, and emits an NVTX marker to align telemetry with CUDA events.
+The extractor selects that process's kernels and copies from the Nsight
+SQLite export. Whole-device NVML activity is not substituted for
+process-specific kernel activity.
+
+Use the recorded H1 frame and the 1,536-row compressed bank (384 templates
+repeated four times) to match the published workload. Supply the actual input
+paths below. The collector fixes the remaining search parameters, sets one
+numerical thread and disables JAX preallocation. CPU core 8 must be available
+and reserved for the run; change ``--affinity-core`` for another host and
+record that difference.
+
+.. code-block:: console
+
+   mkdir -p artifacts/utilisation
+   for batch in 128 160; do
+     nsys profile --trace=cuda,nvtx --sample=none --cpuctxsw=none \
+       --output=artifacts/utilisation/batch-${batch} \
+       python tools/profile_jax_gpu_timeline.py --nvtx-sync \
+       --executable bin/pycbc_inspiral \
+       --frame-file /path/to/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf \
+       --bank-file /path/to/bank_1536_compressed.hdf \
+       --batch-size ${batch} --affinity-core 8 \
+       --output-hdf artifacts/utilisation/triggers-${batch}.hdf \
+       --output-json artifacts/utilisation/telemetry-${batch}.json
+
+     nsys export --type=sqlite \
+       --output=artifacts/utilisation/batch-${batch}.sqlite \
+       artifacts/utilisation/batch-${batch}.nsys-rep
+     python tools/extract_jax_nsight_timeline.py \
+       --sqlite artifacts/utilisation/batch-${batch}.sqlite \
+       --telemetry artifacts/utilisation/telemetry-${batch}.json \
+       --output artifacts/utilisation/timeline-${batch}.json --bin-ms 100
+     python tools/plot_jax_gpu_timeline.py \
+       --input artifacts/utilisation/timeline-${batch}.json \
+       --output artifacts/utilisation/timeline-${batch}.png
+   done
+
+These commands render full-run plots. To reproduce the production-window
+view, inspect ``phases`` in each new timeline JSON for the first and last
+``filter_batch`` boundaries, then rerun the plotting command with
+``--zoom-start <seconds> --zoom-end <seconds>``. Phase boundaries are specific to each capture; do not reuse another run's
+zoom window.
+
+The plots show process kernel-active time, directional CUDA copies, CUDA
+event intervals, sampled process GPU memory, process CPU utilisation and host
+RSS. Kernel-active time is not SM occupancy, GPU reserved memory is not live
+buffer size, and copy totals per bin are not bus bandwidth. Keep
+instrumented captures separate from unprofiled timing trials and compare
+scientific HDF outputs using the gates in :ref:`jax-reference-campaign`.
+Record the tested revision and input hashes with every new capture.

@@ -62,6 +62,7 @@ library and application suite.
    searches
    inference
    apps
+   jax
 
 .. toctree::
    :caption: Dev Guides
@@ -70,10 +71,6 @@ library and application suite.
 
    extend
    devs
-
-.. toctree::
-   :hidden:
-   :maxdepth: 1
 
 .. card:: Core Library Examples
     :link:  tutorials
