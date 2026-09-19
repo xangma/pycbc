@@ -6,8 +6,35 @@ JAX search and tuning
 The JAX search path combines device kernels with host orchestration for strain
 conditioning, template preparation, matched filtering, vetoes, clustering and
 output. Selecting a JAX scheme does not make every stage device-resident.
-See :doc:`jax_filtering` for the filtering API and :doc:`jax_performance` for
-measured executable performance and synthetic filter estimates.
+See :doc:`jax` for installation, device selection and precision, and
+:doc:`jax_performance` for measured executable performance and synthetic
+filter estimates.
+
+.. _jax-filtering:
+
+Filtering API
+-------------
+
+Use the usual filtering and veto functions inside a ``JAXScheme`` context.
+For prepared frequency-domain ``template`` and ``data`` arrays and a
+compatible one-sided ``psd``:
+
+.. code-block:: python
+
+   from pycbc.scheme import JAXScheme
+   from pycbc.filter import matched_filter
+   from pycbc.vetoes import power_chisq
+
+   with JAXScheme("cuda:0"):
+       snr = matched_filter(template, data, psd=psd,
+                            low_frequency_cutoff=20.0)
+       chisq = power_chisq(template, data, num_bins=16, psd=psd,
+                          low_frequency_cutoff=20.0)
+
+The matched filter correlates strain with the conjugated template, weighted
+by the inverse PSD, and returns the normalized complex SNR time series.
+The power chi-square veto divides the template into frequency bins with
+equal expected power and tests the signal contribution in each bin.
 
 Execution
 ---------
@@ -26,9 +53,11 @@ command:
 Waveform preparation can use compressed banks or the selected waveform
 generator. On-device generation through ``diffgw`` requires that optional
 dependency and explicit ``--enable-diffgw``; selecting JAX alone does not enable
-it. See :doc:`jax_reference_campaign` for complete executable configurations.
+it. See :ref:`jax-reference-campaign` for complete executable configurations.
 
 .. _jax-search-batching:
+.. _jax-tiled-pathways:
+.. _jax-optimizations:
 
 Template batching and compilation
 ---------------------------------
@@ -44,7 +73,7 @@ and ``jax.vmap`` for batched evaluation. Compiled kernels can be reused for
 compatible shapes; a final partial batch may require another compilation.
 Include compilation in fresh-process timing and report warmed measurements
 separately. A larger fitting batch need not improve throughput: see the
-measured sweep in :doc:`jax_gpu_investigation`.
+measured sweep in :ref:`jax-gpu-investigation`.
 
 To disable JAX GPU preallocation, set this before starting the process:
 
@@ -58,6 +87,7 @@ arrays. Automatic memory-based batch selection and overlapping host preparation
 with device execution remain possible future experiments.
 
 .. _jax-search-workflows:
+.. _jax-workflows:
 
 HTCondor workflow configuration
 -------------------------------

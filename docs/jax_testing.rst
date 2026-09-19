@@ -20,8 +20,11 @@ its Python version. Select the CPU scheme explicitly:
      test/test_jax_*.py test/test_detector_jax_*.py \
      test/waveform/test_jax_*.py test/waveform/test_spherical_harmonics_jax.py
 
-On a configured CUDA host, use ``PYCBC_TEST_SCHEME=jax:cuda``. Check
-``jax.devices()`` before interpreting a run as GPU validation.
+On a configured CUDA host, use ``PYCBC_TEST_SCHEME=jax:cuda`` for tests that
+honor this variable. Some tests choose their own device explicitly, including
+CPU, so the variable does not force the entire suite onto CUDA. Check
+``jax.devices()`` and the individual tests' scheme selection before treating
+a result as GPU validation.
 
 Precision and scientific scope
 ------------------------------
@@ -44,6 +47,7 @@ workflow result for pass/fail status and skips.
 
 
 .. _jax-testing-parity:
+.. _jax-parity:
 
 Numerical comparison helpers
 ----------------------------
