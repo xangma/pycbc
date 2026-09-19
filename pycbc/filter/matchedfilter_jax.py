@@ -26,6 +26,7 @@ from pycbc.filter.matchedfilter import _BaseCorrelator
 from pycbc.types.array_jax import (
     JAXArrayData,
     _ensure_x64,
+    is_jax_array,
     to_jax,
 )
 
@@ -390,3 +391,159 @@ def match_jax(
 
     norm = jnp.sqrt(v1_norm * v2_norm)
     return max_val / norm, max_idx
+
+
+def batch_peak_values(output, template_count, template_size, segment):
+    """Materialize one peak index and value per template from contiguous output.
+
+    Avoids per-template host synchronization by reducing the full 2D batch
+    allocation in a single vectorized JAX kernel.
+    """
+    _ensure_x64()
+    import jax.numpy as jnp
+
+    tensor = to_jax(output)
+    template_count = int(template_count)
+    template_size = int(template_size)
+    if (
+        template_count < 1
+        or template_size < 1
+        or tensor.size != template_count * template_size
+    ):
+        return None
+
+    if segment.step not in (None, 1):
+        return None
+
+    values = tensor.reshape(template_count, template_size)[:, segment]
+    if values.shape[1] == 0:
+        return None
+
+    if jnp.iscomplexobj(values):
+        sq_mag = values.real ** 2 + values.imag ** 2
+    else:
+        sq_mag = values ** 2
+
+    indices = jnp.argmax(sq_mag, axis=-1)
+    peaks = values[jnp.arange(values.shape[0]), indices]
+    return (
+        np.asarray(indices),
+        np.asarray(peaks),
+    )
+
+
+def batch_peak_magnitudes(peak_values):
+    """Materialize batch peak magnitudes in JAX."""
+    _ensure_x64()
+    import jax.numpy as jnp
+
+    jarr = to_jax(peak_values)
+    return np.asarray(jnp.abs(jarr))
+
+
+def batch_matched_filter_bank(
+    templates,
+    strain,
+    psd=None,
+    low_frequency_cutoff=None,
+    high_frequency_cutoff=None,
+    delta_f=None,
+):
+    """High-throughput batched template bank matched filtering in pure JAX.
+
+    Performs 2D overwhitening, batched correlation, and batched IFFT across
+    the entire template bank in an XLA-fused execution graph.
+
+    Parameters
+    ----------
+    templates : jax.Array or FrequencySeries
+        2D array of templates with shape (num_templates, n_freq) or list of
+        FrequencySeries.
+    strain : jax.Array or FrequencySeries
+        1D strain frequency series of length n_freq.
+    psd : jax.Array or FrequencySeries, optional
+        1D PSD frequency series of length n_freq.
+    low_frequency_cutoff : float, optional
+        Low frequency cutoff for integration in Hz.
+    high_frequency_cutoff : float, optional
+        High frequency cutoff for integration in Hz.
+    delta_f : float, optional
+        Frequency spacing in Hz.
+
+    Returns
+    -------
+    norm_snr : jax.Array
+        2D array of normalized complex SNR time series of shape
+        (num_templates, n_time).
+    sigmasq : jax.Array
+        1D array of template variances (sigmasq) of length num_templates.
+    """
+    _ensure_x64()
+    import jax.numpy as jnp
+
+    # Unwrap templates to 2D jax array
+    if (
+        hasattr(templates, "__len__")
+        and not is_jax_array(templates)
+        and not isinstance(templates, np.ndarray)
+    ):
+        t_arrs = [to_jax(t) for t in templates]
+        templates_j = jnp.stack(t_arrs, axis=0)
+        df = (
+            templates[0].delta_f
+            if delta_f is None and hasattr(templates[0], "delta_f")
+            else delta_f
+        )
+    templates_j = to_jax(templates)
+    if templates_j.ndim == 1:
+        templates_j = templates_j[None, :]
+    df = delta_f if delta_f is not None else 1.0
+
+    num_templates = templates_j.shape[0]
+    strain_j = to_jax(strain)
+    n_freq = strain_j.shape[-1]
+    n_time = (n_freq - 1) * 2
+
+    # Bandpass mask
+    kmin, kmax = 0, n_freq
+    if low_frequency_cutoff is not None and df is not None:
+        kmin = int(round(low_frequency_cutoff / df))
+    if high_frequency_cutoff is not None and df is not None:
+        kmax = min(int(round(high_frequency_cutoff / df)), n_freq)
+
+    # 2D overwhitening
+    if psd is not None:
+        psd_j = to_jax(psd)
+        inv_psd = jnp.where(psd_j > 0, 1.0 / psd_j, 0.0)
+    else:
+        inv_psd = jnp.ones(n_freq, dtype=strain_j.dtype)
+
+    # Apply frequency cutoffs to inv_psd
+    freq_mask = (jnp.arange(n_freq) >= kmin) & (jnp.arange(n_freq) < kmax)
+    inv_psd_masked = jnp.where(freq_mask, inv_psd, 0.0)
+
+    # Template normalizations: sigmasq = 4 * df * sum(|h|^2 * inv_psd)
+    t_mag_sq = templates_j.real ** 2 + templates_j.imag ** 2
+    sigmasq = 4.0 * df * jnp.sum(t_mag_sq * inv_psd_masked[None, :], axis=-1)
+
+    # Batched correlation:
+    # qtilde has length n_time = (n_freq - 1) * 2
+    # In PyCBC matched_filter_core:
+    # correlate(htilde[kmin:kmax], stilde[kmin:kmax], qtilde[kmin:kmax])
+    # which is qtilde[kmin:kmax] = conj(htilde[kmin:kmax]) * stilde[kmin:kmax]
+    # then qtilde[kmin:kmax] /= psd[kmin:kmax]
+    qtilde = jnp.zeros((num_templates, n_time), dtype=templates_j.dtype)
+    corr = (
+        jnp.conj(templates_j[:, kmin:kmax])
+        * (strain_j[kmin:kmax] * inv_psd[kmin:kmax])[None, :]
+    )
+    qtilde = qtilde.at[:, kmin:kmax].set(corr)
+
+    # Batched IFFT: n_time length
+    snr_series = jnp.fft.ifft(qtilde, axis=-1) * n_time
+
+    # Normalize by (4 * df) / sqrt(sigmasq)
+    norm = (4.0 * df) / jnp.sqrt(jnp.maximum(sigmasq, 1e-30))[:, None]
+    norm_snr = snr_series * norm
+
+    return norm_snr, sigmasq
