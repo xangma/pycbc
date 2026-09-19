@@ -60,6 +60,7 @@ library and application suite.
 
    tutorials
    jax_arrays
+   jax_fft
    searches
    inference
    apps
