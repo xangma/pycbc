@@ -235,6 +235,12 @@ try:
 except (ImportError, OSError):
     HAVE_MKL=False
 
+# Detect JAX without importing it.
+try:
+    HAVE_JAX = importlib.util.find_spec("jax") is not None
+except (AttributeError, ImportError, OSError, ValueError):
+    HAVE_JAX = False
+
 # Check for openmp suppport, currently we pressume it exists, unless on
 # platforms (mac) that are silly and don't use the standard gcc.
 if sys.platform == 'darwin':

@@ -206,19 +206,138 @@ class NumpyScheme(CPUScheme):
     pass
 
 
+class JAXScheme(Scheme):
+    """Context that sets PyCBC objects to use a JAX processing scheme.
+
+    Parameters
+    ----------
+    device : str or int, optional
+        Target device specification: 'cpu', 'cuda', 'gpu', 'tpu', or device index.
+    num_threads : int, optional
+        Target number of threads for intra-op parallelism if supported.
+    """
+
+    def __init__(self, device=None, num_threads=None):
+        if not getattr(pycbc, "HAVE_JAX", False):
+            raise RuntimeError("Install JAX to use the JAX processing scheme.")
+
+        os.environ.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
+
+        try:
+            import jax
+        except Exception as exc:
+            raise RuntimeError(
+                "JAX was found but could not be imported; install a "
+                "working JAX package to use the JAX processing scheme."
+            ) from exc
+
+        self._jax = jax
+        cache_dir = os.environ.get(
+            "JAX_COMPILATION_CACHE_DIR",
+            os.path.expanduser("~/.cache/pycbc_jax_cache"),
+        )
+        if cache_dir and cache_dir.strip().lower() not in ("0", "false", "none", "off"):
+            try:
+                os.makedirs(cache_dir, exist_ok=True)
+                os.environ.setdefault("JAX_PERSISTENT_CACHE_MIN_COMPILE_TIME_SECS", "0")
+                from jax.experimental.compilation_cache import compilation_cache as cc
+                cc.initialize_cache(cache_dir)
+            except Exception:
+                pass
+
+        if os.environ.get("PYCBC_JAX_ENABLE_X64", "1").strip().lower() not in (
+            "0",
+            "false",
+            "no",
+            "off",
+        ):
+            jax.config.update("jax_enable_x64", True)
+
+        self.device_spec = "cpu" if device in (None, "") else str(device)
+        self.jax_device = self._resolve_device(self.device_spec)
+        self.device = self.jax_device
+        self.prefix = "jax"
+
+        if num_threads is not None:
+            num_threads = int(num_threads)
+            if num_threads <= 0:
+                raise ValueError(f"num_threads must be positive, got {num_threads}")
+        else:
+            num_threads = 1
+        self.num_threads = num_threads
+        self._prev_default_device = None
+
+    def _resolve_device(self, spec):
+        if spec == "cpu":
+            try:
+                cpu_devs = self._jax.devices("cpu")
+            except Exception:
+                cpu_devs = [d for d in self._jax.devices() if d.platform == "cpu"]
+            if not cpu_devs:
+                raise RuntimeError("No JAX CPU device found.")
+            return cpu_devs[0]
+        if spec in ("cuda", "gpu"):
+            try:
+                gpu_devs = self._jax.devices("gpu")
+            except Exception:
+                gpu_devs = [d for d in self._jax.devices() if d.platform in ("gpu", "cuda")]
+            if not gpu_devs:
+                raise RuntimeError(f"JAX {spec} device requested but no GPU found.")
+            return gpu_devs[0]
+        if spec.startswith(("cuda:", "gpu:")):
+            idx = int(spec.split(":", 1)[1])
+            try:
+                gpu_devs = self._jax.devices("gpu")
+            except Exception:
+                gpu_devs = [d for d in self._jax.devices() if d.platform in ("gpu", "cuda")]
+            if idx < 0 or idx >= len(gpu_devs):
+                raise ValueError(
+                    f"JAX GPU device index {idx} out of range (found {len(gpu_devs)} GPUs)"
+                )
+            return gpu_devs[idx]
+        devices = self._jax.devices()
+        if spec.isdigit():
+            idx = int(spec)
+            if idx < 0 or idx >= len(devices):
+                raise ValueError(
+                    f"JAX device index {idx} out of range (found {len(devices)} devices)"
+                )
+            return devices[idx]
+        matched = [
+            d for d in devices if spec in str(d).lower() or d.platform == spec
+        ]
+        if matched:
+            return matched[0]
+        raise ValueError(f"Unsupported or unrecognized JAX device {spec}")
+
+    def __enter__(self):
+        super().__enter__()
+        if hasattr(self._jax, "default_device"):
+            self._prev_default_device = self._jax.default_device(self.jax_device)
+            self._prev_default_device.__enter__()
+        return self
+
+    def __exit__(self, *args):
+        if getattr(self, "_prev_default_device", None) is not None:
+            self._prev_default_device.__exit__(*args)
+            self._prev_default_device = None
+        super().__exit__(*args)
+
+
 scheme_prefix = {
     CUDAScheme: "cuda",
     CPUScheme: "cpu",
     CUPYScheme: "cupy",
     MKLScheme: "mkl",
     NumpyScheme: "numpy",
+    JAXScheme: "jax",
 }
 _scheme_map = {v: k for (k, v) in scheme_prefix.items()}
 
 _default_scheme_prefix = os.getenv("PYCBC_SCHEME", "cpu")
 try:
     _default_scheme_class = _scheme_map[_default_scheme_prefix]
-except KeyError as exc:
+except KeyError:
     raise RuntimeError(
         "PYCBC_SCHEME={!r} not recognised, please select one of: {}".format(
             _default_scheme_prefix,
@@ -235,6 +354,18 @@ scheme_prefix[DefaultScheme] = _default_scheme_prefix
 
 def current_prefix():
     return scheme_prefix[type(mgr.state)]
+
+
+def current_backend_key():
+    """Return a hashable identity for scheme-owned reusable resources."""
+    state = mgr.state
+    return (
+        current_prefix(),
+        type(state),
+        getattr(state, "device", None),
+        getattr(state, "device_num", None),
+        getattr(state, "num_threads", None),
+    )
 
 _import_cache = {}
 def schemed(prefix):
@@ -345,6 +476,17 @@ def from_cli(opt):
     elif name == 'cupy':
         logger.info("Running with CUPY support")
         ctx = CUPYScheme()
+    elif name == "jax":
+        extra = scheme_str[1] if len(scheme_str) > 1 else None
+        if extra is not None:
+            if extra in ("cuda", "gpu") and hasattr(opt, "processing_device_id") and opt.processing_device_id is not None:
+                dev = f"{extra}:{opt.processing_device_id}"
+            else:
+                dev = extra
+        else:
+            dev = "cpu"
+        ctx = JAXScheme(device=dev)
+        logger.info("Running with JAX support on device %s", ctx.jax_device)
     else:
         if len(scheme_str) > 1:
             numt = scheme_str[1]
