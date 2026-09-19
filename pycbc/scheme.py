@@ -209,6 +209,7 @@ class NumpyScheme(CPUScheme):
 JAX_REFERENCE_OPERATIONS = frozenset({
     "sum", "cumsum", "dot", "inner", "weighted_inner", "multiply_and_add",
     "abs_max_loc", "abs_arg_max", "squared_norm", "min", "max", "max_loc",
+    "fft", "ifft",
 })
 
 
@@ -255,7 +256,7 @@ class JAXScheme(Scheme):
         Each selected operation transfers its inputs to the CPU; other
         operations continue using JAX. The default selects none. Supported
         names are sum, cumsum, dot, inner, weighted_inner, multiply_and_add,
-        abs_max_loc, abs_arg_max, squared_norm, min, max, and max_loc.
+        abs_max_loc, abs_arg_max, squared_norm, min, max, max_loc, fft, and ifft.
         A comma-separated string is also accepted.
     """
 

@@ -33,10 +33,22 @@ single-precision inputs. Configure precision before constructing arrays.
 Host conversion, including ``numpy()`` on a PyCBC array, synchronizes device
 work; use it at a deliberate output boundary.
 
+Signal processing
+-----------------
+
+These guides describe the supported device calculations and their original-implementation validation controls.
+
+.. toctree::
+   :maxdepth: 1
+
+   jax_fft
+
 Validation and performance
 --------------------------
 
-The default JAX path uses device calculations. Floating-point grouping and elementary functions can produce numerical differences. :doc:`jax_numerical_differences` links explanations,
+The default JAX path uses device calculations. Floating-point grouping,
+transcendental functions, FFT implementations and interpolation can produce
+numerical differences. :doc:`jax_numerical_differences` links explanations,
 executed examples and the independent original-implementation controls.
 
 ``reference_operations`` is empty by default. Select a calculation to replay
@@ -45,10 +57,10 @@ using JAX:
 
 .. code-block:: python
 
-   with JAXScheme("cpu", reference_operations=("inner", "cumsum")):
+   with JAXScheme("cpu", reference_operations=("fft", "ifft")):
        ...
 
-The command-line equivalent is ``--jax-reference-operations inner,cumsum``.
+The command-line equivalent is ``--jax-reference-operations fft,ifft``.
 Original-path validation transfers data to the host and can be much slower.
 It requires identical inputs and matching precision and FFT settings.
 

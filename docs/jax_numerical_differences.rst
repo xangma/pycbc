@@ -12,7 +12,9 @@ Original routes transfer inputs to the CPU and return array results to the activ
 
 Use identical input samples, parameters, grids, library versions and precision
 for each comparison. A float32 input already rounded before a calculation
-cannot reproduce a float64 input. 
+cannot reproduce a float64 input. For FFT byte comparisons, explicitly select
+the NumPy FFT backend in both runs; original FFTW results can differ between
+buffer alignments and batch groupings. See :doc:`jax_fft_numerical_differences`.
 
 The notebooks assert dtype, shape, values or bytes, and applicable series
 metadata against the installed original calculation. Their recorded differences
@@ -24,6 +26,7 @@ establish every supported parameter, workload or complete-search decision.
    :maxdepth: 1
 
    jax_array_numerical_differences
+   jax_fft_numerical_differences
 
 Independent calculations
 ------------------------
@@ -40,6 +43,9 @@ links an executed notebook with fixed inputs and exact original-route checks.
    * - Arrays
      - :doc:`jax_array_numerical_differences`: reductions, cumulative sums,
        elementary functions and selection ties.
+   * - FFTs
+     - :doc:`jax_fft_numerical_differences`: transform implementation,
+       normalization, storage precision and native buffer alignment.
 
 Select names through ``JAXScheme(reference_operations=(...))``. Multiple names compose;
 select every differing upstream calculation for an exact complete comparison.
