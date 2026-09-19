@@ -30,12 +30,41 @@ import numpy
 
 from scipy import signal
 
+import pycbc.scheme as _scheme
+from pycbc.constants import PI
 from pycbc.scheme import schemed
 from pycbc.types import (
     TimeSeries, FrequencySeries, Array,
     complex_same_precision_as, real_same_precision_as
 )
-from pycbc.constants import PI
+from pycbc.types.backend import backend_array
+
+
+def scheme_cast_series(series):
+    """Move a waveform series to the active scheme device when necessary."""
+    state = _scheme.mgr.state
+    if getattr(_scheme, "JAXScheme", None) is not None and isinstance(state, _scheme.JAXScheme):
+        from pycbc.types.array_jax import JAXArrayData, to_jax
+        if isinstance(series._data, JAXArrayData):
+            return series
+        jax_arr = to_jax(series)
+        if isinstance(series, TimeSeries):
+            return TimeSeries(
+                JAXArrayData(jax_arr),
+                delta_t=series.delta_t,
+                epoch=series.start_time,
+                copy=False,
+            )
+        elif isinstance(series, FrequencySeries):
+            return FrequencySeries(
+                JAXArrayData(jax_arr),
+                delta_f=series.delta_f,
+                epoch=series.epoch,
+                copy=False,
+            )
+        return series
+
+    return series
 
 def ceilpow2(n):
     """convenience function to determine a power-of-2 upper frequency limit"""
@@ -385,9 +414,13 @@ def td_taper(out, start, end, beta=8, side='left'):
     out = out.copy()
     width = end - start
     winlen = 2 * int(width / out.delta_t)
-    window = Array(signal.get_window(('kaiser', beta), winlen))
     xmin = int((start - out.start_time) / out.delta_t)
     xmax = xmin + winlen//2
+    if backend_array(out, "jax") is not None:
+        from pycbc.waveform.utils_jax import td_taper_jax
+        return td_taper_jax(out, start, end, beta=beta, side=side)
+
+    window = Array(signal.get_window(('kaiser', beta), winlen))
     if side == 'left':
         out[xmin:xmax] *= window[:winlen//2]
         if xmin > 0:
@@ -429,9 +462,13 @@ def fd_taper(out, start, end, beta=8, side='left'):
     out = out.copy()
     width = end - start
     winlen = 2 * int(width / out.delta_f)
-    window = Array(signal.get_window(('kaiser', beta), winlen))
     kmin = int(start / out.delta_f)
     kmax = kmin + winlen//2
+    if backend_array(out, "jax") is not None:
+        from pycbc.waveform.utils_jax import fd_taper_jax
+        return fd_taper_jax(out, start, end, beta=beta, side=side)
+
+    window = Array(signal.get_window(('kaiser', beta), winlen))
     if side == 'left':
         out[kmin:kmax] *= window[:winlen//2]
         out[:kmin] *= 0.
