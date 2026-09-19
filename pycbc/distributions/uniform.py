@@ -111,17 +111,27 @@ class Uniform(bounded.BoundedDist):
         contain all of parameters in self's params. Unrecognized arguments are
         ignored.
         """
-        if kwargs in self:
+        contained = self.__contains__(kwargs)
+        backend_result = bounded._backend_where(kwargs, contained, self._norm, 0.0)
+        if backend_result is not None:
+            return backend_result
+        if contained:
             return self._norm
         else:
-            return 0.
+            return 0.0
 
     def _logpdf(self, **kwargs):
         """Returns the log of the pdf at the given values. The keyword
         arguments must contain all of parameters in self's params. Unrecognized
         arguments are ignored.
         """
-        if kwargs in self:
+        contained = self.__contains__(kwargs)
+        backend_result = bounded._backend_where(
+            kwargs, contained, self._lognorm, -numpy.inf
+        )
+        if backend_result is not None:
+            return backend_result
+        if contained:
             return self._lognorm
         else:
             return -numpy.inf

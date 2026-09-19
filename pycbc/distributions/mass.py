@@ -19,7 +19,7 @@ q (i.e., mass ratio) from uniform component mass.
 import logging
 import numpy
 
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, CubicSpline
 from scipy.special import hyp2f1
 
 from pycbc.distributions import power_law
@@ -142,9 +142,18 @@ class QfromUniformMass1Mass2(bounded.BoundedDist):
         super(QfromUniformMass1Mass2, self).__init__(**params)
         self._norm = 1.0
         self._lognorm = 0.0
+        self._cdfinv_tables = {}
         for p in self._params:
             self._norm /= self._cdf_param(p, self._bounds[p][1]) - \
                 self._cdf_param(p, self._bounds[p][0])
+            q_array = numpy.linspace(
+                self._bounds[p][0], self._bounds[p][1], num=1000, endpoint=True
+            )
+            cdf_array = self._cdf_param(p, q_array)
+            coefficients = CubicSpline(
+                cdf_array, q_array, bc_type="not-a-knot", extrapolate=False
+            ).c
+            self._cdfinv_tables[p] = (cdf_array, q_array, coefficients)
         self._lognorm = numpy.log(self._norm)
 
     @property
@@ -166,6 +175,9 @@ class QfromUniformMass1Mass2(bounded.BoundedDist):
             if p not in kwargs.keys():
                 raise ValueError(
                     'Missing parameter {} to construct pdf.'.format(p))
+        jax, _ = bounded._jax_module_and_reference(kwargs.values())
+        if jax is not None:
+            return jax.numpy.exp(self._logpdf(**kwargs))
         if kwargs in self:
             pdf = self._norm * \
                 numpy.prod([(1.+kwargs[p])**(2./5)/kwargs[p]**(6./5)
@@ -183,7 +195,23 @@ class QfromUniformMass1Mass2(bounded.BoundedDist):
             if p not in kwargs.keys():
                 raise ValueError(
                     'Missing parameter {} to construct logpdf.'.format(p))
-        if kwargs in self:
+        contained = self.__contains__(kwargs)
+        jax, reference = bounded._jax_module_and_reference(kwargs.values())
+        if jax is not None:
+            import jax.numpy as jnp
+            one = bounded._jax_as_array(1.0, reference)
+            log_pdf = bounded._jax_as_array(self._lognorm, reference)
+            for param in self._params:
+                value = kwargs[param]
+                if not isinstance(value, jax.Array):
+                    value = bounded._jax_as_array(value, reference)
+                safe_value = jnp.where(contained, value, one)
+                log_pdf = log_pdf + (
+                    (2.0 / 5.0) * jnp.log1p(safe_value)
+                    - (6.0 / 5.0) * jnp.log(safe_value)
+                )
+            return bounded._jax_where(kwargs, contained, log_pdf, -numpy.inf)
+        if contained:
             return numpy.log(self._pdf(**kwargs))
         else:
             return -numpy.inf
@@ -206,24 +234,39 @@ class QfromUniformMass1Mass2(bounded.BoundedDist):
     def _cdfinv_param(self, param, value):
         """Return the inverse cdf to map the unit interval to parameter bounds.
         Note that value should be uniform in [0,1]."""
-        if (numpy.array(value) < 0).any() or (numpy.array(value) > 1).any():
-            raise ValueError(
-                'q_from_uniform_m1_m2 cdfinv requires input in [0,1].')
-        if param in self._params:
-            lower_bound = self._bounds[param][0]
-            upper_bound = self._bounds[param][1]
-            q_array = numpy.linspace(
-                lower_bound, upper_bound, num=1000, endpoint=True)
-            q_invcdf_interp = interp1d(self._cdf_param(param, q_array),
-                                       q_array, kind='cubic',
-                                       bounds_error=True)
-
-            return q_invcdf_interp(
-                (self._cdf_param(param, upper_bound) -
-                 self._cdf_param(param, lower_bound)) * value +
-                self._cdf_param(param, lower_bound))
-        else:
+        if param not in self._params:
             raise ValueError('{} is not contructed yet.'.format(param))
+        cdf_array, q_array, coefficients = self._cdfinv_tables[param]
+        message = 'q_from_uniform_m1_m2 cdfinv requires input in [0,1].'
+        jax, reference = bounded._jax_module_and_reference((value,))
+        if jax is not None:
+            import jax.numpy as jnp
+            if jnp.issubdtype(reference.dtype, jnp.complexfloating):
+                raise TypeError(message)
+            if not jnp.issubdtype(reference.dtype, jnp.floating):
+                reference = reference.astype(float)
+            invalid = (reference < 0) | (reference > 1)
+            if bool(jnp.any(invalid)):
+                raise ValueError(message)
+            knots = jnp.asarray(cdf_array, dtype=reference.dtype)
+            coeffs = jnp.asarray(coefficients, dtype=reference.dtype)
+            target = (knots[-1] - knots[0]) * reference + knots[0]
+            target = jnp.clip(target, knots[0], knots[-1])
+            indices = jnp.searchsorted(knots, target, side="right") - 1
+            indices = jnp.clip(indices, 0, len(knots) - 2)
+            delta = target - knots[indices]
+            return (
+                (coeffs[0, indices] * delta + coeffs[1, indices]) * delta
+                + coeffs[2, indices]
+            ) * delta + coeffs[3, indices]
+
+        value = numpy.asarray(value)
+        if (value < 0).any() or (value > 1).any():
+            raise ValueError(message)
+        target = (cdf_array[-1] - cdf_array[0]) * value + cdf_array[0]
+        target = numpy.clip(target, cdf_array[0], cdf_array[-1])
+        q_invcdf_interp = interp1d(cdf_array, q_array, kind='cubic', bounds_error=True)
+        return q_invcdf_interp(target)
 
     def rvs(self, size=1, param=None):
         """Gives a set of random values drawn from this distribution.
