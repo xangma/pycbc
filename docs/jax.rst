@@ -1,7 +1,7 @@
 .. _jax:
 
-JAX Acceleration & Functional XLA
-=================================
+JAX acceleration
+================
 
 PyCBC provides an optional JAX backend for selected array operations, signal
 processing and waveform functions. JAX can compile these operations with XLA
@@ -43,6 +43,15 @@ parts of strain conditioning and filtering. Device waveform generation via
 it is not enabled merely by selecting JAX. Unsupported operations may use
 host implementations, so a JAX scheme does not imply an entirely device-resident
 search.
+
+Performance results
+-------------------
+
+See :ref:`inspiral templates/core and templates/GPU <jax-search-capacity>`
+and the :ref:`live-sized filter estimates <jax-live-capacity>` for capacity
+tables and plots. :doc:`jax_performance` also records timing boundaries and
+scientific qualification results. The
+:doc:`jax_gpu_investigation` covers batch size, memory and GPU utilisation.
 
 Choosing a device
 -----------------
@@ -101,43 +110,37 @@ Capabilities and fallback
      - Functional detector geometry evaluation without host synchronization.
    * - Inference
      - Gaussian likelihood, relative binning, and marginalization models.
-     - Fully differentiable parameter estimation likelihoods.
+     - Differentiability depends on the selected model, waveform and parameter path.
 
 Documentation map
 -----------------
 
 .. toctree::
    :maxdepth: 1
-   :caption: JAX user guides
+   :caption: JAX results
+
+   jax_performance
+   jax_gpu_investigation
+
+.. toctree::
+   :maxdepth: 1
+   :caption: JAX guides
 
    jax_runtime
    jax_filtering
    jax_search
-
-.. toctree::
-   :maxdepth: 1
-   :caption: JAX maintainer guides
-
-   jax_optimizations
    jax_testing
-   jax_parity
-   jax_workflows
 
-For performance measurements, scaling studies, and scientific qualification:
-
-* :ref:`jax-benchmark-protocol` defines the general execution controls, host isolation, single-thread baseline clamping, physical-core scaling, and convergence criteria.
-* :ref:`jax-reference-campaign` specifies the concrete offline inspiral search workloads (Track 1: 384 compressed BNS/NSBH templates; Track 2: 512 uncompressed BNS templates evaluated dynamically with ``diffgw``; real H1 frame data, frozen bank SHAs, and scientific acceptance gates).
-* :ref:`jax-batch-numerics` defines the live-filter batch matched-filtering API benchmarks and numerical oracle.
-* :ref:`jax-performance` reports measured search and microbenchmark timings, qualification results, and :ref:`timing metric boundaries <jax-timing-boundaries>`.
-* :ref:`jax-tiled-pathways` outlines acceleration strategies and memory management for large-scale template banks.
+The benchmark definitions retain separate scopes: the executable campaign
+runs ``pycbc_inspiral`` through HDF output, while the streaming protocol
+defines a ``LiveBatchMatchedFilter.process_data`` API benchmark. The published
+live-sized estimates instead use the synthetic filter microbenchmark; they
+do not measure that full API or the ``pycbc_live`` executable.
 
 .. toctree::
    :maxdepth: 1
-   :caption: JAX benchmarking
+   :caption: JAX benchmark definitions
 
    jax_benchmark_protocol
    jax_reference_campaign
    jax_batch_numerics
-   jax_performance
-   jax_gpu_investigation
-   jax_tiled_pathways

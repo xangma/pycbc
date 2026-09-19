@@ -83,6 +83,58 @@ finite-workload real-time factor is ``1904 / wall_seconds``. Multiplying that
 factor by bank rows gives template-seconds per wall second for the allocated
 worker; a GPU worker must not be labelled as one CPU core of capacity.
 
+.. _jax-search-capacity:
+
+Real-time capacity: templates/core and templates/GPU
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For the complete ``pycbc_inspiral`` fixture, completed work is
+``384 * 1904`` template-seconds. Divide by elapsed seconds and the number of
+allocated physical CPU cores to obtain **templates/core at real time** for
+CPU runs. For CUDA, report **templates per GPU plus its allocated host core**.
+These runs each allocate one host core; CUDA additionally uses one RTX 4090.
+Do not divide by CUDA core count or count the GPU as a CPU core.
+
+.. list-table:: pycbc_inspiral finite-workload capacity (rounded medians)
+   :header-rows: 1
+
+   * - Configuration
+     - Resource denominator
+     - Templates at real time, full wall
+     - Templates at real time, calculation
+   * - Standard CPU, B1
+     - One CPU core
+     - 10,675
+     - 14,848
+   * - JAX CPU, B16
+     - One CPU core
+     - 1,409
+     - 1,568
+   * - JAX CUDA, B128
+     - One GPU + one host core
+     - 42,184
+     - 384,650
+
+These are the current timing samples expressed in capacity units, not new
+benchmark runs. Full-wall capacity includes setup and output; calculation
+capacity excludes those costs. Neither establishes sustained large-bank
+capacity. Both JAX arms fail the :ref:`scientific gates
+<jax-search-qualification>`, so these values are descriptive, not qualified
+equivalent-output speedups.
+
+.. figure:: _static/jax_inspiral_capacity.png
+   :alt: Inspiral real-time templates per CPU core or per GPU plus host core
+   :width: 100%
+
+   Capacity from three fresh processes per arm; bars show medians and error
+   bars show observed ranges. CPU and GPU resource denominators differ.
+
+The HDF field ``H1/search/templates_per_core`` instead uses the internal
+``run_time`` denominator, including setup but excluding process startup and
+output. It therefore differs from both columns above. The field name does
+not make a CUDA worker equivalent to a CPU core. See
+:ref:`jax-timing-boundaries` for all three clock boundaries.
+
 .. _jax-search-qualification:
 
 Scientific output comparisons
@@ -306,6 +358,84 @@ separately and must not be substituted for this total rate.
    Stage medians at the labelled batch size. Their sum need not equal the
    median of the full-pass times.
 
+.. _jax-live-capacity:
+
+pycbc_live-sized filtering: rates and capacity proxy
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The short-transform receipt also retains the **filter stage alone**, which
+is the scope behind the former live throughput table. It uses 131072 samples
+at 2048 Hz (64 seconds), single-precision arrays, synthetic strain and
+host-generated ``TaylorF2`` templates. The timed calls are ``matched_filter``
+for CPU and ``batch_matched_filter_bank`` for JAX. Waveform generation and
+transfer are timed separately and excluded here; trigger selection, vetoes,
+coincidence, streaming input and output are not measured.
+
+To express these rates in familiar real-time units, assume a **56-second
+advance** per 64-second block, as in :ref:`jax-batch-numerics`:
+
+.. math::
+
+   C_{\mathrm{filter}} = \frac{B}{t_{\mathrm{filter}}}
+                         \times 56\,\mathrm{s}.
+
+For these one-core CPU runs this is a modelled templates/core figure; CUDA
+uses one whole GPU plus a host core. The 56-second advance is an explicit
+conversion assumption, not a measured streaming interval in this harness.
+Use the actual non-overlapping advance for another configuration, not its
+FFT duration. The old 64-second multiplier counted the entire FFT block.
+
+.. list-table:: Live-sized filter proxy from the current receipt
+   :header-rows: 1
+
+   * - Configuration
+     - Resource denominator
+     - Filter rate B1 / B16 / B64 (templates/s)
+     - Modelled capacity B1 / B16 / B64 (real-time templates)
+   * - Standard CPU
+     - One CPU core
+     - 193.82 / 263.53 / 265.66
+     - 10,854 / 14,758 / 14,877
+   * - JAX CPU
+     - One CPU core
+     - 532.39 / 333.14 / 287.44
+     - 29,814 / 18,656 / 16,097
+   * - JAX CUDA
+     - One GPU + one host core
+     - 3,801.02 / 51,212.95 / 63,150.31
+     - 212,857 / 2,867,925 / 3,536,418
+
+.. figure:: _static/jax_live_capacity.png
+   :alt: Live-sized filter capacity proxy by batch size with CPU and GPU resources distinguished
+   :width: 100%
+
+   Filter-stage medians and observed ranges from three trials. These are
+   synthetic filtering estimates, not measured ``pycbc_live`` search capacity.
+
+The JAX trials have wide observed ranges despite the harness warmup. Retain
+those ranges when interpreting the median; these samples do not demonstrate
+stable streaming latency.
+
+There is no complete ``pycbc_live`` executable timing or qualified
+``LiveBatchMatchedFilter.process_data`` timing in the current published
+receipts. The separate API fixture and its numerical gates remain documented
+in :ref:`jax-batch-numerics`; its archived harness must be qualified and run
+before publishing a measured live-search capacity. The microbenchmark has no
+independent numerical oracle, and its input template distribution changes
+with batch size, so the curve does not isolate batching alone.
+
+What happened to the earlier tables?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The performance-doc refresh in commit ``aefc1b2e6`` replaced the earlier
+live/inspiral filter tables with fresh waveform-plus-transfer-plus-filter
+measurements and executable timing receipts. The earlier tables can still be
+inspected in ``6857ed4c8:docs/jax_performance.rst``. They mixed isolated filter
+rates with executable results and labelled GPU capacity as templates/core.
+The tables above restore capacity reporting using the current receipts,
+explicit timing boundaries and resource denominators. Old numerical values
+are not interchangeable with the refreshed measurements.
+
 Batch size, memory and utilisation
 ----------------------------------
 
@@ -342,6 +472,21 @@ Microbenchmark and three scaling plots
 To rerender the checked-in microbenchmark measurements without running new
 benchmarks, replace the plot input with
 ``docs/_static/jax_microbenchmarks.json``.
+
+Live-sized filter and complete inspiral capacity plots
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Rerender both capacity plots from the checked-in receipts, without executing
+new benchmarks:
+
+.. code-block:: console
+
+   python tools/plot_jax_search_capacity.py --output-dir docs/_static
+
+``--live-advance-seconds`` changes only the live proxy's assumed valid block
+advance (default 56 seconds). The inspiral plot uses the fixed 384-template,
+1904-valid-second fixture in ``jax_search_comparison.json``. Rerendering
+preserves the recorded qualification failures; it does not establish parity.
 
 Complete executable campaign
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
