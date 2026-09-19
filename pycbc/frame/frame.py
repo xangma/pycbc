@@ -84,12 +84,18 @@ _fr_type_map = {
 
 def _read_channel(channel, stream, start, duration):
     """ Get channel using lalframe """
-    channel_type = lalframe.FrStreamGetTimeSeriesType(channel, stream)
-    read_func = _fr_type_map[channel_type][0]
-    d_type = _fr_type_map[channel_type][1]
-    data = read_func(stream, channel, start, duration, 0)
-    return TimeSeries(data.data.data, delta_t=data.deltaT, epoch=start,
-                      dtype=d_type)
+    try:
+        data = lalframe.FrStreamReadREAL8TimeSeries(stream, channel, start, duration, 0)
+        return TimeSeries(data.data.data, delta_t=data.deltaT, epoch=start,
+                          dtype=numpy.float64)
+    except Exception:
+        lalframe.FrStreamClearErr(stream)
+        channel_type = lalframe.FrStreamGetTimeSeriesType(channel, stream)
+        read_func = _fr_type_map[channel_type][0]
+        d_type = _fr_type_map[channel_type][1]
+        data = read_func(stream, channel, start, duration, 0)
+        return TimeSeries(data.data.data, delta_t=data.deltaT, epoch=start,
+                          dtype=d_type)
 
 
 def _is_gwf(file_path):
@@ -218,25 +224,26 @@ def read_frame(location, channels, start_time=None,
 
     lalframe.FrStreamSetMode(stream, stream.mode)
 
-    # determine duration of data
-    if type(channels) is list:
-        first_channel = channels[0]
-    else:
-        first_channel = channels
+    # determine duration of data if not fully specified
+    if start_time is None or end_time is None:
+        if type(channels) is list:
+            first_channel = channels[0]
+        else:
+            first_channel = channels
 
-    data_length = lalframe.FrStreamGetVectorLength(first_channel, stream)
-    channel_type = lalframe.FrStreamGetTimeSeriesType(first_channel, stream)
-    create_series_func = _fr_type_map[channel_type][2]
-    get_series_metadata_func = _fr_type_map[channel_type][3]
-    series = create_series_func(first_channel, stream.epoch, 0, 0,
-                                lal.ADCCountUnit, 0)
-    get_series_metadata_func(series, stream)
-    data_duration = (data_length + 0.5) * series.deltaT
+        data_length = lalframe.FrStreamGetVectorLength(first_channel, stream)
+        channel_type = lalframe.FrStreamGetTimeSeriesType(first_channel, stream)
+        create_series_func = _fr_type_map[channel_type][2]
+        get_series_metadata_func = _fr_type_map[channel_type][3]
+        series = create_series_func(first_channel, stream.epoch, 0, 0,
+                                    lal.ADCCountUnit, 0)
+        get_series_metadata_func(series, stream)
+        data_duration = (data_length + 0.5) * series.deltaT
 
-    if start_time is None:
-        start_time = stream.epoch*1
-    if end_time is None:
-        end_time = start_time + data_duration
+        if start_time is None:
+            start_time = stream.epoch*1
+        if end_time is None:
+            end_time = start_time + data_duration
 
     if type(start_time) is not lal.LIGOTimeGPS:
         start_time = lal.LIGOTimeGPS(start_time)
