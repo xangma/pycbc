@@ -1,0 +1,52 @@
+name: jax gpu (self-hosted)
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      tests:
+        description: "One pytest path or node ID; blank runs the CUDA regression set"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jax-gpu-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  jax-gpu:
+    runs-on: [self-hosted, linux, gpu]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Setup Pixi
+        uses: prefix-dev/setup-pixi@ba3bb36eb2066252b2363392b7739741bb777659 # v0.8.1
+        with:
+          pixi-version: latest
+
+      - name: Run JAX GPU regressions and validation suite
+        env:
+          PYCBC_TEST_SCHEME: jax:cuda
+          TEST_SELECTOR: ${{ inputs.tests }}
+        run: |
+          pixi run -e unittest bash -euo pipefail -c '
+            python -c "import jax; print(jax.__version__, jax.devices())"
+            selectors=(
+              test/test_jax_*.py
+              test/test_detector_jax_*.py
+              test/waveform/test_jax_*.py
+              test/waveform/test_spherical_harmonics_jax.py
+            )
+            if [[ -n "${TEST_SELECTOR}" ]]; then
+              pytest "${TEST_SELECTOR}"
+            else
+              pytest "${selectors[@]}"
+            fi
+          '

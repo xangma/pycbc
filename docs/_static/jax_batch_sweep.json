@@ -1,0 +1,615 @@
+{
+  "schema_version": 2,
+  "date": "2026-09-19",
+  "host": "len",
+  "python": "3.11.9 | packaged by conda-forge | (main, Apr 19 2024, 18:36:13) [GCC 12.3.0]",
+  "jax": "0.4.20",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+  "input_sha256": {
+    "frame": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865",
+    "bank384": "26050d48322a1d71092bb0e024e71a89ace56b3e7b1c5e4cf20c7b769213fb7f",
+    "bank1536": "6bd341713e15633887ed7866a6aef3bfe42210946429312d3140d459319587d8"
+  },
+  "runtime_parent": "594b9561f423b007367198225824944f5a6932aa",
+  "snapshot_commit": "540363e2013675f1af2571974ed182a415fcb9a8",
+  "cpu": "AMD Ryzen Threadripper PRO 3995WX",
+  "gpu": "NVIDIA GeForce RTX 4090",
+  "affinity_core": 8,
+  "numerical_threads": 1,
+  "xla_preallocate": false,
+  "general_optimizations_commit": "06999c64200a3c71830abd3e6ab456f45f0fad67",
+  "source_scope": "JAX runtime snapshot alone; combined adds the separate general-runtime-optimizations patch.",
+  "source_receipt_sha256": "c7e25fcb34ef0426a42a7a20ce03f0de641bff4845310cd0232897db23b76128",
+  "template_count": 1536,
+  "bank_note": "384 compressed IMRPhenomD templates repeated four times; not 1536 independent templates. Five strain segments at 4096 Hz.",
+  "timing_method": "Three uninstrumented repetitions per arm, reversed/rotated order; warmups and separate memory/capture runs excluded. Calculation seconds = HDF run_time * (1 - setup_time_fraction). Wall seconds measured around child execution. CPU core 8 and one numerical-library thread.",
+  "memory_method": "Separate synchronized snapshots; distinct pointers grouped by device to avoid aliases. Allocator high-water mark includes temporary workspace. Allocator pool is reserved memory, not live buffers. PREALLOCATE=false; no memory-fraction override.",
+  "comparison_method": "All 18 scientific HDF datasets compared exactly against the prior validated 7984-trigger output. Four performance datasets excluded; HDF attributes not compared.",
+  "scientific_datasets": [
+    "H1/bank_chisq",
+    "H1/bank_chisq_dof",
+    "H1/chisq",
+    "H1/chisq_dof",
+    "H1/coa_phase",
+    "H1/cont_chisq",
+    "H1/cont_chisq_dof",
+    "H1/end_time",
+    "H1/gating/auto/pad",
+    "H1/gating/auto/time",
+    "H1/gating/auto/width",
+    "H1/search/end_time",
+    "H1/search/start_time",
+    "H1/sg_chisq",
+    "H1/sigmasq",
+    "H1/snr",
+    "H1/template_duration",
+    "H1/template_hash"
+  ],
+  "excluded_performance_datasets": [
+    "H1/search/filter_rate_per_core",
+    "H1/search/run_time",
+    "H1/search/setup_time_fraction",
+    "H1/search/templates_per_core"
+  ],
+  "variants": [
+    {
+      "label": "JAX / B128",
+      "kind": "jax",
+      "batch_size": 128,
+      "memory": {
+        "steady_live_gib": 1.337772410362959,
+        "peak_gib": 9.892932891845703,
+        "snapshots": [
+          {
+            "label": "production_batch_1_segment_1",
+            "distinct_live_bytes": 1436422188,
+            "allocator_in_use_bytes": 1454322944,
+            "allocator_peak_in_use_bytes": 10622455808,
+            "allocator_pool_bytes": 17179869184,
+            "host_rss_bytes": 1478496256
+          },
+          {
+            "label": "production_batch_6_segment_1",
+            "distinct_live_bytes": 1436422188,
+            "allocator_in_use_bytes": 1454322944,
+            "allocator_peak_in_use_bytes": 10622455808,
+            "allocator_pool_bytes": 17179869184,
+            "host_rss_bytes": 1510154240
+          },
+          {
+            "label": "production_batch_12_segment_1",
+            "distinct_live_bytes": 1436422188,
+            "allocator_in_use_bytes": 1454322944,
+            "allocator_peak_in_use_bytes": 10622455808,
+            "allocator_pool_bytes": 17179869184,
+            "host_rss_bytes": 1523298304
+          },
+          {
+            "label": "postcleanup",
+            "distinct_live_bytes": 362679340,
+            "allocator_in_use_bytes": 380580096,
+            "allocator_peak_in_use_bytes": 10622455808,
+            "allocator_pool_bytes": 17179869184,
+            "host_rss_bytes": 1523494912
+          }
+        ]
+      },
+      "calc_seconds": [
+        7.391104459762572,
+        7.3995020389556885,
+        7.4209604263305655
+      ],
+      "wall_seconds": [
+        23.503795539960265,
+        23.202807089081034,
+        23.25392014416866
+      ],
+      "run_names": [
+        "jax_b128_1",
+        "jax_b128_2",
+        "jax_b128_3"
+      ]
+    },
+    {
+      "label": "JAX / B144",
+      "kind": "jax",
+      "batch_size": 144,
+      "memory": {
+        "steady_live_gib": 1.4627725295722485,
+        "peak_gib": 11.062490701675415,
+        "snapshots": [
+          {
+            "label": "production_batch_1_segment_1",
+            "distinct_live_bytes": 1570640044,
+            "allocator_in_use_bytes": 1588540928,
+            "allocator_peak_in_use_bytes": 11878258944,
+            "allocator_pool_bytes": 17179869184,
+            "host_rss_bytes": 1479974912
+          },
+          {
+            "label": "production_batch_6_segment_1",
+            "distinct_live_bytes": 1570640044,
+            "allocator_in_use_bytes": 1588540928,
+            "allocator_peak_in_use_bytes": 11878258944,
+            "allocator_pool_bytes": 17179869184,
+            "host_rss_bytes": 1519296512
+          },
+          {
+            "label": "postcleanup",
+            "distinct_live_bytes": 362679340,
+            "allocator_in_use_bytes": 380580096,
+            "allocator_peak_in_use_bytes": 11878258944,
+            "allocator_pool_bytes": 17179869184,
+            "host_rss_bytes": 1537773568
+          }
+        ]
+      },
+      "calc_seconds": [
+        7.7929048538208,
+        7.776994943618774,
+        7.818928480148316
+      ],
+      "wall_seconds": [
+        23.75421601207927,
+        23.55365369305946,
+        23.602052088128403
+      ],
+      "run_names": [
+        "jax_b144_1",
+        "jax_b144_2",
+        "jax_b144_3"
+      ]
+    },
+    {
+      "label": "JAX / B160",
+      "kind": "jax",
+      "batch_size": 160,
+      "memory": {
+        "steady_live_gib": 1.587772648781538,
+        "peak_gib": 12.246694803237915,
+        "snapshots": [
+          {
+            "label": "production_batch_1_segment_1",
+            "distinct_live_bytes": 1704857900,
+            "allocator_in_use_bytes": 1722758656,
+            "allocator_peak_in_use_bytes": 13149788416,
+            "allocator_pool_bytes": 17179869184,
+            "host_rss_bytes": 1480859648
+          },
+          {
+            "label": "production_batch_6_segment_1",
+            "distinct_live_bytes": 1704857900,
+            "allocator_in_use_bytes": 1722758656,
+            "allocator_peak_in_use_bytes": 13149788416,
+            "allocator_pool_bytes": 17179869184,
+            "host_rss_bytes": 1522675712
+          },
+          {
+            "label": "postcleanup",
+            "distinct_live_bytes": 362679340,
+            "allocator_in_use_bytes": 380580096,
+            "allocator_peak_in_use_bytes": 13149788416,
+            "allocator_pool_bytes": 17179869184,
+            "host_rss_bytes": 1541017600
+          }
+        ]
+      },
+      "calc_seconds": [
+        7.592073440551758,
+        7.563943147659303,
+        7.566351413726807
+      ],
+      "wall_seconds": [
+        23.60212759487331,
+        23.552388251991943,
+        23.60267077991739
+      ],
+      "run_names": [
+        "jax_b160_1",
+        "jax_b160_2",
+        "jax_b160_3"
+      ]
+    },
+    {
+      "label": "JAX + general / B128",
+      "kind": "combined",
+      "batch_size": 128,
+      "memory": {
+        "steady_live_gib": 1.337772410362959,
+        "peak_gib": 9.892932891845703,
+        "snapshots": [
+          {
+            "label": "production_batch_1_segment_1",
+            "distinct_live_bytes": 1436422188,
+            "allocator_in_use_bytes": 1454322944,
+            "allocator_peak_in_use_bytes": 10622455808,
+            "allocator_pool_bytes": 17179869184,
+            "host_rss_bytes": 1206050816
+          },
+          {
+            "label": "production_batch_6_segment_1",
+            "distinct_live_bytes": 1436422188,
+            "allocator_in_use_bytes": 1454322944,
+            "allocator_peak_in_use_bytes": 10622455808,
+            "allocator_pool_bytes": 17179869184,
+            "host_rss_bytes": 1237774336
+          },
+          {
+            "label": "production_batch_12_segment_1",
+            "distinct_live_bytes": 1436422188,
+            "allocator_in_use_bytes": 1454322944,
+            "allocator_peak_in_use_bytes": 10622455808,
+            "allocator_pool_bytes": 17179869184,
+            "host_rss_bytes": 1249079296
+          },
+          {
+            "label": "postcleanup",
+            "distinct_live_bytes": 362679340,
+            "allocator_in_use_bytes": 380580096,
+            "allocator_peak_in_use_bytes": 10622455808,
+            "allocator_pool_bytes": 17179869184,
+            "host_rss_bytes": 1249349632
+          }
+        ]
+      },
+      "calc_seconds": [
+        6.810487985610963,
+        6.823938608169555,
+        6.81172513961792
+      ],
+      "wall_seconds": [
+        15.890680897049606,
+        15.54104271507822,
+        15.640217148000374
+      ],
+      "run_names": [
+        "combined_b128_1",
+        "combined_b128_2",
+        "combined_b128_3"
+      ]
+    }
+  ],
+  "run_validation": [
+    {
+      "name": "jax_b128_warmup",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "combined_b128_warmup",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "jax_b128_1",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "combined_b128_1",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "jax_b144_1",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "jax_b160_1",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "jax_b160_2",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "jax_b144_2",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "combined_b128_2",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "jax_b128_2",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "jax_b144_3",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "jax_b160_3",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "jax_b128_3",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "combined_b128_3",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "jax_b128_1_memory",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "jax_b144_1_memory",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "jax_b160_1_memory",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    },
+    {
+      "name": "combined_b128_1_memory",
+      "returncode": 0,
+      "triggers": 7984,
+      "all_exact": true
+    }
+  ],
+  "representative_run": {
+    "name": "jax_b128_1",
+    "command": [
+      "taskset",
+      "-c",
+      "8",
+      "/home/xangma/miniconda3/envs/pycbc3g/bin/python",
+      "/tmp/pycbc-jax-separated-20260919/jax/bin/pycbc_inspiral",
+      "--verbose",
+      "--frame-files",
+      "/home/xangma/repos/pycbc-pr1-eval/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf",
+      "--channel-name",
+      "H1:LOSC-STRAIN",
+      "--gps-start-time",
+      "1187007048",
+      "--gps-end-time",
+      "1187009080",
+      "--trig-start-time",
+      "1187007160",
+      "--trig-end-time",
+      "1187009064",
+      "--sample-rate",
+      "4096",
+      "--low-frequency-cutoff",
+      "30",
+      "--strain-high-pass",
+      "25",
+      "--pad-data",
+      "8",
+      "--autogating-threshold",
+      "100",
+      "--autogating-cluster",
+      "5",
+      "--autogating-width",
+      "0.25",
+      "--autogating-taper",
+      "0.25",
+      "--autogating-pad",
+      "16",
+      "--autogating-max-iterations",
+      "1",
+      "--psd-estimation",
+      "median",
+      "--psd-segment-length",
+      "32",
+      "--psd-segment-stride",
+      "16",
+      "--psd-num-segments",
+      "126",
+      "--psd-inverse-length",
+      "16",
+      "--invpsd-trunc-method",
+      "hann",
+      "--invpsd-trunc-which-spectrum",
+      "invasd",
+      "--approximant",
+      "IMRPhenomD",
+      "--order",
+      "-1",
+      "--snr-threshold",
+      "5.5",
+      "--newsnr-threshold",
+      "5",
+      "--chisq-bins",
+      "16",
+      "--cluster-window",
+      "1",
+      "--cluster-function",
+      "symmetric",
+      "--fft-backends",
+      "jax",
+      "--bank-file",
+      "/tmp/pycbc-jax-stack-validation-LC2tls/utilization/bank-repeated-1536.hdf",
+      "--segment-length",
+      "512",
+      "--segment-start-pad",
+      "112",
+      "--segment-end-pad",
+      "16",
+      "--processing-scheme",
+      "jax:cuda:0",
+      "--batch-size",
+      "128",
+      "--use-compressed-waveforms",
+      "--waveform-decompression-method",
+      "inline_linear",
+      "--output",
+      "/tmp/pycbc-jax-separated-20260919/runs/jax_b128_1.hdf"
+    ],
+    "cwd": "/tmp/pycbc-jax-separated-20260919/jax",
+    "env_overrides": {
+      "OMP_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "NUMEXPR_NUM_THREADS": "1",
+      "MKL_DYNAMIC": "FALSE",
+      "MKL_THREADING_LAYER": "GNU",
+      "PYTHONHASHSEED": "0",
+      "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
+      "JAX_PERSISTENT_CACHE_MIN_COMPILE_TIME_SECS": "0",
+      "PYTHONPATH": "/tmp/pycbc-jax-separated-20260919/jax"
+    },
+    "unset_environment": [
+      "XLA_FLAGS",
+      "JAX_COMPILATION_CACHE_DIR"
+    ]
+  },
+  "figure_note": "1,536 bank rows (384 templates repeated \u00d74), five segments \u00b7 three timed runs per arm\nMemory measured separately \u00b7 JAX + general includes optional changes outside the JAX stack",
+  "artifact_note": "Raw logs, memory inventories and outputs are excluded from documentation; numeric results and provenance are retained here.",
+  "runtime_verification": {
+    "runtime_parent": "594b9561f423b007367198225824944f5a6932aa",
+    "verified_runtime_files": 593,
+    "runtime_manifest_sha256": "8cd9760368e7cca83d036aaedddee346fccdee16e076c6761341e94609245292"
+  },
+  "measured_harness_sha256": {
+    "tools/bench_jax_inspiral_campaign.py": "e5101e38cbe699b79d50a4a439b490a8d198713bad9c5c44154d15850257e23f",
+    "tools/bench_jax_performance.py": "8502dc8ca08d25f6ceb13270d7d7a22289372c959c19a5990c9a82905277695a",
+    "tools/profile_jax_gpu_timeline.py": "bc4e3b5183f01849def2780f431150ccbcde957fb3ac06daf644057e63af1f6a",
+    "tools/extract_jax_nsight_timeline.py": "36663a87e8036b5695d19e31111d0f3f5463117b9065e79e4e8ba799391987d1"
+  },
+  "nsight": {
+    "source": "Nsight Systems / CUPTI, selected pycbc_inspiral PID and CUDA device 0",
+    "runtime_parent": "594b9561f423b007367198225824944f5a6932aa",
+    "input_hashes": "input_sha256.frame and input_sha256.bank1536",
+    "harness_hashes": "measured_harness_sha256: tools/profile_jax_gpu_timeline.py and tools/extract_jax_nsight_timeline.py",
+    "window_method": "First filter_batch start to last filter_batch end, using stderr phase boundaries; includes host work between kernels and excludes JIT warmup/final output.",
+    "activity_method": "Union of kernel time intervals clipped to the production window divided by window duration; active time is not occupancy.",
+    "instrumented_timings": "One profiled run per batch size; excluded from three-repetition timing medians.",
+    "command_variables": {
+      "PY": "/home/xangma/miniconda3/envs/pycbc3g/bin/python",
+      "SRC": "/tmp/pycbc-jax-separated-20260919/jax",
+      "ROOT": "/tmp/pycbc-jax-separated-20260919",
+      "FRAME": "/home/xangma/repos/pycbc-pr1-eval/docs/_include/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf",
+      "BANK": "/tmp/pycbc-jax-stack-validation-LC2tls/utilization/bank-repeated-1536.hdf",
+      "B": "128 or 160"
+    },
+    "capture_command": "nsys profile --trace=cuda,nvtx --sample=none --cpuctxsw=none --output=$ROOT/nsight$B $PY $SRC/tools/profile_jax_gpu_timeline.py --nvtx-sync --executable $SRC/bin/pycbc_inspiral --frame-file $FRAME --bank-file $BANK --batch-size $B --affinity-core 8 --output-hdf $ROOT/nsight$B.hdf --output-json $ROOT/telemetry$B.json",
+    "export_command": "nsys export --type=sqlite --output=$ROOT/nsight$B.sqlite $ROOT/nsight$B.nsys-rep",
+    "extract_command": "$PY $SRC/tools/extract_jax_nsight_timeline.py --sqlite $ROOT/nsight$B.sqlite --telemetry $ROOT/telemetry$B.json --output $ROOT/timeline$B.json --bin-ms 100",
+    "environment": "Core 8; numerical threads 1; XLA preallocation false; PYTHONHASHSEED=0; unset XLA_FLAGS and JAX_COMPILATION_CACHE_DIR. See representative_run for numerical library settings.",
+    "runs": [
+      {
+        "batch_size": 128,
+        "timestamp_utc": "2026-09-19T16:48:05.223169+00:00",
+        "source_receipt_sha256": "3cbf8bc5f92d53ae84c9b3a9b783498f76179e94272589d02f8160f04bb08d25",
+        "target_pid": 2866886,
+        "returncode": 0,
+        "production_window_seconds": [
+          18.9475,
+          26.4294
+        ],
+        "production_batch_count": 12,
+        "production_duration_seconds": 7.4818999999999996,
+        "kernel_active_union_seconds": 1.766265939999986,
+        "kernel_active_percent": 23.60718453868651,
+        "kernel_count_intersecting_window": 1608,
+        "transfer_bytes_by_completion_in_window": {
+          "H2D": 69918856,
+          "D2H": 49892288,
+          "D2D": 499623936
+        },
+        "trace_bin_width_ms": 100,
+        "plot_command": [
+          "python",
+          "tools/plot_jax_gpu_timeline.py",
+          "--input",
+          "artifacts/pr10-stack-split/fresh/timeline128.json",
+          "--output",
+          "docs/_static/jax_gpu_timeline_optimized_128.png",
+          "--zoom-start",
+          "18.9475",
+          "--zoom-end",
+          "26.4294"
+        ],
+        "scientific_comparison": {
+          "datasets_compared": 18,
+          "expected_datasets": 18,
+          "all_18_datasets_exact": true,
+          "attributes_exact": true,
+          "interpretation": "Exact preservation of previous JAX output; not independent CPU qualification",
+          "reference_sha256": "2fc76f9ec67307f0f65e4103de140c9888b2d0cbea40d9889826c6503d234286",
+          "candidate_sha256": "85d53048925276caf05f72839eeddfd080f3433801f618ffd1f20f16321d940b",
+          "failed_datasets": [],
+          "failed_attributes": []
+        }
+      },
+      {
+        "batch_size": 160,
+        "timestamp_utc": "2026-09-19T16:48:37.651243+00:00",
+        "source_receipt_sha256": "967f603e2a1974b467c48d785ae6b5b88c7ab04bc99f66d0ae9f0dd473b4786a",
+        "target_pid": 2881623,
+        "returncode": 0,
+        "production_window_seconds": [
+          19.0247,
+          26.6192
+        ],
+        "production_batch_count": 10,
+        "production_duration_seconds": 7.5945,
+        "kernel_active_union_seconds": 1.7581482990000126,
+        "kernel_active_percent": 23.150283744815493,
+        "kernel_count_intersecting_window": 1331,
+        "transfer_bytes_by_completion_in_window": {
+          "H2D": 68331024,
+          "D2H": 49889984,
+          "D2D": 416883712
+        },
+        "trace_bin_width_ms": 100,
+        "plot_command": [
+          "python",
+          "tools/plot_jax_gpu_timeline.py",
+          "--input",
+          "artifacts/pr10-stack-split/fresh/timeline160.json",
+          "--output",
+          "docs/_static/jax_gpu_timeline_optimized_160.png",
+          "--zoom-start",
+          "19.0247",
+          "--zoom-end",
+          "26.6192"
+        ],
+        "scientific_comparison": {
+          "datasets_compared": 18,
+          "expected_datasets": 18,
+          "all_18_datasets_exact": true,
+          "attributes_exact": true,
+          "interpretation": "Exact preservation of previous JAX output; not independent CPU qualification",
+          "reference_sha256": "2fc76f9ec67307f0f65e4103de140c9888b2d0cbea40d9889826c6503d234286",
+          "candidate_sha256": "379aea375cd61ed1f498620d9534b9819d7eaa517fbaaefc1efce57a11b2183e",
+          "failed_datasets": [],
+          "failed_attributes": []
+        }
+      }
+    ]
+  }
+}

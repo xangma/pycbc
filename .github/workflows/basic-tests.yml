@@ -78,6 +78,18 @@ jobs:
         export LAL_DATA_PATH=$HOME/lal_aux_data
         pixi run -e ${{matrix.test-type}} test-${{matrix.test-type}}
 
+    - name: run focused CPU JAX test suite
+      if: matrix.test-type == 'unittest'
+      env:
+        PYCBC_TEST_SCHEME: jax:cpu
+      run: |
+        export LAL_DATA_PATH=$HOME/lal_aux_data
+        pixi run -e unittest test-unittest -q \
+          test/test_jax_*.py \
+          test/test_detector_jax_*.py \
+          test/waveform/test_jax_*.py \
+          test/waveform/test_spherical_harmonics_jax.py
+
     - name: check help messages work
       if: matrix.test-type == 'unittest'
       run: |
