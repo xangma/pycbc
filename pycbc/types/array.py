@@ -60,6 +60,8 @@ def _convert_to_scheme(ary):
         converted_array = Array(ary, dtype=ary._data.dtype)
         ary._data = converted_array._data
         ary._scheme = _scheme.mgr.state
+        if hasattr(ary, "_saved"):
+            ary._saved.clear()
       
 def _convert(func):
     @wraps(func)
