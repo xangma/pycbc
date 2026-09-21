@@ -1,0 +1,86 @@
+{
+  "description": "Unmodified precomputed point-chi-square inputs captured from an ordinary CPU pycbc_inspiral qualification search of public H1 strain. This is derived real detector data, not a synthetic correlation.",
+  "file": "point-input-05.npz",
+  "sha256": "1b824a1b7887634d8fce7e3a7c356972f417686a2a9924b59413d262592d67ce",
+  "report": "https://github.com/xangma/pycbc/blob/e8b63f56ea444dca7b5ead91ca3a34da7398e3b5/docs/jax_chisq_numerics.rst",
+  "selection": "Capture 5 of the first six point-evaluation calls saved by call order (11 points total). Selected because it contains the largest original CPU/FFT relative discrepancy among those 11 points. All three points in this capture are included. The highlighted sample 656106 did not survive the original NewSNR cut.",
+  "capture_date": "2026-09-20",
+  "detector": "H1",
+  "channel": "H1:LOSC-STRAIN",
+  "frame_file": "H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf",
+  "frame_sha256": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865",
+  "bank_sha256": "5a07fe95c744a75964c1e6a80258a917a251534beaa7c67dab5a5045741dfdf6",
+  "templates_in_search": 32,
+  "approximant": "IMRPhenomD",
+  "waveform_mode": "compressed, inline_linear decompression",
+  "sample_rate_hz": 2048,
+  "segment_duration_s": 512,
+  "search_gps_bounds": [
+    1187007048,
+    1187009080
+  ],
+  "trigger_gps_bounds": [
+    1187007160,
+    1187009064
+  ],
+  "low_frequency_cutoff_hz": 30,
+  "snr_threshold": 5.5,
+  "newsnr_threshold": 5,
+  "original_cpu_source_commit": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+  "original_environment": {
+    "host": "len",
+    "platform": "Linux x86_64",
+    "python": "3.11",
+    "numpy": "1.26.4",
+    "scipy": "1.13.0",
+    "search_fft_backend": "mkl"
+  },
+  "captured_call": {
+    "template_hash": 2357302163257848109,
+    "segment": 3,
+    "time_offset": 2340864,
+    "indices": [
+      484954,
+      619888,
+      656106
+    ],
+    "bins": [
+      15360,
+      24516,
+      29266,
+      34289,
+      39415,
+      43705,
+      48332,
+      52691,
+      57642,
+      63693,
+      70160,
+      78111,
+      87694,
+      100201,
+      117812,
+      150980,
+      524288
+    ],
+    "ntime": 1048576,
+    "norm": 5.121813156596626e-06,
+    "time_indices": [
+      2825818,
+      2960752,
+      2996970
+    ]
+  },
+  "recorded_original_cpu_chisq": [
+    33.31629943847656,
+    36.28294372558594,
+    43.05550003051758
+  ],
+  "array_fields": {
+    "corr": "complex64 precomputed correlation spectrum, length N",
+    "snr": "complex64 unnormalized full SNR at the three selected points",
+    "norm": "float64 SNR normalization scalar",
+    "bins": "17 integer edges defining 16 chi-square bins",
+    "indices": "three integer time sample indices within the segment"
+  }
+}
