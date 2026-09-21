@@ -1,0 +1,116 @@
+{
+  "jax": "0.4.20",
+  "devices": "[cuda(id=0)]",
+  "results": [
+    {
+      "input": "point-input-01.npz",
+      "dtype": "complex64",
+      "max_relative_difference": 3.6933984119968954e-06,
+      "rtol": 0.0001,
+      "passed": true,
+      "seconds": 3.422533517004922,
+      "points": 3
+    },
+    {
+      "input": "point-input-02.npz",
+      "dtype": "complex64",
+      "max_relative_difference": 8.476587254335755e-08,
+      "rtol": 0.0001,
+      "passed": true,
+      "seconds": 2.8920949900057167,
+      "points": 1
+    },
+    {
+      "input": "point-input-03.npz",
+      "dtype": "complex64",
+      "max_relative_difference": 5.712283268621832e-07,
+      "rtol": 0.0001,
+      "passed": true,
+      "seconds": 0.37386750685982406,
+      "points": 1
+    },
+    {
+      "input": "point-input-04.npz",
+      "dtype": "complex64",
+      "max_relative_difference": 6.898760034346196e-07,
+      "rtol": 0.0001,
+      "passed": true,
+      "seconds": 0.36847659992054105,
+      "points": 1
+    },
+    {
+      "input": "point-input-05.npz",
+      "dtype": "complex64",
+      "max_relative_difference": 1.4796603863942437e-05,
+      "rtol": 0.0001,
+      "passed": true,
+      "seconds": 0.49806154519319534,
+      "points": 3
+    },
+    {
+      "input": "point-input-06.npz",
+      "dtype": "complex64",
+      "max_relative_difference": 1.1523802641022485e-06,
+      "rtol": 0.0001,
+      "passed": true,
+      "seconds": 2.9997972359415144,
+      "points": 2
+    },
+    {
+      "input": "point-input-01.npz",
+      "dtype": "complex128",
+      "max_relative_difference": 1.0595439868203417e-12,
+      "rtol": 1e-10,
+      "passed": true,
+      "seconds": 1.8259882458951324,
+      "points": 3
+    },
+    {
+      "input": "point-input-02.npz",
+      "dtype": "complex128",
+      "max_relative_difference": 9.788868832019685e-15,
+      "rtol": 1e-10,
+      "passed": true,
+      "seconds": 1.6418498179409653,
+      "points": 1
+    },
+    {
+      "input": "point-input-03.npz",
+      "dtype": "complex128",
+      "max_relative_difference": 4.807456834167021e-13,
+      "rtol": 1e-10,
+      "passed": true,
+      "seconds": 0.5521469200029969,
+      "points": 1
+    },
+    {
+      "input": "point-input-04.npz",
+      "dtype": "complex128",
+      "max_relative_difference": 3.2696536926301442e-15,
+      "rtol": 1e-10,
+      "passed": true,
+      "seconds": 0.5525679839774966,
+      "points": 1
+    },
+    {
+      "input": "point-input-05.npz",
+      "dtype": "complex128",
+      "max_relative_difference": 2.489390904964038e-12,
+      "rtol": 1e-10,
+      "passed": true,
+      "seconds": 0.5531961300875992,
+      "points": 3
+    },
+    {
+      "input": "point-input-06.npz",
+      "dtype": "complex128",
+      "max_relative_difference": 5.009875361939931e-15,
+      "rtol": 1e-10,
+      "passed": true,
+      "seconds": 1.6490423339419067,
+      "points": 2
+    }
+  ],
+  "source_sha256": "0b8ac7df90ec54e2392455f63cdcb6567b2824848c8dfae8bc9a343b0c73754f",
+  "scope": "Captured-input arithmetic controls; complex128 promotes complex64 inputs, not a full search."
+}

@@ -1,0 +1,157 @@
+<!doctype html><meta charset="utf-8"><title>chisq_cpu.pyx</title><style>body{margin:30px}pre{font-size:13px;line-height:1.5}span:target{background:#fff1bf}</style><h1>chisq_cpu.pyx</h1><p>Source snapshot; SHA-256 f5d7129a6380a96731df4ea3d1dddbb2f534e0d03aabbc720b629b4e558f15f6</p><pre><span id="L1">   1  # cython: profile=True</span>
+<span id="L2">   2  import numpy</span>
+<span id="L3">   3  cimport numpy</span>
+<span id="L4">   4  from libc.stdlib cimport malloc, free</span>
+<span id="L5">   5  from libc.math cimport cos, sin # This imports c&#x27;s sin and cos function from the math library</span>
+<span id="L6">   6  from cython import wraparound, boundscheck, cdivision</span>
+<span id="L7">   7  from pycbc.types import real_same_precision_as</span>
+<span id="L8">   8  </span>
+<span id="L9">   9  ctypedef fused REALTYPE:</span>
+<span id="L10">  10      float</span>
+<span id="L11">  11      double</span>
+<span id="L12">  12  </span>
+<span id="L13">  13  ctypedef fused COMPLEXTYPE:</span>
+<span id="L14">  14      float complex</span>
+<span id="L15">  15      double complex</span>
+<span id="L16">  16  </span>
+<span id="L17">  17  @boundscheck(False)</span>
+<span id="L18">  18  @wraparound(False)</span>
+<span id="L19">  19  def chisq_accum_bin_cython(numpy.ndarray[REALTYPE, ndim=1] chisq,</span>
+<span id="L20">  20                             numpy.ndarray[COMPLEXTYPE, ndim=1] q, int N):</span>
+<span id="L21">  21      # This can be made parallelized?!</span>
+<span id="L22">  22      for i in range(N):</span>
+<span id="L23">  23          chisq[i] += q[i].real*q[i].real+q[i].imag*q[i].imag</span>
+<span id="L24">  24  </span>
+<span id="L25">  25  @boundscheck(False)</span>
+<span id="L26">  26  @wraparound(False)</span>
+<span id="L27">  27  @cdivision(True)</span>
+<span id="L28">  28  def point_chisq_code(numpy.ndarray[REALTYPE, ndim=1] chisq,</span>
+<span id="L29">  29                       numpy.ndarray[COMPLEXTYPE, ndim=1] v1,</span>
+<span id="L30">  30                       int n, int slen,</span>
+<span id="L31">  31                       numpy.ndarray[REALTYPE, ndim=1] shifts,</span>
+<span id="L32">  32                       numpy.ndarray[numpy.uint32_t, ndim=1] bins,</span>
+<span id="L33">  33                       int blen):</span>
+<span id="L34">  34      # Do I need to declare UINT vs INT??</span>
+<span id="L35">  35      cdef int num_parallel_regions, bstart, bend, i, j, k, r, start, end</span>
+<span id="L36">  36      cdef REALTYPE *outr</span>
+<span id="L37">  37      cdef REALTYPE *outi</span>
+<span id="L38">  38      cdef REALTYPE *pr</span>
+<span id="L39">  39      cdef REALTYPE *pi</span>
+<span id="L40">  40      cdef REALTYPE *vsr</span>
+<span id="L41">  41      cdef REALTYPE *vsi</span>
+<span id="L42">  42      cdef REALTYPE *outr_tmp</span>
+<span id="L43">  43      cdef REALTYPE *outi_tmp</span>
+<span id="L44">  44      cdef COMPLEXTYPE v</span>
+<span id="L45">  45      cdef REALTYPE vr, vi, t1, t2, k1, k2, k3, vs, va</span>
+<span id="L46">  46  </span>
+<span id="L47">  47      num_parallel_regions = 1</span>
+<span id="L48">  48  </span>
+<span id="L49">  49      outr = &lt;REALTYPE *&gt; malloc(n * sizeof(REALTYPE))</span>
+<span id="L50">  50      outi = &lt;REALTYPE *&gt; malloc(n * sizeof(REALTYPE))</span>
+<span id="L51">  51      pr = &lt;REALTYPE *&gt; malloc(n * sizeof(REALTYPE))</span>
+<span id="L52">  52      pi = &lt;REALTYPE *&gt; malloc(n * sizeof(REALTYPE))</span>
+<span id="L53">  53      vsr = &lt;REALTYPE *&gt; malloc(n * sizeof(REALTYPE))</span>
+<span id="L54">  54      vsi = &lt;REALTYPE *&gt; malloc(n * sizeof(REALTYPE))</span>
+<span id="L55">  55      outr_tmp = &lt;REALTYPE *&gt; malloc(n * sizeof(REALTYPE))</span>
+<span id="L56">  56      outi_tmp = &lt;REALTYPE *&gt; malloc(n * sizeof(REALTYPE))</span>
+<span id="L57">  57  </span>
+<span id="L58">  58      for r in range(blen):</span>
+<span id="L59">  59          bstart = bins[r] # int</span>
+<span id="L60">  60          bend = bins[r+1] # int</span>
+<span id="L61">  61          blen = bend - bstart # int</span>
+<span id="L62">  62  </span>
+<span id="L63">  63          #outr = numpy.zeros(n, dtype=real_type)</span>
+<span id="L64">  64          #outi = numpy.zeros(n, dtype=real_type)</span>
+<span id="L65">  65          for i in range(n):</span>
+<span id="L66">  66              outr[i] = 0.</span>
+<span id="L67">  67              outi[i] = 0.</span>
+<span id="L68">  68  </span>
+<span id="L69">  69  </span>
+<span id="L70">  70          # CAN WE MAKE THIS LOOP PARALLEL?!</span>
+<span id="L71">  71          for k in range(num_parallel_regions):</span>
+<span id="L72">  72              start = blen * k / num_parallel_regions + bstart # uint</span>
+<span id="L73">  73              end = blen * (k + 1) / num_parallel_regions + bstart # uint</span>
+<span id="L74">  74  </span>
+<span id="L75">  75              # start the cumulative rotations at the offset point</span>
+<span id="L76">  76              #pr = numpy.zeros(n, dtype=real_type)</span>
+<span id="L77">  77              #pi = numpy.zeros(n, dtype=real_type)</span>
+<span id="L78">  78              #vsr = numpy.zeros(n, dtype=real_type)</span>
+<span id="L79">  79              #vsi = numpy.zeros(n, dtype=real_type)</span>
+<span id="L80">  80              #outr_tmp = numpy.zeros(n, dtype=real_type)</span>
+<span id="L81">  81              #outi_tmp = numpy.zeros(n, dtype=real_type)</span>
+<span id="L82">  82  </span>
+<span id="L83">  83              for i in range(n):</span>
+<span id="L84">  84                  pr[i] = cos(2 * 3.141592653 * shifts[i] * (start) / slen)</span>
+<span id="L85">  85                  pi[i] = sin(2 * 3.141592653 * shifts[i] * (start) / slen)</span>
+<span id="L86">  86                  vsr[i] = cos(2 * 3.141592653 * shifts[i] / slen)</span>
+<span id="L87">  87                  vsi[i] = sin(2 * 3.141592653 * shifts[i] / slen)</span>
+<span id="L88">  88                  outr_tmp[i] = 0</span>
+<span id="L89">  89                  outi_tmp[i] = 0</span>
+<span id="L90">  90  </span>
+<span id="L91">  91              for j in range(start, end): # uint</span>
+<span id="L92">  92                  v = v1[j]</span>
+<span id="L93">  93                  vr = v.real</span>
+<span id="L94">  94                  vi = v.imag</span>
+<span id="L95">  95                  vs = vr + vi;</span>
+<span id="L96">  96                  va = vi - vr;</span>
+<span id="L97">  97  </span>
+<span id="L98">  98                  for i in range(n):</span>
+<span id="L99">  99                      t1 = pr[i]</span>
+<span id="L100"> 100                      t2 = pi[i]</span>
+<span id="L101"> 101  </span>
+<span id="L102"> 102                      # Complex multiply pr[i] * v</span>
+<span id="L103"> 103                      k1 = vr * (t1 + t2)</span>
+<span id="L104"> 104                      k2 = t1 * va</span>
+<span id="L105"> 105                      k3 = t2 * vs</span>
+<span id="L106"> 106  </span>
+<span id="L107"> 107                      outr_tmp[i] += k1 - k3</span>
+<span id="L108"> 108                      outi_tmp[i] += k1 + k2</span>
+<span id="L109"> 109  </span>
+<span id="L110"> 110                      # phase shift for the next time point</span>
+<span id="L111"> 111                      pr[i] = t1 * vsr[i] - t2 * vsi[i]</span>
+<span id="L112"> 112                      pi[i] = t1 * vsi[i] + t2 * vsr[i]</span>
+<span id="L113"> 113  </span>
+<span id="L114"> 114              # WHAT DOES THIS MEAN?? : pragma omp critical</span>
+<span id="L115"> 115              for i in range(n):</span>
+<span id="L116"> 116                  outr[i] += outr_tmp[i]</span>
+<span id="L117"> 117                  outi[i] += outi_tmp[i]</span>
+<span id="L118"> 118  </span>
+<span id="L119"> 119  </span>
+<span id="L120"> 120          for i in range(n):</span>
+<span id="L121"> 121              chisq[i] += outr[i]*outr[i] + outi[i]*outi[i]</span>
+<span id="L122"> 122  </span>
+<span id="L123"> 123      free(outr)</span>
+<span id="L124"> 124      free(outi)</span>
+<span id="L125"> 125      free(pr)</span>
+<span id="L126"> 126      free(pi)</span>
+<span id="L127"> 127      free(vsr)</span>
+<span id="L128"> 128      free(vsi)</span>
+<span id="L129"> 129      free(outr_tmp)</span>
+<span id="L130"> 130      free(outi_tmp)</span>
+<span id="L131"> 131  </span>
+<span id="L132"> 132  def chisq_accum_bin_numpy(chisq, q):</span>
+<span id="L133"> 133      chisq += q.squared_norm()</span>
+<span id="L134"> 134  </span>
+<span id="L135"> 135  def chisq_accum_bin(chisq, q):</span>
+<span id="L136"> 136      chisq = numpy.array(chisq.data, copy=False)</span>
+<span id="L137"> 137      q = numpy.array(q.data, copy=False)</span>
+<span id="L138"> 138      N = len(chisq)</span>
+<span id="L139"> 139      chisq_accum_bin_cython(chisq, q, N)</span>
+<span id="L140"> 140  </span>
+<span id="L141"> 141  def shift_sum(v1, shifts, bins):</span>
+<span id="L142"> 142      real_type = real_same_precision_as(v1)</span>
+<span id="L143"> 143      shifts = numpy.array(shifts, dtype=real_type)</span>
+<span id="L144"> 144  </span>
+<span id="L145"> 145      bins = numpy.array(bins, dtype=numpy.uint32)</span>
+<span id="L146"> 146      blen = len(bins) - 1 #</span>
+<span id="L147"> 147      v1 = numpy.array(v1.data, copy=False)</span>
+<span id="L148"> 148      slen = len(v1)</span>
+<span id="L149"> 149      n = int(len(shifts))</span>
+<span id="L150"> 150  </span>
+<span id="L151"> 151      # Create some output memory</span>
+<span id="L152"> 152      chisq = numpy.zeros(n, dtype=real_type)</span>
+<span id="L153"> 153  </span>
+<span id="L154"> 154      point_chisq_code(chisq, v1, n, slen, shifts, bins, blen)</span>
+<span id="L155"> 155  </span>
+<span id="L156"> 156      return  chisq</span>
+<span id="L157"> 157  </span></pre>

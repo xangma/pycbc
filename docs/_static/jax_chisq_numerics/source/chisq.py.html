@@ -1,0 +1,520 @@
+<!doctype html><meta charset="utf-8"><title>chisq.py</title><style>body{margin:30px}pre{font-size:13px;line-height:1.5}span:target{background:#fff1bf}</style><h1>chisq.py</h1><p>Source snapshot; SHA-256 2c0c63e24edf8dc821b520d6743c28082431b2b20d516825edb730cd232a255a</p><pre><span id="L1">   1  # Copyright (C) 2012  Alex Nitz</span>
+<span id="L2">   2  # This program is free software; you can redistribute it and/or modify it</span>
+<span id="L3">   3  # under the terms of the GNU General Public License as published by the</span>
+<span id="L4">   4  # Free Software Foundation; either version 3 of the License, or (at your</span>
+<span id="L5">   5  # option) any later version.</span>
+<span id="L6">   6  #</span>
+<span id="L7">   7  # This program is distributed in the hope that it will be useful, but</span>
+<span id="L8">   8  # WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span id="L9">   9  # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General</span>
+<span id="L10">  10  # Public License for more details.</span>
+<span id="L11">  11  #</span>
+<span id="L12">  12  # You should have received a copy of the GNU General Public License along</span>
+<span id="L13">  13  # with this program; if not, write to the Free Software Foundation, Inc.,</span>
+<span id="L14">  14  # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.</span>
+<span id="L15">  15  </span>
+<span id="L16">  16  </span>
+<span id="L17">  17  #</span>
+<span id="L18">  18  # =============================================================================</span>
+<span id="L19">  19  #</span>
+<span id="L20">  20  #                                   Preamble</span>
+<span id="L21">  21  #</span>
+<span id="L22">  22  # =============================================================================</span>
+<span id="L23">  23  #</span>
+<span id="L24">  24  import numpy, logging, math, pycbc.fft</span>
+<span id="L25">  25  </span>
+<span id="L26">  26  from pycbc.types import zeros, real_same_precision_as, TimeSeries, complex_same_precision_as</span>
+<span id="L27">  27  from pycbc.filter import sigmasq_series, make_frequency_series, matched_filter_core, get_cutoff_indices</span>
+<span id="L28">  28  from pycbc.scheme import schemed</span>
+<span id="L29">  29  import pycbc.pnutils</span>
+<span id="L30">  30  </span>
+<span id="L31">  31  BACKEND_PREFIX=&quot;pycbc.vetoes.chisq_&quot;</span>
+<span id="L32">  32  </span>
+<span id="L33">  33  def power_chisq_bins_from_sigmasq_series(sigmasq_series, num_bins, kmin, kmax):</span>
+<span id="L34">  34      &quot;&quot;&quot;Returns bins of equal power for use with the chisq functions</span>
+<span id="L35">  35  </span>
+<span id="L36">  36      Parameters</span>
+<span id="L37">  37      ----------</span>
+<span id="L38">  38  </span>
+<span id="L39">  39      sigmasq_series: FrequencySeries</span>
+<span id="L40">  40          A frequency series containing the cumulative power of a filter template</span>
+<span id="L41">  41          preweighted by a psd.</span>
+<span id="L42">  42      num_bins: int</span>
+<span id="L43">  43          The number of chisq bins to calculate.</span>
+<span id="L44">  44      kmin: int</span>
+<span id="L45">  45          DOCUMENTME</span>
+<span id="L46">  46      kmax: int</span>
+<span id="L47">  47          DOCUMENTME</span>
+<span id="L48">  48  </span>
+<span id="L49">  49      Returns</span>
+<span id="L50">  50      -------</span>
+<span id="L51">  51  </span>
+<span id="L52">  52      bins: List of ints</span>
+<span id="L53">  53          A list of the edges of the chisq bins is returned.</span>
+<span id="L54">  54      &quot;&quot;&quot;</span>
+<span id="L55">  55      sigmasq = sigmasq_series[kmax - 1]</span>
+<span id="L56">  56      edge_vec = numpy.arange(0, num_bins) * sigmasq / num_bins</span>
+<span id="L57">  57      bins = numpy.searchsorted(sigmasq_series[kmin:kmax], edge_vec, side=&#x27;right&#x27;)</span>
+<span id="L58">  58      bins += kmin</span>
+<span id="L59">  59      return numpy.append(bins, kmax)</span>
+<span id="L60">  60  </span>
+<span id="L61">  61  </span>
+<span id="L62">  62  def power_chisq_bins(htilde, num_bins, psd, low_frequency_cutoff=None,</span>
+<span id="L63">  63                       high_frequency_cutoff=None):</span>
+<span id="L64">  64      &quot;&quot;&quot;Returns bins of equal power for use with the chisq functions</span>
+<span id="L65">  65  </span>
+<span id="L66">  66      Parameters</span>
+<span id="L67">  67      ----------</span>
+<span id="L68">  68  </span>
+<span id="L69">  69      htilde: FrequencySeries</span>
+<span id="L70">  70          A frequency series containing the template waveform</span>
+<span id="L71">  71      num_bins: int</span>
+<span id="L72">  72          The number of chisq bins to calculate.</span>
+<span id="L73">  73      psd: FrequencySeries</span>
+<span id="L74">  74          A frequency series containing the psd. Its length must be commensurate</span>
+<span id="L75">  75          with the template waveform.</span>
+<span id="L76">  76      low_frequency_cutoff: {None, float}, optional</span>
+<span id="L77">  77          The low frequency cutoff to apply</span>
+<span id="L78">  78      high_frequency_cutoff: {None, float}, optional</span>
+<span id="L79">  79          The high frequency cutoff to apply</span>
+<span id="L80">  80  </span>
+<span id="L81">  81      Returns</span>
+<span id="L82">  82      -------</span>
+<span id="L83">  83  </span>
+<span id="L84">  84      bins: List of ints</span>
+<span id="L85">  85          A list of the edges of the chisq bins is returned.</span>
+<span id="L86">  86      &quot;&quot;&quot;</span>
+<span id="L87">  87      sigma_vec = sigmasq_series(htilde, psd, low_frequency_cutoff,</span>
+<span id="L88">  88                                 high_frequency_cutoff).numpy()</span>
+<span id="L89">  89      kmin, kmax = get_cutoff_indices(low_frequency_cutoff,</span>
+<span id="L90">  90                                      high_frequency_cutoff,</span>
+<span id="L91">  91                                      htilde.delta_f,</span>
+<span id="L92">  92                                      (len(htilde)-1)*2)</span>
+<span id="L93">  93      return power_chisq_bins_from_sigmasq_series(sigma_vec, num_bins, kmin, kmax)</span>
+<span id="L94">  94  </span>
+<span id="L95">  95  </span>
+<span id="L96">  96  @schemed(BACKEND_PREFIX)</span>
+<span id="L97">  97  def chisq_accum_bin(chisq, q):</span>
+<span id="L98">  98      err_msg = &quot;This function is a stub that should be overridden using the &quot;</span>
+<span id="L99">  99      err_msg += &quot;scheme. You shouldn&#x27;t be seeing this error!&quot;</span>
+<span id="L100"> 100      raise ValueError(err_msg)</span>
+<span id="L101"> 101  </span>
+<span id="L102"> 102  @schemed(BACKEND_PREFIX)</span>
+<span id="L103"> 103  def shift_sum(v1, shifts, bins):</span>
+<span id="L104"> 104      &quot;&quot;&quot; Calculate the time shifted sum of the FrequencySeries</span>
+<span id="L105"> 105      &quot;&quot;&quot;</span>
+<span id="L106"> 106      err_msg = &quot;This function is a stub that should be overridden using the &quot;</span>
+<span id="L107"> 107      err_msg += &quot;scheme. You shouldn&#x27;t be seeing this error!&quot;</span>
+<span id="L108"> 108      raise ValueError(err_msg)</span>
+<span id="L109"> 109  </span>
+<span id="L110"> 110  </span>
+<span id="L111"> 111  def power_chisq_at_points_from_precomputed(corr, snr, snr_norm, bins, indices):</span>
+<span id="L112"> 112      &quot;&quot;&quot;Calculate the chisq timeseries from precomputed values for only select points.</span>
+<span id="L113"> 113  </span>
+<span id="L114"> 114      This function calculates the chisq at each point by explicitly time shifting</span>
+<span id="L115"> 115      and summing each bin. No FFT is involved.</span>
+<span id="L116"> 116  </span>
+<span id="L117"> 117      Parameters</span>
+<span id="L118"> 118      ----------</span>
+<span id="L119"> 119      corr: FrequencySeries</span>
+<span id="L120"> 120          The product of the template and data in the frequency domain.</span>
+<span id="L121"> 121      snr: numpy.ndarray</span>
+<span id="L122"> 122          The unnormalized array of snr values at only the selected points in `indices`.</span>
+<span id="L123"> 123      snr_norm: float</span>
+<span id="L124"> 124          The normalization of the snr (EXPLAINME : refer to Findchirp paper?)</span>
+<span id="L125"> 125      bins: List of integers</span>
+<span id="L126"> 126          The edges of the equal power bins</span>
+<span id="L127"> 127      indices: Array</span>
+<span id="L128"> 128          The indices where we will calculate the chisq. These must be relative</span>
+<span id="L129"> 129          to the given `corr` series.</span>
+<span id="L130"> 130  </span>
+<span id="L131"> 131      Returns</span>
+<span id="L132"> 132      -------</span>
+<span id="L133"> 133      chisq: Array</span>
+<span id="L134"> 134          An array containing only the chisq at the selected points.</span>
+<span id="L135"> 135      &quot;&quot;&quot;</span>
+<span id="L136"> 136      num_bins = len(bins) - 1</span>
+<span id="L137"> 137      chisq = shift_sum(corr, indices, bins) # pylint:disable=assignment-from-no-return</span>
+<span id="L138"> 138      return (chisq * num_bins - (snr.conj() * snr).real) * (snr_norm ** 2.0)</span>
+<span id="L139"> 139  </span>
+<span id="L140"> 140  _q_l = None</span>
+<span id="L141"> 141  _qtilde_l = None</span>
+<span id="L142"> 142  _chisq_l = None</span>
+<span id="L143"> 143  def power_chisq_from_precomputed(corr, snr, snr_norm, bins, indices=None, return_bins=False):</span>
+<span id="L144"> 144      &quot;&quot;&quot;Calculate the chisq timeseries from precomputed values.</span>
+<span id="L145"> 145  </span>
+<span id="L146"> 146      This function calculates the chisq at all times by performing an</span>
+<span id="L147"> 147      inverse FFT of each bin.</span>
+<span id="L148"> 148  </span>
+<span id="L149"> 149      Parameters</span>
+<span id="L150"> 150      ----------</span>
+<span id="L151"> 151  </span>
+<span id="L152"> 152      corr: FrequencySeries</span>
+<span id="L153"> 153          The produce of the template and data in the frequency domain.</span>
+<span id="L154"> 154      snr: TimeSeries</span>
+<span id="L155"> 155          The unnormalized snr time series.</span>
+<span id="L156"> 156      snr_norm:</span>
+<span id="L157"> 157          The snr normalization factor (true snr = snr * snr_norm) EXPLAINME - define &#x27;true snr&#x27;?</span>
+<span id="L158"> 158      bins: List of integers</span>
+<span id="L159"> 159          The edges of the chisq bins.</span>
+<span id="L160"> 160      indices: {Array, None}, optional</span>
+<span id="L161"> 161          Index values into snr that indicate where to calculate</span>
+<span id="L162"> 162          chisq values. If none, calculate chisq for all possible indices.</span>
+<span id="L163"> 163      return_bins: {boolean, False}, optional</span>
+<span id="L164"> 164          Return a list of the SNRs for each chisq bin.</span>
+<span id="L165"> 165  </span>
+<span id="L166"> 166      Returns</span>
+<span id="L167"> 167      -------</span>
+<span id="L168"> 168      chisq: TimeSeries</span>
+<span id="L169"> 169      &quot;&quot;&quot;</span>
+<span id="L170"> 170      # Get workspace memory</span>
+<span id="L171"> 171      global _q_l, _qtilde_l, _chisq_l</span>
+<span id="L172"> 172  </span>
+<span id="L173"> 173      bin_snrs = []</span>
+<span id="L174"> 174  </span>
+<span id="L175"> 175      if _q_l is None or len(_q_l) != len(snr):</span>
+<span id="L176"> 176          q = zeros(len(snr), dtype=complex_same_precision_as(snr))</span>
+<span id="L177"> 177          qtilde = zeros(len(snr), dtype=complex_same_precision_as(snr))</span>
+<span id="L178"> 178          _q_l = q</span>
+<span id="L179"> 179          _qtilde_l = qtilde</span>
+<span id="L180"> 180      else:</span>
+<span id="L181"> 181          q = _q_l</span>
+<span id="L182"> 182          qtilde = _qtilde_l</span>
+<span id="L183"> 183  </span>
+<span id="L184"> 184      if indices is not None:</span>
+<span id="L185"> 185          snr = snr.take(indices)</span>
+<span id="L186"> 186  </span>
+<span id="L187"> 187      if _chisq_l is None or len(_chisq_l) &lt; len(snr):</span>
+<span id="L188"> 188          chisq = zeros(len(snr), dtype=real_same_precision_as(snr))</span>
+<span id="L189"> 189          _chisq_l = chisq</span>
+<span id="L190"> 190      else:</span>
+<span id="L191"> 191          chisq = _chisq_l[0:len(snr)]</span>
+<span id="L192"> 192          chisq.clear()</span>
+<span id="L193"> 193  </span>
+<span id="L194"> 194      num_bins = len(bins) - 1</span>
+<span id="L195"> 195  </span>
+<span id="L196"> 196      for j in range(num_bins):</span>
+<span id="L197"> 197          k_min = int(bins[j])</span>
+<span id="L198"> 198          k_max = int(bins[j+1])</span>
+<span id="L199"> 199  </span>
+<span id="L200"> 200          qtilde[k_min:k_max] = corr[k_min:k_max]</span>
+<span id="L201"> 201          pycbc.fft.ifft(qtilde, q)</span>
+<span id="L202"> 202          qtilde[k_min:k_max].clear()</span>
+<span id="L203"> 203  </span>
+<span id="L204"> 204          if return_bins:</span>
+<span id="L205"> 205              bin_snrs.append(TimeSeries(q  * snr_norm *  num_bins ** 0.5,</span>
+<span id="L206"> 206                                        delta_t=snr.delta_t,</span>
+<span id="L207"> 207                                        epoch=snr.start_time))</span>
+<span id="L208"> 208  </span>
+<span id="L209"> 209          if indices is not None:</span>
+<span id="L210"> 210              chisq_accum_bin(chisq, q.take(indices))</span>
+<span id="L211"> 211          else:</span>
+<span id="L212"> 212              chisq_accum_bin(chisq, q)</span>
+<span id="L213"> 213  </span>
+<span id="L214"> 214      chisq = (chisq * num_bins - snr.squared_norm()) * (snr_norm ** 2.0)</span>
+<span id="L215"> 215  </span>
+<span id="L216"> 216      if indices is None:</span>
+<span id="L217"> 217          chisq = TimeSeries(chisq, delta_t=snr.delta_t, epoch=snr.start_time, copy=False)</span>
+<span id="L218"> 218  </span>
+<span id="L219"> 219      if return_bins:</span>
+<span id="L220"> 220          return chisq, bin_snrs</span>
+<span id="L221"> 221      else:</span>
+<span id="L222"> 222          return chisq</span>
+<span id="L223"> 223  </span>
+<span id="L224"> 224  </span>
+<span id="L225"> 225  def fastest_power_chisq_at_points(corr, snr, snrv, snr_norm, bins, indices):</span>
+<span id="L226"> 226      &quot;&quot;&quot;Calculate the chisq values for only selected points.</span>
+<span id="L227"> 227  </span>
+<span id="L228"> 228      This function looks at the number of points to be evaluated and selects</span>
+<span id="L229"> 229      the fastest method (FFT, or direct time shift and sum). In either case,</span>
+<span id="L230"> 230      only the selected points are returned.</span>
+<span id="L231"> 231  </span>
+<span id="L232"> 232      Parameters</span>
+<span id="L233"> 233      ----------</span>
+<span id="L234"> 234      corr: FrequencySeries</span>
+<span id="L235"> 235          The product of the template and data in the frequency domain.</span>
+<span id="L236"> 236      snr: Array</span>
+<span id="L237"> 237          The unnormalized snr</span>
+<span id="L238"> 238      snr_norm: float</span>
+<span id="L239"> 239          The snr normalization factor  --- EXPLAINME</span>
+<span id="L240"> 240      bins: List of integers</span>
+<span id="L241"> 241          The edges of the equal power bins</span>
+<span id="L242"> 242      indices: Array</span>
+<span id="L243"> 243          The indices where we will calculate the chisq. These must be relative</span>
+<span id="L244"> 244          to the given `snr` series.</span>
+<span id="L245"> 245  </span>
+<span id="L246"> 246      Returns</span>
+<span id="L247"> 247      -------</span>
+<span id="L248"> 248      chisq: Array</span>
+<span id="L249"> 249          An array containing only the chisq at the selected points.</span>
+<span id="L250"> 250      &quot;&quot;&quot;</span>
+<span id="L251"> 251      import pycbc.scheme</span>
+<span id="L252"> 252      if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.CPUScheme):</span>
+<span id="L253"> 253          # We don&#x27;t have that many points so do the direct time shift.</span>
+<span id="L254"> 254          return power_chisq_at_points_from_precomputed(corr, snrv,</span>
+<span id="L255"> 255                                                        snr_norm, bins, indices)</span>
+<span id="L256"> 256      else:</span>
+<span id="L257"> 257          # We have a lot of points so it is faster to use the fourier transform</span>
+<span id="L258"> 258          return power_chisq_from_precomputed(corr, snr, snr_norm, bins,</span>
+<span id="L259"> 259                                              indices=indices)</span>
+<span id="L260"> 260  </span>
+<span id="L261"> 261  </span>
+<span id="L262"> 262  def power_chisq(template, data, num_bins, psd,</span>
+<span id="L263"> 263                  low_frequency_cutoff=None,</span>
+<span id="L264"> 264                  high_frequency_cutoff=None,</span>
+<span id="L265"> 265                  return_bins=False):</span>
+<span id="L266"> 266      &quot;&quot;&quot;Calculate the chisq timeseries</span>
+<span id="L267"> 267  </span>
+<span id="L268"> 268      Parameters</span>
+<span id="L269"> 269      ----------</span>
+<span id="L270"> 270      template: FrequencySeries or TimeSeries</span>
+<span id="L271"> 271          A time or frequency series that contains the filter template.</span>
+<span id="L272"> 272      data: FrequencySeries or TimeSeries</span>
+<span id="L273"> 273          A time or frequency series that contains the data to filter. The length</span>
+<span id="L274"> 274          must be commensurate with the template.</span>
+<span id="L275"> 275          (EXPLAINME - does this mean &#x27;the same as&#x27; or something else?)</span>
+<span id="L276"> 276      num_bins: int</span>
+<span id="L277"> 277          The number of frequency bins used for chisq. The number of statistical</span>
+<span id="L278"> 278          degrees of freedom (&#x27;dof&#x27;) is 2*num_bins-2.</span>
+<span id="L279"> 279      psd: FrequencySeries</span>
+<span id="L280"> 280          The psd of the data.</span>
+<span id="L281"> 281      low_frequency_cutoff: {None, float}, optional</span>
+<span id="L282"> 282          The low frequency cutoff for the filter</span>
+<span id="L283"> 283      high_frequency_cutoff: {None, float}, optional</span>
+<span id="L284"> 284          The high frequency cutoff for the filter</span>
+<span id="L285"> 285      return_bins: {boolean, False}, optional</span>
+<span id="L286"> 286          Return a list of the individual chisq bins</span>
+<span id="L287"> 287  </span>
+<span id="L288"> 288      Returns</span>
+<span id="L289"> 289      -------</span>
+<span id="L290"> 290      chisq: TimeSeries</span>
+<span id="L291"> 291          TimeSeries containing the chisq values for all times.</span>
+<span id="L292"> 292      &quot;&quot;&quot;</span>
+<span id="L293"> 293      htilde = make_frequency_series(template)</span>
+<span id="L294"> 294      stilde = make_frequency_series(data)</span>
+<span id="L295"> 295  </span>
+<span id="L296"> 296      bins = power_chisq_bins(htilde, num_bins, psd, low_frequency_cutoff,</span>
+<span id="L297"> 297                              high_frequency_cutoff)</span>
+<span id="L298"> 298      corra = zeros((len(htilde) - 1) * 2, dtype=htilde.dtype)</span>
+<span id="L299"> 299      total_snr, corr, tnorm = matched_filter_core(htilde, stilde, psd,</span>
+<span id="L300"> 300                             low_frequency_cutoff, high_frequency_cutoff,</span>
+<span id="L301"> 301                             corr_out=corra)</span>
+<span id="L302"> 302  </span>
+<span id="L303"> 303      return power_chisq_from_precomputed(corr, total_snr, tnorm, bins, return_bins=return_bins)</span>
+<span id="L304"> 304  </span>
+<span id="L305"> 305  </span>
+<span id="L306"> 306  class SingleDetPowerChisq(object):</span>
+<span id="L307"> 307      &quot;&quot;&quot;Class that handles precomputation and memory management for efficiently</span>
+<span id="L308"> 308      running the power chisq in a single detector inspiral analysis.</span>
+<span id="L309"> 309      &quot;&quot;&quot;</span>
+<span id="L310"> 310      def __init__(self, num_bins=0, snr_threshold=None):</span>
+<span id="L311"> 311          if not (num_bins == &quot;0&quot; or num_bins == 0):</span>
+<span id="L312"> 312              self.do = True</span>
+<span id="L313"> 313              self.column_name = &quot;chisq&quot;</span>
+<span id="L314"> 314              self.table_dof_name = &quot;chisq_dof&quot;</span>
+<span id="L315"> 315              self.num_bins = num_bins</span>
+<span id="L316"> 316          else:</span>
+<span id="L317"> 317              self.do = False</span>
+<span id="L318"> 318          self.snr_threshold = snr_threshold</span>
+<span id="L319"> 319  </span>
+<span id="L320"> 320      @staticmethod</span>
+<span id="L321"> 321      def parse_option(row, arg):</span>
+<span id="L322"> 322          safe_dict = {&#x27;max&#x27;: max, &#x27;min&#x27;: min}</span>
+<span id="L323"> 323          safe_dict.update(row.__dict__)</span>
+<span id="L324"> 324          safe_dict.update(math.__dict__)</span>
+<span id="L325"> 325          safe_dict.update(pycbc.pnutils.__dict__)</span>
+<span id="L326"> 326          return eval(arg, {&quot;__builtins__&quot;:None}, safe_dict)</span>
+<span id="L327"> 327  </span>
+<span id="L328"> 328      def cached_chisq_bins(self, template, psd):</span>
+<span id="L329"> 329          from pycbc.opt import LimitedSizeDict</span>
+<span id="L330"> 330  </span>
+<span id="L331"> 331          key = id(psd)</span>
+<span id="L332"> 332          if not hasattr(psd, &#x27;_chisq_cached_key&#x27;):</span>
+<span id="L333"> 333              psd._chisq_cached_key = {}</span>
+<span id="L334"> 334  </span>
+<span id="L335"> 335          if not hasattr(template, &#x27;_bin_cache&#x27;):</span>
+<span id="L336"> 336              template._bin_cache = LimitedSizeDict(size_limit=2**2)</span>
+<span id="L337"> 337  </span>
+<span id="L338"> 338          if key not in template._bin_cache or id(template.params) not in psd._chisq_cached_key:</span>
+<span id="L339"> 339              psd._chisq_cached_key[id(template.params)] = True</span>
+<span id="L340"> 340              num_bins = int(self.parse_option(template, self.num_bins))</span>
+<span id="L341"> 341  </span>
+<span id="L342"> 342              if hasattr(psd, &#x27;sigmasq_vec&#x27;) and \</span>
+<span id="L343"> 343                      template.approximant in psd.sigmasq_vec:</span>
+<span id="L344"> 344                  kmin = int(template.f_lower / psd.delta_f)</span>
+<span id="L345"> 345                  kmax = template.end_idx</span>
+<span id="L346"> 346                  bins = power_chisq_bins_from_sigmasq_series(</span>
+<span id="L347"> 347                      psd.sigmasq_vec[template.approximant],</span>
+<span id="L348"> 348                      num_bins,</span>
+<span id="L349"> 349                      kmin,</span>
+<span id="L350"> 350                      kmax</span>
+<span id="L351"> 351                  )</span>
+<span id="L352"> 352              else:</span>
+<span id="L353"> 353                  bins = power_chisq_bins(template, num_bins, psd, template.f_lower)</span>
+<span id="L354"> 354              template._bin_cache[key] = bins</span>
+<span id="L355"> 355  </span>
+<span id="L356"> 356          return template._bin_cache[key]</span>
+<span id="L357"> 357  </span>
+<span id="L358"> 358      def values(self, corr, snrv, snr_norm, psd, indices, template):</span>
+<span id="L359"> 359          &quot;&quot;&quot; Calculate the chisq at points given by indices.</span>
+<span id="L360"> 360  </span>
+<span id="L361"> 361          Returns</span>
+<span id="L362"> 362          -------</span>
+<span id="L363"> 363          chisq: Array</span>
+<span id="L364"> 364              Chisq values, one for each sample index, or zero for points below</span>
+<span id="L365"> 365              the specified SNR threshold</span>
+<span id="L366"> 366  </span>
+<span id="L367"> 367          chisq_dof: Array</span>
+<span id="L368"> 368              Number of statistical degrees of freedom for the chisq test</span>
+<span id="L369"> 369              in the given template, equal to 2 * num_bins - 2</span>
+<span id="L370"> 370          &quot;&quot;&quot;</span>
+<span id="L371"> 371          if self.do:</span>
+<span id="L372"> 372              num_above = len(indices)</span>
+<span id="L373"> 373              dof = -100</span>
+<span id="L374"> 374              if self.snr_threshold:</span>
+<span id="L375"> 375                  above = abs(snrv * snr_norm) &gt; self.snr_threshold</span>
+<span id="L376"> 376                  num_above = above.sum()</span>
+<span id="L377"> 377                  logging.info(&#x27;%s above chisq activation threshold&#x27; % num_above)</span>
+<span id="L378"> 378                  above_indices = indices[above]</span>
+<span id="L379"> 379                  above_snrv = snrv[above]</span>
+<span id="L380"> 380                  chisq_out = numpy.zeros(len(indices), dtype=numpy.float32)</span>
+<span id="L381"> 381              else:</span>
+<span id="L382"> 382                  above_indices = indices</span>
+<span id="L383"> 383                  above_snrv = snrv</span>
+<span id="L384"> 384  </span>
+<span id="L385"> 385              if num_above &gt; 0:</span>
+<span id="L386"> 386                  bins = self.cached_chisq_bins(template, psd)</span>
+<span id="L387"> 387                  # len(bins) is number of bin edges, num_bins = len(bins) - 1</span>
+<span id="L388"> 388                  dof = (len(bins) - 1) * 2 - 2</span>
+<span id="L389"> 389                  _chisq = power_chisq_at_points_from_precomputed(corr,</span>
+<span id="L390"> 390                                       above_snrv, snr_norm, bins, above_indices)</span>
+<span id="L391"> 391  </span>
+<span id="L392"> 392              if self.snr_threshold:</span>
+<span id="L393"> 393                  if num_above &gt; 0:</span>
+<span id="L394"> 394                      chisq_out[above] = _chisq</span>
+<span id="L395"> 395              else:</span>
+<span id="L396"> 396                  if num_above == 0:</span>
+<span id="L397"> 397                      chisq_out = numpy.zeros(0, dtype=numpy.float32)</span>
+<span id="L398"> 398                  else:</span>
+<span id="L399"> 399                      chisq_out = _chisq</span>
+<span id="L400"> 400  </span>
+<span id="L401"> 401              return chisq_out, numpy.repeat(dof, len(indices))# dof * numpy.ones_like(indices)</span>
+<span id="L402"> 402          else:</span>
+<span id="L403"> 403              return None, None</span>
+<span id="L404"> 404  </span>
+<span id="L405"> 405  </span>
+<span id="L406"> 406  class SingleDetSkyMaxPowerChisq(SingleDetPowerChisq):</span>
+<span id="L407"> 407      &quot;&quot;&quot;Class that handles precomputation and memory management for efficiently</span>
+<span id="L408"> 408      running the power chisq in a single detector inspiral analysis when</span>
+<span id="L409"> 409      maximizing analytically over sky location.</span>
+<span id="L410"> 410      &quot;&quot;&quot;</span>
+<span id="L411"> 411      def __init__(self, **kwds):</span>
+<span id="L412"> 412          super(SingleDetSkyMaxPowerChisq, self).__init__(**kwds)</span>
+<span id="L413"> 413          self.template_mem = None</span>
+<span id="L414"> 414          self.corr_mem = None</span>
+<span id="L415"> 415  </span>
+<span id="L416"> 416      def calculate_chisq_bins(self, template, psd):</span>
+<span id="L417"> 417          &quot;&quot;&quot; Obtain the chisq bins for this template and PSD.</span>
+<span id="L418"> 418          &quot;&quot;&quot;</span>
+<span id="L419"> 419          num_bins = int(self.parse_option(template, self.num_bins))</span>
+<span id="L420"> 420          if hasattr(psd, &#x27;sigmasq_vec&#x27;) and \</span>
+<span id="L421"> 421                                         template.approximant in psd.sigmasq_vec:</span>
+<span id="L422"> 422              kmin = int(template.f_lower / psd.delta_f)</span>
+<span id="L423"> 423              kmax = template.end_idx</span>
+<span id="L424"> 424              bins = power_chisq_bins_from_sigmasq_series(</span>
+<span id="L425"> 425                     psd.sigmasq_vec[template.approximant], num_bins, kmin, kmax)</span>
+<span id="L426"> 426          else:</span>
+<span id="L427"> 427              bins = power_chisq_bins(template, num_bins, psd, template.f_lower)</span>
+<span id="L428"> 428          return bins</span>
+<span id="L429"> 429  </span>
+<span id="L430"> 430      def values(self, corr_plus, corr_cross, snrv, psd,</span>
+<span id="L431"> 431                 indices, template_plus, template_cross, u_vals,</span>
+<span id="L432"> 432                 hplus_cross_corr, hpnorm, hcnorm):</span>
+<span id="L433"> 433          &quot;&quot;&quot; Calculate the chisq at points given by indices.</span>
+<span id="L434"> 434  </span>
+<span id="L435"> 435          Returns</span>
+<span id="L436"> 436          -------</span>
+<span id="L437"> 437          chisq: Array</span>
+<span id="L438"> 438              Chisq values, one for each sample index</span>
+<span id="L439"> 439  </span>
+<span id="L440"> 440          chisq_dof: Array</span>
+<span id="L441"> 441              Number of statistical degrees of freedom for the chisq test</span>
+<span id="L442"> 442              in the given template</span>
+<span id="L443"> 443          &quot;&quot;&quot;</span>
+<span id="L444"> 444          if self.do:</span>
+<span id="L445"> 445              num_above = len(indices)</span>
+<span id="L446"> 446              if self.snr_threshold:</span>
+<span id="L447"> 447                  above = abs(snrv) &gt; self.snr_threshold</span>
+<span id="L448"> 448                  num_above = above.sum()</span>
+<span id="L449"> 449                  logging.info(&#x27;%s above chisq activation threshold&#x27; % num_above)</span>
+<span id="L450"> 450                  above_indices = indices[above]</span>
+<span id="L451"> 451                  above_snrv = snrv[above]</span>
+<span id="L452"> 452                  u_vals = u_vals[above]</span>
+<span id="L453"> 453                  rchisq = numpy.zeros(len(indices), dtype=numpy.float32)</span>
+<span id="L454"> 454                  dof = -100</span>
+<span id="L455"> 455              else:</span>
+<span id="L456"> 456                  above_indices = indices</span>
+<span id="L457"> 457                  above_snrv = snrv</span>
+<span id="L458"> 458  </span>
+<span id="L459"> 459              if num_above &gt; 0:</span>
+<span id="L460"> 460                  chisq = []</span>
+<span id="L461"> 461                  curr_tmplt_mult_fac = 0.</span>
+<span id="L462"> 462                  curr_corr_mult_fac = 0.</span>
+<span id="L463"> 463                  if self.template_mem is None or \</span>
+<span id="L464"> 464                          (not len(self.template_mem) == len(template_plus)):</span>
+<span id="L465"> 465                      self.template_mem = zeros(len(template_plus),</span>
+<span id="L466"> 466                                  dtype=complex_same_precision_as(corr_plus))</span>
+<span id="L467"> 467                  if self.corr_mem is None or \</span>
+<span id="L468"> 468                                  (not len(self.corr_mem) == len(corr_plus)):</span>
+<span id="L469"> 469                      self.corr_mem = zeros(len(corr_plus),</span>
+<span id="L470"> 470                                  dtype=complex_same_precision_as(corr_plus))</span>
+<span id="L471"> 471  </span>
+<span id="L472"> 472                  tmplt_data = template_cross.data</span>
+<span id="L473"> 473                  corr_data = corr_cross.data</span>
+<span id="L474"> 474                  numpy.copyto(self.template_mem.data, template_cross.data)</span>
+<span id="L475"> 475                  numpy.copyto(self.corr_mem.data, corr_cross.data)</span>
+<span id="L476"> 476                  template_cross._data = self.template_mem.data</span>
+<span id="L477"> 477                  corr_cross._data = self.corr_mem.data</span>
+<span id="L478"> 478  </span>
+<span id="L479"> 479                  for lidx, index in enumerate(above_indices):</span>
+<span id="L480"> 480                      above_local_indices = numpy.array([index])</span>
+<span id="L481"> 481                      above_local_snr = numpy.array([above_snrv[lidx]])</span>
+<span id="L482"> 482                      local_u_val = u_vals[lidx]</span>
+<span id="L483"> 483                      # Construct template from _plus and _cross</span>
+<span id="L484"> 484                      # Note that this modifies in place, so we store that and</span>
+<span id="L485"> 485                      # revert on the next pass.</span>
+<span id="L486"> 486                      template = template_cross.multiply_and_add(template_plus,</span>
+<span id="L487"> 487                                                 local_u_val-curr_tmplt_mult_fac)</span>
+<span id="L488"> 488                      curr_tmplt_mult_fac = local_u_val</span>
+<span id="L489"> 489  </span>
+<span id="L490"> 490                      template.f_lower = template_plus.f_lower</span>
+<span id="L491"> 491                      template.params = template_plus.params</span>
+<span id="L492"> 492                      # Construct the corr vector</span>
+<span id="L493"> 493                      norm_fac = local_u_val*local_u_val + 1</span>
+<span id="L494"> 494                      norm_fac += 2 * local_u_val * hplus_cross_corr</span>
+<span id="L495"> 495                      norm_fac = hcnorm / (norm_fac**0.5)</span>
+<span id="L496"> 496                      hp_fac = local_u_val * hpnorm / hcnorm</span>
+<span id="L497"> 497                      corr = corr_cross.multiply_and_add(corr_plus,</span>
+<span id="L498"> 498                                                     hp_fac - curr_corr_mult_fac)</span>
+<span id="L499"> 499                      curr_corr_mult_fac = hp_fac</span>
+<span id="L500"> 500  </span>
+<span id="L501"> 501                      bins = self.calculate_chisq_bins(template, psd)</span>
+<span id="L502"> 502                      dof = (len(bins) - 1) * 2 - 2</span>
+<span id="L503"> 503                      curr_chisq = power_chisq_at_points_from_precomputed(corr,</span>
+<span id="L504"> 504                                            above_local_snr/ norm_fac, norm_fac,</span>
+<span id="L505"> 505                                            bins, above_local_indices)</span>
+<span id="L506"> 506                      chisq.append(curr_chisq[0])</span>
+<span id="L507"> 507                  chisq = numpy.array(chisq)</span>
+<span id="L508"> 508                  # Must reset corr and template to original values!</span>
+<span id="L509"> 509                  template_cross._data = tmplt_data</span>
+<span id="L510"> 510                  corr_cross._data = corr_data</span>
+<span id="L511"> 511  </span>
+<span id="L512"> 512              if self.snr_threshold:</span>
+<span id="L513"> 513                  if num_above &gt; 0:</span>
+<span id="L514"> 514                      rchisq[above] = chisq</span>
+<span id="L515"> 515              else:</span>
+<span id="L516"> 516                  rchisq = chisq</span>
+<span id="L517"> 517  </span>
+<span id="L518"> 518              return rchisq, numpy.repeat(dof, len(indices))# dof * numpy.ones_like(indices)</span>
+<span id="L519"> 519          else:</span>
+<span id="L520"> 520              return None, None</span></pre>

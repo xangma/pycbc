@@ -1,0 +1,152 @@
+{
+  "scope": "Diagnostic arithmetic comparisons; not performance measurements",
+  "rtol": 0.0001,
+  "atol": 1e-05,
+  "retained_count": 77,
+  "observed_count": 89,
+  "observed_calls": 67,
+  "max_observed_bin_width": 396226,
+  "original_cpu_replay_exact": true,
+  "branch_cpu_exact": true,
+  "compatibility_reference_original_cpu": {
+    "direct_cpu_inputs": {
+      "n": 77,
+      "max_absolute_difference": 0.0666351318359375,
+      "max_relative_difference": 0.0018938402163930367,
+      "outside_tolerance": 72
+    },
+    "jax_cpu_batched": {
+      "n": 77,
+      "max_absolute_difference": 0.06663131713867188,
+      "max_relative_difference": 0.0018937317987026089,
+      "outside_tolerance": 72
+    },
+    "jax_cuda_batched": {
+      "n": 77,
+      "max_absolute_difference": 0.0666351318359375,
+      "max_relative_difference": 0.0018938402163930367,
+      "outside_tolerance": 72
+    },
+    "cpu_double": {
+      "n": 77,
+      "max_absolute_difference": 0.06649280126656265,
+      "max_relative_difference": 0.001889795032585674,
+      "outside_tolerance": 72
+    }
+  },
+  "direct_sum_reference_original_cpu_inputs": {
+    "original_cpu": {
+      "n": 77,
+      "max_absolute_difference": 0.0666351318359375,
+      "max_relative_difference": 0.0018974336525521775,
+      "outside_tolerance": 72
+    },
+    "jax_cpu_batched": {
+      "n": 77,
+      "max_absolute_difference": 1.71661376953125e-05,
+      "max_relative_difference": 6.631134102972229e-07,
+      "outside_tolerance": 0
+    },
+    "jax_cuda_batched": {
+      "n": 77,
+      "max_absolute_difference": 5.340576171875e-05,
+      "max_relative_difference": 1.416609978657354e-06,
+      "outside_tolerance": 0
+    },
+    "cpu_double": {
+      "n": 77,
+      "max_absolute_difference": 0.0006642445136932906,
+      "max_relative_difference": 2.0608576276713384e-05,
+      "outside_tolerance": 0
+    }
+  },
+  "fft_reference": {
+    "original_cpu": {
+      "n": 11,
+      "max_absolute_difference": 0.07452661177445918,
+      "max_relative_difference": 0.001733944251294217,
+      "outside_tolerance": 9
+    },
+    "direct_cpu_inputs": {
+      "n": 11,
+      "max_absolute_difference": 2.888060091521538e-06,
+      "max_relative_difference": 9.745212135003425e-08,
+      "outside_tolerance": 0
+    },
+    "cpu_double": {
+      "n": 11,
+      "max_absolute_difference": 0.00044682535624218644,
+      "max_relative_difference": 1.4112378196161936e-05,
+      "outside_tolerance": 0
+    },
+    "truncated_pi_direct": {
+      "n": 11,
+      "max_absolute_difference": 0.00044682485074076794,
+      "max_relative_difference": 1.4112379170063797e-05,
+      "outside_tolerance": 0
+    },
+    "direct_complex128": {
+      "n": 11,
+      "max_absolute_difference": 3.552713678800501e-14,
+      "max_relative_difference": 7.67655565447016e-16,
+      "outside_tolerance": 0
+    }
+  },
+  "cpu_double_vs_truncated_pi_direct": {
+    "n": 11,
+    "max_absolute_difference": 7.654463729522831e-10,
+    "max_relative_difference": 2.112160912368174e-11,
+    "outside_tolerance": 0
+  },
+  "example": {
+    "input": "point-input-05.npz",
+    "point_in_call": 2,
+    "local_sample": 656106,
+    "ntime": 1048576,
+    "template_hash": 2357302163257848109,
+    "sample_from_gps_start": 2996970,
+    "fft": 42.98097341874312,
+    "original_cpu": 43.05550003051758,
+    "direct_cpu_inputs": 42.98097610473633,
+    "cpu_double": 42.98118821312418,
+    "truncated_pi_direct": 42.98118821302735,
+    "direct_complex128": 42.9809734187431,
+    "retained_after_newsnr": false
+  },
+  "phase_model": {
+    "input": "point-input-05.npz",
+    "point": 656106,
+    "ntime": 1048576,
+    "bin_index_zero_based": 15,
+    "start": 150980,
+    "end": 524288,
+    "width": 373308,
+    "rounded_rotation_modulus": 1.000000027152669,
+    "model": "Separate float32/float64 operations; not compiled CPU instrumentation"
+  },
+  "phase_model_last_sample": {
+    "steps": 373307,
+    "frequency_index": 524287,
+    "recurrence_modulus_minus_one": 0.010097200843056875,
+    "direct_modulus_minus_one": 2.7152669002106222e-08,
+    "recurrence_phase_error_rad": -0.0024948922998407007,
+    "direct_phase_error_rad": 6.371157624818271e-09,
+    "pi_constant_phase_bias_rad": -0.00038696605571709775,
+    "double_cpu_pi_modulus_minus_one": -5.759615007150387e-12,
+    "double_cpu_pi_phase_error_rad": -0.0003869660371776339,
+    "double_full_pi_modulus_minus_one": -1.363031909562551e-11,
+    "double_full_pi_phase_error_rad": -2.52108495921474e-10
+  },
+  "plot_runtime": {
+    "python": "3.11.8 | packaged by conda-forge | (main, Feb 16 2024, 20:49:36) [Clang 16.0.6 ]",
+    "numpy": "1.26.4",
+    "scipy": "1.10.1",
+    "matplotlib": "3.8.2",
+    "h5py": "3.9.0"
+  },
+  "complex128_controls": {
+    "scope": "Captured complex64 correlations promoted to complex128; saved SNR term and normalization fixed",
+    "ratio_of_maximum_relative_errors_cpu64_to_cpu128": 122.86690642728013,
+    "direct_complex128_exact_fft_matches": 4
+  }
+}
