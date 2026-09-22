@@ -13,7 +13,8 @@ def main():
     parser.add_argument('--kernel', default='python3')
     parser.add_argument('--previews', type=Path)
     parser.add_argument('names', nargs='*', default=[
-        'pi', 'time_indices', 'phase', 'accumulation', 'real_data'])
+        'pi', 'time_indices', 'phase', 'accumulation',
+        'arithmetic_real_data', 'real_data'])
     args = parser.parse_args()
     folder = Path(__file__).resolve().parent
     exporter = HTMLExporter(template_name='classic')

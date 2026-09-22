@@ -1,4 +1,5 @@
 """Reproduce CPU-kernel timings separately from notebook execution."""
+import argparse
 import csv
 import json
 import platform
@@ -15,7 +16,11 @@ from cpu_chisq_review import kernels, load_capture
 
 
 def main():
-    implementations = kernels()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--variants', nargs='+')
+    parser.add_argument('--output', default='benchmark.csv')
+    args = parser.parse_args()
+    implementations = kernels(tuple(args.variants) if args.variants else None)
     capture = load_capture()
     rng = np.random.default_rng(183)
     order_rng = random.Random(183)
@@ -60,7 +65,8 @@ def main():
                 print(shape, np.dtype(dtype).name, npoints, 'complete',
                       flush=True)
     folder = Path(__file__).resolve().parent
-    with (folder / 'benchmark.csv').open('w', newline='') as stream:
+    output = folder / args.output
+    with output.open('w', newline='') as stream:
         writer = csv.DictWriter(stream, fieldnames=list(rows[0]),
                                 lineterminator='\n')
         writer.writeheader()
@@ -72,7 +78,7 @@ def main():
                 batches=9, repeats_short=30, repeats_other=2,
                 statistic='median and IQR of interleaved batches',
                 scope='kernel only; input construction excluded; one host')
-    (folder / 'benchmark_environment.json').write_text(
+    output.with_name(output.stem + '_environment.json').write_text(
         json.dumps(info, indent=2)+'\n')
 
 

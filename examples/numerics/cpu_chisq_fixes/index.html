@@ -12,7 +12,7 @@ th, td { text-align: left; padding: 12px; border-bottom: 1px solid #dce2e7; }
 .note { padding: 16px 20px; background: #eef3f7; border-radius: 6px; }
 </style>
 <h1>PyCBC CPU chi-square numerical fixes</h1>
-<p>Five short, executed notebooks explain three independent fixes. Each starts
+<p>Six short, executed notebooks explain three independent fixes. Each starts
 with the calculation and its assumptions. The examples use compiled PyCBC CPU
 kernels; the real-data replay holds the rest of the search inputs fixed.</p>
 <table>
@@ -21,7 +21,8 @@ kernels; the real-data replay holds the rest of the search inputs fixed.</p>
 <tr><td><a href="time_indices.html">Time-index precision</a></td><td>When can float32 select a neighbouring sample?</td></tr>
 <tr><td><a href="phase.html">Phase recurrence</a></td><td>Do many rotations preserve unit power?</td></tr>
 <tr><td><a href="accumulation.html">Accumulation</a></td><td>Can small additions disappear at zero phase?</td></tr>
-<tr><td><a href="real_data.html">Recorded H1 data</a></td><td>What do the patches change independently and together?</td></tr>
+<tr><td><a href="arithmetic_real_data.html">Double precision on recorded H1 data</a></td><td>What does double working precision change by itself?</td></tr>
+<tr><td><a href="real_data.html">Supplementary combined replay</a></td><td>How do all three patches interact?</td></tr>
 </table>
 <p class="note">The selected H1 replay shows a smaller chi-square error and a
 change in reweighted SNR. No captured candidate crosses the selection threshold.

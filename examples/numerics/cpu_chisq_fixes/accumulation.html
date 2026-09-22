@@ -13097,7 +13097,7 @@ q_b(t)=\sum_{k\in b}c_k e^{2\pi i kt/N},\qquad
 S=\sum_b|q_b|^2,\qquad \chi^2=(pS-|z|^2)A^2.
 ]
 Here $c_k$ is the correlation spectrum, $N$ its length, $t$ a sample index, $p$ the bin count, $z$ the unnormalized SNR and $A$ its normalization.</p>
-<p>This notebook tests whether many small positive additions survive after a larger value. <strong>Set $t=0$: every phase is exactly one</strong>, excluding phase drift, π and index-casting effects. Powers of two make the input coefficients exactly representable. Both comparisons use actual compiled <a href="kernels/manifest.json">archived kernels</a>, complex64 inputs and float32 outputs.</p>
+<p>This notebook tests whether many small positive additions survive after a larger value. <strong>Set $t=0$: every phase is exactly one</strong>, excluding phase drift, π and index-casting effects. Powers of two make the input coefficients exactly representable. Both comparisons use actual compiled <a href="kernels/upstream.pyx">upstream</a> and <a href="kernels/arithmetic.pyx">double-precision</a> kernels, complex64 inputs and float32 outputs.</p>
 <h2 id="Run">Run<a class="anchor-link" href="#Run">¶</a></h2><p>Run beside <code>cpu_chisq_review.py</code> with PyCBC, NumPy, Matplotlib, Cython and a C++ compiler installed. <strong>Restart Kernel and Run All</strong>; the helper compiles and caches kernels using identical flags.</p>
 </div>
 </div>
@@ -13118,7 +13118,7 @@ Here $c_k$ is the correlation spectrum, $N$ its length, $t$ a sample index, $p$ 
 <span class="kn">from</span><span class="w"> </span><span class="nn">cpu_chisq_review</span><span class="w"> </span><span class="kn">import</span> <span class="n">kernels</span><span class="p">,</span> <span class="n">load_capture</span><span class="p">,</span> <span class="n">plot_style</span>
 
 <span class="n">plot_style</span><span class="p">()</span>
-<span class="n">cpu</span> <span class="o">=</span> <span class="n">kernels</span><span class="p">()</span>
+<span class="n">cpu</span> <span class="o">=</span> <span class="n">kernels</span><span class="p">((</span><span class="s2">"upstream"</span><span class="p">,</span> <span class="s2">"arithmetic"</span><span class="p">))</span>
 <span class="n">variants</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"upstream"</span><span class="p">,</span> <span class="s2">"arithmetic"</span><span class="p">)</span>
 <span class="n">labels</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"upstream"</span><span class="p">:</span> <span class="s2">"Upstream"</span><span class="p">,</span> <span class="s2">"arithmetic"</span><span class="p">:</span> <span class="s2">"Double working precision"</span><span class="p">}</span>
 <span class="n">colors</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"upstream"</span><span class="p">:</span> <span class="s2">"#245885"</span><span class="p">,</span> <span class="s2">"arithmetic"</span><span class="p">:</span> <span class="s2">"#B77818"</span><span class="p">}</span>
@@ -13269,7 +13269,7 @@ Across one-coefficient bins, synthetic count 16, exact S = 1.0000002235
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2 id="What-this-establishes">What this establishes<a class="anchor-link" href="#What-this-establishes">¶</a></h2><p>The arithmetic patch promotes phases, products, within-bin sums and the total power jointly, rounding the result to float32 once. These controls separate two accumulation mechanisms; they do not establish that every rounded operation is an independent bug.</p>
-<p>The <a href="../data/point-input-05.json">saved H1 input</a> has 16 bins and a widest bin of 373,308 coefficients; the dotted lines mark those sizes, not real-data errors. Its coefficients and phases differ. See <a href="real_data.ipynb">real_data.ipynb</a> for the combined replay and <a href="phase.ipynb">phase.ipynb</a> for the rotation control. Individual contributions to that replay cannot be inferred from these synthetic curves.</p>
+<p>The <a href="../data/point-input-05.json">saved H1 input</a> has 16 bins and a widest bin of 373,308 coefficients; the dotted lines mark those sizes, not real-data errors. Its coefficients and phases differ. See <a href="arithmetic_real_data.ipynb">the real-data replay</a> for the measured effect of using double working precision and <a href="phase.ipynb">phase.ipynb</a> for the rotation control. Individual contributions to that replay cannot be inferred from these synthetic curves.</p>
 </div>
 </div>
 </div>

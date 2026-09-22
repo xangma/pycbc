@@ -19,17 +19,20 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 
 
-@lru_cache(maxsize=1)
-def kernels():
+@lru_cache(maxsize=None)
+def kernels(labels=None):
+    """Build only the requested sources for a before/after replay."""
     manifest = json.loads((HERE / 'kernels/manifest.json').read_text())
-    labels = list(manifest['sha256'])
+    if labels is None:
+        labels = tuple(manifest['sha256'])
     sources = {}
     for label in labels:
         source = (HERE / 'kernels' / (label + '.pyx')).read_bytes()
         assert (hashlib.sha256(source).hexdigest() ==
                 manifest['sha256'][label])
         sources[label] = source
-    identity = (json.dumps(manifest, sort_keys=True) +
+    identity = (json.dumps({label: manifest['sha256'][label]
+                           for label in labels}, sort_keys=True) +
                 sys.version + np.__version__)
     key = hashlib.sha256(identity.encode()).hexdigest()[:16]
     cache = Path(tempfile.gettempdir()) / ('pycbc-chisq-review-' + key)

@@ -13098,7 +13098,7 @@ q_b(t)=\sum_{k\in b}c_k e^{2\pi i kt/N},\qquad S(t)=\sum_b|q_b(t)|^2,
 ]
 Here $c_k$ is the correlation spectrum, $N$ its length, $t$ a sample index <strong>within the segment</strong>, $p$ the bin count, $z$ the unnormalized SNR and $A$ its normalization.</p>
 <p>The <a href="https://github.com/gwastro/pycbc/blob/454ee900e/pycbc/vetoes/chisq_cpu.pyx">original implementation</a> converts $t$ to float32 for complex64 input. Some integers above $2^{24}$ then become neighbouring indices. This notebook isolates that conversion and compares the actual compiled kernel with a patch that keeps shifts in float64. Correlation storage, internal arithmetic, and output dtype otherwise stay unchanged; fractional shifts remain supported.</p>
-<h2 id="Setup">Setup<a class="anchor-link" href="#Setup">¶</a></h2><p>Run alongside <code>cpu_chisq_review.py</code> and its archived sources, with PyCBC, NumPy, Matplotlib, Cython and a C++ compiler available. The helper builds and caches the kernels; no FFT is used in this calculation.</p>
+<h2 id="Setup">Setup<a class="anchor-link" href="#Setup">¶</a></h2><p>Run alongside <code>cpu_chisq_review.py</code> and the archived <code>kernels/upstream.pyx</code> and <code>kernels/shifts.pyx</code> sources, with PyCBC, NumPy, Matplotlib, Cython and a C++ compiler available. The helper builds and caches the kernels; no FFT is used in this calculation.</p>
 </div>
 </div>
 </div>
@@ -13117,7 +13117,7 @@ Here $c_k$ is the correlation spectrum, $N$ its length, $t$ a sample index <stro
 <span class="kn">from</span><span class="w"> </span><span class="nn">cpu_chisq_review</span><span class="w"> </span><span class="kn">import</span> <span class="n">kernels</span><span class="p">,</span> <span class="n">load_capture</span><span class="p">,</span> <span class="n">plot_style</span>
 
 <span class="n">plot_style</span><span class="p">()</span>
-<span class="n">cpu</span> <span class="o">=</span> <span class="n">kernels</span><span class="p">()</span>
+<span class="n">cpu</span> <span class="o">=</span> <span class="n">kernels</span><span class="p">((</span><span class="s1">'upstream'</span><span class="p">,</span> <span class="s1">'shifts'</span><span class="p">))</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s2">"CPU source: gwastro/pycbc@454ee900e (2026-09-22 upstream snapshot)"</span><span class="p">)</span>
 </pre></div>
@@ -13126,6 +13126,13 @@ Here $c_k$ is the correlation spectrum, $N$ its length, $t$ a sample index <stro
 </div>
 <div class="output_wrapper">
 <div class="output">
+<div class="output_area">
+<div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Compiling archived CPU kernels once; build log: /var/folders/l0/3dr1pyw15ln58b6xh74j_41w0000gn/T/pycbc-chisq-review-4a45bb4dd1942f62/build.log
+</pre>
+</div>
+</div>
 <div class="output_area">
 <div class="prompt"></div>
 <div class="output_subarea output_stream output_stdout output_text">
@@ -13143,7 +13150,7 @@ Here $c_k$ is the correlation spectrum, $N$ its length, $t$ a sample index <stro
 [
 S(t)=4\sin^2!\left[\pi(t-N/2)/N\right].
 ]
-A broadcast view supplies the logical array length without allocating a large array. Only two frequencies are visited: repeated-rotation drift cannot explain the discrepancy. The patch retains the separate truncated-$\pi$ defect, so the check allows its small residual.</p>
+A broadcast view supplies the logical array length without allocating a large array. Only two frequencies are visited: repeated-rotation drift cannot explain the discrepancy. The kernel still uses a shortened value of $\pi$ and float32 working arithmetic for complex64 input. Those roundoff effects remain, so the check allows a small residual.</p>
 </div>
 </div>
 </div>
@@ -13267,7 +13274,7 @@ A broadcast view supplies the logical array length without allocating a large ar
 <div class="cell border-box-sizing text_cell rendered" id="cell-id=ffcb71f1"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Does-the-captured-LIGO-calculation-reach-this-boundary?">Does the captured LIGO calculation reach this boundary?<a class="anchor-link" href="#Does-the-captured-LIGO-calculation-reach-this-boundary?">¶</a></h2><p>The <a href="../data/point-input-05.json">saved H1 input and provenance</a> contain three selected points from a 512-second, 2048-Hz CPU search segment. They were selected for another numerical discrepancy, not as a representative sample. The following check tests whether index conversion changes these actual inputs or their chi-square values, and shows when longer segments could cross the boundary.</p>
+<h2 id="Does-the-captured-LIGO-calculation-reach-this-boundary?">Does the captured LIGO calculation reach this boundary?<a class="anchor-link" href="#Does-the-captured-LIGO-calculation-reach-this-boundary?">¶</a></h2><p>The <a href="../data/point-input-05.json">saved H1 input and provenance</a> contain three selected points from a 512-second, 2048-Hz CPU search segment. They were selected by their CPU-versus-FFT discrepancy from the first eleven captured points; they are not a representative sample. This check tests whether index conversion changes these inputs or their chi-square values, and shows when longer segments could cross the boundary.</p>
 </div>
 </div>
 </div>
@@ -13377,7 +13384,8 @@ A broadcast view supplies the logical array length without allocating a large ar
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
 <p>All integer indices in a transform of length at most $2^{24}$ are safe. The captured data therefore show <strong>no effect from this fix</strong>.</p>
-<p>In a hypothetical longer transform, losing one sample changes the relative phase of frequencies separated by $f_s/4$ by $\pi/2$, where $f_s$ is the sampling rate. Bin powers and chi-square can consequently change. Establishing effects on detection ranking or sensitivity would require an affected search; this capture does not establish them.</p>
+<p>The search supplies sample positions within each FFT segment, adding the cumulative observation offset only after chi-square evaluation. Longer observing runs do not by themselves reach this boundary; a sufficiently long individual segment and an affected trigger position are required.</p>
+<p>In a hypothetical longer transform, losing one sample changes the relative phase of frequencies separated by $f_s/4$ by $\pi/2$, where $f_s$ is the sampling rate. Bin powers and chi-square can consequently change. No affected science configuration has been identified here; effects on detection ranking or sensitivity remain unproven.</p>
 </div>
 </div>
 </div>

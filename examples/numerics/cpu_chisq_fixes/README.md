@@ -21,7 +21,8 @@ need network access. [Open the HTML index](index.html).
 | Can float32 change a requested sample index? | [Time indices](time_indices.ipynb) | [Read](time_indices.html) | [Float64 coordinates](https://github.com/xangma/pycbc/tree/codex/cpu-chisq-shifts) |
 | Do repeated rotations preserve power? | [Phase](phase.ipynb) | [Read](phase.html) | [Double working arithmetic](https://github.com/xangma/pycbc/tree/codex/cpu-chisq-arithmetic) |
 | Can small additions disappear? | [Accumulation](accumulation.ipynb) | [Read](accumulation.html) | Same arithmetic fix; separate controlled evidence |
-| What changes on recorded H1 data? | [Real-data replay](real_data.ipynb) | [Read](real_data.html) | Each patch separately, all together, and their interaction |
+| What does double working precision change on recorded H1 data? | [Arithmetic replay](arithmetic_real_data.ipynb) | [Read](arithmetic_real_data.html) | Double working arithmetic only |
+| How do all three patches interact? | [Combined replay](real_data.ipynb) | [Read](real_data.html) | Supplementary comparison of each patch and their combination |
 
 The arithmetic patch promotes phases, products, within-bin sums and total power
 together. The phase and zero-phase accumulation examples isolate mechanisms;
@@ -69,8 +70,10 @@ python benchmark.py
 
 The release installation supplies dependencies; the following source installation
 selects the checked upstream revision. The notebook helper verifies source
-SHA256s and builds the archived upstream, three patches and combined kernel with
-the same compiler flags. Build products stay in the system temporary directory.
+SHA256s and builds only the archived kernels requested by each notebook, with
+the same compiler flags. Each standalone notebook needs only upstream and its
+own patched source; the supplementary combined replay loads all variants.
+Build products stay in the system temporary directory.
 It does not require switching among fix branches. Linux additionally needs an
 OpenMP-capable compiler. The saved run used macOS arm64; Linux performance is not
 established by it.
