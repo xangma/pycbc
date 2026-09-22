@@ -1,0 +1,24 @@
+diff --git a/pycbc/vetoes/chisq_cpu.pyx b/pycbc/vetoes/chisq_cpu.pyx
+index 15dece558..1f17d5890 100644
+--- a/pycbc/vetoes/chisq_cpu.pyx
++++ b/pycbc/vetoes/chisq_cpu.pyx
+@@ -28,7 +28,7 @@ def chisq_accum_bin_cython(numpy.ndarray[REALTYPE, ndim=1] chisq,
+ def point_chisq_code(numpy.ndarray[REALTYPE, ndim=1] chisq,
+                      numpy.ndarray[COMPLEXTYPE, ndim=1] v1,
+                      int n, int slen,
+-                     numpy.ndarray[REALTYPE, ndim=1] shifts,
++                     numpy.ndarray[numpy.float64_t, ndim=1] shifts,
+                      numpy.ndarray[numpy.uint32_t, ndim=1] bins,
+                      int blen):
+     # Do I need to declare UINT vs INT??
+@@ -140,7 +140,9 @@ def chisq_accum_bin(chisq, q):
+ 
+ def shift_sum(v1, shifts, bins):
+     real_type = real_same_precision_as(v1)
+-    shifts = numpy.array(shifts, dtype=real_type)
++    # Time coordinates need their own precision: float32 loses integer samples
++    # above 2**24, even when the correlation is correctly stored as complex64.
++    shifts = numpy.array(shifts, dtype=numpy.float64)
+ 
+     bins = numpy.array(bins, dtype=numpy.uint32)
+     blen = len(bins) - 1 #

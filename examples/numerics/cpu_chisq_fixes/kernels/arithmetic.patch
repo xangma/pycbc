@@ -1,0 +1,67 @@
+diff --git a/pycbc/vetoes/chisq_cpu.pyx b/pycbc/vetoes/chisq_cpu.pyx
+index 15dece558..678ffb531 100644
+--- a/pycbc/vetoes/chisq_cpu.pyx
++++ b/pycbc/vetoes/chisq_cpu.pyx
+@@ -33,27 +33,32 @@ def point_chisq_code(numpy.ndarray[REALTYPE, ndim=1] chisq,
+                      int blen):
+     # Do I need to declare UINT vs INT??
+     cdef int num_parallel_regions, bstart, bend, i, j, k, r, start, end
+-    cdef REALTYPE *outr
+-    cdef REALTYPE *outi
+-    cdef REALTYPE *pr
+-    cdef REALTYPE *pi
+-    cdef REALTYPE *vsr
+-    cdef REALTYPE *vsi
+-    cdef REALTYPE *outr_tmp
+-    cdef REALTYPE *outi_tmp
++    cdef double *outr
++    cdef double *outi
++    cdef double *pr
++    cdef double *pi
++    cdef double *vsr
++    cdef double *vsi
++    cdef double *outr_tmp
++    cdef double *outi_tmp
+     cdef COMPLEXTYPE v
+-    cdef REALTYPE vr, vi, t1, t2, k1, k2, k3, vs, va
++    cdef double vr, vi, t1, t2, k1, k2, k3, vs, va
++
++    # Keep input/output storage unchanged, but avoid rounding every rotation,
++    # term and addition to float32 when the correlation is complex64.
++    cdef numpy.ndarray[numpy.float64_t, ndim=1] power = numpy.array(
++        chisq, dtype=numpy.float64)
+ 
+     num_parallel_regions = 1
+ 
+-    outr = <REALTYPE *> malloc(n * sizeof(REALTYPE))
+-    outi = <REALTYPE *> malloc(n * sizeof(REALTYPE))
+-    pr = <REALTYPE *> malloc(n * sizeof(REALTYPE))
+-    pi = <REALTYPE *> malloc(n * sizeof(REALTYPE))
+-    vsr = <REALTYPE *> malloc(n * sizeof(REALTYPE))
+-    vsi = <REALTYPE *> malloc(n * sizeof(REALTYPE))
+-    outr_tmp = <REALTYPE *> malloc(n * sizeof(REALTYPE))
+-    outi_tmp = <REALTYPE *> malloc(n * sizeof(REALTYPE))
++    outr = <double *> malloc(n * sizeof(double))
++    outi = <double *> malloc(n * sizeof(double))
++    pr = <double *> malloc(n * sizeof(double))
++    pi = <double *> malloc(n * sizeof(double))
++    vsr = <double *> malloc(n * sizeof(double))
++    vsi = <double *> malloc(n * sizeof(double))
++    outr_tmp = <double *> malloc(n * sizeof(double))
++    outi_tmp = <double *> malloc(n * sizeof(double))
+ 
+     for r in range(blen):
+         bstart = bins[r] # int
+@@ -118,7 +123,11 @@ def point_chisq_code(numpy.ndarray[REALTYPE, ndim=1] chisq,
+ 
+ 
+         for i in range(n):
+-            chisq[i] += outr[i]*outr[i] + outi[i]*outi[i]
++            power[i] += outr[i]*outr[i] + outi[i]*outi[i]
++
++    # Round only once when storing the final sum of bin powers.
++    for i in range(n):
++        chisq[i] = power[i]
+ 
+     free(outr)
+     free(outi)

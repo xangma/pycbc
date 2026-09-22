@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PyCBC CPU chi-square numerical fixes</title>
+<style>
+body { max-width: 850px; margin: 48px auto; padding: 0 24px;
+       font: 18px/1.6 system-ui, sans-serif; color: #223344; }
+h1 { line-height: 1.2; } a { color: #245885; }
+table { width: 100%; border-collapse: collapse; margin: 24px 0; }
+th, td { text-align: left; padding: 12px; border-bottom: 1px solid #dce2e7; }
+.note { padding: 16px 20px; background: #eef3f7; border-radius: 6px; }
+</style>
+<h1>PyCBC CPU chi-square numerical fixes</h1>
+<p>Five short, executed notebooks explain three independent fixes. Each starts
+with the calculation and its assumptions. The examples use compiled PyCBC CPU
+kernels; the real-data replay holds the rest of the search inputs fixed.</p>
+<table>
+<tr><th>Read the HTML report</th><th>Question</th></tr>
+<tr><td><a href="pi.html">Full-precision π</a></td><td>Does the phase constant matter even in complex128?</td></tr>
+<tr><td><a href="time_indices.html">Time-index precision</a></td><td>When can float32 select a neighbouring sample?</td></tr>
+<tr><td><a href="phase.html">Phase recurrence</a></td><td>Do many rotations preserve unit power?</td></tr>
+<tr><td><a href="accumulation.html">Accumulation</a></td><td>Can small additions disappear at zero phase?</td></tr>
+<tr><td><a href="real_data.html">Recorded H1 data</a></td><td>What do the patches change independently and together?</td></tr>
+</table>
+<p class="note">The selected H1 replay shows a smaller chi-square error and a
+change in reweighted SNR. No captured candidate crosses the selection threshold.
+The time-index fix is inactive for these segment lengths. This is not a study
+of detection efficiency or false-alarm rates.</p>
+<p><a href="README.md">Setup and overview</a> ·
+<a href="validation.md">Validation</a> ·
+<a href="existing_work.md">Existing issues and PRs</a></p>
+<p>Upstream source: 454ee900e, fetched 22 September 2026. HTML plots are embedded;
+notebook equations use MathJax and need network access.</p>
+</html>

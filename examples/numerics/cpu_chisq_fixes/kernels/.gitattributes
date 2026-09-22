@@ -1,0 +1,4 @@
+# These evidence snapshots preserve the upstream bytes, including final blanks.
+*.pyx whitespace=-blank-at-eof
+# Unified diffs contain a literal space on empty context lines.
+*.patch whitespace=-blank-at-eol,-blank-at-eof
