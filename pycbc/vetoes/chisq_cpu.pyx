@@ -2,7 +2,7 @@
 import numpy
 cimport numpy
 from libc.stdlib cimport malloc, free
-from libc.math cimport cos, sin # This imports c's sin and cos function from the math library
+from libc.math cimport cos, sin, M_PI
 from cython import wraparound, boundscheck, cdivision
 from pycbc.types import real_same_precision_as
 
@@ -81,10 +81,10 @@ def point_chisq_code(numpy.ndarray[REALTYPE, ndim=1] chisq,
             #outi_tmp = numpy.zeros(n, dtype=real_type)
 
             for i in range(n):
-                pr[i] = cos(2 * 3.141592653 * shifts[i] * (start) / slen)
-                pi[i] = sin(2 * 3.141592653 * shifts[i] * (start) / slen)
-                vsr[i] = cos(2 * 3.141592653 * shifts[i] / slen)
-                vsi[i] = sin(2 * 3.141592653 * shifts[i] / slen)
+                pr[i] = cos(2 * M_PI * shifts[i] * (start) / slen)
+                pi[i] = sin(2 * M_PI * shifts[i] * (start) / slen)
+                vsr[i] = cos(2 * M_PI * shifts[i] / slen)
+                vsi[i] = sin(2 * M_PI * shifts[i] / slen)
                 outr_tmp[i] = 0
                 outi_tmp[i] = 0
 
