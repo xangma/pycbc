@@ -46,6 +46,17 @@ inactive here: every index is exactly representable in float32. Reweighted SNR
 changes by up to about **0.00318**, but **none of these candidates crosses the
 threshold of 5**. This does not establish sensitivity or false-alarm impact.
 
+The arithmetic-only notebook also tests a complete, larger population at the
+**unchanged raw SNR cut of 5.5 and NewSNR cut of 5**. With an existing
+6,144-template O2 subset and the same unaltered H1 strain, **7 of 16,378
+candidate decisions change: 4 newly retained and 3 newly rejected**. Independent
+complex128 references agree with the arithmetic patch on all seven, including
+float32 event storage. The complete original 32-template run has zero changes
+among 89 candidates. [Full populations, provenance and reproduction](selection/)
+are included, and the notebook recomputes the first naturally occurring crossing.
+This demonstrates changed single-detector trigger output; detection significance
+and sensitivity remain unmeasured.
+
 Runtime is a review tradeoff. For the captured bin layout and five complex64
 points on this Mac, double working arithmetic costs about **1.41×** upstream
 kernel time. Ratios vary with shape and point count; the full

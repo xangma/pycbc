@@ -13091,9 +13091,11 @@ div#notebook {
 <div class="cell border-box-sizing text_cell rendered" id="cell-id=d06b4655"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h1 id="Double-working-precision-in-PyCBC:-replaying-recorded-H1-inputs">Double working precision in PyCBC: replaying recorded H1 inputs<a class="anchor-link" href="#Double-working-precision-in-PyCBC:-replaying-recorded-H1-inputs">¶</a></h1><p>PyCBC tests a candidate gravitational-wave signal's consistency across frequency bins. With complex64 correlations, its selected-point CPU chi-square routine repeatedly rounds rotations and sums to float32. This notebook compares the original implementation with a change that uses double working precision while retaining complex64 inputs and float32 outputs.</p>
-<p>The inputs are all three samples from one saved call in a search of public LIGO Hanford (H1) strain: 2048 Hz, a 512-second segment, 16 chi-square bins and 32 IMRPhenomD templates. This call had the largest discrepancy among six saved calls (11 samples). <strong>It is a diagnostic example, not a representative estimate of search impact.</strong> Conditioning, correlation, bin edges, SNR and normalization stay fixed. The CPU routine being tested performs no FFT.</p>
-<h2 id="Setup">Setup<a class="anchor-link" href="#Setup">¶</a></h2><p>Run from this directory with PyCBC, NumPy, SciPy, pandas, Matplotlib, Cython, Jupyter and a C++ compiler installed. Keep <code>cpu_chisq_review.py</code>, <code>kernels/manifest.json</code>, <code>kernels/upstream.pyx</code>, <code>kernels/arithmetic.pyx</code>, <code>arithmetic_benchmark.csv</code>, and <code>../data/point-input-05.npz</code> alongside the notebook at their shown paths. <strong>Restart Kernel and Run All</strong>. The helper builds only these two Cython implementations with PyCBC's build flags. <a href="../data/point-input-05.json">Capture provenance</a>.</p>
+<h1 id="Double-working-precision-in-PyCBC:-numerical-error-and-H1-trigger-selection">Double working precision in PyCBC: numerical error and H1 trigger selection<a class="anchor-link" href="#Double-working-precision-in-PyCBC:-numerical-error-and-H1-trigger-selection">¶</a></h1><p>PyCBC tests a candidate gravitational-wave signal's consistency across frequency bins. With complex64 correlations, its selected-point CPU chi-square routine repeatedly rounds rotations and sums to float32. This notebook compares the original implementation with a change that uses double working precision while retaining complex64 inputs and float32 outputs.</p>
+<p>First, three saved samples illustrate the numerical error. Then a complete search of public LIGO Hanford (H1) strain demonstrates changed trigger decisions at a <strong>pre-existing NewSNR cut of 5</strong>. The larger bank was prepared before this investigation; neither the threshold nor the strain amplitude was adjusted to cause a crossing. This is evidence of single-detector trigger selection changing, not of a lost or gained astrophysical detection.</p>
+<p>Both searches use 2048 Hz sampling, 512-second segments, 16 chi-square bins and IMRPhenomD templates. Within each comparison, conditioning, correlations, bins, SNR and normalization stay fixed. The CPU routine being tested performs no FFT.</p>
+<h2 id="Setup">Setup<a class="anchor-link" href="#Setup">¶</a></h2><p>Run from this directory with PyCBC, NumPy, SciPy, pandas, Matplotlib, Cython, Jupyter and a C++ compiler installed. Keep the helper, <code>kernels/</code>, <code>selection/</code>, timing CSV and <code>../data/</code> files at their repository paths. <strong>Restart Kernel and Run All</strong>. Only the original and arithmetic-patch Cython kernels are built, using PyCBC's build flags. The notebook replays saved inputs; no strain download or full search is required. <a href="../data/point-input-05.json">Original capture</a> · <a href="selection/README.md">Full-search provenance and reproduction</a>.</p>
+<p>The initial three-sample capture had the largest discrepancy among six saved calls (11 samples) in a 32-template search. It illustrates the error, not its prevalence.</p>
 </div>
 </div>
 </div>
@@ -13159,12 +13161,16 @@ All captured indices are exactly representable as float32.
 <div class="prompt input_prompt">In [2]:</div>
 <div class="inner_cell">
 <div class="input_area">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">reference</span> <span class="o">=</span> <span class="n">reference_power</span><span class="p">(</span><span class="n">corr</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">bins</span><span class="p">)</span>
-<span class="n">fft_power</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">points</span><span class="p">))</span>
-<span class="k">for</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">bins</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">bins</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
-    <span class="n">band</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
-    <span class="n">band</span><span class="p">[</span><span class="n">lo</span><span class="p">:</span><span class="n">hi</span><span class="p">]</span> <span class="o">=</span> <span class="n">corr</span><span class="p">[</span><span class="n">lo</span><span class="p">:</span><span class="n">hi</span><span class="p">]</span>
-    <span class="n">fft_power</span> <span class="o">+=</span> <span class="nb">abs</span><span class="p">((</span><span class="n">N</span> <span class="o">*</span> <span class="n">ifft</span><span class="p">(</span><span class="n">band</span><span class="p">))[</span><span class="n">points</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">fft_reference_power</span><span class="p">(</span><span class="n">correlation</span><span class="p">,</span> <span class="n">samples</span><span class="p">,</span> <span class="n">edges</span><span class="p">):</span>
+    <span class="n">power</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">samples</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">lo</span><span class="p">,</span> <span class="n">hi</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">edges</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">edges</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+        <span class="n">band</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">correlation</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">complex128</span><span class="p">)</span>
+        <span class="n">band</span><span class="p">[</span><span class="n">lo</span><span class="p">:</span><span class="n">hi</span><span class="p">]</span> <span class="o">=</span> <span class="n">correlation</span><span class="p">[</span><span class="n">lo</span><span class="p">:</span><span class="n">hi</span><span class="p">]</span>
+        <span class="n">power</span> <span class="o">+=</span> <span class="nb">abs</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">correlation</span><span class="p">)</span> <span class="o">*</span> <span class="n">ifft</span><span class="p">(</span><span class="n">band</span><span class="p">))[</span><span class="n">samples</span><span class="p">])</span><span class="o">**</span><span class="mi">2</span>
+    <span class="k">return</span> <span class="n">power</span>
+
+<span class="n">reference</span> <span class="o">=</span> <span class="n">reference_power</span><span class="p">(</span><span class="n">corr</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">bins</span><span class="p">)</span>
+<span class="n">fft_power</span> <span class="o">=</span> <span class="n">fft_reference_power</span><span class="p">(</span><span class="n">corr</span><span class="p">,</span> <span class="n">points</span><span class="p">,</span> <span class="n">bins</span><span class="p">)</span>
 <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">reference</span><span class="p">,</span> <span class="n">fft_power</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-11</span><span class="p">)</span>
 <span class="n">reference_chisq</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span> <span class="o">*</span> <span class="n">reference</span> <span class="o">-</span> <span class="n">snr_power</span><span class="p">)</span> <span class="o">*</span> <span class="n">norm</span><span class="o">**</span><span class="mi">2</span>
 <span class="n">value</span> <span class="o">=</span> <span class="n">Array</span><span class="p">(</span><span class="n">corr</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -13200,13 +13206,13 @@ All captured indices are exactly representable as float32.
 <div class="prompt"></div>
 <div class="output_html rendered_html output_subarea"><style type="text/css">
 </style>
-<table id="T_5f5c2">
+<table id="T_394f8">
 <thead>
 <tr>
 <th class="blank level0"> </th>
-<th class="col_heading level0 col0" id="T_5f5c2_level0_col0">reference chi-square</th>
-<th class="col_heading level0 col1" id="T_5f5c2_level0_col1">upstream</th>
-<th class="col_heading level0 col2" id="T_5f5c2_level0_col2">arithmetic</th>
+<th class="col_heading level0 col0" id="T_394f8_level0_col0">reference chi-square</th>
+<th class="col_heading level0 col1" id="T_394f8_level0_col1">upstream</th>
+<th class="col_heading level0 col2" id="T_394f8_level0_col2">arithmetic</th>
 </tr>
 <tr>
 <th class="index_name level0">sample</th>
@@ -13217,22 +13223,22 @@ All captured indices are exactly representable as float32.
 </thead>
 <tbody>
 <tr>
-<th class="row_heading level0 row0" id="T_5f5c2_level0_row0">484954</th>
-<td class="data row0 col0" id="T_5f5c2_row0_col0">33.3259417</td>
-<td class="data row0 col1" id="T_5f5c2_row0_col1">-0.0281664</td>
-<td class="data row0 col2" id="T_5f5c2_row0_col2">-0.0001679</td>
+<th class="row_heading level0 row0" id="T_394f8_level0_row0">484954</th>
+<td class="data row0 col0" id="T_394f8_row0_col0">33.3259417</td>
+<td class="data row0 col1" id="T_394f8_row0_col1">-0.0281664</td>
+<td class="data row0 col2" id="T_394f8_row0_col2">-0.0001679</td>
 </tr>
 <tr>
-<th class="row_heading level0 row1" id="T_5f5c2_level0_row1">619888</th>
-<td class="data row1 col0" id="T_5f5c2_row1_col0">36.3370953</td>
-<td class="data row1 col1" id="T_5f5c2_row1_col1">-0.1503483</td>
-<td class="data row1 col2" id="T_5f5c2_row1_col2">-0.0002152</td>
+<th class="row_heading level0 row1" id="T_394f8_level0_row1">619888</th>
+<td class="data row1 col0" id="T_394f8_row1_col0">36.3370953</td>
+<td class="data row1 col1" id="T_394f8_row1_col1">-0.1503483</td>
+<td class="data row1 col2" id="T_394f8_row1_col2">-0.0002152</td>
 </tr>
 <tr>
-<th class="row_heading level0 row2" id="T_5f5c2_level0_row2">656106</th>
-<td class="data row2 col0" id="T_5f5c2_row2_col0">42.9809734</td>
-<td class="data row2 col1" id="T_5f5c2_row2_col1">0.1721608</td>
-<td class="data row2 col2" id="T_5f5c2_row2_col2">0.0005033</td>
+<th class="row_heading level0 row2" id="T_394f8_level0_row2">656106</th>
+<td class="data row2 col0" id="T_394f8_row2_col0">42.9809734</td>
+<td class="data row2 col1" id="T_394f8_row2_col1">0.1721608</td>
+<td class="data row2 col2" id="T_394f8_row2_col2">0.0005033</td>
 </tr>
 </tbody>
 </table>
@@ -13312,7 +13318,9 @@ arithmetic: maximum absolute relative chi-square error = 0.0005033%
 <div class="cell border-box-sizing text_cell rendered" id="cell-id=6083c1bc"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Could-candidate-selection-change?">Could candidate selection change?<a class="anchor-link" href="#Could-candidate-selection-change?">¶</a></h2><p>Chi-square feeds reweighted SNR (NewSNR). Recompute that statistic using the captured SNR and the same threshold of 5. This is an observed per-candidate consequence of the replay, not a sensitivity or false-alarm study. A different near-threshold candidate could change selection if its score moved across the cut; this sample cannot establish how often that happens.</p>
+<h2 id="Selection-at-an-unchanged-search-cut">Selection at an unchanged search cut<a class="anchor-link" href="#Selection-at-an-unchanged-search-cut">¶</a></h2><p>The original <strong>32-template</strong> search gives 89 candidates before the NewSNR cut and retains the same 77 with either kernel. The three samples above therefore do not demonstrate a selection change.</p>
+<p>To test a larger population, we used an existing <strong>6,144-template</strong> subset of the public O2 bank, prepared on 2026-09-20 using fixed mass/spin cuts and a fixed seed. The 2026-09-22 run keeps the original H1 data, <strong>raw SNR ≥ 5.5</strong>, <strong>NewSNR ≥ 5</strong>, and all other search settings. All 1,904 valid detector seconds and all templates are processed; we did not stop at the first crossing.</p>
+<p>The observer returns unmodified CPU results throughout filtering and clustering. At the final cut it applies PyCBC's actual <code>EventManager.newsnr_threshold</code> to two copies of the same clustered events, replacing only chi-square in the second. Earlier clustering uses raw SNR; this command enables no other chi-square cut or later ranking selection. The table includes <strong>every changed decision</strong>, with an independent reference checked after float32 event storage. Counts describe this one bank/data segment, not a population rate.</p>
 </div>
 </div>
 </div>
@@ -13321,19 +13329,42 @@ arithmetic: maximum absolute relative chi-square error = 0.0005033%
 <div class="prompt input_prompt">In [4]:</div>
 <div class="inner_cell">
 <div class="input_area">
-<div class="highlight hl-ipython3"><pre><span></span><span class="n">rho</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">snr</span><span class="p">)</span> <span class="o">*</span> <span class="n">norm</span>
-<span class="n">scores</span> <span class="o">=</span> <span class="p">{</span><span class="n">label</span><span class="p">:</span> <span class="n">newsnr</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">chi</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p</span><span class="o">-</span><span class="mi">2</span><span class="p">))</span> <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">chi</span> <span class="ow">in</span> <span class="n">chisq</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-<span class="n">scores</span><span class="p">[</span><span class="s1">'reference'</span><span class="p">]</span> <span class="o">=</span> <span class="n">newsnr</span><span class="p">(</span><span class="n">rho</span><span class="p">,</span> <span class="n">reference_chisq</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">p</span><span class="o">-</span><span class="mi">2</span><span class="p">))</span>
-<span class="n">selection</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
-    <span class="s1">'SNR'</span><span class="p">:</span> <span class="n">rho</span><span class="p">,</span> <span class="s1">'upstream NewSNR'</span><span class="p">:</span> <span class="n">scores</span><span class="p">[</span><span class="s1">'upstream'</span><span class="p">],</span>
-    <span class="s1">'arithmetic NewSNR'</span><span class="p">:</span> <span class="n">scores</span><span class="p">[</span><span class="s1">'arithmetic'</span><span class="p">],</span> <span class="s1">'reference NewSNR'</span><span class="p">:</span> <span class="n">scores</span><span class="p">[</span><span class="s1">'reference'</span><span class="p">],</span>
-    <span class="s1">'score change'</span><span class="p">:</span> <span class="n">scores</span><span class="p">[</span><span class="s1">'arithmetic'</span><span class="p">]</span> <span class="o">-</span> <span class="n">scores</span><span class="p">[</span><span class="s1">'upstream'</span><span class="p">],</span>
-    <span class="s1">'upstream passes 5'</span><span class="p">:</span> <span class="n">scores</span><span class="p">[</span><span class="s1">'upstream'</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">,</span>
-    <span class="s1">'arithmetic passes 5'</span><span class="p">:</span> <span class="n">scores</span><span class="p">[</span><span class="s1">'arithmetic'</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">},</span> <span class="n">index</span><span class="o">=</span><span class="n">points</span><span class="p">)</span>
-<span class="n">selection</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">'sample'</span>
-<span class="n">display</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">precision</span><span class="o">=</span><span class="mi">7</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="s1">'Candidates crossing threshold in this replay:'</span><span class="p">,</span>
-      <span class="n">np</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">((</span><span class="n">scores</span><span class="p">[</span><span class="s1">'upstream'</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">!=</span> <span class="p">(</span><span class="n">scores</span><span class="p">[</span><span class="s1">'arithmetic'</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">)))</span>
+<div class="highlight hl-ipython3"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+
+<span class="n">evidence</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s1">'selection'</span><span class="p">)</span>
+<span class="n">provenance</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">((</span><span class="n">evidence</span><span class="o">/</span><span class="s1">'provenance.json'</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
+<span class="k">for</span> <span class="n">filename</span><span class="p">,</span> <span class="n">expected</span> <span class="ow">in</span> <span class="n">provenance</span><span class="p">[</span><span class="s1">'sha256'</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="k">assert</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">((</span><span class="n">evidence</span><span class="o">/</span><span class="n">filename</span><span class="p">)</span><span class="o">.</span><span class="n">read_bytes</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span> <span class="o">==</span> <span class="n">expected</span>
+
+<span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">provenance</span><span class="p">[</span><span class="s1">'runs'</span><span class="p">]:</span>
+    <span class="n">population</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">evidence</span><span class="o">/</span><span class="sa">f</span><span class="s2">"candidates-</span><span class="si">{</span><span class="n">run</span><span class="p">[</span><span class="s1">'templates'</span><span class="p">]</span><span class="si">}</span><span class="s2">.csv.gz"</span><span class="p">,</span>
+                             <span class="n">float_precision</span><span class="o">=</span><span class="s1">'round_trip'</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">)</span> <span class="o">==</span> <span class="n">run</span><span class="p">[</span><span class="s1">'before_cut'</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">'upstream'</span><span class="p">,</span> <span class="s1">'arithmetic'</span><span class="p">]:</span>
+        <span class="c1"># EventManager divides float32 chi-square by its int64 DOF array.</span>
+        <span class="n">computed</span> <span class="o">=</span> <span class="n">newsnr</span><span class="p">(</span><span class="n">population</span><span class="p">[</span><span class="s1">'rho'</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+                          <span class="n">population</span><span class="p">[</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span>
+                          <span class="n">population</span><span class="p">[</span><span class="s1">'dof'</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">))</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">computed</span><span class="p">,</span> <span class="n">population</span><span class="p">[</span><span class="n">label</span><span class="o">+</span><span class="s1">'_newsnr'</span><span class="p">],</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-14</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">computed</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">population</span><span class="p">[</span><span class="n">label</span><span class="o">+</span><span class="s1">'_pass'</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="p">(</span><span class="n">computed</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="n">run</span><span class="p">[</span><span class="n">label</span><span class="o">+</span><span class="s1">'_kept'</span><span class="p">]</span>
+    <span class="n">old</span><span class="p">,</span> <span class="n">new</span> <span class="o">=</span> <span class="n">population</span><span class="o">.</span><span class="n">upstream_pass</span><span class="p">,</span> <span class="n">population</span><span class="o">.</span><span class="n">arithmetic_pass</span>
+    <span class="k">assert</span> <span class="p">((</span><span class="o">~</span><span class="n">old</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">new</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="n">run</span><span class="p">[</span><span class="s1">'gained'</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="n">old</span> <span class="o">&amp;</span> <span class="p">(</span><span class="o">~</span><span class="n">new</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="n">run</span><span class="p">[</span><span class="s1">'lost'</span><span class="p">]</span>
+
+<span class="n">population</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">evidence</span><span class="o">/</span><span class="s1">'candidates-6144.csv.gz'</span><span class="p">,</span> <span class="n">float_precision</span><span class="o">=</span><span class="s1">'round_trip'</span><span class="p">)</span>
+
+<span class="n">counts</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">provenance</span><span class="p">[</span><span class="s1">'runs'</span><span class="p">])</span>
+<span class="n">display</span><span class="p">(</span><span class="n">counts</span><span class="p">[[</span><span class="s1">'templates'</span><span class="p">,</span> <span class="s1">'before_cut'</span><span class="p">,</span> <span class="s1">'upstream_kept'</span><span class="p">,</span>
+                <span class="s1">'arithmetic_kept'</span><span class="p">,</span> <span class="s1">'gained'</span><span class="p">,</span> <span class="s1">'lost'</span><span class="p">]])</span>
+<span class="n">changed</span> <span class="o">=</span> <span class="n">population</span><span class="p">[</span><span class="n">population</span><span class="o">.</span><span class="n">upstream_pass</span> <span class="o">!=</span> <span class="n">population</span><span class="o">.</span><span class="n">arithmetic_pass</span><span class="p">]</span>
+<span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">changed</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span><span class="n">counts</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">counts</span><span class="o">.</span><span class="n">templates</span> <span class="o">==</span> <span class="mi">6144</span><span class="p">,</span> <span class="s1">'changed'</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">changed</span><span class="o">.</span><span class="n">reference_float32_newsnr</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">,</span> <span class="n">changed</span><span class="o">.</span><span class="n">arithmetic_pass</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">changed</span><span class="p">[[</span><span class="s1">'template_hash'</span><span class="p">,</span> <span class="s1">'gps'</span><span class="p">,</span> <span class="s1">'rho'</span><span class="p">,</span> <span class="s1">'upstream_newsnr'</span><span class="p">,</span>
+                 <span class="s1">'arithmetic_newsnr'</span><span class="p">,</span> <span class="s1">'reference_float32_newsnr'</span><span class="p">,</span>
+                 <span class="s1">'upstream_pass'</span><span class="p">,</span> <span class="s1">'arithmetic_pass'</span><span class="p">]]</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">format</span><span class="p">({</span>
+    <span class="s1">'gps'</span><span class="p">:</span> <span class="s1">'</span><span class="si">{:.6f}</span><span class="s1">'</span><span class="p">,</span> <span class="s1">'rho'</span><span class="p">:</span> <span class="s1">'</span><span class="si">{:.6f}</span><span class="s1">'</span><span class="p">,</span> <span class="s1">'upstream_newsnr'</span><span class="p">:</span> <span class="s1">'</span><span class="si">{:.7f}</span><span class="s1">'</span><span class="p">,</span>
+    <span class="s1">'arithmetic_newsnr'</span><span class="p">:</span> <span class="s1">'</span><span class="si">{:.7f}</span><span class="s1">'</span><span class="p">,</span> <span class="s1">'reference_float32_newsnr'</span><span class="p">:</span> <span class="s1">'</span><span class="si">{:.7f}</span><span class="s1">'</span><span class="p">}))</span>
 </pre></div>
 </div>
 </div>
@@ -13342,61 +13373,258 @@ arithmetic: maximum absolute relative chi-square error = 0.0005033%
 <div class="output">
 <div class="output_area">
 <div class="prompt"></div>
-<div class="output_html rendered_html output_subarea"><style type="text/css">
+<div class="output_html rendered_html output_subarea"><div>
+<style scoped="">
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
 </style>
-<table id="T_4b237">
+<table border="1" class="dataframe">
 <thead>
-<tr>
-<th class="blank level0"> </th>
-<th class="col_heading level0 col0" id="T_4b237_level0_col0">SNR</th>
-<th class="col_heading level0 col1" id="T_4b237_level0_col1">upstream NewSNR</th>
-<th class="col_heading level0 col2" id="T_4b237_level0_col2">arithmetic NewSNR</th>
-<th class="col_heading level0 col3" id="T_4b237_level0_col3">reference NewSNR</th>
-<th class="col_heading level0 col4" id="T_4b237_level0_col4">score change</th>
-<th class="col_heading level0 col5" id="T_4b237_level0_col5">upstream passes 5</th>
-<th class="col_heading level0 col6" id="T_4b237_level0_col6">arithmetic passes 5</th>
-</tr>
-<tr>
-<th class="index_name level0">sample</th>
-<th class="blank col0"> </th>
-<th class="blank col1"> </th>
-<th class="blank col2"> </th>
-<th class="blank col3"> </th>
-<th class="blank col4"> </th>
-<th class="blank col5"> </th>
-<th class="blank col6"> </th>
+<tr style="text-align: right;">
+<th></th>
+<th>templates</th>
+<th>before_cut</th>
+<th>upstream_kept</th>
+<th>arithmetic_kept</th>
+<th>gained</th>
+<th>lost</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<th class="row_heading level0 row0" id="T_4b237_level0_row0">484954</th>
-<td class="data row0 col0" id="T_4b237_row0_col0">5.5250125</td>
-<td class="data row0 col1" id="T_4b237_row0_col1">5.3710216</td>
-<td class="data row0 col2" id="T_4b237_row0_col2">5.3705869</td>
-<td class="data row0 col3" id="T_4b237_row0_col3">5.3705843</td>
-<td class="data row0 col4" id="T_4b237_row0_col4">-0.0004347</td>
-<td class="data row0 col5" id="T_4b237_row0_col5">True</td>
-<td class="data row0 col6" id="T_4b237_row0_col6">True</td>
+<th>0</th>
+<td>32</td>
+<td>89</td>
+<td>77</td>
+<td>77</td>
+<td>0</td>
+<td>0</td>
 </tr>
 <tr>
-<th class="row_heading level0 row1" id="T_4b237_level0_row1">619888</th>
-<td class="data row1 col0" id="T_4b237_row1_col0">5.5640130</td>
-<td class="data row1 col1" id="T_4b237_row1_col1">5.2703499</td>
-<td class="data row1 col2" id="T_4b237_row1_col2">5.2678191</td>
-<td class="data row1 col3" id="T_4b237_row1_col3">5.2678154</td>
-<td class="data row1 col4" id="T_4b237_row1_col4">-0.0025308</td>
-<td class="data row1 col5" id="T_4b237_row1_col5">True</td>
-<td class="data row1 col6" id="T_4b237_row1_col6">True</td>
+<th>1</th>
+<td>6144</td>
+<td>16378</td>
+<td>14334</td>
+<td>14335</td>
+<td>4</td>
+<td>3</td>
+</tr>
+</tbody>
+</table>
+</div></div>
+</div>
+<div class="output_area">
+<div class="prompt"></div>
+<div class="output_html rendered_html output_subarea"><style type="text/css">
+</style>
+<table id="T_d172e">
+<thead>
+<tr>
+<th class="blank level0"> </th>
+<th class="col_heading level0 col0" id="T_d172e_level0_col0">template_hash</th>
+<th class="col_heading level0 col1" id="T_d172e_level0_col1">gps</th>
+<th class="col_heading level0 col2" id="T_d172e_level0_col2">rho</th>
+<th class="col_heading level0 col3" id="T_d172e_level0_col3">upstream_newsnr</th>
+<th class="col_heading level0 col4" id="T_d172e_level0_col4">arithmetic_newsnr</th>
+<th class="col_heading level0 col5" id="T_d172e_level0_col5">reference_float32_newsnr</th>
+<th class="col_heading level0 col6" id="T_d172e_level0_col6">upstream_pass</th>
+<th class="col_heading level0 col7" id="T_d172e_level0_col7">arithmetic_pass</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th class="row_heading level0 row0" id="T_d172e_level0_row0">142</th>
+<td class="data row0 col0" id="T_d172e_row0_col0">107514562193601506</td>
+<td class="data row0 col1" id="T_d172e_row0_col1">1187008427.809082</td>
+<td class="data row0 col2" id="T_d172e_row0_col2">5.682845</td>
+<td class="data row0 col3" id="T_d172e_row0_col3">4.9986619</td>
+<td class="data row0 col4" id="T_d172e_row0_col4">5.0001907</td>
+<td class="data row0 col5" id="T_d172e_row0_col5">5.0001830</td>
+<td class="data row0 col6" id="T_d172e_row0_col6">False</td>
+<td class="data row0 col7" id="T_d172e_row0_col7">True</td>
 </tr>
 <tr>
-<th class="row_heading level0 row2" id="T_4b237_level0_row2">656106</th>
-<td class="data row2 col0" id="T_4b237_row2_col0">5.5534453</td>
-<td class="data row2 col1" id="T_4b237_row2_col1">4.9566842</td>
-<td class="data row2 col2" id="T_4b237_row2_col2">4.9598592</td>
-<td class="data row2 col3" id="T_4b237_row2_col3">4.9598685</td>
-<td class="data row2 col4" id="T_4b237_row2_col4">0.0031750</td>
-<td class="data row2 col5" id="T_4b237_row2_col5">False</td>
-<td class="data row2 col6" id="T_4b237_row2_col6">False</td>
+<th class="row_heading level0 row1" id="T_d172e_level0_row1">1502</th>
+<td class="data row1 col0" id="T_d172e_row1_col0">3817250741517076302</td>
+<td class="data row1 col1" id="T_d172e_row1_col1">1187007822.729980</td>
+<td class="data row1 col2" id="T_d172e_row1_col2">5.556757</td>
+<td class="data row1 col3" id="T_d172e_row1_col3">5.0007998</td>
+<td class="data row1 col4" id="T_d172e_row1_col4">4.9992452</td>
+<td class="data row1 col5" id="T_d172e_row1_col5">4.9992311</td>
+<td class="data row1 col6" id="T_d172e_row1_col6">True</td>
+<td class="data row1 col7" id="T_d172e_row1_col7">False</td>
+</tr>
+<tr>
+<th class="row_heading level0 row2" id="T_d172e_level0_row2">7426</th>
+<td class="data row2 col0" id="T_d172e_row2_col0">8977059625468206652</td>
+<td class="data row2 col1" id="T_d172e_row2_col1">1187008670.545410</td>
+<td class="data row2 col2" id="T_d172e_row2_col2">5.556389</td>
+<td class="data row2 col3" id="T_d172e_row2_col3">5.0013263</td>
+<td class="data row2 col4" id="T_d172e_row2_col4">4.9980673</td>
+<td class="data row2 col5" id="T_d172e_row2_col5">4.9980815</td>
+<td class="data row2 col6" id="T_d172e_row2_col6">True</td>
+<td class="data row2 col7" id="T_d172e_row2_col7">False</td>
+</tr>
+<tr>
+<th class="row_heading level0 row3" id="T_d172e_level0_row3">9720</th>
+<td class="data row3 col0" id="T_d172e_row3_col0">3526442591276109755</td>
+<td class="data row3 col1" id="T_d172e_row3_col1">1187007265.239258</td>
+<td class="data row3 col2" id="T_d172e_row3_col2">5.621402</td>
+<td class="data row3 col3" id="T_d172e_row3_col3">4.9992921</td>
+<td class="data row3 col4" id="T_d172e_row3_col4">5.0014379</td>
+<td class="data row3 col5" id="T_d172e_row3_col5">5.0014574</td>
+<td class="data row3 col6" id="T_d172e_row3_col6">False</td>
+<td class="data row3 col7" id="T_d172e_row3_col7">True</td>
+</tr>
+<tr>
+<th class="row_heading level0 row4" id="T_d172e_level0_row4">13211</th>
+<td class="data row4 col0" id="T_d172e_row4_col0">2674380675434408664</td>
+<td class="data row4 col1" id="T_d172e_row4_col1">1187008145.628906</td>
+<td class="data row4 col2" id="T_d172e_row4_col2">5.527143</td>
+<td class="data row4 col3" id="T_d172e_row4_col3">5.0001535</td>
+<td class="data row4 col4" id="T_d172e_row4_col4">4.9996228</td>
+<td class="data row4 col5" id="T_d172e_row4_col5">4.9996187</td>
+<td class="data row4 col6" id="T_d172e_row4_col6">True</td>
+<td class="data row4 col7" id="T_d172e_row4_col7">False</td>
+</tr>
+<tr>
+<th class="row_heading level0 row5" id="T_d172e_level0_row5">14071</th>
+<td class="data row5 col0" id="T_d172e_row5_col0">-643334193478004959</td>
+<td class="data row5 col1" id="T_d172e_row5_col1">1187007473.805176</td>
+<td class="data row5 col2" id="T_d172e_row5_col2">5.629531</td>
+<td class="data row5 col3" id="T_d172e_row5_col3">4.9988600</td>
+<td class="data row5 col4" id="T_d172e_row5_col4">5.0002382</td>
+<td class="data row5 col5" id="T_d172e_row5_col5">5.0002433</td>
+<td class="data row5 col6" id="T_d172e_row5_col6">False</td>
+<td class="data row5 col7" id="T_d172e_row5_col7">True</td>
+</tr>
+<tr>
+<th class="row_heading level0 row6" id="T_d172e_level0_row6">15829</th>
+<td class="data row6 col0" id="T_d172e_row6_col0">-2955860346836625822</td>
+<td class="data row6 col1" id="T_d172e_row6_col1">1187008841.344238</td>
+<td class="data row6 col2" id="T_d172e_row6_col2">5.781146</td>
+<td class="data row6 col3" id="T_d172e_row6_col3">4.9987789</td>
+<td class="data row6 col4" id="T_d172e_row6_col4">5.0007372</td>
+<td class="data row6 col5" id="T_d172e_row6_col5">5.0007157</td>
+<td class="data row6 col6" id="T_d172e_row6_col6">False</td>
+<td class="data row6 col7" id="T_d172e_row6_col7">True</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered" id="cell-id=3e52e191"><div class="prompt input_prompt">
+</div><div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Replay-the-first-naturally-occurring-crossing">Replay the first naturally occurring crossing<a class="anchor-link" href="#Replay-the-first-naturally-occurring-crossing">¶</a></h2><p>This is the first changed event in the run's template/event order, not the largest error. Its raw SNR is about <strong>5.683</strong>, comfortably above the raw-SNR cut of 5.5. The numerical discrepancy changes whether its <strong>reweighted</strong> SNR clears the already fixed cut of 5. With errors of this size, a selection change involves a candidate near the cut; the evidence here is that it occurs in unaltered detector data without moving the cut.</p>
+<p>Recompute all three samples in the captured call, then show this event. The reference uses explicit complex128 Fourier sums and was independently cross-checked against per-bin complex128 inverse FFTs. The final reference chi-square is rounded into the same float32 event storage before ranking. CPU/compiler differences can slightly change the original result; the saved Linux population above and this local replay are distinguished.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered" id="cell-id=0a6129b6">
+<div class="input">
+<div class="prompt input_prompt">In [5]:</div>
+<div class="inner_cell">
+<div class="input_area">
+<div class="highlight hl-ipython3"><pre><span></span><span class="n">example</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">((</span><span class="n">evidence</span><span class="o">/</span><span class="s1">'selection-crossing.json'</span><span class="p">)</span><span class="o">.</span><span class="n">read_text</span><span class="p">())</span>
+<span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">evidence</span><span class="o">/</span><span class="s1">'selection-crossing.npz'</span><span class="p">,</span> <span class="n">allow_pickle</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">saved</span><span class="p">:</span>
+    <span class="n">captured</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">saved</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">saved</span><span class="o">.</span><span class="n">files</span><span class="p">}</span>
+<span class="n">c</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">captured</span><span class="p">[</span><span class="s1">'corr'</span><span class="p">],</span> <span class="n">captured</span><span class="p">[</span><span class="s1">'snr'</span><span class="p">]</span>
+<span class="n">indices</span><span class="p">,</span> <span class="n">edges</span> <span class="o">=</span> <span class="n">captured</span><span class="p">[</span><span class="s1">'indices'</span><span class="p">],</span> <span class="n">captured</span><span class="p">[</span><span class="s1">'bins'</span><span class="p">]</span>
+<span class="n">normalization</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">captured</span><span class="p">[</span><span class="s1">'norm'</span><span class="p">])</span>
+<span class="n">nbins</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">edges</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span>
+<span class="n">snr_term</span> <span class="o">=</span> <span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">conj</span><span class="p">()</span><span class="o">*</span><span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">real</span>
+<span class="n">raw_snr</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">s</span><span class="o">*</span><span class="n">normalization</span><span class="p">)</span>
+<span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="n">label</span><span class="p">:</span> <span class="p">(</span><span class="n">mod</span><span class="o">.</span><span class="n">shift_sum</span><span class="p">(</span><span class="n">Array</span><span class="p">(</span><span class="n">c</span><span class="p">),</span> <span class="n">indices</span><span class="p">,</span> <span class="n">edges</span><span class="p">)</span><span class="o">*</span><span class="n">nbins</span><span class="o">-</span><span class="n">snr_term</span><span class="p">)</span><span class="o">*</span><span class="n">normalization</span><span class="o">**</span><span class="mi">2</span>
+          <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">mod</span> <span class="ow">in</span> <span class="n">modules</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+<span class="n">direct</span> <span class="o">=</span> <span class="n">reference_power</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">edges</span><span class="p">)</span>
+<span class="n">via_fft</span> <span class="o">=</span> <span class="n">fft_reference_power</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">edges</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">direct</span><span class="p">,</span> <span class="n">via_fft</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-11</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Max |direct / FFT reference difference|:'</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">direct</span><span class="o">/</span><span class="n">via_fft</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
+<span class="n">reference</span> <span class="o">=</span> <span class="p">(</span><span class="n">direct</span><span class="o">*</span><span class="n">nbins</span><span class="o">-</span><span class="n">snr_term</span><span class="p">)</span><span class="o">*</span><span class="n">normalization</span><span class="o">**</span><span class="mi">2</span>
+<span class="n">result</span><span class="p">[</span><span class="s1">'reference'</span><span class="p">]</span> <span class="o">=</span> <span class="n">reference</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">dof</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">),</span> <span class="mi">2</span><span class="o">*</span><span class="n">nbins</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+<span class="n">rank</span> <span class="o">=</span> <span class="p">{</span><span class="n">label</span><span class="p">:</span> <span class="n">newsnr</span><span class="p">(</span><span class="n">raw_snr</span><span class="p">,</span> <span class="n">value</span><span class="o">/</span><span class="n">dof</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+<span class="n">j</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">example</span><span class="p">[</span><span class="s1">'point'</span><span class="p">])</span>
+<span class="k">assert</span> <span class="n">indices</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">==</span> <span class="n">example</span><span class="p">[</span><span class="s1">'sample'</span><span class="p">]</span>
+<span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">reference</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">example</span><span class="p">[</span><span class="s1">'reference'</span><span class="p">],</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">rank</span><span class="p">[</span><span class="s1">'upstream'</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">5</span> <span class="o">&lt;=</span> <span class="n">rank</span><span class="p">[</span><span class="s1">'arithmetic'</span><span class="p">][</span><span class="n">j</span><span class="p">]</span>
+<span class="k">assert</span> <span class="n">rank</span><span class="p">[</span><span class="s1">'reference'</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">5</span>
+<span class="n">comparison</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s1">'chi-square'</span><span class="p">:</span> <span class="p">{</span><span class="n">label</span><span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">items</span><span class="p">()},</span>
+    <span class="s1">'NewSNR'</span><span class="p">:</span> <span class="p">{</span><span class="n">label</span><span class="p">:</span> <span class="n">value</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">rank</span><span class="o">.</span><span class="n">items</span><span class="p">()}})</span>
+<span class="n">comparison</span><span class="p">[</span><span class="s1">'retained'</span><span class="p">]</span> <span class="o">=</span> <span class="n">comparison</span><span class="o">.</span><span class="n">NewSNR</span> <span class="o">&gt;=</span> <span class="mi">5</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">'Template hash:'</span><span class="p">,</span> <span class="n">example</span><span class="p">[</span><span class="s1">'template_hash'</span><span class="p">],</span> <span class="s1">'; GPS:'</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">example</span><span class="p">[</span><span class="s1">'gps'</span><span class="p">]</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="n">display</span><span class="p">(</span><span class="n">comparison</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">format</span><span class="p">({</span><span class="s1">'chi-square'</span><span class="p">:</span> <span class="s1">'</span><span class="si">{:.8f}</span><span class="s1">'</span><span class="p">,</span> <span class="s1">'NewSNR'</span><span class="p">:</span> <span class="s1">'</span><span class="si">{:.8f}</span><span class="s1">'</span><span class="p">}))</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">layout</span><span class="o">=</span><span class="s1">'constrained'</span><span class="p">)</span>
+<span class="n">titles</span> <span class="o">=</span> <span class="p">[</span><span class="s1">'Original CPU'</span><span class="p">,</span> <span class="s1">'Double working precision'</span><span class="p">,</span> <span class="s1">'Independent reference'</span><span class="p">]</span>
+<span class="k">for</span> <span class="n">y</span><span class="p">,</span> <span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">color</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="p">[</span><span class="s1">'#245885'</span><span class="p">,</span> <span class="s1">'#B77818'</span><span class="p">,</span> <span class="s1">'#347549'</span><span class="p">])):</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">rank</span><span class="p">[</span><span class="n">label</span><span class="p">][</span><span class="n">j</span><span class="p">],</span> <span class="n">y</span><span class="p">,</span> <span class="s1">'o'</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">'0.35'</span><span class="p">,</span> <span class="n">ls</span><span class="o">=</span><span class="s1">'--'</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">'Original search cut: 5'</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">yticks</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="n">yticklabels</span><span class="o">=</span><span class="n">titles</span><span class="p">,</span> <span class="n">ylim</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">2.6</span><span class="p">),</span>
+       <span class="n">xlabel</span><span class="o">=</span><span class="s1">'Reweighted SNR (zoomed around the unchanged cut)'</span><span class="p">,</span>
+       <span class="n">title</span><span class="o">=</span><span class="s1">'Same H1 candidate: rejected originally, retained after the patch'</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">ticklabel_format</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="s1">'x'</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s1">'plain'</span><span class="p">,</span> <span class="n">useOffset</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">'lower right'</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area">
+<div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Max |direct / FFT reference difference|: 5.551115123125783e-16
+Template hash: 107514562193601506 ; GPS: 1187008427.809082
+</pre>
+</div>
+</div>
+<div class="output_area">
+<div class="prompt"></div>
+<div class="output_html rendered_html output_subarea"><style type="text/css">
+</style>
+<table id="T_68f5b">
+<thead>
+<tr>
+<th class="blank level0"> </th>
+<th class="col_heading level0 col0" id="T_68f5b_level0_col0">chi-square</th>
+<th class="col_heading level0 col1" id="T_68f5b_level0_col1">NewSNR</th>
+<th class="col_heading level0 col2" id="T_68f5b_level0_col2">retained</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<th class="row_heading level0 row0" id="T_68f5b_level0_row0">upstream</th>
+<td class="data row0 col0" id="T_68f5b_row0_col0">44.74625778</td>
+<td class="data row0 col1" id="T_68f5b_row0_col1">4.99865502</td>
+<td class="data row0 col2" id="T_68f5b_row0_col2">False</td>
+</tr>
+<tr>
+<th class="row_heading level0 row1" id="T_68f5b_level0_row1">arithmetic</th>
+<td class="data row1 col0" id="T_68f5b_row1_col0">44.71048737</td>
+<td class="data row1 col1" id="T_68f5b_row1_col1">5.00019074</td>
+<td class="data row1 col2" id="T_68f5b_row1_col2">True</td>
+</tr>
+<tr>
+<th class="row_heading level0 row2" id="T_68f5b_level0_row2">reference</th>
+<td class="data row2 col0" id="T_68f5b_row2_col0">44.71066666</td>
+<td class="data row2 col1" id="T_68f5b_row2_col1">5.00018304</td>
+<td class="data row2 col2" id="T_68f5b_row2_col2">True</td>
 </tr>
 </tbody>
 </table>
@@ -13404,9 +13632,8 @@ arithmetic: maximum absolute relative chi-square error = 0.0005033%
 </div>
 <div class="output_area">
 <div class="prompt"></div>
-<div class="output_subarea output_stream output_stdout output_text">
-<pre>Candidates crossing threshold in this replay: 0
-</pre>
+<div class="output_png output_subarea">
+<img alt="No description has been provided for this image" src="data:image/png;base64,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VNSpU8fs3LnT/hXhRsqKEEIIIYQoVPTq1cusX7/eVKxYMb+LIlIgMzAhhBBCCCFEKJGyIoQQQgghhAglUlaEEEIIIUShYtGiRWbevHn2rwg3UlaEEEIIIUShYtSoUWbo0KH2rwg3UlaEEEIIIYQQoUTKihBCCCGEECKUSFkRQgghhBBChBIpK0IIIYQQQohQImVFCCGEEEIIEUqkrAghhBBCCCFCSb4pK8S1vvDCC83MmTMzkt9tt91mPvzwQ1NQKejld8yePdv069fPXHzxxea1117L7+IIIYQQQghjzL87tpuxM740fV+511z+9G32L985HmbyTVlZtWqVefnll81ff/2Vkfzeffdd8/PPP5uCSm6WH4UQxXDTpk0mN1m2bJlp27atWbNmjenQoYNp0KBBrl5PCCGEEEKkZsLs70zXe3uagW8OMRNmTzE//DHT/uU7xyfOmWrCSvH8LoDIfVAIUQwfffRRU65cuVy7ztSpU83mzZvNk08+aYoXV9cSQgghRDjp37+/Wb9+valYsaIpDIrKra8MNsb7v++7PS/q76atm80tL99jHund3xyyX2MTNkIjUf7www9m2LBhZsiQIebNN980c+fONfvss481J6pdu3ZUWlYInn32WfPbb7+Z6tWrmz59+sTN0/M888EHH5jx48ebbdu2mXbt2pnzzjvPFCtWLOqaDz30kL0m+VWrVs1ccsklZr/99stWXvlR/mTXnDNnjv0drr32WlOqVClTs2ZN88ADDyRth4cfftgqOL///rvp2rWrOfXUU826devsTq+Yeu21117mrLPOMm3atLHnjRgxwrz++uv239Qf3H333aZu3bpJzwPqYuPGjeb444+3eSxfvtzcc889tg045+233zZ///23zYu6os4cl156qenVq5fZsGGD+eabb8yOHTvMCSecYPOKhbp45513bF6NGze29VS+fPnI76muJYQQQghRkPh3x3Yz6K3HrKLiOW0lBo4X8YqYQW89bt649kkTNkLjYL9kyRIrHCPEzp8/3wqTU6ZMMYcccog1L3IgtB9xxBHmueeeMwceeKDZuXOnNT3ypwGOd+vWzfTu3duULVvW1K9f3wwaNMiceeaZWa55+OGHW0GW/L788ktz6KGHWp+a7OSVH+VPds3KlSub5s2b238feeSRplOnTqZ169Yp24E0/LtVq1ZWcP/1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zS9vX292bltvTJGixni77d/ls8eaYqUqmOZnDzPVm5xgCqTPypIlS8wvv/xihg4dah577DFz0003mYYNG5q77rrLNGnSxPz888+5VtDff//dzJ07N2W6P/74w8yePdsUJILcW0G8r0wwffp0888//+RaeiGEEEKIwqSo/DDqIrNz24b/O4Ci4vu769+N5sdRF9l0BdYMjBWVtm3bRr4ff/zx5sorrzTHHnusOfnkk81vv/2WqysshZXbbrvNbN261RQ2Pv30U7PffvvlWnohhBBCFD5GjhxpLVbq169vevfubQqL6dcvb19vjMc3+784eMZ4Rcwv71xvjr7jJ1OsROk9IxrYXnvtZR566CG78vLee+9F/fbNN9+YXr16maOOOsqcccYZ5u233476/cYbbzSDBw+OOvbrr79ahWjp0qVZrjV69GjrFHX00Uebm2++2axZsyZl+VCgrrnmGntOt27dIqZsifj+++/NEUccYdauXRs5dsUVV5gjjzzSbNu2LXKMzv3UU08FvlfMvbjfMWPGWLM58mPFJJZdu3aZW265xZxyyilmxYoV9hh5/ec//8mS19ixY205UBavv/76SHo/H374oTn11FOtud61115rvv32W1u/ixcvTloP7hqp6jzZfb3//vvmnHPOsXVCOX/88ccs1+G88847z3Tq1Mkqvv46ufPOO82ECRMi3ydPnmwuvPBCc8wxx9j8UE78xKanLjGd6969u73/yy67zMyZMyfqHI6/88475tFHH7X1dNJJJ5knnnjCniuEEEKIPQ9koPnz56eUhfYkls388P9MvxIqKg7P7Ny63iyf9ZHZoxzsEVBLlixpvvvuOyt4AoI0qy0oCgiWM2bMsEIvwigrBYD5U40aNaLy2rRpk5k6dWqUYgAIoX///bcZOHCgKVKkiBk0aJD54osvbL7Fi8e/lYkTJ1o/hhNOOMEqAMuXL7fmayhC/fr1i3tO48aNbZ5fffWVVTpY0Xj55ZcjCknnzp3NunXrzGuvvRbxjQhyr5h7vfvuu7aObr31VrPvvvuamjVrZrl3hHvO+/jjj021atXimoGRF4rhDz/8YBUF6h5zPARtlC3qBxDCye/222+3Qjnlpz64TqqVGlfeL7/8MmmdJ7ovrom5IApEnz59zGeffWbat29vFY5DDjnEnovyM2LECHPHHXdYXxPuE4Xnp59+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EKFEyooQQgghhBAilEhZEUIIIYQQQoQSKStCCCGEEEKIUCJlRQghhBBCCBFKpKwIIYQQQgghQomCSwshhBBCiEJFhw4dTL169UytWrXyuygiBVJWhBBCCCFEoaJjx45m/fr1pmLFivldFJECmYEJIYQQQgghQomUFSGEEEIIIUQokRmYEEIIIYQoVEyYMMEsXbrU+qx06tQpv4sjkiBlRYgCwr/bd5pPps41n0+fZ9Zt3GoqlS9jjmt5oOnaprEpVVKPshBCCBGUSZMmmblz55rGjRtLWQk5MgMroKxZs8b069fPNG/e3FSrVs00atTIXHnllWbRokWB86hfv74ZMWJE2tfO7nmZzHvDhg3mvvvuM23atDE1a9a093/yySeb999/3+zevdumadGihalUqZL9VK1a1bRq1cqes23bNvv7v//+a38bOnRolvwXLlxof3vvvfdMGPhy+jzT7qph5tbhH5ovps0z389dYv/yneNfzpif30UUQgghhMg4UlYKIIsXL7aC+FdffWWGDRtmZs2aZUaNGmWWLVtmDj30UDN16tRA+RAFA4E9XbJ7XqbyZtm2ZcuW5t133zX9+/c3P/zwg/noo4/MEUccYc477zyrsDiF5sQTT7QK3OzZs83NN99sHnjgAXP11Vfb3z3Ps9dzyoufXbt22d+2b99uwqCoXPnYO2bj5v8r527Pi/rL8SuHvG3TCSGEEELsSch2pABywQUX2NUDlJWyZcvaY6yuILwTiu/ss8828+fPNyVLlkyazx9//GFKlSqV9vWze14m779YsWLmm2++idw/3HHHHeboo482a9eujRyjDlghgXPOOcdMmzbNPP744+aJJ54wRYsWLRCmX32f/sgYz/4XF44X8YxNN3n4dTIJE0IIIcQeQ/ilNRHFzJkzrVPYrbfeGiWoA8L3gAEDzJIlS8yYMWMix2vUqGEeeeQR06tXL1O7dm3TunVre/ywww4zL7zwQiTdqlWrrCKw7777mjp16pirrrrK3HbbbaZdu3ZR14k9j/yHDBliLrnkEmuOhSkXqxebNm2KOo98UBwqV65sGjRoYM4880wzZ86ctFqYVSSUtFtuuSXL/UPbtm1N165dE56PbSorKqxOFQTwUdmweVtCRcXB76QbN/XXPCqZEEIIIUTuo5WVAsZ3331n/+KrEQ+EdZfurLPOsv9et26dufPO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XaZPn24++ugj2xdPPfXUQOfMmjXLfPvtt3ZsbN++fcI2y3Q6oK+Qdq+99rJjbc2aNU2moZ0Yaxlz+/XrZ0qWLJnyHMpO2y5cuNCOdaeccootY26n27Ztm20/0u299952XGEMzwTk/eCDD2Y5fsABB5jevXsHymPevHn23bJ9+3bTqVOnhGN0fqXLDu+8847ts7Fcd911tg1SwftxzJgxZtGiRbYuadvSpUvneroffvjBTJ061fbvww47zD5raeMJISxr1671atWq5RUvXty7/PLLA9XKbbfd5pUtW9br06ePd+WVV3oVKlTwbr311mynu//++72SJUt65513nnfTTTd59erV85o0aeKtXr06Kt3WrVu9U0891dt33329a665xrv++uttuu+//z7jrXnzzTfbOgk6XHz33XdejRo1vA4dOthzDz/8cO+ggw7y/v7772yl++2332y6ww47zLvlllu8k046yStdurT3xhtvZCtdJpg1a5ZXrlw5WycjRoxImX7Hjh1e9+7dvWrVqnnXXnut17NnT69MmTLeSy+9lKvpgPJRD/S9K664wqZ78MEHvUyze/du77jjjrN95ZBDDgl0zmuvvWafi9NOO8278cYbbX8nj23btuVauhUrVnitWrXyKlWqZOuDD88j5/z7779epnnnnXciz8+UKVNSpl++fLnXvHlz+ywwBpx44om2rN9++22upstJmdNlw4YNtm24xgUXXBDonLvuusv23Ysuusi7+uqr7T3Q93M7HX2iR48eXvXq1b2rrrrK9ivG2m+++cbLNAMHDozU+8aNG1Om/+mnn+w7q23btnYM5S/1umjRolxNx/f999/fO/jgg+1Yy7uI99YLL7yQsXcxdXD++efbOnGfl19+OdD5pCtVqpTtW7QtY/WAAQNCky679OjRwz7H/jrhEysfxOOff/7xDjzwQPueRR5hjG7atKm3cuXKXEu3fv16r127dl758uW9Sy+91NbJ3nvv7XXp0sXbvHlzWvcuZUWI/8HAiJJQp06dQMrKF198YQfUDz74IHJs6tSpXpEiRbyvvvoq7XTLli3zihYtGiVI8uAjSN1+++1R177sssvsQLFmzZrIsXXr1nkLFizIaHtOnDjRvsRRiIIqKw0bNrSKAsIr7Ny502vdurV39tlnZyvd6aefbtNu3749cuziiy/2KleuHDk3nXQ5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"/>
 </div>
 </div>
 </div>
@@ -13422,7 +13649,7 @@ arithmetic: maximum absolute relative chi-square error = 0.0005033%
 </div>
 <div class="cell border-box-sizing code_cell rendered" id="cell-id=8968da8d">
 <div class="input">
-<div class="prompt input_prompt">In [5]:</div>
+<div class="prompt input_prompt">In [6]:</div>
 <div class="inner_cell">
 <div class="input_area">
 <div class="highlight hl-ipython3"><pre><span></span><span class="n">timings</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">'arithmetic_benchmark.csv'</span><span class="p">)</span>
@@ -13441,72 +13668,72 @@ arithmetic: maximum absolute relative chi-square error = 0.0005033%
 <div class="prompt"></div>
 <div class="output_html rendered_html output_subarea"><style type="text/css">
 </style>
-<table id="T_9b4f5">
+<table id="T_252e6">
 <thead>
 <tr>
 <th class="blank level0"> </th>
-<th class="col_heading level0 col0" id="T_9b4f5_level0_col0">npoints</th>
-<th class="col_heading level0 col1" id="T_9b4f5_level0_col1">variant</th>
-<th class="col_heading level0 col2" id="T_9b4f5_level0_col2">median_ms</th>
-<th class="col_heading level0 col3" id="T_9b4f5_level0_col3">q25_ms</th>
-<th class="col_heading level0 col4" id="T_9b4f5_level0_col4">q75_ms</th>
-<th class="col_heading level0 col5" id="T_9b4f5_level0_col5">ratio_to_upstream</th>
+<th class="col_heading level0 col0" id="T_252e6_level0_col0">npoints</th>
+<th class="col_heading level0 col1" id="T_252e6_level0_col1">variant</th>
+<th class="col_heading level0 col2" id="T_252e6_level0_col2">median_ms</th>
+<th class="col_heading level0 col3" id="T_252e6_level0_col3">q25_ms</th>
+<th class="col_heading level0 col4" id="T_252e6_level0_col4">q75_ms</th>
+<th class="col_heading level0 col5" id="T_252e6_level0_col5">ratio_to_upstream</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<th class="row_heading level0 row0" id="T_9b4f5_level0_row0">24</th>
-<td class="data row0 col0" id="T_9b4f5_row0_col0">1</td>
-<td class="data row0 col1" id="T_9b4f5_row0_col1">upstream</td>
-<td class="data row0 col2" id="T_9b4f5_row0_col2">1.063</td>
-<td class="data row0 col3" id="T_9b4f5_row0_col3">1.039</td>
-<td class="data row0 col4" id="T_9b4f5_row0_col4">1.087</td>
-<td class="data row0 col5" id="T_9b4f5_row0_col5">1.000</td>
+<th class="row_heading level0 row0" id="T_252e6_level0_row0">24</th>
+<td class="data row0 col0" id="T_252e6_row0_col0">1</td>
+<td class="data row0 col1" id="T_252e6_row0_col1">upstream</td>
+<td class="data row0 col2" id="T_252e6_row0_col2">1.063</td>
+<td class="data row0 col3" id="T_252e6_row0_col3">1.039</td>
+<td class="data row0 col4" id="T_252e6_row0_col4">1.087</td>
+<td class="data row0 col5" id="T_252e6_row0_col5">1.000</td>
 </tr>
 <tr>
-<th class="row_heading level0 row1" id="T_9b4f5_level0_row1">25</th>
-<td class="data row1 col0" id="T_9b4f5_row1_col0">1</td>
-<td class="data row1 col1" id="T_9b4f5_row1_col1">arithmetic</td>
-<td class="data row1 col2" id="T_9b4f5_row1_col2">1.099</td>
-<td class="data row1 col3" id="T_9b4f5_row1_col3">1.084</td>
-<td class="data row1 col4" id="T_9b4f5_row1_col4">1.121</td>
-<td class="data row1 col5" id="T_9b4f5_row1_col5">1.035</td>
+<th class="row_heading level0 row1" id="T_252e6_level0_row1">25</th>
+<td class="data row1 col0" id="T_252e6_row1_col0">1</td>
+<td class="data row1 col1" id="T_252e6_row1_col1">arithmetic</td>
+<td class="data row1 col2" id="T_252e6_row1_col2">1.099</td>
+<td class="data row1 col3" id="T_252e6_row1_col3">1.084</td>
+<td class="data row1 col4" id="T_252e6_row1_col4">1.121</td>
+<td class="data row1 col5" id="T_252e6_row1_col5">1.035</td>
 </tr>
 <tr>
-<th class="row_heading level0 row2" id="T_9b4f5_level0_row2">26</th>
-<td class="data row2 col0" id="T_9b4f5_row2_col0">2</td>
-<td class="data row2 col1" id="T_9b4f5_row2_col1">upstream</td>
-<td class="data row2 col2" id="T_9b4f5_row2_col2">1.858</td>
-<td class="data row2 col3" id="T_9b4f5_row2_col3">1.838</td>
-<td class="data row2 col4" id="T_9b4f5_row2_col4">1.926</td>
-<td class="data row2 col5" id="T_9b4f5_row2_col5">1.000</td>
+<th class="row_heading level0 row2" id="T_252e6_level0_row2">26</th>
+<td class="data row2 col0" id="T_252e6_row2_col0">2</td>
+<td class="data row2 col1" id="T_252e6_row2_col1">upstream</td>
+<td class="data row2 col2" id="T_252e6_row2_col2">1.858</td>
+<td class="data row2 col3" id="T_252e6_row2_col3">1.838</td>
+<td class="data row2 col4" id="T_252e6_row2_col4">1.926</td>
+<td class="data row2 col5" id="T_252e6_row2_col5">1.000</td>
 </tr>
 <tr>
-<th class="row_heading level0 row3" id="T_9b4f5_level0_row3">27</th>
-<td class="data row3 col0" id="T_9b4f5_row3_col0">2</td>
-<td class="data row3 col1" id="T_9b4f5_row3_col1">arithmetic</td>
-<td class="data row3 col2" id="T_9b4f5_row3_col2">1.168</td>
-<td class="data row3 col3" id="T_9b4f5_row3_col3">1.123</td>
-<td class="data row3 col4" id="T_9b4f5_row3_col4">1.188</td>
-<td class="data row3 col5" id="T_9b4f5_row3_col5">0.628</td>
+<th class="row_heading level0 row3" id="T_252e6_level0_row3">27</th>
+<td class="data row3 col0" id="T_252e6_row3_col0">2</td>
+<td class="data row3 col1" id="T_252e6_row3_col1">arithmetic</td>
+<td class="data row3 col2" id="T_252e6_row3_col2">1.168</td>
+<td class="data row3 col3" id="T_252e6_row3_col3">1.123</td>
+<td class="data row3 col4" id="T_252e6_row3_col4">1.188</td>
+<td class="data row3 col5" id="T_252e6_row3_col5">0.628</td>
 </tr>
 <tr>
-<th class="row_heading level0 row4" id="T_9b4f5_level0_row4">28</th>
-<td class="data row4 col0" id="T_9b4f5_row4_col0">5</td>
-<td class="data row4 col1" id="T_9b4f5_row4_col1">upstream</td>
-<td class="data row4 col2" id="T_9b4f5_row4_col2">1.746</td>
-<td class="data row4 col3" id="T_9b4f5_row4_col3">1.670</td>
-<td class="data row4 col4" id="T_9b4f5_row4_col4">1.915</td>
-<td class="data row4 col5" id="T_9b4f5_row4_col5">1.000</td>
+<th class="row_heading level0 row4" id="T_252e6_level0_row4">28</th>
+<td class="data row4 col0" id="T_252e6_row4_col0">5</td>
+<td class="data row4 col1" id="T_252e6_row4_col1">upstream</td>
+<td class="data row4 col2" id="T_252e6_row4_col2">1.746</td>
+<td class="data row4 col3" id="T_252e6_row4_col3">1.670</td>
+<td class="data row4 col4" id="T_252e6_row4_col4">1.915</td>
+<td class="data row4 col5" id="T_252e6_row4_col5">1.000</td>
 </tr>
 <tr>
-<th class="row_heading level0 row5" id="T_9b4f5_level0_row5">29</th>
-<td class="data row5 col0" id="T_9b4f5_row5_col0">5</td>
-<td class="data row5 col1" id="T_9b4f5_row5_col1">arithmetic</td>
-<td class="data row5 col2" id="T_9b4f5_row5_col2">2.453</td>
-<td class="data row5 col3" id="T_9b4f5_row5_col3">2.434</td>
-<td class="data row5 col4" id="T_9b4f5_row5_col4">2.493</td>
-<td class="data row5 col5" id="T_9b4f5_row5_col5">1.405</td>
+<th class="row_heading level0 row5" id="T_252e6_level0_row5">29</th>
+<td class="data row5 col0" id="T_252e6_row5_col0">5</td>
+<td class="data row5 col1" id="T_252e6_row5_col1">arithmetic</td>
+<td class="data row5 col2" id="T_252e6_row5_col2">2.453</td>
+<td class="data row5 col3" id="T_252e6_row5_col3">2.434</td>
+<td class="data row5 col4" id="T_252e6_row5_col4">2.493</td>
+<td class="data row5 col5" id="T_252e6_row5_col5">1.405</td>
 </tr>
 </tbody>
 </table>
@@ -13518,7 +13745,8 @@ arithmetic: maximum absolute relative chi-square error = 0.0005033%
 <div class="cell border-box-sizing text_cell rendered" id="cell-id=d1dd5310"><div class="prompt input_prompt">
 </div><div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>The change reduces the error on these captured samples, and changes their reweighted SNRs, but none crosses the selection threshold. The kernel still uses the constant <code>3.141592653</code> when constructing phases, and its output and public wrapper still round to float32; double working precision does not make the full calculation exact. These three selected samples establish neither the prevalence of the discrepancy nor changes in detection efficiency or false-alarm rates.</p>
+<p>The larger fixed-cut run establishes a concrete change in single-detector trigger admission. The independent reference agrees with the patched decision for every changed event. It does <strong>not</strong> establish a changed astrophysical detection, false-alarm rate or detection efficiency: those require a coincidence/background or injection study.</p>
+<p>Double working precision reduces the demonstrated error, but the calculation remains approximate. The kernel still uses <code>3.141592653</code> for phases, and output and final wrapper arithmetic still round to float32. The full search is deterministic evidence from one selected bank and data segment; its observed fraction of changed decisions is not an estimate for other runs.</p>
 </div>
 </div>
 </div>

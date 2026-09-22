@@ -62,3 +62,49 @@ Additional checks:
 Remaining review questions concern the performance/accuracy tradeoff on search
 hosts and compatibility for users calling the internal Cython entry point
 directly. The captured replay does not measure population-level detection impact.
+
+## Fixed-cut H1 trigger selection
+
+The arithmetic-only notebook was extended and rerun on 2026-09-22. A complete
+Linux search comparison uses the same pinned upstream source, public H1 strain,
+and pre-existing raw SNR ≥ 5.5 / NewSNR ≥ 5 settings. The 6,144-template O2 subset
+was prepared on 2026-09-20 before this investigation. Nothing was injected or
+rescaled, and all 1,904 valid seconds were processed.
+
+- The original 32-template run has 89 candidates before the cut and retains
+  77 with either kernel. Its saved SNR, chi-square, event times and template
+  identities also match the earlier original run exactly.
+- The larger run has 16,378 candidates: 14,334 retained originally and 14,335
+  with the arithmetic patch. There are **four newly retained and three newly
+  rejected events**. The same public `EventManager.newsnr_threshold` method
+  was applied to both event arrays; all prior search stages receive the
+  original CPU result.
+- All seven changed decisions agree with an independent direct complex128
+  reference, including float32 chi-square event storage. For the first changed
+  call, separate per-bin complex128 inverse FFTs agree with the direct power
+  reference within `5.55e-16` relative on the local replay.
+- The recorded original trigger HDF matches the observed original retained
+  keys. All population scores, counts and decisions were independently
+  recomputed locally; the public event-selection method reproduces both full
+  CSV populations exactly. See [verification](selection/verification.json).
+- The included observer is AST-identical to the executed Linux observer;
+  only source formatting changed. The portable reproducer's reconstructed
+  commands match the originals after path substitution, and it rejects an
+  existing output directory. The complete searches used the recorded launch
+  commands; the new convenience wrapper was checked without repeating them.
+- The revised notebook executes without cell errors, and its two plot images
+  were inspected. HTML contains the saved results and embedded figures; it
+  was checked statically. Both new Python helpers pass flake8.
+
+The Linux search used Python 3.11.9, NumPy 1.26.4, SciPy 1.13.0, Cython 3.0.6,
+LALSuite 7.21 and MKL FFTs. Source and input hashes, original commands, the full
+candidate tables, a saved crossing input and reproduction instructions are in
+[selection/](selection/README.md). Existing binary extensions were reused only
+after verifying unchanged Cython sources; that manifest is included. Archived
+comparison kernels were compiled on the Linux host. The final notebook replay
+uses the macOS environment above and labels its results separately.
+
+This establishes changed single-detector trigger output at an unchanged cut.
+Coincidence, background, false-alarm rate and detection efficiency were not
+measured. Observer/reference overhead makes these runs unsuitable as search
+performance measurements.
