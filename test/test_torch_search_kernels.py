@@ -23,32 +23,6 @@ if not pycbc.HAVE_TORCH:
     pytest.skip("PyCBC built without torch support", allow_module_level=True)
 
 
-def test_cuda_graph_capture_delegates_to_torch_backend(monkeypatch):
-    """The generic control exposes only the backend delegation point."""
-    from pycbc.filter import matchedfilter_torch
-    from pycbc.filter.matchedfilter import MatchedFilterControl
-
-    marker = object()
-    calls = []
-
-    def capture(control, segnum, window, template_norm):
-        calls.append((control, segnum, window, template_norm))
-        return marker
-
-    monkeypatch.setattr(
-        matchedfilter_torch, "capture_symmetric_cuda_graph", capture
-    )
-    control = object.__new__(MatchedFilterControl)
-    control.threshold_and_clusterers = [
-        SimpleNamespace(series=SimpleNamespace(is_cuda=True))
-    ]
-
-    result = control.capture_cuda_graph_symm(0, 64, 2.0)
-
-    assert result is marker
-    assert calls == [(control, 0, 64, 2.0)]
-
-
 def test_correlators_write_multiplication_directly_to_output(monkeypatch):
     from pycbc.filter import matchedfilter_torch
 

@@ -1047,6 +1047,17 @@ parser.add_argument('--psd-variation', action='store_true',
 parser.add_argument("--statistic-refresh-rate", type=float,
                     help="How often to refresh the statistic object, "
                          "in seconds. If omitted, no refreshing is done.")
+parser.add_argument(
+    '--enable-diffgw', '--enable-torchwave', action='store_true', default=None,
+    dest='enable_diffgw',
+    help='Enable batched waveform generation via diffgw '
+         '(default: auto on CUDA if diffgw is installed)'
+)
+parser.add_argument(
+    '--disable-diffgw', '--disable-torchwave', action='store_true', default=False,
+    dest='disable_diffgw',
+    help='Disable batched waveform generation via diffgw'
+)
 
 scheme.insert_processing_option_group(parser)
 LiveSingle.insert_args(parser)
@@ -1057,6 +1068,15 @@ mchirp_area.insert_args(parser)
 livepau.insert_live_pastro_option_group(parser)
 
 args = parser.parse_args()
+if args.enable_diffgw and args.disable_diffgw:
+    parser.error("--enable-diffgw and --disable-diffgw are mutually exclusive")
+if args.enable_diffgw is True:
+    has_provider = (
+        hasattr(waveform.FilterBank, "is_diffgw_available")
+        and waveform.FilterBank.is_diffgw_available()
+    )
+    if not has_provider:
+        parser.error("This build does not include the optional diffgw provider or diffgw is not installed")
 
 scheme.verify_processing_options(args, parser)
 fft.verify_fft_options(args, parser)
@@ -1080,17 +1100,36 @@ pycbc.init_logging(
 ctx = scheme.from_cli(args)
 fft.from_cli(args)
 
+is_torch_cuda = (
+    isinstance(ctx, scheme.TorchScheme)
+    and getattr(ctx, "torch_device", None) is not None
+    and ctx.torch_device.type == "cuda"
+)
+
 # Approximant guess of the total padding
 valid_pad = args.analysis_chunk
 total_pad = args.trim_padding * 2 + valid_pad
 lfc = None if args.enable_bank_start_frequency else args.low_frequency_cutoff
+has_diffgw = (
+    hasattr(waveform.FilterBank, "is_diffgw_available")
+    and waveform.FilterBank.is_diffgw_available()
+)
+if args.disable_diffgw:
+    enable_diffgw = False
+elif args.enable_diffgw is True:
+    enable_diffgw = True
+else:
+    enable_diffgw = bool(is_torch_cuda and has_diffgw)
 bank = waveform.LiveFilterBank(
     args.bank_file,
     args.sample_rate,
     total_pad,
     low_frequency_cutoff=lfc,
     approximant=args.approximant,
-    increment=args.increment
+    increment=args.increment,
+    **({"enable_diffgw": enable_diffgw, "enable_torchwave": enable_diffgw}
+       if (hasattr(waveform.FilterBank, "can_use_diffgw") or
+           hasattr(waveform.FilterBank, "can_use_torchwave")) else {}),
 )
 if bank.min_f_lower < args.low_frequency_cutoff:
     parser.error('--low-frequency-cutoff ({} Hz) must not be larger than the '
@@ -1144,16 +1183,29 @@ with ctx:
         bank.table.sort(order='mchirp')
         waveforms = list(bank[evnt.rank-1::evnt.size-1])
         check_max_length(args, waveforms)
-        mf = LiveBatchMatchedFilter(
-            waveforms,
-            args.snr_threshold,
-            args.chisq_bins,
-            sg_chisq,
-            snr_abort_threshold=args.snr_abort_threshold,
-            newsnr_threshold=args.newsnr_threshold,
-            max_triggers_in_batch=args.max_triggers_in_batch,
-            maxelements=args.max_batch_size
-        )
+        if isinstance(ctx, scheme.TorchScheme):
+            from pycbc.filter.gpu_search import TiledLiveBatchMatchedFilter
+            mf = TiledLiveBatchMatchedFilter(
+                waveforms,
+                args.snr_threshold,
+                args.chisq_bins,
+                sg_chisq,
+                snr_abort_threshold=args.snr_abort_threshold,
+                newsnr_threshold=args.newsnr_threshold,
+                max_triggers_in_batch=args.max_triggers_in_batch,
+                maxelements=args.max_batch_size,
+            )
+        else:
+            mf = LiveBatchMatchedFilter(
+                waveforms,
+                args.snr_threshold,
+                args.chisq_bins,
+                sg_chisq,
+                snr_abort_threshold=args.snr_abort_threshold,
+                newsnr_threshold=args.newsnr_threshold,
+                max_triggers_in_batch=args.max_triggers_in_batch,
+                maxelements=args.max_batch_size
+            )
 
     # Synchronize start time if not provided on the command line
     if not args.start_time:
