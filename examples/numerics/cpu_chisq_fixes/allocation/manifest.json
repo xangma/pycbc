@@ -1,0 +1,35 @@
+{
+  "description": "PR 5452 CPU chi-square allocator benchmark snapshots; each pyx source was compiled as a separate extension on len.",
+  "source_commits": {
+    "chisq_base.pyx": "454ee900e6faca88a066e71ade489fca9fb221a5",
+    "chisq_malloc.pyx": "698baa686ff1f5a19a7140c5c4492958b16c3c67",
+    "chisq_cache.pyx": "42218e0c775b1b10c89313c752c73ead2f4e867c",
+    "chisq_numpy.pyx": "8c96affb842687557fbb5b26f293e03b1e6b9ba0",
+    "chisq_malloc1.pyx": "scratch variant of 8c96affb842687557fbb5b26f293e03b1e6b9ba0: replace 9-row NumPy workspace with one checked C malloc/free block; same arithmetic"
+  },
+  "sha256": {
+    "chisq_malloc1.pyx": "ac82d5f9429f4cec779084d74808b955d50afa4283102f081f4234c77c7728a8",
+    "chisq_base.pyx": "f5d7129a6380a96731df4ea3d1dddbb2f534e0d03aabbc720b629b4e558f15f6",
+    "chisq_cache.pyx": "b14983f56d5fdfa2815af15acfb93aa0b562ae0ff5d1be87f6ce29ded0070fbe",
+    "chisq_malloc.pyx": "6790ef76f2704444bafe96778a1b4e9029993bfaf1d194a973efc31060ce046b",
+    "chisq_numpy.pyx": "e278493b52e97c655062022103243ed2118f1de885370b84eb8f70dae7b47f15"
+  },
+  "captured_input": {
+    "path": "../../data/point-input-05.npz",
+    "sha256": "1b824a1b7887634d8fce7e3a7c356972f417686a2a9924b59413d262592d67ce"
+  },
+  "len_run": {
+    "host": "len",
+    "cwd": "/home/xangma/tmp/chisq-pr5452-20260923",
+    "command": "taskset -c 56 python bench.py",
+    "log": "/home/xangma/tmp/chisq-pr5452-20260923/run.log",
+    "finished": "2026-09-23",
+    "cpu_affinity": 56
+  },
+  "len_result_sha256": {
+    "len_timings.csv": "1baca61a64e01c9ad8a07aec80dc4b10b4f07e87ba55df8e6a0db35462f7ad01",
+    "len_paired_ratios.csv": "3706d8342e560740e88983e21b032c848550d44b24c3fd40a2a9cb916453ca15",
+    "len_environment.json": "87a1ca4e43ee17db828eb7a3be0d5bfa71a4842be228318e98d8e630b436054e",
+    "len_run.log": "19fc3b97cbb5ef3d062f16dc56131e076f0504ad437b547f9976f820b5d9b7d1"
+  }
+}

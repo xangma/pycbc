@@ -1,0 +1,24 @@
+{
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.39",
+  "python": "3.11.9 | packaged by conda-forge | (main, Apr 19 2024, 18:36:13) [GCC 12.3.0]",
+  "numpy": "1.26.4",
+  "compiler": "c++ (Ubuntu 12.4.0-2ubuntu1~24.04.1) 12.4.0",
+  "shapes": [
+    "short:4096",
+    "uniform:1048576",
+    "captured:1048576",
+    "wide:4194304"
+  ],
+  "variants": {
+    "base": "454ee900e6faca88a066e71ade489fca9fb221a5",
+    "malloc": "698baa686ff1f5a19a7140c5c4492958b16c3c67",
+    "malloc1": "scratch variant of 8c96aff: one contiguous checked C allocation",
+    "cache": "42218e0c7",
+    "numpy": "8c96affb842687557fbb5b26f293e03b1e6b9ba0"
+  },
+  "batches": 9,
+  "repeats_short": 30,
+  "repeats_other": 2,
+  "statistic": "median and IQR of 9 interleaved batches; ratios are median paired ratios",
+  "scope": "shift_sum CPU kernel; construction excluded; source outputs checked to rtol=1e-12, atol=1e-10 across double variants"
+}

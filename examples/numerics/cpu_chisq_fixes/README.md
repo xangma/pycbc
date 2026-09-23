@@ -23,6 +23,7 @@ need network access. [Open the HTML index](index.html).
 | Can small additions disappear? | [Accumulation](accumulation.ipynb) | [Read](accumulation.html) | Same arithmetic fix; separate controlled evidence |
 | What does double working precision change on recorded H1 data? | [Arithmetic replay](arithmetic_real_data.ipynb) | [Read](arithmetic_real_data.html) | Double working arithmetic only |
 | How do all three patches interact? | [Combined replay](real_data.ipynb) | [Read](real_data.html) | Supplementary comparison of each patch and their combination |
+| Is the PR's NumPy workspace allocation fast enough on len? | [Allocation benchmark](allocation.ipynb) | [Read](allocation.html) | PR #5452 allocator discussion; five compiled variants |
 
 The arithmetic patch promotes phases, products, within-bin sums and total power
 together. The phase and zero-phase accumulation examples isolate mechanisms;
@@ -62,6 +63,18 @@ points on this Mac, double working arithmetic costs about **1.41×** upstream
 kernel time. Ratios vary with shape and point count; the full
 [benchmark](benchmark.csv) covers both dtypes and 1/2/5 points.
 These are kernel timings, not search-throughput measurements.
+
+The [len allocation notebook](allocation.ipynb) answers the separate PR #5452
+workspace-allocation question for the affected **complex64 input path**. The
+kernel still accepts complex64 while its working arithmetic is double precision.
+On len, direct NumPy allocation was within 1% of a controlled one-block C
+malloc for the million- and four-million-sample cases; for 4,096 samples it
+was 3.6–3.9% slower (about 1 µs). The notebook includes complex128 timings as
+a control, plus paired results, exact source snapshots and a rerun script in
+[allocation/](allocation/). This is a kernel comparison on one host, not a
+search-throughput benchmark. The older eight-malloc commit is shown as context
+but also changes accumulator representation, so it is not an isolated allocator
+comparison.
 
 ## Reproduce
 

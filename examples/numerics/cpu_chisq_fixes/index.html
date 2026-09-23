@@ -12,7 +12,7 @@ th, td { text-align: left; padding: 12px; border-bottom: 1px solid #dce2e7; }
 .note { padding: 16px 20px; background: #eef3f7; border-radius: 6px; }
 </style>
 <h1>PyCBC CPU chi-square numerical fixes</h1>
-<p>Six short, executed notebooks explain three independent fixes. Each starts
+<p>Seven short, executed notebooks explain three independent fixes and a PR allocation benchmark. Each starts
 with the calculation and its assumptions. The examples use compiled PyCBC CPU
 kernels; the real-data replay holds the rest of the search inputs fixed.</p>
 <table>
@@ -23,6 +23,7 @@ kernels; the real-data replay holds the rest of the search inputs fixed.</p>
 <tr><td><a href="accumulation.html">Accumulation</a></td><td>Can small additions disappear at zero phase?</td></tr>
 <tr><td><a href="arithmetic_real_data.html">Double precision on recorded H1 data</a></td><td>What does double working precision change by itself?</td></tr>
 <tr><td><a href="real_data.html">Supplementary combined replay</a></td><td>How do all three patches interact?</td></tr>
+<tr><td><a href="allocation.html">Allocation benchmark on len</a></td><td>Is direct NumPy workspace allocation fast enough for PR #5452?</td></tr>
 </table>
 <p class="note">The selected H1 replay shows a smaller chi-square error and a
 change in reweighted SNR. No captured candidate crosses the selection threshold.
