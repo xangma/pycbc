@@ -205,24 +205,22 @@ def power_chisq_bins(
     )
     tensor = _torch_tensor(htilde)
     if tensor is not None and tensor.is_cuda:
-        import torch
-
-        # Compute power spectrum and equal-power bins directly on CUDA to eliminate
-        # host synchronization round-trips while preserving double-precision bin accuracy.
+        # The reference bins use NumPy's serial scan in the waveform's real
+        # precision. A parallel CUDA scan (even in float32) can move bin edges
+        # because its additions occur in a different order. Copy only the
+        # frequency band needed to place the edges.
         psd_tensor = _torch_tensor(psd) if psd is not None else None
-        mag = tensor[kmin:kmax].abs().square()
+        waveform = tensor[kmin:kmax].detach().cpu().numpy()
+        mag = waveform.real**2 + waveform.imag**2
         if psd_tensor is not None:
-            mag = mag / psd_tensor[kmin:kmax]
+            mag /= psd_tensor[kmin:kmax].detach().cpu().numpy()
 
-        cumsum = torch.cumsum(mag.to(torch.float64), dim=0)
-        sigmasq = cumsum[-1]
-        edge_vec = (
-            torch.arange(num_bins, dtype=torch.float64, device=tensor.device)
-            * sigmasq
-            / num_bins
+        cumulative = mag.cumsum()
+        cumulative *= 4.0 * htilde.delta_f
+        bins = power_chisq_bins_from_sigmasq_series(
+            cumulative, num_bins, 0, kmax - kmin
         )
-        bins = torch.searchsorted(cumsum, edge_vec, right=True) + kmin
-        return numpy.asarray([*bins.to(device="cpu").tolist(), kmax], dtype=numpy.int64)
+        return bins + kmin
 
     sigma_vec = sigmasq_series(htilde, psd, low_frequency_cutoff, high_frequency_cutoff)
     return power_chisq_bins_from_sigmasq_series(sigma_vec, num_bins, kmin, kmax)

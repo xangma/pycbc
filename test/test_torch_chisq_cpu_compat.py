@@ -93,3 +93,60 @@ def test_search_compatibility_rejects_special_storage(kind, field):
     assert _search_compat_point_chisq(
         values["corr"], values["points"], (0, 13, 31), values["snr"], 0.117311
     ) is None
+
+
+@pytest.mark.parametrize("device", ("cpu", "cuda"))
+def test_uint32_batch_indices_use_unchanged_cpu_statistic(device, monkeypatch):
+    """Batch peak indices have uint32 storage and retain CPU chi-square."""
+    from pycbc.vetoes import chisq_torch
+
+    if device == "cuda" and not torch.cuda.is_available():
+        pytest.skip("CUDA unavailable")
+
+    rng = np.random.default_rng(92331)
+    size = 8192
+    values = (rng.normal(size=size) + 1j * rng.normal(size=size)).astype(
+        np.complex64
+    )
+    points = np.array([size - 3, 4723, 101, 2**24 + 1], dtype=np.uint32)
+    snr = (
+        rng.normal(size=len(points)) + 1j * rng.normal(size=len(points))
+    ).astype(np.complex64)
+    bins = (19, 927, 2391, 6157, size - 21)
+    norm = 0.117311
+    expected = power_chisq_at_points_from_precomputed(
+        FrequencySeries(values, delta_f=0.125), snr, norm, bins, points
+    )
+
+    def fail_generic(*args, **kwargs):
+        raise AssertionError(
+            "uint32 batch indices bypassed the compatibility route"
+        )
+
+    with scheme.TorchScheme(device):
+        corr = FrequencySeries(values, delta_f=0.125)
+        monkeypatch.setattr(chisq_torch, "_cpu_native_point_chisq", fail_generic)
+        actual = power_chisq_at_points_from_precomputed(
+            corr, TorchArrayData(torch.as_tensor(snr, device=device)), norm,
+            bins, points
+        )._data.tensor.cpu().numpy()
+
+    if device == "cpu":
+        np.testing.assert_array_equal(actual, expected)
+    else:
+        np.testing.assert_allclose(actual, expected, rtol=1e-4, atol=1e-5)
+
+
+def test_cuda_point_adapter_rounds_uint32_indices_like_cpu():
+    """Check the CUDA adapter's shift conversion without requiring a GPU."""
+    from pycbc.vetoes.chisq_torch import _cuda_exact_point_chisq
+
+    class RecordingModule:
+        def launch_chisq_fast(self, corr, points, starts, ends):
+            np.testing.assert_array_equal(points.numpy(), [2**24])
+            return torch.zeros((1, len(starts)), dtype=torch.float32)
+
+    corr = torch.zeros(32, dtype=torch.complex64)
+    points = np.array([2**24 + 1], dtype=np.uint32)
+    snr = torch.zeros(1, dtype=torch.complex64)
+    _cuda_exact_point_chisq(RecordingModule(), corr, points, (0, 16, 32), snr, 1.0)

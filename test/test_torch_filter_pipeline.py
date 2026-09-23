@@ -280,7 +280,7 @@ def test_findchirp_threshold_copies_only_torch_survivors(
     assert series._data.tensor.device.type == device
 
 
-def test_power_chisq_bins_stay_on_device(torch_device_ctx, monkeypatch):
+def test_power_chisq_bins_match_reference(torch_device_ctx):
     ctx, device = torch_device_ctx
     htilde_values = np.ones(513, dtype=np.complex64)
     psd_values = np.ones(513, dtype=np.float32)
@@ -300,22 +300,44 @@ def test_power_chisq_bins_stay_on_device(torch_device_ctx, monkeypatch):
     with ctx:
         htilde = FrequencySeries(htilde_values, delta_f=1)
         psd = FrequencySeries(psd_values, delta_f=1)
-        with monkeypatch.context() as patch:
-            def _reject_host_transfer(_self):
-                raise AssertionError("chi-squared bins copied data to host")
+        actual = chisq.power_chisq_bins(
+            htilde,
+            parameters["num_bins"],
+            psd,
+            parameters["low_frequency_cutoff"],
+            parameters["high_frequency_cutoff"],
+        )
 
-            def _reject_numpy_search(*_args, **_kwargs):
-                raise AssertionError("chi-squared bins used NumPy searchsorted")
+    np.testing.assert_array_equal(actual, expected)
+    assert htilde._data.tensor.device.type == device
 
-            patch.setattr(TorchArrayData, "numpy", _reject_host_transfer)
-            patch.setattr(chisq.numpy, "searchsorted", _reject_numpy_search)
-            actual = chisq.power_chisq_bins(
-                htilde,
-                parameters["num_bins"],
-                psd,
-                parameters["low_frequency_cutoff"],
-                parameters["high_frequency_cutoff"],
-            )
+
+def test_cuda_power_chisq_bins_match_serial_float32_scan():
+    if not torch.cuda.is_available():
+        pytest.skip("Torch CUDA device unavailable")
+
+    delta_f = 1 / 512
+    frequencies = np.arange(1048577) * delta_f
+    low, high = 30.0, 1999.0
+    amplitude = (np.maximum(frequencies, low) / low) ** (-7 / 6)
+    waveform = (amplitude * np.exp(0.2j * frequencies)).astype(np.complex64)
+    psd_values = (1 + (frequencies / 300) ** 2).astype(np.float32)
+
+    expected = chisq.power_chisq_bins(
+        FrequencySeries(waveform, delta_f=delta_f),
+        16,
+        FrequencySeries(psd_values, delta_f=delta_f),
+        low,
+        high,
+    )
+    with scheme.TorchScheme("cuda", num_threads=1):
+        actual = chisq.power_chisq_bins(
+            FrequencySeries(waveform, delta_f=delta_f),
+            16,
+            FrequencySeries(psd_values, delta_f=delta_f),
+            low,
+            high,
+        )
 
     np.testing.assert_array_equal(actual, expected)
 

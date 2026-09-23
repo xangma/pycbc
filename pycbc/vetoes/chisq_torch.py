@@ -577,7 +577,13 @@ def _cuda_exact_point_chisq(cuda_mod, corr, points, bin_edges, snr, snr_norm):
     if isinstance(points, torch.Tensor):
         pts = points.to(device=device, dtype=torch.int64)
     else:
-        pts = torch.as_tensor(points, device=device, dtype=torch.int64)
+        # The CPU kernel first rounds uint32 search indices to float32 shifts.
+        # Preserve that rounding before the CUDA kernel reads int64 points.
+        if type(points) is np.ndarray and points.dtype == np.uint32:
+            points = points.astype(np.float32).astype(np.int64)
+        else:
+            points = np.asarray(points, dtype=np.int64)
+        pts = torch.as_tensor(points, device=device)
 
     P = pts.numel()
     if P == 0:
@@ -619,7 +625,9 @@ def _search_compat_point_chisq(corr, points, bin_edges, snr, snr_norm):
         and _search_compat_array_eligible(corr, (), (torch.complex64,))
         and _search_compat_array_eligible(
             points,
-            (np.dtype(np.int64), np.dtype(np.float64)),
+            # The batched search adapter supplies contiguous uint32 indices.
+            # The unchanged CPU kernel casts all three types to float32 shifts.
+            (np.dtype(np.uint32), np.dtype(np.int64), np.dtype(np.float64)),
             (torch.int64, torch.float64),
         )
         and _search_compat_array_eligible(
