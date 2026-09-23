@@ -43,6 +43,7 @@ from pycbc.types.backend import (
     is_backend,
     wrap_backend_array,
 )
+from pycbc.types.torch_compat import cpu_compatible, cpu_context
 
 
 class _TorchModuleProxy:
@@ -651,6 +652,27 @@ def highpass(timeseries, frequency, filter_order=8, attenuation=0.1):
         delta_t=lal_data.deltaT,
         dtype=timeseries.dtype,
         epoch=timeseries._epoch,
+    )
+
+
+def _highpass_cpu_compatible(timeseries, frequency, filter_order=8,
+                             attenuation=0.1):
+    """Use LAL arithmetic for ordinary Torch search conditioning arrays."""
+    if not (_HAVE_TORCH and is_backend(timeseries, "torch")
+            and cpu_compatible(timeseries)):
+        return highpass(timeseries, frequency, filter_order, attenuation)
+
+    # A few ulps in conditioned strain can move a later chi-square bin edge.
+    # Keep generic highpass native for all other Torch callers.
+    values = timeseries.numpy().copy()
+    with cpu_context():
+        host = TimeSeries(
+            values, delta_t=timeseries.delta_t, epoch=timeseries.start_time
+        )
+        filtered = highpass(host, frequency, filter_order, attenuation)
+        values = filtered.numpy().copy()
+    return TimeSeries(
+        values, delta_t=timeseries.delta_t, epoch=timeseries.start_time
     )
 
 

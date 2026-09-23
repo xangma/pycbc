@@ -34,6 +34,7 @@ import pycbc.types
 from pycbc import scheme as _scheme
 from pycbc.fft import FFT, IFFT
 from pycbc.filter import highpass, lowpass, make_frequency_series, resample_to_delta_t
+from pycbc.filter.resample import _highpass_cpu_compatible
 from pycbc.filter.zpk import filter_zpk
 from pycbc.inject import InjectionSet, SGBurstInjectionSet
 from pycbc.types import (
@@ -69,6 +70,19 @@ except AttributeError:
     _HAVE_TORCH = False
 
 logger = logging.getLogger("pycbc.strain.strain")
+
+
+def _search_highpass(strain, frequency, native_gpu_conditioning):
+    """Select LAL rounding for ordinary Torch search compatibility mode."""
+    if native_gpu_conditioning is None:
+        state = _scheme.mgr.state
+        native_gpu_conditioning = (
+            isinstance(state, _scheme.TorchScheme)
+            and state.torch_device.type == "cuda"
+        )
+    if native_gpu_conditioning is False and cpu_compatible(strain):
+        return _highpass_cpu_compatible(strain, frequency=frequency)
+    return highpass(strain, frequency=frequency)
 
 
 def _hann_window_for_series(series, length):
@@ -564,7 +578,13 @@ def from_cli(opt, dyn_range_fac=1, precision="single", inj_filter_rejector=None)
 
         if opt.strain_high_pass:
             logger.info("Highpass Filtering")
-            strain = highpass(strain, frequency=opt.strain_high_pass)
+            strain = _search_highpass(
+                strain,
+                frequency=opt.strain_high_pass,
+                native_gpu_conditioning=getattr(
+                    opt, "native_gpu_conditioning", None
+                ),
+            )
 
         if opt.strain_low_pass:
             logger.info("Lowpass Filtering")
