@@ -100,9 +100,10 @@ numpy.seterr(divide='ignore', invalid='ignore')
 
 # get scheme
 ctx = scheme.from_cli(opts)
-fft.from_cli(opts)
 
 with ctx:
+    # FFT backend options apply to the active processing scheme.
+    fft.from_cli(opts)
 
     # read configuration file
     cp_original = configuration.WorkflowConfigParser.from_cli(opts)
