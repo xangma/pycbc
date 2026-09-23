@@ -75,6 +75,8 @@ a control, plus paired results, exact source snapshots and a rerun script in
 search-throughput benchmark. The older eight-malloc commit is shown as context
 but also changes accumulator representation, so it is not an isolated allocator
 comparison.
+Those sample counts are correlation lengths; the workspace itself is only
+72–360 bytes for the tested 1/2/5 selected points.
 
 ## Reproduce
 
