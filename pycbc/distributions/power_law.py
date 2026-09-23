@@ -159,6 +159,9 @@ class UniformPowerLaw(bounded.BoundedDist):
         for p in self._params:
             if p not in kwargs.keys():
                 raise ValueError("Missing parameter {} to construct pdf.".format(p))
+        torch, _ = bounded._torch_module_and_reference(kwargs.values())
+        if torch is not None:
+            return torch.exp(self._logpdf(**kwargs))
         if kwargs in self:
             pdf = self._norm * numpy.prod(
                 [(kwargs[p]) ** (self.dim - 1) for p in self._params]
@@ -175,7 +178,19 @@ class UniformPowerLaw(bounded.BoundedDist):
         for p in self._params:
             if p not in kwargs.keys():
                 raise ValueError("Missing parameter {} to construct pdf.".format(p))
-        if kwargs in self:
+        contained = self.__contains__(kwargs)
+        torch, reference = bounded._torch_module_and_reference(kwargs.values())
+        if torch is not None:
+            one = bounded._torch_as_tensor(1.0, reference)
+            log_pdf = bounded._torch_as_tensor(self._lognorm, reference)
+            for param in self._params:
+                value = kwargs[param]
+                if not isinstance(value, torch.Tensor):
+                    value = bounded._torch_as_tensor(value, reference)
+                safe_value = torch.where(contained, value, one)
+                log_pdf = log_pdf + (self.dim - 1) * torch.log(safe_value)
+            return bounded._torch_where(kwargs, contained, log_pdf, -numpy.inf)
+        if contained:
             log_pdf = (
                 self._lognorm
                 + (self.dim - 1) * numpy.log([kwargs[p] for p in self._params]).sum()
