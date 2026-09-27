@@ -19,23 +19,34 @@ from pycbc.psd.analytical import *
 from pycbc.psd.analytical_space import *
 from pycbc.psd.estimate import *
 from pycbc.psd.variation import *
-from pycbc import HAVE_JAX
-if HAVE_JAX:
-    from pycbc.psd.analytical_jax import (  # noqa: F401
-        analytical_psd_jax,
-        get_jax_psd_list,
-    )
-    from pycbc.psd.estimate_jax import (  # noqa: F401
-        welch_jax,
-        inverse_spectrum_truncation_jax,
-        interpolate_jax,
-    )
 from pycbc.types import float32,float64
 from pycbc.types import MultiDetOptionAction
 from pycbc.types import DictOptionAction, MultiDetDictOptionAction
 from pycbc.types import copy_opts_for_single_ifo
 from pycbc.types import required_opts, required_opts_multi_ifo
 from pycbc.types import ensure_one_opt, ensure_one_opt_multi_ifo
+from pycbc import HAVE_JAX
+
+_JAX_EXPORTS = {
+    "analytical_psd_jax": ("pycbc.psd.analytical_jax", "analytical_psd_jax"),
+    "get_jax_psd_list": ("pycbc.psd.analytical_jax", "get_jax_psd_list"),
+    "welch_jax": ("pycbc.psd.estimate_jax", "welch_jax"),
+    "inverse_spectrum_truncation_jax": (
+        "pycbc.psd.estimate_jax", "inverse_spectrum_truncation_jax",
+    ),
+    "interpolate_jax": ("pycbc.psd.estimate_jax", "interpolate_jax"),
+}
+
+
+def __getattr__(name):
+    """Load optional JAX PSD APIs only when they are requested."""
+    target = _JAX_EXPORTS.get(name)
+    if target is None or not HAVE_JAX:
+        raise AttributeError(name)
+    import importlib
+    value = getattr(importlib.import_module(target[0]), target[1])
+    globals()[name] = value
+    return value
 
 def from_cli(opt, length, delta_f, low_frequency_cutoff,
              strain=None, dyn_range_factor=1, precision=None):
@@ -138,7 +149,9 @@ def from_cli(opt, length, delta_f, low_frequency_cutoff,
                             seg_len=int(opt.psd_segment_length * sample_rate + 0.5),
                             seg_stride=int(opt.psd_segment_stride * sample_rate + 0.5),
                             num_segments=opt.psd_num_segments,
-                            require_exact_data_fit=False)
+                            require_exact_data_fit=False,
+                            wide_fft=(precision == 'single'
+                                      and bool(opt.psd_inverse_length)))
             if delta_f != psd.delta_f:
                 psd = interpolate_jax(psd, delta_f, length=length)
         else:
@@ -687,3 +700,10 @@ def associate_psds_to_multi_ifo_segments(opt, fd_segments, gwstrain, flen,
         associate_psds_to_single_ifo_segments(opt, segments, strain, flen,
                 delta_f, flow, ifo, dyn_range_factor=dyn_range_factor,
                 precision=precision)
+
+
+# Keep the historical ``from pycbc.psd import *`` API without importing the
+# optional JAX implementations while the module is initialized.
+if HAVE_JAX:
+    __all__ = [name for name in globals() if not name.startswith('_')]
+    __all__.extend(name for name in _JAX_EXPORTS if name not in __all__)

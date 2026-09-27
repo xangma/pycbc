@@ -946,25 +946,16 @@ class FDomainDetFrameGenerator(BaseFDomainDetFrameGenerator):
                     h[detname] = series
             else:
                 for detname, det in self.detectors.items():
-                    offset = _detector_time_offset(det, ref_tc, ra, dec, refframe)
-                    tc, dt = _arrival_time_and_shift(
-                        ref_tc, offset, self._epoch, tshift
-                    )
+                    tc = det.arrival_time(ref_tc, ra, dec, refframe)
                     # Evaluate the detector tensor at the arrival time.  The
                     # sidereal response changes between the reference and
                     # detector-frame times, even though the difference is
                     # normally only milliseconds.
                     fp, fc = det.antenna_pattern(ra, dec, pol, tc)
                     thish = fp * hp + fc * hc
-                    # FrequencySeries waveforms already carry ``self._epoch``.
-                    # Apply the centered shift directly so that subtracting two
-                    # large GPS values does not discard detector-delay precision.
-                    # Arbitrary-frequency waveforms still require the absolute
-                    # time API because their frequencies are supplied separately.
-                    if isinstance(thish, FrequencySeries):
-                        h[detname] = apply_fseries_time_shift(thish, dt, copy=False)
-                    else:
-                        h[detname] = apply_fd_time_shift(thish, tc + tshift, copy=False)
+                    h[detname] = apply_fd_time_shift(
+                        thish, tc + tshift, copy=False
+                    )
                     if self.recalib:
                         # recalibrate with given calibration model
                         h[detname] = self.recalib[detname].map_to_adjust(

@@ -41,6 +41,7 @@ from pycbc.fft import FFT, IFFT
 import pycbc.events
 import pycbc.frame
 import pycbc.filter
+from pycbc import scheme
 
 logger = logging.getLogger('pycbc.strain.strain')
 
@@ -98,6 +99,16 @@ def detect_loud_glitches(strain, psd_duration=4., psd_stride=2.,
     output_intermediates : {bool, False}
         Save intermediate time series for debugging.
     """
+
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from .strain_jax import detect_loud_glitches_jax
+        result = detect_loud_glitches_jax(
+            strain, psd_duration=psd_duration, psd_stride=psd_stride,
+            psd_avg_method=psd_avg_method, low_freq_cutoff=low_freq_cutoff,
+            threshold=threshold, cluster_window=cluster_window,
+            corrupt_time=corrupt_time, high_freq_cutoff=high_freq_cutoff,
+            output_intermediates=output_intermediates)
+        return result[0] if isinstance(result, tuple) else result
 
     if high_freq_cutoff:
         strain = resample_to_delta_t(strain, 0.5 / high_freq_cutoff,
@@ -1029,6 +1040,10 @@ def gate_data(data, gate_params):
     data: TimeSeries
         The gated time series.
     """
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from pycbc.strain.strain_jax import gate_data_jax
+        return gate_data_jax(data, gate_params)
+
     def inverted_tukey(M, n_pad):
         midlen = M - 2*n_pad
         if midlen < 0:
@@ -1228,26 +1243,8 @@ class StrainSegments(object):
                 )
             )
             if can_batch:
-                import jax.numpy as jnp
-                from pycbc.types.array_jax import JAXArrayData, to_jax
-                strain_data = to_jax(self.strain)
-                stacked = jnp.stack(
-                    [strain_data[s] for s in self.segment_slices], axis=0
-                )
-                fft_jax = jnp.fft.rfft(stacked, axis=-1) * float(self.strain.delta_t)
-                self._fourier_segments = []
-                for i, (seg_slice, ana) in enumerate(zip(self.segment_slices, self.analyze_slices)):
-                    epoch = self.strain[seg_slice]._epoch
-                    freq_seg = pycbc.types.FrequencySeries(
-                        JAXArrayData(fft_jax[i]),
-                        delta_f=self.delta_f,
-                        epoch=epoch,
-                        copy=False,
-                    )
-                    freq_seg.analyze = ana
-                    freq_seg.cumulative_index = seg_slice.start + ana.start
-                    freq_seg.seg_slice = seg_slice
-                    self._fourier_segments.append(freq_seg)
+                from .strain_jax import fourier_segments_jax
+                self._fourier_segments = fourier_segments_jax(self)
                 return self._fourier_segments
 
             self._fourier_segments = []
@@ -1481,6 +1478,10 @@ def execute_cached_fft(invec_data, normalize_by_rate=True, ifft=False,
         of memory in the cache, for instance if calling this from different
         codes.
     """
+    if isinstance(scheme.mgr.state, scheme.JAXScheme):
+        from pycbc.strain.strain_jax import execute_fft_jax
+        return execute_fft_jax(invec_data, normalize_by_rate, ifft)
+
     from pycbc.types import real_same_precision_as
     if ifft:
         npoints_time = (len(invec_data) - 1) * 2
@@ -1554,6 +1555,7 @@ def execute_cached_ifft(*args, **kwargs):
 STRAINBUFFER_UNIQUE_ID_1 = 236546845
 STRAINBUFFER_UNIQUE_ID_2 = 778946541
 STRAINBUFFER_UNIQUE_ID_3 = 665849947
+
 
 class StrainBuffer(pycbc.frame.DataBuffer):
     def __init__(self, frame_src, channel_name, start_time,
@@ -1824,7 +1826,17 @@ class StrainBuffer(pycbc.frame.DataBuffer):
         seg_len = int(self.sample_rate * self.psd_segment_length)
         e = len(self.strain)
         s = e - (self.psd_samples + 1) * seg_len // 2
-        psd = pycbc.psd.welch(self.strain[s:e], seg_len=seg_len, seg_stride=seg_len//2)
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            from pycbc.psd.estimate_jax import welch_jax
+            # Keep live's float32 PSD storage while carrying the FFT and
+            # averaging in float64. This is more accurate at fixed strain.
+            psd = welch_jax(self.strain[s:e], seg_len=seg_len,
+                            seg_stride=seg_len//2, wide_fft=True)
+            if self.strain.dtype == numpy.float32:
+                psd = psd.astype(numpy.float32)
+        else:
+            psd = pycbc.psd.welch(self.strain[s:e], seg_len=seg_len,
+                                  seg_stride=seg_len//2)
 
         psd.dist = spa_distance(psd, 1.4, 1.4, self.low_frequency_cutoff) * pycbc.DYN_RANGE_FAC
 

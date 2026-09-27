@@ -198,11 +198,18 @@ class MarginalizedPhaseGaussianNoise(GaussianNoise):
                 hd_i = 0j
             else:
                 slc = slice(self._kmin[det], kmax)
-                hd_i, hh_i = _fused_inner_hd_hh(
-                    h[slc],
-                    self._whitened_data[det][slc],
-                    weight=self._weight[det][slc],
-                )
+                hslc = h[slc]
+                dslc = self._whitened_data[det][slc]
+                wslc = self._weight[det][slc]
+                if (_jax_array(hslc) is not None or
+                        _jax_array(dslc) is not None or
+                        _jax_array(wslc) is not None):
+                    hd_i, hh_i = _fused_inner_hd_hh(
+                        hslc, dslc, weight=wslc)
+                else:
+                    hslc *= wslc
+                    hh_i = hslc.inner(hslc).real
+                    hd_i = hslc.inner(dslc)
             # store
             setattr(self._current_stats, "{}_optimal_snrsq".format(det), hh_i)
             hh += hh_i
@@ -214,7 +221,8 @@ class MarginalizedPhaseGaussianNoise(GaussianNoise):
             self._current_stats.maxl_phase = jnp.angle(hd_jax)
         else:
             self._current_stats.maxl_phase = numpy.angle(hd)
-        return marginalize_likelihood(hd, hh, phase=True, skip_vector=True)
+        return marginalize_likelihood(
+            hd, hh, phase=True, skip_vector=hd_jax is not None)
 
     def _batched_loglr(self, *args, **params):
         r"""Computes the phase-marginalized log likelihood ratio for a batch of
@@ -978,17 +986,24 @@ class MarginalizedHMPolPhase(BaseGaussianNoise):
             hchc = 0.0
             hphc = 0.0
             for m, zeta in zetas.items():
-                phase_coeff = self.phase_fac(m, phase)
+                phase_coeff = (self.phase_fac(m) if phase is self.phase
+                               else self.phase_fac(m, phase))
 
                 # <h+, d> = (exp[i m phi] * zeta).real()
                 # <hx, d> = -(exp[i m phi] * zeta).imag()
                 cosm = phase_coeff.real
                 sinm = phase_coeff.imag
-                hpd += cosm * zeta.real - sinm * zeta.imag
-                hcd -= cosm * zeta.imag + sinm * zeta.real
+                if _jax_array(phase_coeff) is not None:
+                    hpd += cosm * zeta.real - sinm * zeta.imag
+                    hcd -= cosm * zeta.imag + sinm * zeta.real
+                else:
+                    z = phase_coeff * zeta
+                    hpd += z.real
+                    hcd -= z.imag
 
                 for mprime in zetas:
-                    pcprime = self.phase_fac(mprime, phase)
+                    pcprime = (self.phase_fac(mprime) if phase is self.phase
+                               else self.phase_fac(mprime, phase))
 
                     cosmprime = pcprime.real
                     sinmprime = pcprime.imag

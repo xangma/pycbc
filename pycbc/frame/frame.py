@@ -36,6 +36,18 @@ from pycbc.types import TimeSeries, zeros
 
 logger = logging.getLogger('pycbc.frame.frame')
 
+
+def replay_clock_enabled():
+    """Return whether frame reads are driven by a historical replay clock.
+
+    A live search normally uses wall-clock GPS time to decide when a missing
+    frame is late.  That rule is wrong for cached historical data: the frame
+    can be years behind the current GPS time even when the replay is healthy.
+    The executable enables this mode explicitly with ``PYCBC_REPLAY_CLOCK``.
+    """
+    value = os.environ.get("PYCBC_REPLAY_CLOCK", "")
+    return value.lower() in {"1", "true", "yes", "on"}
+
 # map LAL series types to corresponding functions and Numpy types
 _fr_type_map = {
     lal.S_TYPE_CODE: [
@@ -691,6 +703,13 @@ class DataBuffer(object):
                     self.update_cache_by_increment(blocksize)
                 return DataBuffer.advance(self, blocksize)
             except RuntimeError:
+                # Historical replay must never compare a cached frame's GPS
+                # epoch with the host's current GPS clock.  Missing cached
+                # input is reported immediately, while a live search retains
+                # its normal retry-until-timeout behavior.
+                if replay_clock_enabled():
+                    self.null_advance(blocksize)
+                    return None
                 if pycbc.gps_now() > timeout + self.raw_buffer.end_time:
                     # The frame is not there and it should be by now,
                     # so we give up and treat it as zeros
@@ -977,6 +996,7 @@ class iDQBuffer(object):
 
 
 __all__ = [
+    'replay_clock_enabled',
     'locations_to_cache',
     'read_frame',
     'query_and_read_frame',

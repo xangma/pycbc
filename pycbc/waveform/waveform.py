@@ -244,6 +244,10 @@ def _lalsim_fd_waveform(**p):
         native_waveform = try_jax_native_waveform("fd", p)
         if native_waveform is not None:
             return native_waveform
+        raise ValueError(
+            f"JAX waveform generation does not support approximant "
+            f"{p.get('approximant')!r}"
+        )
     lal_pars = _check_lal_pars(p)
     hp1, hc1 = lalsimulation.SimInspiralChooseFDWaveform(
                float(pnutils.solar_mass_to_kg(p['mass1'])),
@@ -495,6 +499,10 @@ def _lalsim_fd_sequence(**p):
         native_waveform = try_jax_native_waveform("sequence", p)
         if native_waveform is not None:
             return native_waveform
+        raise ValueError(
+            f"JAX waveform generation does not support approximant "
+            f"{p.get('approximant')!r}"
+        )
     lal_pars = _check_lal_pars(p)
     hp, hc = lalsimulation.SimInspiralChooseFDWaveformSequence(
                float(p['coa_phase']),

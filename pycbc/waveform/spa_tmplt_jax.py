@@ -14,6 +14,37 @@ import jax.numpy as jnp
 from pycbc.constants import PI, PI_4, TWOPI, LN2
 from pycbc.types import Array as PyCBCArray
 from pycbc.types.array_jax import JAXArrayData, _ensure_x64, to_jax
+from pycbc.vetoes.chisq_jax import (
+    _ordered_cumsum,
+    _weighted_power_divide,
+)
+
+
+def spa_tmplt_norm(psd, length, delta_f, f_lower):
+    """Return the cumulative SPA norm without leaving the JAX device.
+
+    The CPU implementation intentionally forms the preconditioner, quotient,
+    and cumulative sum in float32, then stores the scaled cumulative vector in
+    float64.  Preserve those boundaries here; enabling JAX x64 must not alter
+    the native SPA norm algorithm.
+    """
+    _ensure_x64()
+    k_min = int(f_lower / delta_f)
+    frequencies = jnp.arange(1, length + 1, dtype=jnp.float64) * delta_f
+    amp = (frequencies ** (-7. / 6.)).astype(jnp.float32)
+    psd_j = to_jax(psd)
+    power = amp[k_min:length] ** 2
+    if psd_j.dtype == jnp.float32:
+        values = _weighted_power_divide(power, psd_j[k_min:length])
+    else:
+        values = power / psd_j[k_min:length]
+    cumulative = _ordered_cumsum(values)
+    scaled = cumulative * 4.0
+    scaled = scaled * delta_f
+    result = jnp.zeros(length, dtype=jnp.float64)
+    result = result.at[k_min:length].set(
+        scaled.astype(jnp.float64))
+    return result
 
 
 def _jax_native_spa(

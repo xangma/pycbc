@@ -58,16 +58,65 @@ def median_bias(n):
     return ans
 
 
+def _median_bias_numpy_compat(values, num_segments):
+    """Divide a PSD median with native NumPy's float32 scalar rounding.
+
+    Round the bias to the PSD dtype before widening the division. This avoids
+    XLA's float32 reciprocal multiplication on CUDA and inside fused kernels.
+    Public entry points enable x64; the result retains its input precision.
+    """
+    bias = median_bias(num_segments)
+    if values.dtype != jnp.float32:
+        return values / bias
+    denominator = jnp.asarray(bias, dtype=values.dtype).astype(jnp.float64)
+    return (values.astype(jnp.float64) / denominator).astype(values.dtype)
+
+
+def _power_half_numpy_compat(values):
+    """Match the square root used by NumPy ndarray ``** 0.5``.
+
+    NumPy special-cases this scalar exponent. Widen the JAX square root
+    before rounding back to preserve complex64 inverse-ASD values on CUDA.
+    The FFT inputs and outputs retain their original precision.
+    """
+    wide_dtype = jnp.result_type(values.dtype, jnp.complex128)
+    return jnp.sqrt(values.astype(wide_dtype)).astype(values.dtype)
+
+
+def _reciprocal_numpy_compat(values):
+    """Compute float32 reciprocals with NumPy's rounded result.
+
+    Some JAX GPU lowerings round a simple float32 reciprocal differently from
+    NumPy.  The Newton correction is evaluated in float64 (x64 is enabled by
+    the public PSD entry points) and rounded back to the input dtype.  Keep
+    non-finite results on the ordinary reciprocal path, and leave float64
+    unchanged since no corresponding discrepancy is established there. Values
+    in the subnormal range retain the backend's usual handling after the final
+    cast; exact NumPy matching for such values is not a portability contract.
+    """
+    if values.dtype != jnp.float32:
+        return 1.0 / values
+    wide = values.astype(jnp.float64)
+    reciprocal = 1.0 / wide
+    corrected = reciprocal + reciprocal * (1.0 - wide * reciprocal)
+    corrected = jnp.where(jnp.isfinite(corrected), corrected, reciprocal)
+    return corrected.astype(values.dtype)
+
+
 @functools.partial(
     jax.jit,
-    static_argnames=("seg_len", "seg_stride", "num_segments", "avg_method"),
+    static_argnames=("seg_len", "seg_stride", "num_segments", "avg_method", "wide_fft"),
 )
-def _welch_core(samples, window_arr, delta_t, seg_len, seg_stride, num_segments, avg_method):
+def _welch_core(samples, window_arr, delta_t, seg_len, seg_stride, num_segments,
+                avg_method, wide_fft=False):
     starts = jnp.arange(num_segments) * seg_stride
     indices = starts[:, None] + jnp.arange(seg_len)[None, :]
     segments = samples[indices]
     windowed = segments * window_arr
-    spectra = jnp.fft.rfft(windowed, axis=-1) * delta_t
+    # Preserve float32 sample/window multiplication, then optionally carry
+    # spectral estimation in double precision through PSD truncation.
+    fft_input = windowed.astype(jnp.float64) if wide_fft else windowed
+    spectra = jnp.fft.rfft(fft_input, axis=-1) * delta_t
     seg_psds = jnp.real(spectra * jnp.conj(spectra))
     seg_psds = seg_psds.at[:, 0].multiply(0.5)
     seg_psds = seg_psds.at[:, -1].multiply(0.5)
@@ -78,9 +127,11 @@ def _welch_core(samples, window_arr, delta_t, seg_len, seg_stride, num_segments,
     elif avg_method == "median-mean":
         odd_psds = seg_psds[::2]
         even_psds = seg_psds[1::2]
-        odd_median = jnp.median(odd_psds, axis=0) / median_bias(len(odd_psds))
-        even_median = (
-            jnp.median(even_psds, axis=0) / median_bias(len(even_psds))
+        odd_median = _median_bias_numpy_compat(
+            jnp.median(odd_psds, axis=0), len(odd_psds)
+        )
+        even_median = _median_bias_numpy_compat(
+            jnp.median(even_psds, axis=0), len(even_psds)
         )
         return (odd_median + even_median) / 2.0
 
@@ -90,12 +141,17 @@ def _welch_core(samples, window_arr, delta_t, seg_len, seg_stride, num_segments,
     static_argnames=("n_freq", "n_time", "kmin", "trunc_start", "trunc_end", "which_spectrum", "use_hann"),
 )
 def _inv_trunc_core(psd_arr, tw_trunc, fill_val, n_freq, n_time, kmin, trunc_start, trunc_end, which_spectrum, use_hann):
-    inv_spectrum = jnp.zeros(n_freq, dtype=jnp.complex128)
+    complex_dtype = jnp.result_type(psd_arr.dtype, jnp.complex64)
+    inv_spectrum = jnp.zeros(n_freq, dtype=complex_dtype)
     inv_spectrum = inv_spectrum.at[:kmin].set(fill_val)
     half_n = n_time // 2
-    inv_spectrum = inv_spectrum.at[kmin:half_n].set(1.0 / psd_arr[kmin:half_n])
+    inv_spectrum = inv_spectrum.at[kmin:half_n].set(
+        _reciprocal_numpy_compat(psd_arr[kmin:half_n])
+    )
     if which_spectrum == "invasd":
-        inv_spectrum = inv_spectrum.at[:half_n].set(inv_spectrum[:half_n] ** 0.5)
+        inv_spectrum = inv_spectrum.at[:half_n].set(
+            _power_half_numpy_compat(inv_spectrum[:half_n])
+        )
     q = jnp.fft.irfft(inv_spectrum, n=n_time)
     if use_hann and tw_trunc is not None:
         q = q.at[0:trunc_start].multiply(tw_trunc[-trunc_start:])
@@ -105,19 +161,23 @@ def _inv_trunc_core(psd_arr, tw_trunc, fill_val, n_freq, n_time, kmin, trunc_sta
     psd_trunc = jnp.fft.rfft(q)
     if which_spectrum == "invasd":
         psd_trunc = psd_trunc * jnp.conj(psd_trunc)
-    return 1.0 / jnp.abs(psd_trunc)
+    return _reciprocal_numpy_compat(jnp.abs(psd_trunc))
 
 
 @functools.partial(jax.jit, static_argnames=("new_n",))
 def _interp_core(old_vals, old_df, delta_f, new_n):
     old_freqs = jnp.arange(len(old_vals), dtype=jnp.float64) * old_df
     new_freqs = jnp.arange(new_n, dtype=jnp.float64) * delta_f
+    # NumPy's interp promotes its value arithmetic to double precision even
+    # when the PSD storage is float32.  Match that intermediate precision;
+    # interpolate_jax casts the result back to the input dtype below.
+    interp_vals = old_vals.astype(jnp.result_type(old_vals.dtype, jnp.float64))
     return jnp.interp(
         new_freqs,
         old_freqs,
-        old_vals,
-        left=old_vals[0],
-        right=old_vals[-1],
+        interp_vals,
+        left=interp_vals[0],
+        right=interp_vals[-1],
     )
 
 
@@ -130,11 +190,12 @@ def welch_jax(
     num_segments=None,
     require_exact_data_fit=False,
     device=None,
+    wide_fft=False,
 ):
     """PSD estimator based on Welch's method implemented in pure JAX.
 
-    Evaluates segment FFTs in double precision on JAX devices (CPU/GPU/TPU)
-    using batched transforms.
+    Evaluates batched segment FFTs in the input precision on the selected
+    JAX device.
 
     Parameters
     ----------
@@ -154,6 +215,10 @@ def welch_jax(
         If True, require data length to match exactly.
     device : jax.Device, optional
         Target JAX device.
+    wide_fft : bool, default False
+        Keep the windowed samples in their input precision, but use float64
+        for the FFT and following PSD arithmetic. Intended for callers that
+        round the PSD back to input precision after spectrum truncation.
 
     Returns
     -------
@@ -209,7 +274,7 @@ def welch_jax(
     # Window preparation
     if isinstance(window, str):
         if window == "hann":
-            window_arr = jnp.asarray(np.hanning(seg_len), dtype=samples.dtype)
+            window_arr = jnp.hanning(seg_len).astype(samples.dtype)
         else:
             raise ValueError(f"Unknown window string {window!r}")
     else:
@@ -218,13 +283,16 @@ def welch_jax(
             raise ValueError("Invalid window: incorrect window length")
 
     raw_psd = _welch_core(
-        samples, window_arr, delta_t, seg_len, seg_stride, num_segments, avg_method
+        samples, window_arr, delta_t, seg_len, seg_stride, num_segments,
+        avg_method, wide_fft
     )
     if avg_method == "median":
-        raw_psd = raw_psd / median_bias(num_segments)
+        raw_psd = _median_bias_numpy_compat(raw_psd, num_segments)
 
     # Window energy normalization
-    norm = 2.0 * delta_f * seg_len / jnp.sum(jnp.square(window_arr))
+    norm = 2.0 * delta_f * seg_len / jnp.sum(
+        jnp.square(window_arr.astype(raw_psd.dtype))
+    )
     psd = raw_psd * norm
 
     if is_series or isinstance(timeseries, (TimeSeries, FrequencySeries)):
@@ -283,7 +351,6 @@ def inverse_spectrum_truncation_jax(
     n_freq = len(psd_arr)
     n_time = (n_freq - 1) * 2
 
-    inv_spectrum = jnp.zeros(n_freq, dtype=jnp.complex128)
     kmin = 1
     if low_frequency_cutoff:
         kmin = int(low_frequency_cutoff / delta_f)
@@ -308,7 +375,8 @@ def inverse_spectrum_truncation_jax(
         raise ValueError("Invalid value in inverse_spectrum_truncation")
 
     use_hann = (trunc_method == "hann")
-    tw = jnp.asarray(np.hanning(max_filter_len), dtype=jnp.float64) if use_hann else None
+    tw = (jnp.hanning(max_filter_len).astype(psd_arr.dtype)
+          if use_hann else None)
 
     psd_out = _inv_trunc_core(
         psd_arr, tw, fill_val, n_freq, n_time, kmin, trunc_start, trunc_end, which_spectrum, use_hann
@@ -348,5 +416,5 @@ def interpolate_jax(series, delta_f, length=None, device=None):
     else:
         new_n = int(length)
 
-    interpolated = _interp_core(old_vals, old_df, delta_f, new_n)
+    interpolated = _interp_core(old_vals, old_df, delta_f, new_n).astype(old_vals.dtype)
     return _wrap_frequency_series(interpolated, delta_f=delta_f, epoch=epoch)

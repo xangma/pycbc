@@ -17,18 +17,11 @@
 """JAX backend for thresholding and peak clustering."""
 
 import functools
-import numpy as np
 import jax
 import jax.numpy as jnp
 
 from pycbc.events.eventmgr import _BaseThresholdCluster
 from pycbc.types.array_jax import _ensure_x64, to_jax
-
-try:
-    from .simd_threshold_cython import parallel_thresh_cluster
-except (ImportError, OSError):
-    parallel_thresh_cluster = None
-
 
 def threshold(series, value):
     """Return indices and values in series exceeding threshold in magnitude."""
@@ -40,7 +33,7 @@ def threshold(series, value):
     mask = mag_sq > thresh_sq
     locs = jnp.nonzero(mask)[0]
     vals = arr[locs]
-    return np.asarray(locs, dtype=np.uint32), np.asarray(vals)
+    return locs.astype(jnp.uint32), vals
 
 
 threshold_only = threshold
@@ -78,12 +71,12 @@ def _fast_cluster_core(arr, threshold_sq, window):
     return global_max_idx, survivor_mask
 
 
-@functools.partial(jax.jit, static_argnames=("window",))
-def _batched_cluster_core(valid_snr_2d, thresh_sq_1d, window):
-    """JIT-compiled batched reduction and clustering across batch and windows."""
+def _batched_cluster_from_magnitude(
+    valid_snr_2d, mag_sq, thresh_sq_1d, window
+):
+    """Cluster batched SNRs when their squared magnitudes already exist."""
     b, length = valid_snr_2d.shape
     num_blocks = (length + window - 1) // window
-    mag_sq = valid_snr_2d.real ** 2 + valid_snr_2d.imag ** 2
     pad = num_blocks * window - length
     if pad > 0:
         mag_sq_padded = jnp.pad(mag_sq, ((0, 0), (0, pad)), constant_values=-1.0)
@@ -117,37 +110,18 @@ def _batched_cluster_core(valid_snr_2d, thresh_sq_1d, window):
     return global_max_idx, survivor_mask, block_max_snr
 
 
+@functools.partial(jax.jit, static_argnames=("window",))
+def _batched_cluster_core(valid_snr_2d, thresh_sq_1d, window):
+    """JIT-compiled batched reduction and clustering across batch and windows."""
+    mag_sq = valid_snr_2d.real ** 2 + valid_snr_2d.imag ** 2
+    return _batched_cluster_from_magnitude(
+        valid_snr_2d, mag_sq, thresh_sq_1d, window
+    )
+
+
 def threshold_and_cluster(series, threshold_val, window):
     """Return clustered values and indices exceeding threshold over window."""
     _ensure_x64()
-    raw = getattr(series, "_data", series)
-    arr_raw = getattr(raw, "array", raw)
-    dev = getattr(arr_raw, "device", None)
-    is_cpu = dev is None or (
-        hasattr(dev, "platform") and dev.platform == "cpu"
-    )
-
-    if is_cpu and parallel_thresh_cluster is not None:
-        arr_np = np.asarray(arr_raw, dtype=np.complex64)
-        slen = np.uint32(len(arr_np))
-        outv = np.zeros(slen, dtype=np.complex64)
-        outl = np.zeros(slen, dtype=np.uint32)
-        cnt = parallel_thresh_cluster(
-            arr_np,
-            slen,
-            outv,
-            outl,
-            np.float32(threshold_val),
-            np.uint32(window),
-            np.uint32(32768),
-        )
-        if cnt > 0:
-            return outv[:cnt], outl[:cnt]
-        return (
-            np.array([], dtype=np.complex64),
-            np.array([], dtype=np.uint32),
-        )
-
     arr = to_jax(series)
     length = len(arr)
     window = int(window)
@@ -157,26 +131,25 @@ def threshold_and_cluster(series, threshold_val, window):
     num_blocks = (length + window - 1) // window
     if num_blocks == 0:
         return (
-            np.array([], dtype=arr.dtype),
-            np.array([], dtype=np.uint32),
+            jnp.array([], dtype=arr.dtype),
+            jnp.array([], dtype=jnp.uint32),
         )
 
     threshold_sq = float(threshold_val) ** 2
     global_max_idx, survivor_mask = _fast_cluster_core(
         arr, threshold_sq, window=window
     )
-    mask_np = np.asarray(survivor_mask)
-    if not np.any(mask_np):
+    if not bool(jnp.any(survivor_mask)):
         return (
-            np.array([], dtype=arr.dtype),
-            np.array([], dtype=np.uint32),
+            jnp.array([], dtype=arr.dtype),
+            jnp.array([], dtype=jnp.uint32),
         )
 
-    survivor_indices = np.asarray(global_max_idx)[mask_np]
-    survivor_values = np.asarray(arr[survivor_indices])
+    survivor_indices = global_max_idx[survivor_mask]
+    survivor_values = arr[survivor_indices]
     return (
         survivor_values,
-        survivor_indices.astype(np.uint32),
+        survivor_indices.astype(jnp.uint32),
     )
 
 
@@ -190,35 +163,6 @@ class JAXThresholdCluster(_BaseThresholdCluster):
 
     def threshold_and_cluster(self, threshold, window):
         """Find clustered peaks exceeding threshold in magnitude."""
-        if parallel_thresh_cluster is not None:
-            raw = getattr(self.series, "_data", self.series)
-            arr = getattr(raw, "array", raw)
-            dev = getattr(arr, "device", None)
-            is_cpu = dev is None or (
-                hasattr(dev, "platform") and dev.platform == "cpu"
-            )
-            if is_cpu or isinstance(arr, np.ndarray):
-                arr_np = np.asarray(arr, dtype=np.complex64)
-                slen = np.uint32(len(arr_np))
-                if self._outv is None or len(self._outv) < len(arr_np):
-                    self._outv = np.zeros(slen, dtype=np.complex64)
-                    self._outl = np.zeros(slen, dtype=np.uint32)
-                cnt = parallel_thresh_cluster(
-                    arr_np,
-                    slen,
-                    self._outv,
-                    self._outl,
-                    np.float32(threshold),
-                    np.uint32(window),
-                    np.uint32(32768),
-                )
-                if cnt > 0:
-                    return self._outv[:cnt].copy(), self._outl[:cnt].copy()
-                return (
-                    np.array([], dtype=np.complex64),
-                    np.array([], dtype=np.uint32),
-                )
-
         return threshold_and_cluster(self.series, threshold, window)
 
 

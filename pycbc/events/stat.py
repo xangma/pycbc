@@ -337,7 +337,11 @@ class QuadratureSumStatistic(Stat):
         cstat = sum(sngl[1] ** 2. for sngl in sngls_list) ** 0.5
         # For single-detector "cuts" the single ranking is set to -1
         for sngls in sngls_list:
-            cstat[sngls == -1] = 0
+            if type(cstat).__module__.startswith("jax"):
+                import jax.numpy as jnp
+                cstat = jnp.where(sngls == -1, 0, cstat)
+            else:
+                cstat[sngls == -1] = 0
         return cstat
 
     def coinc_lim_for_thresh(

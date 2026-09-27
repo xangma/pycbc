@@ -99,6 +99,12 @@ class SingleDetSGChisq(SingleDetPowerChisq):
         if not self.do:
             return None
 
+        from pycbc import scheme
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            from .sgchisq_jax import values as jax_values
+            return jax_values(self, stilde, template, psd, snrv, snr_norm,
+                              bchisq, bchisq_dof, indices)
+
         if template.params.template_hash not in self.params:
             return numpy.ones(len(snrv))
         values = self.params[template.params.template_hash].split(',')

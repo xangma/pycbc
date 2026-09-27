@@ -147,6 +147,20 @@ def findchirp_cluster_over_window(times, values, window_length):
     """
     assert window_length > 0, 'Clustering window length is not positive'
 
+    # Keep the complete clustering calculation on the selected JAX backend.
+    # The Cython implementation below is intentionally retained byte-for-byte
+    # for ordinary NumPy callers.
+    times_module = type(times).__module__
+    values_module = type(values).__module__
+    from pycbc import scheme
+    jax_active = isinstance(scheme.mgr.state, scheme.JAXScheme)
+    if (jax_active or times_module.startswith(("jax", "jaxlib")) or
+            values_module.startswith(("jax", "jaxlib"))):
+        from .eventmgr_jax import findchirp_cluster_over_window_jax
+        return findchirp_cluster_over_window_jax(
+            times, values, window_length
+        )
+
     indices = numpy.zeros(len(times), dtype=numpy.int32)
     tlen = len(times)
     absvalues = numpy.asarray(abs(values))

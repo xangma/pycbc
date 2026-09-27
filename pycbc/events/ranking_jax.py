@@ -20,7 +20,7 @@ import jax.numpy as jnp
 
 from pycbc import scheme
 from pycbc.types import Array
-from pycbc.types.array_jax import JAXArrayData, _as_jax_array
+from pycbc.types.array_jax import JAXArrayData, _as_jax_array, _ensure_x64
 from pycbc.types.backend import is_backend
 
 
@@ -31,12 +31,18 @@ def ranking_arrays_jax(*values):
     if isinstance(scheme.mgr.state, scheme.JAXScheme) or any(
         is_backend(v, "jax") for v in values
     ):
+        # The native ranking functions promote their numeric inputs to
+        # float64.  Keep the JAX implementation numerically equivalent even
+        # when its inputs arrived as device-resident float32 arrays.
+        _ensure_x64()
         res = []
         for v in values:
             arr = _as_jax_array(v)
             if arr is None:
                 host = v.numpy() if hasattr(v, "numpy") else v
                 arr = jnp.asarray(host, dtype=jnp.float64)
+            else:
+                arr = jnp.asarray(arr, dtype=jnp.float64)
             res.append(arr)
         return res
     return None

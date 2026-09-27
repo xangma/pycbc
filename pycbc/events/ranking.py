@@ -190,7 +190,11 @@ def get_snr(trigs, **kwargs):  # pylint:disable=unused-argument
     numpy.ndarray
         Array of snr values
     """
-    return numpy.array(trigs['snr'][:], ndmin=1, dtype=numpy.float32)
+    value = trigs['snr'][:]
+    if hasattr(value, 'device') or type(value).__module__.startswith('jax'):
+        import jax.numpy as jnp
+        return jnp.asarray(value, dtype=jnp.float32)
+    return numpy.array(value, ndmin=1, dtype=numpy.float32)
 
 
 def get_newsnr(trigs, **kwargs):
@@ -214,6 +218,9 @@ def get_newsnr(trigs, **kwargs):
         trigs['chisq'][:] / dof,
         **kwargs
     )
+    if hasattr(nsnr, 'device') or type(nsnr).__module__.startswith('jax'):
+        import jax.numpy as jnp
+        return jnp.asarray(nsnr, dtype=jnp.float32)
     return numpy.array(nsnr, ndmin=1, dtype=numpy.float32)
 
 

@@ -377,6 +377,10 @@ class SingleDetPowerChisq(object):
             in the given template, equal to 2 * num_bins - 2
         """
         if self.do:
+            from pycbc import scheme
+            jax_active = isinstance(scheme.mgr.state, scheme.JAXScheme)
+            if jax_active:
+                import jax.numpy as jnp
             num_above = len(indices)
             dof = -100
             if self.snr_threshold:
@@ -385,7 +389,9 @@ class SingleDetPowerChisq(object):
                 logging.info('%s above chisq activation threshold' % num_above)
                 above_indices = indices[above]
                 above_snrv = snrv[above]
-                chisq_out = numpy.zeros(len(indices), dtype=numpy.float32)
+                chisq_out = (jnp.zeros(len(indices), dtype=jnp.float32)
+                             if jax_active else
+                             numpy.zeros(len(indices), dtype=numpy.float32))
             else:
                 above_indices = indices
                 above_snrv = snrv
@@ -399,10 +405,15 @@ class SingleDetPowerChisq(object):
 
             if self.snr_threshold:
                 if num_above > 0:
-                    chisq_out[above] = _chisq
+                    if jax_active:
+                        chisq_out = chisq_out.at[jnp.asarray(above)].set(_chisq)
+                    else:
+                        chisq_out[above] = _chisq
             else:
                 if num_above == 0:
-                    chisq_out = numpy.zeros(0, dtype=numpy.float32)
+                    chisq_out = (jnp.zeros(0, dtype=jnp.float32)
+                                 if jax_active else
+                                 numpy.zeros(0, dtype=numpy.float32))
                 else:
                     chisq_out = _chisq
 

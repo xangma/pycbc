@@ -17,7 +17,6 @@
 """JAX backend for strain conditioning and autogating routines in PyCBC."""
 
 import functools
-import numpy as np
 import jax
 import jax.numpy as jnp
 
@@ -29,10 +28,10 @@ from pycbc.psd.estimate_jax import (
     _welch_core,
     _interp_core,
     _inv_trunc_core,
-    median_bias,
+    _median_bias_numpy_compat,
 )
 from pycbc.strain.strain import next_power_of_2
-from pycbc.types.array_jax import _ensure_x64, to_jax
+from pycbc.types.array_jax import JAXArrayData, _ensure_x64, to_jax
 
 
 def _zero_pad_on_device(strain, strain_pad_length, pad_start, pad_end):
@@ -68,19 +67,19 @@ def _whiten_pad_core(
     kmin,
     kmax,
 ):
-    safe_psd = jnp.where(psd_arr > 0, psd_arr, 1.0)
     freq_indices = jnp.arange(len(psd_arr))
     inv_asd = jnp.where(
         (freq_indices < kmin) | (freq_indices >= kmax),
         0.0,
-        (safe_psd * norm) ** (-0.5),
+        (psd_arr * norm) ** (-0.5),
     )
     s_tilde = jnp.fft.rfft(s_arr)
     white_tilde = s_tilde * inv_asd
     white_pad = jnp.fft.irfft(white_tilde, n=strain_pad_length)
     mag = jnp.abs(white_pad[pad_start:pad_end])
-    mag = mag.at[:corrupt_length].set(0.0)
-    mag = mag.at[-corrupt_length:].set(0.0)
+    if corrupt_length:
+        mag = mag.at[:corrupt_length].set(0.0)
+        mag = mag.at[-corrupt_length:].set(0.0)
     return mag
 
 
@@ -142,11 +141,11 @@ def _fused_autogate_pipeline_core(
         avg_method,
     )
     if avg_method == "median":
-        raw_psd = raw_psd / median_bias(num_segments)
+        raw_psd = _median_bias_numpy_compat(raw_psd, num_segments)
     norm_w = 2.0 * old_df * seg_len / jnp.sum(jnp.square(window_arr))
     psd = raw_psd * norm_w
 
-    psd_interp = _interp_core(psd, old_df, new_df, n_freq)
+    psd_interp = _interp_core(psd, old_df, new_df, n_freq).astype(psd.dtype)
     psd_trunc = _inv_trunc_core(
         psd_interp,
         tw_trunc,
@@ -189,20 +188,18 @@ def detect_loud_glitches_jax(
 
     Performs conditioning, zero-padding, Welch PSD estimation, whitening,
     and FindChirp peak clustering on the active JAXScheme accelerator in
-    double precision (float64/complex128). Operates on an isolated data copy
-    to ensure bit-exact scientific parity with reference implementations.
+    the input precision. Operates on an isolated data copy so that gating
+    does not modify its input.
     """
     _ensure_x64()
     if high_freq_cutoff:
         s = resample_to_delta_t(strain, 0.5 / high_freq_cutoff, method="ldas")
     else:
         s = strain.copy()
-        if s.dtype != np.float64:
-            s = s.astype(np.float64)
 
     # Taper strain ends
     corrupt_length = int(corrupt_time * s.sample_rate)
-    w = np.arange(corrupt_length) / float(corrupt_length)
+    w = jnp.arange(corrupt_length) / float(corrupt_length)
     s[0:corrupt_length] *= pycbc.types.Array(w, dtype=s.dtype)
     s[(len(s) - corrupt_length):] *= pycbc.types.Array(w[::-1], dtype=s.dtype)
 
@@ -232,9 +229,9 @@ def detect_loud_glitches_jax(
         end = num_samples - diff // 2
         s_trim = s_trim[start:end]
 
-    window_arr = jnp.asarray(np.hanning(seg_len), dtype=jnp.float64)
+    window_arr = jnp.hanning(seg_len).astype(s.dtype)
     max_filter_len = int(psd_duration * s.sample_rate)
-    tw_trunc = jnp.asarray(np.hanning(max_filter_len), dtype=jnp.float64)
+    tw_trunc = jnp.hanning(max_filter_len).astype(s.dtype)
     delta_t = float(s.delta_t)
     old_df = 1.0 / (delta_t * seg_len)
     new_df = 1.0 / (strain_pad_length * delta_t)
@@ -278,22 +275,88 @@ def detect_loud_glitches_jax(
         corrupt_length,
         kmax,
     )
-    mag = np.asarray(mag_jax)
-
-    indices = np.where(mag > threshold)[0]
+    indices = jnp.where(mag_jax > threshold)[0]
     if len(indices) == 0:
-        return [], []
+        return jnp.empty(0, dtype=jnp.float64), jnp.empty(0, dtype=jnp.float64)
 
     cluster_window_samples = int(cluster_window * s.sample_rate)
     cluster_idx = pycbc.events.findchirp_cluster_over_window(
-        indices.astype(np.int32),
-        np.ascontiguousarray(mag[indices], dtype=np.float64),
+        indices.astype(jnp.int32),
+        mag_jax[indices],
         cluster_window_samples,
     )
     peak_indices = indices[cluster_idx]
-    times = [
-        float(s.start_time + idx * s.delta_t)
-        for idx in peak_indices
-    ]
-    snrs = [float(mag[idx]) for idx in peak_indices]
+    times = float(s.start_time) + peak_indices * s.delta_t
+    snrs = mag_jax[peak_indices]
     return times, snrs
+
+
+def execute_fft_jax(invec_data, normalize_by_rate=True, ifft=False):
+    """Transform on the selected device without sharing mutable native plans.
+
+    XLA caches transform executables; immutable outputs need no buffer cache.
+    """
+    values = to_jax(invec_data)
+    epoch = getattr(invec_data, '_epoch', None)
+    if ifft:
+        ntime = (len(invec_data) - 1) * 2
+        delta_f = getattr(invec_data, 'delta_f', 1.0 / ntime)
+        data = jnp.fft.irfft(values, n=ntime) * ntime
+        if normalize_by_rate:
+            data *= invec_data.delta_f
+        return pycbc.types.TimeSeries(JAXArrayData(data), copy=False,
+                                     delta_t=1.0 / (ntime * delta_f),
+                                     epoch=epoch)
+    delta_t = getattr(invec_data, 'delta_t', 1.0)
+    data = jnp.fft.rfft(values)
+    if normalize_by_rate:
+        data *= invec_data.delta_t
+    return pycbc.types.FrequencySeries(
+        JAXArrayData(data), copy=False,
+        delta_f=1.0 / (len(values) * delta_t), epoch=epoch)
+
+
+def gate_data_jax(data, gate_params):
+    """Apply the standard inverted Tukey gates to a device-resident series."""
+    values = to_jax(data)
+    sample_rate = 1.0 / data.delta_t
+    for glitch_time, glitch_width, pad_width in gate_params:
+        t_start = glitch_time - glitch_width - pad_width - data.start_time
+        t_end = glitch_time + glitch_width + pad_width - data.start_time
+        if t_start > data.duration or t_end < 0.0:
+            continue
+        win_samples = int(2 * sample_rate * (glitch_width + pad_width))
+        pad_samples = int(sample_rate * pad_width)
+        midlen = win_samples - 2 * pad_samples
+        if midlen < 0:
+            raise ValueError("No zeros left after applying padding.")
+        pad = 0.5 * (1.0 + jnp.cos(jnp.pi *
+                                 jnp.arange(pad_samples) / pad_samples))
+        window = jnp.concatenate((pad, jnp.zeros(midlen), pad[::-1]))
+        offset = int(t_start * sample_rate)
+        idx1 = max(0, -offset)
+        idx2 = min(len(window), len(data) - offset)
+        # Match the original in-place multiply, including its dtype cast.
+        values = values.at[idx1 + offset:idx2 + offset].set(
+            (values[idx1 + offset:idx2 + offset] * window[idx1:idx2])
+            .astype(values.dtype))
+    data._data = JAXArrayData(values)
+    return data
+
+
+def fourier_segments_jax(segments):
+    """Transform complete strain segments as one batch on the active device."""
+    values = to_jax(segments.strain)
+    stacked = jnp.stack([values[s] for s in segments.segment_slices])
+    spectra = jnp.fft.rfft(stacked, axis=-1) * segments.strain.delta_t
+    result = []
+    for i, (seg, analyze) in enumerate(zip(segments.segment_slices,
+                                         segments.analyze_slices)):
+        series = pycbc.types.FrequencySeries(
+            JAXArrayData(spectra[i]), delta_f=segments.delta_f,
+            epoch=segments.strain[seg]._epoch, copy=False)
+        series.analyze = analyze
+        series.cumulative_index = seg.start + analyze.start
+        series.seg_slice = seg
+        result.append(series)
+    return result

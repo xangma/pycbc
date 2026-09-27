@@ -184,12 +184,18 @@ def timeslide_durations(start1, start2, end1, end2, timeslide_offsets):
 
 
 def _coinc_backend(*values):
-    """Load backend coincidence module for JAX-backed inputs."""
+    """Select the coincidence backend for inputs or the active scheme.
+
+    A live worker may receive NumPy trigger buffers even though the selected
+    processing scheme is JAX.  The backend owns that host-to-device boundary;
+    selecting it here ensures that no coincidence or clustering stage quietly
+    falls back to the native CPU implementation.
+    """
     from pycbc import scheme
     from pycbc.types.backend import is_backend
 
-    if any(is_backend(value, "jax") for value in values) or (
-        isinstance(scheme.mgr.state, scheme.JAXScheme)
+    if any(is_backend(value, "jax") for value in values) or isinstance(
+        scheme.mgr.state, scheme.JAXScheme
     ):
         from . import coinc_jax
 
@@ -940,7 +946,21 @@ class LiveCoincTimeslideBackgroundEstimator(object):
 
         self.time_window = self.dets[ifos[0]].light_travel_time_to_detector(
             self.dets[ifos[1]]) + coinc_window_pad
-        self.coincs = CoincExpireBuffer(self.buffer_size, self.ifos)
+        from pycbc import scheme
+        self._jax_enabled = isinstance(scheme.mgr.state, scheme.JAXScheme)
+        if self._jax_enabled and (
+            stat_class is not pycbcstat.QuadratureSumStatistic
+            or sngl_ranking not in ("snr", "newsnr", "new_snr")
+        ):
+            raise NotImplementedError(
+                "JAX live coincidence currently supports only the "
+                "quadrature_sum statistic with snr/newsnr ranking"
+            )
+        if self._jax_enabled:
+            from .coinc_jax import JAXCoincExpireBuffer
+            self.coincs = JAXCoincExpireBuffer(self.buffer_size, self.ifos)
+        else:
+            self.coincs = CoincExpireBuffer(self.buffer_size, self.ifos)
 
         self.singles = {}
 
@@ -969,6 +989,11 @@ class LiveCoincTimeslideBackgroundEstimator(object):
             If there is a coinc, this will contain the 'best' one. Otherwise
             it will return the provided dict.
         """
+        from pycbc import scheme
+        if isinstance(scheme.mgr.state, scheme.JAXScheme):
+            from .coinc_jax import pick_best_coinc_jax
+            return pick_best_coinc_jax(coinc_results, logger)
+
         mstat = 0
         mifar = 0
         mresult = None
@@ -1126,9 +1151,15 @@ class LiveCoincTimeslideBackgroundEstimator(object):
 
         # Create a ring buffer for each template ifo combination
         for ifo in self.ifos:
-            self.singles[ifo] = MultiRingBuffer(self.num_templates,
-                                            self.buffer_size,
-                                            self.singles_dtype)
+            if self._jax_enabled:
+                from .coinc_jax import JAXMultiRingBuffer
+                self.singles[ifo] = JAXMultiRingBuffer(
+                    self.num_templates, self.buffer_size
+                )
+            else:
+                self.singles[ifo] = MultiRingBuffer(self.num_templates,
+                                                self.buffer_size,
+                                                self.singles_dtype)
 
     def _add_singles_to_buffer(self, results, ifos):
         """Add single detector triggers to the internal buffer
@@ -1146,6 +1177,9 @@ class LiveCoincTimeslideBackgroundEstimator(object):
             Array of indices that have been just updated in the internal
             buffers of single detector triggers.
         """
+        if self._jax_enabled:
+            from .coinc_jax import add_singles_to_buffer_jax
+            return add_singles_to_buffer_jax(self, results, ifos, logger)
         if len(self.singles.keys()) == 0:
             self.set_singles_buffer(results)
         # If this *still* didn't work, no triggers in first set, try next time
@@ -1202,6 +1236,9 @@ class LiveCoincTimeslideBackgroundEstimator(object):
         coinc_results: dict of arrays
             A dictionary of arrays containing the coincident results.
         """
+        if self._jax_enabled:
+            from .coinc_jax import find_coincs_jax
+            return find_coincs_jax(self, results, valid_ifos)
         # For each new single detector trigger find the allowed coincidences
         # Record the template and the index of the single trigger that forms
         # each coincidence
@@ -1428,11 +1465,24 @@ class LiveCoincTimeslideBackgroundEstimator(object):
         if len(valid_ifos) == 0: return {}
 
         with self.stat_calculator_lock:
+            # The native implementation runs in a worker process, so its
+            # in-place ``stat`` column does not alter the output payload in
+            # the parent.  Keep the same boundary for the in-process JAX
+            # implementation while still allowing the coincidence code to
+            # consume the computed column.
+            coincidence_results = results
+            if self._jax_enabled:
+                coincidence_results = {
+                    ifo: (dict(triggers) if triggers else triggers)
+                    for ifo, triggers in results.items()
+                }
             # Add single triggers to the internal buffer
-            self._add_singles_to_buffer(results, ifos=valid_ifos)
+            self._add_singles_to_buffer(coincidence_results, ifos=valid_ifos)
 
             # Calculate zerolag and background coincidences
-            _, coinc_results = self._find_coincs(results, valid_ifos=valid_ifos)
+            _, coinc_results = self._find_coincs(
+                coincidence_results, valid_ifos=valid_ifos
+            )
 
         # record if a coinc is possible in this chunk
         if len(valid_ifos) == 2:

@@ -112,8 +112,10 @@ class JAXArrayData:
             new_val = new_val.array
         elif hasattr(new_val, "_data"):
             new_val = getattr(new_val._data, "array", new_val._data)
-        if not is_jax_array(new_val):
-            new_val = jnp.asarray(new_val, dtype=self.dtype)
+        # PyCBC array assignment preserves the destination dtype.  Applying
+        # that rule to JAX inputs as well avoids relying on scatter's implicit
+        # casts, which JAX is deprecating for incompatible precisions.
+        new_val = jnp.asarray(new_val, dtype=self.dtype)
 
         curr = self.array
         if self.parent is not None and self.slice_info is not None:
@@ -150,8 +152,7 @@ class JAXArrayData:
             new_val = new_val.array
         elif hasattr(new_val, "_data"):
             new_val = getattr(new_val._data, "array", new_val._data)
-        if not is_jax_array(new_val):
-            new_val = jnp.asarray(new_val, dtype=self.dtype)
+        new_val = jnp.asarray(new_val, dtype=self.dtype)
 
         curr = self.array
         target = curr[slice_info]
@@ -483,7 +484,7 @@ def to_jax(arr, device=None, dtype=None):
                     target_dev = matched[0]
             elif device.isdigit():
                 target_dev = devices[int(device)]
-        if hasattr(jax, "device_put"):
+        if hasattr(jax, "device_put") and res.devices() != {target_dev}:
             res = jax.device_put(res, target_dev)
 
     return res
@@ -652,6 +653,10 @@ def zeros(shape, dtype=np.float64, device=None):
     import jax
     import jax.numpy as jnp
 
+    # Native PyCBC allocators convert scalar lengths with int(). Frame
+    # metadata, in particular, supplies sample counts as Python floats.
+    if np.isscalar(shape):
+        shape = int(shape)
     res = jnp.zeros(shape, dtype=dtype)
     if device is not None and hasattr(jax, "device_put"):
         res = jax.device_put(res, device)

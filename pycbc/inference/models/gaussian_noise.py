@@ -235,8 +235,14 @@ class BaseGaussianNoise(BaseDataModel, metaclass=ABCMeta):
         # attribute for storing the current waveforms
         self._current_wfs = None
 
-        # Initialize NetworkGeometry when detectors are present
-        if len(self._data) >= 1:
+        # Keep the network shortcut confined to JAX execution. Native models
+        # retain their per-detector response and arrival-time calculations.
+        from pycbc import scheme
+
+        use_jax = isinstance(scheme.mgr.state, scheme.JAXScheme) or any(
+            _jax_array(value) is not None for value in self._data.values()
+        )
+        if use_jax and self._data:
             try:
                 from pycbc.detector import NetworkGeometry
 
@@ -1179,11 +1185,21 @@ class GaussianNoise(BaseGaussianNoise):
                 hh = 0.0
             else:
                 slc = slice(self._kmin[det], kmax)
-                cplx_hd, hh = _fused_inner_hd_hh(
-                    h[slc],
-                    self._whitened_data[det][slc],
-                    weight=self._weight[det][slc],
-                )
+                hslc = h[slc]
+                dslc = self._whitened_data[det][slc]
+                wslc = self._weight[det][slc]
+                if (_jax_array(hslc) is not None or
+                        _jax_array(dslc) is not None or
+                        _jax_array(wslc) is not None):
+                    cplx_hd, hh = _fused_inner_hd_hh(
+                        hslc, dslc, weight=wslc)
+                else:
+                    # Preserve the native CPU scalar algorithm and its
+                    # established weighting/mutation semantics. The fused
+                    # helper is intended for backend and batched paths.
+                    hslc *= wslc
+                    cplx_hd = hslc.inner(dslc)
+                    hh = hslc.inner(hslc).real
             cplx_loglr = cplx_hd - 0.5 * hh
             # store
             setattr(self._current_stats, "{}_optimal_snrsq".format(det), hh)
@@ -1431,6 +1447,10 @@ def _batched_waveform_inner_products(model, params, zero_phase=False):
         total_hh = None
         det_hd = {}
         det_hh = {}
+        jax_timing = any(
+            _jax_array(value) is not None
+            for value in (hp, hc, ra, dec, pol, ref_tc)
+        )
         delay_dict = None
         if (
             refframe == "geocentric"
@@ -1448,11 +1468,22 @@ def _batched_waveform_inner_products(model, params, zero_phase=False):
                 from pycbc.detector import Detector
 
                 det = Detector(detname)
-            if delay_dict is not None:
-                offset = delay_dict[detname]
+            if jax_timing:
+                offset = (
+                    delay_dict[detname] if delay_dict is not None
+                    else generator._detector_time_offset(
+                        det, ref_tc, ra, dec, refframe
+                    )
+                )
+                tc, dt = generator._arrival_time_and_shift(
+                    ref_tc, offset, epoch, tshift
+                )
             else:
-                offset = generator._detector_time_offset(det, ref_tc, ra, dec, refframe)
-            tc, dt = generator._arrival_time_and_shift(ref_tc, offset, epoch, tshift)
+                tc = (
+                    ref_tc + delay_dict[detname] if delay_dict is not None
+                    else det.arrival_time(ref_tc, ra, dec, refframe)
+                )
+                dt = tc + tshift - epoch
             fp, fc = det.antenna_pattern(ra, dec, pol, tc)
 
             hp_jax = _jax_array(hp)

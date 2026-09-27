@@ -533,7 +533,8 @@ class TemplateBank(object):
                                 approximant=self.approximant(index),
                                 **self.extra_args)
 
-    def _waveform_parameters(self, index, delta_f=None):
+    def _waveform_parameters(self, index, delta_f=None, approximant=None,
+                             f_lower=None, f_final=None):
         """Resolve row defaults, global overrides, then bank-owned geometry.
 
         Global waveform options override row values. The bank owns distance
@@ -541,7 +542,9 @@ class TemplateBank(object):
         """
         from pycbc.waveform.waveform import props
         params = props(self.table[index], **self.extra_args)
-        params['approximant'] = self.approximant(index)
+        if approximant is None:
+            approximant = self.approximant(index)
+        params['approximant'] = approximant
         if hasattr(self, 'sample_rate'):
             delta_f = (self.freq_resolution_for_template(index)
                        if delta_f is None else delta_f)
@@ -551,13 +554,16 @@ class TemplateBank(object):
         else:
             delta_f, delta_t = self.delta_f, self.delta_t
             flen = self.filter_length
-            flow = find_variable_start_frequency(
-                params['approximant'], self.table[index], self.f_lower,
-                self.max_template_length, **self.extra_args)
-        fend = self.end_frequency(index)
-        if fend is None or fend >= flen * delta_f:
-            fend = (flen - 1) * delta_f
-        params.update(f_lower=flow, f_final=fend, delta_f=delta_f,
+            if f_lower is None:
+                f_lower = find_variable_start_frequency(
+                    approximant, self.table[index], self.f_lower,
+                    self.max_template_length, **self.extra_args)
+            flow = f_lower
+        if f_final is None:
+            f_final = self.end_frequency(index)
+            if f_final is None or f_final >= flen * delta_f:
+                f_final = (flen - 1) * delta_f
+        params.update(f_lower=flow, f_final=f_final, delta_f=delta_f,
                       delta_t=delta_t, distance=1.0 / DYN_RANGE_FAC)
         return params, flen
 
@@ -828,7 +834,10 @@ class LiveFilterBank(TemplateBank):
         # Get the waveform filter
         htilde = pycbc.waveform.get_waveform_filter(
             zeros(flen, dtype=np.complex64),
-            **self._waveform_parameters(index, delta_f)[0])
+            **self._waveform_parameters(
+                index, delta_f, approximant=approximant,
+                f_lower=flow, f_final=f_end
+            )[0])
 
         # If available, record the total duration (which may
         # include ringdown) and the duration up to merger since they will be
@@ -870,6 +879,7 @@ class LiveFilterBank(TemplateBank):
 class TemplateBatchList(list):
     """List of FrequencySeries templates carrying the underlying 2D batch tensor."""
     _batch_tensor = None
+    _host_batch_tensor = None
 
 
 class LazyFrequencySeries(FrequencySeries):
@@ -989,7 +999,7 @@ class FilterBank(TemplateBank):
     def get_batch(self, indices):
         """Return a list of templates for the given indices.
 
-        Uses in-memory caching and batched on-device decompression when available.
+        Uses in-memory caching and staged batched decompression when available.
         """
         if not hasattr(self, "_template_cache"):
             from pycbc.opt import LimitedSizeDict
@@ -1009,6 +1019,9 @@ class FilterBank(TemplateBank):
             res = TemplateBatchList([self._template_cache[idx] for idx in indices])
             if getattr(self, "_last_batch_indices", None) == tuple(indices):
                 res._batch_tensor = getattr(self, "_last_batch_tensor", None)
+                res._host_batch_tensor = getattr(
+                    self, "_last_batch_host_tensor", None
+                )
             return res
 
         from pycbc import scheme
@@ -1024,6 +1037,9 @@ class FilterBank(TemplateBank):
         res = TemplateBatchList([self._template_cache[idx] for idx in indices])
         if getattr(self, "_last_batch_indices", None) == tuple(indices):
             res._batch_tensor = getattr(self, "_last_batch_tensor", None)
+            res._host_batch_tensor = getattr(
+                self, "_last_batch_host_tensor", None
+            )
         return res
 
     def clear_batch_cache(self, indices=None, collect=True):
@@ -1064,26 +1080,29 @@ class FilterBank(TemplateBank):
                     if hasattr(tmpl, "_sigmasq"):
                         tmpl._sigmasq.clear()
             self._last_batch_tensor = None
+            self._last_batch_host_tensor = None
             self._last_batch_indices = None
             if collect:
                 import gc
                 gc.collect()
 
     def _decompress_batch_jax(self, indices):
-        """Decompress a batch of waveforms using batched JAX GPU kernels."""
+        """Decompress a host batch once, then transfer it to the JAX device."""
         import types
         import numpy as np
         import jax.numpy as jnp
         from pycbc.waveform.waveform import props, get_waveform_filter_length_in_time
         from pycbc.waveform.bank import sigma_cached, find_variable_start_frequency
-        from pycbc.waveform.decompress_jax import batched_inline_linear_interp_jax, _grid_indices
+        from pycbc.waveform.decompress_jax import (
+            stage_batched_inline_interp_jax,
+        )
 
         b = len(indices)
         if b == 0:
             return
 
         logging.info(
-            "Decompressing template batch %d-%d (%d templates) using batched JAX on GPU",
+            "Loading template batch %d-%d (%d templates) with staged decompression",
             indices[0] + 1, indices[-1] + 1, b
         )
 
@@ -1094,17 +1113,26 @@ class FilterBank(TemplateBank):
         starts = []
         ends = []
         counts = []
+        interpolations = []
         metadata = []
 
         flen = self.filter_length
         df = self.delta_f
-
         for index in indices:
             tmplt_hash = self.table.template_hash[index]
             group = self.filehandler['compressed_waveforms'][str(tmplt_hash)]
-            amp = np.asarray(group['amplitude'], dtype=np.float64)
-            phase = np.asarray(group['phase'], dtype=np.float64)
-            freq = np.asarray(group['sample_points'], dtype=np.float64)
+            interpolation = (
+                self.waveform_decompression_method
+                if self.waveform_decompression_method is not None
+                else group.attrs['interpolation']
+            )
+            interpolations.append(interpolation)
+            real_dtype = (
+                np.float32 if self.dtype == np.complex64 else np.float64
+            )
+            amp = np.asarray(group['amplitude'], dtype=real_dtype)
+            phase = np.asarray(group['phase'], dtype=real_dtype)
+            freq = np.asarray(group['sample_points'], dtype=real_dtype)
 
             approximant = self.approximant(index)
             f_end = self.end_frequency(index)
@@ -1130,11 +1158,15 @@ class FilterBank(TemplateBank):
             counts.append(k)
             imin = int(np.searchsorted(freq, f_low, side='right')) - 1
             imins.append(imin)
+            # Match fd_decompress: select the compressed segment after input
+            # precision conversion, while deriving the first output bin from
+            # the FrequencySeries delta_f supplied by the caller.
             s_idx = int(np.ceil(f_low / df))
             starts.append(s_idx)
-            last_idx = int(_grid_indices(freq[-1], df))
-            e_idx = min(flen, last_idx + 1)
-            ends.append(e_idx)
+            # The native interpolator owns the last-bin rounding and zeros
+            # the remainder. Passing the complete output avoids duplicating
+            # subtly different floating-point boundary logic in Python.
+            ends.append(flen)
 
             amps_list.append(amp)
             phases_list.append(phase)
@@ -1149,13 +1181,18 @@ class FilterBank(TemplateBank):
             })
 
         dtype = jnp.complex64 if self.dtype == np.complex64 else jnp.complex128
-        batch_waveforms = batched_inline_linear_interp_jax(
+        host_waveforms, batch_waveforms = stage_batched_inline_interp_jax(
             amps_list, phases_list, freqs_list,
             imins, starts, ends, counts,
+            interpolations,
             df, flen, dtype=dtype
         )
 
         self._last_batch_tensor = batch_waveforms
+        # Reuse the already-materialized native rows for exact ordered
+        # chi-square bin scans. Keeping them through this batch avoids a large
+        # device-to-host copy and is released with the ordinary batch cache.
+        self._last_batch_host_tensor = host_waveforms
         self._last_batch_indices = tuple(indices)
 
         for pos, meta in enumerate(metadata):
@@ -1320,7 +1357,10 @@ class FilterBank(TemplateBank):
         if full_calculate_waveform:
             htilde = pycbc.waveform.get_waveform_filter(
                 tempout[0:self.filter_length],
-                **self._waveform_parameters(index)[0],
+                **self._waveform_parameters(
+                    index, approximant=approximant,
+                    f_lower=f_low, f_final=f_end
+                )[0],
             )
 
         # If available, record the total duration (which may

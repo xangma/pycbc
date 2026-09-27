@@ -16,17 +16,243 @@
 
 """JAX backend for coincidence construction and clustering.
 
-Provides device-resident coincidence finding and clustering without host
-synchronization or Cython dependencies, utilizing functional XLA array
-transformations, segment trees, and binary lifting.
+Provides JAX array operations for coincidence finding and clustering,
+utilizing functional XLA transformations, segment trees, and binary lifting.
 """
 
 import numpy as np
+import jax
 import jax.numpy as jnp
 
 from pycbc.types import Array
 from pycbc.types.array_jax import JAXArrayData, _ensure_x64, is_jax_array
 from pycbc.types.backend import backend_array, is_backend
+
+
+def pick_best_coinc_jax(coinc_results, logger):
+    """Select the best coincidence using device-resident IFAR/stat arrays."""
+    candidates = [result for result in coinc_results
+                  if "coinc_possible" in result and
+                  "foreground/ifar" in result]
+    trials = sum("coinc_possible" in result for result in coinc_results)
+    if not candidates:
+        return coinc_results[0]
+    ifar = jnp.asarray([result["foreground/ifar"] for result in candidates])
+    stat = jnp.asarray([result["foreground/stat"] for result in candidates])
+    stat = stat.reshape((len(candidates), -1))[:, 0]
+    best_ifar = jnp.max(ifar)
+    best = jnp.argmax(jnp.where(ifar == best_ifar, stat, -jnp.inf))
+    result = candidates[int(best)]
+    result["foreground/ifar"] = best_ifar / float(trials)
+    logger.info("Found %s coinc with ifar %s", result["foreground/type"],
+                result["foreground/ifar"])
+    return result
+
+
+def add_singles_to_buffer_jax(estimator, results, ifos, logger):
+    """Compute and append live singles using only JAX numeric operations."""
+    if not estimator.singles:
+        estimator.set_singles_buffer(results)
+    if not estimator.singles:
+        return {}
+    logger.info("adding singles to the background estimate...")
+    updated_indices = {}
+    for ifo in ifos:
+        trigs = results[ifo]
+        if len(trigs["snr"]) > 0:
+            trigsc = dict(trigs)
+            trigsc["ifo"] = ifo
+            trigsc["chisq"] = jnp.asarray(trigs["chisq"]) * jnp.asarray(
+                trigs["chisq_dof"])
+            trigsc["chisq_dof"] = (jnp.asarray(trigs["chisq_dof"]) + 2) / 2
+            trigsc = {key: _numeric_device_value(value)
+                      for key, value in trigsc.items()}
+            single_stat = estimator.stat_calculator.single(trigsc)
+        else:
+            single_stat = jnp.array([], dtype=estimator.stat_calculator.single_dtype)
+        trigs["stat"] = single_stat
+        data = {key: _numeric_device_value(value)
+                for key, value in trigs.items()}
+        estimator.singles[ifo].add(trigs["template_id"], data)
+        updated_indices[ifo] = trigs["template_id"]
+    return updated_indices
+
+
+def _numeric_device_value(value):
+    """Move numeric trigger columns to JAX; retain metadata on the host."""
+    if isinstance(value, str):
+        return value
+    dtype = getattr(value, "dtype", None)
+    if dtype is not None and np.dtype(dtype).kind in "biufc":
+        return jnp.asarray(value)
+    return value
+
+
+class JAXCoincExpireBuffer:
+    """JAX resident rolling coincidence statistic buffer.
+
+    Coincident statistics and their expiration clocks stay on the selected
+    JAX device, alongside the columnar singles buffers.
+    """
+
+    def __init__(self, expiration, ifos, initial_size=2**20, dtype=np.float32):
+        self.expiration = expiration
+        self.ifos = ifos
+        self.buffer = jnp.zeros(initial_size, dtype=dtype)
+        self.timer = {ifo: jnp.zeros(initial_size, dtype=jnp.int32) for ifo in ifos}
+        self.index = 0
+        self.time = {ifo: 0 for ifo in ifos}
+
+    def __len__(self):
+        return self.index
+
+    @property
+    def nbytes(self):
+        return self.buffer.size * self.buffer.dtype.itemsize + sum(
+            value.size * value.dtype.itemsize for value in self.timer.values()
+        )
+
+    def increment(self, ifos):
+        self.add(jnp.empty(0, dtype=self.buffer.dtype), {}, ifos)
+
+    def remove(self, num):
+        self.index -= num
+
+    def add(self, values, times, ifos):
+        values = jnp.asarray(values, dtype=self.buffer.dtype)
+        for ifo in ifos:
+            self.time[ifo] += 1
+        needed = self.index + values.size
+        if needed > self.buffer.size:
+            size = max(needed, self.buffer.size * 2)
+            self.buffer = jnp.pad(self.buffer, (0, size - self.buffer.size))
+            self.timer = {
+                ifo: jnp.pad(clock, (0, size - clock.size))
+                for ifo, clock in self.timer.items()
+            }
+        self.buffer = self.buffer.at[self.index:self.index + values.size].set(values)
+        for ifo in self.ifos:
+            if values.size:
+                self.timer[ifo] = self.timer[ifo].at[
+                    self.index:self.index + values.size
+                ].set(jnp.asarray(times[ifo], dtype=jnp.int32))
+        self.index = needed
+        if ifos:
+            keep = jnp.ones(self.index, dtype=bool)
+            for ifo in ifos:
+                keep &= self.timer[ifo][:self.index] >= self.time[ifo] - self.expiration
+            kept = jnp.flatnonzero(keep)
+            self.buffer = self.buffer.at[:kept.size].set(self.buffer[kept])
+            for ifo in self.ifos:
+                self.timer[ifo] = self.timer[ifo].at[:kept.size].set(
+                    self.timer[ifo][kept]
+                )
+            self.index = kept.size
+
+    def num_greater(self, value):
+        return int(jnp.sum(self.buffer[:self.index] > value))
+
+    @property
+    def data(self):
+        return self.buffer[:self.index]
+
+
+class JAXMultiRingBuffer:
+    """Columnar JAX ring buffers for live single-detector triggers."""
+
+    def __init__(self, num_rings, max_time, dtype=None, **kwargs):
+        self.max_time = max_time
+        self.num_rings = num_rings
+        self.buffer = [None] * num_rings
+        self.buffer_expire = [jnp.empty(0, dtype=jnp.int32) for _ in range(num_rings)]
+        self.valid_ends = [0] * num_rings
+        self.time = 0
+
+    @property
+    def filled_time(self):
+        return min(self.time, self.max_time)
+
+    @property
+    def nbytes(self):
+        return sum(
+            value.size * value.dtype.itemsize
+            for row in self.buffer if row is not None for value in row.values()
+        )
+
+    def add(self, indices, values):
+        indices = np.asarray(indices)
+        for ring in set(map(int, indices)):
+            self._prune_ring(ring)
+        for pos, ring in enumerate(indices):
+            ring = int(ring)
+            row = {key: _numeric_device_value(value[pos])
+                   for key, value in values.items()}
+            if self.buffer[ring] is None:
+                self.buffer[ring] = {
+                    key: (_numeric_device_value(value[pos:pos + 1])
+                          if np.dtype(getattr(value, "dtype", object)).kind
+                          in "biufc" else np.asarray(value[pos:pos + 1]))
+                    for key, value in values.items()}
+                self.buffer_expire[ring] = jnp.asarray([self.time], dtype=jnp.int32)
+            else:
+                appended = {}
+                for key, new_value in row.items():
+                    old_value = self.buffer[ring][key]
+                    if is_jax_array(old_value):
+                        appended[key] = jnp.concatenate(
+                            (old_value, jnp.asarray(new_value)[None]))
+                    else:
+                        appended[key] = np.concatenate(
+                            (old_value, np.asarray(new_value)[None]))
+                self.buffer[ring] = appended
+                self.buffer_expire[ring] = jnp.concatenate(
+                    (self.buffer_expire[ring], jnp.asarray([self.time], dtype=jnp.int32))
+                )
+            self.valid_ends[ring] += 1
+        self.time += 1
+
+    def _prune_ring(self, buffer_index):
+        row = self.buffer[buffer_index]
+        if row is None:
+            return
+        keep = self._keep_mask(buffer_index)
+        if bool(jnp.all(keep)):
+            return
+        host_keep = np.asarray(keep)
+        self.buffer[buffer_index] = {
+            key: (value[keep] if is_jax_array(value)
+                  else value[host_keep])
+            for key, value in row.items()
+        }
+        self.buffer_expire[buffer_index] = self.buffer_expire[buffer_index][keep]
+        self.valid_ends[buffer_index] = len(self.buffer_expire[buffer_index])
+
+    def data(self, buffer_index):
+        # Compact on access or append, as native ring buffers do. This bounds
+        # growing storage without synchronizing every template every block.
+        self._prune_ring(buffer_index)
+        row = self.buffer[buffer_index]
+        if row is None:
+            return {}
+        return row
+
+    def expire_vector(self, buffer_index):
+        self._prune_ring(buffer_index)
+        return self.buffer_expire[buffer_index]
+
+    def _keep_mask(self, buffer_index):
+        return (self.buffer_expire[buffer_index] >=
+                self.time - self.max_time)
+
+    def discard_last(self, indices):
+        for ring in np.asarray(indices):
+            ring = int(ring)
+            if self.buffer[ring] is not None:
+                self.buffer[ring] = {
+                    key: value[:-1] for key, value in self.buffer[ring].items()
+                }
+                self.buffer_expire[ring] = self.buffer_expire[ring][:-1]
+                self.valid_ends[ring] -= 1
 
 
 def _as_jax_array(value):
@@ -41,6 +267,11 @@ def _as_jax_array(value):
     if is_jax_array(value):
         return getattr(value, "array", value)
     return None
+
+
+def _host_array(value):
+    """Convert a public boundary value without changing its dtype."""
+    return value.numpy() if isinstance(value, Array) else value
 
 
 def _wrap_coincidence_result(t1, t2, *values):
@@ -62,14 +293,16 @@ def _cluster_vectors(values):
     _ensure_x64()
     arrays = [_as_jax_array(value) for value in values]
     reference = next((v for v in arrays if v is not None), None)
-    if reference is None:
-        raise TypeError("the JAX backend requires a JAX-backed input")
 
     result = []
     for value, arr in zip(values, arrays):
         if arr is None:
             host = value.numpy() if isinstance(value, Array) else value
-            arr = jnp.asarray(host, dtype=reference.dtype)
+            # Ranking statistics, GPS times, and slide IDs may have different
+            # dtypes. In particular, float64 GPS times lose subsecond spacing
+            # if a float32 statistic supplies the reference array.
+            arr = (jax.device_put(host, reference.device)
+                   if reference is not None else jnp.asarray(host))
         if arr.ndim != 1:
             raise TypeError("cluster arrays must be one-dimensional")
         result.append(arr)
@@ -77,20 +310,17 @@ def _cluster_vectors(values):
 
 
 def time_coincidence(t1, t2, window, slide_step=0):
-    """Find coincidences by time window on JAX device without host copies."""
+    """Find coincidences on the JAX device after converting host inputs."""
     _ensure_x64()
     arr1 = _as_jax_array(t1)
     arr2 = _as_jax_array(t2)
     reference = arr1 if arr1 is not None else arr2
-    if reference is None:
-        raise TypeError("the JAX backend requires a JAX-backed input")
 
     def _as_time_array(value, arr):
         if arr is None:
-            host = value.numpy() if isinstance(value, Array) else value
-            arr = jnp.asarray(host, dtype=reference.dtype)
-        if arr.dtype != reference.dtype:
-            raise TypeError("coincidence time arrays must use one dtype")
+            host = _host_array(value)
+            arr = (jax.device_put(host, reference.device)
+                   if reference is not None else jnp.asarray(host))
         if arr.ndim != 1 or not jnp.issubdtype(arr.dtype, jnp.floating):
             raise TypeError(
                 "coincidence time arrays must be one-dimensional floating point"
@@ -99,6 +329,12 @@ def time_coincidence(t1, t2, window, slide_step=0):
 
     arr1 = _as_time_array(t1, arr1)
     arr2 = _as_time_array(t2, arr2)
+    # Coincidence times may arrive from different detector buffers with
+    # different storage precisions. Promote before applying the time window;
+    # narrowing a float64 GPS vector to float32 can erase whole seconds.
+    common_dtype = jnp.result_type(arr1.dtype, arr2.dtype)
+    arr1 = arr1.astype(common_dtype)
+    arr2 = arr2.astype(common_dtype)
 
     if slide_step:
         fold1 = jnp.fmod(arr1, slide_step)
@@ -319,17 +555,16 @@ def cluster_over_time(stat, time, window, method="python", argmax=np.argmax):
     _ensure_x64()
     stat_arr = _as_jax_array(stat)
     time_arr = _as_jax_array(time)
-    reference = stat_arr if stat_arr is not None else time_arr
-    if reference is None:
-        raise TypeError("the JAX backend requires a JAX-backed input")
 
     if method not in ("python", "cython"):
         raise ValueError(f"Do not recognize method {method}")
 
     def _as_tensor(value, arr):
         if arr is None:
-            host = value.numpy() if isinstance(value, Array) else value
-            arr = jnp.asarray(host, dtype=reference.dtype)
+            # Statistics and GPS times may have different precisions.  In
+            # particular, casting float64 times to float32 loses subsecond
+            # spacing at ordinary GPS epochs and changes clustering.
+            arr = jnp.asarray(_host_array(value))
         if arr.ndim != 1:
             raise TypeError("cluster arrays must be one-dimensional")
         return arr
@@ -380,3 +615,218 @@ def cluster_over_time(stat, time, window, method="python", argmax=np.argmax):
     keep = jnp.flatnonzero(visited[:length] & (maxima == positions))
     result = time_sorting[keep]
     return _wrap_coincidence_result(stat, time, result)[0]
+
+
+def find_coincs_jax(estimator, results, valid_ifos):
+    """Look for coincs within the set of single triggers
+
+    Parameters
+    ----------
+    results: dict
+        Dictionary of dictionaries indexed by ifo and keys such as 'snr',
+        'chisq', etc. The specific format is determined by the
+        LiveBatchMatchedFilter class.
+    valid_ifos: list of strs
+        List of ifos for which new triggers might exist. This must be a
+        subset of estimator.ifos. If an ifo is in estimator.ifos but not in this list
+        either the ifo is down, or its data has been flagged as "bad".
+
+    Returns
+    -------
+    num_background: int
+        Number of time shifted coincidences found.
+    coinc_results: dict of arrays
+        A dictionary of arrays containing the coincident results.
+    """
+    from .coinc import cluster_coincs, time_coincidence, ppdets, logger
+    from pycbc import conversions as conv
+    # For each new single detector trigger find the allowed coincidences
+    # Record the template and the index of the single trigger that forms
+    # each coincidence
+
+    # Initialize
+    cstat = []
+    offsets = []
+    ctimes = {estimator.ifos[0]:[], estimator.ifos[1]:[]}
+    single_expire = {estimator.ifos[0]:[], estimator.ifos[1]:[]}
+    template_ids = []
+    trigger_ids = {estimator.ifos[0]: [], estimator.ifos[1]: []}
+
+    # Calculate all the permutations of coincident triggers for each
+    # new single detector trigger collected
+    # Currently only two detectors are supported.
+    # For each ifo, check its newly added triggers for (zerolag and time
+    # shift) coincs with all currently stored triggers in the other ifo.
+    # Do this by keeping the ifo with new triggers fixed and time shifting
+    # the other ifo. The list 'shift_vec' must be in the same order as
+    # estimator.ifos and contain -1 for the shift_ifo / 0 for the fixed_ifo.
+    for fixed_ifo, shift_ifo, shift_vec in zip(
+        [estimator.ifos[0], estimator.ifos[1]],
+        [estimator.ifos[1], estimator.ifos[0]],
+        [[0, -1], [-1, 0]]
+    ):
+        if fixed_ifo not in valid_ifos:
+            # This ifo is not online now, so no new triggers or coincs
+            continue
+        # Find newly added triggers in fixed_ifo
+        trigs = results[fixed_ifo]
+        # Calculate mchirp as a vectorized operation
+        mchirps = conv.mchirp_from_mass1_mass2(
+            jnp.asarray(trigs['mass1']), jnp.asarray(trigs['mass2'])
+        )
+        # Loop over them one trigger at a time
+        for i in range(len(trigs['end_time'])):
+            trig_stat = trigs['stat'][i]
+            trig_time = trigs['end_time'][i]
+            template = trigs['template_id'][i]
+            mchirp = mchirps[i]
+
+            # Get current shift_ifo triggers in the same template
+            shifted = estimator.singles[shift_ifo].data(template)
+            times = shifted.get('end_time', jnp.empty(0, dtype=jnp.float64))
+            stats = shifted.get('stat', jnp.empty(0, dtype=jnp.float32))
+
+            # Perform coincidence. i1 is the list of trigger indices in the
+            # shift_ifo which make coincs, slide is the corresponding slide
+            # index.
+            # (The second output would just be a list of zeroes as we only
+            # have one trigger in the fixed_ifo.)
+            i1, _, slide = time_coincidence(times,
+                             jnp.array(trig_time, ndmin=1,
+                             dtype=jnp.float64),
+                             estimator.time_window,
+                             estimator.timeslide_interval)
+
+            # Make a copy of the fixed ifo trig_stat for each coinc.
+            # NB for some statistics the "stat" entry holds more than just
+            # a ranking number. E.g. for the phase time consistency test,
+            # it must also contain the phase, time and sensitivity.
+            if estimator.trig_stat_memory is None:
+                estimator.trig_stat_memory = jnp.zeros(
+                    1,
+                    dtype=trig_stat.dtype
+                )
+            while len(estimator.trig_stat_memory) < len(i1):
+                estimator.trig_stat_memory = jnp.pad(
+                    estimator.trig_stat_memory,
+                    (0, len(estimator.trig_stat_memory)),
+                )
+            estimator.trig_stat_memory = estimator.trig_stat_memory.at[:len(i1)].set(trig_stat)
+
+            # Force data into form needed by stat.py and then compute the
+            # ranking statistic values.
+            sngls_list = [[fixed_ifo, estimator.trig_stat_memory[:len(i1)]],
+                          [shift_ifo, stats[i1]]]
+
+            c = estimator.stat_calculator.rank_stat_coinc(
+                sngls_list,
+                slide,
+                estimator.timeslide_interval,
+                shift_vec,
+                time_addition=estimator.coinc_window_pad,
+                mchirp=mchirp,
+                dets=estimator.dets
+            )
+
+            # Store data about new triggers: slide index, stat value and
+            # times.
+            offsets.append(slide)
+            # The native coincidence path materializes this ranking array as
+            # float64, even when the device-resident single-trigger columns
+            # are float32.  Keep that public output contract at the backend
+            # boundary; the ranking calculation above remains JAX-native.
+            cstat.append(jnp.asarray(c, dtype=jnp.float64))
+            ctimes[shift_ifo].append(times[i1])
+            fixed_times = jnp.full(len(c), trig_time, dtype=jnp.float64)
+            ctimes[fixed_ifo].append(fixed_times)
+
+            # As background triggers are removed after a certain time, we
+            # need to log when this will be for new background triggers.
+            single_expire[shift_ifo].append(
+                estimator.singles[shift_ifo].expire_vector(template)[i1]
+            )
+            single_expire[fixed_ifo].append(jnp.full(
+                len(c), estimator.singles[fixed_ifo].time - 1,
+                dtype=jnp.int32
+            ))
+
+            # Save the template and trigger ids to keep association
+            # to singles. The trigger was just added so it must be in
+            # the last position: we mark this with -1 so the
+            # slicing picks the right point
+            template_ids.append(jnp.zeros(len(c), dtype=jnp.int32) + template)
+            trigger_ids[shift_ifo].append(i1)
+            trigger_ids[fixed_ifo].append(jnp.zeros(len(c)) - 1)
+
+    cstat = (jnp.concatenate(cstat) if cstat else
+             jnp.empty(0, dtype=jnp.float64))
+    template_ids = (jnp.concatenate(template_ids).astype(jnp.int32)
+                    if template_ids else jnp.empty(0, dtype=jnp.int32))
+    for ifo in valid_ifos:
+        trigger_ids[ifo] = (jnp.concatenate(trigger_ids[ifo]).astype(jnp.int32)
+                            if trigger_ids[ifo] else
+                            jnp.empty(0, dtype=jnp.int32))
+
+    logger.info(
+        "%s: %s background and zerolag coincs",
+        ppdets(estimator.ifos, "-"), len(cstat)
+    )
+
+    # Cluster the triggers we've found
+    # (both zerolag and shifted are handled together)
+    num_zerolag = 0
+    num_background = 0
+    if len(cstat) > 0:
+        offsets = jnp.concatenate(offsets)
+        ctime0 = jnp.concatenate(ctimes[estimator.ifos[0]]).astype(jnp.float64)
+        ctime1 = jnp.concatenate(ctimes[estimator.ifos[1]]).astype(jnp.float64)
+        logger.info("Clustering %s coincs", ppdets(estimator.ifos, "-"))
+        cidx = cluster_coincs(cstat, ctime0, ctime1, offsets,
+                              estimator.timeslide_interval,
+                              estimator.analysis_block + 2*estimator.time_window,
+                              method='cython')
+        offsets = offsets[cidx]
+        zerolag_idx = (offsets == 0)
+        bkg_idx = (offsets != 0)
+
+        for ifo in estimator.ifos:
+            single_expire[ifo] = jnp.concatenate(single_expire[ifo])
+            single_expire[ifo] = single_expire[ifo][cidx][bkg_idx]
+
+        estimator.coincs.add(cstat[cidx][bkg_idx], single_expire, valid_ifos)
+        num_zerolag = zerolag_idx.sum()
+        num_background = bkg_idx.sum()
+    elif len(valid_ifos) > 0:
+        estimator.coincs.increment(valid_ifos)
+
+    # Collect coinc results for saving
+    coinc_results = {}
+    # Save information about zerolag triggers
+    if num_zerolag > 0:
+        idx = cidx[zerolag_idx][0]
+        zerolag_cstat = cstat[cidx][zerolag_idx]
+        ifar, ifar_sat = estimator.ifar(zerolag_cstat[0])
+        zerolag_results = {
+            'foreground/ifar': ifar,
+            'foreground/ifar_saturated': ifar_sat,
+            'foreground/stat': zerolag_cstat,
+            'foreground/type': '-'.join(estimator.ifos)
+        }
+        template = template_ids[idx]
+        for ifo in estimator.ifos:
+            trig_id = trigger_ids[ifo][idx]
+            stored = estimator.singles[ifo].data(template)
+            for key, value in stored.items():
+                path = f'foreground/{ifo}/{key}'
+                zerolag_results[path] = value[trig_id]
+        coinc_results.update(zerolag_results)
+
+    # Save some summary statistics about the background
+    coinc_results['background/time'] = jnp.array([estimator.background_time])
+    coinc_results['background/count'] = len(estimator.coincs.data)
+
+    # Save all the background triggers
+    if estimator.return_background:
+        coinc_results['background/stat'] = estimator.coincs.data
+
+    return num_background, coinc_results

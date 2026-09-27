@@ -52,7 +52,7 @@ def correlate(x, y, z):
 class BatchCorrelator(object):
     """ Create a batch correlation engine
     """
-    def __init__(self, xs, zs, size):
+    def __init__(self, xs, zs, size, immutable_templates=False):
         """ Correlate x and y, store in z. Arrays need not be equal length, but
         must be at least size long and of the same dtype. No error checking
         will be performed, so be careful. All dtypes must be complex64.
@@ -66,9 +66,31 @@ class BatchCorrelator(object):
         self.xs = xs
         self.zs = zs
 
-        # Store each pointer as in integer array
-        self.x = Array([v.ptr for v in xs], dtype=int)
-        self.z = Array([v.ptr for v in zs], dtype=int)
+        # Live banks keep their template values fixed for the lifetime of the
+        # correlator.  In that explicitly opted-in mode, pack ordinary JAX
+        # FrequencySeries inputs once so each batch does not rematerialize and
+        # stack every row.  The default remains uncached for mutable callers.
+        is_jax = isinstance(pycbc.scheme.mgr.state, pycbc.scheme.JAXScheme)
+        self._jax_template_matrix = None
+        self._jax_template_power = None
+        if immutable_templates and is_jax:
+            from pycbc.filter.matchedfilter_jax import (
+                batch_template_matrix_jax,
+                batch_template_power_jax,
+            )
+            self._jax_template_matrix = batch_template_matrix_jax(xs, self.size)
+            if hasattr(xs[0], "delta_f"):
+                self._jax_template_power = batch_template_power_jax(
+                    self._jax_template_matrix, float(xs[0].delta_f))
+
+        # Pointer tables are used by native CPU/CUDA backends.  JAX keeps
+        # object references and performs its own device conversion; building
+        # these tables can otherwise force every template view to materialize.
+        if is_jax:
+            self.x = self.z = None
+        else:
+            self.x = Array([v.ptr for v in xs], dtype=int)
+            self.z = Array([v.ptr for v in zs], dtype=int)
 
     @pycbc.scheme.schemed(BACKEND_PREFIX)
     def batch_correlate_execute(self, y):
@@ -1584,6 +1606,15 @@ def quadratic_interpolate_peak(left, middle, right):
     return bin_offset, peak_value
 
 
+def _live_template_norms(templates, psd):
+    """Prepare live normalizations with a JAX reduction."""
+    context = pycbc.scheme.mgr.state
+    if not isinstance(context, pycbc.scheme.JAXScheme):
+        return [template.sigmasq(psd) for template in templates]
+    from pycbc.filter.matchedfilter_jax import live_template_norms_jax
+    return live_template_norms_jax(templates, psd)
+
+
 class LiveBatchMatchedFilter(object):
 
     """Calculate SNR and signal consistency tests in a batched progression"""
@@ -1688,7 +1719,10 @@ class LiveBatchMatchedFilter(object):
                 htilde.cout = self.cout_mem[mid][s:e]
                 s += psize
                 e += psize
-            self.corr.append(BatchCorrelator(tgroup, [t.cout for t in tgroup], len(tgroup[0])))
+            self.corr.append(BatchCorrelator(
+                tgroup, [t.cout for t in tgroup], len(tgroup[0]),
+                immutable_templates=True,
+            ))
 
     def set_data(self, data):
         """Set the data reader object to use"""
@@ -1697,6 +1731,9 @@ class LiveBatchMatchedFilter(object):
 
     def combine_results(self, results):
         """Combine results from different batches of filtering"""
+        if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.JAXScheme):
+            from pycbc.filter.matchedfilter_jax import combine_live_results_jax
+            return combine_live_results_jax(results)
         result = {}
         for key in results[0]:
             result[key] = numpy.concatenate([r[key] for r in results])
@@ -1733,6 +1770,9 @@ class LiveBatchMatchedFilter(object):
 
     def _process_vetoes(self, results, veto_info):
         """Calculate signal based vetoes"""
+        if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.JAXScheme):
+            from pycbc.filter.matchedfilter_jax import process_live_vetoes_jax
+            return process_live_vetoes_jax(self, results, veto_info)
         chisq = numpy.array(numpy.zeros(len(veto_info)), numpy.float32, ndmin=1)
         dof = numpy.array(numpy.zeros(len(veto_info)), numpy.uint32, ndmin=1)
         sg_chisq = numpy.array(numpy.zeros(len(veto_info)), numpy.float32,
@@ -1768,6 +1808,9 @@ class LiveBatchMatchedFilter(object):
 
     def _process_batch(self):
         """Process only a single batch group of data"""
+        if isinstance(pycbc.scheme.mgr.state, pycbc.scheme.JAXScheme):
+            from pycbc.filter.matchedfilter_jax import live_process_batch_jax
+            return live_process_batch_jax(self)
         if self.block_id == len(self.tgroups):
             return None, None
 
@@ -1803,34 +1846,18 @@ class LiveBatchMatchedFilter(object):
 
         # Find the peaks in our SNR times series from the various templates
         i = 0
-        jax_peaks = None
-        if getattr(pycbc.scheme, "JAXScheme", None) is not None and isinstance(pycbc.scheme.mgr.state, pycbc.scheme.JAXScheme):
-            try:
-                from pycbc.filter.matchedfilter_jax import batch_peak_values
-                jax_peaks = batch_peak_values(
-                    self.out_mem[mid], len(tgroup), psize, seg
-                )
-            except Exception:
-                jax_peaks = None
-
-        for idx, htilde in enumerate(tgroup):
+        for htilde in tgroup:
             if hasattr(htilde, 'time_offset'):
                 if 'time_offset' not in result:
                     result['time_offset'] = []
 
-            if jax_peaks is not None:
-                l = int(jax_peaks[0][idx])
-                snrv = numpy.array([jax_peaks[1][idx]])
-            else:
-                l = htilde.out[seg].abs_arg_max()
-                snrv = None
+            l = htilde.out[seg].abs_arg_max()
 
             sgm = htilde.sigmasq(psd)
             norm = 4.0 * htilde.delta_f / (sgm ** 0.5)
 
             l += valid_start
-            if snrv is None:
-                snrv = numpy.array([htilde.out[l]])
+            snrv = numpy.array([htilde.out[l]])
 
             # If nothing is above threshold we can exit this template
             s = abs(snrv[0]) * norm

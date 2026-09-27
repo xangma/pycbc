@@ -59,6 +59,28 @@ def _assign_to_vec(outvec, result, nbatch, size, odist):
             dest.set_array(result)
         return
 
+    if dest is not None:
+        # Keep the result on the JAX device and update all rows in one
+        # immutable assignment.  Converting to NumPy and assigning rows one
+        # at a time causes a host round-trip and repeatedly copies the whole
+        # destination when it is a JAXArrayData instance.
+        import jax.numpy as jnp
+
+        result = result if getattr(result, "ndim", 0) == 2 else result[None, :]
+        current = dest.array
+        copy_len = min(size, result.shape[-1])
+        if copy_len == 0:
+            return
+        if copy_len == odist and nbatch * odist == current.size:
+            dest.set_array(result[:, :copy_len].reshape(-1))
+            return
+        row_starts = jnp.arange(nbatch, dtype=jnp.int32) * odist
+        offsets = jnp.arange(copy_len, dtype=jnp.int32)
+        indices = (row_starts[:, None] + offsets[None, :]).reshape(-1)
+        values = result[:, :copy_len].reshape(-1)
+        dest.set_array(current.at[indices].set(values))
+        return
+
     narr = np.asarray(result)
     copy_len = min(size, narr.shape[-1])
     if nbatch == 1:
@@ -135,7 +157,13 @@ def fft(invec, outvec, _, itype, otype):
     else:
         raise ValueError(_INV_FFT_MSG.format("FFT", itype, otype))
 
-    outvec.data[:] = np.asarray(res, dtype=outvec.dtype)
+    target = getattr(outvec, "data", outvec)
+    if isinstance(target, JAXArrayData):
+        target.set_array(res.astype(outvec.dtype))
+    elif hasattr(target, "_data") and isinstance(target._data, JAXArrayData):
+        target._data.set_array(res.astype(outvec.dtype))
+    else:
+        outvec.data[:] = np.asarray(res, dtype=outvec.dtype)
 
 
 def ifft(invec, outvec, _, itype, otype):
@@ -154,7 +182,13 @@ def ifft(invec, outvec, _, itype, otype):
     else:
         raise ValueError(_INV_FFT_MSG.format("IFFT", itype, otype))
 
-    outvec.data[:] = np.asarray(res, dtype=outvec.dtype)
+    target = getattr(outvec, "data", outvec)
+    if isinstance(target, JAXArrayData):
+        target.set_array(res.astype(outvec.dtype))
+    elif hasattr(target, "_data") and isinstance(target._data, JAXArrayData):
+        target._data.set_array(res.astype(outvec.dtype))
+    else:
+        outvec.data[:] = np.asarray(res, dtype=outvec.dtype)
 
 
 # -------------------------------------------------------------------------

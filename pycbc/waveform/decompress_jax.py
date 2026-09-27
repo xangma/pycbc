@@ -1,261 +1,169 @@
 # Copyright (C) 2026 PyCBC contributors
 #
 # This program is free software; you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by the
-# Free Software Foundation; either version 3 of the License, or
-# (at your option) any later version.
+# under the terms of the GNU General Public License as published by the Free
+# Software Foundation; either version 3 of the License, or (at your option) any
+# later version.
 
-"""JAX interpolation backend for compressed frequency-domain waveforms."""
+"""JAX-facing decompression for compressed frequency-domain waveforms.
 
-import functools
-import numpy as np
+Compressed templates are small, irregular inputs which expand to very large
+dense arrays. Running a binary search and trigonometric interpolation for every
+output bin is a poor GPU workload. PyCBC's native interpolators instead walk
+each compressed segment once and define the reference numerical semantics.
+This module stages a complete batch with those routines and makes one explicit
+transfer to the active JAX device.
+"""
+
 import jax
 import jax.numpy as jnp
+import numpy as np
 
-from pycbc.types.array_jax import JAXArrayData, _ensure_x64, to_jax
+from pycbc.types.array_jax import JAXArrayData, _ensure_x64
 from pycbc.types.backend import backend_array
+from .decompress_cpu_cython import (
+    decomp_ccode_double,
+    decomp_ccode_float,
+    decomp_qcode_double,
+    decomp_qcode_float,
+    decomp_tcode_double,
+    decomp_tcode_float,
+    decomp_Qcode_double,
+    decomp_Qcode_float,
+)
 
-_STENCIL_OFFSETS = {
-    1: (0, 1),
-    2: (-1, 0, 1),
-    3: (-1, 0, 1, 2),
-    4: (-1, 0, 1, 2, 3),
+
+_INTERPOLATORS = {
+    "inline_linear": (decomp_ccode_float, decomp_ccode_double),
+    "inline_quadratic": (decomp_qcode_float, decomp_qcode_double),
+    "inline_cubic": (decomp_tcode_float, decomp_tcode_double),
+    "inline_quartic": (decomp_Qcode_float, decomp_Qcode_double),
 }
 
 
-def _lagrange_weights(nodes, points):
-    """Evaluate Lagrange basis weights for each row of ``nodes``."""
-    weights = []
-    num_cols = nodes.shape[1]
-    for col in range(num_cols):
-        num = jnp.ones_like(points)
-        den = jnp.ones_like(points)
-        for other in range(num_cols):
-            if other == col:
-                continue
-            num = num * (points - nodes[:, other])
-            den = den * (nodes[:, col] - nodes[:, other])
-        weights.append(num / den)
-    return jnp.stack(weights, axis=1)
+def _target_device():
+    """Return the active JAX device, if execution is inside JAXScheme."""
+    from pycbc import scheme
+
+    state = getattr(scheme.mgr, "state", None)
+    return getattr(state, "jax_device", None)
 
 
-def _grid_indices(frequencies, df):
-    """Truncate frequencies to output-grid indices like the CPU backend."""
-    ratios = np.asarray(frequencies) / df
-    if ratios.dtype == np.float64:
-        nearest = np.round(ratios)
-        scale = np.maximum(np.abs(ratios), 1.0)
-        tolerance = 8 * np.finfo(ratios.dtype).eps * scale
-        ratios = np.where(
-            np.abs(ratios - nearest) <= tolerance,
-            nearest,
-            ratios,
-        )
-    return np.trunc(ratios).astype(np.int64)
+def _host_array(value, dtype):
+    """Return contiguous host storage without relying on implicit transfers."""
+    raw = backend_array(value, "jax")
+    if raw is not None:
+        value = jax.device_get(raw)
+    return np.ascontiguousarray(value, dtype=dtype)
 
 
-try:
-    from .decompress_cpu_cython import (
-        decomp_ccode_float,
-        decomp_ccode_double,
-    )
-except (ImportError, OSError):
-    decomp_ccode_float = None
-    decomp_ccode_double = None
-
-
-@functools.partial(jax.jit, static_argnames=("out_len", "dtype"))
-def _decompress_batch_core(
-    amps, phases, freqs, imins, starts, ends, counts, df, out_len, dtype
+def _decompress_host_row(
+    amp, phase, frequencies, imin, start, end, count, interpolation,
+    df, out_len, dtype,
 ):
-    """JIT-compiled batched linear interpolation kernel for waveforms on GPU."""
-    out_idx = jnp.arange(out_len, dtype=jnp.int64)
-    points = out_idx.astype(jnp.float64) * df
+    """Run one native interpolation into a zero-initialized host row."""
+    if interpolation not in _INTERPOLATORS:
+        supported = ", ".join(_INTERPOLATORS)
+        raise NotImplementedError(
+            f"JAX batched decompression supports {supported}; "
+            f"got {interpolation!r}"
+        )
 
-    def interp_one(amp, phase, freq, imin, start_idx, end_idx, count):
-        ratios = freq[1:] / df
-        nearest = jnp.round(ratios)
-        scale = jnp.maximum(jnp.abs(ratios), 1.0)
-        tol = 8 * jnp.finfo(jnp.float64).eps * scale
-        ratios = jnp.where(jnp.abs(ratios - nearest) <= tol, nearest, ratios)
-        seg_ends = jnp.trunc(ratios).astype(jnp.int64)
+    complex_dtype = np.dtype(dtype)
+    if complex_dtype == np.dtype(np.complex64):
+        real_dtype = np.float32
+        helper = _INTERPOLATORS[interpolation][0]
+    elif complex_dtype == np.dtype(np.complex128):
+        real_dtype = np.float64
+        helper = _INTERPOLATORS[interpolation][1]
+    else:
+        raise TypeError(f"Unsupported decompression dtype {complex_dtype}")
 
-        segs = jnp.searchsorted(seg_ends, out_idx, side="right")
-        segs = jnp.clip(segs, imin, count - 2)
+    row = np.zeros(int(out_len), dtype=complex_dtype)
+    count = min(int(count), len(amp), len(phase), len(frequencies))
+    start = max(0, int(start))
+    stop = min(int(out_len), int(end))
+    if count < 2 or stop <= start or not len(row):
+        return row
 
-        f0 = freq[segs]
-        f1 = freq[segs + 1]
-        denom = jnp.maximum(f1 - f0, 1e-12)
-        w1 = (points - f0) / denom
-        w0 = 1.0 - w1
+    frequencies = _host_array(frequencies, real_dtype)[:count]
+    amp = _host_array(amp, real_dtype)[:count]
+    phase = _host_array(phase, real_dtype)[:count]
+    imin = min(max(0, int(imin)), count - 2)
+    helper(
+        row, float(df), stop, start, frequencies, amp, phase, count, imin
+    )
+    return row
 
-        ai = amp[segs] * w0 + amp[segs + 1] * w1
-        pi = phase[segs] * w0 + phase[segs + 1] * w1
 
-        wf = (ai * jnp.cos(pi) + 1j * ai * jnp.sin(pi)).astype(dtype)
-        valid = (out_idx >= start_idx) & (out_idx < end_idx)
-        return jnp.where(valid, wf, 0.0)
+def batched_inline_interp_jax(
+    amps_list, phases_list, freqs_list, imins, starts, ends, counts,
+    interpolations, df, out_len, dtype=jnp.complex64,
+):
+    """Decompress a host-staged batch and transfer it once to a JAX device."""
+    _, device = stage_batched_inline_interp_jax(
+        amps_list, phases_list, freqs_list, imins, starts, ends, counts,
+        interpolations, df, out_len, dtype=dtype,
+    )
+    return device
 
-    return jax.vmap(interp_one)(amps, phases, freqs, imins, starts, ends, counts)
+
+def stage_batched_inline_interp_jax(
+    amps_list, phases_list, freqs_list, imins, starts, ends, counts,
+    interpolations, df, out_len, dtype=jnp.complex64,
+):
+    """Return the native host batch and its single-copy device image."""
+    _ensure_x64()
+    batch_size = len(amps_list)
+    fields = (
+        phases_list, freqs_list, imins, starts, ends, counts, interpolations
+    )
+    if any(len(field) != batch_size for field in fields):
+        raise ValueError("Batched decompression inputs must have equal lengths")
+
+    host = np.zeros((batch_size, int(out_len)), dtype=np.dtype(dtype))
+    for index in range(batch_size):
+        host[index] = _decompress_host_row(
+            amps_list[index], phases_list[index], freqs_list[index],
+            imins[index], starts[index], ends[index], counts[index],
+            interpolations[index], df, out_len, dtype,
+        )
+    return host, jax.device_put(host, _target_device())
 
 
 def batched_inline_linear_interp_jax(
-    amps_list, phases_list, freqs_list, imins, starts, ends, counts, df, out_len, dtype=jnp.complex64, pad_len=2048
+    amps_list, phases_list, freqs_list, imins, starts, ends, counts,
+    df, out_len, dtype=jnp.complex64,
 ):
-    """Decompress an entire batch of waveforms on GPU in parallel with bitwise parity."""
-    _ensure_x64()
-    b = len(amps_list)
-    if b == 0:
-        return jnp.zeros((0, out_len), dtype=dtype)
-
-    max_k = max(max(counts), 1)
-    k_pad = max(pad_len, int(2 ** np.ceil(np.log2(max(max_k, 2)))))
-
-    amps_padded = np.zeros((b, k_pad), dtype=np.float64)
-    phases_padded = np.zeros((b, k_pad), dtype=np.float64)
-    freqs_padded = np.full((b, k_pad), 1e9, dtype=np.float64)
-
-    for i in range(b):
-        c = int(counts[i])
-        amps_padded[i, :c] = np.asarray(amps_list[i], dtype=np.float64)
-        phases_padded[i, :c] = np.asarray(phases_list[i], dtype=np.float64)
-        freqs_padded[i, :c] = np.asarray(freqs_list[i], dtype=np.float64)
-
-    calc_df = np.float32(df).item() if dtype == jnp.complex64 else float(df)
-
-    res = _decompress_batch_core(
-        jnp.asarray(amps_padded),
-        jnp.asarray(phases_padded),
-        jnp.asarray(freqs_padded),
-        jnp.asarray(imins, dtype=jnp.int64),
-        jnp.asarray(starts, dtype=jnp.int64),
-        jnp.asarray(ends, dtype=jnp.int64),
-        jnp.asarray(counts, dtype=jnp.int64),
-        calc_df,
-        int(out_len),
-        dtype,
+    """Decompress a batch with native linear semantics onto a JAX device."""
+    return batched_inline_interp_jax(
+        amps_list, phases_list, freqs_list, imins, starts, ends, counts,
+        ["inline_linear"] * len(amps_list), df, out_len, dtype=dtype,
     )
-    return res
 
 
 def _inline_interp(
-    amp, phase, sample_frequencies, output, df, imin, start_index, degree
+    amp, phase, sample_frequencies, output, df, imin, start_index,
+    interpolation,
 ):
-    """Interpolate amplitude and phase with CPU-backend stencil semantics."""
-    _ensure_x64()
+    """Populate a JAX-backed output using the native reference interpolator."""
     out = backend_array(output, "jax")
     if out is None:
         raise TypeError("JAX decompression requires JAX-backed output")
 
-    dev = out.device() if callable(getattr(out, "device", None)) else getattr(out, "device", None)
-    is_cpu = getattr(dev, "platform", None) == "cpu"
-    if not is_cpu and hasattr(out, "devices"):
-        devs = list(out.devices()) if callable(getattr(out, "devices", None)) else getattr(out, "devices", [])
-        is_cpu = all(getattr(d, "platform", None) == "cpu" for d in devs) if devs else True
-
-    if is_cpu and degree == 1 and (
-        decomp_ccode_float is not None or decomp_ccode_double is not None
-    ):
-        rprec = np.float32 if out.dtype == jnp.complex64 else np.float64
-        cprec = np.complex64 if out.dtype == jnp.complex64 else np.complex128
-        h_host = np.zeros(len(out), dtype=cprec)
-        sf_host = np.asarray(sample_frequencies, dtype=rprec)
-        amp_host = np.asarray(amp, dtype=rprec)
-        phase_host = np.asarray(phase, dtype=rprec)
-        delta_f = float(df)
-        if out.dtype == jnp.complex64 and decomp_ccode_float is not None:
-            decomp_ccode_float(
-                h_host, delta_f, len(out), int(start_index), sf_host,
-                amp_host, phase_host, len(sf_host), int(imin)
-            )
-        elif decomp_ccode_double is not None:
-            decomp_ccode_double(
-                h_host, delta_f, len(out), int(start_index), sf_host,
-                amp_host, phase_host, len(sf_host), int(imin)
-            )
-        else:
-            h_host = None
-
-        if h_host is not None:
-            if (
-                hasattr(output, "_data")
-                and isinstance(output._data, JAXArrayData)
-            ):
-                output._data.set_array(jnp.asarray(h_host))
-            elif (
-                hasattr(output, "data")
-                and isinstance(output.data, JAXArrayData)
-            ):
-                output.data.set_array(jnp.asarray(h_host))
-            return output
-
-    input_dtype = jnp.float32 if out.dtype == jnp.complex64 else jnp.float64
-    calc_dtype = jnp.float64
-    calc_df = np.float32(df).item() if out.dtype == jnp.complex64 else float(df)
-
-    frequencies = to_jax(sample_frequencies).astype(input_dtype).astype(calc_dtype)
-    amplitudes = to_jax(amp).astype(input_dtype).astype(calc_dtype)
-    phases = to_jax(phase).astype(input_dtype).astype(calc_dtype)
-
-    sample_count = len(frequencies)
-    if sample_count < 2:
-        return output
-
-    last_freq = frequencies[-1]
-    last_index = int(_grid_indices(last_freq, calc_df))
-    end_index = min(len(out), last_index + 1)
-    if end_index <= start_index:
-        return output
-
-    if degree == 1:
-        res = batched_inline_linear_interp_jax(
-            [amplitudes], [phases], [frequencies],
-            [int(imin)], [int(start_index)], [int(end_index)], [int(sample_count)],
-            calc_df, len(out), out.dtype
-        )[0]
-        if hasattr(output, "_data") and isinstance(output._data, JAXArrayData):
-            output._data.set_array(res)
-        elif hasattr(output, "data") and isinstance(output.data, JAXArrayData):
-            output.data.set_array(res)
-        return output
-
-    output_indices = jnp.arange(start_index, end_index, dtype=jnp.int64)
-
-    segment_ends = _grid_indices(frequencies[1:], calc_df)
-    segments = jnp.searchsorted(segment_ends, output_indices, side="right")
-    segments = jnp.clip(segments, int(imin), sample_count - 2)
-
-    target_array = jnp.zeros(len(out), dtype=out.dtype)
-    max_degree = min(degree, sample_count - 1)
-    degrees = jnp.full(segments.shape, max_degree, dtype=jnp.int32)
-    degrees = jnp.where(segments == 0, 1, degrees)
-    if max_degree > 3:
-        degrees = jnp.where(segments >= sample_count - 3, 3, degrees)
-    if max_degree > 2:
-        degrees = jnp.where(segments >= sample_count - 2, 2, degrees)
-
-    for current_degree in range(1, max_degree + 1):
-        mask = (degrees == current_degree)
-        if not bool(jnp.any(mask)):
-            continue
-        cur_segments = segments[mask]
-        cur_indices = output_indices[mask]
-        offsets = jnp.array(_STENCIL_OFFSETS[current_degree], dtype=jnp.int64)
-        stencil = cur_segments[:, None] + offsets[None, :]
-        nodes = frequencies[stencil]
-        cur_points = cur_indices.astype(calc_dtype) * calc_df
-        weights = _lagrange_weights(nodes, cur_points)
-
-        interp_amp = jnp.sum(amplitudes[stencil] * weights, axis=1)
-        interp_phase = jnp.sum(phases[stencil] * weights, axis=1)
-        wf = (
-            interp_amp * jnp.cos(interp_phase)
-            + 1j * interp_amp * jnp.sin(interp_phase)
-        ).astype(out.dtype)
-        target_array = target_array.at[cur_indices].set(wf)
-
+    frequencies = _host_array(
+        sample_frequencies,
+        np.float32 if out.dtype == jnp.complex64 else np.float64,
+    )
+    host = _decompress_host_row(
+        amp, phase, frequencies, imin, start_index, len(out), len(frequencies),
+        interpolation, df, len(out), out.dtype,
+    )
+    result = jax.device_put(host, _target_device())
     if hasattr(output, "_data") and isinstance(output._data, JAXArrayData):
-        output._data.set_array(target_array)
+        output._data.set_array(result)
+    elif hasattr(output, "data") and isinstance(output.data, JAXArrayData):
+        output.data.set_array(result)
     return output
 
 
@@ -263,7 +171,8 @@ def inline_linear_interp(
     amp, phase, sample_frequencies, output, df, f_lower, imin, start_index
 ):
     return _inline_interp(
-        amp, phase, sample_frequencies, output, df, imin, start_index, 1
+        amp, phase, sample_frequencies, output, df, imin, start_index,
+        "inline_linear",
     )
 
 
@@ -271,7 +180,8 @@ def inline_quadratic_interp(
     amp, phase, sample_frequencies, output, df, f_lower, imin, start_index
 ):
     return _inline_interp(
-        amp, phase, sample_frequencies, output, df, imin, start_index, 2
+        amp, phase, sample_frequencies, output, df, imin, start_index,
+        "inline_quadratic",
     )
 
 
@@ -279,7 +189,8 @@ def inline_cubic_interp(
     amp, phase, sample_frequencies, output, df, f_lower, imin, start_index
 ):
     return _inline_interp(
-        amp, phase, sample_frequencies, output, df, imin, start_index, 3
+        amp, phase, sample_frequencies, output, df, imin, start_index,
+        "inline_cubic",
     )
 
 
@@ -287,5 +198,6 @@ def inline_quartic_interp(
     amp, phase, sample_frequencies, output, df, f_lower, imin, start_index
 ):
     return _inline_interp(
-        amp, phase, sample_frequencies, output, df, imin, start_index, 4
+        amp, phase, sample_frequencies, output, df, imin, start_index,
+        "inline_quartic",
     )

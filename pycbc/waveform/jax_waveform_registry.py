@@ -39,7 +39,18 @@ class JAXNativeWaveform:
     sequence_supported: Optional[str] = None
 
 
-_PORTS = ()
+_PORTS = (
+    JAXNativeWaveform(
+        approximant="TaylorF2",
+        component_flag="taylorf2",
+        module="taylorf2_jax",
+        default_enabled=True,
+        fd_generator="generate_fd",
+        fd_supported="fd_supported",
+        sequence_generator="generate_sequence",
+        sequence_supported="sequence_supported",
+    ),
+)
 
 
 def _declared_interfaces(port):

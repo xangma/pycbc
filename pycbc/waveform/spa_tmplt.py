@@ -142,6 +142,13 @@ def spa_tmplt_precondition(length, delta_f, kmin=0):
 
 
 def spa_tmplt_norm(psd, length, delta_f, f_lower):
+    # Keep the cumulative norm on the active JAX device.  This path is used
+    # by JAX matched filtering; converting the PSD and preconditioner through
+    # NumPy here would silently reintroduce a host compute stage.
+    from pycbc.scheme import JAXScheme, mgr
+    if isinstance(mgr.state, JAXScheme):
+        from pycbc.waveform.spa_tmplt_jax import spa_tmplt_norm as jax_norm
+        return jax_norm(psd, length, delta_f, f_lower)
     amp = spa_tmplt_precondition(length, delta_f)
     k_min = int(f_lower / delta_f)
     sigma = (amp[k_min:length].numpy() ** 2. / psd[k_min:length].numpy())

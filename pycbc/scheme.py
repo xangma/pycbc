@@ -215,9 +215,26 @@ class JAXScheme(Scheme):
         Target device specification: 'cpu', 'cuda', 'gpu', 'tpu', or device index.
     num_threads : int, optional
         Target number of threads for intra-op parallelism if supported.
+    chisq_mode : {'cpu-compatible', 'direct-phase'}, optional
+        Point chi-square calculation. The default follows the native CPU
+        recurrence; direct-phase evaluates each Fourier phase independently.
+    highpass_mode : {'parallel', 'lal-serial'}, optional
+        Butterworth high-pass implementation. The default, 'lal-serial',
+        follows LAL's sample recurrence. 'parallel' uses a parallel scan.
     """
 
-    def __init__(self, device=None, num_threads=None):
+    def __init__(self, device=None, num_threads=None, chisq_mode="cpu-compatible",
+                 highpass_mode="lal-serial"):
+        if chisq_mode not in ("cpu-compatible", "direct-phase"):
+            raise ValueError(
+                "chisq_mode must be 'cpu-compatible' or 'direct-phase', "
+                f"got {chisq_mode!r}"
+            )
+        if highpass_mode not in ("parallel", "lal-serial"):
+            raise ValueError(
+                "highpass_mode must be 'parallel' or 'lal-serial', "
+                f"got {highpass_mode!r}"
+            )
         if not getattr(pycbc, "HAVE_JAX", False):
             raise RuntimeError("Install JAX to use the JAX processing scheme.")
 
@@ -257,6 +274,10 @@ class JAXScheme(Scheme):
         self.jax_device = self._resolve_device(self.device_spec)
         self.device = self.jax_device
         self.prefix = "jax"
+        # Keep this on the scheme so chi-square dispatch can remain scoped to
+        # JAX without changing the ordinary CPU reference path.
+        self.jax_chisq_mode = chisq_mode
+        self.jax_highpass_mode = highpass_mode
 
         if num_threads is not None:
             num_threads = int(num_threads)
@@ -365,6 +386,8 @@ def current_backend_key():
         getattr(state, "device", None),
         getattr(state, "device_num", None),
         getattr(state, "num_threads", None),
+        getattr(state, "jax_chisq_mode", None),
+        getattr(state, "jax_highpass_mode", None),
     )
 
 _import_cache = {}
@@ -443,6 +466,18 @@ def insert_processing_option_group(parser):
                       help="(optional) ID of GPU to use for accelerated "
                            "processing",
                       default=0, type=int)
+    processing_group.add_argument(
+        "--jax-chisq-mode",
+        choices=("cpu-compatible", "direct-phase"),
+        default=None,
+        help="JAX chi-square implementation (defaults to cpu-compatible for JAX).",
+    )
+    processing_group.add_argument(
+        "--jax-highpass-mode",
+        choices=("parallel", "lal-serial"),
+        default=None,
+        help="JAX Butterworth high-pass mode (defaults to lal-serial).",
+    )
 
 def from_cli(opt):
     """Parses the command line options and returns a processing scheme.
@@ -460,6 +495,16 @@ def from_cli(opt):
     """
     scheme_str = opt.processing_scheme.split(':')
     name = scheme_str[0]
+    jax_chisq_mode = getattr(opt, "jax_chisq_mode", None)
+    jax_highpass_mode = getattr(opt, "jax_highpass_mode", None)
+    if jax_chisq_mode is not None and name != "jax":
+        raise ValueError(
+            "--jax-chisq-mode is only valid with a JAX processing scheme"
+        )
+    if jax_highpass_mode is not None and name != "jax":
+        raise ValueError(
+            "--jax-highpass-mode is only valid with a JAX processing scheme"
+        )
 
     if name == "cuda":
         logger.info("Running with CUDA support")
@@ -485,7 +530,12 @@ def from_cli(opt):
                 dev = extra
         else:
             dev = "cpu"
-        ctx = JAXScheme(device=dev)
+        ctx = JAXScheme(
+            device=dev,
+            chisq_mode=getattr(opt, "jax_chisq_mode", None) or "cpu-compatible",
+            highpass_mode=(getattr(opt, "jax_highpass_mode", None)
+                           or "lal-serial"),
+        )
         logger.info("Running with JAX support on device %s", ctx.jax_device)
     else:
         if len(scheme_str) > 1:
@@ -514,6 +564,12 @@ def verify_processing_options(opt, parser):
     scheme_types = scheme_prefix.values()
     if opt.processing_scheme.split(':')[0] not in scheme_types:
         parser.error("(%s) is not a valid scheme type.")
+    if (getattr(opt, "jax_chisq_mode", None) is not None
+            and opt.processing_scheme.split(':')[0] != "jax"):
+        parser.error("--jax-chisq-mode requires a JAX processing scheme")
+    if (getattr(opt, "jax_highpass_mode", None) is not None
+            and opt.processing_scheme.split(':')[0] != "jax"):
+        parser.error("--jax-highpass-mode requires a JAX processing scheme")
 
 class ChooseBySchemeDict(dict):
     """ This class represents a dictionary whose purpose is to chose objects
@@ -527,4 +583,3 @@ class ChooseBySchemeDict(dict):
                 break
             except:
                 pass
-
