@@ -25,6 +25,7 @@ CPU utilization, and host memory RSS across logged pipeline stages.
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 from pathlib import Path
 from typing import Any, Dict
@@ -92,6 +93,13 @@ CUDA_COLORS = {
 }
 
 
+def _load_receipt(path):
+    """Load a JSON receipt, including the committed ``.json.gz`` form."""
+    opener = gzip.open if Path(path).suffix.lower() == ".gz" else Path.open
+    with opener(path, "rt") as stream:
+        return json.load(stream)
+
+
 def _trace_number(value, default=np.nan):
     """Return a finite float for a trace field, or *default*."""
     try:
@@ -108,7 +116,125 @@ def _trace_phase_label(phase):
     if name.startswith("filter_batch_"):
         suffix = name.removeprefix("filter_batch_")
         return f"B{suffix}\n{label}"
-    return label
+    details = []
+    if phase.get("templates") is not None:
+        details.append(f"templates={phase['templates']}")
+    if phase.get("core") is not None:
+        details.append(f"core={phase['core']}")
+    return label + (f" [{', '.join(details)}]" if details else "")
+
+
+def _workload_detail(workload):
+    fields = []
+    for key in ("templates", "template_count", "core", "cores", "batch_size"):
+        if workload.get(key) is not None and key not in {
+            "template_count" if "templates" in workload else "",
+            "cores" if "core" in workload else "",
+        }:
+            fields.append(f"{key}={workload[key]}")
+    return ", ".join(fields)
+
+
+def _stage_family(phase):
+    """Group repeated batch boundaries for bounded automatic plots."""
+    name = str(phase.get("name", "stage"))
+    if name.startswith("filter_batch_"):
+        return "filter_batches"
+    return name
+
+
+def _phase_segments(phase):
+    """Return drawable stage intervals, preserving gaps in aggregates."""
+    raw_segments = phase.get("segments")
+    if raw_segments:
+        segments = raw_segments
+    else:
+        segments = [(phase.get("start_sec"), phase.get("end_sec"))]
+    result = []
+    for segment in segments:
+        try:
+            start, end = float(segment[0]), float(segment[1])
+        except (TypeError, ValueError, IndexError):
+            continue
+        if np.isfinite(start) and np.isfinite(end) and end > start:
+            result.append((start, end))
+    return result
+
+
+def _overview_phases(phases, max_spans=24):
+    """Collapse dense adjacent stage events before drawing the overview."""
+    complete = []
+    for phase in phases or []:
+        try:
+            start = float(phase["start_sec"])
+            end = float(phase["end_sec"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if np.isfinite(start) and np.isfinite(end) and end > start:
+            complete.append((start, end, phase))
+    if len(complete) <= max_spans:
+        return [phase for _, _, phase in complete]
+
+    collapsed = []
+    for start, end, phase in complete:
+        family = _stage_family(phase)
+        if collapsed:
+            previous = collapsed[-1]
+            gap = max(0.0, start - previous["end_sec"])
+            if previous["family"] == family and gap <= 0.02:
+                previous["end_sec"] = max(previous["end_sec"], end)
+                previous["segments"].append((start, end))
+                previous["count"] += 1
+                previous["label"] = f"{family} ({previous['count']} intervals)"
+                continue
+        collapsed.append({
+            "family": family,
+            "start_sec": start,
+            "end_sec": end,
+            "label": str(phase.get("label", family)),
+            "name": str(phase.get("name", family)),
+            "count": 1,
+            "segments": [(start, end)],
+        })
+    if len(collapsed) <= max_spans:
+        # A long run can contain thousands of one-second batch markers. Keep
+        # the aggregate visibly discontinuous without creating thousands of
+        # matplotlib artists; the process telemetry remains fully sampled.
+        for item in collapsed:
+            segments = item.get("segments", [])
+            if len(segments) > 64:
+                keep = 32
+                item["segments"] = segments[:keep] + segments[-keep:]
+        return collapsed
+
+    # Preserve the launch and completion context while bounding rendering
+    # work for pathological marker streams.
+    keep = max_spans // 2
+    selected = collapsed[:keep] + collapsed[-(max_spans - keep):]
+    for item in selected:
+        segments = item.get("segments", [])
+        if len(segments) > 64:
+            item["segments"] = segments[:32] + segments[-32:]
+    return selected
+
+
+def _phases_for_view(phases, zoom_start=None, zoom_end=None):
+    """Use bounded phases for overviews and exact markers for manual zooms."""
+    if zoom_start is None and zoom_end is None:
+        return _overview_phases(phases)
+    lower = -np.inf if zoom_start is None else float(zoom_start)
+    upper = np.inf if zoom_end is None else float(zoom_end)
+    visible = []
+    for phase in phases or []:
+        try:
+            start = float(phase["start_sec"])
+            end = float(phase["end_sec"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if np.isfinite(start) and np.isfinite(end) and end > start:
+            if end > lower and start < upper:
+                visible.append(phase)
+    return _overview_phases(visible, max_spans=64)
 
 
 def _plot_cuda_trace_timeline(
@@ -125,7 +251,9 @@ def _plot_cuda_trace_timeline(
     # available, and falling back to device-wide NVML would mislabel it.
     trace = data.get("cuda_trace") or {}
     telemetry = data.get("telemetry") or []
-    phases = data.get("phases") or []
+    phases = _phases_for_view(
+        data.get("phases") or [], zoom_start=zoom_start, zoom_end=zoom_end
+    )
     summary = data.get("summary") or {}
 
     def sample_values(key):
@@ -177,6 +305,9 @@ def _plot_cuda_trace_timeline(
     finite_sample_times = sample_times[np.isfinite(sample_times)]
     if len(finite_sample_times):
         extents.append((finite_sample_times[0], finite_sample_times[-1]))
+    wall_extent = _trace_number(summary.get("total_wall_sec"), np.nan)
+    if np.isfinite(wall_extent) and wall_extent > 0:
+        extents.append((0.0, wall_extent))
     if extents:
         data_start = min(start for start, _ in extents)
         data_end = max(end for _, end in extents)
@@ -191,6 +322,23 @@ def _plot_cuda_trace_timeline(
         zoom_end = data_end
     if zoom_start >= zoom_end:
         raise ValueError("zoom-start must be less than zoom-end")
+
+    # Clip exact CUDA events before constructing any matplotlib artists.  A
+    # whole-process overview may contain many thousands of events; retaining
+    # the full lists for extent discovery is cheap, while drawing only the
+    # events intersecting the requested viewport keeps zooms responsive.
+    visible_bins = [
+        item for item in bins
+        if item[1] > zoom_start and item[0] < zoom_end
+    ]
+    visible_transfers = [
+        item for item in transfers
+        if item[1] > zoom_start and item[0] < zoom_end
+    ]
+    visible_kernels = [
+        item for item in kernels
+        if item[1] > zoom_start and item[0] < zoom_end
+    ]
 
     fig, axes = plt.subplots(
         7,
@@ -208,21 +356,42 @@ def _plot_cuda_trace_timeline(
 
     # Stage shading is deliberately neutral: the semantic colors belong to
     # kernels and the three CUDA memcpy directions below.
+    label_lanes = []
     for index, phase in enumerate(phases):
         start = _trace_number(phase.get("start_sec"))
         end = _trace_number(phase.get("end_sec"))
         if not np.isfinite(start) or not np.isfinite(end) or end <= start:
             continue
-        visible_start = max(start, zoom_start)
-        visible_end = min(end, zoom_end)
-        if visible_end <= visible_start:
+        segments = _phase_segments(phase)
+        visible_segments = [
+            (max(segment_start, zoom_start), min(segment_end, zoom_end))
+            for segment_start, segment_end in segments
+            if min(segment_end, zoom_end) > max(segment_start, zoom_start)
+        ]
+        if not visible_segments:
             continue
+        label_start = min(segment[0] for segment in visible_segments)
+        label_end = max(segment[1] for segment in visible_segments)
+        for lane, ranges in enumerate(label_lanes):
+            if all(
+                label_end <= start or label_start >= end
+                for start, end in ranges
+            ):
+                ranges.append((label_start, label_end))
+                break
+        else:
+            label_lanes.append([(label_start, label_end)])
+            lane = len(label_lanes) - 1
         shade = "#e9eef2" if index % 2 == 0 else "#f5f7f9"
-        ribbon.add_patch(
-            patches.Rectangle(
-                (start, 0.08), end - start, 0.84,
-                facecolor=shade, edgecolor="#8a98a6", linewidth=0.7,
+        for segment_start, segment_end in visible_segments:
+            ribbon.add_patch(
+                patches.Rectangle(
+                    (segment_start, 0.08), segment_end - segment_start, 0.84,
+                    facecolor=shade, edgecolor="#8a98a6", linewidth=0.7,
+                )
             )
+        visible_start, visible_end = max(
+            visible_segments, key=lambda segment: segment[1] - segment[0]
         )
         center = (visible_start + visible_end) / 2
         phase_label = _trace_phase_label(phase)
@@ -242,27 +411,35 @@ def _plot_cuda_trace_timeline(
             stage_label = phase_label.split("\n", 1)[-1]
             stage_label = stage_label.split("(", 1)[0].rstrip()
             ribbon.text(
-                center, 0.25, stage_label,
+                center, max(0.12, 0.24 - 0.12 * (lane % 3)), stage_label,
                 ha="center", va="center", rotation=90,
                 rotation_mode="anchor", fontsize=6.5,
                 color="#263238", clip_on=True,
             )
         else:
+            label_y = (0.73, 0.27, 0.5)[lane % 3]
             ribbon.text(
-                center, 0.5, phase_label,
+                center, label_y, phase_label,
                 ha="center", va="center", fontsize=8,
                 color="#263238", clip_on=True,
             )
         for ax in axes[1:]:
-            ax.axvspan(start, end, color=shade, alpha=0.7, zorder=0)
-            ax.axvline(start, color="#8a98a6", ls="--", lw=0.55, alpha=0.7)
+            for segment_start, segment_end in visible_segments:
+                ax.axvspan(
+                    segment_start, segment_end, color=shade, alpha=0.7,
+                    zorder=0,
+                )
+                ax.axvline(
+                    segment_start, color="#8a98a6", ls="--", lw=0.55,
+                    alpha=0.7,
+                )
 
-    if bins:
-        starts = np.array([item[0] for item in bins])
-        widths = np.array([item[1] - item[0] for item in bins])
+    if visible_bins:
+        starts = np.array([item[0] for item in visible_bins])
+        widths = np.array([item[1] - item[0] for item in visible_bins])
         active = np.array([
             _trace_number(item[2].get("kernel_active_percent"))
-            for item in bins
+            for item in visible_bins
         ])
         gpu_ax.bar(
             starts,
@@ -290,14 +467,14 @@ def _plot_cuda_trace_timeline(
         ("D2H", "d2h_bytes", "Device → host"),
         ("D2D", "d2d_bytes", "Device → device"),
     )
-    if bins:
+    if visible_bins:
         width = widths / 3.3
         for offset, (direction, field, description) in enumerate(
             transfer_fields
         ):
             mib = np.array([
                 _trace_number(item[2].get(field), 0.0) / (1024 ** 2)
-                for item in bins
+                for item in visible_bins
             ])
             transfer_ax.bar(
                 starts + offset * width,
@@ -318,10 +495,6 @@ def _plot_cuda_trace_timeline(
             transform=transfer_ax.transAxes,
             ha="center", va="center", fontsize=10,
         )
-    visible_bins = [
-        item for item in bins
-        if item[1] > zoom_start and item[0] < zoom_end
-    ]
     visible_copy_values = [
         _trace_number(item[2].get(field), 0.0) / (1024 ** 2)
         for item in visible_bins
@@ -339,15 +512,18 @@ def _plot_cuda_trace_timeline(
     lane_positions = {
         "kernels": 3.5, "H2D": 2.5, "D2H": 1.5, "D2D": 0.5
     }
-    for start, end, _ in kernels:
+    event_intervals = {lane: [] for lane in lane_positions}
+    event_intervals["kernels"] = [
+        (start, end - start) for start, end, _ in visible_kernels
+    ]
+    for start, end, item, direction in visible_transfers:
+        event_intervals[direction].append((start, end - start))
+    for lane, intervals in event_intervals.items():
+        if not intervals:
+            continue
         event_ax.broken_barh(
-            [(start, end - start)], (lane_positions["kernels"], 0.75),
-            facecolors=CUDA_COLORS["kernels"],
-        )
-    for start, end, item, direction in transfers:
-        event_ax.broken_barh(
-            [(start, end - start)], (lane_positions[direction], 0.75),
-            facecolors=CUDA_COLORS[direction],
+            intervals, (lane_positions[lane], 0.75),
+            facecolors=CUDA_COLORS[lane],
         )
     event_ax.set(
         ylim=(0, 4.5),
@@ -355,7 +531,7 @@ def _plot_cuda_trace_timeline(
         yticklabels=["Kernels", "H2D", "D2H", "D2D"],
         ylabel="CUDA events",
     )
-    if not kernels and not transfers:
+    if not visible_kernels and not visible_transfers:
         event_ax.text(
             0.5, 0.45, "No exact CUDA events in trace",
             transform=event_ax.transAxes,
@@ -408,11 +584,18 @@ def _plot_cuda_trace_timeline(
         xlabel="Elapsed time from profiler launch (seconds)",
     )
     workload = data.get("workload", {})
+    campaign = (
+        data.get("campaign")
+        or workload.get("campaign")
+        or workload.get("executable")
+        or "pycbc"
+    )
     wall = summary.get("total_wall_sec", data_end)
     fig.suptitle(
-        "pycbc_inspiral · process CUDA timeline\n"
+        f"{campaign} · whole-process CUDA timeline\n"
         f"{workload.get('processing_scheme', 'JAX CUDA')} · "
-        f"batch {workload.get('batch_size', 'unknown')} · wall {wall:.2f} s",
+        f"{_workload_detail(workload) or 'workload unknown'} · "
+        f"wall {wall:.2f} s",
         fontsize=14,
         fontweight="bold",
         y=0.985,
@@ -425,7 +608,7 @@ def _plot_cuda_trace_timeline(
         0.12,
         0.018,
         f"{source} · target PID {target_pid} · device {device_id} · "
-        f"{bin_width_ms} ms bins · CPU/memory sampled · "
+        f"{bin_width_ms} ms bins · CPU/memory sampled (process tree) · "
         "host-log stage boundaries approximate. "
         "CUDA bars are process-scoped; transfer panels show completed bytes, "
         "not bus bandwidth.",
@@ -447,12 +630,18 @@ def plot_profiling_timeline(
     zoom_end=None,
 ):
     """Plot observed telemetry; unavailable transfer readings remain gaps."""
+    if _cpu_only_workload(data):
+        return _plot_cpu_only_timeline(
+            data, output_path, zoom_start=zoom_start, zoom_end=zoom_end
+        )
     if "cuda_trace" in data:
         return _plot_cuda_trace_timeline(
             data, output_path, zoom_start=zoom_start, zoom_end=zoom_end
         )
     telemetry = data.get("telemetry", [])
-    phases = data.get("phases", [])
+    phases = _phases_for_view(
+        data.get("phases", []), zoom_start=zoom_start, zoom_end=zoom_end
+    )
     summary = data.get("summary", {})
     if not telemetry:
         raise ValueError("Telemetry data array is empty!")
@@ -491,16 +680,18 @@ def plot_profiling_timeline(
         if end <= start:
             continue
         palette = PHASE_PALETTE[i % len(PHASE_PALETTE)]
-        ribbon.add_patch(
-            patches.Rectangle(
-                (start, 0.05),
-                end - start,
-                0.9,
-                facecolor=palette["bar"],
-                edgecolor=palette["edge"],
-                linewidth=1,
+        segments = _phase_segments(phase)
+        for segment_start, segment_end in segments:
+            ribbon.add_patch(
+                patches.Rectangle(
+                    (segment_start, 0.05),
+                    segment_end - segment_start,
+                    0.9,
+                    facecolor=palette["bar"],
+                    edgecolor=palette["edge"],
+                    linewidth=1,
+                )
             )
-        )
         # Narrow phases remain in the key, without overlapping ribbon text.
         if end - start >= summary.get("total_wall_sec", times[-1]) * 0.025:
             ribbon.text(
@@ -512,13 +703,18 @@ def plot_profiling_timeline(
                 fontsize=9,
                 fontweight="bold",
                 color=palette["label"],
+                clip_on=True,
             )
         phase_key.append(f"{i + 1}. {phase['label']}")
         for ax in axes[1:]:
-            ax.axvspan(start, end, color=palette["bg"], alpha=0.65)
-            ax.axvline(
-                start, color=palette["edge"], ls="--", lw=0.7, alpha=0.6
-            )
+            for segment_start, segment_end in segments:
+                ax.axvspan(
+                    segment_start, segment_end, color=palette["bg"], alpha=0.65
+                )
+                ax.axvline(
+                    segment_start, color=palette["edge"], ls="--", lw=0.7,
+                    alpha=0.6,
+                )
 
     gpu_ax.step(
         times,
@@ -624,7 +820,7 @@ def plot_profiling_timeline(
         label="Process CPU (9-sample centred mean)",
     )
     cpu_ax.axhline(100, color="#777777", ls=":", lw=0.8)
-    cpu_ax.set(ylabel="CPU (%)", ylim=(0, None))
+    cpu_ax.set(ylabel="Process tree CPU (%)", ylim=(0, None))
     cpu_ax.text(
         0.99,
         0.9,
@@ -642,17 +838,27 @@ def plot_profiling_timeline(
             spine.set_color("#b0b7bf")
     wall = summary.get("total_wall_sec", times[-1])
     rss_ax.set(
-        xlim=(0, max(wall, times[-1])),
+        xlim=(
+            0 if zoom_start is None else zoom_start,
+            max(wall, times[-1]) if zoom_end is None else zoom_end,
+        ),
         xlabel="Elapsed time from profiler launch (seconds)",
     )
     workload = data.get("workload", {})
+    campaign = (
+        data.get("campaign")
+        or workload.get("campaign")
+        or workload.get("executable")
+        or "pycbc"
+    )
     batch_size = workload.get("batch_size", "unknown")
     processing_scheme = workload.get(
         "processing_scheme", "unknown processing scheme"
     )
     fig.suptitle(
-        "pycbc_inspiral · CPU, GPU and device transfers over time\n"
-        f"{processing_scheme} · batch {batch_size} · "
+        f"{campaign} · CPU, GPU and device transfers over time\n"
+        f"{processing_scheme} · "
+        f"{_workload_detail(workload) or f'batch {batch_size}'} · "
         f"profiled wall {wall:.2f} s",
         fontsize=15,
         fontweight="bold",
@@ -705,6 +911,258 @@ def plot_profiling_timeline(
     )
 
 
+def stage_zoom_windows(
+    data: Dict[str, Any], padding: float = 0.02,
+    max_windows: int = 12, max_window_sec: float = 20.0,
+):
+    """Return bounded, padded representative windows for observed stages.
+
+    Repeated filter batches are one family and only their longest complete
+    occurrence is selected.  Broad search/filter spans are omitted when they
+    exceed ``max_window_sec``; the whole-process overview retains them.
+    """
+    if padding < 0:
+        raise ValueError("padding must be non-negative")
+    if max_windows <= 0 or max_window_sec <= 0:
+        raise ValueError("max_windows and max_window_sec must be positive")
+    candidates = {}
+    for index, phase in enumerate(data.get("phases") or [], 1):
+        try:
+            start = float(phase["start_sec"])
+            end = float(phase["end_sec"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if end <= start:
+            continue
+        duration = end - start
+        family = _stage_family(phase)
+        current = candidates.get(family)
+        if current is None or (duration, -start) > (current[0], -current[1]):
+            candidates[family] = (duration, start, end, phase, index)
+
+    selected = []
+    for duration, start, end, phase, index in candidates.values():
+        family = _stage_family(phase)
+        if duration > max_window_sec and family in {"search", "filter"}:
+            continue
+        if duration > max_window_sec:
+            center = (start + end) / 2
+            start = center - max_window_sec / 2
+            end = center + max_window_sec / 2
+            duration = max_window_sec
+        selected.append((index, duration, start, end, phase))
+    selected.sort(key=lambda item: (-item[1], item[0]))
+    selected = sorted(selected[:max_windows], key=lambda item: item[0])
+    windows = []
+    for index, duration, start, end, phase in selected:
+        windows.append({
+            "index": index,
+            "name": str(phase.get("name", f"stage_{index}")),
+            "label": str(phase.get("label", phase.get("name", index))),
+            "start_sec": max(0.0, start - padding * duration),
+            "end_sec": end + padding * duration,
+        })
+    return windows
+
+
+def plot_campaign_figures(
+    data: Dict[str, Any],
+    output_path: Path,
+    stage_zoom_dir: Path = None,
+    zoom_start=None,
+    zoom_end=None,
+):
+    """Write the full-run overview and up to 12 representative stage zooms."""
+    plot_profiling_timeline(
+        data, output_path, zoom_start=zoom_start, zoom_end=zoom_end
+    )
+    outputs = [Path(output_path)]
+    if stage_zoom_dir is None:
+        return outputs
+    stage_zoom_dir = Path(stage_zoom_dir)
+    stage_zoom_dir.mkdir(parents=True, exist_ok=True)
+    for window in stage_zoom_windows(data):
+        safe_name = "".join(
+            char if char.isalnum() or char in "-_" else "_"
+            for char in window["name"]
+        ).strip("_") or f"stage_{window['index']}"
+        stage_output = stage_zoom_dir / (
+            f"{window['index']:02d}_{safe_name}.png"
+        )
+        plot_profiling_timeline(
+            data,
+            stage_output,
+            zoom_start=window["start_sec"],
+            zoom_end=window["end_sec"],
+        )
+        outputs.append(stage_output)
+    return outputs
+
+
+def _cpu_only_workload(data):
+    """Return whether the receipt explicitly describes a zero-GPU run."""
+    resources = (data.get("workload") or {}).get("resources") or {}
+    return resources.get("gpus") == 0
+
+
+def _plot_cpu_only_timeline(
+    data: Dict[str, Any],
+    output_path: Path,
+    zoom_start=None,
+    zoom_end=None,
+):
+    """Render all stage intervals with process CPU and RSS for CPU runs."""
+    telemetry = data.get("telemetry") or []
+    if not telemetry:
+        raise ValueError("Telemetry data array is empty!")
+    workload = data.get("workload") or {}
+    summary = data.get("summary") or {}
+    times = np.array([
+        _trace_number(sample.get("elapsed_sec")) for sample in telemetry
+    ])
+    finite_times = times[np.isfinite(times)]
+    if not len(finite_times):
+        raise ValueError("Telemetry elapsed times are unavailable")
+    wall = _trace_number(summary.get("total_wall_sec"), np.nan)
+    if not np.isfinite(wall) or wall <= 0:
+        wall = float(finite_times[-1])
+    if wall <= 0:
+        wall = 1.0
+    if zoom_start is None:
+        zoom_start = 0.0
+    if zoom_end is None:
+        zoom_end = wall
+    if zoom_start >= zoom_end:
+        raise ValueError("zoom-start must be less than zoom-end")
+
+    def values(key):
+        return np.array([
+            _trace_number(sample.get(key)) for sample in telemetry
+        ])
+
+    cpu = values("proc_cpu_percent")
+    rss = values("proc_rss_mib")
+    families = {}
+    for phase in data.get("phases") or []:
+        try:
+            start = float(phase["start_sec"])
+            end = float(phase["end_sec"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if not np.isfinite(start) or not np.isfinite(end) or end <= start:
+            continue
+        name = str(phase.get("name", phase.get("label", "stage")))
+        rank = phase.get("rank")
+        family = (name, str(rank) if rank is not None else "")
+        families.setdefault(family, []).append((start, end - start))
+    family_items = sorted(families.items(), key=lambda item: item[0])
+    labels = [
+        name if not rank else f"{name} · rank {rank}"
+        for (name, rank), _ in family_items
+    ]
+    lane_height = 0.75
+    lane_gap = 0.25
+    stage_height = max(1.8, len(family_items) * (lane_height + lane_gap))
+    fig, axes = plt.subplots(
+        3,
+        1,
+        figsize=(14, max(8.0, stage_height + 5.0)),
+        sharex=True,
+        gridspec_kw={
+            "height_ratios": [max(1.8, stage_height / 2.0), 1.0, 1.0],
+            "hspace": 0.16,
+        },
+    )
+    stage_ax, cpu_ax, rss_ax = axes
+    stage_ax.set_ylim(-0.15, max(0.85, len(family_items) - 0.15))
+    stage_ax.set_yticks(np.arange(len(labels)) + 0.125)
+    stage_ax.set_yticklabels(labels)
+    stage_ax.set_ylabel("Stages")
+    for row, ((name, _rank), intervals) in enumerate(family_items):
+        color = PHASE_PALETTE[row % len(PHASE_PALETTE)]["bar"]
+        stage_ax.broken_barh(
+            intervals,
+            (row - 0.25, lane_height),
+            facecolors=color,
+            edgecolors=PHASE_PALETTE[row % len(PHASE_PALETTE)]["edge"],
+            linewidth=0.5,
+        )
+    stage_ax.grid(axis="x", linestyle=":", alpha=0.35)
+    stage_ax.text(
+        0.01,
+        1.01,
+        "Every observed interval is shown; lanes are stage name and rank",
+        transform=stage_ax.transAxes,
+        va="bottom",
+        fontsize=9,
+    )
+
+    cpu_ax.plot(times, cpu, color="#c0392b", lw=1.2, label="Process tree CPU")
+    cpu_ax.axhline(100, color="#777777", ls=":", lw=0.8)
+    cpu_ax.set_ylabel("CPU (%)")
+    cpu_ax.set_ylim(bottom=0)
+    cpu_ax.grid(axis="y", linestyle=":", alpha=0.35)
+    cpu_ax.legend(loc="upper left", fontsize=8.5, framealpha=0.93)
+    cpu_ax.text(
+        0.99,
+        0.9,
+        "100% = one logical CPU",
+        transform=cpu_ax.transAxes,
+        ha="right",
+        fontsize=9,
+    )
+
+    rss_ax.plot(times, rss, color="#8e44ad", lw=1.3, label="Process RSS")
+    rss_ax.fill_between(times, 0, rss, color="#8e44ad", alpha=0.12)
+    rss_ax.set_ylabel("RSS (MiB)")
+    rss_ax.set_ylim(bottom=0)
+    rss_ax.grid(axis="y", linestyle=":", alpha=0.35)
+    rss_ax.legend(loc="upper left", fontsize=8.5, framealpha=0.93)
+    finite_rss = rss[np.isfinite(rss)]
+    if len(finite_rss):
+        rss_ax.text(
+            0.99,
+            0.9,
+            f"Peak: {max(finite_rss):,.0f} MiB",
+            transform=rss_ax.transAxes,
+            ha="right",
+            fontsize=9,
+        )
+
+    for ax in axes:
+        ax.set_xlim(zoom_start, zoom_end)
+        for spine in ax.spines.values():
+            spine.set_color("#b0b7bf")
+    rss_ax.set_xlabel("Elapsed time from profiler launch (seconds)")
+    campaign = (
+        data.get("campaign")
+        or workload.get("campaign")
+        or workload.get("executable")
+        or "pycbc"
+    )
+    fig.suptitle(
+        f"{campaign} · CPU process utilization and stages\n"
+        f"{workload.get('processing_scheme', 'CPU')} · "
+        f"{_workload_detail(workload) or 'workload unknown'} · "
+        f"profiled wall {wall:.2f} s",
+        fontsize=15,
+        fontweight="bold",
+        y=0.99,
+    )
+    fig.text(
+        0.12,
+        0.015,
+        "CPU-only workload (resources.gpus=0). No GPU telemetry is plotted. "
+        "Stage boundaries are host log timestamps.",
+        fontsize=9,
+    )
+    fig.subplots_adjust(left=0.19, right=0.98, top=0.91, bottom=0.07)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(output_path, dpi=200, bbox_inches="tight")
+    plt.close(fig)
+    print(f"[INFO] Successfully generated timeline profiling plot: {output_path}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Generate GPU/CPU timeline profiling plot"
@@ -712,13 +1170,13 @@ def main():
     parser.add_argument(
         "--input",
         type=Path,
-        default=Path("artifacts/benchmarks-20260917/jax_gpu_timeline.json"),
+        default=Path("artifacts/jax_gpu_timeline.json"),
         help="Path to JSON telemetry receipt",
     )
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("docs/_static/jax_gpu_profiling_timeline.png"),
+        default=Path("artifacts/jax_gpu_timeline.png"),
         help="Path to output PNG plot",
     )
     parser.add_argument(
@@ -733,14 +1191,20 @@ def main():
         default=None,
         help="Optional right edge of the plotted time window (seconds)",
     )
+    parser.add_argument(
+        "--stage-zoom-dir",
+        type=Path,
+        default=None,
+        help="Also write one consistently padded plot per observed stage",
+    )
     args = parser.parse_args()
 
-    with args.input.open("r") as f:
-        data = json.load(f)
+    data = _load_receipt(args.input)
 
-    plot_profiling_timeline(
+    plot_campaign_figures(
         data,
         args.output,
+        stage_zoom_dir=args.stage_zoom_dir,
         zoom_start=args.zoom_start,
         zoom_end=args.zoom_end,
     )

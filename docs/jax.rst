@@ -4,10 +4,14 @@ JAX acceleration
 ================
 
 PyCBC provides an optional JAX backend for selected array operations, signal
-processing and waveform functions. JAX can compile these operations with XLA
-and supports automatic differentiation where the implementation permits it.
-The measured configurations in this documentation use CPU and NVIDIA CUDA.
-Other JAX backends require compatible installations and separate validation.
+processing, waveform, veto and event operations. JAX can compile these
+operations with XLA and supports automatic differentiation where the selected
+implementation permits it. Selecting JAX does not make an entire workflow
+device-resident or differentiable: coverage, host boundaries and dtypes are
+operation-specific. The measured configurations in this documentation use CPU
+and NVIDIA CUDA. Other JAX backends require compatible installations and
+separate validation.
+
 DLPack conversion is attempted for compatible arrays; NumPy conversion,
 device transfer or dtype changes can copy data and synchronize execution.
 
@@ -40,21 +44,64 @@ Command-line applications with PyCBC's standard scheme options accept:
 
    pycbc_inspiral --processing-scheme jax:cuda:0 ...
 
-Selecting a JAX scheme routes supported operations through JAX, including
-parts of strain conditioning and filtering. Device waveform generation via
+Selecting a JAX scheme dispatches operations that have JAX implementations;
+unsupported operations either use their documented fallback or raise an
+unsupported-operation error. Selected strain-conditioning, filtering, veto and
+event paths have JAX implementations. Device waveform generation via
 ``diffgw`` requires the optional dependency and explicit ``--enable-diffgw``;
-it is not enabled merely by selecting JAX. Unsupported operations may use
-host implementations, so a JAX scheme does not imply an entirely device-resident
-search.
+it is not enabled merely by selecting JAX. Python orchestration, file I/O,
+metadata and MPI serialization remain host work. See :doc:`jax_search` for
+supported paths and explicit limits.
 
-Performance results
--------------------
+.. _jax-performance:
+.. _jax-parity-status:
 
-See :ref:`inspiral templates/core and templates/GPU <jax-search-capacity>`
-and the :ref:`live-sized filter estimates <jax-live-capacity>` for capacity
-tables and plots. :doc:`jax_performance` also records timing boundaries and
-scientific qualification results, batch-size comparisons, memory and GPU
-utilisation.
+Numerical Agreement and Qualification Status
+--------------------------------------------
+
+In the retained ``pycbc_inspiral`` and ``pycbc_live`` detector workloads, JAX
+matches every retained trigger identity and every audited candidate-ranking
+decision, with close SNR and phase agreement. This scoped outcome agreement is
+not a complete scientific qualification: the frozen full-search comparator
+still fails some retained chi-square values and exact conditioned-strain,
+segment-spectrum, and PSD gates. See :ref:`jax-numerical-differences` for the
+stage-by-stage attribution, frozen gate results, and selected diagnostic
+receipts. Performance results must not be accepted until a fresh qualification
+run passes the required gates.
+
+For an interactive, step-by-step walkthrough of pipeline stage agreement on real
+LIGO Hanford detector data (GW150914), see the companion Jupyter notebook at
+``examples/jax/jax_numerical_parity.ipynb``.
+
+.. _jax-campaigns:
+
+Diagnostic and Benchmark Suite
+------------------------------
+
+PyCBC includes automated tools to drive benchmark campaigns, compare execution
+arms against the pristine CPU reference, and profile performance:
+
+* :download:`Suite Driver <../tools/run_jax_benchmarks.py>`: Automates campaign
+  lifecycle phases (``plan``, ``prepare``, ``qualify``, ``run``, ``report``).
+* :download:`Science Comparator <../tools/benchmark_science.py>`: Enforces the
+  frozen numerical rules and acceptance tolerances defined in :ref:`jax-benchmark-protocol`.
+* :download:`Inspiral Campaign Runner <../tools/bench_jax_inspiral_campaign.py>`: Runs
+  complete ``pycbc_inspiral`` pipeline comparisons.
+* :download:`Live Campaign Runner <../tools/bench_jax_live_campaign.py>`: Runs
+  complete ``pycbc_live`` pipeline comparisons.
+* :download:`GPU Timeline Profiler <../tools/profile_jax_gpu_timeline.py>` and
+  :download:`Timeline Plotter <../tools/plot_jax_gpu_timeline.py>`: Profile and
+  visualize CUDA kernel timelines.
+
+To run the automated benchmark suite:
+
+.. code-block:: console
+
+   python tools/run_jax_benchmarks.py plan --config /path/to/suite.json
+   python tools/run_jax_benchmarks.py prepare --config /path/to/suite.json
+   python tools/run_jax_benchmarks.py qualify --config /path/to/suite.json
+   python tools/run_jax_benchmarks.py run --config /path/to/suite.json
+   python tools/run_jax_benchmarks.py report --config /path/to/suite.json
 
 Choosing a device
 -----------------
@@ -94,6 +141,28 @@ Precision
 ``PYCBC_JAX_ENABLE_X64`` disables it. This permits double-precision arrays;
 it does not promote explicitly single-precision inputs or computations.
 
+High-pass compatibility mode
+----------------------------
+
+The default JAX Butterworth high-pass follows LAL's sample-ordered recurrence:
+
+.. code-block:: console
+
+   pycbc_inspiral --processing-scheme jax:cuda:0 ...
+
+The equivalent library context is ``JAXScheme("cuda:0")``. The default
+``lal-serial`` mode constructs LAL-order coefficients and
+uses a JAX ``lax.scan`` for each forward and reverse section. It requires JAX
+64-bit support. It changes Butterworth high-pass filtering only; it does not
+change the FIR/LDAS path used by the measured live campaign. The mode is
+intended for compatibility and has not passed complete-search qualification.
+Select ``--jax-highpass-mode parallel`` (or
+``JAXScheme(..., highpass_mode="parallel")``) to use the previous parallel
+prefix-scan calculation. On CUDA, the serial scans unroll 16 samples per loop
+iteration while retaining the sample-order recurrence; on CPU they remain
+rolled. See
+:ref:`jax-highpass-compat-evidence` for results and costs.
+
 Capabilities and fallback
 -------------------------
 
@@ -105,31 +174,42 @@ Capabilities and fallback
      - Available JAX operations
      - Limits and fallback
    * - Arrays, FFTs and Conditioning
-     - Arrays, series, common reductions, conversions, FFT interfaces, and native
-       strain conditioning (Welch PSD estimation, interpolation).
-     - Standard JAX precision modes; 64-bit precision enabled via ``jax_enable_x64``.
+     - Arrays, series, reductions, conversions, FFT interfaces and selected
+       strain-conditioning kernels, including filters, Welch PSD estimation
+       and interpolation.
+     - Coverage and dtype boundaries are entry-point specific; standard JAX
+       precision modes apply and 64-bit support is enabled via
+       ``jax_enable_x64``.
    * - Filtering and search
-     - Matched filtering, correlation, thresholding, chi-squared vetoes, and
-       single-detector peak clustering.
-     - Selected kernels are JIT compiled; search orchestration also performs host work.
+     - Matched filtering, correlation, thresholding, selected chi-squared
+       vetoes, peak clustering and event/coincidence state.
+     - Selected kernels are JIT compiled; event metadata, conversions and
+       search orchestration also perform host work.
    * - Waveforms
-     - Direct on-device batched generation via ``diffgw.jax`` (``jaxwave``),
-       SPAtmplt JAX port, and ringdown.
-     - Model availability and differentiability depend on the waveform implementation.
+     - Selected JAX waveform and decompression kernels, including the
+       TaylorF2, SPAtmplt and ringdown APIs where their JAX entry points are
+       selected. Optional ``diffgw``/``jaxwave`` providers can supply additional
+       batched generation.
+     - Provider, model, precision, batching and differentiability support are
+       implementation-specific and require the corresponding optional package.
    * - Decompression
      - Inline linear, quadratic, cubic, and quartic spline interpolation.
-     - Vectorized evaluation across frequency bins.
+     - Vectorized evaluation across frequency bins; input packing and metadata
+       may remain on the host.
    * - Domain and prior helpers
-     - Coordinate transformations, cosmology distance/volume lookups, boundary
-       conditions, and prior evaluation.
-     - Preserves JAX array types and differentiability.
+     - Selected coordinate transformations, cosmology distance/volume lookups,
+       boundary conditions and prior evaluation.
+     - JAX array preservation and differentiability depend on the selected
+       transform and cosmology path; unsupported paths may use host libraries.
    * - Detector geometry
      - Antenna pattern, time delay, Earth rotation response, and effective
        distance calculations.
-     - Functional detector geometry evaluation without host synchronization.
+     - Numeric calculations can use JAX arrays, while detector geometry and
+       other static inputs are host-provided constants.
    * - Inference
      - Gaussian likelihood, relative binning, and marginalization models.
-     - Differentiability depends on the selected model, waveform and parameter path.
+     - Model, waveform and parameter paths determine device coverage and
+       differentiability; Python orchestration remains on the host.
 
 Documentation map
 -----------------
@@ -139,5 +219,4 @@ Documentation map
 
    jax_search
    jax_testing
-   jax_performance
-   jax_benchmark_protocol
+   jax_numerical_differences

@@ -18,7 +18,8 @@ its Python version. Select the CPU scheme explicitly:
 
    PYCBC_TEST_SCHEME=jax:cpu pytest \
      test/test_jax_*.py test/test_detector_jax_*.py \
-     test/waveform/test_jax_*.py test/waveform/test_spherical_harmonics_jax.py
+     test/waveform/test_jax_*.py test/waveform/test_spherical_harmonics_jax.py \
+     test/test_benchmark_*.py test/test_*observer.py test/test_chisq_numpy.py
 
 On a configured CUDA host, use ``PYCBC_TEST_SCHEME=jax:cuda`` for tests that
 honor this variable. Some tests choose their own device explicitly, including
@@ -33,8 +34,13 @@ Tests that need double precision enable ``jax_enable_x64``. Other checks
 exercise single-precision search arrays. A passing double-precision test
 does not imply bitwise agreement in a single-precision production search.
 Complete executable qualification is described in
-:ref:`jax-reference-campaign`; its scientific comparisons are separate from
+:ref:`jax-campaigns`; its scientific comparisons are separate from
 unit tests and performance measurements.
+
+The median-bias compatibility test fixes both operands to float32, matching
+the NumPy 1.26 reference environment. NumPy 2 can promote native division
+to float64 for 1,000 or more segments; passing this test does not establish
+native PSD equivalence across NumPy versions.
 
 Continuous integration
 ----------------------
@@ -70,9 +76,9 @@ These are targets for this corpus, not a claim that production searches meet
 those limits or produce identical triggers.
 
 Complete-search qualification uses the separate frozen gates in
-:ref:`jax-reference-campaign`. The fresh 384-template CPU/JAX comparisons
-fail those gates; see :ref:`jax-search-qualification` for measured differences.
-Passing a helper corpus cannot replace that search-level qualification.
+:ref:`jax-benchmark-protocol`. Current measured results and remaining failures
+are summarized in :ref:`jax-numerical-differences`. Passing a helper corpus cannot
+replace that search-level qualification.
 
 Running the helper corpus
 ~~~~~~~~~~~~~~~~~~~~~~~~~

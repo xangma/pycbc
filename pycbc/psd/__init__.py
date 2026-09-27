@@ -193,7 +193,7 @@ def from_cli(opt, length, delta_f, low_frequency_cutoff,
                 low_frequency_fill_value=fill_value,
                 trunc_method=opt.invpsd_trunc_method)
         else:
-            psd = inverse_spectrum_truncation(psd, 
+            psd = inverse_spectrum_truncation(psd,
                 int(opt.psd_inverse_length * sample_rate),
                 which_spectrum=which_spectrum,
                 low_frequency_cutoff=f_low,

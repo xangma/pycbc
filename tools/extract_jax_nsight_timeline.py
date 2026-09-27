@@ -121,6 +121,45 @@ def _resolve_global_pid(conn: sqlite3.Connection, target_pid: int) -> int:
     )
 
 
+def _resolve_global_pids(
+    conn: sqlite3.Connection, target_pids: Sequence[int]
+) -> List[int]:
+    """Resolve every observed process-tree PID, preserving process scope."""
+    resolved, missing = _resolve_global_pids_with_unresolved(conn, target_pids)
+    if missing:
+        raise NsightTimelineError(
+            "no Nsight globalPid found for observed target PIDs %s"
+            % sorted(missing)
+        )
+    return resolved
+
+
+def _resolve_global_pids_with_unresolved(
+    conn: sqlite3.Connection, target_pids: Sequence[int]
+) -> Tuple[List[int], List[int]]:
+    """Resolve CUDA-visible PIDs and retain CPU-only tree members.
+
+    Nsight does not necessarily serialize short-lived compiler or helper
+    processes that never submit CUDA work.  They remain part of the observed
+    process tree, but cannot contribute CUDA activity.  Returning them
+    separately lets the receipt state that limitation without widening the
+    CUDA query to unrelated global PIDs.
+    """
+    resolved = []
+    missing = []
+    for pid in target_pids:
+        try:
+            resolved.append(_resolve_global_pid(conn, int(pid)))
+        except NsightTimelineError:
+            missing.append(int(pid))
+    if not resolved:
+        raise NsightTimelineError(
+            "no Nsight globalPid found for any observed target PIDs %s"
+            % sorted(set(missing))
+        )
+    return sorted(set(resolved)), sorted(set(missing))
+
+
 def _memory_kind(conn: sqlite3.Connection, value: Any) -> str:
     if value is None:
         return "Unknown"
@@ -135,8 +174,13 @@ def _memory_kind(conn: sqlite3.Connection, value: Any) -> str:
 
 
 def _target_devices(
-    conn: sqlite3.Connection, global_pid: int, device_id: Optional[int]
+    conn: sqlite3.Connection,
+    global_pids: Sequence[int],
+    device_id: Optional[int],
 ) -> int:
+    if not global_pids:
+        raise NsightTimelineError("target process set is empty")
+    placeholders = ",".join("?" for _ in global_pids)
     devices: set[int] = set()
     for table in ("CUPTI_ACTIVITY_KIND_KERNEL", "CUPTI_ACTIVITY_KIND_MEMCPY"):
         if not _has_table(conn, table):
@@ -146,8 +190,9 @@ def _target_devices(
             continue
         rows = conn.execute(
             "SELECT DISTINCT deviceId FROM \"%s\" "
-            "WHERE globalPid = ? AND deviceId IS NOT NULL" % table,
-            (global_pid,),
+            "WHERE globalPid IN (%s) AND deviceId IS NOT NULL"
+            % (table, placeholders),
+            tuple(global_pids),
         ).fetchall()
         devices.update(int(row[0]) for row in rows)
     if _has_table(conn, "TARGET_INFO_CUDA_DEVICE") and _has_table(
@@ -155,9 +200,9 @@ def _target_devices(
     ):
         rows = conn.execute(
             "SELECT DISTINCT cudaId FROM TARGET_INFO_CUDA_DEVICE "
-            "WHERE pid IN (SELECT pid FROM PROCESSES WHERE globalPid = ?) "
-            "AND cudaId IS NOT NULL",
-            (global_pid,),
+            "WHERE pid IN (SELECT pid FROM PROCESSES WHERE globalPid IN (%s)) "
+            "AND cudaId IS NOT NULL" % placeholders,
+            tuple(global_pids),
         ).fetchall()
         devices.update(int(row[0]) for row in rows)
 
@@ -246,19 +291,43 @@ def extract_timeline(
         )
 
     width = bin_ms / 1000.0
+    requested_pids = receipt.get("target_pids")
+    if requested_pids is None:
+        requested_pids = (receipt.get("process_tree") or {}).get(
+            "observed_pids"
+        )
+    if requested_pids is None:
+        requested_pids = [target_pid]
+    if (
+        not isinstance(requested_pids, list)
+        or not requested_pids
+        or any(not isinstance(pid, int) or isinstance(pid, bool)
+               for pid in requested_pids)
+    ):
+        raise NsightTimelineError(
+            "telemetry receipt target_pids must be a non-empty integer list"
+        )
+
     with sqlite3.connect(str(sqlite_path)) as conn:
         conn.row_factory = sqlite3.Row
         origin_ns = _find_origin_ns(conn)
-        global_pid = _resolve_global_pid(conn, target_pid)
-        selected_device = _target_devices(conn, global_pid, device_id)
+        global_pids, unresolved_pids = _resolve_global_pids_with_unresolved(
+            conn, requested_pids
+        )
+        resolved_target_pids = sorted(
+            set(requested_pids) - set(unresolved_pids)
+        )
+        selected_device = _target_devices(conn, global_pids, device_id)
+        placeholders = ",".join("?" for _ in global_pids)
 
         kernels: List[Dict[str, float]] = []
         kernel_ranges: List[Tuple[float, float]] = []
         if _has_table(conn, "CUPTI_ACTIVITY_KIND_KERNEL"):
             rows = conn.execute(
                 "SELECT start, end FROM CUPTI_ACTIVITY_KIND_KERNEL "
-                "WHERE globalPid = ? AND deviceId = ? ORDER BY start, end",
-                (global_pid, selected_device),
+                "WHERE globalPid IN (%s) AND deviceId = ? "
+                "ORDER BY start, end" % placeholders,
+                (*global_pids, selected_device),
             ).fetchall()
             for row in rows:
                 start_sec, end_sec = _event_bounds(row, origin_ns)
@@ -271,8 +340,9 @@ def extract_timeline(
             rows = conn.execute(
                 "SELECT start, end, bytes, copyKind, srcKind, dstKind "
                 "FROM CUPTI_ACTIVITY_KIND_MEMCPY "
-                "WHERE globalPid = ? AND deviceId = ? ORDER BY start, end",
-                (global_pid, selected_device),
+                "WHERE globalPid IN (%s) AND deviceId = ? "
+                "ORDER BY start, end" % placeholders,
+                (*global_pids, selected_device),
             ).fetchall()
             for row in rows:
                 copy_kind = int(row["copyKind"])
@@ -344,7 +414,15 @@ def extract_timeline(
     receipt["cuda_trace"] = {
         "source": "Nsight Systems / CUPTI",
         "target_pid": target_pid,
-        "global_pid": global_pid,
+        "target_pids": requested_pids,
+        "resolved_target_pids": resolved_target_pids,
+        "unresolved_pids": unresolved_pids,
+        # These PIDs are explicitly excluded from CUDA attribution because
+        # Nsight exposed no global process identity for them.
+        "no_cuda_pids": unresolved_pids,
+        "global_pids": global_pids,
+        # Keep the singular field for readers of schema v2 receipts.
+        "global_pid": global_pids[0] if len(global_pids) == 1 else None,
         "device_id": selected_device,
         "origin_ns": origin_ns,
         "bin_width_ms": bin_ms,

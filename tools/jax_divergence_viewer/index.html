@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PyCBC divergence explorer</title>
+  <link rel="stylesheet" href="style.css">
+  <script defer src="data.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="mark">◈</span><span>PyCBC <b>Divergence Explorer</b></span></div>
+    <div class="topmeta" id="topmeta">Loading receipt…</div>
+  </header>
+  <div class="layout">
+    <aside class="sidebar" aria-label="Suite navigation">
+      <div class="eyebrow">RUNS</div>
+      <div id="steps"></div>
+      <div class="sidefoot">Receipt-derived view · science verdicts are unchanged</div>
+    </aside>
+    <main>
+      <section class="hero">
+        <div>
+          <div class="eyebrow">BENCHMARK INVESTIGATION</div>
+          <h1 id="title">Loading…</h1>
+          <p id="subtitle"></p>
+        </div>
+        <div id="overall" class="overall"></div>
+      </section>
+      <div class="tabs" role="tablist" aria-label="Report sections">
+        <button type="button" class="tab active" data-tab="differences">Differences</button>
+        <button type="button" class="tab" data-tab="timings">Timings</button>
+        <button type="button" class="tab" data-tab="sources">Source &amp; provenance</button>
+      </div>
+      <section id="differences" class="tabpane">
+        <div class="controls">
+          <label>Arm <select id="arm"></select></label>
+          <label>Detector <select id="detector"></select></label>
+          <label>Show <select id="verdict"><option value="all">All recorded fields</option><option value="fail">Differences and missing</option></select></label>
+        </div>
+        <div class="notice" id="coverage"></div>
+        <div class="sectionhead"><div><div class="eyebrow">PIPELINE</div><h2>Observed boundaries</h2></div><span id="stagehint"></span></div>
+        <div id="stages" class="stages" aria-label="Recorded pipeline stages"></div>
+        <div class="split">
+          <section class="panel">
+            <div class="sectionhead"><div><div class="eyebrow">MEASUREMENTS</div><h2 id="fieldtitle">Recorded fields</h2></div><span id="fieldcount"></span></div>
+            <div id="fields" class="fieldlist"></div>
+          </section>
+          <section class="panel detail">
+            <div class="eyebrow">SELECTED EVIDENCE</div>
+            <h2 id="detailtitle">Choose a field</h2>
+            <div id="detail"></div>
+          </section>
+        </div>
+      </section>
+      <section id="timings" class="tabpane hidden">
+        <div class="sectionhead"><div><div class="eyebrow">EXECUTION</div><h2>Timing evidence</h2></div></div>
+        <div class="notice">Qualification durations are diagnostic only. Published performance requires passing science and separate unprofiled timed repetitions. Stage estimates and process wall time have different scopes.</div>
+        <div id="timingcontent"></div>
+      </section>
+      <section id="sources" class="tabpane hidden">
+        <div class="sectionhead"><div><div class="eyebrow">REPRODUCIBILITY</div><h2>Code and inputs</h2></div></div>
+        <div id="sourcecontent"></div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

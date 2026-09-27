@@ -17,10 +17,9 @@
 
 """Generate publication-quality benchmark plots from sealed JAX performance receipts.
 
-Outputs:
-- jax_throughput_scaling.png: Calculation rate vs batch size across workloads
-- jax_speedup_matrix.png: Relative speedup vs baseline CPU
-- jax_latency_breakdown.png: Per-template latency composition (waveform, transfer, filter)
+By default this renders throughput for the complete, longer transform
+experiments in the receipt. The short-transform speedup matrix and latency
+breakdown remain available as explicitly requested historical diagnostics.
 """
 
 import argparse
@@ -34,7 +33,7 @@ import numpy as np
 
 ARM_CONFIG = {
     "branch_cpu": {
-        "label": "Current CPU (LAL)",
+        "label": "Standard CPU (LAL)",
         "color": "#777777",
         "linestyle": ":",
         "marker": "s",
@@ -66,18 +65,40 @@ ARM_CONFIG = {
 }
 
 
-def plot_throughput_scaling(data: Dict[str, Any], output_path: Path):
-    """Dual-panel scaling figure for short and long synthetic transforms."""
-    fig, axes = plt.subplots(1, 2, figsize=(14, 6), sharey=False)
+def _track_definitions(data: Dict[str, Any], include_historical: bool):
+    experiments = data.get("experiments", {})
+    keys = []
+    for key, experiment in experiments.items():
+        if not include_historical and (
+            key == "streaming_n131072" or experiment.get("n_time") == 131072
+        ):
+            continue
+        if experiment.get("arms") or experiment.get("cpu_baseline"):
+            keys.append(key)
+    keys.sort(key=lambda key: experiments[key].get("n_time", 0))
+    return [(key, experiments[key]) for key in keys]
 
-    tracks = [
-        ("streaming_n131072", "Short-transform microbenchmark (N = 131,072, 2048 Hz)", axes[0]),
-        ("inspiral_n2097152", "Long-transform microbenchmark (N = 2,097,152, 4096 Hz)", axes[1]),
-    ]
 
-    for track_key, track_title, ax in tracks:
-        exp = data.get("experiments", {}).get(track_key, {})
+def plot_throughput_scaling(
+    data: Dict[str, Any], output_path: Path, include_historical: bool = False
+):
+    """Plot throughput for complete transform experiments in a receipt."""
+    tracks = _track_definitions(data, include_historical)
+    if not tracks:
+        print("Throughput plot skipped: no eligible transform experiments")
+        return
+    fig, axes = plt.subplots(1, len(tracks), figsize=(7 * len(tracks), 6), squeeze=False)
+    axes = axes[0]
+
+    for ax, (track_key, exp) in zip(axes, tracks):
         arms = exp.get("arms", {})
+        n_time = exp.get("n_time")
+        if track_key == "streaming_n131072":
+            track_title = "Short-transform diagnostic (N = 131,072, 2048 Hz)"
+        elif track_key == "inspiral_n1048576":
+            track_title = "Inspiral-sized transform (N = 1,048,576, 2048 Hz)"
+        else:
+            track_title = f"Transform benchmark (N = {n_time or track_key})"
 
         if not arms:
             # Fallback if only legacy keys exist
@@ -172,7 +193,7 @@ def plot_speedup_matrix(data: Dict[str, Any], output_path: Path):
 
     ax.axhline(1.0, color="black", linestyle=":", alpha=0.7, label="Baseline (1.0×)")
     ax.set_yscale("log")
-    ax.set_ylabel("Speedup vs current CPU (B=1)", fontsize=12, fontweight="bold")
+    ax.set_ylabel("Speedup vs standard CPU (B=1)", fontsize=12, fontweight="bold")
     ax.set_title("Relative Acceleration (Short-transform Microbenchmark)", fontsize=14, fontweight="bold")
     ax.set_xticks(x)
     ax.set_xticklabels([ARM_CONFIG[a]["label"] for a in active_arms], rotation=25, ha="right", fontsize=10)
@@ -249,6 +270,11 @@ def main():
         default="docs/_static",
         help="Directory to save generated PNG figures",
     )
+    parser.add_argument(
+        "--historical-diagnostics",
+        action="store_true",
+        help="Also render the retained short-transform speedup and latency diagnostics",
+    )
     args = parser.parse_args()
 
     input_path = Path(args.input).resolve()
@@ -261,9 +287,14 @@ def main():
     out_dir = Path(args.output_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    plot_throughput_scaling(data, out_dir / "jax_throughput_scaling.png")
-    plot_speedup_matrix(data, out_dir / "jax_speedup_matrix.png")
-    plot_latency_breakdown(data, out_dir / "jax_latency_breakdown.png")
+    plot_throughput_scaling(
+        data,
+        out_dir / "jax_throughput_scaling.png",
+        include_historical=args.historical_diagnostics,
+    )
+    if args.historical_diagnostics:
+        plot_speedup_matrix(data, out_dir / "jax_speedup_matrix.png")
+        plot_latency_breakdown(data, out_dir / "jax_latency_breakdown.png")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,19 @@
+{
+  "reference_source": "/path/to/pristine-pycbc",
+  "reference_revision": "40e94792b3edf59f39b18b65102b28a4f74433a7",
+  "candidate_source": "/path/to/jax-stack",
+  "python": "/path/to/pycbc-environment/bin/python",
+  "inputs_dir": "/path/to/benchmark-inputs",
+  "frame_file": "/path/to/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf",
+  "frame_sha256": "580e238054474fd09be900c47217bbcd0497ab84d1756f886647e934352e4865",
+  "live_l1_frame_file": "/path/to/L-L1_LOSC_CLN_4_V1-1187007040-2048.gwf",
+  "live_l1_frame_sha256": "ff9743efc1555a47bc3f2effcaabba252a2244f10fd3a8f85a7c5f677b3c772e",
+  "bank_xml_sha256": "854c855960110dbb42dd48660065c5551dca205470503cbcb6b97f2650890e43",
+  "output_dir": "/path/to/benchmark-results",
+  "sizes": [1536, 3072, 6144],
+  "qualification_size": 32,
+  "replicates": 3,
+  "inspiral_affinity": "8",
+  "live_affinity": "8,9",
+  "live_ranks": 2
+}

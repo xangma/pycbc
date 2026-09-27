@@ -1,0 +1,49 @@
+{
+  "bank_file": "/path/to/benchmark-inputs/o2-subset-1536.hdf",
+  "frame_files": [
+    "/path/to/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf"
+  ],
+  "workload": {
+    "templates": 1536,
+    "analysis_chunk_sec": 8,
+    "start_time": 1187007080,
+    "end_time": 1187007720
+  },
+  "science": {
+    "capture_evidence": false,
+    "sample_rate": 2048,
+    "precision": "complex64",
+    "reference_arm": "cpu"
+  },
+  "args": [
+    "--bank-file", "/path/to/benchmark-inputs/o2-subset-1536.hdf",
+    "--approximant", "TaylorF2",
+    "--sample-rate", "2048",
+    "--low-frequency-cutoff", "30",
+    "--highpass-frequency", "13",
+    "--highpass-bandwidth", "5",
+    "--highpass-reduction", "200",
+    "--src-class-mchirp-to-delta", "0.01",
+    "--src-class-eff-to-lum-distance", "0.74899",
+    "--src-class-lum-distance-to-delta", "-0.51557", "-0.32195",
+    "--max-length", "512",
+    "--chisq-bins", "16",
+    "--analysis-chunk", "8",
+    "--psd-samples", "30",
+    "--psd-segment-length", "4",
+    "--psd-inverse-length", "3.5",
+    "--trim-padding", "0.5",
+    "--channel-name", "H1:LOSC-STRAIN",
+    "--frame-src", "H1:/path/to/H-H1_LOSC_CLN_4_V1-1187007040-2048.gwf",
+    "--frame-read-timeout", "30",
+    "--snr-threshold", "5.5",
+    "--ranking-statistic", "single_ranking_only",
+    "--sngl-ranking", "snr",
+    "--pvalue-combination-livetime", "0.0005",
+    "--ifar-double-followup-threshold", "0.0001",
+    "--ifar-upload-threshold", "0.0001",
+    "--start-time", "1187007080",
+    "--end-time", "1187007720",
+    "--store-psd"
+  ]
+}

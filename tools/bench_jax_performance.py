@@ -55,6 +55,36 @@ ARM_LABELS = {
     "jax_cuda_diffgw": "JAX CUDA (diffgw)",
 }
 
+# Benchmark array contract. Keep this independent of transform length so
+# every result is directly comparable across the full and diagnostic tracks.
+BENCHMARK_SAMPLE_RATE = 2048.0
+BENCHMARK_PRECISION = "single"
+BENCHMARK_COMPLEX_DTYPE = np.complex64
+BENCHMARK_REAL_DTYPE = np.float32
+
+HISTORICAL_TRACK_NAMES = {
+    131072: "streaming_n131072",
+    1048576: "inspiral_n1048576",
+}
+
+
+def track_name_for_length(n_time: int) -> str:
+    """Return a stable, lossless experiment key for a transform length."""
+    return HISTORICAL_TRACK_NAMES.get(n_time, f"transform_n{n_time}")
+
+
+def default_lengths(include_short_transform_diagnostic: bool = False):
+    """Return the default benchmark lengths.
+
+    The short 64-second transform is retained as an explicitly requested
+    diagnostic.  The default is the larger inspiral-sized transform.
+    """
+    # 512 seconds at the fixed 2048 Hz benchmark rate.
+    lengths = [1048576]
+    if include_short_transform_diagnostic:
+        lengths.insert(0, 131072)
+    return lengths
+
 
 def get_hardware_info() -> Dict[str, Any]:
     """Gather detailed host CPU and GPU hardware metadata."""
@@ -103,6 +133,14 @@ def get_hardware_info() -> Dict[str, Any]:
     return info
 
 
+def _require_benchmark_precision(precision: str) -> None:
+    if precision != BENCHMARK_PRECISION:
+        raise ValueError(
+            "The JAX diagnostic benchmark is single precision only "
+            "(complex64/float32); double precision is not supported"
+        )
+
+
 def generate_lal_templates(
     m1_vals: np.ndarray,
     m2_vals: np.ndarray,
@@ -112,9 +150,10 @@ def generate_lal_templates(
     precision: str = "single",
 ) -> np.ndarray:
     """Generate a batch of TaylorF2 frequency-domain templates via LAL."""
+    _require_benchmark_precision(precision)
     from pycbc.waveform import get_fd_waveform
 
-    c_dtype = np.complex64 if precision == "single" else np.complex128
+    c_dtype = BENCHMARK_COMPLEX_DTYPE
     b = len(m1_vals)
     batch_arr = np.zeros((b, n_freq), dtype=c_dtype)
     for i in range(b):
@@ -140,13 +179,15 @@ def generate_diffgw_templates(
     precision: str = "single",
 ) -> Any:
     """Generate a batch of TaylorF2 frequency-domain templates via diffgw."""
+    _require_benchmark_precision(precision)
     import diffgw
     import jax
     import jax.numpy as jnp
 
-    use_x64 = (precision == "double")
-    jax.config.update("jax_enable_x64", use_x64)
-    f_dtype = jnp.float64 if use_x64 else jnp.float32
+    # PyCBC may require x64 support while tracing, but benchmark arrays remain
+    # explicitly single precision.
+    jax.config.update("jax_enable_x64", True)
+    f_dtype = jnp.float32
 
     b = len(m1_vals)
     freqs = jnp.arange(n_freq, dtype=f_dtype) * df
@@ -186,9 +227,10 @@ def run_benchmark_arm(
     fhigh: float = 1000.0,
     gpu_dev: Optional[Any] = None,
     cpu_dev: Optional[Any] = None,
-    precision: str = "single",
+    precision: str = BENCHMARK_PRECISION,
 ) -> Dict[str, Any]:
     """Execute timed trials for a specific benchmark arm and batch size."""
+    _require_benchmark_precision(precision)
     import jax
     import jax.numpy as jnp
     from pycbc.filter.matchedfilter import matched_filter
@@ -200,14 +242,17 @@ def run_benchmark_arm(
     except Exception:
         diffgw = None
 
-    use_x64 = (precision == "double")
-    jax.config.update("jax_enable_x64", use_x64)
-    f_dtype = jnp.float64 if use_x64 else jnp.float32
-    c_dtype = jnp.complex128 if use_x64 else jnp.complex64
-    np_f_dtype = np.float64 if use_x64 else np.float32
-    np_c_dtype = np.complex128 if use_x64 else np.complex64
+    # Keep the configuration stable across warmup and measurement. The filter's
+    # _ensure_x64() otherwise changes it while tracing the warmup, invalidating
+    # that compilation for the first timed call. Explicit dtypes below still
+    # select the published single-precision inputs.
+    jax.config.update("jax_enable_x64", True)
+    f_dtype = jnp.float32
+    c_dtype = jnp.complex64
+    np_f_dtype = BENCHMARK_REAL_DTYPE
+    np_c_dtype = BENCHMARK_COMPLEX_DTYPE
 
-    sample_rate = 2048.0 if n_time <= 131072 else 4096.0
+    sample_rate = BENCHMARK_SAMPLE_RATE
     df = sample_rate / n_time
     n_freq = n_time // 2 + 1
 
@@ -240,14 +285,23 @@ def run_benchmark_arm(
     m1_jnp = jnp.asarray(m1_vals, dtype=f_dtype)
     m2_jnp = jnp.asarray(m2_vals, dtype=f_dtype)
 
+    filter_traces = 0
+
+    def traced_filter(tmpl, st, p):
+        if (tmpl.dtype != jnp.complex64 or st.dtype != jnp.complex64 or
+                p.dtype != jnp.float32):
+            raise ValueError("Benchmark filter inputs must be complex64/float32")
+        nonlocal filter_traces
+        filter_traces += 1
+        return batch_matched_filter_bank(
+            tmpl, st, p, low_frequency_cutoff=flow,
+            high_frequency_cutoff=fhigh, delta_f=df,
+        )
+
     # JIT filter kernels & diffgw generators
     if cpu_dev is not None:
         with jax.default_device(cpu_dev):
-            jitted_filter_cpu = jax.jit(
-                lambda tmpl, st, p: batch_matched_filter_bank(
-                    tmpl, st, p, low_frequency_cutoff=flow, high_frequency_cutoff=fhigh, delta_f=df
-                )
-            )
+            jitted_filter_cpu = jax.jit(traced_filter)
             if diffgw is not None:
                 jitted_diffgw_cpu = jax.jit(
                     lambda m1, m2: diffgw.get_fd_waveform(
@@ -261,7 +315,7 @@ def run_benchmark_arm(
                         phic=phic_jnp,
                         sample_frequencies=freqs_jnp,
                         backend="jax",
-                        dtype=jnp.float64,
+                        dtype=f_dtype,
                         f_isco_cutoff=False,
                     )[0]
                 )
@@ -273,11 +327,7 @@ def run_benchmark_arm(
 
     if gpu_dev is not None:
         with jax.default_device(gpu_dev):
-            jitted_filter_gpu = jax.jit(
-                lambda tmpl, st, p: batch_matched_filter_bank(
-                    tmpl, st, p, low_frequency_cutoff=flow, high_frequency_cutoff=fhigh, delta_f=df
-                )
-            )
+            jitted_filter_gpu = jax.jit(traced_filter)
             if diffgw is not None:
                 jitted_diffgw_gpu = jax.jit(
                     lambda m1, m2: diffgw.get_fd_waveform(
@@ -291,7 +341,7 @@ def run_benchmark_arm(
                         phic=phic_jnp,
                         sample_frequencies=freqs_jnp,
                         backend="jax",
-                        dtype=jnp.float64,
+                        dtype=f_dtype,
                         f_isco_cutoff=False,
                     )[0]
                 )
@@ -416,7 +466,8 @@ def run_benchmark_arm(
         }
 
     # Warmup pass
-    _ = execute_single_pass()
+    warmup = execute_single_pass()
+    warmup_traces = filter_traces
 
     # Timed trials
     total_samples = []
@@ -426,6 +477,8 @@ def run_benchmark_arm(
 
     for _ in range(trials):
         res = execute_single_pass()
+        if filter_traces != warmup_traces:
+            raise RuntimeError("JAX filter retraced during a timed trial")
         total_samples.append(res["t_total"])
         wf_samples.append(res["t_waveform"])
         tr_samples.append(res["t_transfer"])
@@ -444,8 +497,21 @@ def run_benchmark_arm(
     return {
         "arm": arm,
         "label": ARM_LABELS.get(arm, arm),
+        "n_time": n_time,
+        "sample_rate_hz": sample_rate,
+        "sample_rate": sample_rate,
+        "delta_f_hz": df,
+        "n_freq": n_freq,
+        "precision": BENCHMARK_PRECISION,
+        "complex_dtype": "complex64",
+        "real_dtype": "float32",
         "batch_size": batch_size,
         "trials": trials,
+        "jax_enable_x64": bool(jax.config.jax_enable_x64),
+        "jit_trace_counts": {
+            "warmup": warmup_traces, "after_trials": filter_traces,
+        },
+        "warmup_seconds": warmup,
         "median_total_sec": median_total,
         "median_waveform_sec": wf_summary["median"],
         "median_transfer_sec": tr_summary["median"],
@@ -479,8 +545,13 @@ def main():
         "--lengths",
         nargs="+",
         type=int,
-        default=[131072, 2097152],
-        help="Transform sample lengths (131072=64s@2048Hz, 2097152=512s@4096Hz)",
+        default=None,
+        help="Transform sample lengths at the fixed 2048 Hz rate; defaults to 1048576 (512 s)",
+    )
+    parser.add_argument(
+        "--include-short-transform-diagnostic",
+        action="store_true",
+        help="Also run the retained 131072-sample short-transform diagnostic",
     )
     parser.add_argument(
         "--trials",
@@ -508,19 +579,17 @@ def main():
         help="Path to existing JSON artifact to merge with",
     )
     parser.add_argument(
-        "--precision",
-        type=str,
-        choices=["single", "double"],
-        default="single",
-        help="Arithmetic precision: 'single' (complex64/float32, production search default) or 'double' (complex128/float64)",
-    )
-    parser.add_argument(
         "--output",
         type=str,
         default="artifacts/jax_benchmark_results.json",
         help="Output JSON artifact path",
     )
     args = parser.parse_args()
+
+    if args.lengths is None:
+        args.lengths = default_lengths(args.include_short_transform_diagnostic)
+    elif args.include_short_transform_diagnostic and 131072 not in args.lengths:
+        args.lengths.insert(0, 131072)
 
     import jax
 
@@ -563,16 +632,35 @@ def main():
         except Exception as e:
             print(f"Warning: could not load {args.merge_with}: {e}")
 
+    # Do not carry nonconforming historical tracks into a newly sealed
+    # published artifact.  Only receipts explicitly tagged with this fixed
+    # 2048 Hz/complex64 contract are eligible for merging.
+    existing_experiments = {}
+    for key, experiment in (existing_data.get("experiments", {}) or {}).items():
+        if not isinstance(experiment, dict):
+            continue
+        if (experiment.get("sample_rate_hz") == BENCHMARK_SAMPLE_RATE and
+                experiment.get("precision") == BENCHMARK_PRECISION and
+                experiment.get("complex_dtype") == "complex64"):
+            existing_experiments[key] = experiment
+
     results = {
         "schema_version": 3,
         "timestamp_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "benchmark_contract": {
+            "sample_rate_hz": BENCHMARK_SAMPLE_RATE,
+            "sample_rate": BENCHMARK_SAMPLE_RATE,
+            "precision": BENCHMARK_PRECISION,
+            "complex_dtype": "complex64",
+            "real_dtype": "float32",
+        },
         "hardware": existing_data.get("hardware", hw_info),
         "jax_version": jax.__version__,
-        "experiments": existing_data.get("experiments", {}),
+        "experiments": existing_experiments,
     }
 
     for n in args.lengths:
-        track_name = "streaming_n131072" if n == 131072 else "inspiral_n2097152"
+        track_name = track_name_for_length(n)
         print("\n==========================================")
         print(f"--- Benchmark Track: {track_name} (N={n}) ---")
         print("==========================================")
@@ -580,6 +668,12 @@ def main():
         if track_name not in results["experiments"]:
             results["experiments"][track_name] = {
                 "n_time": n,
+                "sample_rate_hz": BENCHMARK_SAMPLE_RATE,
+                "sample_rate": BENCHMARK_SAMPLE_RATE,
+                "duration_seconds": n / BENCHMARK_SAMPLE_RATE,
+                "precision": BENCHMARK_PRECISION,
+                "complex_dtype": "complex64",
+                "real_dtype": "float32",
                 "arms": {},
             }
         elif "arms" not in results["experiments"][track_name]:
@@ -606,7 +700,6 @@ def main():
                     trials=args.trials,
                     gpu_dev=gpu_dev,
                     cpu_dev=cpu_dev,
-                    precision=args.precision,
                 )
                 track_arms[arm]["batches"][str(b)] = b_res
                 elapsed_arm = time.perf_counter() - t0_arm
@@ -639,7 +732,9 @@ def main():
             cpu_b1 = track_arms["branch_cpu"]["batches"]["1"]
             results["experiments"][track_name]["cpu_baseline"] = {
                 "n_time": n,
-                "sample_rate": 2048.0 if n <= 131072 else 4096.0,
+                "sample_rate": BENCHMARK_SAMPLE_RATE,
+                "precision": BENCHMARK_PRECISION,
+                "complex_dtype": "complex64",
                 "trials": cpu_b1["trials"],
                 "median_sec": cpu_b1["median_total_sec"],
                 "templates_per_sec": cpu_b1["templates_per_sec"],
@@ -652,7 +747,9 @@ def main():
             results["experiments"][track_name]["jax_scaling"] = {
                 "device": str(gpu_dev if "cuda" in scaling_src else cpu_dev),
                 "n_time": n,
-                "sample_rate": 2048.0 if n <= 131072 else 4096.0,
+                "sample_rate": BENCHMARK_SAMPLE_RATE,
+                "precision": BENCHMARK_PRECISION,
+                "complex_dtype": "complex64",
                 "trials": args.trials,
                 "batches": track_arms[scaling_src]["batches"],
             }

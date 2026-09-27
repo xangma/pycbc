@@ -17,9 +17,9 @@ do FFTs:
 
 These APIs offer access to a number of FFT backends. PyCBC knows how to do FFTs
 using the FFTW, MKL and numpy backends, and will enable these if they are
-present on your system. By default FFTW will be used, then MKL if FFTW is not
-and numpy will be used only if the other 2 are not present. However, you can
-override this and choose a specific backend if multiple are available.
+present on your system. The CPU default tries MKL first, then FFTW, then numpy.
+You can override this order and choose a specific backend if multiple are
+available.
 
 When running on GPUs, PyCBC knows how to do CUDA FFTs through the same
 interface. 
@@ -157,8 +157,8 @@ to set a specific backend. Running::
     >>> from pycbc.fft import backend_support
     >>> backend_support.get_backend()
 
-will tell you what you are currently using. You can also use the
-MKL `Scheme` to default to using MKL FFTs, instead of FFTW.
+will tell you what you are currently using. The MKL `Scheme` explicitly
+selects the MKL FFT backend.
 
 ====================
 Method documentation
