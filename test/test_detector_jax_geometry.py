@@ -16,7 +16,6 @@ import pytest
 from pycbc.detector.ground import (
     Detector,
     NetworkGeometry,
-    _scalar_antenna_pattern_and_time_delay,
     single_arm_frequency_response,
 )
 
@@ -44,19 +43,9 @@ def test_combined_scalar_geometry_matches_public_numpy_methods(name):
     dec = 0.567
     polarization = 0.891
 
-    fplus0, fcross0, delay0 = _scalar_antenna_pattern_and_time_delay(
-        detector, ra, dec, REFERENCE_TIME
-    )
     fplus, fcross, delay = detector.antenna_pattern_and_time_delay(
         ra, dec, polarization, REFERENCE_TIME
     )
-    cos2psi = np.cos(2.0 * polarization)
-    sin2psi = np.sin(2.0 * polarization)
-
-    assert fplus == cos2psi * fplus0 + sin2psi * fcross0
-    assert fcross == -sin2psi * fplus0 + cos2psi * fcross0
-    assert delay == delay0
-
     public_fplus, public_fcross = detector.antenna_pattern(
         ra, dec, polarization, REFERENCE_TIME
     )
@@ -66,29 +55,6 @@ def test_combined_scalar_geometry_matches_public_numpy_methods(name):
     np.testing.assert_allclose(fplus, public_fplus, rtol=1e-14, atol=1e-16)
     np.testing.assert_allclose(fcross, public_fcross, rtol=1e-14, atol=1e-16)
     np.testing.assert_allclose(delay, public_delay, rtol=1e-14, atol=1e-16)
-
-
-def test_combined_numpy_geometry_broadcasts_without_behavior_change():
-    detector = Detector("H1")
-    ra = np.linspace(0.1, 1.1, 6).reshape(2, 3)
-    dec = np.array([[-0.4], [0.3]])
-    polarization = np.linspace(0.2, 0.6, 3)
-    time = REFERENCE_TIME + np.arange(3, dtype=np.float64)
-
-    fplus, fcross, delay = detector.antenna_pattern_and_time_delay(
-        ra, dec, polarization, time
-    )
-    expected_fplus, expected_fcross = detector.antenna_pattern(
-        ra, dec, polarization, time
-    )
-    expected_delay = detector.time_delay_from_earth_center(ra, dec, time)
-
-    assert fplus.shape == (2, 3)
-    assert fcross.shape == (2, 3)
-    assert delay.shape == (2, 3)
-    np.testing.assert_allclose(fplus, expected_fplus, rtol=1e-14, atol=1e-16)
-    np.testing.assert_allclose(fcross, expected_fcross, rtol=1e-14, atol=1e-16)
-    np.testing.assert_allclose(delay, expected_delay, rtol=1e-14, atol=1e-16)
 
 
 def test_jax_detector_geometry_matches_numpy_and_has_gradients():
@@ -348,6 +314,27 @@ def test_combined_geometry_preserves_detector_overrides(
 
     gr = jax.grad(loss)(ra)
     assert bool(jnp.all(jnp.isfinite(gr)))
+
+
+def test_combined_geometry_preserves_overrides_for_native_numpy_values(monkeypatch):
+    from types import MethodType
+
+    detector = Detector("H1")
+    calls = []
+    original = detector.antenna_pattern
+
+    def overridden(self, *args):
+        calls.append(True)
+        result = original(*args)
+        return tuple(value + 0.25 for value in result)
+
+    monkeypatch.setattr(detector, "antenna_pattern", MethodType(overridden, detector))
+    args = (0.3, -0.2, 0.1, REFERENCE_TIME)
+    actual = detector.antenna_pattern_and_time_delay(*args)
+    expected = (*detector.antenna_pattern(*args),
+                detector.time_delay_from_earth_center(args[0], args[1], args[3]))
+    assert calls == [True, True]
+    np.testing.assert_allclose(actual, expected, rtol=1e-14, atol=1e-16)
 
 
 def test_jax_geometry_rejects_unsupported_inputs():

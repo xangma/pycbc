@@ -87,7 +87,7 @@ def test_phenom_batch_parity_and_match(tmp_path, approximant):
             assert m > 0.99999, f"Match {m} below threshold for {approximant} template {i}"
 
 
-def test_phenom_mixed_fallback(tmp_path):
+def test_phenom_mixed_batch_rejects_unsupported_jax(tmp_path):
     rows = [
         phenom_row(30.0, 25.0, 0.1, -0.2, 20.0, approximant="IMRPhenomD"),
         phenom_row(35.0, 25.0, 0.0, 0.0, 20.0, approximant="IMRPhenomPv2"),  # unsupported
@@ -104,7 +104,8 @@ def test_phenom_mixed_fallback(tmp_path):
     )
 
     with scheme.JAXScheme():
-        batch, templates = bank.get_batch_tensor([0, 1, 2])
-        assert templates[0].waveform_provider in ("diffgw", "jaxwave")
-        assert templates[1].waveform_provider == "reference"
-        assert templates[2].waveform_provider in ("diffgw", "jaxwave")
+        with pytest.raises(
+            ValueError,
+            match="JAX waveform generation does not support approximant",
+        ):
+            bank.get_batch_tensor([0, 1, 2])

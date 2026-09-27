@@ -38,7 +38,7 @@ def test_zero_pad_on_device_does_not_use_numpy_padding(
     def reject_host_padding(*args, **kwargs):
         raise AssertionError("autogate padding was allocated on the host")
 
-    monkeypatch.setattr(strain_jax.np, "zeros", reject_host_padding)
+    monkeypatch.setattr(np, "zeros", reject_host_padding)
     with scheme.JAXScheme(device=jax_device):
         strain = TimeSeries(data, delta_t=1.0)
 

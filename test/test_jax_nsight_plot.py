@@ -1,6 +1,8 @@
 """Focused tests for the process-scoped Nsight timeline rendering."""
 
 import importlib.util
+import gzip
+import json
 from pathlib import Path
 from unittest import mock
 
@@ -108,6 +110,13 @@ def receipt_with_cuda_trace():
 
 def test_nsight_trace_drives_process_panels_and_zoom(tmp_path):
     data = receipt_with_cuda_trace()
+    data["cuda_trace"]["kernels"].append(
+        {"start_sec": 100.0, "end_sec": 101.0}
+    )
+    data["cuda_trace"]["transfers"].append(
+        {"start_sec": 100.0, "end_sec": 101.0, "bytes": 1,
+         "direction": "H2D"}
+    )
     with mock.patch.object(plt, "close"):
         plotter.plot_profiling_timeline(
             data, tmp_path / "nsight.png", zoom_start=1.0, zoom_end=1.2
@@ -129,7 +138,8 @@ def test_nsight_trace_drives_process_panels_and_zoom(tmp_path):
         transfer_heights = [bar.get_height() for bar in fig.axes[2].patches]
         assert 2.0 in transfer_heights
         assert 4.0 in transfer_heights
-        assert len(fig.axes[3].collections) >= 4
+        # One collection per CUDA lane keeps large traces renderable.
+        assert len(fig.axes[3].collections) == 4
 
         ribbon_text = " ".join(text.get_text() for text in fig.axes[0].texts)
         assert "B1" in ribbon_text
@@ -181,3 +191,27 @@ def test_empty_nsight_trace_does_not_fallback_to_nvml(tmp_path):
         assert (tmp_path / "empty-nsight.png").stat().st_size > 0
     finally:
         plt.close(fig)
+
+
+def test_timeline_title_uses_workload_executable_when_campaign_missing(
+    tmp_path,
+):
+    data = receipt_with_cuda_trace()
+    data["workload"]["executable"] = "pycbc_live"
+    with mock.patch.object(plt, "close"):
+        plotter.plot_profiling_timeline(data, tmp_path / "title.png")
+        fig = plt.gcf()
+    try:
+        assert fig._suptitle.get_text().startswith(
+            "pycbc_live · whole-process CUDA timeline"
+        )
+    finally:
+        plt.close(fig)
+
+
+def test_load_receipt_accepts_gzip_json(tmp_path):
+    receipt = receipt_with_cuda_trace()
+    path = tmp_path / "receipt.json.gz"
+    with gzip.open(path, "wt") as stream:
+        json.dump(receipt, stream)
+    assert plotter._load_receipt(path) == receipt

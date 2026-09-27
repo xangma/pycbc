@@ -21,6 +21,7 @@ import pytest
 
 from pycbc import scheme
 from pycbc.fft import FFT, IFFT
+from pycbc.fft.backend_jax import get_backend
 from pycbc.types import Array
 
 pytest.importorskip("jax")
@@ -85,3 +86,50 @@ def test_batched_r2c_and_c2r_fft(nbatch):
         rec_matrix = recvec.numpy().reshape(nbatch, size)
         for i in range(nbatch):
             assert np.allclose(rec_matrix[i], in_matrix[i] * size)
+
+
+def test_batched_complex64_fft_updates_child_view():
+    """Batch output preserves padding and propagates through a view."""
+    nbatch = 3
+    size = 32
+    odist = size
+    cdata = (
+        np.arange(nbatch * size, dtype=np.float32)
+        + 1j * np.arange(nbatch * size, dtype=np.float32)[::-1]
+    ).astype(np.complex64)
+    with scheme.JAXScheme():
+        parent = Array(np.full(2 + nbatch * odist + 4, -7, dtype=np.complex64))
+        outvec = parent[2 : 2 + nbatch * odist]
+        invec = Array(cdata.copy())
+        plan = FFT(invec, outvec, nbatch=nbatch, size=size)
+        plan.execute()
+
+    expected = np.full(parent.shape, -7, dtype=np.complex64)
+    expected_view = expected[2 : 2 + nbatch * odist].reshape(nbatch, odist)
+    expected_view[:, :size] = np.fft.fft(cdata.reshape(nbatch, size), axis=-1)
+    parent_data = parent.numpy()
+    assert np.allclose(parent_data, expected)
+    assert np.all(parent_data[:2] == -7)
+    assert np.all(parent_data[2 + nbatch * odist :] == -7)
+    assert outvec.numpy().dtype == np.complex64
+
+
+def test_batched_assignment_preserves_row_padding_and_child_view():
+    """The fallback update changes rows together and leaves row padding."""
+    import jax.numpy as jnp
+
+    nbatch = 3
+    size = 5
+    odist = 8
+    with scheme.JAXScheme():
+        parent = Array(np.full(2 + nbatch * odist + 3, -9, dtype=np.complex64))
+        outvec = parent[2 : 2 + nbatch * odist]
+        result = jnp.arange(nbatch * size, dtype=jnp.float32).reshape(
+            nbatch, size
+        ).astype(jnp.complex64)
+        get_backend()._assign_to_vec(outvec, result, nbatch, size, odist)
+
+    expected = np.full(parent.shape, -9, dtype=np.complex64)
+    expected_view = expected[2 : 2 + nbatch * odist].reshape(nbatch, odist)
+    expected_view[:, :size] = np.arange(nbatch * size).reshape(nbatch, size)
+    assert np.array_equal(parent.numpy(), expected)

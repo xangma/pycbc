@@ -26,8 +26,9 @@ from pycbc import scheme
 from pycbc.events import cuts, ranking, veto
 from pycbc.filter.matchedfilter import matched_filter, sigmasq
 from pycbc.filter.matchedfilter_jax import (
-    _batched_filter_and_screen,
-    _batched_filter_and_screen_lean,
+    _batched_filter_and_cluster,
+    _batched_filter_and_cluster_lean,
+    _live_select_peaks,
     batch_matched_filter_bank,
     batch_peak_magnitudes,
     batch_peak_values,
@@ -72,9 +73,52 @@ def test_batch_peak_values_and_magnitudes_parity():
         )
         mags = batch_peak_magnitudes(peaks)
 
+    assert isinstance(mags, jax.Array)
     np.testing.assert_array_equal(indices, expected_locs)
     np.testing.assert_allclose(peaks, expected_peaks, rtol=1e-12)
     np.testing.assert_allclose(mags, np.abs(expected_peaks), rtol=1e-12)
+
+
+def test_batch_peak_values_complex64_ties_and_clipped_slices():
+    """Use the first equal maximum and honor Python slice clipping."""
+    data = np.array([
+        [1 + 1j, 4 + 0j, 4 + 0j, 2 + 0j, 3 + 0j, 0 + 0j, 3 + 0j, 1 + 0j],
+        [0 + 0j, 2 + 0j, 3 + 4j, 3 + 4j, 1 + 0j, 8 + 0j, 2 + 0j, 0 + 0j],
+    ], dtype=np.complex64)
+
+    with scheme.JAXScheme(device="cpu"):
+        indices, peaks = batch_peak_values(
+            Array(data.reshape(-1)), 2, 8, slice(-20, 5)
+        )
+
+    # The clipped interval is [0:5]. Row 0 ties at indices 1 and 2;
+    # row 1 ties in magnitude at indices 2 and 3.
+    np.testing.assert_array_equal(indices, [1, 2])
+    np.testing.assert_array_equal(peaks, [4 + 0j, 3 + 4j])
+
+
+def test_batch_peak_values_empty_stepped_and_shape_mismatch_fallbacks():
+    data = np.ones(16, dtype=np.complex64)
+    with scheme.JAXScheme(device="cpu"):
+        output = Array(data)
+        assert batch_peak_values(output, 2, 8, slice(4, 4)) is None
+        assert batch_peak_values(output, 2, 8, slice(None, None, 2)) is None
+        assert batch_peak_values(output, 3, 8, slice(None)) is None
+
+
+def test_live_peak_selection_is_batched_and_preserves_boundaries():
+    """Live selection scales a batch with scalar-path threshold semantics."""
+    peaks = np.array([3 + 4j, 1 + 0j, np.nan + 0j], dtype=np.complex64)
+    norms = np.array([2.0, 5.0, 1.0], dtype=np.float32)
+
+    with scheme.JAXScheme():
+        scaled, accepted, abort = _live_select_peaks(
+            peaks, norms, 5.0, 9.0
+        )
+
+    np.testing.assert_allclose(np.asarray(scaled)[:2], [6 + 8j, 5 + 0j])
+    np.testing.assert_array_equal(np.asarray(accepted), [True, True, True])
+    np.testing.assert_array_equal(np.asarray(abort), [True, False, False])
 
 
 def test_batch_matched_filter_bank_parity():
@@ -147,6 +191,42 @@ def test_batch_matched_filter_bank_parity():
         np.testing.assert_allclose(
             np.asarray(batch_snr[k]), expected_snrs[k], rtol=1e-8, atol=1e-8
         )
+
+
+@pytest.mark.parametrize("as_series", [False, True])
+@pytest.mark.parametrize("flow,fhigh", [(None, None), (0.8, 1.8)])
+def test_batch_matched_filter_bank_cpu_cutoffs_and_series_input(
+    as_series, flow, fhigh
+):
+    """Match CPU's DC, Nyquist, and fractional cutoff bins."""
+    df = 0.5
+    template = FrequencySeries(
+        np.array([3, 1, 2, 4, 5], dtype=np.complex128), delta_f=df
+    )
+    strain = FrequencySeries(
+        np.array([7, 2, 3, 5, 11], dtype=np.complex128), delta_f=df
+    )
+    psd = FrequencySeries(np.ones(5, dtype=np.float64), delta_f=df)
+    templates = [template] if as_series else np.asarray([template.numpy()])
+
+    expected_sigmasq = sigmasq(
+        template, psd=psd, low_frequency_cutoff=flow,
+        high_frequency_cutoff=fhigh,
+    )
+    expected_snr = matched_filter(
+        template, strain, psd=psd, low_frequency_cutoff=flow,
+        high_frequency_cutoff=fhigh,
+    )
+    with scheme.JAXScheme(device="cpu"):
+        snr, sigmasqs = batch_matched_filter_bank(
+            templates, strain, psd=psd, low_frequency_cutoff=flow,
+            high_frequency_cutoff=fhigh,
+        )
+
+    np.testing.assert_allclose(np.asarray(sigmasqs), [expected_sigmasq],
+                               rtol=1e-12)
+    np.testing.assert_allclose(np.asarray(snr[0]), expected_snr.numpy(),
+                               rtol=1e-12, atol=1e-12)
 
 
 def test_jax_veto_within_and_outside_times():
@@ -296,6 +376,14 @@ def test_batched_matched_filter_and_cluster_parity():
         batch_results = mf_control.batched_matched_filter_and_cluster(
             0, templates, sigmasqs, window=64
         )
+        cached_segments = mf_control._jax_segments_tensor
+        repeated_results = mf_control.batched_matched_filter_and_cluster(
+            0, templates, sigmasqs, window=64
+        )
+        assert mf_control._jax_segments_tensor is cached_segments
+        for repeated, initial in zip(repeated_results, batch_results):
+            np.testing.assert_array_equal(repeated[3], initial[3])
+            np.testing.assert_allclose(repeated[4], initial[4])
 
     assert len(batch_results) == num_templates
     for k in range(num_templates):
@@ -368,7 +456,7 @@ def test_batched_matched_filter_and_cluster_parity():
 
 
 def test_batched_filter_full_tensor_matches_cropped_tensor():
-    """Slicing full templates inside JIT preserves both screening paths."""
+    """Slicing full templates inside JIT preserves both clustering paths."""
     rng = np.random.default_rng(1234)
     template_count = 3
     n_freq = 17
@@ -383,45 +471,55 @@ def test_batched_filter_full_tensor_matches_cropped_tensor():
         rng.normal(size=kmax - kmin) + 1j * rng.normal(size=kmax - kmin)
     ).astype(np.complex64)
     cropped = templates[:, kmin:kmax]
+    threshold_sq = np.full(template_count, 0.25, dtype=np.float32)
+    window = 4
 
     with scheme.JAXScheme():
-        full = _batched_filter_and_screen(
+        full = _batched_filter_and_cluster(
             templates,
             seg_slice,
+            threshold_sq,
             kmin,
             kmax,
             tlen,
             valid_start,
             valid_stop,
+            window,
             full_templates=True,
         )
-        reference = _batched_filter_and_screen(
+        reference = _batched_filter_and_cluster(
             cropped,
             seg_slice,
+            threshold_sq,
             kmin,
             kmax,
             tlen,
             valid_start,
             valid_stop,
+            window,
         )
-        full_lean = _batched_filter_and_screen_lean(
+        full_lean = _batched_filter_and_cluster_lean(
             templates,
             seg_slice,
+            threshold_sq,
             kmin,
             kmax,
             tlen,
             valid_start,
             valid_stop,
+            window,
             full_templates=True,
         )
-        reference_lean = _batched_filter_and_screen_lean(
+        reference_lean = _batched_filter_and_cluster_lean(
             cropped,
             seg_slice,
+            threshold_sq,
             kmin,
             kmax,
             tlen,
             valid_start,
             valid_stop,
+            window,
         )
 
     for got, expected in zip(full, reference):

@@ -18,6 +18,7 @@ SPEC.loader.exec_module(nsight)
 
 
 TARGET_PID = 123
+CPU_ONLY_CHILD_PID = 124
 TARGET_GLOBAL_PID = TARGET_PID << 24
 OTHER_GLOBAL_PID = 999 << 24
 ORIGIN_NS = 1_000_000_000
@@ -125,6 +126,34 @@ def test_process_filter_alignment_overlap_and_completion_bins(tmp_path):
     assert trace["totals"]["d2d_bytes"] == 30
     assert trace["totals"]["kernel_active_sec"] == pytest.approx(0.1)
     assert json.loads(output.read_text())["cuda_trace"] == trace
+
+
+def test_cpu_only_process_tree_child_is_recorded_without_cuda_attribution(
+    tmp_path,
+):
+    db = tmp_path / "trace.sqlite"
+    receipt = tmp_path / "telemetry.json"
+    output = tmp_path / "enriched.json"
+    make_trace(db)
+    write_receipt(receipt, target_pids=[TARGET_PID, CPU_ONLY_CHILD_PID])
+
+    result = nsight.extract_timeline(db, receipt, output, bin_ms=100)
+    trace = result["cuda_trace"]
+    assert trace["target_pids"] == [TARGET_PID, CPU_ONLY_CHILD_PID]
+    assert trace["resolved_target_pids"] == [TARGET_PID]
+    assert trace["unresolved_pids"] == [CPU_ONLY_CHILD_PID]
+    assert trace["no_cuda_pids"] == [CPU_ONLY_CHILD_PID]
+    assert trace["global_pids"] == [TARGET_GLOBAL_PID]
+    assert trace["totals"]["kernel_count"] == 2
+
+
+def test_all_unresolved_processes_are_rejected(tmp_path):
+    db = tmp_path / "trace.sqlite"
+    receipt = tmp_path / "telemetry.json"
+    make_trace(db)
+    write_receipt(receipt, target_pids=[CPU_ONLY_CHILD_PID])
+    with pytest.raises(nsight.NsightTimelineError, match="any observed"):
+        nsight.extract_timeline(db, receipt, tmp_path / "out.json")
 
 
 def test_missing_marker_is_rejected(tmp_path):

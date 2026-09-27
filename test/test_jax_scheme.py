@@ -17,11 +17,15 @@
 """Tests for PyCBC JAXScheme and CLI integration."""
 
 import argparse
+import numpy as np
 import pytest
 import pycbc
 from pycbc import scheme
 
 pytest.importorskip("jax")
+import jax.numpy as jnp
+
+from pycbc.types.array_jax import JAXArrayData
 
 
 def test_jax_scheme_availability():
@@ -36,6 +40,20 @@ def test_jax_scheme_init_default():
     assert ctx.prefix == "jax"
     assert ctx.jax_device is not None
     assert ctx.jax_device.platform == "cpu"
+    assert ctx.jax_chisq_mode == "cpu-compatible"
+    assert ctx.jax_highpass_mode == "lal-serial"
+
+
+def test_jax_scheme_chisq_modes():
+    assert scheme.JAXScheme(chisq_mode="direct-phase").jax_chisq_mode == "direct-phase"
+    with pytest.raises(ValueError, match="chisq_mode"):
+        scheme.JAXScheme(chisq_mode="unknown")
+
+
+def test_jax_scheme_highpass_modes():
+    assert scheme.JAXScheme(highpass_mode="parallel").jax_highpass_mode == "parallel"
+    with pytest.raises(ValueError, match="highpass_mode"):
+        scheme.JAXScheme(highpass_mode="unknown")
 
 
 def test_jax_scheme_context_manager():
@@ -63,12 +81,39 @@ def test_jax_scheme_from_cli():
     ctx = scheme.from_cli(opts)
     assert isinstance(ctx, scheme.JAXScheme)
     assert ctx.jax_device.platform == "cpu"
+    assert ctx.jax_highpass_mode == "lal-serial"
 
     # Test explicit jax:cpu
     opts = parser.parse_args(["--processing-scheme", "jax:cpu"])
     ctx = scheme.from_cli(opts)
     assert isinstance(ctx, scheme.JAXScheme)
     assert ctx.jax_device.platform == "cpu"
+
+    opts = parser.parse_args([
+        "--processing-scheme", "jax:cpu", "--jax-chisq-mode", "direct-phase"
+    ])
+    assert scheme.from_cli(opts).jax_chisq_mode == "direct-phase"
+
+    opts = parser.parse_args([
+        "--processing-scheme", "jax:cpu", "--jax-highpass-mode", "parallel"
+    ])
+    assert scheme.from_cli(opts).jax_highpass_mode == "parallel"
+
+
+def test_jax_chisq_mode_rejected_for_cpu():
+    parser = argparse.ArgumentParser()
+    scheme.insert_processing_option_group(parser)
+    opts = parser.parse_args([
+        "--processing-scheme", "cpu", "--jax-chisq-mode", "direct-phase"
+    ])
+    with pytest.raises(ValueError, match="only valid with a JAX"):
+        scheme.from_cli(opts)
+
+    opts = parser.parse_args([
+        "--processing-scheme", "cpu", "--jax-highpass-mode", "lal-serial"
+    ])
+    with pytest.raises(ValueError, match="only valid with a JAX"):
+        scheme.from_cli(opts)
 
 
 def test_jax_scheme_invalid_device():
@@ -85,3 +130,20 @@ def test_current_backend_key():
         key2 = scheme.current_backend_key()
         assert key2[0] == "jax"
         assert key1 != key2
+    with scheme.JAXScheme(highpass_mode="parallel"):
+        assert scheme.current_backend_key() != key2
+
+
+def test_jax_storage_assignment_preserves_destination_dtype():
+    data = JAXArrayData(jnp.zeros(4, dtype=jnp.complex64))
+    values = jnp.asarray([1 + 2j, 3 + 4j], dtype=jnp.complex128)
+
+    data.set_slice(slice(1, 3), values)
+    assert data.array.dtype == jnp.complex64
+    np.testing.assert_array_equal(
+        np.asarray(data.array),
+        np.asarray([0, 1 + 2j, 3 + 4j, 0], np.complex64),
+    )
+
+    data.set_array(jnp.ones(4, dtype=jnp.complex128))
+    assert data.array.dtype == jnp.complex64

@@ -17,10 +17,10 @@ pytest.importorskip("jax")
 from pycbc.waveform import jax_waveform_registry as registry
 
 
-def test_registry_starts_empty():
-    assert dict(registry.JAX_NATIVE_WAVEFORMS) == {}
-    for interface in ("fd", "sequence"):
-        assert registry.native_approximants(interface) == ()
+def test_taylorf2_is_registered():
+    assert "TaylorF2" in registry.JAX_NATIVE_WAVEFORMS
+    assert registry.native_approximants("fd") == ("TaylorF2",)
+    assert registry.native_approximants("sequence") == ("TaylorF2",)
 
 
 def test_registered_modules_are_importable():
